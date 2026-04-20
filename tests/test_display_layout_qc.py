@@ -2684,6 +2684,135 @@ def test_run_display_layout_qc_fails_when_pathway_enrichment_dotplot_scale_label
     assert any(issue["rule_id"] == "size_scale_label_missing" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_celltype_marker_dotplot_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_celltype_marker_dotplot_panel",
+        layout_sidecar={
+            "template_id": "celltype_marker_dotplot_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.10, y0=0.86, x1=0.30, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.52, y0=0.86, x1=0.70, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.10, y0=0.76, x1=0.12, y1=0.79),
+                make_box("panel_label_B", "panel_label", x0=0.52, y0=0.76, x1=0.54, y1=0.79),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.16, y0=0.08, x1=0.32, y1=0.12),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.58, y0=0.08, x1=0.74, y1=0.12),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.03, y0=0.34, x1=0.06, y1=0.66),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.10, y0=0.18, x1=0.42, y1=0.80),
+                make_box("panel_B", "panel", x0=0.52, y0=0.18, x1=0.84, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.26, y0=0.02, x1=0.56, y1=0.08),
+                make_box("colorbar", "colorbar", x0=0.88, y0=0.20, x1=0.92, y1=0.76),
+            ],
+            "metrics": {
+                "effect_scale_label": "Mean expression",
+                "size_scale_label": "Detection rate (%)",
+                "celltype_labels": ["Basal", "Immune", "Stromal"],
+                "marker_labels": ["KRT14", "CXCL13", "COL1A1"],
+                "panels": [
+                    {
+                        "panel_id": "discovery",
+                        "panel_title": "Discovery atlas",
+                        "panel_label": "A",
+                        "panel_box_id": "panel_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "panel_title_box_id": "panel_title_A",
+                        "x_axis_title_box_id": "x_axis_title_A",
+                        "points": [
+                            {"celltype_label": "Basal", "marker_label": "KRT14", "x": 0.20, "y": 0.68, "size_value": 84.0, "effect_value": 1.42},
+                            {"celltype_label": "Basal", "marker_label": "CXCL13", "x": 0.27, "y": 0.68, "size_value": 12.0, "effect_value": 0.18},
+                            {"celltype_label": "Basal", "marker_label": "COL1A1", "x": 0.34, "y": 0.68, "size_value": 8.0, "effect_value": 0.10},
+                            {"celltype_label": "Immune", "marker_label": "KRT14", "x": 0.20, "y": 0.50, "size_value": 10.0, "effect_value": 0.12},
+                            {"celltype_label": "Immune", "marker_label": "CXCL13", "x": 0.27, "y": 0.50, "size_value": 73.0, "effect_value": 1.21},
+                            {"celltype_label": "Immune", "marker_label": "COL1A1", "x": 0.34, "y": 0.50, "size_value": 14.0, "effect_value": 0.22},
+                            {"celltype_label": "Stromal", "marker_label": "KRT14", "x": 0.20, "y": 0.32, "size_value": 9.0, "effect_value": 0.10},
+                            {"celltype_label": "Stromal", "marker_label": "CXCL13", "x": 0.27, "y": 0.32, "size_value": 18.0, "effect_value": 0.24},
+                            {"celltype_label": "Stromal", "marker_label": "COL1A1", "x": 0.34, "y": 0.32, "size_value": 88.0, "effect_value": 1.36},
+                        ],
+                    },
+                    {
+                        "panel_id": "validation",
+                        "panel_title": "Validation atlas",
+                        "panel_label": "B",
+                        "panel_box_id": "panel_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "panel_title_box_id": "panel_title_B",
+                        "x_axis_title_box_id": "x_axis_title_B",
+                        "points": [
+                            {"celltype_label": "Basal", "marker_label": "KRT14", "x": 0.62, "y": 0.68, "size_value": 80.0, "effect_value": 1.31},
+                            {"celltype_label": "Basal", "marker_label": "CXCL13", "x": 0.69, "y": 0.68, "size_value": 15.0, "effect_value": 0.21},
+                            {"celltype_label": "Basal", "marker_label": "COL1A1", "x": 0.76, "y": 0.68, "size_value": 7.0, "effect_value": 0.11},
+                            {"celltype_label": "Immune", "marker_label": "KRT14", "x": 0.62, "y": 0.50, "size_value": 11.0, "effect_value": 0.14},
+                            {"celltype_label": "Immune", "marker_label": "CXCL13", "x": 0.69, "y": 0.50, "size_value": 70.0, "effect_value": 1.16},
+                            {"celltype_label": "Immune", "marker_label": "COL1A1", "x": 0.76, "y": 0.50, "size_value": 16.0, "effect_value": 0.25},
+                            {"celltype_label": "Stromal", "marker_label": "KRT14", "x": 0.62, "y": 0.32, "size_value": 10.0, "effect_value": 0.11},
+                            {"celltype_label": "Stromal", "marker_label": "CXCL13", "x": 0.69, "y": 0.32, "size_value": 19.0, "effect_value": 0.27},
+                            {"celltype_label": "Stromal", "marker_label": "COL1A1", "x": 0.76, "y": 0.32, "size_value": 86.0, "effect_value": 1.29},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_celltype_marker_dotplot_marker_labels_are_missing() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_celltype_marker_dotplot_panel",
+        layout_sidecar={
+            "template_id": "celltype_marker_dotplot_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.10, y0=0.86, x1=0.30, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.10, y0=0.76, x1=0.12, y1=0.79),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.16, y0=0.08, x1=0.32, y1=0.12),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.03, y0=0.34, x1=0.06, y1=0.66),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.10, y0=0.18, x1=0.42, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.26, y0=0.02, x1=0.56, y1=0.08),
+                make_box("colorbar", "colorbar", x0=0.88, y0=0.20, x1=0.92, y1=0.76),
+            ],
+            "metrics": {
+                "effect_scale_label": "Mean expression",
+                "size_scale_label": "Detection rate (%)",
+                "celltype_labels": ["Basal", "Immune"],
+                "marker_labels": [],
+                "panels": [
+                    {
+                        "panel_id": "discovery",
+                        "panel_title": "Discovery atlas",
+                        "panel_label": "A",
+                        "panel_box_id": "panel_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "panel_title_box_id": "panel_title_A",
+                        "x_axis_title_box_id": "x_axis_title_A",
+                        "points": [
+                            {"celltype_label": "Basal", "marker_label": "KRT14", "x": 0.20, "y": 0.60, "size_value": 84.0, "effect_value": 1.42},
+                            {"celltype_label": "Immune", "marker_label": "CXCL13", "x": 0.30, "y": 0.40, "size_value": 73.0, "effect_value": 1.21},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "marker_labels_missing" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_omics_volcano_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

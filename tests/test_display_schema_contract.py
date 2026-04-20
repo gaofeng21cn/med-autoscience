@@ -49,6 +49,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     clustered_heatmap = module.get_input_schema_contract("clustered_heatmap_inputs_v1")
     gsva_heatmap = module.get_input_schema_contract("gsva_ssgsea_heatmap_inputs_v1")
     enrichment_dotplot = module.get_input_schema_contract("pathway_enrichment_dotplot_panel_inputs_v1")
+    celltype_marker_dotplot = module.get_input_schema_contract("celltype_marker_dotplot_panel_inputs_v1")
     omics_volcano = module.get_input_schema_contract("omics_volcano_panel_inputs_v1")
     oncoplot_landscape = module.get_input_schema_contract("oncoplot_mutation_landscape_panel_inputs_v1")
     cnv_recurrence = module.get_input_schema_contract("cnv_recurrence_summary_panel_inputs_v1")
@@ -706,6 +707,49 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "point_effect_values_must_be_finite",
         "point_size_values_must_be_non_negative",
         "declared_panel_pathway_grid_must_be_complete_and_unique",
+    )
+    assert celltype_marker_dotplot.template_ids == (_full_id("celltype_marker_dotplot_panel"),)
+    assert celltype_marker_dotplot.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "y_label",
+        "effect_scale_label",
+        "size_scale_label",
+        "panel_order",
+        "celltype_order",
+        "marker_order",
+        "points",
+    )
+    assert celltype_marker_dotplot.display_optional_fields == ("paper_role",)
+    assert celltype_marker_dotplot.collection_required_fields["panel_order"] == ("panel_id", "panel_title")
+    assert celltype_marker_dotplot.collection_required_fields["celltype_order"] == ("label",)
+    assert celltype_marker_dotplot.collection_required_fields["marker_order"] == ("label",)
+    assert celltype_marker_dotplot.collection_required_fields["points"] == (
+        "panel_id",
+        "celltype_label",
+        "marker_label",
+        "effect_value",
+        "size_value",
+    )
+    assert celltype_marker_dotplot.additional_constraints == (
+        "effect_scale_label_must_be_non_empty",
+        "size_scale_label_must_be_non_empty",
+        "panel_order_must_be_non_empty",
+        "panel_order_count_must_be_at_most_two",
+        "panel_ids_must_be_unique",
+        "panel_titles_must_be_non_empty",
+        "celltype_order_labels_must_be_unique",
+        "marker_order_labels_must_be_unique",
+        "points_must_be_non_empty",
+        "point_panel_ids_must_match_declared_panels",
+        "point_celltype_labels_must_match_declared_celltypes",
+        "point_marker_labels_must_match_declared_markers",
+        "point_effect_values_must_be_finite",
+        "point_size_values_must_be_non_negative",
+        "declared_panel_celltype_marker_grid_must_be_complete_and_unique",
     )
     assert omics_volcano.template_ids == (_full_id("omics_volcano_panel"),)
     assert omics_volcano.display_required_fields == (

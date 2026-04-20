@@ -52,6 +52,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("atlas_spatial_trajectory_density_coverage_panel"),
         _full_id("atlas_spatial_trajectory_context_support_panel"),
         _full_id("atlas_spatial_trajectory_multimanifold_context_support_panel"),
+        _full_id("celltype_marker_dotplot_panel"),
         _full_id("heatmap_group_comparison"),
         _full_id("performance_heatmap"),
         _full_id("correlation_heatmap"),
@@ -290,6 +291,16 @@ def test_pathway_enrichment_dotplot_panel_is_registered() -> None:
     assert spec.renderer_family == "python"
     assert spec.input_schema_id == "pathway_enrichment_dotplot_panel_inputs_v1"
     assert spec.layout_qc_profile == "publication_pathway_enrichment_dotplot_panel"
+
+
+def test_celltype_marker_dotplot_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("celltype_marker_dotplot_panel"))
+
+    assert spec.paper_family_ids == ("D", "E", "G")
+    assert spec.evidence_class == "matrix_pattern"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "celltype_marker_dotplot_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_celltype_marker_dotplot_panel"
 
 
 def test_multivariable_forest_is_registered() -> None:
@@ -718,6 +729,7 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     figure10b = display_registry.get_evidence_figure_spec(_full_id("clustered_heatmap"))
     figure10c = display_registry.get_evidence_figure_spec(_full_id("gsva_ssgsea_heatmap"))
     figure10d = display_registry.get_evidence_figure_spec(_full_id("pathway_enrichment_dotplot_panel"))
+    figure10e = display_registry.get_evidence_figure_spec(_full_id("celltype_marker_dotplot_panel"))
     figure12 = display_registry.get_evidence_figure_spec(_full_id("subgroup_forest"))
     figure13 = display_registry.get_evidence_figure_spec(_full_id("shap_dependence_panel"))
     figure14 = display_registry.get_evidence_figure_spec(
@@ -778,6 +790,11 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure10d.renderer_family == "python"
     assert figure10d.input_schema_id == "pathway_enrichment_dotplot_panel_inputs_v1"
     assert figure10d.layout_qc_profile == "publication_pathway_enrichment_dotplot_panel"
+    assert figure10e.paper_family_ids == ("D", "E", "G")
+    assert figure10e.evidence_class == "matrix_pattern"
+    assert figure10e.renderer_family == "python"
+    assert figure10e.input_schema_id == "celltype_marker_dotplot_panel_inputs_v1"
+    assert figure10e.layout_qc_profile == "publication_celltype_marker_dotplot_panel"
     assert figure12.input_schema_id == "forest_effect_inputs_v1"
     assert figure12.layout_qc_profile == "publication_forest_plot"
     assert figure13.paper_family_ids == ("F",)

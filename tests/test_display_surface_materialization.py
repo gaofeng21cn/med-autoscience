@@ -6225,6 +6225,56 @@ def _make_pathway_enrichment_dotplot_panel_display(display_id: str = "Figure34")
     }
 
 
+def _make_celltype_marker_dotplot_panel_display(display_id: str = "Figure53") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "celltype_marker_dotplot_panel",
+        "title": "Cell-type marker expression atlas across discovery and validation cohorts",
+        "caption": (
+            "Shared cell-type ordering, marker ordering, mean-expression chromatic scale, and detection-rate "
+            "dot sizing remain bound inside one audited marker dotplot contract."
+        ),
+        "x_label": "Marker gene",
+        "y_label": "Cell type",
+        "effect_scale_label": "Mean expression",
+        "size_scale_label": "Detection rate (%)",
+        "panel_order": [
+            {"panel_id": "discovery", "panel_title": "Discovery atlas"},
+            {"panel_id": "validation", "panel_title": "Validation atlas"},
+        ],
+        "celltype_order": [
+            {"label": "Basal"},
+            {"label": "Immune"},
+            {"label": "Stromal"},
+        ],
+        "marker_order": [
+            {"label": "KRT14"},
+            {"label": "CXCL13"},
+            {"label": "COL1A1"},
+        ],
+        "points": [
+            {"panel_id": "discovery", "celltype_label": "Basal", "marker_label": "KRT14", "effect_value": 1.42, "size_value": 84.0},
+            {"panel_id": "discovery", "celltype_label": "Basal", "marker_label": "CXCL13", "effect_value": 0.18, "size_value": 12.0},
+            {"panel_id": "discovery", "celltype_label": "Basal", "marker_label": "COL1A1", "effect_value": 0.10, "size_value": 8.0},
+            {"panel_id": "discovery", "celltype_label": "Immune", "marker_label": "KRT14", "effect_value": 0.12, "size_value": 10.0},
+            {"panel_id": "discovery", "celltype_label": "Immune", "marker_label": "CXCL13", "effect_value": 1.21, "size_value": 73.0},
+            {"panel_id": "discovery", "celltype_label": "Immune", "marker_label": "COL1A1", "effect_value": 0.22, "size_value": 14.0},
+            {"panel_id": "discovery", "celltype_label": "Stromal", "marker_label": "KRT14", "effect_value": 0.10, "size_value": 9.0},
+            {"panel_id": "discovery", "celltype_label": "Stromal", "marker_label": "CXCL13", "effect_value": 0.24, "size_value": 18.0},
+            {"panel_id": "discovery", "celltype_label": "Stromal", "marker_label": "COL1A1", "effect_value": 1.36, "size_value": 88.0},
+            {"panel_id": "validation", "celltype_label": "Basal", "marker_label": "KRT14", "effect_value": 1.31, "size_value": 80.0},
+            {"panel_id": "validation", "celltype_label": "Basal", "marker_label": "CXCL13", "effect_value": 0.21, "size_value": 15.0},
+            {"panel_id": "validation", "celltype_label": "Basal", "marker_label": "COL1A1", "effect_value": 0.11, "size_value": 7.0},
+            {"panel_id": "validation", "celltype_label": "Immune", "marker_label": "KRT14", "effect_value": 0.14, "size_value": 11.0},
+            {"panel_id": "validation", "celltype_label": "Immune", "marker_label": "CXCL13", "effect_value": 1.16, "size_value": 70.0},
+            {"panel_id": "validation", "celltype_label": "Immune", "marker_label": "COL1A1", "effect_value": 0.25, "size_value": 16.0},
+            {"panel_id": "validation", "celltype_label": "Stromal", "marker_label": "KRT14", "effect_value": 0.11, "size_value": 10.0},
+            {"panel_id": "validation", "celltype_label": "Stromal", "marker_label": "CXCL13", "effect_value": 0.27, "size_value": 19.0},
+            {"panel_id": "validation", "celltype_label": "Stromal", "marker_label": "COL1A1", "effect_value": 1.29, "size_value": 86.0},
+        ],
+    }
+
+
 def _make_omics_volcano_panel_display(display_id: str = "Figure35") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -6903,6 +6953,32 @@ def test_load_evidence_display_payload_rejects_incomplete_panel_pathway_grid_for
         )
 
 
+def test_load_evidence_display_payload_rejects_incomplete_panel_celltype_marker_grid_for_dotplot(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_celltype_marker_dotplot_panel_display()
+    display_payload["points"] = list(display_payload["points"][:-1])
+    dump_json(
+        paper_root / "celltype_marker_dotplot_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "celltype_marker_dotplot_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("celltype_marker_dotplot_panel")
+
+    with pytest.raises(ValueError, match="must cover every declared panel/celltype/marker coordinate exactly once"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure53",
+        )
+
+
 def test_load_evidence_display_payload_rejects_incomplete_layer_support_grid_for_genomic_program_governance_summary_panel(
     tmp_path: Path,
 ) -> None:
@@ -7480,6 +7556,83 @@ def test_materialize_display_surface_generates_pathway_enrichment_dotplot_panel(
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "pathway_enrichment_dotplot_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_pathway_enrichment_dotplot_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_celltype_marker_dotplot_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure53",
+                    "display_kind": "figure",
+                    "requirement_key": "celltype_marker_dotplot_panel",
+                    "catalog_id": "F53",
+                    "shell_path": "paper/figures/Figure53.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure53",
+                    "template_id": "celltype_marker_dotplot_panel",
+                    "layout_override": {"show_figure_title": True},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "celltype_marker_dotplot_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "celltype_marker_dotplot_panel_inputs_v1",
+            "displays": [_make_celltype_marker_dotplot_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F53"]
+    assert (paper_root / "figures" / "generated" / "F53_celltype_marker_dotplot_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F53_celltype_marker_dotplot_panel.pdf").exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F53_celltype_marker_dotplot_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == ["panel_A", "panel_B"]
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} == {"legend", "colorbar"}
+    assert layout_sidecar["metrics"]["effect_scale_label"] == "Mean expression"
+    assert layout_sidecar["metrics"]["size_scale_label"] == "Detection rate (%)"
+    assert layout_sidecar["metrics"]["celltype_labels"] == ["Basal", "Immune", "Stromal"]
+    assert layout_sidecar["metrics"]["marker_labels"] == ["KRT14", "CXCL13", "COL1A1"]
+    assert [panel["panel_id"] for panel in layout_sidecar["metrics"]["panels"]] == ["discovery", "validation"]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F53"
+    assert figure_entry["template_id"] == full_id("celltype_marker_dotplot_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "celltype_marker_dotplot_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_celltype_marker_dotplot_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

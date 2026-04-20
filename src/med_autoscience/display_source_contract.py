@@ -31,6 +31,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "clustered_heatmap_inputs_v1": "clustered_heatmap_inputs.json",
     "gsva_ssgsea_heatmap_inputs_v1": "gsva_ssgsea_heatmap_inputs.json",
     "pathway_enrichment_dotplot_panel_inputs_v1": "pathway_enrichment_dotplot_panel_inputs.json",
+    "celltype_marker_dotplot_panel_inputs_v1": "celltype_marker_dotplot_panel_inputs.json",
     "oncoplot_mutation_landscape_panel_inputs_v1": "oncoplot_mutation_landscape_panel_inputs.json",
     "cnv_recurrence_summary_panel_inputs_v1": "cnv_recurrence_summary_panel_inputs.json",
     "genomic_alteration_landscape_panel_inputs_v1": "genomic_alteration_landscape_panel_inputs.json",

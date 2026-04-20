@@ -20,12 +20,12 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`79`
+  - 证据型模板：`80`
   - 插图壳层：`7`
   - 表格壳层：`5`
-  - 总模板数：`91`
+  - 总模板数：`92`
 - 最近一次已吸收完成的 capability cluster：
-  - `D / diffusion_map_scatter_grouped`
+  - `D/E/G / celltype_marker_dotplot_panel`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -35,33 +35,34 @@
 ## 当前 Active Round
 
 - Phase：`Phase 4 / post-absorb reroute`
-- Family cluster：`D absorbed, reroute reopened`
-- Capability cluster：`diffusion_map_scatter_grouped closed`
+- Family cluster：`D/E/G absorbed, reroute reopened`
+- Capability cluster：`celltype_marker_dotplot_panel closed`
 - Owner worktree：`not_opened`
 - 状态：`ready_for_next_owner_round`
 
 ### Fresh Mainline Result
 
-- 当前主干已吸收的最新 capability cluster 是 `diffusion_map_scatter_grouped`；
+- 当前主干已吸收的最新 capability cluster 是 `celltype_marker_dotplot_panel`；
 - strict audited inventory 已更新到：
   - `Data Geometry`：`15`
-  - evidence figures：`79`
-  - total templates：`91`
-- `diffusion_map_scatter_grouped` 已把 `D` 家族 grouped embedding scatter lower bound 从四投影推进到五投影一致口径；
+  - `Matrix Pattern`：`14`
+  - evidence figures：`80`
+  - total templates：`92`
+- `celltype_marker_dotplot_panel` 已把 `D/E/G` 的 atlas follow-on lower bound 从“已有 overview / bridge / niche / trajectory / multimanifold context-support 复合图”推进到正式的 `cell type × marker` bounded dotplot companion，并把 shared `celltype_order`、shared `marker_order`、完整 `panel x celltype x marker` 网格、effect/size 双标尺语义与 up-to-two-panel manuscript-facing 版式治理固化进单一契约；
 - 下一步是按 reroute 规则固定下一个 capability cluster，再新开唯一 owner worktree。
 
 ### 当前轮次目标
 
 当前下一轮要回答：
 
-> 在 `D` 家族 diffusion-inclusive grouped manifold lower bound 已经 absorb 完成的前提下，下一条最值得继续扩容的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
+> 在 `D/E/G` 家族 atlas marker dotplot companion 已经 absorb 完成的前提下，下一条最值得继续扩容的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
 
 ### 当前 Next Baton
 
 当前 baton 已明确：
 
 1. 最新的 `D/E/G / atlas_spatial_trajectory_multimanifold_context_support_panel` owner round 已经 absorb 完成。
-2. 最新的 `D / diffusion_map_scatter_grouped` owner round 已完成 closeout，strict audited inventory 已推进到 `79 / 7 / 5 / 91`。
+2. 最新的 `D/E/G / celltype_marker_dotplot_panel` owner round 已完成 closeout，strict audited inventory 已推进到 `80 / 7 / 5 / 92`。
 3. 当前没有打开中的 owner worktree，下一轮要先 reroute，再开唯一 owner round。
 4. 下一轮优先继续比较 `D/E/G`、`C/H` 与 `F` 的 AI-first visual-hardening / higher-order follow-on 价值。
 

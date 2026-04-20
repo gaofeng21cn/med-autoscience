@@ -89,6 +89,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::clustered_heatmap` | `evidence_figure` | `E. Feature Pattern and Matrix` | Clustered Heatmap (Precomputed Ordering) | `r_ggplot2` | `clustered_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::gsva_ssgsea_heatmap` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | GSVA/ssGSEA Heatmap | `r_ggplot2` | `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::pathway_enrichment_dotplot_panel` | `evidence_figure` | `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Pathway Enrichment Dotplot Panel | `python` | `pathway_enrichment_dotplot_panel_inputs_v1` | `publication_pathway_enrichment_dotplot_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::celltype_marker_dotplot_panel` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Cell-Type Marker Dotplot Panel | `python` | `celltype_marker_dotplot_panel_inputs_v1` | `publication_celltype_marker_dotplot_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::oncoplot_mutation_landscape_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | Oncoplot Mutation Landscape Panel | `python` | `oncoplot_mutation_landscape_panel_inputs_v1` | `publication_oncoplot_mutation_landscape_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::cnv_recurrence_summary_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | CNV Recurrence Summary Panel | `python` | `cnv_recurrence_summary_panel_inputs_v1` | `publication_cnv_recurrence_summary_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::genomic_alteration_landscape_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | Genomic Alteration Landscape Panel | `python` | `genomic_alteration_landscape_panel_inputs_v1` | `publication_genomic_alteration_landscape_panel` | `png`, `pdf` |
@@ -618,6 +619,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: None
 - Optional nested collection fields: None
 - Additional constraints: `effect_scale_label_must_be_non_empty`, `size_scale_label_must_be_non_empty`, `panel_order_must_be_non_empty`, `panel_order_count_must_be_at_most_two`, `panel_ids_must_be_unique`, `panel_titles_must_be_non_empty`, `pathway_order_labels_must_be_unique`, `points_must_be_non_empty`, `point_panel_ids_must_match_declared_panels`, `point_pathway_labels_must_match_declared_pathways`, `point_x_values_must_be_finite`, `point_effect_values_must_be_finite`, `point_size_values_must_be_non_negative`, `declared_panel_pathway_grid_must_be_complete_and_unique`
+
+### `celltype_marker_dotplot_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Cell-Type Marker Dotplot Panel
+- Templates: `fenggaolab.org.medical-display-core::celltype_marker_dotplot_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `effect_scale_label`, `size_scale_label`, `panel_order`, `celltype_order`, `marker_order`, `points`
+- Optional display fields: `paper_role`
+- Required collection fields: `panel_order` -> `panel_id`, `panel_title`<br>`celltype_order` -> `label`<br>`marker_order` -> `label`<br>`points` -> `panel_id`, `celltype_label`, `marker_label`, `effect_value`, `size_value`
+- Optional collection fields: None
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `effect_scale_label_must_be_non_empty`, `size_scale_label_must_be_non_empty`, `panel_order_must_be_non_empty`, `panel_order_count_must_be_at_most_two`, `panel_ids_must_be_unique`, `panel_titles_must_be_non_empty`, `celltype_order_labels_must_be_unique`, `marker_order_labels_must_be_unique`, `points_must_be_non_empty`, `point_panel_ids_must_match_declared_panels`, `point_celltype_labels_must_match_declared_celltypes`, `point_marker_labels_must_match_declared_markers`, `point_effect_values_must_be_finite`, `point_size_values_must_be_non_negative`, `declared_panel_celltype_marker_grid_must_be_complete_and_unique`
 
 ### `oncoplot_mutation_landscape_panel_inputs_v1`
 

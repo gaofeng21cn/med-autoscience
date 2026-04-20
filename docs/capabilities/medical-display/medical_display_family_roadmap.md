@@ -353,6 +353,7 @@ Current audited anchors:
 - `atlas_spatial_bridge_panel`
 - `spatial_niche_map_panel`
 - `trajectory_progression_panel`
+- `celltype_marker_dotplot_panel`
 - `atlas_spatial_trajectory_storyboard_panel`
 - `atlas_spatial_trajectory_density_coverage_panel`
 - `atlas_spatial_trajectory_context_support_panel`
@@ -360,7 +361,7 @@ Current audited anchors:
 
 Current gap direction:
 
-- richer manifold overlays and higher-order atlas geometry synthesis beyond the current diffusion-inclusive atlas-overview + atlas-spatial-bridge + spatial-niche + trajectory + storyboard + density/coverage + context-support + multimanifold baseline
+- richer manifold overlays and higher-order atlas geometry synthesis beyond the current diffusion-inclusive atlas-overview + atlas-spatial-bridge + spatial-niche + trajectory + atlas-marker-dotplot + storyboard + density/coverage + context-support + multimanifold baseline
 - richer higher-order atlas / spatial / trajectory composites beyond the current bounded seven-panel dual-manifold context-support contract
 - stronger crowding / labeling / legend QC for atlas-style, spatial, and trajectory publication-facing composites
 
@@ -394,6 +395,7 @@ Current audited anchors:
 - `correlation_heatmap`
 - `clustered_heatmap`
 - `pathway_enrichment_dotplot_panel`
+- `celltype_marker_dotplot_panel`
 - `celltype_signature_heatmap`
 - `single_cell_atlas_overview_panel`
 - `atlas_spatial_bridge_panel`
@@ -408,8 +410,8 @@ Current gap direction:
 
 - missingness and QC-oriented matrices
 - attention/importances matrix displays
-- celltype/program/kinetics/support/context composite matrices beyond the current atlas-overview / atlas-spatial-bridge / spatial-niche / trajectory / storyboard / density-coverage / context-support / multimanifold baseline
-- omics-oriented matrix and dotplot surfaces beyond the current GSVA + shared-pathway enrichment lower bound, with manuscript-facing annotation control
+- celltype/program/kinetics/support/context composite matrices beyond the current atlas-overview / atlas-spatial-bridge / spatial-niche / trajectory / atlas-marker-dotplot / storyboard / density-coverage / context-support / multimanifold baseline
+- omics-oriented matrix and dotplot surfaces beyond the current GSVA + shared-pathway enrichment + celltype-marker atlas companion lower bound, with manuscript-facing annotation control
 
 ### F. 模型解释类
 
@@ -504,6 +506,7 @@ Current audited anchors:
 
 - `gsva_ssgsea_heatmap`
 - `pathway_enrichment_dotplot_panel`
+- `celltype_marker_dotplot_panel`
 - `omics_volcano_panel`
 - `oncoplot_mutation_landscape_panel`
 - `cnv_recurrence_summary_panel`
@@ -524,8 +527,8 @@ Current audited anchors:
 
 Current gap direction:
 
-- the current omics-native lower bound now includes `GSVA/ssGSEA` heatmaps, a shared-order pathway-enrichment dotplot baseline, a bounded up-to-two-panel volcano baseline, a bounded oncoplot mutation-landscape baseline, a bounded CNV recurrence-summary baseline, a bounded mutation-plus-CNV genomic-alteration landscape baseline, a bounded driver-centric genomic-alteration consequence follow-on baseline, a fixed three-layer multiomic consequence follow-on baseline, a bounded `1 + 3 + 3` pathway-integrated genomic composite baseline, and a bounded two-panel genomic-program governance summary baseline; higher-order genomic-governance scenes remain follow-on slices
-- atlas overview baseline has now extended from embedding+signature into occupancy + composition + marker/program, then into atlas-to-spatial state transfer + region-wise composition + marker/program, then into tissue-coordinate niche topography + composition + marker/program, then into trajectory progression + branch composition + marker/module kinetics, then into a five-panel atlas-spatial-trajectory storyboard, then into a four-panel density / coverage support contract, then into a six-panel context-support baseline, and now further into a seven-panel dual-manifold context-support baseline; larger multi-view omics composites remain follow-on slices
+- the current omics-native lower bound now includes `GSVA/ssGSEA` heatmaps, a shared-order pathway-enrichment dotplot baseline, a bounded celltype-marker atlas companion dotplot baseline, a bounded up-to-two-panel volcano baseline, a bounded oncoplot mutation-landscape baseline, a bounded CNV recurrence-summary baseline, a bounded mutation-plus-CNV genomic-alteration landscape baseline, a bounded driver-centric genomic-alteration consequence follow-on baseline, a fixed three-layer multiomic consequence follow-on baseline, a bounded `1 + 3 + 3` pathway-integrated genomic composite baseline, and a bounded two-panel genomic-program governance summary baseline; higher-order genomic-governance scenes remain follow-on slices
+- atlas overview baseline has now extended from embedding+signature into occupancy + composition + marker/program, then into atlas-to-spatial state transfer + region-wise composition + marker/program, then into tissue-coordinate niche topography + composition + marker/program, then into trajectory progression + branch composition + marker/module kinetics, then into a bounded celltype-marker atlas companion dotplot, then into a five-panel atlas-spatial-trajectory storyboard, then into a four-panel density / coverage support contract, then into a six-panel context-support baseline, and now further into a seven-panel dual-manifold context-support baseline; larger multi-view omics composites remain follow-on slices
 - expand beyond the current GSVA + enrichment + volcano + oncoplot + CNV-summary + genomic-alteration + three-layer multiomic-consequence + pathway-integrated lower bound into richer genomic-governance synthesis or broader multi-view omics families as real paper demand appears
 - strengthen manuscript-facing legend, annotation, and local readability contracts for omics-specific matrices and atlas composites without pretending shared neighboring templates already solve the whole family
 

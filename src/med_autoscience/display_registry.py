@@ -59,6 +59,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "clustered_heatmap",
         "gsva_ssgsea_heatmap",
         "pathway_enrichment_dotplot_panel",
+        "celltype_marker_dotplot_panel",
         "oncoplot_mutation_landscape_panel",
         "cnv_recurrence_summary_panel",
         "genomic_alteration_landscape_panel",

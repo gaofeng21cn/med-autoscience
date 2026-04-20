@@ -5572,6 +5572,127 @@ def _validate_pathway_enrichment_dotplot_panel_display_payload(
     }
 
 
+def _validate_celltype_marker_dotplot_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    panel_order = _validate_panel_order_payload(
+        path=path,
+        payload=payload.get("panel_order"),
+        label=f"display `{expected_display_id}` panel_order",
+    )
+    celltype_order = _validate_labeled_order_payload(
+        path=path,
+        payload=payload.get("celltype_order"),
+        label=f"display `{expected_display_id}` celltype_order",
+    )
+    marker_order = _validate_labeled_order_payload(
+        path=path,
+        payload=payload.get("marker_order"),
+        label=f"display `{expected_display_id}` marker_order",
+    )
+    points = payload.get("points")
+    if not isinstance(points, list) or not points:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty points list")
+
+    declared_panel_ids = {item["panel_id"] for item in panel_order}
+    declared_celltype_labels = {item["label"] for item in celltype_order}
+    declared_marker_labels = {item["label"] for item in marker_order}
+    expected_coordinates = {
+        (panel["panel_id"], celltype["label"], marker["label"])
+        for panel in panel_order
+        for celltype in celltype_order
+        for marker in marker_order
+    }
+    observed_coordinates: set[tuple[str, str, str]] = set()
+    normalized_points: list[dict[str, Any]] = []
+    for index, item in enumerate(points):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` points[{index}] must be an object")
+        panel_id = _require_non_empty_string(
+            item.get("panel_id"),
+            label=f"{path.name} display `{expected_display_id}` points[{index}].panel_id",
+        )
+        if panel_id not in declared_panel_ids:
+            raise ValueError(f"{path.name} display `{expected_display_id}` points[{index}].panel_id must match panel_order")
+        celltype_label = _require_non_empty_string(
+            item.get("celltype_label"),
+            label=f"{path.name} display `{expected_display_id}` points[{index}].celltype_label",
+        )
+        if celltype_label not in declared_celltype_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` points[{index}].celltype_label must match celltype_order"
+            )
+        marker_label = _require_non_empty_string(
+            item.get("marker_label"),
+            label=f"{path.name} display `{expected_display_id}` points[{index}].marker_label",
+        )
+        if marker_label not in declared_marker_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` points[{index}].marker_label must match marker_order"
+            )
+        coordinate = (panel_id, celltype_label, marker_label)
+        if coordinate in observed_coordinates:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` must cover every declared panel/celltype/marker coordinate exactly once"
+            )
+        observed_coordinates.add(coordinate)
+        size_value = _require_numeric_value(
+            item.get("size_value"),
+            label=f"{path.name} display `{expected_display_id}` points[{index}].size_value",
+        )
+        if size_value < 0.0:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` points[{index}].size_value must be non-negative"
+            )
+        normalized_points.append(
+            {
+                "panel_id": panel_id,
+                "celltype_label": celltype_label,
+                "marker_label": marker_label,
+                "effect_value": _require_numeric_value(
+                    item.get("effect_value"),
+                    label=f"{path.name} display `{expected_display_id}` points[{index}].effect_value",
+                ),
+                "size_value": size_value,
+            }
+        )
+    if observed_coordinates != expected_coordinates:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` must cover every declared panel/celltype/marker coordinate exactly once"
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "y_label": y_label,
+        "effect_scale_label": _require_non_empty_string(
+            payload.get("effect_scale_label"),
+            label=f"{path.name} display `{expected_display_id}` effect_scale_label",
+        ),
+        "size_scale_label": _require_non_empty_string(
+            payload.get("size_scale_label"),
+            label=f"{path.name} display `{expected_display_id}` size_scale_label",
+        ),
+        "panel_order": panel_order,
+        "celltype_order": celltype_order,
+        "marker_order": marker_order,
+        "points": normalized_points,
+    }
+
+
 def _validate_oncoplot_mutation_landscape_panel_display_payload(
     *,
     path: Path,
@@ -11485,6 +11606,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "pathway_enrichment_dotplot_panel_inputs_v1":
         return payload_path, _validate_pathway_enrichment_dotplot_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "celltype_marker_dotplot_panel_inputs_v1":
+        return payload_path, _validate_celltype_marker_dotplot_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

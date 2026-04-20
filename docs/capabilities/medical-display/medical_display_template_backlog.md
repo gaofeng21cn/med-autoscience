@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `79`
+- Evidence figure templates: `80`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total audited templates: `91`
+- Total audited templates: `92`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -61,6 +61,7 @@
 - `H / broader transportability and center-coverage follow-on` 已在本轮正式 absorb 为 `center_transportability_governance_summary_panel`，不再保留在 backlog 候选池。
 - `D / PHATE manifold concrete follow-on` 已在本轮正式 absorb 为 `phate_scatter_grouped`，不再保留在 backlog 候选池。
 - `D / diffusion-map manifold concrete follow-on` 已在本轮正式 absorb 为 `diffusion_map_scatter_grouped`，不再保留在 backlog 候选池。
+- `D/E/G / atlas marker dotplot concrete follow-on` 已在本轮正式 absorb 为 `celltype_marker_dotplot_panel`，不再保留在 backlog 候选池。
 - `D/E/G / legend / annotation / readability-only hardening` 本轮不再作为当前 active 候选保留：
   - 原因：当前 atlas / spatial / trajectory family 的真 gap 已经抬升到更高阶 atlas geometry synthesis；只做 readability patch 还不足以承担下一条 multi-view capability cluster。
 - `D/E/G / broader omics-only matrix follow-on` 本轮不再作为当前 active 候选保留：
@@ -110,8 +111,8 @@
 4. 对 `H` 而言，`center_transportability_governance_summary_panel` 已完成 absorb；后续 broader transportability / center-governance synthesis 只有在新的真实论文 demand 明确证明价值时，才重新评估。
 5. 对 `C/H` 而言，`compact_effect_estimate_panel`、`coefficient_path_panel`、`broader_heterogeneity_summary_panel` 与 `interaction_effect_summary_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 calibration appendix 或更高阶 robustness synthesis。
 6. 对 `F` 而言，`feature_response_support_domain_panel`、`shap_multigroup_decision_path_panel`、`shap_grouped_local_support_domain_panel`、`shap_multigroup_decision_path_support_domain_panel` 与 `shap_signed_importance_local_support_domain_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更高阶 grouped-local、annotation / legend hardening 或其他 explanation scene。
-7. 对 `G/E` 而言，`gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel`、`oncoplot_mutation_landscape_panel`、`cnv_recurrence_summary_panel`、`genomic_alteration_landscape_panel`、`genomic_alteration_consequence_panel`、`genomic_alteration_multiomic_consequence_panel`、`genomic_alteration_pathway_integrated_composite_panel` 与 `genomic_program_governance_summary_panel` 已经形成当前最小十基线；后续只有在新的真实论文 demand 明确证明价值时，才重新评估超出当前 program-governance lower bound 的更高阶 genomic-governance scene。
-8. 对 `D/E/G` 而言，`celltype_signature_heatmap`、`single_cell_atlas_overview_panel`、`atlas_spatial_bridge_panel`、`spatial_niche_map_panel`、`trajectory_progression_panel`、`atlas_spatial_trajectory_storyboard_panel`、`atlas_spatial_trajectory_density_coverage_panel`、`atlas_spatial_trajectory_context_support_panel` 与 `atlas_spatial_trajectory_multimanifold_context_support_panel` 已经形成当前多视图 atlas / spatial / trajectory lower bound；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更高阶 atlas geometry synthesis 或更宽的 cross-context composite。
+7. 对 `G/E` 而言，`gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`celltype_marker_dotplot_panel`、`omics_volcano_panel`、`oncoplot_mutation_landscape_panel`、`cnv_recurrence_summary_panel`、`genomic_alteration_landscape_panel`、`genomic_alteration_consequence_panel`、`genomic_alteration_multiomic_consequence_panel`、`genomic_alteration_pathway_integrated_composite_panel` 与 `genomic_program_governance_summary_panel` 已经形成当前最小十一基线；后续只有在新的真实论文 demand 明确证明价值时，才重新评估超出当前 program-governance lower bound 的更高阶 genomic-governance scene。
+8. 对 `D/E/G` 而言，`celltype_signature_heatmap`、`single_cell_atlas_overview_panel`、`atlas_spatial_bridge_panel`、`spatial_niche_map_panel`、`trajectory_progression_panel`、`celltype_marker_dotplot_panel`、`atlas_spatial_trajectory_storyboard_panel`、`atlas_spatial_trajectory_density_coverage_panel`、`atlas_spatial_trajectory_context_support_panel` 与 `atlas_spatial_trajectory_multimanifold_context_support_panel` 已经形成当前多视图 atlas / spatial / trajectory lower bound；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更高阶 atlas geometry synthesis 或更宽的 cross-context composite。
 
 ## Promotion Rules
 
