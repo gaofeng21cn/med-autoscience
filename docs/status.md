@@ -1,6 +1,6 @@
 # 当前状态
 
-**更新时间：2026-04-18**
+**更新时间：2026-04-20**
 
 ## 当前角色与边界
 
@@ -47,3 +47,4 @@
 2. 继续把 `docs/project.md`、`docs/architecture.md`、`mainline-status` 与 `product-entry-manifest` payload 保持在同一入口模型上。
 3. 保持 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 作为 MAS 的核心可执行回路。
 4. 保持 `Hermes-Agent` 作为外部长期在线网关的 readiness 检查，并把维护者细节继续留在 reference / program 层。
+5. 把“医学论文质量 + 长时间全自动驾驶优化”正式收口到 `MAS` 单项目主线，由 `controller_charter / runtime / eval_hygiene` 共同承担 owner；`MDS` 迁移期角色收敛为 research backend、行为等价 oracle、上游 intake buffer，详见 [MAS Single-Project Quality And Autonomy Mainline](./program/mas_single_project_quality_and_autonomy_mainline.md)。
