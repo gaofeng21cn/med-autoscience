@@ -21,7 +21,7 @@ This guide is for readers who need the repo-tracked runtime, program, capability
 - The formal-entry matrix stays `CLI`, `MCP`, and `controller`.
 - The default MAS loop is `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`.
 - `product-entry-manifest` and `build-product-entry` stay as machine-readable bridges for `OPL` and other callers.
-- upstream `Hermes-Agent` names the external managed runtime target and supervision owner; the current repo-side seam plus controlled `MedDeepScientist` backend remain documented in the core docs.
+- upstream `Hermes-Agent` names the external managed runtime target and supervision owner; new quality and autonomy work lands in `MedAutoScience`, and the controlled `MedDeepScientist` lane stays documented as a transition oracle / intake / parity companion.
 - The medical display line stays separate as a downstream capability line.
 - Historical program records, runtime-formation notes, and absorbed migration proof stay in `docs/program/`, `docs/references/`, and [History Archive](./history/README.md).
 
@@ -73,6 +73,8 @@ Public-facing material should stay mirrored in English and Chinese.
 
 - [Research Foundry medical execution map](program/research_foundry_medical_execution_map.md)
 - [Research Foundry medical mainline](program/research_foundry_medical_mainline.md)
+- [MAS single-project quality and autonomy mainline](program/mas_single_project_quality_and_autonomy_mainline.md)
+- [MedDeepScientist deconstruction map](program/med_deepscientist_deconstruction_map.md)
 - [External runtime dependency gate](program/external_runtime_dependency_gate.md)
 - [Merge and cutover gates](program/merge_and_cutover_gates.md)
 - [Project repair priority map](program/project_repair_priority_map.md)

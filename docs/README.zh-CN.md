@@ -21,7 +21,7 @@
 - formal-entry matrix 继续固定为 `CLI`、`MCP`、`controller`。
 - MAS 默认回路是 `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`。
 - `product-entry-manifest` 与 `build-product-entry` 继续作为 `OPL` 与其他 caller 使用的 machine-readable bridge。
-- 上游 `Hermes-Agent` 指外部 managed runtime target 与 supervision owner；当前 repo-side seam 与受控 `MedDeepScientist` backend 的关系继续由核心文档说明。
+- 上游 `Hermes-Agent` 指外部 managed runtime target 与 supervision owner；新的质量与自治工作统一落在 `MedAutoScience`，受控 `MedDeepScientist` lane 继续作为 transition oracle / intake / parity companion 由核心文档说明。
 - 医学展示支线继续作为下游能力线分开维护。
 - 历史 program 记录、运行边界形成说明与已吸收迁移 proof 继续留在 `docs/program/`、`docs/references/` 与 [历史归档索引](./history/README.zh-CN.md) 中供维护者追溯。
 
@@ -73,6 +73,8 @@
 
 - [Research Foundry 医学执行地图](program/research_foundry_medical_execution_map.md)
 - [Research Foundry 医学主线](program/research_foundry_medical_mainline.md)
+- [MAS 单项目质量与自治主线](program/mas_single_project_quality_and_autonomy_mainline.md)
+- [MedDeepScientist 解构地图](program/med_deepscientist_deconstruction_map.md)
 - [External Runtime Dependency Gate](program/external_runtime_dependency_gate.md)
 - [Merge And Cutover Gates](program/merge_and_cutover_gates.md)
 - [项目修复优先级地图](program/project_repair_priority_map.md)
