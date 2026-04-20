@@ -53,6 +53,28 @@ def write_review_ledger(path: Path) -> None:
     )
 
 
+def write_study_charter(study_root: Path, *, study_id: str = "002-early-residual-risk") -> Path:
+    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
+    dump_json(
+        charter_path,
+        {
+            "schema_version": 1,
+            "charter_id": f"charter::{study_id}::v1",
+            "study_id": study_id,
+            "publication_objective": "Deliver a manuscript-safe residual-risk paper package.",
+            "paper_quality_contract": {
+                "frozen_at_startup": True,
+                "downstream_contract_roles": {
+                    "evidence_ledger": "records evidence against evidence expectations",
+                    "review_ledger": "records review closure against review expectations",
+                    "final_audit": "audits readiness against the charter contract",
+                },
+            },
+        },
+    )
+    return charter_path
+
+
 def make_delivery_workspace(
     tmp_path: Path,
     *,
@@ -93,6 +115,7 @@ def make_delivery_workspace(
     write_text(study_root / "study.yaml", "study_id: 002-early-residual-risk\n")
     write_text(study_root / "manuscript" / "README.md", "manuscript\n")
     write_text(study_root / "artifacts" / "README.md", "artifacts\n")
+    write_study_charter(study_root)
 
     write_text(paper_root / "submission_minimal" / "manuscript.docx", "docx")
     write_text(paper_root / "submission_minimal" / "paper.pdf", "%PDF-1.4\n")
@@ -390,6 +413,38 @@ def test_sync_study_delivery_for_submission_minimal_mirrors_review_ledger(tmp_pa
         and item["target_path"] == str(mirrored_ledger_path.resolve())
         for item in delivery_manifest["copied_files"]
     )
+
+
+def test_sync_study_delivery_projects_charter_linkage_into_manifest_and_current_package(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
+    linkage = delivery_manifest["charter_contract_linkage"]
+    readme_text = (study_root / "manuscript" / "current_package" / "README.md").read_text(encoding="utf-8")
+
+    assert linkage["status"] == "linked"
+    assert linkage["study_charter_ref"]["charter_id"] == "charter::002-early-residual-risk::v1"
+    assert linkage["study_charter_ref"]["artifact_path"] == str(
+        study_root / "artifacts" / "controller" / "study_charter.json"
+    )
+    assert linkage["paper_quality_contract"]["present"] is True
+    assert linkage["ledger_linkages"]["evidence_ledger"]["status"] == "linked"
+    assert linkage["ledger_linkages"]["review_ledger"]["status"] == "linked"
+    assert linkage["study_charter_ref"]["mirrored_artifact_path"] == str(
+        study_root / "manuscript" / "current_package" / "controller" / "study_charter.json"
+    )
+    assert (study_root / "manuscript" / "current_package" / "controller" / "study_charter.json").exists()
+    assert "Study charter contract" in readme_text
+    assert "charter::002-early-residual-risk::v1" in readme_text
+    assert "Mirrored study charter artifact" in readme_text
+    assert "Evidence ledger linkage: linked" in readme_text
+    assert "Review ledger linkage: linked" in readme_text
 
 
 def test_sync_study_delivery_writes_submission_todo_for_pending_front_matter(tmp_path: Path) -> None:

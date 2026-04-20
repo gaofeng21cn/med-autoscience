@@ -15,6 +15,7 @@ from med_autoscience.publication_profiles import (
     is_supported_publication_profile,
     normalize_publication_profile,
 )
+from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
 
 
@@ -31,6 +32,125 @@ def utc_now() -> str:
 def dump_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _normalized_path(path: Path | None) -> str | None:
+    if path is None:
+        return None
+    return str(Path(path).expanduser().resolve())
+
+
+def _build_ledger_contract_linkage(
+    *,
+    ledger_name: str,
+    ledger_path: Path | None,
+    study_context_status: str,
+    charter_id: str | None,
+    contract_role: str | None,
+) -> dict[str, Any]:
+    resolved_ledger_path = Path(ledger_path).expanduser().resolve() if ledger_path is not None else None
+    ledger_present = bool(resolved_ledger_path and resolved_ledger_path.exists())
+    normalized_role = str(contract_role or "").strip() or None
+    if study_context_status == "linked_context":
+        if normalized_role and ledger_present:
+            status = "linked"
+        elif normalized_role:
+            status = "ledger_missing"
+        else:
+            status = "contract_role_missing"
+    else:
+        status = study_context_status
+    return {
+        "ledger_name": ledger_name,
+        "ledger_path": _normalized_path(resolved_ledger_path),
+        "ledger_present": ledger_present,
+        "charter_id": charter_id,
+        "contract_role_present": bool(normalized_role),
+        "contract_role": normalized_role,
+        "contract_role_json_pointer": f"/paper_quality_contract/downstream_contract_roles/{ledger_name}",
+        "status": status,
+    }
+
+
+def build_charter_contract_linkage(
+    *,
+    study_root: Path | None,
+    evidence_ledger_path: Path | None,
+    review_ledger_path: Path | None,
+) -> dict[str, Any]:
+    resolved_study_root = Path(study_root).expanduser().resolve() if study_root is not None else None
+    if resolved_study_root is None:
+        study_context_status = "study_root_unresolved"
+        charter_path = None
+        charter_id = None
+        paper_quality_contract_present = False
+        downstream_contract_roles: dict[str, str] = {}
+    else:
+        charter_path = resolve_study_charter_ref(study_root=resolved_study_root)
+        charter_id = None
+        downstream_contract_roles = {}
+        if not charter_path.exists():
+            study_context_status = "study_charter_missing"
+            paper_quality_contract_present = False
+        else:
+            try:
+                charter_payload = read_study_charter(study_root=resolved_study_root, ref=charter_path)
+            except (json.JSONDecodeError, ValueError):
+                study_context_status = "study_charter_invalid"
+                paper_quality_contract_present = False
+            else:
+                charter_id = str(charter_payload.get("charter_id") or "").strip() or None
+                paper_quality_contract = charter_payload.get("paper_quality_contract")
+                paper_quality_contract_present = isinstance(paper_quality_contract, dict)
+                if paper_quality_contract_present:
+                    raw_roles = paper_quality_contract.get("downstream_contract_roles")
+                    if isinstance(raw_roles, dict):
+                        downstream_contract_roles = {
+                            str(key): str(value).strip()
+                            for key, value in raw_roles.items()
+                            if str(value).strip()
+                        }
+                study_context_status = "linked_context" if paper_quality_contract_present else "paper_quality_contract_missing"
+
+    ledger_linkages = {
+        "evidence_ledger": _build_ledger_contract_linkage(
+            ledger_name="evidence_ledger",
+            ledger_path=evidence_ledger_path,
+            study_context_status=study_context_status,
+            charter_id=charter_id,
+            contract_role=downstream_contract_roles.get("evidence_ledger"),
+        ),
+        "review_ledger": _build_ledger_contract_linkage(
+            ledger_name="review_ledger",
+            ledger_path=review_ledger_path,
+            study_context_status=study_context_status,
+            charter_id=charter_id,
+            contract_role=downstream_contract_roles.get("review_ledger"),
+        ),
+    }
+    ledger_statuses = {payload["status"] for payload in ledger_linkages.values()}
+    if study_context_status != "linked_context":
+        status = study_context_status
+    elif ledger_statuses == {"linked"}:
+        status = "linked"
+    elif "linked" in ledger_statuses:
+        status = "partially_linked"
+    else:
+        status = "unlinked"
+    return {
+        "status": status,
+        "study_root": _normalized_path(resolved_study_root),
+        "study_charter_ref": {
+            "charter_id": charter_id,
+            "artifact_path": _normalized_path(charter_path),
+        },
+        "paper_quality_contract": {
+            "present": paper_quality_contract_present,
+            "artifact_path": _normalized_path(charter_path),
+            "json_pointer": "/paper_quality_contract",
+        },
+        "ledger_linkages": ledger_linkages,
+    }
 
 
 def write_text(path: Path, content: str) -> None:
@@ -486,18 +606,52 @@ def build_submission_todo_from_manifest(*, manifest_path: Path) -> str | None:
     return "\n".join(lines)
 
 
-def build_current_package_readme(*, study_id: str, stage: str, source_relative_root: str, status_line: str) -> str:
-    return (
-        "# Current Human Package\n\n"
-        f"- Study: `{study_id}`\n"
-        f"- Active sync stage: `{stage}`\n"
-        f"- Status: {status_line}\n"
-        f"- Controller-authorized source: `{source_relative_root}`\n"
-        "- Canonical authority surface: `paper/`\n"
-        "- This directory is the stable, stage-agnostic entry point for the latest human-facing package.\n\n"
-        "Use this directory when a human wants the latest readable package without first deciding which stage-specific mirror to open. "
-        "Regenerate from the controller-authorized source, not from this projection.\n"
+def build_current_package_readme(
+    *,
+    study_id: str,
+    stage: str,
+    source_relative_root: str,
+    status_line: str,
+    charter_contract_linkage: dict[str, Any] | None = None,
+) -> str:
+    lines = [
+        "# Current Human Package",
+        "",
+        f"- Study: `{study_id}`",
+        f"- Active sync stage: `{stage}`",
+        f"- Status: {status_line}",
+        f"- Controller-authorized source: `{source_relative_root}`",
+        "- Canonical authority surface: `paper/`",
+        "- This directory is the stable, stage-agnostic entry point for the latest human-facing package.",
+    ]
+    linkage = charter_contract_linkage or {}
+    study_charter_ref = linkage.get("study_charter_ref") or {}
+    paper_quality_contract = linkage.get("paper_quality_contract") or {}
+    ledger_linkages = linkage.get("ledger_linkages") or {}
+    if linkage:
+        mirrored_charter_path = str(study_charter_ref.get("mirrored_artifact_path") or "").strip()
+        lines.extend(
+            [
+                "",
+                "## Charter Contract Linkage",
+                "",
+                f"- Study charter contract: `{study_charter_ref.get('charter_id')}`",
+                f"- Study charter path: `{study_charter_ref.get('artifact_path')}`",
+                f"- Mirrored study charter artifact: `{mirrored_charter_path or 'not_materialized'}`",
+                f"- Paper quality contract present: `{paper_quality_contract.get('present', False)}`",
+                f"- Evidence ledger linkage: {str((ledger_linkages.get('evidence_ledger') or {}).get('status') or 'study_root_unresolved')}",
+                f"- Review ledger linkage: {str((ledger_linkages.get('review_ledger') or {}).get('status') or 'study_root_unresolved')}",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "Use this directory when a human wants the latest readable package without first deciding which stage-specific mirror to open. "
+            "Regenerate from the controller-authorized source, not from this projection.",
+            "",
+        ]
     )
+    return "\n".join(lines)
 
 
 def sync_current_package_projection(
@@ -513,6 +667,7 @@ def sync_current_package_projection(
     copied_files: list[dict[str, str]],
     generated_files: list[dict[str, str]],
     review_ledger_source: Path | None = None,
+    charter_contract_linkage: dict[str, Any] | None = None,
 ) -> None:
     reset_directory(current_package_root)
     copy_tree(
@@ -540,6 +695,22 @@ def sync_current_package_projection(
             category="current_package_review_surface",
             copied_files=copied_files,
         )
+    linkage_payload = charter_contract_linkage if charter_contract_linkage is not None else {}
+    study_charter_ref = dict(linkage_payload.get("study_charter_ref") or {})
+    mirrored_charter_path = None
+    raw_charter_artifact_path = str(study_charter_ref.get("artifact_path") or "").strip()
+    if raw_charter_artifact_path:
+        charter_artifact_path = Path(raw_charter_artifact_path).expanduser()
+        if charter_artifact_path.exists():
+            mirrored_charter_path = current_package_root / "controller" / charter_artifact_path.name
+            copy_file(
+                source=charter_artifact_path,
+                target=mirrored_charter_path,
+                category="current_package_charter_surface",
+                copied_files=copied_files,
+            )
+            study_charter_ref["mirrored_artifact_path"] = str(mirrored_charter_path.resolve())
+            linkage_payload["study_charter_ref"] = study_charter_ref
     readme_path = current_package_root / "README.md"
     write_text(
         readme_path,
@@ -548,6 +719,7 @@ def sync_current_package_projection(
             stage=stage,
             source_relative_root=source_relative_root,
             status_line=status_line,
+            charter_contract_linkage=linkage_payload,
         ),
     )
     generated_files.append(
@@ -1051,6 +1223,11 @@ def materialize_submission_delivery_stale_notice(
     )
     manuscript_root.mkdir(parents=True, exist_ok=True)
     current_package_root.mkdir(parents=True, exist_ok=True)
+    charter_contract_linkage = build_charter_contract_linkage(
+        study_root=study_root,
+        evidence_ledger_path=resolved_paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+        review_ledger_path=resolved_paper_root / "review" / "review_ledger.json",
+    )
     preview_file_count = 0
     for name in ("manuscript.docx", "paper.pdf", "submission_manifest.json"):
         if _copy_optional_file(
@@ -1151,6 +1328,7 @@ def materialize_submission_delivery_stale_notice(
             stage="submission_preview",
             source_relative_root=source_relative_root,
             status_line="audit preview only; not submission-ready",
+            charter_contract_linkage=charter_contract_linkage,
         ),
     )
     generated_files.append(
@@ -1180,6 +1358,7 @@ def materialize_submission_delivery_stale_notice(
             "paper_root": str(resolved_paper_root),
             "expected_package_source_root": str(expected_source_root),
         },
+        "charter_contract_linkage": charter_contract_linkage,
         "active_delivery_manifest_path": str(delivery_manifest_path) if delivery_manifest_path.exists() else None,
         "current_package_root": str(current_package_root),
         "current_package_zip": str(current_package_zip),
@@ -1215,6 +1394,11 @@ def sync_draft_handoff_delivery(
 
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
+    charter_contract_linkage = build_charter_contract_linkage(
+        study_root=study_root,
+        evidence_ledger_path=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+        review_ledger_path=paper_root / "review" / "review_ledger.json",
+    )
     relative_paths = _draft_handoff_source_relative_paths(paper_root=paper_root)
     source_signature = _draft_handoff_source_signature(
         paper_root=paper_root,
@@ -1250,6 +1434,7 @@ def sync_draft_handoff_delivery(
             stage="draft_handoff",
             source_relative_root=source_relative_root,
             status_line="review-only draft surface; not a submission-ready package",
+            charter_contract_linkage=charter_contract_linkage,
         ),
     )
     generated_files.append(
@@ -1277,6 +1462,7 @@ def sync_draft_handoff_delivery(
         "source": {
             "paper_root": str(paper_root),
         },
+        "charter_contract_linkage": charter_contract_linkage,
         "surface_roles": build_delivery_surface_roles(
             paper_root=paper_root,
             source_root=paper_root,
@@ -1317,6 +1503,11 @@ def sync_general_delivery(
 
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
+    charter_contract_linkage = build_charter_contract_linkage(
+        study_root=study_root,
+        evidence_ledger_path=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+        review_ledger_path=paper_root / "review" / "review_ledger.json",
+    )
     source_root = build_submission_source_root(paper_root=paper_root, publication_profile="general_medical_journal")
     source_relative_root = build_authority_source_relative_root(paper_root=paper_root, source_root=source_root)
     source_relative_paths = _submission_source_relative_paths(
@@ -1434,6 +1625,7 @@ def sync_general_delivery(
         copied_files=copied_files,
         generated_files=generated_files,
         review_ledger_source=paper_root / "review" / "review_ledger.json",
+        charter_contract_linkage=charter_contract_linkage,
     )
     copy_review_ledger_to_delivery_root(
         paper_root=paper_root,
@@ -1464,6 +1656,7 @@ def sync_general_delivery(
             "paper_root": str(paper_root),
             "worktree_root": str(worktree_root),
         },
+        "charter_contract_linkage": charter_contract_linkage,
         "surface_roles": build_delivery_surface_roles(
             paper_root=paper_root,
             source_root=source_root,
@@ -1506,6 +1699,11 @@ def sync_journal_specific_delivery(
 
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
+    charter_contract_linkage = build_charter_contract_linkage(
+        study_root=study_root,
+        evidence_ledger_path=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+        review_ledger_path=paper_root / "review" / "review_ledger.json",
+    )
     source_relative_paths = _submission_source_relative_paths(
         paper_root=paper_root,
         source_root=source_root,
@@ -1598,6 +1796,7 @@ def sync_journal_specific_delivery(
         copied_files=copied_files,
         generated_files=generated_files,
         review_ledger_source=paper_root / "review" / "review_ledger.json",
+        charter_contract_linkage=charter_contract_linkage,
     )
     copy_review_ledger_to_delivery_root(
         paper_root=paper_root,
@@ -1620,6 +1819,7 @@ def sync_journal_specific_delivery(
             "worktree_root": str(worktree_root),
             "package_source_root": str(source_root),
         },
+        "charter_contract_linkage": charter_contract_linkage,
         "surface_roles": build_delivery_surface_roles(
             paper_root=paper_root,
             source_root=source_root,
@@ -1667,6 +1867,11 @@ def sync_promoted_journal_delivery(
 
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
+    charter_contract_linkage = build_charter_contract_linkage(
+        study_root=study_root,
+        evidence_ledger_path=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+        review_ledger_path=paper_root / "review" / "review_ledger.json",
+    )
     source_relative_paths = _submission_source_relative_paths(
         paper_root=paper_root,
         source_root=source_root,
@@ -1789,6 +1994,7 @@ def sync_promoted_journal_delivery(
         copied_files=copied_files,
         generated_files=generated_files,
         review_ledger_source=paper_root / "review" / "review_ledger.json",
+        charter_contract_linkage=charter_contract_linkage,
     )
     copy_review_ledger_to_delivery_root(
         paper_root=paper_root,
@@ -1838,6 +2044,7 @@ def sync_promoted_journal_delivery(
             "paper_root": str(paper_root),
             "package_source_root": str(source_root),
         },
+        "charter_contract_linkage": charter_contract_linkage,
         "surface_roles": build_delivery_surface_roles(
             paper_root=paper_root,
             source_root=source_root,
@@ -1879,6 +2086,7 @@ def sync_promoted_journal_delivery(
             "paper_root": str(paper_root),
             "package_source_root": str(source_root),
         },
+        "charter_contract_linkage": charter_contract_linkage,
         "surface_roles": build_delivery_surface_roles(
             paper_root=paper_root,
             source_root=source_root,

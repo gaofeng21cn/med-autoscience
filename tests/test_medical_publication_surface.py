@@ -118,8 +118,52 @@ def _write_review_ledger(path: Path, *, summary: str = "Clarify the endpoint bou
     )
 
 
+def _write_study_charter(study_root: Path, *, study_id: str = "002-early-residual-risk") -> Path:
+    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
+    dump_json(
+        charter_path,
+        {
+            "schema_version": 1,
+            "charter_id": f"charter::{study_id}::v1",
+            "study_id": study_id,
+            "publication_objective": "Deliver a manuscript-safe residual-risk paper package.",
+            "paper_quality_contract": {
+                "frozen_at_startup": True,
+                "downstream_contract_roles": {
+                    "evidence_ledger": "records evidence against evidence expectations",
+                    "review_ledger": "records review closure against review expectations",
+                    "final_audit": "audits readiness against the charter contract",
+                },
+            },
+        },
+    )
+    return charter_path
+
+
 def _paper_root_from_quest(quest_root: Path) -> Path:
     return quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+
+
+def _attach_study_charter_context(monkeypatch, module, tmp_path: Path, quest_root: Path) -> Path:
+    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: 002-early-residual-risk\n", encoding="utf-8")
+    _write_study_charter(study_root)
+
+    paper_root = _paper_root_from_quest(quest_root)
+    monkeypatch.setattr(
+        module,
+        "resolve_paper_root_context",
+        lambda _: SimpleNamespace(
+            paper_root=paper_root,
+            worktree_root=paper_root.parent,
+            quest_root=quest_root,
+            study_id="002-early-residual-risk",
+            study_root=study_root,
+        ),
+        raising=False,
+    )
+    return study_root
 
 
 def _attach_public_anchor_study_context(monkeypatch, module, tmp_path: Path, quest_root: Path) -> Path:
@@ -1224,6 +1268,30 @@ def test_build_report_clears_when_assets_are_medicalized_and_ama_defaults_exist(
     assert report["blockers"] == []
     assert report["evidence_ledger_present"] is True
     assert report["evidence_ledger_valid"] is True
+
+
+def test_build_report_projects_study_charter_linkage_for_ledgers(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    study_root = _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root)
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+    linkage = report["charter_contract_linkage"]
+
+    assert linkage["status"] == "linked"
+    assert linkage["study_charter_ref"] == {
+        "charter_id": "charter::002-early-residual-risk::v1",
+        "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+    }
+    assert linkage["paper_quality_contract"]["present"] is True
+    assert linkage["ledger_linkages"]["evidence_ledger"]["status"] == "linked"
+    assert linkage["ledger_linkages"]["review_ledger"]["status"] == "linked"
+
+    markdown = module.render_surface_markdown(report)
+    assert "## Charter Contract Linkage" in markdown
+    assert "charter::002-early-residual-risk::v1" in markdown
+    assert "- evidence_ledger_linkage_status: `linked`" in markdown
+    assert "- review_ledger_linkage_status: `linked`" in markdown
 
 
 def test_build_report_blocks_when_evidence_ledger_is_missing(tmp_path: Path) -> None:

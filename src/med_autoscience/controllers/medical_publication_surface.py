@@ -22,6 +22,7 @@ from med_autoscience.runtime_protocol import (
     resolve_paper_root_context,
     user_message,
 )
+from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 
 
 managed_runtime_backend = runtime_backend_contract.get_managed_runtime_backend(
@@ -77,6 +78,125 @@ def load_json(path: Path, default: Any = None) -> Any:
 def dump_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _normalized_path(path: Path | None) -> str | None:
+    if path is None:
+        return None
+    return str(Path(path).expanduser().resolve())
+
+
+def _build_ledger_contract_linkage(
+    *,
+    ledger_name: str,
+    ledger_path: Path | None,
+    study_context_status: str,
+    charter_id: str | None,
+    contract_role: str | None,
+) -> dict[str, Any]:
+    resolved_ledger_path = Path(ledger_path).expanduser().resolve() if ledger_path is not None else None
+    ledger_present = bool(resolved_ledger_path and resolved_ledger_path.exists())
+    normalized_role = str(contract_role or "").strip() or None
+    if study_context_status == "linked_context":
+        if normalized_role and ledger_present:
+            status = "linked"
+        elif normalized_role:
+            status = "ledger_missing"
+        else:
+            status = "contract_role_missing"
+    else:
+        status = study_context_status
+    return {
+        "ledger_name": ledger_name,
+        "ledger_path": _normalized_path(resolved_ledger_path),
+        "ledger_present": ledger_present,
+        "charter_id": charter_id,
+        "contract_role_present": bool(normalized_role),
+        "contract_role": normalized_role,
+        "contract_role_json_pointer": f"/paper_quality_contract/downstream_contract_roles/{ledger_name}",
+        "status": status,
+    }
+
+
+def build_charter_contract_linkage(
+    *,
+    study_root: Path | None,
+    evidence_ledger_path: Path | None,
+    review_ledger_path: Path | None,
+) -> dict[str, Any]:
+    resolved_study_root = Path(study_root).expanduser().resolve() if study_root is not None else None
+    if resolved_study_root is None:
+        study_context_status = "study_root_unresolved"
+        charter_path = None
+        charter_id = None
+        paper_quality_contract_present = False
+        downstream_contract_roles: dict[str, str] = {}
+    else:
+        charter_path = resolve_study_charter_ref(study_root=resolved_study_root)
+        charter_id = None
+        downstream_contract_roles = {}
+        if not charter_path.exists():
+            study_context_status = "study_charter_missing"
+            paper_quality_contract_present = False
+        else:
+            try:
+                charter_payload = read_study_charter(study_root=resolved_study_root, ref=charter_path)
+            except (json.JSONDecodeError, ValueError):
+                study_context_status = "study_charter_invalid"
+                paper_quality_contract_present = False
+            else:
+                charter_id = str(charter_payload.get("charter_id") or "").strip() or None
+                paper_quality_contract = charter_payload.get("paper_quality_contract")
+                paper_quality_contract_present = isinstance(paper_quality_contract, dict)
+                if paper_quality_contract_present:
+                    raw_roles = paper_quality_contract.get("downstream_contract_roles")
+                    if isinstance(raw_roles, dict):
+                        downstream_contract_roles = {
+                            str(key): str(value).strip()
+                            for key, value in raw_roles.items()
+                            if str(value).strip()
+                        }
+                study_context_status = "linked_context" if paper_quality_contract_present else "paper_quality_contract_missing"
+
+    ledger_linkages = {
+        "evidence_ledger": _build_ledger_contract_linkage(
+            ledger_name="evidence_ledger",
+            ledger_path=evidence_ledger_path,
+            study_context_status=study_context_status,
+            charter_id=charter_id,
+            contract_role=downstream_contract_roles.get("evidence_ledger"),
+        ),
+        "review_ledger": _build_ledger_contract_linkage(
+            ledger_name="review_ledger",
+            ledger_path=review_ledger_path,
+            study_context_status=study_context_status,
+            charter_id=charter_id,
+            contract_role=downstream_contract_roles.get("review_ledger"),
+        ),
+    }
+    ledger_statuses = {payload["status"] for payload in ledger_linkages.values()}
+    if study_context_status != "linked_context":
+        status = study_context_status
+    elif ledger_statuses == {"linked"}:
+        status = "linked"
+    elif "linked" in ledger_statuses:
+        status = "partially_linked"
+    else:
+        status = "unlinked"
+    return {
+        "status": status,
+        "study_root": _normalized_path(resolved_study_root),
+        "study_charter_ref": {
+            "charter_id": charter_id,
+            "artifact_path": _normalized_path(charter_path),
+        },
+        "paper_quality_contract": {
+            "present": paper_quality_contract_present,
+            "artifact_path": _normalized_path(charter_path),
+            "json_pointer": "/paper_quality_contract",
+        },
+        "ledger_linkages": ledger_linkages,
+    }
 
 
 def find_latest(paths: list[Path]) -> Path | None:
@@ -1922,6 +2042,11 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         state=state,
         derived_analysis_payload=derived_analysis_payload,
     )
+    charter_contract_linkage = build_charter_contract_linkage(
+        study_root=state.study_root,
+        evidence_ledger_path=state.evidence_ledger_path,
+        review_ledger_path=state.review_ledger_path,
+    )
     public_data_surface_hits = public_evidence_surface_state.get("surface_hits") or []
     public_evidence_decision_hits = public_evidence_surface_state.get("decision_hits") or []
     medical_story_contract_structural_valid = (
@@ -2083,6 +2208,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "endpoint_provenance_caveat_source_count": len(endpoint_caveat_sources),
         "paper_pdf_path": str(state.paper_pdf_path),
         "paper_pdf_present": state.paper_pdf_path.exists(),
+        "charter_contract_linkage": charter_contract_linkage,
         "public_data_anchor_count": int(public_evidence_surface_state.get("anchor_count") or 0),
         "public_data_surface_reference_count": len(public_data_surface_hits),
         "public_evidence_decision_count": int(public_evidence_surface_state.get("decision_count") or 0),
@@ -2097,6 +2223,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
 
 
 def render_surface_markdown(report: dict[str, Any]) -> str:
+    charter_contract_linkage = report.get("charter_contract_linkage") or {}
+    study_charter_ref = charter_contract_linkage.get("study_charter_ref") or {}
+    paper_quality_contract = charter_contract_linkage.get("paper_quality_contract") or {}
+    ledger_linkages = charter_contract_linkage.get("ledger_linkages") or {}
+    evidence_linkage = ledger_linkages.get("evidence_ledger") or {}
+    review_linkage = ledger_linkages.get("review_ledger") or {}
     lines = [
         "# Medical Publication Surface Report",
         "",
@@ -2141,6 +2273,15 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- endpoint_provenance_note_present: `{report['endpoint_provenance_note_present']}`",
         f"- endpoint_provenance_note_valid: `{report['endpoint_provenance_note_valid']}`",
         f"- endpoint_provenance_note_applied: `{report['endpoint_provenance_note_applied']}`",
+        "",
+        "## Charter Contract Linkage",
+        "",
+        f"- charter_contract_linkage_status: `{charter_contract_linkage.get('status', 'study_root_unresolved')}`",
+        f"- study_charter_ref: `{study_charter_ref.get('charter_id')}`",
+        f"- study_charter_path: `{study_charter_ref.get('artifact_path')}`",
+        f"- paper_quality_contract_present: `{paper_quality_contract.get('present', False)}`",
+        f"- evidence_ledger_linkage_status: `{evidence_linkage.get('status', 'study_root_unresolved')}`",
+        f"- review_ledger_linkage_status: `{review_linkage.get('status', 'study_root_unresolved')}`",
         f"- public_data_anchor_count: `{report.get('public_data_anchor_count', 0)}`",
         f"- public_data_surface_reference_count: `{report.get('public_data_surface_reference_count', 0)}`",
         f"- public_evidence_decision_count: `{report.get('public_evidence_decision_count', 0)}`",
