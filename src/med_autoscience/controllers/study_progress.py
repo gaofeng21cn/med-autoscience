@@ -15,6 +15,10 @@ from opl_harness_shared.status_narration import (
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_status_summary import (
+    build_runtime_status_summary,
+    materialize_runtime_status_summary,
+)
 from med_autoscience.study_manual_finish import resolve_effective_study_manual_finish_contract
 from med_autoscience.study_task_intake import read_latest_task_intake, summarize_task_intake
 
@@ -540,6 +544,87 @@ def _details_projection_payload(path: Path | None) -> dict[str, Any] | None:
     if not isinstance(payload, dict):
         return None
     return payload
+
+
+def _runtime_module_surface(
+    *,
+    generated_at: str,
+    study_id: str,
+    quest_id: str | None,
+    study_root: Path,
+    launch_report_path: Path,
+    runtime_supervision_path: Path,
+    runtime_supervision_payload: dict[str, Any] | None,
+    runtime_escalation_path: Path | None,
+    runtime_watch_path: Path | None,
+    recovery_contract: dict[str, Any],
+    execution_owner_guard: dict[str, Any],
+    publication_supervisor_state: dict[str, Any],
+    current_stage_summary: str,
+    next_system_action: str,
+    needs_physician_decision: bool,
+    status: dict[str, Any],
+    supervisor_tick_audit: dict[str, Any],
+) -> dict[str, Any]:
+    summary = build_runtime_status_summary(
+        study_id=study_id,
+        quest_id=quest_id,
+        generated_at=generated_at,
+        runtime_status_ref=(
+            str(runtime_supervision_path.resolve())
+            if runtime_supervision_payload is not None
+            else str(launch_report_path.resolve())
+        ),
+        runtime_artifact_ref=str(launch_report_path.resolve()),
+        runtime_escalation_record_ref=(
+            str(runtime_escalation_path.resolve()) if runtime_escalation_path is not None else None
+        ),
+        runtime_watch_ref=str(runtime_watch_path.resolve()) if runtime_watch_path is not None else None,
+        health_status=_non_empty_text((runtime_supervision_payload or {}).get("health_status")) or "unknown",
+        runtime_decision=_non_empty_text(status.get("decision")) or "noop",
+        runtime_reason=_non_empty_text(status.get("reason")),
+        recovery_action_mode=_non_empty_text(recovery_contract.get("action_mode")) or "monitor_only",
+        supervisor_tick_status=_non_empty_text(supervisor_tick_audit.get("status")),
+        current_required_action=(
+            _non_empty_text(execution_owner_guard.get("current_required_action"))
+            or _non_empty_text((runtime_supervision_payload or {}).get("next_action"))
+        ),
+        controller_stage_note=(
+            _non_empty_text(execution_owner_guard.get("controller_stage_note"))
+            or _non_empty_text(publication_supervisor_state.get("controller_stage_note"))
+        ),
+        status_summary=(
+            _display_text((runtime_supervision_payload or {}).get("summary"))
+            or current_stage_summary
+            or next_system_action
+        ),
+        next_action_summary=(
+            _display_text((runtime_supervision_payload or {}).get("next_action_summary"))
+            or next_system_action
+            or current_stage_summary
+        ),
+        needs_human_intervention=(
+            bool((runtime_supervision_payload or {}).get("needs_human_intervention")) or needs_physician_decision
+        ),
+    )
+    summary_ref = materialize_runtime_status_summary(study_root=study_root, summary=summary)
+    return {
+        "module": "runtime",
+        "surface_kind": "runtime_module_surface",
+        "summary_id": summary_ref["summary_id"],
+        "summary_ref": summary_ref["artifact_path"],
+        "runtime_status_ref": summary["runtime_status_ref"],
+        "runtime_artifact_ref": summary["runtime_artifact_ref"],
+        "runtime_escalation_record_ref": summary["runtime_escalation_record_ref"],
+        "runtime_watch_ref": summary["runtime_watch_ref"],
+        "health_status": summary["health_status"],
+        "runtime_decision": summary["runtime_decision"],
+        "runtime_reason": summary["runtime_reason"],
+        "recovery_action_mode": summary["recovery_action_mode"],
+        "status_summary": summary["status_summary"],
+        "next_action_summary": summary["next_action_summary"],
+        "needs_human_intervention": summary["needs_human_intervention"],
+    }
 
 
 def _event(
@@ -2145,9 +2230,29 @@ def build_study_progress_projection(
         },
         answer_checklist=PROGRESS_ANSWER_CHECKLIST,
     )
+    generated_at = _utc_now()
+    runtime_module_surface = _runtime_module_surface(
+        generated_at=generated_at,
+        study_id=resolved_study_id,
+        quest_id=quest_id,
+        study_root=resolved_study_root,
+        launch_report_path=launch_report_path,
+        runtime_supervision_path=runtime_supervision_path,
+        runtime_supervision_payload=runtime_supervision_payload,
+        runtime_escalation_path=runtime_escalation_path,
+        runtime_watch_path=runtime_watch_path,
+        recovery_contract=recovery_contract,
+        execution_owner_guard=execution_owner_guard,
+        publication_supervisor_state=publication_supervisor_state,
+        current_stage_summary=current_stage_summary,
+        next_system_action=next_system_action,
+        needs_physician_decision=needs_physician_decision,
+        status=status,
+        supervisor_tick_audit=supervisor_tick_audit,
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
-        "generated_at": _utc_now(),
+        "generated_at": generated_at,
         "study_id": resolved_study_id,
         "study_root": str(resolved_study_root),
         "quest_id": quest_id,
@@ -2175,6 +2280,9 @@ def build_study_progress_projection(
         "manual_finish_contract": manual_finish_contract,
         "task_intake": task_intake,
         "progress_freshness": progress_freshness,
+        "module_surfaces": {
+            "runtime": runtime_module_surface,
+        },
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
             "quest_session_api_url": _non_empty_text(autonomous_runtime_notice.get("quest_session_api_url")),
@@ -2194,6 +2302,7 @@ def build_study_progress_projection(
             "runtime_supervision_path": str(runtime_supervision_path) if runtime_supervision_payload is not None else None,
             "runtime_escalation_path": str(runtime_escalation_path) if runtime_escalation_path is not None else None,
             "runtime_watch_report_path": str(runtime_watch_path) if runtime_watch_path is not None else None,
+            "runtime_status_summary_path": runtime_module_surface["summary_ref"],
             "bash_summary_path": str(bash_summary_path) if bash_summary_path is not None else None,
             "details_projection_path": str(details_projection_path) if details_projection_path is not None else None,
         },
@@ -2293,6 +2402,8 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     )
     operator_status_card = dict(payload.get("operator_status_card") or {})
     recovery_contract = dict(payload.get("recovery_contract") or {})
+    module_surfaces = dict(payload.get("module_surfaces") or {})
+    runtime_module_surface = dict(module_surfaces.get("runtime") or {})
     recovery_action_mode = _RECOVERY_ACTION_MODE_LABELS.get(
         _non_empty_text(recovery_contract.get("action_mode")) or "",
         "",
@@ -2396,6 +2507,18 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             )
         if operator_status_card.get("next_confirmation_signal"):
             lines.append(f"- 下一确认信号: {operator_status_card.get('next_confirmation_signal')}")
+    if runtime_module_surface:
+        lines.extend(
+            [
+                "",
+                "## 主线模块",
+                "",
+                "- runtime",
+                f"- 模块摘要: {runtime_module_surface.get('status_summary') or 'none'}",
+                f"- 下一动作: {runtime_module_surface.get('next_action_summary') or 'none'}",
+                f"- 模块 ref: `{runtime_module_surface.get('summary_ref') or 'none'}`",
+            ]
+        )
     lines.extend(
         [
             "",
