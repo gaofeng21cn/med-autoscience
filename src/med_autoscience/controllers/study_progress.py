@@ -12,6 +12,11 @@ from opl_harness_shared.status_narration import (
     build_status_narration_human_view,
 )
 
+from med_autoscience.controller_confirmation_summary import (
+    materialize_controller_confirmation_summary,
+    read_controller_confirmation_summary,
+    stable_controller_confirmation_summary_path,
+)
 from med_autoscience.controller_summary import read_controller_summary, stable_controller_summary_path
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
@@ -189,6 +194,7 @@ _OPERATOR_STATUS_TRUTH_SOURCE_LABELS = {
     "runtime_supervision": "runtime_supervision/latest.json",
     "supervisor_tick_audit": "supervisor_tick_audit",
     "publication_eval": "publication_eval/latest.json",
+    "controller_confirmation": "controller_confirmation_summary.json",
     "controller_decision": "controller_decisions/latest.json",
     "runtime_watch": "runtime_watch",
     "latest_event": "latest_events[0]",
@@ -663,11 +669,44 @@ def _controller_module_surface(*, study_root: Path) -> dict[str, Any] | None:
     if not summary_path.exists():
         return None
     summary = read_controller_summary(study_root=study_root, ref=summary_path)
+    confirmation_summary_path = stable_controller_confirmation_summary_path(study_root=study_root)
+    confirmation_summary = (
+        read_controller_confirmation_summary(study_root=study_root, ref=confirmation_summary_path)
+        if confirmation_summary_path.exists()
+        else None
+    )
     controller_policy = dict(summary.get("controller_policy") or {})
     route_trigger_authority = dict(summary.get("route_trigger_authority") or {})
     decision_policy = _non_empty_text(route_trigger_authority.get("decision_policy")) or "unknown"
     launch_profile = _non_empty_text(route_trigger_authority.get("launch_profile")) or "unknown"
     required_first_anchor = _non_empty_text(controller_policy.get("required_first_anchor"))
+    human_confirmation_surface = (
+        {
+            "gate_id": confirmation_summary["gate_id"],
+            "status": confirmation_summary["status"],
+            "requested_at": confirmation_summary["requested_at"],
+            "question_for_user": confirmation_summary["question_for_user"],
+            "allowed_responses": list(confirmation_summary.get("allowed_responses") or []),
+            "next_action_if_approved": confirmation_summary["next_action_if_approved"],
+            "summary_ref": str(confirmation_summary_path),
+        }
+        if confirmation_summary is not None
+        else None
+    )
+    status_summary = (
+        "研究合同已冻结；当前控制面决策等待医生/PI 确认。"
+        if human_confirmation_surface is not None
+        else f"研究合同已冻结；决策策略 {decision_policy}，启动入口 {launch_profile}。"
+    )
+    next_action_summary = (
+        f"{human_confirmation_surface['question_for_user']} 确认后系统将{human_confirmation_surface['next_action_if_approved']}。"
+        if human_confirmation_surface is not None
+        else (
+            f"从 {required_first_anchor} 锚点继续推进当前研究。"
+            if required_first_anchor
+            else "沿 controller contract 继续推进当前研究。"
+        )
+    )
     return {
         "module": "controller_charter",
         "surface_kind": "controller_module_surface",
@@ -676,14 +715,9 @@ def _controller_module_surface(*, study_root: Path) -> dict[str, Any] | None:
         "study_charter_ref": dict(summary.get("study_charter_ref") or {}),
         "decision_policy": decision_policy,
         "launch_profile": launch_profile,
-        "status_summary": (
-            f"研究合同已冻结；决策策略 {decision_policy}，启动入口 {launch_profile}。"
-        ),
-        "next_action_summary": (
-            f"从 {required_first_anchor} 锚点继续推进当前研究。"
-            if required_first_anchor
-            else "沿 controller contract 继续推进当前研究。"
-        ),
+        "status_summary": status_summary,
+        "next_action_summary": next_action_summary,
+        "human_confirmation": human_confirmation_surface,
     }
 
 
@@ -1088,14 +1122,47 @@ def _supervisor_tick_gap_present(supervisor_tick_audit: dict[str, Any]) -> bool:
     return _non_empty_text((supervisor_tick_audit or {}).get("status")) in _SUPERVISOR_TICK_GAP_STATUSES
 
 
+def _controller_confirmation_pending(
+    *,
+    controller_confirmation_summary: dict[str, Any] | None,
+    controller_decision_payload: dict[str, Any] | None,
+) -> bool:
+    summary_status = _non_empty_text((controller_confirmation_summary or {}).get("status"))
+    if summary_status is not None:
+        return summary_status == "pending"
+    return bool((controller_decision_payload or {}).get("requires_human_confirmation"))
+
+
+def _controller_confirmation_summary_text(
+    controller_confirmation_summary: dict[str, Any] | None,
+) -> str | None:
+    if controller_confirmation_summary is None:
+        return None
+    question = _non_empty_text(controller_confirmation_summary.get("question_for_user"))
+    next_action = _non_empty_text(controller_confirmation_summary.get("next_action_if_approved"))
+    reason = _non_empty_text(controller_confirmation_summary.get("request_reason"))
+    details: list[str] = []
+    if question is not None:
+        details.append(question)
+    if next_action is not None:
+        details.append(f"确认后系统将{next_action}。")
+    if reason is not None:
+        details.append(f"控制面理由：{reason}。")
+    return " ".join(details) if details else None
+
+
 def _needs_physician_decision(
     *,
     status: dict[str, Any],
+    controller_confirmation_summary: dict[str, Any] | None,
     controller_decision_payload: dict[str, Any] | None,
     pending_user_interaction: dict[str, Any],
     interaction_arbitration: dict[str, Any] | None,
 ) -> bool:
-    controller_requires = bool((controller_decision_payload or {}).get("requires_human_confirmation"))
+    controller_requires = _controller_confirmation_pending(
+        controller_confirmation_summary=controller_confirmation_summary,
+        controller_decision_payload=controller_decision_payload,
+    )
     if controller_requires:
         return True
     if _resume_arbitration_external_metadata_wait(
@@ -1122,12 +1189,19 @@ def _needs_physician_decision(
 def _physician_decision_summary(
     *,
     status: dict[str, Any],
+    controller_confirmation_summary: dict[str, Any] | None,
     controller_decision_payload: dict[str, Any] | None,
     pending_user_interaction: dict[str, Any],
     interaction_arbitration: dict[str, Any] | None,
 ) -> str | None:
-    if bool((controller_decision_payload or {}).get("requires_human_confirmation")):
-        return "控制面已经形成正式下一步建议，但该动作需要医生/PI 先确认，系统会停在监管态等待。"
+    if _controller_confirmation_pending(
+        controller_confirmation_summary=controller_confirmation_summary,
+        controller_decision_payload=controller_decision_payload,
+    ):
+        return (
+            _controller_confirmation_summary_text(controller_confirmation_summary)
+            or "控制面已经形成正式下一步建议，但该动作需要医生/PI 先确认，系统会停在监管态等待。"
+        )
     if _resume_arbitration_external_metadata_wait(
         status=status,
         pending_user_interaction=pending_user_interaction,
@@ -1212,6 +1286,7 @@ def _current_blockers(
     publication_eval_payload: dict[str, Any] | None,
     runtime_watch_payload: dict[str, Any] | None,
     runtime_escalation_payload: dict[str, Any] | None,
+    controller_confirmation_summary: dict[str, Any] | None,
     controller_decision_payload: dict[str, Any] | None,
     pending_user_interaction: dict[str, Any],
     interaction_arbitration: dict[str, Any] | None,
@@ -1251,8 +1326,15 @@ def _current_blockers(
             blockers,
             _reason_label(status.get("reason")) or _non_empty_text(status.get("reason")),
         )
-    if bool((controller_decision_payload or {}).get("requires_human_confirmation")):
-        _append_unique(blockers, "当前控制面决策需要医生/PI 确认，系统不会自动越权继续。")
+    if _controller_confirmation_pending(
+        controller_confirmation_summary=controller_confirmation_summary,
+        controller_decision_payload=controller_decision_payload,
+    ):
+        _append_unique(
+            blockers,
+            _controller_confirmation_summary_text(controller_confirmation_summary)
+            or "当前控制面决策需要医生/PI 确认，系统不会自动越权继续。",
+        )
     if metadata_wait:
         _append_unique(
             blockers,
@@ -1701,6 +1783,7 @@ def _operator_status_truth_snapshot(
     handling_state: str,
     latest_events: list[dict[str, Any]],
     publication_eval_payload: dict[str, Any] | None,
+    controller_confirmation_summary: dict[str, Any] | None,
     controller_decision_payload: dict[str, Any] | None,
     runtime_watch_payload: dict[str, Any] | None,
     runtime_supervision_payload: dict[str, Any] | None,
@@ -1729,6 +1812,7 @@ def _operator_status_truth_snapshot(
             (latest_event_source, latest_event_time),
         ),
         "waiting_human_decision": (
+            ("controller_confirmation", _non_empty_text((controller_confirmation_summary or {}).get("requested_at"))),
             ("controller_decision", _non_empty_text((controller_decision_payload or {}).get("emitted_at"))),
             ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
             (latest_event_source, latest_event_time),
@@ -1818,7 +1902,7 @@ def _operator_status_next_confirmation_signal(handling_state: str) -> str:
     if handling_state == "scientific_or_quality_repair_in_progress":
         return "看 publication_eval/latest.json 或 runtime_watch 里的 blocker 是否减少。"
     if handling_state == "waiting_human_decision":
-        return "看 controller_decisions/latest.json 是否写出人工确认后的下一步，或用户回复是否回写。"
+        return "看 controller_confirmation_summary 是否清空或变化，或 controller_decisions/latest.json 是否写出人工确认后的下一步。"
     if handling_state == "manual_finishing":
         return "看人工收尾是否写出新的明确结论，或兼容保护是否仍然保持 active。"
     return "看下一条 runtime progress / publication_eval 更新。"
@@ -1835,6 +1919,7 @@ def _operator_status_card(
     next_system_action: str,
     latest_events: list[dict[str, Any]],
     publication_eval_payload: dict[str, Any] | None,
+    controller_confirmation_summary: dict[str, Any] | None,
     controller_decision_payload: dict[str, Any] | None,
     runtime_watch_payload: dict[str, Any] | None,
     runtime_supervision_payload: dict[str, Any] | None,
@@ -1852,6 +1937,7 @@ def _operator_status_card(
         handling_state=handling_state,
         latest_events=latest_events,
         publication_eval_payload=publication_eval_payload,
+        controller_confirmation_summary=controller_confirmation_summary,
         controller_decision_payload=controller_decision_payload,
         runtime_watch_payload=runtime_watch_payload,
         runtime_supervision_payload=runtime_supervision_payload,
@@ -2098,6 +2184,26 @@ def build_study_progress_projection(
     launch_report_payload = _read_json_object(launch_report_path)
     publication_eval_payload = _read_json_object(publication_eval_path)
     controller_decision_payload = _read_json_object(controller_decision_path)
+    if controller_decision_payload is not None:
+        try:
+            materialize_controller_confirmation_summary(
+                study_root=resolved_study_root,
+                decision_ref=controller_decision_path,
+            )
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            pass
+    controller_confirmation_summary_path = stable_controller_confirmation_summary_path(study_root=resolved_study_root)
+    try:
+        controller_confirmation_summary = (
+            read_controller_confirmation_summary(
+                study_root=resolved_study_root,
+                ref=controller_confirmation_summary_path,
+            )
+            if controller_confirmation_summary_path.exists()
+            else None
+        )
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        controller_confirmation_summary = None
     runtime_supervision_payload = _read_json_object(runtime_supervision_path)
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
     if runtime_escalation_path is not None and (
@@ -2185,6 +2291,7 @@ def build_study_progress_projection(
 
     needs_physician_decision = _needs_physician_decision(
         status=status,
+        controller_confirmation_summary=controller_confirmation_summary,
         controller_decision_payload=controller_decision_payload,
         pending_user_interaction=pending_user_interaction,
         interaction_arbitration=interaction_arbitration,
@@ -2228,6 +2335,7 @@ def build_study_progress_projection(
             publication_eval_payload=publication_eval_payload,
             runtime_watch_payload=runtime_watch_payload,
             runtime_escalation_payload=runtime_escalation_payload,
+            controller_confirmation_summary=controller_confirmation_summary,
             controller_decision_payload=controller_decision_payload,
             pending_user_interaction=pending_user_interaction,
             interaction_arbitration=interaction_arbitration,
@@ -2252,6 +2360,7 @@ def build_study_progress_projection(
     )) or ""
     physician_decision_summary = _display_text(_physician_decision_summary(
         status=status,
+        controller_confirmation_summary=controller_confirmation_summary,
         controller_decision_payload=controller_decision_payload,
         pending_user_interaction=pending_user_interaction,
         interaction_arbitration=interaction_arbitration,
@@ -2316,6 +2425,7 @@ def build_study_progress_projection(
         next_system_action=next_system_action,
         latest_events=latest_events,
         publication_eval_payload=publication_eval_payload,
+        controller_confirmation_summary=controller_confirmation_summary,
         controller_decision_payload=controller_decision_payload,
         runtime_watch_payload=runtime_watch_payload,
         runtime_supervision_payload=runtime_supervision_payload,
@@ -2425,6 +2535,9 @@ def build_study_progress_projection(
             "launch_report_path": str(launch_report_path),
             "publication_eval_path": str(publication_eval_path),
             "controller_decision_path": str(controller_decision_path),
+            "controller_confirmation_summary_path": (
+                str(controller_confirmation_summary_path) if controller_confirmation_summary is not None else None
+            ),
             "controller_summary_path": (
                 controller_module_surface["summary_ref"] if controller_module_surface is not None else None
             ),

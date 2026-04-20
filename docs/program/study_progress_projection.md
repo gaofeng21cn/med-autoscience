@@ -28,6 +28,7 @@
 - `runtime_watch` 的 controller scan 结果
 - `publication_eval/latest.json` 的 verdict / gap summary
 - `controller_decisions/latest.json` 的正式下一步决定
+- `artifacts/controller/controller_confirmation_summary.json` 的待人工确认摘要
 - `bash_exec summary` 与 `details projection` 提供的最近推进描述
 
 ## 2. Authority 边界
@@ -61,6 +62,7 @@
 - `studies/<study_id>/artifacts/runtime/last_launch_report.json`
 - `studies/<study_id>/artifacts/publication_eval/latest.json`
 - `studies/<study_id>/artifacts/controller_decisions/latest.json`
+- `studies/<study_id>/artifacts/controller/controller_confirmation_summary.json`
 - `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
 - `runtime_watch` 最新 report
 

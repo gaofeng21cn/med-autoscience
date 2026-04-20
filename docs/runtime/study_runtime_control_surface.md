@@ -188,7 +188,14 @@
    - 允许写 artifact
    - 不允许 dispatch controller action
    - 必须返回结构化 `human_confirmation_request`
+   - 必须同步写出 `studies/<study_id>/artifacts/controller/controller_confirmation_summary.json`
 3. 只有在 human gate 清除后，后续 controller 才能执行下一步动作
+
+这个 companion surface 的职责固定为：
+
+- 用稳定、typed 的方式表达当前待人工确认 gate
+- 提供 `question_for_user`、`allowed_responses`、`next_action_if_approved`
+- 供 `study_progress` 与 runtime 决策面读取
 
 ## 6. 当前正式支持的 outer-loop controller actions
 

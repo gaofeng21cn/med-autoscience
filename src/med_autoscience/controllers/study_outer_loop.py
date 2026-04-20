@@ -9,6 +9,7 @@ from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
+from med_autoscience.controller_confirmation_summary import materialize_controller_confirmation_summary
 from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.publication_eval_latest import (
@@ -119,11 +120,6 @@ def _build_family_human_gates_for_decision_record(
 ) -> list[dict[str, Any]]:
     if not requires_human_confirmation:
         return []
-    decision_options = [action.action_type.value for action in controller_actions] or [
-        "approve",
-        "request_changes",
-        "reject",
-    ]
     return [
         family_orchestration.build_family_human_gate(
             gate_id=f"controller-human-confirmation-{study_id}",
@@ -132,7 +128,7 @@ def _build_family_human_gates_for_decision_record(
             request_surface_kind="controller_decisions",
             request_surface_id="controller_decisions/latest.json",
             evidence_refs=evidence_refs,
-            decision_options=decision_options,
+            decision_options=["approve", "request_changes", "reject"],
         )
     ]
 
@@ -537,6 +533,10 @@ def study_outer_loop_tick(
             family_human_gates=tuple(family_companion["family_human_gates"]),
         ),
     )
+    confirmation_summary_ref = materialize_controller_confirmation_summary(
+        study_root=resolved_study_root,
+        decision_ref=written_record.ref().to_dict(),
+    )
     if requires_human_confirmation:
         return {
             "study_id": resolved_study_id,
@@ -545,6 +545,7 @@ def study_outer_loop_tick(
             "runtime_status": runtime_status,
             "runtime_escalation_ref": written_record.runtime_escalation_ref.to_dict(),
             "study_decision_ref": written_record.ref().to_dict(),
+            "controller_confirmation_summary_ref": confirmation_summary_ref,
             "dispatch_status": "pending_human_confirmation",
             "human_confirmation_request": _build_human_confirmation_request(
                 study_id=resolved_study_id,
@@ -571,6 +572,7 @@ def study_outer_loop_tick(
         "runtime_status": runtime_status,
         "runtime_escalation_ref": written_record.runtime_escalation_ref.to_dict(),
         "study_decision_ref": written_record.ref().to_dict(),
+        "controller_confirmation_summary_ref": confirmation_summary_ref,
         "dispatch_status": "executed",
         "executed_controller_action": executed_controller_action,
     }

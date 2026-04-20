@@ -6,6 +6,11 @@ import json
 from pathlib import Path
 
 from med_autoscience import runtime_backend as runtime_backend_contract
+from med_autoscience.controller_confirmation_summary import (
+    materialize_controller_confirmation_summary,
+    read_controller_confirmation_summary,
+    stable_controller_confirmation_summary_path,
+)
 from med_autoscience.controllers import (
     publication_gate as publication_gate_controller,
     runtime_supervision as runtime_supervision_controller,
@@ -647,6 +652,22 @@ def _is_controller_owned_finalize_parking(status: StudyRuntimeStatus) -> bool:
 
 
 def _controller_decision_requires_human_confirmation(*, study_root: Path) -> bool:
+    decision_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
+    summary_path = stable_controller_confirmation_summary_path(study_root=study_root)
+    try:
+        if decision_path.exists():
+            materialize_controller_confirmation_summary(
+                study_root=study_root,
+                decision_ref=decision_path,
+            )
+        if summary_path.exists():
+            summary = read_controller_confirmation_summary(
+                study_root=study_root,
+                ref=summary_path,
+            )
+            return str(summary.get("status") or "").strip() == "pending"
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        pass
     payload = _load_json_dict(study_root / "artifacts" / "controller_decisions" / "latest.json")
     return bool(payload.get("requires_human_confirmation"))
 

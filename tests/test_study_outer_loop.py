@@ -235,6 +235,7 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
         "reason": "startup_boundary_not_ready_for_resume",
     }
     assert result["runtime_escalation_ref"] == runtime_escalation_ref
+    assert result["controller_confirmation_summary_ref"] is None
     assert result["executed_controller_action"]["action_type"] == "ensure_study_runtime"
     assert result["executed_controller_action"]["result"] == {
         "decision": "resume",
@@ -262,6 +263,7 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
     assert payload["family_checkpoint_lineage"]["producer"]["event_envelope_id"] == payload["family_event_envelope"]["envelope_id"]
     assert payload["family_human_gates"] == []
     assert latest_payload == payload
+    assert not (study_root / "artifacts" / "controller" / "controller_confirmation_summary.json").exists()
 
 
 def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_runtime_event_ref(
@@ -698,6 +700,12 @@ def test_study_outer_loop_tick_blocks_dispatch_when_human_confirmation_is_requir
 
     assert result["dispatch_status"] == "pending_human_confirmation"
     assert result["executed_controller_action"] is None
+    assert result["controller_confirmation_summary_ref"] == {
+        "summary_id": "controller-confirmation::001-risk::study-decision::001-risk::quest-001::stop_loss::2026-04-05T06:05:00+00:00",
+        "artifact_path": str(
+            (study_root / "artifacts" / "controller" / "controller_confirmation_summary.json").resolve()
+        ),
+    }
     assert result["human_confirmation_request"] == {
         "category": "controller_decision_confirmation",
         "summary": "Controller requires human confirmation before stopping the quest.",
@@ -740,6 +748,13 @@ def test_study_outer_loop_tick_blocks_dispatch_when_human_confirmation_is_requir
     assert payload["family_human_gates"][0]["version"] == "family-human-gate.v1"
     assert payload["family_human_gates"][0]["status"] == "requested"
     assert payload["family_human_gates"][0]["gate_kind"] == "controller_human_confirmation"
+    assert payload["family_human_gates"][0]["decision_options"] == ["approve", "request_changes", "reject"]
+    confirmation_payload = json.loads(
+        (study_root / "artifacts" / "controller" / "controller_confirmation_summary.json").read_text(encoding="utf-8")
+    )
+    assert confirmation_payload["status"] == "pending"
+    assert confirmation_payload["question_for_user"] == "请确认是否允许 MAS 停止当前研究运行。"
+    assert confirmation_payload["next_action_if_approved"] == "停止当前研究运行"
 
 
 def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monkeypatch, tmp_path: Path) -> None:

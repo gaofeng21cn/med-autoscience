@@ -529,6 +529,9 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert "外部验证数据清点" in result["latest_events"][0]["summary"]
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
     assert result["refs"]["controller_decision_path"] == str(controller_decision_path)
+    assert result["refs"]["controller_confirmation_summary_path"] == str(
+        study_root / "artifacts" / "controller" / "controller_confirmation_summary.json"
+    )
     assert result["refs"]["runtime_watch_report_path"] == str(runtime_watch_path)
     assert result["refs"]["controller_summary_path"] == str(
         study_root / "artifacts" / "controller" / "controller_summary.json"
@@ -540,6 +543,15 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
         study_root / "artifacts" / "eval_hygiene" / "promotion_gate" / "latest.json"
     )
     assert result["module_surfaces"]["controller_charter"]["summary_ref"] == result["refs"]["controller_summary_path"]
+    assert result["module_surfaces"]["controller_charter"]["human_confirmation"] == {
+        "gate_id": "controller-human-confirmation-001-risk",
+        "status": "pending",
+        "requested_at": "2026-04-10T09:10:00+00:00",
+        "question_for_user": "请确认是否允许 MAS 继续托管推进当前研究。",
+        "allowed_responses": ["approve", "request_changes", "reject"],
+        "next_action_if_approved": "继续托管推进当前研究运行",
+        "summary_ref": str(study_root / "artifacts" / "controller" / "controller_confirmation_summary.json"),
+    }
     assert result["module_surfaces"]["runtime"]["summary_ref"] == result["refs"]["runtime_status_summary_path"]
     assert result["module_surfaces"]["eval_hygiene"]["summary_ref"] == result["refs"]["evaluation_summary_path"]
     assert result["refs"]["bash_summary_path"] == str(bash_summary_path)
@@ -1058,6 +1070,7 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
     assert all("finalize 本地总结" not in item for item in result["current_blockers"])
     assert result["paper_stage"] == "scientific_anchor_missing"
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
+    assert result["refs"]["controller_confirmation_summary_path"] is None
 
 
 def test_study_progress_projects_finalize_metadata_wait_as_physician_decision(
