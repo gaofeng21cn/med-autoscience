@@ -2092,7 +2092,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "undefined_methodology_label_hit_count": len(undefined_methodology_label_hits),
         "results_narration_hit_count": len(results_narration_hits),
         "non_formal_question_hit_count": len(non_formal_question_hits),
-        "top_hits": hits[:40],
+        "top_hits": hits[:80],
     }
 
 
