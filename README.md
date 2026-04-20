@@ -69,6 +69,18 @@ You can start with prompts like:
 2. Technical readers and planners should read [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md).
 3. Developers and maintainers should continue from the [Docs Guide](./docs/README.md) into `docs/runtime/`, `docs/program/`, `docs/capabilities/`, `docs/references/`, and `docs/policies/`.
 
+## Agent And Operator Quick Start
+
+<details>
+  <summary><strong>Start here if you are handing this repo to Codex or another agent</strong></summary>
+
+- Read the [Docs Guide](./docs/README.md) first. It maps the current product boundary, operator entry surfaces, and the technical reading order.
+- If you need to bootstrap or take over a disease workspace, read [Bootstrap](./bootstrap/README.md) next. It explains the workspace-first model and the `init-workspace -> doctor -> show-profile -> bootstrap` path.
+- Treat [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md) as the repo-tracked truth set before changing runtime or docs.
+- The current operator entry surfaces are `CLI`, `MCP`, and `controller`. Product-entry and runtime contracts live under `docs/runtime/` and `docs/program/`, so an agent can start there instead of reverse-engineering the codebase.
+
+</details>
+
 ## Further Reading
 
 - [Docs Guide](./docs/README.md)

@@ -69,6 +69,18 @@
 2. 技术规划、架构判断和方向同步，继续读 [项目概览](./docs/project.md)、[当前状态](./docs/status.md)、[架构](./docs/architecture.md)、[不可变约束](./docs/invariants.md)、[关键决策](./docs/decisions.md)。
 3. 开发者和维护者继续从 [文档索引](./docs/README.zh-CN.md) 进入 `docs/runtime/`、`docs/program/`、`docs/capabilities/`、`docs/references/` 与 `docs/policies/`。
 
+## 给 Agent 和技术操作者的快速入口
+
+<details>
+  <summary><strong>如果你准备把这个仓直接交给 Codex 或其他 Agent，先看这里</strong></summary>
+
+- 先读 [文档索引](./docs/README.zh-CN.md)。这里已经把当前产品边界、operator entry surface 和技术阅读顺序列清楚了。
+- 如果你要接管或初始化一个专病 workspace，下一跳读 [Bootstrap](./bootstrap/README.md)。它说明了 workspace-first 心智模型，以及 `init-workspace -> doctor -> show-profile -> bootstrap` 这条最短接管路径。
+- 在改 runtime、入口表述或 docs 之前，把 [项目概览](./docs/project.md)、[当前状态](./docs/status.md)、[架构](./docs/architecture.md)、[不可变约束](./docs/invariants.md) 和 [关键决策](./docs/decisions.md) 当成 repo-tracked 真相集。
+- 当前正式 operator entry surfaces 是 `CLI`、`MCP` 和 `controller`。产品入口与运行时合同主要放在 `docs/runtime/` 和 `docs/program/`，Agent 可以直接从这些文档切入，不必先通读代码。
+
+</details>
+
 ## 延伸阅读
 
 - [文档索引](./docs/README.zh-CN.md)
