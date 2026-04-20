@@ -35,6 +35,35 @@ DOWNSTREAM_CONTRACT_ROLES = {
     "review_ledger": "records review closure against review_expectations",
     "final_audit": "audits scientific and paper-quality readiness against this charter",
 }
+DEFAULT_BOUNDED_ANALYSIS_ALLOWED_SCENARIOS = (
+    "close_predeclared_evidence_gap_within_locked_direction",
+    "close_predeclared_review_gap_within_locked_direction",
+    "close_predeclared_submission_gap_within_locked_direction",
+)
+DEFAULT_BOUNDED_ANALYSIS_ALLOWED_TARGETS = (
+    "minimum_sci_ready_evidence_package",
+    "scientific_followup_questions",
+    "manuscript_conclusion_redlines",
+)
+DEFAULT_BOUNDED_ANALYSIS_BUDGET_BOUNDARY = {
+    "max_analysis_rounds_per_gate_window": 2,
+    "max_targets_per_round": 3,
+    "max_new_primary_claims": 0,
+}
+DEFAULT_BOUNDED_ANALYSIS_COMPLETION_BOUNDARY = {
+    "return_to_main_gate": "publication_eval",
+    "return_to_mainline_action": "return_to_controller",
+    "completion_criteria": [
+        "all_requested_targets_closed",
+        "budget_boundary_reached",
+        "major_boundary_signal_detected",
+    ],
+    "required_updates": [
+        "evidence_ledger",
+        "review_ledger",
+        "publication_eval",
+    ],
+}
 
 
 def stable_study_charter_path(*, study_root: Path) -> Path:
@@ -92,6 +121,65 @@ def _extract_target_journals(study_payload: dict[str, Any]) -> list[str]:
         if text:
             names.append(text)
     return _dedupe_preserve_order(names)
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    return dict(value)
+
+
+def _non_negative_int(value: object, *, default: int) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        return default
+    return value
+
+
+def _materialize_bounded_analysis_contract(study_payload: dict[str, Any]) -> dict[str, Any]:
+    raw_contract = _mapping(study_payload.get("bounded_analysis"))
+    raw_budget_boundary = _mapping(raw_contract.get("budget_boundary"))
+    raw_completion_boundary = _mapping(raw_contract.get("completion_boundary"))
+    allowed_scenarios = _string_list(raw_contract.get("allowed_scenarios")) or list(
+        DEFAULT_BOUNDED_ANALYSIS_ALLOWED_SCENARIOS
+    )
+    allowed_targets = _string_list(raw_contract.get("allowed_targets")) or list(
+        DEFAULT_BOUNDED_ANALYSIS_ALLOWED_TARGETS
+    )
+    completion_criteria = _string_list(raw_completion_boundary.get("completion_criteria")) or list(
+        DEFAULT_BOUNDED_ANALYSIS_COMPLETION_BOUNDARY["completion_criteria"]
+    )
+    required_updates = _string_list(raw_completion_boundary.get("required_updates")) or list(
+        DEFAULT_BOUNDED_ANALYSIS_COMPLETION_BOUNDARY["required_updates"]
+    )
+    return {
+        "default_owner": "mas",
+        "allowed_scenarios": allowed_scenarios,
+        "allowed_targets": allowed_targets,
+        "budget_boundary": {
+            "max_analysis_rounds_per_gate_window": _non_negative_int(
+                raw_budget_boundary.get("max_analysis_rounds_per_gate_window"),
+                default=DEFAULT_BOUNDED_ANALYSIS_BUDGET_BOUNDARY["max_analysis_rounds_per_gate_window"],
+            ),
+            "max_targets_per_round": _non_negative_int(
+                raw_budget_boundary.get("max_targets_per_round"),
+                default=DEFAULT_BOUNDED_ANALYSIS_BUDGET_BOUNDARY["max_targets_per_round"],
+            ),
+            "max_new_primary_claims": _non_negative_int(
+                raw_budget_boundary.get("max_new_primary_claims"),
+                default=DEFAULT_BOUNDED_ANALYSIS_BUDGET_BOUNDARY["max_new_primary_claims"],
+            ),
+        },
+        "completion_boundary": {
+            "return_to_main_gate": _non_empty_string(raw_completion_boundary.get("return_to_main_gate"))
+            or str(DEFAULT_BOUNDED_ANALYSIS_COMPLETION_BOUNDARY["return_to_main_gate"]),
+            "return_to_mainline_action": _non_empty_string(
+                raw_completion_boundary.get("return_to_mainline_action")
+            )
+            or str(DEFAULT_BOUNDED_ANALYSIS_COMPLETION_BOUNDARY["return_to_mainline_action"]),
+            "completion_criteria": completion_criteria,
+            "required_updates": required_updates,
+        },
+    }
 
 
 def resolve_study_charter_ref(
@@ -188,6 +276,7 @@ def materialize_study_charter(
                 "scientific_followup_questions": scientific_followup_questions,
                 "manuscript_conclusion_redlines": manuscript_conclusion_redlines,
             },
+            "bounded_analysis": _materialize_bounded_analysis_contract(study_payload),
             "downstream_contract_roles": dict(DOWNSTREAM_CONTRACT_ROLES),
         },
     }

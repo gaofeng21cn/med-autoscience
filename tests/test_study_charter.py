@@ -103,6 +103,35 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
             "manuscript_conclusion_redlines": [
                 "Do not conclude only that a China-trained absolute risk model is non-transportable.",
             ],
+            "bounded_analysis": {
+                "allowed_scenarios": [
+                    "close_survival_calibration_gap_within_locked_direction",
+                    "answer_predeclared_reviewer_method_question",
+                ],
+                "allowed_targets": [
+                    "minimum_sci_ready_evidence_package",
+                    "scientific_followup_questions",
+                ],
+                "budget_boundary": {
+                    "max_analysis_rounds_per_gate_window": 3,
+                    "max_targets_per_round": 2,
+                    "max_new_primary_claims": 0,
+                },
+                "completion_boundary": {
+                    "return_to_main_gate": "publication_eval",
+                    "return_to_mainline_action": "return_to_controller",
+                    "completion_criteria": [
+                        "all_requested_targets_closed",
+                        "budget_boundary_reached",
+                        "major_boundary_signal_detected",
+                    ],
+                    "required_updates": [
+                        "evidence_ledger",
+                        "review_ledger",
+                        "publication_eval",
+                    ],
+                },
+            },
         },
         execution={
             "decision_policy": "autonomous",
@@ -186,6 +215,36 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
                 "Do not conclude only that a China-trained absolute risk model is non-transportable.",
             ],
         },
+        "bounded_analysis": {
+            "default_owner": "mas",
+            "allowed_scenarios": [
+                "close_survival_calibration_gap_within_locked_direction",
+                "answer_predeclared_reviewer_method_question",
+            ],
+            "allowed_targets": [
+                "minimum_sci_ready_evidence_package",
+                "scientific_followup_questions",
+            ],
+            "budget_boundary": {
+                "max_analysis_rounds_per_gate_window": 3,
+                "max_targets_per_round": 2,
+                "max_new_primary_claims": 0,
+            },
+            "completion_boundary": {
+                "return_to_main_gate": "publication_eval",
+                "return_to_mainline_action": "return_to_controller",
+                "completion_criteria": [
+                    "all_requested_targets_closed",
+                    "budget_boundary_reached",
+                    "major_boundary_signal_detected",
+                ],
+                "required_updates": [
+                    "evidence_ledger",
+                    "review_ledger",
+                    "publication_eval",
+                ],
+            },
+        },
         "downstream_contract_roles": {
             "evidence_ledger": "records evidence against evidence_expectations",
             "review_ledger": "records review closure against review_expectations",
@@ -233,6 +292,38 @@ def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Pa
         "review_expectations": {
             "scientific_followup_questions": [],
             "manuscript_conclusion_redlines": [],
+        },
+        "bounded_analysis": {
+            "default_owner": "mas",
+            "allowed_scenarios": [
+                "close_predeclared_evidence_gap_within_locked_direction",
+                "close_predeclared_review_gap_within_locked_direction",
+                "close_predeclared_submission_gap_within_locked_direction",
+            ],
+            "allowed_targets": [
+                "minimum_sci_ready_evidence_package",
+                "scientific_followup_questions",
+                "manuscript_conclusion_redlines",
+            ],
+            "budget_boundary": {
+                "max_analysis_rounds_per_gate_window": 2,
+                "max_targets_per_round": 3,
+                "max_new_primary_claims": 0,
+            },
+            "completion_boundary": {
+                "return_to_main_gate": "publication_eval",
+                "return_to_mainline_action": "return_to_controller",
+                "completion_criteria": [
+                    "all_requested_targets_closed",
+                    "budget_boundary_reached",
+                    "major_boundary_signal_detected",
+                ],
+                "required_updates": [
+                    "evidence_ledger",
+                    "review_ledger",
+                    "publication_eval",
+                ],
+            },
         },
         "downstream_contract_roles": {
             "evidence_ledger": "records evidence against evidence_expectations",
