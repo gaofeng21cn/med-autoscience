@@ -42,11 +42,14 @@ from opl_harness_shared.family_entry_contracts import (
 from opl_harness_shared.product_entry_companions import (
     build_family_product_frontdesk_from_manifest as _build_shared_family_product_frontdesk_from_manifest,
     build_family_product_entry_manifest as _build_shared_family_product_entry_manifest,
+    build_operator_loop_action_catalog as _build_shared_operator_loop_action_catalog,
     build_product_entry_start as _build_shared_product_entry_start,
     build_product_entry_overview as _build_shared_product_entry_overview,
     build_product_entry_quickstart as _build_shared_product_entry_quickstart,
     build_product_entry_readiness as _build_shared_product_entry_readiness,
     build_product_entry_resume_surface as _build_shared_product_entry_resume_surface,
+    build_product_entry_shell_catalog as _build_shared_product_entry_shell_catalog,
+    build_product_entry_shell_linked_surface as _build_shared_product_entry_shell_linked_surface,
     collect_family_human_gate_ids as _collect_family_human_gate_ids,
     validate_family_product_frontdesk as _validate_shared_family_product_frontdesk,
     validate_family_product_entry_manifest as _validate_shared_family_product_entry_manifest,
@@ -2001,14 +2004,16 @@ def build_product_entry_manifest(
     prefix = _command_prefix(profile_ref)
     workspace_root = str(profile.workspace_root)
 
-    product_entry_shell = {
+    product_entry_shell = _build_shared_product_entry_shell_catalog({
         "product_frontdesk": {
             "command": f"{prefix} product-frontdesk --profile {profile_arg}",
             "purpose": "当前 research product frontdesk，先暴露当前 frontdoor、workspace inbox 与 shared handoff 入口。",
+            "surface_kind": PRODUCT_FRONTDESK_KIND,
         },
         "workspace_cockpit": {
             "command": _json_surface_command(f"{prefix} workspace-cockpit --profile {profile_arg}"),
             "purpose": "当前 workspace 级用户 inbox，聚合 attention queue、监督在线态与研究入口回路。",
+            "surface_kind": "workspace_cockpit",
         },
         "submit_study_task": {
             "command": (
@@ -2016,26 +2021,31 @@ def build_product_entry_manifest(
                 "--study-id <study_id> --task-intent '<task_intent>'"
             ),
             "purpose": "先把用户任务写成 durable study task intake，再启动研究执行。",
+            "surface_kind": "study_task_intake",
         },
         "launch_study": {
             "command": f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
             "purpose": "创建或恢复 study runtime，并进入当前研究主线。",
+            "surface_kind": "launch_study",
         },
         "study_progress": {
             "command": _json_surface_command(
                 f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
             ),
             "purpose": "持续读取当前 study 的阶段摘要、阻塞、监督 freshness 与下一步。",
+            "surface_kind": "study_progress",
         },
         "mainline_status": {
             "command": f"{prefix} mainline-status",
             "purpose": "查看 repo 理想形态、当前阶段、剩余缺口与下一步焦点。",
+            "surface_kind": "mainline_status",
         },
         "mainline_phase": {
             "command": f"{prefix} mainline-phase --phase <current|next|phase_id>",
             "purpose": "查看某一阶段当前可用入口、退出条件与关键文档。",
+            "surface_kind": "mainline_phase",
         },
-    }
+    })
     shared_handoff = _build_shared_handoff(
         direct_entry_builder_command=(
             f"{prefix} build-product-entry --profile {profile_arg} "
@@ -2046,7 +2056,7 @@ def build_product_entry_manifest(
             "--study-id <study_id> --entry-mode opl-handoff"
         ),
     )
-    operator_loop_actions = {
+    operator_loop_actions = _build_shared_operator_loop_action_catalog({
         "open_loop": {
             "command": product_entry_shell["workspace_cockpit"]["command"],
             "surface_kind": "workspace_cockpit",
@@ -2071,7 +2081,7 @@ def build_product_entry_manifest(
             "summary": "读取某个 study 的当前阶段、阻塞和监督 freshness。",
             "requires": ["study_id"],
         },
-    }
+    })
     family_orchestration = _build_shared_family_product_entry_orchestration(
         graph_id="mas_workspace_frontdoor_study_runtime_graph",
         target_domain_id=TARGET_DOMAIN_ID,
@@ -2299,12 +2309,16 @@ def build_product_entry_manifest(
         "runtime_root": str(profile.runtime_root),
         "hermes_home_root": str(profile.hermes_home_root),
     }
-    operator_loop_surface = {
-        "shell_key": "workspace_cockpit",
-        "command": product_entry_shell["workspace_cockpit"]["command"],
-        "surface_kind": "workspace_cockpit",
-        "summary": product_entry_shell["workspace_cockpit"]["purpose"],
-    }
+    frontdesk_surface = _build_shared_product_entry_shell_linked_surface(
+        shell_key="product_frontdesk",
+        shell_surface=product_entry_shell["product_frontdesk"],
+        summary=product_entry_shell["product_frontdesk"]["purpose"],
+    )
+    operator_loop_surface = _build_shared_product_entry_shell_linked_surface(
+        shell_key="workspace_cockpit",
+        shell_surface=product_entry_shell["workspace_cockpit"],
+        summary=product_entry_shell["workspace_cockpit"]["purpose"],
+    )
     repo_mainline = {
         "program_id": mainline_snapshot.get("program_id"),
         "current_stage_id": mainline_snapshot.get("current_stage_id"),
@@ -2365,12 +2379,7 @@ def build_product_entry_manifest(
         managed_runtime_contract=managed_runtime_contract,
         repo_mainline=repo_mainline,
         product_entry_status=product_entry_status,
-        frontdesk_surface={
-            "shell_key": "product_frontdesk",
-            "command": product_entry_shell["product_frontdesk"]["command"],
-            "surface_kind": PRODUCT_FRONTDESK_KIND,
-            "summary": product_entry_shell["product_frontdesk"]["purpose"],
-        },
+        frontdesk_surface=frontdesk_surface,
         operator_loop_surface=operator_loop_surface,
         operator_loop_actions=operator_loop_actions,
         recommended_shell="workspace_cockpit",
