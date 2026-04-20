@@ -2,28 +2,32 @@
 
 [English](./README.md) | **中文**
 
-这个目录是 `Med Auto Science` 的第二层技术阅读面。
-仓库首页应优先写给医生、医学专家和潜在用户。
-而这里负责承接其后的 runtime、program、能力线和治理材料。
+这个目录是 `Med Auto Science` 的技术阅读层。
+仓库首页继续优先写给医生、课题负责人和医学研究团队。
+这里负责承接产品边界、操作入口、运行合同和维护记录。
 
 ## 按读者类型进入
 
 | 读者 | 建议起点 | 目的 |
 | --- | --- | --- |
-| 潜在用户、医生、医学专家 | [仓库首页](../README.zh-CN.md) | 先理解系统是干什么的，再决定是否进入技术细节 |
-| 技术规划者、架构读者、方向同步读者 | [项目概览](./project.md)、[当前状态](./status.md)、[架构](./architecture.md)、[不可变约束](./invariants.md)、[关键决策](./decisions.md) | 快速抓住当前真相、边界和主线方向 |
-| 开发者与维护者 | `docs/runtime/`、`docs/program/`、`docs/capabilities/`、`docs/references/`、`docs/policies/`、[历史归档索引](./history/README.zh-CN.md) | 查看实现相关材料、操作说明和历史记录 |
+| 潜在用户、医生、医学专家 | [仓库首页](../README.zh-CN.md) | 先判断这个系统能解决什么问题，再决定是否进入技术细节 |
+| 技术规划者、架构读者、方向同步读者 | [项目概览](./project.md)、[当前状态](./status.md)、[架构](./architecture.md)、[不可变约束](./invariants.md)、[关键决策](./decisions.md) | 快速抓住当前角色、边界和运行方式 |
+| 开发者与维护者 | `docs/runtime/`、`docs/program/`、`docs/capabilities/`、`docs/references/`、`docs/policies/`、[历史归档索引](./history/README.zh-CN.md) | 查看实现相关材料、治理记录和历史脉络 |
 
-## 当前基线
+## 这一层负责什么
 
-- `OPL` 是位于 MAS 之上的家族级 gateway 与 domain handoff surface。
-- `Med Auto Science` 是医学 `Research Ops` domain gateway、workspace authority 与论文交付主线。
-- formal-entry matrix 继续固定为 `CLI`、`MCP`、`controller`。
-- MAS 默认回路是 `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`。
-- `product-entry-manifest` 与 `build-product-entry` 继续作为 `OPL` 与其他 caller 使用的 machine-readable bridge。
-- 上游 `Hermes-Agent` 指外部 managed runtime target 与 supervision owner；新的质量与自治工作统一落在 `MedAutoScience`，受控 `MedDeepScientist` lane 继续作为 transition oracle / intake / parity companion 由核心文档说明。
-- 医学展示支线继续作为下游能力线分开维护。
-- 历史 program 记录、运行边界形成说明与已吸收迁移 proof 继续留在 `docs/program/`、`docs/references/` 与 [历史归档索引](./history/README.zh-CN.md) 中供维护者追溯。
+- 仓库首页负责解释 `Med Auto Science` 适合什么问题、谁来用、怎么开始。
+- 核心五件套负责解释产品边界、当前状态、架构、不变量和关键决策。
+- `docs/runtime/`、`docs/program/`、`docs/capabilities/`、`docs/references/`、`docs/policies/` 保存实现、维护和历史技术材料。
+
+## 当前阅读基线
+
+- `Med Auto Science` 是面向专病研究的医学研究工作台，也是论文交付主线。
+- 默认用户最关心的是研究问题、工作区语境、人话进度和文件交付。
+- `CLI`、`MCP`、`controller` 属于操作与自动化入口。
+- `OPL` 集成和机器可读的产品接入接口属于集成层。
+- 上游 `Hermes-Agent` 指外部运行时目标与监管责任方。
+- 历史迁移术语和旧命名继续留在参考层或历史层。
 
 ## 技术工作集
 
@@ -69,37 +73,28 @@
 - [医学展示面家族路线图](capabilities/medical-display/medical_display_family_roadmap.md)
 - [医学展示面视觉审计协议](capabilities/medical-display/medical_display_visual_audit_protocol.md)
 
-### 当前维护记录
+### 项目推进与维护记录
 
 - [Research Foundry 医学执行地图](program/research_foundry_medical_execution_map.md)
 - [Research Foundry 医学主线](program/research_foundry_medical_mainline.md)
 - [MAS 单项目质量与自治主线](program/mas_single_project_quality_and_autonomy_mainline.md)
 - [MedDeepScientist 解构地图](program/med_deepscientist_deconstruction_map.md)
-- [External Runtime Dependency Gate](program/external_runtime_dependency_gate.md)
+- [外部运行时依赖门禁](program/external_runtime_dependency_gate.md)
 - [Merge And Cutover Gates](program/merge_and_cutover_gates.md)
 - [项目修复优先级地图](program/project_repair_priority_map.md)
-- [Study progress projection](program/study_progress_projection.md)
+- [课题进度投影](program/study_progress_projection.md)
 
-### 追溯记录
+### 集成参考
 
-- [Program 目录](program/)
-- [References 目录](references/)
-- [历史归档索引](history/README.zh-CN.md)
-
-### MAS 用户回路与内部桥接参考
-
-- 面向用户的 MAS 回路从 `product-frontdesk` 开始，经由 `workspace-cockpit`，再使用 `submit-study-task`、`launch-study` 和 `study-progress`。
-- `product-entry-manifest` 与 `build-product-entry` 继续作为 `OPL` 与其他自动化 caller 使用的 machine-readable bridge。
-- [轻量产品入口与 OPL Handoff](references/lightweight_product_entry_and_opl_handoff.md)
+- [轻量产品入口与 OPL 交接](references/lightweight_product_entry_and_opl_handoff.md)
+- [病种 workspace 快速起步](references/disease_workspace_quickstart.md)
+- [工作区架构](references/workspace_architecture.md)
 
 ### 参考资料
 
 - [Domain Harness OS 定位](references/domain-harness-os-positioning.md)
 - [Research Foundry 定位](references/research_foundry_positioning.md)
 - [Research Foundry 与 Med Auto Science 的仓库拆分边界](references/repo_split_between_research_foundry_and_med_autoscience.md)
-- [工作区架构](references/workspace_architecture.md)
-- [病种 workspace 快速起步](references/disease_workspace_quickstart.md)
-- [轻量产品入口与 OPL Handoff](references/lightweight_product_entry_and_opl_handoff.md)
 - [系列项目文档治理清单](references/series-doc-governance-checklist.md)
 
 ### 稳定内部规则
@@ -110,20 +105,22 @@
 - [研究路线偏置规则](policies/research_route_bias_policy.md)
 - [发表门控规则](policies/publication_gate_policy.md)
 
-### 仓库历史
+### 追溯记录
 
+- [Program 目录](program/)
+- [References 目录](references/)
 - [历史归档索引](history/README.zh-CN.md)
 
 ## 文档规则
 
 - 继续把 [仓库首页](../README.zh-CN.md) 保持成医生和非技术专家可读的入口。
 - 继续把公开文档保持成中英双语镜像。
-- runtime、program、能力线和 policy 文档可以技术化，但不要再反客为主占据公开首页。
-- 历史材料可以保留，但不能再写成当前默认 workflow。
+- 运行时、推进记录、能力线和规则文档可以技术化，但公开首页继续围绕研究工作区、进度和文件组织。
+- 历史材料继续可读，当前默认用户路径继续聚焦研究问题、工作区推进和论文交付。
 
 ## 治理说明
 
-- 文档治理统一冻结在 [系列项目文档治理清单](references/series-doc-governance-checklist.md)、技术工作集和仓库跟踪的 contract/doc surface 中，而不再只写在 `AGENTS.md`。
+- 文档治理统一冻结在 [系列项目文档治理清单](references/series-doc-governance-checklist.md)、技术工作集和仓库跟踪的合同文档表面中，而不再只写在 `AGENTS.md`。
 - `README*` 与 `docs/README*` 是默认公开入口。
 - `docs/runtime/`、`docs/program/`、`docs/capabilities/` 与 `docs/references/` 是仓库跟踪的技术材料。
 - `docs/policies/` 收口稳定内部规则。

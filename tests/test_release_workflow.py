@@ -136,10 +136,13 @@ def test_advisory_and_release_workflows_only_prepare_study_runtime_analysis_bund
 def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     readme_zh = (REPO_ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    docs_readme_zh = (REPO_ROOT / "docs" / "README.zh-CN.md").read_text(encoding="utf-8")
     preflight_doc = (REPO_ROOT / "docs" / "program" / "repository_ci_preflight.md").read_text(encoding="utf-8")
 
     assert "Docs Guide" in readme
     assert "Project" in readme
+    assert "can be used directly as a medical research workspace" in readme
     assert "product-frontdesk" not in readme
     assert "workspace-cockpit" not in readme
     assert "Repository CI preflight" not in readme
@@ -151,6 +154,7 @@ def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     assert "advisory on push" not in readme
     assert "文档索引" in readme_zh
     assert "项目概览" in readme_zh
+    assert "可以直接作为医学研究工作台使用" in readme_zh
     assert "product-frontdesk" not in readme_zh
     assert "workspace-cockpit" not in readme_zh
     assert "仓库 CI 预检" not in readme_zh
@@ -160,6 +164,8 @@ def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     assert "submission-facing DOCX/PDF 覆盖" not in readme_zh
     assert "`pandoc` 与 `BasicTeX`" not in readme_zh
     assert "push 上保持 advisory 告警" not in readme_zh
+    assert "product boundary, operator entry surfaces, runtime contracts, and maintenance records" in docs_readme
+    assert "产品边界、操作入口、运行合同和维护记录" in docs_readme_zh
     assert "submission-facing DOCX/PDF" in preflight_doc
     assert "`pandoc` 与 `BasicTeX`" in preflight_doc
     assert "display-heavy` 与 `family` lane 迁入 `macOS Advisory`" in preflight_doc

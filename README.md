@@ -58,7 +58,7 @@ You can start with prompts like:
 
 ## Current Boundary
 
-- `Med Auto Science` is the medical research workflow inside the broader `OPL` workspace.
+- `Med Auto Science` can be used directly as a medical research workspace.
 - It owns study intake, workspace context, evidence progression, progress reporting, and manuscript-facing delivery.
 - Clinical framing, claim acceptance, and submission decisions stay with researchers and PIs.
 - Journal submission and external system interaction stay under human supervision.
