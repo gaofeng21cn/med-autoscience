@@ -19,6 +19,12 @@
 “直接学到的成熟内容”可以继续沿 upstream 同一路径吸收。
 “`MAS` 自己做的制度化转换”要按本仓 contract 变更管理，不能写成“这是 upstream 已经有的成熟实现”。
 
+当前 owner boundary 继续按两层维护：
+
+- `DeepScientist` / `MDS` base skill 继续承载通用研究阶段纪律、route semantics、durable output expectations，以及 baseline / analysis / write / finalize / decision 的通用研究方法。
+- `MAS` overlay + controller + eval hygiene 继续承载医学研究 owner 面，包括 study charter 质量总合同、medical overlay、evidence / review ledger、journal / submission hygiene、publication gate blocker 与 human gate 边界。
+- `MDS` 当前对 `publishability_gate_mode` 和 base skill 本地附加层的清理，服务 authority 去重；清理完成后，`MAS` 继续作为医学质量、投稿规则和医学稿件合同的 repo-tracked owner。
+
 ## 2. 直接有 upstream 依据的内容
 
 ### 2.1 阶段主线与常见 durable outputs
@@ -177,6 +183,15 @@ upstream `decision` skill 已经明确：
 - `decision` 的角色和 route-back 治理方式，属于直接学 upstream
 - human gate boundary、controller owner judgment 这些字段化治理面，属于 `MAS` 自己的制度化转换
 
+### 2.7 当前固定的 owner boundary
+
+| surface family | 当前 owner | 当前口径 |
+| --- | --- | --- |
+| 通用研究阶段纪律 | `DeepScientist` / `MDS` base skill | 阶段名字、route semantics、common durable outputs、light trustworthy baseline、outline-first、reviewer-first、closure protocol、decision protocol 继续按 upstream learned content 维护 |
+| 医学研究合同 | `MAS` study charter + medical overlay | cohort / endpoint / time horizon / clinical interpretability、journal / reporting profile、bounded analysis budget、医学稿件执行要求继续按 `MAS` owner 面维护 |
+| 医学稿件审阅与投稿治理 | `MAS` evidence / review ledger + publication gate | reviewer concern 排序、claim-evidence consistency、submission minimal、named blocker、final audit readiness 继续由 `MAS` 的 ledger 与 gate surface 承担 |
+| 外环治理与 human gate | `MAS` controller / agent entry contract | direction reset、重大 claim 边界变化、external release、submission authorization、controller decision record 继续按 `MAS` 治理 surface 维护 |
+
 ## 3. 已落地主线提交的来源归类
 
 ### 3.1 `392edd8` `Link stage discipline into study charter`
@@ -236,8 +251,9 @@ upstream `decision` skill 已经明确：
 
 从现在开始，`MAS` 对外讲法要保持准确：
 
-- 可以说“这轮阶段分工和写作 / 分析纪律主要学自近期 DeepScientist”
-- 可以说“MAS 已把这些规律压成自己的 study charter / controller / gate 合同”
+- 可以说“这轮阶段分工和通用研究纪律主要学自近期 DeepScientist / MDS base skill”
+- 可以说“MAS 已把医学研究 owner 面压成自己的 study charter / overlay / controller / gate 合同”
+- 可以说“`MDS` 清理 `publishability_gate_mode` 和 base skill 本地附加层之后，`MAS` 继续承担医学质量、投稿规则和医学稿件审阅边界”
 
 这两句话可以同时成立。
 
