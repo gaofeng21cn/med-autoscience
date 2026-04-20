@@ -48,7 +48,10 @@ from med_autoscience.runtime_protocol import study_runtime as study_runtime_prot
 from med_autoscience.controllers.study_runtime_transport import _get_quest_session
 from med_autoscience.study_charter import read_study_charter
 from med_autoscience.study_completion import StudyCompletionStateStatus
-from med_autoscience.study_manual_finish import resolve_submission_metadata_only_manual_finish_contract
+from med_autoscience.study_manual_finish import (
+    resolve_study_manual_finish_contract,
+    resolve_submission_metadata_only_manual_finish_contract,
+)
 
 
 _SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS = paper_artifacts.SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS
@@ -240,6 +243,11 @@ def _submission_metadata_only_manual_finish_active(*, study_root: Path, quest_ro
         )
         is not None
     )
+
+
+def _explicit_manual_finish_compatibility_guard_active(*, study_root: Path) -> bool:
+    contract = resolve_study_manual_finish_contract(study_root=study_root)
+    return contract is not None and contract.compatibility_guard_only
 
 
 def _publication_eval_evidence_refs(*values: object) -> tuple[str, ...]:
@@ -1466,6 +1474,9 @@ def _status_state(
             quest_root=quest_root,
         )
     )
+    explicit_manual_finish_compatibility_guard = _explicit_manual_finish_compatibility_guard_active(
+        study_root=study_root,
+    )
     submission_metadata_only_wait = (
         quest_exists
         and quest_status == StudyRuntimeQuestStatus.WAITING_FOR_USER
@@ -1693,6 +1704,13 @@ def _status_state(
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.STARTUP_CONTRACT_RESOLUTION_FAILED,
+        )
+        return _finalize_result()
+
+    if explicit_manual_finish_compatibility_guard and quest_status not in _LIVE_QUEST_STATUSES:
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
         )
         return _finalize_result()
 

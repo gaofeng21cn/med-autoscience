@@ -50,6 +50,20 @@ def _write_execution_overrides(study_root: Path, **overrides: object) -> None:
     )
 
 
+def _write_manual_finish_contract(study_root: Path, manual_finish: dict[str, object] | None) -> None:
+    study_payload = yaml.safe_load(study_root.joinpath("study.yaml").read_text(encoding="utf-8"))
+    if not isinstance(study_payload, dict):
+        raise TypeError("study payload must be a mapping")
+    if manual_finish is None:
+        study_payload.pop("manual_finish", None)
+    else:
+        study_payload["manual_finish"] = dict(manual_finish)
+    write_text(
+        study_root / "study.yaml",
+        yaml.safe_dump(study_payload, allow_unicode=True, sort_keys=False),
+    )
+
+
 def _managed_runtime_transport(module: object):
     transport = module.managed_runtime_transport
     assert transport is module.med_deepscientist_transport
@@ -665,6 +679,73 @@ def test_ensure_study_runtime_auto_resumes_stopped_user_stop_auto_continuation_w
     assert resumed["source"] == "medautosci-test"
     assert resumed["runtime_root"] == profile.med_deepscientist_runtime_root
     assert resumed["quest_id"] == "001-risk"
+
+
+def test_study_runtime_status_keeps_explicit_manual_finish_contract_parked_even_when_stopped_auto_continuation_has_pending_messages(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    _write_manual_finish_contract(
+        study_root,
+        {
+            "status": "active",
+            "summary": "当前 study 已转入人工打磨收尾；MAS 只需保持兼容性与监督入口。",
+            "next_action_summary": "继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。",
+            "compatibility_guard_only": True,
+        },
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "stopped",
+                "continuation_policy": "auto",
+                "continuation_anchor": "write",
+                "continuation_reason": "decision:decision-continue-001",
+                "stop_reason": "user_stop",
+                "active_interaction_id": "progress-001",
+                "pending_user_message_count": 9,
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_for_submission_metadata"
+    assert result["quest_status"] == "stopped"
 
 
 def test_study_runtime_status_refreshes_stale_launch_report_for_stopped_quest(
