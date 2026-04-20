@@ -45,6 +45,7 @@ class SurfaceState:
     figure_catalog_path: Path
     table_catalog_path: Path
     methods_implementation_manifest_path: Path
+    review_ledger_path: Path
     results_narrative_map_path: Path
     figure_semantics_manifest_path: Path
     claim_evidence_map_path: Path
@@ -109,6 +110,7 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
         figure_catalog_path=paper_root / "figures" / "figure_catalog.json",
         table_catalog_path=paper_root / "tables" / "table_catalog.json",
         methods_implementation_manifest_path=paper_root / medical_surface_policy.METHODS_IMPLEMENTATION_MANIFEST_BASENAME,
+        review_ledger_path=paper_root / "review" / medical_surface_policy.REVIEW_LEDGER_BASENAME,
         results_narrative_map_path=paper_root / medical_surface_policy.RESULTS_NARRATIVE_MAP_BASENAME,
         figure_semantics_manifest_path=paper_root / medical_surface_policy.FIGURE_SEMANTICS_MANIFEST_BASENAME,
         claim_evidence_map_path=paper_root / medical_surface_policy.CLAIM_EVIDENCE_MAP_BASENAME,
@@ -1712,6 +1714,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         pattern_id="methods_implementation_manifest",
         label="medical methods implementation manifest",
     )
+    review_ledger_valid, review_ledger_hits = inspect_required_json_contract(
+        path=state.review_ledger_path,
+        validator=medical_surface_policy.validate_review_ledger,
+        pattern_id="review_ledger",
+        label="review ledger",
+    )
     results_narrative_valid, results_narrative_hits = inspect_required_json_contract(
         path=state.results_narrative_map_path,
         validator=medical_surface_policy.validate_results_narrative_map,
@@ -1925,6 +1933,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(table_catalog_hits)
     hits.extend(required_display_catalog_hits)
     hits.extend(methods_manifest_hits)
+    hits.extend(review_ledger_hits)
     hits.extend(results_narrative_hits)
     hits.extend(results_display_surface_hits)
     hits.extend(figure_semantics_hits)
@@ -1964,6 +1973,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("ama_pdf_defaults_missing")
     if not methods_manifest_valid:
         blockers.append("methods_implementation_manifest_missing_or_incomplete")
+    if not review_ledger_valid:
+        blockers.append("review_ledger_missing_or_incomplete")
     if not results_narrative_valid:
         blockers.append("results_narrative_map_missing_or_incomplete")
     if results_display_surface_hits:
@@ -2036,6 +2047,9 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "methods_implementation_manifest_path": str(state.methods_implementation_manifest_path),
         "methods_implementation_manifest_present": state.methods_implementation_manifest_path.exists(),
         "methods_implementation_manifest_valid": methods_manifest_valid,
+        "review_ledger_path": str(state.review_ledger_path),
+        "review_ledger_present": state.review_ledger_path.exists(),
+        "review_ledger_valid": review_ledger_valid,
         "introduction_structure_valid": not introduction_structure_hits,
         "methods_section_structure_valid": not methods_section_structure_hits,
         "results_section_structure_valid": not results_section_structure_hits,
@@ -2101,6 +2115,8 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- required_display_catalog_coverage_valid: `{report.get('required_display_catalog_coverage_valid', True)}`",
         f"- methods_implementation_manifest_present: `{report['methods_implementation_manifest_present']}`",
         f"- methods_implementation_manifest_valid: `{report['methods_implementation_manifest_valid']}`",
+        f"- review_ledger_present: `{report['review_ledger_present']}`",
+        f"- review_ledger_valid: `{report['review_ledger_valid']}`",
         f"- introduction_structure_valid: `{report.get('introduction_structure_valid', True)}`",
         f"- methods_section_structure_valid: `{report.get('methods_section_structure_valid', True)}`",
         f"- results_section_structure_valid: `{report.get('results_section_structure_valid', True)}`",

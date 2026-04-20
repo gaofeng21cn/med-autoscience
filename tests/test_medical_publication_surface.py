@@ -93,6 +93,31 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(normalized_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _write_review_ledger(path: Path, *, summary: str = "Clarify the endpoint boundary in Results.") -> None:
+    dump_json(
+        path,
+        {
+            "schema_version": 1,
+            "concerns": [
+                {
+                    "concern_id": "RC1",
+                    "reviewer_id": "reviewer_1",
+                    "summary": summary,
+                    "severity": "major",
+                    "status": "open",
+                    "owner_action": "rewrite_results_boundary_paragraph",
+                    "revision_links": [
+                        {
+                            "revision_id": "rev-001",
+                            "revision_log_path": "paper/review/revision_log.md",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+
 def _paper_root_from_quest(quest_root: Path) -> Path:
     return quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
 
@@ -169,6 +194,7 @@ def make_quest(
     figure_led_results: bool | None = None,
     include_reproducibility_supplement: bool | None = None,
     include_endpoint_provenance_note: bool | None = None,
+    include_review_ledger: bool | None = None,
     include_operational_method_labels: bool | None = None,
     include_complete_model_registry: bool | None = None,
     include_complete_results_sections: bool | None = None,
@@ -203,6 +229,8 @@ def make_quest(
         include_reproducibility_supplement = medicalized
     if include_endpoint_provenance_note is None:
         include_endpoint_provenance_note = medicalized
+    if include_review_ledger is None:
+        include_review_ledger = medicalized
     if include_operational_method_labels is None:
         include_operational_method_labels = medicalized
     if include_complete_model_registry is None:
@@ -265,6 +293,9 @@ def make_quest(
         },
     )
     (paper_root / "paper.pdf").write_text("%PDF", encoding="utf-8")
+
+    if include_review_ledger:
+        _write_review_ledger(paper_root / "review" / "review_ledger.json")
 
     if medicalized:
         endpoint_statement = (
@@ -1584,6 +1615,74 @@ def test_build_report_blocks_when_missing_data_policy_ids_are_inconsistent(tmp_p
     assert any(hit["pattern_id"] == "missing_data_policy_inconsistent" for hit in report["top_hits"])
 
 
+def test_build_report_blocks_when_review_ledger_is_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_review_ledger=False,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "review_ledger_missing_or_incomplete" in report["blockers"]
+    assert any(hit["pattern_id"] == "review_ledger" for hit in report["top_hits"])
+
+
+def test_build_report_blocks_when_review_ledger_shape_is_invalid(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    review_ledger_path = _paper_root_from_quest(quest_root) / "review" / "review_ledger.json"
+    dump_json(
+        review_ledger_path,
+        {
+            "schema_version": 1,
+            "concerns": [
+                {
+                    "concern_id": "RC1",
+                    "reviewer_id": "reviewer_1",
+                    "summary": "Clarify the endpoint boundary in Results.",
+                    "severity": "major",
+                    "status": "open",
+                    "owner_action": "rewrite_results_boundary_paragraph",
+                    "revision_links": [],
+                }
+            ],
+        },
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "review_ledger_missing_or_incomplete" in report["blockers"]
+    assert any(
+        hit["pattern_id"] == "review_ledger" and "revision_links" in hit["excerpt"]
+        for hit in report["top_hits"]
+    )
+
+
+def test_build_report_accepts_valid_review_ledger(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert "review_ledger_missing_or_incomplete" not in report["blockers"]
+    assert report["review_ledger_present"] is True
+    assert report["review_ledger_valid"] is True
+
+
 def test_build_report_blocks_when_main_text_figure_is_not_used_in_results_narrative_map(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
@@ -2866,6 +2965,8 @@ def test_write_surface_files_uses_runtime_protocol_report_store(monkeypatch, tmp
         "table_catalog_valid": True,
         "methods_implementation_manifest_present": True,
         "methods_implementation_manifest_valid": True,
+        "review_ledger_present": True,
+        "review_ledger_valid": True,
         "results_narrative_map_present": True,
         "results_narrative_map_valid": True,
         "figure_semantics_manifest_present": True,

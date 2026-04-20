@@ -55,6 +55,7 @@ REPRODUCIBILITY_SUPPLEMENT_BASENAME = "manuscript_safe_reproducibility_supplemen
 ENDPOINT_PROVENANCE_NOTE_BASENAME = "endpoint_provenance_note.md"
 CLAIM_EVIDENCE_MAP_BASENAME = "claim_evidence_map.json"
 EVIDENCE_LEDGER_BASENAME = "evidence_ledger.json"
+REVIEW_LEDGER_BASENAME = "review_ledger.json"
 PUBLIC_EVIDENCE_DECISIONS_KEY = "public_evidence_decisions"
 PUBLIC_EVIDENCE_SURFACE_DECISIONS = frozenset(
     {
@@ -418,6 +419,52 @@ def validate_evidence_ledger(payload: object) -> list[str]:
                 return [
                     f"missing claims[{index}].recommended_actions[{action_index}] fields: "
                     f"{', '.join(missing_action_fields)}"
+                ]
+    return []
+
+
+def validate_review_ledger(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["payload must be a JSON object"]
+    schema_version = payload.get("schema_version")
+    if schema_version != 1:
+        return ["schema_version must be 1"]
+    concerns = payload.get("concerns")
+    if not isinstance(concerns, list) or not concerns:
+        return ["concerns must contain at least one reviewer concern"]
+    required_fields = (
+        "concern_id",
+        "reviewer_id",
+        "summary",
+        "severity",
+        "status",
+        "owner_action",
+        "revision_links",
+    )
+    allowed_severity = {"critical", "major", "minor", "editorial"}
+    allowed_status = {"open", "in_progress", "resolved", "deferred"}
+    revision_link_fields = ("revision_id", "revision_log_path")
+    for index, concern in enumerate(concerns):
+        missing_fields = _missing_required_fields(concern, required_fields)
+        if missing_fields:
+            return [f"missing concerns[{index}] fields: {', '.join(missing_fields)}"]
+        severity = str(concern.get("severity") or "").strip()
+        if severity not in allowed_severity:
+            return [
+                f"concerns[{index}].severity `{severity}` must be one of {', '.join(sorted(allowed_severity))}"
+            ]
+        status = str(concern.get("status") or "").strip()
+        if status not in allowed_status:
+            return [f"concerns[{index}].status `{status}` must be one of {', '.join(sorted(allowed_status))}"]
+        revision_links = concern.get("revision_links")
+        if not isinstance(revision_links, list) or not revision_links:
+            return [f"concerns[{index}].revision_links must contain at least one revision link"]
+        for revision_index, revision_link in enumerate(revision_links):
+            missing_revision_fields = _missing_required_fields(revision_link, revision_link_fields)
+            if missing_revision_fields:
+                return [
+                    "missing concerns"
+                    f"[{index}].revision_links[{revision_index}] fields: {', '.join(missing_revision_fields)}"
                 ]
     return []
 

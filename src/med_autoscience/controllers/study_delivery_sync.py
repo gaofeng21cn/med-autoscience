@@ -479,6 +479,7 @@ def sync_current_package_projection(
     status_line: str,
     copied_files: list[dict[str, str]],
     generated_files: list[dict[str, str]],
+    review_ledger_source: Path | None = None,
 ) -> None:
     reset_directory(current_package_root)
     copy_tree(
@@ -499,6 +500,13 @@ def sync_current_package_projection(
                 category="current_package",
                 copied_files=copied_files,
             )
+    if review_ledger_source is not None and review_ledger_source.exists():
+        copy_file(
+            source=review_ledger_source,
+            target=current_package_root / "review" / review_ledger_source.name,
+            category="current_package_review_surface",
+            copied_files=copied_files,
+        )
     readme_path = current_package_root / "README.md"
     write_text(
         readme_path,
@@ -552,6 +560,24 @@ def _copy_relative_files(
             category=category,
             copied_files=copied_files,
         )
+
+
+def copy_review_ledger_to_delivery_root(
+    *,
+    paper_root: Path,
+    target_root: Path,
+    category: str,
+    copied_files: list[dict[str, str]],
+) -> None:
+    review_ledger_source = paper_root / "review" / "review_ledger.json"
+    if not review_ledger_source.exists():
+        return
+    copy_file(
+        source=review_ledger_source,
+        target=target_root / "review" / review_ledger_source.name,
+        category=category,
+        copied_files=copied_files,
+    )
 
 
 def _copy_optional_file(
@@ -636,6 +662,7 @@ def _draft_handoff_source_relative_paths(*, paper_root: Path) -> tuple[Path, ...
         Path("build/review_manuscript.md"),
         Path("build/compile_report.json"),
         Path("review/review.md"),
+        Path("review/review_ledger.json"),
         Path("review/revision_log.md"),
         Path("review/submission_checklist.json"),
         Path("proofing/proofing_report.md"),
@@ -1373,6 +1400,13 @@ def sync_general_delivery(
         status_line="human-facing manuscript handoff surface",
         copied_files=copied_files,
         generated_files=generated_files,
+        review_ledger_source=paper_root / "review" / "review_ledger.json",
+    )
+    copy_review_ledger_to_delivery_root(
+        paper_root=paper_root,
+        target_root=manuscript_root,
+        category="review_surface",
+        copied_files=copied_files,
     )
 
     targets = {
@@ -1530,6 +1564,13 @@ def sync_journal_specific_delivery(
         status_line="journal-specific human-facing manuscript package",
         copied_files=copied_files,
         generated_files=generated_files,
+        review_ledger_source=paper_root / "review" / "review_ledger.json",
+    )
+    copy_review_ledger_to_delivery_root(
+        paper_root=paper_root,
+        target_root=journal_package_root,
+        category="review_surface",
+        copied_files=copied_files,
     )
 
     manifest = {
@@ -1714,6 +1755,13 @@ def sync_promoted_journal_delivery(
         status_line="promoted human-facing manuscript handoff surface",
         copied_files=copied_files,
         generated_files=generated_files,
+        review_ledger_source=paper_root / "review" / "review_ledger.json",
+    )
+    copy_review_ledger_to_delivery_root(
+        paper_root=paper_root,
+        target_root=manuscript_root,
+        category="review_surface",
+        copied_files=copied_files,
     )
 
     reset_directory(mirror_root)

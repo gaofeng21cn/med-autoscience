@@ -28,6 +28,31 @@ def write_png(path: Path) -> None:
     path.write_bytes(base64.b64decode(PNG_1X1_BASE64))
 
 
+def write_review_ledger(path: Path) -> None:
+    dump_json(
+        path,
+        {
+            "schema_version": 1,
+            "concerns": [
+                {
+                    "concern_id": "RC1",
+                    "reviewer_id": "reviewer_1",
+                    "summary": "Clarify the endpoint boundary in Results.",
+                    "severity": "major",
+                    "status": "open",
+                    "owner_action": "rewrite_results_boundary_paragraph",
+                    "revision_links": [
+                        {
+                            "revision_id": "rev-001",
+                            "revision_log_path": "paper/review/revision_log.md",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+
 def make_delivery_workspace(
     tmp_path: Path,
     *,
@@ -101,6 +126,7 @@ def make_delivery_workspace(
             ],
         },
     )
+    write_review_ledger(paper_root / "review" / "review_ledger.json")
     dump_json(
         paper_root / "figures" / "figure_catalog.json",
         {
@@ -339,6 +365,31 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
         "journal_submission_mirror_root": None,
     }
     assert "evidence_ledger.json" in delivery_manifest["source_relative_paths"]
+
+
+def test_sync_study_delivery_for_submission_minimal_mirrors_review_ledger(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    mirrored_ledger_path = study_root / "manuscript" / "review" / "review_ledger.json"
+    current_package_ledger_path = study_root / "manuscript" / "current_package" / "review" / "review_ledger.json"
+    source_payload = json.loads((paper_root / "review" / "review_ledger.json").read_text(encoding="utf-8"))
+    mirrored_payload = json.loads(mirrored_ledger_path.read_text(encoding="utf-8"))
+    current_package_payload = json.loads(current_package_ledger_path.read_text(encoding="utf-8"))
+
+    assert mirrored_payload == source_payload
+    assert current_package_payload == source_payload
+    delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
+    assert any(
+        item["source_path"] == str((paper_root / "review" / "review_ledger.json").resolve())
+        and item["target_path"] == str(mirrored_ledger_path.resolve())
+        for item in delivery_manifest["copied_files"]
+    )
 
 
 def test_sync_study_delivery_writes_submission_todo_for_pending_front_matter(tmp_path: Path) -> None:
