@@ -412,10 +412,18 @@ FRONT_MATTER_LABELS = {
     "ethics": "Ethics",
     "data_availability": "Data availability",
 }
+METADATA_CLOSEOUT_LABELS = {
+    "objective_metadata_closeout": "Objective metadata closeout",
+    "journal_template_page_proof": "Journal template page proof",
+}
 
 
 def _humanize_submission_field(field_name: str) -> str:
     return FRONT_MATTER_LABELS.get(field_name, field_name.replace("_", " ").capitalize())
+
+
+def _humanize_metadata_closeout_item(item_key: str) -> str:
+    return METADATA_CLOSEOUT_LABELS.get(item_key, item_key.replace("_", " ").capitalize())
 
 
 def _is_pending_submission_item(value: Any) -> bool:
@@ -432,13 +440,38 @@ def build_submission_todo_from_manifest(*, manifest_path: Path) -> str | None:
         return None
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     placeholders = manifest.get("front_matter_placeholders")
-    if not isinstance(placeholders, dict):
-        return None
-    pending_items = [
-        (_humanize_submission_field(str(key)), "pending" if value is None else str(value).strip() or "pending")
-        for key, value in sorted(placeholders.items())
-        if _is_pending_submission_item(value)
-    ]
+    pending_items: list[tuple[str, str]] = []
+    if isinstance(placeholders, dict):
+        pending_items.extend(
+            [
+                (_humanize_submission_field(str(key)), "pending" if value is None else str(value).strip() or "pending")
+                for key, value in sorted(placeholders.items())
+                if _is_pending_submission_item(value)
+            ]
+        )
+    if not pending_items:
+        metadata_closeout = manifest.get("metadata_closeout")
+        if isinstance(metadata_closeout, dict):
+            followups = metadata_closeout.get("non_blocking_followups")
+            if isinstance(followups, list):
+                for item in followups:
+                    if not isinstance(item, dict):
+                        continue
+                    key = str(item.get("key") or "").strip()
+                    if not key:
+                        continue
+                    followup_status = str(item.get("status") or "").strip()
+                    notes = str(item.get("notes") or "").strip()
+                    if not followup_status and not notes:
+                        continue
+                    if followup_status in {"done", "completed", "not_applicable", "clear"}:
+                        continue
+                    pending_items.append(
+                        (
+                            _humanize_metadata_closeout_item(key),
+                            notes or followup_status.replace("_", " "),
+                        )
+                    )
     if not pending_items:
         return None
     lines = [

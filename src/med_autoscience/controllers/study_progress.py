@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shlex
 from datetime import datetime, timezone
+from importlib import import_module
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -303,6 +304,16 @@ def _duration_hours_label(seconds: int) -> str:
 def _non_empty_text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _timestamp_is_newer(candidate: object, baseline: object) -> bool:
+    candidate_text = _normalize_timestamp(candidate)
+    if candidate_text is None:
+        return False
+    baseline_text = _normalize_timestamp(baseline)
+    if baseline_text is None:
+        return True
+    return datetime.fromisoformat(candidate_text) > datetime.fromisoformat(baseline_text)
 
 
 def _candidate_path(value: object) -> Path | None:
@@ -664,6 +675,71 @@ def _publishability_gate_report_path(
         return None
     candidate = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
     return candidate.resolve() if candidate.exists() else None
+
+
+def _refresh_publication_surfaces_from_gate_report(
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_root: Path | None,
+    quest_id: str | None,
+    publication_eval_path: Path,
+    runtime_escalation_path: Path | None,
+    runtime_watch_payload: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, Path | None, dict[str, Any] | None]:
+    publishability_gate_path = _publishability_gate_report_path(
+        runtime_watch_payload=runtime_watch_payload,
+        quest_root=quest_root,
+    )
+    publishability_gate_payload = (
+        _read_json_object(publishability_gate_path)
+        if publishability_gate_path is not None
+        else None
+    )
+    publication_eval_payload = _read_json_object(publication_eval_path)
+    gate_generated_at = _non_empty_text((publishability_gate_payload or {}).get("generated_at"))
+    eval_emitted_at = _non_empty_text((publication_eval_payload or {}).get("emitted_at"))
+    if (
+        publishability_gate_path is not None
+        and publishability_gate_payload is not None
+        and quest_root is not None
+        and _non_empty_text(publishability_gate_payload.get("gate_kind")) == "publishability_control"
+        and _timestamp_is_newer(gate_generated_at, eval_emitted_at)
+    ):
+        try:
+            decision_module = import_module("med_autoscience.controllers.study_runtime_decision")
+            decision_module._materialize_publication_eval_from_gate_report(
+                study_root=study_root,
+                study_id=study_id,
+                quest_root=quest_root,
+                quest_id=quest_id,
+                publication_gate_report=publishability_gate_payload,
+            )
+            publication_eval_payload = _read_json_object(publication_eval_path)
+        except (AttributeError, ImportError, OSError, json.JSONDecodeError, TypeError, ValueError):
+            pass
+
+    refreshed_eval_emitted_at = _non_empty_text((publication_eval_payload or {}).get("emitted_at"))
+    evaluation_summary_path = stable_evaluation_summary_path(study_root=study_root)
+    evaluation_summary_payload = _read_json_object(evaluation_summary_path)
+    evaluation_summary_emitted_at = _non_empty_text((evaluation_summary_payload or {}).get("emitted_at"))
+    if (
+        publication_eval_payload is not None
+        and publishability_gate_path is not None
+        and runtime_escalation_path is not None
+        and runtime_escalation_path.exists()
+        and refreshed_eval_emitted_at is not None
+        and refreshed_eval_emitted_at != evaluation_summary_emitted_at
+    ):
+        try:
+            materialize_evaluation_summary_artifacts(
+                study_root=study_root,
+                runtime_escalation_ref=runtime_escalation_path,
+                publishability_gate_report_ref=publishability_gate_path,
+            )
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            pass
+    return publication_eval_payload, publishability_gate_path, publishability_gate_payload
 
 
 def _controller_module_surface(*, study_root: Path) -> dict[str, Any] | None:
@@ -2210,7 +2286,6 @@ def build_study_progress_projection(
     details_projection_path = quest_root / ".ds" / "projections" / "details.v1.json" if quest_root is not None else None
 
     launch_report_payload = _read_json_object(launch_report_path)
-    publication_eval_payload = _read_json_object(publication_eval_path)
     controller_decision_payload = _read_json_object(controller_decision_path)
     if controller_decision_payload is not None:
         try:
@@ -2241,6 +2316,17 @@ def build_study_progress_projection(
     else:
         runtime_escalation_payload = None
     runtime_watch_payload = _read_json_object(runtime_watch_path) if runtime_watch_path is not None else None
+    publication_eval_payload, _publishability_gate_path, _publishability_gate_payload = (
+        _refresh_publication_surfaces_from_gate_report(
+            study_root=resolved_study_root,
+            study_id=resolved_study_id,
+            quest_root=quest_root,
+            quest_id=quest_id,
+            publication_eval_path=publication_eval_path,
+            runtime_escalation_path=runtime_escalation_path,
+            runtime_watch_payload=runtime_watch_payload,
+        )
+    )
     bash_summary_payload = _read_json_object(bash_summary_path) if bash_summary_path is not None else None
     details_projection_wrapper = _read_json_object(details_projection_path) if details_projection_path is not None else None
     details_projection_payload = _details_projection_payload(details_projection_path)

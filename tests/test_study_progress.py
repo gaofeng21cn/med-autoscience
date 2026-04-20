@@ -1756,6 +1756,166 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
     assert "投稿包镜像" in markdown
 
 
+def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_study_charter_and_controller_summary(study_root)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-12T09:30:00+00:00",
+            "evaluation_scope": "publication",
+            "charter_context_ref": {
+                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                "charter_id": "charter::001-risk::v1",
+                "publication_objective": "Objective text",
+            },
+            "runtime_context_refs": {
+                "runtime_escalation_ref": str(
+                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+                ),
+                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            },
+            "delivery_context_refs": {
+                "paper_root_ref": str(quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"),
+                "submission_minimal_ref": str(
+                    quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "submission_minimal" / "submission_manifest.json"
+                ),
+            },
+            "verdict": {
+                "overall_verdict": "blocked",
+                "primary_claim_status": "partial",
+                "summary": "旧的外层结论还停在投稿包镜像过期。",
+                "stop_loss_pressure": "watch",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "delivery",
+                    "severity": "must_fix",
+                    "summary": "stale_study_delivery_mirror",
+                    "evidence_refs": [str(quest_root)],
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "publication-eval-action::return_to_controller::2026-04-12T09:30:00+00:00",
+                    "action_type": "return_to_controller",
+                    "priority": "now",
+                    "reason": "旧 blocker 仍未清掉。",
+                    "evidence_refs": [str(quest_root)],
+                    "requires_controller_decision": True,
+                }
+            ],
+        },
+    )
+    _write_runtime_escalation(quest_root, study_root)
+    _write_runtime_watch(quest_root)
+    gate_report_path = _write_publishability_gate_report(quest_root)
+    gate_report = json.loads(gate_report_path.read_text(encoding="utf-8"))
+    gate_report.update(
+        {
+            "generated_at": "2026-04-12T09:40:00+00:00",
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["medical_publication_surface_blocked"],
+            "study_delivery_status": "current",
+            "study_delivery_stale_reason": None,
+            "medical_publication_surface_status": "blocked",
+            "controller_stage_note": "稿件书写面还有医学论文表达硬阻塞，需要继续修文。",
+        }
+    )
+    _write_json(gate_report_path, gate_report)
+    _write_bash_summary(quest_root)
+
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "study_completion_contract": {},
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "runtime_escalation_ref": {
+                "record_id": "runtime-escalation::001-risk::quest-001::publishability_gate_blocked::2026-04-10T09:07:00+00:00",
+                "artifact_path": str(
+                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+                ),
+                "summary_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            },
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "controller_stage_note": "稿件书写面还有医学论文表达硬阻塞，需要继续修文。",
+            },
+            "autonomous_runtime_notice": {
+                "required": True,
+                "quest_id": "quest-001",
+                "quest_status": "running",
+                "active_run_id": "run-001",
+                "browser_url": "http://127.0.0.1:21999/quests/quest-001",
+                "quest_session_api_url": "http://127.0.0.1:21999/api/sessions/run-001",
+            },
+            "execution_owner_guard": {
+                "owner": "managed_runtime",
+                "supervisor_only": True,
+                "active_run_id": "run-001",
+                "current_required_action": "supervise_runtime_only",
+                "publication_gate_allows_direct_write": False,
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MAS 外环监管心跳新鲜。",
+                "latest_recorded_at": "2026-04-12T09:59:00+00:00",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+    refreshed_publication_eval = json.loads(
+        (study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert refreshed_publication_eval["emitted_at"] == "2026-04-12T09:40:00+00:00"
+    assert refreshed_publication_eval["gaps"][0]["summary"] == "medical_publication_surface_blocked"
+    assert "study 目录里的投稿包镜像已经过期，仍停在旧版本，不能当作当前包。" not in result["current_blockers"]
+    assert "论文叙事或方法/结果书写面仍有硬阻塞。" in result["current_blockers"]
+    assert result["operator_status_card"]["handling_state"] == "scientific_or_quality_repair_in_progress"
+    assert result["operator_status_card"]["user_visible_verdict"] == "MAS 正在处理论文可发表性硬阻塞，给人看的稿件还没到放行状态。"
+    assert result["module_surfaces"]["eval_hygiene"]["overall_verdict"] == "blocked"
+    assert result["module_surfaces"]["eval_hygiene"]["status_summary"] == "稿件书写面还有医学论文表达硬阻塞，需要继续修文。"
+
+
 def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_runtime(
     monkeypatch,
     tmp_path: Path,

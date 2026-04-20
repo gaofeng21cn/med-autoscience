@@ -423,6 +423,42 @@ def test_sync_study_delivery_writes_submission_todo_for_pending_front_matter(tmp
     } in delivery_manifest["generated_files"]
 
 
+def test_sync_study_delivery_writes_submission_todo_from_metadata_closeout_followups(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["metadata_closeout"] = {
+        "status": "non_blocking_followup_only",
+        "summary": "Administrative follow-up only.",
+        "non_blocking_followups": [
+            {
+                "key": "objective_metadata_closeout",
+                "status": "pending_non_blocking",
+                "notes": "Authors, affiliations, and declaration wording still need user confirmation.",
+            },
+            {
+                "key": "journal_template_page_proof",
+                "status": "conditional",
+                "notes": "Only needed after a concrete target journal is chosen.",
+            },
+        ],
+    }
+    dump_json(manifest_path, manifest)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    todo_path = study_root / "manuscript" / "current_package" / "SUBMISSION_TODO.md"
+    todo_text = todo_path.read_text(encoding="utf-8")
+    assert "# Submission TODO" in todo_text
+    assert "- Objective metadata closeout: Authors, affiliations, and declaration wording still need user confirmation." in todo_text
+    assert "- Journal template page proof: Only needed after a concrete target journal is chosen." in todo_text
+    assert "scientific audit" in todo_text
+
+
 def test_describe_submission_delivery_flags_stale_when_authority_source_disappears(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
