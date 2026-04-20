@@ -340,7 +340,12 @@ def _publication_eval_action(
     status = str(report.get("status") or "").strip()
     if status == "clear":
         current_required_action = str(report.get("current_required_action") or "").strip()
-        action_type = "prepare_promotion_review" if current_required_action == "prepare_promotion_review" else "continue_same_line"
+        if current_required_action == "prepare_promotion_review":
+            action_type = "prepare_promotion_review"
+        elif current_required_action == "continue_write_stage":
+            action_type = "bounded_analysis"
+        else:
+            action_type = "continue_same_line"
         reason = (
             str(report.get("controller_stage_note") or "").strip()
             or "Publication gate is clear and the current line can continue."

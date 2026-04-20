@@ -341,6 +341,88 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_continue_
     ]
 
 
+def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_bounded_analysis(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(quest_root, study_root)
+    runtime_event_ref = _write_runtime_event_record(
+        quest_root,
+        study_root,
+        runtime_escalation_ref=runtime_escalation_ref,
+    )
+    _write_charter(study_root)
+    _write_publication_eval(
+        study_root,
+        quest_root,
+        action_type="bounded_analysis",
+        reason="Run one bounded robustness analysis before the next gate pass.",
+    )
+    status_payload = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="blocked",
+            reason="quest_stopped_requires_explicit_rerun",
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "quest_status": "stopped",
+        "execution": {
+            "engine": "med-deepscientist",
+            "auto_entry": "on_managed_research_intent",
+            "quest_id": "quest-001",
+            "auto_resume": True,
+        },
+        "runtime_escalation_ref": runtime_escalation_ref,
+        "runtime_event_ref": runtime_event_ref,
+        "publication_supervisor_state": {
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "current_required_action": "return_to_publishability_gate",
+        },
+    }
+
+    def fake_ensure(**kwargs):
+        if kwargs.get("source") == "runtime_watch":
+            return status_payload
+        if kwargs.get("source") == "runtime_watch_outer_loop_wakeup":
+            return {
+                "decision": "relaunch_stopped",
+                "reason": "quest_stopped_requires_explicit_rerun",
+            }
+        raise AssertionError(f"unexpected ensure source: {kwargs.get('source')}")
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    payload = json.loads((study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8"))
+
+    assert result["managed_study_actions"][0]["study_id"] == "001-risk"
+    assert payload["decision_type"] == "bounded_analysis"
+    assert payload["requires_human_confirmation"] is False
+    assert payload["controller_actions"] == [
+        {
+            "action_type": "ensure_study_runtime_relaunch_stopped",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
+
+
 def test_watch_runtime_fails_closed_when_outer_loop_candidate_lacks_stable_charter(
     tmp_path: Path,
     monkeypatch,
@@ -439,6 +521,23 @@ def test_watch_runtime_skips_outer_loop_materialization_when_human_gate_or_actio
     assert result["managed_study_actions"][0]["study_id"] == "001-risk"
     assert ensure_calls == ["runtime_watch"]
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+
+
+def test_publication_eval_action_uses_bounded_analysis_for_clear_continue_write_stage() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+
+    action = module._publication_eval_action(
+        report={
+            "status": "clear",
+            "current_required_action": "continue_write_stage",
+            "controller_stage_note": "Current line is clear and a bounded robustness pass should complete first.",
+        },
+        generated_at="2026-04-05T06:05:00+00:00",
+        evidence_refs=("/tmp/main_result.json",),
+    )
+
+    assert action.action_type == "bounded_analysis"
+    assert action.priority == "now"
 
 
 def test_runtime_watch_uses_runtime_watch_protocol_helpers(monkeypatch, tmp_path: Path) -> None:

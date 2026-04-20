@@ -65,6 +65,7 @@ _CURRENT_STAGE_LABELS = {
 }
 _DECISION_TYPE_LABELS = {
     "continue_same_line": "继续当前主线",
+    "bounded_analysis": "有限补充分析",
     "relaunch_branch": "重启当前分支",
     "reroute_study": "改换研究主线",
     "stop_loss": "止损停题",

@@ -34,6 +34,10 @@ def test_controller_human_gate_policy_keeps_ordinary_research_decisions_autonomo
         decision_type="continue_same_line",
         controller_action_types=["ensure_study_runtime"],
     )
+    bounded_analysis = controller_human_gate_policy(
+        decision_type="bounded_analysis",
+        controller_action_types=["ensure_study_runtime"],
+    )
     relaunch = controller_human_gate_policy(
         decision_type="relaunch_branch",
         controller_action_types=["ensure_study_runtime_relaunch_stopped"],
@@ -41,6 +45,8 @@ def test_controller_human_gate_policy_keeps_ordinary_research_decisions_autonomo
 
     assert continue_line.allowed is False
     assert continue_line.category == "mas_autonomous_scientific_decision"
+    assert bounded_analysis.allowed is False
+    assert bounded_analysis.category == "mas_autonomous_scientific_decision"
     assert relaunch.allowed is False
     assert relaunch.category == "mas_autonomous_runtime_recovery"
 

@@ -1242,6 +1242,73 @@ def test_study_progress_does_not_project_autonomous_controller_gate_as_physician
     assert result["refs"]["controller_confirmation_summary_path"] is None
 
 
+def test_study_progress_labels_bounded_analysis_as_autonomous_next_step(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_publication_eval(study_root, quest_root)
+    _write_controller_decision(
+        study_root,
+        quest_root,
+        decision_type="bounded_analysis",
+        requires_human_confirmation=False,
+        action_type="ensure_study_runtime",
+        reason="MAS 将先完成一轮有限补充分析，再继续当前论文主线。",
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+                "auto_resume": True,
+            },
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "active",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "resume",
+            "reason": "publishability_gate_blocked",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": [],
+            },
+            "pending_user_interaction": {},
+            "interaction_arbitration": None,
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["needs_physician_decision"] is False
+    assert result["physician_decision_summary"] is None
+    assert any("有限补充分析" in str(item.get("summary") or "") for item in result["latest_events"])
+
+
 def test_study_progress_projects_finalize_metadata_wait_as_physician_decision(
     monkeypatch,
     tmp_path: Path,

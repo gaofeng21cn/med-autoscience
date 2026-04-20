@@ -1300,7 +1300,7 @@ def test_run_controller_materializes_stable_publication_eval_when_apply_clear(
 
     assert payload["emitted_at"] == "2026-04-18T18:12:13+00:00"
     assert payload["verdict"]["overall_verdict"] == "promising"
-    assert payload["recommended_actions"][0]["action_type"] == "continue_same_line"
+    assert payload["recommended_actions"][0]["action_type"] == "bounded_analysis"
     assert payload["runtime_context_refs"]["main_result_ref"] == str(
         quest_root / "artifacts" / "results" / "main_result.json"
     )

@@ -34,6 +34,7 @@ _HUMAN_CONFIRMATION_DECISION_TYPES = frozenset(
 _AUTONOMOUS_DECISION_TYPES = frozenset(
     {
         StudyDecisionType.CONTINUE_SAME_LINE.value,
+        StudyDecisionType.BOUNDED_ANALYSIS.value,
         StudyDecisionType.RELAUNCH_BRANCH.value,
     }
 )
@@ -42,6 +43,7 @@ _CATEGORY_BY_DECISION_TYPE = {
     StudyDecisionType.STOP_LOSS.value: "stop_loss",
     StudyDecisionType.PROMOTE_TO_DELIVERY.value: "final_submission_audit",
     StudyDecisionType.CONTINUE_SAME_LINE.value: "mas_autonomous_scientific_decision",
+    StudyDecisionType.BOUNDED_ANALYSIS.value: "mas_autonomous_scientific_decision",
     StudyDecisionType.RELAUNCH_BRANCH.value: "mas_autonomous_runtime_recovery",
 }
 

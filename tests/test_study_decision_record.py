@@ -136,6 +136,19 @@ def test_study_decision_record_rejects_unsupported_stop_after_current_step_actio
         module.StudyDecisionRecord.from_payload(payload)
 
 
+def test_study_decision_record_accepts_bounded_analysis_decision_type() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["decision_id"] = "study-decision::001-risk::quest-001::bounded_analysis::2026-04-05T06:00:00+00:00"
+    payload["decision_type"] = "bounded_analysis"
+    payload["reason"] = "Publication eval requests a bounded supplementary analysis before the next gate pass."
+
+    record = module.StudyDecisionRecord.from_payload(payload)
+
+    assert record.decision_type == module.StudyDecisionType.BOUNDED_ANALYSIS
+    assert record.to_dict()["decision_type"] == "bounded_analysis"
+
+
 def test_study_decision_record_accepts_family_orchestration_companion_fields() -> None:
     module = _load_module()
     payload = _minimal_payload()

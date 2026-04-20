@@ -898,6 +898,93 @@ def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monke
     }
 
 
+def test_build_runtime_watch_outer_loop_tick_request_materializes_bounded_analysis(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    _write_charter(study_root)
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-05T05:58:00+00:00",
+            "evaluation_scope": "publication",
+            "charter_context_ref": {
+                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                "charter_id": "charter::001-risk::v1",
+                "publication_objective": "risk stratification external validation",
+            },
+            "runtime_context_refs": {
+                "runtime_escalation_ref": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
+                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            },
+            "delivery_context_refs": {
+                "paper_root_ref": str(study_root / "paper"),
+                "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+            },
+            "verdict": {
+                "overall_verdict": "mixed",
+                "primary_claim_status": "partial",
+                "summary": "Primary line is stable and a bounded robustness analysis should run next.",
+                "stop_loss_pressure": "watch",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "evidence",
+                    "severity": "important",
+                    "summary": "Robustness check is still missing.",
+                    "evidence_refs": [str(quest_root / "artifacts" / "results" / "main_result.json")],
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "action-000",
+                    "action_type": "return_to_controller",
+                    "priority": "now",
+                    "reason": "Controller can review the current evidence posture.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "requires_controller_decision": True,
+                },
+                {
+                    "action_id": "action-001",
+                    "action_type": "bounded_analysis",
+                    "priority": "now",
+                    "reason": "Run the bounded robustness analysis before the next publication gate pass.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "requires_controller_decision": True,
+                }
+            ],
+        },
+    )
+
+    request = module.build_runtime_watch_outer_loop_tick_request(
+        study_root=study_root,
+        status_payload={
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "reason": "quest_stopped_requires_explicit_rerun",
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+
+    assert request is not None
+    assert request["decision_type"] == "bounded_analysis"
+    assert request["requires_human_confirmation"] is False
+    assert request["controller_actions"] == [
+        {
+            "action_type": "ensure_study_runtime_relaunch_stopped",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
+
+
 def test_study_outer_loop_tick_dispatches_pause_runtime_action(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     profile = make_profile(tmp_path)

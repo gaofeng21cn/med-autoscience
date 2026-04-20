@@ -358,6 +358,8 @@ def _recommended_publication_eval_action(publication_eval_payload: dict[str, Any
             continue
         if action.get("requires_controller_decision") is not True:
             continue
+        if _autonomous_decision_type_for_publication_eval_action(action) is None:
+            continue
         return dict(action)
     return None
 
@@ -366,6 +368,8 @@ def _autonomous_decision_type_for_publication_eval_action(action_payload: dict[s
     action_type = str(action_payload.get("action_type") or "").strip()
     if action_type == StudyDecisionType.CONTINUE_SAME_LINE.value:
         return StudyDecisionType.CONTINUE_SAME_LINE.value
+    if action_type == StudyDecisionType.BOUNDED_ANALYSIS.value:
+        return StudyDecisionType.BOUNDED_ANALYSIS.value
     return None
 
 
