@@ -318,6 +318,12 @@ def build_display_surface_workspace(
                     "shell_path": "paper/figures/Figure24.shell.json",
                 },
                 {
+                    "display_id": "Figure25",
+                    "display_kind": "figure",
+                    "requirement_key": "diffusion_map_scatter_grouped",
+                    "shell_path": "paper/figures/Figure25.shell.json",
+                },
+                {
                     "display_id": "Table2",
                     "display_kind": "table",
                     "requirement_key": "table2_time_to_event_performance_summary",
@@ -386,6 +392,7 @@ def build_display_surface_workspace(
                     (22, "clinical_impact_curve_binary"),
                     (23, "multivariable_forest"),
                     (24, "phate_scatter_grouped"),
+                    (25, "diffusion_map_scatter_grouped"),
                 ]
             )
         for figure_index, template_id in template_bindings:
@@ -716,6 +723,20 @@ def build_display_surface_workspace(
                                 {"x": -4.1, "y": 3.4, "group": "Subtype A"},
                                 {"x": 4.4, "y": -3.3, "group": "Subtype B"},
                                 {"x": 4.9, "y": -3.8, "group": "Subtype B"},
+                            ],
+                        },
+                        {
+                            "display_id": "Figure25",
+                            "template_id": "diffusion_map_scatter_grouped",
+                            "title": "Diffusion map embedding by subtype",
+                            "caption": "Diffusion map separates subtype manifolds along smooth latent trajectories.",
+                            "x_label": "Diffusion component 1",
+                            "y_label": "Diffusion component 2",
+                            "points": [
+                                {"x": -0.42, "y": 0.31, "group": "Subtype A"},
+                                {"x": -0.35, "y": 0.28, "group": "Subtype A"},
+                                {"x": 0.33, "y": -0.24, "group": "Subtype B"},
+                                {"x": 0.4, "y": -0.29, "group": "Subtype B"},
                             ],
                         },
                     ],
@@ -1726,7 +1747,13 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "treated_fraction_series": {"label": "Model", "x": [0.5, 1.0, 2.0], "y": [40.0, 20.0, 5.0]},
             },
         }
-    if template_short_id in {"umap_scatter_grouped", "pca_scatter_grouped", "phate_scatter_grouped", "tsne_scatter_grouped"}:
+    if template_short_id in {
+        "umap_scatter_grouped",
+        "pca_scatter_grouped",
+        "phate_scatter_grouped",
+        "tsne_scatter_grouped",
+        "diffusion_map_scatter_grouped",
+    }:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -3559,6 +3586,7 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
         "F22",
         "F23",
         "F24",
+        "F25",
     ]
     assert result["tables_materialized"] == ["T1", "T2", "T3"]
     assert (paper_root / "figures" / "generated" / "F7_cumulative_incidence_grouped.png").exists()
@@ -3577,6 +3605,7 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert (paper_root / "figures" / "generated" / "F22_clinical_impact_curve_binary.pdf").exists()
     assert (paper_root / "figures" / "generated" / "F23_multivariable_forest.png").exists()
     assert (paper_root / "figures" / "generated" / "F24_phate_scatter_grouped.pdf").exists()
+    assert (paper_root / "figures" / "generated" / "F25_diffusion_map_scatter_grouped.png").exists()
     assert (paper_root / "tables" / "generated" / "T2_time_to_event_performance_summary.md").exists()
     assert (paper_root / "tables" / "generated" / "T3_clinical_interpretation_summary.md").exists()
     assert {template_id for template_id, _ in render_calls} == {
@@ -3598,6 +3627,7 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
         full_id("multivariable_forest"),
         full_id("subgroup_forest"),
         full_id("phate_scatter_grouped"),
+        full_id("diffusion_map_scatter_grouped"),
         full_id("shap_summary_beeswarm"),
         full_id("time_to_event_discrimination_calibration_panel"),
         full_id("time_to_event_risk_group_summary"),
@@ -3635,6 +3665,9 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert figures_by_id["F24"]["template_id"] == full_id("phate_scatter_grouped")
     assert figures_by_id["F24"]["input_schema_id"] == "embedding_grouped_inputs_v1"
     assert figures_by_id["F24"]["qc_profile"] == "publication_embedding_scatter"
+    assert figures_by_id["F25"]["template_id"] == full_id("diffusion_map_scatter_grouped")
+    assert figures_by_id["F25"]["input_schema_id"] == "embedding_grouped_inputs_v1"
+    assert figures_by_id["F25"]["qc_profile"] == "publication_embedding_scatter"
 
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
     tables_by_id = {item["table_id"]: item for item in table_catalog["tables"]}
@@ -10042,10 +10075,12 @@ def test_r_evidence_renderer_sources_accept_new_concrete_backlog_templates() -> 
     for source in (controller_module._R_EVIDENCE_RENDERER_SOURCE, pack_module._R_EVIDENCE_RENDERER_SOURCE):
         assert 'clinical_impact_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line)' in source
         assert 'phate_scatter_grouped = build_embedding_metrics(display_payload, panel_box)' in source
+        assert 'diffusion_map_scatter_grouped = build_embedding_metrics(display_payload, panel_box)' in source
         assert 'multivariable_forest = list(rows = display_payload$rows)' in source
         assert 'if (template_id %in% c("forest_effect_main", "subgroup_forest", "multivariable_forest") && !is.null(panel_box))' in source
         assert 'clinical_impact_curve_binary = plot_binary_curve(payload)' in source
         assert 'phate_scatter_grouped = plot_embedding_scatter(payload)' in source
+        assert 'diffusion_map_scatter_grouped = plot_embedding_scatter(payload)' in source
         assert 'multivariable_forest = plot_forest(payload)' in source
 
 

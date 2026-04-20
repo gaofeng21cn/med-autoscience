@@ -347,6 +347,7 @@ Current audited anchors:
 - `pca_scatter_grouped`
 - `tsne_scatter_grouped`
 - `phate_scatter_grouped`
+- `diffusion_map_scatter_grouped`
 - `celltype_signature_heatmap`
 - `single_cell_atlas_overview_panel`
 - `atlas_spatial_bridge_panel`
@@ -359,7 +360,7 @@ Current audited anchors:
 
 Current gap direction:
 
-- richer manifold overlays and higher-order atlas geometry synthesis beyond the current PHATE-inclusive atlas-overview + atlas-spatial-bridge + spatial-niche + trajectory + storyboard + density/coverage + context-support + multimanifold baseline
+- richer manifold overlays and higher-order atlas geometry synthesis beyond the current diffusion-inclusive atlas-overview + atlas-spatial-bridge + spatial-niche + trajectory + storyboard + density/coverage + context-support + multimanifold baseline
 - richer higher-order atlas / spatial / trajectory composites beyond the current bounded seven-panel dual-manifold context-support contract
 - stronger crowding / labeling / legend QC for atlas-style, spatial, and trajectory publication-facing composites
 

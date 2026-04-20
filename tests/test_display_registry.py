@@ -42,6 +42,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("pca_scatter_grouped"),
         _full_id("phate_scatter_grouped"),
         _full_id("tsne_scatter_grouped"),
+        _full_id("diffusion_map_scatter_grouped"),
         _full_id("celltype_signature_heatmap"),
         _full_id("single_cell_atlas_overview_panel"),
         _full_id("atlas_spatial_bridge_panel"),
@@ -182,6 +183,16 @@ def test_atlas_spatial_bridge_panel_is_registered() -> None:
 
 def test_phate_scatter_grouped_is_registered() -> None:
     spec = display_registry.get_evidence_figure_spec(_full_id("phate_scatter_grouped"))
+
+    assert spec.paper_family_ids == ("D",)
+    assert spec.evidence_class == "data_geometry"
+    assert spec.renderer_family == "r_ggplot2"
+    assert spec.input_schema_id == "embedding_grouped_inputs_v1"
+    assert spec.layout_qc_profile == "publication_embedding_scatter"
+
+
+def test_diffusion_map_scatter_grouped_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("diffusion_map_scatter_grouped"))
 
     assert spec.paper_family_ids == ("D",)
     assert spec.evidence_class == "data_geometry"

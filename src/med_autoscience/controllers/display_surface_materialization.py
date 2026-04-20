@@ -611,6 +611,7 @@ build_metrics <- function(template_id, display_payload, panel_box) {
     pca_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     phate_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     tsne_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
+    diffusion_map_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     heatmap_group_comparison = list(metric_scope = "heatmap_group_comparison"),
     performance_heatmap = list(
       matrix_cells = display_payload$cells,
@@ -695,6 +696,7 @@ plot <- switch(
   pca_scatter_grouped = plot_embedding_scatter(payload),
   phate_scatter_grouped = plot_embedding_scatter(payload),
   tsne_scatter_grouped = plot_embedding_scatter(payload),
+  diffusion_map_scatter_grouped = plot_embedding_scatter(payload),
   heatmap_group_comparison = plot_heatmap(payload),
   performance_heatmap = plot_performance_heatmap(payload),
   correlation_heatmap = plot_heatmap(payload),

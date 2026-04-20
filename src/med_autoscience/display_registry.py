@@ -42,6 +42,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "pca_scatter_grouped",
         "phate_scatter_grouped",
         "tsne_scatter_grouped",
+        "diffusion_map_scatter_grouped",
         "celltype_signature_heatmap",
         "single_cell_atlas_overview_panel",
         "atlas_spatial_bridge_panel",

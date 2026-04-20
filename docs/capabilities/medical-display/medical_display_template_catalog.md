@@ -67,6 +67,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::pca_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | PCA Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::phate_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | PHATE Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::tsne_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | t-SNE Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::diffusion_map_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | Diffusion Map Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::celltype_signature_heatmap` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Cell-Type Embedding and Signature Heatmap | `python` | `celltype_signature_heatmap_inputs_v1` | `publication_celltype_signature_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::single_cell_atlas_overview_panel` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Single-Cell Atlas Overview Panel | `python` | `single_cell_atlas_overview_inputs_v1` | `publication_single_cell_atlas_overview_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::atlas_spatial_bridge_panel` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Atlas-Spatial Bridge Panel | `python` | `atlas_spatial_bridge_panel_inputs_v1` | `publication_atlas_spatial_bridge_panel` | `png`, `pdf` |
@@ -367,7 +368,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Grouped Embedding Scatter
-- Templates: `fenggaolab.org.medical-display-core::umap_scatter_grouped`, `fenggaolab.org.medical-display-core::pca_scatter_grouped`, `fenggaolab.org.medical-display-core::phate_scatter_grouped`, `fenggaolab.org.medical-display-core::tsne_scatter_grouped`
+- Templates: `fenggaolab.org.medical-display-core::umap_scatter_grouped`, `fenggaolab.org.medical-display-core::pca_scatter_grouped`, `fenggaolab.org.medical-display-core::phate_scatter_grouped`, `fenggaolab.org.medical-display-core::tsne_scatter_grouped`, `fenggaolab.org.medical-display-core::diffusion_map_scatter_grouped`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `points`

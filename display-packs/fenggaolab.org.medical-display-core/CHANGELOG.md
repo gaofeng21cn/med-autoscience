@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-20
 
+- Add `diffusion_map_scatter_grouped` as the next audited `D` grouped diffusion-manifold slice in the core display pack.
+- Lock its pack-facing contract to `embedding_grouped_inputs_v1`, `publication_embedding_scatter`, and the R grouped-embedding scatter renderer path.
+
 - Add `shap_signed_importance_local_support_domain_panel` as the next audited `F` global-to-local explanation scene slice in the core display pack.
 - Lock its pack-facing contract to `shap_signed_importance_local_support_domain_panel_inputs_v1`, `publication_shap_signed_importance_local_support_domain_panel`, and the Python bounded `1 + 1 + 2` signed-importance plus local-waterfall plus support-domain renderer path.
 

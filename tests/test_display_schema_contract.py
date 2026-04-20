@@ -134,6 +134,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         _full_id("pca_scatter_grouped"),
         _full_id("phate_scatter_grouped"),
         _full_id("tsne_scatter_grouped"),
+        _full_id("diffusion_map_scatter_grouped"),
     )
     assert celltype_signature.template_ids == (_full_id("celltype_signature_heatmap"),)
     assert celltype_signature.display_required_fields == (

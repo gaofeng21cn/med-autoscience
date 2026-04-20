@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `78`
+- Evidence figure templates: `79`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total audited templates: `90`
+- Total audited templates: `91`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -60,6 +60,7 @@
 - `C/H / modifier-level interaction summary follow-on` 已在本轮正式 absorb 为 `interaction_effect_summary_panel`，不再保留在 backlog 候选池。
 - `H / broader transportability and center-coverage follow-on` 已在本轮正式 absorb 为 `center_transportability_governance_summary_panel`，不再保留在 backlog 候选池。
 - `D / PHATE manifold concrete follow-on` 已在本轮正式 absorb 为 `phate_scatter_grouped`，不再保留在 backlog 候选池。
+- `D / diffusion-map manifold concrete follow-on` 已在本轮正式 absorb 为 `diffusion_map_scatter_grouped`，不再保留在 backlog 候选池。
 - `D/E/G / legend / annotation / readability-only hardening` 本轮不再作为当前 active 候选保留：
   - 原因：当前 atlas / spatial / trajectory family 的真 gap 已经抬升到更高阶 atlas geometry synthesis；只做 readability patch 还不足以承担下一条 multi-view capability cluster。
 - `D/E/G / broader omics-only matrix follow-on` 本轮不再作为当前 active 候选保留：
