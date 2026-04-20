@@ -156,6 +156,20 @@ def test_publication_eval_record_requires_controller_decision_true() -> None:
         module.PublicationEvalRecord.from_payload(payload)
 
 
+def test_publication_eval_record_allows_route_back_same_line_recommended_action() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["recommended_actions"][0]["action_type"] = "route_back_same_line"
+    payload["recommended_actions"][0]["reason"] = (
+        "Route back to the same core study line to repair ordinary publication quality gaps."
+    )
+
+    record = module.PublicationEvalRecord.from_payload(payload)
+
+    assert record.recommended_actions[0].action_type == "route_back_same_line"
+    assert record.to_dict()["recommended_actions"][0]["action_type"] == "route_back_same_line"
+
+
 def test_publication_eval_record_rejects_promotion_in_overall_verdict() -> None:
     module = _load_module()
     payload = _minimal_payload()

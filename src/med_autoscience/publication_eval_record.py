@@ -32,7 +32,13 @@ _ALLOWED_STOP_LOSS_PRESSURES = frozenset({"none", "watch", "high"})
 _ALLOWED_GAP_TYPES = frozenset({"claim", "evidence", "reporting", "delivery"})
 _ALLOWED_GAP_SEVERITIES = frozenset({"must_fix", "important", "optional"})
 _ALLOWED_ACTION_TYPES = frozenset(
-    {"continue_same_line", "bounded_analysis", "return_to_controller", "prepare_promotion_review"}
+    {
+        "continue_same_line",
+        "route_back_same_line",
+        "bounded_analysis",
+        "return_to_controller",
+        "prepare_promotion_review",
+    }
 )
 _ALLOWED_ACTION_PRIORITIES = frozenset({"now", "next"})
 _REQUIRED_RUNTIME_CONTEXT_REF_KEYS = frozenset({"runtime_escalation_ref", "main_result_ref"})

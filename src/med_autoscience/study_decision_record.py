@@ -35,6 +35,7 @@ _RECORD_REF_ALLOWED_FIELDS = frozenset({"decision_id", "artifact_path"})
 
 class StudyDecisionType(StrEnum):
     CONTINUE_SAME_LINE = "continue_same_line"
+    ROUTE_BACK_SAME_LINE = "route_back_same_line"
     BOUNDED_ANALYSIS = "bounded_analysis"
     RELAUNCH_BRANCH = "relaunch_branch"
     REROUTE_STUDY = "reroute_study"
