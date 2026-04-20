@@ -18,7 +18,12 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _write_publication_eval(study_root: Path, quest_root: Path) -> Path:
+def _write_publication_eval(
+    study_root: Path,
+    quest_root: Path,
+    *,
+    recommended_actions: list[dict[str, object]] | None = None,
+) -> Path:
     payload = {
         "schema_version": 1,
         "eval_id": "publication-eval::001-risk::quest-001::2026-04-10T09:09:00+00:00",
@@ -58,7 +63,8 @@ def _write_publication_eval(study_root: Path, quest_root: Path) -> Path:
                 "evidence_refs": [str(quest_root / "artifacts" / "results" / "main_result.json")],
             }
         ],
-        "recommended_actions": [
+        "recommended_actions": recommended_actions
+        or [
             {
                 "action_id": "action-001",
                 "action_type": "return_to_controller",
@@ -1307,6 +1313,181 @@ def test_study_progress_labels_bounded_analysis_as_autonomous_next_step(
     assert result["needs_physician_decision"] is False
     assert result["physician_decision_summary"] is None
     assert any("有限补充分析" in str(item.get("summary") or "") for item in result["latest_events"])
+
+
+def test_study_progress_surfaces_same_line_route_back_quality_focus(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_publication_eval(
+        study_root,
+        quest_root,
+        recommended_actions=[
+            {
+                "action_id": "action-101",
+                "action_type": "route_back_same_line",
+                "priority": "now",
+                "reason": "当前先修正稿面 claim-evidence 对齐，再继续同线推进。",
+                "route_target": "write",
+                "route_key_question": "当前稿面最窄的 claim-evidence 修复动作是什么？",
+                "route_rationale": "研究方向不变，质量硬阻塞集中在写作面，应该直接回到 write 收口。",
+                "evidence_refs": [
+                    str(
+                        quest_root
+                        / "artifacts"
+                        / "reports"
+                        / "escalation"
+                        / "runtime_escalation_record.json"
+                    )
+                ],
+                "requires_controller_decision": True,
+            }
+        ],
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"engine": "med-deepscientist", "quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "resume",
+            "reason": "publishability_gate_blocked",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "controller_stage_note": "当前论文仍需先修质量面，再考虑后续打包。",
+            },
+            "pending_user_interaction": {},
+            "interaction_arbitration": None,
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
+    assert result["intervention_lane"]["repair_mode"] == "same_line_route_back"
+    assert result["intervention_lane"]["route_target"] == "write"
+    assert result["intervention_lane"]["route_key_question"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
+    assert "论文写作与结果收紧" in result["current_stage_summary"]
+    assert "当前稿面最窄的 claim-evidence 修复动作是什么？" in result["next_system_action"]
+    assert "论文写作与结果收紧" in result["operator_status_card"]["current_focus"]
+    assert "当前稿面最窄的 claim-evidence 修复动作是什么？" in result["operator_status_card"]["current_focus"]
+    assert result["needs_physician_decision"] is False
+
+
+def test_study_progress_surfaces_bounded_analysis_quality_focus_without_human_gate(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_publication_eval(
+        study_root,
+        quest_root,
+        recommended_actions=[
+            {
+                "action_id": "action-201",
+                "action_type": "bounded_analysis",
+                "priority": "now",
+                "reason": "先补一轮有限稳健性分析，再继续当前论文主线。",
+                "route_target": "analysis-campaign",
+                "route_key_question": "哪一轮最小稳健性分析足以支撑当前主张？",
+                "route_rationale": "当前缺口是证据强度不足，先做 bounded analysis 最诚实。",
+                "evidence_refs": [
+                    str(
+                        quest_root
+                        / "artifacts"
+                        / "reports"
+                        / "escalation"
+                        / "runtime_escalation_record.json"
+                    )
+                ],
+                "requires_controller_decision": True,
+            }
+        ],
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"engine": "med-deepscientist", "quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "resume",
+            "reason": "publishability_gate_blocked",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+            },
+            "pending_user_interaction": {},
+            "interaction_arbitration": None,
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
+    assert result["intervention_lane"]["repair_mode"] == "bounded_analysis"
+    assert result["intervention_lane"]["route_target"] == "analysis-campaign"
+    assert "有限补充分析" in result["next_system_action"]
+    assert "哪一轮最小稳健性分析足以支撑当前主张？" in result["next_system_action"]
+    assert "补充分析与稳健性验证" in result["operator_status_card"]["current_focus"]
+    assert result["needs_physician_decision"] is False
 
 
 def test_study_progress_projects_finalize_metadata_wait_as_physician_decision(

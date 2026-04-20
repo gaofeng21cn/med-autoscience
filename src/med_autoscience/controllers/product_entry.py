@@ -1285,6 +1285,24 @@ def _operator_status_summary(card: Mapping[str, Any] | None) -> str | None:
     return _non_empty_text(card.get("user_visible_verdict")) or _non_empty_text(card.get("owner_summary"))
 
 
+def _quality_route_focus(intervention_lane: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(intervention_lane, Mapping):
+        return None
+    return _non_empty_text(intervention_lane.get("route_summary"))
+
+
+def _quality_blocker_title(study_id: str, intervention_lane: Mapping[str, Any] | None) -> str:
+    if not isinstance(intervention_lane, Mapping):
+        return f"{study_id} 当前存在质量硬阻塞"
+    repair_mode = _non_empty_text(intervention_lane.get("repair_mode"))
+    route_target_label = _non_empty_text(intervention_lane.get("route_target_label"))
+    if route_target_label is None:
+        return f"{study_id} 当前存在质量硬阻塞"
+    if repair_mode == "bounded_analysis":
+        return f"{study_id} 当前需要进入{route_target_label}完成有限补充分析"
+    return f"{study_id} 当前需要回到{route_target_label}修复质量阻塞"
+
+
 def _workspace_operator_brief(
     *,
     workspace_status: str,
@@ -1465,11 +1483,14 @@ def _attention_queue(
             )
             continue
         if lane_id == "quality_floor_blocker":
+            route_focus = _quality_route_focus(intervention_lane)
             queue.append(
                 _attention_item(
                     code="study_quality_floor_blocker",
-                    title=f"{study_id} 当前存在质量硬阻塞",
+                    title=_quality_blocker_title(study_id, intervention_lane),
                     summary=(
+                        route_focus
+                        or
                         lane_summary
                         or _non_empty_text(blocker_list[0] if blocker_list else None)
                         or "当前 study 存在质量或发表门控硬阻塞。"

@@ -139,6 +139,11 @@ _ACTION_LABELS = {
     "human_confirmation_required": "等待医生或 PI 明确确认下一步。",
     "supervise_runtime_only": "当前以监督托管运行时为主，不直接接管执行。",
 }
+_ROUTE_REPAIR_ACTION_TYPES = {"continue_same_line", "route_back_same_line", "bounded_analysis"}
+_ROUTE_REPAIR_MODE_LABELS = {
+    "same_line_route_back": "同线质量修复",
+    "bounded_analysis": "有限补充分析",
+}
 _RUNTIME_DECISION_LABELS = {
     "noop": "无需额外动作",
     "blocked": "当前被阻断",
@@ -391,6 +396,67 @@ def _paper_stage_label(stage: object) -> str | None:
     if text is None:
         return None
     return _PAPER_STAGE_LABELS.get(text, _humanize_token(text))
+
+
+def _route_repair_mode(action_type: str) -> str:
+    if action_type == "bounded_analysis":
+        return "bounded_analysis"
+    return "same_line_route_back"
+
+
+def _route_repair_summary(route_repair: dict[str, Any] | None, *, include_rationale: bool = False) -> str | None:
+    if not isinstance(route_repair, dict):
+        return None
+    route_label = _non_empty_text(route_repair.get("route_target_label"))
+    key_question = _non_empty_text(route_repair.get("route_key_question"))
+    if route_label is None or key_question is None:
+        return None
+    repair_mode = _non_empty_text(route_repair.get("repair_mode"))
+    if repair_mode == "bounded_analysis":
+        summary = f"进入“{route_label}”有限补充分析，先回答“{key_question}”。"
+    else:
+        summary = f"回到“{route_label}”，回答“{key_question}”。"
+    rationale = _non_empty_text(route_repair.get("route_rationale"))
+    if include_rationale and rationale is not None:
+        summary = f"{summary} 理由：{rationale}"
+    return summary
+
+
+def _publication_eval_route_repair(publication_eval_payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    actions = (publication_eval_payload or {}).get("recommended_actions") or []
+    candidates: list[tuple[int, int, dict[str, Any]]] = []
+    for index, action in enumerate(actions):
+        if not isinstance(action, dict):
+            continue
+        action_type = _non_empty_text(action.get("action_type"))
+        if action_type not in _ROUTE_REPAIR_ACTION_TYPES:
+            continue
+        route_target = _non_empty_text(action.get("route_target"))
+        route_key_question = _non_empty_text(action.get("route_key_question"))
+        route_rationale = _non_empty_text(action.get("route_rationale"))
+        if route_target is None or route_key_question is None or route_rationale is None:
+            continue
+        route_label = _paper_stage_label(route_target) or route_target
+        repair_mode = _route_repair_mode(action_type)
+        priority = _non_empty_text(action.get("priority")) or "next"
+        candidate = {
+            "action_id": _non_empty_text(action.get("action_id")),
+            "action_type": action_type,
+            "priority": priority,
+            "repair_mode": repair_mode,
+            "repair_mode_label": _ROUTE_REPAIR_MODE_LABELS.get(repair_mode),
+            "route_target": route_target,
+            "route_target_label": route_label,
+            "route_key_question": route_key_question,
+            "route_rationale": route_rationale,
+        }
+        route_summary = _route_repair_summary(candidate)
+        if route_summary is not None:
+            candidate["route_summary"] = route_summary
+        candidates.append((0 if priority == "now" else 1, index, candidate))
+    if not candidates:
+        return None
+    return min(candidates, key=lambda item: (item[0], item[1]))[2]
 
 
 def _decision_type_label(value: object) -> str | None:
@@ -1110,6 +1176,7 @@ def _stage_summary(
     status: dict[str, Any],
     current_stage: str,
     publication_supervisor_state: dict[str, Any],
+    publication_eval_payload: dict[str, Any] | None,
     latest_progress_message: str | None,
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
@@ -1153,6 +1220,10 @@ def _stage_summary(
             summary += f" 最近一次可见推进是：{latest_progress_message}"
         return summary
     if current_stage == "publication_supervision":
+        route_repair = _publication_eval_route_repair(publication_eval_payload)
+        route_summary = _route_repair_summary(route_repair, include_rationale=True)
+        if route_summary is not None:
+            return f"论文质量监管已转入结构化修复：{route_summary}"
         note = _non_empty_text((publication_supervisor_state or {}).get("controller_stage_note"))
         return note or "论文主线当前停在发表监管阶段，系统会先守住可发表性与交付门控。"
     if current_stage == "managed_runtime_active":
@@ -1364,6 +1435,17 @@ def _next_system_action(
         if reason is not None:
             return reason
     publication_action_key = _non_empty_text((publication_supervisor_state or {}).get("current_required_action"))
+    route_repair = _publication_eval_route_repair(publication_eval_payload)
+    route_repair_action = _route_repair_summary(route_repair)
+    if (
+        current_blockers
+        and route_repair_action is not None
+        and _quality_blocker_present(
+            publication_eval_payload=publication_eval_payload,
+            runtime_watch_payload=runtime_watch_payload,
+        )
+    ):
+        return route_repair_action
     if (
         current_blockers
         and publication_action_key in {"continue_bundle_stage", "complete_bundle_stage"}
@@ -1559,13 +1641,24 @@ def _intervention_lane(
         publication_eval_payload=publication_eval_payload,
         runtime_watch_payload=runtime_watch_payload,
     ):
-        return {
+        route_repair = _publication_eval_route_repair(publication_eval_payload)
+        route_summary = _route_repair_summary(route_repair)
+        payload = {
             "lane_id": "quality_floor_blocker",
-            "title": "优先收口质量硬阻塞",
+            "title": (
+                "优先完成有限补充分析"
+                if _non_empty_text((route_repair or {}).get("repair_mode")) == "bounded_analysis"
+                else "优先收口同线质量硬阻塞"
+                if route_repair is not None
+                else "优先收口质量硬阻塞"
+            ),
             "severity": "critical",
-            "summary": blocker_summary or current_stage_summary or next_system_action,
-            "recommended_action_id": "inspect_progress",
+            "summary": route_summary or blocker_summary or current_stage_summary or next_system_action,
+            "recommended_action_id": _non_empty_text((route_repair or {}).get("action_type")) or "inspect_progress",
         }
+        if route_repair is not None:
+            payload.update(route_repair)
+        return payload
     if needs_physician_decision:
         return {
             "lane_id": "human_decision_gate",
@@ -1824,7 +1917,7 @@ def _operator_verdict(
     else:
         decision_mode = "monitor_only"
 
-    return {
+    payload = {
         "surface_kind": "study_operator_verdict",
         "verdict_id": f"study_operator_verdict::{study_id}::{lane_id}",
         "study_id": study_id,
@@ -1839,6 +1932,19 @@ def _operator_verdict(
         "primary_surface_kind": primary_surface_kind,
         "primary_command": recommended_command,
     }
+    for field_name in (
+        "repair_mode",
+        "repair_mode_label",
+        "route_target",
+        "route_target_label",
+        "route_key_question",
+        "route_rationale",
+        "route_summary",
+    ):
+        value = _non_empty_text(intervention_lane.get(field_name))
+        if value is not None:
+            payload[field_name] = value
+    return payload
 
 
 def _operator_status_handling_state(
@@ -1988,6 +2094,10 @@ def _operator_status_focus_summary(
 ) -> str:
     if handling_state == "paper_surface_refresh_in_progress":
         return "优先把人类查看面同步到当前论文真相，再继续盯论文门控。"
+    if handling_state == "scientific_or_quality_repair_in_progress":
+        route_summary = _non_empty_text((intervention_lane or {}).get("route_summary"))
+        if route_summary is not None:
+            return route_summary
     return (
         _non_empty_text(next_system_action)
         or _non_empty_text((intervention_lane or {}).get("summary"))
@@ -1996,7 +2106,7 @@ def _operator_status_focus_summary(
     )
 
 
-def _operator_status_next_confirmation_signal(handling_state: str) -> str:
+def _operator_status_next_confirmation_signal(handling_state: str, intervention_lane: dict[str, Any]) -> str:
     if handling_state == "runtime_supervision_recovering":
         return "看 supervisor tick 是否回到 fresh，并确认监管缺口告警从 attention queue 消失。"
     if handling_state == "runtime_recovering":
@@ -2004,6 +2114,13 @@ def _operator_status_next_confirmation_signal(handling_state: str) -> str:
     if handling_state == "paper_surface_refresh_in_progress":
         return "看 manuscript/delivery_manifest.json、current_package，或 submission_minimal 是否被刷新到最新真相。"
     if handling_state == "scientific_or_quality_repair_in_progress":
+        route_label = _non_empty_text((intervention_lane or {}).get("route_target_label"))
+        key_question = _non_empty_text((intervention_lane or {}).get("route_key_question"))
+        if route_label is not None and key_question is not None:
+            return (
+                f"看 publication_eval/latest.json 是否把“{route_label}”这条修复线继续收窄，"
+                f"以及“{key_question}”是否已经被关闭。"
+            )
         return "看 publication_eval/latest.json 或 runtime_watch 里的 blocker 是否减少。"
     if handling_state == "waiting_human_decision":
         return "看 controller_confirmation_summary 是否清空或变化，或 controller_decisions/latest.json 是否写出人工确认后的下一步。"
@@ -2069,7 +2186,7 @@ def _operator_status_card(
         ),
         "human_surface_freshness": human_surface_freshness,
         "human_surface_summary": human_surface_summary,
-        "next_confirmation_signal": _operator_status_next_confirmation_signal(handling_state),
+        "next_confirmation_signal": _operator_status_next_confirmation_signal(handling_state, intervention_lane),
         "user_visible_verdict": _operator_status_verdict(handling_state),
     }
 
@@ -2433,6 +2550,7 @@ def build_study_progress_projection(
         status=status,
         current_stage=current_stage,
         publication_supervisor_state=publication_supervisor_state,
+        publication_eval_payload=publication_eval_payload,
         latest_progress_message=latest_progress_message,
         runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,

@@ -10,6 +10,47 @@ import pytest
 from tests.study_runtime_test_helpers import make_profile, write_study, write_text
 
 
+def test_attention_queue_prefers_route_repair_focus_for_quality_blockers() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    queue = module._attention_queue(
+        workspace_status="ready",
+        workspace_supervision={
+            "service": {"loaded": True, "drift_reasons": []},
+            "study_counts": {},
+        },
+        studies=[
+            {
+                "study_id": "001-risk",
+                "monitoring": {"supervisor_tick_status": "fresh"},
+                "progress_freshness": {"status": "fresh"},
+                "current_stage_summary": "论文可发表性监管。",
+                "next_system_action": "继续当前质量修复。",
+                "current_blockers": ["论文叙事或方法/结果书写面仍有硬阻塞。"],
+                "intervention_lane": {
+                    "lane_id": "quality_floor_blocker",
+                    "repair_mode": "same_line_route_back",
+                    "route_target_label": "论文写作与结果收紧",
+                    "route_summary": "回到“论文写作与结果收紧”，回答“当前稿面最窄的 claim-evidence 修复动作是什么？”。",
+                },
+                "operator_verdict": {
+                    "summary": "generic quality summary",
+                    "primary_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                },
+                "operator_status_card": {
+                    "user_visible_verdict": "MAS 正在处理论文可发表性硬阻塞。",
+                },
+                "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+            }
+        ],
+        commands={},
+    )
+
+    assert queue[0]["code"] == "study_quality_floor_blocker"
+    assert queue[0]["title"] == "001-risk 当前需要回到论文写作与结果收紧修复质量阻塞"
+    assert queue[0]["summary"] == "回到“论文写作与结果收紧”，回答“当前稿面最窄的 claim-evidence 修复动作是什么？”。"
+
+
 def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
