@@ -2071,6 +2071,109 @@ def test_atlas_spatial_trajectory_context_support_panel_preserves_deg_multiview_
     ]
     assert layout_sidecar["metrics"]["support_scale_label"] == "Coverage fraction"
     assert len(layout_sidecar["metrics"]["support_cells"]) == 9
+    composition_y_axis_box = next(
+        box for box in layout_sidecar["layout_boxes"] if box["box_id"] == "composition_y_axis_title"
+    )
+    assert composition_y_axis_box["x0"] >= 0.0
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
+def test_atlas_spatial_trajectory_multimanifold_context_support_panel_preserves_deg_multimanifold_contract(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    surface_module = importlib.import_module("tests.test_display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "display_kind": "figure",
+                    "requirement_key": "atlas_spatial_trajectory_multimanifold_context_support_panel",
+                    "catalog_id": "F51",
+                    "shell_path": "paper/figures/Figure51.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "template_id": "fenggaolab.org.medical-display-core::atlas_spatial_trajectory_multimanifold_context_support_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1",
+            "displays": [
+                surface_module._make_atlas_spatial_trajectory_multimanifold_context_support_panel_display(
+                    display_id="Figure51"
+                )
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (
+            paper_root
+            / "figures"
+            / "generated"
+            / "F51_atlas_spatial_trajectory_multimanifold_context_support_panel.layout.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == [
+        "panel_atlas_A",
+        "panel_atlas_B",
+        "panel_spatial",
+        "panel_trajectory",
+        "panel_composition",
+        "panel_heatmap",
+        "panel_support",
+    ]
+    assert [item["manifold_method"] for item in layout_sidecar["metrics"]["atlas_manifold_panels"]] == ["umap", "phate"]
+    assert layout_sidecar["metrics"]["branch_labels"] == ["Branch A", "Branch B"]
+    assert layout_sidecar["metrics"]["context_labels"] == [
+        "Atlas density",
+        "Spatial coverage",
+        "Trajectory coverage",
+    ]
+    assert layout_sidecar["metrics"]["support_scale_label"] == "Coverage fraction"
+    assert len(layout_sidecar["metrics"]["support_cells"]) == 9
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"

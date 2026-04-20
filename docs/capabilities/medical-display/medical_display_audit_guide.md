@@ -94,10 +94,10 @@ These are the first-priority cross-paper regression families because they have a
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
-- Implemented evidence figure templates: `76`
+- Implemented evidence figure templates: `77`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total implemented display templates: `88`
+- Total implemented display templates: `89`
 
 ### Evidence Classes
 
@@ -106,7 +106,7 @@ Current implemented display inventory:
 | Prediction Performance | 3 | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` |
 | Clinical Utility | 5 | `binary_prediction_curve_inputs_v1`, `time_to_event_decision_curve_inputs_v1`, `time_to_event_threshold_governance_inputs_v1`, `binary_calibration_decision_curve_panel_inputs_v1` | `publication_evidence_curve`, `publication_binary_calibration_decision_curve`, `publication_decision_curve`, `publication_time_to_event_threshold_governance_panel` |
 | Time-to-Event | 10 | `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_landmark_performance_inputs_v1`, `time_to_event_multihorizon_calibration_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve`, `publication_landmark_performance_panel`, `publication_time_to_event_multihorizon_calibration_panel` |
-| Data Geometry | 13 | `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1`, `atlas_spatial_trajectory_storyboard_inputs_v1`, `atlas_spatial_trajectory_density_coverage_panel_inputs_v1`, `atlas_spatial_trajectory_context_support_panel_inputs_v1`, `omics_volcano_panel_inputs_v1` | `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel`, `publication_atlas_spatial_trajectory_storyboard_panel`, `publication_atlas_spatial_trajectory_density_coverage_panel`, `publication_atlas_spatial_trajectory_context_support_panel`, `publication_omics_volcano_panel` |
+| Data Geometry | 14 | `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1`, `atlas_spatial_trajectory_storyboard_inputs_v1`, `atlas_spatial_trajectory_density_coverage_panel_inputs_v1`, `atlas_spatial_trajectory_context_support_panel_inputs_v1`, `atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1`, `omics_volcano_panel_inputs_v1` | `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel`, `publication_atlas_spatial_trajectory_storyboard_panel`, `publication_atlas_spatial_trajectory_density_coverage_panel`, `publication_atlas_spatial_trajectory_context_support_panel`, `publication_atlas_spatial_trajectory_multimanifold_context_support_panel`, `publication_omics_volcano_panel` |
 | Matrix Pattern | 13 | `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1`, `pathway_enrichment_dotplot_panel_inputs_v1`, `oncoplot_mutation_landscape_panel_inputs_v1`, `cnv_recurrence_summary_panel_inputs_v1`, `genomic_alteration_landscape_panel_inputs_v1`, `genomic_alteration_consequence_panel_inputs_v1`, `genomic_alteration_multiomic_consequence_panel_inputs_v1`, `genomic_alteration_pathway_integrated_composite_panel_inputs_v1`, `genomic_program_governance_summary_panel_inputs_v1` | `publication_heatmap`, `publication_pathway_enrichment_dotplot_panel`, `publication_oncoplot_mutation_landscape_panel`, `publication_cnv_recurrence_summary_panel`, `publication_genomic_alteration_landscape_panel`, `publication_genomic_alteration_consequence_panel`, `publication_genomic_alteration_multiomic_consequence_panel`, `publication_genomic_alteration_pathway_integrated_composite_panel`, `publication_genomic_program_governance_summary_panel` |
 | Effect Estimate | 7 | `forest_effect_inputs_v1`, `compact_effect_estimate_panel_inputs_v1`, `coefficient_path_panel_inputs_v1`, `broader_heterogeneity_summary_panel_inputs_v1`, `interaction_effect_summary_panel_inputs_v1` | `publication_forest_plot`, `publication_compact_effect_estimate_panel`, `publication_coefficient_path_panel`, `publication_broader_heterogeneity_summary_panel`, `publication_interaction_effect_summary_panel` |
 | Model Explanation | 18 | `shap_summary_inputs_v1`, `shap_bar_importance_inputs_v1`, `shap_signed_importance_panel_inputs_v1`, `shap_multicohort_importance_panel_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1`, `shap_force_like_summary_panel_inputs_v1`, `shap_grouped_local_explanation_panel_inputs_v1`, `shap_grouped_decision_path_panel_inputs_v1`, `shap_multigroup_decision_path_panel_inputs_v1`, `shap_grouped_local_support_domain_panel_inputs_v1`, `shap_multigroup_decision_path_support_domain_panel_inputs_v1`, `partial_dependence_ice_panel_inputs_v1`, `partial_dependence_interaction_contour_panel_inputs_v1`, `partial_dependence_interaction_slice_panel_inputs_v1`, `partial_dependence_subgroup_comparison_panel_inputs_v1`, `accumulated_local_effects_panel_inputs_v1`, `feature_response_support_domain_panel_inputs_v1` | `publication_shap_summary`, `publication_shap_bar_importance`, `publication_shap_signed_importance_panel`, `publication_shap_multicohort_importance_panel`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel`, `publication_shap_force_like_summary_panel`, `publication_shap_grouped_local_explanation_panel`, `publication_shap_grouped_decision_path_panel`, `publication_shap_multigroup_decision_path_panel`, `publication_shap_grouped_local_support_domain_panel`, `publication_shap_multigroup_decision_path_support_domain_panel`, `publication_partial_dependence_ice_panel`, `publication_partial_dependence_interaction_contour_panel`, `publication_partial_dependence_interaction_slice_panel`, `publication_partial_dependence_subgroup_comparison_panel`, `publication_accumulated_local_effects_panel`, `publication_feature_response_support_domain_panel` |
@@ -212,6 +212,7 @@ Templates:
 - `atlas_spatial_trajectory_storyboard_panel`
 - `atlas_spatial_trajectory_density_coverage_panel`
 - `atlas_spatial_trajectory_context_support_panel`
+- `atlas_spatial_trajectory_multimanifold_context_support_panel`
 - `omics_volcano_panel`
 
 Audit purpose:
@@ -220,9 +221,9 @@ Audit purpose:
 
 Authoritative contract:
 
-- Input schemas: `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1`, `atlas_spatial_trajectory_storyboard_inputs_v1`, `atlas_spatial_trajectory_density_coverage_panel_inputs_v1`, `atlas_spatial_trajectory_context_support_panel_inputs_v1`, `omics_volcano_panel_inputs_v1`
+- Input schemas: `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1`, `atlas_spatial_trajectory_storyboard_inputs_v1`, `atlas_spatial_trajectory_density_coverage_panel_inputs_v1`, `atlas_spatial_trajectory_context_support_panel_inputs_v1`, `atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1`, `omics_volcano_panel_inputs_v1`
 - Renderer families: `r_ggplot2`, `python`
-- QC: `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel`, `publication_atlas_spatial_trajectory_storyboard_panel`, `publication_atlas_spatial_trajectory_density_coverage_panel`, `publication_atlas_spatial_trajectory_context_support_panel`, `publication_omics_volcano_panel`
+- QC: `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel`, `publication_atlas_spatial_trajectory_storyboard_panel`, `publication_atlas_spatial_trajectory_density_coverage_panel`, `publication_atlas_spatial_trajectory_context_support_panel`, `publication_atlas_spatial_trajectory_multimanifold_context_support_panel`, `publication_omics_volcano_panel`
 
 ### 5. Matrix Pattern
 
@@ -432,7 +433,9 @@ Phase 1 hardening should not start from abstract template counts. The first regr
 ### D/E/G composite atlas lane
 
 - `fenggaolab.org.medical-display-core::celltype_signature_heatmap`
+- `fenggaolab.org.medical-display-core::atlas_spatial_trajectory_multimanifold_context_support_panel`
 - lower-bound focus: embedding-group and declared heatmap-column alignment, complete row/column coverage without duplicate coordinates, explicit score-method provenance, and stable legend/colorbar anchoring for the composite panel
+- lower-bound focus: dual-manifold atlas panel identity, manifold-method uniqueness, shared state vocabulary, point-domain containment across atlas/spatial/trajectory panels, complete context-support grids, and stable seven-panel label anchoring for the manuscript-facing composite
 
 ### F local explanation lane
 

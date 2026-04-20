@@ -50,6 +50,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("atlas_spatial_trajectory_storyboard_panel"),
         _full_id("atlas_spatial_trajectory_density_coverage_panel"),
         _full_id("atlas_spatial_trajectory_context_support_panel"),
+        _full_id("atlas_spatial_trajectory_multimanifold_context_support_panel"),
         _full_id("heatmap_group_comparison"),
         _full_id("performance_heatmap"),
         _full_id("correlation_heatmap"),
@@ -248,8 +249,25 @@ def test_atlas_spatial_trajectory_context_support_panel_keeps_stable_registry_or
         _full_id("atlas_spatial_trajectory_context_support_panel")
     )
     assert evidence_template_ids.index(_full_id("atlas_spatial_trajectory_context_support_panel")) < evidence_template_ids.index(
+        _full_id("atlas_spatial_trajectory_multimanifold_context_support_panel")
+    )
+    assert evidence_template_ids.index(
+        _full_id("atlas_spatial_trajectory_multimanifold_context_support_panel")
+    ) < evidence_template_ids.index(
         _full_id("heatmap_group_comparison")
     )
+
+
+def test_atlas_spatial_trajectory_multimanifold_context_support_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(
+        _full_id("atlas_spatial_trajectory_multimanifold_context_support_panel")
+    )
+
+    assert spec.paper_family_ids == ("D", "E", "G")
+    assert spec.evidence_class == "data_geometry"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_atlas_spatial_trajectory_multimanifold_context_support_panel"
 
 
 def test_pathway_enrichment_dotplot_panel_is_registered() -> None:

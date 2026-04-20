@@ -42,6 +42,9 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     trajectory_progression = module.get_input_schema_contract("trajectory_progression_inputs_v1")
     density_coverage = module.get_input_schema_contract("atlas_spatial_trajectory_density_coverage_panel_inputs_v1")
     context_support = module.get_input_schema_contract("atlas_spatial_trajectory_context_support_panel_inputs_v1")
+    multimanifold_context_support = module.get_input_schema_contract(
+        "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1"
+    )
     performance_heatmap = module.get_input_schema_contract("performance_heatmap_inputs_v1")
     clustered_heatmap = module.get_input_schema_contract("clustered_heatmap_inputs_v1")
     gsva_heatmap = module.get_input_schema_contract("gsva_ssgsea_heatmap_inputs_v1")
@@ -606,6 +609,13 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert "atlas_spatial_trajectory_context_support_panel_inputs_v1" in next(
         item.input_schema_ids for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     )
+    assert _full_id("atlas_spatial_trajectory_multimanifold_context_support_panel") in next(
+        item.template_ids for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    )
+    assert "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1" in next(
+        item.input_schema_ids for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    )
+    assert multimanifold_context_support.display_kind == "evidence_figure"
     assert clustered_heatmap.template_ids == (_full_id("clustered_heatmap"),)
     assert clustered_heatmap.display_required_fields == (
         "display_id",
@@ -2275,6 +2285,39 @@ def test_atlas_spatial_trajectory_context_support_schema_contract_is_registered(
     assert "declared_support_grid_must_be_complete_and_unique" in context_support.additional_constraints
     assert _full_id("atlas_spatial_trajectory_context_support_panel") in data_geometry_class.template_ids
     assert "atlas_spatial_trajectory_context_support_panel_inputs_v1" in data_geometry_class.input_schema_ids
+
+
+def test_atlas_spatial_trajectory_multimanifold_context_support_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    multimanifold_context_support = module.get_input_schema_contract(
+        "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1"
+    )
+    data_geometry_class = next(item for item in module.list_display_schema_classes() if item.class_id == "data_geometry")
+
+    assert multimanifold_context_support.template_ids == (
+        _full_id("atlas_spatial_trajectory_multimanifold_context_support_panel"),
+    )
+    assert multimanifold_context_support.display_name == "Atlas-Spatial Trajectory Multimanifold Context Support Panel"
+    assert multimanifold_context_support.collection_required_fields["atlas_manifold_panels"] == (
+        "panel_id",
+        "panel_label",
+        "panel_title",
+        "manifold_method",
+        "x_label",
+        "y_label",
+        "points",
+    )
+    assert multimanifold_context_support.nested_collection_required_fields["atlas_manifold_panels.points"] == (
+        "x",
+        "y",
+        "state_label",
+    )
+    assert "atlas_manifold_panels_must_contain_exactly_two_panels" in multimanifold_context_support.additional_constraints
+    assert "atlas_manifold_methods_must_be_supported_and_unique" in multimanifold_context_support.additional_constraints
+    assert "declared_state_labels_must_match_all_atlas_manifold_states" in multimanifold_context_support.additional_constraints
+    assert _full_id("atlas_spatial_trajectory_multimanifold_context_support_panel") in data_geometry_class.template_ids
+    assert "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1" in data_geometry_class.input_schema_ids
 
 
 def test_shap_waterfall_local_explanation_schema_contract_is_registered() -> None:

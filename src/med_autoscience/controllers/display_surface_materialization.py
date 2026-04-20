@@ -5069,6 +5069,150 @@ def _validate_atlas_spatial_trajectory_context_support_display_payload(
     }
 
 
+def _validate_atlas_manifold_panels_payload(
+    *,
+    path: Path,
+    payload: object,
+    expected_display_id: str,
+) -> list[dict[str, Any]]:
+    if not isinstance(payload, list) or len(payload) != 2:
+        raise ValueError(f"{path.name} display `{expected_display_id}` atlas_manifold_panels must contain exactly two panels")
+    normalized_panels: list[dict[str, Any]] = []
+    seen_panel_ids: set[str] = set()
+    seen_panel_labels: set[str] = set()
+    seen_methods: set[str] = set()
+    allowed_methods = {"pca", "phate", "tsne", "umap"}
+    for index, item in enumerate(payload):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}] must be an object")
+        panel_id = _require_non_empty_string(
+            item.get("panel_id"),
+            label=f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}].panel_id",
+        )
+        if panel_id in seen_panel_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}].panel_id must be unique"
+            )
+        seen_panel_ids.add(panel_id)
+        panel_label = _require_non_empty_string(
+            item.get("panel_label"),
+            label=f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}].panel_label",
+        )
+        if panel_label in seen_panel_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}].panel_label must be unique"
+            )
+        seen_panel_labels.add(panel_label)
+        manifold_method = _require_non_empty_string(
+            item.get("manifold_method"),
+            label=f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}].manifold_method",
+        ).lower()
+        if manifold_method not in allowed_methods:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}].manifold_method must be one of pca, phate, tsne, umap"
+            )
+        if manifold_method in seen_methods:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}].manifold_method must be unique"
+            )
+        seen_methods.add(manifold_method)
+        points = item.get("points")
+        if not isinstance(points, list) or not points:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}].points must contain a non-empty list"
+            )
+        normalized_points: list[dict[str, Any]] = []
+        for point_index, point in enumerate(points):
+            if not isinstance(point, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}].points[{point_index}] must be an object"
+                )
+            normalized_points.append(
+                {
+                    "x": _require_numeric_value(
+                        point.get("x"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` "
+                            f"atlas_manifold_panels[{index}].points[{point_index}].x"
+                        ),
+                    ),
+                    "y": _require_numeric_value(
+                        point.get("y"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` "
+                            f"atlas_manifold_panels[{index}].points[{point_index}].y"
+                        ),
+                    ),
+                    "state_label": _require_non_empty_string(
+                        point.get("state_label"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` "
+                            f"atlas_manifold_panels[{index}].points[{point_index}].state_label"
+                        ),
+                    ),
+                }
+            )
+        normalized_panels.append(
+            {
+                "panel_id": panel_id,
+                "panel_label": panel_label,
+                "panel_title": _require_non_empty_string(
+                    item.get("panel_title"),
+                    label=f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}].panel_title",
+                ),
+                "manifold_method": manifold_method,
+                "x_label": _require_non_empty_string(
+                    item.get("x_label"),
+                    label=f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}].x_label",
+                ),
+                "y_label": _require_non_empty_string(
+                    item.get("y_label"),
+                    label=f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{index}].y_label",
+                ),
+                "points": normalized_points,
+            }
+        )
+    return normalized_panels
+
+
+def _validate_atlas_spatial_trajectory_multimanifold_context_support_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    atlas_manifold_panels = _validate_atlas_manifold_panels_payload(
+        path=path,
+        payload=payload.get("atlas_manifold_panels"),
+        expected_display_id=expected_display_id,
+    )
+    first_manifold_panel = atlas_manifold_panels[0]
+    normalized_payload = _validate_atlas_spatial_trajectory_context_support_display_payload(
+        path=path,
+        payload={
+            **payload,
+            "atlas_panel_title": first_manifold_panel["panel_title"],
+            "atlas_x_label": first_manifold_panel["x_label"],
+            "atlas_y_label": first_manifold_panel["y_label"],
+            "atlas_points": first_manifold_panel["points"],
+        },
+        expected_template_id=str(payload.get("template_id") or expected_template_id).strip(),
+        expected_display_id=expected_display_id,
+    )
+    declared_state_labels = {item["label"] for item in normalized_payload["state_order"]}
+    for panel_index, panel in enumerate(atlas_manifold_panels):
+        observed_state_labels = {str(point["state_label"]) for point in panel["points"]}
+        if observed_state_labels != declared_state_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` atlas_manifold_panels[{panel_index}].points state_label set must match state_order"
+            )
+    return {
+        **normalized_payload,
+        "atlas_manifold_panels": atlas_manifold_panels,
+    }
+
+
 def _validate_heatmap_display_payload(
     *,
     path: Path,
@@ -11151,6 +11295,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "atlas_spatial_trajectory_context_support_panel_inputs_v1":
         return payload_path, _validate_atlas_spatial_trajectory_context_support_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1":
+        return payload_path, _validate_atlas_spatial_trajectory_multimanifold_context_support_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

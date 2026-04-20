@@ -23,6 +23,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "atlas_spatial_trajectory_storyboard_inputs_v1": "atlas_spatial_trajectory_storyboard_inputs.json",
     "atlas_spatial_trajectory_density_coverage_panel_inputs_v1": "atlas_spatial_trajectory_density_coverage_panel_inputs.json",
     "atlas_spatial_trajectory_context_support_panel_inputs_v1": "atlas_spatial_trajectory_context_support_panel_inputs.json",
+    "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1": "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs.json",
     "omics_volcano_panel_inputs_v1": "omics_volcano_panel_inputs.json",
     "heatmap_group_comparison_inputs_v1": "heatmap_group_comparison_inputs.json",
     "performance_heatmap_inputs_v1": "performance_heatmap_inputs.json",

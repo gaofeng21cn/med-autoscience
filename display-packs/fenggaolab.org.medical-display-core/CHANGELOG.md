@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-20
 
+- Add `atlas_spatial_trajectory_multimanifold_context_support_panel` as the next audited `D/E/G` dual-manifold atlas-geometry composite slice in the core display pack.
+- Lock its pack-facing contract to `atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1`, `publication_atlas_spatial_trajectory_multimanifold_context_support_panel`, and the Python bounded seven-panel dual-manifold atlas/spatial/trajectory context-support renderer path.
+
 - Add `interaction_effect_summary_panel` as the next audited `C/H` modifier-level interaction-summary slice in the core display pack.
 - Lock its pack-facing contract to `interaction_effect_summary_panel_inputs_v1`, `publication_interaction_effect_summary_panel`, and the Python bounded estimate-plus-verdict-summary renderer path.
 

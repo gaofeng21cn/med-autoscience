@@ -20,12 +20,12 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`76`
+  - 证据型模板：`77`
   - 插图壳层：`7`
   - 表格壳层：`5`
-  - 总模板数：`88`
+  - 总模板数：`89`
 - 最近一次已吸收完成的 capability cluster：
-  - `C/H / interaction_effect_summary_panel`
+  - `D/E/G / atlas_spatial_trajectory_multimanifold_context_support_panel`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -35,37 +35,37 @@
 ## 当前 Active Round
 
 - Phase：`Phase 4 / next-cluster scouting`
-- Family cluster：`reroute pending after latest C/H absorb`
-- Capability cluster：`reroute after latest C/H absorb`
+- Family cluster：`reroute pending after latest D/E/G absorb`
+- Capability cluster：`reroute after latest D/E/G absorb`
 - Owner worktree：`not_opened`
 - 状态：`ready_for_next_owner_round`
 
 ### Fresh Mainline Result
 
-- 当前主干已吸收 `interaction_effect_summary_panel`；
+- 当前主干已吸收 `atlas_spatial_trajectory_multimanifold_context_support_panel`；
 - strict audited inventory 已更新到：
-  - `Effect Estimate`：`7`
-  - evidence figures：`76`
-  - total templates：`88`
-- `interaction_effect_summary_panel` 已从 concrete backlog 转为 audited inventory；
+-  `Data Geometry`：`14`
+  - evidence figures：`77`
+  - total templates：`89`
+- `atlas_spatial_trajectory_multimanifold_context_support_panel` 已从 higher-order atlas geometry 候选转为 audited inventory；
 - 当前 fresh verify 已完成：
-  - `uv run pytest -q tests/test_display_registry.py tests/test_display_schema_contract.py tests/test_display_layout_qc.py tests/test_display_surface_materialization.py tests/test_display_ch_golden_regression.py` → `423 passed`
+  - `uv run pytest -q tests/test_display_registry.py tests/test_display_schema_contract.py tests/test_display_layout_qc.py tests/test_display_surface_materialization.py tests/test_display_deg_golden_regression.py` → `436 passed`
   - `make test-meta` → `84 passed`
-  - `scripts/verify.sh` → `1239 passed, 473 deselected`
+  - `scripts/verify.sh` → `1241 passed, 476 deselected`
 - 下一步是按 reroute 规则固定下一个 capability cluster，再新开唯一 owner worktree。
 
 ### 当前轮次目标
 
 当前下一轮要回答：
 
-> 在 `C/H` 家族 interaction-summary lower bound 已经 absorb 完成的前提下，下一条最值得继续扩容的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
+> 在 `D/E/G` 家族 dual-manifold atlas geometry lower bound 已经 absorb 完成的前提下，下一条最值得继续扩容的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
 
 ### 当前 Next Baton
 
 当前 baton 已明确：
 
-1. 最新的 `C/H / interaction_effect_summary_panel` owner round 已经 absorb 完成。
-2. 当前 strict audited inventory 已稳定在 `76 / 7 / 5 / 88`。
+1. 最新的 `D/E/G / atlas_spatial_trajectory_multimanifold_context_support_panel` owner round 已经 absorb 完成。
+2. 当前 strict audited inventory 已稳定在 `77 / 7 / 5 / 89`。
 3. 当前没有打开中的 owner worktree，下一轮要先 reroute，再开唯一 owner round。
 4. `F`、`D/E/G` 与 `C/H` 的 higher-order follow-on 继续留在候选池。
 
@@ -103,7 +103,7 @@
 当前本轮完成后的 reroute 候选按下面顺序继续：
 
 1. `F / higher-order explanation scene only if new real-paper demand proves the current grouped-local + multigroup decision-scene lower bound insufficient`
-2. `D/E/G / richer higher-order multi-view atlas follow-on only if new real-paper demand proves the current context-support plus PHATE-inclusive lower bound insufficient`
+2. `D/E/G / richer higher-order multi-view atlas follow-on only if new real-paper demand proves the current multimanifold context-support lower bound insufficient`
 3. `C/H / calibration appendix or higher-order robustness synthesis only if new real-paper demand proves the current compact-estimate + coefficient-path + broader-heterogeneity lower bound insufficient`
 
 ## 明确不是执行面
