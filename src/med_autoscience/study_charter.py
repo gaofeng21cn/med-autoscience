@@ -64,106 +64,6 @@ DEFAULT_BOUNDED_ANALYSIS_COMPLETION_BOUNDARY = {
         "publication_eval",
     ],
 }
-DEFAULT_ROUTE_DISCIPLINE_NAMED_ROUTES = (
-    "scout",
-    "baseline",
-    "analysis-campaign",
-    "write",
-    "finalize",
-    "decision",
-)
-DEFAULT_ROUTE_DISCIPLINE_REVIEW_LOOP = (
-    "verify_stage_contract_before_expanding_scope",
-    "record_gap_in_durable_artifacts_before_reroute",
-)
-DEFAULT_STAGE_EXPECTATIONS = {
-    "scout": {
-        "route_name": "scout",
-        "stage_purpose": "lock framing and name the next honest route",
-        "minimum_outputs": [
-            "task_and_evaluation_contract_locked",
-            "local_reference_and_baseline_neighborhood_recorded",
-            "next_route_or_blocker_named",
-        ],
-        "stop_conditions": [
-            "next_route_is_obvious_and_recorded",
-            "blocking_unknowns_are_explicit",
-        ],
-        "route_back_targets": ["baseline", "decision"],
-    },
-    "baseline": {
-        "route_name": "baseline",
-        "stage_purpose": "establish a trustworthy comparator surface for the paper route",
-        "minimum_outputs": [
-            "baseline_route_and_scope_named",
-            "cohort_endpoint_time_horizon_checked",
-            "methods_and_configuration_surface_recorded",
-        ],
-        "stop_conditions": [
-            "comparator_is_trustworthy_enough_for_decision",
-            "baseline_blocker_or_low_yield_expansion_is_explicit",
-        ],
-        "route_back_targets": ["decision"],
-    },
-    "analysis-campaign": {
-        "route_name": "analysis-campaign",
-        "stage_purpose": "close a named publication-relevant evidence gap with bounded follow-up work",
-        "minimum_outputs": [
-            "target_gap_and_campaign_scope_recorded",
-            "publication_relevant_slice_completed",
-            "write_back_surface_updated",
-        ],
-        "stop_conditions": [
-            "named_gap_is_closed",
-            "budget_boundary_or_major_boundary_signal_is_hit",
-        ],
-        "route_back_targets": ["decision", "write"],
-    },
-    "write": {
-        "route_name": "write",
-        "stage_purpose": "test whether the accepted evidence supports a stable manuscript narrative",
-        "minimum_outputs": [
-            "outline_or_section_contract_selected",
-            "claim_evidence_bindings_recorded",
-            "active_writing_contract_recorded",
-        ],
-        "stop_conditions": [
-            "draft_or_bundle_reaches_stable_review_state",
-            "missing_evidence_requires_route_back",
-        ],
-        "route_back_targets": ["decision", "analysis-campaign", "scout"],
-    },
-    "finalize": {
-        "route_name": "finalize",
-        "stage_purpose": "materialize an honest closure, publish, or continue-later surface",
-        "minimum_outputs": [
-            "final_claim_ledger_updated",
-            "closure_recommendation_recorded",
-            "resume_or_handoff_surface_refreshed",
-        ],
-        "stop_conditions": [
-            "closure_surface_is_auditable",
-            "reopen_blocker_or_route_back_is_named",
-        ],
-        "route_back_targets": ["decision", "write"],
-    },
-    "decision": {
-        "route_name": "decision",
-        "stage_purpose": "choose the smallest honest next route from durable evidence",
-        "minimum_outputs": [
-            "decision_question_named",
-            "decision_relevant_evidence_summarized",
-            "verdict_action_and_next_route_recorded",
-        ],
-        "stop_conditions": [
-            "next_route_is_durably_selected",
-            "blocking_gap_is_rerouted_to_a_named_stage",
-        ],
-        "route_back_targets": ["scout", "baseline", "analysis-campaign", "write", "finalize"],
-    },
-}
-
-
 def stable_study_charter_path(*, study_root: Path) -> Path:
     return (Path(study_root).expanduser().resolve() / STABLE_STUDY_CHARTER_RELATIVE_PATH).resolve()
 
@@ -280,32 +180,6 @@ def _materialize_bounded_analysis_contract(study_payload: dict[str, Any]) -> dic
     }
 
 
-def _materialize_route_discipline() -> dict[str, Any]:
-    return {
-        "named_routes": list(DEFAULT_ROUTE_DISCIPLINE_NAMED_ROUTES),
-        "controller_first_required": True,
-        "memory_reuse_required": True,
-        "prefer_lightest_honest_route": True,
-        "write_back_required": True,
-        "startup_blockers_route_to": "required_first_anchor",
-        "quality_or_route_gaps_route_through": "decision",
-        "review_loop": list(DEFAULT_ROUTE_DISCIPLINE_REVIEW_LOOP),
-    }
-
-
-def _materialize_stage_expectations() -> dict[str, Any]:
-    expectations: dict[str, Any] = {}
-    for stage_id, stage_payload in DEFAULT_STAGE_EXPECTATIONS.items():
-        expectations[stage_id] = {
-            "route_name": str(stage_payload["route_name"]),
-            "stage_purpose": str(stage_payload["stage_purpose"]),
-            "minimum_outputs": list(stage_payload["minimum_outputs"]),
-            "stop_conditions": list(stage_payload["stop_conditions"]),
-            "route_back_targets": list(stage_payload["route_back_targets"]),
-        }
-    return expectations
-
-
 def resolve_study_charter_ref(
     *,
     study_root: Path,
@@ -401,8 +275,6 @@ def materialize_study_charter(
                 "manuscript_conclusion_redlines": manuscript_conclusion_redlines,
             },
             "bounded_analysis": _materialize_bounded_analysis_contract(study_payload),
-            "route_discipline": _materialize_route_discipline(),
-            "stage_expectations": _materialize_stage_expectations(),
             "downstream_contract_roles": dict(DOWNSTREAM_CONTRACT_ROLES),
         },
     }

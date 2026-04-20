@@ -45,11 +45,13 @@ upstream 已经把主研究阶段固定成：
 
 - `e6d5cb1` `Add MAS route and evidence review contracts`
 - `392edd8` `Link stage discipline into study charter`
+- `cleanup` `remove duplicated charter-stage mirrors`
 
 来源判断：
 
 - 阶段名字、阶段分工、阶段产物类别，属于直接学 upstream
-- 把这些内容压成 `MAS` 的 canonical YAML 和 study charter 字段，属于 `MAS` 自己的合同化转换
+- 把这些内容压成 `MAS` 的 canonical YAML，属于 `MAS` 为 entry/runtime 接面做的必要镜像
+- 把它们再重复投影到 study charter，属于多余镜像层，现已回收
 
 ### 2.2 baseline 的“轻而可信”路线
 
@@ -184,7 +186,8 @@ upstream `decision` skill 已经明确：
 说明：
 
 - study stage purpose / minimum outputs / stop conditions 这些内容，直接对应 upstream stage skills
-- 把这些内容 materialize 成 `study_charter.py` 的 `stage_expectations`，是 `MAS` 自己的 owner-side 执行化
+- 这一提交最初把这些内容 materialize 成 `study_charter.py` 的 `stage_expectations`
+- 后续清理已经把这层重复镜像撤回，只保留 upstream-aligned route surface 和 `MAS` 真正需要的质量合同
 
 ### 3.2 `e6d5cb1` `Add MAS route and evidence review contracts`
 
@@ -247,3 +250,36 @@ upstream `decision` skill 已经明确：
 3. 只有在 `MAS` 必须接管 owner 面时，才补 narrow 的本地字段化转换
 
 目标是持续学现成的成熟方法，同时让 `MAS` 的 owner 面保持诚实、可验证、可维护。
+
+## 7. 清理后的吸收程度
+
+围绕“每个阶段只回答一个关键问题，然后尽快进入下一步”这条上游更新，当前吸收程度可以直接分成三档：
+
+### 7.1 已基本吸收
+
+- `baseline`
+  - 已吸收最轻可信路线、`PLAN.md / CHECKLIST.md`、确认或 waiver gate、尽快 handoff
+- `analysis-campaign`
+  - 已吸收 bounded evidence gap、one-slice campaign、先问题后切片、结果聚合
+- `write`
+  - 已吸收 outline-first、reviewer-first、claim-evidence mapping、证据不足就 route back
+- `finalize`
+  - 已吸收 closure protocol、final claim ledger、resume packet、submission layering
+- `decision`
+  - 已吸收它是跨阶段治理动作，而不是普通执行阶段
+
+### 7.2 部分吸收
+
+- `scout`
+  - 已吸收到问题收敛后尽快给 next route
+  - 还没有完全对齐 upstream 那种围绕单一 framing question 的更窄表述
+- route/entry contract
+  - 已有 canonical route surface
+  - 当前仍保留 `MAS` 自己的统一字段表，所以它是“upstream 语义 + MAS 结构化镜像”
+
+### 7.3 已明确回收的多余自创层
+
+- `study_charter.paper_quality_contract.route_discipline`
+- `study_charter.paper_quality_contract.stage_expectations`
+
+这两层都属于“对 upstream 阶段纪律再写一份摘要”，没有新增 owner 真相，容易漂移，现已从 charter 中撤回。
