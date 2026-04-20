@@ -4696,7 +4696,6 @@ def _check_publication_atlas_spatial_trajectory_multimanifold_context_support_pa
         seen_panel_ids: set[str] = set()
         seen_panel_labels: set[str] = set()
         seen_methods: set[str] = set()
-        expected_labels = {"A", "B"}
         for panel_index, panel in enumerate(atlas_manifold_panels):
             if not isinstance(panel, dict):
                 raise ValueError(f"layout_sidecar.metrics.atlas_manifold_panels[{panel_index}] must be an object")
@@ -4738,8 +4737,6 @@ def _check_publication_atlas_spatial_trajectory_multimanifold_context_support_pa
                 y_value = _require_numeric(point.get("y"), label=f"layout_sidecar.metrics.atlas_manifold_panels[{panel_index}].points[{point_index}].y")
                 if panel_box is not None and not _point_within_box(panel_box, x=x_value, y=y_value):
                     issues.append(_issue(rule_id="atlas_manifold_point_out_of_panel", message="atlas manifold point must stay within its panel domain", target=f"metrics.atlas_manifold_panels[{panel_index}].points[{point_index}]", observed={"x": x_value, "y": y_value}, box_refs=(panel_box.box_id,)))
-        if seen_panel_labels and seen_panel_labels != expected_labels:
-            issues.append(_issue(rule_id="atlas_manifold_panel_label_set_mismatch", message="atlas manifold panel labels must cover A and B", target="metrics.atlas_manifold_panels", observed=sorted(seen_panel_labels), expected=sorted(expected_labels)))
 
     synthetic_layout_boxes = []
     layout_box_id_map = {

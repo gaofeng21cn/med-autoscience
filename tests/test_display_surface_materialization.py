@@ -8551,6 +8551,84 @@ def test_materialize_display_surface_generates_atlas_spatial_trajectory_multiman
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
+def test_materialize_display_surface_preserves_semantic_multimanifold_panel_labels(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "display_kind": "figure",
+                    "requirement_key": "atlas_spatial_trajectory_multimanifold_context_support_panel",
+                    "catalog_id": "F51",
+                    "shell_path": "paper/figures/Figure51.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "template_id": full_id("atlas_spatial_trajectory_multimanifold_context_support_panel"),
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    display_payload = _make_atlas_spatial_trajectory_multimanifold_context_support_panel_display()
+    display_payload["atlas_manifold_panels"] = [
+        {
+            **dict(panel),
+            "panel_label": semantic_label,
+        }
+        for panel, semantic_label in zip(
+            list(display_payload["atlas_manifold_panels"]),
+            ("UMAP", "PHATE"),
+            strict=True,
+        )
+    ]
+    dump_json(
+        paper_root / "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (
+            paper_root
+            / "figures"
+            / "generated"
+            / "F51_atlas_spatial_trajectory_multimanifold_context_support_panel.layout.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert [item["panel_label"] for item in layout_sidecar["metrics"]["atlas_manifold_panels"]] == [
+        "UMAP",
+        "PHATE",
+    ]
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
 def test_load_evidence_display_payload_rejects_multimanifold_context_support_when_manifold_methods_repeat(
     tmp_path: Path,
 ) -> None:
