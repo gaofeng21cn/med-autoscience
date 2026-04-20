@@ -1988,11 +1988,87 @@ def test_build_gate_report_maps_surface_signals_to_named_controller_blockers(tmp
         "claim_evidence_consistency_failed",
         "submission_hardening_incomplete",
     ]
-    assert report["medical_publication_surface_route_back_recommendation"] == "return_to_reviewer_first_hardening"
+    assert report["medical_publication_surface_route_back_recommendation"] == "return_to_write"
     assert report["supervisor_phase"] == "publishability_gate_blocked"
     assert report["bundle_tasks_downstream_only"] is True
     assert report["current_required_action"] == "return_to_publishability_gate"
-    assert "reviewer-first hardening" in report["controller_stage_note"]
+    assert "route back to `write` to close reviewer-first publication-surface concerns" in report[
+        "controller_stage_note"
+    ]
+    assert "reviewer-first hardening" not in report["controller_stage_note"]
+
+
+def test_build_gate_report_routes_each_surface_blocker_to_core_controller_route(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+
+    reviewer_first_root = make_quest(
+        tmp_path / "reviewer-first",
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+        medical_publication_surface_report={
+            "status": "blocked",
+            "blockers": ["review_ledger_missing_or_incomplete"],
+        },
+    )
+    reviewer_first_report = module.build_gate_report(module.build_gate_state(reviewer_first_root))
+
+    assert reviewer_first_report["medical_publication_surface_named_blockers"] == [
+        "reviewer_first_concerns_unresolved"
+    ]
+    assert reviewer_first_report["medical_publication_surface_route_back_recommendation"] == "return_to_write"
+    assert "route back to `write` to close reviewer-first publication-surface concerns" in reviewer_first_report[
+        "controller_stage_note"
+    ]
+    assert "reviewer-first hardening" not in reviewer_first_report["controller_stage_note"]
+
+    claim_evidence_root = make_quest(
+        tmp_path / "claim-evidence",
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+        medical_publication_surface_report={
+            "status": "blocked",
+            "blockers": ["claim_evidence_map_missing_or_incomplete"],
+        },
+    )
+    claim_evidence_report = module.build_gate_report(module.build_gate_state(claim_evidence_root))
+
+    assert claim_evidence_report["medical_publication_surface_named_blockers"] == [
+        "claim_evidence_consistency_failed"
+    ]
+    assert (
+        claim_evidence_report["medical_publication_surface_route_back_recommendation"]
+        == "return_to_analysis_campaign"
+    )
+    assert "route back to `analysis-campaign` to close claim-evidence consistency gaps" in claim_evidence_report[
+        "controller_stage_note"
+    ]
+    assert "claim-evidence hardening" not in claim_evidence_report["controller_stage_note"]
+
+    submission_hardening_root = make_quest(
+        tmp_path / "submission-hardening",
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+        medical_publication_surface_report={
+            "status": "blocked",
+            "blockers": ["public_evidence_decisions_missing_or_incomplete"],
+        },
+    )
+    submission_hardening_report = module.build_gate_report(module.build_gate_state(submission_hardening_root))
+
+    assert submission_hardening_report["medical_publication_surface_named_blockers"] == [
+        "submission_hardening_incomplete"
+    ]
+    assert submission_hardening_report["medical_publication_surface_route_back_recommendation"] == "return_to_finalize"
+    assert "route back to `finalize` to close submission-readiness gaps" in submission_hardening_report[
+        "controller_stage_note"
+    ]
+    assert "submission hardening" not in submission_hardening_report["controller_stage_note"]
 
 
 def test_build_gate_report_keeps_named_surface_blockers_clear_when_surface_is_clear(tmp_path: Path) -> None:

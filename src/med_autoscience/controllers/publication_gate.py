@@ -86,9 +86,18 @@ _MEDICAL_PUBLICATION_SURFACE_SUBMISSION_HARDENING_BLOCKERS = frozenset(
     }
 )
 _MEDICAL_PUBLICATION_SURFACE_ROUTE_BACK_RECOMMENDATIONS = {
-    "reviewer_first_concerns_unresolved": "return_to_reviewer_first_hardening",
-    "claim_evidence_consistency_failed": "return_to_claim_evidence_hardening",
-    "submission_hardening_incomplete": "return_to_submission_hardening",
+    "reviewer_first_concerns_unresolved": "return_to_write",
+    "claim_evidence_consistency_failed": "return_to_analysis_campaign",
+    "submission_hardening_incomplete": "return_to_finalize",
+}
+_MEDICAL_PUBLICATION_SURFACE_ROUTE_BACK_NOTE_CLAUSES = {
+    "reviewer_first_concerns_unresolved": (
+        "route back to `write` to close reviewer-first publication-surface concerns"
+    ),
+    "claim_evidence_consistency_failed": (
+        "route back to `analysis-campaign` to close claim-evidence consistency gaps"
+    ),
+    "submission_hardening_incomplete": "route back to `finalize` to close submission-readiness gaps",
 }
 _DEFAULT_SUBMISSION_GRADE_MIN_ACTIVE_FIGURES = 4
 
@@ -343,20 +352,18 @@ def _medical_publication_surface_stage_note(
 ) -> str:
     if not named_blockers:
         return base_note
-    required_hardening: list[str] = []
-    if "reviewer_first_concerns_unresolved" in named_blockers:
-        required_hardening.append("reviewer-first hardening")
-    if "claim_evidence_consistency_failed" in named_blockers:
-        required_hardening.append("claim-evidence hardening")
-    if "submission_hardening_incomplete" in named_blockers:
-        required_hardening.append("submission hardening")
-    if not required_hardening:
+    route_back_clauses = [
+        clause
+        for blocker in named_blockers
+        if (clause := _MEDICAL_PUBLICATION_SURFACE_ROUTE_BACK_NOTE_CLAUSES.get(blocker))
+    ]
+    if not route_back_clauses:
         return base_note
-    hardening_text = ", ".join(required_hardening)
-    route_back_text = route_back_recommendation or "return_to_publishability_gate"
+    route_back_closure_text = "; ".join(route_back_clauses)
+    recommended_route_back = route_back_recommendation or "return_to_publishability_gate"
     return (
-        f"{base_note}; medical publication surface still requires {hardening_text} "
-        f"before bundle work can advance. Recommended route-back: `{route_back_text}`."
+        f"{base_note}; medical publication surface is blocked; {route_back_closure_text}. "
+        f"Recommended route-back: `{recommended_route_back}`."
     )
 
 
