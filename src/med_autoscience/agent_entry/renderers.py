@@ -67,6 +67,7 @@ def render_entry_modes_guide() -> str:
                 _render_list_line("enter_conditions", route_contract["enter_conditions"]),
                 _render_list_line("hard_success_gate", route_contract["hard_success_gate"]),
                 _render_list_line("durable_outputs_minimum", route_contract["durable_outputs_minimum"]),
+                _render_list_line("human_gate_boundary", route_contract["human_gate_boundary"]),
                 _render_list_line("next_routes", route_contract["next_routes"]),
                 _render_list_line("route_back_triggers", route_contract["route_back_triggers"]),
             )
@@ -211,6 +212,12 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
                 + _render_list_line(
                     "durable_outputs_minimum",
                     route_contract["durable_outputs_minimum"],
+                    inline=True,
+                ),
+                "  "
+                + _render_list_line(
+                    "human_gate_boundary",
+                    route_contract["human_gate_boundary"],
                     inline=True,
                 ),
                 "  " + _render_list_line("next_routes", route_contract["next_routes"], inline=True),

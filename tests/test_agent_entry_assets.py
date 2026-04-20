@@ -54,6 +54,18 @@ def test_render_public_yaml_round_trip_matches_canonical_payload() -> None:
     assert yaml.safe_load(rendered) == load_entry_modes_payload()
 
 
+def test_load_entry_modes_payload_requires_route_human_gate_boundary(tmp_path: Path) -> None:
+    payload = render_entry_modes_payload()
+    route_contracts = payload["route_contracts"]
+    assert isinstance(route_contracts, dict)
+    route_contracts["scout"].pop("human_gate_boundary", None)
+    yaml_path = tmp_path / "agent_entry_modes.yaml"
+    yaml_path.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"route_contracts\[scout\] missing required field: human_gate_boundary"):
+        load_entry_modes_payload(yaml_path)
+
+
 def test_canonical_payload_includes_global_route_and_evidence_review_contracts() -> None:
     payload = render_entry_modes_payload()
 
@@ -77,11 +89,15 @@ def test_canonical_payload_includes_global_route_and_evidence_review_contracts()
             "enter_conditions",
             "hard_success_gate",
             "durable_outputs_minimum",
+            "human_gate_boundary",
             "next_routes",
             "route_back_triggers",
         ):
             assert field in route_payload
-            assert isinstance(route_payload[field], list if field.endswith(("conditions", "gate", "minimum", "routes", "triggers")) else str)
+            assert isinstance(
+                route_payload[field],
+                list if field.endswith(("conditions", "gate", "minimum", "routes", "triggers", "boundary")) else str,
+            )
 
     evidence_review_contract = payload.get("evidence_review_contract")
     assert isinstance(evidence_review_contract, dict)
@@ -135,6 +151,7 @@ def test_render_entry_modes_guide_contains_required_contract_context() -> None:
         assert _extract_contract_list(route_block, "enter_conditions") == route_payload["enter_conditions"]
         assert _extract_contract_list(route_block, "hard_success_gate") == route_payload["hard_success_gate"]
         assert _extract_contract_list(route_block, "durable_outputs_minimum") == route_payload["durable_outputs_minimum"]
+        assert _extract_contract_list(route_block, "human_gate_boundary") == route_payload["human_gate_boundary"]
         assert _extract_contract_list(route_block, "next_routes") == route_payload["next_routes"]
         assert _extract_contract_list(route_block, "route_back_triggers") == route_payload["route_back_triggers"]
 
@@ -193,6 +210,7 @@ def test_entry_prompts_include_per_mode_route_contract_and_upgrade_rule(render_p
         assert _extract_contract_list(route_block, "enter_conditions") == route_payload["enter_conditions"]
         assert _extract_contract_list(route_block, "hard_success_gate") == route_payload["hard_success_gate"]
         assert _extract_contract_list(route_block, "durable_outputs_minimum") == route_payload["durable_outputs_minimum"]
+        assert _extract_contract_list(route_block, "human_gate_boundary") == route_payload["human_gate_boundary"]
         assert _extract_contract_list(route_block, "next_routes") == route_payload["next_routes"]
         assert _extract_contract_list(route_block, "route_back_triggers") == route_payload["route_back_triggers"]
 

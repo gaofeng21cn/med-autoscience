@@ -77,6 +77,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - enter_conditions: workspace/profile available | study question or dataset context is readable | current line still needs direction framing or evidence scoping
 - hard_success_gate: question framing names the study target, population, and evidence boundary | route recommendation names the next formal route with reasons | blockers and assumptions are explicit enough for controller review
 - durable_outputs_minimum: scout note or equivalent route artifact with evidence boundary and next-step recommendation | explicit open questions list tied to the study line | route recommendation linked to the active study charter boundary
+- human_gate_boundary: primary question, target population, or evidence boundary needs reset | recommended next route would widen the active study charter boundary
 - next_routes: baseline | write | decision
 - route_back_triggers: evidence target stays ambiguous after scouting | study question changes materially during later routes | downstream review surfaces missing direction rationale
 
@@ -85,6 +86,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - enter_conditions: scout output or equivalent direction framing exists | candidate study directions can be compared on the same problem boundary | active route still needs a chosen line before baseline work
 - hard_success_gate: one primary line is selected with explicit tradeoffs | execution recommendation names whether to proceed to baseline or return to decision | chosen line matches the active study charter scope
 - durable_outputs_minimum: line-selection note with rationale and discarded alternatives | explicit next-route recommendation with boundary assumptions | claim sketch or study objective aligned to the chosen line
+- human_gate_boundary: chosen line changes the locked study direction or main claim family | execution recommendation needs a new managed-study commitment beyond the active charter
 - next_routes: baseline | decision
 - route_back_triggers: baseline readiness is still missing | chosen line conflicts with later evidence review | controller requests a different route bias
 
@@ -93,6 +95,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - enter_conditions: chosen study line exists | data source, cohort boundary, or reference baseline is available | startup boundary can justify managed baseline work
 - hard_success_gate: baseline or comparator setup is reproducible and scoped to the active claim | baseline readout reveals whether the line is strong enough to continue | unresolved blockers are small enough for analysis-campaign or decision
 - durable_outputs_minimum: baseline artifact set or equivalent reproducible baseline record | baseline summary tied to the active claim or study objective | explicit continue or reroute recommendation
+- human_gate_boundary: comparator, cohort, or endpoint redefinition changes the active claim boundary | baseline readout points to a stop decision or a direction reset
 - next_routes: analysis-campaign | write | decision
 - route_back_triggers: baseline result cannot support the active claim | comparator or cohort definition changes materially | reviewer-first scan finds missing baseline proof
 
@@ -101,6 +104,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - enter_conditions: startup boundary allows compute-stage work | baseline or equivalent readiness proof exists | study line has a concrete experiment target and stop condition
 - hard_success_gate: primary experiment result is recorded with reproducible run context | result answers the intended study question for the current line | next step is clear between analysis-campaign, write, and decision
 - durable_outputs_minimum: primary result artifact set with run context | experiment summary tied to the active claim boundary | explicit next-route recommendation after result inspection
+- human_gate_boundary: primary experiment target changes the locked study boundary or main claim family | result interpretation would authorize a new externally visible claim
 - next_routes: analysis-campaign | write | decision
 - route_back_triggers: run outcome invalidates the current study line | result quality or reproducibility gaps block downstream review | controller boundary changes before interpretation stabilizes
 
@@ -109,6 +113,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - enter_conditions: baseline or primary result artifact exists | bounded analysis question is explicit | study charter still allows the requested follow-up analyses
 - hard_success_gate: each targeted gap has a resolved outcome or explicit stop decision | added analyses stay within the bounded scope of the active line | resulting evidence package can support writing or a decision review
 - durable_outputs_minimum: analysis campaign summary with question-to-result traceability | added result artifacts or evidence refs for every resolved gap | explicit record of remaining gaps that still require route-back
+- human_gate_boundary: requested follow-up analysis adds a new primary claim or leaves bounded analysis scope | campaign needs another gate window beyond the predeclared analysis budget boundary
 - next_routes: write | finalize | decision
 - route_back_triggers: new gaps expand beyond bounded analysis scope | claim support weakens after follow-up analysis | reviewer-first scan requests a different baseline or study line
 
@@ -117,6 +122,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - enter_conditions: active claim and supporting evidence package are readable | required route artifacts are linked or referenced | reviewer-first pressure can be applied against the current draft
 - hard_success_gate: manuscript line states claims that match cited evidence | open gaps, caveats, and next actions are explicit in the writing surface | draft is ready for finalize or route-back with named reasons
 - durable_outputs_minimum: manuscript draft or section update tied to current claim scope | claim-evidence map or equivalent traceability surface | reviewer-first pass note with explicit concerns
+- human_gate_boundary: manuscript claims expand beyond the current evidence package or locked study objective | draft is ready for external circulation or submission-facing release
 - next_routes: finalize | decision
 - route_back_triggers: any active claim lacks supporting evidence | reviewer-first scan finds unresolved logic, novelty, or rigor gaps | manuscript narrative changes the claim boundary
 
@@ -125,6 +131,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - enter_conditions: manuscript-facing draft exists | claim-evidence mapping is current | remaining risks are reviewable as a bounded package
 - hard_success_gate: final package is internally consistent across claim, evidence, and limitations | required review artifacts are complete enough for final audit | route recommendation is explicit between submit-ready and route-back
 - durable_outputs_minimum: final package checklist or equivalent delivery record | updated limitations, caveats, and readiness statement | final review summary with explicit go or reroute recommendation
+- human_gate_boundary: submission-ready judgment or external delivery authorization is required | final package changes the claim, limitation, or outlet boundary materially
 - next_routes: decision | write
 - route_back_triggers: final audit finds missing proof or inconsistent claims | submission bundle surfaces unresolved reviewer-level concerns | package assembly changes the meaning of any active claim
 
@@ -133,6 +140,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - enter_conditions: route recommendation or blocking condition is explicit | current evidence package and risks are reviewable | controller-owned judgment point has been reached
 - hard_success_gate: decision names the chosen route or terminal judgment | rationale cites the current evidence and unresolved risks | downstream owner and next action are unambiguous
 - durable_outputs_minimum: controller-facing decision record or equivalent durable judgment | cited evidence refs and route recommendation | explicit next owner or escalation target
+- human_gate_boundary: official go, stop, reroute, or direction-reset judgment is required | decision changes the study boundary or authorizes external release
 - next_routes: scout | baseline | analysis-campaign | write | finalize
 - route_back_triggers: new evidence invalidates the recorded judgment | human gate changes the study boundary | downstream route reports unmet assumptions from the decision record
 
@@ -141,6 +149,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - enter_conditions: writing line exists | target journal list or delivery target is known | packaging choices affect the current manuscript bundle
 - hard_success_gate: target outlet or packaging rule is chosen with reasons | manuscript bundle requirements are reflected in the active draft plan | remaining journal-facing gaps are explicit
 - durable_outputs_minimum: journal choice note or outlet-resolution record | packaging requirement checklist tied to the draft | explicit next route after journal alignment
+- human_gate_boundary: outlet choice changes the claim framing, delivery plan, or submission commitments | journal selection requires external release or submission authorization
 - next_routes: write | finalize | decision
 - route_back_triggers: journal requirements expose missing evidence or structure gaps | target outlet changes the claim framing materially | packaging constraints require a different delivery plan
 

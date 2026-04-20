@@ -39,6 +39,7 @@ REQUIRED_ROUTE_CONTRACT_LIST_FIELDS = (
     "enter_conditions",
     "hard_success_gate",
     "durable_outputs_minimum",
+    "human_gate_boundary",
     "next_routes",
     "route_back_triggers",
 )

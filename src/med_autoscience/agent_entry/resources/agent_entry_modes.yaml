@@ -19,6 +19,9 @@ route_contracts:
       - scout note or equivalent route artifact with evidence boundary and next-step recommendation
       - explicit open questions list tied to the study line
       - route recommendation linked to the active study charter boundary
+    human_gate_boundary:
+      - primary question, target population, or evidence boundary needs reset
+      - recommended next route would widen the active study charter boundary
     next_routes:
       - baseline
       - write
@@ -43,6 +46,9 @@ route_contracts:
       - line-selection note with rationale and discarded alternatives
       - explicit next-route recommendation with boundary assumptions
       - claim sketch or study objective aligned to the chosen line
+    human_gate_boundary:
+      - chosen line changes the locked study direction or main claim family
+      - execution recommendation needs a new managed-study commitment beyond the active charter
     next_routes:
       - baseline
       - decision
@@ -66,6 +72,9 @@ route_contracts:
       - baseline artifact set or equivalent reproducible baseline record
       - baseline summary tied to the active claim or study objective
       - explicit continue or reroute recommendation
+    human_gate_boundary:
+      - comparator, cohort, or endpoint redefinition changes the active claim boundary
+      - baseline readout points to a stop decision or a direction reset
     next_routes:
       - analysis-campaign
       - write
@@ -90,6 +99,9 @@ route_contracts:
       - primary result artifact set with run context
       - experiment summary tied to the active claim boundary
       - explicit next-route recommendation after result inspection
+    human_gate_boundary:
+      - primary experiment target changes the locked study boundary or main claim family
+      - result interpretation would authorize a new externally visible claim
     next_routes:
       - analysis-campaign
       - write
@@ -114,6 +126,9 @@ route_contracts:
       - analysis campaign summary with question-to-result traceability
       - added result artifacts or evidence refs for every resolved gap
       - explicit record of remaining gaps that still require route-back
+    human_gate_boundary:
+      - requested follow-up analysis adds a new primary claim or leaves bounded analysis scope
+      - campaign needs another gate window beyond the predeclared analysis budget boundary
     next_routes:
       - write
       - finalize
@@ -138,6 +153,9 @@ route_contracts:
       - manuscript draft or section update tied to current claim scope
       - claim-evidence map or equivalent traceability surface
       - reviewer-first pass note with explicit concerns
+    human_gate_boundary:
+      - manuscript claims expand beyond the current evidence package or locked study objective
+      - draft is ready for external circulation or submission-facing release
     next_routes:
       - finalize
       - decision
@@ -161,6 +179,9 @@ route_contracts:
       - final package checklist or equivalent delivery record
       - updated limitations, caveats, and readiness statement
       - final review summary with explicit go or reroute recommendation
+    human_gate_boundary:
+      - submission-ready judgment or external delivery authorization is required
+      - final package changes the claim, limitation, or outlet boundary materially
     next_routes:
       - decision
       - write
@@ -184,6 +205,9 @@ route_contracts:
       - controller-facing decision record or equivalent durable judgment
       - cited evidence refs and route recommendation
       - explicit next owner or escalation target
+    human_gate_boundary:
+      - official go, stop, reroute, or direction-reset judgment is required
+      - decision changes the study boundary or authorizes external release
     next_routes:
       - scout
       - baseline
@@ -210,6 +234,9 @@ route_contracts:
       - journal choice note or outlet-resolution record
       - packaging requirement checklist tied to the draft
       - explicit next route after journal alignment
+    human_gate_boundary:
+      - outlet choice changes the claim framing, delivery plan, or submission commitments
+      - journal selection requires external release or submission authorization
     next_routes:
       - write
       - finalize
