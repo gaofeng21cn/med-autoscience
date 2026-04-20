@@ -14,6 +14,27 @@ __all__ = [
 
 
 STABLE_STUDY_CHARTER_RELATIVE_PATH = Path("artifacts/controller/study_charter.json")
+AUTONOMOUS_SCIENTIFIC_DECISIONS = (
+    "analysis_plan_within_locked_direction",
+    "evidence_generation_and_sufficiency_judgment",
+    "manuscript_argumentation_and_revision",
+    "journal_target_tradeoffs_within_frozen_quality_contract",
+)
+HUMAN_GATE_DECISIONS = (
+    "direction_reset_or_primary_question_change",
+    "major_claim_boundary_expansion",
+    "external_release_or_submission_authorization",
+)
+FINAL_SCIENTIFIC_AUDIT_CHECKS = (
+    "claim_traceability_to_evidence_ledger",
+    "review_closure_against_review_ledger",
+    "submission_readiness_against_paper_quality_contract",
+)
+DOWNSTREAM_CONTRACT_ROLES = {
+    "evidence_ledger": "records evidence against evidence_expectations",
+    "review_ledger": "records review closure against review_expectations",
+    "final_audit": "audits scientific and paper-quality readiness against this charter",
+}
 
 
 def stable_study_charter_path(*, study_root: Path) -> Path:
@@ -36,6 +57,41 @@ def _string_list(value: object) -> list[str]:
         if text:
             items.append(text)
     return items
+
+
+def _dedupe_preserve_order(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in items:
+        if item in seen:
+            continue
+        seen.add(item)
+        ordered.append(item)
+    return ordered
+
+
+def _extract_target_journals(study_payload: dict[str, Any]) -> list[str]:
+    shortlist = _string_list(study_payload.get("journal_shortlist"))
+    if shortlist:
+        return _dedupe_preserve_order(shortlist)
+
+    raw_submission_targets = study_payload.get("submission_targets")
+    if not isinstance(raw_submission_targets, list):
+        return []
+
+    names: list[str] = []
+    for item in raw_submission_targets:
+        if isinstance(item, dict):
+            for key in ("journal_name", "journal", "name", "target"):
+                text = _non_empty_string(item.get(key))
+                if text is not None:
+                    names.append(text)
+                    break
+            continue
+        text = str(item).strip()
+        if text:
+            names.append(text)
+    return _dedupe_preserve_order(names)
 
 
 def resolve_study_charter_ref(
@@ -78,9 +134,14 @@ def materialize_study_charter(
 ) -> dict[str, str]:
     charter_path = stable_study_charter_path(study_root=study_root)
     title = _non_empty_string(study_payload.get("title")) or study_id
+    paper_framing_summary = _non_empty_string(study_payload.get("paper_framing_summary"))
+    minimum_sci_ready_evidence_package = _string_list(study_payload.get("minimum_sci_ready_evidence_package"))
+    scientific_followup_questions = _string_list(study_payload.get("scientific_followup_questions"))
+    explanation_targets = _string_list(study_payload.get("explanation_targets"))
+    manuscript_conclusion_redlines = _string_list(study_payload.get("manuscript_conclusion_redlines"))
     publication_objective = (
         _non_empty_string(study_payload.get("primary_question"))
-        or _non_empty_string(study_payload.get("paper_framing_summary"))
+        or paper_framing_summary
         or title
     )
     payload: dict[str, Any] = {
@@ -89,17 +150,45 @@ def materialize_study_charter(
         "study_id": study_id,
         "title": title,
         "publication_objective": publication_objective,
-        "paper_framing_summary": _non_empty_string(study_payload.get("paper_framing_summary")),
-        "minimum_sci_ready_evidence_package": _string_list(
-            study_payload.get("minimum_sci_ready_evidence_package")
-        ),
-        "scientific_followup_questions": _string_list(study_payload.get("scientific_followup_questions")),
-        "explanation_targets": _string_list(study_payload.get("explanation_targets")),
-        "manuscript_conclusion_redlines": _string_list(study_payload.get("manuscript_conclusion_redlines")),
+        "paper_framing_summary": paper_framing_summary,
+        "minimum_sci_ready_evidence_package": minimum_sci_ready_evidence_package,
+        "scientific_followup_questions": scientific_followup_questions,
+        "explanation_targets": explanation_targets,
+        "manuscript_conclusion_redlines": manuscript_conclusion_redlines,
         "autonomy_envelope": {
             "decision_policy": _non_empty_string(execution.get("decision_policy")) or "autonomous",
             "launch_profile": _non_empty_string(execution.get("launch_profile")) or "continue_existing_state",
             "required_first_anchor": _non_empty_string(required_first_anchor),
+            "direction_lock_state": "startup_frozen",
+            "autonomous_scientific_decision_scope": {
+                "phase": "post_direction_lock",
+                "default_owner": "mas",
+                "covered_decisions": list(AUTONOMOUS_SCIENTIFIC_DECISIONS),
+            },
+            "human_gate_boundary": {
+                "policy": "major_boundary_only",
+                "required_human_decisions": list(HUMAN_GATE_DECISIONS),
+            },
+            "final_scientific_audit_boundary": {
+                "audit_surfaces": ["evidence_ledger", "review_ledger", "final_audit"],
+                "required_checks": list(FINAL_SCIENTIFIC_AUDIT_CHECKS),
+            },
+        },
+        "paper_quality_contract": {
+            "frozen_at_startup": True,
+            "target_journals": _extract_target_journals(study_payload),
+            "reporting_expectations": {
+                "paper_framing_summary": paper_framing_summary,
+                "explanation_targets": explanation_targets,
+            },
+            "evidence_expectations": {
+                "minimum_sci_ready_evidence_package": minimum_sci_ready_evidence_package,
+            },
+            "review_expectations": {
+                "scientific_followup_questions": scientific_followup_questions,
+                "manuscript_conclusion_redlines": manuscript_conclusion_redlines,
+            },
+            "downstream_contract_roles": dict(DOWNSTREAM_CONTRACT_ROLES),
         },
     }
     charter_path.parent.mkdir(parents=True, exist_ok=True)

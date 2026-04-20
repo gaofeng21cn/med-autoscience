@@ -92,6 +92,7 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
             "title": "Diabetes mortality risk paper",
             "primary_question": "Build a submission-ready survival-risk study.",
             "paper_framing_summary": "Clinical survival framing is fixed around CVD-related mortality.",
+            "journal_shortlist": ["The BMJ", "JAMA Internal Medicine"],
             "minimum_sci_ready_evidence_package": ["external_validation", "decision_curve_analysis"],
             "scientific_followup_questions": [
                 "Why is the 5-year all-cause mortality gap between China and the US so large?",
@@ -137,4 +138,105 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
         "decision_policy": "autonomous",
         "launch_profile": "continue_existing_state",
         "required_first_anchor": "write",
+        "direction_lock_state": "startup_frozen",
+        "autonomous_scientific_decision_scope": {
+            "phase": "post_direction_lock",
+            "default_owner": "mas",
+            "covered_decisions": [
+                "analysis_plan_within_locked_direction",
+                "evidence_generation_and_sufficiency_judgment",
+                "manuscript_argumentation_and_revision",
+                "journal_target_tradeoffs_within_frozen_quality_contract",
+            ],
+        },
+        "human_gate_boundary": {
+            "policy": "major_boundary_only",
+            "required_human_decisions": [
+                "direction_reset_or_primary_question_change",
+                "major_claim_boundary_expansion",
+                "external_release_or_submission_authorization",
+            ],
+        },
+        "final_scientific_audit_boundary": {
+            "audit_surfaces": ["evidence_ledger", "review_ledger", "final_audit"],
+            "required_checks": [
+                "claim_traceability_to_evidence_ledger",
+                "review_closure_against_review_ledger",
+                "submission_readiness_against_paper_quality_contract",
+            ],
+        },
+    }
+    assert payload["paper_quality_contract"] == {
+        "frozen_at_startup": True,
+        "target_journals": ["The BMJ", "JAMA Internal Medicine"],
+        "reporting_expectations": {
+            "paper_framing_summary": "Clinical survival framing is fixed around CVD-related mortality.",
+            "explanation_targets": [
+                "Separate endpoint-alignment gap from case-mix shift and residual unexplained gap.",
+            ],
+        },
+        "evidence_expectations": {
+            "minimum_sci_ready_evidence_package": ["external_validation", "decision_curve_analysis"],
+        },
+        "review_expectations": {
+            "scientific_followup_questions": [
+                "Why is the 5-year all-cause mortality gap between China and the US so large?",
+            ],
+            "manuscript_conclusion_redlines": [
+                "Do not conclude only that a China-trained absolute risk model is non-transportable.",
+            ],
+        },
+        "downstream_contract_roles": {
+            "evidence_ledger": "records evidence against evidence_expectations",
+            "review_ledger": "records review closure against review_expectations",
+            "final_audit": "audits scientific and paper-quality readiness against this charter",
+        },
+    }
+
+
+def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "002-minimal"
+
+    module.materialize_study_charter(
+        study_root=study_root,
+        study_id="002-minimal",
+        study_payload={
+            "title": "Minimal charter",
+        },
+        execution={},
+        required_first_anchor=None,
+    )
+
+    payload = json.loads((study_root / "artifacts" / "controller" / "study_charter.json").read_text(encoding="utf-8"))
+
+    assert payload["autonomy_envelope"]["decision_policy"] == "autonomous"
+    assert payload["autonomy_envelope"]["launch_profile"] == "continue_existing_state"
+    assert payload["autonomy_envelope"]["required_first_anchor"] is None
+    assert payload["autonomy_envelope"]["direction_lock_state"] == "startup_frozen"
+    assert payload["autonomy_envelope"]["human_gate_boundary"]["policy"] == "major_boundary_only"
+    assert payload["autonomy_envelope"]["final_scientific_audit_boundary"]["audit_surfaces"] == [
+        "evidence_ledger",
+        "review_ledger",
+        "final_audit",
+    ]
+    assert payload["paper_quality_contract"] == {
+        "frozen_at_startup": True,
+        "target_journals": [],
+        "reporting_expectations": {
+            "paper_framing_summary": None,
+            "explanation_targets": [],
+        },
+        "evidence_expectations": {
+            "minimum_sci_ready_evidence_package": [],
+        },
+        "review_expectations": {
+            "scientific_followup_questions": [],
+            "manuscript_conclusion_redlines": [],
+        },
+        "downstream_contract_roles": {
+            "evidence_ledger": "records evidence against evidence_expectations",
+            "review_ledger": "records review closure against review_expectations",
+            "final_audit": "audits scientific and paper-quality readiness against this charter",
+        },
     }
