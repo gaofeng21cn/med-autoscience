@@ -12,13 +12,21 @@ from opl_harness_shared.status_narration import (
     build_status_narration_human_view,
 )
 
+from med_autoscience.controller_summary import read_controller_summary, stable_controller_summary_path
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
+from med_autoscience.evaluation_summary import (
+    materialize_evaluation_summary_artifacts,
+    read_evaluation_summary,
+    stable_evaluation_summary_path,
+    stable_promotion_gate_path,
+)
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_status_summary import (
     build_runtime_status_summary,
     materialize_runtime_status_summary,
 )
+from med_autoscience.study_charter import stable_study_charter_path
 from med_autoscience.study_manual_finish import resolve_effective_study_manual_finish_contract
 from med_autoscience.study_task_intake import read_latest_task_intake, summarize_task_intake
 
@@ -624,6 +632,112 @@ def _runtime_module_surface(
         "status_summary": summary["status_summary"],
         "next_action_summary": summary["next_action_summary"],
         "needs_human_intervention": summary["needs_human_intervention"],
+    }
+
+
+def _publishability_gate_report_path(
+    *,
+    runtime_watch_payload: dict[str, Any] | None,
+    quest_root: Path | None,
+) -> Path | None:
+    publication_gate = (
+        dict((((runtime_watch_payload or {}).get("controllers") or {}).get("publication_gate") or {}))
+        if isinstance(((runtime_watch_payload or {}).get("controllers") or {}).get("publication_gate"), dict)
+        else {}
+    )
+    report_json = _non_empty_text(publication_gate.get("report_json"))
+    if report_json is not None:
+        candidate = Path(report_json).expanduser()
+        if candidate.is_absolute():
+            return candidate.resolve()
+        if quest_root is not None:
+            return (quest_root / candidate).resolve()
+    if quest_root is None:
+        return None
+    candidate = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
+    return candidate.resolve() if candidate.exists() else None
+
+
+def _controller_module_surface(*, study_root: Path) -> dict[str, Any] | None:
+    summary_path = stable_controller_summary_path(study_root=study_root)
+    if not summary_path.exists():
+        return None
+    summary = read_controller_summary(study_root=study_root, ref=summary_path)
+    controller_policy = dict(summary.get("controller_policy") or {})
+    route_trigger_authority = dict(summary.get("route_trigger_authority") or {})
+    decision_policy = _non_empty_text(route_trigger_authority.get("decision_policy")) or "unknown"
+    launch_profile = _non_empty_text(route_trigger_authority.get("launch_profile")) or "unknown"
+    required_first_anchor = _non_empty_text(controller_policy.get("required_first_anchor"))
+    return {
+        "module": "controller_charter",
+        "surface_kind": "controller_module_surface",
+        "summary_id": summary["summary_id"],
+        "summary_ref": str(summary_path),
+        "study_charter_ref": dict(summary.get("study_charter_ref") or {}),
+        "decision_policy": decision_policy,
+        "launch_profile": launch_profile,
+        "status_summary": (
+            f"研究合同已冻结；决策策略 {decision_policy}，启动入口 {launch_profile}。"
+        ),
+        "next_action_summary": (
+            f"从 {required_first_anchor} 锚点继续推进当前研究。"
+            if required_first_anchor
+            else "沿 controller contract 继续推进当前研究。"
+        ),
+    }
+
+
+def _evaluation_module_surface(
+    *,
+    study_root: Path,
+    publication_eval_payload: dict[str, Any] | None,
+    runtime_escalation_path: Path | None,
+    runtime_watch_payload: dict[str, Any] | None,
+    quest_root: Path | None,
+) -> dict[str, Any] | None:
+    evaluation_summary_path = stable_evaluation_summary_path(study_root=study_root)
+    promotion_gate_path = stable_promotion_gate_path(study_root=study_root)
+    if not evaluation_summary_path.exists():
+        gate_report_path = _publishability_gate_report_path(
+            runtime_watch_payload=runtime_watch_payload,
+            quest_root=quest_root,
+        )
+        charter_path = stable_study_charter_path(study_root=study_root)
+        if (
+            publication_eval_payload is None
+            or runtime_escalation_path is None
+            or gate_report_path is None
+            or not gate_report_path.exists()
+            or not charter_path.exists()
+        ):
+            return None
+        materialize_evaluation_summary_artifacts(
+            study_root=study_root,
+            runtime_escalation_ref=runtime_escalation_path,
+            publishability_gate_report_ref=gate_report_path,
+        )
+    if not evaluation_summary_path.exists():
+        return None
+    summary = read_evaluation_summary(study_root=study_root, ref=evaluation_summary_path)
+    promotion_gate_status = dict(summary.get("promotion_gate_status") or {})
+    current_required_action = _non_empty_text(promotion_gate_status.get("current_required_action"))
+    next_action_summary = (
+        _ACTION_LABELS.get(current_required_action or "", "")
+        or current_required_action
+        or "按当前 eval hygiene 结论继续推进。"
+    )
+    return {
+        "module": "eval_hygiene",
+        "surface_kind": "evaluation_module_surface",
+        "summary_id": summary["summary_id"],
+        "summary_ref": str(evaluation_summary_path),
+        "promotion_gate_ref": str(promotion_gate_path) if promotion_gate_path.exists() else None,
+        "overall_verdict": summary["overall_verdict"],
+        "primary_claim_status": summary["primary_claim_status"],
+        "stop_loss_pressure": summary["stop_loss_pressure"],
+        "requires_controller_decision": bool(summary.get("requires_controller_decision")),
+        "status_summary": summary["verdict_summary"],
+        "next_action_summary": next_action_summary,
     }
 
 
@@ -2231,6 +2345,14 @@ def build_study_progress_projection(
         answer_checklist=PROGRESS_ANSWER_CHECKLIST,
     )
     generated_at = _utc_now()
+    controller_module_surface = _controller_module_surface(study_root=resolved_study_root)
+    evaluation_module_surface = _evaluation_module_surface(
+        study_root=resolved_study_root,
+        publication_eval_payload=publication_eval_payload,
+        runtime_escalation_path=runtime_escalation_path,
+        runtime_watch_payload=runtime_watch_payload,
+        quest_root=quest_root,
+    )
     runtime_module_surface = _runtime_module_surface(
         generated_at=generated_at,
         study_id=resolved_study_id,
@@ -2250,6 +2372,12 @@ def build_study_progress_projection(
         status=status,
         supervisor_tick_audit=supervisor_tick_audit,
     )
+    module_surfaces: dict[str, Any] = {}
+    if controller_module_surface is not None:
+        module_surfaces["controller_charter"] = controller_module_surface
+    module_surfaces["runtime"] = runtime_module_surface
+    if evaluation_module_surface is not None:
+        module_surfaces["eval_hygiene"] = evaluation_module_surface
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -2280,9 +2408,7 @@ def build_study_progress_projection(
         "manual_finish_contract": manual_finish_contract,
         "task_intake": task_intake,
         "progress_freshness": progress_freshness,
-        "module_surfaces": {
-            "runtime": runtime_module_surface,
-        },
+        "module_surfaces": module_surfaces,
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
             "quest_session_api_url": _non_empty_text(autonomous_runtime_notice.get("quest_session_api_url")),
@@ -2299,10 +2425,19 @@ def build_study_progress_projection(
             "launch_report_path": str(launch_report_path),
             "publication_eval_path": str(publication_eval_path),
             "controller_decision_path": str(controller_decision_path),
+            "controller_summary_path": (
+                controller_module_surface["summary_ref"] if controller_module_surface is not None else None
+            ),
             "runtime_supervision_path": str(runtime_supervision_path) if runtime_supervision_payload is not None else None,
             "runtime_escalation_path": str(runtime_escalation_path) if runtime_escalation_path is not None else None,
             "runtime_watch_report_path": str(runtime_watch_path) if runtime_watch_path is not None else None,
             "runtime_status_summary_path": runtime_module_surface["summary_ref"],
+            "evaluation_summary_path": (
+                evaluation_module_surface["summary_ref"] if evaluation_module_surface is not None else None
+            ),
+            "promotion_gate_path": (
+                evaluation_module_surface["promotion_gate_ref"] if evaluation_module_surface is not None else None
+            ),
             "bash_summary_path": str(bash_summary_path) if bash_summary_path is not None else None,
             "details_projection_path": str(details_projection_path) if details_projection_path is not None else None,
         },
@@ -2403,7 +2538,6 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     operator_status_card = dict(payload.get("operator_status_card") or {})
     recovery_contract = dict(payload.get("recovery_contract") or {})
     module_surfaces = dict(payload.get("module_surfaces") or {})
-    runtime_module_surface = dict(module_surfaces.get("runtime") or {})
     recovery_action_mode = _RECOVERY_ACTION_MODE_LABELS.get(
         _non_empty_text(recovery_contract.get("action_mode")) or "",
         "",
@@ -2507,18 +2641,29 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             )
         if operator_status_card.get("next_confirmation_signal"):
             lines.append(f"- 下一确认信号: {operator_status_card.get('next_confirmation_signal')}")
-    if runtime_module_surface:
+    if module_surfaces:
         lines.extend(
             [
                 "",
                 "## 主线模块",
                 "",
-                "- runtime",
-                f"- 模块摘要: {runtime_module_surface.get('status_summary') or 'none'}",
-                f"- 下一动作: {runtime_module_surface.get('next_action_summary') or 'none'}",
-                f"- 模块 ref: `{runtime_module_surface.get('summary_ref') or 'none'}`",
             ]
         )
+        for module_name in ("controller_charter", "runtime", "eval_hygiene"):
+            module_surface = dict(module_surfaces.get(module_name) or {})
+            if not module_surface:
+                continue
+            lines.append(
+                "- "
+                + module_name
+                + ": "
+                + (module_surface.get("status_summary") or "none")
+                + " 下一动作："
+                + (module_surface.get("next_action_summary") or "none")
+                + " ref: `"
+                + (module_surface.get("summary_ref") or "none")
+                + "`"
+            )
     lines.extend(
         [
             "",

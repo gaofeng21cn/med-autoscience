@@ -82,6 +82,43 @@ def _write_publication_eval(study_root: Path, quest_root: Path) -> Path:
     return path
 
 
+def _write_study_charter_and_controller_summary(study_root: Path) -> tuple[Path, Path]:
+    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
+    controller_summary_path = study_root / "artifacts" / "controller" / "controller_summary.json"
+    _write_json(
+        charter_path,
+        {
+            "schema_version": 1,
+            "charter_id": "charter::001-risk::v1",
+            "study_id": "001-risk",
+            "title": "Diabetes mortality risk paper",
+            "publication_objective": "risk stratification external validation",
+        },
+    )
+    _write_json(
+        controller_summary_path,
+        {
+            "schema_version": 1,
+            "summary_id": "controller-summary::001-risk::v1",
+            "study_id": "001-risk",
+            "study_charter_ref": {
+                "charter_id": "charter::001-risk::v1",
+                "artifact_path": str(charter_path),
+            },
+            "controller_policy": {
+                "scope": "full_research",
+                "required_first_anchor": "scout",
+            },
+            "route_trigger_authority": {
+                "decision_policy": "autonomous",
+                "launch_profile": "continue_existing_state",
+                "startup_contract_profile": "paper_required_autonomous",
+            },
+        },
+    )
+    return charter_path, controller_summary_path
+
+
 def _write_controller_decision(study_root: Path, quest_root: Path) -> Path:
     payload = {
         "schema_version": 1,
@@ -198,6 +235,28 @@ def _write_runtime_watch(quest_root: Path) -> Path:
     }
     path = quest_root / "artifacts" / "reports" / "runtime_watch" / "20260410T090800Z.json"
     _write_json(path, payload)
+    return path
+
+
+def _write_publishability_gate_report(quest_root: Path) -> Path:
+    path = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
+    _write_json(
+        path,
+        {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-10T09:06:00+00:00",
+            "quest_id": "quest-001",
+            "status": "blocked",
+            "allow_write": False,
+            "recommended_action": "return_to_publishability_gate",
+            "latest_gate_path": str(path),
+            "supervisor_phase": "publishability_gate_blocked",
+            "current_required_action": "return_to_publishability_gate",
+            "controller_stage_note": "论文还没有通过可写门控，bundle 打包仍然属于后续步骤。",
+            "blockers": ["missing_post_main_publishability_gate"],
+        },
+    )
     return path
 
 
@@ -345,9 +404,11 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     )
     quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
 
+    _write_study_charter_and_controller_summary(study_root)
     publication_eval_path = _write_publication_eval(study_root, quest_root)
     controller_decision_path = _write_controller_decision(study_root, quest_root)
     runtime_escalation_path = _write_runtime_escalation(quest_root, study_root)
+    publishability_gate_report_path = _write_publishability_gate_report(quest_root)
     runtime_watch_path = _write_runtime_watch(quest_root)
     bash_summary_path = _write_bash_summary(quest_root)
     details_projection_path = _write_details_projection(quest_root)
@@ -469,8 +530,21 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
     assert result["refs"]["controller_decision_path"] == str(controller_decision_path)
     assert result["refs"]["runtime_watch_report_path"] == str(runtime_watch_path)
+    assert result["refs"]["controller_summary_path"] == str(
+        study_root / "artifacts" / "controller" / "controller_summary.json"
+    )
+    assert result["refs"]["evaluation_summary_path"] == str(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    )
+    assert result["refs"]["promotion_gate_path"] == str(
+        study_root / "artifacts" / "eval_hygiene" / "promotion_gate" / "latest.json"
+    )
+    assert result["module_surfaces"]["controller_charter"]["summary_ref"] == result["refs"]["controller_summary_path"]
+    assert result["module_surfaces"]["runtime"]["summary_ref"] == result["refs"]["runtime_status_summary_path"]
+    assert result["module_surfaces"]["eval_hygiene"]["summary_ref"] == result["refs"]["evaluation_summary_path"]
     assert result["refs"]["bash_summary_path"] == str(bash_summary_path)
     assert result["refs"]["details_projection_path"] == str(details_projection_path)
+    assert publishability_gate_report_path.exists()
 
 
 def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeypatch, tmp_path: Path) -> None:
@@ -485,9 +559,11 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
         manuscript_family="prediction_model",
     )
     quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_study_charter_and_controller_summary(study_root)
     _write_publication_eval(study_root, quest_root)
     _write_controller_decision(study_root, quest_root)
     runtime_escalation_path = _write_runtime_escalation(quest_root, study_root)
+    _write_publishability_gate_report(quest_root)
     _write_runtime_watch(quest_root)
     _write_bash_summary(quest_root)
     _write_details_projection(quest_root)
@@ -590,6 +666,10 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
     assert "监督入口" in markdown
     assert "JAMA Network Open" in markdown
     assert "研究进度信号" in markdown
+    assert "主线模块" in markdown
+    assert "controller_charter:" in markdown
+    assert "eval_hygiene:" in markdown
+    assert "runtime:" in markdown
     assert "外部验证数据清点" in markdown
 
 
