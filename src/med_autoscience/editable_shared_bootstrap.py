@@ -6,9 +6,9 @@ import sys
 from pathlib import Path
 
 
-_SHARED_HELPER_MODULE_NAME = "opl_harness_shared.editable_consumer_bootstrap"
+_SHARED_HELPER_MODULE_NAME = "opl_harness_shared.editable_consumer_launcher"
 _SHARED_PACKAGE_NAME = "opl_harness_shared"
-_SHARED_BOOTSTRAP_MODULE_FILE = "editable_consumer_bootstrap.py"
+_SHARED_BOOTSTRAP_MODULE_FILE = "editable_consumer_launcher.py"
 
 
 def _module_spec(module_name: str):
@@ -118,7 +118,7 @@ def ensure_editable_dependency_paths() -> tuple[Path, ...]:
     if helper_module is None:
         return tuple(added_paths)
 
-    ensure_paths = getattr(helper_module, "ensure_consumer_editable_dependency_paths", None)
+    ensure_paths = getattr(helper_module, "ensure_repo_editable_dependency_paths", None)
     if not callable(ensure_paths):
         return tuple(added_paths)
 
