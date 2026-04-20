@@ -315,6 +315,30 @@ def test_overlay_includes_medical_runtime_contract_blocks() -> None:
     assert "TRIPOD" in review_text or "STROBE" in review_text or "CONSORT" in review_text
 
 
+def test_overlay_write_review_finalize_tighten_medical_owner_contracts() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    write_text = module.load_overlay_skill_text("write")
+    review_text = module.load_overlay_skill_text("review", base_text="# upstream review\n")
+    finalize_text = module.load_overlay_skill_text("finalize")
+
+    assert "## MedAutoScience medical writing owner boundary" in write_text
+    assert "`study_charter` is the governing contract" in write_text
+    assert "`review_ledger`" in write_text
+    assert "`draft-ready`" in write_text
+    assert "`paper-ready`" in write_text
+    assert "`submission-ready`" in write_text
+
+    assert "`review_ledger`" in review_text
+    assert "downgrade the claim wording" in review_text
+    assert "`draft-ready`, `paper-ready`, or `submission-ready`" in review_text
+
+    assert "## Medical closure owner boundary" in finalize_text
+    assert "`study_charter`" in finalize_text
+    assert "`review_ledger`" in finalize_text
+    assert "human pre-submission audit" in finalize_text
+
+
 def test_load_overlay_skill_text_for_journal_resolution_includes_controller_first_contract() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 

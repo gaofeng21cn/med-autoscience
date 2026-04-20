@@ -14,3 +14,18 @@ Default review checkpoints:
 - internal model names, engineering labels, and runtime-only terminology are removed from manuscript-facing text
 - endpoint provenance caveats are surfaced when they materially affect interpretation
 - manuscript-safe reproducibility supplement exists when the paper is prediction- or model-heavy
+
+Review should update the medical owner surfaces, not only prose comments.
+
+For every major concern, record in `paper/review/review.md`, `paper/review/revision_log.md`, or the equivalent `review_ledger`:
+
+- affected claim or section
+- evidence path or missing evidence path
+- required disposition: `accept_as_is`, `downgrade_claim`, `route_back_write`, `route_back_analysis`, or `route_back_decision`
+- which readiness label is blocked: `draft-ready`, `paper-ready`, or `submission-ready`
+
+Use the medical review pass to enforce:
+
+- claim wording drops immediately when evidence weakens or caveats widen; downgrade the claim wording in the draft and ledger in the same pass
+- route-back goes to the narrowest earlier stage that can close the gap while keeping the locked study direction honest
+- reviewer concern ordering follows `study_charter`, the current route recommendation, and the current evidence package

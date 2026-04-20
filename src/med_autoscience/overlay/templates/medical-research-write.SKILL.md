@@ -86,6 +86,25 @@ not a polished fiction.
 - Stop when: a draft or bundle reaches a stable reviewable state, or a missing evidence requirement is explicit enough to trigger route-back.
 - Route back: if the blocker is route-level or publishability-level, route through `decision`; if the blocker is evidence-level, route to `analysis-campaign`, `experiment`, or `scout` as named by the gap.
 
+## MedAutoScience medical writing owner boundary
+
+`study_charter` is the governing contract for manuscript scope, evidence sufficiency, reviewer concern ranking, and submission hygiene on this line.
+
+Use the durable medical owner surfaces together:
+
+- `paper/claim_evidence_map.json` and the running evidence ledger for claim support and claim downgrades
+- `paper/review/revision_log.md` or the equivalent `review_ledger` for reviewer-first concerns, route-back reasons, and readiness decisions
+- `paper/section_contracts.md` for the active manuscript-facing writing contract
+
+MedAutoScience owns the medical manuscript judgments here:
+
+- `draft-ready`: the manuscript is reviewable, every active main claim is tied to concrete evidence, and open medical caveats are already visible in the draft or ledger
+- `paper-ready`: reviewer-first concerns are dispositioned in the `review_ledger`, claim wording matches the accepted evidence package, and the manuscript can enter final closure review without hidden route-back debt
+- `submission-ready`: the line is `paper-ready`, `submission_minimal` has passed, submission hygiene is explicit, and the package is ready for the human pre-submission audit
+
+MedDeepScientist serves this line as the controlled evidence source, behavior-equivalence oracle, and upstream intake buffer.
+MedAutoScience holds manuscript quality judgment, claim downgrades, route-back decisions, and readiness labels.
+
 For paper-like deliverables, the durable contract is outline-first, not prose-first.
 The approved outline should be a real structured object, typically containing:
 

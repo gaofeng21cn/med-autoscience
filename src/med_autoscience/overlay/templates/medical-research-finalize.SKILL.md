@@ -41,6 +41,19 @@ Finalize should leave a clean durable closure surface that a human can inspect d
 - Stop when: the closure surface is auditable, or a reopen blocker is explicit enough to name the route back.
 - Route back: if package adequacy, submission readiness, or evidence strength is still unresolved, record the blocker and route through `decision`, then continue to `write` or the named upstream stage.
 
+## Medical closure owner boundary
+
+Finalize reads `study_charter`, the current claim-evidence surfaces, and the latest `review_ledger` as one contract before making a closure recommendation.
+
+Use the readiness labels with strict scope:
+
+- `draft-ready`: an internal writing checkpoint that is strong enough for skeptical review
+- `paper-ready`: writing and review surfaces agree on claim wording, route-back debt is explicit, and the package is stable enough for final closure audit
+- `submission-ready`: the line is `paper-ready`, submission gates and submission hygiene are passed, and the package is ready for the human pre-submission audit
+
+MedAutoScience owns the final medical manuscript recommendation, downgrade history, and submission hygiene summary.
+MedDeepScientist contributes backend evidence and provenance surfaces that finalize cites directly when they matter.
+
 ## Use when
 
 - the evidence base is stable enough for a final recommendation
