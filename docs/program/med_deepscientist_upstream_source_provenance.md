@@ -1,0 +1,249 @@
+# MedDeepScientist Upstream Source Provenance
+
+这份文档固定说明一个边界：
+
+- 哪些 `MAS` 改进是直接从近期 `DeepScientist` 成熟实现学来的
+- 哪些只是 `MAS` 为了自身 owner 面做的合同提炼
+
+后续继续吸收前，先读这份 provenance，再决定是“直接学 upstream”还是“明确标注为 MAS 自己的抽象”。
+
+## 1. 当前判断
+
+2026-04-20 这一轮已经落到 `MAS` 的几组改进，来源性质分成两类：
+
+1. 直接学到的成熟内容
+2. `MAS` 自己做的制度化转换
+
+两类都可以有价值，语义必须分开维护。
+
+“直接学到的成熟内容”可以继续沿 upstream 同一路径吸收。
+“`MAS` 自己做的制度化转换”要按本仓 contract 变更管理，不能写成“这是 upstream 已经有的成熟实现”。
+
+## 2. 直接有 upstream 依据的内容
+
+### 2.1 阶段主线与常见 durable outputs
+
+upstream 已经把主研究阶段固定成：
+
+- `scout`
+- `baseline`
+- `idea`
+- `experiment`
+- `analysis-campaign`
+- `write`
+- `finalize`
+- `decision`
+
+并且已经给出每个阶段典型会留下的 durable outputs。
+
+上游证据：
+
+- `DeepScientist/docs/en/14_PROMPT_SKILLS_AND_MCP_GUIDE.md`
+- `DeepScientist/docs/en/06_RUNTIME_AND_CANVAS.md`
+
+`MAS` 里对应吸收：
+
+- `e6d5cb1` `Add MAS route and evidence review contracts`
+- `392edd8` `Link stage discipline into study charter`
+
+来源判断：
+
+- 阶段名字、阶段分工、阶段产物类别，属于直接学 upstream
+- 把这些内容压成 `MAS` 的 canonical YAML 和 study charter 字段，属于 `MAS` 自己的合同化转换
+
+### 2.2 baseline 的“轻而可信”路线
+
+upstream `baseline` skill 已经明确：
+
+- 目标是一条可信 comparator line
+- 默认走最轻、最可信的 attach / import / reproduce / repair 路线
+- 先有 `PLAN.md` 和 `CHECKLIST.md`
+- baseline 过线要靠确认或 waiver
+- 不要把 baseline 做成无穷复现日记
+
+上游证据：
+
+- `DeepScientist/src/skills/baseline/SKILL.md`
+
+`MAS` 里对应吸收：
+
+- `src/med_autoscience/overlay/templates/medical-research-baseline.block.md`
+- `src/med_autoscience/policies/controller_first.py`
+
+来源判断：
+
+- “choose the lightest trustworthy route” 这类核心纪律，属于直接学 upstream
+- 医学场景里的 cohort / endpoint / time horizon / clinical interpretability 这些要求，属于 `MAS` 医学化扩写
+
+### 2.3 analysis-campaign 作为独立 follow-up 路线
+
+upstream 已经把 follow-up evidence work 收紧成单独的 `analysis-campaign`：
+
+- 一次 campaign 只回答明确证据问题
+- 每个 slice 对应一个清晰问题
+- 一条 slice 也算正式 campaign
+- campaign 结果要聚合
+- 写作导向 campaign 要绑定 outline 和 experiment matrix
+
+上游证据：
+
+- `DeepScientist/src/skills/analysis-campaign/SKILL.md`
+- `DeepScientist/docs/en/06_RUNTIME_AND_CANVAS.md`
+
+`MAS` 里对应吸收：
+
+- `src/med_autoscience/overlay/templates/medical-research-analysis-campaign.block.md`
+- `src/med_autoscience/study_charter.py` 里的 `bounded_analysis`
+- `d3d7f77` `Route bounded analysis through MAS outer loop`
+- `3058e13` `Add bounded analysis charter contract`
+
+来源判断：
+
+- `analysis-campaign` 作为独立 route、one-slice campaign、bounded evidence gap 这些内核，属于直接学 upstream
+- `bounded_analysis` 预算边界、study charter 挂接、outer-loop 接管，属于 `MAS` 自己的执行化转换
+
+### 2.4 write 的 outline-first / reviewer-first / claim-evidence mapping
+
+upstream `write` skill 已经明确：
+
+- 写作的目标是测试证据能否支撑稳定 narrative
+- outline-first
+- 证据不足时 route back
+- reviewer-first
+- claim-evidence map 是正式 durable surface
+- draft-ready、submission-ready、quest completion 是不同层级
+
+上游证据：
+
+- `DeepScientist/src/skills/write/SKILL.md`
+
+`MAS` 里对应吸收：
+
+- `src/med_autoscience/overlay/templates/medical-research-write.SKILL.md`
+- `docs/policies/evidence_review_contract.md`
+- `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml`
+
+来源判断：
+
+- outline-first、reviewer-first、claim-evidence traceability、route-back discipline，属于直接学 upstream
+- general medical journal profile、submission minimal、医学稿件附加合同，属于 `MAS` 医学化扩写
+
+### 2.5 finalize 的 closure / claim ledger / readiness layering
+
+upstream `finalize` skill 已经明确：
+
+- finalize 是 closure protocol
+- 要区分 supported / partial / unsupported / deferred
+- 要留下 final claim ledger、limitations、resume packet、final recommendation
+- finalization 发现不够稳时要 route back
+
+上游证据：
+
+- `DeepScientist/src/skills/finalize/SKILL.md`
+- `DeepScientist/src/skills/write/SKILL.md`
+
+`MAS` 里对应吸收：
+
+- `src/med_autoscience/overlay/templates/medical-research-finalize.SKILL.md`
+- `75b7deb` `Harden publication gate surface blockers`
+- `ae2400e` `Harden publication gate surface blockers`
+
+来源判断：
+
+- closure、claim ledger、resume packet、route-back 这些主结构，属于直接学 upstream
+- 把它们提升成 `publication gate` blocker 和 `MAS` controller surface，属于 `MAS` 自己的 enforcement 转换
+
+### 2.6 decision 作为跨阶段治理动作
+
+upstream `decision` skill 已经明确：
+
+- 它是 cross-cutting control skill
+- 每次 consequential decision 都要显式写 verdict / action / reason / evidence / next stage
+- 选择最小、最诚实的 next action
+
+上游证据：
+
+- `DeepScientist/src/skills/decision/SKILL.md`
+
+`MAS` 里对应吸收：
+
+- `src/med_autoscience/overlay/templates/medical-research-decision.SKILL.md`
+- `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml`
+
+来源判断：
+
+- `decision` 的角色和 route-back 治理方式，属于直接学 upstream
+- human gate boundary、controller owner judgment 这些字段化治理面，属于 `MAS` 自己的制度化转换
+
+## 3. 已落地主线提交的来源归类
+
+### 3.1 `392edd8` `Link stage discipline into study charter`
+
+归类：`mixed_but_upstream_grounded`
+
+说明：
+
+- study stage purpose / minimum outputs / stop conditions 这些内容，直接对应 upstream stage skills
+- 把这些内容 materialize 成 `study_charter.py` 的 `stage_expectations`，是 `MAS` 自己的 owner-side 执行化
+
+### 3.2 `e6d5cb1` `Add MAS route and evidence review contracts`
+
+归类：`mas_contract_extraction`
+
+说明：
+
+- route taxonomy 和 evidence/review 主题来自 upstream
+- `goal / enter_conditions / hard_success_gate / durable_outputs_minimum / next_routes / route_back_triggers` 这一整套统一字段表，是 `MAS` 自己做的 canonical contract 抽象
+
+这类变更可以保留，维护时必须明确标注为 `MAS` 合同层，而不是 upstream 现成实现。
+
+### 3.3 `027bef3` `refine route contract human gate boundaries`
+
+归类：`mas_governance_extension`
+
+说明：
+
+- upstream 强调 user decision、blocking decision 和 route-back
+- 当前这版 `human_gate_boundary` 是 `MAS` 为医学 study authority 和 submission audit 增加的治理字段
+
+它属于 `MAS` 本地治理设计。
+
+### 3.4 `004aa6d` / `75b7deb` / `ae2400e` publication gate blockers
+
+归类：`mas_enforcement_from_upstream_spirit`
+
+说明：
+
+- reviewer-first、claim-evidence consistency、submission readiness 这些要求，upstream 有明确方法论依据
+- 把这些要求提升成 `publication gate` 的 named blocker，是 `MAS` 外环 controller 和 eval hygiene 的本地 enforcement
+
+这类变更应继续当成 `MAS` owner 面的落地成果维护。
+
+## 4. 继续吸收时的固定规则
+
+后续每次从 `DeepScientist` 继续学习，固定按下面顺序执行：
+
+1. 先看 upstream 当前 skill / docs / runtime surface
+2. 先判断它是成熟实现、提示词风格，还是产品面细节
+3. 只有成熟实现，才优先直接学
+4. 如果 `MAS` 需要自己做合同化转换，必须明确标成 `MAS extraction`
+5. 不把 `MAS extraction` 写成“已经从 upstream 直接吸收”
+
+## 5. 当前最重要的维护含义
+
+从现在开始，`MAS` 对外讲法要保持准确：
+
+- 可以说“这轮阶段分工和写作 / 分析纪律主要学自近期 DeepScientist”
+- 可以说“MAS 已把这些规律压成自己的 study charter / controller / gate 合同”
+
+这两句话可以同时成立。
+
+## 6. 下一波吸收的约束
+
+下一波如果继续收紧 `baseline`、`analysis-campaign`、`decision`、`finalize`，优先顺序固定为：
+
+1. 先继续核对 upstream 当前 skill 和相关 runtime surface
+2. 优先吸收 upstream 已经稳定的 artifact shape、route semantics 和 stop conditions
+3. 只有在 `MAS` 必须接管 owner 面时，才补 narrow 的本地字段化转换
+
+目标是持续学现成的成熟方法，同时让 `MAS` 的 owner 面保持诚实、可验证、可维护。
