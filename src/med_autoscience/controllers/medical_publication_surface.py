@@ -48,6 +48,7 @@ class SurfaceState:
     results_narrative_map_path: Path
     figure_semantics_manifest_path: Path
     claim_evidence_map_path: Path
+    evidence_ledger_path: Path
     derived_analysis_manifest_path: Path
     reproducibility_supplement_path: Path
     endpoint_provenance_note_path: Path
@@ -111,6 +112,7 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
         results_narrative_map_path=paper_root / medical_surface_policy.RESULTS_NARRATIVE_MAP_BASENAME,
         figure_semantics_manifest_path=paper_root / medical_surface_policy.FIGURE_SEMANTICS_MANIFEST_BASENAME,
         claim_evidence_map_path=paper_root / medical_surface_policy.CLAIM_EVIDENCE_MAP_BASENAME,
+        evidence_ledger_path=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
         derived_analysis_manifest_path=paper_root / medical_surface_policy.DERIVED_ANALYSIS_MANIFEST_BASENAME,
         reproducibility_supplement_path=paper_root / medical_surface_policy.REPRODUCIBILITY_SUPPLEMENT_BASENAME,
         endpoint_provenance_note_path=paper_root / medical_surface_policy.ENDPOINT_PROVENANCE_NOTE_BASENAME,
@@ -1728,6 +1730,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         pattern_id="claim_evidence_map",
         label="claim evidence map",
     )
+    evidence_ledger_valid, evidence_ledger_hits = inspect_required_json_contract(
+        path=state.evidence_ledger_path,
+        validator=medical_surface_policy.validate_evidence_ledger,
+        pattern_id="evidence_ledger",
+        label="evidence ledger",
+    )
     derived_analysis_valid, derived_analysis_hits = inspect_required_json_contract(
         path=state.derived_analysis_manifest_path,
         validator=medical_surface_policy.validate_derived_analysis_manifest,
@@ -1922,6 +1930,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(figure_semantics_hits)
     hits.extend(figure_layout_sidecar_hits)
     hits.extend(claim_evidence_map_hits)
+    hits.extend(evidence_ledger_hits)
     hits.extend(derived_analysis_hits)
     hits.extend(reproducibility_hits)
     hits.extend(missing_data_policy_hits)
@@ -1971,6 +1980,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("figure_layout_sidecar_missing_or_incomplete")
     if not claim_evidence_map_valid:
         blockers.append("claim_evidence_map_missing_or_incomplete")
+    if not evidence_ledger_valid:
+        blockers.append("evidence_ledger_missing_or_incomplete")
     if not derived_analysis_valid:
         blockers.append("derived_analysis_manifest_missing_or_incomplete")
     if not reproducibility_valid:
@@ -2041,6 +2052,9 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "claim_evidence_map_path": str(state.claim_evidence_map_path),
         "claim_evidence_map_present": state.claim_evidence_map_path.exists(),
         "claim_evidence_map_valid": claim_evidence_map_valid,
+        "evidence_ledger_path": str(state.evidence_ledger_path),
+        "evidence_ledger_present": state.evidence_ledger_path.exists(),
+        "evidence_ledger_valid": evidence_ledger_valid,
         "derived_analysis_manifest_path": str(state.derived_analysis_manifest_path),
         "derived_analysis_manifest_present": state.derived_analysis_manifest_path.exists(),
         "derived_analysis_manifest_valid": derived_analysis_valid,
@@ -2101,6 +2115,8 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- figure_semantics_manifest_valid: `{report['figure_semantics_manifest_valid']}`",
         f"- claim_evidence_map_present: `{report.get('claim_evidence_map_present', False)}`",
         f"- claim_evidence_map_valid: `{report.get('claim_evidence_map_valid', False)}`",
+        f"- evidence_ledger_present: `{report.get('evidence_ledger_present', False)}`",
+        f"- evidence_ledger_valid: `{report.get('evidence_ledger_valid', False)}`",
         f"- derived_analysis_manifest_present: `{report['derived_analysis_manifest_present']}`",
         f"- derived_analysis_manifest_valid: `{report['derived_analysis_manifest_valid']}`",
         f"- reproducibility_supplement_present: `{report['reproducibility_supplement_present']}`",

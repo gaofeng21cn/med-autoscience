@@ -54,6 +54,7 @@ DERIVED_ANALYSIS_MANIFEST_BASENAME = "derived_analysis_manifest.json"
 REPRODUCIBILITY_SUPPLEMENT_BASENAME = "manuscript_safe_reproducibility_supplement.json"
 ENDPOINT_PROVENANCE_NOTE_BASENAME = "endpoint_provenance_note.md"
 CLAIM_EVIDENCE_MAP_BASENAME = "claim_evidence_map.json"
+EVIDENCE_LEDGER_BASENAME = "evidence_ledger.json"
 PUBLIC_EVIDENCE_DECISIONS_KEY = "public_evidence_decisions"
 PUBLIC_EVIDENCE_SURFACE_DECISIONS = frozenset(
     {
@@ -364,6 +365,59 @@ def validate_claim_evidence_map(payload: object) -> list[str]:
             if missing_evidence_fields:
                 return [
                     f"missing claims[{index}].evidence_items[{evidence_index}] fields: {', '.join(missing_evidence_fields)}"
+                ]
+    return []
+
+
+def validate_evidence_ledger(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["payload must be a JSON object"]
+    claims = payload.get("claims")
+    if not isinstance(claims, list) or not claims:
+        return ["claims must contain at least one claim entry"]
+    required_fields = (
+        "claim_id",
+        "statement",
+        "status",
+        "submission_scope",
+        "evidence",
+        "gaps",
+        "recommended_actions",
+    )
+    evidence_fields = ("evidence_id", "kind", "source_paths", "support_level", "summary")
+    gap_fields = ("gap_id", "description", "submission_impact")
+    recommended_action_fields = ("action_id", "priority", "description")
+    for index, claim in enumerate(claims):
+        missing_fields = _missing_required_fields(claim, required_fields)
+        if missing_fields:
+            return [f"missing claims[{index}] fields: {', '.join(missing_fields)}"]
+        evidence_items = claim.get("evidence")
+        if not isinstance(evidence_items, list) or not evidence_items:
+            return [f"claims[{index}].evidence must contain at least one evidence entry"]
+        for evidence_index, evidence_item in enumerate(evidence_items):
+            missing_evidence_fields = _missing_required_fields(evidence_item, evidence_fields)
+            if missing_evidence_fields:
+                return [
+                    f"missing claims[{index}].evidence[{evidence_index}] fields: {', '.join(missing_evidence_fields)}"
+                ]
+        gaps = claim.get("gaps")
+        if not isinstance(gaps, list) or not gaps:
+            return [f"claims[{index}].gaps must contain at least one gap entry"]
+        for gap_index, gap in enumerate(gaps):
+            missing_gap_fields = _missing_required_fields(gap, gap_fields)
+            if missing_gap_fields:
+                return [
+                    f"missing claims[{index}].gaps[{gap_index}] fields: {', '.join(missing_gap_fields)}"
+                ]
+        recommended_actions = claim.get("recommended_actions")
+        if not isinstance(recommended_actions, list) or not recommended_actions:
+            return [f"claims[{index}].recommended_actions must contain at least one action entry"]
+        for action_index, action in enumerate(recommended_actions):
+            missing_action_fields = _missing_required_fields(action, recommended_action_fields)
+            if missing_action_fields:
+                return [
+                    f"missing claims[{index}].recommended_actions[{action_index}] fields: "
+                    f"{', '.join(missing_action_fields)}"
                 ]
     return []
 
@@ -715,6 +769,13 @@ def build_intervention_message(report: dict[str, object]) -> str:
             "`python` or `r_ggplot2`; illustration figures may use `python`, `r_ggplot2`, or `html_svg`. "
             "Do not allow fallback-on-failure; the only permitted failure action is `block_and_fix_environment`."
         )
+    evidence_ledger_clause = ""
+    if "evidence_ledger_missing_or_incomplete" in (report.get("blockers") or []):
+        evidence_ledger_clause = (
+            f" Also create or complete `paper/{EVIDENCE_LEDGER_BASENAME}` so each submission-facing claim records a "
+            "claim identifier, statement, claim status, submission scope, direct evidence entries with source paths and support level, "
+            "explicit gaps, and reviewer-facing recommended actions."
+        )
     derived_analysis_clause = ""
     if "derived_analysis_manifest_missing_or_incomplete" in (report.get("blockers") or []):
         derived_analysis_clause = (
@@ -783,6 +844,6 @@ def build_intervention_message(report: dict[str, object]) -> str:
         "or tool/service references such as `deepscientist`, service URLs, or editing recommendations. "
         "Do not advertise tooling in figure captions. Do not reopen accepted figures unless in-figure visible text itself still "
         "contains a forbidden manuscript term."
-        f"{ama_clause}{methods_clause}{prose_structure_clause}{results_clause}{figure_semantics_clause}{derived_analysis_clause}{public_evidence_clause}{public_surface_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause}{formal_tone_clause} "
+        f"{ama_clause}{methods_clause}{prose_structure_clause}{results_clause}{figure_semantics_clause}{evidence_ledger_clause}{derived_analysis_clause}{public_evidence_clause}{public_surface_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause}{formal_tone_clause} "
         "After those corrections, resume reviewer-style proofing or finalize."
     )

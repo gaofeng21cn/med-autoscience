@@ -140,6 +140,43 @@ def make_delivery_workspace(
     )
 
     write_text(paper_root / "final_claim_ledger.md", "# Final Claim Ledger\n")
+    dump_json(
+        paper_root / "evidence_ledger.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "C1",
+                    "statement": "Primary manuscript-facing claim stays coupled to explicit evidence and gap tracking.",
+                    "status": "supported",
+                    "submission_scope": "main_text",
+                    "evidence": [
+                        {
+                            "evidence_id": "EV1",
+                            "kind": "display",
+                            "source_paths": ["paper/figures/figure_catalog.json"],
+                            "support_level": "direct",
+                            "summary": "Figure and table authority assets support the retained main-text route.",
+                        }
+                    ],
+                    "gaps": [
+                        {
+                            "gap_id": "G1",
+                            "description": "External validation remains pending.",
+                            "submission_impact": "Keep the claim inside a conservative interpretation boundary.",
+                        }
+                    ],
+                    "recommended_actions": [
+                        {
+                            "action_id": "A1",
+                            "priority": "required",
+                            "description": "Carry the validation gap forward into reviewer-facing materials.",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
     write_text(paper_root / "finalize_resume_packet.md", "# Finalize Resume Packet\n")
     dump_json(
         paper_root / "paper_bundle_manifest.json",
@@ -274,6 +311,7 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
     manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
     assert manifest["quest_id"] == "002-early-residual-risk-managed-20260402"
     assert (study_root / "manuscript" / "paper.pdf").exists()
+    assert (study_root / "manuscript" / "evidence_ledger.json").exists()
     assert (study_root / "manuscript" / "submission_manifest.json").exists()
     assert (study_root / "manuscript" / "delivery_manifest.json").exists()
     assert "This directory: `manuscript/`" in (
@@ -287,6 +325,7 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
     assert not (study_root / "manuscript" / "submission_package").exists()
     assert not (study_root / "manuscript" / "submission_package.zip").exists()
     assert (study_root / "manuscript" / "current_package" / "figures" / "Figure1.pdf").exists()
+    assert (study_root / "manuscript" / "current_package" / "evidence_ledger.json").exists()
     assert (study_root / "manuscript" / "current_package" / "tables" / "Table1.csv").exists()
     assert (study_root / "manuscript" / "current_package.zip").exists()
     delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
@@ -299,6 +338,7 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
         "auxiliary_evidence_root": None,
         "journal_submission_mirror_root": None,
     }
+    assert "evidence_ledger.json" in delivery_manifest["source_relative_paths"]
 
 
 def test_sync_study_delivery_writes_submission_todo_for_pending_front_matter(tmp_path: Path) -> None:

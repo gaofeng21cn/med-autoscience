@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 from med_autoscience.publication_profiles import (
     GENERAL_MEDICAL_JOURNAL_PROFILE,
     is_supported_publication_profile,
@@ -18,6 +19,9 @@ from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
 
 
 SYNC_STAGES = ("draft_handoff", "submission_minimal", "finalize")
+FORMAL_PAPER_DELIVERY_RELATIVE_PATHS = (
+    Path(medical_surface_policy.EVIDENCE_LEDGER_BASENAME),
+)
 
 
 def utc_now() -> str:
@@ -465,6 +469,7 @@ def build_current_package_readme(*, study_id: str, stage: str, source_relative_r
 
 def sync_current_package_projection(
     *,
+    paper_root: Path | None,
     source_root: Path,
     current_package_root: Path,
     current_package_zip: Path,
@@ -482,6 +487,18 @@ def sync_current_package_projection(
         category="current_package",
         copied_files=copied_files,
     )
+    if paper_root is not None:
+        resolved_paper_root = Path(paper_root).expanduser().resolve()
+        for relative_path in FORMAL_PAPER_DELIVERY_RELATIVE_PATHS:
+            source_path = resolved_paper_root / relative_path
+            if not source_path.exists():
+                continue
+            copy_file(
+                source=source_path,
+                target=current_package_root / relative_path,
+                category="current_package",
+                copied_files=copied_files,
+            )
     readme_path = current_package_root / "README.md"
     write_text(
         readme_path,
@@ -666,17 +683,35 @@ def _draft_handoff_source_signature(*, paper_root: Path, relative_paths: tuple[P
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def _submission_source_relative_paths(*, source_root: Path) -> tuple[Path, ...]:
+def _resolve_submission_source_path(*, paper_root: Path, source_root: Path, relative_path: Path) -> Path:
+    if relative_path in FORMAL_PAPER_DELIVERY_RELATIVE_PATHS:
+        return paper_root / relative_path
+    return source_root / relative_path
+
+
+def _submission_source_relative_paths(*, paper_root: Path, source_root: Path) -> tuple[Path, ...]:
+    resolved_paper_root = Path(paper_root).expanduser().resolve()
     resolved_source_root = Path(source_root).expanduser().resolve()
-    relative_paths = _iter_relative_files(resolved_source_root)
-    return tuple(sorted(relative_paths, key=lambda item: item.as_posix()))
+    relative_paths = list(_iter_relative_files(resolved_source_root))
+    relative_paths.extend(
+        relative_path
+        for relative_path in FORMAL_PAPER_DELIVERY_RELATIVE_PATHS
+        if (resolved_paper_root / relative_path).exists()
+    )
+    deduped = {path.as_posix(): path for path in relative_paths}
+    return tuple(sorted(deduped.values(), key=lambda item: item.as_posix()))
 
 
-def _submission_source_signature(*, source_root: Path, relative_paths: tuple[Path, ...]) -> str:
+def _submission_source_signature(*, paper_root: Path, source_root: Path, relative_paths: tuple[Path, ...]) -> str:
+    resolved_paper_root = Path(paper_root).expanduser().resolve()
     resolved_source_root = Path(source_root).expanduser().resolve()
     fingerprint_payload = []
     for relative_path in relative_paths:
-        source = resolved_source_root / relative_path
+        source = _resolve_submission_source_path(
+            paper_root=resolved_paper_root,
+            source_root=resolved_source_root,
+            relative_path=relative_path,
+        )
         stat = source.stat()
         fingerprint_payload.append(
             {
@@ -869,8 +904,12 @@ def describe_submission_delivery(
         str((recorded_surface_roles or {}).get("controller_authorized_package_source_root") or "").strip()
         or str(((manifest.get("source") or {}) if isinstance(manifest.get("source"), dict) else {}).get("package_source_root") or "").strip()
     )
-    source_relative_paths = _submission_source_relative_paths(source_root=expected_source_root)
+    source_relative_paths = _submission_source_relative_paths(
+        paper_root=resolved_paper_root,
+        source_root=expected_source_root,
+    )
     source_signature = _submission_source_signature(
+        paper_root=resolved_paper_root,
         source_root=expected_source_root,
         relative_paths=source_relative_paths,
     )
@@ -1220,8 +1259,12 @@ def sync_general_delivery(
     generated_files: list[dict[str, str]] = []
     source_root = build_submission_source_root(paper_root=paper_root, publication_profile="general_medical_journal")
     source_relative_root = build_authority_source_relative_root(paper_root=paper_root, source_root=source_root)
-    source_relative_paths = _submission_source_relative_paths(source_root=source_root)
+    source_relative_paths = _submission_source_relative_paths(
+        paper_root=paper_root,
+        source_root=source_root,
+    )
     source_signature = _submission_source_signature(
+        paper_root=paper_root,
         source_root=source_root,
         relative_paths=source_relative_paths,
     )
@@ -1244,6 +1287,14 @@ def sync_general_delivery(
         category="manifest",
         copied_files=copied_files,
     )
+    evidence_ledger_source = paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME
+    if evidence_ledger_source.exists():
+        copy_file(
+            source=evidence_ledger_source,
+            target=manuscript_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+            category="evidence_ledger",
+            copied_files=copied_files,
+        )
     if normalized_stage == "finalize":
         reset_directory(artifacts_final_root)
         copy_file(
@@ -1312,6 +1363,7 @@ def sync_general_delivery(
         )
 
     sync_current_package_projection(
+        paper_root=paper_root,
         source_root=source_root,
         current_package_root=current_package_root,
         current_package_zip=current_package_zip,
@@ -1387,8 +1439,12 @@ def sync_journal_specific_delivery(
 
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
-    source_relative_paths = _submission_source_relative_paths(source_root=source_root)
+    source_relative_paths = _submission_source_relative_paths(
+        paper_root=paper_root,
+        source_root=source_root,
+    )
     source_signature = _submission_source_signature(
+        paper_root=paper_root,
         source_root=source_root,
         relative_paths=source_relative_paths,
     )
@@ -1410,6 +1466,14 @@ def sync_journal_specific_delivery(
         category="journal_submission_package",
         copied_files=copied_files,
     )
+    evidence_ledger_source = paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME
+    if evidence_ledger_source.exists():
+        copy_file(
+            source=evidence_ledger_source,
+            target=journal_package_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+            category="journal_submission_package",
+            copied_files=copied_files,
+        )
     supplementary_docx = source_root / "Supplementary_Material.docx"
     if supplementary_docx.exists():
         copy_file(
@@ -1456,6 +1520,7 @@ def sync_journal_specific_delivery(
         }
     )
     sync_current_package_projection(
+        paper_root=paper_root,
         source_root=journal_package_root,
         current_package_root=current_package_root,
         current_package_zip=current_package_zip,
@@ -1528,8 +1593,12 @@ def sync_promoted_journal_delivery(
 
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
-    source_relative_paths = _submission_source_relative_paths(source_root=source_root)
+    source_relative_paths = _submission_source_relative_paths(
+        paper_root=paper_root,
+        source_root=source_root,
+    )
     source_signature = _submission_source_signature(
+        paper_root=paper_root,
         source_root=source_root,
         relative_paths=source_relative_paths,
     )
@@ -1551,6 +1620,14 @@ def sync_promoted_journal_delivery(
         category="manifest",
         copied_files=copied_files,
     )
+    evidence_ledger_source = paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME
+    if evidence_ledger_source.exists():
+        copy_file(
+            source=evidence_ledger_source,
+            target=manuscript_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+            category="evidence_ledger",
+            copied_files=copied_files,
+        )
     supplementary_docx = source_root / "Supplementary_Material.docx"
     if supplementary_docx.exists():
         copy_file(
@@ -1627,6 +1704,7 @@ def sync_promoted_journal_delivery(
         )
 
     sync_current_package_projection(
+        paper_root=paper_root,
         source_root=source_root,
         current_package_root=current_package_root,
         current_package_zip=current_package_zip,
@@ -1642,6 +1720,12 @@ def sync_promoted_journal_delivery(
     copy_tree(
         source_root=source_root,
         target_root=mirror_root,
+        category="journal_submission_mirror",
+        copied_files=copied_files,
+    )
+    copy_file(
+        source=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+        target=mirror_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
         category="journal_submission_mirror",
         copied_files=copied_files,
     )
