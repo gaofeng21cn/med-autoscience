@@ -17,11 +17,44 @@ REQUIRED_MODE_LIST_FIELDS = (
     "auxiliary_routes",
     "upgrade_triggers",
 )
+MODE_ROUTE_LIST_FIELDS = (
+    "lightweight_routes",
+    "managed_routes",
+    "startup_boundary_gated_routes",
+    "governance_routes",
+    "auxiliary_routes",
+)
 REQUIRED_MODE_STRING_FIELDS = (
     "mode_id",
     "display_name",
     "default_runtime_mode",
     "lightweight_scope",
+)
+REQUIRED_ROUTE_CONTRACT_STRING_FIELDS = (
+    "route_id",
+    "display_name",
+    "goal",
+)
+REQUIRED_ROUTE_CONTRACT_LIST_FIELDS = (
+    "enter_conditions",
+    "hard_success_gate",
+    "durable_outputs_minimum",
+    "next_routes",
+    "route_back_triggers",
+)
+REQUIRED_EVIDENCE_REVIEW_LIST_FIELDS = (
+    "minimum_proof_package",
+    "reviewer_first_checks",
+    "claim_evidence_consistency_requirements",
+    "route_back_policy",
+)
+REQUIRED_CANONICAL_ROUTE_IDS = (
+    "scout",
+    "baseline",
+    "analysis-campaign",
+    "write",
+    "finalize",
+    "decision",
 )
 
 
@@ -109,6 +142,16 @@ def _string_tuple(value: object, field: str) -> tuple[str, ...]:
 
 def _validate_payload_contract(payload: dict[str, Any]) -> None:
     _string_tuple(payload.get("compatible_agents"), "compatible_agents")
+    route_contracts = _route_contract_payload_map(payload.get("route_contracts"))
+    evidence_review_contract = payload.get("evidence_review_contract")
+    if not isinstance(evidence_review_contract, dict):
+        raise ValueError("evidence_review_contract must be a mapping")
+    for field in REQUIRED_EVIDENCE_REVIEW_LIST_FIELDS:
+        if field not in evidence_review_contract:
+            raise ValueError(f"evidence_review_contract missing required field: {field}")
+        _string_tuple(evidence_review_contract[field], field)
+
+    known_route_ids = set(route_contracts)
     modes_payload = payload.get("modes")
     if not isinstance(modes_payload, list):
         raise ValueError("modes must be a list")
@@ -126,7 +169,12 @@ def _validate_payload_contract(payload: dict[str, Any]) -> None:
         for field in REQUIRED_MODE_LIST_FIELDS:
             if field not in mode_payload:
                 raise ValueError(f"{mode_label} missing required field: {field}")
-            _string_tuple(mode_payload[field], field)
+            values = _string_tuple(mode_payload[field], field)
+            if field not in MODE_ROUTE_LIST_FIELDS:
+                continue
+            unknown_routes = sorted(set(values) - known_route_ids)
+            if unknown_routes:
+                raise ValueError(f"{mode_label} references unknown route ids in {field}: {', '.join(unknown_routes)}")
 
 
 def _mode_label(payload: dict[str, Any], index: int) -> str:
@@ -134,3 +182,32 @@ def _mode_label(payload: dict[str, Any], index: int) -> str:
     if isinstance(mode_id, str) and mode_id:
         return f"mode[{mode_id}]"
     return f"mode[index={index}]"
+
+
+def _route_contract_payload_map(value: object) -> dict[str, dict[str, Any]]:
+    if not isinstance(value, dict):
+        raise ValueError("route_contracts must be a mapping")
+
+    route_contracts: dict[str, dict[str, Any]] = {}
+    for route_id, route_payload in value.items():
+        if not isinstance(route_id, str) or not route_id:
+            raise ValueError("route_contracts keys must be non-empty strings")
+        if not isinstance(route_payload, dict):
+            raise ValueError(f"route_contracts[{route_id}] must be a mapping")
+        for field in REQUIRED_ROUTE_CONTRACT_STRING_FIELDS:
+            if field not in route_payload:
+                raise ValueError(f"route_contracts[{route_id}] missing required field: {field}")
+            _string_value(route_payload, field)
+        for field in REQUIRED_ROUTE_CONTRACT_LIST_FIELDS:
+            if field not in route_payload:
+                raise ValueError(f"route_contracts[{route_id}] missing required field: {field}")
+            _string_tuple(route_payload[field], field)
+        declared_route_id = route_payload.get("route_id")
+        if declared_route_id != route_id:
+            raise ValueError(f"route_contracts[{route_id}] route_id must equal mapping key")
+        route_contracts[route_id] = route_payload
+
+    missing_route_ids = [route_id for route_id in REQUIRED_CANONICAL_ROUTE_IDS if route_id not in route_contracts]
+    if missing_route_ids:
+        raise ValueError(f"route_contracts missing required route ids: {', '.join(missing_route_ids)}")
+    return route_contracts

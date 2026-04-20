@@ -54,10 +54,53 @@ def test_render_public_yaml_round_trip_matches_canonical_payload() -> None:
     assert yaml.safe_load(rendered) == load_entry_modes_payload()
 
 
+def test_canonical_payload_includes_global_route_and_evidence_review_contracts() -> None:
+    payload = render_entry_modes_payload()
+
+    route_contracts = payload.get("route_contracts")
+    assert isinstance(route_contracts, dict)
+    assert set(route_contracts) >= {
+        "scout",
+        "baseline",
+        "analysis-campaign",
+        "write",
+        "finalize",
+        "decision",
+    }
+
+    for route_id in ("scout", "baseline", "analysis-campaign", "write", "finalize", "decision"):
+        route_payload = route_contracts.get(route_id)
+        assert isinstance(route_payload, dict)
+        assert route_payload.get("route_id") == route_id
+        for field in (
+            "goal",
+            "enter_conditions",
+            "hard_success_gate",
+            "durable_outputs_minimum",
+            "next_routes",
+            "route_back_triggers",
+        ):
+            assert field in route_payload
+            assert isinstance(route_payload[field], list if field.endswith(("conditions", "gate", "minimum", "routes", "triggers")) else str)
+
+    evidence_review_contract = payload.get("evidence_review_contract")
+    assert isinstance(evidence_review_contract, dict)
+    for field in (
+        "minimum_proof_package",
+        "reviewer_first_checks",
+        "claim_evidence_consistency_requirements",
+        "route_back_policy",
+    ):
+        assert field in evidence_review_contract
+        assert isinstance(evidence_review_contract[field], list)
+
+
 def test_render_entry_modes_guide_contains_required_contract_context() -> None:
     guide = render_entry_modes_guide()
     payload = render_entry_modes_payload()
     modes_payload = payload["modes"]
+    route_contracts = payload["route_contracts"]
+    evidence_review_contract = payload["evidence_review_contract"]
 
     assert "managed" in guide
     assert "lightweight" in guide
@@ -83,6 +126,28 @@ def test_render_entry_modes_guide_contains_required_contract_context() -> None:
         assert _extract_contract_list(mode_block, "auxiliary_routes") == mode["auxiliary_routes"]
         assert _extract_contract_list(mode_block, "upgrade_triggers") == mode["upgrade_triggers"]
 
+    assert "## Route Contracts" in guide
+    assert isinstance(route_contracts, dict)
+    for route_id, route_payload in route_contracts.items():
+        assert isinstance(route_payload, dict)
+        route_block = _extract_route_block(guide, route_id)
+        assert _extract_scalar_value(route_block, "goal") == route_payload["goal"]
+        assert _extract_contract_list(route_block, "enter_conditions") == route_payload["enter_conditions"]
+        assert _extract_contract_list(route_block, "hard_success_gate") == route_payload["hard_success_gate"]
+        assert _extract_contract_list(route_block, "durable_outputs_minimum") == route_payload["durable_outputs_minimum"]
+        assert _extract_contract_list(route_block, "next_routes") == route_payload["next_routes"]
+        assert _extract_contract_list(route_block, "route_back_triggers") == route_payload["route_back_triggers"]
+
+    assert "## Evidence And Review Contract" in guide
+    assert isinstance(evidence_review_contract, dict)
+    for field in (
+        "minimum_proof_package",
+        "reviewer_first_checks",
+        "claim_evidence_consistency_requirements",
+        "route_back_policy",
+    ):
+        assert _extract_contract_list(guide, field) == evidence_review_contract[field]
+
     assert "Do not enter `startup_boundary_gated_routes`" in guide
     assert "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode" in guide
     assert "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions." in guide
@@ -93,6 +158,8 @@ def test_entry_prompts_include_per_mode_route_contract_and_upgrade_rule(render_p
     prompt = render_prompt()
     payload = render_entry_modes_payload()
     modes_payload = payload["modes"]
+    route_contracts = payload["route_contracts"]
+    evidence_review_contract = payload["evidence_review_contract"]
 
     assert isinstance(modes_payload, list)
     assert (
@@ -117,6 +184,28 @@ def test_entry_prompts_include_per_mode_route_contract_and_upgrade_rule(render_p
         assert _extract_contract_list(mode_block, "auxiliary_routes") == mode["auxiliary_routes"]
         assert _extract_contract_list(mode_block, "upgrade_triggers") == mode["upgrade_triggers"]
 
+    assert "## Route Contracts" in prompt
+    assert isinstance(route_contracts, dict)
+    for route_id, route_payload in route_contracts.items():
+        assert isinstance(route_payload, dict)
+        route_block = _extract_prompt_route_block(prompt, route_id)
+        assert _extract_scalar_value(route_block, "goal") == route_payload["goal"]
+        assert _extract_contract_list(route_block, "enter_conditions") == route_payload["enter_conditions"]
+        assert _extract_contract_list(route_block, "hard_success_gate") == route_payload["hard_success_gate"]
+        assert _extract_contract_list(route_block, "durable_outputs_minimum") == route_payload["durable_outputs_minimum"]
+        assert _extract_contract_list(route_block, "next_routes") == route_payload["next_routes"]
+        assert _extract_contract_list(route_block, "route_back_triggers") == route_payload["route_back_triggers"]
+
+    assert "## Evidence And Review Contract" in prompt
+    assert isinstance(evidence_review_contract, dict)
+    for field in (
+        "minimum_proof_package",
+        "reviewer_first_checks",
+        "claim_evidence_consistency_requirements",
+        "route_back_policy",
+    ):
+        assert _extract_contract_list(prompt, field) == evidence_review_contract[field]
+
     assert "Do not enter `startup_boundary_gated_routes`" in prompt
     assert "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode" in prompt
     assert "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions." in prompt
@@ -132,6 +221,13 @@ def _extract_mode_block(prompt: str, mode_id: str) -> str:
 def _extract_guide_mode_block(guide: str, mode_id: str) -> str:
     mode_pattern = rf"^### {re.escape(mode_id)} .*?(?=\n### |\n## |\Z)"
     match = re.search(mode_pattern, guide, flags=re.MULTILINE | re.DOTALL)
+    assert match is not None
+    return match.group(0)
+
+
+def _extract_route_block(guide: str, route_id: str) -> str:
+    route_pattern = rf"^### {re.escape(route_id)} .*?(?=\n### |\n## |\Z)"
+    match = re.search(route_pattern, guide, flags=re.MULTILINE | re.DOTALL)
     assert match is not None
     return match.group(0)
 
@@ -160,4 +256,11 @@ def _extract_contract_list(mode_block: str, field: str) -> list[str]:
     rendered = match.group(1).strip()
     if rendered == "(none)":
         return []
-    return [item.strip() for item in rendered.split(",")]
+    return [item.strip() for item in rendered.split("|")]
+
+
+def _extract_prompt_route_block(prompt: str, route_id: str) -> str:
+    route_pattern = rf"^- {re.escape(route_id)}:.*(?:\n  .*)*"
+    match = re.search(route_pattern, prompt, flags=re.MULTILINE)
+    assert match is not None
+    return match.group(0)

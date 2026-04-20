@@ -17,6 +17,8 @@ def render_entry_modes_guide() -> str:
     payload = render_entry_modes_payload()
     compatible_agents = _string_list(payload.get("compatible_agents"), field="compatible_agents")
     modes = _mode_payload_list(payload)
+    route_contracts = _route_contract_payload_map(payload)
+    evidence_review_contract = _evidence_review_contract_payload(payload)
     runtime_modes = sorted({mode["default_runtime_mode"] for mode in modes})
 
     lines: list[str] = [
@@ -49,6 +51,40 @@ def render_entry_modes_guide() -> str:
                 _render_list_line("upgrade_triggers", mode["upgrade_triggers"]),
             )
         )
+
+    lines.extend(
+        (
+            "",
+            "## Route Contracts",
+        )
+    )
+    for route_contract in route_contracts:
+        lines.extend(
+            (
+                "",
+                f"### {route_contract['route_id']} ({route_contract['display_name']})",
+                f"- goal: {route_contract['goal']}",
+                _render_list_line("enter_conditions", route_contract["enter_conditions"]),
+                _render_list_line("hard_success_gate", route_contract["hard_success_gate"]),
+                _render_list_line("durable_outputs_minimum", route_contract["durable_outputs_minimum"]),
+                _render_list_line("next_routes", route_contract["next_routes"]),
+                _render_list_line("route_back_triggers", route_contract["route_back_triggers"]),
+            )
+        )
+
+    lines.extend(
+        (
+            "",
+            "## Evidence And Review Contract",
+            _render_list_line("minimum_proof_package", evidence_review_contract["minimum_proof_package"]),
+            _render_list_line("reviewer_first_checks", evidence_review_contract["reviewer_first_checks"]),
+            _render_list_line(
+                "claim_evidence_consistency_requirements",
+                evidence_review_contract["claim_evidence_consistency_requirements"],
+            ),
+            _render_list_line("route_back_policy", evidence_review_contract["route_back_policy"]),
+        )
+    )
 
     lines.extend(
         (
@@ -118,6 +154,8 @@ def sync_agent_entry_assets(repo_root: Path) -> dict[str, object]:
 def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
     payload = render_entry_modes_payload()
     modes = _mode_payload_list(payload)
+    route_contracts = _route_contract_payload_map(payload)
+    evidence_review_contract = _evidence_review_contract_payload(payload)
     runtime_modes = sorted({mode["default_runtime_mode"] for mode in modes})
     lines: list[str] = [
         title,
@@ -159,6 +197,45 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
     lines.extend(
         (
             "",
+            "## Route Contracts",
+        )
+    )
+    for route_contract in route_contracts:
+        lines.extend(
+            (
+                f"- {route_contract['route_id']}: {route_contract['display_name']}",
+                "  goal: " + route_contract["goal"],
+                "  " + _render_list_line("enter_conditions", route_contract["enter_conditions"], inline=True),
+                "  " + _render_list_line("hard_success_gate", route_contract["hard_success_gate"], inline=True),
+                "  "
+                + _render_list_line(
+                    "durable_outputs_minimum",
+                    route_contract["durable_outputs_minimum"],
+                    inline=True,
+                ),
+                "  " + _render_list_line("next_routes", route_contract["next_routes"], inline=True),
+                "  "
+                + _render_list_line("route_back_triggers", route_contract["route_back_triggers"], inline=True),
+            )
+        )
+
+    lines.extend(
+        (
+            "",
+            "## Evidence And Review Contract",
+            _render_list_line("minimum_proof_package", evidence_review_contract["minimum_proof_package"]),
+            _render_list_line("reviewer_first_checks", evidence_review_contract["reviewer_first_checks"]),
+            _render_list_line(
+                "claim_evidence_consistency_requirements",
+                evidence_review_contract["claim_evidence_consistency_requirements"],
+            ),
+            _render_list_line("route_back_policy", evidence_review_contract["route_back_policy"]),
+        )
+    )
+
+    lines.extend(
+        (
+            "",
             "## Upgrade Rule",
             "If `upgrade_triggers` is non-empty and any trigger is satisfied, "
             "upgrade from lightweight to managed before continuing.",
@@ -190,6 +267,27 @@ def _mode_payload_list(payload: dict[str, object]) -> list[dict[str, Any]]:
     return modes
 
 
+def _route_contract_payload_map(payload: dict[str, object]) -> list[dict[str, Any]]:
+    raw_route_contracts = payload.get("route_contracts")
+    if not isinstance(raw_route_contracts, dict):
+        raise ValueError("route_contracts must be a mapping")
+    route_contracts: list[dict[str, Any]] = []
+    for route_id, route_contract in raw_route_contracts.items():
+        if not isinstance(route_id, str) or not route_id:
+            raise ValueError("route_contracts keys must be non-empty strings")
+        if not isinstance(route_contract, dict):
+            raise ValueError(f"route_contracts[{route_id}] must be a mapping")
+        route_contracts.append(route_contract)
+    return route_contracts
+
+
+def _evidence_review_contract_payload(payload: dict[str, object]) -> dict[str, Any]:
+    raw_contract = payload.get("evidence_review_contract")
+    if not isinstance(raw_contract, dict):
+        raise ValueError("evidence_review_contract must be a mapping")
+    return raw_contract
+
+
 def _string_list(value: object, *, field: str) -> list[str]:
     if not isinstance(value, list):
         raise ValueError(f"{field} must be a list")
@@ -200,6 +298,6 @@ def _string_list(value: object, *, field: str) -> list[str]:
 
 def _render_list_line(field: str, value: object, *, inline: bool = False) -> str:
     rendered_values = _string_list(value, field=field)
-    rendered = ", ".join(rendered_values) if rendered_values else "(none)"
+    rendered = " | ".join(rendered_values) if rendered_values else "(none)"
     prefix = "" if inline else "- "
     return f"{prefix}{field}: {rendered}"
