@@ -1186,6 +1186,20 @@ def _controller_stop_is_auto_recoverable(
     ) or _publication_gate_allows_post_clear_runtime_continuation(publication_gate_report)
 
 
+def _int_or_none(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return int(text)
+    except ValueError:
+        return None
+
+
 def _stopped_controller_owned_auto_recovery_context(
     *,
     status: StudyRuntimeStatus,
@@ -1204,12 +1218,23 @@ def _stopped_controller_owned_auto_recovery_context(
     stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
     if continuation_policy != "auto":
         return None
-    if stop_reason and not stop_reason.startswith("controller_stop:"):
-        return None
     recovery_mode: str | None = None
-    if continuation_anchor == "decision" and continuation_reason is not None and continuation_reason.startswith("decision:"):
+    pending_user_message_count = _int_or_none(runtime_state.get("pending_user_message_count"))
+    if stop_reason == "user_stop":
+        if (
+            continuation_reason is not None
+            and continuation_reason.startswith("decision:")
+            and pending_user_message_count is not None
+            and pending_user_message_count > 0
+        ):
+            recovery_mode = "managed_auto_continuation"
+        else:
+            return None
+    elif stop_reason and not stop_reason.startswith("controller_stop:"):
+        return None
+    elif continuation_anchor == "decision" and continuation_reason is not None and continuation_reason.startswith("decision:"):
         recovery_mode = "decision"
-    elif _controller_stop_is_auto_recoverable(
+    if recovery_mode is None and _controller_stop_is_auto_recoverable(
         stop_reason=stop_reason,
         publication_gate_report=publication_gate_report,
     ):
@@ -1953,6 +1978,31 @@ def _status_state(
                     StudyRuntimeReason.QUEST_WAITING_FOR_EXTERNAL_INPUT,
                 )
                 return _finalize_result()
+        if (
+            isinstance(stopped_recovery_context, dict)
+            and str(stopped_recovery_context.get("recovery_mode") or "").strip() == "managed_auto_continuation"
+        ):
+            if not result.startup_boundary_allows_compute_stage:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+                )
+            elif not result.runtime_reentry_allows_runtime_entry:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+                )
+            elif execution.get("auto_resume") is True:
+                result.set_decision(
+                    StudyRuntimeDecision.RESUME,
+                    StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
+                )
+            else:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
+                )
+            return _finalize_result()
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN,

@@ -1143,7 +1143,7 @@ def test_run_watch_for_runtime_rechecks_managed_study_immediately_after_figure_l
     ]
 
 
-def test_run_watch_for_runtime_auto_recovers_blocked_stopped_auto_continuation_quest(
+def test_run_watch_for_runtime_tracks_stopped_auto_continuation_once_router_returns_resume(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -1155,11 +1155,11 @@ def test_run_watch_for_runtime_auto_recovers_blocked_stopped_auto_continuation_q
     dump_json(study_root / "study.yaml", {"study_id": "001-risk"})
     calls: list[tuple[str, str]] = []
 
-    blocked_stopped_status = {
+    resumed_stopped_status = {
         **make_study_runtime_status_payload(
             study_id="001-risk",
-            decision="blocked",
-            reason="quest_stopped_requires_explicit_rerun",
+            decision="resume",
+            reason="quest_waiting_on_invalid_blocking",
         ),
         "quest_status": "stopped",
         "execution": {
@@ -1208,12 +1208,17 @@ def test_run_watch_for_runtime_auto_recovers_blocked_stopped_auto_continuation_q
     monkeypatch.setattr(
         module.study_runtime_router,
         "study_runtime_status",
-        lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or blocked_stopped_status,
+        lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or resumed_stopped_status,
     )
     monkeypatch.setattr(
         module.study_runtime_router,
         "ensure_study_runtime",
-        lambda *, profile, study_root, source: calls.append(("ensure", source)) or blocked_stopped_status,
+        lambda *, profile, study_root, source: calls.append(("ensure", source)) or resumed_stopped_status,
+    )
+    monkeypatch.setattr(
+        module,
+        "_refresh_managed_study_status_after_ensure",
+        lambda *, profile, study_root, status_payload: status_payload,
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -1229,6 +1234,94 @@ def test_run_watch_for_runtime_auto_recovers_blocked_stopped_auto_continuation_q
         ("status", "001-risk"),
         ("ensure", "runtime_watch_auto_recovery"),
     ]
+    assert result["managed_study_auto_recoveries"] == [
+        {
+            "study_id": "001-risk",
+            "preflight_decision": "resume",
+            "preflight_reason": "quest_waiting_on_invalid_blocking",
+            "applied_decision": "resume",
+            "applied_reason": "quest_waiting_on_invalid_blocking",
+            "source": "runtime_watch_auto_recovery",
+        }
+    ]
+    assert result["managed_study_supervision"][0]["health_status"] == "recovering"
+
+
+def test_run_watch_for_runtime_does_not_project_blocked_explicit_rerun_as_recovering(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": "001-risk"})
+    quest_root = profile.runtime_root / "001-risk"
+
+    blocked_stopped_status = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="blocked",
+            reason="quest_stopped_requires_explicit_rerun",
+        ),
+        "study_root": str(study_root),
+        "quest_root": str(quest_root),
+        "quest_status": "stopped",
+        "execution": {
+            "engine": "med-deepscientist",
+            "auto_entry": "on_managed_research_intent",
+            "quest_id": "001-risk",
+            "auto_resume": True,
+        },
+        "continuation_state": {
+            "quest_status": "stopped",
+            "active_run_id": None,
+            "continuation_policy": "auto",
+            "continuation_anchor": "write",
+            "continuation_reason": "decision:decision-continue-001",
+            "runtime_state_path": str(profile.runtime_root / "001-risk" / ".ds" / "runtime_state.json"),
+        },
+        "family_checkpoint_lineage": {
+            "resume_contract": {
+                "resume_mode": "resume_from_checkpoint",
+                "resume_handle": "study_runtime_status:001-risk:blocked",
+                "human_gate_required": False,
+            }
+        },
+        "runtime_liveness_audit": {
+            "status": "none",
+            "active_run_id": None,
+            "runtime_audit": {
+                "status": "none",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    }
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda *, profile, study_root: blocked_stopped_status,
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **kwargs: pytest.fail("ensure_study_runtime should not run for blocked explicit rerun status"),
+    )
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=False,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
     assert result["managed_study_actions"] == [
         {
             "study_id": "001-risk",
@@ -1236,17 +1329,8 @@ def test_run_watch_for_runtime_auto_recovers_blocked_stopped_auto_continuation_q
             "reason": "quest_stopped_requires_explicit_rerun",
         }
     ]
-    assert result["managed_study_auto_recoveries"] == [
-        {
-            "study_id": "001-risk",
-            "preflight_decision": "blocked",
-            "preflight_reason": "quest_stopped_requires_explicit_rerun",
-            "applied_decision": "blocked",
-            "applied_reason": "quest_stopped_requires_explicit_rerun",
-            "source": "runtime_watch_auto_recovery",
-        }
-    ]
-    assert result["managed_study_supervision"][0]["health_status"] == "recovering"
+    assert result["managed_study_auto_recoveries"] == []
+    assert result["managed_study_supervision"][0]["health_status"] == "inactive"
 
 
 def test_run_watch_for_runtime_does_not_auto_recover_submission_metadata_parking(

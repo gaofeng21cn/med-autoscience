@@ -540,6 +540,133 @@ def test_ensure_study_runtime_does_not_auto_resume_stopped_quest(monkeypatch, tm
     assert result["quest_status"] == "stopped"
 
 
+def test_study_runtime_status_resumes_stopped_user_stop_auto_continuation_with_pending_messages(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "stopped",
+                "continuation_policy": "auto",
+                "continuation_anchor": "write",
+                "continuation_reason": "decision:decision-continue-001",
+                "stop_reason": "user_stop",
+                "active_interaction_id": "progress-001",
+                "pending_user_message_count": 9,
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_on_invalid_blocking"
+    assert result["quest_status"] == "stopped"
+    assert result["continuation_state"]["continuation_policy"] == "auto"
+    assert result["continuation_state"]["continuation_reason"] == "decision:decision-continue-001"
+
+
+def test_ensure_study_runtime_auto_resumes_stopped_user_stop_auto_continuation_with_pending_messages(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "stopped",
+                "continuation_policy": "auto",
+                "continuation_anchor": "write",
+                "continuation_reason": "decision:decision-continue-001",
+                "stop_reason": "user_stop",
+                "active_interaction_id": "progress-001",
+                "pending_user_message_count": 9,
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    resumed: dict[str, object] = {}
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda **kwargs: resumed.update(kwargs) or {"ok": True, "status": "running"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_on_invalid_blocking"
+    assert result["quest_status"] == "running"
+    assert resumed["source"] == "medautosci-test"
+    assert resumed["runtime_root"] == profile.med_deepscientist_runtime_root
+    assert resumed["quest_id"] == "001-risk"
+
+
 def test_study_runtime_status_refreshes_stale_launch_report_for_stopped_quest(
     monkeypatch,
     tmp_path: Path,

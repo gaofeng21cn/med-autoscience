@@ -228,22 +228,9 @@ def is_auto_continuation_recovery_pending(
     *,
     strict_live: bool | None = None,
 ) -> bool:
-    resolved_strict_live = bool(_runtime_facts(status_payload)["strict_live"]) if strict_live is None else strict_live
-    if resolved_strict_live:
-        return False
-    if _non_empty_text(status_payload.get("decision")) != "blocked":
-        return False
-    if _non_empty_text(status_payload.get("reason")) != "quest_stopped_requires_explicit_rerun":
-        return False
-    if _non_empty_text(status_payload.get("quest_status")) != "stopped":
-        return False
-    if _status_payload_continuation_field(status_payload, "continuation_policy") != "auto":
-        return False
-    if _status_payload_resume_mode(status_payload) != "resume_from_checkpoint":
-        return False
-    if _status_payload_human_gate_required(status_payload):
-        return False
-    return _runtime_facts(status_payload)["active_run_id"] is None
+    del status_payload
+    del strict_live
+    return False
 
 
 def needs_recovery_projection(
