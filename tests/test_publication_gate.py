@@ -1914,6 +1914,40 @@ def test_build_gate_report_inherits_blocked_medical_publication_surface_status(t
     )
 
 
+def test_build_gate_report_blocks_when_study_charter_is_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    (study_root / "artifacts" / "controller" / "study_charter.json").unlink()
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert report["allow_write"] is False
+    assert report["charter_contract_linkage_status"] == "study_charter_missing"
+    assert "study_charter_missing" in report["blockers"]
+    assert report["current_required_action"] == "return_to_publishability_gate"
+    assert "stable study charter artifact is missing" in report["controller_stage_note"]
+
+
+def test_build_gate_report_blocks_when_study_charter_is_invalid(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    (study_root / "artifacts" / "controller" / "study_charter.json").write_text("{invalid\n", encoding="utf-8")
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert report["allow_write"] is False
+    assert report["charter_contract_linkage_status"] == "study_charter_invalid"
+    assert "study_charter_invalid" in report["blockers"]
+    assert report["current_required_action"] == "return_to_publishability_gate"
+    assert "stable study charter artifact is invalid" in report["controller_stage_note"]
+
+
 def test_build_gate_report_ignores_newer_surface_report_from_other_paper_line(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(

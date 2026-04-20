@@ -72,6 +72,8 @@ class StudyRuntimeReason(StrEnum):
     STUDY_EXECUTION_RUNTIME_BACKEND_UNBOUND = "study_execution_runtime_backend_unbound"
     STUDY_EXECUTION_NOT_MANAGED = "study_execution_not_managed"
     ENTRY_MODE_NOT_MANAGED = "entry_mode_not_managed"
+    STUDY_CHARTER_MISSING = "study_charter_missing"
+    STUDY_CHARTER_INVALID = "study_charter_invalid"
     STUDY_COMPLETION_CONTRACT_NOT_READY = "study_completion_contract_not_ready"
     STUDY_COMPLETION_DECLARED_WITHOUT_MANAGED_QUEST = "study_completion_declared_without_managed_quest"
     QUEST_ALREADY_COMPLETED = "quest_already_completed"

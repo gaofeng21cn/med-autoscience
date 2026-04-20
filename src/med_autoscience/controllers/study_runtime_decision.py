@@ -366,6 +366,21 @@ def _publication_eval_action(
     )
 
 
+def _study_charter_gate_reason(report: dict[str, object] | None) -> StudyRuntimeReason | None:
+    if not isinstance(report, dict):
+        return None
+    blockers = {
+        str(item).strip()
+        for item in (report.get("blockers") or [])
+        if str(item).strip()
+    }
+    if "study_charter_missing" in blockers:
+        return StudyRuntimeReason.STUDY_CHARTER_MISSING
+    if "study_charter_invalid" in blockers:
+        return StudyRuntimeReason.STUDY_CHARTER_INVALID
+    return None
+
+
 def _materialize_publication_eval_from_gate_report(
     *,
     study_root: Path,
@@ -382,7 +397,10 @@ def _materialize_publication_eval_from_gate_report(
     generated_at = str(publication_gate_report.get("generated_at") or "").strip()
     if not generated_at:
         raise ValueError("publication gate report missing generated_at for publication eval materialization")
-    charter_payload = read_study_charter(study_root=study_root)
+    try:
+        charter_payload = read_study_charter(study_root=study_root)
+    except (json.JSONDecodeError, ValueError):
+        return None
     resolved_quest_id = (
         str(publication_gate_report.get("quest_id") or "").strip()
         or str(quest_id or "").strip()
@@ -1618,6 +1636,13 @@ def _status_state(
         result.set_decision(
             StudyRuntimeDecision.LIGHTWEIGHT,
             StudyRuntimeReason.ENTRY_MODE_NOT_MANAGED,
+        )
+        return _finalize_result()
+    study_charter_gate_reason = _study_charter_gate_reason(publication_gate_report)
+    if study_charter_gate_reason is not None:
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            study_charter_gate_reason,
         )
         return _finalize_result()
 

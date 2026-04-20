@@ -1294,6 +1294,19 @@ def test_build_report_projects_study_charter_linkage_for_ledgers(tmp_path: Path,
     assert "- review_ledger_linkage_status: `linked`" in markdown
 
 
+def test_build_report_blocks_when_study_charter_is_missing(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    study_root = _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root)
+    (study_root / "artifacts" / "controller" / "study_charter.json").unlink()
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "study_charter_missing" in report["blockers"]
+    assert report["charter_contract_linkage"]["status"] == "study_charter_missing"
+
+
 def test_build_report_blocks_when_evidence_ledger_is_missing(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(

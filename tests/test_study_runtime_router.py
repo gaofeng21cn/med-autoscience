@@ -7371,6 +7371,117 @@ def test_study_runtime_status_materializes_stable_publication_eval_latest(
     assert payload["recommended_actions"][0]["requires_controller_decision"] is True
 
 
+@pytest.mark.parametrize(
+    ("charter_status", "charter_body", "expected_reason"),
+    [
+        ("study_charter_missing", None, "study_charter_missing"),
+        ("study_charter_invalid", "{invalid\n", "study_charter_invalid"),
+    ],
+)
+def test_study_runtime_status_blocks_when_study_charter_gate_fails(
+    monkeypatch,
+    tmp_path: Path,
+    charter_status: str,
+    charter_body: str | None,
+    expected_reason: str,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
+    if charter_body is None:
+        if charter_path.exists():
+            charter_path.unlink()
+    else:
+        write_text(charter_path, charter_body)
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-20T10:00:00+00:00",
+            "anchor_kind": "main_result",
+            "anchor_path": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            "quest_id": "001-risk",
+            "run_id": "run-1",
+            "main_result_path": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            "paper_root": str(study_root / "paper"),
+            "compile_report_path": None,
+            "latest_gate_path": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+            "medical_publication_surface_report_path": None,
+            "medical_publication_surface_current": False,
+            "allow_write": False,
+            "recommended_action": "return_to_publishability_gate",
+            "status": "blocked",
+            "blockers": [charter_status],
+            "write_drift_detected": False,
+            "required_non_scalar_deliverables": [],
+            "present_non_scalar_deliverables": [],
+            "missing_non_scalar_deliverables": [],
+            "paper_bundle_manifest_path": None,
+            "submission_minimal_manifest_path": None,
+            "submission_minimal_present": False,
+            "submission_minimal_docx_present": False,
+            "submission_minimal_pdf_present": False,
+            "medical_publication_surface_status": "blocked",
+            "submission_surface_qc_failures": [],
+            "archived_submission_surface_roots": [],
+            "unmanaged_submission_surface_roots": [],
+            "manuscript_terminology_violations": [],
+            "headline_metrics": {},
+            "primary_metric_delta_vs_baseline": None,
+            "results_summary": "summary",
+            "conclusion": "conclusion",
+            "controller_note": "note",
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "controller-owned charter contract must be repaired before publication work continues",
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == expected_reason
+    assert result["publication_supervisor_state"]["current_required_action"] == "return_to_publishability_gate"
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
 def test_study_runtime_status_publication_eval_keeps_bundle_stage_as_same_line_when_gate_is_clear(
     monkeypatch,
     tmp_path: Path,

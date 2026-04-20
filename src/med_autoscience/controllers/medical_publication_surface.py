@@ -2141,6 +2141,9 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         for hit in public_evidence_decision_hits
     ):
         blockers.append("paper_facing_public_data_without_earned_evidence")
+    charter_contract_linkage_status = str(charter_contract_linkage.get("status") or "").strip()
+    if charter_contract_linkage_status in {"study_charter_missing", "study_charter_invalid"}:
+        blockers.append(charter_contract_linkage_status)
 
     return {
         "schema_version": 1,

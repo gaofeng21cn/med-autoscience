@@ -53,6 +53,8 @@ _DEFAULT_SUBMISSION_GRADE_MIN_ACTIVE_FIGURES = 4
 class GateState:
     quest_root: Path
     runtime_state: dict[str, Any]
+    study_root: Path | None
+    charter_contract_linkage: dict[str, Any]
     anchor_kind: str
     anchor_path: Path
     paper_line_state_path: Path | None
@@ -758,6 +760,12 @@ def build_gate_state(quest_root: Path) -> GateState:
         paper_bundle_manifest_path=paper_bundle_manifest_path,
         paper_bundle_manifest=paper_bundle_manifest,
     )
+    study_root = _resolve_gate_study_root(paper_root=paper_root)
+    charter_contract_linkage = study_delivery_sync.build_charter_contract_linkage(
+        study_root=study_root,
+        evidence_ledger_path=None,
+        review_ledger_path=None,
+    )
     authoritative_paper_line_state_path = paper_root / "paper_line_state.json" if paper_root is not None else None
     authoritative_paper_line_state = (
         load_json(authoritative_paper_line_state_path)
@@ -829,6 +837,8 @@ def build_gate_state(quest_root: Path) -> GateState:
     return GateState(
         quest_root=quest_root,
         runtime_state=runtime_state,
+        study_root=study_root,
+        charter_contract_linkage=charter_contract_linkage,
         anchor_kind=anchor_kind,
         anchor_path=anchor_path,
         paper_line_state_path=paper_line_state_path if paper_line_state is not None else None,
@@ -878,6 +888,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         latest_surface_path=state.latest_medical_publication_surface_path,
         anchor_path=state.anchor_path,
     )
+    charter_contract_linkage_status = str((state.charter_contract_linkage or {}).get("status") or "").strip()
     submission_checklist_blocking_items = list(
         paper_artifacts.normalize_submission_checklist_blocking_item_keys(state.submission_checklist)
     )
@@ -975,6 +986,8 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         conclusion = (state.paper_bundle_manifest or {}).get("summary") or (state.compile_report or {}).get("summary")
     if state.unmanaged_submission_surface_roots:
         blockers.append("unmanaged_submission_surface_present")
+    if charter_contract_linkage_status in {"study_charter_missing", "study_charter_invalid"}:
+        blockers.append(charter_contract_linkage_status)
     if study_delivery_status.startswith("stale"):
         blockers.append("stale_study_delivery_mirror")
     medical_publication_surface_status = str((state.latest_medical_publication_surface or {}).get("status") or "").strip()
@@ -995,6 +1008,22 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         allow_write=allow_write,
         blockers=blockers,
     )
+    if charter_contract_linkage_status == "study_charter_missing":
+        supervisor_state = {
+            **supervisor_state,
+            "controller_stage_note": (
+                "stable study charter artifact is missing; restore the controller-owned paper-direction contract "
+                "before autonomous publication work continues"
+            ),
+        }
+    elif charter_contract_linkage_status == "study_charter_invalid":
+        supervisor_state = {
+            **supervisor_state,
+            "controller_stage_note": (
+                "stable study charter artifact is invalid; repair the controller-owned paper-direction contract "
+                "before autonomous publication work continues"
+            ),
+        }
 
     return {
         "schema_version": 1,
@@ -1076,6 +1105,8 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "prebundle_display_floor_gap": prebundle_display_floor_gap,
         "prebundle_display_advisories": prebundle_display_advisories,
         "medical_publication_surface_status": medical_publication_surface_status or None,
+        "charter_contract_linkage": dict(state.charter_contract_linkage or {}),
+        "charter_contract_linkage_status": charter_contract_linkage_status or None,
         "submission_surface_qc_failures": list(state.submission_surface_qc_failures),
         "archived_submission_surface_roots": list(state.archived_submission_surface_roots),
         "unmanaged_submission_surface_roots": list(state.unmanaged_submission_surface_roots),
