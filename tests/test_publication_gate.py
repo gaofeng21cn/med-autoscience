@@ -1920,7 +1920,6 @@ def test_build_gate_report_inherits_blocked_medical_publication_surface_status(t
         "artifacts/reports/medical_publication_surface/2026-04-05T15:29:32Z.json"
     )
 
-
 def test_build_gate_report_blocks_when_study_charter_is_missing(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=True)
@@ -1953,8 +1952,6 @@ def test_build_gate_report_blocks_when_study_charter_is_invalid(tmp_path: Path) 
     assert "study_charter_invalid" in report["blockers"]
     assert report["current_required_action"] == "return_to_publishability_gate"
     assert "stable study charter artifact is invalid" in report["controller_stage_note"]
-
-
 def test_build_gate_report_maps_surface_signals_to_named_controller_blockers(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(
