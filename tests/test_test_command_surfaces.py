@@ -16,7 +16,7 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     makefile = _read("Makefile")
 
     assert "test-fast:" in makefile
-    assert 'uv run pytest -q -m "not meta and not display_heavy"' in makefile
+    assert 'uv run pytest -q -m "not meta and not display_heavy and not family"' in makefile
     assert "test-meta:" in makefile
     assert "uv run pytest -q -m meta" in makefile
     assert "test-display:" in makefile
@@ -31,6 +31,7 @@ def test_pyproject_registers_meta_and_display_markers() -> None:
 
     assert "meta: repo-tracked docs, workflow, packaging, and command-surface checks" in markers
     assert "display_heavy: display materialization and golden-regression tests that dominate wall-clock time" in markers
+    assert "family: family shared boundary tests that depend on cross-repo shared-module topology" in markers
 
 
 def test_pyproject_pins_opl_harness_shared_to_a_full_commit() -> None:

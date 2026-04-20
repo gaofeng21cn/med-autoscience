@@ -7,6 +7,8 @@ from packaging.requirements import Requirement
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+CI_WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "ci.yml"
+ADVISORY_WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "advisory.yml"
 RELEASE_WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "release.yml"
 PYPROJECT_PATH = REPO_ROOT / "pyproject.toml"
 
@@ -19,22 +21,28 @@ def test_release_workflow_grants_contents_write_permission() -> None:
 
 
 def test_release_workflows_use_node24_ready_action_versions() -> None:
-    ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
     release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
 
     assert "actions/checkout@v6" in ci_workflow
+    assert "actions/checkout@v6" in advisory_workflow
     assert "actions/checkout@v6" in release_workflow
     assert "actions/setup-python@v6" in ci_workflow
+    assert "actions/setup-python@v6" in advisory_workflow
     assert "actions/setup-python@v6" in release_workflow
 
 
 def test_release_workflows_track_python_312_minor_instead_of_exact_patch_file() -> None:
-    ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
     release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
 
     assert "python-version: '3.12'" in ci_workflow
+    assert "python-version: '3.12'" in advisory_workflow
     assert "python-version: '3.12'" in release_workflow
     assert "python-version-file: .python-version" not in ci_workflow
+    assert "python-version-file: .python-version" not in advisory_workflow
     assert "python-version-file: .python-version" not in release_workflow
 
 
@@ -48,15 +56,17 @@ def test_release_workflow_uses_explicit_prerelease_tag_patterns() -> None:
 
 
 def test_release_workflows_split_system_dependencies_by_lane() -> None:
-    ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
     release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
-    quick_checks_workflow, display_workflow = ci_workflow.split("display-surface:", maxsplit=1)
+    family_workflow, display_workflow = advisory_workflow.split("display-surface:", maxsplit=1)
 
-    assert "Install pandoc and BasicTeX" in quick_checks_workflow
-    assert "brew install pandoc" in quick_checks_workflow
-    assert "brew install --cask basictex" in quick_checks_workflow
-    assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' in quick_checks_workflow
-    assert "graphviz" not in quick_checks_workflow
+    assert "Install pandoc and BasicTeX" in ci_workflow
+    assert "brew install pandoc" in ci_workflow
+    assert "brew install --cask basictex" in ci_workflow
+    assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' in ci_workflow
+    assert "graphviz" not in ci_workflow
+    assert "brew install pandoc graphviz pkg-config libxml2 r" not in family_workflow
     assert "brew install pandoc graphviz pkg-config libxml2 r" in display_workflow
     assert "brew install --cask basictex" in display_workflow
     assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' in display_workflow
@@ -70,39 +80,52 @@ def test_release_workflows_split_system_dependencies_by_lane() -> None:
 
 
 def test_release_workflows_use_uv_managed_test_environment() -> None:
-    ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
     release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
 
     assert "uv sync --frozen --group dev" in ci_workflow
+    assert "uv sync --frozen --group dev" in advisory_workflow
     assert "uv sync --frozen --group dev" in release_workflow
     assert "scripts/verify.sh meta" in ci_workflow
     assert "scripts/verify.sh" in ci_workflow
-    assert "scripts/verify.sh display" in ci_workflow
+    assert "scripts/verify.sh family" in advisory_workflow
+    assert "scripts/verify.sh display" in advisory_workflow
+    assert "scripts/verify.sh family" not in ci_workflow
+    assert "scripts/verify.sh display" not in ci_workflow
     assert "scripts/verify.sh full" in release_workflow
     assert "uv run python -m build --sdist --wheel" in ci_workflow
     assert "uv run python -m build --sdist --wheel" in release_workflow
     assert "python -m pytest" not in ci_workflow
+    assert "python -m pytest" not in advisory_workflow
     assert "python -m pytest" not in release_workflow
     assert "python -m pip install pytest build python-docx ." not in ci_workflow
+    assert "python -m pip install pytest build python-docx ." not in advisory_workflow
     assert "python -m pip install pytest build python-docx ." not in release_workflow
     assert "uv run pytest" not in ci_workflow
+    assert "uv run pytest" not in advisory_workflow
     assert "uv run pytest" not in release_workflow
     assert "make test-meta" not in ci_workflow
     assert "make test-fast" not in ci_workflow
     assert "make test-display" not in ci_workflow
+    assert "make test-family" not in advisory_workflow
+    assert "make test-display" not in advisory_workflow
     assert "make test-full" not in release_workflow
 
 
-def test_ci_and_release_workflows_only_prepare_study_runtime_analysis_bundle_for_display_and_release_bound_lanes() -> None:
-    ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+def test_advisory_and_release_workflows_only_prepare_study_runtime_analysis_bundle_for_display_and_release_bound_lanes() -> None:
+    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
     release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
-    quick_checks_workflow, display_workflow = ci_workflow.split("display-surface:", maxsplit=1)
+    family_workflow, display_workflow = advisory_workflow.split("display-surface:", maxsplit=1)
 
-    assert ci_workflow.count("Ensure study runtime analysis bundle") == 1
-    assert "Ensure study runtime analysis bundle" not in quick_checks_workflow
+    assert ci_workflow.count("Ensure study runtime analysis bundle") == 0
+    assert advisory_workflow.count("Ensure study runtime analysis bundle") == 1
+    assert "Ensure study runtime analysis bundle" not in family_workflow
     assert "Ensure study runtime analysis bundle" in display_workflow
-    assert "Run display-heavy tests" in ci_workflow
-    assert "continue-on-error: true" not in quick_checks_workflow
+    assert "Run display-heavy advisory tests" in advisory_workflow
+    assert "continue-on-error: true" not in ci_workflow
+    assert "continue-on-error: true" in family_workflow
     assert "continue-on-error: true" in display_workflow
     assert "brew install pandoc graphviz pkg-config libxml2 r" in release_workflow
     assert "Ensure study runtime analysis bundle" in release_workflow
@@ -139,16 +162,20 @@ def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     assert "push 上保持 advisory 告警" not in readme_zh
     assert "submission-facing DOCX/PDF" in preflight_doc
     assert "`pandoc` 与 `BasicTeX`" in preflight_doc
-    assert "display-heavy` lane 保持 advisory 告警" in preflight_doc
+    assert "display-heavy` 与 `family` lane 迁入 `macOS Advisory`" in preflight_doc
 
 
-def test_release_workflows_split_ci_fast_and_display_jobs() -> None:
-    ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+def test_release_workflows_split_stable_push_and_advisory_jobs() -> None:
+    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
 
     assert "quick-checks:" in ci_workflow
-    assert "display-surface:" in ci_workflow
-    assert "Run fast/meta tests and build" in ci_workflow
-    assert "Run display-heavy tests" in ci_workflow
+    assert "display-surface:" not in ci_workflow
+    assert "Run stable core tests and build" in ci_workflow
+    assert "family-shared:" in advisory_workflow
+    assert "display-surface:" in advisory_workflow
+    assert "Run family shared advisory tests" in advisory_workflow
+    assert "Run display-heavy advisory tests" in advisory_workflow
 
 
 def test_release_workflow_dev_group_matches_uv_sync_contract() -> None:
@@ -165,9 +192,19 @@ def test_release_workflow_dev_group_matches_uv_sync_contract() -> None:
 
 
 def test_ci_workflow_only_triggers_on_push_main_and_development() -> None:
-    ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
 
     assert "pull_request:" not in ci_workflow
     assert "push:" in ci_workflow
     assert "- main" in ci_workflow
     assert "- development" in ci_workflow
+
+
+def test_advisory_workflow_only_triggers_on_manual_or_daily_schedule() -> None:
+    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "push:" not in advisory_workflow
+    assert "pull_request:" not in advisory_workflow
+    assert "workflow_dispatch:" in advisory_workflow
+    assert "schedule:" in advisory_workflow
+    assert "cron: '0 20 * * *'" in advisory_workflow

@@ -3,7 +3,7 @@
 test: test-fast
 
 test-fast:
-	uv run pytest -q -m "not meta and not display_heavy"
+	uv run pytest -q -m "not meta and not display_heavy and not family"
 
 test-meta:
 	uv run pytest -q -m meta

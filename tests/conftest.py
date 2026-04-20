@@ -40,6 +40,11 @@ DISPLAY_HEAVY_FILES = {
     "tests/test_submission_minimal_display_surface.py",
 }
 
+FAMILY_FILES = {
+    "tests/test_editable_shared_bootstrap.py",
+    "tests/test_family_shared_release.py",
+}
+
 
 def _relative_test_path(item: pytest.Item) -> str:
     path = Path(str(item.fspath)).resolve()
@@ -54,3 +59,5 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             item.add_marker(pytest.mark.meta)
         if relative_path in DISPLAY_HEAVY_FILES:
             item.add_marker(pytest.mark.display_heavy)
+        if relative_path in FAMILY_FILES:
+            item.add_marker(pytest.mark.family)

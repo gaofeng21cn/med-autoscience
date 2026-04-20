@@ -8,6 +8,20 @@ import runpy
 DISPLAY_SURFACE_COMMAND = ("publication", "materialize-display-surface")
 
 
+def expected_catalog_ids(*, paper_root: Path, display_kind: str) -> list[str]:
+    registry_payload = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
+    prefix_by_kind = {
+        "figure": ("Figure", "F"),
+        "table": ("Table", "T"),
+    }
+    display_prefix, catalog_prefix = prefix_by_kind[display_kind]
+    return [
+        str(item.get("display_id") or "").strip().replace(display_prefix, catalog_prefix, 1)
+        for item in (registry_payload.get("displays") or [])
+        if str(item.get("display_kind") or "").strip() == display_kind
+    ]
+
+
 def dump_json(path, payload) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -141,8 +155,8 @@ def test_cli_materialize_display_surface_includes_registered_evidence_figures(tm
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
     assert exit_code == 0
-    assert payload["figures_materialized"] == ["F1", "F2", "F3", "F4", "F5", "F6"]
-    assert payload["tables_materialized"] == ["T1"]
+    assert payload["figures_materialized"] == expected_catalog_ids(paper_root=paper_root, display_kind="figure")
+    assert payload["tables_materialized"] == expected_catalog_ids(paper_root=paper_root, display_kind="table")
 
 
 def test_cli_materialize_display_surface_includes_full_registered_template_set(tmp_path, monkeypatch, capsys) -> None:
@@ -202,27 +216,5 @@ def test_cli_materialize_display_surface_includes_full_registered_template_set(t
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
     assert exit_code == 0
-    assert payload["figures_materialized"] == [
-        "F1",
-        "F2",
-        "F3",
-        "F4",
-        "F5",
-        "F6",
-        "F7",
-        "F8",
-        "F9",
-        "F10",
-        "F11",
-        "F12",
-        "F13",
-        "F14",
-        "F15",
-        "F16",
-        "F17",
-        "F18",
-        "F19",
-        "F20",
-        "F21",
-    ]
-    assert payload["tables_materialized"] == ["T1", "T2", "T3"]
+    assert payload["figures_materialized"] == expected_catalog_ids(paper_root=paper_root, display_kind="figure")
+    assert payload["tables_materialized"] == expected_catalog_ids(paper_root=paper_root, display_kind="table")

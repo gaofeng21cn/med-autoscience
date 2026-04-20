@@ -1,14 +1,16 @@
 # Repository CI Preflight
 
-这个仓库当前采用的是“主线可直接 push，CI 负责远端告警”的模式。
+这个仓库当前采用的是“主线可直接 push，push CI 只承载稳定核心验证，重构高漂移面进入独立 advisory workflow”的模式。
 
 这意味着：
 
-- `main` 和 `development` 的 `push` 仍会触发 GitHub Actions
-- 远端 CI 不再承担阻断式 gate 角色
+- `main` 和 `development` 的 `push` 触发 `macOS CI`
+- `macOS CI` 只运行 `quick-checks` stable core：`meta / fast / build`
 - 提交前如果想提前发现高频问题，应优先运行本地 preflight
-- 常规 `quick-checks` lane 只保留 `meta / fast / build` 这类轻量告警；系统依赖面保留 submission-facing DOCX/PDF 仍会实际消费的 `pandoc` 与 `BasicTeX`
-- `display-heavy` lane 保持 advisory 告警，继续承担 analysis bundle ready 的重型远端回归提示，并显式准备 `BasicTeX`、`graphviz`、`R`、`pkg-config` 与 `libxml2` 支撑 PDF 导出和 R 包编译
+- 常规 `quick-checks` lane 保留 submission-facing DOCX/PDF 仍会实际消费的 `pandoc` 与 `BasicTeX`
+- `display-heavy` 与 `family` lane 迁入 `macOS Advisory`，支持手动触发和每日定时触发
+- `macOS Advisory` 的 `display-heavy` lane 继续承担 analysis bundle ready 的重型远端回归提示，并显式准备 `BasicTeX`、`graphviz`、`R`、`pkg-config` 与 `libxml2` 支撑 PDF 导出和 R 包编译
+- `macOS Advisory` 的 `family` lane 承担 OPL shared boundary / family shared modules 的跨仓合同提示
 - `release/full` lane 继续保持严格，用来覆盖正式发布前的整条重型验证链路
 
 ## 何时运行
