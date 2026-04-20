@@ -6278,6 +6278,225 @@ def _validate_genomic_alteration_pathway_integrated_composite_panel_display_payl
     return normalized_payload
 
 
+def _validate_genomic_program_governance_summary_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    payload_template_id = str(payload.get("template_id") or "").strip()
+    allowed_template_ids = {expected_template_id}
+    try:
+        allowed_template_ids.add(get_template_short_id(expected_template_id))
+    except ValueError:
+        pass
+    if payload_template_id not in allowed_template_ids:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+
+    expected_layer_ids = ("alteration", "proteome", "phosphoproteome", "glycoproteome", "pathway")
+    supported_priority_bands = {"high_priority", "monitor", "watchlist"}
+    supported_verdicts = {"convergent", "layer_specific", "context_dependent", "insufficient_support"}
+
+    layer_order_payload = payload.get("layer_order")
+    if not isinstance(layer_order_payload, list) or not layer_order_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty layer_order list")
+    if len(layer_order_payload) != len(expected_layer_ids):
+        raise ValueError(f"{path.name} display `{expected_display_id}` layer_order must contain exactly five layers")
+    normalized_layer_order: list[dict[str, str]] = []
+    observed_layer_ids: list[str] = []
+    for layer_index, layer_payload in enumerate(layer_order_payload):
+        if not isinstance(layer_payload, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` layer_order[{layer_index}] must be an object")
+        layer_id = _require_non_empty_string(
+            layer_payload.get("layer_id"),
+            label=f"{path.name} display `{expected_display_id}` layer_order[{layer_index}].layer_id",
+        )
+        layer_label = _require_non_empty_string(
+            layer_payload.get("layer_label"),
+            label=f"{path.name} display `{expected_display_id}` layer_order[{layer_index}].layer_label",
+        )
+        observed_layer_ids.append(layer_id)
+        normalized_layer_order.append({"layer_id": layer_id, "layer_label": layer_label})
+    if tuple(observed_layer_ids) != expected_layer_ids:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` layer_order layer_id values must be alteration, proteome, phosphoproteome, glycoproteome, and pathway"
+        )
+
+    programs_payload = payload.get("programs")
+    if not isinstance(programs_payload, list) or not programs_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty programs list")
+
+    normalized_programs: list[dict[str, Any]] = []
+    seen_program_ids: set[str] = set()
+    seen_program_labels: set[str] = set()
+    observed_priority_ranks: list[int] = []
+    declared_layer_id_set = set(expected_layer_ids)
+    for program_index, program_payload in enumerate(programs_payload):
+        if not isinstance(program_payload, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` programs[{program_index}] must be an object")
+        program_id = _require_non_empty_string(
+            program_payload.get("program_id"),
+            label=f"{path.name} display `{expected_display_id}` programs[{program_index}].program_id",
+        )
+        if program_id in seen_program_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` programs[{program_index}].program_id must be unique"
+            )
+        seen_program_ids.add(program_id)
+        program_label = _require_non_empty_string(
+            program_payload.get("program_label"),
+            label=f"{path.name} display `{expected_display_id}` programs[{program_index}].program_label",
+        )
+        if program_label in seen_program_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` programs[{program_index}].program_label must be unique"
+            )
+        seen_program_labels.add(program_label)
+        pathway_hit_count = _require_non_negative_int(
+            program_payload.get("pathway_hit_count"),
+            label=f"{path.name} display `{expected_display_id}` programs[{program_index}].pathway_hit_count",
+            allow_zero=False,
+        )
+        priority_rank = _require_non_negative_int(
+            program_payload.get("priority_rank"),
+            label=f"{path.name} display `{expected_display_id}` programs[{program_index}].priority_rank",
+            allow_zero=False,
+        )
+        observed_priority_ranks.append(priority_rank)
+        priority_band = _require_non_empty_string(
+            program_payload.get("priority_band"),
+            label=f"{path.name} display `{expected_display_id}` programs[{program_index}].priority_band",
+        )
+        if priority_band not in supported_priority_bands:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` programs[{program_index}].priority_band must be one of {sorted(supported_priority_bands)}"
+            )
+        verdict = _require_non_empty_string(
+            program_payload.get("verdict"),
+            label=f"{path.name} display `{expected_display_id}` programs[{program_index}].verdict",
+        )
+        if verdict not in supported_verdicts:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` programs[{program_index}].verdict must be one of {sorted(supported_verdicts)}"
+            )
+
+        layer_supports_payload = program_payload.get("layer_supports")
+        if not isinstance(layer_supports_payload, list) or not layer_supports_payload:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` programs[{program_index}] must contain a non-empty layer_supports list"
+            )
+        observed_program_layer_ids: set[str] = set()
+        normalized_layer_supports: list[dict[str, Any]] = []
+        for support_index, support_payload in enumerate(layer_supports_payload):
+            if not isinstance(support_payload, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` programs[{program_index}].layer_supports[{support_index}] must be an object"
+                )
+            layer_id = _require_non_empty_string(
+                support_payload.get("layer_id"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` programs[{program_index}]."
+                    f"layer_supports[{support_index}].layer_id"
+                ),
+            )
+            if layer_id not in declared_layer_id_set:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` programs[{program_index}].layer_supports[{support_index}].layer_id must match layer_order"
+                )
+            if layer_id in observed_program_layer_ids:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` programs[{program_index}] layer_supports must cover the declared layer_order exactly once"
+                )
+            observed_program_layer_ids.add(layer_id)
+            normalized_layer_supports.append(
+                {
+                    "layer_id": layer_id,
+                    "effect_value": _require_numeric_value(
+                        support_payload.get("effect_value"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` programs[{program_index}]."
+                            f"layer_supports[{support_index}].effect_value"
+                        ),
+                    ),
+                    "support_fraction": _require_probability_value(
+                        support_payload.get("support_fraction"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` programs[{program_index}]."
+                            f"layer_supports[{support_index}].support_fraction"
+                        ),
+                    ),
+                }
+            )
+        if observed_program_layer_ids != declared_layer_id_set:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` programs[{program_index}] layer_supports must cover the declared layer_order exactly once"
+            )
+
+        normalized_program = {
+            "program_id": program_id,
+            "program_label": program_label,
+            "lead_driver_label": _require_non_empty_string(
+                program_payload.get("lead_driver_label"),
+                label=f"{path.name} display `{expected_display_id}` programs[{program_index}].lead_driver_label",
+            ),
+            "dominant_pathway_label": _require_non_empty_string(
+                program_payload.get("dominant_pathway_label"),
+                label=f"{path.name} display `{expected_display_id}` programs[{program_index}].dominant_pathway_label",
+            ),
+            "pathway_hit_count": pathway_hit_count,
+            "priority_rank": priority_rank,
+            "priority_band": priority_band,
+            "verdict": verdict,
+            "action": _require_non_empty_string(
+                program_payload.get("action"),
+                label=f"{path.name} display `{expected_display_id}` programs[{program_index}].action",
+            ),
+            "layer_supports": normalized_layer_supports,
+        }
+        detail_text = str(program_payload.get("detail") or "").strip()
+        if program_payload.get("detail") is not None and not detail_text:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` programs[{program_index}].detail must be non-empty when present"
+            )
+        if detail_text:
+            normalized_program["detail"] = detail_text
+        normalized_programs.append(normalized_program)
+
+    if observed_priority_ranks != sorted(observed_priority_ranks) or len(set(observed_priority_ranks)) != len(
+        observed_priority_ranks
+    ):
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` program priority_rank values must be strictly increasing"
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title"),
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "evidence_panel_title": _require_non_empty_string(
+            payload.get("evidence_panel_title"),
+            label=f"{path.name} display `{expected_display_id}` evidence_panel_title",
+        ),
+        "summary_panel_title": _require_non_empty_string(
+            payload.get("summary_panel_title"),
+            label=f"{path.name} display `{expected_display_id}` summary_panel_title",
+        ),
+        "effect_scale_label": _require_non_empty_string(
+            payload.get("effect_scale_label"),
+            label=f"{path.name} display `{expected_display_id}` effect_scale_label",
+        ),
+        "support_scale_label": _require_non_empty_string(
+            payload.get("support_scale_label"),
+            label=f"{path.name} display `{expected_display_id}` support_scale_label",
+        ),
+        "layer_order": normalized_layer_order,
+        "programs": normalized_programs,
+    }
+
+
 def _validate_omics_volcano_panel_display_payload(
     *,
     path: Path,
@@ -10769,6 +10988,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "genomic_alteration_pathway_integrated_composite_panel_inputs_v1":
         return payload_path, _validate_genomic_alteration_pathway_integrated_composite_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "genomic_program_governance_summary_panel_inputs_v1":
+        return payload_path, _validate_genomic_program_governance_summary_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

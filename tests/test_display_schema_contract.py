@@ -59,6 +59,9 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     genomic_alteration_pathway_integrated = module.get_input_schema_contract(
         "genomic_alteration_pathway_integrated_composite_panel_inputs_v1"
     )
+    genomic_program_governance_summary = module.get_input_schema_contract(
+        "genomic_program_governance_summary_panel_inputs_v1"
+    )
     landmark_performance = module.get_input_schema_contract("time_to_event_landmark_performance_inputs_v1")
     correlation = module.get_input_schema_contract("correlation_heatmap_inputs_v1")
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
@@ -966,6 +969,41 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     )
     assert genomic_alteration_pathway_integrated.template_ids == (
         _full_id("genomic_alteration_pathway_integrated_composite_panel"),
+    )
+    assert genomic_program_governance_summary.template_ids == (
+        _full_id("genomic_program_governance_summary_panel"),
+    )
+    assert genomic_program_governance_summary.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "evidence_panel_title",
+        "summary_panel_title",
+        "effect_scale_label",
+        "support_scale_label",
+        "layer_order",
+        "programs",
+    )
+    assert genomic_program_governance_summary.display_optional_fields == ("paper_role",)
+    assert genomic_program_governance_summary.collection_required_fields["layer_order"] == ("layer_id", "layer_label")
+    assert genomic_program_governance_summary.collection_required_fields["programs"] == (
+        "program_id",
+        "program_label",
+        "lead_driver_label",
+        "dominant_pathway_label",
+        "pathway_hit_count",
+        "priority_rank",
+        "priority_band",
+        "verdict",
+        "action",
+        "layer_supports",
+    )
+    assert genomic_program_governance_summary.collection_optional_fields["programs"] == ("detail",)
+    assert genomic_program_governance_summary.nested_collection_required_fields["programs.layer_supports"] == (
+        "layer_id",
+        "effect_value",
+        "support_fraction",
     )
     assert genomic_alteration_pathway_integrated.display_required_fields == (
         "display_id",
@@ -3055,6 +3093,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "genomic_alteration_multiomic_consequence_panel_inputs_v1" in markdown
     assert _full_id("genomic_alteration_pathway_integrated_composite_panel") in markdown
     assert "genomic_alteration_pathway_integrated_composite_panel_inputs_v1" in markdown
+    assert _full_id("genomic_program_governance_summary_panel") in markdown
+    assert "genomic_program_governance_summary_panel_inputs_v1" in markdown
     assert _full_id("subgroup_forest") in markdown
     assert _full_id("generalizability_subgroup_composite_panel") in markdown
     assert "generalizability_subgroup_composite_inputs_v1" in markdown

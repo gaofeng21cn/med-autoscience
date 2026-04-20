@@ -6535,6 +6535,90 @@ def _make_genomic_alteration_pathway_integrated_composite_panel_display(
     return display
 
 
+def _make_genomic_program_governance_summary_panel_display(
+    display_id: str = "Figure51",
+) -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": full_id("genomic_program_governance_summary_panel"),
+        "title": "Genomic program governance summary for manuscript-facing driver-to-program synthesis",
+        "caption": (
+            "One bounded summary aligns alteration-linked multiomic support with row-level program priority, "
+            "verdict, and manuscript action."
+        ),
+        "evidence_panel_title": "Cross-layer genomic evidence",
+        "summary_panel_title": "Program governance summary",
+        "effect_scale_label": "Direction and magnitude",
+        "support_scale_label": "Support fraction",
+        "layer_order": [
+            {"layer_id": "alteration", "layer_label": "Alteration"},
+            {"layer_id": "proteome", "layer_label": "Proteome"},
+            {"layer_id": "phosphoproteome", "layer_label": "Phosphoproteome"},
+            {"layer_id": "glycoproteome", "layer_label": "Glycoproteome"},
+            {"layer_id": "pathway", "layer_label": "Pathway"},
+        ],
+        "programs": [
+            {
+                "program_id": "pi3k_growth",
+                "program_label": "PI3K growth program",
+                "lead_driver_label": "EGFR",
+                "dominant_pathway_label": "PI3K-AKT signaling",
+                "pathway_hit_count": 8,
+                "priority_rank": 1,
+                "priority_band": "high_priority",
+                "verdict": "convergent",
+                "action": "Promote to manuscript main-text synthesis",
+                "detail": "Every declared layer supports the same activating direction.",
+                "layer_supports": [
+                    {"layer_id": "alteration", "effect_value": 0.88, "support_fraction": 0.82},
+                    {"layer_id": "proteome", "effect_value": 1.21, "support_fraction": 0.74},
+                    {"layer_id": "phosphoproteome", "effect_value": 1.48, "support_fraction": 0.86},
+                    {"layer_id": "glycoproteome", "effect_value": 0.93, "support_fraction": 0.69},
+                    {"layer_id": "pathway", "effect_value": 1.34, "support_fraction": 0.78},
+                ],
+            },
+            {
+                "program_id": "cell_cycle_stress",
+                "program_label": "Cell-cycle stress program",
+                "lead_driver_label": "TP53",
+                "dominant_pathway_label": "Cell cycle",
+                "pathway_hit_count": 6,
+                "priority_rank": 2,
+                "priority_band": "monitor",
+                "verdict": "layer_specific",
+                "action": "Keep as support-domain evidence",
+                "detail": "Signal concentrates in proteome and pathway layers with weaker glycoproteome carry-through.",
+                "layer_supports": [
+                    {"layer_id": "alteration", "effect_value": 0.76, "support_fraction": 0.67},
+                    {"layer_id": "proteome", "effect_value": 1.02, "support_fraction": 0.72},
+                    {"layer_id": "phosphoproteome", "effect_value": 1.16, "support_fraction": 0.75},
+                    {"layer_id": "glycoproteome", "effect_value": 0.41, "support_fraction": 0.44},
+                    {"layer_id": "pathway", "effect_value": 1.08, "support_fraction": 0.71},
+                ],
+            },
+            {
+                "program_id": "immune_suppression",
+                "program_label": "Immune suppression program",
+                "lead_driver_label": "PIK3CA",
+                "dominant_pathway_label": "Immune signaling",
+                "pathway_hit_count": 4,
+                "priority_rank": 3,
+                "priority_band": "watchlist",
+                "verdict": "context_dependent",
+                "action": "Retain for supplementary context only",
+                "detail": "Direction flips across layers and remains weaker than the top two programs.",
+                "layer_supports": [
+                    {"layer_id": "alteration", "effect_value": 0.22, "support_fraction": 0.36},
+                    {"layer_id": "proteome", "effect_value": 0.58, "support_fraction": 0.49},
+                    {"layer_id": "phosphoproteome", "effect_value": -0.34, "support_fraction": 0.41},
+                    {"layer_id": "glycoproteome", "effect_value": -0.27, "support_fraction": 0.38},
+                    {"layer_id": "pathway", "effect_value": 0.43, "support_fraction": 0.47},
+                ],
+            },
+        ],
+    }
+
+
 def test_load_evidence_display_payload_rejects_incomplete_composition_for_single_cell_atlas_overview(
     tmp_path: Path,
 ) -> None:
@@ -6614,6 +6698,32 @@ def test_load_evidence_display_payload_rejects_incomplete_panel_pathway_grid_for
             paper_root=paper_root,
             spec=spec,
             display_id="Figure34",
+        )
+
+
+def test_load_evidence_display_payload_rejects_incomplete_layer_support_grid_for_genomic_program_governance_summary_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_genomic_program_governance_summary_panel_display()
+    display_payload["programs"][1]["layer_supports"] = list(display_payload["programs"][1]["layer_supports"][:-1])
+    dump_json(
+        paper_root / "genomic_program_governance_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "genomic_program_governance_summary_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("genomic_program_governance_summary_panel")
+
+    with pytest.raises(ValueError, match="layer_supports must cover the declared layer_order exactly once"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure51",
         )
 
 
@@ -7757,6 +7867,88 @@ def test_materialize_display_surface_generates_genomic_alteration_pathway_integr
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "genomic_alteration_pathway_integrated_composite_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_genomic_alteration_pathway_integrated_composite_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_genomic_program_governance_summary_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "display_kind": "figure",
+                    "requirement_key": "genomic_program_governance_summary_panel",
+                    "catalog_id": "F51",
+                    "shell_path": "paper/figures/Figure51.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "template_id": "genomic_program_governance_summary_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "genomic_program_governance_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "genomic_program_governance_summary_panel_inputs_v1",
+            "displays": [_make_genomic_program_governance_summary_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F51"]
+    assert (paper_root / "figures" / "generated" / "F51_genomic_program_governance_summary_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F51_genomic_program_governance_summary_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F51_genomic_program_governance_summary_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == ["panel_evidence", "panel_summary"]
+    assert layout_sidecar["metrics"]["layer_labels"] == [
+        "Alteration",
+        "Proteome",
+        "Phosphoproteome",
+        "Glycoproteome",
+        "Pathway",
+    ]
+    assert [item["program_id"] for item in layout_sidecar["metrics"]["programs"]] == [
+        "pi3k_growth",
+        "cell_cycle_stress",
+        "immune_suppression",
+    ]
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} == {"legend", "colorbar"}
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F51"
+    assert figure_entry["template_id"] == full_id("genomic_program_governance_summary_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "genomic_program_governance_summary_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_genomic_program_governance_summary_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

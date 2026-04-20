@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased - 2026-04-19
+## Unreleased - 2026-04-20
+
+- Add `genomic_program_governance_summary_panel` as the next audited `G` higher-order genomic program-governance slice in the core display pack.
+- Lock its pack-facing contract to `genomic_program_governance_summary_panel_inputs_v1`, `publication_genomic_program_governance_summary_panel`, and the Python bounded two-panel cross-layer evidence plus governance-summary renderer path.
 
 - Add `clinical_impact_curve_binary` as the next audited `A` binary clinical-impact counting slice in the core display pack.
 - Lock its pack-facing contract to `binary_prediction_curve_inputs_v1`, `publication_evidence_curve`, and the R grouped-threshold clinical-impact renderer path.

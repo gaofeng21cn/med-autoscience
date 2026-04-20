@@ -4088,6 +4088,195 @@ def test_run_display_layout_qc_fails_when_pathway_integrated_composite_panel_use
     assert any(issue["rule_id"] == "pathway_panel_ids_invalid" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_genomic_program_governance_summary_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_genomic_program_governance_summary_panel",
+        layout_sidecar={
+            "template_id": "genomic_program_governance_summary_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.08, y0=0.88, x1=0.10, y1=0.91),
+                make_box("panel_label_B", "panel_label", x0=0.64, y0=0.88, x1=0.66, y1=0.91),
+                make_box("panel_title_A", "panel_title", x0=0.14, y0=0.88, x1=0.44, y1=0.91),
+                make_box("panel_title_B", "panel_title", x0=0.70, y0=0.88, x1=0.92, y1=0.91),
+                make_box("row_label_pi3k", "row_label", x0=0.06, y0=0.68, x1=0.17, y1=0.71),
+                make_box("row_label_cycle", "row_label", x0=0.06, y0=0.53, x1=0.20, y1=0.56),
+                make_box("row_label_immune", "row_label", x0=0.06, y0=0.38, x1=0.20, y1=0.41),
+                make_box("evidence_pi3k_alteration", "evidence_cell", x0=0.19, y0=0.67, x1=0.22, y1=0.70),
+                make_box("evidence_pi3k_proteome", "evidence_cell", x0=0.25, y0=0.67, x1=0.28, y1=0.70),
+                make_box("evidence_pi3k_phosphoproteome", "evidence_cell", x0=0.31, y0=0.67, x1=0.34, y1=0.70),
+                make_box("evidence_pi3k_glycoproteome", "evidence_cell", x0=0.37, y0=0.67, x1=0.40, y1=0.70),
+                make_box("evidence_pi3k_pathway", "evidence_cell", x0=0.43, y0=0.67, x1=0.46, y1=0.70),
+                make_box("evidence_cycle_alteration", "evidence_cell", x0=0.19, y0=0.52, x1=0.22, y1=0.55),
+                make_box("evidence_cycle_proteome", "evidence_cell", x0=0.25, y0=0.52, x1=0.28, y1=0.55),
+                make_box("evidence_cycle_phosphoproteome", "evidence_cell", x0=0.31, y0=0.52, x1=0.34, y1=0.55),
+                make_box("evidence_cycle_glycoproteome", "evidence_cell", x0=0.37, y0=0.52, x1=0.40, y1=0.55),
+                make_box("evidence_cycle_pathway", "evidence_cell", x0=0.43, y0=0.52, x1=0.46, y1=0.55),
+                make_box("evidence_immune_alteration", "evidence_cell", x0=0.19, y0=0.37, x1=0.22, y1=0.40),
+                make_box("evidence_immune_proteome", "evidence_cell", x0=0.25, y0=0.37, x1=0.28, y1=0.40),
+                make_box("evidence_immune_phosphoproteome", "evidence_cell", x0=0.31, y0=0.37, x1=0.34, y1=0.40),
+                make_box("evidence_immune_glycoproteome", "evidence_cell", x0=0.37, y0=0.37, x1=0.40, y1=0.40),
+                make_box("evidence_immune_pathway", "evidence_cell", x0=0.43, y0=0.37, x1=0.46, y1=0.40),
+                make_box("priority_pi3k", "priority_badge", x0=0.69, y0=0.67, x1=0.76, y1=0.70),
+                make_box("verdict_pi3k", "verdict_value", x0=0.77, y0=0.67, x1=0.84, y1=0.70),
+                make_box("support_pi3k", "row_support", x0=0.85, y0=0.67, x1=0.90, y1=0.70),
+                make_box("action_pi3k", "row_action", x0=0.69, y0=0.63, x1=0.93, y1=0.66),
+                make_box("priority_cycle", "priority_badge", x0=0.69, y0=0.52, x1=0.76, y1=0.55),
+                make_box("verdict_cycle", "verdict_value", x0=0.77, y0=0.52, x1=0.84, y1=0.55),
+                make_box("support_cycle", "row_support", x0=0.85, y0=0.52, x1=0.90, y1=0.55),
+                make_box("action_cycle", "row_action", x0=0.69, y0=0.48, x1=0.93, y1=0.51),
+                make_box("priority_immune", "priority_badge", x0=0.69, y0=0.37, x1=0.76, y1=0.40),
+                make_box("verdict_immune", "verdict_value", x0=0.77, y0=0.37, x1=0.84, y1=0.40),
+                make_box("support_immune", "row_support", x0=0.85, y0=0.37, x1=0.90, y1=0.40),
+                make_box("action_immune", "row_action", x0=0.69, y0=0.33, x1=0.93, y1=0.36),
+            ],
+            "panel_boxes": [
+                make_box("panel_evidence", "panel", x0=0.12, y0=0.28, x1=0.56, y1=0.86),
+                make_box("panel_summary", "panel", x0=0.64, y0=0.28, x1=0.94, y1=0.86),
+            ],
+            "guide_boxes": [
+                make_box("legend_support", "legend", x0=0.18, y0=0.18, x1=0.40, y1=0.24),
+                make_box("colorbar_effect", "colorbar", x0=0.52, y0=0.28, x1=0.55, y1=0.78),
+            ],
+            "metrics": {
+                "effect_scale_label": "Direction and magnitude",
+                "support_scale_label": "Support fraction",
+                "layer_labels": [
+                    "Alteration",
+                    "Proteome",
+                    "Phosphoproteome",
+                    "Glycoproteome",
+                    "Pathway",
+                ],
+                "programs": [
+                    {
+                        "program_id": "pi3k_growth",
+                        "program_label": "PI3K growth program",
+                        "lead_driver_label": "EGFR",
+                        "dominant_pathway_label": "PI3K-AKT signaling",
+                        "pathway_hit_count": 8,
+                        "priority_rank": 1,
+                        "priority_band": "high_priority",
+                        "verdict": "convergent",
+                        "action": "Promote to manuscript main-text synthesis",
+                        "row_label_box_id": "row_label_pi3k",
+                        "priority_box_id": "priority_pi3k",
+                        "verdict_box_id": "verdict_pi3k",
+                        "support_box_id": "support_pi3k",
+                        "action_box_id": "action_pi3k",
+                        "layer_supports": [
+                            {"layer_id": "alteration", "effect_value": 0.88, "support_fraction": 0.82, "cell_box_id": "evidence_pi3k_alteration"},
+                            {"layer_id": "proteome", "effect_value": 1.21, "support_fraction": 0.74, "cell_box_id": "evidence_pi3k_proteome"},
+                            {"layer_id": "phosphoproteome", "effect_value": 1.48, "support_fraction": 0.86, "cell_box_id": "evidence_pi3k_phosphoproteome"},
+                            {"layer_id": "glycoproteome", "effect_value": 0.93, "support_fraction": 0.69, "cell_box_id": "evidence_pi3k_glycoproteome"},
+                            {"layer_id": "pathway", "effect_value": 1.34, "support_fraction": 0.78, "cell_box_id": "evidence_pi3k_pathway"},
+                        ],
+                    },
+                    {
+                        "program_id": "cell_cycle_stress",
+                        "program_label": "Cell-cycle stress program",
+                        "lead_driver_label": "TP53",
+                        "dominant_pathway_label": "Cell cycle",
+                        "pathway_hit_count": 6,
+                        "priority_rank": 2,
+                        "priority_band": "monitor",
+                        "verdict": "layer_specific",
+                        "action": "Keep as support-domain evidence",
+                        "row_label_box_id": "row_label_cycle",
+                        "priority_box_id": "priority_cycle",
+                        "verdict_box_id": "verdict_cycle",
+                        "support_box_id": "support_cycle",
+                        "action_box_id": "action_cycle",
+                        "layer_supports": [
+                            {"layer_id": "alteration", "effect_value": 0.76, "support_fraction": 0.67, "cell_box_id": "evidence_cycle_alteration"},
+                            {"layer_id": "proteome", "effect_value": 1.02, "support_fraction": 0.72, "cell_box_id": "evidence_cycle_proteome"},
+                            {"layer_id": "phosphoproteome", "effect_value": 1.16, "support_fraction": 0.75, "cell_box_id": "evidence_cycle_phosphoproteome"},
+                            {"layer_id": "glycoproteome", "effect_value": 0.41, "support_fraction": 0.44, "cell_box_id": "evidence_cycle_glycoproteome"},
+                            {"layer_id": "pathway", "effect_value": 1.08, "support_fraction": 0.71, "cell_box_id": "evidence_cycle_pathway"},
+                        ],
+                    },
+                    {
+                        "program_id": "immune_suppression",
+                        "program_label": "Immune suppression program",
+                        "lead_driver_label": "PIK3CA",
+                        "dominant_pathway_label": "Immune signaling",
+                        "pathway_hit_count": 4,
+                        "priority_rank": 3,
+                        "priority_band": "watchlist",
+                        "verdict": "context_dependent",
+                        "action": "Retain for supplementary context only",
+                        "row_label_box_id": "row_label_immune",
+                        "priority_box_id": "priority_immune",
+                        "verdict_box_id": "verdict_immune",
+                        "support_box_id": "support_immune",
+                        "action_box_id": "action_immune",
+                        "layer_supports": [
+                            {"layer_id": "alteration", "effect_value": 0.22, "support_fraction": 0.36, "cell_box_id": "evidence_immune_alteration"},
+                            {"layer_id": "proteome", "effect_value": 0.58, "support_fraction": 0.49, "cell_box_id": "evidence_immune_proteome"},
+                            {"layer_id": "phosphoproteome", "effect_value": -0.34, "support_fraction": 0.41, "cell_box_id": "evidence_immune_phosphoproteome"},
+                            {"layer_id": "glycoproteome", "effect_value": -0.27, "support_fraction": 0.38, "cell_box_id": "evidence_immune_glycoproteome"},
+                            {"layer_id": "pathway", "effect_value": 0.43, "support_fraction": 0.47, "cell_box_id": "evidence_immune_pathway"},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_genomic_program_governance_summary_panel_drops_declared_layer_support() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_genomic_program_governance_summary_panel",
+        layout_sidecar={
+            "template_id": "genomic_program_governance_summary_panel",
+            "device": make_device(),
+            "layout_boxes": [],
+            "panel_boxes": [],
+            "guide_boxes": [],
+            "metrics": {
+                "effect_scale_label": "Direction and magnitude",
+                "support_scale_label": "Support fraction",
+                "layer_labels": [
+                    "Alteration",
+                    "Proteome",
+                    "Phosphoproteome",
+                    "Glycoproteome",
+                    "Pathway",
+                ],
+                "programs": [
+                    {
+                        "program_id": "pi3k_growth",
+                        "program_label": "PI3K growth program",
+                        "lead_driver_label": "EGFR",
+                        "dominant_pathway_label": "PI3K-AKT signaling",
+                        "pathway_hit_count": 8,
+                        "priority_rank": 1,
+                        "priority_band": "high_priority",
+                        "verdict": "convergent",
+                        "action": "Promote to manuscript main-text synthesis",
+                        "layer_supports": [
+                            {"layer_id": "alteration", "effect_value": 0.88, "support_fraction": 0.82},
+                            {"layer_id": "proteome", "effect_value": 1.21, "support_fraction": 0.74},
+                            {"layer_id": "phosphoproteome", "effect_value": 1.48, "support_fraction": 0.86},
+                            {"layer_id": "glycoproteome", "effect_value": 0.93, "support_fraction": 0.69},
+                        ],
+                    }
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "program_layer_support_coverage_mismatch" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_oncoplot_annotation_track_is_incomplete() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

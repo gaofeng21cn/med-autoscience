@@ -62,6 +62,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("genomic_alteration_landscape_panel"),
         _full_id("genomic_alteration_consequence_panel"),
         _full_id("genomic_alteration_multiomic_consequence_panel"),
+        _full_id("genomic_program_governance_summary_panel"),
         _full_id("forest_effect_main"),
         _full_id("subgroup_forest"),
         _full_id("multivariable_forest"),
@@ -123,6 +124,16 @@ def test_time_to_event_threshold_governance_panel_is_registered() -> None:
     assert spec.renderer_family == "python"
     assert spec.input_schema_id == "time_to_event_threshold_governance_inputs_v1"
     assert spec.layout_qc_profile == "publication_time_to_event_threshold_governance_panel"
+
+
+def test_genomic_program_governance_summary_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("genomic_program_governance_summary_panel"))
+
+    assert spec.template_id == _full_id("genomic_program_governance_summary_panel")
+    assert spec.paper_family_ids == ("G",)
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "genomic_program_governance_summary_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_genomic_program_governance_summary_panel"
 
 
 def test_clinical_impact_curve_binary_is_registered() -> None:
