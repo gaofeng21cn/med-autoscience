@@ -22,6 +22,7 @@ def _write_owner_release_contract(*, owner_repo_root: Path, owner_commit: str = 
                     {
                         "repo_id": "medautoscience",
                         "repo_dir": "med-autoscience",
+                        "verify_command": "scripts/verify.sh family",
                         "targets": [
                             {"file": "pyproject.toml", "kind": "python_dependency"},
                             {"file": "uv.lock", "kind": "python_lock"},
@@ -77,6 +78,7 @@ def test_current_checkout_family_shared_pins_align_with_opl_release_contract(tmp
 
     assert inspection["status"] == "aligned"
     assert inspection["owner_commit"] == OWNER_COMMIT
+    assert inspection["verify_command"] == "scripts/verify.sh family"
     assert [item["status"] for item in inspection["findings"]] == ["aligned", "aligned"]
     assert all(item["pins"] == [inspection["owner_commit"]] for item in inspection["findings"])
 
@@ -92,3 +94,4 @@ def test_family_shared_alignment_uses_repo_root_by_default(monkeypatch, tmp_path
 
     assert inspection["repo_id"] == "medautoscience"
     assert Path(inspection["repo_root"]) == repo_root
+    assert inspection["verify_command"] == "scripts/verify.sh family"

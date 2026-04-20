@@ -21,6 +21,11 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     assert "uv run pytest -q -m meta" in makefile
     assert "test-display:" in makefile
     assert "uv run pytest -q -m display_heavy" in makefile
+    assert "test-family:" in makefile
+    assert (
+        "uv run pytest tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py "
+        "tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q"
+    ) in makefile
     assert "test-full:" in makefile
     assert "uv run pytest -q" in makefile
 

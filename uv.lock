@@ -393,7 +393,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "matplotlib", specifier = ">=3.9" },
-    { name = "opl-harness-shared", git = "https://github.com/gaofeng21cn/one-person-lab.git?subdirectory=python%2Fopl-harness-shared&rev=bc20e23c7fd9088a33db31c87d1e3075dac3144b" },
+    { name = "opl-harness-shared", git = "https://github.com/gaofeng21cn/one-person-lab.git?subdirectory=python%2Fopl-harness-shared&rev=b8737549a920de030212605094499e26f40489e5" },
     { name = "packaging", specifier = ">=24.0" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "pypdf", specifier = ">=5.0" },
@@ -471,7 +471,7 @@ wheels = [
 [[package]]
 name = "opl-harness-shared"
 version = "0.1.0"
-source = { git = "https://github.com/gaofeng21cn/one-person-lab.git?subdirectory=python%2Fopl-harness-shared&rev=bc20e23c7fd9088a33db31c87d1e3075dac3144b#bc20e23c7fd9088a33db31c87d1e3075dac3144b" }
+source = { git = "https://github.com/gaofeng21cn/one-person-lab.git?subdirectory=python%2Fopl-harness-shared&rev=b8737549a920de030212605094499e26f40489e5#b8737549a920de030212605094499e26f40489e5" }
 
 [[package]]
 name = "packaging"
