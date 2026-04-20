@@ -49,6 +49,62 @@ def resolve_latest_paper_root(quest_root: Path) -> Path:
     return _resolve_authoritative_paper_root_from_bundle_manifest_path(latest_manifest)
 
 
+def _non_empty_text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _bundle_manifest_branch(manifest_payload: dict[str, Any] | None) -> str | None:
+    if not isinstance(manifest_payload, dict):
+        return None
+    return _non_empty_text(manifest_payload.get("paper_branch"))
+
+
+def _paper_line_branch(paper_line_state: dict[str, Any] | None) -> str | None:
+    if not isinstance(paper_line_state, dict):
+        return None
+    return _non_empty_text(paper_line_state.get("paper_branch"))
+
+
+def _resolve_existing_worktree_paper_root(*, raw_paper_root: str | None, relative_to: Path) -> Path | None:
+    if not raw_paper_root:
+        return None
+    candidate = Path(raw_paper_root).expanduser()
+    if not candidate.is_absolute():
+        candidate = (relative_to / candidate).resolve()
+    else:
+        candidate = candidate.resolve()
+    if not candidate.exists() or candidate.name != "paper":
+        return None
+    worktree_root = candidate.parent
+    if worktree_root.parent.name != "worktrees" or worktree_root.parent.parent.name != ".ds":
+        return None
+    return candidate
+
+
+def _resolve_worktree_bundle_manifest_by_branch(*, quest_root: Path, paper_branch: str | None) -> Path | None:
+    if paper_branch is None:
+        return None
+    resolved_quest_root = _resolve_path(quest_root)
+    candidates: list[Path] = []
+    for candidate in resolved_quest_root.glob(".ds/worktrees/*/paper/paper_bundle_manifest.json"):
+        payload = _load_json_mapping(candidate)
+        if _bundle_manifest_branch(payload) != paper_branch:
+            continue
+        candidates.append(candidate.resolve())
+    if not candidates:
+        return None
+
+    def rank(path: Path) -> tuple[int, float]:
+        try:
+            worktree_name = path.relative_to(resolved_quest_root).parts[2]
+        except (ValueError, IndexError):
+            worktree_name = ""
+        return (1 if worktree_name.startswith("paper-") else 0, path.stat().st_mtime)
+
+    return max(candidates, key=rank)
+
+
 def _projected_manifest_has_authoritative_paper_line(quest_root: Path, manifest_path: Path) -> bool:
     return _resolve_projected_manifest_authoritative_paper_root(quest_root, manifest_path) is not None
 
@@ -62,20 +118,28 @@ def _resolve_projected_manifest_authoritative_paper_root(quest_root: Path, manif
     paper_line_state = _load_json_mapping(projected_root / "paper_line_state.json")
     if manifest_payload is None or paper_line_state is None:
         return None
-    paper_root_raw = str(paper_line_state.get("paper_root") or "").strip()
-    if not paper_root_raw:
-        return None
-    candidate = Path(paper_root_raw).expanduser()
-    if not candidate.is_absolute():
-        candidate = (projected_root.parent / candidate).resolve()
-    else:
-        candidate = candidate.resolve()
-    if not candidate.exists() or candidate.name != "paper":
-        return None
-    worktree_root = candidate.parent
-    if worktree_root.parent.name != "worktrees" or worktree_root.parent.parent.name != ".ds":
-        return None
-    return candidate
+    manifest_branch = _bundle_manifest_branch(manifest_payload)
+    line_branch = _paper_line_branch(paper_line_state)
+    candidate = _resolve_existing_worktree_paper_root(
+        raw_paper_root=_non_empty_text(paper_line_state.get("paper_root")),
+        relative_to=projected_root.parent,
+    )
+    if manifest_branch is not None and line_branch is not None and manifest_branch != line_branch:
+        authoritative_manifest = _resolve_worktree_bundle_manifest_by_branch(
+            quest_root=quest_root,
+            paper_branch=manifest_branch,
+        )
+        if authoritative_manifest is not None:
+            return authoritative_manifest.parent.resolve()
+    if candidate is not None:
+        return candidate
+    authoritative_manifest = _resolve_worktree_bundle_manifest_by_branch(
+        quest_root=quest_root,
+        paper_branch=manifest_branch,
+    )
+    if authoritative_manifest is not None:
+        return authoritative_manifest.parent.resolve()
+    return None
 
 
 def _resolve_authoritative_paper_root_from_bundle_manifest_path(paper_bundle_manifest_path: Path) -> Path:

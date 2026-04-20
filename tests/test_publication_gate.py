@@ -2081,6 +2081,68 @@ def test_build_gate_report_ignores_newer_surface_report_from_other_paper_line(tm
     )
 
 
+def test_build_gate_report_uses_authoritative_bundle_manifest_for_surface_currentness_when_projected_mirror_is_newer(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+    )
+    authoritative_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    projected_paper_root = quest_root / "paper"
+    analysis_paper_root = quest_root / ".ds" / "worktrees" / "analysis-run-1" / "paper"
+    analysis_paper_root.mkdir(parents=True, exist_ok=True)
+
+    dump_json(
+        projected_paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "paper_branch": "paper/main",
+            "compile_report_path": "paper/build/compile_report.json",
+            "bundle_inputs": {
+                "compiled_markdown_path": "paper/build/review_manuscript.md",
+            },
+        },
+    )
+    dump_json(
+        projected_paper_root / "paper_line_state.json",
+        {
+            "schema_version": 1,
+            "paper_branch": "analysis/paper-drifted",
+            "paper_root": str(analysis_paper_root.resolve()),
+        },
+    )
+    surface_report_path = (
+        quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:32Z.json"
+    )
+    dump_json(
+        surface_report_path,
+        {
+            "paper_root": str(authoritative_paper_root.resolve()),
+            "status": "clear",
+            "blockers": [],
+        },
+    )
+
+    authoritative_manifest_path = authoritative_paper_root / "paper_bundle_manifest.json"
+    projected_manifest_path = projected_paper_root / "paper_bundle_manifest.json"
+    base_time = authoritative_manifest_path.stat().st_mtime + 10
+    os.utime(authoritative_manifest_path, (base_time, base_time))
+    os.utime(surface_report_path, (base_time + 10, base_time + 10))
+    os.utime(projected_manifest_path, (base_time + 20, base_time + 20))
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert state.paper_bundle_manifest_path == projected_manifest_path
+    assert state.paper_root == authoritative_paper_root.resolve()
+    assert report["medical_publication_surface_report_path"] == str(surface_report_path)
+    assert report["medical_publication_surface_current"] is True
+    assert "missing_current_medical_publication_surface_report" not in report["blockers"]
+
+
 def test_build_gate_report_prefers_runtime_paper_worktree_over_stale_projected_mirror(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=True)

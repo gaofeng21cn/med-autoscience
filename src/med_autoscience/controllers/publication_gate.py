@@ -719,6 +719,14 @@ def medical_publication_surface_report_current(
     return latest_surface_path.stat().st_mtime >= anchor_path.stat().st_mtime
 
 
+def medical_publication_surface_currentness_anchor(state: GateState) -> Path:
+    if state.anchor_kind == "paper_bundle" and state.paper_root is not None:
+        authoritative_bundle_manifest = state.paper_root / "paper_bundle_manifest.json"
+        if authoritative_bundle_manifest.exists():
+            return authoritative_bundle_manifest
+    return state.anchor_path
+
+
 def resolve_compile_report_path(
     *,
     paper_bundle_manifest_path: Path | None,
@@ -991,7 +999,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     )
     medical_publication_surface_current = medical_publication_surface_report_current(
         latest_surface_path=state.latest_medical_publication_surface_path,
-        anchor_path=state.anchor_path,
+        anchor_path=medical_publication_surface_currentness_anchor(state),
     )
     charter_contract_linkage_status = str((state.charter_contract_linkage or {}).get("status") or "").strip()
     submission_checklist_blocking_items = list(
