@@ -46,6 +46,50 @@ _BUNDLE_STAGE_ONLY_BLOCKERS = frozenset(
         "unmanaged_submission_surface_present",
     }
 )
+_MEDICAL_PUBLICATION_SURFACE_REVIEWER_FIRST_BLOCKERS = frozenset(
+    {
+        "review_ledger_missing_or_incomplete",
+        "forbidden_manuscript_terms_present",
+        "analysis_plane_jargon_present_on_manuscript_surface",
+        "figure_table_led_results_narration_present",
+        "non_formal_question_sentence_present",
+    }
+)
+_MEDICAL_PUBLICATION_SURFACE_CLAIM_EVIDENCE_BLOCKERS = frozenset(
+    {
+        "missing_medical_story_contract",
+        "claim_evidence_map_missing_or_incomplete",
+        "evidence_ledger_missing_or_incomplete",
+        "paper_facing_public_data_without_earned_evidence",
+    }
+)
+_MEDICAL_PUBLICATION_SURFACE_SUBMISSION_HARDENING_BLOCKERS = frozenset(
+    {
+        "figure_catalog_missing_or_incomplete",
+        "table_catalog_missing_or_incomplete",
+        "required_display_catalog_coverage_incomplete",
+        "ama_pdf_defaults_missing",
+        "methods_implementation_manifest_missing_or_incomplete",
+        "results_narrative_map_missing_or_incomplete",
+        "results_display_surface_incomplete",
+        "introduction_structure_missing_or_incomplete",
+        "methods_section_structure_missing_or_incomplete",
+        "results_section_structure_missing_or_incomplete",
+        "figure_semantics_manifest_missing_or_incomplete",
+        "figure_layout_sidecar_missing_or_incomplete",
+        "derived_analysis_manifest_missing_or_incomplete",
+        "manuscript_safe_reproducibility_supplement_missing_or_incomplete",
+        "missing_data_policy_inconsistent",
+        "endpoint_provenance_note_missing_or_unapplied",
+        "undefined_methodology_labels_present",
+        "public_evidence_decisions_missing_or_incomplete",
+    }
+)
+_MEDICAL_PUBLICATION_SURFACE_ROUTE_BACK_RECOMMENDATIONS = {
+    "reviewer_first_concerns_unresolved": "return_to_reviewer_first_hardening",
+    "claim_evidence_consistency_failed": "return_to_claim_evidence_hardening",
+    "submission_hardening_incomplete": "return_to_submission_hardening",
+}
 _DEFAULT_SUBMISSION_GRADE_MIN_ACTIVE_FIGURES = 4
 
 
@@ -107,6 +151,12 @@ def dump_json(path: Path, payload: Any) -> None:
 def _non_empty_text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _normalized_blocker_set(value: object) -> set[str]:
+    if not isinstance(value, list):
+        return set()
+    return {str(item or "").strip() for item in value if str(item or "").strip()}
 
 
 def find_latest(paths: list[Path]) -> Path | None:
@@ -253,6 +303,61 @@ def _paper_line_requires_required_supplementary(paper_line_state: dict[str, Any]
     if _paper_line_open_supplementary_count(paper_line_state) > 0:
         return True
     return _paper_line_recommended_action(paper_line_state) == "complete_required_supplementary"
+
+
+def _medical_publication_surface_named_blockers(surface_report: dict[str, Any] | None) -> list[str]:
+    if not isinstance(surface_report, dict):
+        return []
+    surface_blockers = _normalized_blocker_set(surface_report.get("blockers"))
+    named_blockers: list[str] = []
+    if (
+        surface_report.get("review_ledger_valid") is False
+        or surface_blockers.intersection(_MEDICAL_PUBLICATION_SURFACE_REVIEWER_FIRST_BLOCKERS)
+    ):
+        named_blockers.append("reviewer_first_concerns_unresolved")
+    if (
+        surface_report.get("claim_evidence_map_valid") is False
+        or surface_report.get("evidence_ledger_valid") is False
+        or surface_report.get("medical_story_contract_valid") is False
+        or surface_blockers.intersection(_MEDICAL_PUBLICATION_SURFACE_CLAIM_EVIDENCE_BLOCKERS)
+    ):
+        named_blockers.append("claim_evidence_consistency_failed")
+    if surface_blockers.intersection(_MEDICAL_PUBLICATION_SURFACE_SUBMISSION_HARDENING_BLOCKERS):
+        named_blockers.append("submission_hardening_incomplete")
+    return named_blockers
+
+
+def _medical_publication_surface_route_back_recommendation(named_blockers: list[str]) -> str | None:
+    for blocker in named_blockers:
+        recommendation = _MEDICAL_PUBLICATION_SURFACE_ROUTE_BACK_RECOMMENDATIONS.get(blocker)
+        if recommendation:
+            return recommendation
+    return None
+
+
+def _medical_publication_surface_stage_note(
+    *,
+    base_note: str,
+    named_blockers: list[str],
+    route_back_recommendation: str | None,
+) -> str:
+    if not named_blockers:
+        return base_note
+    required_hardening: list[str] = []
+    if "reviewer_first_concerns_unresolved" in named_blockers:
+        required_hardening.append("reviewer-first hardening")
+    if "claim_evidence_consistency_failed" in named_blockers:
+        required_hardening.append("claim-evidence hardening")
+    if "submission_hardening_incomplete" in named_blockers:
+        required_hardening.append("submission hardening")
+    if not required_hardening:
+        return base_note
+    hardening_text = ", ".join(required_hardening)
+    route_back_text = route_back_recommendation or "return_to_publishability_gate"
+    return (
+        f"{base_note}; medical publication surface still requires {hardening_text} "
+        f"before bundle work can advance. Recommended route-back: `{route_back_text}`."
+    )
 
 
 def _dedupe_resolved_paths(paths: list[Path]) -> list[Path]:
@@ -991,8 +1096,15 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     if study_delivery_status.startswith("stale"):
         blockers.append("stale_study_delivery_mirror")
     medical_publication_surface_status = str((state.latest_medical_publication_surface or {}).get("status") or "").strip()
+    medical_publication_surface_named_blockers = _medical_publication_surface_named_blockers(
+        state.latest_medical_publication_surface
+    )
+    medical_publication_surface_route_back_recommendation = _medical_publication_surface_route_back_recommendation(
+        medical_publication_surface_named_blockers
+    )
     if medical_publication_surface_status and medical_publication_surface_status != "clear":
         blockers.append("medical_publication_surface_blocked")
+        blockers.extend(medical_publication_surface_named_blockers)
     if state.submission_surface_qc_failures:
         blockers.append("submission_surface_qc_failure_present")
     if state.manuscript_terminology_violations:
@@ -1024,6 +1136,11 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
                 "before autonomous publication work continues"
             ),
         }
+    controller_stage_note = _medical_publication_surface_stage_note(
+        base_note=str(supervisor_state["controller_stage_note"]),
+        named_blockers=medical_publication_surface_named_blockers,
+        route_back_recommendation=medical_publication_surface_route_back_recommendation,
+    )
 
     return {
         "schema_version": 1,
@@ -1107,6 +1224,8 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "medical_publication_surface_status": medical_publication_surface_status or None,
         "charter_contract_linkage": dict(state.charter_contract_linkage or {}),
         "charter_contract_linkage_status": charter_contract_linkage_status or None,
+        "medical_publication_surface_named_blockers": medical_publication_surface_named_blockers,
+        "medical_publication_surface_route_back_recommendation": medical_publication_surface_route_back_recommendation,
         "submission_surface_qc_failures": list(state.submission_surface_qc_failures),
         "archived_submission_surface_roots": list(state.archived_submission_surface_roots),
         "unmanaged_submission_surface_roots": list(state.unmanaged_submission_surface_roots),
@@ -1117,6 +1236,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "conclusion": conclusion,
         "controller_note": publication_gate_policy.CONTROLLER_NOTE,
         **supervisor_state,
+        "controller_stage_note": controller_stage_note,
     }
 
 
@@ -1199,6 +1319,8 @@ def extract_publication_supervisor_state(report: dict[str, Any]) -> dict[str, An
 
 def render_gate_markdown(report: dict[str, Any]) -> str:
     blockers = report.get("blockers") or []
+    medical_surface_named_blockers = report.get("medical_publication_surface_named_blockers") or []
+    medical_surface_route_back_recommendation = report.get("medical_publication_surface_route_back_recommendation")
     missing = report.get("missing_non_scalar_deliverables") or []
     metrics = report.get("headline_metrics") or {}
     terminology_violations = report.get("manuscript_terminology_violations") or []
@@ -1222,6 +1344,18 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
         lines.extend(f"- `{item}`" for item in blockers)
     else:
         lines.append("- No controller-level blocker detected.")
+    if medical_surface_named_blockers:
+        lines.extend(
+            [
+                "",
+                "## Medical Publication Surface Route-Back",
+                "",
+            ]
+        )
+        lines.extend(f"- `{item}`" for item in medical_surface_named_blockers)
+        lines.append(
+            f"- route_back_recommendation: `{medical_surface_route_back_recommendation or 'return_to_publishability_gate'}`"
+        )
     lines.extend(
         [
             "",

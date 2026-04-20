@@ -28,6 +28,7 @@ def make_quest(
     archive_legacy_submission_surface: bool = False,
     include_current_medical_publication_surface_report: bool = False,
     medical_publication_surface_status: str = "clear",
+    medical_publication_surface_report: dict[str, object] | None = None,
     manuscript_files: dict[str, str] | None = None,
     submission_checklist: dict[str, object] | None = None,
     paper_line_state: dict[str, object] | None = None,
@@ -168,12 +169,15 @@ def make_quest(
             ),
         )
     if include_current_medical_publication_surface_report:
+        surface_report = {
+            "status": medical_publication_surface_status,
+            "blockers": [] if medical_publication_surface_status == "clear" else ["claim_evidence_map_missing_or_incomplete"],
+        }
+        if medical_publication_surface_report:
+            surface_report.update(medical_publication_surface_report)
         dump_json(
             quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:32Z.json",
-            {
-                "status": medical_publication_surface_status,
-                "blockers": [] if medical_publication_surface_status == "clear" else ["claim_evidence_map_missing_or_incomplete"],
-            },
+            surface_report,
         )
     if manuscript_files:
         for relpath, body in manuscript_files.items():
@@ -706,6 +710,9 @@ def test_build_gate_report_keeps_bundle_stage_when_only_submission_minimal_is_mi
     assert report["supervisor_phase"] == "bundle_stage_blocked"
     assert report["bundle_tasks_downstream_only"] is False
     assert report["current_required_action"] == "complete_bundle_stage"
+    assert report["medical_publication_surface_named_blockers"] == []
+    assert report["medical_publication_surface_route_back_recommendation"] is None
+    assert report["controller_stage_note"] == "bundle-stage blockers are now on the critical path for this paper line"
 
 
 def test_build_gate_report_blocks_bundle_when_paper_line_requires_supplementary_completion(tmp_path: Path) -> None:
@@ -1946,6 +1953,80 @@ def test_build_gate_report_blocks_when_study_charter_is_invalid(tmp_path: Path) 
     assert "study_charter_invalid" in report["blockers"]
     assert report["current_required_action"] == "return_to_publishability_gate"
     assert "stable study charter artifact is invalid" in report["controller_stage_note"]
+
+
+def test_build_gate_report_maps_surface_signals_to_named_controller_blockers(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+        medical_publication_surface_report={
+            "status": "blocked",
+            "blockers": [
+                "review_ledger_missing_or_incomplete",
+                "claim_evidence_map_missing_or_incomplete",
+                "public_evidence_decisions_missing_or_incomplete",
+            ],
+            "review_ledger_valid": False,
+            "claim_evidence_map_valid": False,
+            "evidence_ledger_valid": False,
+            "medical_story_contract_valid": False,
+            "public_evidence_decision_count": 0,
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert "medical_publication_surface_blocked" in report["blockers"]
+    assert "reviewer_first_concerns_unresolved" in report["blockers"]
+    assert "claim_evidence_consistency_failed" in report["blockers"]
+    assert "submission_hardening_incomplete" in report["blockers"]
+    assert report["medical_publication_surface_named_blockers"] == [
+        "reviewer_first_concerns_unresolved",
+        "claim_evidence_consistency_failed",
+        "submission_hardening_incomplete",
+    ]
+    assert report["medical_publication_surface_route_back_recommendation"] == "return_to_reviewer_first_hardening"
+    assert report["supervisor_phase"] == "publishability_gate_blocked"
+    assert report["bundle_tasks_downstream_only"] is True
+    assert report["current_required_action"] == "return_to_publishability_gate"
+    assert "reviewer-first hardening" in report["controller_stage_note"]
+
+
+def test_build_gate_report_keeps_named_surface_blockers_clear_when_surface_is_clear(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+        medical_publication_surface_report={
+            "status": "clear",
+            "blockers": [],
+            "review_ledger_valid": True,
+            "claim_evidence_map_valid": True,
+            "evidence_ledger_valid": True,
+            "medical_story_contract_valid": True,
+            "public_evidence_decision_count": 2,
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "clear"
+    assert "medical_publication_surface_blocked" not in report["blockers"]
+    assert "reviewer_first_concerns_unresolved" not in report["blockers"]
+    assert "claim_evidence_consistency_failed" not in report["blockers"]
+    assert "submission_hardening_incomplete" not in report["blockers"]
+    assert report["medical_publication_surface_named_blockers"] == []
+    assert report["medical_publication_surface_route_back_recommendation"] is None
 
 
 def test_build_gate_report_ignores_newer_surface_report_from_other_paper_line(tmp_path: Path) -> None:
