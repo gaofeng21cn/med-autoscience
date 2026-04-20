@@ -34,7 +34,9 @@
 ## 当前维护重点
 
 1. 保持 `README*` 与 `docs/README*` 继续面向医生、课题负责人和潜在使用者。
-2. 保持 `docs/project.md`、`docs/status.md`、`docs/architecture.md` 对齐同一套产品边界与入口层级。
-3. 保持 `CLI`、`MCP`、`controller` 作为操作与自动化接口，而不是默认用户心智入口。
-4. 继续把自治推进、论文质量合同和 bounded analysis 收口到 `controller_charter / runtime / eval_hygiene` 主线。
-5. 继续把 `MDS` 保持为当前 controlled research backend 与行为等价参考。
+2. 保持 `docs/project.md`、`docs/status.md`、`docs/architecture.md` 对齐同一套产品边界、执行回路和 owner 层级。
+3. 保持 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 作为 MAS 的核心可执行回路，同时保持 `CLI`、`MCP`、`controller` 作为正式操作与自动化入口。
+4. 保持 `Hermes-Agent` 作为外部长期在线网关的 readiness 检查，并把维护者细节继续留在 reference / program 层。
+5. 把“医学论文质量 + 长时间全自动驾驶优化”正式收口到 `MAS` 单项目主线，由 `controller_charter / runtime / eval_hygiene` 共同承担 owner；`MDS` 迁移期角色继续收敛为 research backend、行为等价 oracle、上游 intake buffer。
+6. 把 study charter 升级为质量总合同入口；`paper evidence ledger` 与 `review ledger` 作为该合同的执行与审阅记录，统一承载主结果、`bounded_analysis`、reviewer concern 与 submission hygiene 的落地状态。
+7. 把“持续学习 `DeepScientist` 方法论”收口为 `MAS` 的长期 program lane：维护者先读 [MedDeepScientist Method Learning Disciplines](./program/med_deepscientist_method_learning_disciplines.md) 和 [MedDeepScientist Continuous Learning Plan](./program/med_deepscientist_continuous_learning_plan.md)，再决定哪些 lesson 进入 `controller_charter`、`runtime`、`eval_hygiene` owner 面，哪些继续留在 `MDS` 的 oracle / intake / parity companion 面。
