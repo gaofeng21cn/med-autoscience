@@ -36,6 +36,13 @@ The scout stage should usually establish four layers:
 
 If one of these layers is still missing, say so explicitly.
 
+## Stage contract
+
+- Purpose: lock framing and name the next honest route.
+- Minimum credible work: durably lock task and evaluation contract, record the local reference and baseline neighborhood, and name either the next route or the blocking unknown.
+- Stop when: the next route is obvious and recorded, or the remaining blockers are explicit enough for downstream routing.
+- Route back: if baseline readiness is still unclear, route to `baseline`; if the framing still cannot support an honest next move, route through `decision`.
+
 {{MED_AUTOSCIENCE_REFERENCE_PAPERS}}
 
 {{MED_AUTOSCIENCE_CONTROLLER_FIRST}}

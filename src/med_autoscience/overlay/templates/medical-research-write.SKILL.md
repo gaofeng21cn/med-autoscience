@@ -79,6 +79,13 @@ If the evidence is incomplete, contradictory, or too weak, the correct output is
 
 not a polished fiction.
 
+## Stage contract
+
+- Purpose: test whether the accepted evidence supports a stable manuscript narrative.
+- Minimum credible work: select an outline or section contract, record claim-evidence bindings, and durably record the active writing contract before broad drafting expansion.
+- Stop when: a draft or bundle reaches a stable reviewable state, or a missing evidence requirement is explicit enough to trigger route-back.
+- Route back: if the blocker is route-level or publishability-level, route through `decision`; if the blocker is evidence-level, route to `analysis-campaign`, `experiment`, or `scout` as named by the gap.
+
 For paper-like deliverables, the durable contract is outline-first, not prose-first.
 The approved outline should be a real structured object, typically containing:
 

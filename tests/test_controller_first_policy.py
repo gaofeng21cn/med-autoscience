@@ -22,6 +22,10 @@ def test_render_controller_first_policy_block_lists_managed_task_domains() -> No
     assert "proactive public-data discovery pass" in text
     assert "immediate download or materialization follow-through" in text
     assert "Only when the platform does not already provide a stable controller" in text
+    assert "Reuse durable study memory and portfolio research memory before starting fresh external rediscovery" in text
+    assert "Choose the lightest honest route that can answer the current stage question" in text
+    assert "Review and route-back discipline" in text
+    assert "route back through `decision` or the named `required_first_anchor`" in text
 
 
 def test_render_automation_ready_policy_block_describes_autonomous_runtime_transition() -> None:

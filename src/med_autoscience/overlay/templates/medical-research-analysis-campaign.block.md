@@ -17,6 +17,13 @@ Hard startup-boundary rules for this stage:
 - If `startup_contract.baseline_execution_policy == "skip_unless_blocking"`, analysis-campaign work is blocked unless a named framing or evidence blocker truly requires one bounded diagnostic recovery step.
 - Do not execute legacy implementation code from `refs/` or historical directories unless `startup_contract.legacy_code_execution_allowed` is `true`.
 
+Stage contract for this route:
+
+- Purpose: close a named publication-relevant evidence gap with bounded follow-up work.
+- Minimum credible work: record the target gap and campaign scope, finish at least one publication-relevant slice, and write the result back into the named evidence surface.
+- Stop when: the named gap is closed, or the budget boundary / major boundary signal is reached and durably recorded.
+- Route back: when the remaining question becomes route-level rather than compute-level, record the gap and route through `decision`; when the evidence is ready for manuscript consolidation, route to `write`.
+
 Prioritize campaign slices that materially strengthen a medical manuscript, such as:
 
 - calibration / threshold / utility analysis

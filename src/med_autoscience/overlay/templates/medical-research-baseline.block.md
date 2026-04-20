@@ -15,6 +15,13 @@ Hard startup-boundary rules for this stage:
 - If `startup_contract.baseline_execution_policy == "skip_unless_blocking"`, baseline may inspect already-produced evidence only when a named decision is blocked by missing or unusable comparator evidence.
 - Do not execute legacy implementation code from `refs/` or historical directories unless `startup_contract.legacy_code_execution_allowed` is `true`.
 
+Stage contract for this route:
+
+- Purpose: establish a trustworthy comparator surface for the paper route.
+- Minimum credible work: name the baseline route and scope, check cohort / endpoint / time horizon alignment, and record the method plus configuration surface that could later enter Methods.
+- Stop when: the comparator is trustworthy enough for a route decision, or the blocker / low-yield expansion is explicit in durable artifacts.
+- Route back: if baseline work stops improving the paper route, record the gap and route through `decision`.
+
 Before declaring a baseline trustworthy, make the medical contract explicit:
 
 - target cohort, endpoint, and time horizon

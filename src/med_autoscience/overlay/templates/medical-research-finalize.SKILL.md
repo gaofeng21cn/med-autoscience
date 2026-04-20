@@ -34,6 +34,13 @@ It is the durable closure protocol that turns a long-running research graph into
 In this runtime, `human-auditable` does not mean the human should manually reconstruct quest state from raw artifacts.
 Finalize should leave a clean durable closure surface that a human can inspect directly through summary, report, claim ledger, and final delivery outputs.
 
+## Stage contract
+
+- Purpose: materialize an honest closure, publish, or continue-later surface.
+- Minimum credible work: refresh the final claim ledger, record the closure recommendation, and leave a resume or handoff surface that a reviewer can inspect directly.
+- Stop when: the closure surface is auditable, or a reopen blocker is explicit enough to name the route back.
+- Route back: if package adequacy, submission readiness, or evidence strength is still unresolved, record the blocker and route through `decision`, then continue to `write` or the named upstream stage.
+
 ## Use when
 
 - the evidence base is stable enough for a final recommendation

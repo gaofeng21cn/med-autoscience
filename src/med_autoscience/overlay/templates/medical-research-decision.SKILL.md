@@ -35,6 +35,13 @@ It is a cross-cutting control skill that should be used whenever the quest must 
 - whether to stop
 - whether to escalate an unresolved ambiguity back to MAS outer loop
 
+## Stage contract
+
+- Purpose: choose the smallest honest next route from durable evidence.
+- Minimum credible work: name the decision question, summarize only decision-relevant evidence, and durably record verdict, action, and next route.
+- Stop when: the next route is selected and recorded, or the blocking gap is explicit enough to reroute to a named stage.
+- Route back: send framing gaps to `scout`, comparator gaps to `baseline`, bounded evidence gaps to `analysis-campaign`, manuscript adequacy gaps to `write`, and closure adequacy gaps to `finalize`.
+
 {{MED_AUTOSCIENCE_AUTOMATION_READY}}
 
 ## Use when

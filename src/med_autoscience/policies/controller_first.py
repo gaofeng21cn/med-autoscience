@@ -19,10 +19,16 @@ def render_controller_first_block() -> str:
         "",
         "Fallback rule:",
         "- Only when the platform does not already provide a stable controller, CLI, or overlay skill for the task may the agent use freeform external execution such as browser automation, web browsing, or document extraction.",
+        "- Reuse durable study memory and portfolio research memory before starting fresh external rediscovery.",
+        "- Choose the lightest honest route that can answer the current stage question; do not expand into heavier search, compute, or writing work before the current contract is satisfied.",
         "",
         "Write-back rule:",
         "- If fallback execution is used, the result must still be written back into MedAutoScience durable state such as study artifacts, paper artifacts, startup contracts, or the public/private data-asset registries.",
         "- Do not leave durable research state only in transient chat output.",
+        "",
+        "Review and route-back discipline:",
+        "- Before expanding scope or advancing stages, verify that the current stage left a durable contract surface that names the result, blocker, or next route.",
+        "- When a review, quality, or route gap is found, record the gap in durable state and route back through `decision` or the named `required_first_anchor` instead of improvising around it in chat.",
     ]
     return "\n".join(lines) + "\n"
 
@@ -38,7 +44,7 @@ def render_controller_first_summary() -> str:
         "one proactive public-data discovery pass unless the study contract explicitly waives public sidecars: "
         "check `portfolio/data_assets/public/registry.json`, then use `data-assets-status`, `startup-data-readiness`, "
         "`tooluniverse-status`, and `apply-data-asset-update`, and start immediate download or materialization "
-        "follow-through for retained anchors whenever the task falls inside their covered surface. Only when the platform does not already provide a "
-        "stable controller may the agent fall back to browser/web/document tools, and any such fallback must be "
-        "written back into durable MedAutoScience state."
+        "follow-through for retained anchors whenever the task falls inside their covered surface. Reuse durable study memory before fresh rediscovery and prefer the lightest honest route that answers the current stage question. "
+        "Only when the platform does not already provide a stable controller may the agent fall back to browser/web/document tools, and any such fallback must be "
+        "written back into durable MedAutoScience state. Before stage expansion, verify that the current stage has a durable result, blocker, or next-route record; when a quality or route gap appears, record it and route back through `decision` or the named `required_first_anchor`."
     )

@@ -8,6 +8,112 @@ import pytest
 
 
 MODULE_NAME = "med_autoscience.study_charter"
+EXPECTED_ROUTE_DISCIPLINE = {
+    "named_routes": [
+        "scout",
+        "baseline",
+        "analysis-campaign",
+        "write",
+        "finalize",
+        "decision",
+    ],
+    "controller_first_required": True,
+    "memory_reuse_required": True,
+    "prefer_lightest_honest_route": True,
+    "write_back_required": True,
+    "startup_blockers_route_to": "required_first_anchor",
+    "quality_or_route_gaps_route_through": "decision",
+    "review_loop": [
+        "verify_stage_contract_before_expanding_scope",
+        "record_gap_in_durable_artifacts_before_reroute",
+    ],
+}
+EXPECTED_STAGE_EXPECTATIONS = {
+    "scout": {
+        "route_name": "scout",
+        "stage_purpose": "lock framing and name the next honest route",
+        "minimum_outputs": [
+            "task_and_evaluation_contract_locked",
+            "local_reference_and_baseline_neighborhood_recorded",
+            "next_route_or_blocker_named",
+        ],
+        "stop_conditions": [
+            "next_route_is_obvious_and_recorded",
+            "blocking_unknowns_are_explicit",
+        ],
+        "route_back_targets": ["baseline", "decision"],
+    },
+    "baseline": {
+        "route_name": "baseline",
+        "stage_purpose": "establish a trustworthy comparator surface for the paper route",
+        "minimum_outputs": [
+            "baseline_route_and_scope_named",
+            "cohort_endpoint_time_horizon_checked",
+            "methods_and_configuration_surface_recorded",
+        ],
+        "stop_conditions": [
+            "comparator_is_trustworthy_enough_for_decision",
+            "baseline_blocker_or_low_yield_expansion_is_explicit",
+        ],
+        "route_back_targets": ["decision"],
+    },
+    "analysis-campaign": {
+        "route_name": "analysis-campaign",
+        "stage_purpose": "close a named publication-relevant evidence gap with bounded follow-up work",
+        "minimum_outputs": [
+            "target_gap_and_campaign_scope_recorded",
+            "publication_relevant_slice_completed",
+            "write_back_surface_updated",
+        ],
+        "stop_conditions": [
+            "named_gap_is_closed",
+            "budget_boundary_or_major_boundary_signal_is_hit",
+        ],
+        "route_back_targets": ["decision", "write"],
+    },
+    "write": {
+        "route_name": "write",
+        "stage_purpose": "test whether the accepted evidence supports a stable manuscript narrative",
+        "minimum_outputs": [
+            "outline_or_section_contract_selected",
+            "claim_evidence_bindings_recorded",
+            "active_writing_contract_recorded",
+        ],
+        "stop_conditions": [
+            "draft_or_bundle_reaches_stable_review_state",
+            "missing_evidence_requires_route_back",
+        ],
+        "route_back_targets": ["decision", "analysis-campaign", "scout"],
+    },
+    "finalize": {
+        "route_name": "finalize",
+        "stage_purpose": "materialize an honest closure, publish, or continue-later surface",
+        "minimum_outputs": [
+            "final_claim_ledger_updated",
+            "closure_recommendation_recorded",
+            "resume_or_handoff_surface_refreshed",
+        ],
+        "stop_conditions": [
+            "closure_surface_is_auditable",
+            "reopen_blocker_or_route_back_is_named",
+        ],
+        "route_back_targets": ["decision", "write"],
+    },
+    "decision": {
+        "route_name": "decision",
+        "stage_purpose": "choose the smallest honest next route from durable evidence",
+        "minimum_outputs": [
+            "decision_question_named",
+            "decision_relevant_evidence_summarized",
+            "verdict_action_and_next_route_recorded",
+        ],
+        "stop_conditions": [
+            "next_route_is_durably_selected",
+            "blocking_gap_is_rerouted_to_a_named_stage",
+        ],
+        "route_back_targets": ["scout", "baseline", "analysis-campaign", "write", "finalize"],
+    },
+}
 
 
 def _write_json(path: Path, payload: object) -> None:
@@ -245,6 +351,8 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
                 ],
             },
         },
+        "route_discipline": EXPECTED_ROUTE_DISCIPLINE,
+        "stage_expectations": EXPECTED_STAGE_EXPECTATIONS,
         "downstream_contract_roles": {
             "evidence_ledger": "records evidence against evidence_expectations",
             "review_ledger": "records review closure against review_expectations",
@@ -325,6 +433,8 @@ def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Pa
                 ],
             },
         },
+        "route_discipline": EXPECTED_ROUTE_DISCIPLINE,
+        "stage_expectations": EXPECTED_STAGE_EXPECTATIONS,
         "downstream_contract_roles": {
             "evidence_ledger": "records evidence against evidence_expectations",
             "review_ledger": "records review closure against review_expectations",
