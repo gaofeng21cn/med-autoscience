@@ -2429,11 +2429,20 @@ def build_product_entry_manifest(
         extra_payload={
             "schema_version": SCHEMA_VERSION,
             "executor_defaults": {
-                "default_executor": "codex_cli_autonomous",
+                "default_executor_name": "codex_cli",
+                "default_executor_mode": "autonomous",
                 "default_model": "inherit_local_codex_default",
                 "default_reasoning_effort": "inherit_local_codex_default",
+                "executor_labels": {
+                    "codex_cli": "Codex CLI",
+                    "hermes_agent": "Hermes-Agent",
+                },
+                "executor_statuses": {
+                    "codex_cli": "default",
+                    "hermes_agent": "experimental",
+                },
                 "chat_completion_only_executor_forbidden": True,
-                "hermes_native_requires_full_agent_loop": True,
+                "hermes_agent_requires_full_agent_loop": True,
                 "current_backend_chain": [
                     "med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist",
                     "med_deepscientist CodexRunner -> codex exec autonomous agent loop",

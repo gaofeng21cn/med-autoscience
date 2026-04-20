@@ -1707,11 +1707,22 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["runtime_inventory"]["workspace_binding"]["workspace_root"] == str(profile.workspace_root)
     assert payload["runtime_inventory"]["workspace_binding"]["profile_name"] == profile.name
     assert payload["runtime_inventory"]["domain_projection"]["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
-    assert payload["executor_defaults"]["default_executor"] == "codex_cli_autonomous"
+    assert payload["executor_defaults"]["default_executor_name"] == "codex_cli"
+    assert payload["executor_defaults"]["default_executor_mode"] == "autonomous"
     assert payload["executor_defaults"]["default_model"] == "inherit_local_codex_default"
     assert payload["executor_defaults"]["default_reasoning_effort"] == "inherit_local_codex_default"
+    assert payload["executor_defaults"]["executor_labels"] == {
+        "codex_cli": "Codex CLI",
+        "hermes_agent": "Hermes-Agent",
+    }
+    assert payload["executor_defaults"]["executor_statuses"] == {
+        "codex_cli": "default",
+        "hermes_agent": "experimental",
+    }
     assert payload["executor_defaults"]["chat_completion_only_executor_forbidden"] is True
-    assert payload["executor_defaults"]["hermes_native_requires_full_agent_loop"] is True
+    assert payload["executor_defaults"]["hermes_agent_requires_full_agent_loop"] is True
+    assert "default_executor" not in payload["executor_defaults"]
+    assert "hermes_native_requires_full_agent_loop" not in payload["executor_defaults"]
     assert payload["executor_defaults"]["current_backend_chain"][1].endswith(
         "codex exec autonomous agent loop"
     )

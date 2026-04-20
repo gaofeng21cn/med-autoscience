@@ -39,10 +39,11 @@
 
 - `MedAutoScience` 自己不直接打模型。
 - 当前底层链路固定为：`med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist -> MedDeepScientist CodexRunner -> codex exec autonomous agent loop`。
-- family 默认 concrete executor：`codex_cli_autonomous`。
+- family 默认执行器正式名称：`Codex CLI`。
+- family 默认执行模式：`autonomous`。
 - 默认 model / reasoning：继承本机 Codex 默认（`inherit_local_codex_default`）。
 - `chat-only executor` 明确 forbidden（`chat_completion_only_executor_forbidden = true`）。
-- `Hermes-native` 只有 full agent loop 才算（`hermes_native_requires_full_agent_loop = true`）。
+- `Hermes-Agent` 备选执行路线当前状态是 `experimental`，只有 full agent loop 才满足 guardrail（`hermes_agent_requires_full_agent_loop = true`）。
 - 当前 manifest 也会显式导出一个 opt-in proof lane：`executor_kind = hermes_native_proof` 时，底层 pass-through 到 `MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation`；它不是默认执行器，只是与默认 Codex lane 并挂的可选 proof adapter。
 
 ## 当前主线与 monorepo 长线的关系
