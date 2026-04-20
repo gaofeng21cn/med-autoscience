@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-20
 
+- Add `shap_signed_importance_local_support_domain_panel` as the next audited `F` global-to-local explanation scene slice in the core display pack.
+- Lock its pack-facing contract to `shap_signed_importance_local_support_domain_panel_inputs_v1`, `publication_shap_signed_importance_local_support_domain_panel`, and the Python bounded `1 + 1 + 2` signed-importance plus local-waterfall plus support-domain renderer path.
+
 - Add `atlas_spatial_trajectory_multimanifold_context_support_panel` as the next audited `D/E/G` dual-manifold atlas-geometry composite slice in the core display pack.
 - Lock its pack-facing contract to `atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1`, `publication_atlas_spatial_trajectory_multimanifold_context_support_panel`, and the Python bounded seven-panel dual-manifold atlas/spatial/trajectory context-support renderer path.
 

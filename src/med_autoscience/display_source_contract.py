@@ -63,6 +63,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "feature_response_support_domain_panel_inputs_v1": "feature_response_support_domain_panel_inputs.json",
     "shap_grouped_local_support_domain_panel_inputs_v1": "shap_grouped_local_support_domain_panel_inputs.json",
     "shap_multigroup_decision_path_support_domain_panel_inputs_v1": "shap_multigroup_decision_path_support_domain_panel_inputs.json",
+    "shap_signed_importance_local_support_domain_panel_inputs_v1": "shap_signed_importance_local_support_domain_panel_inputs.json",
     "multicenter_generalizability_inputs_v1": "multicenter_generalizability_inputs.json",
     "workflow_fact_sheet_panel_inputs_v1": "workflow_fact_sheet_panel.json",
     "design_evidence_composite_shell_inputs_v1": "design_evidence_composite_shell.json",

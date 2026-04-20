@@ -10553,6 +10553,152 @@ def _validate_shap_multigroup_decision_path_support_domain_panel_display_payload
     }
 
 
+def _validate_shap_signed_importance_local_support_domain_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    support_y_label = _require_non_empty_string(
+        payload.get("support_y_label"),
+        label=f"{path.name} display `{expected_display_id}` support_y_label",
+    )
+    support_legend_title = _require_non_empty_string(
+        payload.get("support_legend_title"),
+        label=f"{path.name} display `{expected_display_id}` support_legend_title",
+    )
+
+    importance_panel_payload = payload.get("importance_panel")
+    if not isinstance(importance_panel_payload, dict):
+        raise ValueError(f"{path.name} display `{expected_display_id}` importance_panel must be an object")
+    importance_panel_id = _require_non_empty_string(
+        importance_panel_payload.get("panel_id"),
+        label=f"{path.name} display `{expected_display_id}` importance_panel.panel_id",
+    )
+    importance_panel_label = _require_non_empty_string(
+        importance_panel_payload.get("panel_label"),
+        label=f"{path.name} display `{expected_display_id}` importance_panel.panel_label",
+    )
+    importance_panel_title = _require_non_empty_string(
+        importance_panel_payload.get("title"),
+        label=f"{path.name} display `{expected_display_id}` importance_panel.title",
+    )
+    normalized_importance_panel = _validate_shap_signed_importance_panel_display_payload(
+        path=path,
+        payload={
+            "template_id": expected_template_id,
+            "title": title,
+            "caption": payload.get("caption"),
+            "paper_role": payload.get("paper_role"),
+            "x_label": importance_panel_payload.get("x_label"),
+            "negative_label": importance_panel_payload.get("negative_label"),
+            "positive_label": importance_panel_payload.get("positive_label"),
+            "bars": importance_panel_payload.get("bars"),
+        },
+        expected_template_id=expected_template_id,
+        expected_display_id=expected_display_id,
+    )
+
+    local_panel_payload = payload.get("local_panel")
+    if not isinstance(local_panel_payload, dict):
+        raise ValueError(f"{path.name} display `{expected_display_id}` local_panel must be an object")
+    normalized_local_payload = _validate_shap_waterfall_local_explanation_panel_display_payload(
+        path=path,
+        payload={
+            "template_id": expected_template_id,
+            "title": title,
+            "caption": payload.get("caption"),
+            "paper_role": payload.get("paper_role"),
+            "x_label": local_panel_payload.get("x_label"),
+            "panels": [local_panel_payload],
+        },
+        expected_template_id=expected_template_id,
+        expected_display_id=expected_display_id,
+    )
+    normalized_local_panel = dict(normalized_local_payload["panels"][0])
+
+    support_panels = _normalize_feature_response_support_panels(
+        path=path,
+        panels_payload=payload.get("support_panels"),
+        expected_display_id=expected_display_id,
+        panels_field="support_panels",
+        minimum_count=2,
+        maximum_count=2,
+    )
+
+    global_feature_order = [str(item["feature"]) for item in normalized_importance_panel["bars"]]
+    local_feature_order = [str(item["feature"]) for item in normalized_local_panel["contributions"]]
+    if not set(local_feature_order).issubset(set(global_feature_order)):
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` local_panel.contributions.feature must stay within the global signed-importance feature order"
+        )
+    expected_local_feature_order = [feature for feature in global_feature_order if feature in set(local_feature_order)]
+    if local_feature_order != expected_local_feature_order:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` local_panel.contributions.feature order must follow the global signed-importance feature order"
+        )
+
+    support_features = [str(panel["feature"]) for panel in support_panels]
+    if not set(support_features).issubset(set(global_feature_order)):
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` support_panels.feature must stay within the global signed-importance feature order"
+        )
+    expected_support_feature_order = [feature for feature in global_feature_order if feature in set(support_features)]
+    if support_features != expected_support_feature_order:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` support_panels.feature order must follow the global signed-importance feature order"
+        )
+
+    panel_labels = [importance_panel_label, str(normalized_local_panel["panel_label"])] + [
+        str(panel["panel_label"]) for panel in support_panels
+    ]
+    if len(set(panel_labels)) != len(panel_labels):
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` panel_label values must stay globally unique across importance_panel, local_panel, and support_panels"
+        )
+
+    panel_ids = [importance_panel_id, str(normalized_local_panel["panel_id"])] + [str(panel["panel_id"]) for panel in support_panels]
+    if len(set(panel_ids)) != len(panel_ids):
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` panel_id values must stay globally unique across importance_panel, local_panel, and support_panels"
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "support_y_label": support_y_label,
+        "support_legend_title": support_legend_title,
+        "support_legend_labels": [
+            "Response curve",
+            "Observed support",
+            "Subgroup support",
+            "Bin support",
+            "Extrapolation reminder",
+        ],
+        "global_feature_order": global_feature_order,
+        "local_feature_order": local_feature_order,
+        "importance_panel": {
+            "panel_id": importance_panel_id,
+            "panel_label": importance_panel_label,
+            "title": importance_panel_title,
+            "x_label": str(normalized_importance_panel["x_label"]),
+            "negative_label": str(normalized_importance_panel["negative_label"]),
+            "positive_label": str(normalized_importance_panel["positive_label"]),
+            "bars": list(normalized_importance_panel["bars"]),
+        },
+        "local_panel": normalized_local_panel,
+        "support_panels": support_panels,
+    }
+
+
 def _validate_multicenter_generalizability_display_payload(
     *,
     path: Path,
@@ -11561,6 +11707,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "shap_multigroup_decision_path_support_domain_panel_inputs_v1":
         return payload_path, _validate_shap_multigroup_decision_path_support_domain_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "shap_signed_importance_local_support_domain_panel_inputs_v1":
+        return payload_path, _validate_shap_signed_importance_local_support_domain_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

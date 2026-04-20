@@ -11900,6 +11900,89 @@ def _make_shap_multigroup_decision_path_support_domain_panel_display(
     }
 
 
+def _make_shap_signed_importance_local_support_domain_panel_display(
+    display_id: str = "Figure52",
+) -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "shap_signed_importance_local_support_domain_panel",
+        "title": "Global signed importance with local waterfall and support-domain follow-on for manuscript-facing explanation scenes",
+        "caption": (
+            "A signed-importance anchor defines the global polarity of the explanation scene, "
+            "a representative local waterfall preserves the patient-level additive path, "
+            "and matched support-domain panels keep the same narrative bounded by observed evidence."
+        ),
+        "support_y_label": "Predicted response probability",
+        "support_legend_title": "Support domain",
+        "importance_panel": {
+            "panel_id": "global_signed_importance",
+            "panel_label": "A",
+            "title": "Directional global importance",
+            "x_label": "Mean signed SHAP value",
+            "negative_label": "Protective direction",
+            "positive_label": "Risk direction",
+            "bars": [
+                {"rank": 1, "feature": "Albumin", "signed_importance_value": -0.118},
+                {"rank": 2, "feature": "Age", "signed_importance_value": 0.104},
+                {"rank": 3, "feature": "Tumor size", "signed_importance_value": 0.081},
+                {"rank": 4, "feature": "Platelet count", "signed_importance_value": -0.064},
+            ],
+        },
+        "local_panel": {
+            "panel_id": "representative_case",
+            "panel_label": "B",
+            "title": "Representative high-risk case",
+            "case_label": "Case 1 · 1-year mortality",
+            "x_label": "Predicted 1-year mortality probability",
+            "baseline_value": 0.18,
+            "predicted_value": 0.39,
+            "contributions": [
+                {"feature": "Albumin", "feature_value_text": "3.1 g/dL", "shap_value": 0.08},
+                {"feature": "Age", "feature_value_text": "74 years", "shap_value": 0.12},
+                {"feature": "Tumor size", "feature_value_text": "9.4 cm", "shap_value": 0.04},
+                {"feature": "Platelet count", "feature_value_text": "210 ×10^9/L", "shap_value": -0.03},
+            ],
+        },
+        "support_panels": [
+            {
+                "panel_id": "albumin_support",
+                "panel_label": "C",
+                "title": "Albumin response support",
+                "x_label": "Albumin (g/dL)",
+                "feature": "Albumin",
+                "reference_value": 3.8,
+                "reference_label": "Median albumin",
+                "response_curve": {
+                    "x": [2.8, 3.2, 3.6, 4.0, 4.4, 4.6],
+                    "y": [0.39, 0.33, 0.28, 0.23, 0.19, 0.17],
+                },
+                "support_segments": [
+                    {"segment_id": "alb_observed", "segment_label": "Observed", "support_kind": "observed_support", "domain_start": 2.8, "domain_end": 3.2},
+                    {"segment_id": "alb_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "domain_start": 3.2, "domain_end": 3.8},
+                    {"segment_id": "alb_bin", "segment_label": "Bin", "support_kind": "bin_support", "domain_start": 3.8, "domain_end": 4.2},
+                    {"segment_id": "alb_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "domain_start": 4.2, "domain_end": 4.6},
+                ],
+            },
+            {
+                "panel_id": "age_support",
+                "panel_label": "D",
+                "title": "Age response support",
+                "x_label": "Age (years)",
+                "feature": "Age",
+                "reference_value": 60.0,
+                "reference_label": "Median age",
+                "response_curve": {"x": [40.0, 50.0, 60.0, 70.0, 80.0], "y": [0.18, 0.22, 0.29, 0.35, 0.41]},
+                "support_segments": [
+                    {"segment_id": "age_observed", "segment_label": "Observed", "support_kind": "observed_support", "domain_start": 40.0, "domain_end": 50.0},
+                    {"segment_id": "age_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "domain_start": 50.0, "domain_end": 62.0},
+                    {"segment_id": "age_bin", "segment_label": "Bin", "support_kind": "bin_support", "domain_start": 62.0, "domain_end": 72.0},
+                    {"segment_id": "age_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "domain_start": 72.0, "domain_end": 80.0},
+                ],
+            },
+        ],
+    }
+
+
 def _make_shap_bar_importance_display(display_id: str = "Figure37") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -13821,6 +13904,123 @@ def test_materialize_display_surface_generates_shap_multigroup_decision_path_sup
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "shap_multigroup_decision_path_support_domain_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_shap_multigroup_decision_path_support_domain_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_load_evidence_display_payload_rejects_local_feature_order_drift_for_shap_signed_importance_local_support_domain_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_shap_signed_importance_local_support_domain_panel_display()
+    display_payload["local_panel"]["contributions"] = [
+        display_payload["local_panel"]["contributions"][1],
+        display_payload["local_panel"]["contributions"][0],
+        *display_payload["local_panel"]["contributions"][2:],
+    ]
+    dump_json(
+        paper_root / "shap_signed_importance_local_support_domain_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_signed_importance_local_support_domain_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("shap_signed_importance_local_support_domain_panel")
+
+    with pytest.raises(
+        ValueError,
+        match="local_panel.contributions.feature order must follow the global signed-importance feature order",
+    ):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure52",
+        )
+
+
+def test_materialize_display_surface_generates_shap_signed_importance_local_support_domain_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure52",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_signed_importance_local_support_domain_panel",
+                    "catalog_id": "F52",
+                    "shell_path": "paper/figures/Figure52.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure52",
+                    "template_id": "shap_signed_importance_local_support_domain_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "shap_signed_importance_local_support_domain_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_signed_importance_local_support_domain_panel_inputs_v1",
+            "displays": [_make_shap_signed_importance_local_support_domain_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F52"]
+    assert (
+        paper_root / "figures" / "generated" / "F52_shap_signed_importance_local_support_domain_panel.png"
+    ).exists()
+    assert (
+        paper_root / "figures" / "generated" / "F52_shap_signed_importance_local_support_domain_panel.pdf"
+    ).exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F52_shap_signed_importance_local_support_domain_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 4
+    assert any(item["box_id"] == "negative_direction_label" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "support_legend_box" for item in layout_sidecar["layout_boxes"])
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "support_domain_segment"]) == 8
+    assert layout_sidecar["metrics"]["global_feature_order"] == ["Albumin", "Age", "Tumor size", "Platelet count"]
+    assert layout_sidecar["metrics"]["local_feature_order"] == ["Albumin", "Age", "Tumor size", "Platelet count"]
+    assert layout_sidecar["metrics"]["importance_panel"]["bars"][0]["direction"] == "negative"
+    assert layout_sidecar["metrics"]["local_panel"]["contributions"][-1]["end_value"] == 0.39
+    assert [item["feature"] for item in layout_sidecar["metrics"]["support_panels"]] == ["Albumin", "Age"]
+    assert layout_sidecar["metrics"]["support_panels"][1]["support_segments"][2]["support_kind"] == "bin_support"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F52"
+    assert figure_entry["template_id"] == full_id("shap_signed_importance_local_support_domain_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "shap_signed_importance_local_support_domain_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_shap_signed_importance_local_support_domain_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

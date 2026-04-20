@@ -20,12 +20,12 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`77`
+  - 证据型模板：`78`
   - 插图壳层：`7`
   - 表格壳层：`5`
-  - 总模板数：`89`
+  - 总模板数：`90`
 - 最近一次已吸收完成的 capability cluster：
-  - `D/E/G / atlas_spatial_trajectory_multimanifold_context_support_panel`
+  - `F / shap_signed_importance_local_support_domain_panel`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -34,47 +34,43 @@
 
 ## 当前 Active Round
 
-- Phase：`Phase 4 / next-cluster scouting`
-- Family cluster：`reroute pending after latest D/E/G absorb`
-- Capability cluster：`reroute after latest D/E/G absorb`
+- Phase：`Phase 4 / post-absorb reroute`
+- Family cluster：`F absorbed, reroute reopened`
+- Capability cluster：`shap_signed_importance_local_support_domain_panel closed`
 - Owner worktree：`not_opened`
 - 状态：`ready_for_next_owner_round`
 
 ### Fresh Mainline Result
 
-- 当前主干已吸收 `atlas_spatial_trajectory_multimanifold_context_support_panel`；
+- 当前主干应吸收的最新 capability cluster 是 `shap_signed_importance_local_support_domain_panel`；
 - strict audited inventory 已更新到：
--  `Data Geometry`：`14`
-  - evidence figures：`77`
-  - total templates：`89`
-- `atlas_spatial_trajectory_multimanifold_context_support_panel` 已从 higher-order atlas geometry 候选转为 audited inventory；
-- 当前 fresh verify 已完成：
-  - `uv run pytest -q tests/test_display_registry.py tests/test_display_schema_contract.py tests/test_display_layout_qc.py tests/test_display_surface_materialization.py tests/test_display_deg_golden_regression.py` → `436 passed`
-  - `make test-meta` → `84 passed`
-  - `scripts/verify.sh` → `1241 passed, 476 deselected`
+  - `Model Explanation`：`19`
+  - evidence figures：`78`
+  - total templates：`90`
+- `shap_signed_importance_local_support_domain_panel` 已从 `F` 家族 higher-order explanation scene 候选转为 audited inventory；
 - 下一步是按 reroute 规则固定下一个 capability cluster，再新开唯一 owner worktree。
 
 ### 当前轮次目标
 
 当前下一轮要回答：
 
-> 在 `D/E/G` 家族 dual-manifold atlas geometry lower bound 已经 absorb 完成的前提下，下一条最值得继续扩容的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
+> 在 `F` 家族 signed-importance + local-waterfall + support-domain lower bound 已经 absorb 完成的前提下，下一条最值得继续扩容的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
 
 ### 当前 Next Baton
 
 当前 baton 已明确：
 
 1. 最新的 `D/E/G / atlas_spatial_trajectory_multimanifold_context_support_panel` owner round 已经 absorb 完成。
-2. 当前 strict audited inventory 已稳定在 `77 / 7 / 5 / 89`。
+2. 最新的 `F / shap_signed_importance_local_support_domain_panel` owner round 已完成 closeout，strict audited inventory 已推进到 `78 / 7 / 5 / 90`。
 3. 当前没有打开中的 owner worktree，下一轮要先 reroute，再开唯一 owner round。
-4. `F`、`D/E/G` 与 `C/H` 的 higher-order follow-on 继续留在候选池。
+4. 下一轮优先继续比较 `D/E/G`、`C/H` 与 `F` 的 AI-first visual-hardening / higher-order follow-on 价值。
 
 ### 下一轮边界
 
 下一轮只做下面三块：
 
 1. 先 fresh 读取当前 audit guide / template catalog / arsenal / active board；
-2. 再比较 `F`、`D/E/G` 与 `C/H` 的真实论文 demand 哪一条最值得开启下一轮；
+2. 再比较 `D/E/G`、`C/H` 与 `F` 的真实论文 demand 哪一条最值得开启下一轮；
 3. 只有 reroute 固定后，才新开唯一 owner worktree 进入实现。
 
 ## 预期写集
@@ -102,9 +98,9 @@
 
 当前本轮完成后的 reroute 候选按下面顺序继续：
 
-1. `F / higher-order explanation scene only if new real-paper demand proves the current grouped-local + multigroup decision-scene lower bound insufficient`
-2. `D/E/G / richer higher-order multi-view atlas follow-on only if new real-paper demand proves the current multimanifold context-support lower bound insufficient`
-3. `C/H / calibration appendix or higher-order robustness synthesis only if new real-paper demand proves the current compact-estimate + coefficient-path + broader-heterogeneity lower bound insufficient`
+1. `D/E/G / richer higher-order multi-view atlas follow-on only if new real-paper demand proves the current multimanifold context-support lower bound insufficient`
+2. `C/H / calibration appendix or higher-order robustness synthesis only if new real-paper demand proves the current compact-estimate + coefficient-path + broader-heterogeneity lower bound insufficient`
+3. `F / higher-order explanation scene or AI-first visual hardening only if new real-paper demand proves the current signed-importance + local-waterfall + support-domain scene and grouped decision-scene lower bound insufficient`
 
 ## 明确不是执行面
 

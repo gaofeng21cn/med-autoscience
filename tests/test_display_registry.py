@@ -81,6 +81,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("shap_grouped_decision_path_panel"),
         _full_id("shap_multigroup_decision_path_panel"),
         _full_id("shap_multigroup_decision_path_support_domain_panel"),
+        _full_id("shap_signed_importance_local_support_domain_panel"),
         _full_id("partial_dependence_interaction_contour_panel"),
         _full_id("feature_response_support_domain_panel"),
         _full_id("time_to_event_discrimination_calibration_panel"),
@@ -420,6 +421,16 @@ def test_shap_multigroup_decision_path_support_domain_panel_is_registered() -> N
     assert spec.layout_qc_profile == "publication_shap_multigroup_decision_path_support_domain_panel"
 
 
+def test_shap_signed_importance_local_support_domain_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("shap_signed_importance_local_support_domain_panel"))
+
+    assert spec.paper_family_ids == ("F",)
+    assert spec.evidence_class == "model_explanation"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "shap_signed_importance_local_support_domain_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_shap_signed_importance_local_support_domain_panel"
+
+
 def test_shap_bar_importance_is_registered() -> None:
     spec = display_registry.get_evidence_figure_spec(_full_id("shap_bar_importance"))
 
@@ -534,6 +545,11 @@ def test_feature_response_support_domain_panel_keeps_stable_registry_order() -> 
     )
     assert evidence_template_ids.index(
         _full_id("shap_multigroup_decision_path_support_domain_panel")
+    ) < evidence_template_ids.index(
+        _full_id("shap_signed_importance_local_support_domain_panel")
+    )
+    assert evidence_template_ids.index(
+        _full_id("shap_signed_importance_local_support_domain_panel")
     ) < evidence_template_ids.index(
         _full_id("time_to_event_discrimination_calibration_panel")
     )

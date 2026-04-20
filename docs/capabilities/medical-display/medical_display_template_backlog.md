@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `77`
+- Evidence figure templates: `78`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total audited templates: `89`
+- Total audited templates: `90`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -47,7 +47,7 @@
 当前真正还可以继续扩容、且仍停留在 backlog 而未进入当前 active round 的候选，主要是：
 
 - `D/E/G / richer manifold or higher-order multi-view atlas follow-on beyond the current multimanifold context-support lower bound`
-- `F / higher-order explanation scene beyond the current grouped-local + multigroup decision-scene composite lower bound`
+- `F / higher-order explanation scene or AI-first visual hardening beyond the current signed-importance + local-waterfall + support-domain scene and grouped decision-scene lower bound`
 - `C/H / calibration appendix or higher-order robustness synthesis beyond the current interaction-summary lower bound`
 
 其中：
@@ -70,6 +70,7 @@
 - `F / stronger explanation-panel readability or higher-order explanation scene beyond the current grouped-local + multigroup decision-path lower bound` 已在本轮正式收口为 `shap_grouped_local_support_domain_panel`，当前 `F` 家族后续只保留更高阶 explanation scene 候选，不再保留这条旧 backlog 表述。
 - `F / multi-group decision-path follow-on` 已在本轮正式 absorb 为 `shap_multigroup_decision_path_panel`，不再保留在 backlog 候选池。
 - `F / multigroup decision-path + support-domain explanation scene follow-on` 已在本轮正式收口为 `shap_multigroup_decision_path_support_domain_panel`，并已进入 audited inventory；当前 `F` 家族继续保留的只剩更高阶 explanation scene 与 AI-first visual hardening 候选。
+- `F / signed-importance + local-waterfall + support-domain explanation scene follow-on` 已在本轮正式收口为 `shap_signed_importance_local_support_domain_panel`，并已进入 audited inventory；当前 `F` 家族继续保留的只剩更高阶 explanation scene 与 AI-first visual hardening 候选。
 - `F / multi-group grouped-local follow-on` 当前也不作为当前 active 候选保留：
   - 原因：`shap_grouped_local_explanation_panel` 当前合同已经支持最多 `3` 个 panel；后续只有在新的真实论文 demand 明确证明现有 grouped-local lower bound 不足时，才应重开更高阶 explanation scene。
 - `F / annotation-only readability hardening` 当前也不作为 active 候选保留：
@@ -107,7 +108,7 @@
 3. 真实论文表达需要更清晰的正式 contract，而不是 renderer 层的临时补救。
 4. 对 `H` 而言，`center_transportability_governance_summary_panel` 已完成 absorb；后续 broader transportability / center-governance synthesis 只有在新的真实论文 demand 明确证明价值时，才重新评估。
 5. 对 `C/H` 而言，`compact_effect_estimate_panel`、`coefficient_path_panel`、`broader_heterogeneity_summary_panel` 与 `interaction_effect_summary_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 calibration appendix 或更高阶 robustness synthesis。
-6. 对 `F` 而言，`feature_response_support_domain_panel`、`shap_multigroup_decision_path_panel`、`shap_grouped_local_support_domain_panel` 与 `shap_multigroup_decision_path_support_domain_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更高阶 grouped-local、annotation / legend hardening 或其他 explanation scene。
+6. 对 `F` 而言，`feature_response_support_domain_panel`、`shap_multigroup_decision_path_panel`、`shap_grouped_local_support_domain_panel`、`shap_multigroup_decision_path_support_domain_panel` 与 `shap_signed_importance_local_support_domain_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更高阶 grouped-local、annotation / legend hardening 或其他 explanation scene。
 7. 对 `G/E` 而言，`gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel`、`oncoplot_mutation_landscape_panel`、`cnv_recurrence_summary_panel`、`genomic_alteration_landscape_panel`、`genomic_alteration_consequence_panel`、`genomic_alteration_multiomic_consequence_panel`、`genomic_alteration_pathway_integrated_composite_panel` 与 `genomic_program_governance_summary_panel` 已经形成当前最小十基线；后续只有在新的真实论文 demand 明确证明价值时，才重新评估超出当前 program-governance lower bound 的更高阶 genomic-governance scene。
 8. 对 `D/E/G` 而言，`celltype_signature_heatmap`、`single_cell_atlas_overview_panel`、`atlas_spatial_bridge_panel`、`spatial_niche_map_panel`、`trajectory_progression_panel`、`atlas_spatial_trajectory_storyboard_panel`、`atlas_spatial_trajectory_density_coverage_panel`、`atlas_spatial_trajectory_context_support_panel` 与 `atlas_spatial_trajectory_multimanifold_context_support_panel` 已经形成当前多视图 atlas / spatial / trajectory lower bound；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更高阶 atlas geometry synthesis 或更宽的 cross-context composite。
 

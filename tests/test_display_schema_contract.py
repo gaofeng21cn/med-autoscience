@@ -2904,6 +2904,64 @@ def test_shap_multigroup_decision_path_support_domain_panel_schema_contract_is_r
     assert "shap_multigroup_decision_path_support_domain_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_shap_signed_importance_local_support_domain_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    explanation_scene = module.get_input_schema_contract("shap_signed_importance_local_support_domain_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert explanation_scene.template_ids == (_full_id("shap_signed_importance_local_support_domain_panel"),)
+    assert explanation_scene.display_name == "SHAP Signed Importance Local Support-Domain Panel"
+    assert explanation_scene.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "support_y_label",
+        "support_legend_title",
+        "importance_panel",
+        "local_panel",
+        "support_panels",
+    )
+    assert explanation_scene.collection_required_fields["importance_panel.bars"] == (
+        "rank",
+        "feature",
+        "signed_importance_value",
+    )
+    assert explanation_scene.collection_required_fields["local_panel.contributions"] == (
+        "feature",
+        "shap_value",
+    )
+    assert explanation_scene.collection_required_fields["support_panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "x_label",
+        "feature",
+        "reference_value",
+        "reference_label",
+        "response_curve",
+        "support_segments",
+    )
+    assert explanation_scene.nested_collection_required_fields["support_panels.response_curve"] == ("x", "y")
+    assert explanation_scene.nested_collection_required_fields["support_panels.support_segments"] == (
+        "segment_id",
+        "segment_label",
+        "support_kind",
+        "domain_start",
+        "domain_end",
+    )
+    assert "importance_bars_must_be_non_empty" in explanation_scene.additional_constraints
+    assert "local_panel_prediction_value_must_equal_baseline_plus_contributions" in explanation_scene.additional_constraints
+    assert "support_panel_count_must_equal_two" in explanation_scene.additional_constraints
+    assert "local_panel_feature_order_must_follow_global_feature_order" in explanation_scene.additional_constraints
+    assert "support_panel_feature_order_must_follow_global_feature_order" in explanation_scene.additional_constraints
+    assert _full_id("shap_signed_importance_local_support_domain_panel") in model_explanation_class.template_ids
+    assert "shap_signed_importance_local_support_domain_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_shap_bar_importance_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -3210,6 +3268,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "shap_grouped_local_support_domain_panel_inputs_v1" in markdown
     assert _full_id("shap_multigroup_decision_path_support_domain_panel") in markdown
     assert "shap_multigroup_decision_path_support_domain_panel_inputs_v1" in markdown
+    assert _full_id("shap_signed_importance_local_support_domain_panel") in markdown
+    assert "shap_signed_importance_local_support_domain_panel_inputs_v1" in markdown
     assert _full_id("partial_dependence_ice_panel") in markdown
     assert "partial_dependence_ice_panel_inputs_v1" in markdown
     assert _full_id("partial_dependence_interaction_contour_panel") in markdown

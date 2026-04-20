@@ -92,6 +92,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "feature_response_support_domain_panel",
         "shap_grouped_local_support_domain_panel",
         "shap_multigroup_decision_path_support_domain_panel",
+        "shap_signed_importance_local_support_domain_panel",
         "time_to_event_discrimination_calibration_panel",
         "time_to_event_risk_group_summary",
         "time_to_event_decision_curve",
