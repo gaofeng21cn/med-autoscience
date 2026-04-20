@@ -2795,6 +2795,72 @@ def test_shap_grouped_local_support_domain_panel_schema_contract_is_registered()
     assert "shap_grouped_local_support_domain_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_shap_multigroup_decision_path_support_domain_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    explanation_scene = module.get_input_schema_contract("shap_multigroup_decision_path_support_domain_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert explanation_scene.template_ids == (_full_id("shap_multigroup_decision_path_support_domain_panel"),)
+    assert explanation_scene.display_name == "SHAP Multigroup Decision Path Support-Domain Panel"
+    assert explanation_scene.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "decision_panel_title",
+        "decision_x_label",
+        "decision_y_label",
+        "decision_legend_title",
+        "support_y_label",
+        "support_legend_title",
+        "baseline_value",
+        "groups",
+        "support_panels",
+    )
+    assert explanation_scene.collection_required_fields["groups"] == (
+        "group_id",
+        "group_label",
+        "predicted_value",
+        "contributions",
+    )
+    assert explanation_scene.collection_required_fields["support_panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "x_label",
+        "feature",
+        "reference_value",
+        "reference_label",
+        "response_curve",
+        "support_segments",
+    )
+    assert explanation_scene.nested_collection_required_fields["groups.contributions"] == (
+        "rank",
+        "feature",
+        "shap_value",
+    )
+    assert explanation_scene.nested_collection_required_fields["support_panels.response_curve"] == ("x", "y")
+    assert explanation_scene.nested_collection_required_fields["support_panels.support_segments"] == (
+        "segment_id",
+        "segment_label",
+        "support_kind",
+        "domain_start",
+        "domain_end",
+    )
+    assert "group_count_must_equal_three" in explanation_scene.additional_constraints
+    assert "group_prediction_value_must_equal_baseline_plus_contributions" in explanation_scene.additional_constraints
+    assert "group_feature_orders_must_match" in explanation_scene.additional_constraints
+    assert "support_panel_count_must_equal_two" in explanation_scene.additional_constraints
+    assert "support_panel_features_must_be_subset_of_group_feature_order" in explanation_scene.additional_constraints
+    assert "support_panel_feature_order_must_follow_group_feature_order" in explanation_scene.additional_constraints
+    assert "support_panel_support_segments_must_cover_curve_range" in explanation_scene.additional_constraints
+    assert _full_id("shap_multigroup_decision_path_support_domain_panel") in model_explanation_class.template_ids
+    assert "shap_multigroup_decision_path_support_domain_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_shap_bar_importance_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -3065,6 +3131,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "shap_multigroup_decision_path_panel_inputs_v1" in markdown
     assert _full_id("shap_grouped_local_support_domain_panel") in markdown
     assert "shap_grouped_local_support_domain_panel_inputs_v1" in markdown
+    assert _full_id("shap_multigroup_decision_path_support_domain_panel") in markdown
+    assert "shap_multigroup_decision_path_support_domain_panel_inputs_v1" in markdown
     assert _full_id("partial_dependence_ice_panel") in markdown
     assert "partial_dependence_ice_panel_inputs_v1" in markdown
     assert _full_id("partial_dependence_interaction_contour_panel") in markdown

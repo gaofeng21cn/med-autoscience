@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-20
 
+- Add `shap_multigroup_decision_path_support_domain_panel` as the next audited `F` multigroup decision-scene slice in the core display pack.
+- Lock its pack-facing contract to `shap_multigroup_decision_path_support_domain_panel_inputs_v1`, `publication_shap_multigroup_decision_path_support_domain_panel`, and the Python bounded `1 + 2` decision-path plus support-domain composite renderer path.
+
 - Add `genomic_program_governance_summary_panel` as the next audited `G` higher-order genomic program-governance slice in the core display pack.
 - Lock its pack-facing contract to `genomic_program_governance_summary_panel_inputs_v1`, `publication_genomic_program_governance_summary_panel`, and the Python bounded two-panel cross-layer evidence plus governance-summary renderer path.
 

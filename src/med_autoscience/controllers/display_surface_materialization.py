@@ -10169,6 +10169,106 @@ def _validate_shap_grouped_local_support_domain_panel_display_payload(
     }
 
 
+def _validate_shap_multigroup_decision_path_support_domain_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    decision_panel_title = _require_non_empty_string(
+        payload.get("decision_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` decision_panel_title",
+    )
+    decision_x_label = _require_non_empty_string(
+        payload.get("decision_x_label"),
+        label=f"{path.name} display `{expected_display_id}` decision_x_label",
+    )
+    decision_y_label = _require_non_empty_string(
+        payload.get("decision_y_label"),
+        label=f"{path.name} display `{expected_display_id}` decision_y_label",
+    )
+    decision_legend_title = _require_non_empty_string(
+        payload.get("decision_legend_title"),
+        label=f"{path.name} display `{expected_display_id}` decision_legend_title",
+    )
+    support_y_label = _require_non_empty_string(
+        payload.get("support_y_label"),
+        label=f"{path.name} display `{expected_display_id}` support_y_label",
+    )
+    support_legend_title = _require_non_empty_string(
+        payload.get("support_legend_title"),
+        label=f"{path.name} display `{expected_display_id}` support_legend_title",
+    )
+
+    normalized_decision_panel = _validate_shap_multigroup_decision_path_panel_display_payload(
+        path=path,
+        payload={
+            "template_id": expected_template_id,
+            "title": title,
+            "caption": payload.get("caption"),
+            "paper_role": payload.get("paper_role"),
+            "panel_title": decision_panel_title,
+            "x_label": decision_x_label,
+            "y_label": decision_y_label,
+            "legend_title": decision_legend_title,
+            "baseline_value": payload.get("baseline_value"),
+            "groups": payload.get("groups"),
+        },
+        expected_template_id=expected_template_id,
+        expected_display_id=expected_display_id,
+    )
+    support_panels = _normalize_feature_response_support_panels(
+        path=path,
+        panels_payload=payload.get("support_panels"),
+        expected_display_id=expected_display_id,
+        panels_field="support_panels",
+        minimum_count=2,
+        maximum_count=2,
+    )
+
+    feature_order = [str(item) for item in normalized_decision_panel["feature_order"]]
+    support_features = [str(panel["feature"]) for panel in support_panels]
+    if not set(support_features).issubset(set(feature_order)):
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` support_panels.feature must stay within the shared group feature order"
+        )
+    expected_support_order = [feature for feature in feature_order if feature in set(support_features)]
+    if support_features != expected_support_order:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` support_panels.feature order must follow the shared group feature order"
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "decision_panel_title": decision_panel_title,
+        "decision_x_label": decision_x_label,
+        "decision_y_label": decision_y_label,
+        "decision_legend_title": decision_legend_title,
+        "support_y_label": support_y_label,
+        "support_legend_title": support_legend_title,
+        "support_legend_labels": [
+            "Response curve",
+            "Observed support",
+            "Subgroup support",
+            "Bin support",
+            "Extrapolation reminder",
+        ],
+        "baseline_value": float(normalized_decision_panel["baseline_value"]),
+        "feature_order": feature_order,
+        "groups": list(normalized_decision_panel["groups"]),
+        "support_panels": support_panels,
+    }
+
+
 def _validate_multicenter_generalizability_display_payload(
     *,
     path: Path,
@@ -11156,6 +11256,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "shap_grouped_local_support_domain_panel_inputs_v1":
         return payload_path, _validate_shap_grouped_local_support_domain_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "shap_multigroup_decision_path_support_domain_panel_inputs_v1":
+        return payload_path, _validate_shap_multigroup_decision_path_support_domain_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

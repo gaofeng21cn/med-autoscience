@@ -11506,6 +11506,31 @@ def _make_feature_response_support_domain_panel_display(
     }
 
 
+def _make_shap_multigroup_decision_path_support_domain_panel_display(
+    display_id: str = "Figure51",
+) -> dict[str, object]:
+    decision_panel = _make_shap_multigroup_decision_path_panel_display(display_id)
+    support_panel = _make_feature_response_support_domain_panel_display(display_id)
+    return {
+        "display_id": display_id,
+        "template_id": "shap_multigroup_decision_path_support_domain_panel",
+        "title": "Multigroup decision path with support-domain follow-on for manuscript-facing explanation scenes",
+        "caption": (
+            "A single multigroup decision-path panel summarizes how phenotype-level SHAP trajectories diverge, "
+            "and matched support-domain panels expose which feature-response regions remain backed by observed support."
+        ),
+        "decision_panel_title": decision_panel["panel_title"],
+        "decision_x_label": decision_panel["x_label"],
+        "decision_y_label": decision_panel["y_label"],
+        "decision_legend_title": decision_panel["legend_title"],
+        "support_y_label": support_panel["y_label"],
+        "support_legend_title": "Support domain",
+        "baseline_value": decision_panel["baseline_value"],
+        "groups": decision_panel["groups"],
+        "support_panels": support_panel["panels"],
+    }
+
+
 def _make_shap_bar_importance_display(display_id: str = "Figure37") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -13228,6 +13253,125 @@ def test_materialize_display_surface_generates_feature_response_support_domain_p
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "feature_response_support_domain_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_feature_response_support_domain_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_load_evidence_display_payload_rejects_support_feature_order_drift_for_shap_multigroup_decision_path_support_domain_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_shap_multigroup_decision_path_support_domain_panel_display()
+    display_payload["support_panels"] = [
+        display_payload["support_panels"][1],
+        display_payload["support_panels"][0],
+    ]
+    dump_json(
+        paper_root / "shap_multigroup_decision_path_support_domain_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_multigroup_decision_path_support_domain_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("shap_multigroup_decision_path_support_domain_panel")
+
+    with pytest.raises(ValueError, match="support_panels.feature order must follow the shared group feature order"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure51",
+        )
+
+
+def test_materialize_display_surface_generates_shap_multigroup_decision_path_support_domain_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_multigroup_decision_path_support_domain_panel",
+                    "catalog_id": "F51",
+                    "shell_path": "paper/figures/Figure51.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "template_id": "shap_multigroup_decision_path_support_domain_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "shap_multigroup_decision_path_support_domain_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_multigroup_decision_path_support_domain_panel_inputs_v1",
+            "displays": [_make_shap_multigroup_decision_path_support_domain_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F51"]
+    assert (
+        paper_root / "figures" / "generated" / "F51_shap_multigroup_decision_path_support_domain_panel.png"
+    ).exists()
+    assert (
+        paper_root / "figures" / "generated" / "F51_shap_multigroup_decision_path_support_domain_panel.pdf"
+    ).exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F51_shap_multigroup_decision_path_support_domain_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 3
+    assert any(item["box_id"] == "legend_box" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "support_legend_box" for item in layout_sidecar["layout_boxes"])
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "prediction_marker"]) == 3
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "support_domain_segment"]) == 8
+    assert layout_sidecar["metrics"]["decision_panel"]["legend_title"] == "Phenotype"
+    assert layout_sidecar["metrics"]["decision_panel"]["feature_order"] == ["Age", "Albumin", "Tumor size"]
+    assert layout_sidecar["metrics"]["support_legend_labels"] == [
+        "Response curve",
+        "Observed support",
+        "Subgroup support",
+        "Bin support",
+        "Extrapolation reminder",
+    ]
+    assert [item["feature"] for item in layout_sidecar["metrics"]["support_panels"]] == ["Age", "Albumin"]
+    assert layout_sidecar["metrics"]["support_panels"][0]["support_segments"][2]["support_kind"] == "bin_support"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F51"
+    assert figure_entry["template_id"] == full_id("shap_multigroup_decision_path_support_domain_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "shap_multigroup_decision_path_support_domain_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_shap_multigroup_decision_path_support_domain_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

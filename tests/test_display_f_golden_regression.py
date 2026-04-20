@@ -1650,6 +1650,179 @@ def test_shap_grouped_local_support_domain_panel_preserves_f_explanation_scene_c
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
 
+def test_shap_multigroup_decision_path_support_domain_panel_preserves_f_explanation_scene_contract(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_multigroup_decision_path_support_domain_panel",
+                    "catalog_id": "F51",
+                    "shell_path": "paper/figures/Figure51.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "template_id": "shap_multigroup_decision_path_support_domain_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "shap_multigroup_decision_path_support_domain_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_multigroup_decision_path_support_domain_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "template_id": "fenggaolab.org.medical-display-core::shap_multigroup_decision_path_support_domain_panel",
+                    "title": "Multigroup decision path with support-domain follow-on for manuscript-facing explanation scenes",
+                    "caption": "Regression lock for a higher-order decision-path plus support-domain explanation scene.",
+                    "decision_panel_title": "Phenotype-level SHAP decision paths",
+                    "decision_x_label": "Predicted risk contribution",
+                    "decision_y_label": "Ordered feature path",
+                    "decision_legend_title": "Phenotype",
+                    "support_y_label": "Predicted response probability",
+                    "support_legend_title": "Support domain",
+                    "baseline_value": 0.19,
+                    "groups": [
+                        {
+                            "group_id": "immune_inflamed",
+                            "group_label": "Phenotype 1",
+                            "predicted_value": 0.34,
+                            "contributions": [
+                                {"rank": 1, "feature": "Age", "shap_value": 0.10},
+                                {"rank": 2, "feature": "Albumin", "shap_value": -0.03},
+                                {"rank": 3, "feature": "Tumor size", "shap_value": 0.08},
+                            ],
+                        },
+                        {
+                            "group_id": "stromal_low",
+                            "group_label": "Phenotype 2",
+                            "predicted_value": 0.08,
+                            "contributions": [
+                                {"rank": 1, "feature": "Age", "shap_value": -0.04},
+                                {"rank": 2, "feature": "Albumin", "shap_value": -0.02},
+                                {"rank": 3, "feature": "Tumor size", "shap_value": -0.05},
+                            ],
+                        },
+                        {
+                            "group_id": "immune_excluded",
+                            "group_label": "Phenotype 3",
+                            "predicted_value": 0.21,
+                            "contributions": [
+                                {"rank": 1, "feature": "Age", "shap_value": 0.02},
+                                {"rank": 2, "feature": "Albumin", "shap_value": -0.01},
+                                {"rank": 3, "feature": "Tumor size", "shap_value": 0.01},
+                            ],
+                        },
+                    ],
+                    "support_panels": [
+                        {
+                            "panel_id": "age_support",
+                            "panel_label": "C",
+                            "title": "Age response support",
+                            "x_label": "Age (years)",
+                            "feature": "Age",
+                            "reference_value": 60.0,
+                            "reference_label": "Median age",
+                            "response_curve": {"x": [40.0, 50.0, 60.0, 70.0, 80.0], "y": [0.18, 0.22, 0.29, 0.35, 0.41]},
+                            "support_segments": [
+                                {"segment_id": "age_observed", "segment_label": "Observed", "support_kind": "observed_support", "domain_start": 40.0, "domain_end": 50.0},
+                                {"segment_id": "age_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "domain_start": 50.0, "domain_end": 62.0},
+                                {"segment_id": "age_bin", "segment_label": "Bin", "support_kind": "bin_support", "domain_start": 62.0, "domain_end": 72.0},
+                                {"segment_id": "age_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "domain_start": 72.0, "domain_end": 80.0},
+                            ],
+                        },
+                        {
+                            "panel_id": "albumin_support",
+                            "panel_label": "D",
+                            "title": "Albumin response support",
+                            "x_label": "Albumin (g/dL)",
+                            "feature": "Albumin",
+                            "reference_value": 3.8,
+                            "reference_label": "Median albumin",
+                            "response_curve": {
+                                "x": [2.8, 3.2, 3.6, 4.0, 4.4, 4.6],
+                                "y": [0.39, 0.33, 0.28, 0.23, 0.19, 0.17],
+                            },
+                            "support_segments": [
+                                {"segment_id": "alb_observed", "segment_label": "Observed", "support_kind": "observed_support", "domain_start": 2.8, "domain_end": 3.2},
+                                {"segment_id": "alb_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "domain_start": 3.2, "domain_end": 3.8},
+                                {"segment_id": "alb_bin", "segment_label": "Bin", "support_kind": "bin_support", "domain_start": 3.8, "domain_end": 4.2},
+                                {"segment_id": "alb_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "domain_start": 4.2, "domain_end": 4.6},
+                            ],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (
+            paper_root
+            / "figures"
+            / "generated"
+            / "F51_shap_multigroup_decision_path_support_domain_panel.layout.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 3
+    assert layout_sidecar["metrics"]["decision_panel"]["feature_order"] == ["Age", "Albumin", "Tumor size"]
+    assert layout_sidecar["metrics"]["decision_panel"]["groups"][0]["group_id"] == "immune_inflamed"
+    assert layout_sidecar["metrics"]["support_legend_labels"] == [
+        "Response curve",
+        "Observed support",
+        "Subgroup support",
+        "Bin support",
+        "Extrapolation reminder",
+    ]
+    assert [item["feature"] for item in layout_sidecar["metrics"]["support_panels"]] == ["Age", "Albumin"]
+    assert layout_sidecar["metrics"]["support_panels"][1]["support_segments"][-1]["support_kind"] == "extrapolation_warning"
+    assert any(box["box_id"] == "legend_box" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "support_legend_box" for box in layout_sidecar["layout_boxes"])
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
 def test_shap_bar_importance_preserves_f_global_importance_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"

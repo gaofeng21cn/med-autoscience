@@ -7595,6 +7595,212 @@ def test_run_display_layout_qc_fails_when_grouped_local_support_domain_support_o
     assert any(issue["rule_id"] == "support_feature_order_mismatch" for issue in result["issues"])
 
 
+def _make_shap_multigroup_decision_path_support_domain_layout_sidecar() -> dict[str, object]:
+    return {
+        "template_id": "shap_multigroup_decision_path_support_domain_panel",
+        "device": make_device(),
+        "render_context": {"layout_override": {"show_figure_title": False}},
+        "layout_boxes": [
+            make_box("panel_title", "panel_title", x0=0.18, y0=0.91, x1=0.63, y1=0.94),
+            make_box("x_axis_title", "subplot_x_axis_title", x0=0.27, y0=0.46, x1=0.58, y1=0.49),
+            make_box("y_axis_title", "subplot_y_axis_title", x0=0.05, y0=0.63, x1=0.08, y1=0.87),
+            make_box("legend_title", "legend_title", x0=0.73, y0=0.73, x1=0.85, y1=0.76),
+            make_box("legend_box", "legend_box", x0=0.70, y0=0.60, x1=0.91, y1=0.78),
+            make_box("feature_label_1", "feature_label", x0=0.05, y0=0.83, x1=0.13, y1=0.87),
+            make_box("feature_label_2", "feature_label", x0=0.04, y0=0.74, x1=0.14, y1=0.78),
+            make_box("feature_label_3", "feature_label", x0=0.03, y0=0.65, x1=0.15, y1=0.69),
+            make_box("decision_path_line_immune_inflamed", "decision_path_line", x0=0.29, y0=0.61, x1=0.63, y1=0.86),
+            make_box("decision_path_line_stromal_low", "decision_path_line", x0=0.24, y0=0.61, x1=0.53, y1=0.86),
+            make_box("decision_path_line_immune_excluded", "decision_path_line", x0=0.27, y0=0.61, x1=0.58, y1=0.86),
+            make_box("prediction_label_immune_inflamed", "prediction_label", x0=0.59, y0=0.58, x1=0.72, y1=0.61),
+            make_box("prediction_label_stromal_low", "prediction_label", x0=0.33, y0=0.58, x1=0.47, y1=0.61),
+            make_box("prediction_label_immune_excluded", "prediction_label", x0=0.50, y0=0.58, x1=0.65, y1=0.61),
+            make_box("panel_title_C", "panel_title", x0=0.14, y0=0.45, x1=0.32, y1=0.48),
+            make_box("panel_title_D", "panel_title", x0=0.51, y0=0.45, x1=0.72, y1=0.48),
+            make_box("panel_label_C", "panel_label", x0=0.13, y0=0.37, x1=0.15, y1=0.40),
+            make_box("panel_label_D", "panel_label", x0=0.50, y0=0.37, x1=0.52, y1=0.40),
+            make_box("x_axis_title_C", "subplot_x_axis_title", x0=0.17, y0=0.04, x1=0.30, y1=0.07),
+            make_box("x_axis_title_D", "subplot_x_axis_title", x0=0.55, y0=0.04, x1=0.70, y1=0.07),
+            make_box("support_y_axis_title", "subplot_y_axis_title", x0=0.05, y0=0.18, x1=0.07, y1=0.34),
+            make_box("reference_label_C", "support_domain_reference_label", x0=0.20, y0=0.37, x1=0.29, y1=0.40),
+            make_box("reference_label_D", "support_domain_reference_label", x0=0.58, y0=0.37, x1=0.69, y1=0.40),
+            make_box("support_label_C_1", "support_label", x0=0.13, y0=0.15, x1=0.19, y1=0.18),
+            make_box("support_label_C_2", "support_label", x0=0.19, y0=0.12, x1=0.25, y1=0.15),
+            make_box("support_label_C_3", "support_label", x0=0.25, y0=0.15, x1=0.29, y1=0.18),
+            make_box("support_label_C_4", "support_label", x0=0.29, y0=0.12, x1=0.35, y1=0.15),
+            make_box("support_label_D_1", "support_label", x0=0.50, y0=0.15, x1=0.57, y1=0.18),
+            make_box("support_label_D_2", "support_label", x0=0.57, y0=0.12, x1=0.62, y1=0.15),
+            make_box("support_label_D_3", "support_label", x0=0.62, y0=0.15, x1=0.67, y1=0.18),
+            make_box("support_label_D_4", "support_label", x0=0.67, y0=0.12, x1=0.74, y1=0.15),
+            make_box("support_legend_title", "legend_title", x0=0.31, y0=0.01, x1=0.46, y1=0.04),
+            make_box("support_legend_box", "legend_box", x0=0.22, y0=0.00, x1=0.79, y1=0.08),
+        ],
+        "panel_boxes": [
+            make_box("panel_decision_path", "panel", x0=0.18, y0=0.58, x1=0.67, y1=0.88),
+            make_box("panel_C", "panel", x0=0.12, y0=0.12, x1=0.35, y1=0.40),
+            make_box("panel_D", "panel", x0=0.49, y0=0.12, x1=0.74, y1=0.40),
+        ],
+        "guide_boxes": [
+            make_box("baseline_reference_line", "baseline_reference_line", x0=0.32, y0=0.58, x1=0.321, y1=0.88),
+            make_box("prediction_marker_immune_inflamed", "prediction_marker", x0=0.60, y0=0.59, x1=0.608, y1=0.61),
+            make_box("prediction_marker_stromal_low", "prediction_marker", x0=0.40, y0=0.59, x1=0.408, y1=0.61),
+            make_box("prediction_marker_immune_excluded", "prediction_marker", x0=0.54, y0=0.59, x1=0.548, y1=0.61),
+            make_box("reference_line_C", "support_domain_reference_line", x0=0.22, y0=0.12, x1=0.221, y1=0.40),
+            make_box("reference_line_D", "support_domain_reference_line", x0=0.60, y0=0.12, x1=0.601, y1=0.40),
+            make_box("support_segment_C_1", "support_domain_segment", x0=0.13, y0=0.12, x1=0.19, y1=0.19),
+            make_box("support_segment_C_2", "support_domain_segment", x0=0.19, y0=0.12, x1=0.25, y1=0.19),
+            make_box("support_segment_C_3", "support_domain_segment", x0=0.25, y0=0.12, x1=0.30, y1=0.19),
+            make_box("support_segment_C_4", "support_domain_segment", x0=0.30, y0=0.12, x1=0.34, y1=0.19),
+            make_box("support_segment_D_1", "support_domain_segment", x0=0.50, y0=0.12, x1=0.57, y1=0.19),
+            make_box("support_segment_D_2", "support_domain_segment", x0=0.57, y0=0.12, x1=0.62, y1=0.19),
+            make_box("support_segment_D_3", "support_domain_segment", x0=0.62, y0=0.12, x1=0.67, y1=0.19),
+            make_box("support_segment_D_4", "support_domain_segment", x0=0.67, y0=0.12, x1=0.73, y1=0.19),
+        ],
+        "metrics": {
+            "decision_panel": {
+                "panel_box_id": "panel_decision_path",
+                "baseline_line_box_id": "baseline_reference_line",
+                "baseline_value": 0.19,
+                "legend_title": "Phenotype",
+                "feature_order": ["Age", "Albumin", "Tumor size"],
+                "feature_label_box_ids": ["feature_label_1", "feature_label_2", "feature_label_3"],
+                "groups": [
+                    {
+                        "group_id": "immune_inflamed",
+                        "group_label": "Phenotype 1",
+                        "predicted_value": 0.34,
+                        "line_box_id": "decision_path_line_immune_inflamed",
+                        "prediction_marker_box_id": "prediction_marker_immune_inflamed",
+                        "prediction_label_box_id": "prediction_label_immune_inflamed",
+                        "contributions": [
+                            {"rank": 1, "feature": "Age", "shap_value": 0.10, "start_value": 0.19, "end_value": 0.29},
+                            {"rank": 2, "feature": "Albumin", "shap_value": -0.03, "start_value": 0.29, "end_value": 0.26},
+                            {"rank": 3, "feature": "Tumor size", "shap_value": 0.08, "start_value": 0.26, "end_value": 0.34},
+                        ],
+                    },
+                    {
+                        "group_id": "stromal_low",
+                        "group_label": "Phenotype 2",
+                        "predicted_value": 0.08,
+                        "line_box_id": "decision_path_line_stromal_low",
+                        "prediction_marker_box_id": "prediction_marker_stromal_low",
+                        "prediction_label_box_id": "prediction_label_stromal_low",
+                        "contributions": [
+                            {"rank": 1, "feature": "Age", "shap_value": -0.04, "start_value": 0.19, "end_value": 0.15},
+                            {"rank": 2, "feature": "Albumin", "shap_value": -0.02, "start_value": 0.15, "end_value": 0.13},
+                            {"rank": 3, "feature": "Tumor size", "shap_value": -0.05, "start_value": 0.13, "end_value": 0.08},
+                        ],
+                    },
+                    {
+                        "group_id": "immune_excluded",
+                        "group_label": "Phenotype 3",
+                        "predicted_value": 0.21,
+                        "line_box_id": "decision_path_line_immune_excluded",
+                        "prediction_marker_box_id": "prediction_marker_immune_excluded",
+                        "prediction_label_box_id": "prediction_label_immune_excluded",
+                        "contributions": [
+                            {"rank": 1, "feature": "Age", "shap_value": 0.02, "start_value": 0.19, "end_value": 0.21},
+                            {"rank": 2, "feature": "Albumin", "shap_value": -0.01, "start_value": 0.21, "end_value": 0.20},
+                            {"rank": 3, "feature": "Tumor size", "shap_value": 0.01, "start_value": 0.20, "end_value": 0.21},
+                        ],
+                    },
+                ],
+            },
+            "support_y_label": "Predicted response probability",
+            "support_legend_title": "Support domain",
+            "support_legend_labels": [
+                "Response curve",
+                "Observed support",
+                "Subgroup support",
+                "Bin support",
+                "Extrapolation reminder",
+            ],
+            "support_y_axis_title_box_id": "support_y_axis_title",
+            "support_legend_title_box_id": "support_legend_title",
+            "support_panels": [
+                {
+                    "panel_id": "age_support",
+                    "panel_label": "C",
+                    "title": "Age support domain",
+                    "x_label": "Age (years)",
+                    "feature": "Age",
+                    "reference_value": 60.0,
+                    "reference_label": "Median age",
+                    "panel_box_id": "panel_C",
+                    "reference_line_box_id": "reference_line_C",
+                    "reference_label_box_id": "reference_label_C",
+                    "response_points": [
+                        {"x": 0.13, "y": 0.27},
+                        {"x": 0.19, "y": 0.31},
+                        {"x": 0.24, "y": 0.35},
+                        {"x": 0.29, "y": 0.37},
+                        {"x": 0.33, "y": 0.39},
+                    ],
+                    "support_segments": [
+                        {"segment_id": "age_observed", "segment_label": "Observed", "support_kind": "observed_support", "segment_box_id": "support_segment_C_1", "label_box_id": "support_label_C_1"},
+                        {"segment_id": "age_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "segment_box_id": "support_segment_C_2", "label_box_id": "support_label_C_2"},
+                        {"segment_id": "age_bin", "segment_label": "Bin", "support_kind": "bin_support", "segment_box_id": "support_segment_C_3", "label_box_id": "support_label_C_3"},
+                        {"segment_id": "age_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "segment_box_id": "support_segment_C_4", "label_box_id": "support_label_C_4"},
+                    ],
+                },
+                {
+                    "panel_id": "albumin_support",
+                    "panel_label": "D",
+                    "title": "Albumin support domain",
+                    "x_label": "Albumin (g/dL)",
+                    "feature": "Albumin",
+                    "reference_value": 3.8,
+                    "reference_label": "Median albumin",
+                    "panel_box_id": "panel_D",
+                    "reference_line_box_id": "reference_line_D",
+                    "reference_label_box_id": "reference_label_D",
+                    "response_points": [
+                        {"x": 0.50, "y": 0.38},
+                        {"x": 0.56, "y": 0.33},
+                        {"x": 0.61, "y": 0.28},
+                        {"x": 0.67, "y": 0.23},
+                        {"x": 0.72, "y": 0.18},
+                    ],
+                    "support_segments": [
+                        {"segment_id": "alb_observed", "segment_label": "Observed", "support_kind": "observed_support", "segment_box_id": "support_segment_D_1", "label_box_id": "support_label_D_1"},
+                        {"segment_id": "alb_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "segment_box_id": "support_segment_D_2", "label_box_id": "support_label_D_2"},
+                        {"segment_id": "alb_bin", "segment_label": "Bin", "support_kind": "bin_support", "segment_box_id": "support_segment_D_3", "label_box_id": "support_label_D_3"},
+                        {"segment_id": "alb_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "segment_box_id": "support_segment_D_4", "label_box_id": "support_label_D_4"},
+                    ],
+                },
+            ],
+        },
+    }
+
+
+def test_run_display_layout_qc_passes_for_shap_multigroup_decision_path_support_domain_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_multigroup_decision_path_support_domain_panel",
+        layout_sidecar=_make_shap_multigroup_decision_path_support_domain_layout_sidecar(),
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_multigroup_support_domain_support_order_drifts() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+    layout_sidecar = _make_shap_multigroup_decision_path_support_domain_layout_sidecar()
+    support_panels = layout_sidecar["metrics"]["support_panels"]
+    support_panels[0]["feature"] = "Albumin"
+    support_panels[1]["feature"] = "Age"
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_multigroup_decision_path_support_domain_panel",
+        layout_sidecar=layout_sidecar,
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "support_feature_order_mismatch" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_shap_grouped_decision_path_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

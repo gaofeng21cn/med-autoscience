@@ -1,0 +1,14 @@
+template_id = "shap_multigroup_decision_path_support_domain_panel"
+full_template_id = "fenggaolab.org.medical-display-core::shap_multigroup_decision_path_support_domain_panel"
+kind = "evidence_figure"
+display_name = "SHAP Multigroup Decision Path Support-Domain Panel"
+paper_family_ids = ["F"]
+audit_family = "Model Explanation"
+renderer_family = "python"
+input_schema_ref = "shap_multigroup_decision_path_support_domain_panel_inputs_v1"
+qc_profile_ref = "publication_shap_multigroup_decision_path_support_domain_panel"
+required_exports = ["png", "pdf"]
+allowed_paper_roles = ["main_text", "supplementary"]
+execution_mode = "python_plugin"
+entrypoint = "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
+paper_proven = false
