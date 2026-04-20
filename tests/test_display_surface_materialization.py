@@ -5310,6 +5310,99 @@ def test_materialize_display_surface_generates_performance_heatmap_baseline(tmp_
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
+def test_materialize_display_surface_generates_binary_confusion_matrix_heatmap_baseline(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure26",
+                    "display_kind": "figure",
+                    "requirement_key": "confusion_matrix_heatmap_binary",
+                    "catalog_id": "F26",
+                    "shell_path": "paper/figures/Figure26.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure26",
+                    "template_id": "confusion_matrix_heatmap_binary",
+                    "layout_override": {"show_figure_title": True},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "confusion_matrix_heatmap_binary_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "confusion_matrix_heatmap_binary_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure26",
+                    "template_id": "confusion_matrix_heatmap_binary",
+                    "title": "Binary confusion matrix on the held-out cohort",
+                    "caption": "Row-normalized confusion matrix summarizing false-positive and false-negative error modes.",
+                    "x_label": "Predicted class",
+                    "y_label": "Observed class",
+                    "metric_name": "Observed proportion",
+                    "normalization": "row_fraction",
+                    "row_order": [
+                        {"label": "Observed negative"},
+                        {"label": "Observed positive"},
+                    ],
+                    "column_order": [
+                        {"label": "Predicted negative"},
+                        {"label": "Predicted positive"},
+                    ],
+                    "cells": [
+                        {"x": "Predicted negative", "y": "Observed negative", "value": 0.88},
+                        {"x": "Predicted positive", "y": "Observed negative", "value": 0.12},
+                        {"x": "Predicted negative", "y": "Observed positive", "value": 0.19},
+                        {"x": "Predicted positive", "y": "Observed positive", "value": 0.81},
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F26"]
+    assert (paper_root / "figures" / "generated" / "F26_confusion_matrix_heatmap_binary.png").exists()
+    assert (paper_root / "figures" / "generated" / "F26_confusion_matrix_heatmap_binary.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F26_confusion_matrix_heatmap_binary.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert layout_sidecar["metrics"]["metric_name"] == "Observed proportion"
+    assert layout_sidecar["metrics"]["normalization"] == "row_fraction"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F26"
+    assert figure_entry["template_id"] == full_id("confusion_matrix_heatmap_binary")
+    assert figure_entry["renderer_family"] == "r_ggplot2"
+    assert figure_entry["input_schema_id"] == "confusion_matrix_heatmap_binary_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_heatmap"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
 def test_materialize_display_surface_generates_celltype_signature_heatmap_baseline(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
@@ -10621,6 +10714,53 @@ def test_load_evidence_display_payload_rejects_performance_heatmap_value_outside
             paper_root=paper_root,
             spec=spec,
             display_id="Figure25",
+        )
+
+
+def test_load_evidence_display_payload_rejects_confusion_matrix_with_invalid_row_fraction_sum(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "confusion_matrix_heatmap_binary_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "confusion_matrix_heatmap_binary_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure26",
+                    "template_id": "confusion_matrix_heatmap_binary",
+                    "title": "Binary confusion matrix on the held-out cohort",
+                    "caption": "Row-normalized confusion matrix with an invalid row sum.",
+                    "x_label": "Predicted class",
+                    "y_label": "Observed class",
+                    "metric_name": "Observed proportion",
+                    "normalization": "row_fraction",
+                    "row_order": [
+                        {"label": "Observed negative"},
+                        {"label": "Observed positive"},
+                    ],
+                    "column_order": [
+                        {"label": "Predicted negative"},
+                        {"label": "Predicted positive"},
+                    ],
+                    "cells": [
+                        {"x": "Predicted negative", "y": "Observed negative", "value": 0.88},
+                        {"x": "Predicted positive", "y": "Observed negative", "value": 0.19},
+                        {"x": "Predicted negative", "y": "Observed positive", "value": 0.19},
+                        {"x": "Predicted positive", "y": "Observed positive", "value": 0.81},
+                    ],
+                }
+            ],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("confusion_matrix_heatmap_binary")
+
+    with pytest.raises(ValueError, match="must sum to 1.0 when normalization=row_fraction"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure26",
         )
 
 

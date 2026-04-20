@@ -85,6 +85,7 @@ The current audited inventory is broader than the subset already proven against 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `fenggaolab.org.medical-display-core::heatmap_group_comparison` | `evidence_figure` | `E. Feature Pattern and Matrix` | Heatmap (Group Comparison) | `r_ggplot2` | `heatmap_group_comparison_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::performance_heatmap` | `evidence_figure` | `B. Survival and Time-to-Event`, `E. Feature Pattern and Matrix` | Performance Heatmap | `r_ggplot2` | `performance_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::confusion_matrix_heatmap_binary` | `evidence_figure` | `A. Predictive Performance and Decision`, `E. Feature Pattern and Matrix` | Binary Confusion Matrix Heatmap | `r_ggplot2` | `confusion_matrix_heatmap_binary_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::correlation_heatmap` | `evidence_figure` | `E. Feature Pattern and Matrix` | Correlation Heatmap | `r_ggplot2` | `correlation_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::clustered_heatmap` | `evidence_figure` | `E. Feature Pattern and Matrix` | Clustered Heatmap (Precomputed Ordering) | `r_ggplot2` | `clustered_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::gsva_ssgsea_heatmap` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | GSVA/ssGSEA Heatmap | `r_ggplot2` | `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
@@ -559,6 +560,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: None
 - Optional nested collection fields: None
 - Additional constraints: `metric_name_must_be_non_empty`, `cells_must_be_non_empty`, `cell_coordinates_must_be_non_empty`, `cell_values_must_be_finite`, `performance_values_must_be_finite_probability`, `row_order_labels_must_be_unique`, `column_order_labels_must_be_unique`, `declared_row_labels_must_match_cell_rows`, `declared_column_labels_must_match_cell_columns`, `declared_heatmap_grid_must_be_complete_and_unique`
+
+### `confusion_matrix_heatmap_binary_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Binary Confusion Matrix Heatmap
+- Templates: `fenggaolab.org.medical-display-core::confusion_matrix_heatmap_binary`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `metric_name`, `normalization`, `row_order`, `column_order`, `cells`
+- Optional display fields: `paper_role`
+- Required collection fields: `row_order` -> `label`<br>`column_order` -> `label`<br>`cells` -> `x`, `y`, `value`
+- Optional collection fields: None
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `metric_name_must_be_non_empty`, `normalization_must_use_supported_vocabulary`, `cells_must_be_non_empty`, `cell_coordinates_must_be_non_empty`, `cell_values_must_be_finite`, `confusion_matrix_values_must_be_finite_probability`, `row_order_labels_must_be_unique`, `column_order_labels_must_be_unique`, `binary_confusion_matrix_must_have_exactly_two_row_labels`, `binary_confusion_matrix_must_have_exactly_two_column_labels`, `declared_row_labels_must_match_cell_rows`, `declared_column_labels_must_match_cell_columns`, `declared_heatmap_grid_must_be_complete_and_unique`, `row_fraction_confusion_rows_must_sum_to_one_when_selected`, `column_fraction_confusion_columns_must_sum_to_one_when_selected`, `overall_fraction_confusion_matrix_must_sum_to_one_when_selected`
 
 ### `correlation_heatmap_inputs_v1`
 

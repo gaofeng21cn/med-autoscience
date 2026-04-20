@@ -55,6 +55,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("celltype_marker_dotplot_panel"),
         _full_id("heatmap_group_comparison"),
         _full_id("performance_heatmap"),
+        _full_id("confusion_matrix_heatmap_binary"),
         _full_id("correlation_heatmap"),
         _full_id("clustered_heatmap"),
         _full_id("gsva_ssgsea_heatmap"),
@@ -726,6 +727,7 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     figure9 = display_registry.get_evidence_figure_spec(_full_id("tsne_scatter_grouped"))
     figure9b = display_registry.get_evidence_figure_spec(_full_id("celltype_signature_heatmap"))
     figure10 = display_registry.get_evidence_figure_spec(_full_id("performance_heatmap"))
+    figure10a = display_registry.get_evidence_figure_spec(_full_id("confusion_matrix_heatmap_binary"))
     figure10b = display_registry.get_evidence_figure_spec(_full_id("clustered_heatmap"))
     figure10c = display_registry.get_evidence_figure_spec(_full_id("gsva_ssgsea_heatmap"))
     figure10d = display_registry.get_evidence_figure_spec(_full_id("pathway_enrichment_dotplot_panel"))
@@ -779,6 +781,11 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure10.layout_qc_profile == "publication_heatmap"
     assert figure10.paper_family_ids == ("B", "E")
     assert figure10.renderer_family == "r_ggplot2"
+    assert figure10a.paper_family_ids == ("A", "E")
+    assert figure10a.evidence_class == "matrix_pattern"
+    assert figure10a.renderer_family == "r_ggplot2"
+    assert figure10a.input_schema_id == "confusion_matrix_heatmap_binary_inputs_v1"
+    assert figure10a.layout_qc_profile == "publication_heatmap"
     assert figure10b.input_schema_id == "clustered_heatmap_inputs_v1"
     assert figure10b.layout_qc_profile == "publication_heatmap"
     assert figure10c.paper_family_ids == ("G",)

@@ -4881,6 +4881,90 @@ def _check_publication_heatmap(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
             )
         return issues
 
+    if sidecar.template_id == "confusion_matrix_heatmap_binary":
+        metric_name = str(sidecar.metrics.get("metric_name") or "").strip()
+        normalization = str(sidecar.metrics.get("normalization") or "").strip()
+        if not metric_name:
+            issues.append(
+                _issue(
+                    rule_id="metric_name_missing",
+                    message="confusion-matrix heatmap qc requires a non-empty metric_name",
+                    target="metrics.metric_name",
+                )
+            )
+        if normalization not in {"row_fraction", "column_fraction", "overall_fraction"}:
+            issues.append(
+                _issue(
+                    rule_id="confusion_normalization_invalid",
+                    message="confusion-matrix heatmap normalization must be row_fraction, column_fraction, or overall_fraction",
+                    target="metrics.normalization",
+                    observed=normalization or None,
+                )
+            )
+        cell_lookup = _matrix_cell_lookup(sidecar.metrics)
+        x_labels = sorted({x_key for x_key, _ in cell_lookup})
+        y_labels = sorted({y_key for _, y_key in cell_lookup})
+        if len(x_labels) != 2 or len(y_labels) != 2 or len(cell_lookup) != 4:
+            issues.append(
+                _issue(
+                    rule_id="confusion_matrix_not_binary_2x2",
+                    message="binary confusion-matrix heatmap must contain a complete 2x2 grid",
+                    target="metrics.matrix_cells",
+                    observed={"x_labels": x_labels, "y_labels": y_labels, "cell_count": len(cell_lookup)},
+                )
+            )
+            return issues
+        for (x_key, y_key), value in sorted(cell_lookup.items()):
+            if 0.0 <= value <= 1.0:
+                continue
+            issues.append(
+                _issue(
+                    rule_id="confusion_value_out_of_range",
+                    message="confusion-matrix heatmap values must stay within [0, 1]",
+                    target="metrics.matrix_cells",
+                    observed={"x": x_key, "y": y_key, "value": value},
+                )
+            )
+        tolerance = 1e-6
+        if normalization == "row_fraction":
+            for y_key in y_labels:
+                total = sum(cell_lookup[(x_key, y_key)] for x_key in x_labels)
+                if math.isclose(total, 1.0, rel_tol=0.0, abs_tol=tolerance):
+                    continue
+                issues.append(
+                    _issue(
+                        rule_id="confusion_row_sum_invalid",
+                        message="each confusion-matrix row must sum to 1.0 when normalization=row_fraction",
+                        target="metrics.matrix_cells",
+                        observed={"row_label": y_key, "row_sum": total},
+                    )
+                )
+        elif normalization == "column_fraction":
+            for x_key in x_labels:
+                total = sum(cell_lookup[(x_key, y_key)] for y_key in y_labels)
+                if math.isclose(total, 1.0, rel_tol=0.0, abs_tol=tolerance):
+                    continue
+                issues.append(
+                    _issue(
+                        rule_id="confusion_column_sum_invalid",
+                        message="each confusion-matrix column must sum to 1.0 when normalization=column_fraction",
+                        target="metrics.matrix_cells",
+                        observed={"column_label": x_key, "column_sum": total},
+                    )
+                )
+        elif normalization == "overall_fraction":
+            total = sum(cell_lookup.values())
+            if not math.isclose(total, 1.0, rel_tol=0.0, abs_tol=tolerance):
+                issues.append(
+                    _issue(
+                        rule_id="confusion_matrix_sum_invalid",
+                        message="all confusion-matrix cells must sum to 1.0 when normalization=overall_fraction",
+                        target="metrics.matrix_cells",
+                        observed={"matrix_sum": total},
+                    )
+                )
+        return issues
+
     if sidecar.template_id != "correlation_heatmap":
         return issues
 

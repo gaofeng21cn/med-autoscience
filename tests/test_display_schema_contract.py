@@ -46,6 +46,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs_v1"
     )
     performance_heatmap = module.get_input_schema_contract("performance_heatmap_inputs_v1")
+    confusion_heatmap = module.get_input_schema_contract("confusion_matrix_heatmap_binary_inputs_v1")
     clustered_heatmap = module.get_input_schema_contract("clustered_heatmap_inputs_v1")
     gsva_heatmap = module.get_input_schema_contract("gsva_ssgsea_heatmap_inputs_v1")
     enrichment_dotplot = module.get_input_schema_contract("pathway_enrichment_dotplot_panel_inputs_v1")
@@ -1472,10 +1473,17 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert _full_id("performance_heatmap") in next(
         item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
     ).template_ids
+    assert _full_id("confusion_matrix_heatmap_binary") in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
+    ).template_ids
     assert "performance_heatmap_inputs_v1" in next(
         item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
     ).input_schema_ids
+    assert "confusion_matrix_heatmap_binary_inputs_v1" in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
+    ).input_schema_ids
     assert performance_heatmap.template_ids == (_full_id("performance_heatmap"),)
+    assert confusion_heatmap.template_ids == (_full_id("confusion_matrix_heatmap_binary"),)
     assert _full_id("shap_summary_beeswarm") in model_explanation_class.template_ids
     assert _full_id("shap_dependence_panel") in model_explanation_class.template_ids
     assert _full_id("shap_waterfall_local_explanation_panel") in model_explanation_class.template_ids
@@ -1511,6 +1519,39 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "declared_row_labels_must_match_cell_rows",
         "declared_column_labels_must_match_cell_columns",
         "declared_heatmap_grid_must_be_complete_and_unique",
+    )
+    assert confusion_heatmap.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "y_label",
+        "metric_name",
+        "normalization",
+        "row_order",
+        "column_order",
+        "cells",
+    )
+    assert confusion_heatmap.collection_required_fields["row_order"] == ("label",)
+    assert confusion_heatmap.collection_required_fields["column_order"] == ("label",)
+    assert confusion_heatmap.additional_constraints == (
+        "metric_name_must_be_non_empty",
+        "normalization_must_use_supported_vocabulary",
+        "cells_must_be_non_empty",
+        "cell_coordinates_must_be_non_empty",
+        "cell_values_must_be_finite",
+        "confusion_matrix_values_must_be_finite_probability",
+        "row_order_labels_must_be_unique",
+        "column_order_labels_must_be_unique",
+        "binary_confusion_matrix_must_have_exactly_two_row_labels",
+        "binary_confusion_matrix_must_have_exactly_two_column_labels",
+        "declared_row_labels_must_match_cell_rows",
+        "declared_column_labels_must_match_cell_columns",
+        "declared_heatmap_grid_must_be_complete_and_unique",
+        "row_fraction_confusion_rows_must_sum_to_one_when_selected",
+        "column_fraction_confusion_columns_must_sum_to_one_when_selected",
+        "overall_fraction_confusion_matrix_must_sum_to_one_when_selected",
     )
     assert time_to_event_panel.template_ids == (_full_id("time_to_event_discrimination_calibration_panel"),)
     assert time_to_event_panel.display_required_fields == (
@@ -3323,6 +3364,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "feature_response_support_domain_panel_inputs_v1" in markdown
     assert _full_id("performance_heatmap") in markdown
     assert "performance_heatmap_inputs_v1" in markdown
+    assert _full_id("confusion_matrix_heatmap_binary") in markdown
+    assert "confusion_matrix_heatmap_binary_inputs_v1" in markdown
     assert _full_id("clustered_heatmap") in markdown
     assert "clustered_heatmap_inputs_v1" in markdown
     assert _full_id("gsva_ssgsea_heatmap") in markdown

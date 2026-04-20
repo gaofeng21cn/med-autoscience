@@ -417,6 +417,46 @@ plot_performance_heatmap <- function(display_payload) {
   plot
 }
 
+plot_confusion_matrix_heatmap <- function(display_payload) {
+  cells_payload <- display_payload$cells
+  if (!is.list(cells_payload) || length(cells_payload) < 1) {
+    stop("cells must contain at least one matrix entry")
+  }
+  metric_name <- trimws(as.character(display_payload$metric_name %||% ""))
+  if (!nzchar(metric_name)) {
+    stop("metric_name must be non-empty")
+  }
+  normalization <- trimws(as.character(display_payload$normalization %||% ""))
+  if (!normalization %in% c("row_fraction", "column_fraction", "overall_fraction")) {
+    stop("normalization must be one of row_fraction, column_fraction, or overall_fraction")
+  }
+  column_order <- if (is.null(display_payload$column_order)) NULL else extract_label_vector(display_payload$column_order, "column_order")
+  row_order <- if (is.null(display_payload$row_order)) NULL else extract_label_vector(display_payload$row_order, "row_order")
+  heat_df <- build_heatmap_dataframe(cells_payload, column_order = column_order, row_order = row_order)
+  plot <- ggplot(heat_df, aes(x = x, y = y, fill = value)) +
+    geom_tile(colour = "white", linewidth = 0.7) +
+    geom_text(aes(label = sprintf("%.0f%%", value * 100)), size = 4.2, colour = "#13293d", fontface = "bold") +
+    scale_fill_gradient(
+      low = "#f7fbff",
+      high = "#2166ac",
+      limits = c(0, 1),
+      name = metric_name
+    ) +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication() +
+    theme(
+      axis.text.x = element_text(angle = 0, hjust = 0.5),
+      axis.text.y = element_text(face = "bold"),
+      axis.text = element_text(face = "bold"),
+      panel.grid.major = element_blank()
+    )
+  plot
+}
+
 plot_forest <- function(display_payload) {
   rows_payload <- display_payload$rows
   if (!is.list(rows_payload) || length(rows_payload) < 1) {
@@ -617,6 +657,11 @@ build_metrics <- function(template_id, display_payload, panel_box) {
       matrix_cells = display_payload$cells,
       metric_name = trimws(as.character(display_payload$metric_name %||% ""))
     ),
+    confusion_matrix_heatmap_binary = list(
+      matrix_cells = display_payload$cells,
+      metric_name = trimws(as.character(display_payload$metric_name %||% "")),
+      normalization = trimws(as.character(display_payload$normalization %||% ""))
+    ),
     correlation_heatmap = list(matrix_cells = display_payload$cells),
     clustered_heatmap = list(matrix_cells = display_payload$cells),
     gsva_ssgsea_heatmap = list(
@@ -652,15 +697,15 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
     heights,
     c("panel"),
     "panel",
-    if (template_id %in% c("heatmap_group_comparison", "performance_heatmap", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "heatmap_tile_region" else "panel"
+    if (template_id %in% c("heatmap_group_comparison", "performance_heatmap", "confusion_matrix_heatmap_binary", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "heatmap_tile_region" else "panel"
   )
   guide_box <- find_layout_box(
     gt,
     widths,
     heights,
     c("guide-box"),
-    if (template_id %in% c("heatmap_group_comparison", "performance_heatmap", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "colorbar" else "legend",
-    if (template_id %in% c("heatmap_group_comparison", "performance_heatmap", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "colorbar" else "legend"
+    if (template_id %in% c("heatmap_group_comparison", "performance_heatmap", "confusion_matrix_heatmap_binary", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "colorbar" else "legend",
+    if (template_id %in% c("heatmap_group_comparison", "performance_heatmap", "confusion_matrix_heatmap_binary", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "colorbar" else "legend"
   )
   axis_left_box <- find_layout_box(gt, widths, heights, c("axis-l"), "axis_left", "axis_left")
   layout_boxes <- Filter(Negate(is.null), list(title_box, x_axis_title_box, y_axis_title_box))
@@ -699,6 +744,7 @@ plot <- switch(
   diffusion_map_scatter_grouped = plot_embedding_scatter(payload),
   heatmap_group_comparison = plot_heatmap(payload),
   performance_heatmap = plot_performance_heatmap(payload),
+  confusion_matrix_heatmap_binary = plot_confusion_matrix_heatmap(payload),
   correlation_heatmap = plot_heatmap(payload),
   clustered_heatmap = plot_heatmap(payload),
   gsva_ssgsea_heatmap = plot_heatmap(payload),
@@ -5280,6 +5326,73 @@ def _validate_performance_heatmap_display_payload(
         raise ValueError(
             f"{path.name} display `{expected_display_id}` cells[{index}].value must stay within [0, 1]"
         )
+    return normalized_payload
+
+
+def _validate_confusion_matrix_heatmap_binary_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    normalized_payload = _validate_clustered_heatmap_display_payload(
+        path=path,
+        payload=payload,
+        expected_template_id=expected_template_id,
+        expected_display_id=expected_display_id,
+    )
+    normalized_payload["metric_name"] = _require_non_empty_string(
+        payload.get("metric_name"),
+        label=f"{path.name} display `{expected_display_id}` metric_name",
+    )
+    normalization = _require_non_empty_string(
+        payload.get("normalization"),
+        label=f"{path.name} display `{expected_display_id}` normalization",
+    )
+    if normalization not in {"row_fraction", "column_fraction", "overall_fraction"}:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` normalization must be one of row_fraction, column_fraction, overall_fraction"
+        )
+    if len(normalized_payload["row_order"]) != 2:
+        raise ValueError(f"{path.name} display `{expected_display_id}` row_order must declare exactly two labels")
+    if len(normalized_payload["column_order"]) != 2:
+        raise ValueError(f"{path.name} display `{expected_display_id}` column_order must declare exactly two labels")
+    matrix_lookup: dict[tuple[str, str], float] = {}
+    for index, cell in enumerate(normalized_payload["cells"]):
+        value = float(cell["value"])
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` cells[{index}].value must stay within [0, 1]"
+            )
+        matrix_lookup[(str(cell["x"]), str(cell["y"]))] = value
+
+    row_labels = [str(item["label"]) for item in normalized_payload["row_order"]]
+    column_labels = [str(item["label"]) for item in normalized_payload["column_order"]]
+    tolerance = 1e-6
+    if normalization == "row_fraction":
+        for row_label in row_labels:
+            total = sum(matrix_lookup[(column_label, row_label)] for column_label in column_labels)
+            if math.isclose(total, 1.0, rel_tol=0.0, abs_tol=tolerance):
+                continue
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` row `{row_label}` must sum to 1.0 when normalization=row_fraction"
+            )
+    elif normalization == "column_fraction":
+        for column_label in column_labels:
+            total = sum(matrix_lookup[(column_label, row_label)] for row_label in row_labels)
+            if math.isclose(total, 1.0, rel_tol=0.0, abs_tol=tolerance):
+                continue
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` column `{column_label}` must sum to 1.0 when normalization=column_fraction"
+            )
+    else:
+        total = sum(matrix_lookup.values())
+        if not math.isclose(total, 1.0, rel_tol=0.0, abs_tol=tolerance):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` all confusion-matrix cells must sum to 1.0 when normalization=overall_fraction"
+            )
+    normalized_payload["normalization"] = normalization
     return normalized_payload
 
 
@@ -11585,6 +11698,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "performance_heatmap_inputs_v1":
         return payload_path, _validate_performance_heatmap_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "confusion_matrix_heatmap_binary_inputs_v1":
+        return payload_path, _validate_confusion_matrix_heatmap_binary_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

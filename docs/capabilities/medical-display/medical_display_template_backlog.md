@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `80`
+- Evidence figure templates: `81`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total audited templates: `92`
+- Total audited templates: `93`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -46,6 +46,7 @@
 
 当前真正还可以继续扩容、且仍停留在 backlog 而未进入当前 active round 的候选，主要是：
 
+- `A/H / temporal_external_validation_overview beyond the current ROC/PR/calibration/clinical-impact/performance/confusion lower bound`
 - `D/E/G / richer manifold or higher-order multi-view atlas follow-on beyond the current multimanifold context-support lower bound`
 - `F / higher-order explanation scene or AI-first visual hardening beyond the current signed-importance + local-waterfall + support-domain scene and grouped decision-scene lower bound`
 - `C/H / calibration appendix or higher-order robustness synthesis beyond the current interaction-summary lower bound`
@@ -62,6 +63,7 @@
 - `D / PHATE manifold concrete follow-on` 已在本轮正式 absorb 为 `phate_scatter_grouped`，不再保留在 backlog 候选池。
 - `D / diffusion-map manifold concrete follow-on` 已在本轮正式 absorb 为 `diffusion_map_scatter_grouped`，不再保留在 backlog 候选池。
 - `D/E/G / atlas marker dotplot concrete follow-on` 已在本轮正式 absorb 为 `celltype_marker_dotplot_panel`，不再保留在 backlog 候选池。
+- `A/E / binary confusion-matrix heatmap concrete follow-on` 已在本轮正式 absorb 为 `confusion_matrix_heatmap_binary`，不再保留在 backlog 候选池。
 - `D/E/G / legend / annotation / readability-only hardening` 本轮不再作为当前 active 候选保留：
   - 原因：当前 atlas / spatial / trajectory family 的真 gap 已经抬升到更高阶 atlas geometry synthesis；只做 readability patch 还不足以承担下一条 multi-view capability cluster。
 - `D/E/G / broader omics-only matrix follow-on` 本轮不再作为当前 active 候选保留：
@@ -128,8 +130,6 @@
 
 下面这些方向仍可作为更远期候选，但当前不是 active mainline：
 
-- `confusion_matrix_heatmap_binary`
-- `temporal_external_validation_overview`
 - `multi_group_grouped_local_explanation_panel`
 - `multi_group_decision_path_panel`
 - `annotation_governance_follow_on`

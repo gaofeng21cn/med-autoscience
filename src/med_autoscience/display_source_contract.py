@@ -27,6 +27,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "omics_volcano_panel_inputs_v1": "omics_volcano_panel_inputs.json",
     "heatmap_group_comparison_inputs_v1": "heatmap_group_comparison_inputs.json",
     "performance_heatmap_inputs_v1": "performance_heatmap_inputs.json",
+    "confusion_matrix_heatmap_binary_inputs_v1": "confusion_matrix_heatmap_binary_inputs.json",
     "correlation_heatmap_inputs_v1": "correlation_heatmap_inputs.json",
     "clustered_heatmap_inputs_v1": "clustered_heatmap_inputs.json",
     "gsva_ssgsea_heatmap_inputs_v1": "gsva_ssgsea_heatmap_inputs.json",

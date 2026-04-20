@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-20
 
+- Add `confusion_matrix_heatmap_binary` as the next audited `A/E` binary confusion-matrix slice in the core display pack.
+- Lock its pack-facing contract to `confusion_matrix_heatmap_binary_inputs_v1`, `publication_heatmap`, and the R bounded binary confusion-matrix heatmap renderer path.
+
 - Add `diffusion_map_scatter_grouped` as the next audited `D` grouped diffusion-manifold slice in the core display pack.
 - Lock its pack-facing contract to `embedding_grouped_inputs_v1`, `publication_embedding_scatter`, and the R grouped-embedding scatter renderer path.
 

@@ -55,6 +55,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "omics_volcano_panel",
         "heatmap_group_comparison",
         "performance_heatmap",
+        "confusion_matrix_heatmap_binary",
         "correlation_heatmap",
         "clustered_heatmap",
         "gsva_ssgsea_heatmap",

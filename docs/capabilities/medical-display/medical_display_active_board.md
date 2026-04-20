@@ -20,12 +20,12 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`80`
+  - 证据型模板：`81`
   - 插图壳层：`7`
   - 表格壳层：`5`
-  - 总模板数：`92`
+  - 总模板数：`93`
 - 最近一次已吸收完成的 capability cluster：
-  - `D/E/G / celltype_marker_dotplot_panel`
+  - `A/E / confusion_matrix_heatmap_binary`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -35,43 +35,43 @@
 ## 当前 Active Round
 
 - Phase：`Phase 4 / post-absorb reroute`
-- Family cluster：`D/E/G absorbed, reroute reopened`
-- Capability cluster：`celltype_marker_dotplot_panel closed`
+- Family cluster：`A/E absorbed, reroute reopened`
+- Capability cluster：`confusion_matrix_heatmap_binary closed`
 - Owner worktree：`not_opened`
 - 状态：`ready_for_next_owner_round`
 
 ### Fresh Mainline Result
 
-- 当前主干已吸收的最新 capability cluster 是 `celltype_marker_dotplot_panel`；
+- 当前主干已吸收的最新 capability cluster 是 `confusion_matrix_heatmap_binary`；
 - strict audited inventory 已更新到：
   - `Data Geometry`：`15`
-  - `Matrix Pattern`：`14`
-  - evidence figures：`80`
-  - total templates：`92`
-- `celltype_marker_dotplot_panel` 已把 `D/E/G` 的 atlas follow-on lower bound 从“已有 overview / bridge / niche / trajectory / multimanifold context-support 复合图”推进到正式的 `cell type × marker` bounded dotplot companion，并把 shared `celltype_order`、shared `marker_order`、完整 `panel x celltype x marker` 网格、effect/size 双标尺语义与 up-to-two-panel manuscript-facing 版式治理固化进单一契约；
+  - `Matrix Pattern`：`15`
+  - evidence figures：`81`
+  - total templates：`93`
+- `confusion_matrix_heatmap_binary` 已把 `A/E` 的高频二分类诊断矩阵表达从“通用 heatmap 可勉强承接”推进到正式的 binary confusion-matrix lower bound，并把显式 `2x2` 网格、`row/column/overall` normalization 语义、`metric_name`、行列顺序和数值边界固化进单一契约；
 - 下一步是按 reroute 规则固定下一个 capability cluster，再新开唯一 owner worktree。
 
 ### 当前轮次目标
 
 当前下一轮要回答：
 
-> 在 `D/E/G` 家族 atlas marker dotplot companion 已经 absorb 完成的前提下，下一条最值得继续扩容的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
+> 在 `A/E` 家族 binary confusion-matrix heatmap 已经 absorb 完成的前提下，下一条最值得继续扩容的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
 
 ### 当前 Next Baton
 
 当前 baton 已明确：
 
-1. 最新的 `D/E/G / atlas_spatial_trajectory_multimanifold_context_support_panel` owner round 已经 absorb 完成。
-2. 最新的 `D/E/G / celltype_marker_dotplot_panel` owner round 已完成 closeout，strict audited inventory 已推进到 `80 / 7 / 5 / 92`。
+1. 最新的 `D/E/G / celltype_marker_dotplot_panel` owner round 已经 absorb 完成。
+2. 最新的 `A/E / confusion_matrix_heatmap_binary` owner round 已完成 closeout，strict audited inventory 已推进到 `81 / 7 / 5 / 93`。
 3. 当前没有打开中的 owner worktree，下一轮要先 reroute，再开唯一 owner round。
-4. 下一轮优先继续比较 `D/E/G`、`C/H` 与 `F` 的 AI-first visual-hardening / higher-order follow-on 价值。
+4. 下一轮优先继续比较 `A/H`、`F`、`D/E/G` 与 `C/H` 的真实论文 demand 与 capability-cluster 价值。
 
 ### 下一轮边界
 
 下一轮只做下面三块：
 
 1. 先 fresh 读取当前 audit guide / template catalog / arsenal / active board；
-2. 再比较 `D/E/G`、`C/H` 与 `F` 的真实论文 demand 哪一条最值得开启下一轮；
+2. 再比较 `A/H`、`F`、`D/E/G` 与 `C/H` 的真实论文 demand 哪一条最值得开启下一轮；
 3. 只有 reroute 固定后，才新开唯一 owner worktree 进入实现。
 
 ## 预期写集
@@ -92,16 +92,17 @@
 
 1. 新候选必须有清晰的论文问题、最小 panel 结构与最小数据前提；
 2. 新候选必须明确继承当前 lower bound，而不是退回 paper-local 修图；
-3. reroute 必须明确为什么当前应该优先 `F`、`D/E/G` 或 `C/H`；
+3. reroute 必须明确为什么当前应该优先 `A/H`、`F`、`D/E/G` 或 `C/H`；
 4. 打开新的 owner worktree 前，当前已完成 round 的 absorb / cleanup 必须完成。
 
 ## 当前轮次结束后的候选
 
 当前本轮完成后的 reroute 候选按下面顺序继续：
 
-1. `D/E/G / richer higher-order multi-view atlas follow-on only if new real-paper demand proves the current multimanifold context-support lower bound insufficient`
-2. `C/H / calibration appendix or higher-order robustness synthesis only if new real-paper demand proves the current compact-estimate + coefficient-path + broader-heterogeneity lower bound insufficient`
-3. `F / higher-order explanation scene or AI-first visual hardening only if new real-paper demand proves the current signed-importance + local-waterfall + support-domain scene and grouped decision-scene lower bound insufficient`
+1. `A/H / temporal_external_validation_overview only if new real-paper demand proves the current ROC/PR/calibration/clinical-impact/performance/confusion lower bound insufficient`
+2. `F / higher-order explanation scene or AI-first visual hardening only if new real-paper demand proves the current signed-importance + local-waterfall + support-domain scene and grouped decision-scene lower bound insufficient`
+3. `D/E/G / richer higher-order multi-view atlas follow-on only if new real-paper demand proves the current multimanifold context-support lower bound insufficient`
+4. `C/H / calibration appendix or higher-order robustness synthesis only if new real-paper demand proves the current compact-estimate + coefficient-path + broader-heterogeneity lower bound insufficient`
 
 ## 明确不是执行面
 

@@ -2569,6 +2569,41 @@ def test_run_display_layout_qc_fails_when_performance_heatmap_value_is_out_of_ra
     assert any(issue["rule_id"] == "performance_value_out_of_range" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_fails_when_confusion_matrix_row_fraction_does_not_sum_to_one() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_heatmap",
+        layout_sidecar={
+            "template_id": "confusion_matrix_heatmap_binary",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("x_axis_title", "x_axis_title", x0=0.28, y0=0.92, x1=0.64, y1=0.97),
+                make_box("y_axis_title", "y_axis_title", x0=0.02, y0=0.22, x1=0.06, y1=0.68),
+            ],
+            "panel_boxes": [
+                make_box("panel", "heatmap_tile_region", x0=0.12, y0=0.16, x1=0.74, y1=0.86),
+            ],
+            "guide_boxes": [
+                make_box("colorbar", "colorbar", x0=0.80, y0=0.18, x1=0.90, y1=0.82),
+            ],
+            "metrics": {
+                "metric_name": "Observed proportion",
+                "normalization": "row_fraction",
+                "matrix_cells": [
+                    {"x": "Predicted negative", "y": "Observed negative", "value": 0.81},
+                    {"x": "Predicted positive", "y": "Observed negative", "value": 0.12},
+                    {"x": "Predicted negative", "y": "Observed positive", "value": 0.21},
+                    {"x": "Predicted positive", "y": "Observed positive", "value": 0.83},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "confusion_row_sum_invalid" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_pathway_enrichment_dotplot_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

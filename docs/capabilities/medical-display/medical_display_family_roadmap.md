@@ -195,6 +195,7 @@ Representative displays:
 - ROC
 - PR
 - calibration
+- confusion matrix
 - decision curve
 - calibration + decision composite panel
 - threshold summary
@@ -218,6 +219,7 @@ Current audited anchors:
 - `calibration_curve_binary`
 - `decision_curve_binary`
 - `clinical_impact_curve_binary`
+- `confusion_matrix_heatmap_binary`
 - `binary_calibration_decision_curve_panel`
 - `time_to_event_decision_curve`
 - `time_to_event_landmark_performance_panel`
@@ -227,6 +229,7 @@ Current audited anchors:
 Current gap direction:
 
 - lift/gain style views
+- temporal external-validation overviews beyond the current performance + confusion lower bound
 - denser threshold governance beyond the first audited threshold-summary + grouped-calibration slice
 - broader survival-calibration governance beyond the current grouped dumbbell + multi-horizon grouped-calibration slices
 - stronger presentation QC around title policy, annotation layout, and multi-panel semantics
@@ -374,6 +377,7 @@ Paper question:
 Representative displays:
 
 - heatmap
+- confusion-matrix heatmap
 - correlation heatmap
 - clustered heatmap
 - expression matrix heatmap
@@ -392,6 +396,7 @@ Current audited anchors:
 
 - `heatmap_group_comparison`
 - `performance_heatmap`
+- `confusion_matrix_heatmap_binary`
 - `correlation_heatmap`
 - `clustered_heatmap`
 - `pathway_enrichment_dotplot_panel`
@@ -410,6 +415,7 @@ Current gap direction:
 
 - missingness and QC-oriented matrices
 - attention/importances matrix displays
+- temporal external-validation and broader diagnostic-matrix scenes beyond the current performance + confusion lower bound
 - celltype/program/kinetics/support/context composite matrices beyond the current atlas-overview / atlas-spatial-bridge / spatial-niche / trajectory / atlas-marker-dotplot / storyboard / density-coverage / context-support / multimanifold baseline
 - omics-oriented matrix and dotplot surfaces beyond the current GSVA + shared-pathway enrichment + celltype-marker atlas companion lower bound, with manuscript-facing annotation control
 
@@ -632,6 +638,7 @@ The platform should report progress on three separate axes:
 ### 3. Inventory progress
 
 - How many audited templates, shells, and tables are registered today?
+- Current strict audited inventory is `81` evidence templates, `7` illustration shells, `5` table shells, `93` total templates.
 
 No single count should be used as a substitute for all three.
 
