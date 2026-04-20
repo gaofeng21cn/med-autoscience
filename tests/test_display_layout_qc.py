@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
 
 
 def make_box(
@@ -7799,6 +7801,128 @@ def test_run_display_layout_qc_fails_when_multigroup_support_domain_support_orde
 
     assert result["status"] == "fail"
     assert any(issue["rule_id"] == "support_feature_order_mismatch" for issue in result["issues"])
+
+
+def _make_shap_signed_importance_local_support_domain_layout_sidecar(tmp_path: Path) -> dict[str, object]:
+    surface_tests = importlib.import_module("tests.test_display_surface_materialization")
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    surface_tests.dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure52",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_signed_importance_local_support_domain_panel",
+                    "catalog_id": "F52",
+                    "shell_path": "paper/figures/Figure52.shell.json",
+                }
+            ],
+        },
+    )
+    surface_tests.dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    surface_tests.dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    surface_tests.write_default_publication_display_contracts(paper_root)
+    surface_tests.dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure52",
+                    "template_id": "shap_signed_importance_local_support_domain_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    surface_tests.dump_json(
+        paper_root / "shap_signed_importance_local_support_domain_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_signed_importance_local_support_domain_panel_inputs_v1",
+            "displays": [surface_tests._make_shap_signed_importance_local_support_domain_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F52_shap_signed_importance_local_support_domain_panel.layout.json"
+    )
+    return json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+
+
+def test_run_display_layout_qc_passes_for_shap_signed_importance_local_support_domain_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_signed_importance_local_support_domain_panel",
+        layout_sidecar=_make_shap_signed_importance_local_support_domain_layout_sidecar(tmp_path),
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_signed_importance_local_support_domain_local_order_drifts(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+    layout_sidecar = _make_shap_signed_importance_local_support_domain_layout_sidecar(tmp_path)
+    contributions = layout_sidecar["metrics"]["local_panel"]["contributions"]
+    contributions[0], contributions[1] = contributions[1], contributions[0]
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_signed_importance_local_support_domain_panel",
+        layout_sidecar=layout_sidecar,
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "local_feature_order_mismatch" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_fails_when_signed_importance_local_support_domain_support_order_drifts(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+    layout_sidecar = _make_shap_signed_importance_local_support_domain_layout_sidecar(tmp_path)
+    support_panels = layout_sidecar["metrics"]["support_panels"]
+    support_panels[0]["feature"] = "Age"
+    support_panels[1]["feature"] = "Albumin"
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_signed_importance_local_support_domain_panel",
+        layout_sidecar=layout_sidecar,
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "support_feature_order_mismatch" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_fails_when_signed_importance_local_support_domain_support_legend_title_box_is_missing(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+    layout_sidecar = _make_shap_signed_importance_local_support_domain_layout_sidecar(tmp_path)
+    layout_sidecar["layout_boxes"] = [
+        box for box in layout_sidecar["layout_boxes"] if box.get("box_id") != "support_legend_title"
+    ]
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_signed_importance_local_support_domain_panel",
+        layout_sidecar=layout_sidecar,
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "support_legend_title_missing" for issue in result["issues"])
 
 
 def test_run_display_layout_qc_passes_for_shap_grouped_decision_path_panel() -> None:
