@@ -10,6 +10,7 @@ from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.controller_confirmation_summary import materialize_controller_confirmation_summary
+from med_autoscience.human_gate_policy import require_controller_human_gate_allowed
 from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.publication_eval_latest import (
@@ -438,6 +439,12 @@ def study_outer_loop_tick(
         else StudyDecisionControllerAction.from_payload(action)
         for action in (controller_actions or [])
     )
+    human_gate_policy = None
+    if requires_human_confirmation:
+        human_gate_policy = require_controller_human_gate_allowed(
+            decision_type=decision_type,
+            controller_action_types=(action.action_type for action in normalized_controller_actions),
+        )
     family_evidence_refs = [
         {
             "ref_kind": "repo_path",
@@ -479,6 +486,7 @@ def study_outer_loop_tick(
         payload={
             "decision_type": decision_type,
             "requires_human_confirmation": requires_human_confirmation,
+            "human_gate_policy": human_gate_policy.to_dict() if human_gate_policy is not None else None,
             "controller_reason": reason,
         },
         event_time=emitted_at,

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.human_gate_policy import require_controller_human_gate_allowed
 from med_autoscience.study_decision_record import StudyDecisionRecord
 
 __all__ = [
@@ -174,6 +175,10 @@ def _normalized_decision_ref(*, study_root: Path, value: object) -> dict[str, st
     record = _load_decision_record(study_root=study_root, ref=payload)
     if not record.requires_human_confirmation:
         raise ValueError("controller confirmation summary decision_ref must point to a pending human-confirmation decision")
+    require_controller_human_gate_allowed(
+        decision_type=record.decision_type,
+        controller_action_types=(action.action_type for action in record.controller_actions),
+    )
     return record.ref().to_dict()
 
 
@@ -242,6 +247,15 @@ def materialize_controller_confirmation_summary(
         if summary_path.exists():
             summary_path.unlink()
         return None
+    try:
+        require_controller_human_gate_allowed(
+            decision_type=record.decision_type,
+            controller_action_types=(action.action_type for action in record.controller_actions),
+        )
+    except ValueError:
+        if summary_path.exists():
+            summary_path.unlink()
+        raise
     normalized = _normalized_payload(
         study_root=study_root,
         payload=_build_summary_payload(record),

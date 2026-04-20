@@ -26,6 +26,7 @@ from med_autoscience.evaluation_summary import (
     stable_evaluation_summary_path,
     stable_promotion_gate_path,
 )
+from med_autoscience.human_gate_policy import controller_human_gate_allowed
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_status_summary import (
     build_runtime_status_summary,
@@ -1129,8 +1130,33 @@ def _controller_confirmation_pending(
 ) -> bool:
     summary_status = _non_empty_text((controller_confirmation_summary or {}).get("status"))
     if summary_status is not None:
-        return summary_status == "pending"
-    return bool((controller_decision_payload or {}).get("requires_human_confirmation"))
+        return summary_status == "pending" and _controller_human_gate_allowed_from_payload(
+            controller_confirmation_summary or {}
+        )
+    if not bool((controller_decision_payload or {}).get("requires_human_confirmation")):
+        return False
+    return _controller_human_gate_allowed_from_payload(controller_decision_payload or {})
+
+
+def _controller_human_gate_allowed_from_payload(payload: dict[str, Any]) -> bool:
+    decision_type = _non_empty_text(payload.get("decision_type"))
+    if decision_type is None:
+        return False
+    action_types = payload.get("controller_action_types")
+    if not isinstance(action_types, list):
+        raw_actions = payload.get("controller_actions")
+        action_types = [
+            _non_empty_text(action.get("action_type"))
+            for action in raw_actions
+            if isinstance(action, dict)
+        ] if isinstance(raw_actions, list) else []
+    try:
+        return controller_human_gate_allowed(
+            decision_type=decision_type,
+            controller_action_types=[action_type for action_type in action_types if action_type],
+        )
+    except (TypeError, ValueError):
+        return False
 
 
 def _controller_confirmation_summary_text(

@@ -119,14 +119,22 @@ def _write_study_charter_and_controller_summary(study_root: Path) -> tuple[Path,
     return charter_path, controller_summary_path
 
 
-def _write_controller_decision(study_root: Path, quest_root: Path) -> Path:
+def _write_controller_decision(
+    study_root: Path,
+    quest_root: Path,
+    *,
+    decision_type: str = "stop_loss",
+    requires_human_confirmation: bool = True,
+    action_type: str = "stop_runtime",
+    reason: str = "当前研究线触发止损边界，需要医生/PI确认。",
+) -> Path:
     payload = {
         "schema_version": 1,
-        "decision_id": "study-decision::001-risk::quest-001::continue_same_line::2026-04-10T09:10:00+00:00",
+        "decision_id": f"study-decision::001-risk::quest-001::{decision_type}::2026-04-10T09:10:00+00:00",
         "study_id": "001-risk",
         "quest_id": "quest-001",
         "emitted_at": "2026-04-10T09:10:00+00:00",
-        "decision_type": "continue_same_line",
+        "decision_type": decision_type,
         "charter_ref": {
             "charter_id": "charter::001-risk::v1",
             "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
@@ -142,14 +150,14 @@ def _write_controller_decision(study_root: Path, quest_root: Path) -> Path:
             "eval_id": "publication-eval::001-risk::quest-001::2026-04-10T09:09:00+00:00",
             "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
         },
-        "requires_human_confirmation": True,
+        "requires_human_confirmation": requires_human_confirmation,
         "controller_actions": [
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": action_type,
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],
-        "reason": "外部验证是否继续投入需要医生/PI确认。",
+        "reason": reason,
     }
     path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     _write_json(path, payload)
@@ -547,9 +555,9 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
         "gate_id": "controller-human-confirmation-001-risk",
         "status": "pending",
         "requested_at": "2026-04-10T09:10:00+00:00",
-        "question_for_user": "请确认是否允许 MAS 继续托管推进当前研究。",
+        "question_for_user": "请确认是否允许 MAS 停止当前研究运行。",
         "allowed_responses": ["approve", "request_changes", "reject"],
-        "next_action_if_approved": "继续托管推进当前研究运行",
+        "next_action_if_approved": "停止当前研究运行",
         "summary_ref": str(study_root / "artifacts" / "controller" / "controller_confirmation_summary.json"),
     }
     assert result["module_surfaces"]["runtime"]["summary_ref"] == result["refs"]["runtime_status_summary_path"]
@@ -573,7 +581,14 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
     quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
     _write_study_charter_and_controller_summary(study_root)
     _write_publication_eval(study_root, quest_root)
-    _write_controller_decision(study_root, quest_root)
+    _write_controller_decision(
+        study_root,
+        quest_root,
+        decision_type="continue_same_line",
+        requires_human_confirmation=False,
+        action_type="ensure_study_runtime",
+        reason="MAS should keep repairing the current publication blockers autonomously.",
+    )
     runtime_escalation_path = _write_runtime_escalation(quest_root, study_root)
     _write_publishability_gate_report(quest_root)
     _write_runtime_watch(quest_root)
@@ -1069,6 +1084,75 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
     assert "等待医生/PI" not in result["next_system_action"]
     assert all("finalize 本地总结" not in item for item in result["current_blockers"])
     assert result["paper_stage"] == "scientific_anchor_missing"
+    assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
+    assert result["refs"]["controller_confirmation_summary_path"] is None
+
+
+def test_study_progress_does_not_project_autonomous_controller_gate_as_physician_decision(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    publication_eval_path = _write_publication_eval(study_root, quest_root)
+    _write_controller_decision(
+        study_root,
+        quest_root,
+        decision_type="continue_same_line",
+        requires_human_confirmation=True,
+        action_type="ensure_study_runtime",
+        reason="MAS should decide the current evidence repair line autonomously.",
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+                "auto_resume": True,
+            },
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "active",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "resume",
+            "reason": "publishability_gate_blocked",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": [],
+            },
+            "pending_user_interaction": {},
+            "interaction_arbitration": None,
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["current_stage"] == "publication_supervision"
+    assert result["needs_physician_decision"] is False
+    assert result["physician_decision_summary"] is None
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
     assert result["refs"]["controller_confirmation_summary_path"] is None
 
@@ -2055,7 +2139,14 @@ def test_study_progress_surfaces_figure_loop_guard_blockers_from_runtime_watch(m
     quest_root.mkdir(parents=True, exist_ok=True)
 
     _write_publication_eval(study_root, quest_root)
-    _write_controller_decision(study_root, quest_root)
+    _write_controller_decision(
+        study_root,
+        quest_root,
+        decision_type="continue_same_line",
+        requires_human_confirmation=False,
+        action_type="ensure_study_runtime",
+        reason="MAS should keep repairing the current publication blockers autonomously.",
+    )
     _write_runtime_escalation(quest_root, study_root)
     _write_runtime_watch(quest_root)
 

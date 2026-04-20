@@ -757,6 +757,68 @@ def test_study_outer_loop_tick_blocks_dispatch_when_human_confirmation_is_requir
     assert confirmation_payload["next_action_if_approved"] == "停止当前研究运行"
 
 
+def test_study_outer_loop_tick_rejects_human_gate_for_autonomous_scientific_decision(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    charter_ref = _write_charter(study_root)
+    publication_eval_ref = _write_publication_eval(study_root, quest_root)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "decision": "blocked",
+            "reason": "publishability_gate_blocked",
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **kwargs: pytest.fail("ordinary scientific decisions must stay autonomous"),
+    )
+
+    with pytest.raises(ValueError, match="major direction pivots"):
+        module.study_outer_loop_tick(
+            profile=profile,
+            study_id="001-risk",
+            charter_ref=charter_ref,
+            publication_eval_ref=publication_eval_ref,
+            decision_type="continue_same_line",
+            requires_human_confirmation=True,
+            controller_actions=[
+                {
+                    "action_type": "ensure_study_runtime",
+                    "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+                }
+            ],
+            reason="MAS should autonomously decide whether to continue the current evidence repair line.",
+            source="test-source",
+            recorded_at="2026-04-05T06:06:00+00:00",
+        )
+
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "controller" / "controller_confirmation_summary.json").exists()
+
+
 def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     profile = make_profile(tmp_path)

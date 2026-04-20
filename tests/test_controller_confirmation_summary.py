@@ -117,3 +117,20 @@ def test_materialize_controller_confirmation_summary_removes_stale_surface_when_
 
     assert written_ref is None
     assert not summary_path.exists()
+
+
+def test_materialize_controller_confirmation_summary_rejects_autonomous_scientific_gate(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_controller_decision(study_root, requires_human_confirmation=True, action_type="ensure_study_runtime")
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    payload = json.loads(decision_path.read_text(encoding="utf-8"))
+    payload["decision_type"] = "continue_same_line"
+    _write_json(decision_path, payload)
+
+    with pytest.raises(ValueError, match="major direction pivots"):
+        module.materialize_controller_confirmation_summary(study_root=study_root)
+
+    assert not (study_root / "artifacts" / "controller" / "controller_confirmation_summary.json").exists()
