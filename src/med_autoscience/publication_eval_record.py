@@ -16,12 +16,22 @@ _RECORD_ALLOWED_FIELDS = frozenset(
         "runtime_context_refs",
         "delivery_context_refs",
         "verdict",
+        "quality_assessment",
         "gaps",
         "recommended_actions",
     }
 )
 _CHARTER_CONTEXT_REF_ALLOWED_FIELDS = frozenset({"ref", "charter_id", "publication_objective"})
 _VERDICT_ALLOWED_FIELDS = frozenset({"overall_verdict", "primary_claim_status", "summary", "stop_loss_pressure"})
+_QUALITY_DIMENSION_ALLOWED_FIELDS = frozenset({"status", "summary", "evidence_refs"})
+_QUALITY_ASSESSMENT_ALLOWED_FIELDS = frozenset(
+    {
+        "clinical_significance",
+        "evidence_strength",
+        "novelty_positioning",
+        "human_review_readiness",
+    }
+)
 _GAP_ALLOWED_FIELDS = frozenset({"gap_id", "gap_type", "severity", "summary", "evidence_refs"})
 _RECOMMENDED_ACTION_ALLOWED_FIELDS = frozenset(
     {
@@ -39,6 +49,7 @@ _RECOMMENDED_ACTION_ALLOWED_FIELDS = frozenset(
 _ALLOWED_OVERALL_VERDICTS = frozenset({"promising", "mixed", "weak", "blocked"})
 _ALLOWED_PRIMARY_CLAIM_STATUSES = frozenset({"supported", "partial", "unsupported", "blocked"})
 _ALLOWED_STOP_LOSS_PRESSURES = frozenset({"none", "watch", "high"})
+_ALLOWED_QUALITY_DIMENSION_STATUSES = frozenset({"ready", "partial", "blocked", "underdefined"})
 _ALLOWED_GAP_TYPES = frozenset({"claim", "evidence", "reporting", "delivery"})
 _ALLOWED_GAP_SEVERITIES = frozenset({"must_fix", "important", "optional"})
 _ALLOWED_ACTION_TYPES = frozenset(
@@ -298,6 +309,125 @@ class PublicationEvalVerdict:
 
 
 @dataclass(frozen=True)
+class PublicationEvalQualityDimension:
+    status: str
+    summary: str
+    evidence_refs: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "status",
+            _require_choice(
+                "publication eval quality dimension",
+                "status",
+                self.status,
+                _ALLOWED_QUALITY_DIMENSION_STATUSES,
+            ),
+        )
+        object.__setattr__(
+            self,
+            "summary",
+            _require_text("publication eval quality dimension", "summary", self.summary),
+        )
+        object.__setattr__(
+            self,
+            "evidence_refs",
+            tuple(
+                _require_ref_text("publication eval quality dimension", "evidence_ref", item)
+                for item in self.evidence_refs
+            ),
+        )
+        if not self.evidence_refs:
+            raise ValueError("publication eval quality dimension evidence_refs must not be empty")
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "status": self.status,
+            "summary": self.summary,
+            "evidence_refs": list(self.evidence_refs),
+        }
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "PublicationEvalQualityDimension":
+        if not isinstance(payload, dict):
+            raise TypeError("publication eval quality dimension payload must be a mapping")
+        _reject_unknown_fields(
+            "publication eval quality dimension",
+            payload,
+            _QUALITY_DIMENSION_ALLOWED_FIELDS,
+        )
+        return cls(
+            status=_payload_text(payload, "status", "publication eval quality dimension"),
+            summary=_payload_text(payload, "summary", "publication eval quality dimension"),
+            evidence_refs=tuple(
+                _require_ref_text("publication eval quality dimension", "evidence_ref", item)
+                for item in _require_text_sequence(
+                    "publication eval quality dimension",
+                    "evidence_refs",
+                    payload.get("evidence_refs"),
+                )
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class PublicationEvalQualityAssessment:
+    clinical_significance: PublicationEvalQualityDimension
+    evidence_strength: PublicationEvalQualityDimension
+    novelty_positioning: PublicationEvalQualityDimension
+    human_review_readiness: PublicationEvalQualityDimension
+
+    def __post_init__(self) -> None:
+        for field_name in (
+            "clinical_significance",
+            "evidence_strength",
+            "novelty_positioning",
+            "human_review_readiness",
+        ):
+            value = getattr(self, field_name)
+            object.__setattr__(
+                self,
+                field_name,
+                value
+                if isinstance(value, PublicationEvalQualityDimension)
+                else PublicationEvalQualityDimension.from_payload(value),
+            )
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "clinical_significance": self.clinical_significance.to_dict(),
+            "evidence_strength": self.evidence_strength.to_dict(),
+            "novelty_positioning": self.novelty_positioning.to_dict(),
+            "human_review_readiness": self.human_review_readiness.to_dict(),
+        }
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "PublicationEvalQualityAssessment":
+        if not isinstance(payload, dict):
+            raise TypeError("publication eval quality assessment payload must be a mapping")
+        _reject_unknown_fields(
+            "publication eval quality assessment",
+            payload,
+            _QUALITY_ASSESSMENT_ALLOWED_FIELDS,
+        )
+        return cls(
+            clinical_significance=PublicationEvalQualityDimension.from_payload(
+                _payload_object(payload, "clinical_significance", "publication eval quality assessment")
+            ),
+            evidence_strength=PublicationEvalQualityDimension.from_payload(
+                _payload_object(payload, "evidence_strength", "publication eval quality assessment")
+            ),
+            novelty_positioning=PublicationEvalQualityDimension.from_payload(
+                _payload_object(payload, "novelty_positioning", "publication eval quality assessment")
+            ),
+            human_review_readiness=PublicationEvalQualityDimension.from_payload(
+                _payload_object(payload, "human_review_readiness", "publication eval quality assessment")
+            ),
+        )
+
+
+@dataclass(frozen=True)
 class PublicationEvalGap:
     gap_id: str
     gap_type: str
@@ -514,6 +644,7 @@ class PublicationEvalRecord:
     verdict: PublicationEvalVerdict
     gaps: tuple[PublicationEvalGap, ...]
     recommended_actions: tuple[PublicationEvalRecommendedAction, ...]
+    quality_assessment: PublicationEvalQualityAssessment | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.schema_version, int) or isinstance(self.schema_version, bool):
@@ -564,6 +695,16 @@ class PublicationEvalRecord:
             "verdict",
             self.verdict if isinstance(self.verdict, PublicationEvalVerdict) else PublicationEvalVerdict.from_payload(self.verdict),
         )
+        if self.quality_assessment is not None:
+            object.__setattr__(
+                self,
+                "quality_assessment",
+                (
+                    self.quality_assessment
+                    if isinstance(self.quality_assessment, PublicationEvalQualityAssessment)
+                    else PublicationEvalQualityAssessment.from_payload(self.quality_assessment)
+                ),
+            )
         object.__setattr__(
             self,
             "gaps",
@@ -588,7 +729,7 @@ class PublicationEvalRecord:
             raise ValueError("publication eval record recommended_actions must not be empty")
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload = {
             "schema_version": self.schema_version,
             "eval_id": self.eval_id,
             "study_id": self.study_id,
@@ -602,6 +743,9 @@ class PublicationEvalRecord:
             "gaps": [gap.to_dict() for gap in self.gaps],
             "recommended_actions": [action.to_dict() for action in self.recommended_actions],
         }
+        if isinstance(self.quality_assessment, PublicationEvalQualityAssessment):
+            payload["quality_assessment"] = self.quality_assessment.to_dict()
+        return payload
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "PublicationEvalRecord":
@@ -621,6 +765,13 @@ class PublicationEvalRecord:
             runtime_context_refs=_payload_ref_mapping(payload, "runtime_context_refs", "publication eval record"),
             delivery_context_refs=_payload_ref_mapping(payload, "delivery_context_refs", "publication eval record"),
             verdict=PublicationEvalVerdict.from_payload(_payload_object(payload, "verdict", "publication eval record")),
+            quality_assessment=(
+                PublicationEvalQualityAssessment.from_payload(
+                    _payload_object(payload, "quality_assessment", "publication eval record")
+                )
+                if "quality_assessment" in payload
+                else None
+            ),
             gaps=tuple(
                 PublicationEvalGap.from_payload(item)
                 for item in _payload_object_sequence(payload, "gaps", "publication eval record")
@@ -635,6 +786,8 @@ class PublicationEvalRecord:
 __all__ = [
     "PublicationEvalCharterContextRef",
     "PublicationEvalGap",
+    "PublicationEvalQualityAssessment",
+    "PublicationEvalQualityDimension",
     "PublicationEvalRecommendedAction",
     "PublicationEvalRecord",
     "PublicationEvalVerdict",
