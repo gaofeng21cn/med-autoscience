@@ -415,6 +415,24 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
                 "What is the narrowest supplementary analysis needed to restore endpoint provenance support?"
             ],
         },
+        "quality_review_loop": {
+            "policy_id": "medical_publication_critique_v1",
+            "loop_id": "quality-review-loop::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+            "closure_state": "quality_repair_required",
+            "lane_id": "claim_evidence",
+            "current_phase": "revision_required",
+            "current_phase_label": "修订待执行",
+            "recommended_next_phase": "revision",
+            "recommended_next_phase_label": "执行修订",
+            "active_plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+            "active_plan_execution_status": "planned",
+            "blocking_issue_count": 1,
+            "blocking_issues": ["必须优先修复：External validation cohort is still missing."],
+            "next_review_focus": ["What is the narrowest supplementary analysis needed to restore endpoint provenance support?"],
+            "re_review_ready": False,
+            "summary": "当前已经形成结构化质量修订计划，下一步应先执行修订，再回到 MAS 做复评。",
+            "recommended_next_action": "Controller must decide whether to invest in external validation.",
+        },
         "requires_controller_decision": True,
         "promotion_gate_status": {
             "status": "blocked",
@@ -601,6 +619,24 @@ def test_materialize_evaluation_summary_artifacts_prefers_reviewer_style_agenda_
         ],
         "next_review_focus": ["复评时重点核对外部验证结果与主结论是否一一对应。"],
     }
+    assert summary["quality_review_loop"] == {
+        "policy_id": "medical_publication_critique_v1",
+        "loop_id": "quality-review-loop::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+        "closure_state": "quality_repair_required",
+        "lane_id": "claim_evidence",
+        "current_phase": "revision_required",
+        "current_phase_label": "修订待执行",
+        "recommended_next_phase": "revision",
+        "recommended_next_phase_label": "执行修订",
+        "active_plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+        "active_plan_execution_status": "planned",
+        "blocking_issue_count": 1,
+        "blocking_issues": ["证据链仍有硬缺口：外部验证结果还未进入可复核闭环。"],
+        "next_review_focus": ["复评时重点核对外部验证结果与主结论是否一一对应。"],
+        "re_review_ready": False,
+        "summary": "当前已经形成结构化质量修订计划，下一步应先执行修订，再回到 MAS 做复评。",
+        "recommended_next_action": "先补齐外部验证并重写对应结果段，再做下一轮门控复评。",
+    }
 
 
 def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining_quality_closure(
@@ -703,6 +739,24 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
         ],
         "next_review_focus": ["当前论文线还差哪一步 finalize / submission bundle 收口？"],
     }
+    assert evaluation_summary_payload["quality_review_loop"] == {
+        "policy_id": "medical_publication_critique_v1",
+        "loop_id": "quality-review-loop::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+        "closure_state": "bundle_only_remaining",
+        "lane_id": "submission_hardening",
+        "current_phase": "bundle_hardening",
+        "current_phase_label": "投稿包收口",
+        "recommended_next_phase": "finalize",
+        "recommended_next_phase_label": "定稿与投稿收尾",
+        "active_plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+        "active_plan_execution_status": "planned",
+        "blocking_issue_count": 1,
+        "blocking_issues": ["核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。"],
+        "next_review_focus": ["当前论文线还差哪一步 finalize / submission bundle 收口？"],
+        "re_review_ready": False,
+        "summary": "核心科学质量已经闭环，当前只剩投稿包与人工审阅面的收口修订。",
+        "recommended_next_action": "先在 finalize 修订，完成当前最小投稿包收口。",
+    }
 
 
 def test_read_evaluation_summary_derives_quality_review_agenda_when_missing(tmp_path: Path) -> None:
@@ -720,6 +774,7 @@ def test_read_evaluation_summary_derives_quality_review_agenda_when_missing(tmp_
     payload = json.loads(summary_path.read_text(encoding="utf-8"))
     payload.pop("quality_review_agenda", None)
     payload.pop("quality_revision_plan", None)
+    payload.pop("quality_review_loop", None)
     _write_json(summary_path, payload)
 
     summary = module.read_evaluation_summary(study_root=study_root)
@@ -769,4 +824,64 @@ def test_read_evaluation_summary_derives_quality_review_agenda_when_missing(tmp_
         "next_review_focus": [
             "What is the narrowest supplementary analysis needed to restore endpoint provenance support?"
         ],
+    }
+    assert summary["quality_review_loop"] == {
+        "policy_id": "medical_publication_critique_v1",
+        "loop_id": "quality-review-loop::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+        "closure_state": "quality_repair_required",
+        "lane_id": "claim_evidence",
+        "current_phase": "revision_required",
+        "current_phase_label": "修订待执行",
+        "recommended_next_phase": "revision",
+        "recommended_next_phase_label": "执行修订",
+        "active_plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+        "active_plan_execution_status": "planned",
+        "blocking_issue_count": 1,
+        "blocking_issues": ["核心科学质量还没有闭环；当前应先回到 analysis-campaign 完成最窄补充修复。"],
+        "next_review_focus": ["What is the narrowest supplementary analysis needed to restore endpoint provenance support?"],
+        "re_review_ready": False,
+        "summary": "当前已经形成结构化质量修订计划，下一步应先执行修订，再回到 MAS 做复评。",
+        "recommended_next_action": (
+            "先在 analysis-campaign 修订："
+            "The study direction remains valid; only a bounded analysis-campaign repair is needed."
+        ),
+    }
+
+
+def test_read_evaluation_summary_projects_re_review_required_loop_when_plan_completed(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    gate_report_path = inputs["gate_report_path"]
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
+    summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    payload["quality_revision_plan"]["execution_status"] = "completed"
+    payload.pop("quality_review_loop", None)
+    _write_json(summary_path, payload)
+
+    summary = module.read_evaluation_summary(study_root=study_root)
+
+    assert summary["quality_review_loop"] == {
+        "policy_id": "medical_publication_critique_v1",
+        "loop_id": "quality-review-loop::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+        "closure_state": "quality_repair_required",
+        "lane_id": "claim_evidence",
+        "current_phase": "re_review_required",
+        "current_phase_label": "等待复评",
+        "recommended_next_phase": "re_review",
+        "recommended_next_phase_label": "发起复评",
+        "active_plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+        "active_plan_execution_status": "completed",
+        "blocking_issue_count": 1,
+        "blocking_issues": ["必须优先修复：External validation cohort is still missing."],
+        "next_review_focus": ["What is the narrowest supplementary analysis needed to restore endpoint provenance support?"],
+        "re_review_ready": True,
+        "summary": "当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。",
+        "recommended_next_action": "发起下一轮 MAS quality re-review，确认当前 blocking issues 是否已真正闭环。",
     }

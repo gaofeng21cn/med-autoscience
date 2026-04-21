@@ -90,6 +90,23 @@ _QUALITY_REVISION_DEFAULT_DONE_CRITERIA = {
     "refresh_review_surface": "给人看的稿面、figure 和 table 不再暴露系统/分析流程痕迹。",
     "stabilize_submission_bundle": "docx/pdf 与当前 markdown 源稿同步，且最小投稿包达到可人工审核状态。",
 }
+_QUALITY_REVIEW_LOOP_PHASES = frozenset(
+    {"revision_required", "revision_in_progress", "re_review_required", "write_continuation", "bundle_hardening"}
+)
+_QUALITY_REVIEW_LOOP_PHASE_LABELS = {
+    "revision_required": "修订待执行",
+    "revision_in_progress": "修订进行中",
+    "re_review_required": "等待复评",
+    "write_continuation": "继续写作收口",
+    "bundle_hardening": "投稿包收口",
+}
+_QUALITY_REVIEW_LOOP_NEXT_PHASES = frozenset({"revision", "re_review", "write", "finalize"})
+_QUALITY_REVIEW_LOOP_NEXT_PHASE_LABELS = {
+    "revision": "执行修订",
+    "re_review": "发起复评",
+    "write": "继续写作",
+    "finalize": "定稿与投稿收尾",
+}
 
 
 def stable_evaluation_summary_path(*, study_root: Path) -> Path:
@@ -606,6 +623,14 @@ def _quality_revision_plan_id(summary_payload: dict[str, Any]) -> str:
     return f"quality-revision-plan::{study_id}"
 
 
+def _quality_review_loop_id(summary_payload: dict[str, Any]) -> str:
+    summary_id = _optional_text(summary_payload.get("summary_id"))
+    if summary_id is not None:
+        return f"quality-review-loop::{summary_id}"
+    study_id = _optional_text(summary_payload.get("study_id")) or "unknown-study"
+    return f"quality-review-loop::{study_id}"
+
+
 def _top_quality_revision_dimension(summary_payload: dict[str, Any]) -> str:
     quality_closure_truth = (
         dict(summary_payload.get("quality_closure_truth") or {})
@@ -1017,6 +1042,210 @@ def _normalized_quality_revision_plan(
     }
 
 
+def _quality_review_loop_phase(*, summary_payload: dict[str, Any]) -> tuple[str, str]:
+    quality_closure_truth = (
+        dict(summary_payload.get("quality_closure_truth") or {})
+        if isinstance(summary_payload.get("quality_closure_truth"), dict)
+        else {}
+    )
+    quality_revision_plan = (
+        dict(summary_payload.get("quality_revision_plan") or {})
+        if isinstance(summary_payload.get("quality_revision_plan"), dict)
+        else {}
+    )
+    closure_state = _optional_text(quality_closure_truth.get("state")) or "quality_repair_required"
+    execution_status = _optional_text(quality_revision_plan.get("execution_status")) or "planned"
+    if closure_state == "write_line_ready":
+        return "write_continuation", "write"
+    if closure_state == "bundle_only_remaining":
+        if execution_status == "completed":
+            return "re_review_required", "re_review"
+        return "bundle_hardening", "finalize"
+    if execution_status == "completed":
+        return "re_review_required", "re_review"
+    if execution_status == "in_progress":
+        return "revision_in_progress", "revision"
+    return "revision_required", "revision"
+
+
+def _quality_review_loop_blocking_issues(summary_payload: dict[str, Any]) -> list[str]:
+    quality_revision_plan = (
+        dict(summary_payload.get("quality_revision_plan") or {})
+        if isinstance(summary_payload.get("quality_revision_plan"), dict)
+        else {}
+    )
+    issues = _unique_non_empty_texts(
+        [dict(item).get("rationale") for item in (quality_revision_plan.get("items") or []) if isinstance(item, dict)],
+    )
+    if issues:
+        return issues
+    quality_review_agenda = (
+        dict(summary_payload.get("quality_review_agenda") or {})
+        if isinstance(summary_payload.get("quality_review_agenda"), dict)
+        else {}
+    )
+    fallback = _optional_text(quality_review_agenda.get("top_priority_issue"))
+    return [] if fallback is None else [fallback]
+
+
+def _quality_review_loop_summary(*, current_phase: str) -> str:
+    if current_phase == "revision_required":
+        return "当前已经形成结构化质量修订计划，下一步应先执行修订，再回到 MAS 做复评。"
+    if current_phase == "revision_in_progress":
+        return "当前质量修订正在推进，完成后应由 MAS 发起下一轮复评。"
+    if current_phase == "re_review_required":
+        return "当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。"
+    if current_phase == "write_continuation":
+        return "核心科学质量已经到可继续写作收口的状态，当前应继续同线写作推进。"
+    return "核心科学质量已经闭环，当前只剩投稿包与人工审阅面的收口修订。"
+
+
+def _quality_review_loop_recommended_next_action(*, current_phase: str, summary_payload: dict[str, Any]) -> str:
+    if current_phase == "re_review_required":
+        return "发起下一轮 MAS quality re-review，确认当前 blocking issues 是否已真正闭环。"
+    quality_revision_plan = (
+        dict(summary_payload.get("quality_revision_plan") or {})
+        if isinstance(summary_payload.get("quality_revision_plan"), dict)
+        else {}
+    )
+    plan_items = [dict(item) for item in (quality_revision_plan.get("items") or []) if isinstance(item, dict)]
+    first_action = _optional_text((plan_items[0] or {}).get("action")) if plan_items else None
+    if first_action is not None:
+        return first_action
+    quality_review_agenda = (
+        dict(summary_payload.get("quality_review_agenda") or {})
+        if isinstance(summary_payload.get("quality_review_agenda"), dict)
+        else {}
+    )
+    quality_execution_lane = (
+        dict(summary_payload.get("quality_execution_lane") or {})
+        if isinstance(summary_payload.get("quality_execution_lane"), dict)
+        else {}
+    )
+    return (
+        _optional_text(quality_review_agenda.get("suggested_revision"))
+        or _optional_text(quality_execution_lane.get("summary"))
+        or "继续按当前质量评估结论推进。"
+    )
+
+
+def _quality_review_loop_from_summary_payload(summary_payload: dict[str, Any]) -> dict[str, Any]:
+    quality_revision_plan = _normalized_quality_revision_plan(
+        plan_payload=(
+            dict(summary_payload.get("quality_revision_plan") or {})
+            if isinstance(summary_payload.get("quality_revision_plan"), dict)
+            else None
+        ),
+        summary_payload=summary_payload,
+    )
+    quality_closure_truth = (
+        dict(summary_payload.get("quality_closure_truth") or {})
+        if isinstance(summary_payload.get("quality_closure_truth"), dict)
+        else {}
+    )
+    quality_execution_lane = (
+        dict(summary_payload.get("quality_execution_lane") or {})
+        if isinstance(summary_payload.get("quality_execution_lane"), dict)
+        else {}
+    )
+    current_phase, recommended_next_phase = _quality_review_loop_phase(
+        summary_payload={**summary_payload, "quality_revision_plan": quality_revision_plan}
+    )
+    blocking_issues = _quality_review_loop_blocking_issues(
+        {**summary_payload, "quality_revision_plan": quality_revision_plan}
+    )
+    return {
+        "policy_id": DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"],
+        "loop_id": _quality_review_loop_id(summary_payload),
+        "closure_state": _optional_text(quality_closure_truth.get("state")) or "quality_repair_required",
+        "lane_id": _optional_text(quality_execution_lane.get("lane_id")) or "general_quality_repair",
+        "current_phase": current_phase,
+        "current_phase_label": _QUALITY_REVIEW_LOOP_PHASE_LABELS[current_phase],
+        "recommended_next_phase": recommended_next_phase,
+        "recommended_next_phase_label": _QUALITY_REVIEW_LOOP_NEXT_PHASE_LABELS[recommended_next_phase],
+        "active_plan_id": _optional_text(quality_revision_plan.get("plan_id"))
+        or _quality_revision_plan_id(summary_payload),
+        "active_plan_execution_status": _optional_text(quality_revision_plan.get("execution_status")) or "planned",
+        "blocking_issue_count": len(blocking_issues),
+        "blocking_issues": blocking_issues,
+        "next_review_focus": list(quality_revision_plan.get("next_review_focus") or []),
+        "re_review_ready": current_phase == "re_review_required",
+        "summary": _quality_review_loop_summary(current_phase=current_phase),
+        "recommended_next_action": _quality_review_loop_recommended_next_action(
+            current_phase=current_phase,
+            summary_payload={**summary_payload, "quality_revision_plan": quality_revision_plan},
+        ),
+    }
+
+
+def _normalized_quality_review_loop(
+    *,
+    loop_payload: dict[str, Any] | None,
+    summary_payload: dict[str, Any],
+) -> dict[str, Any]:
+    fallback = _quality_review_loop_from_summary_payload(summary_payload)
+    if not isinstance(loop_payload, dict):
+        return fallback
+    current_phase = _optional_text(loop_payload.get("current_phase")) or fallback["current_phase"]
+    if current_phase not in _QUALITY_REVIEW_LOOP_PHASES:
+        allowed = ", ".join(sorted(_QUALITY_REVIEW_LOOP_PHASES))
+        raise ValueError(f"quality review loop current_phase must be one of: {allowed}")
+    recommended_next_phase = (
+        _optional_text(loop_payload.get("recommended_next_phase")) or fallback["recommended_next_phase"]
+    )
+    if recommended_next_phase not in _QUALITY_REVIEW_LOOP_NEXT_PHASES:
+        allowed = ", ".join(sorted(_QUALITY_REVIEW_LOOP_NEXT_PHASES))
+        raise ValueError(f"quality review loop recommended_next_phase must be one of: {allowed}")
+    closure_state = _optional_text(loop_payload.get("closure_state")) or fallback["closure_state"]
+    if closure_state not in _QUALITY_CLOSURE_STATES:
+        allowed = ", ".join(sorted(_QUALITY_CLOSURE_STATES))
+        raise ValueError(f"quality review loop closure_state must be one of: {allowed}")
+    active_plan_execution_status = (
+        _optional_text(loop_payload.get("active_plan_execution_status")) or fallback["active_plan_execution_status"]
+    )
+    if active_plan_execution_status not in _QUALITY_REVISION_PLAN_STATUSES:
+        allowed = ", ".join(sorted(_QUALITY_REVISION_PLAN_STATUSES))
+        raise ValueError(f"quality review loop active_plan_execution_status must be one of: {allowed}")
+    blocking_issues = _normalized_text_list(loop_payload.get("blocking_issues"))
+    if not blocking_issues:
+        blocking_issues = list(fallback["blocking_issues"])
+    blocking_issue_count = loop_payload.get("blocking_issue_count")
+    if not isinstance(blocking_issue_count, int) or blocking_issue_count < 0:
+        blocking_issue_count = len(blocking_issues)
+    return {
+        "policy_id": _optional_text(loop_payload.get("policy_id")) or fallback["policy_id"],
+        "loop_id": _optional_text(loop_payload.get("loop_id")) or fallback["loop_id"],
+        "closure_state": closure_state,
+        "lane_id": _optional_text(loop_payload.get("lane_id")) or fallback["lane_id"],
+        "current_phase": current_phase,
+        "current_phase_label": (
+            _optional_text(loop_payload.get("current_phase_label")) or _QUALITY_REVIEW_LOOP_PHASE_LABELS[current_phase]
+        ),
+        "recommended_next_phase": recommended_next_phase,
+        "recommended_next_phase_label": (
+            _optional_text(loop_payload.get("recommended_next_phase_label"))
+            or _QUALITY_REVIEW_LOOP_NEXT_PHASE_LABELS[recommended_next_phase]
+        ),
+        "active_plan_id": _optional_text(loop_payload.get("active_plan_id")) or fallback["active_plan_id"],
+        "active_plan_execution_status": active_plan_execution_status,
+        "blocking_issue_count": blocking_issue_count,
+        "blocking_issues": blocking_issues,
+        "next_review_focus": (
+            _normalized_text_list(loop_payload.get("next_review_focus"))
+            or list(fallback["next_review_focus"])
+        ),
+        "re_review_ready": (
+            loop_payload.get("re_review_ready")
+            if isinstance(loop_payload.get("re_review_ready"), bool)
+            else fallback["re_review_ready"]
+        ),
+        "summary": _optional_text(loop_payload.get("summary")) or fallback["summary"],
+        "recommended_next_action": (
+            _optional_text(loop_payload.get("recommended_next_action")) or fallback["recommended_next_action"]
+        ),
+    }
+
+
 def _quality_review_agenda(
     *,
     publication_eval: dict[str, Any],
@@ -1413,6 +1642,16 @@ def _build_evaluation_summary_payload(
             "quality_review_agenda": quality_review_agenda,
         },
     )
+    quality_review_loop = _quality_review_loop_from_summary_payload(
+        {
+            "summary_id": summary_id,
+            "study_id": publication_eval["study_id"],
+            "quality_closure_truth": quality_closure_truth,
+            "quality_execution_lane": quality_execution_lane,
+            "quality_review_agenda": quality_review_agenda,
+            "quality_revision_plan": quality_revision_plan,
+        }
+    )
     return {
         "schema_version": 1,
         "summary_id": summary_id,
@@ -1456,6 +1695,7 @@ def _build_evaluation_summary_payload(
         "quality_closure_basis": quality_closure_basis,
         "quality_review_agenda": quality_review_agenda,
         "quality_revision_plan": quality_revision_plan,
+        "quality_review_loop": quality_review_loop,
         "requires_controller_decision": any(bool(action.get("requires_controller_decision")) for action in actions),
         "promotion_gate_status": {
             "status": promotion_gate_payload["status"],
@@ -1575,10 +1815,31 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
         if isinstance(payload.get("quality_revision_plan"), dict)
         else None
     )
+    quality_review_loop = (
+        dict(payload.get("quality_review_loop") or {})
+        if isinstance(payload.get("quality_review_loop"), dict)
+        else None
+    )
     quality_execution_lane = _required_mapping(
         "evaluation summary",
         "quality_execution_lane",
         payload.get("quality_execution_lane"),
+    )
+    normalized_quality_review_agenda = _normalized_quality_review_agenda(
+        agenda_payload=quality_review_agenda,
+        summary_payload=payload,
+    )
+    normalized_quality_revision_plan = _normalized_quality_revision_plan(
+        plan_payload=quality_revision_plan,
+        summary_payload={**payload, "quality_review_agenda": normalized_quality_review_agenda},
+    )
+    normalized_quality_review_loop = _normalized_quality_review_loop(
+        loop_payload=quality_review_loop,
+        summary_payload={
+            **payload,
+            "quality_review_agenda": normalized_quality_review_agenda,
+            "quality_revision_plan": normalized_quality_revision_plan,
+        },
     )
     return {
         "schema_version": 1,
@@ -1724,14 +1985,9 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
             )
             for key in _QUALITY_CLOSURE_BASIS_KEYS
         },
-        "quality_review_agenda": _normalized_quality_review_agenda(
-            agenda_payload=quality_review_agenda,
-            summary_payload=payload,
-        ),
-        "quality_revision_plan": _normalized_quality_revision_plan(
-            plan_payload=quality_revision_plan,
-            summary_payload=payload,
-        ),
+        "quality_review_agenda": normalized_quality_review_agenda,
+        "quality_revision_plan": normalized_quality_revision_plan,
+        "quality_review_loop": normalized_quality_review_loop,
         "requires_controller_decision": _required_bool(
             "evaluation summary",
             "requires_controller_decision",
