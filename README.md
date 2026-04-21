@@ -8,7 +8,7 @@
 
 <h1 align="center">Med Auto Science</h1>
 
-<p align="center"><strong>A disease-focused medical research workspace for turning data, study questions, and evidence into manuscript-ready work</strong></p>
+<p align="center"><strong>An independent medical research domain agent and workspace for turning data, study questions, and evidence into manuscript-ready work</strong></p>
 <p align="center">Disease Studies · Evidence Organization · Manuscript Delivery</p>
 
 <table>
@@ -58,8 +58,10 @@ You can start with prompts like:
 
 ## Current Boundary
 
-- `Med Auto Science` can be used directly as a medical research workspace.
+- `Med Auto Science` is an independent medical research domain agent that can be called directly by Codex, OPL, or other general-purpose agents.
+- It supports `direct entry` and `OPL handoff` as two equivalent entry routes with the same study semantics, authority boundary, and durable truth surfaces.
 - It owns study intake, workspace context, evidence progression, progress reporting, and manuscript-facing delivery.
+- `OPL` stays at family-level session/runtime/projection orchestration and shared modules/contracts/indexes; it does not redefine MAS as an internal module.
 - Clinical framing, claim acceptance, and submission decisions stay with researchers and PIs.
 - Journal submission and external system interaction stay under human supervision.
 

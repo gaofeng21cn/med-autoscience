@@ -6,7 +6,8 @@
 
 - `Med Auto Science` 是面向专病研究的医学研究工作台，负责研究问题进入、工作区语境、证据推进、人话进度和论文相关文件交付。
 - 仓库首页负责用户入口；`CLI`、`MCP`、`controller` 负责操作与自动化入口。
-- `OPL` 是上层整合入口；`Med Auto Science` 也可以直接使用。
+- `Med Auto Science` 作为独立 medical research domain agent，支持 `direct entry` 与 `OPL handoff` 两条路径，且两条路径研究语义一致。
+- `OPL` 是上层 family-level session/runtime/projection 整合入口，并维护 shared modules/contracts/indexes；它不改写 MAS 的 domain owner 语义。
 - 上游 `Hermes-Agent` 指外部运行时目标与监管责任方；当前受控研究后端继续是 `MedDeepScientist`，但它在单项目主线里只保留 research backend、行为等价 oracle、上游 intake buffer 三个迁移期角色。
 
 ## 当前推荐使用方式
@@ -55,6 +56,7 @@
 ## 当前边界
 
 - `Med Auto Science` 负责研究入口、工作区权威语义、证据推进和论文交付。
+- `Med Auto Science` 的 direct/handoff 两条入口路径共享同一套 study truth 与 authority boundary。
 - `MedDeepScientist` 继续作为受控 research backend、行为等价 oracle、上游 intake buffer 存在，不再承担独立产品入口、长期治理面或长期双 owner 语义。
 - 研究者与课题负责人继续负责方向设定、重大边界变化和投稿前审计。
 - 期刊投稿和外部系统交互继续由人工监督。

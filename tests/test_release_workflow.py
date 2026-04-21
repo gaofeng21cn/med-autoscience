@@ -142,7 +142,7 @@ def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
 
     assert "Docs Guide" in readme
     assert "Project" in readme
-    assert "can be used directly as a medical research workspace" in readme
+    assert "independent medical research domain agent" in readme
     assert "product-frontdesk" not in readme
     assert "workspace-cockpit" not in readme
     assert "Repository CI preflight" not in readme
@@ -154,7 +154,7 @@ def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     assert "advisory on push" not in readme
     assert "文档索引" in readme_zh
     assert "项目概览" in readme_zh
-    assert "可以直接作为医学研究工作台使用" in readme_zh
+    assert "独立的 medical research domain agent" in readme_zh
     assert "product-frontdesk" not in readme_zh
     assert "workspace-cockpit" not in readme_zh
     assert "仓库 CI 预检" not in readme_zh

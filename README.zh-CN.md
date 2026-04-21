@@ -8,7 +8,7 @@
 
 <h1 align="center">Med Auto Science 医学自动科研平台</h1>
 
-<p align="center"><strong>面向医学研究的专病工作台，用来把数据、课题和证据持续推进到论文交付</strong></p>
+<p align="center"><strong>可被直接调用的独立医学研究 domain agent 与专病工作台，用来把数据、课题和证据持续推进到论文交付</strong></p>
 <p align="center">专病研究 · 证据组织 · 论文交付</p>
 
 <table>
@@ -58,8 +58,10 @@
 
 ## 当前边界
 
-- `Med Auto Science` 可以直接作为医学研究工作台使用。
+- `Med Auto Science` 是独立的 medical research domain agent，可被 Codex、OPL 或其他通用 agent 直接调用。
+- 它同时支持 `direct entry` 与 `OPL handoff` 两条入口路径，两条路径的研究语义、authority 边界与 durable truth surface 保持一致。
 - 它负责课题接收、工作区语境、证据推进、进度投影和面向论文的交付。
+- `OPL` 只负责 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不把 MAS 改写成内部模块。
 - 临床问题界定、结论采用和投稿决策由研究者与课题负责人把关。
 - 期刊投稿和外部系统交互由人工监督完成。
 

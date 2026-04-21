@@ -14,7 +14,7 @@
 因此，当前最诚实的用户路径仍然是：
 
 - 用户把医学研究目标、数据和约束交给自己的 agent
-- agent 再调用 `Med Auto Science`
+- agent 以 `direct entry` 或 `OPL handoff` 方式调用 `Med Auto Science`
 
 而不是已经存在一个完整稳定的医疗研究产品前台。
 不过现在 repo 内已经把一层 shared-envelope shell 落成 machine-readable surface：
@@ -26,19 +26,21 @@
 
 ## 2. 目标形态
 
-这个仓理想中的 domain 级产品链路应是：
+这个仓对外主语固定为“独立 medical research domain agent”，因此目标形态优先表达两条等价入口路径：
 
-`User -> Med Auto Science Product Entry -> Med Auto Science Gateway -> Hermes Kernel -> Med Auto Science Domain Harness OS`
+- direct entry：
+  `User/Agent -> Med Auto Science Direct Entry -> Med Auto Science Domain Agent -> runtime/session surfaces`
 
-在 `OPL` 家族级入口下，则应兼容：
+- federated handoff（经 `OPL`）：
+  `User/Agent -> OPL Entry -> OPL session/runtime/projection orchestration -> MAS handoff envelope -> Med Auto Science Domain Agent`
 
-`User -> OPL Product Entry -> OPL Gateway -> Hermes Kernel -> Domain Handoff -> Med Auto Science Product Entry / Med Auto Science Gateway`
+`gateway / harness` 术语继续保留为内部架构边界语言，不作为 MAS 的对外第一身份。
 
 这意味着：
 
-- `OPL` 是 family-level 总入口
-- `Med Auto Science` 是 medical research domain 自己的 lightweight direct entry
-- 两者同时存在，但作用域不同
+- `Med Auto Science` 是独立 medical research domain agent，可直连调用，也可被 `OPL` handoff。
+- `OPL` 负责 family-level session/runtime/projection 编排与 shared modules/contracts/indexes，不承担研究 owner。
+- 两条入口路径共享同一套 `study semantics`、authority boundary 与 return surface contract。
 
 ## 3. 为什么这一层现在只能冻结到合同
 
@@ -76,7 +78,7 @@
 
 ## 5. 与 runtime 主线、display 支线的关系
 
-这份产品入口文档只属于 runtime / gateway 主线，不属于 display 独立支线。
+这份产品入口文档只属于 runtime 主线，不属于 display 独立支线；其中 `gateway / harness` 仅用于内部架构边界说明。
 
 必须同时保持：
 

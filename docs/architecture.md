@@ -6,12 +6,12 @@
 
 1. 产品层
    - 面向用户的对象是研究问题、工作区、进度反馈和文件交付。
-   - `Med Auto Science` 在这一层负责把研究推进组织成同一条课题线。
+   - `Med Auto Science` 在这一层以独立 medical research domain agent 身份组织同一条课题线，支持 direct entry 与 federated entry。
 
 2. 操作与集成层
    - `CLI`、`MCP`、`controller` 是操作与自动化接口。
    - `OPL`、`product-entry manifest` 和其他机器可读桥接属于上层整合与自动化消费面。
-   - 这一层负责把 MAS 控制面接到更高层入口，不改写 MAS 的 owner 身份。
+   - 这一层负责把 MAS 控制面接到更高层入口；`direct entry` 与 `OPL handoff` 必须保持同一套研究语义与 owner 边界。
 
 3. 运行时与持久真相层
    - `Med Auto Science` 持有课题与工作区权威语义、进度语义和发表判断，是唯一研究入口与 owner。
@@ -56,7 +56,8 @@
 ## 当前架构明确保留的边界
 
 - `Med Auto Science` 负责研究工作线，并保持唯一入口与 owner 身份。
-- `OPL` 负责上层整合。
+- `OPL` 负责 family-level session/runtime/projection 与 shared modules/contracts/indexes 的上层整合。
+- `gateway / harness` 继续保留为内部架构边界语言，不作为对外第一身份。
 - `MedDeepScientist` 只保留受控后端 / behavior oracle / upstream intake buffer 角色。
 - 运行时底座、后端执行和产品入口继续分层表达。
 - 迁移、解构、切换和历史推进记录继续留在 `docs/program/`、`docs/runtime/`、`docs/references/` 和 `docs/history/`。

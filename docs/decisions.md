@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-04-21：公开主语固定为独立 domain agent，OPL 只做上层 federation
+
+- 决策：`Med Auto Science` 的对外第一身份固定为“可被 Codex/OPL/其他通用 agent 直接调用的独立 medical research domain agent”；`OPL` 只承担 family-level session/runtime/projection 编排与 shared modules/contracts/indexes。
+- 理由：公开主语直接决定用户入口与 owner 语义。将 MAS 固定为独立 domain agent，才能同时支持 direct entry 与 federated handoff，并避免把 MAS 误写成 OPL 内部模块。
+- 影响：README 与核心 docs 必须明确 `direct entry` 和 `OPL handoff` 的研究语义一致；`gateway / harness` 术语保留为内部架构边界语言，不作为对外第一身份。
+
 ## 2026-04-11：统一 docs 骨架与分层
 
 - 决策：以 `project / architecture / invariants / decisions / status` 作为 docs 核心骨架，并将其余文档收口到 `capabilities/`、`program/`、`runtime/`、`references/`、`history/omx/`。
