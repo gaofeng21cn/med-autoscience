@@ -1267,7 +1267,24 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
         "dispatch_status": "executed",
         "summary": "最近一次自治外环已转到“论文写作与结果收紧”，当前关键问题是“当前同线稿件还差哪一步最窄修订？”。",
     }
+    assert result["autonomy_soak_status"] == {
+        "surface_kind": "study_autonomy_soak_status",
+        "status": "autonomous_dispatch_visible",
+        "summary": "最近一次自治外环已转到“论文写作与结果收紧”，当前关键问题是“当前同线稿件还差哪一步最窄修订？”。",
+        "autonomy_state": "autonomous_progress",
+        "dispatch_status": "executed",
+        "route_target": "write",
+        "route_target_label": "论文写作与结果收紧",
+        "route_key_question": "当前同线稿件还差哪一步最窄修订？",
+        "progress_freshness_status": "missing",
+        "next_confirmation_signal": "先补齐论文证据与叙事，再回到发表门控复核。",
+        "proof_refs": [
+            str(runtime_watch_path),
+            str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+        ],
+    }
     assert "最近一次自治续跑" in markdown
+    assert "自治 Proof / Soak" in markdown
     assert "当前同线稿件还差哪一步最窄修订？" in markdown
 
 

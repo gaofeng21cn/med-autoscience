@@ -83,6 +83,7 @@
 - `task_intake`
 - `progress_freshness`
 - `latest_events`
+- `autonomy_soak_status`
 - `current_blockers`
 - `next_system_action`
 - `needs_physician_decision`
@@ -97,6 +98,7 @@
 - `paper_stage` 表示论文主线当前建议推进阶段
 - `progress_freshness` 表示“最近有没有明确研究推进信号”，用于尽早暴露卡住、没进度或空转
 - `latest_events` 必须带明确时间戳
+- `autonomy_soak_status` 用于表达最近一次已被 durable surface 记录的自治续跑 / outer-loop dispatch，至少要能回答“系统自动转去了哪条线、关键问题是什么、下一次确认看什么、证据引用在哪里”
 - `needs_physician_decision` 只在触达正式人类 gate 边界时为 true
 - `physician_decision_summary` 必须说明触达的是初始方向锁定、重大转向、止损、外部凭据/秘密、投稿客观信息或最终投稿前审计中的哪一类
 - `supervision` 至少包含 `browser_url`、`quest_session_api_url`、`active_run_id`、`launch_report_path`

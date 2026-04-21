@@ -2063,6 +2063,38 @@ def _autonomy_contract(
     }
 
 
+def _autonomy_soak_status(
+    *,
+    autonomy_contract: dict[str, Any],
+    progress_freshness: dict[str, Any],
+    runtime_watch_path: Path | None,
+    controller_decision_path: Path,
+) -> dict[str, Any] | None:
+    latest_outer_loop_dispatch = dict(autonomy_contract.get("latest_outer_loop_dispatch") or {})
+    if not latest_outer_loop_dispatch:
+        return None
+    return {
+        "surface_kind": "study_autonomy_soak_status",
+        "status": "autonomous_dispatch_visible",
+        "summary": str(latest_outer_loop_dispatch.get("summary") or "").strip(),
+        "autonomy_state": _non_empty_text(autonomy_contract.get("autonomy_state")),
+        "dispatch_status": _non_empty_text(latest_outer_loop_dispatch.get("dispatch_status")),
+        "route_target": _non_empty_text(latest_outer_loop_dispatch.get("route_target")),
+        "route_target_label": _non_empty_text(latest_outer_loop_dispatch.get("route_target_label")),
+        "route_key_question": _non_empty_text(latest_outer_loop_dispatch.get("route_key_question")),
+        "progress_freshness_status": _non_empty_text(progress_freshness.get("status")),
+        "next_confirmation_signal": _non_empty_text(autonomy_contract.get("next_signal")),
+        "proof_refs": [
+            ref
+            for ref in (
+                str(runtime_watch_path) if runtime_watch_path is not None else None,
+                str(controller_decision_path),
+            )
+            if ref is not None
+        ],
+    }
+
+
 def _operator_verdict(
     *,
     study_id: str,
@@ -2951,6 +2983,12 @@ def build_study_progress_projection(
         if evaluation_module_surface is not None
         else {}
     )
+    autonomy_soak_status = _autonomy_soak_status(
+        autonomy_contract=autonomy_contract,
+        progress_freshness=progress_freshness,
+        runtime_watch_path=runtime_watch_path,
+        controller_decision_path=controller_decision_path,
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -2972,6 +3010,7 @@ def build_study_progress_projection(
         "recommended_command": recommended_command,
         "recommended_commands": recommended_commands,
         "autonomy_contract": autonomy_contract,
+        "autonomy_soak_status": autonomy_soak_status,
         "recovery_contract": recovery_contract,
         "needs_physician_decision": needs_physician_decision,
         "physician_decision_summary": physician_decision_summary,
@@ -3298,6 +3337,23 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
                 + (
                     _display_text(latest_outer_loop_dispatch.get("summary"))
                     or latest_outer_loop_dispatch.get("summary")
+                )
+            )
+    autonomy_soak_status = dict(payload.get("autonomy_soak_status") or {})
+    if autonomy_soak_status:
+        lines.extend(["", "## 自治 Proof / Soak", ""])
+        if autonomy_soak_status.get("summary"):
+            lines.append(
+                f"- 当前自治证据: {_display_text(autonomy_soak_status.get('summary')) or autonomy_soak_status.get('summary')}"
+            )
+        if autonomy_soak_status.get("progress_freshness_status"):
+            lines.append(f"- 进度新鲜度: `{autonomy_soak_status.get('progress_freshness_status')}`")
+        if autonomy_soak_status.get("next_confirmation_signal"):
+            lines.append(
+                "- 下一确认信号: "
+                + (
+                    _display_text(autonomy_soak_status.get("next_confirmation_signal"))
+                    or autonomy_soak_status.get("next_confirmation_signal")
                 )
             )
     if quality_closure_truth:
