@@ -30,6 +30,7 @@
 - 当前 tranche 固定为“质量闭环结构化 + 用户可见真相投影 + 对应 proof/soak 口径”。
 - 质量闭环结构化的 owner 继续落在 `study_charter`、`paper evidence ledger`、`review ledger`：把方向锁定后的普通科研推进、论文质量裁决、`bounded_analysis` 边界、reviewer concern 与 submission hygiene 压成同一套 `MAS` quality contract。
 - 当前 repo-side 落地已经要求质量修复写成结构化 route truth：当前是同线质量修复，还是 `bounded_analysis` 一类有限补充分析；回到哪条现有主线；当前那条主线要回答什么关键问题；为什么这是最窄、最诚实的修复路径。
+- 当前 repo-side 落地已经把这层 blocked route truth 继续压进 `publication_eval/latest.json`：只要 `publication_gate` 已经知道应该 `return_to_write`、`return_to_analysis_campaign` 或 `return_to_finalize`，下游 durable surface 与 `study-progress` 就不再把它压回泛化 `return_to_controller`，而会直接投影成同线修复或有限补充分析。
 - 用户可见真相投影的 owner 继续落在 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`：用户与维护者都应能从同一条 `MAS` 主线上读到当前阶段、关键证据、阻塞、下一步、恢复点与 human gate 原因。
 - 当前 repo-side 落地已经要求 `study-progress` / `product-entry` 能明确区分：同线质量修复、有限补充分析、runtime recovery、human gate，不再把这些自治语义混成同一种“待人工确认”或“泛化 blocker”。
 - proof/soak 口径当前围绕真实 study 的长期自治与质量闭环是否已经闭合，不围绕 `MDS` 再造一套长期 owner 面；`MDS` 只保留 migration oracle、backend compatibility、upstream intake buffer 三个迁移期角色。

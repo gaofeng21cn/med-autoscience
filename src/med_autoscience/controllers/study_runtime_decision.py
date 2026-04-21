@@ -369,6 +369,47 @@ def _publication_eval_action(
             ),
         }
 
+    def _blocked_route_action() -> tuple[str, dict[str, str]] | None:
+        route_back_recommendation = str(report.get("medical_publication_surface_route_back_recommendation") or "").strip()
+        controller_stage_note = str(report.get("controller_stage_note") or "").strip()
+        if route_back_recommendation == "return_to_analysis_campaign":
+            return (
+                "bounded_analysis",
+                {
+                    "route_target": "analysis-campaign",
+                    "route_key_question": "What is the narrowest supplementary analysis still required before the paper line can continue?",
+                    "route_rationale": (
+                        controller_stage_note
+                        or "The current blocked publication surface is best repaired through one bounded supplementary analysis pass."
+                    ),
+                },
+            )
+        if route_back_recommendation == "return_to_finalize":
+            return (
+                "route_back_same_line",
+                {
+                    "route_target": "finalize",
+                    "route_key_question": "What is the narrowest same-line finalize or submission-bundle repair required now?",
+                    "route_rationale": (
+                        controller_stage_note
+                        or "The current blocked publication surface should route back to finalize on the same paper line."
+                    ),
+                },
+            )
+        if route_back_recommendation == "return_to_write":
+            return (
+                "route_back_same_line",
+                {
+                    "route_target": "write",
+                    "route_key_question": "What is the narrowest same-line manuscript repair or continuation step required now?",
+                    "route_rationale": (
+                        controller_stage_note
+                        or "The current blocked publication surface should route back to manuscript repair on the same paper line."
+                    ),
+                },
+            )
+        return None
+
     status = str(report.get("status") or "").strip()
     if status == "clear":
         current_required_action = str(report.get("current_required_action") or "").strip()
@@ -382,13 +423,18 @@ def _publication_eval_action(
             str(report.get("controller_stage_note") or "").strip()
             or "Publication gate is clear and the current line can continue."
         )
+        route_contract = _route_contract_for_action(action_type) or {}
     else:
-        action_type = "return_to_controller"
+        blocked_route_action = _blocked_route_action()
+        if blocked_route_action is None:
+            action_type = "return_to_controller"
+            route_contract = {}
+        else:
+            action_type, route_contract = blocked_route_action
         reason = (
             str(report.get("controller_stage_note") or "").strip()
             or "Publication gate is blocked and requires controller review."
         )
-    route_contract = _route_contract_for_action(action_type) or {}
     return PublicationEvalRecommendedAction(
         action_id=f"publication-eval-action::{action_type}::{generated_at}",
         action_type=action_type,

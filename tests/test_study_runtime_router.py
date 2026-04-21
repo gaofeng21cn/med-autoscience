@@ -7721,6 +7721,133 @@ def test_study_runtime_status_publication_eval_uses_bounded_analysis_when_write_
     assert payload["recommended_actions"][0]["requires_controller_decision"] is True
 
 
+def test_study_runtime_status_publication_eval_materializes_same_line_route_back_for_blocked_surface(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    runtime_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+    write_text(
+        study_root / "artifacts" / "controller" / "study_charter.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "charter_id": "charter::001-risk::v1",
+                "study_id": "001-risk",
+                "publication_objective": "risk stratification external validation",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-17T02:04:11+00:00",
+            "anchor_kind": "paper_bundle",
+            "anchor_path": str(runtime_paper_root / "paper_bundle_manifest.json"),
+            "quest_id": "001-risk",
+            "run_id": "paper-main-outline-001-run",
+            "main_result_path": None,
+            "paper_root": str(runtime_paper_root),
+            "compile_report_path": str(runtime_paper_root / "build" / "compile_report.json"),
+            "latest_gate_path": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+            "medical_publication_surface_report_path": str(
+                quest_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json"
+            ),
+            "medical_publication_surface_current": True,
+            "allow_write": False,
+            "recommended_action": "return_to_publishability_gate",
+            "status": "blocked",
+            "blockers": [
+                "medical_publication_surface_blocked",
+                "reviewer_first_concerns_unresolved",
+            ],
+            "write_drift_detected": False,
+            "required_non_scalar_deliverables": [],
+            "present_non_scalar_deliverables": [],
+            "missing_non_scalar_deliverables": [],
+            "paper_bundle_manifest_path": str(runtime_paper_root / "paper_bundle_manifest.json"),
+            "submission_minimal_manifest_path": str(runtime_paper_root / "submission_minimal" / "submission_manifest.json"),
+            "submission_minimal_present": True,
+            "submission_minimal_docx_present": True,
+            "submission_minimal_pdf_present": True,
+            "medical_publication_surface_status": "blocked",
+            "medical_publication_surface_named_blockers": ["reviewer_first_concerns_unresolved"],
+            "medical_publication_surface_route_back_recommendation": "return_to_write",
+            "submission_surface_qc_failures": [],
+            "archived_submission_surface_roots": [],
+            "unmanaged_submission_surface_roots": [],
+            "manuscript_terminology_violations": [],
+            "headline_metrics": {},
+            "primary_metric_delta_vs_baseline": None,
+            "results_summary": "稿件书写面还有医学论文表达硬阻塞，需要继续修文。",
+            "conclusion": "稿件书写面还有医学论文表达硬阻塞，需要继续修文。",
+            "controller_note": "The controller does not decide scientific publishability by itself.",
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "稿件书写面还有医学论文表达硬阻塞，需要继续修文。",
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    latest_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    assert latest_eval_path.is_file()
+    payload = json.loads(latest_eval_path.read_text(encoding="utf-8"))
+
+    assert result["publication_supervisor_state"]["supervisor_phase"] == "publishability_gate_blocked"
+    assert payload["verdict"]["overall_verdict"] == "blocked"
+    assert payload["recommended_actions"][0]["action_type"] == "route_back_same_line"
+    assert payload["recommended_actions"][0]["reason"] == "稿件书写面还有医学论文表达硬阻塞，需要继续修文。"
+    assert payload["recommended_actions"][0]["route_target"] == "write"
+    assert (
+        payload["recommended_actions"][0]["route_key_question"]
+        == "What is the narrowest same-line manuscript repair or continuation step required now?"
+    )
+    assert payload["recommended_actions"][0]["requires_controller_decision"] is True
+
+
 def test_study_runtime_status_publication_eval_uses_runtime_paper_surface_when_submission_minimal_is_missing(
     monkeypatch,
     tmp_path: Path,

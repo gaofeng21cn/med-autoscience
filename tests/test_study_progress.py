@@ -2018,6 +2018,8 @@ def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
             "study_delivery_status": "current",
             "study_delivery_stale_reason": None,
             "medical_publication_surface_status": "blocked",
+            "medical_publication_surface_named_blockers": ["reviewer_first_concerns_unresolved"],
+            "medical_publication_surface_route_back_recommendation": "return_to_write",
             "controller_stage_note": "稿件书写面还有医学论文表达硬阻塞，需要继续修文。",
         }
     )
@@ -2090,12 +2092,17 @@ def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
 
     assert refreshed_publication_eval["emitted_at"] == "2026-04-12T09:40:00+00:00"
     assert refreshed_publication_eval["gaps"][0]["summary"] == "medical_publication_surface_blocked"
+    assert refreshed_publication_eval["recommended_actions"][0]["action_type"] == "route_back_same_line"
+    assert refreshed_publication_eval["recommended_actions"][0]["route_target"] == "write"
     assert "study 目录里的投稿包镜像已经过期，仍停在旧版本，不能当作当前包。" not in result["current_blockers"]
     assert "论文叙事或方法/结果书写面仍有硬阻塞。" in result["current_blockers"]
     assert result["operator_status_card"]["handling_state"] == "scientific_or_quality_repair_in_progress"
     assert result["operator_status_card"]["user_visible_verdict"] == "MAS 正在处理论文可发表性硬阻塞，给人看的稿件还没到放行状态。"
     assert result["module_surfaces"]["eval_hygiene"]["overall_verdict"] == "blocked"
     assert result["module_surfaces"]["eval_hygiene"]["status_summary"] == "稿件书写面还有医学论文表达硬阻塞，需要继续修文。"
+    assert result["intervention_lane"]["repair_mode"] == "same_line_route_back"
+    assert result["intervention_lane"]["route_target"] == "write"
+    assert "What is the narrowest same-line manuscript repair or continuation step required now?" in result["next_system_action"]
 
 
 def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_runtime(

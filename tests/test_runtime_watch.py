@@ -561,6 +561,52 @@ def test_publication_eval_action_uses_bounded_analysis_for_clear_continue_write_
     assert action.priority == "now"
 
 
+def test_publication_eval_action_uses_same_line_route_back_for_blocked_reviewer_first_surface() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+
+    action = module._publication_eval_action(
+        report={
+            "status": "blocked",
+            "current_required_action": "return_to_publishability_gate",
+            "controller_stage_note": "稿件书写面还有医学论文表达硬阻塞，需要继续修文。",
+            "medical_publication_surface_named_blockers": ["reviewer_first_concerns_unresolved"],
+            "medical_publication_surface_route_back_recommendation": "return_to_write",
+        },
+        generated_at="2026-04-05T06:05:00+00:00",
+        evidence_refs=("/tmp/main_result.json",),
+    )
+
+    assert action.action_type == "route_back_same_line"
+    assert action.reason == "稿件书写面还有医学论文表达硬阻塞，需要继续修文。"
+    assert action.route_target == "write"
+    assert action.route_key_question == "What is the narrowest same-line manuscript repair or continuation step required now?"
+    assert action.route_rationale == "稿件书写面还有医学论文表达硬阻塞，需要继续修文。"
+    assert action.priority == "now"
+
+
+def test_publication_eval_action_uses_bounded_analysis_for_blocked_claim_evidence_route() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+
+    action = module._publication_eval_action(
+        report={
+            "status": "blocked",
+            "current_required_action": "return_to_publishability_gate",
+            "controller_stage_note": "当前 claim-evidence 对齐还不够，需要补一轮最小补充分析。",
+            "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
+            "medical_publication_surface_route_back_recommendation": "return_to_analysis_campaign",
+        },
+        generated_at="2026-04-05T06:05:00+00:00",
+        evidence_refs=("/tmp/main_result.json",),
+    )
+
+    assert action.action_type == "bounded_analysis"
+    assert action.reason == "当前 claim-evidence 对齐还不够，需要补一轮最小补充分析。"
+    assert action.route_target == "analysis-campaign"
+    assert action.route_key_question == "What is the narrowest supplementary analysis still required before the paper line can continue?"
+    assert action.route_rationale == "当前 claim-evidence 对齐还不够，需要补一轮最小补充分析。"
+    assert action.priority == "now"
+
+
 def test_runtime_watch_uses_runtime_watch_protocol_helpers(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     quest_root = make_quest(tmp_path, "q001", status="running")
