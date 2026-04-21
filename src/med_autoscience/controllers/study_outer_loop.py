@@ -26,7 +26,11 @@ from med_autoscience.publication_eval_latest import (
     resolve_publication_eval_latest_ref,
 )
 from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef
-from med_autoscience.runtime_escalation_record import RuntimeEscalationRecord, RuntimeEscalationRecordRef
+from med_autoscience.runtime_escalation_record import (
+    RuntimeEscalationRecord,
+    RuntimeEscalationRecordRef,
+    RuntimeEscalationTrigger,
+)
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 from med_autoscience.study_decision_record import (
@@ -292,9 +296,80 @@ def _resolve_managed_runtime_event_contract(
 def _resolve_runtime_escalation_record(
     *,
     runtime_escalation_payload: dict[str, Any] | None,
+    status: dict[str, Any] | None = None,
+    study_root: Path | None = None,
+    study_id: str | None = None,
+    quest_id: str | None = None,
+    emitted_at: str | None = None,
+    source: str | None = None,
+    runtime_status: dict[str, str] | None = None,
 ) -> tuple[RuntimeEscalationRecordRef, RuntimeEscalationRecord]:
     if isinstance(runtime_escalation_payload, dict):
         return _load_runtime_escalation_record(runtime_escalation_payload=runtime_escalation_payload)
+    if (
+        isinstance(status, dict)
+        and study_root is not None
+        and study_id is not None
+        and quest_id is not None
+        and emitted_at is not None
+    ):
+        quest_root_text = str(status.get("quest_root") or "").strip()
+        if not quest_root_text:
+            raise ValueError("study_outer_loop_tick requires quest_root to materialize runtime_escalation_ref")
+        quest_root = Path(quest_root_text).expanduser().resolve()
+        summary_path = (study_root / "artifacts" / "runtime" / "last_launch_report.json").resolve()
+        runtime_event_payload = status.get("runtime_event_ref")
+        runtime_event_path = (
+            str(runtime_event_payload.get("artifact_path") or "").strip()
+            if isinstance(runtime_event_payload, dict)
+            else ""
+        )
+        supervisor_tick_payload = status.get("supervisor_tick_audit")
+        runtime_supervision_path = (
+            str(supervisor_tick_payload.get("latest_report_path") or "").strip()
+            if isinstance(supervisor_tick_payload, dict)
+            else ""
+        )
+        evidence_refs = tuple(
+            path
+            for path in (
+                runtime_event_path,
+                runtime_supervision_path,
+                str(summary_path),
+            )
+            if path
+        )
+        escalation_reason = (
+            str((runtime_status or {}).get("reason") or "").strip()
+            or str(status.get("reason") or "").strip()
+            or "managed_runtime_outer_loop_wakeup"
+        )
+        record = RuntimeEscalationRecord(
+            schema_version=1,
+            record_id=f"runtime-escalation::{study_id}::{quest_id}::{escalation_reason}::{emitted_at}",
+            study_id=study_id,
+            quest_id=quest_id,
+            emitted_at=emitted_at,
+            trigger=RuntimeEscalationTrigger(
+                trigger_id=escalation_reason,
+                source=str(source or "study_outer_loop_tick").strip() or "study_outer_loop_tick",
+            ),
+            scope="quest",
+            severity="quest",
+            reason=escalation_reason,
+            recommended_actions=("controller_review_required",),
+            evidence_refs=evidence_refs,
+            runtime_context_refs={
+                "launch_report_path": str(summary_path),
+            },
+            summary_ref=str(summary_path),
+            artifact_path=None,
+        )
+        written_record = study_runtime_protocol.write_runtime_escalation_record(
+            quest_root=quest_root,
+            record=record,
+        )
+        return written_record.ref(), written_record
     raise ValueError("study_outer_loop_tick requires runtime_escalation_ref from managed runtime input")
 
 
@@ -596,9 +671,10 @@ def build_runtime_watch_outer_loop_tick_request(
     ).to_dict()
 
     runtime_escalation_payload = status_payload.get("runtime_escalation_ref")
-    if not isinstance(runtime_escalation_payload, dict):
-        raise ValueError("runtime watch outer-loop wakeup requires runtime_escalation_ref from managed runtime status")
-    _resolve_runtime_escalation_record(runtime_escalation_payload=runtime_escalation_payload)
+    if runtime_escalation_payload is not None:
+        if not isinstance(runtime_escalation_payload, dict):
+            raise ValueError("runtime watch outer-loop wakeup runtime_escalation_ref must be a mapping when present")
+        _resolve_runtime_escalation_record(runtime_escalation_payload=runtime_escalation_payload)
 
     publication_eval_ref = StudyDecisionPublicationEvalRef(
         eval_id=str(publication_eval_payload.get("eval_id") or "").strip(),
@@ -746,6 +822,13 @@ def study_outer_loop_tick(
     )
     runtime_escalation_ref, _runtime_escalation_record = _resolve_runtime_escalation_record(
         runtime_escalation_payload=runtime_escalation_payload if isinstance(runtime_escalation_payload, dict) else None,
+        status=status,
+        study_root=resolved_study_root,
+        study_id=resolved_study_id,
+        quest_id=quest_id,
+        emitted_at=emitted_at,
+        source=source,
+        runtime_status=runtime_status,
     )
     normalized_controller_actions = tuple(
         action

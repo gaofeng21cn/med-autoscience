@@ -380,6 +380,243 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_continue_
     ]
 
 
+def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_escalation_ref(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "quest-001"
+    _write_charter(study_root)
+    dump_json(
+        study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        {
+            "recorded_at": "2026-04-05T06:10:00+00:00",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "quest_status": "running",
+        },
+    )
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    dump_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-05T05:58:00+00:00",
+            "evaluation_scope": "publication",
+            "charter_context_ref": {
+                "ref": str((study_root / "artifacts" / "controller" / "study_charter.json").resolve()),
+                "charter_id": "charter::001-risk::v1",
+                "publication_objective": "risk stratification external validation",
+            },
+            "runtime_context_refs": {
+                "runtime_escalation_ref": str(
+                    (quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json").resolve()
+                ),
+                "main_result_ref": str((quest_root / "artifacts" / "results" / "main_result.json").resolve()),
+            },
+            "delivery_context_refs": {
+                "paper_root_ref": str((study_root / "paper").resolve()),
+                "submission_minimal_ref": str(
+                    (study_root / "paper" / "submission_minimal" / "submission_manifest.json").resolve()
+                ),
+            },
+            "verdict": {
+                "overall_verdict": "promising",
+                "primary_claim_status": "supported",
+                "summary": "Human-review package is ready and only bundle-stage cleanup remains.",
+                "stop_loss_pressure": "none",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "reporting",
+                    "severity": "optional",
+                    "summary": "Only optional submission-bundle cleanup remains.",
+                    "evidence_refs": [str(publication_eval_path)],
+                }
+            ],
+            "quality_assessment": {
+                "clinical_significance": {
+                    "status": "ready",
+                    "summary": "Clinical question is already publication-ready.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "reviewer_reason": "Clinical framing is stable.",
+                    "reviewer_revision_advice": "Only minor bundle cleanup remains.",
+                    "reviewer_next_round_focus": "Keep the clinician-facing framing consistent across surfaces.",
+                },
+                "evidence_strength": {
+                    "status": "ready",
+                    "summary": "Evidence chain is already closed.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "reviewer_reason": "Evidence posture is stable.",
+                    "reviewer_revision_advice": "Only refresh delivery surfaces if needed.",
+                    "reviewer_next_round_focus": "Keep evidence references synchronized across package surfaces.",
+                },
+                "novelty_positioning": {
+                    "status": "ready",
+                    "summary": "Contribution boundary is already explicit.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "reviewer_reason": "Novelty framing is fixed.",
+                    "reviewer_revision_advice": "Do not expand the claim boundary.",
+                    "reviewer_next_round_focus": "Keep contribution wording aligned with the frozen charter.",
+                },
+                "human_review_readiness": {
+                    "status": "ready",
+                    "summary": "The human-facing current package is ready for review.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "reviewer_reason": "The review package is synchronized.",
+                    "reviewer_revision_advice": "Only keep bundle surfaces aligned.",
+                    "reviewer_next_round_focus": "Double-check package surface consistency before submission.",
+                },
+            },
+            "recommended_actions": [
+                {
+                    "action_id": "action-001",
+                    "action_type": "continue_same_line",
+                    "priority": "now",
+                    "reason": "Only finalize-level bundle cleanup remains on the current paper line.",
+                    "route_target": "finalize",
+                    "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+                    "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "requires_controller_decision": True,
+                }
+            ],
+        },
+    )
+    dump_json(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
+        {
+            "schema_version": 1,
+            "summary_id": "evaluation-summary::001-risk::2026-04-05T06:00:00+00:00",
+            "overall_verdict": "promising",
+            "quality_closure_truth": {
+                "state": "bundle_only_remaining",
+                "summary": "Core scientific quality is already closed and only bundle cleanup remains.",
+                "current_required_action": "continue_bundle_stage",
+                "route_target": "finalize",
+            },
+            "quality_assessment": {
+                "human_review_readiness": {
+                    "status": "ready",
+                    "summary": "Human-review package is ready.",
+                }
+            },
+            "quality_execution_lane": {
+                "lane_id": "submission_hardening",
+                "route_target": "finalize",
+                "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+                "summary": "Only finalize-level submission hardening remains.",
+            },
+        },
+    )
+    initial_status = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="noop",
+            reason="quest_already_running",
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "quest_status": "active",
+        "active_run_id": "run-001",
+        "runtime_liveness_status": "live",
+        "execution": {
+            "engine": "med-deepscientist",
+            "auto_entry": "on_managed_research_intent",
+            "quest_id": "quest-001",
+            "auto_resume": True,
+        },
+        "publication_supervisor_state": {
+            "supervisor_phase": "bundle_stage_ready",
+            "phase_owner": "publication_gate",
+            "current_required_action": "continue_bundle_stage",
+        },
+    }
+    stopped_status = {
+        **initial_status,
+        "quest_status": "stopped",
+        "decision": "blocked",
+        "reason": "quest_waiting_for_submission_metadata",
+    }
+    ensure_calls: list[tuple[str, bool]] = []
+    stop_calls: list[dict[str, object]] = []
+    stopped = False
+
+    def fake_ensure(**kwargs):
+        ensure_calls.append((str(kwargs.get("source") or "").strip(), bool(kwargs.get("allow_stopped_relaunch"))))
+        return initial_status
+
+    def fake_status(**kwargs):
+        return stopped_status if stopped else initial_status
+
+    def fake_stop_quest(**kwargs):
+        nonlocal stopped
+        stopped = True
+        stop_calls.append(kwargs)
+        return {"ok": True, "quest_id": "quest-001", "status": "stopped", "snapshot": {"status": "stopped"}}
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", fake_status)
+    monkeypatch.setattr(module.study_runtime_router.managed_runtime_transport, "stop_quest", fake_stop_quest)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    monkeypatch.setattr(module.study_outer_loop, "_utc_now", lambda: "2026-04-05T05:58:00+00:00")
+
+    first = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+    second = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    payload = json.loads((study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8"))
+
+    assert ensure_calls == [
+        ("runtime_watch", False),
+        ("runtime_watch", False),
+    ]
+    assert len(stop_calls) == 1
+    assert first["managed_study_outer_loop_dispatches"] == [
+        {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "decision_type": "continue_same_line",
+            "route_target": "finalize",
+            "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+            "controller_action_type": "stop_runtime",
+            "study_decision_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            "dispatch_status": "executed",
+            "source": "runtime_watch_outer_loop_wakeup",
+        }
+    ]
+    assert second["managed_study_outer_loop_dispatches"] == []
+    assert payload["controller_actions"] == [
+        {
+            "action_type": "stop_runtime",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
+    assert payload["reason"] == "Human-review milestone reached; stop the live runtime and wait for explicit resume."
+    assert payload["runtime_escalation_ref"]["record_id"] == (
+        "runtime-escalation::001-risk::quest-001::quest_already_running::2026-04-05T05:58:00+00:00"
+    )
+
+
 def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_bounded_analysis(
     tmp_path: Path,
     monkeypatch,

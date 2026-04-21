@@ -612,9 +612,12 @@ def _controller_decision_latest_matches_outer_loop_request(
         for action in (tick_request.get("controller_actions") or [])
         if isinstance(action, dict)
     )
-    desired_runtime_escalation_ref = RuntimeEscalationRecordRef.from_payload(
-        dict(status_payload.get("runtime_escalation_ref") or {})
-    ).to_dict()
+    desired_runtime_escalation_payload = status_payload.get("runtime_escalation_ref")
+    desired_runtime_escalation_ref = (
+        RuntimeEscalationRecordRef.from_payload(dict(desired_runtime_escalation_payload)).to_dict()
+        if isinstance(desired_runtime_escalation_payload, dict)
+        else None
+    )
     if record.decision_type.value != _non_empty_text(tick_request.get("decision_type")):
         return False
     if record.requires_human_confirmation is not bool(tick_request.get("requires_human_confirmation")):
@@ -627,6 +630,8 @@ def _controller_decision_latest_matches_outer_loop_request(
         return False
     if tuple(action.to_dict() for action in record.controller_actions) != desired_controller_actions:
         return False
+    if desired_runtime_escalation_ref is None:
+        return True
     return record.runtime_escalation_ref.to_dict() == desired_runtime_escalation_ref
 
 
