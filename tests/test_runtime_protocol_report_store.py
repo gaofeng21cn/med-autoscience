@@ -25,7 +25,7 @@ def test_save_watch_state_persists_state_json(tmp_path: Path) -> None:
     assert json.loads(state_path.read_text(encoding="utf-8")) == payload
 
 
-def test_write_timestamped_report_writes_json_and_markdown(tmp_path: Path) -> None:
+def test_write_timestamped_report_writes_json_markdown_and_latest_aliases(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.report_store")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
     report = {"schema_version": 1, "status": "blocked"}
@@ -42,3 +42,7 @@ def test_write_timestamped_report_writes_json_and_markdown(tmp_path: Path) -> No
     assert md_path.name == "2026-03-29T035050Z.md"
     assert json.loads(json_path.read_text(encoding="utf-8")) == report
     assert md_path.read_text(encoding="utf-8") == "# Report\n"
+    latest_json_path = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    latest_md_path = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.md"
+    assert json.loads(latest_json_path.read_text(encoding="utf-8")) == report
+    assert latest_md_path.read_text(encoding="utf-8") == "# Report\n"

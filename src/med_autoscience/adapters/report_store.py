@@ -47,4 +47,6 @@ def write_timestamped_report(
     _dump_json(json_path, dict(report))
     md_path.parent.mkdir(parents=True, exist_ok=True)
     md_path.write_text(markdown, encoding="utf-8")
+    _dump_json(base / "latest.json", dict(report))
+    (base / "latest.md").write_text(markdown, encoding="utf-8")
     return json_path, md_path
