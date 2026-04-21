@@ -421,7 +421,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         "should_intervene_now": True,
         "focus_scope": "workspace",
         "focus_study_id": None,
-        "recommended_step_id": "handle_attention_item",
+        "recommended_step_id": "inspect_supervision_service",
         "recommended_command": (
             "uv run python -m med_autoscience.cli runtime-supervision-status --profile "
             + str(profile_ref.resolve())
@@ -588,7 +588,7 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
             "verdict": "attention_required",
             "summary": "当前有一项 study 需要先处理。",
             "should_intervene_now": True,
-            "recommended_step_id": "handle_attention_item",
+            "recommended_step_id": "inspect_study_progress",
             "recommended_command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
             "focus_study_id": "001-risk",
             "current_focus": "先确认 figure loop 已停下。",
@@ -976,6 +976,8 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
 
     payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
 
+    assert payload["attention_queue"][0]["recommended_step_id"] == "inspect_study_progress"
+    assert payload["operator_brief"]["recommended_step_id"] == "inspect_study_progress"
     assert payload["attention_queue"][0]["quality_execution_lane"]["route_key_question"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
     assert payload["operator_brief"]["current_focus"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
 
@@ -1301,6 +1303,7 @@ def test_build_product_frontdesk_uses_quality_execution_lane_for_current_focus(m
                     "code": "study_quality_floor_blocker",
                     "title": "001-risk 当前先做 claim-evidence 修复",
                     "summary": "当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“当前稿面最窄的 claim-evidence 修复动作是什么？”。",
+                    "recommended_step_id": "inspect_study_progress",
                     "recommended_command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
                     "operator_status_card": {
                         "surface_kind": "study_operator_status_card",
@@ -1318,6 +1321,7 @@ def test_build_product_frontdesk_uses_quality_execution_lane_for_current_focus(m
 
     payload = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
 
+    assert payload["operator_brief"]["recommended_step_id"] == "inspect_study_progress"
     assert payload["operator_brief"]["current_focus"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
 
 

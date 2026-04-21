@@ -1280,6 +1280,7 @@ def _attention_item(
     code: str,
     title: str,
     summary: str,
+    recommended_step_id: str | None,
     recommended_command: str | None,
     scope: str,
     study_id: str | None = None,
@@ -1295,6 +1296,7 @@ def _attention_item(
         "code": code,
         "title": title,
         "summary": summary,
+        "recommended_step_id": recommended_step_id,
         "recommended_command": recommended_command,
         "operator_status_card": dict(operator_status_card or {}) or None,
         "autonomy_contract": dict(autonomy_contract or {}) or None,
@@ -1340,6 +1342,16 @@ def _quality_execution_lane_title(study_id: str, lane: Mapping[str, Any] | None)
     if lane_id == "general_quality_repair":
         return f"{study_id} 当前先做质量修复收口"
     return None
+
+
+def _attention_step_id(code: str) -> str:
+    if code == "workspace_supervisor_service_not_loaded":
+        return "inspect_supervision_service"
+    if code == "study_supervision_gap":
+        return "refresh_supervision"
+    if code == "study_runtime_recovery_required":
+        return "continue_or_relaunch"
+    return "inspect_study_progress"
 
 
 def _quality_blocker_title(study_id: str, intervention_lane: Mapping[str, Any] | None) -> str:
@@ -1390,7 +1402,7 @@ def _workspace_operator_brief(
             "should_intervene_now": True,
             "focus_scope": _non_empty_text(top.get("scope")) or "workspace",
             "focus_study_id": _non_empty_text(top.get("study_id")),
-            "recommended_step_id": "handle_attention_item",
+            "recommended_step_id": _non_empty_text(top.get("recommended_step_id")) or "handle_attention_item",
             "recommended_command": _non_empty_text(top.get("recommended_command")) or commands.get("doctor"),
         }
         current_focus = _non_empty_text(operator_status_card.get("current_focus")) or _quality_execution_focus(top)
@@ -1463,6 +1475,7 @@ def _attention_queue(
                 title="先恢复 Hermes-hosted 常驻监管",
                 summary=_non_empty_text(service.get("summary"))
                 or "当前 workspace 还没有稳定的 Hermes-hosted 常驻监管入口。",
+                recommended_step_id=_attention_step_id("workspace_supervisor_service_not_loaded"),
                 recommended_command=commands.get("service_status") or commands.get("service_install"),
                 scope="workspace",
             )
@@ -1504,6 +1517,7 @@ def _attention_queue(
                     code="study_needs_physician_decision",
                     title=f"{study_id} 需要医生或 PI 判断",
                     summary=lane_summary or "当前 study 已到需要人工明确决策的节点。",
+                    recommended_step_id=_attention_step_id("study_needs_physician_decision"),
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1520,6 +1534,7 @@ def _attention_queue(
                     code="study_supervision_gap",
                     title=f"{study_id} 当前失去新鲜监管心跳",
                     summary=lane_summary or "Hermes-hosted 托管监管存在缺口。",
+                    recommended_step_id=_attention_step_id("study_supervision_gap"),
                     recommended_command=preferred_command or commands.get("supervisor_tick") or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1536,6 +1551,7 @@ def _attention_queue(
                     code="study_runtime_recovery_required",
                     title=f"{study_id} 当前需要优先处理 runtime recovery",
                     summary=autonomy_summary or lane_summary or "托管运行恢复失败或健康降级，需要尽快介入。",
+                    recommended_step_id=_attention_step_id("study_runtime_recovery_required"),
                     recommended_command=preferred_command or launch_command or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1561,6 +1577,7 @@ def _attention_queue(
                         or _non_empty_text(blocker_list[0] if blocker_list else None)
                         or "当前 study 存在质量或发表门控硬阻塞。"
                     ),
+                    recommended_step_id=_attention_step_id("study_quality_floor_blocker"),
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1578,6 +1595,7 @@ def _attention_queue(
                     title=f"{study_id} 进度信号已陈旧",
                     summary=_non_empty_text(progress_freshness.get("summary"))
                     or "最近缺少新的明确研究推进记录，需要排查是否卡住或空转。",
+                    recommended_step_id=_attention_step_id("study_progress_stale"),
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1595,6 +1613,7 @@ def _attention_queue(
                     title=f"{study_id} 缺少明确进度信号",
                     summary=_non_empty_text(progress_freshness.get("summary"))
                     or "当前还没有看到明确的研究推进记录。",
+                    recommended_step_id=_attention_step_id("study_progress_missing"),
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1616,6 +1635,7 @@ def _attention_queue(
                     or current_stage_summary
                     or next_system_action
                     or "当前 study 仍有待收口问题。",
+                    recommended_step_id=_attention_step_id("study_blocked"),
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -2716,8 +2736,11 @@ def build_product_frontdesk(
             "should_intervene_now": True,
             "focus_scope": _non_empty_text(workspace_operator_brief.get("focus_scope")) or "workspace",
             "focus_study_id": _non_empty_text(workspace_operator_brief.get("focus_study_id")),
-            "recommended_step_id": "open_workspace_cockpit",
-            "recommended_command": _non_empty_text(workspace_operator_brief.get("recommended_command"))
+            "recommended_step_id": _non_empty_text(top_attention.get("recommended_step_id"))
+            or _non_empty_text(workspace_operator_brief.get("recommended_step_id"))
+            or "open_workspace_cockpit",
+            "recommended_command": _non_empty_text(top_attention.get("recommended_command"))
+            or _non_empty_text(workspace_operator_brief.get("recommended_command"))
             or _non_empty_text((manifest.get("summary") or {}).get("recommended_command")),
         }
         current_focus = _non_empty_text(top_attention_status_card.get("current_focus")) or _non_empty_text(
