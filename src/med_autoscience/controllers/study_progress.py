@@ -235,6 +235,13 @@ _TEXT_REPLACEMENTS = (
 )
 _SUPERVISOR_TICK_GAP_STATUSES = {"missing", "invalid", "stale"}
 _PROGRESS_STALE_AFTER_SECONDS = 12 * 60 * 60
+_QUALITY_CLOSURE_BASIS_LABELS = {
+    "clinical_significance": "临床意义",
+    "evidence_strength": "证据强度",
+    "novelty_positioning": "创新性定位",
+    "human_review_readiness": "人工审阅准备度",
+    "publication_gate": "发表门控",
+}
 _LATEST_EVENT_DISPLAY_TIERS = {
     "runtime_supervision": 0,
     "runtime_progress": 0,
@@ -901,6 +908,8 @@ def _evaluation_module_surface(
         return None
     summary = read_evaluation_summary(study_root=study_root, ref=evaluation_summary_path)
     promotion_gate_status = dict(summary.get("promotion_gate_status") or {})
+    quality_closure_truth = dict(summary.get("quality_closure_truth") or {})
+    quality_closure_basis = dict(summary.get("quality_closure_basis") or {})
     current_required_action = _non_empty_text(promotion_gate_status.get("current_required_action"))
     next_action_summary = (
         _ACTION_LABELS.get(current_required_action or "", "")
@@ -919,6 +928,8 @@ def _evaluation_module_surface(
         "requires_controller_decision": bool(summary.get("requires_controller_decision")),
         "status_summary": summary["verdict_summary"],
         "next_action_summary": next_action_summary,
+        "quality_closure_truth": quality_closure_truth or None,
+        "quality_closure_basis": quality_closure_basis or None,
     }
 
 
@@ -2828,6 +2839,16 @@ def build_study_progress_projection(
     module_surfaces["runtime"] = runtime_module_surface
     if evaluation_module_surface is not None:
         module_surfaces["eval_hygiene"] = evaluation_module_surface
+    quality_closure_truth = (
+        dict(evaluation_module_surface.get("quality_closure_truth") or {})
+        if evaluation_module_surface is not None
+        else {}
+    )
+    quality_closure_basis = (
+        dict(evaluation_module_surface.get("quality_closure_basis") or {})
+        if evaluation_module_surface is not None
+        else {}
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -2860,6 +2881,8 @@ def build_study_progress_projection(
         "manual_finish_contract": manual_finish_contract,
         "task_intake": task_intake,
         "progress_freshness": progress_freshness,
+        "quality_closure_truth": quality_closure_truth or None,
+        "quality_closure_basis": quality_closure_basis or None,
         "module_surfaces": module_surfaces,
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
@@ -2992,6 +3015,8 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     )
     operator_status_card = dict(payload.get("operator_status_card") or {})
     autonomy_contract = dict(payload.get("autonomy_contract") or {})
+    quality_closure_truth = dict(payload.get("quality_closure_truth") or {})
+    quality_closure_basis = dict(payload.get("quality_closure_basis") or {})
     recovery_contract = dict(payload.get("recovery_contract") or {})
     module_surfaces = dict(payload.get("module_surfaces") or {})
     recovery_action_mode = _RECOVERY_ACTION_MODE_LABELS.get(
@@ -3156,6 +3181,23 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             lines.append(
                 f"- 恢复点: {_display_text(restore_point.get('summary')) or restore_point.get('summary')}"
             )
+    if quality_closure_truth:
+        lines.extend(["", "## 质量闭环", ""])
+        if quality_closure_truth.get("summary"):
+            lines.append(
+                f"- 当前质量判断: {_display_text(quality_closure_truth.get('summary')) or quality_closure_truth.get('summary')}"
+            )
+        for key in (
+            "clinical_significance",
+            "evidence_strength",
+            "novelty_positioning",
+            "human_review_readiness",
+            "publication_gate",
+        ):
+            basis_item = dict(quality_closure_basis.get(key) or {})
+            summary = _display_text(basis_item.get("summary")) or basis_item.get("summary")
+            if summary:
+                lines.append(f"- {_QUALITY_CLOSURE_BASIS_LABELS.get(key, key)}: {summary}")
     if recovery_contract:
         lines.extend(["", "## 恢复合同", ""])
         if recovery_action_mode:

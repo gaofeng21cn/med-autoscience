@@ -24,6 +24,15 @@ STABLE_EVALUATION_SUMMARY_RELATIVE_PATH = Path("artifacts/eval_hygiene/evaluatio
 STABLE_PROMOTION_GATE_RELATIVE_PATH = Path("artifacts/eval_hygiene/promotion_gate/latest.json")
 _GAP_SEVERITIES = ("must_fix", "important", "optional")
 _ROUTE_REPAIR_ACTION_TYPES = {"continue_same_line", "route_back_same_line", "bounded_analysis"}
+_QUALITY_DIMENSION_STATUSES = frozenset({"ready", "partial", "blocked", "underdefined"})
+_QUALITY_CLOSURE_STATES = frozenset({"quality_repair_required", "write_line_ready", "bundle_only_remaining"})
+_QUALITY_CLOSURE_BASIS_KEYS = (
+    "clinical_significance",
+    "evidence_strength",
+    "novelty_positioning",
+    "human_review_readiness",
+    "publication_gate",
+)
 
 
 def stable_evaluation_summary_path(*, study_root: Path) -> Path:
@@ -83,6 +92,14 @@ def _required_bool(label: str, field_name: str, value: object) -> bool:
     if not isinstance(value, bool):
         raise TypeError(f"{label} {field_name} must be bool")
     return value
+
+
+def _required_choice(label: str, field_name: str, value: object, allowed_values: frozenset[str]) -> str:
+    normalized = _required_text(label, field_name, value)
+    if normalized not in allowed_values:
+        allowed = ", ".join(sorted(allowed_values))
+        raise ValueError(f"{label} {field_name} must be one of: {allowed}")
+    return normalized
 
 
 def _required_mapping(label: str, field_name: str, value: object) -> dict[str, Any]:
@@ -273,6 +290,170 @@ def _route_repair_plan(actions: list[dict[str, Any]]) -> dict[str, str] | None:
     return None
 
 
+def _fallback_refs(*values: object) -> list[str]:
+    refs: list[str] = []
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            refs.append(text)
+    if not refs:
+        raise ValueError("quality closure basis requires at least one evidence ref")
+    return refs
+
+
+def _coerce_quality_basis_item(
+    *,
+    payload: dict[str, Any] | None,
+    fallback_status: str,
+    fallback_summary: str,
+    fallback_refs: list[str],
+) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {
+            "status": fallback_status,
+            "summary": fallback_summary,
+            "evidence_refs": list(fallback_refs),
+        }
+    evidence_refs = _required_string_list("quality closure basis item", "evidence_refs", payload.get("evidence_refs"))
+    if not evidence_refs:
+        raise ValueError("quality closure basis item evidence_refs must not be empty")
+    return {
+        "status": _required_choice(
+            "quality closure basis item",
+            "status",
+            payload.get("status"),
+            _QUALITY_DIMENSION_STATUSES,
+        ),
+        "summary": _required_text("quality closure basis item", "summary", payload.get("summary")),
+        "evidence_refs": evidence_refs,
+    }
+
+
+def _publication_gate_quality_basis(
+    *,
+    promotion_gate_payload: dict[str, Any],
+    promotion_gate_ref: dict[str, str],
+    route_repair_plan: dict[str, str] | None,
+    evidence_strength_status: str,
+) -> dict[str, Any]:
+    gate_ref = str(promotion_gate_ref.get("artifact_path") or "").strip()
+    current_required_action = _required_text(
+        "promotion gate",
+        "current_required_action",
+        promotion_gate_payload.get("current_required_action"),
+    )
+    if current_required_action in {"continue_bundle_stage", "complete_bundle_stage"} and evidence_strength_status == "ready":
+        return {
+            "status": "partial",
+            "summary": "核心科学面已经闭环；剩余阻塞只落在当前论文线的 finalize / bundle 收口。",
+            "evidence_refs": _fallback_refs(gate_ref),
+        }
+    if current_required_action == "continue_write_stage" and evidence_strength_status == "ready":
+        return {
+            "status": "ready",
+            "summary": "发表门控已经放行写作；当前论文线可以继续同线写作推进。",
+            "evidence_refs": _fallback_refs(gate_ref),
+        }
+    route_target = str((route_repair_plan or {}).get("route_target") or "").strip()
+    if route_target:
+        summary = f"发表门控仍未放行当前论文线；系统应先沿 {route_target} 修复质量缺口。"
+    else:
+        summary = "发表门控仍未放行当前论文线；系统应先修复当前质量缺口。"
+    return {
+        "status": "blocked",
+        "summary": summary,
+        "evidence_refs": _fallback_refs(gate_ref),
+    }
+
+
+def _quality_closure_basis(
+    *,
+    study_root: Path,
+    publication_eval: dict[str, Any],
+    promotion_gate_ref: dict[str, str],
+    promotion_gate_payload: dict[str, Any],
+    route_repair_plan: dict[str, str] | None,
+) -> dict[str, Any]:
+    quality_assessment = dict(publication_eval.get("quality_assessment") or {})
+    runtime_context_refs = dict(publication_eval.get("runtime_context_refs") or {})
+    charter_context_ref = dict(publication_eval.get("charter_context_ref") or {})
+    main_result_ref = str(runtime_context_refs.get("main_result_ref") or "").strip()
+    charter_ref = str(resolve_study_charter_ref(study_root=study_root, ref=charter_context_ref.get("ref")))
+    gate_ref = str(promotion_gate_ref.get("artifact_path") or "").strip()
+    basis = {
+        "clinical_significance": _coerce_quality_basis_item(
+            payload=quality_assessment.get("clinical_significance"),
+            fallback_status="underdefined",
+            fallback_summary="当前 publication eval 还没有给出稳定的临床意义判断。",
+            fallback_refs=_fallback_refs(charter_ref, gate_ref),
+        ),
+        "evidence_strength": _coerce_quality_basis_item(
+            payload=quality_assessment.get("evidence_strength"),
+            fallback_status="underdefined",
+            fallback_summary="当前 publication eval 还没有给出稳定的证据强度判断。",
+            fallback_refs=_fallback_refs(main_result_ref, gate_ref),
+        ),
+        "novelty_positioning": _coerce_quality_basis_item(
+            payload=quality_assessment.get("novelty_positioning"),
+            fallback_status="underdefined",
+            fallback_summary="当前 publication eval 还没有给出稳定的创新性定位判断。",
+            fallback_refs=_fallback_refs(charter_ref),
+        ),
+        "human_review_readiness": _coerce_quality_basis_item(
+            payload=quality_assessment.get("human_review_readiness"),
+            fallback_status="underdefined",
+            fallback_summary="当前 publication eval 还没有给出稳定的人工审阅准备度判断。",
+            fallback_refs=_fallback_refs(gate_ref),
+        ),
+    }
+    basis["publication_gate"] = _publication_gate_quality_basis(
+        promotion_gate_payload=promotion_gate_payload,
+        promotion_gate_ref=promotion_gate_ref,
+        route_repair_plan=route_repair_plan,
+        evidence_strength_status=str(basis["evidence_strength"]["status"]),
+    )
+    return basis
+
+
+def _quality_closure_truth(
+    *,
+    promotion_gate_payload: dict[str, Any],
+    route_repair_plan: dict[str, str] | None,
+    quality_closure_basis: dict[str, Any],
+) -> dict[str, Any]:
+    current_required_action = _required_text(
+        "promotion gate",
+        "current_required_action",
+        promotion_gate_payload.get("current_required_action"),
+    )
+    evidence_strength_status = str((quality_closure_basis.get("evidence_strength") or {}).get("status") or "").strip()
+    if current_required_action in {"continue_bundle_stage", "complete_bundle_stage"} and evidence_strength_status == "ready":
+        return {
+            "state": "bundle_only_remaining",
+            "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+            "current_required_action": current_required_action,
+            "route_target": "finalize",
+        }
+    if current_required_action == "continue_write_stage" and evidence_strength_status == "ready":
+        return {
+            "state": "write_line_ready",
+            "summary": "核心科学质量已经够稳；当前可以继续同一论文线的写作与有限补充收口。",
+            "current_required_action": current_required_action,
+            "route_target": "write",
+        }
+    route_target = str((route_repair_plan or {}).get("route_target") or "").strip()
+    if route_target:
+        summary = f"核心科学质量还没有闭环；当前应先回到 {route_target} 完成最窄补充修复。"
+    else:
+        summary = "核心科学质量还没有闭环；当前仍需先补齐论文质量缺口。"
+    return {
+        "state": "quality_repair_required",
+        "summary": summary,
+        "current_required_action": current_required_action,
+        "route_target": route_target or None,
+    }
+
+
 def _build_evaluation_summary_payload(
     *,
     study_root: Path,
@@ -305,6 +486,14 @@ def _build_evaluation_summary_payload(
     gaps = list(publication_eval.get("gaps") or [])
     actions = list(publication_eval.get("recommended_actions") or [])
     quest_id = _required_text("publication eval", "quest_id", publication_eval.get("quest_id"))
+    route_repair_plan = _route_repair_plan(actions)
+    quality_closure_basis = _quality_closure_basis(
+        study_root=study_root,
+        publication_eval=publication_eval,
+        promotion_gate_ref=promotion_gate_ref,
+        promotion_gate_payload=promotion_gate_payload,
+        route_repair_plan=route_repair_plan,
+    )
     return {
         "schema_version": 1,
         "summary_id": f"evaluation-summary::{publication_eval['study_id']}::{quest_id}::{publication_eval['emitted_at']}",
@@ -342,7 +531,13 @@ def _build_evaluation_summary_payload(
         "publication_objective": publication_objective,
         "gap_counts": _gap_counts(gaps),
         "recommended_action_types": _recommended_action_types(actions),
-        "route_repair_plan": _route_repair_plan(actions),
+        "route_repair_plan": route_repair_plan,
+        "quality_closure_truth": _quality_closure_truth(
+            promotion_gate_payload=promotion_gate_payload,
+            route_repair_plan=route_repair_plan,
+            quality_closure_basis=quality_closure_basis,
+        ),
+        "quality_closure_basis": quality_closure_basis,
         "requires_controller_decision": any(bool(action.get("requires_controller_decision")) for action in actions),
         "promotion_gate_status": {
             "status": promotion_gate_payload["status"],
@@ -421,6 +616,16 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
         raise TypeError("evaluation summary payload must be a mapping")
     if payload.get("schema_version") != 1:
         raise ValueError("evaluation summary schema_version must be 1")
+    quality_closure_truth = _required_mapping(
+        "evaluation summary",
+        "quality_closure_truth",
+        payload.get("quality_closure_truth"),
+    )
+    quality_closure_basis = _required_mapping(
+        "evaluation summary",
+        "quality_closure_basis",
+        payload.get("quality_closure_basis"),
+    )
     return {
         "schema_version": 1,
         "summary_id": _required_text("evaluation summary", "summary_id", payload.get("summary_id")),
@@ -480,6 +685,42 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
             if payload.get("route_repair_plan") is None
             else _required_mapping("evaluation summary", "route_repair_plan", payload.get("route_repair_plan"))
         ),
+        "quality_closure_truth": {
+            "state": _required_choice(
+                "evaluation summary quality_closure_truth",
+                "state",
+                quality_closure_truth.get("state"),
+                _QUALITY_CLOSURE_STATES,
+            ),
+            "summary": _required_text(
+                "evaluation summary quality_closure_truth",
+                "summary",
+                quality_closure_truth.get("summary"),
+            ),
+            "current_required_action": _required_text(
+                "evaluation summary quality_closure_truth",
+                "current_required_action",
+                quality_closure_truth.get("current_required_action"),
+            ),
+            "route_target": (
+                None
+                if quality_closure_truth.get("route_target") is None
+                else _required_text(
+                    "evaluation summary quality_closure_truth",
+                    "route_target",
+                    quality_closure_truth.get("route_target"),
+                )
+            ),
+        },
+        "quality_closure_basis": {
+            key: _coerce_quality_basis_item(
+                payload=_required_mapping("evaluation summary quality_closure_basis", key, quality_closure_basis.get(key)),
+                fallback_status="underdefined",
+                fallback_summary="unreachable",
+                fallback_refs=["unreachable"],
+            )
+            for key in _QUALITY_CLOSURE_BASIS_KEYS
+        },
         "requires_controller_decision": _required_bool(
             "evaluation summary",
             "requires_controller_decision",

@@ -3166,6 +3166,33 @@ def test_render_product_frontdesk_markdown_shows_autonomy_contract_preview() -> 
     assert "summary:" not in markdown
 
 
+def test_render_product_frontdesk_markdown_shows_quality_closure_preview() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    markdown = module.render_product_frontdesk_markdown(
+        {
+            "workspace_preview": None,
+            "workspace_attention_queue_preview": [
+                {
+                    "title": "001-risk 当前已进入同线 finalize 收口",
+                    "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "quality_closure_truth": {
+                        "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+                    },
+                }
+            ],
+            "phase2_user_product_loop": {},
+            "product_entry_guardrails": {},
+            "phase3_clearance_lane": {"clearance_targets": [], "clearance_loop": []},
+            "phase4_backend_deconstruction": {"substrate_targets": []},
+            "phase5_platform_target": {"capability_targets": [], "readiness_gates": []},
+            "remaining_gaps": [],
+        }
+    )
+
+    assert "质量闭环: 核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。" in markdown
+
+
 def test_product_entry_manifest_fails_closed_on_invalid_gateway_interaction_contract_shape(
     monkeypatch,
     tmp_path: Path,

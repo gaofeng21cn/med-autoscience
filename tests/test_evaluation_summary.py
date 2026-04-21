@@ -80,6 +80,28 @@ def _stable_inputs(tmp_path: Path) -> dict[str, object]:
             "summary": "Primary claim still lacks external validation support.",
             "stop_loss_pressure": "watch",
         },
+        "quality_assessment": {
+            "clinical_significance": {
+                "status": "partial",
+                "summary": "Clinical framing is frozen, but the current result surface is still incomplete.",
+                "evidence_refs": [str(gate_report_path)],
+            },
+            "evidence_strength": {
+                "status": "blocked",
+                "summary": "The current claim-evidence surface is still missing external validation support.",
+                "evidence_refs": [str(gate_report_path)],
+            },
+            "novelty_positioning": {
+                "status": "partial",
+                "summary": "Novelty framing exists, but reviewer-facing contribution boundaries still need tightening.",
+                "evidence_refs": [str(charter_path)],
+            },
+            "human_review_readiness": {
+                "status": "blocked",
+                "summary": "The draft is not yet honest enough to release as a human review package.",
+                "evidence_refs": [str(gate_report_path)],
+            },
+        },
         "gaps": [
             {
                 "gap_id": "gap-001",
@@ -307,6 +329,39 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
             "route_key_question": "What is the narrowest supplementary analysis needed to restore endpoint provenance support?",
             "route_rationale": "The study direction remains valid; only a bounded analysis-campaign repair is needed.",
         },
+        "quality_closure_truth": {
+            "state": "quality_repair_required",
+            "summary": "核心科学质量还没有闭环；当前应先回到 analysis-campaign 完成最窄补充修复。",
+            "current_required_action": "return_to_publishability_gate",
+            "route_target": "analysis-campaign",
+        },
+        "quality_closure_basis": {
+            "clinical_significance": {
+                "status": "partial",
+                "summary": "Clinical framing is frozen, but the current result surface is still incomplete.",
+                "evidence_refs": [str(gate_report_path.resolve())],
+            },
+            "evidence_strength": {
+                "status": "blocked",
+                "summary": "The current claim-evidence surface is still missing external validation support.",
+                "evidence_refs": [str(gate_report_path.resolve())],
+            },
+            "novelty_positioning": {
+                "status": "partial",
+                "summary": "Novelty framing exists, but reviewer-facing contribution boundaries still need tightening.",
+                "evidence_refs": [str((study_root / "artifacts" / "controller" / "study_charter.json").resolve())],
+            },
+            "human_review_readiness": {
+                "status": "blocked",
+                "summary": "The draft is not yet honest enough to release as a human review package.",
+                "evidence_refs": [str(gate_report_path.resolve())],
+            },
+            "publication_gate": {
+                "status": "blocked",
+                "summary": "发表门控仍未放行当前论文线；系统应先沿 analysis-campaign 修复质量缺口。",
+                "evidence_refs": [str(promotion_gate_path.resolve())],
+            },
+        },
         "requires_controller_decision": True,
         "promotion_gate_status": {
             "status": "blocked",
@@ -419,4 +474,81 @@ def test_materialize_evaluation_summary_artifacts_prefers_now_priority_route_rep
         "route_target": "write",
         "route_key_question": "What is the narrowest paper-writing repair needed before any follow-up analysis?",
         "route_rationale": "The current blocker sits on the write surface, so same-line repair should start there.",
+    }
+
+
+def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining_quality_closure(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    publication_eval_path = inputs["publication_eval_path"]
+    gate_report_path = inputs["gate_report_path"]
+    publication_eval_payload = dict(inputs["publication_eval_payload"])
+    publication_eval_payload["verdict"] = {
+        "overall_verdict": "blocked",
+        "primary_claim_status": "supported",
+        "summary": "Core science is closed; remaining work is finalize-stage package hardening.",
+        "stop_loss_pressure": "none",
+    }
+    publication_eval_payload["quality_assessment"] = {
+        "clinical_significance": {
+            "status": "ready",
+            "summary": "Clinical framing and result surface are already reviewable.",
+            "evidence_refs": [str(gate_report_path)],
+        },
+        "evidence_strength": {
+            "status": "ready",
+            "summary": "Core evidence is already closed; remaining issues are downstream-only.",
+            "evidence_refs": [str(gate_report_path)],
+        },
+        "novelty_positioning": {
+            "status": "ready",
+            "summary": "Contribution boundaries are already frozen in the charter and manuscript lane.",
+            "evidence_refs": [str(inputs["charter_path"])],
+        },
+        "human_review_readiness": {
+            "status": "partial",
+            "summary": "Current package still needs one more finalize pass before human audit.",
+            "evidence_refs": [str(gate_report_path)],
+        },
+    }
+    _write_json(publication_eval_path, publication_eval_payload)
+    _write_json(
+        gate_report_path,
+        {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-05T06:05:00+00:00",
+            "quest_id": "quest-001",
+            "status": "blocked",
+            "allow_write": False,
+            "recommended_action": "complete_bundle_stage",
+            "latest_gate_path": str(gate_report_path),
+            "supervisor_phase": "bundle_stage_blocked",
+            "current_required_action": "complete_bundle_stage",
+            "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
+            "blockers": ["missing_submission_minimal"],
+        },
+    )
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
+
+    evaluation_summary_payload = module.read_evaluation_summary(study_root=study_root)
+
+    assert evaluation_summary_payload["quality_closure_truth"] == {
+        "state": "bundle_only_remaining",
+        "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+        "current_required_action": "complete_bundle_stage",
+        "route_target": "finalize",
+    }
+    assert evaluation_summary_payload["quality_closure_basis"]["publication_gate"] == {
+        "status": "partial",
+        "summary": "核心科学面已经闭环；剩余阻塞只落在当前论文线的 finalize / bundle 收口。",
+        "evidence_refs": [str((study_root / "artifacts" / "eval_hygiene" / "promotion_gate" / "latest.json").resolve())],
     }

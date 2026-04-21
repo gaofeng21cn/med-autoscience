@@ -23,6 +23,7 @@ def _write_publication_eval(
     quest_root: Path,
     *,
     recommended_actions: list[dict[str, object]] | None = None,
+    quality_assessment: dict[str, object] | None = None,
 ) -> Path:
     payload = {
         "schema_version": 1,
@@ -53,6 +54,29 @@ def _write_publication_eval(
             "primary_claim_status": "partial",
             "summary": "论文主线仍缺少外部验证支持，暂时不能宣称主结论已经站稳。",
             "stop_loss_pressure": "watch",
+        },
+        "quality_assessment": quality_assessment
+        or {
+            "clinical_significance": {
+                "status": "partial",
+                "summary": "临床问题已经冻结，但当前结果表面还不够稳定。",
+                "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+            },
+            "evidence_strength": {
+                "status": "blocked",
+                "summary": "当前 claim-evidence 证据链还没有闭环。",
+                "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+            },
+            "novelty_positioning": {
+                "status": "partial",
+                "summary": "创新点边界已经开始成形，但 reviewer-facing framing 仍待收紧。",
+                "evidence_refs": [str(study_root / "artifacts" / "controller" / "study_charter.json")],
+            },
+            "human_review_readiness": {
+                "status": "blocked",
+                "summary": "当前稿件还不能作为正式人工审阅包放行。",
+                "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+            },
         },
         "gaps": [
             {
@@ -1139,6 +1163,133 @@ def test_study_progress_autonomy_contract_projects_restore_point_from_checkpoint
         "human_gate_required": False,
         "summary": "当前恢复点采用 resume_from_checkpoint；continuation policy 为 wait_for_user_or_resume；最近一次续跑原因是运行停在未变化的定稿总结态。",
     }
+
+
+def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_study_charter_and_controller_summary(study_root)
+    _write_publication_eval(
+        study_root,
+        quest_root,
+        quality_assessment={
+            "clinical_significance": {
+                "status": "ready",
+                "summary": "临床问题与结果表面已经足够稳定，可以继续推进。",
+                "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+            },
+            "evidence_strength": {
+                "status": "ready",
+                "summary": "核心科学证据已经闭环，剩余工作不在核心证据面。",
+                "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+            },
+            "novelty_positioning": {
+                "status": "ready",
+                "summary": "创新性边界已经在 charter 与论文线中固定。",
+                "evidence_refs": [str(study_root / "artifacts" / "controller" / "study_charter.json")],
+            },
+            "human_review_readiness": {
+                "status": "partial",
+                "summary": "当前 package 还需要一轮 finalize 收口后再进入人工审阅。",
+                "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+            },
+        },
+        recommended_actions=[
+            {
+                "action_id": "action-001",
+                "action_type": "route_back_same_line",
+                "priority": "now",
+                "reason": "当前主线只剩 finalize / bundle 收口。",
+                "route_target": "finalize",
+                "route_key_question": "当前论文线还差哪一步 finalize / submission bundle 收口？",
+                "route_rationale": "核心科学问题已经回答，当前只剩同线 finalize 收口。",
+                "evidence_refs": [
+                    str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json")
+                ],
+                "requires_controller_decision": True,
+            }
+        ],
+    )
+    _write_runtime_escalation(quest_root, study_root)
+    _write_runtime_watch(quest_root)
+    _write_bash_summary(quest_root)
+    _write_details_projection(quest_root)
+    publishability_gate_path = _write_publishability_gate_report(quest_root)
+    _write_json(
+        publishability_gate_path,
+        {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-10T09:06:00+00:00",
+            "quest_id": "quest-001",
+            "status": "blocked",
+            "allow_write": False,
+            "recommended_action": "complete_bundle_stage",
+            "latest_gate_path": str(publishability_gate_path),
+            "supervisor_phase": "bundle_stage_blocked",
+            "current_required_action": "complete_bundle_stage",
+            "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
+            "blockers": ["missing_submission_minimal"],
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": False,
+                "current_required_action": "complete_bundle_stage",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
+            },
+            "runtime_escalation_ref": {
+                "record_id": "runtime-escalation::001-risk::quest-001::publishability_gate_blocked::2026-04-10T09:07:00+00:00",
+                "artifact_path": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
+                "summary_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+    markdown = module.render_study_progress_markdown(result)
+
+    assert result["quality_closure_truth"] == {
+        "state": "bundle_only_remaining",
+        "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+        "current_required_action": "complete_bundle_stage",
+        "route_target": "finalize",
+    }
+    assert result["quality_closure_basis"]["evidence_strength"]["status"] == "ready"
+    assert result["module_surfaces"]["eval_hygiene"]["quality_closure_truth"] == result["quality_closure_truth"]
+    assert "## 质量闭环" in markdown
+    assert "核心科学质量已经闭环" in markdown
+    assert "核心科学证据已经闭环，剩余工作不在核心证据面。" in markdown
 
 
 def test_study_progress_does_not_project_resume_arbitration_as_physician_decision(
