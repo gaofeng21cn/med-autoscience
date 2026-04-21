@@ -2562,6 +2562,145 @@ def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
     assert "What is the narrowest same-line manuscript repair or continuation step required now?" in result["next_system_action"]
 
 
+def test_study_progress_refreshes_semantically_stale_publication_eval_even_when_eval_is_newer(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_study_charter_and_controller_summary(study_root)
+    publication_eval_path = _write_publication_eval(study_root, quest_root)
+    stale_eval = json.loads(publication_eval_path.read_text(encoding="utf-8"))
+    stale_eval.update(
+        {
+            "eval_id": "publication-eval::001-risk::quest-001::2026-04-12T09:45:00+00:00",
+            "emitted_at": "2026-04-12T09:45:00+00:00",
+            "verdict": {
+                "overall_verdict": "blocked",
+                "primary_claim_status": "partial",
+                "summary": "bundle suggestions are downstream-only until the publication gate allows write",
+                "stop_loss_pressure": "watch",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "delivery",
+                    "severity": "must_fix",
+                    "summary": "stale_study_delivery_mirror",
+                    "evidence_refs": [str(quest_root)],
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "publication-eval-action::return_to_controller::2026-04-12T09:45:00+00:00",
+                    "action_type": "return_to_controller",
+                    "priority": "now",
+                    "reason": "旧 blocker 仍未清掉。",
+                    "evidence_refs": [str(quest_root)],
+                    "requires_controller_decision": True,
+                }
+            ],
+        }
+    )
+    _write_json(publication_eval_path, stale_eval)
+    _write_runtime_escalation(quest_root, study_root)
+    _write_runtime_watch(quest_root)
+    gate_report_path = _write_publishability_gate_report(quest_root)
+    gate_report = json.loads(gate_report_path.read_text(encoding="utf-8"))
+    gate_report.update(
+        {
+            "generated_at": "2026-04-12T09:40:00+00:00",
+            "status": "clear",
+            "allow_write": True,
+            "recommended_action": "continue_per_gate",
+            "blockers": [],
+            "study_delivery_status": "current",
+            "study_delivery_stale_reason": None,
+            "current_required_action": "continue_bundle_stage",
+            "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+        }
+    )
+    _write_json(gate_report_path, gate_report)
+    _write_bash_summary(quest_root)
+
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "study_completion_contract": {},
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "runtime_escalation_ref": {
+                "record_id": "runtime-escalation::001-risk::quest-001::publishability_gate_blocked::2026-04-10T09:07:00+00:00",
+                "artifact_path": str(
+                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+                ),
+                "summary_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            },
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "controller_stage_note": "旧的 publication_eval 仍把纸面镜像错判成过期。",
+            },
+            "autonomous_runtime_notice": {
+                "required": True,
+                "quest_id": "quest-001",
+                "quest_status": "running",
+                "active_run_id": "run-001",
+                "browser_url": "http://127.0.0.1:21999/quests/quest-001",
+                "quest_session_api_url": "http://127.0.0.1:21999/api/sessions/run-001",
+            },
+            "execution_owner_guard": {
+                "owner": "managed_runtime",
+                "supervisor_only": True,
+                "active_run_id": "run-001",
+                "current_required_action": "supervise_runtime_only",
+                "publication_gate_allows_direct_write": False,
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MAS 外环监管心跳新鲜。",
+                "latest_recorded_at": "2026-04-12T09:59:00+00:00",
+            },
+        },
+    )
+
+    module.read_study_progress(profile=profile, study_id="001-risk")
+    refreshed_publication_eval = json.loads(publication_eval_path.read_text(encoding="utf-8"))
+
+    assert refreshed_publication_eval["emitted_at"] == "2026-04-12T09:40:00+00:00"
+    assert refreshed_publication_eval["verdict"]["overall_verdict"] == "promising"
+    assert all(gap["severity"] == "optional" for gap in refreshed_publication_eval["gaps"])
+    assert "stale_study_delivery_mirror" not in {
+        gap["summary"] for gap in refreshed_publication_eval["gaps"]
+    }
+
+
 def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_runtime(
     monkeypatch,
     tmp_path: Path,

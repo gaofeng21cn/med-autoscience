@@ -336,6 +336,35 @@ def _timestamp_is_newer(candidate: object, baseline: object) -> bool:
     return datetime.fromisoformat(candidate_text) > datetime.fromisoformat(baseline_text)
 
 
+def _publication_eval_semantically_stale_against_gate(
+    *,
+    publication_eval_payload: dict[str, Any] | None,
+    publishability_gate_payload: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(publication_eval_payload, dict) or not isinstance(publishability_gate_payload, dict):
+        return False
+    if _non_empty_text(publishability_gate_payload.get("status")) != "clear":
+        return False
+    verdict_payload = publication_eval_payload.get("verdict")
+    overall_verdict = (
+        _non_empty_text(verdict_payload.get("overall_verdict"))
+        if isinstance(verdict_payload, dict)
+        else None
+    )
+    if overall_verdict not in {"promising", "clear", "ready", "pass", "approved"}:
+        return True
+    for gap in publication_eval_payload.get("gaps") or []:
+        if not isinstance(gap, dict):
+            continue
+        severity = _non_empty_text(gap.get("severity"))
+        summary = _non_empty_text(gap.get("summary"))
+        if summary == "stale_study_delivery_mirror":
+            return True
+        if severity and severity != "optional":
+            return True
+    return False
+
+
 def _candidate_path(value: object) -> Path | None:
     text = _non_empty_text(value)
     if text is None:
@@ -787,7 +816,13 @@ def _refresh_publication_surfaces_from_gate_report(
         and publishability_gate_payload is not None
         and quest_root is not None
         and _non_empty_text(publishability_gate_payload.get("gate_kind")) == "publishability_control"
-        and _timestamp_is_newer(gate_generated_at, eval_emitted_at)
+        and (
+            _timestamp_is_newer(gate_generated_at, eval_emitted_at)
+            or _publication_eval_semantically_stale_against_gate(
+                publication_eval_payload=publication_eval_payload,
+                publishability_gate_payload=publishability_gate_payload,
+            )
+        )
     ):
         try:
             decision_module = import_module("med_autoscience.controllers.study_runtime_decision")
