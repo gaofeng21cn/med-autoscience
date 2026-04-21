@@ -14,6 +14,10 @@ from med_autoscience.controller_confirmation_summary import (
     read_controller_confirmation_summary,
     stable_controller_confirmation_summary_path,
 )
+from med_autoscience.evaluation_summary import (
+    read_evaluation_summary,
+    resolve_evaluation_summary_ref,
+)
 from med_autoscience.human_gate_policy import require_controller_human_gate_allowed
 from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
 from med_autoscience.profiles import WorkspaceProfile
@@ -383,6 +387,47 @@ def _recommended_publication_eval_action(publication_eval_payload: dict[str, Any
     return None
 
 
+def _recommended_quality_review_loop_action(*, study_root: Path) -> dict[str, Any] | None:
+    summary_path = resolve_evaluation_summary_ref(study_root=study_root)
+    if not summary_path.exists():
+        return None
+    try:
+        summary_payload = read_evaluation_summary(study_root=study_root, ref=summary_path)
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        raw_payload = json.loads(summary_path.read_text(encoding="utf-8")) or {}
+        if not isinstance(raw_payload, dict):
+            return None
+        summary_payload = raw_payload
+    quality_review_loop = (
+        dict(summary_payload.get("quality_review_loop") or {})
+        if isinstance(summary_payload.get("quality_review_loop"), dict)
+        else {}
+    )
+    current_phase = str(quality_review_loop.get("current_phase") or "").strip()
+    if current_phase != "re_review_required" and quality_review_loop.get("re_review_ready") is not True:
+        return None
+    next_review_focus = [
+        str(item).strip()
+        for item in (quality_review_loop.get("next_review_focus") or [])
+        if str(item).strip()
+    ]
+    route_key_question = next_review_focus[0] if next_review_focus else "当前 blocking issues 是否已真正闭环？"
+    summary = str(quality_review_loop.get("summary") or "").strip()
+    recommended_next_action = str(quality_review_loop.get("recommended_next_action") or "").strip()
+    reason = recommended_next_action or summary or "MAS 应发起下一轮质量复评，确认当前 blocking issues 是否已真正闭环。"
+    route_rationale = summary or reason
+    return {
+        "action_id": f"quality-review-loop::{quality_review_loop.get('loop_id') or study_root.name}::re_review",
+        "action_type": StudyDecisionType.CONTINUE_SAME_LINE.value,
+        "priority": "now",
+        "reason": reason,
+        "route_target": "review",
+        "route_key_question": route_key_question,
+        "route_rationale": route_rationale,
+        "requires_controller_decision": True,
+    }
+
+
 def _autonomous_decision_type_for_publication_eval_action(action_payload: dict[str, Any]) -> str | None:
     action_type = str(action_payload.get("action_type") or "").strip()
     if action_type == StudyDecisionType.CONTINUE_SAME_LINE.value:
@@ -421,7 +466,9 @@ def build_runtime_watch_outer_loop_tick_request(
         study_root=resolved_study_root,
         ref=publication_eval_path,
     )
-    recommended_action = _recommended_publication_eval_action(publication_eval_payload)
+    recommended_action = _recommended_quality_review_loop_action(study_root=resolved_study_root)
+    if recommended_action is None:
+        recommended_action = _recommended_publication_eval_action(publication_eval_payload)
     if recommended_action is None:
         return None
     decision_type = _autonomous_decision_type_for_publication_eval_action(recommended_action)

@@ -1105,6 +1105,8 @@ def run_watch_for_runtime(
                 study_root=study_root,
                 status_payload=status_payload,
             )
+        quest_root = _candidate_path(status_payload.get("quest_root"))
+        quest_report = report_by_quest_root.get(str(quest_root)) if quest_root is not None else None
         if apply and profile is not None:
             tick_request = study_outer_loop.build_runtime_watch_outer_loop_tick_request(
                 study_root=study_root,
@@ -1131,7 +1133,9 @@ def run_watch_for_runtime(
                     quest_report = _materialize_placeholder_quest_watch_report(status_payload)
                     if isinstance(quest_report, dict):
                         reports.append(quest_report)
-                        report_by_quest_root[str(Path(str(quest_root)).expanduser().resolve())] = quest_report
+                        quest_root = _candidate_path(status_payload.get("quest_root"))
+                        if quest_root is not None:
+                            report_by_quest_root[str(quest_root)] = quest_report
                 if isinstance(quest_report, dict):
                     _attach_outer_loop_dispatch_to_quest_report(
                         quest_report=quest_report,
@@ -1143,8 +1147,8 @@ def run_watch_for_runtime(
                         study_root=study_root,
                     )
                 )
-        quest_root = status_payload.get("quest_root")
-        quest_report = report_by_quest_root.get(str(Path(str(quest_root)).expanduser().resolve())) if quest_root else None
+        quest_root = _candidate_path(status_payload.get("quest_root"))
+        quest_report = report_by_quest_root.get(str(quest_root)) if quest_root is not None else None
         supervision_report = runtime_supervision.materialize_runtime_supervision(
             study_root=study_root,
             status_payload=status_payload,

@@ -61,6 +61,7 @@ _LIVE_CONTROLLER_REROUTE_REQUIRED_ACTION_BY_REASON = {
 _ROUTE_TARGET_LABELS = {
     "analysis-campaign": "有限补充分析",
     "write": "当前论文主线写作",
+    "review": "质量复评",
     "finalize": "finalize / 投稿包收口",
 }
 

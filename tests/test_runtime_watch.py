@@ -479,6 +479,130 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_bounded_a
     ]
 
 
+def test_watch_runtime_materializes_outer_loop_decision_for_quality_re_review(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(quest_root, study_root)
+    runtime_event_ref = _write_runtime_event_record(
+        quest_root,
+        study_root,
+        runtime_escalation_ref=runtime_escalation_ref,
+    )
+    _write_charter(study_root)
+    _write_publication_eval(
+        study_root,
+        quest_root,
+        action_type="continue_same_line",
+        reason="Older publication eval still points to ordinary write continuation.",
+    )
+    dump_json(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
+        {
+            "schema_version": 1,
+            "summary_id": "evaluation-summary::001-risk::2026-04-05T06:00:00+00:00",
+            "overall_verdict": "promising",
+            "primary_claim_status": "partial",
+            "stop_loss_pressure": "none",
+            "verdict_summary": "Revision is complete and MAS should re-review.",
+            "requires_controller_decision": True,
+            "quality_review_loop": {
+                "policy_id": "publication-critique.v1",
+                "loop_id": "quality-review-loop::001-risk::2026-04-05T06:00:00+00:00",
+                "closure_state": "quality_repair_required",
+                "lane_id": "general_quality_repair",
+                "current_phase": "re_review_required",
+                "current_phase_label": "等待复评",
+                "recommended_next_phase": "re_review",
+                "recommended_next_phase_label": "发起复评",
+                "active_plan_id": "quality-plan::001-risk::v1",
+                "active_plan_execution_status": "completed",
+                "blocking_issue_count": 1,
+                "blocking_issues": ["当前 blocking issues 是否已真正闭环"],
+                "next_review_focus": ["当前 blocking issues 是否已真正闭环"],
+                "re_review_ready": True,
+                "summary": "当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。",
+                "recommended_next_action": "发起下一轮 MAS quality re-review，确认当前 blocking issues 是否已真正闭环。",
+            },
+        },
+    )
+    status_payload = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="blocked",
+            reason="quest_stopped_requires_explicit_rerun",
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "quest_status": "stopped",
+        "execution": {
+            "engine": "med-deepscientist",
+            "auto_entry": "on_managed_research_intent",
+            "quest_id": "quest-001",
+            "auto_resume": True,
+        },
+        "runtime_escalation_ref": runtime_escalation_ref,
+        "runtime_event_ref": runtime_event_ref,
+        "publication_supervisor_state": {
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "current_required_action": "return_to_publishability_gate",
+        },
+    }
+
+    def fake_ensure(**kwargs):
+        if kwargs.get("source") == "runtime_watch":
+            return status_payload
+        if kwargs.get("source") == "runtime_watch_outer_loop_wakeup":
+            return {
+                "decision": "relaunch_stopped",
+                "reason": "quest_stopped_requires_explicit_rerun",
+            }
+        raise AssertionError(f"unexpected ensure source: {kwargs.get('source')}")
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    payload = json.loads((study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8"))
+    watch_latest = json.loads(
+        (quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert result["managed_study_outer_loop_dispatches"] == [
+        {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "decision_type": "continue_same_line",
+            "route_target": "review",
+            "route_key_question": "当前 blocking issues 是否已真正闭环",
+            "controller_action_type": "ensure_study_runtime_relaunch_stopped",
+            "study_decision_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            "dispatch_status": "executed",
+            "source": "runtime_watch_outer_loop_wakeup",
+        }
+    ]
+    assert watch_latest["managed_study_outer_loop_dispatch"] == result["managed_study_outer_loop_dispatches"][0]
+    assert payload["decision_type"] == "continue_same_line"
+    assert payload["route_target"] == "review"
+    assert payload["route_key_question"] == "当前 blocking issues 是否已真正闭环"
+    assert payload["reason"] == "发起下一轮 MAS quality re-review，确认当前 blocking issues 是否已真正闭环。"
+
+
 def test_watch_runtime_fails_closed_when_outer_loop_candidate_lacks_stable_charter(
     tmp_path: Path,
     monkeypatch,
