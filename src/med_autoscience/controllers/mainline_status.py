@@ -142,6 +142,12 @@ def _single_project_boundary() -> dict[str, Any]:
     }
 
 
+def _phase_single_project_boundary(phase_id: object) -> dict[str, Any] | None:
+    if _non_empty_text(phase_id) != "phase_1_mainline_established":
+        return None
+    return _single_project_boundary()
+
+
 def _platform_target() -> dict[str, Any]:
     return _build_shared_platform_target(
         summary=(
@@ -539,6 +545,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "docs/project.md",
                 "docs/architecture.md",
             ],
+            "single_project_boundary": _phase_single_project_boundary("phase_1_mainline_established"),
         },
         {
             "id": "phase_2_user_product_loop",
@@ -738,6 +745,7 @@ def read_mainline_status() -> dict[str, Any]:
             "summary": (
                 "当前总体仍处在第一阶段尾声：主线已成立，正在把 F4 blocker 收口干净，并把用户可见入口与单项目边界继续收成真实 repo-tracked truth。"
             ),
+            "single_project_boundary": _phase_single_project_boundary(CURRENT_PROGRAM_PHASE_ID),
         },
         "phase2_user_product_loop": _phase2_user_product_loop(),
         "phase3_clearance_lane": _phase3_clearance_lane(),
@@ -842,6 +850,7 @@ def read_mainline_phase_status(selector: str = "current") -> dict[str, Any]:
 
 def render_mainline_phase_markdown(payload: dict[str, Any]) -> str:
     phase = dict(payload.get("phase") or {})
+    single_project_boundary = dict(phase.get("single_project_boundary") or {})
     lines = [
         "# Mainline Phase",
         "",
@@ -850,10 +859,28 @@ def render_mainline_phase_markdown(payload: dict[str, Any]) -> str:
         f"- 当前状态: {_phase_status_label(phase.get('status'))}",
         f"- 当前可用性: {_bool_label(phase.get('usable_now'))}",
         f"- 当前摘要: {phase.get('summary') or 'none'}",
-        "",
-        "## 可用入口",
-        "",
     ]
+    if single_project_boundary:
+        lines.extend(
+            [
+                "",
+                "## 当前 tranche 边界",
+                "",
+                f"- 当前摘要: {single_project_boundary.get('summary') or 'none'}",
+                f"- MAS owner modules: `{', '.join(single_project_boundary.get('mas_owner_modules') or []) or 'none'}`",
+            ]
+        )
+        for item in single_project_boundary.get("land_now") or []:
+            lines.append(f"- 当前 tranche 收口: {item}")
+        for item in single_project_boundary.get("mds_retained_roles") or []:
+            if not isinstance(item, dict):
+                continue
+            lines.append(f"- MDS 保留 `{item.get('role_id')}`: {item.get('summary') or 'none'}")
+        for item in single_project_boundary.get("post_gate_only") or []:
+            lines.append(f"- post-gate only: {item}")
+        for item in single_project_boundary.get("not_now") or []:
+            lines.append(f"- 当前不允许: {item}")
+    lines.extend(["", "## 可用入口", ""])
     entry_points = list(phase.get("entry_points") or [])
     if entry_points:
         for item in entry_points:

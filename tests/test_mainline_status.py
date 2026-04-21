@@ -27,9 +27,25 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert "physical monorepo absorb" in payload["single_project_boundary"]["post_gate_only"]
     assert payload["current_program_phase"]["id"] == "phase_1_mainline_established"
     assert payload["current_program_phase"]["status"] == "in_progress"
+    assert payload["current_program_phase"]["single_project_boundary"]["land_now"] == [
+        "MAS 单项目 owner wording and repo-tracked truth",
+        "docs/status/program/mainline boundary alignment",
+        "user-visible wording that MDS is no longer a second long-term owner",
+    ]
+    assert [item["role_id"] for item in payload["current_program_phase"]["single_project_boundary"]["mds_retained_roles"]] == [
+        "research_backend",
+        "behavior_equivalence_oracle",
+        "upstream_intake_buffer",
+    ]
+    assert "physical monorepo absorb" in payload["current_program_phase"]["single_project_boundary"]["post_gate_only"]
     assert len(payload["phase_ladder"]) == 5
     assert payload["phase_ladder"][1]["id"] == "phase_2_user_product_loop"
     assert payload["phase_ladder"][0]["usable_now"] is True
+    assert payload["phase_ladder"][0]["single_project_boundary"]["mas_owner_modules"] == [
+        "controller_charter",
+        "runtime",
+        "eval_hygiene",
+    ]
     assert payload["phase2_user_product_loop"]["surface_kind"] == "phase2_user_product_loop_lane"
     assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_frontdesk"
     assert payload["phase2_user_product_loop"]["recommended_command"] == (
@@ -199,6 +215,17 @@ def test_mainline_phase_status_resolves_current_and_next_phase() -> None:
 
     assert current_payload["phase"]["id"] == "phase_1_mainline_established"
     assert current_payload["phase"]["usable_now"] is True
+    assert current_payload["phase"]["single_project_boundary"]["land_now"] == [
+        "MAS 单项目 owner wording and repo-tracked truth",
+        "docs/status/program/mainline boundary alignment",
+        "user-visible wording that MDS is no longer a second long-term owner",
+    ]
+    assert [item["role_id"] for item in current_payload["phase"]["single_project_boundary"]["mds_retained_roles"]] == [
+        "research_backend",
+        "behavior_equivalence_oracle",
+        "upstream_intake_buffer",
+    ]
+    assert "physical monorepo absorb" in current_payload["phase"]["single_project_boundary"]["post_gate_only"]
     assert any(item["name"] == "mainline_status" for item in current_payload["phase"]["entry_points"])
     assert next_payload["phase"]["id"] == "phase_2_user_product_loop"
     assert any("workspace-cockpit" in item["command"] for item in next_payload["phase"]["entry_points"])
@@ -224,6 +251,17 @@ def test_render_mainline_phase_markdown_surfaces_entry_points_and_exit_criteria(
     assert "usable_now:" not in markdown
     assert "summary:" not in markdown
     assert "purpose:" not in markdown
+
+
+def test_render_mainline_phase_markdown_surfaces_current_tranche_boundary() -> None:
+    module = importlib.import_module("med_autoscience.controllers.mainline_status")
+
+    markdown = module.render_mainline_phase_markdown(module.read_mainline_phase_status("current"))
+
+    assert "当前 tranche 边界" in markdown
+    assert "当前 tranche 收口: MAS 单项目 owner wording and repo-tracked truth" in markdown
+    assert "MDS 保留 `research_backend`" in markdown
+    assert "post-gate only: physical monorepo absorb" in markdown
 
 
 def test_phase3_clearance_lane_uses_shared_builder(monkeypatch) -> None:
