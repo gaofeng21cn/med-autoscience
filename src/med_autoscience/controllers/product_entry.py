@@ -146,12 +146,20 @@ def _validate_product_entry_manifest_contract(payload: Mapping[str, Any]) -> Non
         require_contract_bundle=True,
         require_runtime_companions=True,
     )
+    _validate_single_project_boundary(
+        payload.get("single_project_boundary"),
+        context="product_entry_manifest.single_project_boundary",
+    )
 
 
 def _validate_product_frontdesk_contract(payload: Mapping[str, Any]) -> None:
     _validate_shared_family_product_frontdesk(
         payload,
         require_contract_bundle=True,
+    )
+    _validate_single_project_boundary(
+        payload.get("single_project_boundary"),
+        context="product_frontdesk.single_project_boundary",
     )
 
 
@@ -162,6 +170,89 @@ def _utc_now() -> str:
 def _non_empty_text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _single_project_boundary_payload(source: Mapping[str, Any] | None) -> dict[str, Any]:
+    payload = dict(source or {})
+    if not payload:
+        payload = dict(mainline_status._single_project_boundary())
+    return payload
+
+
+def _validate_single_project_boundary(value: object, *, context: str) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{context} 缺少合法 mapping 字段: single_project_boundary")
+    payload = dict(value)
+    surface_kind = _require_nonempty_string_from_mapping(payload, "surface_kind", context=context)
+    if surface_kind != "single_project_boundary":
+        raise ValueError(f"{context}.surface_kind 必须是 single_project_boundary，当前为 {surface_kind}。")
+    summary = _require_nonempty_string_from_mapping(payload, "summary", context=context)
+    mas_owner_modules = _normalized_strings(payload.get("mas_owner_modules") or [])
+    if not mas_owner_modules:
+        raise ValueError(f"{context}.mas_owner_modules 不能为空。")
+    raw_roles = payload.get("mds_retained_roles") or []
+    if not isinstance(raw_roles, list) or not raw_roles:
+        raise ValueError(f"{context}.mds_retained_roles 不能为空。")
+    normalized_roles: list[dict[str, str]] = []
+    for index, item in enumerate(raw_roles):
+        if not isinstance(item, Mapping):
+            raise ValueError(f"{context}.mds_retained_roles[{index}] 必须是 mapping。")
+        role = dict(item)
+        normalized_roles.append(
+            {
+                "role_id": _require_nonempty_string_from_mapping(
+                    role,
+                    "role_id",
+                    context=f"{context}.mds_retained_roles[{index}]",
+                ),
+                "title": _require_nonempty_string_from_mapping(
+                    role,
+                    "title",
+                    context=f"{context}.mds_retained_roles[{index}]",
+                ),
+                "summary": _require_nonempty_string_from_mapping(
+                    role,
+                    "summary",
+                    context=f"{context}.mds_retained_roles[{index}]",
+                ),
+            }
+        )
+    land_now = _normalized_strings(payload.get("land_now") or [])
+    post_gate_only = _normalized_strings(payload.get("post_gate_only") or [])
+    not_now = _normalized_strings(payload.get("not_now") or [])
+    if not post_gate_only:
+        raise ValueError(f"{context}.post_gate_only 不能为空。")
+    if not not_now:
+        raise ValueError(f"{context}.not_now 不能为空。")
+    return {
+        "surface_kind": surface_kind,
+        "summary": summary,
+        "mas_owner_modules": mas_owner_modules,
+        "mds_retained_roles": normalized_roles,
+        "land_now": land_now,
+        "post_gate_only": post_gate_only,
+        "not_now": not_now,
+    }
+
+
+def _render_single_project_boundary_markdown_lines(single_project_boundary: Mapping[str, Any]) -> list[str]:
+    lines = [
+        "## Single-Project Boundary",
+        "",
+        f"- 当前摘要: {single_project_boundary.get('summary') or 'none'}",
+        f"- MAS owner modules: `{', '.join(single_project_boundary.get('mas_owner_modules') or []) or 'none'}`",
+    ]
+    for item in single_project_boundary.get("land_now") or []:
+        lines.append(f"- 当前 tranche 收口: {item}")
+    for item in single_project_boundary.get("mds_retained_roles") or []:
+        if not isinstance(item, Mapping):
+            continue
+        lines.append(f"- MDS 保留 `{item.get('role_id')}`: {item.get('summary') or 'none'}")
+    for item in single_project_boundary.get("post_gate_only") or []:
+        lines.append(f"- post-gate only: {item}")
+    for item in single_project_boundary.get("not_now") or []:
+        lines.append(f"- 当前不允许: {item}")
+    return lines
 
 
 def _quality_review_loop_preview(loop_payload: Mapping[str, Any] | None) -> str | None:
@@ -1262,6 +1353,10 @@ def _mainline_snapshot() -> dict[str, Any]:
     current_program_phase = dict(payload.get("current_program_phase") or {})
     next_focus = _normalized_strings(payload.get("next_focus") or [])
     explicitly_not_now = _normalized_strings(payload.get("explicitly_not_now") or [])
+    single_project_boundary = _validate_single_project_boundary(
+        _single_project_boundary_payload(payload.get("single_project_boundary")),
+        context="mainline_snapshot.single_project_boundary",
+    )
     return {
         "program_id": _non_empty_text(payload.get("program_id")),
         "current_stage_id": _non_empty_text(current_stage.get("id")),
@@ -1272,6 +1367,7 @@ def _mainline_snapshot() -> dict[str, Any]:
         "current_program_phase_summary": _non_empty_text(current_program_phase.get("summary")),
         "next_focus": list(next_focus),
         "explicitly_not_now": list(explicitly_not_now),
+        "single_project_boundary": single_project_boundary,
     }
 
 
@@ -2488,6 +2584,7 @@ def build_product_entry_manifest(
         "current_program_phase_summary": mainline_snapshot.get("current_program_phase_summary"),
         "next_focus": list(mainline_snapshot.get("next_focus") or []),
     }
+    single_project_boundary = dict(mainline_snapshot.get("single_project_boundary") or {})
     product_entry_status = {
         "summary": mainline_snapshot.get("current_stage_summary")
         or mainline_snapshot.get("current_program_phase_summary"),
@@ -2566,6 +2663,7 @@ def build_product_entry_manifest(
         ],
         extra_payload={
             "schema_version": SCHEMA_VERSION,
+            "single_project_boundary": single_project_boundary,
             "executor_defaults": {
                 "default_executor_name": "codex_cli",
                 "default_executor_mode": "autonomous",
@@ -2617,6 +2715,7 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
     phase5_platform_target = dict(payload.get("phase5_platform_target") or {})
+    single_project_boundary = dict(payload.get("single_project_boundary") or {})
     lines = [
         "# Product Entry Manifest",
         "",
@@ -2638,6 +2737,7 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{name}`: `{item.get('command')}`")
+    lines.extend([""] + _render_single_project_boundary_markdown_lines(single_project_boundary) + [""])
     lines.extend(["", "## Operator Loop Actions", ""])
     for name, item in (payload.get("operator_loop_actions") or {}).items():
         if not isinstance(item, dict):
@@ -2714,6 +2814,10 @@ def build_product_frontdesk(
     workspace_attention_queue = list(workspace_cockpit.get("attention_queue") or [])
     top_attention = dict(workspace_attention_queue[0] or {}) if workspace_attention_queue else {}
     top_attention_status_card = dict(top_attention.get("operator_status_card") or {})
+    single_project_boundary = _validate_single_project_boundary(
+        _single_project_boundary_payload(manifest.get("single_project_boundary")),
+        context="product_frontdesk.source.single_project_boundary",
+    )
     if not bool(product_entry_preflight.get("ready_to_try_now")):
         operator_brief = {
             "surface_kind": "product_frontdesk_operator_brief",
@@ -2800,6 +2904,7 @@ def build_product_frontdesk(
         ],
         extra_payload={
             "schema_version": SCHEMA_VERSION,
+            "single_project_boundary": single_project_boundary,
             "executor_defaults": dict(manifest.get("executor_defaults") or {}),
             "runtime_inventory": dict(manifest.get("runtime_inventory") or {}),
             "task_lifecycle": dict(manifest.get("task_lifecycle") or {}),
@@ -2827,6 +2932,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
     phase5_platform_target = dict(payload.get("phase5_platform_target") or {})
+    single_project_boundary = dict(payload.get("single_project_boundary") or {})
     operator_brief = dict(payload.get("operator_brief") or {})
     quickstart = dict(payload.get("product_entry_quickstart") or {})
     workspace_operator_brief = dict(payload.get("workspace_operator_brief") or {})
@@ -2858,6 +2964,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- 下一确认信号: {operator_brief.get('next_confirmation_signal')}")
     else:
         lines.append("- 当前还没有 frontdesk operator brief。")
+    lines.extend([""] + _render_single_project_boundary_markdown_lines(single_project_boundary) + [""])
     lines.extend([
         "",
         "## Single Path",

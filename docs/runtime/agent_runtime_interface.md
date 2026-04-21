@@ -220,6 +220,7 @@
 - `workspace-cockpit` 应直接投影 repo 主线快照、workspace 级 readiness、latest task intake、watch-runtime service 在线态、stale / missing progress signal 聚合，以及按优先级排好的 workspace attention queue
 - `workspace-cockpit` 还应直接给出当前真实 user loop：至少包括 mainline-status、submit-study-task、launch-study、study-progress、watch 这组命令模板，避免用户再自己拼“怎么启动 / 怎么下任务 / 怎么持续看进度”
 - `product-frontdesk` / `product-entry-manifest` 应显式带出 `product_entry_guardrails`：至少覆盖 `workspace supervision gap`、`study progress gap`、`human decision gate`、`publication / quality blocker` 四类 guardrail，并把 `inspect_workspace_inbox -> refresh_supervision -> inspect_study_progress -> continue_or_relaunch` 收成标准恢复回路
+- `product-frontdesk` / `product-entry-manifest` 还应显式带出 `single_project_boundary`：至少回答 `MAS owner modules`、`MDS retained roles`、`post_gate_only` 与 `not_now`，避免调用方只读前台时丢失单项目 owner boundary
 - `product-frontdesk` / `product-entry-manifest` 还应显式带出 `phase3_clearance_lane`：至少覆盖 `external_runtime_contract`、`supervisor_service`、`study_recovery_proof` 三类 clearance target，并把 doctor / hermes-runtime-check / watch / launch-study / study-progress 的组合回路收成标准模板
 - `product-frontdesk` / `product-entry-manifest` 也应显式带出 `phase4_backend_deconstruction`：至少回答 substrate target、backend retained now、current backend chain、optional executor proof lane 与 promotion rule，避免在 Phase 4/5 讨论里重新把 truth 写散
 - `product-frontdesk` / `product-entry-manifest` 也应显式带出 `phase5_platform_target` 的 monorepo readiness sequence，让用户和顶层 caller 都能直接看到“当前做到哪一步、还差哪几步”，而不是把 monorepo 只当成口头终局

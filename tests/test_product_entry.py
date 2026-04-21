@@ -2143,6 +2143,18 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["repo_mainline"]["next_focus"] == [
         "继续把 workspace inbox、study progress 与恢复建议收成统一产品壳。",
     ]
+    assert payload["single_project_boundary"]["surface_kind"] == "single_project_boundary"
+    assert list(payload["single_project_boundary"]["mas_owner_modules"]) == [
+        "controller_charter",
+        "runtime",
+        "eval_hygiene",
+    ]
+    assert [item["role_id"] for item in payload["single_project_boundary"]["mds_retained_roles"]] == [
+        "research_backend",
+        "behavior_equivalence_oracle",
+        "upstream_intake_buffer",
+    ]
+    assert "physical monorepo absorb" in payload["single_project_boundary"]["post_gate_only"]
     assert payload["product_entry_status"]["summary"] == "继续收口 blocker 并把用户入口壳压实。"
     assert payload["product_entry_status"]["remaining_gaps_count"] == 1
     assert payload["product_entry_status"]["next_focus"] == [
@@ -2271,6 +2283,10 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "study_physician_decision_gate",
         "publication_release_gate",
     ]
+    markdown = module.render_product_entry_manifest_markdown(payload)
+    assert "Single-Project Boundary" in markdown
+    assert "MDS 保留 `research_backend`" in markdown
+    assert "post-gate only: physical monorepo absorb" in markdown
     assert payload["product_entry_readiness"] == {
         "surface_kind": "product_entry_readiness",
         "verdict": "runtime_ready_not_standalone_product",
@@ -3204,6 +3220,12 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["phase5_platform_target"]["surface_kind"] == "phase5_platform_target"
     assert payload["phase5_platform_target"]["current_step_id"] == "stabilize_user_product_loop"
     assert payload["phase5_platform_target"]["north_star_topology"]["monorepo_status"] == "post_gate_target"
+    assert payload["single_project_boundary"]["surface_kind"] == "single_project_boundary"
+    assert list(payload["single_project_boundary"]["mas_owner_modules"]) == [
+        "controller_charter",
+        "runtime",
+        "eval_hygiene",
+    ]
     assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_frontdesk"
     assert payload["product_entry_quickstart"]["steps"][2]["step_id"] == "continue_study"
     assert payload["product_entry_quickstart"]["steps"][2]["requires"] == ["study_id"]
@@ -3428,8 +3450,50 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
 
     markdown = module.render_product_frontdesk_markdown(payload)
     assert "Now" in markdown
+    assert "Single-Project Boundary" in markdown
+    assert "MDS 保留 `research_backend`" in markdown
     assert "Single Path" in markdown
     assert "Workspace Preview" in markdown
+
+
+def test_validate_single_project_boundary_fails_closed_on_missing_roles() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    with pytest.raises(ValueError, match="mds_retained_roles 不能为空"):
+        module._validate_single_project_boundary(
+            {
+                "surface_kind": "single_project_boundary",
+                "summary": "summary",
+                "mas_owner_modules": ["controller_charter"],
+                "mds_retained_roles": [],
+                "post_gate_only": ["physical monorepo absorb"],
+                "not_now": ["treating MedDeepScientist as a second long-term owner"],
+            },
+            context="test.single_project_boundary",
+        )
+
+
+def test_validate_single_project_boundary_fails_closed_on_missing_not_now() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    with pytest.raises(ValueError, match="not_now 不能为空"):
+        module._validate_single_project_boundary(
+            {
+                "surface_kind": "single_project_boundary",
+                "summary": "summary",
+                "mas_owner_modules": ["controller_charter"],
+                "mds_retained_roles": [
+                    {
+                        "role_id": "research_backend",
+                        "title": "Controlled research backend",
+                        "summary": "summary",
+                    }
+                ],
+                "post_gate_only": ["physical monorepo absorb"],
+                "not_now": [],
+            },
+            context="test.single_project_boundary",
+        )
 
 
 def test_render_product_frontdesk_markdown_shows_autonomy_contract_preview() -> None:

@@ -11,6 +11,7 @@
     "schema_ref",
     "target_domain_id",
     "workspace_locator",
+    "single_project_boundary",
     "domain_entry_contract",
     "gateway_interaction_contract",
     "frontdesk_surface",
@@ -26,11 +27,67 @@
     "domain_entry_contract": {
       "$ref": "#/$defs/domainEntryContract"
     },
+    "single_project_boundary": {
+      "$ref": "#/$defs/singleProjectBoundary"
+    },
     "gateway_interaction_contract": {
       "$ref": "#/$defs/gatewayInteractionContract"
     }
   },
   "$defs": {
+    "singleProjectBoundary": {
+      "type": "object",
+      "required": [
+        "surface_kind",
+        "summary",
+        "mas_owner_modules",
+        "mds_retained_roles",
+        "post_gate_only",
+        "not_now"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "single_project_boundary"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "mas_owner_modules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "mds_retained_roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["role_id", "title", "summary"],
+            "properties": {
+              "role_id": {"type": "string"},
+              "title": {"type": "string"},
+              "summary": {"type": "string"}
+            }
+          }
+        },
+        "land_now": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "post_gate_only": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string"}
+        },
+        "not_now": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string"}
+        }
+      }
+    },
     "domainEntryContract": {
       "type": "object",
       "required": [

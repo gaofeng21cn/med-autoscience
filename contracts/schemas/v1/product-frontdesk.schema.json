@@ -9,6 +9,7 @@
     "schema_ref",
     "recommended_action",
     "target_domain_id",
+    "single_project_boundary",
     "domain_entry_contract",
     "gateway_interaction_contract",
     "frontdesk_surface",
@@ -24,6 +25,9 @@
     },
     "domain_entry_contract": {
       "$ref": "./product-entry-manifest.schema.json#/$defs/domainEntryContract"
+    },
+    "single_project_boundary": {
+      "$ref": "./product-entry-manifest.schema.json#/$defs/singleProjectBoundary"
     },
     "gateway_interaction_contract": {
       "$ref": "./product-entry-manifest.schema.json#/$defs/gatewayInteractionContract"
