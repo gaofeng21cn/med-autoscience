@@ -245,6 +245,11 @@ _QUALITY_CLOSURE_BASIS_LABELS = {
 _QUALITY_REVISION_DIMENSION_LABELS = {
     **_QUALITY_CLOSURE_BASIS_LABELS,
 }
+_QUALITY_REVIEW_FOLLOWTHROUGH_STATE_LABELS = {
+    "auto_re_review_pending": "等待系统自动复评",
+    "auto_re_review_blocked": "自动复评暂未继续",
+    "not_in_re_review_waiting": "当前不在等待复评阶段",
+}
 _LATEST_EVENT_DISPLAY_TIERS = {
     "runtime_supervision": 0,
     "runtime_progress": 0,
@@ -959,6 +964,96 @@ def _evaluation_module_surface(
         "quality_revision_plan": quality_revision_plan or None,
         "quality_review_loop": quality_review_loop or None,
     }
+
+
+def _quality_review_followthrough_projection(
+    *,
+    quality_review_loop: Mapping[str, Any],
+    needs_physician_decision: bool,
+    interaction_arbitration: Mapping[str, Any],
+    runtime_decision: str | None,
+    quest_status: str | None,
+    current_blockers: list[str],
+    next_system_action: str,
+) -> dict[str, Any] | None:
+    if not quality_review_loop:
+        return None
+    waiting_auto_re_review = bool(quality_review_loop.get("re_review_ready")) or _non_empty_text(
+        quality_review_loop.get("current_phase")
+    ) == "re_review_required"
+    if not waiting_auto_re_review:
+        return {
+            "surface_kind": "quality_review_followthrough",
+            "state": "not_in_re_review_waiting",
+            "state_label": _QUALITY_REVIEW_FOLLOWTHROUGH_STATE_LABELS["not_in_re_review_waiting"],
+            "waiting_auto_re_review": False,
+            "auto_continue_expected": False,
+            "summary": "当前质量闭环不在自动复评等待态，系统会按现有修订线继续推进。",
+            "blocking_reason": None,
+            "next_confirmation_signal": "看下一次质量评审结论是否继续收窄当前修订线。",
+            "user_intervention_required_now": False,
+        }
+
+    requires_user_input = needs_physician_decision or bool(interaction_arbitration.get("requires_user_input"))
+    runtime_active = quest_status in {"running", "active", "waiting_for_user"}
+    runtime_recovery_requested = runtime_decision in {"create_and_start", "resume", "relaunch_stopped"}
+    runtime_blocks_auto = runtime_decision in {"blocked", "completed", "create_only"}
+    auto_continue_expected = (runtime_active or runtime_recovery_requested) and not runtime_blocks_auto and not requires_user_input
+    if auto_continue_expected:
+        return {
+            "surface_kind": "quality_review_followthrough",
+            "state": "auto_re_review_pending",
+            "state_label": _QUALITY_REVIEW_FOLLOWTHROUGH_STATE_LABELS["auto_re_review_pending"],
+            "waiting_auto_re_review": True,
+            "auto_continue_expected": True,
+            "summary": "当前在等系统自动发起下一轮复评，主线会自动继续。",
+            "blocking_reason": None,
+            "next_confirmation_signal": "看 publication_eval/latest.json 是否出现新的复评结论，或 blocking issues 是否继续收窄。",
+            "user_intervention_required_now": False,
+        }
+
+    if requires_user_input:
+        blocking_reason = "当前需要医生或 PI 先确认下一步，系统不会直接自动复评。"
+    elif runtime_decision == "blocked":
+        blocking_reason = "当前运行被控制面阻断，需先解除阻断后才会继续复评。"
+    elif quest_status in {"stopped", "failed", "completed"}:
+        blocking_reason = "当前运行不在自动推进状态，需要先恢复运行后才会继续复评。"
+    else:
+        blocking_reason = _non_empty_text(current_blockers[0] if current_blockers else None) or next_system_action
+    return {
+        "surface_kind": "quality_review_followthrough",
+        "state": "auto_re_review_blocked",
+        "state_label": _QUALITY_REVIEW_FOLLOWTHROUGH_STATE_LABELS["auto_re_review_blocked"],
+        "waiting_auto_re_review": True,
+        "auto_continue_expected": False,
+        "summary": "当前停在等待复评，系统暂时不会自动继续。",
+        "blocking_reason": blocking_reason,
+        "next_confirmation_signal": "先解除当前卡点，再看 publication_eval/latest.json 是否出现新的复评结论。",
+        "user_intervention_required_now": True,
+    }
+
+
+def _apply_quality_review_followthrough_to_operator_status(
+    *,
+    operator_status_card: Mapping[str, Any],
+    followthrough: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    card = dict(operator_status_card or {})
+    follow = dict(followthrough or {})
+    if not card or not follow or not bool(follow.get("waiting_auto_re_review")):
+        return card
+    card["quality_review_followthrough"] = follow
+    card["current_focus"] = _non_empty_text(follow.get("summary")) or card.get("current_focus")
+    next_signal = _non_empty_text(follow.get("next_confirmation_signal"))
+    if next_signal is not None:
+        card["next_confirmation_signal"] = next_signal
+    intervention_required = bool(follow.get("user_intervention_required_now"))
+    card["user_intervention_required_now"] = intervention_required
+    if intervention_required:
+        card["user_visible_verdict"] = "当前停在等待复评，系统不会自动继续；你现在需要先处理卡点。"
+    else:
+        card["user_visible_verdict"] = "当前在等系统自动复评；你现在不用介入，先等待复评回写。"
+    return card
 
 
 def _event(
@@ -2983,6 +3078,19 @@ def build_study_progress_projection(
         if evaluation_module_surface is not None
         else {}
     )
+    quality_review_followthrough = _quality_review_followthrough_projection(
+        quality_review_loop=quality_review_loop,
+        needs_physician_decision=needs_physician_decision,
+        interaction_arbitration=interaction_arbitration,
+        runtime_decision=_non_empty_text(status.get("decision")),
+        quest_status=_non_empty_text(status.get("quest_status")),
+        current_blockers=current_blockers,
+        next_system_action=next_system_action,
+    )
+    operator_status_card = _apply_quality_review_followthrough_to_operator_status(
+        operator_status_card=operator_status_card,
+        followthrough=quality_review_followthrough,
+    )
     autonomy_soak_status = _autonomy_soak_status(
         autonomy_contract=autonomy_contract,
         progress_freshness=progress_freshness,
@@ -3028,6 +3136,7 @@ def build_study_progress_projection(
         "quality_review_agenda": quality_review_agenda or None,
         "quality_revision_plan": quality_revision_plan or None,
         "quality_review_loop": quality_review_loop or None,
+        "quality_review_followthrough": quality_review_followthrough or None,
         "module_surfaces": module_surfaces,
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
@@ -3166,8 +3275,16 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     quality_review_agenda = dict(payload.get("quality_review_agenda") or {})
     quality_revision_plan = dict(payload.get("quality_revision_plan") or {})
     quality_review_loop = dict(payload.get("quality_review_loop") or {})
+    quality_review_followthrough = dict(payload.get("quality_review_followthrough") or {})
     recovery_contract = dict(payload.get("recovery_contract") or {})
     module_surfaces = dict(payload.get("module_surfaces") or {})
+    if bool(quality_review_followthrough.get("waiting_auto_re_review")):
+        current_judgment = _non_empty_text(quality_review_followthrough.get("summary")) or current_judgment
+        next_step_summary = (
+            _non_empty_text(quality_review_followthrough.get("blocking_reason"))
+            or _non_empty_text(quality_review_followthrough.get("next_confirmation_signal"))
+            or next_step_summary
+        )
     recovery_action_mode = _RECOVERY_ACTION_MODE_LABELS.get(
         _non_empty_text(recovery_contract.get("action_mode")) or "",
         "",
@@ -3271,6 +3388,26 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             )
         if operator_status_card.get("next_confirmation_signal"):
             lines.append(f"- 下一确认信号: {operator_status_card.get('next_confirmation_signal')}")
+    if bool(quality_review_followthrough.get("waiting_auto_re_review")):
+        lines.extend(
+            [
+                "",
+                "## 自动复评后续",
+                "",
+                f"- 当前状态: {quality_review_followthrough.get('state_label') or quality_review_followthrough.get('state') or '未知'}",
+                (
+                    "- 系统自动继续: 会"
+                    if bool(quality_review_followthrough.get("auto_continue_expected"))
+                    else "- 系统自动继续: 不会"
+                ),
+            ]
+        )
+        if quality_review_followthrough.get("summary"):
+            lines.append(f"- 后续摘要: {quality_review_followthrough.get('summary')}")
+        if quality_review_followthrough.get("blocking_reason"):
+            lines.append(f"- 未自动继续原因: {quality_review_followthrough.get('blocking_reason')}")
+        if quality_review_followthrough.get("next_confirmation_signal"):
+            lines.append(f"- 下一确认信号: {quality_review_followthrough.get('next_confirmation_signal')}")
     if module_surfaces:
         lines.extend(
             [

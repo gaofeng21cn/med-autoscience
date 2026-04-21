@@ -4016,3 +4016,39 @@ def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestra
         "study_physician_decision_gate",
         "publication_release_gate",
     ]
+
+
+def test_render_product_frontdesk_markdown_shows_auto_re_review_followthrough() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    markdown = module.render_product_frontdesk_markdown(
+        {
+            "workspace_preview": None,
+            "workspace_attention_queue_preview": [
+                {
+                    "title": "001-risk 当前处在等待系统自动复评",
+                    "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "operator_status_card": {
+                        "handling_state": "monitor_only",
+                        "user_visible_verdict": "当前在等系统自动复评；你现在不用介入，先等待复评回写。",
+                        "next_confirmation_signal": "看 publication_eval/latest.json 是否出现新的复评结论，或 blocking issues 是否继续收窄。",
+                    },
+                    "quality_review_loop": {
+                        "current_phase_label": "等待复评",
+                        "recommended_next_phase_label": "发起复评",
+                        "summary": "当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。",
+                    },
+                }
+            ],
+            "phase2_user_product_loop": {},
+            "product_entry_guardrails": {},
+            "phase3_clearance_lane": {"clearance_targets": [], "clearance_loop": []},
+            "phase4_backend_deconstruction": {"substrate_targets": []},
+            "phase5_platform_target": {"capability_targets": [], "readiness_gates": []},
+            "remaining_gaps": [],
+        }
+    )
+
+    assert "当前处理结论: 当前在等系统自动复评；你现在不用介入，先等待复评回写。" in markdown
+    assert "下一确认信号: 看 publication_eval/latest.json 是否出现新的复评结论，或 blocking issues 是否继续收窄。" in markdown
+    assert "质量评审闭环: 等待复评 -> 发起复评；当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。" in markdown

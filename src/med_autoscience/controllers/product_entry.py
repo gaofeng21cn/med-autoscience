@@ -3024,6 +3024,8 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         operator_status_card = dict(item.get("operator_status_card") or {})
         if operator_status_card.get("handling_state"):
             lines.append(f"- 处理状态: `{operator_status_card.get('handling_state')}`")
+        if operator_status_card.get("user_visible_verdict"):
+            lines.append(f"- 当前处理结论: {operator_status_card.get('user_visible_verdict')}")
         if operator_status_card.get("next_confirmation_signal"):
             lines.append(f"- 下一确认信号: {operator_status_card.get('next_confirmation_signal')}")
     lines.extend([

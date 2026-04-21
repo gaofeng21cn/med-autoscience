@@ -3630,3 +3630,86 @@ def test_study_progress_blockers_override_bundle_stage_next_action(monkeypatch, 
     assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
     assert "论文展示注册表与 reporting contract 不一致，需要先修正稿面契约。" in result["current_blockers"]
     assert result["next_system_action"] == "先修正当前质量阻塞，再决定是否继续投稿打包。"
+
+
+def test_quality_review_followthrough_projects_auto_re_review_pending_when_runtime_recovery_requested() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    payload = module._quality_review_followthrough_projection(
+        quality_review_loop={
+            "current_phase": "re_review_required",
+            "re_review_ready": True,
+        },
+        needs_physician_decision=False,
+        interaction_arbitration={},
+        runtime_decision="relaunch_stopped",
+        quest_status="stopped",
+        current_blockers=[],
+        next_system_action="继续观察下一轮复评是否启动。",
+    )
+
+    assert payload == {
+        "surface_kind": "quality_review_followthrough",
+        "state": "auto_re_review_pending",
+        "state_label": "等待系统自动复评",
+        "waiting_auto_re_review": True,
+        "auto_continue_expected": True,
+        "summary": "当前在等系统自动发起下一轮复评，主线会自动继续。",
+        "blocking_reason": None,
+        "next_confirmation_signal": "看 publication_eval/latest.json 是否出现新的复评结论，或 blocking issues 是否继续收窄。",
+        "user_intervention_required_now": False,
+    }
+
+
+def test_render_study_progress_markdown_surfaces_quality_review_followthrough() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    markdown = module.render_study_progress_markdown(
+        {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "current_stage": "publishability_blocked",
+            "current_stage_summary": "当前修订计划已完成，下一步应由 MAS 发起 re-review。",
+            "paper_stage": "write",
+            "paper_stage_summary": "当前主要是等待复评回写。",
+            "latest_events": [],
+            "current_blockers": [],
+            "next_system_action": "等待系统自动复评。",
+            "runtime_decision": "relaunch_stopped",
+            "runtime_reason": "quest_stopped_requires_explicit_rerun",
+            "progress_freshness": {},
+            "supervision": {},
+            "intervention_lane": {},
+            "operator_status_card": {
+                "handling_state_label": "持续监督中",
+                "user_visible_verdict": "当前在等系统自动复评；你现在不用介入，先等待复评回写。",
+                "current_focus": "当前在等系统自动发起下一轮复评，主线会自动继续。",
+                "next_confirmation_signal": "看 publication_eval/latest.json 是否出现新的复评结论，或 blocking issues 是否继续收窄。",
+            },
+            "quality_review_followthrough": {
+                "state_label": "等待系统自动复评",
+                "waiting_auto_re_review": True,
+                "auto_continue_expected": True,
+                "summary": "当前在等系统自动发起下一轮复评，主线会自动继续。",
+                "blocking_reason": None,
+                "next_confirmation_signal": "看 publication_eval/latest.json 是否出现新的复评结论，或 blocking issues 是否继续收窄。",
+            },
+            "quality_review_loop": {
+                "current_phase_label": "等待复评",
+                "recommended_next_phase_label": "发起复评",
+                "summary": "当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。",
+                "recommended_next_action": "发起下一轮 MAS quality re-review，确认当前 blocking issues 是否已真正闭环。",
+                "blocking_issue_count": 1,
+                "blocking_issues": ["当前 blocking issues 是否已真正闭环"],
+                "next_review_focus": ["当前 blocking issues 是否已真正闭环"],
+            },
+            "module_surfaces": {},
+        }
+    )
+
+    assert "当前判断: 当前在等系统自动发起下一轮复评，主线会自动继续。" in markdown
+    assert "## 自动复评后续" in markdown
+    assert "当前状态: 等待系统自动复评" in markdown
+    assert "系统自动继续: 会" in markdown
+    assert "后续摘要: 当前在等系统自动发起下一轮复评，主线会自动继续。" in markdown
+    assert "下一确认信号: 看 publication_eval/latest.json 是否出现新的复评结论，或 blocking issues 是否继续收窄。" in markdown
