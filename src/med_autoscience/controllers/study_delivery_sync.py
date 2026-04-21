@@ -921,6 +921,28 @@ def _resolve_submission_source_path(*, paper_root: Path, source_root: Path, rela
     return source_root / relative_path
 
 
+def _hash_file_bytes(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while True:
+            chunk = handle.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+CURRENT_PACKAGE_GENERATED_PROJECTION_RELATIVE_PATHS = frozenset(
+    {
+        Path("README.md"),
+    }
+)
+
+CURRENT_PACKAGE_JSON_VOLATILE_TOP_LEVEL_KEYS: dict[Path, frozenset[str]] = {
+    Path("evidence_ledger.json"): frozenset({"updated_at"}),
+}
+
+
 def _submission_source_relative_paths(*, paper_root: Path, source_root: Path) -> tuple[Path, ...]:
     resolved_paper_root = Path(paper_root).expanduser().resolve()
     resolved_source_root = Path(source_root).expanduser().resolve()
@@ -948,12 +970,79 @@ def _submission_source_signature(*, paper_root: Path, source_root: Path, relativ
         fingerprint_payload.append(
             {
                 "path": relative_path.as_posix(),
-                "mtime_ns": stat.st_mtime_ns,
                 "size": stat.st_size,
+                "sha256": _hash_file_bytes(source),
             }
         )
     canonical = json.dumps(fingerprint_payload, ensure_ascii=False, sort_keys=True)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _load_json_file(path: Path) -> Any | None:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _normalize_projection_json_payload(*, relative_path: Path, payload: Any) -> Any:
+    volatile_keys = CURRENT_PACKAGE_JSON_VOLATILE_TOP_LEVEL_KEYS.get(relative_path)
+    if not volatile_keys or not isinstance(payload, dict):
+        return payload
+    return {key: value for key, value in payload.items() if key not in volatile_keys}
+
+
+def _submission_projection_file_matches_source(
+    *,
+    relative_path: Path,
+    source: Path,
+    target: Path,
+) -> bool:
+    if not target.exists():
+        return False
+    if relative_path in CURRENT_PACKAGE_GENERATED_PROJECTION_RELATIVE_PATHS:
+        return True
+    if _hash_file_bytes(source) == _hash_file_bytes(target):
+        return True
+    if relative_path not in CURRENT_PACKAGE_JSON_VOLATILE_TOP_LEVEL_KEYS:
+        return False
+    source_payload = _load_json_file(source)
+    target_payload = _load_json_file(target)
+    if source_payload is None or target_payload is None:
+        return False
+    return _normalize_projection_json_payload(
+        relative_path=relative_path,
+        payload=source_payload,
+    ) == _normalize_projection_json_payload(
+        relative_path=relative_path,
+        payload=target_payload,
+    )
+
+
+def _submission_projection_matches_source(
+    *,
+    paper_root: Path,
+    source_root: Path,
+    current_package_root: Path,
+    relative_paths: tuple[Path, ...],
+) -> bool:
+    resolved_paper_root = Path(paper_root).expanduser().resolve()
+    resolved_source_root = Path(source_root).expanduser().resolve()
+    resolved_current_package_root = Path(current_package_root).expanduser().resolve()
+    for relative_path in relative_paths:
+        source = _resolve_submission_source_path(
+            paper_root=resolved_paper_root,
+            source_root=resolved_source_root,
+            relative_path=relative_path,
+        )
+        target = resolved_current_package_root / relative_path
+        if not _submission_projection_file_matches_source(
+            relative_path=relative_path,
+            source=source,
+            target=target,
+        ):
+            return False
+    return True
 
 
 def build_draft_handoff_readme(*, study_id: str) -> str:
@@ -1131,7 +1220,6 @@ def describe_submission_delivery(
         }
 
     recorded_surface_roles = manifest.get("surface_roles") or {}
-    recorded_source_signature = str(manifest.get("source_signature") or "").strip()
     recorded_source_root = (
         str((recorded_surface_roles or {}).get("controller_authorized_package_source_root") or "").strip()
         or str(((manifest.get("source") or {}) if isinstance(manifest.get("source"), dict) else {}).get("package_source_root") or "").strip()
@@ -1139,11 +1227,6 @@ def describe_submission_delivery(
     source_relative_paths = _submission_source_relative_paths(
         paper_root=resolved_paper_root,
         source_root=expected_source_root,
-    )
-    source_signature = _submission_source_signature(
-        paper_root=resolved_paper_root,
-        source_root=expected_source_root,
-        relative_paths=source_relative_paths,
     )
     missing_source_paths = sorted(
         {
@@ -1163,7 +1246,12 @@ def describe_submission_delivery(
     elif recorded_source_root and recorded_source_root != str(expected_source_root.resolve()):
         status = "stale_source_mismatch"
         stale_reason = "delivery_manifest_source_mismatch"
-    elif recorded_source_signature != source_signature:
+    elif not _submission_projection_matches_source(
+        paper_root=resolved_paper_root,
+        source_root=expected_source_root,
+        current_package_root=current_package_root,
+        relative_paths=source_relative_paths,
+    ):
         status = "stale_source_changed"
         stale_reason = "delivery_manifest_source_changed"
     else:

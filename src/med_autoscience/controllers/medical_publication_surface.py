@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import re
 from dataclasses import dataclass
@@ -78,6 +79,109 @@ def load_json(path: Path, default: Any = None) -> Any:
 def dump_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _paper_claim_submission_scope(paper_role: str) -> str:
+    normalized_role = str(paper_role or "").strip() or "main_text"
+    return "main_text" if normalized_role == "main_text" else "appendix"
+
+
+def _paper_claim_evidence_kind(source_paths: list[str], support_level: str) -> str:
+    joined_paths = " ".join(str(path).lower() for path in source_paths)
+    if "literature" in joined_paths or "pubmed" in joined_paths or "evidence_tables" in joined_paths:
+        return "literature"
+    if any(token in joined_paths for token in ("figure", "table", "curve", "calibration", "decision")):
+        return "display"
+    if support_level == "boundary":
+        return "boundary_analysis"
+    return "result"
+
+
+def _backfill_evidence_ledger_claims_from_claim_map(
+    ledger_payload: object,
+    claim_map_payload: object,
+) -> Any:
+    if not isinstance(ledger_payload, dict):
+        return ledger_payload
+    existing_claims = [dict(claim) for claim in (ledger_payload.get("claims") or []) if isinstance(claim, dict)]
+    if existing_claims:
+        return ledger_payload
+    claim_map_claims = claim_map_payload.get("claims") if isinstance(claim_map_payload, dict) else None
+    if not isinstance(claim_map_claims, list):
+        return ledger_payload
+
+    normalized = copy.deepcopy(ledger_payload)
+    backfilled_claims: list[dict[str, Any]] = []
+    for raw_claim in claim_map_claims:
+        if not isinstance(raw_claim, dict):
+            continue
+        claim_id = str(raw_claim.get("claim_id") or "").strip()
+        statement = str(raw_claim.get("statement") or raw_claim.get("claim_text") or "").strip()
+        if not claim_id or not statement:
+            continue
+        paper_role = str(raw_claim.get("paper_role") or "").strip() or "main_text"
+        submission_scope = _paper_claim_submission_scope(paper_role)
+        evidence_items = raw_claim.get("evidence_items") if isinstance(raw_claim.get("evidence_items"), list) else []
+        evidence_entries: list[dict[str, Any]] = []
+        for index, evidence_item in enumerate(evidence_items, start=1):
+            if not isinstance(evidence_item, dict):
+                continue
+            source_paths = [str(path).strip() for path in (evidence_item.get("source_paths") or []) if str(path).strip()]
+            support_level = str(evidence_item.get("support_level") or "").strip() or "primary"
+            evidence_entries.append(
+                {
+                    "evidence_id": str(evidence_item.get("item_id") or f"{claim_id}-evidence-{index}").strip()
+                    or f"{claim_id}-evidence-{index}",
+                    "kind": _paper_claim_evidence_kind(source_paths, support_level),
+                    "source_paths": source_paths,
+                    "support_level": support_level,
+                    "summary": str(evidence_item.get("summary") or statement).strip() or statement,
+                }
+            )
+        if not evidence_entries:
+            continue
+        risks = [
+            str(item).strip()
+            for item in (raw_claim.get("risks") or raw_claim.get("limitations") or [])
+            if str(item).strip()
+        ]
+        gaps = [
+            {
+                "gap_id": f"{claim_id}-gap-{index}",
+                "description": risk,
+                "submission_impact": "Keep the submission-facing claim inside the current evidence boundary.",
+            }
+            for index, risk in enumerate(risks, start=1)
+        ]
+        if not gaps:
+            gaps = [
+                {
+                    "gap_id": f"{claim_id}-gap-1",
+                    "description": "This claim should remain bounded to the currently mapped evidence surface.",
+                    "submission_impact": "Avoid extending the claim beyond the mapped cohort, displays, and current validation scope.",
+                }
+            ]
+        backfilled_claims.append(
+            {
+                **copy.deepcopy(raw_claim),
+                "claim_id": claim_id,
+                "statement": statement,
+                "status": str(raw_claim.get("status") or "").strip() or "supported",
+                "submission_scope": submission_scope,
+                "evidence": evidence_entries,
+                "gaps": gaps,
+                "recommended_actions": [
+                    {
+                        "action_id": f"{claim_id}-action-1",
+                        "priority": "required" if submission_scope == "main_text" else "recommended",
+                        "description": "Keep the manuscript wording aligned with the mapped evidence and current interpretation boundary.",
+                    }
+                ],
+            }
+        )
+    if backfilled_claims:
+        normalized["claims"] = backfilled_claims
+    return normalized
 
 
 def _normalized_path(path: Path | None) -> str | None:
@@ -878,6 +982,7 @@ def inspect_required_json_contract(
     validator,
     pattern_id: str,
     label: str,
+    payload_override: Any | None = None,
 ) -> tuple[bool, list[dict[str, Any]]]:
     if not path.exists():
         return False, [
@@ -890,7 +995,7 @@ def inspect_required_json_contract(
             }
         ]
 
-    payload = load_json(path, default=None)
+    payload = payload_override if payload_override is not None else load_json(path, default=None)
     errors = validator(payload)
     if errors:
         return False, [
@@ -1852,17 +1957,24 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         pattern_id="figure_semantics_manifest",
         label="figure semantics manifest",
     )
+    claim_evidence_map_payload = load_json(state.claim_evidence_map_path, default=None)
+    evidence_ledger_payload = _backfill_evidence_ledger_claims_from_claim_map(
+        load_json(state.evidence_ledger_path, default=None),
+        claim_evidence_map_payload,
+    )
     claim_evidence_map_valid, claim_evidence_map_hits = inspect_required_json_contract(
         path=state.claim_evidence_map_path,
         validator=medical_surface_policy.validate_claim_evidence_map,
         pattern_id="claim_evidence_map",
         label="claim evidence map",
+        payload_override=claim_evidence_map_payload,
     )
     evidence_ledger_valid, evidence_ledger_hits = inspect_required_json_contract(
         path=state.evidence_ledger_path,
         validator=medical_surface_policy.validate_evidence_ledger,
         pattern_id="evidence_ledger",
         label="evidence ledger",
+        payload_override=evidence_ledger_payload,
     )
     derived_analysis_valid, derived_analysis_hits = inspect_required_json_contract(
         path=state.derived_analysis_manifest_path,
@@ -1927,7 +2039,6 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     if figure_semantics_renderer_alignment_hits:
         figure_semantics_valid = False
         figure_semantics_hits.extend(figure_semantics_renderer_alignment_hits)
-    claim_evidence_map_payload = load_json(state.claim_evidence_map_path, default=None)
     claim_evidence_display_hits = inspect_claim_evidence_display_bindings(
         path=state.claim_evidence_map_path,
         payload=claim_evidence_map_payload,

@@ -221,6 +221,70 @@ def test_force_restart_for_live_controller_reroute_supports_write_stage_ready(mo
     )
 
 
+def test_force_restart_for_live_controller_reroute_supports_write_drift_even_when_runtime_state_stays_write(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    _patch_router(monkeypatch, module)
+    quest_root = tmp_path / "runtime" / "quest-001"
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        json.dumps(
+            {
+                "status": "running",
+                "active_run_id": "run-live-001",
+                "continuation_anchor": "write",
+                "continuation_reason": "write:finish_proofing_and_submission_checks",
+                "same_fingerprint_auto_turn_count": 3,
+                "pending_user_message_count": 0,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    payload = _base_status_payload()
+    payload["reason"] = "quest_drifting_into_write_without_gate_approval"
+    payload["quest_root"] = str(quest_root)
+    status = typed_surface.StudyRuntimeStatus.from_payload(payload)
+    status.record_runtime_liveness_audit(
+        {
+            "status": "live",
+            "active_run_id": "run-live-001",
+            "runtime_audit": {
+                "status": "live",
+                "active_run_id": "run-live-001",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        }
+    )
+    status.record_publication_supervisor_state(
+        {
+            "status": "blocked",
+            "supervisor_phase": "return_to_publishability_gate",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "current_required_action": "return_to_publishability_gate",
+            "bundle_tasks_downstream_only": True,
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "write stage must yield back to the publication gate",
+        }
+    )
+
+    assert module._should_skip_redundant_resume_for_live_controller_reroute(status=status) is True
+    assert (
+        module._should_force_restart_for_live_controller_reroute(
+            status=status,
+            context=SimpleNamespace(quest_root=quest_root),
+        )
+        is True
+    )
+
+
 def test_runtime_event_status_snapshot_includes_continuation_anchor(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")

@@ -546,21 +546,45 @@ def _publication_supervisor_requests_automated_continuation(
 
 def _publication_gate_requires_live_runtime_reroute(
     publication_gate_report: dict[str, object] | None,
+    *,
+    status: StudyRuntimeStatus | None = None,
 ) -> bool:
     if not isinstance(publication_gate_report, dict):
         return False
+    current_required_action = _publication_supervisor_current_required_action(publication_gate_report)
     blockers = {
         str(item).strip()
         for item in (publication_gate_report.get("blockers") or [])
         if str(item).strip()
     }
-    return (
+    if (
         "active_run_drifting_into_write_without_gate_approval" in blockers
         and bool(publication_gate_report.get("bundle_tasks_downstream_only"))
         and _publication_supervisor_requests_automated_continuation(
             publication_gate_report,
             require_blocked_status=True,
         )
+    ):
+        return True
+    if status is None:
+        return False
+    if current_required_action != "return_to_publishability_gate":
+        return False
+    if not bool(publication_gate_report.get("bundle_tasks_downstream_only")):
+        return False
+    if not _publication_supervisor_requests_automated_continuation(
+        publication_gate_report,
+        require_blocked_status=True,
+    ):
+        return False
+    try:
+        continuation_state = status.continuation_state
+    except KeyError:
+        return False
+    return (
+        continuation_state.active_run_id is not None
+        and continuation_state.continuation_policy == "auto"
+        and continuation_state.continuation_anchor == "write"
     )
 
 
@@ -1835,7 +1859,10 @@ def _status_state(
                     StudyRuntimeDecision.PAUSE,
                     StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
                 )
-            elif _publication_gate_requires_live_runtime_reroute(publication_gate_report):
+            elif _publication_gate_requires_live_runtime_reroute(
+                publication_gate_report,
+                status=result,
+            ):
                 if execution.get("auto_resume") is True:
                     result.set_decision(
                         StudyRuntimeDecision.RESUME,

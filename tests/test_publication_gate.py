@@ -439,6 +439,47 @@ def test_build_gate_report_supports_finalize_only_paper_bundle_without_main_resu
     assert report["phase_owner"] == "publication_gate"
 
 
+def test_build_gate_report_clears_stale_paper_line_blockers_when_bundle_stage_reopens(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+        paper_line_state={
+            "paper_root": str(
+                (
+                    tmp_path
+                    / "runtime"
+                    / "quests"
+                    / "002-early-residual-risk"
+                    / ".ds"
+                    / "worktrees"
+                    / "paper-run-1"
+                    / "paper"
+                ).resolve()
+            ),
+            "recommended_action": "branch_upstream_controller_contract_durability_fix",
+            "blocking_reasons": [
+                "The latest hard-control message supersedes the earlier reopen-write snapshot."
+            ],
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+    markdown = module.render_gate_markdown(report)
+
+    assert report["status"] == "clear"
+    assert report["allow_write"] is True
+    assert report["current_required_action"] == "continue_bundle_stage"
+    assert report["paper_line_recommended_action"] == "continue_per_gate"
+    assert report["paper_line_blocking_reasons"] == []
+    assert "Paper-Line Scientific Blockers" not in markdown
+    assert "branch_upstream_controller_contract_durability_fix" not in markdown
+
+
 def test_build_gate_report_blocks_finalize_only_bundle_without_current_surface_report(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(
@@ -690,6 +731,34 @@ def test_build_gate_report_blocks_finalize_only_bundle_when_surface_report_is_st
     assert report["supervisor_phase"] == "publishability_gate_blocked"
     assert report["bundle_tasks_downstream_only"] is True
     assert report["current_required_action"] == "return_to_publishability_gate"
+
+
+def test_build_gate_report_ignores_stale_blocked_surface_status(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+        medical_publication_surface_status="blocked",
+    )
+    report_path = quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:32Z.json"
+    bundle_manifest_path = (
+        quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "paper_bundle_manifest.json"
+    )
+    os.utime(report_path, (bundle_manifest_path.stat().st_mtime - 10, bundle_manifest_path.stat().st_mtime - 10))
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert "missing_current_medical_publication_surface_report" in report["blockers"]
+    assert "medical_publication_surface_blocked" not in report["blockers"]
+    assert "claim_evidence_consistency_failed" not in report["blockers"]
+    assert report["medical_publication_surface_current"] is False
+    assert report["medical_publication_surface_named_blockers"] == []
+    assert report["medical_publication_surface_route_back_recommendation"] is None
 
 
 def test_build_gate_report_keeps_bundle_stage_when_only_submission_minimal_is_missing(tmp_path: Path) -> None:
@@ -1313,6 +1382,79 @@ def test_run_controller_materializes_stable_publication_eval_when_apply_clear(
     )
 
 
+def test_run_controller_prefers_finalize_route_when_bundle_stage_is_ready_alongside_main_result(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=True,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+        figure_catalog={
+            "schema_version": "2.1.0",
+            "figures": [
+                {"figure_id": "F1", "paper_role": "main_text", "manuscript_status": "locked_main_text_evidence"},
+                {"figure_id": "F2", "paper_role": "main_text", "manuscript_status": "locked_main_text_evidence"},
+                {"figure_id": "F3", "paper_role": "main_text", "manuscript_status": "locked_main_text_evidence"},
+                {"figure_id": "F4", "paper_role": "main_text", "manuscript_status": "locked_main_text_evidence"},
+            ],
+        },
+    )
+    main_result_path = (
+        quest_root
+        / ".ds"
+        / "worktrees"
+        / "paper-run-1"
+        / "experiments"
+        / "main"
+        / "run-1"
+        / "RESULT.json"
+    )
+    bundle_manifest_path = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "paper_bundle_manifest.json"
+    surface_report_path = (
+        quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:32Z.json"
+    )
+    gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "2026-04-17T000000Z.json"
+    dump_json(
+        gate_report_path,
+        {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-17T00:00:00+00:00",
+            "status": "clear",
+            "allow_write": False,
+            "blockers": [],
+        },
+    )
+    os.utime(main_result_path, (1, 1))
+    os.utime(bundle_manifest_path, (2, 2))
+    os.utime(surface_report_path, (3, 3))
+    os.utime(gate_report_path, (4, 4))
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    assert result["status"] == "clear"
+    assert result["allow_write"] is True
+    assert result["supervisor_phase"] == "bundle_stage_ready"
+    assert result["current_required_action"] == "continue_bundle_stage"
+    latest_eval_path = (
+        tmp_path
+        / "studies"
+        / "002-early-residual-risk"
+        / "artifacts"
+        / "publication_eval"
+        / "latest.json"
+    )
+    payload = json.loads(latest_eval_path.read_text(encoding="utf-8"))
+
+    assert payload["recommended_actions"][0]["action_type"] == "continue_same_line"
+    assert payload["recommended_actions"][0]["route_target"] == "finalize"
+
+
 def test_run_controller_materializes_stale_study_delivery_notice_when_apply_enabled(
     tmp_path: Path,
     monkeypatch,
@@ -1460,6 +1602,118 @@ def test_run_controller_resyncs_delivery_when_only_current_package_projection_is
             "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
         },
     }
+
+
+def test_run_controller_unlocks_write_after_main_result_stale_delivery_resync(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=True,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+    )
+    main_result_path = (
+        quest_root
+        / ".ds"
+        / "worktrees"
+        / "paper-run-1"
+        / "experiments"
+        / "main"
+        / "run-1"
+        / "RESULT.json"
+    )
+    gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "2026-04-17T000000Z.json"
+    dump_json(
+        gate_report_path,
+        {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-17T00:00:00+00:00",
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["stale_study_delivery_mirror"],
+        },
+    )
+    os.utime(main_result_path, (1, 1))
+    os.utime(gate_report_path, (2, 2))
+
+    describe_calls = iter(
+        [
+            {
+                "applicable": True,
+                "status": "stale_projection_missing",
+                "stale_reason": "delivery_projection_missing",
+                "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
+                "current_package_root": "/tmp/studies/002/manuscript/current_package",
+                "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
+                "missing_source_paths": [],
+            },
+            {
+                "applicable": True,
+                "status": "current",
+                "stale_reason": None,
+                "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
+                "current_package_root": "/tmp/studies/002/manuscript/current_package",
+                "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
+                "missing_source_paths": [],
+            },
+        ]
+    )
+    sync_calls: list[tuple[str, str, bool]] = []
+
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_draft_handoff_delivery",
+        lambda *, paper_root: {
+            "applicable": False,
+            "status": "not_applicable",
+            "current_package_root": None,
+            "current_package_zip": None,
+            "delivery_manifest_path": None,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_submission_delivery",
+        lambda *, paper_root, publication_profile="general_medical_journal": next(describe_calls),
+    )
+
+    def fake_sync(
+        *,
+        paper_root: Path,
+        stage: str,
+        publication_profile: str = "general_medical_journal",
+        promote_to_final: bool = False,
+    ) -> dict[str, object]:
+        sync_calls.append((stage, publication_profile, promote_to_final))
+        return {
+            "stage": stage,
+            "publication_profile": publication_profile,
+            "targets": {
+                "current_package_root": "/tmp/studies/002/manuscript/current_package",
+                "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
+            },
+        }
+
+    monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", fake_sync)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "materialize_submission_delivery_stale_notice",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("projection-missing should use sync_study_delivery")),
+    )
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    assert sync_calls == [("submission_minimal", "general_medical_journal", False)]
+    assert result["status"] == "clear"
+    assert result["allow_write"] is True
+    assert result["supervisor_phase"] == "bundle_stage_ready"
+    assert result["current_required_action"] == "continue_bundle_stage"
 
 
 def test_run_controller_resyncs_delivery_when_authority_package_changes_without_root_change(
@@ -2353,6 +2607,30 @@ def test_build_gate_report_keeps_blocker_logic_in_controller_after_adapter_patch
     assert "missing_post_main_publishability_gate" in report["blockers"]
     assert "active_run_drifting_into_write_without_gate_approval" in report["blockers"]
     assert "missing_required_non_scalar_deliverables" not in report["blockers"]
+
+
+def test_build_gate_report_ignores_live_agent_write_drift_when_active_run_differs_from_main_result(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=False)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    runtime_state["active_run_id"] = "run-live-agent"
+    dump_json(runtime_state_path, runtime_state)
+    write_text(
+        quest_root / ".ds" / "runs" / "run-live-agent" / "stdout.jsonl",
+        json.dumps({"line": "route -> write"}) + "\n",
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert state.active_run_stdout_path is None
+    assert state.recent_stdout_lines == []
+    assert report["status"] == "blocked"
+    assert "missing_post_main_publishability_gate" in report["blockers"]
+    assert "active_run_drifting_into_write_without_gate_approval" not in report["blockers"]
 
 
 def test_detect_write_drift_ignores_write_drift_gate_path_noise() -> None:

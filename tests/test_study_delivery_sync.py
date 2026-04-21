@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import importlib
 import json
+import os
 from pathlib import Path
 import shutil
 
@@ -571,6 +572,89 @@ def test_describe_submission_delivery_flags_stale_when_authority_package_changes
     assert result["applicable"] is True
     assert result["status"] == "stale_source_changed"
     assert result["stale_reason"] == "delivery_manifest_source_changed"
+    assert result["delivery_manifest_path"] == str(study_root / "manuscript" / "delivery_manifest.json")
+    assert result["current_package_root"] == str(study_root / "manuscript" / "current_package")
+
+
+def test_describe_submission_delivery_keeps_current_when_only_authority_source_mtime_changes(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    source_path = paper_root / "submission_minimal" / "manuscript.docx"
+    stat = source_path.stat()
+    os.utime(source_path, ns=(stat.st_atime_ns + 1_000_000_000, stat.st_mtime_ns + 1_000_000_000))
+
+    result = module.describe_submission_delivery(paper_root=paper_root)
+
+    assert result["applicable"] is True
+    assert result["status"] == "current"
+    assert result["stale_reason"] is None
+    assert result["delivery_manifest_path"] == str(study_root / "manuscript" / "delivery_manifest.json")
+    assert result["current_package_root"] == str(study_root / "manuscript" / "current_package")
+
+
+def test_describe_submission_delivery_keeps_current_with_generated_current_package_readme(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    (paper_root / "submission_minimal" / "README.md").write_text(
+        "# Canonical Submission Package\n\nAuthoritative paper-owned package.\n",
+        encoding="utf-8",
+    )
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    result = module.describe_submission_delivery(paper_root=paper_root)
+
+    assert result["applicable"] is True
+    assert result["status"] == "current"
+    assert result["stale_reason"] is None
+    assert result["delivery_manifest_path"] == str(study_root / "manuscript" / "delivery_manifest.json")
+    assert result["current_package_root"] == str(study_root / "manuscript" / "current_package")
+
+
+def test_describe_submission_delivery_keeps_current_when_evidence_ledger_updated_at_changes_only(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    evidence_ledger_path = paper_root / "evidence_ledger.json"
+    evidence_ledger = json.loads(evidence_ledger_path.read_text(encoding="utf-8"))
+    evidence_ledger["updated_at"] = "2026-03-29T04:16:28+00:00"
+    evidence_ledger_path.write_text(
+        json.dumps(evidence_ledger, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    evidence_ledger["updated_at"] = "2026-03-29T05:16:28+00:00"
+    evidence_ledger_path.write_text(
+        json.dumps(evidence_ledger, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    result = module.describe_submission_delivery(paper_root=paper_root)
+
+    assert result["applicable"] is True
+    assert result["status"] == "current"
+    assert result["stale_reason"] is None
     assert result["delivery_manifest_path"] == str(study_root / "manuscript" / "delivery_manifest.json")
     assert result["current_package_root"] == str(study_root / "manuscript" / "current_package")
 

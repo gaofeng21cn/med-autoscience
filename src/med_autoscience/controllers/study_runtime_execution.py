@@ -172,7 +172,12 @@ def _should_force_restart_for_live_controller_reroute(
         return False
     continuation_anchor = str(runtime_state.get("continuation_anchor") or "").strip()
     continuation_reason = str(runtime_state.get("continuation_reason") or "").strip()
-    if continuation_anchor != "decision" or not continuation_reason.startswith("decision:"):
+    # When the controller is pulling a live quest back out of write, a stale worker may
+    # still keep the runtime-state anchor on `write`; do not require pre-aligned decision state.
+    if (
+        status.reason is not StudyRuntimeReason.QUEST_DRIFTING_INTO_WRITE_WITHOUT_GATE_APPROVAL
+        and (continuation_anchor != "decision" or not continuation_reason.startswith("decision:"))
+    ):
         return False
     same_fingerprint_auto_turn_count = int(runtime_state.get("same_fingerprint_auto_turn_count") or 0)
     return same_fingerprint_auto_turn_count >= _LIVE_CONTROLLER_REROUTE_FORCE_RESTART_AUTO_TURN_THRESHOLD

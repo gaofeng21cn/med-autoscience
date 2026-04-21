@@ -1357,6 +1357,41 @@ def test_build_report_blocks_when_evidence_ledger_shape_is_invalid(tmp_path: Pat
     assert report["ama_pdf_defaults_present"] is True
 
 
+def test_build_report_accepts_item_only_evidence_ledger_when_claim_map_is_complete(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    evidence_ledger_path = _paper_root_from_quest(quest_root) / "evidence_ledger.json"
+    dump_json(
+        evidence_ledger_path,
+        {
+            "schema_version": 1,
+            "selected_outline_ref": "outline-001",
+            "items": [
+                {
+                    "item_id": "EXP-001",
+                    "title": "Retained manuscript-facing evidence item.",
+                    "status": "completed",
+                    "paper_role": "main_text",
+                    "section_id": "results",
+                    "claim_links": ["C1"],
+                    "source_paths": ["paper/results_narrative_map.json"],
+                }
+            ],
+        },
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert "evidence_ledger_missing_or_incomplete" not in report["blockers"]
+    assert report["evidence_ledger_present"] is True
+    assert report["evidence_ledger_valid"] is True
+
+
 def test_build_report_ignores_unreferenced_generated_readme(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
@@ -2643,6 +2678,46 @@ def test_validate_figure_semantics_manifest_blocks_story_role_drift_for_setup_sh
 
     assert any("canonical story role" in error for error in errors)
     assert any("study_setup" in error for error in errors)
+
+
+def test_validate_figure_semantics_manifest_accepts_setup_story_role_alias() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    payload = {
+        "figure_id": "S1",
+        "story_role": "study_population_and_design_anchor",
+        "research_question": "Which cohorts define the external validation comparison?",
+        "direct_message": "The cohort-flow shell defines the development and external validation populations.",
+        "clinical_implication": "Keeps the setup figure on the manuscript-facing cohort-definition role.",
+        "interpretation_boundary": "Study setup only; it is not itself a result claim.",
+        "panel_messages": [
+            {
+                "panel_id": "A",
+                "message": "The figure traces the development and validation cohorts.",
+            }
+        ],
+        "legend_glossary": [
+            {
+                "term": "external validation cohort",
+                "explanation": "Participants reserved for manuscript-facing transportability evaluation.",
+            }
+        ],
+        "threshold_semantics": "Not applicable to the cohort-flow shell.",
+        "stratification_basis": "Not applicable to the cohort-flow shell.",
+        "recommendation_boundary": "No treatment recommendation is made from this setup figure.",
+        "renderer_contract": {
+            "figure_semantics": "illustration",
+            "renderer_family": "python",
+            "template_id": full_id("cohort_flow_figure"),
+            "selection_rationale": "The registered cohort-flow shell preserves the audited study-setup surface.",
+            "layout_qc_profile": "publication_illustration_flow",
+            "required_exports": ["png", "svg"],
+            "fallback_on_failure": False,
+            "failure_action": "block_and_fix_environment",
+        },
+    }
+
+    assert module.validate_figure_semantics_manifest({"figures": [payload]}) == []
 
 
 def test_validate_figure_catalog_allows_supplementary_cohort_flow_shell() -> None:

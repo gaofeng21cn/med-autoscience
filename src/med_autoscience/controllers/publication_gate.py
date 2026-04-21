@@ -716,6 +716,19 @@ def gate_allows_write(
     return bool(latest_gate.get("allow_write"))
 
 
+def resolve_write_drift_stdout_path(
+    *,
+    quest_root: Path,
+    runtime_state: dict[str, Any],
+    main_result: dict[str, Any] | None,
+) -> Path | None:
+    main_result_run_id = _non_empty_text((main_result or {}).get("run_id"))
+    active_run_id = _non_empty_text(runtime_state.get("active_run_id"))
+    if main_result is not None and (main_result_run_id is None or active_run_id != main_result_run_id):
+        return None
+    return quest_state.resolve_active_stdout_path(quest_root=quest_root, runtime_state=runtime_state)
+
+
 def medical_publication_surface_report_current(
     *,
     latest_surface_path: Path | None,
@@ -912,7 +925,11 @@ def build_gate_state(quest_root: Path) -> GateState:
     latest_medical_publication_surface = (
         load_json(latest_medical_publication_surface_path) if latest_medical_publication_surface_path else None
     )
-    stdout_path = quest_state.resolve_active_stdout_path(quest_root=quest_root, runtime_state=runtime_state)
+    stdout_path = resolve_write_drift_stdout_path(
+        quest_root=quest_root,
+        runtime_state=runtime_state,
+        main_result=main_result if anchor_kind == "main_result" else None,
+    )
     recent_lines = quest_state.read_recent_stdout_lines(stdout_path)
     if main_result_path is not None and main_result is not None:
         present_deliverables, missing_deliverables = classify_deliverables(main_result_path, main_result)
@@ -1048,13 +1065,28 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         str(draft_handoff_delivery.get("status") or "").strip() or "not_applicable"
     )
     blockers: list[str] = []
+    bundle_stage_ready = bool(
+        state.paper_bundle_manifest_path is not None
+        and state.paper_bundle_manifest is not None
+        and state.compile_report_path is not None
+        and state.compile_report is not None
+        and (
+            closure_bundle_ready
+            or (
+                state.submission_minimal_manifest is not None
+                and state.submission_minimal_docx_present
+                and state.submission_minimal_pdf_present
+            )
+        )
+    )
     if state.anchor_kind == "main_result":
-        allow_write = gate_allows_write(state.latest_gate, state.latest_gate_path, state.main_result_path)
+        prior_gate_allows_write = gate_allows_write(state.latest_gate, state.latest_gate_path, state.main_result_path)
+        allow_write = prior_gate_allows_write
         if not latest_gate_up_to_date:
             blockers.append("missing_post_main_publishability_gate")
         if state.missing_deliverables:
             blockers.append("missing_required_non_scalar_deliverables")
-        if state.write_drift_detected and not allow_write:
+        if state.write_drift_detected and not prior_gate_allows_write:
             blockers.append("active_run_drifting_into_write_without_gate_approval")
     elif state.anchor_kind == "paper_bundle":
         allow_write = (
@@ -1111,13 +1143,17 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     if study_delivery_status.startswith("stale"):
         blockers.append("stale_study_delivery_mirror")
     medical_publication_surface_status = str((state.latest_medical_publication_surface or {}).get("status") or "").strip()
-    medical_publication_surface_named_blockers = _medical_publication_surface_named_blockers(
-        state.latest_medical_publication_surface
-    )
-    medical_publication_surface_route_back_recommendation = _medical_publication_surface_route_back_recommendation(
-        medical_publication_surface_named_blockers
-    )
-    if medical_publication_surface_status and medical_publication_surface_status != "clear":
+    if medical_publication_surface_current:
+        medical_publication_surface_named_blockers = _medical_publication_surface_named_blockers(
+            state.latest_medical_publication_surface
+        )
+        medical_publication_surface_route_back_recommendation = _medical_publication_surface_route_back_recommendation(
+            medical_publication_surface_named_blockers
+        )
+    else:
+        medical_publication_surface_named_blockers = []
+        medical_publication_surface_route_back_recommendation = None
+    if medical_publication_surface_current and medical_publication_surface_status and medical_publication_surface_status != "clear":
         blockers.append("medical_publication_surface_blocked")
         blockers.extend(medical_publication_surface_named_blockers)
     if state.submission_surface_qc_failures:
@@ -1129,11 +1165,18 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
             blockers.append("missing_journal_requirements")
         elif journal_package_state["status"] != "current":
             blockers.append("missing_journal_package")
-    allow_write = allow_write and not blockers
+    if state.anchor_kind == "main_result":
+        allow_write = not blockers
+    else:
+        allow_write = allow_write and not blockers
+    if allow_write:
+        paper_line_recommended_action = publication_gate_policy.CLEAR_RECOMMENDED_ACTION
+        paper_line_blocking_reasons = []
     supervisor_state = build_publication_supervisor_state(
         anchor_kind=state.anchor_kind,
         allow_write=allow_write,
         blockers=blockers,
+        bundle_stage_ready=bundle_stage_ready,
     )
     if charter_contract_linkage_status == "study_charter_missing":
         supervisor_state = {
@@ -1260,7 +1303,13 @@ def _bundle_stage_is_on_critical_path(*, blockers: list[str]) -> bool:
     return bool(normalized_blockers) and normalized_blockers.issubset(_BUNDLE_STAGE_ONLY_BLOCKERS)
 
 
-def build_publication_supervisor_state(*, anchor_kind: str, allow_write: bool, blockers: list[str]) -> dict[str, Any]:
+def build_publication_supervisor_state(
+    *,
+    anchor_kind: str,
+    allow_write: bool,
+    blockers: list[str],
+    bundle_stage_ready: bool = False,
+) -> dict[str, Any]:
     deferred_downstream_actions: list[str] = []
     if anchor_kind == "missing":
         return {
@@ -1276,6 +1325,16 @@ def build_publication_supervisor_state(*, anchor_kind: str, allow_write: bool, b
         }
     if anchor_kind == "main_result":
         if allow_write:
+            if bundle_stage_ready:
+                return {
+                    "supervisor_phase": "bundle_stage_ready",
+                    "phase_owner": "publication_gate",
+                    "upstream_scientific_anchor_ready": True,
+                    "bundle_tasks_downstream_only": False,
+                    "current_required_action": "continue_bundle_stage",
+                    "deferred_downstream_actions": deferred_downstream_actions,
+                    "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+                }
             return {
                 "supervisor_phase": "write_stage_ready",
                 "phase_owner": "publication_gate",

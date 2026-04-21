@@ -95,6 +95,12 @@ METHOD_LABEL_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("mechanistic", "mechanistic", r"\bmechanistic\b", re.IGNORECASE),
     ("calibration-first", "calibration-first", r"\bcalibration-first\b", re.IGNORECASE),
 ]
+_SETUP_STORY_ROLE_ALIASES = frozenset(
+    {
+        "study_setup",
+        "study_population_and_design_anchor",
+    }
+)
 INTRODUCTION_REQUIRED_PARAGRAPH_COUNT = 3
 METHODS_REQUIRED_SUBSECTION_HEADINGS = (
     "Study design and cohort",
@@ -149,6 +155,14 @@ def _missing_required_fields(item: object, fields: tuple[str, ...]) -> list[str]
         elif not str(value or "").strip():
             missing.append(field)
     return missing
+
+
+def _story_role_matches_expected(*, observed_story_role: str, expected_story_role: str) -> bool:
+    if observed_story_role == expected_story_role:
+        return True
+    if expected_story_role == "study_setup" and observed_story_role in _SETUP_STORY_ROLE_ALIASES:
+        return True
+    return False
 
 
 def validate_methods_implementation_manifest(payload: object) -> list[str]:
@@ -329,7 +343,10 @@ def validate_figure_semantics_manifest(payload: object) -> list[str]:
             expected_story_role = display_story_role_for_requirement_key(shell_id)
             if expected_story_role == "study_setup":
                 observed_story_role = str(figure.get("story_role") or "").strip()
-                if observed_story_role != expected_story_role:
+                if not _story_role_matches_expected(
+                    observed_story_role=observed_story_role,
+                    expected_story_role=expected_story_role,
+                ):
                     return [
                         f"figures[{index}].story_role "
                         f"`{observed_story_role}` does not match canonical story role "
