@@ -2507,12 +2507,12 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "surface_kind": "phase5_platform_target",
         "summary": (
             "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，"
-            "包括 monorepo、runtime core ingest 和更成熟的 direct product entry；"
+            "包括 post-gate monorepo、runtime core ingest 和更成熟的 direct product entry；"
             "但这些都必须建立在前四阶段真实成立之后。"
         ),
         "sequence_scope": "monorepo_landing_readiness",
         "current_readiness_summary": (
-            "monorepo 长线已经完成 gateway/runtime truth 冻结，当前正在推进 user product loop hardening；"
+            "单项目长线已经完成 gateway/runtime truth 冻结，当前正在推进 user product loop hardening 与边界收紧；"
             "physical absorb 仍然严格属于 post-gate 工作。"
         ),
         "north_star_topology": {
@@ -2560,7 +2560,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
                 "title": "Physical monorepo absorb",
                 "status": "blocked_post_gate",
                 "phase_id": "phase_5_federation_platform_maturation",
-                "summary": "只有在前面几步都稳定通过后，controller_charter / runtime / eval_hygiene 才能进入物理 monorepo absorb。",
+                "summary": "只有在前面几步都稳定通过后，controller_charter / runtime / eval_hygiene 才能进入 post-gate 物理 monorepo absorb。",
             },
         ],
         "current_step_id": "stabilize_user_product_loop",

@@ -1069,6 +1069,7 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
         dict(payload.get("quality_review_agenda") or {})
         if isinstance(payload.get("quality_review_agenda"), dict)
         else None
+    )
     quality_execution_lane = _required_mapping(
         "evaluation summary",
         "quality_execution_lane",
