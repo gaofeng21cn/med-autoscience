@@ -42,6 +42,7 @@ _BUNDLE_STAGE_ONLY_BLOCKERS = frozenset(
         "missing_paper_compile_report",
         "missing_submission_minimal",
         "missing_journal_package",
+        "stale_study_delivery_mirror",
         "submission_surface_qc_failure_present",
         "unmanaged_submission_surface_present",
     }
