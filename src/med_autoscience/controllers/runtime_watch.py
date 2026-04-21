@@ -540,6 +540,28 @@ def _serialize_managed_study_auto_recovery(
     }
 
 
+def _serialize_managed_study_outer_loop_dispatch(
+    *,
+    tick_request: Mapping[str, Any],
+    outer_loop_result: Mapping[str, Any],
+) -> dict[str, Any]:
+    controller_actions = tick_request.get("controller_actions")
+    first_controller_action = (
+        controller_actions[0]
+        if isinstance(controller_actions, list) and controller_actions and isinstance(controller_actions[0], Mapping)
+        else {}
+    )
+    return {
+        "study_id": _non_empty_text(outer_loop_result.get("study_id")) or _non_empty_text(tick_request.get("study_id")),
+        "quest_id": _non_empty_text(outer_loop_result.get("quest_id")) or _non_empty_text(tick_request.get("quest_id")),
+        "decision_type": _non_empty_text(tick_request.get("decision_type")),
+        "route_target": _non_empty_text(tick_request.get("route_target")),
+        "controller_action_type": _non_empty_text(first_controller_action.get("action_type")),
+        "dispatch_status": _non_empty_text(outer_loop_result.get("dispatch_status")),
+        "source": _non_empty_text(outer_loop_result.get("source")) or _non_empty_text(tick_request.get("source")),
+    }
+
+
 def _controller_decision_latest_matches_outer_loop_request(
     *,
     study_root: Path,
@@ -934,6 +956,7 @@ def run_watch_for_runtime(
     controller_runners = controller_runners or build_default_controller_runners()
     managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
     managed_study_auto_recoveries: list[dict[str, Any]] = []
+    managed_study_outer_loop_dispatches: list[dict[str, Any]] = []
     managed_study_alert_deliveries: list[dict[str, Any]] = []
     if ensure_study_runtimes:
         if profile is None:
@@ -1032,6 +1055,12 @@ def run_watch_for_runtime(
                 )
                 if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
                     raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
+                managed_study_outer_loop_dispatches.append(
+                    _serialize_managed_study_outer_loop_dispatch(
+                        tick_request=tick_request,
+                        outer_loop_result=outer_loop_result,
+                    )
+                )
                 status_payload = _managed_study_status_payload(
                     study_runtime_router.study_runtime_status(
                         profile=profile,
@@ -1074,6 +1103,7 @@ def run_watch_for_runtime(
         "scanned_quests": scanned,
         "managed_study_actions": managed_study_actions,
         "managed_study_auto_recoveries": managed_study_auto_recoveries,
+        "managed_study_outer_loop_dispatches": managed_study_outer_loop_dispatches,
         "managed_study_supervision": managed_study_supervision,
         "managed_study_alert_deliveries": managed_study_alert_deliveries,
         "reports": reports,

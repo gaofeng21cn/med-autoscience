@@ -349,6 +349,18 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_continue_
     ]
     assert first["managed_study_actions"][0]["study_id"] == "001-risk"
     assert second["managed_study_actions"][0]["study_id"] == "001-risk"
+    assert first["managed_study_outer_loop_dispatches"] == [
+        {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "decision_type": "continue_same_line",
+            "route_target": "write",
+            "controller_action_type": "ensure_study_runtime_relaunch_stopped",
+            "dispatch_status": "executed",
+            "source": "runtime_watch_outer_loop_wakeup",
+        }
+    ]
+    assert second["managed_study_outer_loop_dispatches"] == []
     assert payload["decision_type"] == "continue_same_line"
     assert payload["requires_human_confirmation"] is False
     assert payload["reason"] == "Controller should continue the same study line."
@@ -434,6 +446,17 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_bounded_a
     payload = json.loads((study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8"))
 
     assert result["managed_study_actions"][0]["study_id"] == "001-risk"
+    assert result["managed_study_outer_loop_dispatches"] == [
+        {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "decision_type": "bounded_analysis",
+            "route_target": "analysis-campaign",
+            "controller_action_type": "ensure_study_runtime_relaunch_stopped",
+            "dispatch_status": "executed",
+            "source": "runtime_watch_outer_loop_wakeup",
+        }
+    ]
     assert payload["decision_type"] == "bounded_analysis"
     assert payload["requires_human_confirmation"] is False
     assert payload["controller_actions"] == [
@@ -540,6 +563,7 @@ def test_watch_runtime_skips_outer_loop_materialization_when_human_gate_or_actio
     )
 
     assert result["managed_study_actions"][0]["study_id"] == "001-risk"
+    assert result["managed_study_outer_loop_dispatches"] == []
     assert ensure_calls == ["runtime_watch"]
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
 
