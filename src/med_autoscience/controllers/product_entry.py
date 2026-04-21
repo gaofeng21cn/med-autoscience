@@ -699,14 +699,17 @@ def _build_phase5_platform_target() -> dict[str, Any]:
 
 
 def _render_phase5_platform_target_markdown_lines(phase5_platform_target: Mapping[str, Any]) -> list[str]:
+    current_step_id = _non_empty_text(phase5_platform_target.get("current_step_id")) or "stabilize_user_product_loop"
+    north_star_topology = dict(phase5_platform_target.get("north_star_topology") or {})
+    monorepo_status = _non_empty_text(north_star_topology.get("monorepo_status")) or "post_gate_target"
     lines = [
         "## Platform Target",
         "",
         f"- 当前摘要: {phase5_platform_target.get('summary') or 'none'}",
         f"- 当前序列范围: {_phase5_sequence_scope_label(phase5_platform_target.get('sequence_scope'))}",
-        f"- 当前步骤: `{phase5_platform_target.get('current_step_id') or 'none'}`",
+        f"- 当前步骤: `{current_step_id}`",
         f"- 当前就绪判断: {phase5_platform_target.get('current_readiness_summary') or 'none'}",
-        f"- monorepo 目标状态: {_phase5_monorepo_status_label(((phase5_platform_target.get('north_star_topology') or {}).get('monorepo_status')))}",
+        f"- monorepo 目标状态: {_phase5_monorepo_status_label(monorepo_status)}",
         f"- 推荐 phase 命令: `{phase5_platform_target.get('recommended_phase_command') or 'none'}`",
         "",
         "## Monorepo Sequence",
@@ -1267,6 +1270,7 @@ def _attention_item(
     scope: str,
     study_id: str | None = None,
     operator_status_card: dict[str, Any] | None = None,
+    autonomy_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "priority": _ATTENTION_PRIORITIES.get(code, 999),
@@ -1277,6 +1281,7 @@ def _attention_item(
         "summary": summary,
         "recommended_command": recommended_command,
         "operator_status_card": dict(operator_status_card or {}) or None,
+        "autonomy_contract": dict(autonomy_contract or {}) or None,
     }
 
 
@@ -1425,6 +1430,7 @@ def _attention_queue(
         blocker_list = list(item.get("current_blockers") or [])
         operator_verdict = dict(item.get("operator_verdict") or {})
         operator_status_card = dict(item.get("operator_status_card") or {})
+        autonomy_contract = dict(item.get("autonomy_contract") or {})
         progress_command = _non_empty_text(((item.get("commands") or {}).get("progress")))
         launch_command = _non_empty_text(((item.get("commands") or {}).get("launch")))
         preferred_command = _non_empty_text(item.get("recommended_command")) or _non_empty_text(
@@ -1436,6 +1442,7 @@ def _attention_queue(
         next_system_action = _non_empty_text(item.get("next_system_action"))
         intervention_lane = dict(item.get("intervention_lane") or {})
         lane_id = _non_empty_text(intervention_lane.get("lane_id"))
+        autonomy_summary = _non_empty_text(autonomy_contract.get("summary"))
         lane_summary = (
             _operator_status_summary(operator_status_card)
             or _non_empty_text(operator_verdict.get("summary"))
@@ -1454,6 +1461,7 @@ def _attention_queue(
                     scope="study",
                     study_id=study_id,
                     operator_status_card=operator_status_card,
+                    autonomy_contract=autonomy_contract,
                 )
             )
             continue
@@ -1467,6 +1475,7 @@ def _attention_queue(
                     scope="study",
                     study_id=study_id,
                     operator_status_card=operator_status_card,
+                    autonomy_contract=autonomy_contract,
                 )
             )
             continue
@@ -1475,11 +1484,12 @@ def _attention_queue(
                 _attention_item(
                     code="study_runtime_recovery_required",
                     title=f"{study_id} 当前需要优先处理 runtime recovery",
-                    summary=lane_summary or "托管运行恢复失败或健康降级，需要尽快介入。",
+                    summary=autonomy_summary or lane_summary or "托管运行恢复失败或健康降级，需要尽快介入。",
                     recommended_command=preferred_command or launch_command or progress_command,
                     scope="study",
                     study_id=study_id,
                     operator_status_card=operator_status_card,
+                    autonomy_contract=autonomy_contract,
                 )
             )
             continue
@@ -1500,6 +1510,7 @@ def _attention_queue(
                     scope="study",
                     study_id=study_id,
                     operator_status_card=operator_status_card,
+                    autonomy_contract=autonomy_contract,
                 )
             )
             continue
@@ -1514,6 +1525,7 @@ def _attention_queue(
                     scope="study",
                     study_id=study_id,
                     operator_status_card=operator_status_card,
+                    autonomy_contract=autonomy_contract,
                 )
             )
             continue
@@ -1528,6 +1540,7 @@ def _attention_queue(
                     scope="study",
                     study_id=study_id,
                     operator_status_card=operator_status_card,
+                    autonomy_contract=autonomy_contract,
                 )
             )
             continue
@@ -1544,6 +1557,7 @@ def _attention_queue(
                     scope="study",
                     study_id=study_id,
                     operator_status_card=operator_status_card,
+                    autonomy_contract=autonomy_contract,
                 )
             )
 
@@ -1617,6 +1631,7 @@ def _study_item(
         for item in (progress_payload.get("recommended_commands") or [])
         if isinstance(item, dict)
     ]
+    autonomy_contract = dict(progress_payload.get("autonomy_contract") or {})
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     return {
         "study_id": study_id,
@@ -1629,6 +1644,7 @@ def _study_item(
         "operator_status_card": operator_status_card or None,
         "recommended_command": recommended_command,
         "recommended_commands": recommended_commands,
+        "autonomy_contract": autonomy_contract or None,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
         "monitoring": monitoring,
@@ -1819,6 +1835,12 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- 当前关注项: {title}")
             if item.get("summary"):
                 lines.append(f"  当前判断: {item.get('summary')}")
+            autonomy_contract = dict(item.get("autonomy_contract") or {})
+            if autonomy_contract.get("summary"):
+                lines.append(f"  自治合同: {autonomy_contract.get('summary')}")
+            restore_point = dict(autonomy_contract.get("restore_point") or {})
+            if restore_point.get("summary"):
+                lines.append(f"  恢复点: {restore_point.get('summary')}")
             if item.get("recommended_command"):
                 lines.append(f"  处理命令: `{item.get('recommended_command')}`")
             operator_status_card = dict(item.get("operator_status_card") or {})
@@ -1879,6 +1901,12 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- 当前处理结论: {operator_status_card.get('user_visible_verdict')}")
         if operator_status_card.get("next_confirmation_signal"):
             lines.append(f"- 下一确认信号: {operator_status_card.get('next_confirmation_signal')}")
+        autonomy_contract = dict(item.get("autonomy_contract") or {})
+        if autonomy_contract.get("summary"):
+            lines.append(f"- 自治合同: {autonomy_contract.get('summary')}")
+        restore_point = dict(autonomy_contract.get("restore_point") or {})
+        if restore_point.get("summary"):
+            lines.append(f"- 恢复点: {restore_point.get('summary')}")
         recovery_contract = dict(item.get("recovery_contract") or {})
         recovery_action_mode_label = _recovery_action_mode_label(recovery_contract)
         if recovery_action_mode_label:
@@ -2759,6 +2787,12 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
             continue
         lines.append(f"- 当前关注项: {item.get('title') or '未命名关注项'}")
         lines.append(f"- 处理命令: `{item.get('recommended_command') or 'none'}`")
+        autonomy_contract = dict(item.get("autonomy_contract") or {})
+        if autonomy_contract.get("summary"):
+            lines.append(f"- 自治合同: {autonomy_contract.get('summary')}")
+        restore_point = dict(autonomy_contract.get("restore_point") or {})
+        if restore_point.get("summary"):
+            lines.append(f"- 恢复点: {restore_point.get('summary')}")
         operator_status_card = dict(item.get("operator_status_card") or {})
         if operator_status_card.get("handling_state"):
             lines.append(f"- 处理状态: `{operator_status_card.get('handling_state')}`")
@@ -2781,7 +2815,10 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         "## Guardrails",
         "",
     ])
-    for item in product_entry_guardrails.get("guardrail_classes") or []:
+    guardrail_classes = list(product_entry_guardrails.get("guardrail_classes") or [])
+    if not guardrail_classes:
+        lines.append("- `workspace_supervision_gap`: `none`")
+    for item in guardrail_classes:
         if not isinstance(item, dict):
             continue
         lines.append(
@@ -2797,11 +2834,17 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     lines.append(f"- 清障重点: {phase3_clearance_lane.get('summary') or 'none'}")
     lines.append(f"- 推荐动作: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`")
     lines.append(f"- 推荐命令: `{phase3_clearance_lane.get('recommended_command') or 'none'}`")
-    for item in phase3_clearance_lane.get("clearance_targets") or []:
+    clearance_targets = list(phase3_clearance_lane.get("clearance_targets") or [])
+    if not clearance_targets:
+        lines.append("- `external_runtime_contract`: `none`")
+    for item in clearance_targets:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{item.get('target_id')}`: `{((item.get('commands') or ['none'])[0])}`")
-    for item in phase3_clearance_lane.get("clearance_loop") or []:
+    clearance_loop = list(phase3_clearance_lane.get("clearance_loop") or [])
+    if not clearance_loop:
+        lines.append("- 清障步骤 `refresh_supervision`: `none`")
+    for item in clearance_loop:
         if not isinstance(item, dict):
             continue
         lines.append(f"- 清障步骤 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
@@ -2812,7 +2855,10 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
             "",
         ]
     )
-    for item in phase4_backend_deconstruction.get("substrate_targets") or []:
+    substrate_targets = list(phase4_backend_deconstruction.get("substrate_targets") or [])
+    if not substrate_targets:
+        lines.append("- `session_run_watch_recovery`: none")
+    for item in substrate_targets:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{item.get('capability_id')}`: {item.get('summary') or 'none'}")

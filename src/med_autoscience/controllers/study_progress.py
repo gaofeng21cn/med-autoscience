@@ -1882,6 +1882,96 @@ def _recovery_contract(
     return recommended_command, steps, recovery_contract
 
 
+def _restore_point(
+    *,
+    continuation_state: dict[str, Any],
+    family_checkpoint_lineage: dict[str, Any],
+    needs_physician_decision: bool,
+) -> dict[str, Any]:
+    resume_contract_payload = family_checkpoint_lineage.get("resume_contract")
+    resume_contract = dict(resume_contract_payload) if isinstance(resume_contract_payload, dict) else {}
+    resume_mode = _non_empty_text(resume_contract.get("resume_mode"))
+    continuation_policy = _non_empty_text(continuation_state.get("continuation_policy"))
+    continuation_reason = (
+        _continuation_reason_label(continuation_state.get("continuation_reason"))
+        or _non_empty_text(continuation_state.get("continuation_reason"))
+    )
+    if isinstance(resume_contract.get("human_gate_required"), bool):
+        human_gate_required = bool(resume_contract.get("human_gate_required"))
+    else:
+        human_gate_required = needs_physician_decision
+    if resume_mode is not None or continuation_policy is not None or continuation_reason is not None:
+        summary_parts: list[str] = []
+        if resume_mode is not None:
+            summary_parts.append(f"当前恢复点采用 {resume_mode}")
+        else:
+            summary_parts.append("当前恢复点已冻结")
+        if continuation_policy is not None:
+            summary_parts.append(f"continuation policy 为 {continuation_policy}")
+        if continuation_reason is not None:
+            summary_parts.append(f"最近一次续跑原因是{continuation_reason}")
+        if human_gate_required:
+            summary_parts.append("恢复前仍需人工确认")
+        summary = "；".join(summary_parts) + "。"
+    elif human_gate_required:
+        summary = "当前还没有额外 checkpoint resume contract；恢复前仍需人工确认。"
+    else:
+        summary = "当前还没有额外 checkpoint resume contract；可以直接回到 MAS 主线继续恢复或重启当前 study。"
+    return {
+        "resume_mode": resume_mode,
+        "continuation_policy": continuation_policy,
+        "continuation_reason": continuation_reason,
+        "human_gate_required": human_gate_required,
+        "summary": summary,
+    }
+
+
+def _autonomy_contract(
+    *,
+    intervention_lane: dict[str, Any],
+    recovery_contract: dict[str, Any],
+    recommended_command: str | None,
+    current_stage_summary: str,
+    next_system_action: str,
+    continuation_state: dict[str, Any],
+    family_checkpoint_lineage: dict[str, Any],
+    needs_physician_decision: bool,
+    manual_finish_contract: dict[str, Any] | None,
+) -> dict[str, Any]:
+    restore_point = _restore_point(
+        continuation_state=continuation_state,
+        family_checkpoint_lineage=family_checkpoint_lineage,
+        needs_physician_decision=needs_physician_decision,
+    )
+    lane_id = _non_empty_text(intervention_lane.get("lane_id")) or "monitor_only"
+    if _manual_finish_active(manual_finish_contract):
+        autonomy_state = "compatibility_guard"
+    elif needs_physician_decision:
+        autonomy_state = "human_gate"
+    elif lane_id in {"workspace_supervision_gap", "runtime_recovery_required", "runtime_blocker"}:
+        autonomy_state = "runtime_recovery"
+    else:
+        autonomy_state = "autonomous_progress"
+    if autonomy_state == "autonomous_progress" and restore_point.get("resume_mode"):
+        summary = f"恢复点已冻结；当前停在 {restore_point.get('resume_mode')}，下一次确认看恢复信号。"
+    else:
+        summary = (
+            _non_empty_text(intervention_lane.get("summary"))
+            or _non_empty_text(recovery_contract.get("summary"))
+            or current_stage_summary
+            or next_system_action
+            or str(restore_point.get("summary") or "").strip()
+        )
+    return {
+        "contract_kind": "study_autonomy_contract",
+        "autonomy_state": autonomy_state,
+        "summary": summary,
+        "recommended_command": recommended_command,
+        "next_signal": next_system_action or str(restore_point.get("summary") or "").strip(),
+        "restore_point": restore_point,
+    }
+
+
 def _operator_verdict(
     *,
     study_id: str,
@@ -2485,6 +2575,11 @@ def build_study_progress_projection(
         if isinstance(status.get("continuation_state"), dict)
         else {}
     )
+    family_checkpoint_lineage = (
+        dict(status.get("family_checkpoint_lineage") or {})
+        if isinstance(status.get("family_checkpoint_lineage"), dict)
+        else {}
+    )
     quest_root_for_manual_finish = _candidate_path(status.get("quest_root"))
     try:
         manual_finish = resolve_effective_study_manual_finish_contract(
@@ -2621,6 +2716,17 @@ def build_study_progress_projection(
         next_system_action=next_system_action,
         current_blockers=current_blockers,
     )
+    autonomy_contract = _autonomy_contract(
+        intervention_lane=intervention_lane,
+        recovery_contract=recovery_contract,
+        recommended_command=recommended_command,
+        current_stage_summary=current_stage_summary,
+        next_system_action=next_system_action,
+        continuation_state=continuation_state,
+        family_checkpoint_lineage=family_checkpoint_lineage,
+        needs_physician_decision=needs_physician_decision,
+        manual_finish_contract=manual_finish_contract,
+    )
     operator_verdict = _operator_verdict(
         study_id=resolved_study_id,
         intervention_lane=intervention_lane,
@@ -2742,12 +2848,14 @@ def build_study_progress_projection(
         "operator_status_card": operator_status_card,
         "recommended_command": recommended_command,
         "recommended_commands": recommended_commands,
+        "autonomy_contract": autonomy_contract,
         "recovery_contract": recovery_contract,
         "needs_physician_decision": needs_physician_decision,
         "physician_decision_summary": physician_decision_summary,
         "runtime_decision": _non_empty_text(status.get("decision")),
         "runtime_reason": _non_empty_text(status.get("reason")),
         "continuation_state": continuation_state or None,
+        "family_checkpoint_lineage": family_checkpoint_lineage or None,
         "interaction_arbitration": interaction_arbitration or None,
         "manual_finish_contract": manual_finish_contract,
         "task_intake": task_intake,
@@ -2883,6 +2991,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         "",
     )
     operator_status_card = dict(payload.get("operator_status_card") or {})
+    autonomy_contract = dict(payload.get("autonomy_contract") or {})
     recovery_contract = dict(payload.get("recovery_contract") or {})
     module_surfaces = dict(payload.get("module_surfaces") or {})
     recovery_action_mode = _RECOVERY_ACTION_MODE_LABELS.get(
@@ -3030,6 +3139,23 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             f"- 下一步建议: {next_step_summary}",
         ]
     )
+    if autonomy_contract:
+        lines.extend(["", "## 自治合同", ""])
+        if autonomy_contract.get("summary"):
+            lines.append(
+                f"- 当前自治判断: {_display_text(autonomy_contract.get('summary')) or autonomy_contract.get('summary')}"
+            )
+        if autonomy_contract.get("next_signal"):
+            lines.append(
+                f"- 下一确认信号: {_display_text(autonomy_contract.get('next_signal')) or autonomy_contract.get('next_signal')}"
+            )
+        if autonomy_contract.get("recommended_command"):
+            lines.append(f"- 恢复/续跑命令: `{autonomy_contract.get('recommended_command')}`")
+        restore_point = dict(autonomy_contract.get("restore_point") or {})
+        if restore_point.get("summary"):
+            lines.append(
+                f"- 恢复点: {_display_text(restore_point.get('summary')) or restore_point.get('summary')}"
+            )
     if recovery_contract:
         lines.extend(["", "## 恢复合同", ""])
         if recovery_action_mode:

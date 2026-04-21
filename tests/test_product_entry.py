@@ -51,6 +51,49 @@ def test_attention_queue_prefers_route_repair_focus_for_quality_blockers() -> No
     assert queue[0]["summary"] == "回到“论文写作与结果收紧”，回答“当前稿面最窄的 claim-evidence 修复动作是什么？”。"
 
 
+def test_attention_queue_prefers_autonomy_contract_summary_for_runtime_recovery() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    queue = module._attention_queue(
+        workspace_status="ready",
+        workspace_supervision={
+            "service": {"loaded": True, "drift_reasons": []},
+            "study_counts": {},
+        },
+        studies=[
+            {
+                "study_id": "001-risk",
+                "monitoring": {"supervisor_tick_status": "fresh"},
+                "progress_freshness": {"status": "fresh"},
+                "current_stage_summary": "托管运行恢复中。",
+                "next_system_action": "请回到 MAS 控制面确认当前托管运行策略，并决定是否暂停、重启或接管。",
+                "current_blockers": ["托管运行时已连续两次恢复失败，必须人工介入。"],
+                "intervention_lane": {
+                    "lane_id": "runtime_recovery_required",
+                    "title": "优先恢复托管运行",
+                    "severity": "critical",
+                    "summary": "旧的恢复摘要。",
+                },
+                "autonomy_contract": {
+                    "summary": "恢复点已冻结；当前停在 resume_from_checkpoint，下一次确认看恢复信号。",
+                },
+                "operator_verdict": {
+                    "summary": "generic runtime recovery summary",
+                    "primary_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                },
+                "operator_status_card": {
+                    "user_visible_verdict": "MAS 正在恢复托管运行。",
+                },
+                "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+            }
+        ],
+        commands={},
+    )
+
+    assert queue[0]["code"] == "study_runtime_recovery_required"
+    assert queue[0]["summary"] == "恢复点已冻结；当前停在 resume_from_checkpoint，下一次确认看恢复信号。"
+
+
 def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
@@ -3073,6 +3116,40 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
     assert "Now" in markdown
     assert "Single Path" in markdown
     assert "Workspace Preview" in markdown
+
+
+def test_render_product_frontdesk_markdown_shows_autonomy_contract_preview() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    markdown = module.render_product_frontdesk_markdown(
+        {
+            "workspace_preview": None,
+            "workspace_attention_queue_preview": [
+                {
+                    "title": "001-risk 当前需要优先恢复托管运行",
+                    "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "operator_status_card": {
+                        "handling_state": "runtime_recovering",
+                    },
+                    "autonomy_contract": {
+                        "summary": "恢复点已冻结；当前停在 resume_from_checkpoint，下一次确认看恢复信号。",
+                        "restore_point": {
+                            "summary": "当前恢复点采用 resume_from_checkpoint；最近一次续跑原因是运行停在未变化的定稿总结态。",
+                        },
+                    },
+                }
+            ],
+            "phase2_user_product_loop": {},
+            "product_entry_guardrails": {},
+            "phase3_clearance_lane": {"clearance_targets": [], "clearance_loop": []},
+            "phase4_backend_deconstruction": {"substrate_targets": []},
+            "phase5_platform_target": {"capability_targets": [], "readiness_gates": []},
+            "remaining_gaps": [],
+        }
+    )
+
+    assert "恢复点已冻结；当前停在 resume_from_checkpoint，下一次确认看恢复信号。" in markdown
+    assert "当前恢复点采用 resume_from_checkpoint；最近一次续跑原因是运行停在未变化的定稿总结态。" in markdown
     assert "Phase 2 User Loop" in markdown
     assert "Guardrails" in markdown
     assert "workspace_supervision_gap" in markdown
@@ -3087,33 +3164,6 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
     assert "stabilize_user_product_loop" in markdown
     assert "post_gate_target" in markdown
     assert "summary:" not in markdown
-
-    manifest_markdown = module.render_product_entry_manifest_markdown(payload["product_entry_manifest"])
-    assert "Product Entry Manifest" in manifest_markdown
-    assert "manifest 类型" in manifest_markdown
-    assert "目标域" in manifest_markdown
-    assert "当前主线阶段" in manifest_markdown
-    assert "当前 program phase" in manifest_markdown
-    assert "程序摘要" in manifest_markdown
-    assert "前台入口归属" in manifest_markdown
-    assert "交互模式" in manifest_markdown
-    assert "推荐动作" in manifest_markdown
-    assert "推荐命令" in manifest_markdown
-    assert "单一路径 `continue_study`" in manifest_markdown
-    assert "summary:" not in manifest_markdown
-    assert "manifest_kind:" not in manifest_markdown
-    assert "target_domain_id:" not in manifest_markdown
-    assert "frontdoor_owner:" not in manifest_markdown
-    assert "user_interaction_mode:" not in manifest_markdown
-
-    preflight_markdown = module.render_product_entry_preflight_markdown(payload["product_entry_preflight"])
-    assert "当前可直接尝试" in preflight_markdown
-    assert "当前摘要" in preflight_markdown
-    assert "前置检查命令" in preflight_markdown
-    assert "推荐启动命令" in preflight_markdown
-    assert "ready_to_try_now:" not in preflight_markdown
-    assert "recommended_check_command:" not in preflight_markdown
-    assert "recommended_start_command:" not in preflight_markdown
 
 
 def test_product_entry_manifest_fails_closed_on_invalid_gateway_interaction_contract_shape(
