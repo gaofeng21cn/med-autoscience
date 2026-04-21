@@ -297,7 +297,7 @@ def _write_runtime_supervision(study_root: Path, quest_root: Path) -> Path:
         "summary": "托管运行时已连续两次恢复失败，必须人工介入。",
         "clinician_update": "09:13 系统确认研究运行已经掉线，自动恢复连续失败，需要医生/PI看到明确告警。",
         "next_action": "manual_intervention_required",
-        "next_action_summary": "请人工检查 MedDeepScientist 运行面，并决定是否暂停、重启或接管。",
+        "next_action_summary": "请回到 MAS 控制面确认当前托管运行策略，并决定是否暂停、重启或接管。",
         "refs": {
             "launch_report_path": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
             "runtime_watch_report_path": str(quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"),
@@ -1036,7 +1036,8 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
     assert result["latest_events"][0]["category"] == "runtime_supervision"
     assert "连续两次恢复失败" in result["latest_events"][0]["summary"]
     assert any("人工介入" in item for item in result["current_blockers"])
-    assert "人工检查" in result["next_system_action"]
+    assert result["next_system_action"] == "请回到 MAS 控制面确认当前托管运行策略，并决定是否暂停、重启或接管。"
+    assert "MedDeepScientist" not in result["next_system_action"]
     assert result["refs"]["runtime_supervision_path"] == str(runtime_supervision_path)
     markdown = module.render_study_progress_markdown(result)
     assert "恢复合同" in markdown

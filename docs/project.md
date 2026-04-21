@@ -4,9 +4,9 @@
 
 ## 三层结构
 
-- 用户层：研究问题、工作区、进度反馈、交付文件。
-- 操作与集成层：`CLI`、`MCP`、`controller` 供操作与自动化使用；`OPL` 与机器可读的产品接入接口供上层整合使用。
-- 运行时层：`Med Auto Science` 持有课题与工作区权威语义以及发表判断；上游 `Hermes-Agent` 是外部运行时目标；`MedDeepScientist` 是当前受控研究后端。
+- 用户层：研究问题、工作区、进度反馈、交付文件都统一从 `Med Auto Science` 进入；MAS 是唯一研究入口与 owner。
+- 操作与集成层：`CLI`、`MCP`、`controller` 供 MAS 控制面与自动化使用；`OPL` 与机器可读的产品接入接口只做上层整合，不接管研究 owner 身份。
+- 运行时层：`Med Auto Science` 持有课题与工作区权威语义以及发表判断；上游 `Hermes-Agent` 是外部运行时目标；`MedDeepScientist` 只保留为受控后端、behavior oracle 与 upstream intake buffer，不是用户入口，也不是第二 owner。
 
 ## 当前目标
 
@@ -17,10 +17,10 @@
 
 ## 当前边界
 
-- `Med Auto Science` 负责医学研究工作线本身。
+- `Med Auto Science` 负责医学研究工作线本身，并作为唯一研究入口与 owner。
 - `OPL` 是更高层的整合入口；它不会改写 MAS 的领域真相。
 - `Hermes-Agent` 作为外部运行时目标继续用来描述长期在线运行底座与监管责任方。
-- `MedDeepScientist` 继续承载当前仍保留在受控后端中的研究执行能力。
+- `MedDeepScientist` 继续承载当前仍保留在受控后端中的研究执行能力，同时保留 behavior oracle 与 upstream intake buffer 职责；它不作为用户入口，也不承担第二 owner 身份。
 
 ## 当前非目标
 

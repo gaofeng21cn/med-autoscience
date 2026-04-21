@@ -11,12 +11,12 @@
 2. 操作与集成层
    - `CLI`、`MCP`、`controller` 是操作与自动化接口。
    - `OPL`、`product-entry manifest` 和其他机器可读桥接属于上层整合与自动化消费面。
-   - 这一层负责把 MAS 接到更高层入口。
+   - 这一层负责把 MAS 控制面接到更高层入口，不改写 MAS 的 owner 身份。
 
 3. 运行时与持久真相层
-   - `Med Auto Science` 持有课题与工作区权威语义、进度语义和发表判断。
+   - `Med Auto Science` 持有课题与工作区权威语义、进度语义和发表判断，是唯一研究入口与 owner。
    - 上游 `Hermes-Agent` 指外部运行时目标与监管责任方。
-   - `MedDeepScientist` 继续作为当前受控研究后端，承接仍留在后端的研究执行能力。
+   - `MedDeepScientist` 只保留为当前受控研究后端、behavior oracle 与 upstream intake buffer，承接仍留在后端的研究执行能力；它不是用户入口，也不是第二 owner。
 
 ## 当前主链路
 
@@ -43,9 +43,9 @@
 
 ## 当前运行时责任分层
 
-- `Med Auto Science`：研究入口、课题与工作区权威语义、进度语义、发表判断。
+- `Med Auto Science`：唯一研究入口、课题与工作区权威语义、进度语义、发表判断 owner。
 - 上游 `Hermes-Agent`：外部运行时底座与监管责任方。
-- `MedDeepScientist`：当前受控研究后端。
+- `MedDeepScientist`：当前受控研究后端、behavior oracle、upstream intake buffer；不承担用户入口或第二 owner 身份。
 
 ## 当前自治与质量合同主线
 
@@ -55,7 +55,8 @@
 
 ## 当前架构明确保留的边界
 
-- `Med Auto Science` 负责研究工作线。
+- `Med Auto Science` 负责研究工作线，并保持唯一入口与 owner 身份。
 - `OPL` 负责上层整合。
+- `MedDeepScientist` 只保留受控后端 / behavior oracle / upstream intake buffer 角色。
 - 运行时底座、后端执行和产品入口继续分层表达。
 - 迁移、解构、切换和历史推进记录继续留在 `docs/program/`、`docs/runtime/`、`docs/references/` 和 `docs/history/`。
