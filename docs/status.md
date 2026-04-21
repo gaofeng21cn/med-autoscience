@@ -35,9 +35,12 @@
 - 用户可见真相投影的 owner 继续落在 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`：用户与维护者都应能从同一条 `MAS` 主线上读到当前阶段、关键证据、阻塞、下一步、恢复点与 human gate 原因。
 - 当前 repo-side 落地已经要求 `study-progress` / `product-entry` 能明确区分：同线质量修复、有限补充分析、runtime recovery、human gate，不再把这些自治语义混成同一种“待人工确认”或“泛化 blocker”。
 - 当前 repo-side 落地已经把 `study-progress`、`workspace-cockpit`、`product-frontdesk` 三个用户面收口到统一 `autonomy_contract`：当 study 处于自动推进、runtime recovery 或少数必须人工确认的节点时，三处表面都要讲同一套“为什么停、是否还能自动继续、恢复点是什么、下一次确认看什么”。
+- 当前 repo-side 落地已经把长期自治 proof/soak 继续压成稳定表面：`study-progress` 现已导出 `autonomy_soak_status`，`product-frontdesk` / `workspace-cockpit` 也开始显式消费最近一次自治续跑与其确认信号，不再只靠泛化 runtime summary 解释长跑状态。
 - 当前 repo-side 落地已经把 `study-progress`、`workspace-cockpit`、`product-frontdesk` 三个用户面对论文质量 readiness 的解释也收口到统一质量 truth：当核心科学质量已经闭环、当前只剩同线写作或 finalize / bundle 收口时，用户面会直接说清“为什么已经够稳、还剩什么范围、这条判断由哪些质量依据支撑”。
+- 当前 repo-side 落地已经把质量复评后续动作继续前推到用户面：`study-progress` 现已导出 `quality_review_followthrough`，`workspace-cockpit` / `product-frontdesk` 可以直接解释“当前在等系统自动复评、为什么还没继续、下一次确认看什么”。
 - proof/soak 口径当前围绕真实 study 的长期自治与质量闭环是否已经闭合，不围绕 `MDS` 再造一套长期 owner 面；`MDS` 只保留 migration oracle、backend compatibility、upstream intake buffer 三个迁移期角色。
 - 当前 tranche 的 repo-side 落点是单项目 owner truth、用户可见边界和 program/mainline 口径收紧；这一步不推进 `physical monorepo absorb`、跨仓 `runtime core ingest` 或把 `MDS` 重新解释成并行产品面。
+- 当前 `build_product_entry.return_surface_contract` 已经开始把 `single_project_boundary` 与 `study_progress` truth field contract 一并交给外部 caller；调用方可以不回 `mainline-status` 也读到 MAS/MDS owner boundary 和当前应消费的 progress truth 字段。
 - 当前 tranche 的通过条件是：`MAS` 已能默认自治推进方向锁定后的研究与有限补充分析，用户可见 truth 与 durable surface 对齐，major boundary 与最终投稿审计之外不再把 human 判断留在 `MDS` 或隐藏 owner 面里。
 
 ## 当前验收与 proof 口径
@@ -66,5 +69,5 @@
 4. 保持 `Hermes-Agent` 作为外部长期在线网关的 readiness 检查，并把维护者细节继续留在 reference / program 层。
 5. 把“医学论文质量 + 长时间全自动驾驶优化”正式收口到 `MAS` 单项目主线，由 `controller_charter / runtime / eval_hygiene` 共同承担 owner；`MDS` 迁移期角色继续收敛为 research backend、行为等价 oracle、上游 intake buffer。
 6. 把 study charter 升级为质量总合同入口；`paper evidence ledger` 与 `review ledger` 作为该合同的执行与审阅记录，统一承载主结果、`bounded_analysis`、reviewer concern 与 submission hygiene 的落地状态。
-7. 把用户可见真相投影压实到 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json` 这一组 durable surface 上，让当前阶段、关键证据、阻塞、下一步、恢复点与 human gate 原因都能被同一条 `MAS` 主线读取；当前统一出口已经收口成 `autonomy_contract + restore_point` 与 `quality_closure_truth + quality_closure_basis` 两条互补 truth。
+7. 把用户可见真相投影压实到 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json` 这一组 durable surface 上，让当前阶段、关键证据、阻塞、下一步、恢复点与 human gate 原因都能被同一条 `MAS` 主线读取；当前统一出口已经收口成 `autonomy_contract + restore_point + autonomy_soak_status` 与 `quality_closure_truth + quality_closure_basis + quality_review_followthrough` 两条互补 truth。
 8. 把“持续学习 `DeepScientist` 方法论”收口为 `MAS` 的长期 program lane：维护者先读 [MedDeepScientist Method Learning Disciplines](./program/med_deepscientist_method_learning_disciplines.md)、[MedDeepScientist Continuous Learning Plan](./program/med_deepscientist_continuous_learning_plan.md) 和 [MedDeepScientist Upstream Source Provenance](./program/med_deepscientist_upstream_source_provenance.md)，先区分“upstream learned common research discipline”和“MAS-own governance / medical-quality surfaces”，再决定哪些 lesson 进入 `controller_charter`、`runtime`、`eval_hygiene` owner 面，哪些继续留在 `MDS` 的 oracle / intake / parity companion 面。

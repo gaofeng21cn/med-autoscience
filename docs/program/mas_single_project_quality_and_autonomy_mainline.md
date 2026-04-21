@@ -308,9 +308,9 @@ human gate 收窄到少数重大边界：
 1. **质量闭环 proof**
    真实 study 上，study charter 的质量总合同可以持续约束 evidence / review ledger，并支撑方向锁定后的质量裁决与 `bounded_analysis` 自动收口。
 2. **truth projection proof**
-   用户面、维护面、controller 面读取到的当前阶段、关键证据、阻塞、下一步和恢复点来自同一组 `MAS` durable surface，文档口径与运行口径一致；同线质量修复、`bounded_analysis`、runtime recovery、human gate 四类语义不会在前台混淆。
+   用户面、维护面、controller 面读取到的当前阶段、关键证据、阻塞、下一步和恢复点来自同一组 `MAS` durable surface，文档口径与运行口径一致；同线质量修复、`bounded_analysis`、runtime recovery、human gate 四类语义不会在前台混淆。到这一步，`autonomy_soak_status`、`quality_review_followthrough` 与 caller-facing `return_surface_contract` 也应进入同一套 truth projection。
 3. **autonomy soak**
-   真实 study 的长时间推进、停滞、恢复、有限补充分析追加、human gate 升级都能在长跑中保持稳定，不需要 `MDS` 作为第二个日常 owner 介入。
+   真实 study 的长时间推进、停滞、恢复、有限补充分析追加、human gate 升级都能在长跑中保持稳定，不需要 `MDS` 作为第二个日常 owner 介入；`workspace-cockpit`、`product-frontdesk` 和外部 caller 都能直接读到最近一次自治续跑与其确认信号。
 4. **oracle proof**
    `MDS` 只用于证明行为等价、兼容存量 study 与吸收上游更新；proof 的通过结果应表现为 `MAS` owner 面更完整，而不是 `MDS` owner 面继续扩张。
 
