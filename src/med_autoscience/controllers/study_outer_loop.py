@@ -243,7 +243,20 @@ def _hydrate_managed_runtime_refs(status: dict[str, Any]) -> dict[str, Any]:
         return hydrated
     quest_root = Path(quest_root_text).expanduser().resolve()
     if not isinstance(hydrated.get("runtime_event_ref"), dict):
-        runtime_event_ref = study_runtime_protocol.read_runtime_event_record_ref(quest_root=quest_root)
+        runtime_event_ref = None
+        try:
+            runtime_event_ref = study_runtime_protocol.read_runtime_event_record_ref(quest_root=quest_root)
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            runtime_event_path = quest_root / "artifacts" / "reports" / "runtime_events" / "latest.json"
+            if runtime_event_path.exists():
+                raw_payload = json.loads(runtime_event_path.read_text(encoding="utf-8")) or {}
+                if isinstance(raw_payload, dict):
+                    raw_payload = dict(raw_payload)
+                    raw_payload.setdefault("artifact_path", str(runtime_event_path))
+                    try:
+                        runtime_event_ref = RuntimeEventRecord.from_payload(raw_payload).ref()
+                    except (TypeError, ValueError):
+                        runtime_event_ref = NativeRuntimeEventRecord.from_payload(raw_payload).ref()
         if runtime_event_ref is not None:
             hydrated["runtime_event_ref"] = runtime_event_ref.to_dict()
     if not isinstance(hydrated.get("runtime_escalation_ref"), dict):
