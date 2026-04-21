@@ -385,6 +385,36 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
                 "下一轮复评重点：What is the narrowest supplementary analysis needed to restore endpoint provenance support?"
             ),
         },
+        "quality_revision_plan": {
+            "policy_id": "medical_publication_critique_v1",
+            "plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+            "execution_status": "planned",
+            "overall_diagnosis": "核心科学质量还没有闭环；当前应先回到 analysis-campaign 完成最窄补充修复。",
+            "weight_contract": {
+                "clinical_significance": 25,
+                "evidence_strength": 35,
+                "novelty_positioning": 20,
+                "human_review_readiness": 20,
+            },
+            "items": [
+                {
+                    "item_id": "quality-revision-item-1",
+                    "priority": "p0",
+                    "dimension": "evidence_strength",
+                    "action_type": "close_evidence_gap",
+                    "action": "Controller must decide whether to invest in external validation.",
+                    "rationale": "必须优先修复：External validation cohort is still missing.",
+                    "done_criteria": (
+                        "下一轮复评能够明确确认："
+                        "What is the narrowest supplementary analysis needed to restore endpoint provenance support?"
+                    ),
+                    "route_target": "analysis-campaign",
+                }
+            ],
+            "next_review_focus": [
+                "What is the narrowest supplementary analysis needed to restore endpoint provenance support?"
+            ],
+        },
         "requires_controller_decision": True,
         "promotion_gate_status": {
             "status": "blocked",
@@ -546,6 +576,31 @@ def test_materialize_evaluation_summary_artifacts_prefers_reviewer_style_agenda_
             "下一轮复评重点：复评时重点核对外部验证结果与主结论是否一一对应。"
         ),
     }
+    assert summary["quality_revision_plan"] == {
+        "policy_id": "medical_publication_critique_v1",
+        "plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+        "execution_status": "planned",
+        "overall_diagnosis": "核心科学质量还没有闭环；当前应先回到 analysis-campaign 完成最窄补充修复。",
+        "weight_contract": {
+            "clinical_significance": 25,
+            "evidence_strength": 35,
+            "novelty_positioning": 20,
+            "human_review_readiness": 20,
+        },
+        "items": [
+            {
+                "item_id": "quality-revision-item-1",
+                "priority": "p0",
+                "dimension": "evidence_strength",
+                "action_type": "close_evidence_gap",
+                "action": "先补齐外部验证并重写对应结果段，再做下一轮门控复评。",
+                "rationale": "证据链仍有硬缺口：外部验证结果还未进入可复核闭环。",
+                "done_criteria": "下一轮复评能够明确确认：复评时重点核对外部验证结果与主结论是否一一对应。",
+                "route_target": "analysis-campaign",
+            }
+        ],
+        "next_review_focus": ["复评时重点核对外部验证结果与主结论是否一一对应。"],
+    }
 
 
 def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining_quality_closure(
@@ -623,6 +678,31 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
         "summary": "核心科学面已经闭环；剩余阻塞只落在当前论文线的 finalize / bundle 收口。",
         "evidence_refs": [str((study_root / "artifacts" / "eval_hygiene" / "promotion_gate" / "latest.json").resolve())],
     }
+    assert evaluation_summary_payload["quality_revision_plan"] == {
+        "policy_id": "medical_publication_critique_v1",
+        "plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+        "execution_status": "planned",
+        "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+        "weight_contract": {
+            "clinical_significance": 25,
+            "evidence_strength": 35,
+            "novelty_positioning": 20,
+            "human_review_readiness": 20,
+        },
+        "items": [
+            {
+                "item_id": "quality-revision-item-1",
+                "priority": "p0",
+                "dimension": "human_review_readiness",
+                "action_type": "stabilize_submission_bundle",
+                "action": "先在 finalize 修订，完成当前最小投稿包收口。",
+                "rationale": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+                "done_criteria": "下一轮复评能够明确确认：当前论文线还差哪一步 finalize / submission bundle 收口？",
+                "route_target": "finalize",
+            }
+        ],
+        "next_review_focus": ["当前论文线还差哪一步 finalize / submission bundle 收口？"],
+    }
 
 
 def test_read_evaluation_summary_derives_quality_review_agenda_when_missing(tmp_path: Path) -> None:
@@ -639,6 +719,7 @@ def test_read_evaluation_summary_derives_quality_review_agenda_when_missing(tmp_
     summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
     payload = json.loads(summary_path.read_text(encoding="utf-8"))
     payload.pop("quality_review_agenda", None)
+    payload.pop("quality_revision_plan", None)
     _write_json(summary_path, payload)
 
     summary = module.read_evaluation_summary(study_root=study_root)
@@ -655,4 +736,37 @@ def test_read_evaluation_summary_derives_quality_review_agenda_when_missing(tmp_
             "建议修订：先在 analysis-campaign 修订：The study direction remains valid; only a bounded analysis-campaign repair is needed.；"
             "下一轮复评重点：What is the narrowest supplementary analysis needed to restore endpoint provenance support?"
         ),
+    }
+    assert summary["quality_revision_plan"] == {
+        "policy_id": "medical_publication_critique_v1",
+        "plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+        "execution_status": "planned",
+        "overall_diagnosis": "核心科学质量还没有闭环；当前应先回到 analysis-campaign 完成最窄补充修复。",
+        "weight_contract": {
+            "clinical_significance": 25,
+            "evidence_strength": 35,
+            "novelty_positioning": 20,
+            "human_review_readiness": 20,
+        },
+        "items": [
+            {
+                "item_id": "quality-revision-item-1",
+                "priority": "p0",
+                "dimension": "evidence_strength",
+                "action_type": "close_evidence_gap",
+                "action": (
+                    "先在 analysis-campaign 修订："
+                    "The study direction remains valid; only a bounded analysis-campaign repair is needed."
+                ),
+                "rationale": "核心科学质量还没有闭环；当前应先回到 analysis-campaign 完成最窄补充修复。",
+                "done_criteria": (
+                    "下一轮复评能够明确确认："
+                    "What is the narrowest supplementary analysis needed to restore endpoint provenance support?"
+                ),
+                "route_target": "analysis-campaign",
+            }
+        ],
+        "next_review_focus": [
+            "What is the narrowest supplementary analysis needed to restore endpoint provenance support?"
+        ],
     }

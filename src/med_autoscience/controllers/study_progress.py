@@ -242,6 +242,9 @@ _QUALITY_CLOSURE_BASIS_LABELS = {
     "human_review_readiness": "人工审阅准备度",
     "publication_gate": "发表门控",
 }
+_QUALITY_REVISION_DIMENSION_LABELS = {
+    **_QUALITY_CLOSURE_BASIS_LABELS,
+}
 _LATEST_EVENT_DISPLAY_TIERS = {
     "runtime_supervision": 0,
     "runtime_progress": 0,
@@ -912,13 +915,25 @@ def _evaluation_module_surface(
     quality_execution_lane = dict(summary.get("quality_execution_lane") or {})
     quality_closure_basis = dict(summary.get("quality_closure_basis") or {})
     quality_review_agenda = dict(summary.get("quality_review_agenda") or {})
+    quality_revision_plan = dict(summary.get("quality_revision_plan") or {})
     current_required_action = _non_empty_text(promotion_gate_status.get("current_required_action"))
+    plan_items = [
+        dict(item)
+        for item in (quality_revision_plan.get("items") or [])
+        if isinstance(item, dict)
+    ]
+    plan_next_action = (
+        _display_text((plan_items[0] or {}).get("action")) if plan_items else None
+    ) or (_non_empty_text((plan_items[0] or {}).get("action")) if plan_items else None)
     next_action_summary = (
+        plan_next_action
+        or (
         _display_text(quality_review_agenda.get("suggested_revision"))
         or _non_empty_text(quality_review_agenda.get("suggested_revision"))
         or _ACTION_LABELS.get(current_required_action or "", "")
         or current_required_action
         or "按当前 eval hygiene 结论继续推进。"
+        )
     )
     return {
         "module": "eval_hygiene",
@@ -936,6 +951,7 @@ def _evaluation_module_surface(
         "quality_execution_lane": quality_execution_lane or None,
         "quality_closure_basis": quality_closure_basis or None,
         "quality_review_agenda": quality_review_agenda or None,
+        "quality_revision_plan": quality_revision_plan or None,
     }
 
 
@@ -2865,6 +2881,11 @@ def build_study_progress_projection(
         if evaluation_module_surface is not None
         else {}
     )
+    quality_revision_plan = (
+        dict(evaluation_module_surface.get("quality_revision_plan") or {})
+        if evaluation_module_surface is not None
+        else {}
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -2901,6 +2922,7 @@ def build_study_progress_projection(
         "quality_execution_lane": quality_execution_lane or None,
         "quality_closure_basis": quality_closure_basis or None,
         "quality_review_agenda": quality_review_agenda or None,
+        "quality_revision_plan": quality_revision_plan or None,
         "module_surfaces": module_surfaces,
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
@@ -3037,6 +3059,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     quality_execution_lane = dict(payload.get("quality_execution_lane") or {})
     quality_closure_basis = dict(payload.get("quality_closure_basis") or {})
     quality_review_agenda = dict(payload.get("quality_review_agenda") or {})
+    quality_revision_plan = dict(payload.get("quality_revision_plan") or {})
     recovery_contract = dict(payload.get("recovery_contract") or {})
     module_surfaces = dict(payload.get("module_surfaces") or {})
     recovery_action_mode = _RECOVERY_ACTION_MODE_LABELS.get(
@@ -3239,6 +3262,40 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- 建议修订动作: {suggested_revision}")
         if next_review_focus:
             lines.append(f"- 下一轮复评重点: {next_review_focus}")
+    if quality_revision_plan:
+        lines.extend(["", "## 质量修订计划", ""])
+        overall_diagnosis = _display_text(quality_revision_plan.get("overall_diagnosis")) or _non_empty_text(
+            quality_revision_plan.get("overall_diagnosis")
+        )
+        if overall_diagnosis:
+            lines.append(f"- 总体诊断: {overall_diagnosis}")
+        for item in [dict(entry) for entry in (quality_revision_plan.get("items") or []) if isinstance(entry, dict)]:
+            priority = (_non_empty_text(item.get("priority")) or "p1").upper()
+            dimension = _QUALITY_REVISION_DIMENSION_LABELS.get(
+                _non_empty_text(item.get("dimension")) or "",
+                _humanize_token(item.get("dimension")) or "未命名维度",
+            )
+            route_target = _display_text(item.get("route_target")) or _non_empty_text(item.get("route_target"))
+            item_title = f"{priority} [{dimension}]"
+            if route_target:
+                item_title = f"{item_title} -> {route_target}"
+            action = _display_text(item.get("action")) or _non_empty_text(item.get("action"))
+            rationale = _display_text(item.get("rationale")) or _non_empty_text(item.get("rationale"))
+            done_criteria = _display_text(item.get("done_criteria")) or _non_empty_text(item.get("done_criteria"))
+            if action:
+                lines.append(f"- {item_title}: {action}")
+            else:
+                lines.append(f"- {item_title}")
+            if rationale:
+                lines.append(f"- 修订理由: {rationale}")
+            if done_criteria:
+                lines.append(f"- 完成标准: {done_criteria}")
+        for focus in [
+            _display_text(item) or _non_empty_text(item)
+            for item in (quality_revision_plan.get("next_review_focus") or [])
+        ]:
+            if focus:
+                lines.append(f"- 下一轮复评关注: {focus}")
     if recovery_contract:
         lines.extend(["", "## 恢复合同", ""])
         if recovery_action_mode:

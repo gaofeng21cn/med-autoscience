@@ -4,6 +4,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.policies import (
+    DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+    build_publication_critique_weight_contract,
+    build_revision_action_contract,
+)
 from med_autoscience.publication_eval_latest import read_publication_eval_latest, stable_publication_eval_latest_path
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 
@@ -53,6 +58,37 @@ _QUALITY_EXECUTION_LANE_LABELS = {
     "submission_hardening": "submission hardening 收口",
     "write_ready": "同线写作推进",
     "general_quality_repair": "质量修复",
+}
+_PUBLICATION_CRITIQUE_WEIGHT_CONTRACT = build_publication_critique_weight_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+_PUBLICATION_CRITIQUE_ACTION_CONTRACT = frozenset(build_revision_action_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY))
+_QUALITY_REVISION_PLAN_STATUSES = frozenset({"planned", "in_progress", "completed"})
+_QUALITY_REVISION_ITEM_PRIORITIES = frozenset({"p0", "p1", "p2"})
+_QUALITY_REVISION_PRIORITY_BY_STATUS = {
+    "blocked": "p0",
+    "underdefined": "p1",
+    "partial": "p2",
+}
+_QUALITY_REVISION_DIMENSIONS = frozenset((*_QUALITY_ASSESSMENT_REVIEW_ORDER, "publication_gate"))
+_QUALITY_REVISION_ACTION_BY_DIMENSION = {
+    "clinical_significance": "tighten_clinical_framing",
+    "evidence_strength": "close_evidence_gap",
+    "novelty_positioning": "tighten_novelty_framing",
+    "human_review_readiness": "refresh_review_surface",
+    "publication_gate": "refresh_review_surface",
+}
+_QUALITY_REVISION_DEFAULT_ACTIONS = {
+    "tighten_clinical_framing": "收紧临床 framing，让研究问题、结论边界和临床落点保持一致。",
+    "close_evidence_gap": "补齐当前主结论对应的证据缺口，并把证据闭环写回稿件主面。",
+    "tighten_novelty_framing": "收紧创新点和贡献边界，避免把解释层写成过度主张。",
+    "refresh_review_surface": "清理稿面与 figure/table surface，让稿件达到医学论文可审阅状态。",
+    "stabilize_submission_bundle": "刷新 docx/pdf 与最小投稿包，保证给人看的投稿面和源稿一致。",
+}
+_QUALITY_REVISION_DEFAULT_DONE_CRITERIA = {
+    "tighten_clinical_framing": "临床问题、结论边界和适用场景表述一致，并能被稿件证据直接支撑。",
+    "close_evidence_gap": "主结论对应的 claim-to-evidence 缺口补齐，且关键证据可逐条复核。",
+    "tighten_novelty_framing": "创新点、贡献边界和已有工作差异表述清楚，且不会越出当前证据面。",
+    "refresh_review_surface": "给人看的稿面、figure 和 table 不再暴露系统/分析流程痕迹。",
+    "stabilize_submission_bundle": "docx/pdf 与当前 markdown 源稿同步，且最小投稿包达到可人工审核状态。",
 }
 
 
@@ -545,6 +581,442 @@ def _normalized_quality_review_agenda(
     }
 
 
+def _unique_non_empty_texts(*values: object) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for value in values:
+        if isinstance(value, list):
+            nested_values = value
+        else:
+            nested_values = [value]
+        for item in nested_values:
+            text = _optional_text(item)
+            if text is None or text in seen:
+                continue
+            ordered.append(text)
+            seen.add(text)
+    return ordered
+
+
+def _quality_revision_plan_id(summary_payload: dict[str, Any]) -> str:
+    summary_id = _optional_text(summary_payload.get("summary_id"))
+    if summary_id is not None:
+        return f"quality-revision-plan::{summary_id}"
+    study_id = _optional_text(summary_payload.get("study_id")) or "unknown-study"
+    return f"quality-revision-plan::{study_id}"
+
+
+def _top_quality_revision_dimension(summary_payload: dict[str, Any]) -> str:
+    quality_closure_truth = (
+        dict(summary_payload.get("quality_closure_truth") or {})
+        if isinstance(summary_payload.get("quality_closure_truth"), dict)
+        else {}
+    )
+    quality_execution_lane = (
+        dict(summary_payload.get("quality_execution_lane") or {})
+        if isinstance(summary_payload.get("quality_execution_lane"), dict)
+        else {}
+    )
+    if _optional_text(quality_closure_truth.get("state")) == "bundle_only_remaining" or _optional_text(
+        quality_execution_lane.get("lane_id")
+    ) == "submission_hardening":
+        return "human_review_readiness"
+    quality_closure_basis = (
+        dict(summary_payload.get("quality_closure_basis") or {})
+        if isinstance(summary_payload.get("quality_closure_basis"), dict)
+        else {}
+    )
+    selected: tuple[tuple[int, int], str] | None = None
+    for order_index, dimension in enumerate(_QUALITY_ASSESSMENT_REVIEW_ORDER):
+        basis_item = quality_closure_basis.get(dimension)
+        if not isinstance(basis_item, dict):
+            continue
+        status = _optional_text(basis_item.get("status")) or "ready"
+        if status == "ready":
+            continue
+        marker = (_QUALITY_REVIEW_STATUS_RANK.get(status, len(_QUALITY_REVIEW_STATUS_RANK)), order_index)
+        if selected is None or marker < selected[0]:
+            selected = (marker, dimension)
+    if selected is not None:
+        return selected[1]
+    return "publication_gate"
+
+
+def _quality_revision_action_type(*, dimension: str, summary_payload: dict[str, Any]) -> str:
+    quality_closure_truth = (
+        dict(summary_payload.get("quality_closure_truth") or {})
+        if isinstance(summary_payload.get("quality_closure_truth"), dict)
+        else {}
+    )
+    quality_execution_lane = (
+        dict(summary_payload.get("quality_execution_lane") or {})
+        if isinstance(summary_payload.get("quality_execution_lane"), dict)
+        else {}
+    )
+    if _optional_text(quality_closure_truth.get("state")) == "bundle_only_remaining" or _optional_text(
+        quality_execution_lane.get("lane_id")
+    ) == "submission_hardening":
+        return "stabilize_submission_bundle"
+    return _QUALITY_REVISION_ACTION_BY_DIMENSION.get(dimension, "close_evidence_gap")
+
+
+def _quality_revision_route_target(summary_payload: dict[str, Any]) -> str | None:
+    quality_execution_lane = (
+        dict(summary_payload.get("quality_execution_lane") or {})
+        if isinstance(summary_payload.get("quality_execution_lane"), dict)
+        else {}
+    )
+    route_repair_plan = (
+        dict(summary_payload.get("route_repair_plan") or {})
+        if isinstance(summary_payload.get("route_repair_plan"), dict)
+        else {}
+    )
+    return _optional_text(quality_execution_lane.get("route_target")) or _optional_text(route_repair_plan.get("route_target"))
+
+
+def _default_quality_revision_action(*, action_type: str, route_target: str | None) -> str:
+    base_action = _QUALITY_REVISION_DEFAULT_ACTIONS.get(action_type, "继续按当前质量评估结论推进修订。")
+    if route_target is None:
+        return base_action
+    return f"先在 {route_target} 推进：{base_action}"
+
+
+def _quality_revision_done_criteria(*, next_review_focus: str | None, action_type: str) -> str:
+    if next_review_focus is not None:
+        return f"下一轮复评能够明确确认：{next_review_focus}"
+    return _QUALITY_REVISION_DEFAULT_DONE_CRITERIA.get(action_type, "当前质量缺口形成可复核闭环。")
+
+
+def _quality_revision_item_priority(*, status: str | None, is_top_priority: bool) -> str:
+    if is_top_priority:
+        return "p0"
+    if status is None:
+        return "p1"
+    return _QUALITY_REVISION_PRIORITY_BY_STATUS.get(status, "p1")
+
+
+def _quality_revision_item(
+    *,
+    item_id: str,
+    dimension: str,
+    action_type: str,
+    action: str,
+    rationale: str,
+    done_criteria: str,
+    priority: str,
+    route_target: str | None,
+) -> dict[str, Any]:
+    item = {
+        "item_id": item_id,
+        "priority": priority,
+        "dimension": dimension,
+        "action_type": action_type,
+        "action": action,
+        "rationale": rationale,
+        "done_criteria": done_criteria,
+    }
+    if route_target is not None:
+        item["route_target"] = route_target
+    return item
+
+
+def _quality_revision_plan_from_summary_payload(summary_payload: dict[str, Any]) -> dict[str, Any]:
+    agenda = _normalized_quality_review_agenda(
+        agenda_payload=(
+            dict(summary_payload.get("quality_review_agenda") or {})
+            if isinstance(summary_payload.get("quality_review_agenda"), dict)
+            else None
+        ),
+        summary_payload=summary_payload,
+    )
+    quality_closure_truth = (
+        dict(summary_payload.get("quality_closure_truth") or {})
+        if isinstance(summary_payload.get("quality_closure_truth"), dict)
+        else {}
+    )
+    quality_closure_basis = (
+        dict(summary_payload.get("quality_closure_basis") or {})
+        if isinstance(summary_payload.get("quality_closure_basis"), dict)
+        else {}
+    )
+    quality_execution_lane = (
+        dict(summary_payload.get("quality_execution_lane") or {})
+        if isinstance(summary_payload.get("quality_execution_lane"), dict)
+        else {}
+    )
+    lane_id = _optional_text(quality_execution_lane.get("lane_id"))
+    dimension = _top_quality_revision_dimension(summary_payload)
+    basis_item = dict(quality_closure_basis.get(dimension) or {})
+    status = _optional_text(basis_item.get("status"))
+    action_type = _quality_revision_action_type(dimension=dimension, summary_payload=summary_payload)
+    route_target = _quality_revision_route_target(summary_payload)
+    lane_specific_action = (
+        f"先在 {route_target} 修订，完成当前最小投稿包收口。"
+        if route_target is not None
+        and (_optional_text(quality_closure_truth.get("state")) == "bundle_only_remaining" or lane_id == "submission_hardening")
+        else None
+    )
+    next_review_focus = (
+        _optional_text(quality_execution_lane.get("route_key_question"))
+        if _optional_text(quality_closure_truth.get("state")) == "bundle_only_remaining" or lane_id == "submission_hardening"
+        else _optional_text(agenda.get("next_review_focus"))
+    ) or _optional_text(agenda.get("next_review_focus"))
+    rationale = (
+        _optional_text(quality_closure_truth.get("summary"))
+        if _optional_text(quality_closure_truth.get("state")) == "bundle_only_remaining" or lane_id == "submission_hardening"
+        else None
+    ) or _optional_text(agenda.get("top_priority_issue")) or _optional_text(basis_item.get("summary")) or _optional_text(
+        quality_closure_truth.get("summary")
+    )
+    return {
+        "policy_id": DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"],
+        "plan_id": _quality_revision_plan_id(summary_payload),
+        "execution_status": "planned",
+        "overall_diagnosis": (
+            _optional_text(quality_closure_truth.get("summary"))
+            or _optional_text(summary_payload.get("verdict_summary"))
+            or "当前论文线仍有质量修订任务待完成。"
+        ),
+        "weight_contract": dict(_PUBLICATION_CRITIQUE_WEIGHT_CONTRACT),
+        "items": [
+            _quality_revision_item(
+                item_id="quality-revision-item-1",
+                priority=_quality_revision_item_priority(status=status, is_top_priority=True),
+                dimension=dimension,
+                action_type=action_type,
+                route_target=route_target,
+                action=lane_specific_action
+                or _optional_text(agenda.get("suggested_revision"))
+                or _default_quality_revision_action(action_type=action_type, route_target=route_target),
+                rationale=rationale or "当前质量缺口仍未闭环。",
+                done_criteria=_quality_revision_done_criteria(
+                    next_review_focus=next_review_focus,
+                    action_type=action_type,
+                ),
+            )
+        ],
+        "next_review_focus": _unique_non_empty_texts(
+            next_review_focus,
+            quality_execution_lane.get("route_key_question"),
+        ),
+    }
+
+
+def _quality_revision_candidates(
+    *,
+    publication_eval: dict[str, Any],
+    summary_payload: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    quality_assessment = (
+        dict(publication_eval.get("quality_assessment") or {})
+        if isinstance(publication_eval.get("quality_assessment"), dict)
+        else {}
+    )
+    agenda = _normalized_quality_review_agenda(
+        agenda_payload=(
+            dict(summary_payload.get("quality_review_agenda") or {})
+            if isinstance(summary_payload.get("quality_review_agenda"), dict)
+            else None
+        ),
+        summary_payload=summary_payload,
+    )
+    top_dimension = _top_quality_revision_dimension(summary_payload)
+    route_target = _quality_revision_route_target(summary_payload)
+    candidates: list[tuple[tuple[int, int, int], dict[str, Any], str | None]] = []
+    for order_index, dimension in enumerate(_QUALITY_ASSESSMENT_REVIEW_ORDER):
+        payload = quality_assessment.get(dimension)
+        if not isinstance(payload, dict):
+            continue
+        status = _optional_text(payload.get("status")) or "partial"
+        if status == "ready":
+            continue
+        reviewer_reason = _optional_text(payload.get("reviewer_reason"))
+        reviewer_advice = _optional_text(payload.get("reviewer_revision_advice"))
+        reviewer_focus = _optional_text(payload.get("reviewer_next_round_focus"))
+        if reviewer_reason is None and reviewer_advice is None and reviewer_focus is None:
+            continue
+        is_top_priority = dimension == top_dimension
+        action_type = _quality_revision_action_type(dimension=dimension, summary_payload=summary_payload)
+        focus = reviewer_focus or (_optional_text(agenda.get("next_review_focus")) if is_top_priority else None)
+        candidates.append(
+            (
+                (
+                    0 if is_top_priority else 1,
+                    _QUALITY_REVIEW_STATUS_RANK.get(status, len(_QUALITY_REVIEW_STATUS_RANK)),
+                    order_index,
+                ),
+                _quality_revision_item(
+                    item_id="",
+                    priority=_quality_revision_item_priority(status=status, is_top_priority=is_top_priority),
+                    dimension=dimension,
+                    action_type=action_type,
+                    route_target=route_target,
+                    action=reviewer_advice
+                    or (_optional_text(agenda.get("suggested_revision")) if is_top_priority else None)
+                    or _default_quality_revision_action(action_type=action_type, route_target=route_target),
+                    rationale=reviewer_reason
+                    or (_optional_text(agenda.get("top_priority_issue")) if is_top_priority else None)
+                    or _optional_text(payload.get("summary"))
+                    or "当前质量缺口仍未闭环。",
+                    done_criteria=_quality_revision_done_criteria(
+                        next_review_focus=focus,
+                        action_type=action_type,
+                    ),
+                ),
+                focus,
+            )
+        )
+    candidates.sort(key=lambda item: item[0])
+    normalized: list[dict[str, Any]] = []
+    focuses: list[str] = []
+    for index, (_, item, focus) in enumerate(candidates, start=1):
+        candidate = dict(item)
+        candidate["item_id"] = f"quality-revision-item-{index}"
+        normalized.append(candidate)
+        if focus is not None:
+            focuses.append(focus)
+    return normalized, focuses
+
+
+def _quality_revision_plan(
+    *,
+    publication_eval: dict[str, Any],
+    summary_payload: dict[str, Any],
+) -> dict[str, Any]:
+    declared_plan = (
+        dict(publication_eval.get("quality_revision_plan") or {})
+        if isinstance(publication_eval.get("quality_revision_plan"), dict)
+        else None
+    )
+    derived_plan = _quality_revision_plan_from_summary_payload(summary_payload)
+    reviewer_candidates, reviewer_focuses = _quality_revision_candidates(
+        publication_eval=publication_eval,
+        summary_payload=summary_payload,
+    )
+    if reviewer_candidates:
+        derived_plan = {
+            **derived_plan,
+            "items": reviewer_candidates,
+            "next_review_focus": _unique_non_empty_texts(reviewer_focuses),
+        }
+    return _normalized_quality_revision_plan(
+        plan_payload=declared_plan if declared_plan is not None else derived_plan,
+        summary_payload={**summary_payload, "quality_revision_plan": derived_plan},
+    )
+
+
+def _normalized_weight_contract(payload: object) -> dict[str, int]:
+    if not isinstance(payload, dict):
+        return dict(_PUBLICATION_CRITIQUE_WEIGHT_CONTRACT)
+    contract: dict[str, int] = {}
+    for field, weight in payload.items():
+        if not isinstance(field, str) or not field.strip() or not isinstance(weight, int):
+            raise ValueError("quality revision plan weight_contract must map non-empty strings to integers")
+        contract[field.strip()] = weight
+    return contract or dict(_PUBLICATION_CRITIQUE_WEIGHT_CONTRACT)
+
+
+def _normalized_text_list(value: object) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return _unique_non_empty_texts(value)
+    text = _optional_text(value)
+    return [] if text is None else [text]
+
+
+def _normalized_quality_revision_item(
+    *,
+    item_payload: dict[str, Any] | None,
+    fallback_item: dict[str, Any],
+    item_index: int,
+) -> dict[str, Any]:
+    if not isinstance(item_payload, dict):
+        return dict(fallback_item)
+    item_id = _optional_text(item_payload.get("item_id")) or fallback_item["item_id"] or f"quality-revision-item-{item_index}"
+    priority = _optional_text(item_payload.get("priority")) or fallback_item["priority"]
+    if priority not in _QUALITY_REVISION_ITEM_PRIORITIES:
+        allowed = ", ".join(sorted(_QUALITY_REVISION_ITEM_PRIORITIES))
+        raise ValueError(f"quality revision plan item priority must be one of: {allowed}")
+    dimension = (
+        _optional_text(item_payload.get("dimension"))
+        or _optional_text(item_payload.get("quality_dimension"))
+        or fallback_item["dimension"]
+    )
+    if dimension not in _QUALITY_REVISION_DIMENSIONS:
+        allowed = ", ".join(sorted(_QUALITY_REVISION_DIMENSIONS))
+        raise ValueError(f"quality revision plan item dimension must be one of: {allowed}")
+    action_type = _optional_text(item_payload.get("action_type")) or fallback_item["action_type"]
+    if action_type not in _PUBLICATION_CRITIQUE_ACTION_CONTRACT:
+        allowed = ", ".join(sorted(_PUBLICATION_CRITIQUE_ACTION_CONTRACT))
+        raise ValueError(f"quality revision plan item action_type must be one of: {allowed}")
+    action = (
+        _optional_text(item_payload.get("action"))
+        or _optional_text(item_payload.get("suggested_revision"))
+        or fallback_item["action"]
+    )
+    rationale = _optional_text(item_payload.get("rationale")) or _optional_text(item_payload.get("reason")) or fallback_item["rationale"]
+    done_criteria = _optional_text(item_payload.get("done_criteria")) or fallback_item["done_criteria"]
+    route_target = _optional_text(item_payload.get("route_target")) or _optional_text(fallback_item.get("route_target"))
+    return _quality_revision_item(
+        item_id=item_id,
+        priority=priority,
+        dimension=dimension,
+        action_type=action_type,
+        route_target=route_target,
+        action=action,
+        rationale=rationale,
+        done_criteria=done_criteria,
+    )
+
+
+def _normalized_quality_revision_plan(
+    *,
+    plan_payload: dict[str, Any] | None,
+    summary_payload: dict[str, Any],
+) -> dict[str, Any]:
+    fallback = _quality_revision_plan_from_summary_payload(summary_payload)
+    if not isinstance(plan_payload, dict):
+        return fallback
+    execution_status = _optional_text(plan_payload.get("execution_status")) or fallback["execution_status"]
+    if execution_status not in _QUALITY_REVISION_PLAN_STATUSES:
+        allowed = ", ".join(sorted(_QUALITY_REVISION_PLAN_STATUSES))
+        raise ValueError(f"quality revision plan execution_status must be one of: {allowed}")
+    fallback_items = [dict(item) for item in fallback["items"]]
+    raw_items = plan_payload.get("items")
+    if raw_items is None:
+        normalized_items = fallback_items
+    else:
+        if not isinstance(raw_items, list):
+            raise ValueError("quality revision plan items must be a list")
+        if not raw_items:
+            normalized_items = fallback_items
+        else:
+            normalized_items = []
+            for index, item in enumerate(raw_items, start=1):
+                fallback_item = fallback_items[min(index - 1, len(fallback_items) - 1)]
+                normalized_items.append(
+                    _normalized_quality_revision_item(
+                        item_payload=item if isinstance(item, dict) else None,
+                        fallback_item=fallback_item,
+                        item_index=index,
+                    )
+                )
+    return {
+        "policy_id": _optional_text(plan_payload.get("policy_id")) or fallback["policy_id"],
+        "plan_id": _optional_text(plan_payload.get("plan_id")) or _optional_text(plan_payload.get("revision_plan_id")) or fallback["plan_id"],
+        "execution_status": execution_status,
+        "overall_diagnosis": _optional_text(plan_payload.get("overall_diagnosis")) or fallback["overall_diagnosis"],
+        "weight_contract": _normalized_weight_contract(plan_payload.get("weight_contract")),
+        "items": normalized_items,
+        "next_review_focus": (
+            _unique_non_empty_texts(_normalized_text_list(plan_payload.get("next_review_focus")))
+            if _normalized_text_list(plan_payload.get("next_review_focus"))
+            else list(fallback["next_review_focus"])
+        ),
+    }
+
+
 def _quality_review_agenda(
     *,
     publication_eval: dict[str, Any],
@@ -832,6 +1304,17 @@ def _quality_execution_lane(
     else:
         lane_id = "general_quality_repair"
 
+    if lane_id == "submission_hardening":
+        route_target = "finalize"
+        route_key_question = "当前论文线还差哪一步 finalize / submission bundle 收口？"
+        repair_mode = "same_line_route_back"
+        if str((route_repair_plan or {}).get("route_target") or "").strip() != "finalize":
+            route_rationale = _required_text(
+                "promotion gate",
+                "controller_stage_note",
+                promotion_gate_payload.get("controller_stage_note"),
+            )
+
     lane_label = _QUALITY_EXECUTION_LANE_LABELS[lane_id]
     if route_target and route_key_question:
         verb = "进入" if repair_mode == "bounded_analysis" else "回到"
@@ -893,6 +1376,7 @@ def _build_evaluation_summary_payload(
     actions = list(publication_eval.get("recommended_actions") or [])
     quest_id = _required_text("publication eval", "quest_id", publication_eval.get("quest_id"))
     route_repair_plan = _route_repair_plan(actions)
+    summary_id = f"evaluation-summary::{publication_eval['study_id']}::{quest_id}::{publication_eval['emitted_at']}"
     quality_closure_basis = _quality_closure_basis(
         study_root=study_root,
         publication_eval=publication_eval,
@@ -905,9 +1389,33 @@ def _build_evaluation_summary_payload(
         route_repair_plan=route_repair_plan,
         quality_closure_basis=quality_closure_basis,
     )
+    quality_execution_lane = _quality_execution_lane(
+        promotion_gate_payload=promotion_gate_payload,
+        route_repair_plan=route_repair_plan,
+    )
+    quality_review_agenda = _quality_review_agenda(
+        publication_eval=publication_eval,
+        gaps=gaps,
+        actions=actions,
+        route_repair_plan=route_repair_plan,
+        quality_closure_truth=quality_closure_truth,
+    )
+    quality_revision_plan = _quality_revision_plan(
+        publication_eval=publication_eval,
+        summary_payload={
+            "summary_id": summary_id,
+            "study_id": publication_eval["study_id"],
+            "verdict_summary": verdict.get("summary"),
+            "route_repair_plan": route_repair_plan,
+            "quality_closure_truth": quality_closure_truth,
+            "quality_execution_lane": quality_execution_lane,
+            "quality_closure_basis": quality_closure_basis,
+            "quality_review_agenda": quality_review_agenda,
+        },
+    )
     return {
         "schema_version": 1,
-        "summary_id": f"evaluation-summary::{publication_eval['study_id']}::{quest_id}::{publication_eval['emitted_at']}",
+        "summary_id": summary_id,
         "study_id": _required_text("publication eval", "study_id", publication_eval.get("study_id")),
         "quest_id": quest_id,
         "emitted_at": _required_text("publication eval", "emitted_at", publication_eval.get("emitted_at")),
@@ -944,18 +1452,10 @@ def _build_evaluation_summary_payload(
         "recommended_action_types": _recommended_action_types(actions),
         "route_repair_plan": route_repair_plan,
         "quality_closure_truth": quality_closure_truth,
-        "quality_execution_lane": _quality_execution_lane(
-            promotion_gate_payload=promotion_gate_payload,
-            route_repair_plan=route_repair_plan,
-        ),
+        "quality_execution_lane": quality_execution_lane,
         "quality_closure_basis": quality_closure_basis,
-        "quality_review_agenda": _quality_review_agenda(
-            publication_eval=publication_eval,
-            gaps=gaps,
-            actions=actions,
-            route_repair_plan=route_repair_plan,
-            quality_closure_truth=quality_closure_truth,
-        ),
+        "quality_review_agenda": quality_review_agenda,
+        "quality_revision_plan": quality_revision_plan,
         "requires_controller_decision": any(bool(action.get("requires_controller_decision")) for action in actions),
         "promotion_gate_status": {
             "status": promotion_gate_payload["status"],
@@ -1068,6 +1568,11 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
     quality_review_agenda = (
         dict(payload.get("quality_review_agenda") or {})
         if isinstance(payload.get("quality_review_agenda"), dict)
+        else None
+    )
+    quality_revision_plan = (
+        dict(payload.get("quality_revision_plan") or {})
+        if isinstance(payload.get("quality_revision_plan"), dict)
         else None
     )
     quality_execution_lane = _required_mapping(
@@ -1221,6 +1726,10 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
         },
         "quality_review_agenda": _normalized_quality_review_agenda(
             agenda_payload=quality_review_agenda,
+            summary_payload=payload,
+        ),
+        "quality_revision_plan": _normalized_quality_revision_plan(
+            plan_payload=quality_revision_plan,
             summary_payload=payload,
         ),
         "requires_controller_decision": _required_bool(

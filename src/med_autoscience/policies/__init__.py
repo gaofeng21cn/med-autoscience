@@ -37,6 +37,11 @@ from .medical_reporting_contract import (
     MedicalReportingContract,
     resolve_medical_reporting_contract,
 )
+from .publication_critique import (
+    DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+    build_revision_action_contract,
+    build_weight_contract as build_publication_critique_weight_contract,
+)
 
 __all__ = [
     "AMA_CSL_BASENAME",
@@ -64,4 +69,7 @@ __all__ = [
     "MedicalReportingContract",
     "resolve_medical_analysis_contract",
     "resolve_medical_reporting_contract",
+    "DEFAULT_PUBLICATION_CRITIQUE_POLICY",
+    "build_publication_critique_weight_contract",
+    "build_revision_action_contract",
 ]

@@ -1308,14 +1308,44 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
             "下一轮复评重点：当前论文线还差哪一步 finalize / submission bundle 收口？"
         ),
     }
+    assert result["quality_revision_plan"] == {
+        "policy_id": "medical_publication_critique_v1",
+        "plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-10T09:09:00+00:00",
+        "execution_status": "planned",
+        "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+        "weight_contract": {
+            "clinical_significance": 25,
+            "evidence_strength": 35,
+            "novelty_positioning": 20,
+            "human_review_readiness": 20,
+        },
+        "items": [
+            {
+                "item_id": "quality-revision-item-1",
+                "priority": "p0",
+                "dimension": "human_review_readiness",
+                "action_type": "stabilize_submission_bundle",
+                "action": "先在 finalize 修订，完成当前最小投稿包收口。",
+                "rationale": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+                "done_criteria": "下一轮复评能够明确确认：当前论文线还差哪一步 finalize / submission bundle 收口？",
+                "route_target": "finalize",
+            }
+        ],
+        "next_review_focus": ["当前论文线还差哪一步 finalize / submission bundle 收口？"],
+    }
     assert result["module_surfaces"]["eval_hygiene"]["quality_review_agenda"] == result["quality_review_agenda"]
+    assert result["module_surfaces"]["eval_hygiene"]["quality_revision_plan"] == result["quality_revision_plan"]
     assert result["module_surfaces"]["eval_hygiene"]["quality_execution_lane"] == result["quality_execution_lane"]
     assert "## 质量闭环" in markdown
     assert "## 质量评审议程" in markdown
+    assert "## 质量修订计划" in markdown
     assert "当前优先问题: 必须优先修复：外部验证队列还没有补齐。" in markdown
     assert "建议修订动作:" in markdown
     assert "当前主线只剩 定稿与投稿收尾 / bundle 收口。" in markdown
     assert "下一轮复评重点: 当前论文线还差哪一步 定稿与投稿收尾 / 最小投稿包 收口？" in markdown
+    assert "P0 [人工审阅准备度] -> 定稿与投稿收尾" in markdown
+    assert "完成当前最小投稿包收口。" in markdown
+    assert "完成标准: 下一轮复评能够明确确认：当前论文线还差哪一步 定稿与投稿收尾 / 最小投稿包 收口？" in markdown
     assert "核心科学质量已经闭环" in markdown
     assert "核心科学证据已经闭环，剩余工作不在核心证据面。" in markdown
     assert "当前质量执行线聚焦 submission hardening 收口" in markdown
