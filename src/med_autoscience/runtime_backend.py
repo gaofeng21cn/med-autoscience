@@ -65,6 +65,17 @@ class ManagedRuntimeBackend(Protocol):
         requested_baseline_ref: dict[str, Any] | None = None,
     ) -> dict[str, Any]: ...
 
+    def chat_quest(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        text: str,
+        source: str,
+        reply_to_interaction_id: str | None = None,
+        decision_response: dict[str, Any] | None = None,
+    ) -> dict[str, Any]: ...
+
     def artifact_complete_quest(
         self,
         *,
@@ -96,6 +107,10 @@ _BACKEND_CALLABLE_CONTRACT: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] =
     "update_quest_startup_context": (
         ("runtime_root", "quest_id"),
         ("startup_contract", "requested_baseline_ref"),
+    ),
+    "chat_quest": (
+        ("runtime_root", "quest_id", "text", "source"),
+        ("reply_to_interaction_id", "decision_response"),
     ),
     "artifact_complete_quest": (("runtime_root", "quest_id", "summary"), ()),
     "artifact_interact": (("runtime_root", "quest_id", "payload"), ()),

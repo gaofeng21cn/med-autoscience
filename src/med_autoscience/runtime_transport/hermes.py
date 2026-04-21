@@ -326,6 +326,27 @@ def update_quest_startup_context(
     )
 
 
+def chat_quest(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    text: str,
+    source: str,
+    reply_to_interaction_id: str | None = None,
+    decision_response: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="chat_quest")
+    _require_ready_external_runtime(runtime_root=resolved_runtime_root)
+    return stable_transport.chat_quest(
+        runtime_root=resolved_runtime_root,
+        quest_id=quest_id,
+        text=text,
+        source=source,
+        reply_to_interaction_id=reply_to_interaction_id,
+        decision_response=decision_response,
+    )
+
+
 def artifact_complete_quest(
     *,
     runtime_root: Path,

@@ -523,6 +523,8 @@ def _continuation_reason_label(value: object) -> str | None:
         return None
     if text.startswith("decision:"):
         return "运行停在待处理的决策节点"
+    if text.startswith("latest_user_requirement:"):
+        return "最新用户要求已接管当前优先级"
     return _CONTINUATION_REASON_LABELS.get(text, _humanize_token(text))
 
 

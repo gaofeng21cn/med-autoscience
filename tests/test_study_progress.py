@@ -2489,6 +2489,37 @@ def test_render_study_progress_markdown_humanizes_decision_continuation_reason()
     assert "运行停在待处理的决策节点" in markdown
 
 
+def test_render_study_progress_markdown_humanizes_latest_user_requirement_continuation_reason() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    markdown = module.render_study_progress_markdown(
+        {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "current_stage": "publication_supervision",
+            "current_stage_summary": "MAS 正在监督 live runtime 按最新任务推进。",
+            "paper_stage": "publishability_gate_blocked",
+            "paper_stage_summary": "论文仍在可发表性门控阶段。",
+            "runtime_decision": "resume",
+            "runtime_reason": "quest_already_running",
+            "current_blockers": [],
+            "next_system_action": "继续按最新用户要求推进。",
+            "latest_events": [],
+            "continuation_state": {
+                "continuation_reason": "latest_user_requirement:msg-001",
+            },
+            "supervision": {
+                "health_status": "live",
+                "supervisor_tick_status": "fresh",
+                "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
+            },
+        }
+    )
+
+    assert "latest_user_requirement:msg-001" not in markdown
+    assert "最新用户要求已接管当前优先级" in markdown
+
+
 def test_render_study_progress_markdown_hides_runtime_blocker_wording_for_manual_finishing() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 

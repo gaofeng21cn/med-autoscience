@@ -18,6 +18,7 @@ from med_autoscience.domain_entry_contract import (
 from med_autoscience.doctor import build_doctor_report
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.runtime_protocol import quest_state, user_message
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 from med_autoscience.study_task_intake import (
@@ -3074,20 +3075,36 @@ def _build_live_task_intake_runtime_message(payload: dict[str, Any]) -> str:
     )
 
 
+def _runtime_message_id(payload: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(payload, Mapping):
+        return None
+    nested_message = payload.get("message")
+    if isinstance(nested_message, Mapping):
+        message_id = _non_empty_text(nested_message.get("id")) or _non_empty_text(nested_message.get("message_id"))
+        if message_id is not None:
+            return message_id
+    return _non_empty_text(payload.get("message_id")) or _non_empty_text(payload.get("id"))
+
+
 def _enqueue_task_intake_for_live_runtime(
     *,
     profile: WorkspaceProfile,
     study_id: str,
+    execution: Mapping[str, Any] | None,
     payload: dict[str, Any],
 ) -> dict[str, Any]:
     layout = build_workspace_runtime_layout_for_profile(profile)
     quest_root = layout.quest_root(study_id)
+    runtime_message = _build_live_task_intake_runtime_message(payload)
     result: dict[str, Any] = {
         "quest_root": str(quest_root),
         "quest_status": None,
         "intervention_enqueued": False,
         "message_id": None,
         "reason": None,
+        "delivery_mode": None,
+        "runtime_backend_id": None,
+        "backend_submit_error": None,
     }
     if not (quest_root / "quest.yaml").exists():
         result["reason"] = "quest_not_found"
@@ -3101,15 +3118,35 @@ def _enqueue_task_intake_for_live_runtime(
         return result
 
     runtime_state["quest_id"] = study_id
+    backend = runtime_backend_contract.resolve_managed_runtime_backend(execution)
+    if backend is not None:
+        result["runtime_backend_id"] = backend.BACKEND_ID
+        try:
+            response = backend.chat_quest(
+                runtime_root=layout.runtime_root,
+                quest_id=study_id,
+                text=runtime_message,
+                source="codex-study-task-intake",
+            )
+        except Exception as exc:
+            result["backend_submit_error"] = str(exc)
+        else:
+            result["intervention_enqueued"] = True
+            result["delivery_mode"] = "managed_runtime_chat"
+            result["message_id"] = _runtime_message_id(response)
+            result["reason"] = "live_runtime_task_context_submitted"
+            return result
+
     record = user_message.enqueue_user_message(
         quest_root=quest_root,
         runtime_state=runtime_state,
-        message=_build_live_task_intake_runtime_message(payload),
+        message=runtime_message,
         source="codex-study-task-intake",
     )
     result["intervention_enqueued"] = True
+    result["delivery_mode"] = "durable_queue_fallback"
     result["message_id"] = record.get("message_id")
-    result["reason"] = "live_runtime_task_context_enqueued"
+    result["reason"] = "live_runtime_task_context_enqueued_fallback"
     return result
 
 
@@ -3165,6 +3202,7 @@ def submit_study_task(
     runtime_intervention = _enqueue_task_intake_for_live_runtime(
         profile=profile,
         study_id=resolved_study_id,
+        execution=execution,
         payload=latest_payload,
     )
     return {

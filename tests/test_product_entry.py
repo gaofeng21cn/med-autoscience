@@ -3217,8 +3217,12 @@ def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_pa
     assert "figure 质量坏循环" in payload["custom_brief"]
 
 
-def test_submit_study_task_enqueues_task_context_for_live_runtime(tmp_path: Path) -> None:
+def test_submit_study_task_enqueues_task_context_for_live_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
     quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk"
@@ -3239,6 +3243,37 @@ def test_submit_study_task_enqueues_task_context_for_live_runtime(tmp_path: Path
     )
     write_text(quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
 
+    class FakeBackend:
+        BACKEND_ID = "fake"
+        ENGINE_ID = "fake-engine"
+
+        def chat_quest(
+            self,
+            *,
+            runtime_root: Path,
+            quest_id: str,
+            text: str,
+            source: str,
+            reply_to_interaction_id: str | None = None,
+            decision_response: dict[str, object] | None = None,
+        ) -> dict[str, object]:
+            assert runtime_root == profile.managed_runtime_home
+            assert quest_id == "001-risk"
+            assert source == "codex-study-task-intake"
+            assert reply_to_interaction_id is None
+            assert decision_response is None
+            assert "优先清理 publication gate 文面阻塞" in text
+            assert "不要继续泛化分析" in text
+            assert "只使用现有证据" in text
+            return {"ok": True, "message": {"id": "msg-formal-001"}}
+
+    monkeypatch.setattr(runtime_backend, "resolve_managed_runtime_backend", lambda execution: FakeBackend())
+    monkeypatch.setattr(
+        product_entry.user_message,
+        "enqueue_user_message",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("formal live submit should not fall back to queue")),
+    )
+
     result = product_entry.submit_study_task(
         profile=profile,
         study_id="001-risk",
@@ -3253,11 +3288,57 @@ def test_submit_study_task_enqueues_task_context_for_live_runtime(tmp_path: Path
 
     assert runtime_intervention["intervention_enqueued"] is True
     assert runtime_intervention["quest_status"] == "running"
-    assert runtime_intervention["message_id"].startswith("msg-")
+    assert runtime_intervention["message_id"] == "msg-formal-001"
+    assert runtime_intervention["reason"] == "live_runtime_task_context_submitted"
+    assert queue["pending"] == []
+    assert runtime_state["pending_user_message_count"] == 0
+
+
+def test_submit_study_task_falls_back_to_durable_queue_when_backend_chat_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk"
+    write_text(quest_root / "quest.yaml", "id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": "001-risk",
+                "status": "running",
+                "active_interaction_id": "progress-1",
+                "pending_user_message_count": 0,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
+
+    monkeypatch.setattr(runtime_backend, "resolve_managed_runtime_backend", lambda execution: None)
+
+    result = product_entry.submit_study_task(
+        profile=profile,
+        study_id="001-risk",
+        task_intent="优先比较不同省份的生物制剂使用意向。",
+        constraints=("保留多中心分层分析",),
+    )
+
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    runtime_intervention = result["runtime_intervention"]
+
+    assert runtime_intervention["intervention_enqueued"] is True
+    assert runtime_intervention["delivery_mode"] == "durable_queue_fallback"
+    assert runtime_intervention["reason"] == "live_runtime_task_context_enqueued_fallback"
     assert len(queue["pending"]) == 1
-    assert "优先清理 publication gate 文面阻塞" in queue["pending"][0]["content"]
-    assert "不要继续泛化分析" in queue["pending"][0]["content"]
-    assert "只使用现有证据" in queue["pending"][0]["content"]
+    assert "优先比较不同省份的生物制剂使用意向" in queue["pending"][0]["content"]
+    assert "保留多中心分层分析" in queue["pending"][0]["content"]
     assert runtime_state["pending_user_message_count"] == 1
 
 

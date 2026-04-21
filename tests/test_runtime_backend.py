@@ -78,6 +78,25 @@ class _BackendStub:
             "requested_baseline_ref": requested_baseline_ref,
         }
 
+    def chat_quest(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        text: str,
+        source: str,
+        reply_to_interaction_id: str | None = None,
+        decision_response: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        return {
+            "runtime_root": str(runtime_root),
+            "quest_id": quest_id,
+            "text": text,
+            "source": source,
+            "reply_to_interaction_id": reply_to_interaction_id,
+            "decision_response": decision_response,
+        }
+
     def artifact_complete_quest(
         self,
         *,
@@ -145,6 +164,18 @@ def test_runtime_backend_rejects_backend_missing_required_callable() -> None:
 
     with pytest.raises(ValueError, match="missing callable `resolve_daemon_url`"):
         module.register_managed_runtime_backend(IncompleteBackend())
+
+
+def test_runtime_backend_rejects_backend_missing_chat_quest_callable() -> None:
+    module = importlib.import_module("med_autoscience.runtime_backend")
+
+    class MissingChatBackend(_BackendStub):
+        chat_quest = None
+
+    with pytest.raises(ValueError, match="missing callable `chat_quest`"):
+        module.register_managed_runtime_backend(
+            MissingChatBackend(backend_id="broken_missing_chat", engine_id="broken-missing-chat")
+        )
 
 
 def test_runtime_backend_rejects_backend_with_signature_drift() -> None:
