@@ -649,6 +649,77 @@ def test_study_outer_loop_tick_rejects_publication_eval_ref_outside_eval_owned_l
         )
 
 
+def test_study_outer_loop_tick_accepts_freshened_publication_eval_id_on_stable_latest_artifact(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    charter_ref = _write_charter(study_root)
+    current_publication_eval_ref = _write_publication_eval(study_root, quest_root)
+    stale_publication_eval_ref = dict(current_publication_eval_ref)
+    stale_publication_eval_ref["eval_id"] = "publication-eval::001-risk::quest-001::stale"
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "decision": "blocked",
+            "reason": "startup_boundary_not_ready_for_resume",
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **kwargs: (
+            seen.setdefault("ensure_kwargs", kwargs),
+            {
+                "decision": "resume",
+                "reason": "quest_paused",
+            },
+        )[1],
+    )
+
+    result = module.study_outer_loop_tick(
+        profile=profile,
+        study_id="001-risk",
+        charter_ref=charter_ref,
+        publication_eval_ref=stale_publication_eval_ref,
+        decision_type="continue_same_line",
+        requires_human_confirmation=False,
+        controller_actions=[
+            {
+                "action_type": "ensure_study_runtime",
+                "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+            }
+        ],
+        reason="Use the latest publication eval on the stable eval-owned surface.",
+        source="test-source",
+        recorded_at="2026-04-05T06:07:00+00:00",
+    )
+
+    payload = json.loads(Path(result["study_decision_ref"]["artifact_path"]).read_text(encoding="utf-8"))
+    assert payload["publication_eval_ref"] == current_publication_eval_ref
+    assert seen["ensure_kwargs"]["study_id"] == "001-risk"
+
+
 def test_study_outer_loop_tick_fails_closed_when_runtime_escalation_artifact_mismatches_status_ref(
     monkeypatch,
     tmp_path: Path,

@@ -181,8 +181,6 @@ def _resolve_publication_eval_ref(
     )
     publication_eval_payload = read_publication_eval_latest(study_root=study_root, ref=publication_eval_path)
     eval_id = str(publication_eval_payload.get("eval_id") or "").strip()
-    if eval_id != normalized_ref.eval_id:
-        raise ValueError("study_outer_loop_tick eval_id mismatch against stable publication eval artifact")
     return StudyDecisionPublicationEvalRef(eval_id=eval_id, artifact_path=str(publication_eval_path))
 
 
