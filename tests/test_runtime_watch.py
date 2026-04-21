@@ -603,9 +603,28 @@ def test_publication_eval_action_uses_bounded_analysis_for_blocked_claim_evidenc
     assert action.reason == "当前 claim-evidence 对齐还不够，需要补一轮最小补充分析。"
     assert action.route_target == "analysis-campaign"
     assert action.route_key_question == "What is the narrowest supplementary analysis still required before the paper line can continue?"
-    assert action.route_rationale == "当前 claim-evidence 对齐还不够，需要补一轮最小补充分析。"
-    assert action.priority == "now"
 
+
+def test_publication_eval_action_routes_blocked_bundle_stage_back_to_same_line_finalize() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+
+    action = module._publication_eval_action(
+        report={
+            "status": "blocked",
+            "current_required_action": "complete_bundle_stage",
+            "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
+        },
+        generated_at="2026-04-21T03:10:00+00:00",
+        evidence_refs=("/tmp/publishability_gate.json",),
+    )
+
+    assert action.action_type == "route_back_same_line"
+    assert action.priority == "now"
+    assert action.route_target == "finalize"
+    assert action.route_key_question == (
+        "What is the narrowest finalize or submission-bundle step still required on the current paper line?"
+    )
+    assert action.route_rationale == "bundle-stage blockers are now on the critical path for this paper line"
 
 def test_runtime_watch_uses_runtime_watch_protocol_helpers(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")

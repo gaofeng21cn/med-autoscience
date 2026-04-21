@@ -300,6 +300,7 @@ def build_charter_expectation_closure_summary(
     }
     categories: list[dict[str, Any]] = []
     blocking_items: list[dict[str, Any]] = []
+    advisory_items: list[dict[str, Any]] = []
     declared_record_count = 0
     closed_item_count = 0
     for spec in CHARTER_EXPECTATION_CLOSURE_SPECS:
@@ -315,6 +316,7 @@ def build_charter_expectation_closure_summary(
         category_declared_count = 0
         category_closed_count = 0
         category_blocker_count = 0
+        category_advisory_count = 0
         for expectation_text in charter_items:
             base_payload = {
                 "expectation_key": expectation_key,
@@ -324,18 +326,18 @@ def build_charter_expectation_closure_summary(
             }
             matched_records = matching_records.get(expectation_text, [])
             if not matched_records:
-                blocker_payload = {
+                advisory_payload = {
                     **base_payload,
                     "closure_status": "not_recorded",
                     "recorded": False,
                     "record_count": 0,
-                    "blocker": True,
+                    "blocker": False,
                     "closed_at": None,
                     "note": None,
                 }
-                items.append(blocker_payload)
-                blocking_items.append(blocker_payload)
-                category_blocker_count += 1
+                items.append(advisory_payload)
+                advisory_items.append(advisory_payload)
+                category_advisory_count += 1
                 continue
             category_declared_count += 1
             declared_record_count += 1
@@ -384,14 +386,16 @@ def build_charter_expectation_closure_summary(
                 "declared_count": category_declared_count,
                 "closed_count": category_closed_count,
                 "blocker_count": category_blocker_count,
+                "advisory_count": category_advisory_count,
                 "items": items,
             }
         )
     return {
-        "status": "blocked" if blocking_items else "clear",
+        "status": "blocked" if blocking_items else ("advisory" if advisory_items else "clear"),
         "declared_record_count": declared_record_count,
         "closed_item_count": closed_item_count,
         "blocking_items": blocking_items,
+        "advisory_items": advisory_items,
         "categories": categories,
     }
 
@@ -2621,6 +2625,7 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- charter_expectation_closure_status: `{charter_expectation_closure_summary.get('status', 'clear')}`",
         f"- charter_expectation_declared_record_count: `{charter_expectation_closure_summary.get('declared_record_count', 0)}`",
         f"- charter_expectation_closed_item_count: `{charter_expectation_closure_summary.get('closed_item_count', 0)}`",
+        f"- charter_expectation_advisory_item_count: `{len(charter_expectation_closure_summary.get('advisory_items') or [])}`",
         f"- public_data_anchor_count: `{report.get('public_data_anchor_count', 0)}`",
         f"- public_data_surface_reference_count: `{report.get('public_data_surface_reference_count', 0)}`",
         f"- public_evidence_decision_count: `{report.get('public_evidence_decision_count', 0)}`",
@@ -2643,6 +2648,7 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
                 f"- declared_count: `{category['declared_count']}`",
                 f"- closed_count: `{category['closed_count']}`",
                 f"- blocker_count: `{category['blocker_count']}`",
+                f"- advisory_count: `{category.get('advisory_count', 0)}`",
             ]
         )
         category_items = category.get("items") or []

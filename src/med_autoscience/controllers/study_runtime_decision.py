@@ -349,7 +349,7 @@ def _publication_eval_action(
                     or "The current line is clear enough to continue after one bounded supplementary analysis pass."
                 ),
             }
-        if action_type != "continue_same_line":
+        if action_type not in {"continue_same_line", "route_back_same_line"}:
             return None
         if current_required_action in {"continue_bundle_stage", "complete_bundle_stage"}:
             return {
@@ -426,11 +426,16 @@ def _publication_eval_action(
         route_contract = _route_contract_for_action(action_type) or {}
     else:
         blocked_route_action = _blocked_route_action()
-        if blocked_route_action is None:
-            action_type = "return_to_controller"
-            route_contract = {}
-        else:
+        if blocked_route_action is not None:
             action_type, route_contract = blocked_route_action
+        else:
+            current_required_action = str(report.get("current_required_action") or "").strip()
+            if current_required_action in {"continue_bundle_stage", "complete_bundle_stage"}:
+                action_type = "route_back_same_line"
+                route_contract = _route_contract_for_action(action_type) or {}
+            else:
+                action_type = "return_to_controller"
+                route_contract = {}
         reason = (
             str(report.get("controller_stage_note") or "").strip()
             or "Publication gate is blocked and requires controller review."

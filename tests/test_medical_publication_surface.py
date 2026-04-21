@@ -1377,7 +1377,10 @@ def test_build_report_projects_study_charter_linkage_for_ledgers(tmp_path: Path,
     assert "- review_ledger_linkage_status: `linked`" in markdown
 
 
-def test_build_report_blocks_when_charter_expectation_closure_is_not_recorded(tmp_path: Path, monkeypatch) -> None:
+def test_build_report_treats_missing_charter_expectation_closure_records_as_advisory(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
     _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root, include_charter_expectations=True)
@@ -1385,13 +1388,15 @@ def test_build_report_blocks_when_charter_expectation_closure_is_not_recorded(tm
     report = module.build_surface_report(module.build_surface_state(quest_root))
     summary = report["charter_expectation_closure_summary"]
 
-    assert report["status"] == "blocked"
-    assert "charter_expectation_closure_incomplete" in report["blockers"]
-    assert summary["status"] == "blocked"
-    assert len(summary["blocking_items"]) == 3
-    assert {item["closure_status"] for item in summary["blocking_items"]} == {"not_recorded"}
-    assert all(item["blocker"] is True for item in summary["blocking_items"])
-    assert any(hit["pattern_id"] == "charter_expectation_closure_blocker" for hit in report["top_hits"])
+    assert report["status"] == "clear"
+    assert "charter_expectation_closure_incomplete" not in report["blockers"]
+    assert summary["status"] == "advisory"
+    assert summary["blocking_items"] == []
+    assert len(summary["advisory_items"]) == 3
+    assert {item["closure_status"] for item in summary["advisory_items"]} == {"not_recorded"}
+    assert all(item["blocker"] is False for item in summary["advisory_items"])
+    assert all(item["recorded"] is False for item in summary["advisory_items"])
+    assert not any(hit["pattern_id"] == "charter_expectation_closure_blocker" for hit in report["top_hits"])
 
     markdown = module.render_surface_markdown(report)
     assert "## Charter Expectation Closure Summary" in markdown

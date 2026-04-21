@@ -215,6 +215,21 @@ def _medical_surface_report_matches_paper_root(
     )
 
 
+def _medical_surface_report_matches_study_root(
+    report_payload: Any,
+    *,
+    study_root: Path | None,
+) -> bool:
+    if study_root is None:
+        return False
+    if not isinstance(report_payload, dict):
+        return False
+    raw_study_root = _non_empty_text(report_payload.get("study_root"))
+    if raw_study_root is None:
+        return False
+    return Path(raw_study_root).expanduser().resolve() == study_root.expanduser().resolve()
+
+
 def find_latest_gate_report(quest_root: Path) -> Path | None:
     return find_latest_parseable_json(
         list((quest_root / "artifacts" / "reports" / "publishability_gate").glob("*.json"))
@@ -225,6 +240,7 @@ def find_latest_medical_publication_surface_report(
     quest_root: Path,
     *,
     paper_root: Path | None = None,
+    study_root: Path | None = None,
 ) -> Path | None:
     report_paths = sorted(
         (quest_root / "artifacts" / "reports" / "medical_publication_surface").glob("*.json"),
@@ -238,6 +254,14 @@ def find_latest_medical_publication_surface_report(
             continue
         if _medical_surface_report_matches_paper_root(payload, paper_root=paper_root):
             return path
+    if study_root is not None:
+        for path in report_paths:
+            try:
+                payload = load_json(path)
+            except json.JSONDecodeError:
+                continue
+            if _medical_surface_report_matches_study_root(payload, study_root=study_root):
+                return path
     return None
 
 
@@ -921,6 +945,7 @@ def build_gate_state(quest_root: Path) -> GateState:
     latest_medical_publication_surface_path = find_latest_medical_publication_surface_report(
         quest_root,
         paper_root=paper_root,
+        study_root=study_root,
     )
     latest_medical_publication_surface = (
         load_json(latest_medical_publication_surface_path) if latest_medical_publication_surface_path else None

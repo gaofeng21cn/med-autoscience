@@ -2411,6 +2411,44 @@ def test_build_gate_report_ignores_newer_surface_report_from_other_paper_line(tm
     )
 
 
+def test_build_gate_report_falls_back_to_same_study_surface_report_when_paper_root_drifted(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+    )
+    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    worktree_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    drifted_paper_root = quest_root / ".ds" / "worktrees" / "analysis-run-2" / "paper"
+    drifted_paper_root.mkdir(parents=True, exist_ok=True)
+    surface_report_path = (
+        quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:34Z.json"
+    )
+    dump_json(
+        surface_report_path,
+        {
+            "study_root": str(study_root.resolve()),
+            "paper_root": str(drifted_paper_root.resolve()),
+            "status": "clear",
+            "blockers": [],
+        },
+    )
+    anchor_path = worktree_paper_root / "paper_bundle_manifest.json"
+    fresh_time = anchor_path.stat().st_mtime + 10
+    os.utime(surface_report_path, (fresh_time, fresh_time))
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert state.paper_root == worktree_paper_root.resolve()
+    assert report["medical_publication_surface_report_path"] == str(surface_report_path)
+    assert report["medical_publication_surface_status"] == "clear"
+    assert report["medical_publication_surface_current"] is True
+    assert "missing_current_medical_publication_surface_report" not in report["blockers"]
+    assert "medical_publication_surface_blocked" not in report["blockers"]
+
+
 def test_build_gate_report_uses_authoritative_bundle_manifest_for_surface_currentness_when_projected_mirror_is_newer(
     tmp_path: Path,
 ) -> None:
