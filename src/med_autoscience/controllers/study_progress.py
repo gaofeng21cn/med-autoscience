@@ -916,6 +916,7 @@ def _evaluation_module_surface(
     quality_closure_basis = dict(summary.get("quality_closure_basis") or {})
     quality_review_agenda = dict(summary.get("quality_review_agenda") or {})
     quality_revision_plan = dict(summary.get("quality_revision_plan") or {})
+    quality_review_loop = dict(summary.get("quality_review_loop") or {})
     current_required_action = _non_empty_text(promotion_gate_status.get("current_required_action"))
     plan_items = [
         dict(item)
@@ -925,8 +926,12 @@ def _evaluation_module_surface(
     plan_next_action = (
         _display_text((plan_items[0] or {}).get("action")) if plan_items else None
     ) or (_non_empty_text((plan_items[0] or {}).get("action")) if plan_items else None)
+    review_loop_next_action = _display_text(quality_review_loop.get("recommended_next_action")) or _non_empty_text(
+        quality_review_loop.get("recommended_next_action")
+    )
     next_action_summary = (
-        plan_next_action
+        review_loop_next_action
+        or plan_next_action
         or (
         _display_text(quality_review_agenda.get("suggested_revision"))
         or _non_empty_text(quality_review_agenda.get("suggested_revision"))
@@ -952,6 +957,7 @@ def _evaluation_module_surface(
         "quality_closure_basis": quality_closure_basis or None,
         "quality_review_agenda": quality_review_agenda or None,
         "quality_revision_plan": quality_revision_plan or None,
+        "quality_review_loop": quality_review_loop or None,
     }
 
 
@@ -2886,6 +2892,11 @@ def build_study_progress_projection(
         if evaluation_module_surface is not None
         else {}
     )
+    quality_review_loop = (
+        dict(evaluation_module_surface.get("quality_review_loop") or {})
+        if evaluation_module_surface is not None
+        else {}
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -2923,6 +2934,7 @@ def build_study_progress_projection(
         "quality_closure_basis": quality_closure_basis or None,
         "quality_review_agenda": quality_review_agenda or None,
         "quality_revision_plan": quality_revision_plan or None,
+        "quality_review_loop": quality_review_loop or None,
         "module_surfaces": module_surfaces,
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
@@ -3060,6 +3072,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     quality_closure_basis = dict(payload.get("quality_closure_basis") or {})
     quality_review_agenda = dict(payload.get("quality_review_agenda") or {})
     quality_revision_plan = dict(payload.get("quality_revision_plan") or {})
+    quality_review_loop = dict(payload.get("quality_review_loop") or {})
     recovery_contract = dict(payload.get("recovery_contract") or {})
     module_surfaces = dict(payload.get("module_surfaces") or {})
     recovery_action_mode = _RECOVERY_ACTION_MODE_LABELS.get(
@@ -3262,6 +3275,40 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- 建议修订动作: {suggested_revision}")
         if next_review_focus:
             lines.append(f"- 下一轮复评重点: {next_review_focus}")
+    if quality_review_loop:
+        lines.extend(["", "## 质量评审闭环", ""])
+        current_phase_label = _display_text(quality_review_loop.get("current_phase_label")) or _non_empty_text(
+            quality_review_loop.get("current_phase_label")
+        )
+        recommended_next_phase_label = _display_text(
+            quality_review_loop.get("recommended_next_phase_label")
+        ) or _non_empty_text(quality_review_loop.get("recommended_next_phase_label"))
+        summary = _display_text(quality_review_loop.get("summary")) or _non_empty_text(quality_review_loop.get("summary"))
+        recommended_next_action = _display_text(quality_review_loop.get("recommended_next_action")) or _non_empty_text(
+            quality_review_loop.get("recommended_next_action")
+        )
+        if current_phase_label:
+            lines.append(f"- 当前闭环阶段: {current_phase_label}")
+        if recommended_next_phase_label:
+            lines.append(f"- 下一跳: {recommended_next_phase_label}")
+        if isinstance(quality_review_loop.get("blocking_issue_count"), int):
+            lines.append(f"- 当前阻塞数: {quality_review_loop.get('blocking_issue_count')}")
+        if summary:
+            lines.append(f"- 闭环摘要: {summary}")
+        if recommended_next_action:
+            lines.append(f"- 下一动作: {recommended_next_action}")
+        for item in [
+            _display_text(issue) or _non_empty_text(issue)
+            for issue in (quality_review_loop.get("blocking_issues") or [])
+        ]:
+            if item:
+                lines.append(f"- 当前阻塞项: {item}")
+        for focus in [
+            _display_text(item) or _non_empty_text(item)
+            for item in (quality_review_loop.get("next_review_focus") or [])
+        ]:
+            if focus:
+                lines.append(f"- 复评关注点: {focus}")
     if quality_revision_plan:
         lines.extend(["", "## 质量修订计划", ""])
         overall_diagnosis = _display_text(quality_revision_plan.get("overall_diagnosis")) or _non_empty_text(

@@ -3206,6 +3206,11 @@ def test_render_product_frontdesk_markdown_shows_quality_execution_lane_preview(
                     "quality_execution_lane": {
                         "summary": "当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“哪一轮最小补充分析足以恢复当前 claim-evidence 支撑？”。",
                     },
+                    "quality_review_loop": {
+                        "current_phase_label": "等待复评",
+                        "recommended_next_phase_label": "发起复评",
+                        "summary": "当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。",
+                    },
                 }
             ],
             "phase2_user_product_loop": {},
@@ -3218,6 +3223,10 @@ def test_render_product_frontdesk_markdown_shows_quality_execution_lane_preview(
     )
 
     assert "质量执行线: 当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“哪一轮最小补充分析足以恢复当前 claim-evidence 支撑？”。" in markdown
+    assert (
+        "质量评审闭环: 等待复评 -> 发起复评；当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。"
+        in markdown
+    )
 
 
 def test_product_entry_manifest_fails_closed_on_invalid_gateway_interaction_contract_shape(

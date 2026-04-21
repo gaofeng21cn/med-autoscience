@@ -164,6 +164,20 @@ def _non_empty_text(value: object) -> str | None:
     return text or None
 
 
+def _quality_review_loop_preview(loop_payload: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(loop_payload, Mapping):
+        return None
+    current_phase_label = _non_empty_text(loop_payload.get("current_phase_label"))
+    next_phase_label = _non_empty_text(loop_payload.get("recommended_next_phase_label"))
+    summary = _non_empty_text(loop_payload.get("summary"))
+    parts = [part for part in (current_phase_label, next_phase_label, summary) if part]
+    if not parts:
+        return None
+    if current_phase_label and next_phase_label and summary:
+        return f"{current_phase_label} -> {next_phase_label}；{summary}"
+    return "；".join(parts)
+
+
 def _status_narration_human_view(payload: Mapping[str, Any]) -> dict[str, Any]:
     return _build_shared_status_narration_human_view(
         payload,
@@ -1634,6 +1648,7 @@ def _study_item(
     autonomy_contract = dict(progress_payload.get("autonomy_contract") or {})
     quality_closure_truth = dict(progress_payload.get("quality_closure_truth") or {})
     quality_execution_lane = dict(progress_payload.get("quality_execution_lane") or {})
+    quality_review_loop = dict(progress_payload.get("quality_review_loop") or {})
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     return {
         "study_id": study_id,
@@ -1649,6 +1664,7 @@ def _study_item(
         "autonomy_contract": autonomy_contract or None,
         "quality_closure_truth": quality_closure_truth or None,
         "quality_execution_lane": quality_execution_lane or None,
+        "quality_review_loop": quality_review_loop or None,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
         "monitoring": monitoring,
@@ -1848,6 +1864,9 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             quality_execution_lane = dict(item.get("quality_execution_lane") or {})
             if quality_execution_lane.get("summary"):
                 lines.append(f"  质量执行线: {quality_execution_lane.get('summary')}")
+            quality_review_loop_preview = _quality_review_loop_preview(item.get("quality_review_loop"))
+            if quality_review_loop_preview:
+                lines.append(f"  质量评审闭环: {quality_review_loop_preview}")
             restore_point = dict(autonomy_contract.get("restore_point") or {})
             if restore_point.get("summary"):
                 lines.append(f"  恢复点: {restore_point.get('summary')}")
@@ -1920,6 +1939,9 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         quality_execution_lane = dict(item.get("quality_execution_lane") or {})
         if quality_execution_lane.get("summary"):
             lines.append(f"- 质量执行线: {quality_execution_lane.get('summary')}")
+        quality_review_loop_preview = _quality_review_loop_preview(item.get("quality_review_loop"))
+        if quality_review_loop_preview:
+            lines.append(f"- 质量评审闭环: {quality_review_loop_preview}")
         restore_point = dict(autonomy_contract.get("restore_point") or {})
         if restore_point.get("summary"):
             lines.append(f"- 恢复点: {restore_point.get('summary')}")
@@ -2812,6 +2834,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         quality_execution_lane = dict(item.get("quality_execution_lane") or {})
         if quality_execution_lane.get("summary"):
             lines.append(f"- 质量执行线: {quality_execution_lane.get('summary')}")
+        quality_review_loop_preview = _quality_review_loop_preview(item.get("quality_review_loop"))
+        if quality_review_loop_preview:
+            lines.append(f"- 质量评审闭环: {quality_review_loop_preview}")
         restore_point = dict(autonomy_contract.get("restore_point") or {})
         if restore_point.get("summary"):
             lines.append(f"- 恢复点: {restore_point.get('summary')}")
