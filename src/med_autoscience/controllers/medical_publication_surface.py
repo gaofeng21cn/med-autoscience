@@ -222,6 +222,179 @@ def _build_ledger_contract_linkage(
     }
 
 
+CHARTER_EXPECTATION_CLOSURE_SPECS: tuple[dict[str, str], ...] = (
+    {
+        "expectation_key": "minimum_sci_ready_evidence_package",
+        "ledger_name": "evidence_ledger",
+        "label": "minimum_sci_ready_evidence_package",
+    },
+    {
+        "expectation_key": "scientific_followup_questions",
+        "ledger_name": "review_ledger",
+        "label": "scientific_followup_questions",
+    },
+    {
+        "expectation_key": "manuscript_conclusion_redlines",
+        "ledger_name": "review_ledger",
+        "label": "manuscript_conclusion_redlines",
+    },
+)
+CHARTER_EXPECTATION_CLOSURE_ALLOWED_STATUSES = {"closed", "open", "in_progress", "blocked"}
+
+
+def _normalized_charter_expectation_items(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    items: list[str] = []
+    for item in value:
+        text = str(item).strip()
+        if text:
+            items.append(text)
+    return items
+
+
+def _normalize_charter_expectation_closure_records(payload: object) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
+    raw_records = payload.get("charter_expectation_closures")
+    if not isinstance(raw_records, list):
+        return []
+    records: list[dict[str, Any]] = []
+    for index, raw_record in enumerate(raw_records):
+        if not isinstance(raw_record, dict):
+            continue
+        expectation_key = str(raw_record.get("expectation_key") or "").strip()
+        expectation_text = str(raw_record.get("expectation_text") or "").strip()
+        status = str(raw_record.get("status") or "").strip().lower()
+        if not expectation_key or not expectation_text:
+            continue
+        records.append(
+            {
+                "record_index": index,
+                "expectation_key": expectation_key,
+                "expectation_text": expectation_text,
+                "status": status,
+                "closed_at": str(raw_record.get("closed_at") or "").strip() or None,
+                "note": str(raw_record.get("note") or "").strip() or None,
+            }
+        )
+    return records
+
+
+def build_charter_expectation_closure_summary(
+    *,
+    charter_contract_linkage: dict[str, Any],
+    evidence_ledger_payload: object,
+    review_ledger_payload: object,
+    evidence_ledger_path: Path,
+    review_ledger_path: Path,
+) -> dict[str, Any]:
+    quality_expectations = charter_contract_linkage.get("quality_expectations") or {}
+    ledger_records = {
+        "evidence_ledger": _normalize_charter_expectation_closure_records(evidence_ledger_payload),
+        "review_ledger": _normalize_charter_expectation_closure_records(review_ledger_payload),
+    }
+    ledger_paths = {
+        "evidence_ledger": evidence_ledger_path,
+        "review_ledger": review_ledger_path,
+    }
+    categories: list[dict[str, Any]] = []
+    blocking_items: list[dict[str, Any]] = []
+    declared_record_count = 0
+    closed_item_count = 0
+    for spec in CHARTER_EXPECTATION_CLOSURE_SPECS:
+        expectation_key = spec["expectation_key"]
+        ledger_name = spec["ledger_name"]
+        charter_items = _normalized_charter_expectation_items(quality_expectations.get(expectation_key))
+        matching_records: dict[str, list[dict[str, Any]]] = {}
+        for record in ledger_records[ledger_name]:
+            if record["expectation_key"] != expectation_key:
+                continue
+            matching_records.setdefault(record["expectation_text"], []).append(record)
+        items: list[dict[str, Any]] = []
+        category_declared_count = 0
+        category_closed_count = 0
+        category_blocker_count = 0
+        for expectation_text in charter_items:
+            matched_records = matching_records.get(expectation_text, [])
+            if not matched_records:
+                items.append(
+                    {
+                        "expectation_text": expectation_text,
+                        "ledger_name": ledger_name,
+                        "closure_status": "not_recorded",
+                        "recorded": False,
+                        "blocker": False,
+                        "closed_at": None,
+                        "note": None,
+                    }
+                )
+                continue
+            category_declared_count += 1
+            declared_record_count += 1
+            if len(matched_records) > 1:
+                blocker_payload = {
+                    "expectation_key": expectation_key,
+                    "expectation_text": expectation_text,
+                    "ledger_name": ledger_name,
+                    "ledger_path": _normalized_path(ledger_paths[ledger_name]),
+                    "closure_status": "duplicate_records",
+                    "recorded": True,
+                    "record_count": len(matched_records),
+                    "blocker": True,
+                    "closed_at": None,
+                    "note": None,
+                }
+                items.append(blocker_payload)
+                blocking_items.append(blocker_payload)
+                category_blocker_count += 1
+                continue
+            record = matched_records[0]
+            raw_status = str(record.get("status") or "").strip().lower()
+            closure_status = (
+                raw_status if raw_status in CHARTER_EXPECTATION_CLOSURE_ALLOWED_STATUSES else "invalid_status"
+            )
+            blocker = closure_status != "closed"
+            item_payload = {
+                "expectation_key": expectation_key,
+                "expectation_text": expectation_text,
+                "ledger_name": ledger_name,
+                "ledger_path": _normalized_path(ledger_paths[ledger_name]),
+                "closure_status": closure_status,
+                "recorded": True,
+                "record_count": 1,
+                "blocker": blocker,
+                "closed_at": record.get("closed_at"),
+                "note": record.get("note"),
+            }
+            items.append(item_payload)
+            if blocker:
+                blocking_items.append(item_payload)
+                category_blocker_count += 1
+            else:
+                category_closed_count += 1
+                closed_item_count += 1
+        categories.append(
+            {
+                "expectation_key": expectation_key,
+                "label": spec["label"],
+                "ledger_name": ledger_name,
+                "charter_item_count": len(charter_items),
+                "declared_count": category_declared_count,
+                "closed_count": category_closed_count,
+                "blocker_count": category_blocker_count,
+                "items": items,
+            }
+        )
+    return {
+        "status": "blocked" if blocking_items else "clear",
+        "declared_record_count": declared_record_count,
+        "closed_item_count": closed_item_count,
+        "blocking_items": blocking_items,
+        "categories": categories,
+    }
+
+
 def build_charter_contract_linkage(
     *,
     study_root: Path | None,
@@ -235,10 +408,12 @@ def build_charter_contract_linkage(
         charter_id = None
         paper_quality_contract_present = False
         downstream_contract_roles: dict[str, str] = {}
+        quality_expectations = {spec["expectation_key"]: [] for spec in CHARTER_EXPECTATION_CLOSURE_SPECS}
     else:
         charter_path = resolve_study_charter_ref(study_root=resolved_study_root)
         charter_id = None
         downstream_contract_roles = {}
+        quality_expectations = {spec["expectation_key"]: [] for spec in CHARTER_EXPECTATION_CLOSURE_SPECS}
         if not charter_path.exists():
             study_context_status = "study_charter_missing"
             paper_quality_contract_present = False
@@ -260,6 +435,23 @@ def build_charter_contract_linkage(
                             for key, value in raw_roles.items()
                             if str(value).strip()
                         }
+                    raw_evidence_expectations = paper_quality_contract.get("evidence_expectations")
+                    if isinstance(raw_evidence_expectations, dict):
+                        quality_expectations["minimum_sci_ready_evidence_package"] = (
+                            _normalized_charter_expectation_items(
+                                raw_evidence_expectations.get("minimum_sci_ready_evidence_package")
+                            )
+                        )
+                    raw_review_expectations = paper_quality_contract.get("review_expectations")
+                    if isinstance(raw_review_expectations, dict):
+                        quality_expectations["scientific_followup_questions"] = _normalized_charter_expectation_items(
+                            raw_review_expectations.get("scientific_followup_questions")
+                        )
+                        quality_expectations["manuscript_conclusion_redlines"] = (
+                            _normalized_charter_expectation_items(
+                                raw_review_expectations.get("manuscript_conclusion_redlines")
+                            )
+                        )
                 study_context_status = "linked_context" if paper_quality_contract_present else "paper_quality_contract_missing"
 
     ledger_linkages = {
@@ -299,6 +491,7 @@ def build_charter_contract_linkage(
             "artifact_path": _normalized_path(charter_path),
             "json_pointer": "/paper_quality_contract",
         },
+        "quality_expectations": quality_expectations,
         "ledger_linkages": ledger_linkages,
     }
 
@@ -2158,6 +2351,27 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         evidence_ledger_path=state.evidence_ledger_path,
         review_ledger_path=state.review_ledger_path,
     )
+    charter_expectation_closure_summary = build_charter_expectation_closure_summary(
+        charter_contract_linkage=charter_contract_linkage,
+        evidence_ledger_payload=evidence_ledger_payload,
+        review_ledger_payload=load_json(state.review_ledger_path, default=None),
+        evidence_ledger_path=state.evidence_ledger_path,
+        review_ledger_path=state.review_ledger_path,
+    )
+    charter_expectation_closure_hits = [
+        {
+            "path": str(item["ledger_path"] or state.paper_root),
+            "location": "file",
+            "pattern_id": "charter_expectation_closure_blocker",
+            "phrase": item["expectation_key"],
+            "excerpt": (
+                "Study charter expectation "
+                f"`{item['expectation_text']}` is explicitly declared in {item['ledger_name']} "
+                f"with closure status `{item['closure_status']}`."
+            ),
+        }
+        for item in (charter_expectation_closure_summary.get("blocking_items") or [])
+    ]
     public_data_surface_hits = public_evidence_surface_state.get("surface_hits") or []
     public_evidence_decision_hits = public_evidence_surface_state.get("decision_hits") or []
     medical_story_contract_structural_valid = (
@@ -2190,6 +2404,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(forbidden_hits)
     hits.extend(public_data_surface_hits)
     hits.extend(public_evidence_decision_hits)
+    hits.extend(charter_expectation_closure_hits)
     hits = unique_hits(hits)
 
     blockers: list[str] = []
@@ -2255,6 +2470,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     charter_contract_linkage_status = str(charter_contract_linkage.get("status") or "").strip()
     if charter_contract_linkage_status in {"study_charter_missing", "study_charter_invalid"}:
         blockers.append(charter_contract_linkage_status)
+    if charter_expectation_closure_summary.get("blocking_items"):
+        blockers.append("charter_expectation_closure_incomplete")
 
     return {
         "schema_version": 1,
@@ -2323,6 +2540,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "paper_pdf_path": str(state.paper_pdf_path),
         "paper_pdf_present": state.paper_pdf_path.exists(),
         "charter_contract_linkage": charter_contract_linkage,
+        "charter_expectation_closure_summary": charter_expectation_closure_summary,
         "public_data_anchor_count": int(public_evidence_surface_state.get("anchor_count") or 0),
         "public_data_surface_reference_count": len(public_data_surface_hits),
         "public_evidence_decision_count": int(public_evidence_surface_state.get("decision_count") or 0),
@@ -2338,6 +2556,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
 
 def render_surface_markdown(report: dict[str, Any]) -> str:
     charter_contract_linkage = report.get("charter_contract_linkage") or {}
+    charter_expectation_closure_summary = report.get("charter_expectation_closure_summary") or {}
     study_charter_ref = charter_contract_linkage.get("study_charter_ref") or {}
     paper_quality_contract = charter_contract_linkage.get("paper_quality_contract") or {}
     ledger_linkages = charter_contract_linkage.get("ledger_linkages") or {}
@@ -2396,6 +2615,9 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- paper_quality_contract_present: `{paper_quality_contract.get('present', False)}`",
         f"- evidence_ledger_linkage_status: `{evidence_linkage.get('status', 'study_root_unresolved')}`",
         f"- review_ledger_linkage_status: `{review_linkage.get('status', 'study_root_unresolved')}`",
+        f"- charter_expectation_closure_status: `{charter_expectation_closure_summary.get('status', 'clear')}`",
+        f"- charter_expectation_declared_record_count: `{charter_expectation_closure_summary.get('declared_record_count', 0)}`",
+        f"- charter_expectation_closed_item_count: `{charter_expectation_closure_summary.get('closed_item_count', 0)}`",
         f"- public_data_anchor_count: `{report.get('public_data_anchor_count', 0)}`",
         f"- public_data_surface_reference_count: `{report.get('public_data_surface_reference_count', 0)}`",
         f"- public_evidence_decision_count: `{report.get('public_evidence_decision_count', 0)}`",
@@ -2405,9 +2627,38 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- results_narration_hit_count: `{report['results_narration_hit_count']}`",
         f"- non_formal_question_hit_count: `{report.get('non_formal_question_hit_count', 0)}`",
         "",
-        "## Top Hits",
+        "## Charter Expectation Closure Summary",
         "",
     ]
+    for category in charter_expectation_closure_summary.get("categories") or []:
+        lines.extend(
+            [
+                f"### {category['label']}",
+                "",
+                f"- ledger_name: `{category['ledger_name']}`",
+                f"- charter_item_count: `{category['charter_item_count']}`",
+                f"- declared_count: `{category['declared_count']}`",
+                f"- closed_count: `{category['closed_count']}`",
+                f"- blocker_count: `{category['blocker_count']}`",
+            ]
+        )
+        category_items = category.get("items") or []
+        if not category_items:
+            lines.append("- none")
+        else:
+            for item in category_items:
+                note_clause = f"; note={item['note']}" if item.get("note") else ""
+                lines.append(
+                    f"- `{item['expectation_text']}` -> `{item['closure_status']}` "
+                    f"(ledger=`{item['ledger_name']}`, blocker=`{item['blocker']}`{note_clause})"
+                )
+        lines.append("")
+    lines.extend(
+        [
+        "## Top Hits",
+        "",
+        ]
+    )
     hits = report.get("top_hits") or []
     if not hits:
         lines.append("- none")

@@ -118,7 +118,14 @@ def _write_review_ledger(path: Path, *, summary: str = "Clarify the endpoint bou
     )
 
 
-def _write_study_charter(study_root: Path, *, study_id: str = "002-early-residual-risk") -> Path:
+def _write_study_charter(
+    study_root: Path,
+    *,
+    study_id: str = "002-early-residual-risk",
+    minimum_sci_ready_evidence_package: list[str] | None = None,
+    scientific_followup_questions: list[str] | None = None,
+    manuscript_conclusion_redlines: list[str] | None = None,
+) -> Path:
     charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
     dump_json(
         charter_path,
@@ -129,6 +136,13 @@ def _write_study_charter(study_root: Path, *, study_id: str = "002-early-residua
             "publication_objective": "Deliver a manuscript-safe residual-risk paper package.",
             "paper_quality_contract": {
                 "frozen_at_startup": True,
+                "evidence_expectations": {
+                    "minimum_sci_ready_evidence_package": minimum_sci_ready_evidence_package or [],
+                },
+                "review_expectations": {
+                    "scientific_followup_questions": scientific_followup_questions or [],
+                    "manuscript_conclusion_redlines": manuscript_conclusion_redlines or [],
+                },
                 "downstream_contract_roles": {
                     "evidence_ledger": "records evidence against evidence expectations",
                     "review_ledger": "records review closure against review expectations",
@@ -144,11 +158,17 @@ def _paper_root_from_quest(quest_root: Path) -> Path:
     return quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
 
 
-def _attach_study_charter_context(monkeypatch, module, tmp_path: Path, quest_root: Path) -> Path:
+def _attach_study_charter_context(
+    monkeypatch,
+    module,
+    tmp_path: Path,
+    quest_root: Path,
+    **charter_kwargs: Any,
+) -> Path:
     study_root = tmp_path / "studies" / "002-early-residual-risk"
     study_root.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: 002-early-residual-risk\n", encoding="utf-8")
-    _write_study_charter(study_root)
+    _write_study_charter(study_root, **charter_kwargs)
 
     paper_root = _paper_root_from_quest(quest_root)
     monkeypatch.setattr(
