@@ -23,7 +23,16 @@ _RECORD_ALLOWED_FIELDS = frozenset(
 )
 _CHARTER_CONTEXT_REF_ALLOWED_FIELDS = frozenset({"ref", "charter_id", "publication_objective"})
 _VERDICT_ALLOWED_FIELDS = frozenset({"overall_verdict", "primary_claim_status", "summary", "stop_loss_pressure"})
-_QUALITY_DIMENSION_ALLOWED_FIELDS = frozenset({"status", "summary", "evidence_refs"})
+_QUALITY_DIMENSION_ALLOWED_FIELDS = frozenset(
+    {
+        "status",
+        "summary",
+        "evidence_refs",
+        "reviewer_reason",
+        "reviewer_revision_advice",
+        "reviewer_next_round_focus",
+    }
+)
 _QUALITY_ASSESSMENT_ALLOWED_FIELDS = frozenset(
     {
         "clinical_significance",
@@ -313,6 +322,9 @@ class PublicationEvalQualityDimension:
     status: str
     summary: str
     evidence_refs: tuple[str, ...]
+    reviewer_reason: str | None = None
+    reviewer_revision_advice: str | None = None
+    reviewer_next_round_focus: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -338,15 +350,45 @@ class PublicationEvalQualityDimension:
                 for item in self.evidence_refs
             ),
         )
+        object.__setattr__(
+            self,
+            "reviewer_reason",
+            _optional_text("publication eval quality dimension", "reviewer_reason", self.reviewer_reason),
+        )
+        object.__setattr__(
+            self,
+            "reviewer_revision_advice",
+            _optional_text(
+                "publication eval quality dimension",
+                "reviewer_revision_advice",
+                self.reviewer_revision_advice,
+            ),
+        )
+        object.__setattr__(
+            self,
+            "reviewer_next_round_focus",
+            _optional_text(
+                "publication eval quality dimension",
+                "reviewer_next_round_focus",
+                self.reviewer_next_round_focus,
+            ),
+        )
         if not self.evidence_refs:
             raise ValueError("publication eval quality dimension evidence_refs must not be empty")
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "status": self.status,
             "summary": self.summary,
             "evidence_refs": list(self.evidence_refs),
         }
+        if self.reviewer_reason is not None:
+            payload["reviewer_reason"] = self.reviewer_reason
+        if self.reviewer_revision_advice is not None:
+            payload["reviewer_revision_advice"] = self.reviewer_revision_advice
+        if self.reviewer_next_round_focus is not None:
+            payload["reviewer_next_round_focus"] = self.reviewer_next_round_focus
+        return payload
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "PublicationEvalQualityDimension":
@@ -367,6 +409,21 @@ class PublicationEvalQualityDimension:
                     "evidence_refs",
                     payload.get("evidence_refs"),
                 )
+            ),
+            reviewer_reason=_optional_text(
+                "publication eval quality dimension",
+                "reviewer_reason",
+                payload.get("reviewer_reason"),
+            ),
+            reviewer_revision_advice=_optional_text(
+                "publication eval quality dimension",
+                "reviewer_revision_advice",
+                payload.get("reviewer_revision_advice"),
+            ),
+            reviewer_next_round_focus=_optional_text(
+                "publication eval quality dimension",
+                "reviewer_next_round_focus",
+                payload.get("reviewer_next_round_focus"),
             ),
         )
 

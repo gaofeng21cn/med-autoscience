@@ -124,6 +124,53 @@ def test_publication_eval_record_from_payload_round_trips_minimal_shape() -> Non
     assert record.to_dict() == payload
 
 
+def test_publication_eval_record_quality_dimension_guidance_round_trips() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["quality_assessment"] = {
+        "clinical_significance": {
+            "status": "partial",
+            "summary": "临床问题已冻结，但结果叙事还不够稳。",
+            "evidence_refs": ["/tmp/workspace/studies/001-risk/artifacts/controller/study_charter.json"],
+            "reviewer_reason": "当前结果表面还不足以支撑稳定临床结论。",
+            "reviewer_revision_advice": "补齐临床解释段与结果对应关系，避免泛化结论。",
+            "reviewer_next_round_focus": "检查临床 framing 与结果摘要是否逐条对齐。",
+        },
+        "evidence_strength": {
+            "status": "blocked",
+            "summary": "主证据链未放行。",
+            "evidence_refs": ["/tmp/runtime/quests/quest-001/artifacts/results/main_result.json"],
+            "reviewer_reason": "缺少可发布主锚点，证据链当前不完整。",
+            "reviewer_revision_advice": "先修复主锚点缺失，再做 claim-to-evidence 对齐审阅。",
+            "reviewer_next_round_focus": "优先确认主锚点与关键效应指标的可追溯性。",
+        },
+        "novelty_positioning": {
+            "status": "underdefined",
+            "summary": "创新性边界尚未结构化。",
+            "evidence_refs": ["/tmp/workspace/studies/001-risk/artifacts/controller/study_charter.json"],
+            "reviewer_reason": "charter 里缺少显式 follow-up questions 与解释目标锚点。",
+            "reviewer_revision_advice": "明确科学问题边界并补齐解释目标合同。",
+            "reviewer_next_round_focus": "检查 novelty framing 与稿件主结论是否一一对应。",
+        },
+        "human_review_readiness": {
+            "status": "ready",
+            "summary": "人工审阅包已就绪。",
+            "evidence_refs": ["/tmp/workspace/studies/001-risk/paper/submission_minimal/submission_manifest.json"],
+            "reviewer_reason": "给人读的 current package 与 submission_minimal 已对齐。",
+            "reviewer_revision_advice": "保持当前结构并仅处理事实性勘误。",
+            "reviewer_next_round_focus": "重点复核术语一致性与证据引用完整性。",
+        },
+    }
+
+    record = module.PublicationEvalRecord.from_payload(payload)
+
+    clinical = record.quality_assessment.clinical_significance
+    assert clinical.reviewer_reason == "当前结果表面还不足以支撑稳定临床结论。"
+    assert clinical.reviewer_revision_advice == "补齐临床解释段与结果对应关系，避免泛化结论。"
+    assert clinical.reviewer_next_round_focus == "检查临床 framing 与结果摘要是否逐条对齐。"
+    assert record.to_dict()["quality_assessment"] == payload["quality_assessment"]
+
+
 @pytest.mark.parametrize("missing_field", ["verdict", "gaps", "recommended_actions"])
 def test_publication_eval_record_rejects_missing_required_fields(missing_field: str) -> None:
     module = _load_module()

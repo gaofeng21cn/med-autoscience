@@ -7488,6 +7488,22 @@ def test_study_runtime_status_materializes_route_back_same_line_for_blocked_bund
     assert payload["quality_assessment"]["evidence_strength"]["status"] == "ready"
     assert payload["quality_assessment"]["human_review_readiness"]["status"] == "blocked"
     assert payload["quality_assessment"]["novelty_positioning"]["status"] == "underdefined"
+    assert (
+        payload["quality_assessment"]["clinical_significance"]["reviewer_reason"]
+        == "主临床问题与结果表面已具备，但 clinician-facing interpretation target 仍未显式冻结。"
+    )
+    assert (
+        payload["quality_assessment"]["evidence_strength"]["reviewer_revision_advice"]
+        == "核心证据链已达标，下一轮优先清理交付与刷新层阻塞，避免再次影响审阅入口。"
+    )
+    assert (
+        payload["quality_assessment"]["novelty_positioning"]["reviewer_next_round_focus"]
+        == "补齐 scientific follow-up questions 或 explanation targets，再复核创新叙事与主结论边界。"
+    )
+    assert (
+        payload["quality_assessment"]["human_review_readiness"]["reviewer_reason"]
+        == "publication gate 尚未清关，当前稿件还不能作为正式人工审阅包放行。"
+    )
 
 
 @pytest.mark.parametrize(
