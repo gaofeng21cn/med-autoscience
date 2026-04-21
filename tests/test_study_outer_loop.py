@@ -269,7 +269,7 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
     assert not (study_root / "artifacts" / "controller" / "controller_confirmation_summary.json").exists()
 
 
-def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_runtime_event_ref(
+def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_runtime_escalation_ref(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -313,7 +313,7 @@ def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_ru
         },
     )
 
-    with pytest.raises(ValueError, match="runtime_event_ref"):
+    with pytest.raises(ValueError, match="runtime_escalation_ref"):
         module.study_outer_loop_tick(
             profile=profile,
             study_id="001-risk",
