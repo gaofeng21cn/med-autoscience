@@ -1287,7 +1287,23 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
     }
     assert result["quality_closure_basis"]["evidence_strength"]["status"] == "ready"
     assert result["module_surfaces"]["eval_hygiene"]["quality_closure_truth"] == result["quality_closure_truth"]
+    assert result["quality_review_agenda"] == {
+        "top_priority_issue": "必须优先修复：外部验证队列还没有补齐。",
+        "suggested_revision": "先在 finalize 修订：当前主线只剩 finalize / bundle 收口。",
+        "next_review_focus": "当前论文线还差哪一步 finalize / submission bundle 收口？",
+        "agenda_summary": (
+            "优先修复：必须优先修复：外部验证队列还没有补齐。；"
+            "建议修订：先在 finalize 修订：当前主线只剩 finalize / bundle 收口。；"
+            "下一轮复评重点：当前论文线还差哪一步 finalize / submission bundle 收口？"
+        ),
+    }
+    assert result["module_surfaces"]["eval_hygiene"]["quality_review_agenda"] == result["quality_review_agenda"]
     assert "## 质量闭环" in markdown
+    assert "## 质量评审议程" in markdown
+    assert "当前优先问题: 必须优先修复：外部验证队列还没有补齐。" in markdown
+    assert "建议修订动作:" in markdown
+    assert "当前主线只剩 定稿与投稿收尾 / bundle 收口。" in markdown
+    assert "下一轮复评重点: 当前论文线还差哪一步 定稿与投稿收尾 / 最小投稿包 收口？" in markdown
     assert "核心科学质量已经闭环" in markdown
     assert "核心科学证据已经闭环，剩余工作不在核心证据面。" in markdown
 

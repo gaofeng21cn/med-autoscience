@@ -910,9 +910,12 @@ def _evaluation_module_surface(
     promotion_gate_status = dict(summary.get("promotion_gate_status") or {})
     quality_closure_truth = dict(summary.get("quality_closure_truth") or {})
     quality_closure_basis = dict(summary.get("quality_closure_basis") or {})
+    quality_review_agenda = dict(summary.get("quality_review_agenda") or {})
     current_required_action = _non_empty_text(promotion_gate_status.get("current_required_action"))
     next_action_summary = (
-        _ACTION_LABELS.get(current_required_action or "", "")
+        _display_text(quality_review_agenda.get("suggested_revision"))
+        or _non_empty_text(quality_review_agenda.get("suggested_revision"))
+        or _ACTION_LABELS.get(current_required_action or "", "")
         or current_required_action
         or "按当前 eval hygiene 结论继续推进。"
     )
@@ -930,6 +933,7 @@ def _evaluation_module_surface(
         "next_action_summary": next_action_summary,
         "quality_closure_truth": quality_closure_truth or None,
         "quality_closure_basis": quality_closure_basis or None,
+        "quality_review_agenda": quality_review_agenda or None,
     }
 
 
@@ -2849,6 +2853,11 @@ def build_study_progress_projection(
         if evaluation_module_surface is not None
         else {}
     )
+    quality_review_agenda = (
+        dict(evaluation_module_surface.get("quality_review_agenda") or {})
+        if evaluation_module_surface is not None
+        else {}
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -2883,6 +2892,7 @@ def build_study_progress_projection(
         "progress_freshness": progress_freshness,
         "quality_closure_truth": quality_closure_truth or None,
         "quality_closure_basis": quality_closure_basis or None,
+        "quality_review_agenda": quality_review_agenda or None,
         "module_surfaces": module_surfaces,
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
@@ -3017,6 +3027,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     autonomy_contract = dict(payload.get("autonomy_contract") or {})
     quality_closure_truth = dict(payload.get("quality_closure_truth") or {})
     quality_closure_basis = dict(payload.get("quality_closure_basis") or {})
+    quality_review_agenda = dict(payload.get("quality_review_agenda") or {})
     recovery_contract = dict(payload.get("recovery_contract") or {})
     module_surfaces = dict(payload.get("module_surfaces") or {})
     recovery_action_mode = _RECOVERY_ACTION_MODE_LABELS.get(
@@ -3198,6 +3209,23 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             summary = _display_text(basis_item.get("summary")) or basis_item.get("summary")
             if summary:
                 lines.append(f"- {_QUALITY_CLOSURE_BASIS_LABELS.get(key, key)}: {summary}")
+    if quality_review_agenda:
+        lines.extend(["", "## 质量评审议程", ""])
+        top_priority_issue = _display_text(quality_review_agenda.get("top_priority_issue")) or _non_empty_text(
+            quality_review_agenda.get("top_priority_issue")
+        )
+        suggested_revision = _display_text(quality_review_agenda.get("suggested_revision")) or _non_empty_text(
+            quality_review_agenda.get("suggested_revision")
+        )
+        next_review_focus = _display_text(quality_review_agenda.get("next_review_focus")) or _non_empty_text(
+            quality_review_agenda.get("next_review_focus")
+        )
+        if top_priority_issue:
+            lines.append(f"- 当前优先问题: {top_priority_issue}")
+        if suggested_revision:
+            lines.append(f"- 建议修订动作: {suggested_revision}")
+        if next_review_focus:
+            lines.append(f"- 下一轮复评重点: {next_review_focus}")
     if recovery_contract:
         lines.extend(["", "## 恢复合同", ""])
         if recovery_action_mode:

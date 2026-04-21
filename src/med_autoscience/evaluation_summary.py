@@ -23,6 +23,13 @@ __all__ = [
 STABLE_EVALUATION_SUMMARY_RELATIVE_PATH = Path("artifacts/eval_hygiene/evaluation_summary/latest.json")
 STABLE_PROMOTION_GATE_RELATIVE_PATH = Path("artifacts/eval_hygiene/promotion_gate/latest.json")
 _GAP_SEVERITIES = ("must_fix", "important", "optional")
+_GAP_SEVERITY_RANK = {severity: index for index, severity in enumerate(_GAP_SEVERITIES)}
+_GAP_SEVERITY_LABELS = {
+    "must_fix": "必须优先修复",
+    "important": "重要修订项",
+    "optional": "可选优化项",
+}
+_ACTION_PRIORITY_RANK = {"now": 0, "next": 1}
 _ROUTE_REPAIR_ACTION_TYPES = {"continue_same_line", "route_back_same_line", "bounded_analysis"}
 _QUALITY_DIMENSION_STATUSES = frozenset({"ready", "partial", "blocked", "underdefined"})
 _QUALITY_CLOSURE_STATES = frozenset({"quality_repair_required", "write_line_ready", "bundle_only_remaining"})
@@ -32,6 +39,13 @@ _QUALITY_CLOSURE_BASIS_KEYS = (
     "novelty_positioning",
     "human_review_readiness",
     "publication_gate",
+)
+_QUALITY_REVIEW_STATUS_RANK = {"blocked": 0, "underdefined": 1, "partial": 2, "ready": 3}
+_QUALITY_ASSESSMENT_REVIEW_ORDER = (
+    "evidence_strength",
+    "human_review_readiness",
+    "clinical_significance",
+    "novelty_positioning",
 )
 
 
@@ -92,6 +106,11 @@ def _required_bool(label: str, field_name: str, value: object) -> bool:
     if not isinstance(value, bool):
         raise TypeError(f"{label} {field_name} must be bool")
     return value
+
+
+def _optional_text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
 
 
 def _required_choice(label: str, field_name: str, value: object, allowed_values: frozenset[str]) -> str:
@@ -288,6 +307,292 @@ def _route_repair_plan(actions: list[dict[str, Any]]) -> dict[str, str] | None:
             ),
         }
     return None
+
+
+def _highest_priority_gap(gaps: list[dict[str, Any]]) -> dict[str, str] | None:
+    selected: tuple[tuple[int, int], dict[str, str]] | None = None
+    for index, gap in enumerate(gaps):
+        if not isinstance(gap, dict):
+            continue
+        summary = _optional_text(gap.get("summary"))
+        if summary is None:
+            continue
+        severity = _optional_text(gap.get("severity")) or "important"
+        marker = (_GAP_SEVERITY_RANK.get(severity, len(_GAP_SEVERITIES)), index)
+        candidate = {
+            "severity": severity,
+            "summary": summary,
+        }
+        if selected is None or marker < selected[0]:
+            selected = (marker, candidate)
+    return None if selected is None else selected[1]
+
+
+def _highest_priority_action(actions: list[dict[str, Any]]) -> dict[str, str] | None:
+    selected: tuple[tuple[int, int], dict[str, str]] | None = None
+    for index, action in enumerate(actions):
+        if not isinstance(action, dict):
+            continue
+        action_type = _optional_text(action.get("action_type"))
+        reason = _optional_text(action.get("reason"))
+        if action_type is None and reason is None:
+            continue
+        priority = _optional_text(action.get("priority")) or "next"
+        marker = (_ACTION_PRIORITY_RANK.get(priority, 1), index)
+        candidate = {
+            "action_type": action_type or "unknown",
+            "priority": priority,
+            "reason": reason or "",
+            "route_target": _optional_text(action.get("route_target")) or "",
+        }
+        if selected is None or marker < selected[0]:
+            selected = (marker, candidate)
+    return None if selected is None else selected[1]
+
+
+def _agenda_field(payload: dict[str, Any], *keys: str) -> str | None:
+    for key in keys:
+        value = _optional_text(payload.get(key))
+        if value is not None:
+            return value
+    return None
+
+
+def _agenda_summary(
+    *,
+    top_priority_issue: str,
+    suggested_revision: str,
+    next_review_focus: str,
+) -> str:
+    return (
+        f"优先修复：{top_priority_issue}；"
+        f"建议修订：{suggested_revision}；"
+        f"下一轮复评重点：{next_review_focus}"
+    )
+
+
+def _quality_review_agenda_from_summary_payload(summary_payload: dict[str, Any]) -> dict[str, str]:
+    route_repair_plan = (
+        dict(summary_payload.get("route_repair_plan") or {})
+        if isinstance(summary_payload.get("route_repair_plan"), dict)
+        else {}
+    )
+    quality_closure_truth = (
+        dict(summary_payload.get("quality_closure_truth") or {})
+        if isinstance(summary_payload.get("quality_closure_truth"), dict)
+        else {}
+    )
+    top_priority_issue = (
+        _optional_text(quality_closure_truth.get("summary"))
+        or _optional_text(summary_payload.get("verdict_summary"))
+        or "当前论文线仍有质量修订任务待完成。"
+    )
+    route_target = _optional_text(route_repair_plan.get("route_target"))
+    route_rationale = _optional_text(route_repair_plan.get("route_rationale"))
+    current_required_action = _optional_text(quality_closure_truth.get("current_required_action"))
+    if route_target and route_rationale:
+        suggested_revision = f"先在 {route_target} 修订：{route_rationale}"
+    elif route_target:
+        suggested_revision = f"先在 {route_target} 推进当前最窄修订。"
+    elif route_rationale:
+        suggested_revision = route_rationale
+    elif current_required_action:
+        suggested_revision = f"按 {current_required_action} 指令继续质量修订。"
+    else:
+        suggested_revision = _optional_text(summary_payload.get("verdict_summary")) or "继续按当前评估结论收窄修订。"
+    next_review_focus = (
+        _optional_text(route_repair_plan.get("route_key_question"))
+        or f"复评时确认“{top_priority_issue}”是否已经形成可复核证据闭环。"
+    )
+    return {
+        "top_priority_issue": top_priority_issue,
+        "suggested_revision": suggested_revision,
+        "next_review_focus": next_review_focus,
+        "agenda_summary": _agenda_summary(
+            top_priority_issue=top_priority_issue,
+            suggested_revision=suggested_revision,
+            next_review_focus=next_review_focus,
+        ),
+    }
+
+
+def _reviewer_agenda_from_quality_assessment(publication_eval: dict[str, Any]) -> dict[str, str]:
+    quality_assessment = (
+        dict(publication_eval.get("quality_assessment") or {})
+        if isinstance(publication_eval.get("quality_assessment"), dict)
+        else {}
+    )
+    candidates: list[tuple[tuple[int, int], dict[str, str]]] = []
+    for order_index, dimension in enumerate(_QUALITY_ASSESSMENT_REVIEW_ORDER):
+        payload = quality_assessment.get(dimension)
+        if not isinstance(payload, dict):
+            continue
+        reason = _optional_text(payload.get("reviewer_reason"))
+        advice = _optional_text(payload.get("reviewer_revision_advice"))
+        next_focus = _optional_text(payload.get("reviewer_next_round_focus"))
+        if reason is None and advice is None and next_focus is None:
+            continue
+        status = _optional_text(payload.get("status")) or "partial"
+        marker = (_QUALITY_REVIEW_STATUS_RANK.get(status, len(_QUALITY_REVIEW_STATUS_RANK)), order_index)
+        candidates.append(
+            (
+                marker,
+                {
+                    "top_priority_issue": reason or "",
+                    "suggested_revision": advice or "",
+                    "next_review_focus": next_focus or "",
+                },
+            )
+        )
+    candidates.sort(key=lambda item: item[0])
+    top_priority_issue: str | None = None
+    suggested_revision: str | None = None
+    next_review_focus: str | None = None
+    for _, candidate in candidates:
+        if top_priority_issue is None and candidate["top_priority_issue"]:
+            top_priority_issue = candidate["top_priority_issue"]
+        if suggested_revision is None and candidate["suggested_revision"]:
+            suggested_revision = candidate["suggested_revision"]
+        if next_review_focus is None and candidate["next_review_focus"]:
+            next_review_focus = candidate["next_review_focus"]
+    return {
+        "top_priority_issue": top_priority_issue or "",
+        "suggested_revision": suggested_revision or "",
+        "next_review_focus": next_review_focus or "",
+    }
+
+
+def _normalized_quality_review_agenda(
+    *,
+    agenda_payload: dict[str, Any] | None,
+    summary_payload: dict[str, Any],
+) -> dict[str, str]:
+    fallback = _quality_review_agenda_from_summary_payload(summary_payload)
+    if not isinstance(agenda_payload, dict):
+        return fallback
+    top_priority_issue = (
+        _agenda_field(
+            agenda_payload,
+            "top_priority_issue",
+            "priority_issue",
+            "current_top_issue",
+            "reviewer_reason",
+        )
+        or fallback["top_priority_issue"]
+    )
+    suggested_revision = (
+        _agenda_field(
+            agenda_payload,
+            "suggested_revision",
+            "revision_action",
+            "suggested_fix",
+            "reviewer_revision_advice",
+        )
+        or fallback["suggested_revision"]
+    )
+    next_review_focus = (
+        _agenda_field(
+            agenda_payload,
+            "next_review_focus",
+            "review_focus",
+            "next_review_checkpoint",
+            "reviewer_next_round_focus",
+        )
+        or fallback["next_review_focus"]
+    )
+    return {
+        "top_priority_issue": top_priority_issue,
+        "suggested_revision": suggested_revision,
+        "next_review_focus": next_review_focus,
+        "agenda_summary": _agenda_summary(
+            top_priority_issue=top_priority_issue,
+            suggested_revision=suggested_revision,
+            next_review_focus=next_review_focus,
+        ),
+    }
+
+
+def _quality_review_agenda(
+    *,
+    publication_eval: dict[str, Any],
+    gaps: list[dict[str, Any]],
+    actions: list[dict[str, Any]],
+    route_repair_plan: dict[str, str] | None,
+    quality_closure_truth: dict[str, Any],
+) -> dict[str, str]:
+    declared_agenda = (
+        dict(publication_eval.get("quality_review_agenda") or {})
+        if isinstance(publication_eval.get("quality_review_agenda"), dict)
+        else None
+    )
+    reviewer_agenda = _reviewer_agenda_from_quality_assessment(publication_eval)
+    priority_gap = _highest_priority_gap(gaps)
+    if reviewer_agenda["top_priority_issue"]:
+        top_priority_issue = reviewer_agenda["top_priority_issue"]
+    elif priority_gap is not None:
+        severity = priority_gap["severity"]
+        severity_label = _GAP_SEVERITY_LABELS.get(severity, severity)
+        top_priority_issue = f"{severity_label}：{priority_gap['summary']}"
+    else:
+        top_priority_issue = (
+            _optional_text(quality_closure_truth.get("summary"))
+            or _optional_text((publication_eval.get("verdict") or {}).get("summary"))
+            or "当前论文线仍有质量修订任务待完成。"
+        )
+    priority_action = _highest_priority_action(actions)
+    route_target = _optional_text((route_repair_plan or {}).get("route_target"))
+    route_rationale = _optional_text((route_repair_plan or {}).get("route_rationale"))
+    if reviewer_agenda["suggested_revision"]:
+        suggested_revision = reviewer_agenda["suggested_revision"]
+    elif priority_action is not None:
+        action_route_target = _optional_text(priority_action.get("route_target"))
+        action_reason = _optional_text(priority_action.get("reason"))
+        if action_route_target and action_reason:
+            suggested_revision = f"先在 {action_route_target} 修订：{action_reason}"
+        elif action_reason:
+            suggested_revision = action_reason
+        elif action_route_target:
+            suggested_revision = f"先在 {action_route_target} 推进当前最窄修订。"
+        else:
+            suggested_revision = f"优先执行 {priority_action['action_type']} 修订动作。"
+    elif route_target and route_rationale:
+        suggested_revision = f"先在 {route_target} 修订：{route_rationale}"
+    elif route_target:
+        suggested_revision = f"先在 {route_target} 推进当前最窄修订。"
+    elif route_rationale:
+        suggested_revision = route_rationale
+    else:
+        current_required_action = _optional_text(quality_closure_truth.get("current_required_action"))
+        suggested_revision = (
+            f"按 {current_required_action} 指令继续质量修订。"
+            if current_required_action is not None
+            else "继续按当前评估结论收窄修订。"
+        )
+    if reviewer_agenda["next_review_focus"]:
+        next_review_focus = reviewer_agenda["next_review_focus"]
+    else:
+        next_review_focus = (
+            _optional_text((route_repair_plan or {}).get("route_key_question"))
+            or (
+                f"复评时确认“{priority_gap['summary']}”是否已闭环，并补齐对应证据引用。"
+                if priority_gap is not None
+                else f"复评时确认“{top_priority_issue}”是否已经形成可复核证据闭环。"
+            )
+        )
+    derived_agenda = {
+        "top_priority_issue": top_priority_issue,
+        "suggested_revision": suggested_revision,
+        "next_review_focus": next_review_focus,
+    }
+    return _normalized_quality_review_agenda(
+        agenda_payload=declared_agenda if declared_agenda is not None else derived_agenda,
+        summary_payload={
+            "verdict_summary": _optional_text((publication_eval.get("verdict") or {}).get("summary")),
+            "route_repair_plan": route_repair_plan,
+            "quality_closure_truth": quality_closure_truth,
+            "quality_review_agenda": derived_agenda,
+        },
+    )
 
 
 def _fallback_refs(*values: object) -> list[str]:
@@ -494,6 +799,11 @@ def _build_evaluation_summary_payload(
         promotion_gate_payload=promotion_gate_payload,
         route_repair_plan=route_repair_plan,
     )
+    quality_closure_truth = _quality_closure_truth(
+        promotion_gate_payload=promotion_gate_payload,
+        route_repair_plan=route_repair_plan,
+        quality_closure_basis=quality_closure_basis,
+    )
     return {
         "schema_version": 1,
         "summary_id": f"evaluation-summary::{publication_eval['study_id']}::{quest_id}::{publication_eval['emitted_at']}",
@@ -532,12 +842,15 @@ def _build_evaluation_summary_payload(
         "gap_counts": _gap_counts(gaps),
         "recommended_action_types": _recommended_action_types(actions),
         "route_repair_plan": route_repair_plan,
-        "quality_closure_truth": _quality_closure_truth(
-            promotion_gate_payload=promotion_gate_payload,
-            route_repair_plan=route_repair_plan,
-            quality_closure_basis=quality_closure_basis,
-        ),
+        "quality_closure_truth": quality_closure_truth,
         "quality_closure_basis": quality_closure_basis,
+        "quality_review_agenda": _quality_review_agenda(
+            publication_eval=publication_eval,
+            gaps=gaps,
+            actions=actions,
+            route_repair_plan=route_repair_plan,
+            quality_closure_truth=quality_closure_truth,
+        ),
         "requires_controller_decision": any(bool(action.get("requires_controller_decision")) for action in actions),
         "promotion_gate_status": {
             "status": promotion_gate_payload["status"],
@@ -625,6 +938,11 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
         "evaluation summary",
         "quality_closure_basis",
         payload.get("quality_closure_basis"),
+    )
+    quality_review_agenda = (
+        dict(payload.get("quality_review_agenda") or {})
+        if isinstance(payload.get("quality_review_agenda"), dict)
+        else None
     )
     return {
         "schema_version": 1,
@@ -721,6 +1039,10 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
             )
             for key in _QUALITY_CLOSURE_BASIS_KEYS
         },
+        "quality_review_agenda": _normalized_quality_review_agenda(
+            agenda_payload=quality_review_agenda,
+            summary_payload=payload,
+        ),
         "requires_controller_decision": _required_bool(
             "evaluation summary",
             "requires_controller_decision",

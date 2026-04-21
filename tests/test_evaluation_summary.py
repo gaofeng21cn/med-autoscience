@@ -362,6 +362,16 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
                 "evidence_refs": [str(promotion_gate_path.resolve())],
             },
         },
+        "quality_review_agenda": {
+            "top_priority_issue": "必须优先修复：External validation cohort is still missing.",
+            "suggested_revision": "Controller must decide whether to invest in external validation.",
+            "next_review_focus": "What is the narrowest supplementary analysis needed to restore endpoint provenance support?",
+            "agenda_summary": (
+                "优先修复：必须优先修复：External validation cohort is still missing.；"
+                "建议修订：Controller must decide whether to invest in external validation.；"
+                "下一轮复评重点：What is the narrowest supplementary analysis needed to restore endpoint provenance support?"
+            ),
+        },
         "requires_controller_decision": True,
         "promotion_gate_status": {
             "status": "blocked",
@@ -477,6 +487,52 @@ def test_materialize_evaluation_summary_artifacts_prefers_now_priority_route_rep
     }
 
 
+def test_materialize_evaluation_summary_artifacts_prefers_reviewer_style_agenda_fields(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    publication_eval_path = inputs["publication_eval_path"]
+    gate_report_path = inputs["gate_report_path"]
+    publication_eval_payload = dict(inputs["publication_eval_payload"])
+    quality_assessment = dict(publication_eval_payload["quality_assessment"])
+    quality_assessment["evidence_strength"] = {
+        "status": "blocked",
+        "summary": "The current claim-evidence surface is still missing external validation support.",
+        "evidence_refs": [str(gate_report_path)],
+        "reviewer_reason": "证据链仍有硬缺口：外部验证结果还未进入可复核闭环。",
+        "reviewer_revision_advice": "先补齐外部验证并重写对应结果段，再做下一轮门控复评。",
+        "reviewer_next_round_focus": "复评时重点核对外部验证结果与主结论是否一一对应。",
+    }
+    publication_eval_payload["quality_assessment"] = quality_assessment
+    monkeypatch.setattr(
+        module,
+        "read_publication_eval_latest",
+        lambda *, study_root: publication_eval_payload,
+    )
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
+
+    summary = module.read_evaluation_summary(study_root=study_root)
+
+    assert summary["quality_review_agenda"] == {
+        "top_priority_issue": "证据链仍有硬缺口：外部验证结果还未进入可复核闭环。",
+        "suggested_revision": "先补齐外部验证并重写对应结果段，再做下一轮门控复评。",
+        "next_review_focus": "复评时重点核对外部验证结果与主结论是否一一对应。",
+        "agenda_summary": (
+            "优先修复：证据链仍有硬缺口：外部验证结果还未进入可复核闭环。；"
+            "建议修订：先补齐外部验证并重写对应结果段，再做下一轮门控复评。；"
+            "下一轮复评重点：复评时重点核对外部验证结果与主结论是否一一对应。"
+        ),
+    }
+
+
 def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining_quality_closure(
     tmp_path: Path,
 ) -> None:
@@ -551,4 +607,37 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
         "status": "partial",
         "summary": "核心科学面已经闭环；剩余阻塞只落在当前论文线的 finalize / bundle 收口。",
         "evidence_refs": [str((study_root / "artifacts" / "eval_hygiene" / "promotion_gate" / "latest.json").resolve())],
+    }
+
+
+def test_read_evaluation_summary_derives_quality_review_agenda_when_missing(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    gate_report_path = inputs["gate_report_path"]
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
+    summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    payload.pop("quality_review_agenda", None)
+    _write_json(summary_path, payload)
+
+    summary = module.read_evaluation_summary(study_root=study_root)
+
+    assert summary["quality_review_agenda"] == {
+        "top_priority_issue": "核心科学质量还没有闭环；当前应先回到 analysis-campaign 完成最窄补充修复。",
+        "suggested_revision": (
+            "先在 analysis-campaign 修订："
+            "The study direction remains valid; only a bounded analysis-campaign repair is needed."
+        ),
+        "next_review_focus": "What is the narrowest supplementary analysis needed to restore endpoint provenance support?",
+        "agenda_summary": (
+            "优先修复：核心科学质量还没有闭环；当前应先回到 analysis-campaign 完成最窄补充修复。；"
+            "建议修订：先在 analysis-campaign 修订：The study direction remains valid; only a bounded analysis-campaign repair is needed.；"
+            "下一轮复评重点：What is the narrowest supplementary analysis needed to restore endpoint provenance support?"
+        ),
     }
