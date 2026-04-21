@@ -5,6 +5,7 @@ __pycache__/
 .venv/
 .worktree/
 .worktrees/
+ops/
 dist/
 build/
 *.egg-info/
