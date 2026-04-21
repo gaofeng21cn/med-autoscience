@@ -223,7 +223,26 @@ def _load_runtime_event_record(
 
 def _managed_runtime_requires_event_ref(status: dict[str, Any]) -> bool:
     execution = status.get("execution")
-    return runtime_backend_contract.is_managed_research_execution(execution if isinstance(execution, dict) else None)
+    if not runtime_backend_contract.is_managed_research_execution(execution if isinstance(execution, dict) else None):
+        return False
+    return isinstance(status.get("runtime_event_ref"), dict)
+
+
+def _hydrate_managed_runtime_refs(status: dict[str, Any]) -> dict[str, Any]:
+    hydrated = dict(status)
+    quest_root_text = str(hydrated.get("quest_root") or "").strip()
+    if not quest_root_text:
+        return hydrated
+    quest_root = Path(quest_root_text).expanduser().resolve()
+    if not isinstance(hydrated.get("runtime_event_ref"), dict):
+        runtime_event_ref = study_runtime_protocol.read_runtime_event_record_ref(quest_root=quest_root)
+        if runtime_event_ref is not None:
+            hydrated["runtime_event_ref"] = runtime_event_ref.to_dict()
+    if not isinstance(hydrated.get("runtime_escalation_ref"), dict):
+        runtime_escalation_ref = study_runtime_protocol.read_runtime_escalation_record_ref(quest_root=quest_root)
+        if runtime_escalation_ref is not None:
+            hydrated["runtime_escalation_ref"] = runtime_escalation_ref.to_dict()
+    return hydrated
 
 
 def _resolve_managed_runtime_event_contract(
@@ -387,6 +406,7 @@ def build_runtime_watch_outer_loop_tick_request(
     status_payload: dict[str, Any],
 ) -> dict[str, Any] | None:
     resolved_study_root = Path(study_root).expanduser().resolve()
+    status_payload = _hydrate_managed_runtime_refs(status_payload)
     if _publication_supervisor_human_gate_requested(status_payload):
         return None
     if _controller_confirmation_pending(study_root=resolved_study_root):
@@ -421,14 +441,6 @@ def build_runtime_watch_outer_loop_tick_request(
     ).to_dict()
 
     runtime_escalation_payload = status_payload.get("runtime_escalation_ref")
-    if not isinstance(runtime_escalation_payload, dict):
-        quest_root_text = str(status_payload.get("quest_root") or "").strip()
-        if quest_root_text:
-            runtime_escalation_ref = study_runtime_protocol.read_runtime_escalation_record_ref(
-                quest_root=Path(quest_root_text).expanduser().resolve()
-            )
-            if runtime_escalation_ref is not None:
-                runtime_escalation_payload = runtime_escalation_ref.to_dict()
     if not isinstance(runtime_escalation_payload, dict):
         raise ValueError("runtime watch outer-loop wakeup requires runtime_escalation_ref from managed runtime status")
     _resolve_runtime_escalation_record(runtime_escalation_payload=runtime_escalation_payload)
@@ -549,6 +561,7 @@ def study_outer_loop_tick(
         study_id=resolved_study_id,
         study_root=resolved_study_root,
     )
+    status = _hydrate_managed_runtime_refs(status)
     managed_runtime_event: tuple[RuntimeEventRecordRef, RuntimeEventRecord | NativeRuntimeEventRecord, dict[str, Any] | None] | None = None
     if _managed_runtime_requires_event_ref(status):
         managed_runtime_event = _resolve_managed_runtime_event_contract(status=status)
