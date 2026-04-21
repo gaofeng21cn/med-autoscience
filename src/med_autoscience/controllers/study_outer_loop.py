@@ -8,6 +8,7 @@ from typing import Any
 from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
+from med_autoscience.controllers import gate_clearing_batch
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.controller_confirmation_summary import (
     materialize_controller_confirmation_summary,
@@ -668,6 +669,25 @@ def build_runtime_watch_outer_loop_tick_request(
         recommended_action = _recommended_publication_eval_action(publication_eval_payload)
     if recommended_action is None:
         return None
+    profile = gate_clearing_batch.resolve_profile_for_study_root(resolved_study_root)
+    if profile is not None:
+        quest_id = str(status_payload.get("quest_id") or "").strip()
+        if quest_id:
+            quest_root = Path(profile.runtime_root).expanduser().resolve() / quest_id
+            gate_report = publication_gate_controller.build_gate_report(
+                publication_gate_controller.build_gate_state(quest_root)
+            )
+        else:
+            gate_report = {}
+        batch_action = gate_clearing_batch.build_gate_clearing_batch_recommended_action(
+            profile=profile,
+            study_root=resolved_study_root,
+            quest_id=quest_id,
+            publication_eval_payload=publication_eval_payload,
+            gate_report=gate_report,
+        )
+        if batch_action is not None:
+            recommended_action = batch_action
     decision_type = _autonomous_decision_type_for_publication_eval_action(recommended_action)
     if decision_type is None:
         return None
@@ -773,6 +793,14 @@ def _execute_controller_action(
                 quest_id=quest_id,
                 source=source,
             )
+    elif action.action_type is StudyDecisionActionType.RUN_GATE_CLEARING_BATCH:
+        result = gate_clearing_batch.run_gate_clearing_batch(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            quest_id=quest_id,
+            source=source,
+        )
     else:
         raise ValueError(f"unsupported study outer-loop controller action: {action.action_type.value}")
     return {
