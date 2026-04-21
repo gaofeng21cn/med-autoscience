@@ -23,9 +23,22 @@ canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_m
 
 - 任何 route 推进前，都要能把当前 study charter 边界、route recommendation 和 cited evidence refs 一起读清楚。
 - 任何 route 离开前，都要留下下一条 route 能直接接住的 durable artifact、ledger、decision record 或等价引用面。
+- 只要 study charter 已经显式声明 evidence expectation 或 review expectation，对应 ledger 就必须留下同名 expectation 的显式 closure 记录；没有记录、不合法状态、重复记录，都属于未闭环。
 - reviewer-first 检查必须优先暴露 strongest concern，并把 concern 绑定到具体 claim、evidence gap 或 rigor gap。
 - claim wording、cited evidence、caveat、limitation 必须在同一 proof package 里相互对齐。
 - 只要当前 claim 失去直接证据支撑，或 reviewer-first 检查暴露出 material gap，就应立即 route back。
+
+## Charter Expectation Closure
+
+当 `study_charter.paper_quality_contract` 已经声明 `evidence_expectations` 或 `review_expectations` 时，`evidence_ledger` / `review_ledger` 除了保持 shape 合法，还必须显式回答这些 expectation 是否已经闭环。
+
+固定口径如下：
+
+- 每条 expectation 都应在对应 ledger 的 `charter_expectation_closures` 中留下唯一记录。
+- 合法 `status` 只接受 `closed`、`open`、`in_progress`、`blocked`。
+- `closed` 代表该 expectation 已被 ledger 显式收口。
+- `open`、`in_progress`、`blocked`、缺失记录、非法状态、重复记录，全部视为 charter expectation closure blocker。
+- medical publication surface 必须把这层 blocker 投影成独立 truth，而不是把它吞进一般 prose blocker。
 
 ## 维护规则
 

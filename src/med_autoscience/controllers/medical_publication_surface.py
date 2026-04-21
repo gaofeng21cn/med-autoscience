@@ -316,28 +316,32 @@ def build_charter_expectation_closure_summary(
         category_closed_count = 0
         category_blocker_count = 0
         for expectation_text in charter_items:
+            base_payload = {
+                "expectation_key": expectation_key,
+                "expectation_text": expectation_text,
+                "ledger_name": ledger_name,
+                "ledger_path": _normalized_path(ledger_paths[ledger_name]),
+            }
             matched_records = matching_records.get(expectation_text, [])
             if not matched_records:
-                items.append(
-                    {
-                        "expectation_text": expectation_text,
-                        "ledger_name": ledger_name,
-                        "closure_status": "not_recorded",
-                        "recorded": False,
-                        "blocker": False,
-                        "closed_at": None,
-                        "note": None,
-                    }
-                )
+                blocker_payload = {
+                    **base_payload,
+                    "closure_status": "not_recorded",
+                    "recorded": False,
+                    "record_count": 0,
+                    "blocker": True,
+                    "closed_at": None,
+                    "note": None,
+                }
+                items.append(blocker_payload)
+                blocking_items.append(blocker_payload)
+                category_blocker_count += 1
                 continue
             category_declared_count += 1
             declared_record_count += 1
             if len(matched_records) > 1:
                 blocker_payload = {
-                    "expectation_key": expectation_key,
-                    "expectation_text": expectation_text,
-                    "ledger_name": ledger_name,
-                    "ledger_path": _normalized_path(ledger_paths[ledger_name]),
+                    **base_payload,
                     "closure_status": "duplicate_records",
                     "recorded": True,
                     "record_count": len(matched_records),
@@ -356,10 +360,7 @@ def build_charter_expectation_closure_summary(
             )
             blocker = closure_status != "closed"
             item_payload = {
-                "expectation_key": expectation_key,
-                "expectation_text": expectation_text,
-                "ledger_name": ledger_name,
-                "ledger_path": _normalized_path(ledger_paths[ledger_name]),
+                **base_payload,
                 "closure_status": closure_status,
                 "recorded": True,
                 "record_count": 1,
@@ -444,8 +445,10 @@ def build_charter_contract_linkage(
                         )
                     raw_review_expectations = paper_quality_contract.get("review_expectations")
                     if isinstance(raw_review_expectations, dict):
-                        quality_expectations["scientific_followup_questions"] = _normalized_charter_expectation_items(
-                            raw_review_expectations.get("scientific_followup_questions")
+                        quality_expectations["scientific_followup_questions"] = (
+                            _normalized_charter_expectation_items(
+                                raw_review_expectations.get("scientific_followup_questions")
+                            )
                         )
                         quality_expectations["manuscript_conclusion_redlines"] = (
                             _normalized_charter_expectation_items(
@@ -2655,8 +2658,8 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         lines.append("")
     lines.extend(
         [
-        "## Top Hits",
-        "",
+            "## Top Hits",
+            "",
         ]
     )
     hits = report.get("top_hits") or []

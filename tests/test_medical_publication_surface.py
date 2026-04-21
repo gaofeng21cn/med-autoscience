@@ -6,6 +6,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from med_autoscience import display_registry
 
 TIME_TO_EVENT_DIRECT_MIGRATION_DISPLAY_PLAN = [
@@ -52,6 +54,21 @@ TIME_TO_EVENT_DIRECT_MIGRATION_DISPLAY_PLAN = [
         "catalog_id": "T2",
     },
 ]
+
+CHARTER_EXPECTATION_FIXTURES: dict[str, dict[str, str]] = {
+    "minimum_sci_ready_evidence_package": {
+        "ledger_name": "evidence_ledger",
+        "expectation_text": "External validation evidence package is durably archived for the manuscript route.",
+    },
+    "scientific_followup_questions": {
+        "ledger_name": "review_ledger",
+        "expectation_text": "Residual-risk framing is defended against calibration drift before submission.",
+    },
+    "manuscript_conclusion_redlines": {
+        "ledger_name": "review_ledger",
+        "expectation_text": "Conclusion stays inside internal validation and avoids treatment-facing escalation.",
+    },
+}
 
 
 def _canonicalize_registry_id(value: str) -> str:
@@ -118,14 +135,30 @@ def _write_review_ledger(path: Path, *, summary: str = "Clarify the endpoint bou
     )
 
 
-def _write_study_charter(
-    study_root: Path,
+def _charter_expectation_record(
+    expectation_key: str,
     *,
-    study_id: str = "002-early-residual-risk",
-    minimum_sci_ready_evidence_package: list[str] | None = None,
-    scientific_followup_questions: list[str] | None = None,
-    manuscript_conclusion_redlines: list[str] | None = None,
-) -> Path:
+    status: str = "closed",
+    closed_at: str | None = "2026-04-21T08:30:00+00:00",
+    note: str | None = None,
+) -> dict[str, Any]:
+    expectation = CHARTER_EXPECTATION_FIXTURES[expectation_key]
+    return {
+        "expectation_key": expectation_key,
+        "expectation_text": expectation["expectation_text"],
+        "status": status,
+        "closed_at": closed_at,
+        "note": note or f"{expectation_key} closure recorded on the ledger.",
+    }
+
+
+def _write_charter_expectation_closures(path: Path, records: list[dict[str, Any]]) -> None:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["charter_expectation_closures"] = records
+    dump_json(path, payload)
+
+
+def _write_study_charter(study_root: Path, *, study_id: str = "002-early-residual-risk") -> Path:
     charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
     dump_json(
         charter_path,
@@ -134,14 +167,17 @@ def _write_study_charter(
             "charter_id": f"charter::{study_id}::v1",
             "study_id": study_id,
             "publication_objective": "Deliver a manuscript-safe residual-risk paper package.",
+            "minimum_sci_ready_evidence_package": [],
+            "scientific_followup_questions": [],
+            "manuscript_conclusion_redlines": [],
             "paper_quality_contract": {
                 "frozen_at_startup": True,
                 "evidence_expectations": {
-                    "minimum_sci_ready_evidence_package": minimum_sci_ready_evidence_package or [],
+                    "minimum_sci_ready_evidence_package": [],
                 },
                 "review_expectations": {
-                    "scientific_followup_questions": scientific_followup_questions or [],
-                    "manuscript_conclusion_redlines": manuscript_conclusion_redlines or [],
+                    "scientific_followup_questions": [],
+                    "manuscript_conclusion_redlines": [],
                 },
                 "downstream_contract_roles": {
                     "evidence_ledger": "records evidence against evidence expectations",
@@ -163,12 +199,38 @@ def _attach_study_charter_context(
     module,
     tmp_path: Path,
     quest_root: Path,
-    **charter_kwargs: Any,
+    *,
+    include_charter_expectations: bool = False,
 ) -> Path:
     study_root = tmp_path / "studies" / "002-early-residual-risk"
     study_root.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: 002-early-residual-risk\n", encoding="utf-8")
-    _write_study_charter(study_root, **charter_kwargs)
+    _write_study_charter(study_root)
+    if include_charter_expectations:
+        charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
+        payload = json.loads(charter_path.read_text(encoding="utf-8"))
+        minimum_sci_ready_evidence_package = [
+            CHARTER_EXPECTATION_FIXTURES["minimum_sci_ready_evidence_package"]["expectation_text"]
+        ]
+        scientific_followup_questions = [
+            CHARTER_EXPECTATION_FIXTURES["scientific_followup_questions"]["expectation_text"]
+        ]
+        manuscript_conclusion_redlines = [
+            CHARTER_EXPECTATION_FIXTURES["manuscript_conclusion_redlines"]["expectation_text"]
+        ]
+        payload["minimum_sci_ready_evidence_package"] = minimum_sci_ready_evidence_package
+        payload["scientific_followup_questions"] = scientific_followup_questions
+        payload["manuscript_conclusion_redlines"] = manuscript_conclusion_redlines
+        payload["paper_quality_contract"]["evidence_expectations"]["minimum_sci_ready_evidence_package"] = (
+            minimum_sci_ready_evidence_package
+        )
+        payload["paper_quality_contract"]["review_expectations"]["scientific_followup_questions"] = (
+            scientific_followup_questions
+        )
+        payload["paper_quality_contract"]["review_expectations"]["manuscript_conclusion_redlines"] = (
+            manuscript_conclusion_redlines
+        )
+        dump_json(charter_path, payload)
 
     paper_root = _paper_root_from_quest(quest_root)
     monkeypatch.setattr(
@@ -1313,6 +1375,134 @@ def test_build_report_projects_study_charter_linkage_for_ledgers(tmp_path: Path,
     assert "charter::002-early-residual-risk::v1" in markdown
     assert "- evidence_ledger_linkage_status: `linked`" in markdown
     assert "- review_ledger_linkage_status: `linked`" in markdown
+
+
+def test_build_report_blocks_when_charter_expectation_closure_is_not_recorded(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root, include_charter_expectations=True)
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+    summary = report["charter_expectation_closure_summary"]
+
+    assert report["status"] == "blocked"
+    assert "charter_expectation_closure_incomplete" in report["blockers"]
+    assert summary["status"] == "blocked"
+    assert len(summary["blocking_items"]) == 3
+    assert {item["closure_status"] for item in summary["blocking_items"]} == {"not_recorded"}
+    assert all(item["blocker"] is True for item in summary["blocking_items"])
+    assert any(hit["pattern_id"] == "charter_expectation_closure_blocker" for hit in report["top_hits"])
+
+    markdown = module.render_surface_markdown(report)
+    assert "## Charter Expectation Closure Summary" in markdown
+    assert "not_recorded" in markdown
+
+
+@pytest.mark.parametrize("closure_status", ["open", "in_progress", "blocked", "resolved"])
+def test_build_report_blocks_when_charter_expectation_closure_status_is_not_closed(
+    tmp_path: Path,
+    monkeypatch,
+    closure_status: str,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root, include_charter_expectations=True)
+    paper_root = _paper_root_from_quest(quest_root)
+    _write_charter_expectation_closures(
+        paper_root / "evidence_ledger.json",
+        [_charter_expectation_record("minimum_sci_ready_evidence_package")],
+    )
+    _write_charter_expectation_closures(
+        paper_root / "review" / "review_ledger.json",
+        [
+            _charter_expectation_record("scientific_followup_questions", status=closure_status),
+            _charter_expectation_record("manuscript_conclusion_redlines"),
+        ],
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+    summary = report["charter_expectation_closure_summary"]
+    blocker = next(
+        item
+        for item in summary["blocking_items"]
+        if item["expectation_key"] == "scientific_followup_questions"
+    )
+
+    assert report["status"] == "blocked"
+    assert "charter_expectation_closure_incomplete" in report["blockers"]
+    expected_status = closure_status if closure_status in {"open", "in_progress", "blocked"} else "invalid_status"
+    assert blocker["closure_status"] == expected_status
+    assert blocker["blocker"] is True
+    assert blocker["ledger_name"] == "review_ledger"
+
+
+def test_build_report_blocks_when_charter_expectation_closure_records_are_duplicated(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root, include_charter_expectations=True)
+    paper_root = _paper_root_from_quest(quest_root)
+    _write_charter_expectation_closures(
+        paper_root / "evidence_ledger.json",
+        [
+            _charter_expectation_record("minimum_sci_ready_evidence_package"),
+            _charter_expectation_record(
+                "minimum_sci_ready_evidence_package",
+                note="Duplicate closure record should block the report.",
+            ),
+        ],
+    )
+    _write_charter_expectation_closures(
+        paper_root / "review" / "review_ledger.json",
+        [
+            _charter_expectation_record("scientific_followup_questions"),
+            _charter_expectation_record("manuscript_conclusion_redlines"),
+        ],
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+    summary = report["charter_expectation_closure_summary"]
+    blocker = next(
+        item
+        for item in summary["blocking_items"]
+        if item["expectation_key"] == "minimum_sci_ready_evidence_package"
+    )
+
+    assert report["status"] == "blocked"
+    assert "charter_expectation_closure_incomplete" in report["blockers"]
+    assert blocker["closure_status"] == "duplicate_records"
+    assert blocker["record_count"] == 2
+    assert blocker["blocker"] is True
+
+
+def test_build_report_clears_when_charter_expectation_closures_are_explicitly_closed(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root, include_charter_expectations=True)
+    paper_root = _paper_root_from_quest(quest_root)
+    _write_charter_expectation_closures(
+        paper_root / "evidence_ledger.json",
+        [_charter_expectation_record("minimum_sci_ready_evidence_package")],
+    )
+    _write_charter_expectation_closures(
+        paper_root / "review" / "review_ledger.json",
+        [
+            _charter_expectation_record("scientific_followup_questions"),
+            _charter_expectation_record("manuscript_conclusion_redlines"),
+        ],
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+    summary = report["charter_expectation_closure_summary"]
+
+    assert report["status"] == "clear"
+    assert "charter_expectation_closure_incomplete" not in report["blockers"]
+    assert summary["status"] == "clear"
+    assert summary["declared_record_count"] == 3
+    assert summary["closed_item_count"] == 3
+    assert summary["blocking_items"] == []
 
 
 def test_build_report_blocks_when_study_charter_is_missing(tmp_path: Path, monkeypatch) -> None:
