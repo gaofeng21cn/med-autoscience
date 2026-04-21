@@ -982,6 +982,9 @@ def test_build_runtime_watch_outer_loop_tick_request_materializes_bounded_analys
 
     assert request is not None
     assert request["decision_type"] == "bounded_analysis"
+    assert request["route_target"] == "analysis-campaign"
+    assert request["route_key_question"] == "What is the narrowest supplementary analysis still required before the paper line can continue?"
+    assert request["route_rationale"] == "The current line is clear enough to continue after one bounded supplementary analysis pass."
     assert request["requires_human_confirmation"] is False
     assert request["controller_actions"] == [
         {

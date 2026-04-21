@@ -160,6 +160,30 @@ def test_controller_owned_interaction_reply_message_prompts_write_stage_resume(m
     assert "继续 write stage" in message
 
 
+def test_controller_owned_interaction_reply_message_appends_route_context(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    _patch_router(monkeypatch, module)
+    payload = _base_status_payload()
+    payload["reason"] = "quest_stale_decision_after_write_stage_ready"
+    status = typed_surface.StudyRuntimeStatus.from_payload(payload)
+
+    message = module._controller_owned_interaction_reply_message(
+        status=status,
+        route_context={
+            "route_target": "write",
+            "route_target_label": "当前论文主线写作",
+            "route_key_question": "What is the narrowest same-line manuscript repair or continuation step required now?",
+            "route_rationale": "The publication gate is clear and the current paper line can continue through same-line manuscript work.",
+        },
+    )
+
+    assert message is not None
+    assert "当前正式 route 是“当前论文主线写作”" in message
+    assert "当前关键问题是" in message
+    assert "这样推进的理由是" in message
+
+
 def test_force_restart_for_live_controller_reroute_supports_write_stage_ready(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")

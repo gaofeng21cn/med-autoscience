@@ -149,6 +149,30 @@ def test_study_decision_record_accepts_bounded_analysis_decision_type() -> None:
     assert record.to_dict()["decision_type"] == "bounded_analysis"
 
 
+def test_study_decision_record_accepts_route_contract_fields() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["route_target"] = "write"
+    payload["route_key_question"] = "What is the narrowest same-line manuscript repair or continuation step required now?"
+    payload["route_rationale"] = "The publication gate is clear and the current paper line can continue through same-line manuscript work."
+
+    record = module.StudyDecisionRecord.from_payload(payload)
+
+    assert record.route_target == "write"
+    assert record.route_key_question == payload["route_key_question"]
+    assert record.route_rationale == payload["route_rationale"]
+    assert record.to_dict()["route_target"] == "write"
+
+
+def test_study_decision_record_rejects_partial_route_contract_fields() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["route_target"] = "write"
+
+    with pytest.raises(ValueError, match="route_target, route_key_question, and route_rationale must be provided together"):
+        module.StudyDecisionRecord.from_payload(payload)
+
+
 def test_study_decision_record_accepts_family_orchestration_companion_fields() -> None:
     module = _load_module()
     payload = _minimal_payload()

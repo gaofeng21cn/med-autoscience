@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
@@ -15,6 +16,7 @@ from med_autoscience.runtime_protocol import (
     study_runtime as study_runtime_protocol,
     user_message,
 )
+from med_autoscience.study_decision_record import StudyDecisionRecord
 from med_autoscience.study_completion import StudyCompletionState
 
 from .study_runtime_transport import _get_quest_session
@@ -56,6 +58,11 @@ _LIVE_CONTROLLER_REROUTE_REQUIRED_ACTION_BY_REASON = {
     StudyRuntimeReason.QUEST_DRIFTING_INTO_WRITE_WITHOUT_GATE_APPROVAL: "return_to_publishability_gate",
     StudyRuntimeReason.QUEST_STALE_DECISION_AFTER_WRITE_STAGE_READY: "continue_write_stage",
 }
+_ROUTE_TARGET_LABELS = {
+    "analysis-campaign": "有限补充分析",
+    "write": "当前论文主线写作",
+    "finalize": "finalize / 投稿包收口",
+}
 
 
 def _router_module():
@@ -66,16 +73,64 @@ def _should_run_startup_hydration_for_resume(*, status: StudyRuntimeStatus) -> b
     return status.runtime_reentry_gate_result.require_startup_hydration
 
 
-def _controller_owned_interaction_reply_message(*, status: StudyRuntimeStatus) -> str | None:
+def _load_controller_decision_route_context(*, study_root: Path) -> dict[str, str] | None:
+    decision_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
+    if not decision_path.exists():
+        return None
+    try:
+        payload = json.loads(decision_path.read_text(encoding="utf-8")) or {}
+        record = StudyDecisionRecord.from_payload(payload if isinstance(payload, dict) else {})
+    except (OSError, ValueError, TypeError):
+        return None
+    if (
+        record.route_target is None
+        or record.route_key_question is None
+        or record.route_rationale is None
+    ):
+        return None
+    return {
+        "route_target": record.route_target,
+        "route_target_label": _ROUTE_TARGET_LABELS.get(record.route_target, record.route_target),
+        "route_key_question": record.route_key_question,
+        "route_rationale": record.route_rationale,
+    }
+
+
+def _append_route_context_to_message(*, message: str, route_context: dict[str, str] | None) -> str:
+    if not isinstance(route_context, dict):
+        return message
+    route_target_label = str(route_context.get("route_target_label") or "").strip()
+    route_key_question = str(route_context.get("route_key_question") or "").strip()
+    route_rationale = str(route_context.get("route_rationale") or "").strip()
+    if not route_target_label or not route_key_question or not route_rationale:
+        return message
+    return (
+        f"{message} 当前正式 route 是“{route_target_label}”；"
+        f"当前关键问题是：{route_key_question}；"
+        f"这样推进的理由是：{route_rationale}"
+    )
+
+
+def _controller_owned_interaction_reply_message(
+    *,
+    status: StudyRuntimeStatus,
+    route_context: dict[str, str] | None = None,
+) -> str | None:
     if status.reason is StudyRuntimeReason.QUEST_DRIFTING_INTO_WRITE_WITHOUT_GATE_APPROVAL:
-        return (
+        return _append_route_context_to_message(
+            message=(
             "MAS publication gate 尚未放行写作。请停止当前 manuscript / finalize 漂移，"
             "回到 publishability blockers 与科学锚点映射，清除门控后再继续写作或申请 completion。"
+            ),
+            route_context=route_context,
         )
     if status.reason is StudyRuntimeReason.QUEST_STALE_DECISION_AFTER_WRITE_STAGE_READY:
-        return (
+        return _append_route_context_to_message(
+            message=(
             "MAS publication gate 已放行写作。请结束旧的 decision 续跑点，"
             "回到当前 manuscript 主线，继续 write stage 并更新 results / figures / tables。"
+            ),
+            route_context=route_context,
         )
     pending_payload = status.extras.get("pending_user_interaction")
     arbitration_payload = status.extras.get("interaction_arbitration")
@@ -110,7 +165,8 @@ def _relay_controller_owned_runtime_reply_if_required(
     status: StudyRuntimeStatus,
     context: StudyRuntimeExecutionContext,
 ) -> dict[str, Any] | None:
-    message = _controller_owned_interaction_reply_message(status=status)
+    route_context = _load_controller_decision_route_context(study_root=context.study_root)
+    message = _controller_owned_interaction_reply_message(status=status, route_context=route_context)
     if message is None:
         return None
     pending_payload = status.extras.get("pending_user_interaction")
@@ -132,6 +188,7 @@ def _relay_controller_owned_runtime_reply_if_required(
         "reply_to_interaction_id": record.get("reply_to_interaction_id"),
         "content": record.get("content"),
         "source": record.get("source"),
+        "route_context": route_context,
     }
     return record
 

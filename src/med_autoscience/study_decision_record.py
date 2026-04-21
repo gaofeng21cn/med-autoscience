@@ -21,6 +21,9 @@ _RECORD_ALLOWED_FIELDS = frozenset(
         "requires_human_confirmation",
         "controller_actions",
         "reason",
+        "route_target",
+        "route_key_question",
+        "route_rationale",
         "family_event_envelope",
         "family_checkpoint_lineage",
         "family_human_gates",
@@ -100,6 +103,15 @@ def _payload_bool(payload: dict[str, Any], field_name: str, label: str) -> bool:
     if not isinstance(value, bool):
         raise TypeError(f"{label} {field_name} must be bool")
     return value
+
+
+def _optional_payload_text(payload: dict[str, Any], field_name: str) -> str | None:
+    if field_name not in payload:
+        return None
+    value = payload.get(field_name)
+    if value is None:
+        return None
+    return _require_text("study decision record", field_name, value)
 
 
 def _payload_mapping(payload: dict[str, Any], field_name: str, label: str) -> dict[str, Any]:
@@ -274,6 +286,9 @@ class StudyDecisionRecord:
     requires_human_confirmation: bool
     controller_actions: tuple[StudyDecisionControllerAction, ...]
     reason: str
+    route_target: str | None = None
+    route_key_question: str | None = None
+    route_rationale: str | None = None
     family_event_envelope: dict[str, Any] | None = None
     family_checkpoint_lineage: dict[str, Any] | None = None
     family_human_gates: tuple[dict[str, Any], ...] = ()
@@ -318,6 +333,33 @@ class StudyDecisionRecord:
             raise ValueError("study decision record controller_actions must not be empty")
         object.__setattr__(self, "controller_actions", normalized_actions)
         object.__setattr__(self, "reason", _require_text("study decision record", "reason", self.reason))
+        normalized_route_target = (
+            _require_text("study decision record", "route_target", self.route_target)
+            if self.route_target is not None
+            else None
+        )
+        normalized_route_key_question = (
+            _require_text("study decision record", "route_key_question", self.route_key_question)
+            if self.route_key_question is not None
+            else None
+        )
+        normalized_route_rationale = (
+            _require_text("study decision record", "route_rationale", self.route_rationale)
+            if self.route_rationale is not None
+            else None
+        )
+        route_contract = (
+            normalized_route_target,
+            normalized_route_key_question,
+            normalized_route_rationale,
+        )
+        if any(item is not None for item in route_contract) and not all(item is not None for item in route_contract):
+            raise ValueError(
+                "study decision record route_target, route_key_question, and route_rationale must be provided together"
+            )
+        object.__setattr__(self, "route_target", normalized_route_target)
+        object.__setattr__(self, "route_key_question", normalized_route_key_question)
+        object.__setattr__(self, "route_rationale", normalized_route_rationale)
         if self.family_event_envelope is not None and not isinstance(self.family_event_envelope, dict):
             raise TypeError("study decision record family_event_envelope must be mapping or None")
         if self.family_checkpoint_lineage is not None and not isinstance(self.family_checkpoint_lineage, dict):
@@ -347,6 +389,9 @@ class StudyDecisionRecord:
             requires_human_confirmation=self.requires_human_confirmation,
             controller_actions=self.controller_actions,
             reason=self.reason,
+            route_target=self.route_target,
+            route_key_question=self.route_key_question,
+            route_rationale=self.route_rationale,
             family_event_envelope=dict(self.family_event_envelope) if isinstance(self.family_event_envelope, dict) else None,
             family_checkpoint_lineage=(
                 dict(self.family_checkpoint_lineage) if isinstance(self.family_checkpoint_lineage, dict) else None
@@ -378,6 +423,10 @@ class StudyDecisionRecord:
             "controller_actions": [action.to_dict() for action in self.controller_actions],
             "reason": self.reason,
         }
+        if self.route_target is not None:
+            payload["route_target"] = self.route_target
+            payload["route_key_question"] = self.route_key_question
+            payload["route_rationale"] = self.route_rationale
         if self.family_event_envelope is not None:
             payload["family_event_envelope"] = dict(self.family_event_envelope)
         if self.family_checkpoint_lineage is not None:
@@ -415,6 +464,9 @@ class StudyDecisionRecord:
                 for action in _payload_object_sequence(payload, "controller_actions", "study decision record")
             ),
             reason=_payload_text(payload, "reason", "study decision record"),
+            route_target=_optional_payload_text(payload, "route_target"),
+            route_key_question=_optional_payload_text(payload, "route_key_question"),
+            route_rationale=_optional_payload_text(payload, "route_rationale"),
             family_event_envelope=_optional_payload_mapping(payload, "family_event_envelope", "study decision record"),
             family_checkpoint_lineage=_optional_payload_mapping(
                 payload,
