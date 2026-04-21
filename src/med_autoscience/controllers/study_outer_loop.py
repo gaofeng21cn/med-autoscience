@@ -256,7 +256,10 @@ def _hydrate_managed_runtime_refs(status: dict[str, Any]) -> dict[str, Any]:
                     try:
                         runtime_event_ref = RuntimeEventRecord.from_payload(raw_payload).ref()
                     except (TypeError, ValueError):
-                        runtime_event_ref = NativeRuntimeEventRecord.from_payload(raw_payload).ref()
+                        try:
+                            runtime_event_ref = NativeRuntimeEventRecord.from_payload(raw_payload).ref()
+                        except (TypeError, ValueError):
+                            runtime_event_ref = None
         if runtime_event_ref is not None:
             hydrated["runtime_event_ref"] = runtime_event_ref.to_dict()
     if not isinstance(hydrated.get("runtime_escalation_ref"), dict):
