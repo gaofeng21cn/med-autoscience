@@ -422,6 +422,14 @@ def build_runtime_watch_outer_loop_tick_request(
 
     runtime_escalation_payload = status_payload.get("runtime_escalation_ref")
     if not isinstance(runtime_escalation_payload, dict):
+        quest_root_text = str(status_payload.get("quest_root") or "").strip()
+        if quest_root_text:
+            runtime_escalation_ref = study_runtime_protocol.read_runtime_escalation_record_ref(
+                quest_root=Path(quest_root_text).expanduser().resolve()
+            )
+            if runtime_escalation_ref is not None:
+                runtime_escalation_payload = runtime_escalation_ref.to_dict()
+    if not isinstance(runtime_escalation_payload, dict):
         raise ValueError("runtime watch outer-loop wakeup requires runtime_escalation_ref from managed runtime status")
     _resolve_runtime_escalation_record(runtime_escalation_payload=runtime_escalation_payload)
 
