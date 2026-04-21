@@ -3193,6 +3193,33 @@ def test_render_product_frontdesk_markdown_shows_quality_closure_preview() -> No
     assert "质量闭环: 核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。" in markdown
 
 
+def test_render_product_frontdesk_markdown_shows_quality_execution_lane_preview() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    markdown = module.render_product_frontdesk_markdown(
+        {
+            "workspace_preview": None,
+            "workspace_attention_queue_preview": [
+                {
+                    "title": "001-risk 当前先做 claim-evidence 修复",
+                    "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "quality_execution_lane": {
+                        "summary": "当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“哪一轮最小补充分析足以恢复当前 claim-evidence 支撑？”。",
+                    },
+                }
+            ],
+            "phase2_user_product_loop": {},
+            "product_entry_guardrails": {},
+            "phase3_clearance_lane": {"clearance_targets": [], "clearance_loop": []},
+            "phase4_backend_deconstruction": {"substrate_targets": []},
+            "phase5_platform_target": {"capability_targets": [], "readiness_gates": []},
+            "remaining_gaps": [],
+        }
+    )
+
+    assert "质量执行线: 当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“哪一轮最小补充分析足以恢复当前 claim-evidence 支撑？”。" in markdown
+
+
 def test_product_entry_manifest_fails_closed_on_invalid_gateway_interaction_contract_shape(
     monkeypatch,
     tmp_path: Path,

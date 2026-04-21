@@ -1633,6 +1633,7 @@ def _study_item(
     ]
     autonomy_contract = dict(progress_payload.get("autonomy_contract") or {})
     quality_closure_truth = dict(progress_payload.get("quality_closure_truth") or {})
+    quality_execution_lane = dict(progress_payload.get("quality_execution_lane") or {})
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     return {
         "study_id": study_id,
@@ -1647,6 +1648,7 @@ def _study_item(
         "recommended_commands": recommended_commands,
         "autonomy_contract": autonomy_contract or None,
         "quality_closure_truth": quality_closure_truth or None,
+        "quality_execution_lane": quality_execution_lane or None,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
         "monitoring": monitoring,
@@ -1843,6 +1845,9 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             quality_closure_truth = dict(item.get("quality_closure_truth") or {})
             if quality_closure_truth.get("summary"):
                 lines.append(f"  质量闭环: {quality_closure_truth.get('summary')}")
+            quality_execution_lane = dict(item.get("quality_execution_lane") or {})
+            if quality_execution_lane.get("summary"):
+                lines.append(f"  质量执行线: {quality_execution_lane.get('summary')}")
             restore_point = dict(autonomy_contract.get("restore_point") or {})
             if restore_point.get("summary"):
                 lines.append(f"  恢复点: {restore_point.get('summary')}")
@@ -1912,6 +1917,9 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         quality_closure_truth = dict(item.get("quality_closure_truth") or {})
         if quality_closure_truth.get("summary"):
             lines.append(f"- 质量闭环: {quality_closure_truth.get('summary')}")
+        quality_execution_lane = dict(item.get("quality_execution_lane") or {})
+        if quality_execution_lane.get("summary"):
+            lines.append(f"- 质量执行线: {quality_execution_lane.get('summary')}")
         restore_point = dict(autonomy_contract.get("restore_point") or {})
         if restore_point.get("summary"):
             lines.append(f"- 恢复点: {restore_point.get('summary')}")
@@ -2801,6 +2809,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         quality_closure_truth = dict(item.get("quality_closure_truth") or {})
         if quality_closure_truth.get("summary"):
             lines.append(f"- 质量闭环: {quality_closure_truth.get('summary')}")
+        quality_execution_lane = dict(item.get("quality_execution_lane") or {})
+        if quality_execution_lane.get("summary"):
+            lines.append(f"- 质量执行线: {quality_execution_lane.get('summary')}")
         restore_point = dict(autonomy_contract.get("restore_point") or {})
         if restore_point.get("summary"):
             lines.append(f"- 恢复点: {restore_point.get('summary')}")

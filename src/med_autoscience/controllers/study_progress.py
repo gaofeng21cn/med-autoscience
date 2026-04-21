@@ -909,6 +909,7 @@ def _evaluation_module_surface(
     summary = read_evaluation_summary(study_root=study_root, ref=evaluation_summary_path)
     promotion_gate_status = dict(summary.get("promotion_gate_status") or {})
     quality_closure_truth = dict(summary.get("quality_closure_truth") or {})
+    quality_execution_lane = dict(summary.get("quality_execution_lane") or {})
     quality_closure_basis = dict(summary.get("quality_closure_basis") or {})
     quality_review_agenda = dict(summary.get("quality_review_agenda") or {})
     current_required_action = _non_empty_text(promotion_gate_status.get("current_required_action"))
@@ -932,6 +933,7 @@ def _evaluation_module_surface(
         "status_summary": summary["verdict_summary"],
         "next_action_summary": next_action_summary,
         "quality_closure_truth": quality_closure_truth or None,
+        "quality_execution_lane": quality_execution_lane or None,
         "quality_closure_basis": quality_closure_basis or None,
         "quality_review_agenda": quality_review_agenda or None,
     }
@@ -2848,6 +2850,11 @@ def build_study_progress_projection(
         if evaluation_module_surface is not None
         else {}
     )
+    quality_execution_lane = (
+        dict(evaluation_module_surface.get("quality_execution_lane") or {})
+        if evaluation_module_surface is not None
+        else {}
+    )
     quality_closure_basis = (
         dict(evaluation_module_surface.get("quality_closure_basis") or {})
         if evaluation_module_surface is not None
@@ -2891,6 +2898,7 @@ def build_study_progress_projection(
         "task_intake": task_intake,
         "progress_freshness": progress_freshness,
         "quality_closure_truth": quality_closure_truth or None,
+        "quality_execution_lane": quality_execution_lane or None,
         "quality_closure_basis": quality_closure_basis or None,
         "quality_review_agenda": quality_review_agenda or None,
         "module_surfaces": module_surfaces,
@@ -3026,6 +3034,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     operator_status_card = dict(payload.get("operator_status_card") or {})
     autonomy_contract = dict(payload.get("autonomy_contract") or {})
     quality_closure_truth = dict(payload.get("quality_closure_truth") or {})
+    quality_execution_lane = dict(payload.get("quality_execution_lane") or {})
     quality_closure_basis = dict(payload.get("quality_closure_basis") or {})
     quality_review_agenda = dict(payload.get("quality_review_agenda") or {})
     recovery_contract = dict(payload.get("recovery_contract") or {})
@@ -3197,6 +3206,10 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         if quality_closure_truth.get("summary"):
             lines.append(
                 f"- 当前质量判断: {_display_text(quality_closure_truth.get('summary')) or quality_closure_truth.get('summary')}"
+            )
+        if quality_execution_lane.get("summary"):
+            lines.append(
+                f"- 当前质量执行线: {_display_text(quality_execution_lane.get('summary')) or quality_execution_lane.get('summary')}"
             )
         for key in (
             "clinical_significance",

@@ -47,6 +47,13 @@ _QUALITY_ASSESSMENT_REVIEW_ORDER = (
     "clinical_significance",
     "novelty_positioning",
 )
+_QUALITY_EXECUTION_LANE_LABELS = {
+    "reviewer_first": "reviewer-first 收口",
+    "claim_evidence": "claim-evidence 修复",
+    "submission_hardening": "submission hardening 收口",
+    "write_ready": "同线写作推进",
+    "general_quality_repair": "质量修复",
+}
 
 
 def stable_evaluation_summary_path(*, study_root: Path) -> Path:
@@ -136,6 +143,12 @@ def _required_string_list(label: str, field_name: str, value: object) -> list[st
     return normalized
 
 
+def _optional_string_list(label: str, field_name: str, value: object) -> list[str]:
+    if value is None:
+        return []
+    return _required_string_list(label, field_name, value)
+
+
 def _read_json_object(path: Path, *, label: str) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8")) or {}
     if not isinstance(payload, dict):
@@ -208,6 +221,20 @@ def _normalize_gate_report(path: Path) -> dict[str, Any]:
             payload.get("controller_stage_note"),
         ),
         "blockers": blockers,
+        "medical_publication_surface_named_blockers": _optional_string_list(
+            "promotion gate source report",
+            "medical_publication_surface_named_blockers",
+            payload.get("medical_publication_surface_named_blockers"),
+        ),
+        "medical_publication_surface_route_back_recommendation": (
+            None
+            if payload.get("medical_publication_surface_route_back_recommendation") is None
+            else _required_text(
+                "promotion gate source report",
+                "medical_publication_surface_route_back_recommendation",
+                payload.get("medical_publication_surface_route_back_recommendation"),
+            )
+        ),
         "source_gate_report_ref": str(path.resolve()),
     }
 
@@ -253,6 +280,12 @@ def _build_promotion_gate_payload(
         "supervisor_phase": gate_report["supervisor_phase"],
         "controller_stage_note": gate_report["controller_stage_note"],
         "blockers": gate_report["blockers"],
+        "medical_publication_surface_named_blockers": list(
+            gate_report.get("medical_publication_surface_named_blockers") or []
+        ),
+        "medical_publication_surface_route_back_recommendation": (
+            str(gate_report.get("medical_publication_surface_route_back_recommendation") or "").strip() or None
+        ),
     }
 
 
@@ -759,6 +792,74 @@ def _quality_closure_truth(
     }
 
 
+def _quality_execution_lane(
+    *,
+    promotion_gate_payload: dict[str, Any],
+    route_repair_plan: dict[str, str] | None,
+) -> dict[str, Any]:
+    current_required_action = _required_text(
+        "promotion gate",
+        "current_required_action",
+        promotion_gate_payload.get("current_required_action"),
+    )
+    named_blockers = _optional_string_list(
+        "promotion gate",
+        "medical_publication_surface_named_blockers",
+        promotion_gate_payload.get("medical_publication_surface_named_blockers"),
+    )
+    route_target = str((route_repair_plan or {}).get("route_target") or "").strip()
+    route_key_question = str((route_repair_plan or {}).get("route_key_question") or "").strip()
+    route_rationale = str((route_repair_plan or {}).get("route_rationale") or "").strip()
+    repair_mode = (
+        "bounded_analysis"
+        if str((route_repair_plan or {}).get("action_type") or "").strip() == "bounded_analysis"
+        else "same_line_route_back"
+        if route_repair_plan is not None
+        else None
+    )
+
+    if "reviewer_first_concerns_unresolved" in named_blockers:
+        lane_id = "reviewer_first"
+    elif "claim_evidence_consistency_failed" in named_blockers:
+        lane_id = "claim_evidence"
+    elif "submission_hardening_incomplete" in named_blockers or current_required_action in {
+        "continue_bundle_stage",
+        "complete_bundle_stage",
+    }:
+        lane_id = "submission_hardening"
+    elif current_required_action == "continue_write_stage":
+        lane_id = "write_ready"
+    else:
+        lane_id = "general_quality_repair"
+
+    lane_label = _QUALITY_EXECUTION_LANE_LABELS[lane_id]
+    if route_target and route_key_question:
+        verb = "进入" if repair_mode == "bounded_analysis" else "回到"
+        summary = f"当前质量执行线聚焦 {lane_label}；先{verb} {route_target}，回答“{route_key_question}”。"
+    elif route_target:
+        verb = "进入" if repair_mode == "bounded_analysis" else "回到"
+        summary = f"当前质量执行线聚焦 {lane_label}；先{verb} {route_target} 收口当前缺口。"
+    elif current_required_action == "continue_write_stage":
+        summary = "当前质量执行线已经进入同线写作推进；核心科学面允许继续往写作收口。"
+    else:
+        summary = f"当前质量执行线聚焦 {lane_label}；应先收口当前质量缺口。"
+
+    why_now = route_rationale or _required_text(
+        "promotion gate",
+        "controller_stage_note",
+        promotion_gate_payload.get("controller_stage_note"),
+    )
+    return {
+        "lane_id": lane_id,
+        "lane_label": lane_label,
+        "repair_mode": repair_mode,
+        "route_target": route_target or None,
+        "route_key_question": route_key_question or None,
+        "summary": summary,
+        "why_now": why_now,
+    }
+
+
 def _build_evaluation_summary_payload(
     *,
     study_root: Path,
@@ -843,6 +944,10 @@ def _build_evaluation_summary_payload(
         "recommended_action_types": _recommended_action_types(actions),
         "route_repair_plan": route_repair_plan,
         "quality_closure_truth": quality_closure_truth,
+        "quality_execution_lane": _quality_execution_lane(
+            promotion_gate_payload=promotion_gate_payload,
+            route_repair_plan=route_repair_plan,
+        ),
         "quality_closure_basis": quality_closure_basis,
         "quality_review_agenda": _quality_review_agenda(
             publication_eval=publication_eval,
@@ -857,6 +962,13 @@ def _build_evaluation_summary_payload(
             "allow_write": promotion_gate_payload["allow_write"],
             "current_required_action": promotion_gate_payload["current_required_action"],
             "blockers": list(promotion_gate_payload["blockers"]),
+            "medical_publication_surface_named_blockers": list(
+                promotion_gate_payload.get("medical_publication_surface_named_blockers") or []
+            ),
+            "medical_publication_surface_route_back_recommendation": (
+                str(promotion_gate_payload.get("medical_publication_surface_route_back_recommendation") or "").strip()
+                or None
+            ),
         },
     }
 
@@ -921,6 +1033,20 @@ def _normalized_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
             payload.get("controller_stage_note"),
         ),
         "blockers": _required_string_list("promotion gate", "blockers", payload.get("blockers")),
+        "medical_publication_surface_named_blockers": _optional_string_list(
+            "promotion gate",
+            "medical_publication_surface_named_blockers",
+            payload.get("medical_publication_surface_named_blockers"),
+        ),
+        "medical_publication_surface_route_back_recommendation": (
+            None
+            if payload.get("medical_publication_surface_route_back_recommendation") is None
+            else _required_text(
+                "promotion gate",
+                "medical_publication_surface_route_back_recommendation",
+                payload.get("medical_publication_surface_route_back_recommendation"),
+            )
+        ),
     }
 
 
@@ -943,6 +1069,10 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
         dict(payload.get("quality_review_agenda") or {})
         if isinstance(payload.get("quality_review_agenda"), dict)
         else None
+    quality_execution_lane = _required_mapping(
+        "evaluation summary",
+        "quality_execution_lane",
+        payload.get("quality_execution_lane"),
     )
     return {
         "schema_version": 1,
@@ -1028,6 +1158,55 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
                     "route_target",
                     quality_closure_truth.get("route_target"),
                 )
+            ),
+        },
+        "quality_execution_lane": {
+            "lane_id": _required_text(
+                "evaluation summary quality_execution_lane",
+                "lane_id",
+                quality_execution_lane.get("lane_id"),
+            ),
+            "lane_label": _required_text(
+                "evaluation summary quality_execution_lane",
+                "lane_label",
+                quality_execution_lane.get("lane_label"),
+            ),
+            "repair_mode": (
+                None
+                if quality_execution_lane.get("repair_mode") is None
+                else _required_text(
+                    "evaluation summary quality_execution_lane",
+                    "repair_mode",
+                    quality_execution_lane.get("repair_mode"),
+                )
+            ),
+            "route_target": (
+                None
+                if quality_execution_lane.get("route_target") is None
+                else _required_text(
+                    "evaluation summary quality_execution_lane",
+                    "route_target",
+                    quality_execution_lane.get("route_target"),
+                )
+            ),
+            "route_key_question": (
+                None
+                if quality_execution_lane.get("route_key_question") is None
+                else _required_text(
+                    "evaluation summary quality_execution_lane",
+                    "route_key_question",
+                    quality_execution_lane.get("route_key_question"),
+                )
+            ),
+            "summary": _required_text(
+                "evaluation summary quality_execution_lane",
+                "summary",
+                quality_execution_lane.get("summary"),
+            ),
+            "why_now": _required_text(
+                "evaluation summary quality_execution_lane",
+                "why_now",
+                quality_execution_lane.get("why_now"),
             ),
         },
         "quality_closure_basis": {

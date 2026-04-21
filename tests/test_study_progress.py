@@ -1238,6 +1238,8 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
             "current_required_action": "complete_bundle_stage",
             "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
             "blockers": ["missing_submission_minimal"],
+            "medical_publication_surface_named_blockers": ["submission_hardening_incomplete"],
+            "medical_publication_surface_route_back_recommendation": "return_to_finalize",
         },
     )
 
@@ -1285,6 +1287,15 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
         "current_required_action": "complete_bundle_stage",
         "route_target": "finalize",
     }
+    assert result["quality_execution_lane"] == {
+        "lane_id": "submission_hardening",
+        "lane_label": "submission hardening 收口",
+        "repair_mode": "same_line_route_back",
+        "route_target": "finalize",
+        "route_key_question": "当前论文线还差哪一步 finalize / submission bundle 收口？",
+        "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一步 finalize / submission bundle 收口？”。",
+        "why_now": "核心科学问题已经回答，当前只剩同线 finalize 收口。",
+    }
     assert result["quality_closure_basis"]["evidence_strength"]["status"] == "ready"
     assert result["module_surfaces"]["eval_hygiene"]["quality_closure_truth"] == result["quality_closure_truth"]
     assert result["quality_review_agenda"] == {
@@ -1298,6 +1309,7 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
         ),
     }
     assert result["module_surfaces"]["eval_hygiene"]["quality_review_agenda"] == result["quality_review_agenda"]
+    assert result["module_surfaces"]["eval_hygiene"]["quality_execution_lane"] == result["quality_execution_lane"]
     assert "## 质量闭环" in markdown
     assert "## 质量评审议程" in markdown
     assert "当前优先问题: 必须优先修复：外部验证队列还没有补齐。" in markdown
@@ -1306,6 +1318,7 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
     assert "下一轮复评重点: 当前论文线还差哪一步 定稿与投稿收尾 / 最小投稿包 收口？" in markdown
     assert "核心科学质量已经闭环" in markdown
     assert "核心科学证据已经闭环，剩余工作不在核心证据面。" in markdown
+    assert "当前质量执行线聚焦 submission hardening 收口" in markdown
 
 
 def test_study_progress_does_not_project_resume_arbitration_as_physician_decision(

@@ -161,6 +161,8 @@ def _stable_inputs(tmp_path: Path) -> dict[str, object]:
         "current_required_action": "return_to_publishability_gate",
         "controller_stage_note": "bundle suggestions are downstream-only until the publication gate allows write",
         "blockers": ["missing_post_main_publishability_gate"],
+        "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
+        "medical_publication_surface_route_back_recommendation": "return_to_analysis_campaign",
     }
 
     _write_json(charter_path, charter_payload)
@@ -275,6 +277,8 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
         "supervisor_phase": "publishability_gate_blocked",
         "controller_stage_note": "bundle suggestions are downstream-only until the publication gate allows write",
         "blockers": ["missing_post_main_publishability_gate"],
+        "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
+        "medical_publication_surface_route_back_recommendation": "return_to_analysis_campaign",
     }
     assert evaluation_summary_payload == {
         "schema_version": 1,
@@ -335,6 +339,15 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
             "current_required_action": "return_to_publishability_gate",
             "route_target": "analysis-campaign",
         },
+        "quality_execution_lane": {
+            "lane_id": "claim_evidence",
+            "lane_label": "claim-evidence 修复",
+            "repair_mode": "bounded_analysis",
+            "route_target": "analysis-campaign",
+            "route_key_question": "What is the narrowest supplementary analysis needed to restore endpoint provenance support?",
+            "summary": "当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“What is the narrowest supplementary analysis needed to restore endpoint provenance support?”。",
+            "why_now": "The study direction remains valid; only a bounded analysis-campaign repair is needed.",
+        },
         "quality_closure_basis": {
             "clinical_significance": {
                 "status": "partial",
@@ -378,6 +391,8 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
             "allow_write": False,
             "current_required_action": "return_to_publishability_gate",
             "blockers": ["missing_post_main_publishability_gate"],
+            "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
+            "medical_publication_surface_route_back_recommendation": "return_to_analysis_campaign",
         },
     }
     assert module.read_promotion_gate(study_root=study_root) == promotion_gate_payload
