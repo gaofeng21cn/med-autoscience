@@ -387,7 +387,7 @@ def _recommended_publication_eval_action(publication_eval_payload: dict[str, Any
     return None
 
 
-def _recommended_quality_review_loop_action(*, study_root: Path) -> dict[str, Any] | None:
+def _read_evaluation_summary_payload(*, study_root: Path) -> dict[str, Any] | None:
     summary_path = resolve_evaluation_summary_ref(study_root=study_root)
     if not summary_path.exists():
         return None
@@ -398,6 +398,108 @@ def _recommended_quality_review_loop_action(*, study_root: Path) -> dict[str, An
         if not isinstance(raw_payload, dict):
             return None
         summary_payload = raw_payload
+    return summary_payload
+
+
+def _quality_dimension_status(*, payload: dict[str, Any], dimension: str) -> str | None:
+    quality_assessment = payload.get("quality_assessment")
+    if not isinstance(quality_assessment, dict):
+        return None
+    dimension_payload = quality_assessment.get(dimension)
+    if not isinstance(dimension_payload, dict):
+        return None
+    status = str(dimension_payload.get("status") or "").strip()
+    return status or None
+
+
+def _publication_eval_has_only_optional_gaps(publication_eval_payload: dict[str, Any]) -> bool:
+    gaps = publication_eval_payload.get("gaps")
+    if not isinstance(gaps, list):
+        return False
+    for gap in gaps:
+        if not isinstance(gap, dict):
+            return False
+        if str(gap.get("severity") or "").strip() != "optional":
+            return False
+    return True
+
+
+def _runtime_status_is_live(status_payload: dict[str, Any]) -> bool:
+    runtime_liveness_status = str(status_payload.get("runtime_liveness_status") or "").strip()
+    if runtime_liveness_status == "live":
+        return True
+    runtime_liveness_audit = status_payload.get("runtime_liveness_audit")
+    if isinstance(runtime_liveness_audit, dict) and str(runtime_liveness_audit.get("status") or "").strip() == "live":
+        return True
+    return str(status_payload.get("quest_status") or "").strip() in {"active", "running"}
+
+
+def _recommended_submission_milestone_autopark_action(
+    *,
+    study_root: Path,
+    status_payload: dict[str, Any],
+    publication_eval_payload: dict[str, Any],
+) -> dict[str, Any] | None:
+    if not _runtime_status_is_live(status_payload):
+        return None
+    summary_payload = _read_evaluation_summary_payload(study_root=study_root)
+    if summary_payload is None:
+        return None
+    quality_closure_truth = (
+        dict(summary_payload.get("quality_closure_truth") or {})
+        if isinstance(summary_payload.get("quality_closure_truth"), dict)
+        else {}
+    )
+    if str(quality_closure_truth.get("state") or "").strip() != "bundle_only_remaining":
+        return None
+    verdict = publication_eval_payload.get("verdict")
+    if not isinstance(verdict, dict) or str(verdict.get("overall_verdict") or "").strip() != "promising":
+        return None
+    if not _publication_eval_has_only_optional_gaps(publication_eval_payload):
+        return None
+    human_review_status = _quality_dimension_status(
+        payload=summary_payload,
+        dimension="human_review_readiness",
+    ) or _quality_dimension_status(
+        payload=publication_eval_payload,
+        dimension="human_review_readiness",
+    )
+    if human_review_status != "ready":
+        return None
+    quality_execution_lane = (
+        dict(summary_payload.get("quality_execution_lane") or {})
+        if isinstance(summary_payload.get("quality_execution_lane"), dict)
+        else {}
+    )
+    route_target = str(
+        quality_execution_lane.get("route_target") or quality_closure_truth.get("route_target") or ""
+    ).strip()
+    if route_target and route_target != "finalize":
+        return None
+    route_key_question = str(quality_execution_lane.get("route_key_question") or "").strip()
+    route_rationale = str(
+        quality_execution_lane.get("summary")
+        or quality_closure_truth.get("summary")
+        or "Human-review milestone reached and only finalize-level bundle cleanup remains."
+    ).strip()
+    return {
+        "action_id": f"quality-milestone::{study_root.name}::autopark",
+        "action_type": StudyDecisionType.CONTINUE_SAME_LINE.value,
+        "priority": "now",
+        "reason": "Human-review milestone reached; stop the live runtime and wait for explicit resume.",
+        "route_target": "finalize",
+        "route_key_question": route_key_question
+        or "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+        "route_rationale": route_rationale,
+        "requires_controller_decision": True,
+        "controller_action_type": StudyDecisionActionType.STOP_RUNTIME.value,
+    }
+
+
+def _recommended_quality_review_loop_action(*, study_root: Path) -> dict[str, Any] | None:
+    summary_payload = _read_evaluation_summary_payload(study_root=study_root)
+    if summary_payload is None:
+        return None
     quality_review_loop = (
         dict(summary_payload.get("quality_review_loop") or {})
         if isinstance(summary_payload.get("quality_review_loop"), dict)
@@ -466,7 +568,13 @@ def build_runtime_watch_outer_loop_tick_request(
         study_root=resolved_study_root,
         ref=publication_eval_path,
     )
-    recommended_action = _recommended_quality_review_loop_action(study_root=resolved_study_root)
+    recommended_action = _recommended_submission_milestone_autopark_action(
+        study_root=resolved_study_root,
+        status_payload=status_payload,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if recommended_action is None:
+        recommended_action = _recommended_quality_review_loop_action(study_root=resolved_study_root)
     if recommended_action is None:
         recommended_action = _recommended_publication_eval_action(publication_eval_payload)
     if recommended_action is None:
@@ -496,8 +604,11 @@ def build_runtime_watch_outer_loop_tick_request(
         eval_id=str(publication_eval_payload.get("eval_id") or "").strip(),
         artifact_path=str(publication_eval_path),
     ).to_dict()
+    controller_action_type = str(recommended_action.get("controller_action_type") or "").strip()
+    if not controller_action_type:
+        controller_action_type = _autonomous_controller_action_type_for_runtime_status(status_payload)
     controller_action = StudyDecisionControllerAction(
-        action_type=_autonomous_controller_action_type_for_runtime_status(status_payload),
+        action_type=controller_action_type,
         payload_ref=str((resolved_study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
     ).to_dict()
     return {
