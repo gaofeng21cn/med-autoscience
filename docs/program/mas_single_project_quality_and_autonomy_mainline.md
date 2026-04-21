@@ -34,6 +34,12 @@
 - 用户可见面不再把质量修复、有限补充分析、runtime recovery、human gate 混成同一种“待确认”，而是要求投影出不同 owner 语义。
 - program 口径不再把 `MDS` 当作长期并行 owner，而是把它固定在 oracle / backend / intake buffer 三个迁移期角色里。
 
+这个 tranche 的 repo-side 落点也需要说清楚：
+
+- 当前 tranche 落的是 `MAS` 单项目 owner truth、程序边界、用户可见 boundary 和对应 mainline/docs 口径。
+- 当前 tranche 不把 `physical monorepo absorb`、跨仓 `runtime core ingest`、更成熟的 hosted direct product entry 当作验收项。
+- 当前 tranche 允许继续保留 `MDS`，但保留的理由只能是 controlled research backend、行为等价 oracle、上游 intake buffer。
+
 ## 当前 tranche 的主张
 
 当前 tranche 有四条必须同时成立的主张：
@@ -42,6 +48,10 @@
 2. human gate 只保留重大边界、外部授权与最终投稿审计，不再承担日常质量裁决。
 3. `MDS` 的存在只能解释为迁移期 oracle / backend / intake buffer，不再解释为长期双 owner、双治理面或双入口产品。
 4. 用户看到的进度、阻塞、证据与下一步，必须直接来自 `MAS` 的 durable truth，而不是额外的人肉解释层。
+
+围绕这四条主张，当前 tranche 还额外带一条收口纪律：
+
+- 当前 tranche 的完成信号是 repo-tracked truth 闭合，不是 `physical monorepo absorb` 已启动；物理吸收和更大结构调整继续留在 post-gate phase。
 
 ## 1. 为什么优化主体在 MAS
 
@@ -76,6 +86,12 @@
 
 - 新的 owner、主文档、主验证口径、主维护判断都放在 `MAS`
 - `MDS` 负责迁移期对照、存量兼容和 intake 缓冲
+
+这也意味着三条负面边界同样要固定下来：
+
+- 不再把 `MDS` 写成独立产品入口。
+- 不再把 `MDS` 写成长期质量治理面或自治治理面。
+- 不再把 `MDS` 的保留解释成“单项目主线尚未成立”，而只解释成迁移期能力守恒与等价 proof 需要。
 
 从主线视角看，这会带来三条立刻生效的优化取向：
 
@@ -256,6 +272,10 @@ human gate 收窄到少数重大边界：
 - user-visible truth 已经投影：当前阶段、关键证据、阻塞、下一步、恢复点可以从 `MAS` durable surface 直接读出
 - human gate 已经收窄：方向锁定后的日常质量裁决与 `bounded_analysis` 推进不再依赖 `MDS` 或人工兜底解释
 
+这里还要额外卡住一条 phase 边界：
+
+- 当前 Phase 2 收口的是 repo-tracked single-project truth，不是 post-gate `physical monorepo absorb`；只要 external/runtime/workspace gate 还没清完，就不能把物理吸收当成当前 tranche 的自然延长。
+
 ### Phase 2 当前 tranche 的最小验收口径
 
 这个 tranche 过线至少要求：
@@ -265,6 +285,7 @@ human gate 收窄到少数重大边界：
 3. `MDS` 在同一套文档里只能被解释为 oracle / backend / intake buffer，不能再出现长期双 owner 含义。
 4. 质量总合同、执行账本、前台 truth 三层之间的 owner 与关系已经能在 `MAS` program truth 里闭合。
 5. 当质量闭环要求 route-back 时，`MAS` 可以把“回到哪条现有主线、该主线当前关键问题是什么、为什么这是最窄修复路径”解释成 repo-tracked truth。
+6. `mainline` / `status` / program truth 已经能明确区分“当前 tranche 正在收什么”和“post-gate 才能启动的 physical monorepo / runtime core ingest”。
 
 ### Phase 3：做单项目等价 proof
 
@@ -300,6 +321,8 @@ human gate 收窄到少数重大边界：
 - 日常开发、维护、排障、质量判断、自治治理都以 `MAS` 为默认入口
 - `MDS` 收敛为迁移期对照与 intake 缓冲
 
+这一步依然不是 `physical monorepo absorb`；它收的是默认维护面和 retained-now backend 边界。
+
 ### Phase 5：完成单项目收口
 
 目标：
@@ -307,6 +330,8 @@ human gate 收窄到少数重大边界：
 - 新增主投入全部按 `MAS` 主线组织
 - 旧 study、旧 artifact、旧运行轨迹都能被稳定读取和解释
 - `MDS` 迁移期角色进入低频维护
+
+`physical monorepo absorb`、`runtime core ingest` 和更大平台结构调整只在这个 post-gate 区段讨论，而且前提是前四阶段的 owner truth、proof 与 retained-now 边界已经稳定。
 
 ## 6. 验收标准
 

@@ -7,7 +7,7 @@
 - `Med Auto Science` 是面向专病研究的医学研究工作台，负责研究问题进入、工作区语境、证据推进、人话进度和论文相关文件交付。
 - 仓库首页负责用户入口；`CLI`、`MCP`、`controller` 负责操作与自动化入口。
 - `OPL` 是上层整合入口；`Med Auto Science` 也可以直接使用。
-- 上游 `Hermes-Agent` 指外部运行时目标与监管责任方；当前受控研究后端继续是 `MedDeepScientist`。
+- 上游 `Hermes-Agent` 指外部运行时目标与监管责任方；当前受控研究后端继续是 `MedDeepScientist`，但它在单项目主线里只保留 research backend、行为等价 oracle、上游 intake buffer 三个迁移期角色。
 
 ## 当前推荐使用方式
 
@@ -37,6 +37,7 @@
 - 当前 repo-side 落地已经把 `study-progress`、`workspace-cockpit`、`product-frontdesk` 三个用户面收口到统一 `autonomy_contract`：当 study 处于自动推进、runtime recovery 或少数必须人工确认的节点时，三处表面都要讲同一套“为什么停、是否还能自动继续、恢复点是什么、下一次确认看什么”。
 - 当前 repo-side 落地已经把 `study-progress`、`workspace-cockpit`、`product-frontdesk` 三个用户面对论文质量 readiness 的解释也收口到统一质量 truth：当核心科学质量已经闭环、当前只剩同线写作或 finalize / bundle 收口时，用户面会直接说清“为什么已经够稳、还剩什么范围、这条判断由哪些质量依据支撑”。
 - proof/soak 口径当前围绕真实 study 的长期自治与质量闭环是否已经闭合，不围绕 `MDS` 再造一套长期 owner 面；`MDS` 只保留 migration oracle、backend compatibility、upstream intake buffer 三个迁移期角色。
+- 当前 tranche 的 repo-side 落点是单项目 owner truth、用户可见边界和 program/mainline 口径收紧；这一步不推进 `physical monorepo absorb`、跨仓 `runtime core ingest` 或把 `MDS` 重新解释成并行产品面。
 - 当前 tranche 的通过条件是：`MAS` 已能默认自治推进方向锁定后的研究与有限补充分析，用户可见 truth 与 durable surface 对齐，major boundary 与最终投稿审计之外不再把 human 判断留在 `MDS` 或隐藏 owner 面里。
 
 ## 当前验收与 proof 口径
@@ -46,13 +47,16 @@
 - proof 先看 owner 是否单一：质量判断、有限补充分析推进、运行恢复与用户面进度解释默认都由 `MAS` 负责；`MDS` 提供 oracle 对照与 backend 兼容，不承担长期双 owner。
 - soak 先看真实 study 能否长期成立：长时间运行、停滞后的恢复、human gate 触发、投稿前审计前的持续推进，都要在真实 durable surface 上读得出来。
 - 当前 stage 不要求 `MDS` 退场；要求的是 `MDS` 的存在只能解释为迁移期 proof companion，而不是另一条并行产品主线。
+- 当前 stage 也不把 `physical monorepo absorb` 当作 tranche 完成信号；那属于 external/runtime/workspace gate 清完之后的 post-gate 工作。
 
 ## 当前边界
 
 - `Med Auto Science` 负责研究入口、工作区权威语义、证据推进和论文交付。
+- `MedDeepScientist` 继续作为受控 research backend、行为等价 oracle、上游 intake buffer 存在，不再承担独立产品入口、长期治理面或长期双 owner 语义。
 - 研究者与课题负责人继续负责方向设定、重大边界变化和投稿前审计。
 - 期刊投稿和外部系统交互继续由人工监督。
 - `OPL` 集成、`product-entry manifest`、`handoff envelope` 和其他机器可读桥接继续留在集成层与参考层阅读。
+- `physical monorepo absorb`、`runtime core ingest` 与更大的平台化结构调整继续是 post-gate 长线，不属于当前 tranche 的 repo-side 验收面。
 
 ## 当前维护重点
 

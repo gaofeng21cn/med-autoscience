@@ -96,16 +96,62 @@ def _monorepo_status_label(value: object) -> str:
     return _MONOREPO_STATUS_LABELS.get(text, text)
 
 
+def _single_project_boundary() -> dict[str, Any]:
+    return {
+        "surface_kind": "single_project_boundary",
+        "summary": (
+            "当前 tranche 收口的是 MAS 单项目 owner truth、repo-tracked program truth 与用户可见边界；"
+            "physical monorepo absorb 继续严格属于 post-gate 工作。"
+        ),
+        "mas_owner_modules": [
+            "controller_charter",
+            "runtime",
+            "eval_hygiene",
+        ],
+        "mds_retained_roles": [
+            {
+                "role_id": "research_backend",
+                "title": "Controlled research backend",
+                "summary": "继续承接当前 inner research execution 与存量 study 兼容面。",
+            },
+            {
+                "role_id": "behavior_equivalence_oracle",
+                "title": "Behavior-equivalence oracle",
+                "summary": "继续作为质量判断、自治语义与 durable surface 的行为等价对照线。",
+            },
+            {
+                "role_id": "upstream_intake_buffer",
+                "title": "Upstream intake buffer",
+                "summary": "继续承接来自 DeepScientist / MDS 的上游输入，审计后再决定是否吸收进 MAS。",
+            },
+        ],
+        "land_now": [
+            "MAS 单项目 owner wording and repo-tracked truth",
+            "docs/status/program/mainline boundary alignment",
+            "user-visible wording that MDS is no longer a second long-term owner",
+        ],
+        "post_gate_only": [
+            "physical monorepo absorb",
+            "runtime core ingest across repos",
+            "broader platform/federation restructuring after earlier phases hold",
+        ],
+        "not_now": [
+            "treating MedDeepScientist as a second long-term owner",
+            "using monorepo language as shorthand for current tranche completion",
+        ],
+    }
+
+
 def _platform_target() -> dict[str, Any]:
     return _build_shared_platform_target(
         summary=(
-            "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，包括 monorepo、"
+            "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，包括 post-gate monorepo、"
             "runtime core ingest 和更成熟的 direct product entry；但这些都必须建立在前四阶段真实成立之后。"
         ),
         sequence_scope="monorepo_landing_readiness",
         current_step_id="stabilize_user_product_loop",
         current_readiness_summary=(
-            "monorepo 长线已经完成 gateway/runtime truth 冻结，当前正在推进 user product loop hardening；"
+            "单项目长线已经完成 gateway/runtime truth 冻结，当前正在推进 user product loop hardening 与边界收紧；"
             "physical absorb 仍然严格属于 post-gate 工作。"
         ),
         north_star_topology={
@@ -153,7 +199,7 @@ def _platform_target() -> dict[str, Any]:
                 title="Physical monorepo absorb",
                 status="blocked_post_gate",
                 phase_id="phase_5_federation_platform_maturation",
-                summary="只有在前面几步都稳定通过后，controller_charter / runtime / eval_hygiene 才能进入物理 monorepo absorb。",
+                summary="只有在前面几步都稳定通过后，controller_charter / runtime / eval_hygiene 才能进入 post-gate 物理 monorepo absorb。",
             ),
         ],
         completed_step_ids=[
@@ -409,7 +455,7 @@ def _phase3_clearance_lane() -> dict[str, Any]:
 
 def _phase4_backend_deconstruction() -> dict[str, Any]:
     return _build_shared_backend_deconstruction_lane(
-        summary="Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor。",
+        summary="Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor；这一步仍不是物理 monorepo absorb。",
         substrate_targets=[
             _build_shared_program_capability(
                 capability_id="session_run_watch_recovery",
@@ -460,7 +506,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "usable_now": True,
             "summary": (
                 "先证明 MAS -> Hermes-Agent target outer substrate -> controlled MedDeepScientist backend 这条主线诚实成立，"
-                "并完成 F4 blocker 收口。"
+                "并完成 F4 blocker 收口与单项目 owner 边界收紧。"
             ),
             "focus": [
                 "close remaining study blockers without reopening seam-only work",
@@ -499,7 +545,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "title": "Phase 2 user product loop",
             "status": "pending",
             "usable_now": True,
-            "summary": "把启动、下任务、持续看进度、看告警、看恢复建议收成稳定用户回路。",
+            "summary": "把启动、下任务、持续看进度、看告警、看恢复建议收成稳定用户回路，并把 MDS 压回 backend/oracle/intake buffer 语义。",
             "focus": [
                 "stabilize user-facing inbox, attention queue, and progress loop",
                 "make stuck-state, recovery suggestions, and supervision freshness continuously visible",
@@ -581,7 +627,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "title": "Phase 4 backend deconstruction",
             "status": "pending",
             "usable_now": True,
-            "summary": "在 outer runtime 与产品回路稳定后，再逐步解构 MedDeepScientist 中可迁出的通用能力。",
+            "summary": "在 outer runtime 与产品回路稳定后，再逐步解构 MedDeepScientist 中可迁出的通用能力；这一步先冻结 retained-now 边界，不提前做 physical absorb。",
             "focus": [
                 "move reusable runtime capability out of the controlled backend only with proof",
                 "keep executor replacement explicit and contract-driven instead of forced rewrites",
@@ -675,13 +721,14 @@ def read_mainline_status() -> dict[str, Any]:
                 "MAS 持续做 gateway / outer-loop / publication judgment owner",
             ],
         },
+        "single_project_boundary": _single_project_boundary(),
         "current_stage": {
             "id": CURRENT_STAGE_ID,
             "status": CURRENT_STAGE_STATUS,
             "title": "F4 blocker closeout",
             "summary": (
                 "repo-side 已拿到 external Hermes runtime truth、real adapter cutover 和至少一条真实 study "
-                "recovery/proof；当前主线进入 blocker 收口与 product-entry hardening，而不是回去继续做 seam-only 包装。"
+                "recovery/proof；当前主线进入 blocker 收口、product-entry hardening 与单项目边界收紧，而不是回去继续做 seam-only 包装。"
             ),
         },
         "current_program_phase": {
@@ -689,7 +736,7 @@ def read_mainline_status() -> dict[str, Any]:
             "status": CURRENT_PROGRAM_PHASE_STATUS,
             "title": "Phase 1 mainline established",
             "summary": (
-                "当前总体仍处在第一阶段尾声：主线已成立，正在把 F4 blocker 收口干净，并把用户可见入口继续收成真实产品回路。"
+                "当前总体仍处在第一阶段尾声：主线已成立，正在把 F4 blocker 收口干净，并把用户可见入口与单项目边界继续收成真实 repo-tracked truth。"
             ),
         },
         "phase2_user_product_loop": _phase2_user_product_loop(),
@@ -733,6 +780,7 @@ def read_mainline_status() -> dict[str, Any]:
         "next_focus": [
             "keep the mainline on F4 blocker closeout instead of reopening seam-only work",
             "continue hardening user-visible product-entry surfaces so task, progress, supervision, and stuck-state truth stay visible",
+            "keep MedDeepScientist wording pinned to research backend / oracle / intake buffer instead of second-owner language",
             "keep docs/status/runtime contracts aligned so OPL language, MAS role, and runtime truth do not drift",
             "only move toward broader cutover or monorepo work after the external gate is honestly cleared",
         ],
@@ -740,6 +788,7 @@ def read_mainline_status() -> dict[str, Any]:
             "physical migration or cross-repo rewrite",
             "mixing display or paper-figure assetization into the runtime mainline",
             "claiming MedDeepScientist has already exited",
+            "treating MedDeepScientist as a second long-term owner or parallel product surface",
             "claiming upstream Hermes already fully replaces the research executor",
             "claiming a standalone OPL/MAS product frontend is already landed",
         ],
@@ -837,6 +886,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     current_stage = dict(payload.get("current_stage") or {})
     current_program_phase = dict(payload.get("current_program_phase") or {})
     runtime_topology = dict((payload.get("ideal_state") or {}).get("runtime_topology") or {})
+    single_project_boundary = dict(payload.get("single_project_boundary") or {})
     phase2_user_product_loop = dict(payload.get("phase2_user_product_loop") or {})
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
@@ -857,6 +907,11 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         f"- 外环运行基座: {runtime_topology.get('outer_runtime_substrate_owner') or 'none'}",
         f"- 研究后端: {runtime_topology.get('research_backend') or 'none'}",
         f"- 入口形态: {runtime_topology.get('entry_shape') or 'none'}",
+        "",
+        "## Single-Project Boundary",
+        "",
+        f"- 当前摘要: {single_project_boundary.get('summary') or 'none'}",
+        f"- MAS owner modules: `{', '.join(single_project_boundary.get('mas_owner_modules') or []) or 'none'}`",
         "",
         "## Phase 2 User Loop",
         "",
@@ -882,6 +937,16 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         if not isinstance(item, dict):
             continue
         lines.append(f"- 清障步骤 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
+    for item in single_project_boundary.get("mds_retained_roles") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- MDS retained `{item.get('role_id')}`: {item.get('summary') or 'none'}")
+    for item in single_project_boundary.get("land_now") or []:
+        lines.append(f"- 当前 tranche 落点: {item}")
+    for item in single_project_boundary.get("post_gate_only") or []:
+        lines.append(f"- post-gate only: {item}")
+    for item in single_project_boundary.get("not_now") or []:
+        lines.append(f"- 当前不允许: {item}")
     lines.extend(
         [
             "",

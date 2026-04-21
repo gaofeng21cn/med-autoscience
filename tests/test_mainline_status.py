@@ -13,6 +13,18 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["current_stage"]["status"] == "in_progress"
     assert payload["ideal_state"]["runtime_topology"]["outer_runtime_substrate_owner"] == "upstream Hermes-Agent"
     assert payload["ideal_state"]["runtime_topology"]["research_backend"] == "MedDeepScientist (controlled backend)"
+    assert payload["single_project_boundary"]["surface_kind"] == "single_project_boundary"
+    assert payload["single_project_boundary"]["mas_owner_modules"] == [
+        "controller_charter",
+        "runtime",
+        "eval_hygiene",
+    ]
+    assert [item["role_id"] for item in payload["single_project_boundary"]["mds_retained_roles"]] == [
+        "research_backend",
+        "behavior_equivalence_oracle",
+        "upstream_intake_buffer",
+    ]
+    assert "physical monorepo absorb" in payload["single_project_boundary"]["post_gate_only"]
     assert payload["current_program_phase"]["id"] == "phase_1_mainline_established"
     assert payload["current_program_phase"]["status"] == "in_progress"
     assert len(payload["phase_ladder"]) == 5
@@ -133,7 +145,9 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert any(item["name"] == "workspace_cockpit" for item in payload["phase_ladder"][1]["entry_points"])
     assert any(item["id"] == "f3_real_study_soak_recovery_proof" for item in payload["completed_tranches"])
     assert any("standalone" in item for item in payload["remaining_gaps"])
+    assert any("research backend / oracle / intake buffer" in item for item in payload["next_focus"])
     assert any("physical migration" in item for item in payload["explicitly_not_now"])
+    assert any("second long-term owner" in item for item in payload["explicitly_not_now"])
 
 
 def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None:
@@ -146,6 +160,9 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "当前主线阶段" in markdown
     assert "当前判断" in markdown
     assert "理想目标" in markdown
+    assert "Single-Project Boundary" in markdown
+    assert "MDS retained `research_backend`" in markdown
+    assert "post-gate only: physical monorepo absorb" in markdown
     assert "Program Phases" in markdown
     assert "phase_1_mainline_established" in markdown
     assert "Phase 2 User Loop" in markdown
