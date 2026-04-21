@@ -1285,6 +1285,8 @@ def _attention_item(
     study_id: str | None = None,
     operator_status_card: dict[str, Any] | None = None,
     autonomy_contract: dict[str, Any] | None = None,
+    quality_closure_truth: dict[str, Any] | None = None,
+    quality_execution_lane: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "priority": _ATTENTION_PRIORITIES.get(code, 999),
@@ -1296,6 +1298,8 @@ def _attention_item(
         "recommended_command": recommended_command,
         "operator_status_card": dict(operator_status_card or {}) or None,
         "autonomy_contract": dict(autonomy_contract or {}) or None,
+        "quality_closure_truth": dict(quality_closure_truth or {}) or None,
+        "quality_execution_lane": dict(quality_execution_lane or {}) or None,
     }
 
 
@@ -1309,6 +1313,33 @@ def _quality_route_focus(intervention_lane: Mapping[str, Any] | None) -> str | N
     if not isinstance(intervention_lane, Mapping):
         return None
     return _non_empty_text(intervention_lane.get("route_summary"))
+
+
+def _quality_execution_focus(item: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(item, Mapping):
+        return None
+    quality_execution_lane = dict(item.get("quality_execution_lane") or {})
+    route_key_question = _non_empty_text(quality_execution_lane.get("route_key_question"))
+    if route_key_question is not None:
+        return route_key_question
+    return _non_empty_text(quality_execution_lane.get("summary"))
+
+
+def _quality_execution_lane_title(study_id: str, lane: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(lane, Mapping):
+        return None
+    lane_id = _non_empty_text(lane.get("lane_id"))
+    if lane_id == "reviewer_first":
+        return f"{study_id} 当前先做 reviewer-first 收口"
+    if lane_id == "claim_evidence":
+        return f"{study_id} 当前先做 claim-evidence 修复"
+    if lane_id == "submission_hardening":
+        return f"{study_id} 当前先做 submission hardening 收口"
+    if lane_id == "write_ready":
+        return f"{study_id} 当前进入同线写作推进"
+    if lane_id == "general_quality_repair":
+        return f"{study_id} 当前先做质量修复收口"
+    return None
 
 
 def _quality_blocker_title(study_id: str, intervention_lane: Mapping[str, Any] | None) -> str:
@@ -1362,7 +1393,7 @@ def _workspace_operator_brief(
             "recommended_step_id": "handle_attention_item",
             "recommended_command": _non_empty_text(top.get("recommended_command")) or commands.get("doctor"),
         }
-        current_focus = _non_empty_text(operator_status_card.get("current_focus"))
+        current_focus = _non_empty_text(operator_status_card.get("current_focus")) or _quality_execution_focus(top)
         if current_focus is not None:
             brief["current_focus"] = current_focus
         next_confirmation_signal = _non_empty_text(operator_status_card.get("next_confirmation_signal"))
@@ -1445,6 +1476,8 @@ def _attention_queue(
         operator_verdict = dict(item.get("operator_verdict") or {})
         operator_status_card = dict(item.get("operator_status_card") or {})
         autonomy_contract = dict(item.get("autonomy_contract") or {})
+        quality_closure_truth = dict(item.get("quality_closure_truth") or {})
+        quality_execution_lane = dict(item.get("quality_execution_lane") or {})
         progress_command = _non_empty_text(((item.get("commands") or {}).get("progress")))
         launch_command = _non_empty_text(((item.get("commands") or {}).get("launch")))
         preferred_command = _non_empty_text(item.get("recommended_command")) or _non_empty_text(
@@ -1476,6 +1509,8 @@ def _attention_queue(
                     study_id=study_id,
                     operator_status_card=operator_status_card,
                     autonomy_contract=autonomy_contract,
+                    quality_closure_truth=quality_closure_truth,
+                    quality_execution_lane=quality_execution_lane,
                 )
             )
             continue
@@ -1490,6 +1525,8 @@ def _attention_queue(
                     study_id=study_id,
                     operator_status_card=operator_status_card,
                     autonomy_contract=autonomy_contract,
+                    quality_closure_truth=quality_closure_truth,
+                    quality_execution_lane=quality_execution_lane,
                 )
             )
             continue
@@ -1504,6 +1541,8 @@ def _attention_queue(
                     study_id=study_id,
                     operator_status_card=operator_status_card,
                     autonomy_contract=autonomy_contract,
+                    quality_closure_truth=quality_closure_truth,
+                    quality_execution_lane=quality_execution_lane,
                 )
             )
             continue
@@ -1514,6 +1553,8 @@ def _attention_queue(
                     code="study_quality_floor_blocker",
                     title=_quality_blocker_title(study_id, intervention_lane),
                     summary=(
+                        _non_empty_text(quality_execution_lane.get("summary"))
+                        or
                         route_focus
                         or
                         lane_summary
@@ -1525,6 +1566,8 @@ def _attention_queue(
                     study_id=study_id,
                     operator_status_card=operator_status_card,
                     autonomy_contract=autonomy_contract,
+                    quality_closure_truth=quality_closure_truth,
+                    quality_execution_lane=quality_execution_lane,
                 )
             )
             continue
@@ -1540,6 +1583,8 @@ def _attention_queue(
                     study_id=study_id,
                     operator_status_card=operator_status_card,
                     autonomy_contract=autonomy_contract,
+                    quality_closure_truth=quality_closure_truth,
+                    quality_execution_lane=quality_execution_lane,
                 )
             )
             continue
@@ -1555,15 +1600,19 @@ def _attention_queue(
                     study_id=study_id,
                     operator_status_card=operator_status_card,
                     autonomy_contract=autonomy_contract,
+                    quality_closure_truth=quality_closure_truth,
+                    quality_execution_lane=quality_execution_lane,
                 )
             )
             continue
         if blocker_list or workspace_status in {"attention_required", "blocked"}:
+            quality_lane_title = _quality_execution_lane_title(study_id, quality_execution_lane)
             queue.append(
                 _attention_item(
                     code="study_blocked",
-                    title=f"{study_id} 仍有主线阻塞",
-                    summary=_non_empty_text(blocker_list[0] if blocker_list else None)
+                    title=quality_lane_title or f"{study_id} 仍有主线阻塞",
+                    summary=_non_empty_text(quality_execution_lane.get("summary"))
+                    or _non_empty_text(blocker_list[0] if blocker_list else None)
                     or current_stage_summary
                     or next_system_action
                     or "当前 study 仍有待收口问题。",
@@ -1572,6 +1621,8 @@ def _attention_queue(
                     study_id=study_id,
                     operator_status_card=operator_status_card,
                     autonomy_contract=autonomy_contract,
+                    quality_closure_truth=quality_closure_truth,
+                    quality_execution_lane=quality_execution_lane,
                 )
             )
 
@@ -2671,7 +2722,7 @@ def build_product_frontdesk(
         }
         current_focus = _non_empty_text(top_attention_status_card.get("current_focus")) or _non_empty_text(
             workspace_operator_brief.get("current_focus")
-        )
+        ) or _quality_execution_focus(top_attention)
         if current_focus is not None:
             operator_brief["current_focus"] = current_focus
         next_confirmation_signal = _non_empty_text(top_attention_status_card.get("next_confirmation_signal")) or _non_empty_text(
