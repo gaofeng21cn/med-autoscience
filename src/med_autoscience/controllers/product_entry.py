@@ -269,6 +269,18 @@ def _quality_review_loop_preview(loop_payload: Mapping[str, Any] | None) -> str 
     return "；".join(parts)
 
 
+def _quality_review_followthrough_preview(payload: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(payload, Mapping):
+        return None
+    state_label = _non_empty_text(payload.get("state_label"))
+    summary = _non_empty_text(payload.get("summary"))
+    next_confirmation_signal = _non_empty_text(payload.get("next_confirmation_signal"))
+    parts = [part for part in (state_label, summary, next_confirmation_signal) if part]
+    if not parts:
+        return None
+    return "；".join(parts)
+
+
 def _status_narration_human_view(payload: Mapping[str, Any]) -> dict[str, Any]:
     return _build_shared_status_narration_human_view(
         payload,
@@ -1384,6 +1396,8 @@ def _attention_item(
     autonomy_contract: dict[str, Any] | None = None,
     quality_closure_truth: dict[str, Any] | None = None,
     quality_execution_lane: dict[str, Any] | None = None,
+    quality_review_followthrough: dict[str, Any] | None = None,
+    autonomy_soak_status: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "priority": _ATTENTION_PRIORITIES.get(code, 999),
@@ -1398,6 +1412,8 @@ def _attention_item(
         "autonomy_contract": dict(autonomy_contract or {}) or None,
         "quality_closure_truth": dict(quality_closure_truth or {}) or None,
         "quality_execution_lane": dict(quality_execution_lane or {}) or None,
+        "quality_review_followthrough": dict(quality_review_followthrough or {}) or None,
+        "autonomy_soak_status": dict(autonomy_soak_status or {}) or None,
     }
 
 
@@ -1421,6 +1437,25 @@ def _quality_execution_focus(item: Mapping[str, Any] | None) -> str | None:
     if route_key_question is not None:
         return route_key_question
     return _non_empty_text(quality_execution_lane.get("summary"))
+
+
+def _autonomy_soak_focus(item: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(item, Mapping):
+        return None
+    autonomy_soak_status = dict(item.get("autonomy_soak_status") or {})
+    route_key_question = _non_empty_text(autonomy_soak_status.get("route_key_question"))
+    if route_key_question is not None:
+        return route_key_question
+    return _non_empty_text(autonomy_soak_status.get("summary"))
+
+
+def _quality_review_followthrough_focus(item: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(item, Mapping):
+        return None
+    followthrough = dict(item.get("quality_review_followthrough") or {})
+    return _non_empty_text(followthrough.get("next_confirmation_signal")) or _non_empty_text(
+        followthrough.get("summary")
+    )
 
 
 def _quality_execution_lane_title(study_id: str, lane: Mapping[str, Any] | None) -> str | None:
@@ -1501,7 +1536,12 @@ def _workspace_operator_brief(
             "recommended_step_id": _non_empty_text(top.get("recommended_step_id")) or "handle_attention_item",
             "recommended_command": _non_empty_text(top.get("recommended_command")) or commands.get("doctor"),
         }
-        current_focus = _non_empty_text(operator_status_card.get("current_focus")) or _quality_execution_focus(top)
+        current_focus = (
+            _non_empty_text(operator_status_card.get("current_focus"))
+            or _quality_execution_focus(top)
+            or _quality_review_followthrough_focus(top)
+            or _autonomy_soak_focus(top)
+        )
         if current_focus is not None:
             brief["current_focus"] = current_focus
         next_confirmation_signal = _non_empty_text(operator_status_card.get("next_confirmation_signal"))
@@ -1528,6 +1568,8 @@ def _workspace_operator_brief(
     )
     summary = (
         _operator_status_summary(lead_status_card)
+        or _quality_review_followthrough_preview(lead_study.get("quality_review_followthrough"))
+        or _non_empty_text((lead_study.get("autonomy_soak_status") or {}).get("summary"))
         or (
             f"当前没有新的 workspace 级硬告警，继续盯住 {lead_study_id} 的进度与监管即可。"
         if lead_study_id is not None
@@ -1544,7 +1586,11 @@ def _workspace_operator_brief(
         "recommended_step_id": "inspect_progress",
         "recommended_command": recommended_command or user_loop.get("open_workspace_cockpit"),
     }
-    current_focus = _non_empty_text(lead_status_card.get("current_focus"))
+    current_focus = (
+        _non_empty_text(lead_status_card.get("current_focus"))
+        or _quality_review_followthrough_focus(lead_study)
+        or _autonomy_soak_focus(lead_study)
+    )
     if current_focus is not None:
         brief["current_focus"] = current_focus
     next_confirmation_signal = _non_empty_text(lead_status_card.get("next_confirmation_signal"))
@@ -1587,6 +1633,8 @@ def _attention_queue(
         autonomy_contract = dict(item.get("autonomy_contract") or {})
         quality_closure_truth = dict(item.get("quality_closure_truth") or {})
         quality_execution_lane = dict(item.get("quality_execution_lane") or {})
+        quality_review_followthrough = dict(item.get("quality_review_followthrough") or {})
+        autonomy_soak_status = dict(item.get("autonomy_soak_status") or {})
         progress_command = _non_empty_text(((item.get("commands") or {}).get("progress")))
         launch_command = _non_empty_text(((item.get("commands") or {}).get("launch")))
         preferred_command = _non_empty_text(item.get("recommended_command")) or _non_empty_text(
@@ -1621,6 +1669,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    quality_review_followthrough=quality_review_followthrough,
+                    autonomy_soak_status=autonomy_soak_status,
                 )
             )
             continue
@@ -1638,6 +1688,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    quality_review_followthrough=quality_review_followthrough,
+                    autonomy_soak_status=autonomy_soak_status,
                 )
             )
             continue
@@ -1655,6 +1707,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    quality_review_followthrough=quality_review_followthrough,
+                    autonomy_soak_status=autonomy_soak_status,
                 )
             )
             continue
@@ -1681,6 +1735,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    quality_review_followthrough=quality_review_followthrough,
+                    autonomy_soak_status=autonomy_soak_status,
                 )
             )
             continue
@@ -1699,6 +1755,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    quality_review_followthrough=quality_review_followthrough,
+                    autonomy_soak_status=autonomy_soak_status,
                 )
             )
             continue
@@ -1717,6 +1775,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    quality_review_followthrough=quality_review_followthrough,
+                    autonomy_soak_status=autonomy_soak_status,
                 )
             )
             continue
@@ -1739,6 +1799,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    quality_review_followthrough=quality_review_followthrough,
+                    autonomy_soak_status=autonomy_soak_status,
                 )
             )
 
@@ -1813,9 +1875,11 @@ def _study_item(
         if isinstance(item, dict)
     ]
     autonomy_contract = dict(progress_payload.get("autonomy_contract") or {})
+    autonomy_soak_status = dict(progress_payload.get("autonomy_soak_status") or {})
     quality_closure_truth = dict(progress_payload.get("quality_closure_truth") or {})
     quality_execution_lane = dict(progress_payload.get("quality_execution_lane") or {})
     quality_review_loop = dict(progress_payload.get("quality_review_loop") or {})
+    quality_review_followthrough = dict(progress_payload.get("quality_review_followthrough") or {})
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     return {
         "study_id": study_id,
@@ -1829,9 +1893,11 @@ def _study_item(
         "recommended_command": recommended_command,
         "recommended_commands": recommended_commands,
         "autonomy_contract": autonomy_contract or None,
+        "autonomy_soak_status": autonomy_soak_status or None,
         "quality_closure_truth": quality_closure_truth or None,
         "quality_execution_lane": quality_execution_lane or None,
         "quality_review_loop": quality_review_loop or None,
+        "quality_review_followthrough": quality_review_followthrough or None,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
         "monitoring": monitoring,
@@ -2025,6 +2091,9 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             autonomy_contract = dict(item.get("autonomy_contract") or {})
             if autonomy_contract.get("summary"):
                 lines.append(f"  自治合同: {autonomy_contract.get('summary')}")
+            autonomy_soak_status = dict(item.get("autonomy_soak_status") or {})
+            if autonomy_soak_status.get("summary"):
+                lines.append(f"  自治 Proof / Soak: {autonomy_soak_status.get('summary')}")
             quality_closure_truth = dict(item.get("quality_closure_truth") or {})
             if quality_closure_truth.get("summary"):
                 lines.append(f"  质量闭环: {quality_closure_truth.get('summary')}")
@@ -2034,6 +2103,11 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             quality_review_loop_preview = _quality_review_loop_preview(item.get("quality_review_loop"))
             if quality_review_loop_preview:
                 lines.append(f"  质量评审闭环: {quality_review_loop_preview}")
+            quality_review_followthrough_preview = _quality_review_followthrough_preview(
+                item.get("quality_review_followthrough")
+            )
+            if quality_review_followthrough_preview:
+                lines.append(f"  质量复评跟进: {quality_review_followthrough_preview}")
             restore_point = dict(autonomy_contract.get("restore_point") or {})
             if restore_point.get("summary"):
                 lines.append(f"  恢复点: {restore_point.get('summary')}")
@@ -2100,6 +2174,9 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         autonomy_contract = dict(item.get("autonomy_contract") or {})
         if autonomy_contract.get("summary"):
             lines.append(f"- 自治合同: {autonomy_contract.get('summary')}")
+        autonomy_soak_status = dict(item.get("autonomy_soak_status") or {})
+        if autonomy_soak_status.get("summary"):
+            lines.append(f"- 自治 Proof / Soak: {autonomy_soak_status.get('summary')}")
         quality_closure_truth = dict(item.get("quality_closure_truth") or {})
         if quality_closure_truth.get("summary"):
             lines.append(f"- 质量闭环: {quality_closure_truth.get('summary')}")
@@ -2109,6 +2186,11 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         quality_review_loop_preview = _quality_review_loop_preview(item.get("quality_review_loop"))
         if quality_review_loop_preview:
             lines.append(f"- 质量评审闭环: {quality_review_loop_preview}")
+        quality_review_followthrough_preview = _quality_review_followthrough_preview(
+            item.get("quality_review_followthrough")
+        )
+        if quality_review_followthrough_preview:
+            lines.append(f"- 质量复评跟进: {quality_review_followthrough_preview}")
         restore_point = dict(autonomy_contract.get("restore_point") or {})
         if restore_point.get("summary"):
             lines.append(f"- 恢复点: {restore_point.get('summary')}")
@@ -2849,7 +2931,7 @@ def build_product_frontdesk(
         }
         current_focus = _non_empty_text(top_attention_status_card.get("current_focus")) or _non_empty_text(
             workspace_operator_brief.get("current_focus")
-        ) or _quality_execution_focus(top_attention)
+        ) or _quality_execution_focus(top_attention) or _quality_review_followthrough_focus(top_attention) or _autonomy_soak_focus(top_attention)
         if current_focus is not None:
             operator_brief["current_focus"] = current_focus
         next_confirmation_signal = _non_empty_text(top_attention_status_card.get("next_confirmation_signal")) or _non_empty_text(
@@ -2883,6 +2965,11 @@ def build_product_frontdesk(
             "recommended_step_id": "open_workspace_cockpit",
             "recommended_command": _non_empty_text((manifest.get("summary") or {}).get("recommended_command")),
         }
+        current_focus = _non_empty_text(workspace_operator_brief.get("current_focus")) or _quality_review_followthrough_focus(
+            workspace_operator_brief
+        ) or _autonomy_soak_focus(workspace_operator_brief)
+        if current_focus is not None:
+            operator_brief["current_focus"] = current_focus
 
     payload = _build_shared_family_product_frontdesk_from_manifest(
         recommended_action="inspect_or_prepare_research_loop",
@@ -3009,6 +3096,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         autonomy_contract = dict(item.get("autonomy_contract") or {})
         if autonomy_contract.get("summary"):
             lines.append(f"- 自治合同: {autonomy_contract.get('summary')}")
+        autonomy_soak_status = dict(item.get("autonomy_soak_status") or {})
+        if autonomy_soak_status.get("summary"):
+            lines.append(f"- 自治 Proof / Soak: {autonomy_soak_status.get('summary')}")
         quality_closure_truth = dict(item.get("quality_closure_truth") or {})
         if quality_closure_truth.get("summary"):
             lines.append(f"- 质量闭环: {quality_closure_truth.get('summary')}")
@@ -3018,6 +3108,11 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         quality_review_loop_preview = _quality_review_loop_preview(item.get("quality_review_loop"))
         if quality_review_loop_preview:
             lines.append(f"- 质量评审闭环: {quality_review_loop_preview}")
+        quality_review_followthrough_preview = _quality_review_followthrough_preview(
+            item.get("quality_review_followthrough")
+        )
+        if quality_review_followthrough_preview:
+            lines.append(f"- 质量复评跟进: {quality_review_followthrough_preview}")
         restore_point = dict(autonomy_contract.get("restore_point") or {})
         if restore_point.get("summary"):
             lines.append(f"- 恢复点: {restore_point.get('summary')}")
@@ -3216,6 +3311,7 @@ def build_product_entry(
     )
     runtime_contract = dict(latest_task_payload.get("runtime_session_contract") or {})
     return_contract = dict(latest_task_payload.get("return_surface_contract") or {})
+    single_project_boundary = dict(_mainline_snapshot().get("single_project_boundary") or {})
     commands = {
         "workspace_cockpit": f"{_command_prefix(profile_ref)} workspace-cockpit --profile {_profile_arg(profile_ref)}",
         "submit_study_task": (
@@ -3275,6 +3371,7 @@ def build_product_entry(
             "entry_adapter": SERVICE_SAFE_ENTRY_ADAPTER,
             "default_formal_entry": "CLI",
             "supported_entry_modes": list(SUPPORTED_DIRECT_ENTRY_MODES),
+            "single_project_boundary": single_project_boundary,
             "domain_entry_contract": _build_domain_entry_contract(),
             "gateway_interaction_contract": _build_gateway_interaction_contract(),
             "cockpit_command": commands["workspace_cockpit"],
@@ -3334,6 +3431,7 @@ def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
             "",
             "## Return Surface",
             "",
+            f"- 单项目边界摘要: `{((return_surface_contract.get('single_project_boundary') or {}).get('summary') or 'none')}`",
             f"- 运行监管路径: `{return_surface_contract.get('runtime_supervision_path') or 'none'}`",
             f"- 发表评估路径: `{return_surface_contract.get('publication_eval_path') or 'none'}`",
             f"- 控制器决策路径: `{return_surface_contract.get('controller_decision_path') or 'none'}`",

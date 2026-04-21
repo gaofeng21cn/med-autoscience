@@ -982,6 +982,58 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
     assert payload["operator_brief"]["current_focus"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
 
 
+def test_workspace_cockpit_projects_autonomy_soak_and_quality_followthrough() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    markdown = module.render_workspace_cockpit_markdown(
+        {
+            "profile_name": "test-profile",
+            "workspace_root": "/tmp/test",
+            "workspace_status": "ready",
+            "workspace_supervision": {"service": {}, "study_counts": {}},
+            "operator_brief": {
+                "surface_kind": "workspace_operator_brief",
+                "verdict": "monitor_only",
+                "summary": "当前没有新的 workspace 级硬告警。",
+                "should_intervene_now": False,
+                "focus_scope": "study",
+                "focus_study_id": "001-risk",
+                "recommended_step_id": "inspect_progress",
+                "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                "current_focus": "看 publication_eval/latest.json 是否出现新的复评结论。",
+            },
+            "attention_queue": [
+                {
+                    "title": "001-risk 当前处在等待系统自动复评",
+                    "summary": "当前在等系统自动复评；你现在不用介入，先等待复评回写。",
+                    "recommended_step_id": "inspect_study_progress",
+                    "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "autonomy_soak_status": {
+                        "summary": "最近一次自治外环已转到“论文写作与结果收紧”，当前关键问题是“当前同线稿件还差哪一步最窄修订？”。",
+                    },
+                    "quality_review_loop": {
+                        "current_phase_label": "等待复评",
+                        "recommended_next_phase_label": "发起复评",
+                        "summary": "当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。",
+                    },
+                    "quality_review_followthrough": {
+                        "state_label": "等待复评",
+                        "summary": "当前修订计划已完成，下一步应由 MAS 发起 re-review。",
+                        "next_confirmation_signal": "看 publication_eval/latest.json 是否出现新的复评结论。",
+                    },
+                }
+            ],
+            "user_loop": {},
+            "phase2_user_product_loop": {},
+            "commands": {},
+            "studies": [],
+        }
+    )
+
+    assert "自治 Proof / Soak: 最近一次自治外环已转到“论文写作与结果收紧”" in markdown
+    assert "质量复评跟进: 等待复评；当前修订计划已完成，下一步应由 MAS 发起 re-review。；看 publication_eval/latest.json 是否出现新的复评结论。" in markdown
+
+
 def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
@@ -1323,6 +1375,67 @@ def test_build_product_frontdesk_uses_quality_execution_lane_for_current_focus(m
 
     assert payload["operator_brief"]["recommended_step_id"] == "inspect_study_progress"
     assert payload["operator_brief"]["current_focus"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
+
+
+def test_build_product_frontdesk_uses_quality_review_followthrough_for_monitor_focus(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    monkeypatch.setattr(module, "build_product_entry_manifest", lambda **kwargs: {
+        "surface_kind": "product_entry_manifest",
+        "manifest_version": 2,
+        "manifest_kind": "med_autoscience_product_entry_manifest",
+        "target_domain_id": "med-autoscience",
+        "formal_entry": {"default": "CLI", "supported_protocols": ["MCP"], "internal_surface": "controller"},
+        "workspace_locator": {"profile_name": "test-profile"},
+        "product_entry_shell": {
+            "product_frontdesk": {"command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "surface_kind": "product_frontdesk"},
+            "workspace_cockpit": {"command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "surface_kind": "workspace_cockpit"},
+            "submit_study_task": {"command": "uv run python -m med_autoscience.cli submit-study-task --profile profile.local.toml", "surface_kind": "study_task_intake"},
+            "launch_study": {"command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml", "surface_kind": "launch_study"},
+            "study_progress": {"command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml", "surface_kind": "study_progress"},
+            "mainline_status": {"command": "uv run python -m med_autoscience.cli mainline-status", "surface_kind": "mainline_status"},
+            "mainline_phase": {"command": "uv run python -m med_autoscience.cli mainline-phase", "surface_kind": "mainline_phase"},
+        },
+        "shared_handoff": {"direct_entry_builder": {"command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct", "entry_mode": "direct"}},
+        "runtime": {"runtime_owner": "upstream_hermes_agent"},
+        "product_entry_status": {"summary": "test status"},
+        "frontdesk_surface": {"surface_kind": "product_frontdesk", "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "summary": "open frontdesk"},
+        "operator_loop_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "summary": "open workspace cockpit"},
+        "operator_loop_actions": {},
+        "product_entry_start": {"surface_kind": "product_entry_start", "summary": "open frontdesk first", "recommended_mode_id": "open_frontdesk", "modes": [{"mode_id": "open_frontdesk", "title": "Open frontdesk", "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "surface_kind": "product_frontdesk", "summary": "open frontdesk", "requires": []}], "resume_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "session_locator_field": "profile_name"}, "human_gate_ids": ["workspace_gate"]},
+        "product_entry_overview": {"surface_kind": "product_entry_overview", "summary": "workspace overview", "frontdesk_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "operator_loop_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "progress_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"}, "resume_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "session_locator_field": "profile_name"}, "recommended_step_id": "open_frontdesk", "next_focus": ["open workspace cockpit"], "remaining_gaps_count": 0, "human_gate_ids": ["workspace_gate"]},
+        "domain_entry_contract": {"entry_adapter": "MedAutoScienceDomainEntry", "service_safe_surface_kind": "med_autoscience_service_safe_domain_entry", "product_entry_builder_command": "build-product-entry", "supported_commands": ["workspace-cockpit"], "command_contracts": [{"command": "workspace-cockpit", "required_fields": [], "optional_fields": []}]},
+        "gateway_interaction_contract": {"surface_kind": "gateway_interaction_contract", "frontdoor_owner": "opl_gateway_or_domain_gui", "user_interaction_mode": "natural_language_frontdoor", "user_commands_required": False, "command_surfaces_for_agent_consumption_only": True, "shared_downstream_entry": "MedAutoScienceDomainEntry", "shared_handoff_envelope": ["target_domain_id"]},
+        "product_entry_preflight": {"surface_kind": "product_entry_preflight", "summary": "preflight ready", "ready_to_try_now": True, "recommended_check_command": "uv run python -m med_autoscience.cli doctor", "recommended_start_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "blocking_check_ids": [], "checks": []},
+        "product_entry_readiness": {"surface_kind": "product_entry_readiness", "verdict": "ready_for_task", "usable_now": True, "good_to_use_now": True, "fully_automatic": False, "summary": "workspace ready", "recommended_start_surface": "product_frontdesk", "recommended_start_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "recommended_loop_surface": "workspace_cockpit", "recommended_loop_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "blocking_gaps": []},
+        "product_entry_quickstart": {"surface_kind": "product_entry_quickstart", "recommended_step_id": "open_frontdesk", "summary": "open frontdesk first", "steps": [{"step_id": "open_frontdesk", "title": "Open frontdesk", "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "surface_kind": "product_frontdesk", "summary": "open frontdesk", "requires": []}], "resume_contract": {"surface_kind": "workspace_cockpit", "session_locator_field": "profile_name"}, "human_gate_ids": ["workspace_gate"]},
+        "family_orchestration": {"human_gates": [{"gate_id": "workspace_gate"}], "resume_contract": {"surface_kind": "workspace_cockpit", "session_locator_field": "profile_name"}},
+        "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
+        "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+        "summary": {"recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"},
+        "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "research_backend", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["physical monorepo absorb"], "not_now": ["not now"]},
+    })
+    monkeypatch.setattr(module, "read_workspace_cockpit", lambda **kwargs: {
+        "operator_brief": {
+            "surface_kind": "workspace_operator_brief",
+            "verdict": "monitor_only",
+            "summary": "当前在等系统自动复评；你现在不用介入，先等待复评回写。",
+            "should_intervene_now": False,
+            "focus_scope": "study",
+            "focus_study_id": "001-risk",
+            "recommended_step_id": "inspect_study_progress",
+            "recommended_command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
+            "current_focus": "看 publication_eval/latest.json 是否出现新的复评结论。",
+        },
+        "attention_queue": [],
+    })
+
+    payload = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
+
+    assert payload["operator_brief"]["recommended_step_id"] == "open_workspace_cockpit"
+    assert payload["operator_brief"]["current_focus"] == "看 publication_eval/latest.json 是否出现新的复评结论。"
 
 
 def test_build_product_entry_manifest_passes_contract_bundle_via_named_shared_kwargs(
@@ -1912,6 +2025,12 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     assert payload["return_surface_contract"]["entry_adapter"] == "MedAutoScienceDomainEntry"
     assert payload["return_surface_contract"]["default_formal_entry"] == "CLI"
     assert payload["return_surface_contract"]["supported_entry_modes"] == ["direct", "opl-handoff"]
+    assert payload["return_surface_contract"]["single_project_boundary"]["surface_kind"] == "single_project_boundary"
+    assert list(payload["return_surface_contract"]["single_project_boundary"]["mas_owner_modules"]) == [
+        "controller_charter",
+        "runtime",
+        "eval_hygiene",
+    ]
     assert payload["return_surface_contract"]["domain_entry_contract"]["service_safe_surface_kind"] == (
         "med_autoscience_service_safe_domain_entry"
     )
@@ -1953,6 +2072,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     markdown = module.render_build_product_entry_markdown(payload)
     assert "当前任务意图" in markdown
     assert "当前投稿目标" in markdown
+    assert "单项目边界摘要" in markdown
     assert "当前入口模式" in markdown
     assert "目标域" in markdown
     assert "task_intent:" not in markdown
@@ -3601,6 +3721,44 @@ def test_render_product_frontdesk_markdown_shows_quality_execution_lane_preview(
     )
 
     assert "质量执行线: 当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“哪一轮最小补充分析足以恢复当前 claim-evidence 支撑？”。" in markdown
+
+
+def test_render_product_frontdesk_markdown_shows_autonomy_soak_and_quality_followthrough_preview() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    markdown = module.render_product_frontdesk_markdown(
+        {
+            "workspace_preview": None,
+            "workspace_attention_queue_preview": [
+                {
+                    "title": "001-risk 当前处在等待系统自动复评",
+                    "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "autonomy_soak_status": {
+                        "summary": "最近一次自治外环已转到“论文写作与结果收紧”，当前关键问题是“当前同线稿件还差哪一步最窄修订？”。",
+                    },
+                    "quality_review_loop": {
+                        "current_phase_label": "等待复评",
+                        "recommended_next_phase_label": "发起复评",
+                        "summary": "当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。",
+                    },
+                    "quality_review_followthrough": {
+                        "state_label": "等待复评",
+                        "summary": "当前修订计划已完成，下一步应由 MAS 发起 re-review。",
+                        "next_confirmation_signal": "看 publication_eval/latest.json 是否出现新的复评结论。",
+                    },
+                }
+            ],
+            "phase2_user_product_loop": {},
+            "product_entry_guardrails": {},
+            "phase3_clearance_lane": {"clearance_targets": [], "clearance_loop": []},
+            "phase4_backend_deconstruction": {"substrate_targets": []},
+            "phase5_platform_target": {"capability_targets": [], "readiness_gates": []},
+            "remaining_gaps": [],
+        }
+    )
+
+    assert "自治 Proof / Soak: 最近一次自治外环已转到“论文写作与结果收紧”，当前关键问题是“当前同线稿件还差哪一步最窄修订？”。" in markdown
+    assert "质量复评跟进: 等待复评；当前修订计划已完成，下一步应由 MAS 发起 re-review。；看 publication_eval/latest.json 是否出现新的复评结论。" in markdown
     assert (
         "质量评审闭环: 等待复评 -> 发起复评；当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。"
         in markdown
