@@ -556,10 +556,40 @@ def _serialize_managed_study_outer_loop_dispatch(
         "quest_id": _non_empty_text(outer_loop_result.get("quest_id")) or _non_empty_text(tick_request.get("quest_id")),
         "decision_type": _non_empty_text(tick_request.get("decision_type")),
         "route_target": _non_empty_text(tick_request.get("route_target")),
+        "route_key_question": _non_empty_text(tick_request.get("route_key_question")),
         "controller_action_type": _non_empty_text(first_controller_action.get("action_type")),
+        "study_decision_ref": _non_empty_text(first_controller_action.get("payload_ref")),
         "dispatch_status": _non_empty_text(outer_loop_result.get("dispatch_status")),
         "source": _non_empty_text(outer_loop_result.get("source")) or _non_empty_text(tick_request.get("source")),
     }
+
+
+def _attach_outer_loop_dispatch_to_quest_report(
+    *,
+    quest_report: dict[str, Any],
+    dispatch_payload: Mapping[str, Any],
+) -> None:
+    quest_report["managed_study_outer_loop_dispatch"] = {
+        "study_id": _non_empty_text(dispatch_payload.get("study_id")),
+        "quest_id": _non_empty_text(dispatch_payload.get("quest_id")),
+        "decision_type": _non_empty_text(dispatch_payload.get("decision_type")),
+        "route_target": _non_empty_text(dispatch_payload.get("route_target")),
+        "route_key_question": _non_empty_text(dispatch_payload.get("route_key_question")),
+        "controller_action_type": _non_empty_text(dispatch_payload.get("controller_action_type")),
+        "study_decision_ref": _non_empty_text(dispatch_payload.get("study_decision_ref")),
+        "dispatch_status": _non_empty_text(dispatch_payload.get("dispatch_status")),
+        "source": _non_empty_text(dispatch_payload.get("source")),
+    }
+    latest_report_path = _candidate_path(quest_report.get("latest_report_json")) or _candidate_path(
+        quest_report.get("report_json")
+    )
+    if latest_report_path is None:
+        return
+    _write_latest_watch_alias(
+        report_dir=latest_report_path.parent,
+        report=quest_report,
+        markdown=render_watch_markdown(quest_report),
+    )
 
 
 def _controller_decision_latest_matches_outer_loop_request(
@@ -822,6 +852,23 @@ def render_watch_markdown(report: dict[str, Any]) -> str:
                     "",
                 ]
             )
+    outer_loop_dispatch = dict(report.get("managed_study_outer_loop_dispatch") or {})
+    if outer_loop_dispatch:
+        lines.extend(
+            [
+                "## Managed Study Outer-Loop Dispatch",
+                "",
+                f"- study_id: `{outer_loop_dispatch.get('study_id') or 'none'}`",
+                f"- decision_type: `{outer_loop_dispatch.get('decision_type') or 'none'}`",
+                f"- route_target: `{outer_loop_dispatch.get('route_target') or 'none'}`",
+                f"- route_key_question: `{outer_loop_dispatch.get('route_key_question') or 'none'}`",
+                f"- controller_action_type: `{outer_loop_dispatch.get('controller_action_type') or 'none'}`",
+                f"- study_decision_ref: `{outer_loop_dispatch.get('study_decision_ref') or 'none'}`",
+                f"- dispatch_status: `{outer_loop_dispatch.get('dispatch_status') or 'none'}`",
+                f"- source: `{outer_loop_dispatch.get('source') or 'none'}`",
+                "",
+            ]
+        )
     return "\n".join(lines)
 
 
@@ -838,6 +885,26 @@ def write_watch_report(quest_root: Path, report: dict[str, Any]) -> tuple[Path, 
         markdown=markdown,
     )
     return json_path, md_path, latest_json, latest_markdown
+
+
+def _materialize_placeholder_quest_watch_report(status_payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    quest_root = _candidate_path(status_payload.get("quest_root"))
+    if quest_root is None:
+        return None
+    report = {
+        "schema_version": 1,
+        "scanned_at": utc_now(),
+        "quest_root": str(quest_root),
+        "quest_status": _non_empty_text(status_payload.get("quest_status")) or quest_state.quest_status(quest_root),
+        "controllers": {},
+    }
+    _attach_family_companion_to_quest_report(report, quest_root=quest_root)
+    json_path, md_path, latest_json, latest_markdown = write_watch_report(quest_root, report)
+    report["report_json"] = str(json_path)
+    report["report_markdown"] = str(md_path)
+    report["latest_report_json"] = str(latest_json)
+    report["latest_report_markdown"] = str(latest_markdown)
+    return report
 
 
 def run_watch_for_quest(
@@ -1055,12 +1122,21 @@ def run_watch_for_runtime(
                 )
                 if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
                     raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
-                managed_study_outer_loop_dispatches.append(
-                    _serialize_managed_study_outer_loop_dispatch(
-                        tick_request=tick_request,
-                        outer_loop_result=outer_loop_result,
-                    )
+                dispatch_payload = _serialize_managed_study_outer_loop_dispatch(
+                    tick_request=tick_request,
+                    outer_loop_result=outer_loop_result,
                 )
+                managed_study_outer_loop_dispatches.append(dispatch_payload)
+                if quest_report is None:
+                    quest_report = _materialize_placeholder_quest_watch_report(status_payload)
+                    if isinstance(quest_report, dict):
+                        reports.append(quest_report)
+                        report_by_quest_root[str(Path(str(quest_root)).expanduser().resolve())] = quest_report
+                if isinstance(quest_report, dict):
+                    _attach_outer_loop_dispatch_to_quest_report(
+                        quest_report=quest_report,
+                        dispatch_payload=dispatch_payload,
+                    )
                 status_payload = _managed_study_status_payload(
                     study_runtime_router.study_runtime_status(
                         profile=profile,

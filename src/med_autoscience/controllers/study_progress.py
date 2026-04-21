@@ -1965,8 +1965,52 @@ def _restore_point(
     }
 
 
+def _latest_outer_loop_dispatch(
+    *,
+    study_id: str,
+    runtime_watch_payload: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    dispatch_block = (
+        dict((runtime_watch_payload or {}).get("managed_study_outer_loop_dispatch") or {})
+        if isinstance((runtime_watch_payload or {}).get("managed_study_outer_loop_dispatch"), dict)
+        else {}
+    )
+    if dispatch_block and _non_empty_text(dispatch_block.get("study_id")) == study_id:
+        dispatches: list[dict[str, Any]] = [dispatch_block]
+    else:
+        dispatches = [
+            dict(item)
+            for item in ((runtime_watch_payload or {}).get("managed_study_outer_loop_dispatches") or [])
+            if isinstance(item, dict)
+        ]
+    for item in reversed(dispatches):
+        if _non_empty_text(item.get("study_id")) != study_id:
+            continue
+        route_target = _non_empty_text(item.get("route_target"))
+        if route_target is None:
+            continue
+        route_target_label = _paper_stage_label(route_target) or route_target
+        route_key_question = _display_text(item.get("route_key_question")) or _non_empty_text(item.get("route_key_question"))
+        decision_type = _non_empty_text(item.get("decision_type"))
+        verb = "进入" if decision_type == "bounded_analysis" else "转到"
+        if route_key_question is not None:
+            summary = f"最近一次自治外环已{verb}“{route_target_label}”，当前关键问题是“{route_key_question}”。"
+        else:
+            summary = f"最近一次自治外环已{verb}“{route_target_label}”。"
+        return {
+            "decision_type": decision_type,
+            "route_target": route_target,
+            "route_target_label": route_target_label,
+            "route_key_question": route_key_question,
+            "dispatch_status": _non_empty_text(item.get("dispatch_status")),
+            "summary": summary,
+        }
+    return None
+
+
 def _autonomy_contract(
     *,
+    study_id: str,
     intervention_lane: dict[str, Any],
     recovery_contract: dict[str, Any],
     recommended_command: str | None,
@@ -1974,6 +2018,7 @@ def _autonomy_contract(
     next_system_action: str,
     continuation_state: dict[str, Any],
     family_checkpoint_lineage: dict[str, Any],
+    runtime_watch_payload: dict[str, Any] | None,
     needs_physician_decision: bool,
     manual_finish_contract: dict[str, Any] | None,
 ) -> dict[str, Any]:
@@ -1981,6 +2026,10 @@ def _autonomy_contract(
         continuation_state=continuation_state,
         family_checkpoint_lineage=family_checkpoint_lineage,
         needs_physician_decision=needs_physician_decision,
+    )
+    latest_outer_loop_dispatch = _latest_outer_loop_dispatch(
+        study_id=study_id,
+        runtime_watch_payload=runtime_watch_payload,
     )
     lane_id = _non_empty_text(intervention_lane.get("lane_id")) or "monitor_only"
     if _manual_finish_active(manual_finish_contract):
@@ -1991,7 +2040,9 @@ def _autonomy_contract(
         autonomy_state = "runtime_recovery"
     else:
         autonomy_state = "autonomous_progress"
-    if autonomy_state == "autonomous_progress" and restore_point.get("resume_mode"):
+    if autonomy_state == "autonomous_progress" and latest_outer_loop_dispatch is not None:
+        summary = str(latest_outer_loop_dispatch.get("summary") or "").strip()
+    elif autonomy_state == "autonomous_progress" and restore_point.get("resume_mode"):
         summary = f"恢复点已冻结；当前停在 {restore_point.get('resume_mode')}，下一次确认看恢复信号。"
     else:
         summary = (
@@ -2008,6 +2059,7 @@ def _autonomy_contract(
         "recommended_command": recommended_command,
         "next_signal": next_system_action or str(restore_point.get("summary") or "").strip(),
         "restore_point": restore_point,
+        "latest_outer_loop_dispatch": latest_outer_loop_dispatch,
     }
 
 
@@ -2756,6 +2808,7 @@ def build_study_progress_projection(
         current_blockers=current_blockers,
     )
     autonomy_contract = _autonomy_contract(
+        study_id=resolved_study_id,
         intervention_lane=intervention_lane,
         recovery_contract=recovery_contract,
         recommended_command=recommended_command,
@@ -2763,6 +2816,7 @@ def build_study_progress_projection(
         next_system_action=next_system_action,
         continuation_state=continuation_state,
         family_checkpoint_lineage=family_checkpoint_lineage,
+        runtime_watch_payload=runtime_watch_payload,
         needs_physician_decision=needs_physician_decision,
         manual_finish_contract=manual_finish_contract,
     )
@@ -3236,6 +3290,15 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         if restore_point.get("summary"):
             lines.append(
                 f"- 恢复点: {_display_text(restore_point.get('summary')) or restore_point.get('summary')}"
+            )
+        latest_outer_loop_dispatch = dict(autonomy_contract.get("latest_outer_loop_dispatch") or {})
+        if latest_outer_loop_dispatch.get("summary"):
+            lines.append(
+                "- 最近一次自治续跑: "
+                + (
+                    _display_text(latest_outer_loop_dispatch.get("summary"))
+                    or latest_outer_loop_dispatch.get("summary")
+                )
             )
     if quality_closure_truth:
         lines.extend(["", "## 质量闭环", ""])

@@ -1074,6 +1074,7 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
             "human_gate_required": False,
             "summary": "当前还没有额外 checkpoint resume contract；可以直接回到 MAS 主线继续恢复或重启当前 study。",
         },
+        "latest_outer_loop_dispatch": None,
     }
     assert result["latest_events"][0]["category"] == "runtime_supervision"
     assert "连续两次恢复失败" in result["latest_events"][0]["summary"]
@@ -1156,6 +1157,7 @@ def test_study_progress_autonomy_contract_projects_restore_point_from_checkpoint
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
     assert result["autonomy_contract"]["autonomy_state"] == "autonomous_progress"
+    assert result["autonomy_contract"]["latest_outer_loop_dispatch"] is None
     assert result["autonomy_contract"]["restore_point"] == {
         "resume_mode": "resume_from_checkpoint",
         "continuation_policy": "wait_for_user_or_resume",
@@ -1163,6 +1165,110 @@ def test_study_progress_autonomy_contract_projects_restore_point_from_checkpoint
         "human_gate_required": False,
         "summary": "当前恢复点采用 resume_from_checkpoint；continuation policy 为 wait_for_user_or_resume；最近一次续跑原因是运行停在未变化的定稿总结态。",
     }
+
+
+def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    runtime_watch_path = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    _write_json(
+        runtime_watch_path,
+        {
+            "schema_version": 1,
+            "scanned_at": "2026-04-21T04:16:00+00:00",
+            "managed_study_outer_loop_dispatches": [
+                {
+                    "study_id": "001-risk",
+                    "quest_id": "quest-001",
+                    "decision_type": "continue_same_line",
+                    "route_target": "write",
+                    "route_key_question": "当前同线稿件还差哪一步最窄修订？",
+                    "controller_action_type": "ensure_study_runtime_relaunch_stopped",
+                    "dispatch_status": "executed",
+                    "source": "runtime_watch_outer_loop_wakeup",
+                }
+            ],
+            "controllers": {},
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "resume",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "controller_stage_note": "当前同线质量修复仍在继续。",
+            },
+            "continuation_state": {
+                "quest_status": "running",
+                "active_run_id": "run-001",
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "unchanged_finalize_state",
+                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+            },
+            "family_checkpoint_lineage": {
+                "version": "family-checkpoint-lineage.v1",
+                "resume_contract": {
+                    "resume_mode": "resume_from_checkpoint",
+                    "human_gate_required": False,
+                },
+            },
+            "pending_user_interaction": {},
+            "interaction_arbitration": None,
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+    markdown = module.render_study_progress_markdown(result)
+
+    assert result["autonomy_contract"]["summary"] == (
+        "最近一次自治外环已转到“论文写作与结果收紧”，当前关键问题是“当前同线稿件还差哪一步最窄修订？”。"
+    )
+    assert result["autonomy_contract"]["latest_outer_loop_dispatch"] == {
+        "decision_type": "continue_same_line",
+        "route_target": "write",
+        "route_target_label": "论文写作与结果收紧",
+        "route_key_question": "当前同线稿件还差哪一步最窄修订？",
+        "dispatch_status": "executed",
+        "summary": "最近一次自治外环已转到“论文写作与结果收紧”，当前关键问题是“当前同线稿件还差哪一步最窄修订？”。",
+    }
+    assert "最近一次自治续跑" in markdown
+    assert "当前同线稿件还差哪一步最窄修订？" in markdown
 
 
 def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tmp_path: Path) -> None:
