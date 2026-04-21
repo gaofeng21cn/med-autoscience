@@ -90,6 +90,40 @@ def test_read_publication_eval_latest_reads_typed_latest_artifact(tmp_path: Path
     assert resolved == payload
 
 
+def test_read_publication_eval_latest_accepts_quality_assessment(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    latest_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    payload = _minimal_payload(study_root)
+    payload["quality_assessment"] = {
+        "clinical_significance": {
+            "status": "partial",
+            "summary": "Clinical framing exists but interpretation targets remain incomplete.",
+            "evidence_refs": [payload["delivery_context_refs"]["paper_root_ref"]],
+        },
+        "evidence_strength": {
+            "status": "blocked",
+            "summary": "Paper-facing evidence surface is still incomplete.",
+            "evidence_refs": [payload["runtime_context_refs"]["main_result_ref"]],
+        },
+        "novelty_positioning": {
+            "status": "underdefined",
+            "summary": "Novelty framing has not been frozen in the charter.",
+            "evidence_refs": [payload["charter_context_ref"]["ref"]],
+        },
+        "human_review_readiness": {
+            "status": "blocked",
+            "summary": "Human-facing package is not ready yet.",
+            "evidence_refs": [payload["delivery_context_refs"]["submission_minimal_ref"]],
+        },
+    }
+    _write_json(latest_path, payload)
+
+    resolved = module.read_publication_eval_latest(study_root=study_root)
+
+    assert resolved == payload
+
+
 def test_resolve_publication_eval_latest_ref_rejects_med_deepscientist_runtime_paths(tmp_path: Path) -> None:
     module = importlib.import_module(MODULE_NAME)
     workspace_root = tmp_path / "workspace"

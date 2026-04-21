@@ -7444,7 +7444,7 @@ def test_study_runtime_status_materializes_route_back_same_line_for_blocked_bund
             "allow_write": False,
             "recommended_action": "return_to_publishability_gate",
             "status": "blocked",
-            "blockers": ["submission_surface_qc_failure_present"],
+            "blockers": ["stale_study_delivery_mirror", "submission_surface_qc_failure_present"],
             "write_drift_detected": False,
             "required_non_scalar_deliverables": [],
             "present_non_scalar_deliverables": [],
@@ -7454,6 +7454,7 @@ def test_study_runtime_status_materializes_route_back_same_line_for_blocked_bund
             "submission_minimal_present": True,
             "submission_minimal_docx_present": True,
             "submission_minimal_pdf_present": True,
+            "study_delivery_status": "stale_source_changed",
             "medical_publication_surface_status": "clear",
             "submission_surface_qc_failures": ["submission_docx_older_than_source_markdown"],
             "archived_submission_surface_roots": [],
@@ -7484,6 +7485,9 @@ def test_study_runtime_status_materializes_route_back_same_line_for_blocked_bund
     assert payload["recommended_actions"][0]["action_type"] == "route_back_same_line"
     assert payload["recommended_actions"][0]["route_target"] == "finalize"
     assert payload["recommended_actions"][0]["requires_controller_decision"] is True
+    assert payload["quality_assessment"]["evidence_strength"]["status"] == "ready"
+    assert payload["quality_assessment"]["human_review_readiness"]["status"] == "blocked"
+    assert payload["quality_assessment"]["novelty_positioning"]["status"] == "underdefined"
 
 
 @pytest.mark.parametrize(

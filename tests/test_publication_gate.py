@@ -1191,6 +1191,9 @@ def test_build_gate_report_marks_stale_study_delivery_mirror_when_authority_pack
     assert report["study_delivery_status"] == "stale_source_missing"
     assert report["study_delivery_stale_reason"] == "current_submission_source_missing"
     assert report["study_delivery_manifest_path"] == "/tmp/studies/002/manuscript/delivery_manifest.json"
+    assert report["supervisor_phase"] == "bundle_stage_blocked"
+    assert report["bundle_tasks_downstream_only"] is False
+    assert report["current_required_action"] == "complete_bundle_stage"
 
 
 def test_build_gate_report_marks_bundle_tasks_downstream_when_publication_anchor_is_missing(tmp_path: Path) -> None:

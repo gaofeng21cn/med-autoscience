@@ -38,6 +38,8 @@ from med_autoscience.publication_eval_latest import materialize_publication_eval
 from med_autoscience.publication_eval_record import (
     PublicationEvalCharterContextRef,
     PublicationEvalGap,
+    PublicationEvalQualityAssessment,
+    PublicationEvalQualityDimension,
     PublicationEvalRecommendedAction,
     PublicationEvalRecord,
     PublicationEvalVerdict,
@@ -266,7 +268,10 @@ def _publication_eval_gap_type(blocker: str) -> str:
         "missing_current_medical_publication_surface_report",
     }:
         return "reporting"
-    if any(token in normalized for token in ("submission", "deliverable", "bundle", "surface", "package")):
+    if any(
+        token in normalized
+        for token in ("submission", "deliverable", "bundle", "surface", "package", "delivery", "mirror", "current_package")
+    ):
         return "delivery"
     if any(token in normalized for token in ("terminology", "report", "qc")):
         return "reporting"
@@ -295,6 +300,160 @@ def _publication_eval_verdict(report: dict[str, object]) -> PublicationEvalVerdi
         primary_claim_status="blocked" if anchor_kind == "missing" else "partial",
         summary=summary or "Publication gate is blocked and requires controller review.",
         stop_loss_pressure="high" if anchor_kind == "missing" else "watch",
+    )
+
+
+def _charter_text_sequence(payload: dict[str, object], key: str) -> tuple[str, ...]:
+    raw_value = payload.get(key)
+    if not isinstance(raw_value, list):
+        return ()
+    items: list[str] = []
+    for item in raw_value:
+        text = str(item or "").strip()
+        if text:
+            items.append(text)
+    return tuple(items)
+
+
+def _publication_eval_has_only_delivery_blockers(report: dict[str, object]) -> bool:
+    blockers = [
+        str(item).strip()
+        for item in (report.get("blockers") or [])
+        if str(item).strip()
+    ]
+    return bool(blockers) and all(_publication_eval_gap_type(item) == "delivery" for item in blockers)
+
+
+def _publication_eval_quality_assessment(
+    *,
+    report: dict[str, object],
+    charter_payload: dict[str, object],
+    evidence_refs: tuple[str, ...],
+) -> PublicationEvalQualityAssessment:
+    publication_objective = str(charter_payload.get("publication_objective") or "").strip()
+    paper_framing_summary = str(charter_payload.get("paper_framing_summary") or "").strip()
+    minimum_sci_ready_evidence_package = set(_charter_text_sequence(charter_payload, "minimum_sci_ready_evidence_package"))
+    scientific_followup_questions = _charter_text_sequence(charter_payload, "scientific_followup_questions")
+    explanation_targets = _charter_text_sequence(charter_payload, "explanation_targets")
+    manuscript_conclusion_redlines = _charter_text_sequence(charter_payload, "manuscript_conclusion_redlines")
+    results_summary = str(report.get("results_summary") or "").strip()
+    conclusion = str(report.get("conclusion") or "").strip()
+    medical_surface_status = str(report.get("medical_publication_surface_status") or "").strip()
+    report_status = str(report.get("status") or "").strip()
+    study_delivery_status = str(report.get("study_delivery_status") or "").strip()
+    blockers = {
+        str(item).strip()
+        for item in (report.get("blockers") or [])
+        if str(item).strip()
+    }
+    delivery_only_blockers = _publication_eval_has_only_delivery_blockers(report)
+    submission_minimal_ready = (
+        bool(report.get("submission_minimal_present"))
+        and bool(report.get("submission_minimal_docx_present"))
+        and bool(report.get("submission_minimal_pdf_present"))
+    )
+    clinical_framing_present = bool(publication_objective or paper_framing_summary)
+    clinician_facing_target_declared = (
+        bool(explanation_targets)
+        or "clinician_facing_interpretation_block" in minimum_sci_ready_evidence_package
+    )
+
+    if not clinical_framing_present:
+        clinical_significance = PublicationEvalQualityDimension(
+            status="underdefined",
+            summary="Study charter 还没有冻结明确的临床论文 framing，临床意义表述仍不够稳。",
+            evidence_refs=evidence_refs,
+        )
+    elif not (results_summary or conclusion):
+        clinical_significance = PublicationEvalQualityDimension(
+            status="partial",
+            summary="临床问题已经被冻结，但当前 gate 还没有稳定的结果/结论表面来支撑给人阅读的临床叙事。",
+            evidence_refs=evidence_refs,
+        )
+    elif clinician_facing_target_declared:
+        clinical_significance = PublicationEvalQualityDimension(
+            status="ready",
+            summary="临床问题、解释目标与结果表面都已经具备，临床意义叙事已进入可审状态。",
+            evidence_refs=evidence_refs,
+        )
+    else:
+        clinical_significance = PublicationEvalQualityDimension(
+            status="partial",
+            summary="主临床问题与结果表面已具备，但 charter 里还缺更显式的 clinician-facing interpretation target。",
+            evidence_refs=evidence_refs,
+        )
+
+    if "missing_publication_anchor" in blockers:
+        evidence_strength = PublicationEvalQualityDimension(
+            status="blocked",
+            summary="主科学锚点还没建立，证据链还不能作为论文主叙事放行。",
+            evidence_refs=evidence_refs,
+        )
+    elif medical_surface_status != "clear" or {
+        "medical_publication_surface_blocked",
+        "missing_current_medical_publication_surface_report",
+    } & blockers:
+        evidence_strength = PublicationEvalQualityDimension(
+            status="blocked",
+            summary="论文稿面的证据链还没有清关，claim-to-evidence 或 paper-facing reporting 仍需修复。",
+            evidence_refs=evidence_refs,
+        )
+    elif report_status == "clear" or delivery_only_blockers:
+        evidence_strength = PublicationEvalQualityDimension(
+            status="ready",
+            summary="科学证据面已经清楚，剩余问题只在交付/刷新层，不在核心证据层。",
+            evidence_refs=evidence_refs,
+        )
+    else:
+        evidence_strength = PublicationEvalQualityDimension(
+            status="partial",
+            summary="主结果和稿面证据已存在，但 publication gate 仍有非纯交付类缺口没有清完。",
+            evidence_refs=evidence_refs,
+        )
+
+    if scientific_followup_questions and explanation_targets:
+        novelty_positioning = PublicationEvalQualityDimension(
+            status="ready",
+            summary="Charter 已显式冻结 follow-up questions 和 explanation targets，创新点/贡献边界有正式审计锚点。",
+            evidence_refs=evidence_refs,
+        )
+    elif scientific_followup_questions or explanation_targets or manuscript_conclusion_redlines:
+        novelty_positioning = PublicationEvalQualityDimension(
+            status="partial",
+            summary="贡献边界已经开始结构化，但 novelty/解释目标还没有完全收成一套显式质量合同。",
+            evidence_refs=evidence_refs,
+        )
+    else:
+        novelty_positioning = PublicationEvalQualityDimension(
+            status="underdefined",
+            summary="当前 charter 还缺显式的 scientific follow-up 或 explanation targets，创新性 framing 仍偏弱。",
+            evidence_refs=evidence_refs,
+        )
+
+    if report_status == "clear" and study_delivery_status == "current" and submission_minimal_ready:
+        human_review_readiness = PublicationEvalQualityDimension(
+            status="ready",
+            summary="给人看的 current_package 和 submission_minimal 已同步到最新真相，可以进入人工审阅。",
+            evidence_refs=evidence_refs,
+        )
+    elif report_status == "clear":
+        human_review_readiness = PublicationEvalQualityDimension(
+            status="partial",
+            summary="科学 gate 已清，但给人看的 current_package 或 submission surface 还需要再同步一轮。",
+            evidence_refs=evidence_refs,
+        )
+    else:
+        human_review_readiness = PublicationEvalQualityDimension(
+            status="blocked",
+            summary="publication gate 还没清，当前还不能把稿件当作正式人工审阅包放行。",
+            evidence_refs=evidence_refs,
+        )
+
+    return PublicationEvalQualityAssessment(
+        clinical_significance=clinical_significance,
+        evidence_strength=evidence_strength,
+        novelty_positioning=novelty_positioning,
+        human_review_readiness=human_review_readiness,
     )
 
 
@@ -539,6 +698,11 @@ def _materialize_publication_eval_from_gate_report(
             "submission_minimal_ref": submission_minimal_ref,
         },
         verdict=_publication_eval_verdict(publication_gate_report),
+        quality_assessment=_publication_eval_quality_assessment(
+            report=publication_gate_report,
+            charter_payload=charter_payload,
+            evidence_refs=evidence_refs,
+        ),
         gaps=_publication_eval_gaps(report=publication_gate_report, evidence_refs=evidence_refs),
         recommended_actions=(
             _publication_eval_action(
