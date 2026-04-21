@@ -3,10 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from med_autoscience import family_shared_release as module
 
 
 OWNER_COMMIT = "bc20e23c7fd9088a33db31c87d1e3075dac3144b"
+pytestmark = pytest.mark.family
 
 
 def _write_owner_release_contract(*, owner_repo_root: Path, owner_commit: str = OWNER_COMMIT) -> None:

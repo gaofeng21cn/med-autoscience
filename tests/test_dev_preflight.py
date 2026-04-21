@@ -3,6 +3,10 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.family
+
 
 def test_run_preflight_reports_unclassified_changes_without_running_commands(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.dev_preflight")

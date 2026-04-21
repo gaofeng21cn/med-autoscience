@@ -6,7 +6,11 @@ import sys
 import types
 from pathlib import Path
 
+import pytest
+
 from med_autoscience import editable_shared_bootstrap as module
+
+pytestmark = pytest.mark.family
 
 
 def test_bootstrap_adds_repo_venv_site_packages_when_shared_helper_imports_from_site_packages(

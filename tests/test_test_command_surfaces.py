@@ -27,7 +27,7 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
         "tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q"
     ) in makefile
     assert "test-full:" in makefile
-    assert "uv run pytest -q" in makefile
+    assert "./scripts/run-parallel-test-lanes.sh full" in makefile
 
 
 def test_pyproject_registers_meta_and_display_markers() -> None:
@@ -64,3 +64,26 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert "make test-meta" in verify_script
     assert "make test-display" in verify_script
     assert "make test-full" in verify_script
+
+
+def test_parallel_full_lane_script_covers_all_marker_groups() -> None:
+    script = _read("scripts/run-parallel-test-lanes.sh")
+
+    assert 'Usage: $0 full' in script
+    assert '"test-fast"' in script
+    assert '"test-meta"' in script
+    assert '"test-display"' in script
+    assert '"test-family"' in script
+    assert 'make "${lane}"' in script
+
+
+def test_family_lane_test_files_are_marker_scoped_to_avoid_full_lane_overlap() -> None:
+    family_release = _read("tests/test_family_shared_release.py")
+    editable_bootstrap = _read("tests/test_editable_shared_bootstrap.py")
+    dev_preflight_contract = _read("tests/test_dev_preflight_contract.py")
+    dev_preflight = _read("tests/test_dev_preflight.py")
+
+    assert "pytestmark = pytest.mark.family" in family_release
+    assert "pytestmark = pytest.mark.family" in editable_bootstrap
+    assert "pytestmark = pytest.mark.family" in dev_preflight_contract
+    assert "pytestmark = pytest.mark.family" in dev_preflight

@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import importlib
 
+import pytest
+
+pytestmark = pytest.mark.family
+
 
 def test_classify_changed_files_matches_runtime_contract_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
