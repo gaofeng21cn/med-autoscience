@@ -2031,6 +2031,17 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "runtime",
         "eval_hygiene",
     ]
+    assert payload["return_surface_contract"]["study_progress_projection_contract"] == {
+        "surface_kind": "study_progress_projection_contract",
+        "command": (
+            "uv run python -m med_autoscience.cli study-progress --profile "
+            + str(profile_ref.resolve())
+            + " --study-id 001-risk --format json"
+        ),
+        "autonomy_soak_status_field": "autonomy_soak_status",
+        "quality_execution_lane_field": "quality_execution_lane",
+        "quality_review_followthrough_field": "quality_review_followthrough",
+    }
     assert payload["return_surface_contract"]["domain_entry_contract"]["service_safe_surface_kind"] == (
         "med_autoscience_service_safe_domain_entry"
     )
@@ -2073,6 +2084,9 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     assert "当前任务意图" in markdown
     assert "当前投稿目标" in markdown
     assert "单项目边界摘要" in markdown
+    assert "进度真相命令" in markdown
+    assert "自治 proof 字段" in markdown
+    assert "质量复评跟进字段" in markdown
     assert "当前入口模式" in markdown
     assert "目标域" in markdown
     assert "task_intent:" not in markdown
