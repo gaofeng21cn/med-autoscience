@@ -1380,6 +1380,38 @@ def test_build_runtime_watch_outer_loop_tick_request_autoparks_ready_submission_
             },
         },
     )
+    runtime_event_path = quest_root / "artifacts" / "reports" / "runtime_events" / "latest.json"
+    _write_json(
+        runtime_event_path,
+        {
+            "schema_version": 1,
+            "event_id": "quest-runtime::quest-001::runtime_state_observed::2026-04-05T05:59:00+00:00",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-05T05:59:00+00:00",
+            "event_source": "quest_runtime_state",
+            "event_kind": "runtime_state_observed",
+            "summary_ref": "quest-runtime::quest-001::runtime_state_observed::2026-04-05T05:59:00+00:00",
+            "status_snapshot": {
+                "quest_status": "running",
+                "display_status": "running",
+                "active_run_id": "run-001",
+                "runtime_liveness_status": "live",
+                "worker_running": True,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_reason": "unchanged_finalize_state",
+            },
+            "outer_loop_input": {
+                "quest_status": "running",
+                "display_status": "running",
+                "active_run_id": "run-001",
+                "runtime_liveness_status": "live",
+                "worker_running": True,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_reason": "unchanged_finalize_state",
+            },
+            "artifact_path": str(runtime_event_path),
+        },
+    )
 
     request = module.build_runtime_watch_outer_loop_tick_request(
         study_root=study_root,
