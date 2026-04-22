@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib
 import json
+import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -323,6 +325,102 @@ def test_run_gate_clearing_batch_executes_parallel_units_then_replays_gate(monke
     assert record["source_eval_id"] == publication_eval_payload["eval_id"]
     assert record["unit_results"][0]["unit_id"] == "freeze_scientific_anchor_fields"
 
+
+def test_run_gate_clearing_batch_waits_for_live_path_repair_before_display_refresh(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-001" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    _write_blocked_publication_eval(study_root, quest_id="quest-001")
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": [
+                "medical_publication_surface_blocked",
+            ],
+            "medical_publication_surface_status": "blocked",
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_eligible_mapping_payload",
+        lambda **_: (
+            paper_root / "scientific_anchor_mapping.json",
+            {
+                "proposed_scientific_followup_questions": ["Q1"],
+                "proposed_explanation_targets": ["T1"],
+            },
+        ),
+    )
+    freeze_started = threading.Event()
+    repair_started = threading.Event()
+    repair_done = threading.Event()
+    overlap_seen: dict[str, bool] = {"value": False}
+
+    def fake_freeze(**_: Any) -> dict[str, Any]:
+        freeze_started.set()
+        assert repair_started.wait(1), "freeze_scientific_anchor_fields should overlap with live-path repair"
+        overlap_seen["value"] = not repair_done.is_set()
+        return {"status": "updated"}
+
+    def fake_repair(**_: Any) -> dict[str, Any]:
+        repair_started.set()
+        assert freeze_started.wait(1), "repair_paper_live_paths should overlap with anchor freeze"
+        time.sleep(0.15)
+        repair_done.set()
+        return {"status": "updated"}
+
+    def fake_materialize(**_: Any) -> dict[str, Any]:
+        assert repair_done.is_set(), "display refresh must wait for live-path repair"
+        return {"status": "materialized"}
+
+    monkeypatch.setattr(module, "_freeze_scientific_anchor_fields", fake_freeze)
+    monkeypatch.setattr(module, "_repair_paper_live_paths", fake_repair)
+    monkeypatch.setattr(module, "_materialize_display_surface", fake_materialize)
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["medical_publication_surface_blocked"],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        quest_id="quest-001",
+        source="test-source",
+    )
+
+    result_by_unit = {item["unit_id"]: item for item in result["unit_results"]}
+    assert overlap_seen["value"] is True
+    assert result_by_unit["freeze_scientific_anchor_fields"]["status"] == "updated"
+    assert result_by_unit["repair_paper_live_paths"]["status"] == "updated"
+    assert result_by_unit["materialize_display_surface"]["status"] == "materialized"
+
 def test_run_gate_clearing_batch_executes_bundle_stage_submission_refresh_then_replays_gate(
     monkeypatch,
     tmp_path: Path,
@@ -587,6 +685,91 @@ def test_run_gate_clearing_batch_syncs_stale_submission_delivery_after_bundle_re
     ]
     assert result["unit_results"][1]["status"] == "synced"
     assert result["gate_replay"]["status"] == "clear"
+
+
+def test_run_gate_clearing_batch_reuses_embedded_submission_delivery_sync_after_bundle_refresh(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": [
+                "stale_study_delivery_mirror",
+            ],
+            "current_required_action": "complete_bundle_stage",
+            "medical_publication_surface_status": "clear",
+            "study_delivery_status": "stale_source_changed",
+        },
+    )
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(
+        module.submission_minimal,
+        "create_submission_minimal_package",
+        lambda **_: {
+            "output_root": "paper/submission_minimal",
+            "status": "ready",
+            "delivery_sync": {
+                "status": "synced",
+                "current_package_root": "studies/004-invasive-architecture/manuscript/current_package",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_sync_submission_minimal_delivery",
+        lambda **_: (_ for _ in ()).throw(
+            AssertionError("embedded delivery_sync should be reused instead of re-running study_delivery_sync")
+        ),
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id="quest-004",
+        source="test-source",
+    )
+
+    assert [item["unit_id"] for item in result["unit_results"]] == [
+        "create_submission_minimal_package",
+        "sync_submission_minimal_delivery",
+    ]
+    assert result["unit_results"][1]["status"] == "synced"
+    assert result["unit_results"][1]["result"]["current_package_root"] == (
+        "studies/004-invasive-architecture/manuscript/current_package"
+    )
 
 
 def test_run_gate_clearing_batch_executes_delivery_refresh_fast_lane_for_stale_projection_only(

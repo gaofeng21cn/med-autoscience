@@ -205,6 +205,11 @@ def run_quality_repair_batch(
         quest_id=quest_id,
         source=source,
     )
+    gate_clearing_execution_summary = (
+        dict(gate_clearing_result.get("execution_summary"))
+        if isinstance(gate_clearing_result.get("execution_summary"), Mapping)
+        else None
+    )
     record = {
         "schema_version": SCHEMA_VERSION,
         "source_eval_id": current_eval_id,
@@ -220,6 +225,7 @@ def run_quality_repair_batch(
         "quality_closure_state": _non_empty_text(quality_closure_truth.get("state")),
         "quality_execution_lane_id": _non_empty_text(quality_execution_lane.get("lane_id")),
         "gate_clearing_batch": gate_clearing_result,
+        "gate_clearing_execution_summary": gate_clearing_execution_summary,
     }
     record_path = stable_quality_repair_batch_path(study_root=resolved_study_root)
     _write_json(record_path, record)

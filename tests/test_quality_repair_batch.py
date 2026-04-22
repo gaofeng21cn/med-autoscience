@@ -156,6 +156,12 @@ def test_run_quality_repair_batch_wraps_gate_clearing_and_writes_record(monkeypa
             "blockers": ["claim_evidence_consistency_failed"],
         },
         "unit_results": [{"unit_id": "materialize_display_surface", "status": "updated"}],
+        "execution_summary": {
+            "parallel_wave_count": 1,
+            "parallel_unit_count": 1,
+            "sequential_unit_count": 0,
+            "skipped_dependency_unit_count": 0,
+        },
     }
     seen: dict[str, object] = {}
     monkeypatch.setattr(
@@ -184,9 +190,11 @@ def test_run_quality_repair_batch_wraps_gate_clearing_and_writes_record(monkeypa
     assert result["source_eval_id"] == publication_eval_payload["eval_id"]
     assert result["source_summary_id"] == quality_summary["summary_id"]
     assert result["gate_clearing_batch"]["gate_replay"]["status"] == "blocked"
+    assert result["gate_clearing_execution_summary"] == gate_result["execution_summary"]
     record = json.loads(Path(result["record_path"]).read_text(encoding="utf-8"))
     assert record["quality_closure_state"] == "quality_repair_required"
     assert record["quality_execution_lane_id"] == "general_quality_repair"
+    assert record["gate_clearing_execution_summary"] == gate_result["execution_summary"]
 
 
 def test_study_outer_loop_executes_quality_repair_batch_controller_action(monkeypatch, tmp_path: Path) -> None:

@@ -94,6 +94,7 @@ class GateClearingRepairUnit:
     label: str
     parallel_safe: bool
     run: Callable[[], dict[str, Any]]
+    depends_on: tuple[str, ...] = ()
 
 
 def stable_gate_clearing_batch_path(*, study_root: Path) -> Path:
@@ -318,6 +319,177 @@ def _can_skip_repair_unit(
     if previous_fingerprint != unit_fingerprint:
         return False
     return previous_status is not None and previous_status not in {"failed", "missing"}
+
+
+def _unit_status_blocks_dependents(status: str | None) -> bool:
+    return status in {"failed", "missing", "skipped_failed_dependency"}
+
+
+def _existing_dependency_ids(
+    repair_units: list[GateClearingRepairUnit],
+    *candidate_unit_ids: str,
+) -> tuple[str, ...]:
+    existing_ids = {unit.unit_id for unit in repair_units}
+    return tuple(unit_id for unit_id in candidate_unit_ids if unit_id in existing_ids)
+
+
+def _run_repair_unit(
+    *,
+    unit: GateClearingRepairUnit,
+    latest_batch: dict[str, Any],
+    paper_root: Path,
+    gate_report: dict[str, Any],
+) -> tuple[dict[str, Any], str | None]:
+    unit_fingerprint = _repair_unit_fingerprint(
+        unit_id=unit.unit_id,
+        paper_root=paper_root,
+        gate_report=gate_report,
+    )
+    item: dict[str, Any]
+    if _can_skip_repair_unit(latest_batch, unit_id=unit.unit_id, unit_fingerprint=unit_fingerprint):
+        item = {
+            "unit_id": unit.unit_id,
+            "label": unit.label,
+            "parallel_safe": unit.parallel_safe,
+            "status": "skipped_matching_unit_fingerprint",
+            "previous_status": _latest_unit_status(latest_batch, unit_id=unit.unit_id),
+        }
+    else:
+        try:
+            result = unit.run()
+            item = {
+                "unit_id": unit.unit_id,
+                "label": unit.label,
+                "parallel_safe": unit.parallel_safe,
+                "status": str(result.get("status") or "ok"),
+                "result": result,
+            }
+        except Exception as exc:
+            item = {
+                "unit_id": unit.unit_id,
+                "label": unit.label,
+                "parallel_safe": unit.parallel_safe,
+                "status": "failed",
+                "error": str(exc),
+            }
+    if unit.depends_on:
+        item["depends_on"] = list(unit.depends_on)
+    if unit_fingerprint is not None:
+        item["fingerprint"] = unit_fingerprint
+    return item, unit_fingerprint
+
+
+def _execute_repair_units(
+    *,
+    repair_units: list[GateClearingRepairUnit],
+    latest_batch: dict[str, Any],
+    paper_root: Path,
+    gate_report: dict[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, str], dict[str, int]]:
+    unit_results_by_id: dict[str, dict[str, Any]] = {}
+    unit_fingerprints: dict[str, str] = {}
+    execution_summary = {
+        "parallel_wave_count": 0,
+        "parallel_unit_count": 0,
+        "sequential_unit_count": 0,
+        "skipped_dependency_unit_count": 0,
+    }
+    pending_units = list(repair_units)
+    while pending_units:
+        remaining_units: list[GateClearingRepairUnit] = []
+        ready_parallel_units: list[GateClearingRepairUnit] = []
+        ready_sequential_units: list[GateClearingRepairUnit] = []
+        for unit in pending_units:
+            dependency_statuses = {
+                dependency_id: _non_empty_text((unit_results_by_id.get(dependency_id) or {}).get("status"))
+                for dependency_id in unit.depends_on
+                if dependency_id in unit_results_by_id
+            }
+            failed_dependencies = [
+                dependency_id
+                for dependency_id, status in dependency_statuses.items()
+                if _unit_status_blocks_dependents(status)
+            ]
+            if failed_dependencies:
+                unit_results_by_id[unit.unit_id] = {
+                    "unit_id": unit.unit_id,
+                    "label": unit.label,
+                    "parallel_safe": unit.parallel_safe,
+                    "status": "skipped_failed_dependency",
+                    "failed_dependencies": failed_dependencies,
+                    "depends_on": list(unit.depends_on),
+                }
+                execution_summary["skipped_dependency_unit_count"] += 1
+                continue
+            unresolved_dependencies = [
+                dependency_id for dependency_id in unit.depends_on if dependency_id not in unit_results_by_id
+            ]
+            if unresolved_dependencies:
+                remaining_units.append(unit)
+                continue
+            if unit.parallel_safe:
+                ready_parallel_units.append(unit)
+            else:
+                ready_sequential_units.append(unit)
+        if not ready_parallel_units and not ready_sequential_units:
+            raise RuntimeError("gate-clearing batch repair dependency graph could not be resolved")
+        if ready_parallel_units:
+            execution_summary["parallel_wave_count"] += 1
+            execution_summary["parallel_unit_count"] += len(ready_parallel_units)
+            with ThreadPoolExecutor(max_workers=len(ready_parallel_units)) as executor:
+                futures = {
+                    unit.unit_id: executor.submit(
+                        _run_repair_unit,
+                        unit=unit,
+                        latest_batch=latest_batch,
+                        paper_root=paper_root,
+                        gate_report=gate_report,
+                    )
+                    for unit in ready_parallel_units
+                }
+                for unit in ready_parallel_units:
+                    item, unit_fingerprint = futures[unit.unit_id].result()
+                    unit_results_by_id[unit.unit_id] = item
+                    if unit_fingerprint is not None:
+                        unit_fingerprints[unit.unit_id] = unit_fingerprint
+        for unit in ready_sequential_units:
+            item, unit_fingerprint = _run_repair_unit(
+                unit=unit,
+                latest_batch=latest_batch,
+                paper_root=paper_root,
+                gate_report=gate_report,
+            )
+            unit_results_by_id[unit.unit_id] = item
+            if unit_fingerprint is not None:
+                unit_fingerprints[unit.unit_id] = unit_fingerprint
+            execution_summary["sequential_unit_count"] += 1
+        pending_units = remaining_units
+    unit_results = [
+        unit_results_by_id[unit.unit_id]
+        for unit in repair_units
+        if unit.unit_id in unit_results_by_id
+    ]
+    return unit_results, unit_fingerprints, execution_summary
+
+
+def _reuse_embedded_submission_delivery_sync(
+    *,
+    create_submission_result: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(create_submission_result, dict):
+        return None
+    delivery_sync = create_submission_result.get("delivery_sync")
+    if not isinstance(delivery_sync, dict) or not delivery_sync:
+        return None
+    return {
+        "unit_id": "sync_submission_minimal_delivery",
+        "label": "Refresh the study-owned submission-minimal delivery mirror before gate replay",
+        "parallel_safe": False,
+        "status": _non_empty_text(delivery_sync.get("status")) or "updated",
+        "result": delivery_sync,
+        "reused_embedded_delivery_sync": True,
+        "depends_on": ["create_submission_minimal_package"],
+    }
 
 
 def _latest_batch_record(*, study_root: Path) -> dict[str, Any]:
@@ -729,6 +901,7 @@ def run_gate_clearing_batch(
                     unit_id="workspace_display_repair_script",
                     label="Run the workspace-authored display repair script before gate replay",
                     parallel_safe=True,
+                    depends_on=_existing_dependency_ids(repair_units, "repair_paper_live_paths"),
                     run=lambda: _run_workspace_display_repair_script(paper_root=paper_root),
                 )
             )
@@ -738,6 +911,7 @@ def run_gate_clearing_batch(
                     unit_id="materialize_display_surface",
                     label="Refresh display catalogs and generated paper-facing exports",
                     parallel_safe=True,
+                    depends_on=_existing_dependency_ids(repair_units, "repair_paper_live_paths"),
                     run=lambda: _materialize_display_surface(paper_root=paper_root),
                 )
             )
@@ -756,7 +930,28 @@ def run_gate_clearing_batch(
                 unit_id="sync_submission_minimal_delivery",
                 label="Refresh the study-owned submission-minimal delivery mirror before gate replay",
                 parallel_safe=True,
+                depends_on=_existing_dependency_ids(
+                    repair_units,
+                    "repair_paper_live_paths",
+                    "workspace_display_repair_script",
+                    "materialize_display_surface",
+                ),
                 run=lambda: _sync_submission_minimal_delivery(paper_root=paper_root, profile=profile),
+            )
+        )
+    if bundle_stage_repair and submission_minimal_refresh_requested:
+        repair_units.append(
+            GateClearingRepairUnit(
+                unit_id="create_submission_minimal_package",
+                label="Regenerate submission-minimal assets before gate replay",
+                parallel_safe=False,
+                depends_on=_existing_dependency_ids(
+                    repair_units,
+                    "repair_paper_live_paths",
+                    "workspace_display_repair_script",
+                    "materialize_display_surface",
+                ),
+                run=lambda: _create_submission_minimal_package(paper_root=paper_root, profile=profile),
             )
         )
     if not repair_units and study_delivery_status.startswith("stale"):
@@ -771,110 +966,58 @@ def run_gate_clearing_batch(
             "source_eval_id": current_eval_id,
             "gate_blockers": sorted(gate_blockers),
         }
-
-    unit_results_by_id: dict[str, dict[str, Any]] = {}
-    unit_fingerprints: dict[str, str] = {}
-    units_to_run: list[tuple[GateClearingRepairUnit, str | None]] = []
-    for unit in repair_units:
-        unit_fingerprint = _repair_unit_fingerprint(
-            unit_id=unit.unit_id,
-            paper_root=paper_root,
-            gate_report=gate_report,
+    unit_results, unit_fingerprints, execution_summary = _execute_repair_units(
+        repair_units=repair_units,
+        latest_batch=latest_batch,
+        paper_root=paper_root,
+        gate_report=gate_report,
+    )
+    create_submission_unit_result = next(
+        (
+            item
+            for item in unit_results
+            if _non_empty_text(item.get("unit_id")) == "create_submission_minimal_package"
+        ),
+        None,
+    )
+    submission_minimal_refreshed = create_submission_unit_result is not None and not _unit_status_blocks_dependents(
+        _non_empty_text(create_submission_unit_result.get("status"))
+    )
+    if submission_minimal_refreshed and study_delivery_status.startswith("stale"):
+        embedded_delivery_sync = _reuse_embedded_submission_delivery_sync(
+            create_submission_result=create_submission_unit_result.get("result")
+            if isinstance(create_submission_unit_result, dict)
+            else None,
         )
-        if unit_fingerprint is not None:
-            unit_fingerprints[unit.unit_id] = unit_fingerprint
-        if _can_skip_repair_unit(latest_batch, unit_id=unit.unit_id, unit_fingerprint=unit_fingerprint):
-            unit_results_by_id[unit.unit_id] = {
-                "unit_id": unit.unit_id,
-                "label": unit.label,
-                "parallel_safe": unit.parallel_safe,
-                "status": "skipped_matching_unit_fingerprint",
-                "fingerprint": unit_fingerprint,
-                "previous_status": _latest_unit_status(latest_batch, unit_id=unit.unit_id),
-            }
-            continue
-        units_to_run.append((unit, unit_fingerprint))
-
-    if units_to_run:
-        with ThreadPoolExecutor(max_workers=len(units_to_run)) as executor:
-            futures = {executor.submit(unit.run): (unit, unit_fingerprint) for unit, unit_fingerprint in units_to_run}
-            for future, (unit, unit_fingerprint) in ((future, futures[future]) for future in futures):
-                try:
-                    result = future.result()
-                    item = {
-                        "unit_id": unit.unit_id,
-                        "label": unit.label,
-                        "parallel_safe": unit.parallel_safe,
-                        "status": str(result.get("status") or "ok"),
+        if embedded_delivery_sync is not None:
+            unit_results.append(embedded_delivery_sync)
+            execution_summary["sequential_unit_count"] += 1
+        else:
+            try:
+                result = _sync_submission_minimal_delivery(paper_root=paper_root, profile=profile)
+                unit_results.append(
+                    {
+                        "unit_id": "sync_submission_minimal_delivery",
+                        "label": "Refresh the study-owned submission-minimal delivery mirror before gate replay",
+                        "parallel_safe": False,
+                        "status": str(result.get("status") or "updated"),
                         "result": result,
+                        "depends_on": ["create_submission_minimal_package"],
                     }
-                    if unit_fingerprint is not None:
-                        item["fingerprint"] = unit_fingerprint
-                    unit_results_by_id[unit.unit_id] = item
-                except Exception as exc:
-                    item = {
-                        "unit_id": unit.unit_id,
-                        "label": unit.label,
-                        "parallel_safe": unit.parallel_safe,
+                )
+                execution_summary["sequential_unit_count"] += 1
+            except Exception as exc:
+                unit_results.append(
+                    {
+                        "unit_id": "sync_submission_minimal_delivery",
+                        "label": "Refresh the study-owned submission-minimal delivery mirror before gate replay",
+                        "parallel_safe": False,
                         "status": "failed",
                         "error": str(exc),
+                        "depends_on": ["create_submission_minimal_package"],
                     }
-                    if unit_fingerprint is not None:
-                        item["fingerprint"] = unit_fingerprint
-                    unit_results_by_id[unit.unit_id] = item
-
-    unit_results: list[dict[str, Any]] = [
-        unit_results_by_id[unit.unit_id]
-        for unit in repair_units
-        if unit.unit_id in unit_results_by_id
-    ]
-
-    submission_minimal_refreshed = False
-    if bundle_stage_repair and submission_minimal_refresh_requested:
-        try:
-            result = _create_submission_minimal_package(paper_root=paper_root, profile=profile)
-            unit_results.append(
-                {
-                    "unit_id": "create_submission_minimal_package",
-                    "label": "Regenerate submission-minimal assets before gate replay",
-                    "parallel_safe": False,
-                    "status": "updated",
-                    "result": result,
-                }
-            )
-            submission_minimal_refreshed = True
-        except Exception as exc:
-            unit_results.append(
-                {
-                    "unit_id": "create_submission_minimal_package",
-                    "label": "Regenerate submission-minimal assets before gate replay",
-                    "parallel_safe": False,
-                    "status": "failed",
-                    "error": str(exc),
-                }
-            )
-    if submission_minimal_refreshed and study_delivery_status.startswith("stale"):
-        try:
-            result = _sync_submission_minimal_delivery(paper_root=paper_root, profile=profile)
-            unit_results.append(
-                {
-                    "unit_id": "sync_submission_minimal_delivery",
-                    "label": "Refresh the study-owned submission-minimal delivery mirror before gate replay",
-                    "parallel_safe": False,
-                    "status": str(result.get("status") or "updated"),
-                    "result": result,
-                }
-            )
-        except Exception as exc:
-            unit_results.append(
-                {
-                    "unit_id": "sync_submission_minimal_delivery",
-                    "label": "Refresh the study-owned submission-minimal delivery mirror before gate replay",
-                    "parallel_safe": False,
-                    "status": "failed",
-                    "error": str(exc),
-                }
-            )
+                )
+                execution_summary["sequential_unit_count"] += 1
 
     gate_replay = publication_gate.run_controller(
         quest_root=quest_root,
@@ -896,6 +1039,7 @@ def run_gate_clearing_batch(
         "gate_blockers": sorted(gate_blockers),
         "unit_results": unit_results,
         "unit_fingerprints": unit_fingerprints,
+        "execution_summary": execution_summary,
         "gate_replay": gate_replay,
     }
     record_path = stable_gate_clearing_batch_path(study_root=resolved_study_root)
