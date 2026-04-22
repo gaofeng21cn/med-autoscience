@@ -63,4 +63,3 @@ class AutonomyGovernanceContract:
             "decision_type": self.decision_type,
             "reason_code": self.reason_code,
         }
-
