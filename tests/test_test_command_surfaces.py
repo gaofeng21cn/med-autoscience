@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import inspect
 import re
 import tomllib
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "c9728b71693d58f1772a04e77c235f4bc2876c0c"
 
 
 def _read(relative_path: str) -> str:
@@ -51,6 +55,39 @@ def test_pyproject_pins_opl_harness_shared_to_a_full_commit() -> None:
         r"opl-harness-shared @ git\+https://github\.com/gaofeng21cn/one-person-lab\.git@[0-9a-f]{40}#subdirectory=python/opl-harness-shared",
         dependency,
     )
+
+
+@pytest.mark.meta
+def test_locked_opl_harness_shared_exports_runtime_continuity_contracts() -> None:
+    pyproject = tomllib.loads(_read("pyproject.toml"))
+    dependency = next(
+        item
+        for item in pyproject["project"]["dependencies"]
+        if item.startswith("opl-harness-shared @ ")
+    )
+    lockfile = _read("uv.lock")
+
+    assert REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT in dependency
+    assert f"rev={REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT}" in lockfile
+    assert f"#{REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT}" in lockfile
+
+    from opl_harness_shared import product_entry_companions, runtime_task_companions
+
+    for helper_name in (
+        "build_session_continuity",
+        "build_progress_projection",
+        "build_artifact_inventory",
+    ):
+        assert callable(getattr(runtime_task_companions, helper_name))
+
+    manifest_parameters = inspect.signature(
+        product_entry_companions.build_family_product_entry_manifest
+    ).parameters
+    assert {
+        "session_continuity",
+        "progress_projection",
+        "artifact_inventory",
+    }.issubset(manifest_parameters)
 
 
 def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
