@@ -102,6 +102,29 @@ def test_domain_entry_rejects_missing_required_fields(tmp_path: Path) -> None:
         )
 
 
+def test_domain_entry_contract_exports_domain_agent_entry_spec_v1() -> None:
+    module = importlib.import_module("med_autoscience.domain_entry_contract")
+
+    contract = module.build_domain_entry_contract()
+    spec = contract["domain_agent_entry_spec"]
+
+    assert spec["surface_kind"] == "domain_agent_entry_spec"
+    assert spec["agent_id"] == "mas"
+    assert spec["title"] == "MAS Domain Agent Entry (v1)"
+    assert "可审计的入口与进度语义" in spec["description"]
+    assert spec["default_engine"] == "codex"
+    assert spec["workspace_requirement"] == "required"
+    assert spec["locator_schema"] == {
+        "required_fields": ["profile_ref"],
+        "optional_fields": ["study_id", "entry_mode"],
+    }
+    assert spec["codex_entry_strategy"] == "domain_agent_entry"
+    assert spec["artifact_conventions"] == "paper_and_submission_package"
+    assert spec["progress_conventions"] == "study_runtime_narration"
+    assert spec["entry_command"] == "product-frontdesk"
+    assert spec["manifest_command"] == "product-entry-manifest"
+
+
 def _build_request_from_contract(
     domain_entry_contract: dict[str, object],
     command: str,

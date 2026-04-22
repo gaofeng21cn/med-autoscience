@@ -2057,6 +2057,23 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "submit-study-task",
         "build-product-entry",
     ]
+    assert payload["return_surface_contract"]["domain_entry_contract"]["domain_agent_entry_spec"] == {
+        "surface_kind": "domain_agent_entry_spec",
+        "agent_id": "mas",
+        "title": "MAS Domain Agent Entry (v1)",
+        "description": "MAS 通过 domain agent entry contract 暴露可审计的入口与进度语义，用于研究任务与投稿包的受控推进。",
+        "default_engine": "codex",
+        "workspace_requirement": "required",
+        "locator_schema": {
+            "required_fields": ["profile_ref"],
+            "optional_fields": ["study_id", "entry_mode"],
+        },
+        "codex_entry_strategy": "domain_agent_entry",
+        "artifact_conventions": "paper_and_submission_package",
+        "progress_conventions": "study_runtime_narration",
+        "entry_command": "product-frontdesk",
+        "manifest_command": "product-entry-manifest",
+    }
     assert payload["return_surface_contract"]["gateway_interaction_contract"] == {
         "surface_kind": "gateway_interaction_contract",
         "frontdoor_owner": "opl_gateway_or_domain_gui",
@@ -2234,6 +2251,10 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["schema_ref"] == "contracts/schemas/v1/product-entry-manifest.schema.json"
     assert payload["domain_entry_contract"]["entry_adapter"] == "MedAutoScienceDomainEntry"
     assert payload["domain_entry_contract"]["product_entry_builder_command"] == "build-product-entry"
+    assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["agent_id"] == "mas"
+    assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["default_engine"] == "codex"
+    assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["entry_command"] == "product-frontdesk"
+    assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["manifest_command"] == "product-entry-manifest"
     assert payload["gateway_interaction_contract"]["frontdoor_owner"] == "opl_gateway_or_domain_gui"
     assert payload["gateway_interaction_contract"]["user_interaction_mode"] == "natural_language_frontdoor"
     assert payload["gateway_interaction_contract"]["command_surfaces_for_agent_consumption_only"] is True
