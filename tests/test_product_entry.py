@@ -2394,6 +2394,29 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "runtime",
         "eval_hygiene",
     ]
+    assert payload["return_surface_contract"]["capability_owner_boundary"]["surface_kind"] == (
+        "mas_capability_owner_boundary"
+    )
+    assert payload["return_surface_contract"]["capability_owner_boundary"]["owner"] == "MedAutoScience"
+    assert [
+        item["capability_id"]
+        for item in payload["return_surface_contract"]["capability_owner_boundary"]["mas_owned_capabilities"]
+    ] == [
+        "research_entry",
+        "study_task_intake",
+        "controller_outer_loop",
+        "progress_truth_projection",
+        "publication_quality_gate",
+        "runtime_recovery",
+        "program_mainline_truth",
+    ]
+    assert all(
+        item["migration_only"] is True
+        for item in payload["return_surface_contract"]["capability_owner_boundary"]["mds_migration_only_roles"]
+    )
+    assert payload["return_surface_contract"]["capability_owner_boundary"]["proof_and_absorb_boundary"][
+        "physical_absorb_status"
+    ] == "blocked_post_gate"
     assert payload["return_surface_contract"]["study_progress_projection_contract"] == {
         "surface_kind": "study_progress_projection_contract",
         "command": (
@@ -2688,6 +2711,11 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "runtime",
         "eval_hygiene",
     ]
+    assert payload["capability_owner_boundary"]["surface_kind"] == "mas_capability_owner_boundary"
+    assert payload["capability_owner_boundary"]["owner"] == "MedAutoScience"
+    assert payload["capability_owner_boundary"]["proof_and_absorb_boundary"]["physical_absorb_status"] == (
+        "blocked_post_gate"
+    )
     assert [item["role_id"] for item in payload["single_project_boundary"]["mds_retained_roles"]] == [
         "research_backend",
         "behavior_equivalence_oracle",
@@ -2824,6 +2852,10 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     ]
     markdown = module.render_product_entry_manifest_markdown(payload)
     assert "Single-Project Boundary" in markdown
+    assert "Capability Owner Boundary" in markdown
+    assert "MAS capability `publication_quality_gate`" in markdown
+    assert "MDS migration-only `research_backend`" in markdown
+    assert "physical absorb: blocked_post_gate" in markdown
     assert "MDS 保留 `research_backend`" in markdown
     assert "post-gate only: physical monorepo absorb" in markdown
     assert payload["product_entry_readiness"] == {
@@ -3982,6 +4014,7 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
     assert payload["product_entry_manifest"]["product_entry_preflight"] == payload["product_entry_preflight"]
     assert payload["product_entry_manifest"]["product_entry_start"] == payload["product_entry_start"]
     assert payload["product_entry_manifest"]["product_entry_guardrails"] == payload["product_entry_guardrails"]
+    assert payload["product_entry_manifest"]["capability_owner_boundary"]["owner"] == "MedAutoScience"
     assert payload["product_entry_manifest"]["phase3_clearance_lane"] == payload["phase3_clearance_lane"]
     assert payload["product_entry_manifest"]["phase4_backend_deconstruction"] == payload["phase4_backend_deconstruction"]
     assert payload["product_entry_manifest"]["phase5_platform_target"] == payload["phase5_platform_target"]
@@ -3993,6 +4026,9 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
     markdown = module.render_product_frontdesk_markdown(payload)
     assert "Now" in markdown
     assert "Single-Project Boundary" in markdown
+    assert "Capability Owner Boundary" in markdown
+    assert "MAS capability `progress_truth_projection`" in markdown
+    assert "MDS migration-only `upstream_intake_buffer`" in markdown
     assert "MDS 保留 `research_backend`" in markdown
     assert "Single Path" in markdown
     assert "Workspace Preview" in markdown

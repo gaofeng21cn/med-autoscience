@@ -155,6 +155,10 @@ def _validate_product_entry_manifest_contract(payload: Mapping[str, Any]) -> Non
         payload.get("single_project_boundary"),
         context="product_entry_manifest.single_project_boundary",
     )
+    _validate_capability_owner_boundary(
+        payload.get("capability_owner_boundary"),
+        context="product_entry_manifest.capability_owner_boundary",
+    )
 
 
 def _validate_product_frontdesk_contract(payload: Mapping[str, Any]) -> None:
@@ -165,6 +169,10 @@ def _validate_product_frontdesk_contract(payload: Mapping[str, Any]) -> None:
     _validate_single_project_boundary(
         payload.get("single_project_boundary"),
         context="product_frontdesk.single_project_boundary",
+    )
+    _validate_capability_owner_boundary(
+        payload.get("capability_owner_boundary"),
+        context="product_frontdesk.capability_owner_boundary",
     )
 
 
@@ -181,6 +189,13 @@ def _single_project_boundary_payload(source: Mapping[str, Any] | None) -> dict[s
     payload = dict(source or {})
     if not payload:
         payload = dict(mainline_status._single_project_boundary())
+    return payload
+
+
+def _capability_owner_boundary_payload(source: Mapping[str, Any] | None) -> dict[str, Any]:
+    payload = dict(source or {})
+    if not payload:
+        payload = dict(mainline_status._capability_owner_boundary())
     return payload
 
 
@@ -240,6 +255,108 @@ def _validate_single_project_boundary(value: object, *, context: str) -> dict[st
     }
 
 
+def _validate_capability_owner_boundary(value: object, *, context: str) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{context} 缺少合法 mapping 字段: capability_owner_boundary")
+    payload = dict(value)
+    surface_kind = _require_nonempty_string_from_mapping(payload, "surface_kind", context=context)
+    if surface_kind != "mas_capability_owner_boundary":
+        raise ValueError(
+            f"{context}.surface_kind 必须是 mas_capability_owner_boundary，当前为 {surface_kind}。"
+        )
+    owner = _require_nonempty_string_from_mapping(payload, "owner", context=context)
+    if owner != "MedAutoScience":
+        raise ValueError(f"{context}.owner 必须是 MedAutoScience，当前为 {owner}。")
+    mas_owned_capabilities = list(payload.get("mas_owned_capabilities") or [])
+    if not mas_owned_capabilities:
+        raise ValueError(f"{context}.mas_owned_capabilities 不能为空。")
+    normalized_capabilities: list[dict[str, Any]] = []
+    for index, item in enumerate(mas_owned_capabilities):
+        if not isinstance(item, Mapping):
+            raise ValueError(f"{context}.mas_owned_capabilities[{index}] 必须是 mapping。")
+        capability = dict(item)
+        if _require_nonempty_string_from_mapping(
+            capability,
+            "owner",
+            context=f"{context}.mas_owned_capabilities[{index}]",
+        ) != "MedAutoScience":
+            raise ValueError(f"{context}.mas_owned_capabilities[{index}].owner 必须是 MedAutoScience。")
+        normalized_capabilities.append(
+            {
+                "capability_id": _require_nonempty_string_from_mapping(
+                    capability,
+                    "capability_id",
+                    context=f"{context}.mas_owned_capabilities[{index}]",
+                ),
+                "owner": "MedAutoScience",
+                "truth_surface": _require_nonempty_string_from_mapping(
+                    capability,
+                    "truth_surface",
+                    context=f"{context}.mas_owned_capabilities[{index}]",
+                ),
+                "summary": _require_nonempty_string_from_mapping(
+                    capability,
+                    "summary",
+                    context=f"{context}.mas_owned_capabilities[{index}]",
+                ),
+            }
+        )
+    mds_roles = list(payload.get("mds_migration_only_roles") or [])
+    if not mds_roles:
+        raise ValueError(f"{context}.mds_migration_only_roles 不能为空。")
+    normalized_roles: list[dict[str, Any]] = []
+    for index, item in enumerate(mds_roles):
+        if not isinstance(item, Mapping):
+            raise ValueError(f"{context}.mds_migration_only_roles[{index}] 必须是 mapping。")
+        role = dict(item)
+        if role.get("migration_only") is not True:
+            raise ValueError(f"{context}.mds_migration_only_roles[{index}].migration_only 必须是 true。")
+        normalized_roles.append(
+            {
+                "role_id": _require_nonempty_string_from_mapping(
+                    role,
+                    "role_id",
+                    context=f"{context}.mds_migration_only_roles[{index}]",
+                ),
+                "migration_only": True,
+                "summary": _require_nonempty_string_from_mapping(
+                    role,
+                    "summary",
+                    context=f"{context}.mds_migration_only_roles[{index}]",
+                ),
+            }
+        )
+    proof_boundary = _require_mapping(payload, "proof_and_absorb_boundary", context=context)
+    physical_absorb_status = _require_nonempty_string_from_mapping(
+        proof_boundary,
+        "physical_absorb_status",
+        context=f"{context}.proof_and_absorb_boundary",
+    )
+    if physical_absorb_status != "blocked_post_gate":
+        raise ValueError(
+            f"{context}.proof_and_absorb_boundary.physical_absorb_status 必须是 blocked_post_gate。"
+        )
+    return {
+        "surface_kind": surface_kind,
+        "owner": owner,
+        "summary": _require_nonempty_string_from_mapping(payload, "summary", context=context),
+        "mas_owned_capabilities": normalized_capabilities,
+        "mds_migration_only_roles": normalized_roles,
+        "proof_and_absorb_boundary": {
+            "surface_kind": _non_empty_text(proof_boundary.get("surface_kind")) or "proof_and_absorb_boundary",
+            "parity_status": _require_nonempty_string_from_mapping(
+                proof_boundary,
+                "parity_status",
+                context=f"{context}.proof_and_absorb_boundary",
+            ),
+            "parity_proof_sources": _normalized_strings(proof_boundary.get("parity_proof_sources") or []),
+            "physical_absorb_status": physical_absorb_status,
+            "physical_absorb_gate": _normalized_strings(proof_boundary.get("physical_absorb_gate") or []),
+        },
+        "not_authority": _normalized_strings(payload.get("not_authority") or []),
+    }
+
+
 def _render_single_project_boundary_markdown_lines(single_project_boundary: Mapping[str, Any]) -> list[str]:
     lines = [
         "## Single-Project Boundary",
@@ -257,6 +374,27 @@ def _render_single_project_boundary_markdown_lines(single_project_boundary: Mapp
         lines.append(f"- post-gate only: {item}")
     for item in single_project_boundary.get("not_now") or []:
         lines.append(f"- 当前不允许: {item}")
+    return lines
+
+
+def _render_capability_owner_boundary_markdown_lines(capability_owner_boundary: Mapping[str, Any]) -> list[str]:
+    proof_boundary = dict(capability_owner_boundary.get("proof_and_absorb_boundary") or {})
+    lines = [
+        "## Capability Owner Boundary",
+        "",
+        f"- 当前摘要: {capability_owner_boundary.get('summary') or 'none'}",
+        f"- owner: {capability_owner_boundary.get('owner') or 'none'}",
+    ]
+    for item in capability_owner_boundary.get("mas_owned_capabilities") or []:
+        if not isinstance(item, Mapping):
+            continue
+        lines.append(f"- MAS capability `{item.get('capability_id')}`: {item.get('summary') or 'none'}")
+    for item in capability_owner_boundary.get("mds_migration_only_roles") or []:
+        if not isinstance(item, Mapping):
+            continue
+        lines.append(f"- MDS migration-only `{item.get('role_id')}`: {item.get('summary') or 'none'}")
+    lines.append(f"- parity proof: {proof_boundary.get('parity_status') or 'none'}")
+    lines.append(f"- physical absorb: {proof_boundary.get('physical_absorb_status') or 'none'}")
     return lines
 
 
@@ -1573,6 +1711,10 @@ def _mainline_snapshot() -> dict[str, Any]:
         _single_project_boundary_payload(payload.get("single_project_boundary")),
         context="mainline_snapshot.single_project_boundary",
     )
+    capability_owner_boundary = _validate_capability_owner_boundary(
+        _capability_owner_boundary_payload(payload.get("capability_owner_boundary")),
+        context="mainline_snapshot.capability_owner_boundary",
+    )
     return {
         "program_id": _non_empty_text(payload.get("program_id")),
         "current_stage_id": _non_empty_text(current_stage.get("id")),
@@ -1584,6 +1726,7 @@ def _mainline_snapshot() -> dict[str, Any]:
         "next_focus": list(next_focus),
         "explicitly_not_now": list(explicitly_not_now),
         "single_project_boundary": single_project_boundary,
+        "capability_owner_boundary": capability_owner_boundary,
     }
 
 
@@ -3028,6 +3171,7 @@ def build_product_entry_manifest(
         "next_focus": list(mainline_snapshot.get("next_focus") or []),
     }
     single_project_boundary = dict(mainline_snapshot.get("single_project_boundary") or {})
+    capability_owner_boundary = dict(mainline_snapshot.get("capability_owner_boundary") or {})
     product_entry_status = {
         "summary": mainline_snapshot.get("current_stage_summary")
         or mainline_snapshot.get("current_program_phase_summary"),
@@ -3135,6 +3279,7 @@ def build_product_entry_manifest(
         extra_payload={
             "schema_version": SCHEMA_VERSION,
             "single_project_boundary": single_project_boundary,
+            "capability_owner_boundary": capability_owner_boundary,
             "executor_defaults": {
                 "default_executor_name": "codex_cli",
                 "default_executor_mode": "autonomous",
@@ -3187,6 +3332,7 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
     phase5_platform_target = dict(payload.get("phase5_platform_target") or {})
     single_project_boundary = dict(payload.get("single_project_boundary") or {})
+    capability_owner_boundary = dict(payload.get("capability_owner_boundary") or {})
     lines = [
         "# Product Entry Manifest",
         "",
@@ -3209,6 +3355,7 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
             continue
         lines.append(f"- `{name}`: `{item.get('command')}`")
     lines.extend([""] + _render_single_project_boundary_markdown_lines(single_project_boundary) + [""])
+    lines.extend(_render_capability_owner_boundary_markdown_lines(capability_owner_boundary) + [""])
     lines.extend(["", "## Operator Loop Actions", ""])
     for name, item in (payload.get("operator_loop_actions") or {}).items():
         if not isinstance(item, dict):
@@ -3288,6 +3435,10 @@ def build_product_frontdesk(
     single_project_boundary = _validate_single_project_boundary(
         _single_project_boundary_payload(manifest.get("single_project_boundary")),
         context="product_frontdesk.source.single_project_boundary",
+    )
+    capability_owner_boundary = _validate_capability_owner_boundary(
+        _capability_owner_boundary_payload(manifest.get("capability_owner_boundary")),
+        context="product_frontdesk.source.capability_owner_boundary",
     )
     if not bool(product_entry_preflight.get("ready_to_try_now")):
         operator_brief = {
@@ -3382,6 +3533,7 @@ def build_product_frontdesk(
         extra_payload={
             "schema_version": SCHEMA_VERSION,
             "single_project_boundary": single_project_boundary,
+            "capability_owner_boundary": capability_owner_boundary,
             "executor_defaults": dict(manifest.get("executor_defaults") or {}),
             "runtime_inventory": dict(manifest.get("runtime_inventory") or {}),
             "task_lifecycle": dict(manifest.get("task_lifecycle") or {}),
@@ -3410,6 +3562,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
     phase5_platform_target = dict(payload.get("phase5_platform_target") or {})
     single_project_boundary = dict(payload.get("single_project_boundary") or {})
+    capability_owner_boundary = dict(payload.get("capability_owner_boundary") or {})
     operator_brief = dict(payload.get("operator_brief") or {})
     quickstart = dict(payload.get("product_entry_quickstart") or {})
     workspace_operator_brief = dict(payload.get("workspace_operator_brief") or {})
@@ -3442,6 +3595,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     else:
         lines.append("- 当前还没有 frontdesk operator brief。")
     lines.extend([""] + _render_single_project_boundary_markdown_lines(single_project_boundary) + [""])
+    lines.extend(_render_capability_owner_boundary_markdown_lines(capability_owner_boundary) + [""])
     lines.extend([
         "",
         "## Single Path",
@@ -3709,7 +3863,9 @@ def build_product_entry(
     )
     runtime_contract = dict(latest_task_payload.get("runtime_session_contract") or {})
     return_contract = dict(latest_task_payload.get("return_surface_contract") or {})
-    single_project_boundary = dict(_mainline_snapshot().get("single_project_boundary") or {})
+    mainline_snapshot = _mainline_snapshot()
+    single_project_boundary = dict(mainline_snapshot.get("single_project_boundary") or {})
+    capability_owner_boundary = dict(mainline_snapshot.get("capability_owner_boundary") or {})
     commands = {
         "workspace_cockpit": f"{_command_prefix(profile_ref)} workspace-cockpit --profile {_profile_arg(profile_ref)}",
         "submit_study_task": (
@@ -3770,6 +3926,7 @@ def build_product_entry(
             "default_formal_entry": "CLI",
             "supported_entry_modes": list(SUPPORTED_DIRECT_ENTRY_MODES),
             "single_project_boundary": single_project_boundary,
+            "capability_owner_boundary": capability_owner_boundary,
             "study_progress_projection_contract": {
                 "surface_kind": "study_progress_projection_contract",
                 "command": commands["study_progress"],
@@ -3819,6 +3976,8 @@ def build_product_entry(
 def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
     commands = dict(payload.get("commands") or {})
     return_surface_contract = dict(payload.get("return_surface_contract") or {})
+    capability_owner_boundary = dict(return_surface_contract.get("capability_owner_boundary") or {})
+    proof_boundary = dict(capability_owner_boundary.get("proof_and_absorb_boundary") or {})
     domain_payload = dict(payload.get("domain_payload") or {})
     lines = [
         "# Build Product Entry",
@@ -3840,6 +3999,8 @@ def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
             "## Return Surface",
             "",
             f"- 单项目边界摘要: `{((return_surface_contract.get('single_project_boundary') or {}).get('summary') or 'none')}`",
+            f"- 能力 owner: `{capability_owner_boundary.get('owner') or 'none'}`",
+            f"- physical absorb: `{proof_boundary.get('physical_absorb_status') or 'none'}`",
             f"- 进度真相命令: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('command') or 'none')}`",
             f"- 自治 proof 字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('autonomy_soak_status_field') or 'none')}`",
             f"- 质量执行线字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('quality_execution_lane_field') or 'none')}`",

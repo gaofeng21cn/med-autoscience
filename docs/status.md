@@ -46,6 +46,7 @@
 - proof/soak 口径当前围绕真实 study 的长期自治与质量闭环是否已经闭合，不围绕 `MDS` 再造一套长期 owner 面；`MDS` 只保留 migration oracle、backend compatibility、upstream intake buffer 三个迁移期角色。
 - 当前 tranche 的 repo-side 落点是单项目 owner truth、用户可见边界和 program/mainline 口径收紧；这一步不推进 `physical monorepo absorb`、跨仓 `runtime core ingest` 或把 `MDS` 重新解释成并行产品面。
 - 当前 `build_product_entry.return_surface_contract` 已经开始把 `single_project_boundary` 与 `study_progress` truth field contract 一并交给外部 caller；调用方可以不回 `mainline-status` 也读到 MAS/MDS owner boundary，以及 `autonomy_soak_status`、`quality_execution_lane`、`same_line_route_truth`、`quality_review_followthrough` 这些当前应消费的 progress truth 字段。
+- 当前 `mainline-status` / `mainline-phase` / `product-frontdesk` / `product-entry-manifest` / `build-product-entry.return_surface_contract` 已经同步投影 `capability_owner_boundary`：研究入口、task intake、controller outer loop、progress truth、publication quality gate、runtime recovery 与 program/mainline truth 都是 MAS-owned capability；`MDS` 只保留 migration-only 的 backend / behavior-equivalence oracle / upstream intake buffer 角色。
 - 当前 tranche 的通过条件是：`MAS` 已能默认自治推进方向锁定后的研究与有限补充分析，用户可见 truth 与 durable surface 对齐，major boundary 与最终投稿审计之外不再把 human 判断留在 `MDS` 或隐藏 owner 面里。
 
 ## 当前验收与 proof 口径
@@ -57,6 +58,7 @@
 - 同线 continuation proof/soak 现在也包括 `run_gate_clearing_batch`：proof 看 controller 是否能沿 `publication_eval -> controller_decisions -> gate_clearing_batch record -> publication_gate replay` 保持单一 owner truth，soak 看真实 study 是否能经由这一步继续回到同一条 paper line，而不是新增人工 owner 或第二条治理面。
 - 当前 stage 不要求 `MDS` 退场；要求的是 `MDS` 的存在只能解释为迁移期 proof companion，而不是另一条并行产品主线。
 - 当前 stage 也不把 `physical monorepo absorb` 当作 tranche 完成信号；那属于 external/runtime/workspace gate 清完之后的 post-gate 工作。
+- 当前 parity/proof 口径固定为：`behavior_equivalence_oracle`、`study_progress_projection_contract`、`publication_eval/latest.json` 与 `controller_decisions/latest.json` 共同支撑迁移期等价证明；`physical monorepo absorb` 继续是 `blocked_post_gate`，必须等 external runtime gate、多 workspace/host proof、backend deconstruction boundary 与 MAS-owned contract/test/proof surfaces 全部成立后再进入。
 
 ## 当前边界
 

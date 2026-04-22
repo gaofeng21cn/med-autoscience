@@ -40,8 +40,36 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "upstream_intake_buffer",
     ]
     assert "physical monorepo absorb" in payload["single_project_boundary"]["post_gate_only"]
+    assert payload["capability_owner_boundary"]["surface_kind"] == "mas_capability_owner_boundary"
+    assert payload["capability_owner_boundary"]["owner"] == "MedAutoScience"
+    assert [item["capability_id"] for item in payload["capability_owner_boundary"]["mas_owned_capabilities"]] == [
+        "research_entry",
+        "study_task_intake",
+        "controller_outer_loop",
+        "progress_truth_projection",
+        "publication_quality_gate",
+        "runtime_recovery",
+        "program_mainline_truth",
+    ]
+    assert all(
+        item["owner"] == "MedAutoScience"
+        for item in payload["capability_owner_boundary"]["mas_owned_capabilities"]
+    )
+    assert all(
+        item["migration_only"] is True
+        for item in payload["capability_owner_boundary"]["mds_migration_only_roles"]
+    )
+    assert payload["capability_owner_boundary"]["proof_and_absorb_boundary"]["physical_absorb_status"] == (
+        "blocked_post_gate"
+    )
+    assert "behavior_equivalence_oracle" in payload["capability_owner_boundary"]["proof_and_absorb_boundary"][
+        "parity_proof_sources"
+    ]
     assert payload["current_program_phase"]["id"] == "phase_1_mainline_established"
     assert payload["current_program_phase"]["status"] == "in_progress"
+    assert payload["current_program_phase"]["capability_owner_boundary"]["surface_kind"] == (
+        "mas_capability_owner_boundary"
+    )
     assert payload["current_program_phase"]["single_project_boundary"]["land_now"] == [
         "MAS 单项目 owner wording and repo-tracked truth",
         "docs/status/program/mainline boundary alignment",
@@ -66,6 +94,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "runtime",
         "eval_hygiene",
     ]
+    assert payload["phase_ladder"][0]["capability_owner_boundary"]["owner"] == "MedAutoScience"
     assert payload["phase2_user_product_loop"]["surface_kind"] == "phase2_user_product_loop_lane"
     assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_frontdesk"
     assert payload["phase2_user_product_loop"]["recommended_command"] == (
@@ -200,6 +229,10 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "当前判断" in markdown
     assert "理想目标" in markdown
     assert "Active Tranche Owner Truth" in markdown
+    assert "Capability Owner Boundary" in markdown
+    assert "MAS capability `research_entry`" in markdown
+    assert "MDS migration-only `behavior_equivalence_oracle`" in markdown
+    assert "physical absorb: blocked_post_gate" in markdown
     assert "owner lane `autonomy`" in markdown
     assert "owner lane `quality`" in markdown
     assert "owner lane `single_project_owner`" in markdown
@@ -293,6 +326,9 @@ def test_render_mainline_phase_markdown_surfaces_current_tranche_boundary() -> N
 
     assert "当前 tranche 边界" in markdown
     assert "Owner Truth Lanes" in markdown
+    assert "Capability Owner Boundary" in markdown
+    assert "MAS capability `program_mainline_truth`" in markdown
+    assert "MDS migration-only `upstream_intake_buffer`" in markdown
     assert "owner lane `autonomy`" in markdown
     assert "owner lane `quality`" in markdown
     assert "owner lane `single_project_owner`" in markdown

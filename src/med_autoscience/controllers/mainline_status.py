@@ -142,10 +142,111 @@ def _single_project_boundary() -> dict[str, Any]:
     }
 
 
+def _capability_owner_boundary() -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_capability_owner_boundary",
+        "owner": "MedAutoScience",
+        "summary": (
+            "调用方应把研究入口、task intake、controller outer loop、进度真相、论文质量门控、"
+            "runtime recovery 与 program/mainline 解释都读作 MAS-owned capability；"
+            "MDS 只保留迁移期 backend / oracle / intake 角色。"
+        ),
+        "mas_owned_capabilities": [
+            {
+                "capability_id": "research_entry",
+                "owner": "MedAutoScience",
+                "truth_surface": "product-frontdesk / workspace-cockpit",
+                "summary": "正式研究入口与 direct / OPL handoff 语义归 MAS。",
+            },
+            {
+                "capability_id": "study_task_intake",
+                "owner": "MedAutoScience",
+                "truth_surface": "submit-study-task + artifacts/controller/task_intake/latest.json",
+                "summary": "用户任务、研究目标和交付要求先写入 MAS durable task intake。",
+            },
+            {
+                "capability_id": "controller_outer_loop",
+                "owner": "MedAutoScience",
+                "truth_surface": "controller_decisions/latest.json",
+                "summary": "研究续跑、恢复、human gate 与后续动作由 MAS controller 解释。",
+            },
+            {
+                "capability_id": "progress_truth_projection",
+                "owner": "MedAutoScience",
+                "truth_surface": "study-progress / workspace-cockpit",
+                "summary": "当前阶段、阻塞、恢复点、同线路由和质量跟进由 MAS progress surface 投影。",
+            },
+            {
+                "capability_id": "publication_quality_gate",
+                "owner": "MedAutoScience",
+                "truth_surface": "publication_eval/latest.json + publication_gate",
+                "summary": "医学论文质量、同线修复、有限补充分析和投稿前审计归 MAS quality contract。",
+            },
+            {
+                "capability_id": "runtime_recovery",
+                "owner": "MedAutoScience",
+                "truth_surface": "study_runtime_status / runtime_watch",
+                "summary": "运行恢复、supervision freshness 与下一次确认信号由 MAS runtime surfaces 解释。",
+            },
+            {
+                "capability_id": "program_mainline_truth",
+                "owner": "MedAutoScience",
+                "truth_surface": "mainline-status / mainline-phase",
+                "summary": "program 阶段、owner boundary、proof 口径和 post-gate 边界归 MAS mainline surfaces。",
+            },
+        ],
+        "mds_migration_only_roles": [
+            {
+                "role_id": "research_backend",
+                "migration_only": True,
+                "summary": "承接当前 inner research execution 与存量 study 兼容面；不拥有用户入口或治理判断。",
+            },
+            {
+                "role_id": "behavior_equivalence_oracle",
+                "migration_only": True,
+                "summary": "作为行为等价与回归 oracle；不替代 MAS durable truth。",
+            },
+            {
+                "role_id": "upstream_intake_buffer",
+                "migration_only": True,
+                "summary": "承接上游 DeepScientist / MDS 输入，经过 MAS 审计后才吸收。",
+            },
+        ],
+        "proof_and_absorb_boundary": {
+            "surface_kind": "proof_and_absorb_boundary",
+            "parity_status": "required_until_mas_contract_parity",
+            "parity_proof_sources": [
+                "behavior_equivalence_oracle",
+                "study_progress_projection_contract",
+                "publication_eval/latest.json",
+                "controller_decisions/latest.json",
+            ],
+            "physical_absorb_status": "blocked_post_gate",
+            "physical_absorb_gate": [
+                "external runtime gate cleared",
+                "multi-workspace / host proof green",
+                "backend deconstruction boundary frozen",
+                "MAS-owned contracts, tests, and proof surfaces green",
+            ],
+        },
+        "not_authority": [
+            "MedDeepScientist product entry",
+            "MedDeepScientist long-term governance surface",
+            "physical monorepo absorb as current tranche completion signal",
+        ],
+    }
+
+
 def _phase_single_project_boundary(phase_id: object) -> dict[str, Any] | None:
     if _non_empty_text(phase_id) != "phase_1_mainline_established":
         return None
     return _single_project_boundary()
+
+
+def _phase_capability_owner_boundary(phase_id: object) -> dict[str, Any] | None:
+    if _non_empty_text(phase_id) != "phase_1_mainline_established":
+        return None
+    return _capability_owner_boundary()
 
 
 def _active_tranche_owner_truth() -> dict[str, Any]:
@@ -616,6 +717,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             ],
             "active_tranche_owner_truth": _active_tranche_owner_truth(),
             "single_project_boundary": _phase_single_project_boundary("phase_1_mainline_established"),
+            "capability_owner_boundary": _phase_capability_owner_boundary("phase_1_mainline_established"),
         },
         {
             "id": "phase_2_user_product_loop",
@@ -799,6 +901,7 @@ def read_mainline_status() -> dict[str, Any]:
             ],
         },
         "single_project_boundary": _single_project_boundary(),
+        "capability_owner_boundary": _capability_owner_boundary(),
         "active_tranche_owner_truth": _active_tranche_owner_truth(),
         "current_stage": {
             "id": CURRENT_STAGE_ID,
@@ -820,6 +923,7 @@ def read_mainline_status() -> dict[str, Any]:
             ),
             "active_tranche_owner_truth": _active_tranche_owner_truth(),
             "single_project_boundary": _phase_single_project_boundary(CURRENT_PROGRAM_PHASE_ID),
+            "capability_owner_boundary": _phase_capability_owner_boundary(CURRENT_PROGRAM_PHASE_ID),
         },
         "phase2_user_product_loop": _phase2_user_product_loop(),
         "phase3_clearance_lane": _phase3_clearance_lane(),
@@ -926,6 +1030,7 @@ def render_mainline_phase_markdown(payload: dict[str, Any]) -> str:
     phase = dict(payload.get("phase") or {})
     active_tranche_owner_truth = dict(phase.get("active_tranche_owner_truth") or {})
     single_project_boundary = dict(phase.get("single_project_boundary") or {})
+    capability_owner_boundary = dict(phase.get("capability_owner_boundary") or {})
     lines = [
         "# Mainline Phase",
         "",
@@ -953,6 +1058,27 @@ def render_mainline_phase_markdown(payload: dict[str, Any]) -> str:
             if not isinstance(item, dict):
                 continue
             lines.append(f"- MDS migration role `{item.get('role_id')}`: {item.get('summary') or 'none'}")
+    if capability_owner_boundary:
+        lines.extend(
+            [
+                "",
+                "## Capability Owner Boundary",
+                "",
+                f"- 当前摘要: {capability_owner_boundary.get('summary') or 'none'}",
+                f"- owner: {capability_owner_boundary.get('owner') or 'none'}",
+            ]
+        )
+        for item in capability_owner_boundary.get("mas_owned_capabilities") or []:
+            if not isinstance(item, dict):
+                continue
+            lines.append(f"- MAS capability `{item.get('capability_id')}`: {item.get('summary') or 'none'}")
+        for item in capability_owner_boundary.get("mds_migration_only_roles") or []:
+            if not isinstance(item, dict):
+                continue
+            lines.append(f"- MDS migration-only `{item.get('role_id')}`: {item.get('summary') or 'none'}")
+        proof_boundary = dict(capability_owner_boundary.get("proof_and_absorb_boundary") or {})
+        lines.append(f"- parity proof: {proof_boundary.get('parity_status') or 'none'}")
+        lines.append(f"- physical absorb: {proof_boundary.get('physical_absorb_status') or 'none'}")
     if single_project_boundary:
         lines.extend(
             [
@@ -1008,6 +1134,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     runtime_topology = dict((payload.get("ideal_state") or {}).get("runtime_topology") or {})
     active_tranche_owner_truth = dict(payload.get("active_tranche_owner_truth") or {})
     single_project_boundary = dict(payload.get("single_project_boundary") or {})
+    capability_owner_boundary = dict(payload.get("capability_owner_boundary") or {})
     phase2_user_product_loop = dict(payload.get("phase2_user_product_loop") or {})
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
@@ -1043,6 +1170,26 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         if not isinstance(item, dict):
             continue
         lines.append(f"- MDS migration role `{item.get('role_id')}`: {item.get('summary') or 'none'}")
+    lines.extend(
+        [
+            "",
+            "## Capability Owner Boundary",
+            "",
+            f"- 当前摘要: {capability_owner_boundary.get('summary') or 'none'}",
+            f"- owner: {capability_owner_boundary.get('owner') or 'none'}",
+        ]
+    )
+    for item in capability_owner_boundary.get("mas_owned_capabilities") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- MAS capability `{item.get('capability_id')}`: {item.get('summary') or 'none'}")
+    for item in capability_owner_boundary.get("mds_migration_only_roles") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- MDS migration-only `{item.get('role_id')}`: {item.get('summary') or 'none'}")
+    proof_boundary = dict(capability_owner_boundary.get("proof_and_absorb_boundary") or {})
+    lines.append(f"- parity proof: {proof_boundary.get('parity_status') or 'none'}")
+    lines.append(f"- physical absorb: {proof_boundary.get('physical_absorb_status') or 'none'}")
     lines.extend(
         [
             "",
