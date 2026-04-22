@@ -102,6 +102,7 @@ _ATTENTION_PRIORITIES = {
     "study_quality_floor_blocker": 4,
     "study_progress_stale": 5,
     "study_progress_missing": 6,
+    "study_manual_finishing": 7,
     "study_blocked": 7,
 }
 
@@ -1986,6 +1987,32 @@ def _attention_queue(
                     summary=autonomy_summary or lane_summary or "托管运行恢复失败或健康降级，需要尽快介入。",
                     recommended_step_id=gate_clearing_step_id or _attention_step_id("study_runtime_recovery_required"),
                     recommended_command=preferred_command or launch_command or progress_command,
+                    scope="study",
+                    study_id=study_id,
+                    operator_status_card=operator_status_card,
+                    autonomy_contract=autonomy_contract,
+                    quality_closure_truth=quality_closure_truth,
+                    quality_execution_lane=quality_execution_lane,
+                    same_line_route_truth=same_line_route_truth,
+                    same_line_route_surface=same_line_route_surface,
+                    quality_review_followthrough=quality_review_followthrough,
+                    gate_clearing_followthrough=gate_clearing_followthrough,
+                    autonomy_soak_status=autonomy_soak_status,
+                )
+            )
+            continue
+        if lane_id == "manual_finishing" and (blocker_list or workspace_status in {"attention_required", "blocked"}):
+            queue.append(
+                _attention_item(
+                    code="study_manual_finishing",
+                    title=f"{study_id} 当前保持人工收尾兼容保护",
+                    summary=autonomy_summary
+                    or lane_summary
+                    or current_stage_summary
+                    or next_system_action
+                    or "当前 study 已进入人工收尾兼容保护。",
+                    recommended_step_id=gate_clearing_step_id or _attention_step_id("study_manual_finishing"),
+                    recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
                     operator_status_card=operator_status_card,

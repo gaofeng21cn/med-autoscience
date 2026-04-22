@@ -111,6 +111,58 @@ def test_attention_queue_uses_quality_execution_lane_for_generic_study_blocked()
     )
 
 
+def test_attention_queue_projects_manual_finishing_without_generic_blocker_wording() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    queue = module._attention_queue(
+        workspace_status="attention_required",
+        workspace_supervision={
+            "service": {"loaded": True, "drift_reasons": []},
+            "study_counts": {},
+        },
+        studies=[
+            {
+                "study_id": "001-risk",
+                "monitoring": {"supervisor_tick_status": "fresh"},
+                "progress_freshness": {"status": "fresh"},
+                "current_stage_summary": "当前 study 已停在投稿包里程碑保护。",
+                "next_system_action": "继续保持兼容性与监督入口；如需继续，显式恢复同一论文线。",
+                "current_blockers": ["当前 quest 已停止；如需继续，必须显式 rerun 或 relaunch。"],
+                "intervention_lane": {
+                    "lane_id": "manual_finishing",
+                    "title": "保持人工收尾兼容保护",
+                    "severity": "observe",
+                    "summary": "投稿包里程碑已达成；MAS 只保持人工收尾兼容保护和监督入口。",
+                    "recommended_action_id": "maintain_compatibility_guard",
+                },
+                "operator_verdict": {
+                    "summary": "旧的阻塞摘要不应覆盖人工收尾语义。",
+                    "primary_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                },
+                "operator_status_card": {
+                    "handling_state": "manual_finishing",
+                    "handling_state_label": "人工收尾兼容保护",
+                    "user_visible_verdict": "MAS 当前保持人工收尾兼容保护，并继续提供监督入口。",
+                    "current_focus": "继续保持人工收尾兼容保护，不把投稿包里程碑 parked 解释为 runtime failure。",
+                    "next_confirmation_signal": "看人工收尾是否写出新的明确结论，或兼容保护是否仍然保持 active。",
+                },
+                "autonomy_contract": {
+                    "autonomy_state": "compatibility_guard",
+                    "summary": "投稿包里程碑已达成；MAS 只保持人工收尾兼容保护和监督入口。",
+                },
+                "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+            }
+        ],
+        commands={},
+    )
+
+    assert queue[0]["code"] == "study_manual_finishing"
+    assert queue[0]["title"] == "001-risk 当前保持人工收尾兼容保护"
+    assert queue[0]["summary"] == "投稿包里程碑已达成；MAS 只保持人工收尾兼容保护和监督入口。"
+    assert queue[0]["recommended_step_id"] == "inspect_study_progress"
+    assert queue[0]["operator_status_card"]["handling_state"] == "manual_finishing"
+
+
 def test_attention_queue_prefers_autonomy_contract_summary_for_runtime_recovery() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 
