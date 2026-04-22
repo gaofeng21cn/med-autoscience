@@ -19,7 +19,7 @@ from med_autoscience.controller_confirmation_summary import (
     stable_controller_confirmation_summary_path,
 )
 from med_autoscience.controller_summary import read_controller_summary, stable_controller_summary_path
-from med_autoscience.controllers import study_runtime_router
+from med_autoscience.controllers import gate_clearing_batch, study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.evaluation_summary import (
     materialize_evaluation_summary_artifacts,
@@ -1089,6 +1089,58 @@ def _apply_quality_review_followthrough_to_operator_status(
     else:
         card["user_visible_verdict"] = "当前在等系统自动复评；你现在不用介入，先等待复评回写。"
     return card
+
+
+def _gate_clearing_batch_followthrough(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    record_path = gate_clearing_batch.stable_gate_clearing_batch_path(study_root=study_root)
+    record = _read_json_object(record_path)
+    if record is None:
+        return None
+    current_eval_id = _non_empty_text((publication_eval_payload or {}).get("eval_id"))
+    source_eval_id = _non_empty_text(record.get("source_eval_id"))
+    if current_eval_id is None or source_eval_id is None or current_eval_id != source_eval_id:
+        return None
+    unit_results = [
+        dict(item)
+        for item in (record.get("unit_results") or [])
+        if isinstance(item, dict)
+    ]
+    failed_units = [item for item in unit_results if _non_empty_text(item.get("status")) == "failed"]
+    gate_replay = dict(record.get("gate_replay") or {})
+    gate_replay_status = _non_empty_text(gate_replay.get("status")) or "unknown"
+    if failed_units:
+        summary = "最近一轮 gate-clearing batch 已执行，但仍有修复单元失败，当前不能继续自动前推。"
+        next_confirmation_signal = "先修掉失败 repair unit，再看 publication_eval/latest.json 是否进入新的复评或放行结论。"
+        user_intervention_required_now = True
+    elif gate_replay_status == "clear":
+        summary = "最近一轮 gate-clearing batch 已执行，并已把发表门控回放到放行状态。"
+        next_confirmation_signal = "看 publication_eval/latest.json 是否刷新为新的放行结论，并确认当前 study 已进入下一阶段。"
+        user_intervention_required_now = False
+    else:
+        blockers = [
+            _non_empty_text(item)
+            for item in (gate_replay.get("blockers") or [])
+            if _non_empty_text(item) is not None
+        ]
+        blocker_summary = f"当前仍剩 {len(blockers)} 个 gate blocker。" if blockers else "当前 gate replay 仍未完全收口。"
+        summary = f"最近一轮 gate-clearing batch 已执行；{blocker_summary}"
+        next_confirmation_signal = "看 publication_eval/latest.json 或最新 gate replay 是否继续收窄 blocker。"
+        user_intervention_required_now = False
+    return {
+        "surface_kind": "gate_clearing_batch_followthrough",
+        "status": _non_empty_text(record.get("status")) or "executed",
+        "summary": summary,
+        "gate_replay_status": gate_replay_status,
+        "blocking_issue_count": len(gate_replay.get("blockers") or []),
+        "failed_unit_count": len(failed_units),
+        "next_confirmation_signal": next_confirmation_signal,
+        "user_intervention_required_now": user_intervention_required_now,
+        "latest_record_path": str(record_path),
+    }
 
 
 def _event(
@@ -3113,6 +3165,10 @@ def build_study_progress_projection(
         if evaluation_module_surface is not None
         else {}
     )
+    gate_clearing_batch_followthrough = _gate_clearing_batch_followthrough(
+        study_root=resolved_study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
     quality_review_followthrough = _quality_review_followthrough_projection(
         quality_review_loop=quality_review_loop,
         needs_physician_decision=needs_physician_decision,
@@ -3171,6 +3227,7 @@ def build_study_progress_projection(
         "quality_review_agenda": quality_review_agenda or None,
         "quality_revision_plan": quality_revision_plan or None,
         "quality_review_loop": quality_review_loop or None,
+        "gate_clearing_batch_followthrough": gate_clearing_batch_followthrough or None,
         "quality_review_followthrough": quality_review_followthrough or None,
         "module_surfaces": module_surfaces,
         "supervision": {
@@ -3310,6 +3367,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     quality_review_agenda = dict(payload.get("quality_review_agenda") or {})
     quality_revision_plan = dict(payload.get("quality_revision_plan") or {})
     quality_review_loop = dict(payload.get("quality_review_loop") or {})
+    gate_clearing_batch_followthrough = dict(payload.get("gate_clearing_batch_followthrough") or {})
     quality_review_followthrough = dict(payload.get("quality_review_followthrough") or {})
     recovery_contract = dict(payload.get("recovery_contract") or {})
     module_surfaces = dict(payload.get("module_surfaces") or {})
@@ -3443,6 +3501,23 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- 未自动继续原因: {quality_review_followthrough.get('blocking_reason')}")
         if quality_review_followthrough.get("next_confirmation_signal"):
             lines.append(f"- 下一确认信号: {quality_review_followthrough.get('next_confirmation_signal')}")
+    if gate_clearing_batch_followthrough:
+        lines.extend(
+            [
+                "",
+                "## Gate-Clearing Batch",
+                "",
+                f"- 当前状态: {gate_clearing_batch_followthrough.get('status') or 'unknown'}",
+            ]
+        )
+        if gate_clearing_batch_followthrough.get("summary"):
+            lines.append(f"- 当前判断: {gate_clearing_batch_followthrough.get('summary')}")
+        if gate_clearing_batch_followthrough.get("failed_unit_count") is not None:
+            lines.append(f"- 失败单元数: {gate_clearing_batch_followthrough.get('failed_unit_count')}")
+        if gate_clearing_batch_followthrough.get("blocking_issue_count") is not None:
+            lines.append(f"- 剩余 gate blocker: {gate_clearing_batch_followthrough.get('blocking_issue_count')}")
+        if gate_clearing_batch_followthrough.get("next_confirmation_signal"):
+            lines.append(f"- 下一确认信号: {gate_clearing_batch_followthrough.get('next_confirmation_signal')}")
     if module_surfaces:
         lines.extend(
             [
