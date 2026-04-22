@@ -67,6 +67,57 @@ def _write_blocked_publication_eval(study_root: Path, *, quest_id: str) -> dict[
     return payload
 
 
+def _write_bundle_stage_publication_eval(study_root: Path, *, quest_id: str) -> dict[str, Any]:
+    payload = {
+        "schema_version": 1,
+        "eval_id": f"publication-eval::{study_root.name}::{quest_id}::2026-04-22T01:05:42+00:00",
+        "study_id": study_root.name,
+        "quest_id": quest_id,
+        "emitted_at": "2026-04-22T01:05:42+00:00",
+        "evaluation_scope": "publication",
+        "charter_context_ref": {
+            "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            "charter_id": f"charter::{study_root.name}::v1",
+            "publication_objective": "bundle-stage publishability repair",
+        },
+        "runtime_context_refs": {
+            "runtime_escalation_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            "main_result_ref": str(study_root / "artifacts" / "results" / "main_result.json"),
+        },
+        "delivery_context_refs": {
+            "paper_root_ref": str(study_root / "paper"),
+            "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+        },
+        "verdict": {
+            "overall_verdict": "blocked",
+            "primary_claim_status": "partial",
+            "summary": "Bundle-stage blockers are on the critical path.",
+            "stop_loss_pressure": "watch",
+        },
+        "gaps": [
+            {
+                "gap_id": "gap-001",
+                "gap_type": "delivery",
+                "severity": "must_fix",
+                "summary": "submission_surface_qc_failure_present",
+                "evidence_refs": [str(study_root / "paper")],
+            }
+        ],
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::return_to_controller::2026-04-22T01:05:42+00:00",
+                "action_type": "return_to_controller",
+                "priority": "now",
+                "reason": "Bundle-stage blockers should route back to the controller.",
+                "evidence_refs": [str(study_root / "paper")],
+                "requires_controller_decision": True,
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
+    return payload
+
+
 def test_build_gate_clearing_batch_recommended_action_promotes_blocked_bounded_analysis(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
     profile = make_profile(tmp_path)
@@ -125,7 +176,6 @@ def test_build_gate_clearing_batch_recommended_action_promotes_blocked_bounded_a
     assert action["controller_action_type"] == "run_gate_clearing_batch"
     assert action["gate_clearing_batch_mapping_path"] == str(mapping_path)
     assert "scientific-anchor fields can be frozen" in action["gate_clearing_batch_reason"]
-
 
 def test_build_gate_clearing_batch_recommended_action_promotes_bundle_stage_return_to_finalize(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
@@ -273,7 +323,6 @@ def test_run_gate_clearing_batch_executes_parallel_units_then_replays_gate(monke
     record = json.loads(Path(result["record_path"]).read_text(encoding="utf-8"))
     assert record["source_eval_id"] == publication_eval_payload["eval_id"]
     assert record["unit_results"][0]["unit_id"] == "freeze_scientific_anchor_fields"
-
 
 def test_run_gate_clearing_batch_executes_bundle_stage_submission_refresh_then_replays_gate(
     monkeypatch,

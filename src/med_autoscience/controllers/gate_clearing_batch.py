@@ -268,6 +268,7 @@ def build_gate_clearing_batch_recommended_action(
     gate_blockers = _gate_blockers(gate_report)
     if not gate_blockers:
         return None
+    current_required_action = str(gate_report.get("current_required_action") or "").strip()
 
     medical_surface_blockers = {
         str(item or "").strip()
@@ -487,6 +488,11 @@ def run_gate_clearing_batch(
                 ),
             )
         )
+    gate_blockers = {
+        str(item or "").strip()
+        for item in (gate_report.get("blockers") or [])
+        if str(item or "").strip()
+    }
     if str(gate_report.get("medical_publication_surface_status") or "").strip() == "blocked":
         repair_units.append(
             GateClearingRepairUnit(
