@@ -470,6 +470,49 @@ def _gate_clearing_followthrough_preview(payload: Mapping[str, Any] | None) -> s
     return "；".join(parts)
 
 
+def _normalized_gate_clearing_followthrough(
+    item: Mapping[str, Any] | None,
+    *,
+    fallback_command: str | None = None,
+) -> dict[str, Any]:
+    if not isinstance(item, Mapping):
+        return {}
+    direct_followthrough = dict(item.get("gate_clearing_followthrough") or {})
+    if direct_followthrough:
+        return direct_followthrough
+    batch_followthrough = dict(item.get("gate_clearing_batch_followthrough") or {})
+    if not batch_followthrough:
+        return {}
+    gate_replay_status = _non_empty_text(batch_followthrough.get("gate_replay_status")) or "unknown"
+    failed_unit_count = batch_followthrough.get("failed_unit_count")
+    failed_unit_count = failed_unit_count if isinstance(failed_unit_count, int) else 0
+    blocking_issue_count = batch_followthrough.get("blocking_issue_count")
+    blocking_issue_count = blocking_issue_count if isinstance(blocking_issue_count, int) else 0
+    if failed_unit_count > 0:
+        state = "repair_units_failed"
+        state_label = "repair unit 失败"
+    elif gate_replay_status == "clear":
+        state = "gate_replay_clear"
+        state_label = "gate replay 已放行"
+    else:
+        state = "waiting_gate_replay"
+        state_label = "等待 gate replay"
+    return {
+        "surface_kind": "gate_clearing_followthrough",
+        "state": state,
+        "state_label": state_label,
+        "summary": _non_empty_text(batch_followthrough.get("summary")),
+        "next_confirmation_signal": _non_empty_text(batch_followthrough.get("next_confirmation_signal")),
+        "recommended_step_id": "inspect_gate_clearing_followthrough",
+        "recommended_command": _non_empty_text(batch_followthrough.get("recommended_command")) or fallback_command,
+        "gate_replay_status": gate_replay_status,
+        "failed_unit_count": failed_unit_count,
+        "blocking_issue_count": blocking_issue_count,
+        "latest_record_path": _non_empty_text(batch_followthrough.get("latest_record_path")),
+        "user_intervention_required_now": bool(batch_followthrough.get("user_intervention_required_now")),
+    }
+
+
 def _status_narration_human_view(payload: Mapping[str, Any]) -> dict[str, Any]:
     return _build_shared_status_narration_human_view(
         payload,
@@ -2454,7 +2497,10 @@ def _study_item(
     quality_review_loop = dict(progress_payload.get("quality_review_loop") or {})
     quality_repair_followthrough = dict(progress_payload.get("quality_repair_batch_followthrough") or {})
     quality_review_followthrough = dict(progress_payload.get("quality_review_followthrough") or {})
-    gate_clearing_followthrough = dict(progress_payload.get("gate_clearing_followthrough") or {})
+    gate_clearing_followthrough = _normalized_gate_clearing_followthrough(
+        progress_payload,
+        fallback_command=commands["progress"],
+    )
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     return {
         "study_id": study_id,
@@ -4046,7 +4092,7 @@ def build_product_entry(
                 "same_line_route_surface_field": "same_line_route_surface",
                 "quality_repair_batch_followthrough_field": "quality_repair_batch_followthrough",
                 "quality_review_followthrough_field": "quality_review_followthrough",
-                "gate_clearing_followthrough_field": "gate_clearing_followthrough",
+                "gate_clearing_batch_followthrough_field": "gate_clearing_batch_followthrough",
                 "research_runtime_control_projection_field": "research_runtime_control_projection",
             },
             "research_runtime_control_projection_contract": _build_research_runtime_control_projection(
@@ -4125,7 +4171,7 @@ def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
             f"- 同线路由真相字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('same_line_route_truth_field') or 'none')}`",
             f"- quality-repair 跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('quality_repair_batch_followthrough_field') or 'none')}`",
             f"- 质量复评跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('quality_review_followthrough_field') or 'none')}`",
-            f"- gate-clearing 跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('gate_clearing_followthrough_field') or 'none')}`",
+            f"- gate-clearing 跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('gate_clearing_batch_followthrough_field') or 'none')}`",
             f"- runtime control projection 字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('research_runtime_control_projection_field') or 'none')}`",
             f"- 运行监管路径: `{return_surface_contract.get('runtime_supervision_path') or 'none'}`",
             f"- 发表评估路径: `{return_surface_contract.get('publication_eval_path') or 'none'}`",
