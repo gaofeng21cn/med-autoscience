@@ -297,6 +297,148 @@ def _runtime_alert_delivery_latest_path(study_root: Path) -> Path:
     return study_root / "artifacts" / "runtime" / "runtime_alert_delivery" / "latest.json"
 
 
+def _runtime_watch_wakeup_latest_path(study_root: Path) -> Path:
+    return study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json"
+
+
+def _artifact_fingerprint(path: Path | None) -> dict[str, Any]:
+    if path is None:
+        return {"path": None, "exists": False}
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.exists() or not resolved.is_file():
+        return {
+            "path": str(resolved),
+            "exists": False,
+        }
+    stat = resolved.stat()
+    return {
+        "path": str(resolved),
+        "exists": True,
+        "size": stat.st_size,
+        "mtime_ns": stat.st_mtime_ns,
+        "sha256": hashlib.sha256(resolved.read_bytes()).hexdigest(),
+    }
+
+
+def _runtime_supervision_artifact_fingerprint(path: Path) -> dict[str, Any]:
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.exists() or not resolved.is_file():
+        return {
+            "path": str(resolved),
+            "exists": False,
+        }
+    payload = _read_json_object(resolved) or {}
+    stable_payload = {
+        "study_id": _non_empty_text(payload.get("study_id")),
+        "quest_id": _non_empty_text(payload.get("quest_id")),
+        "health_status": _non_empty_text(payload.get("health_status")),
+        "runtime_reason": _non_empty_text(payload.get("runtime_reason")),
+        "next_action": _non_empty_text(payload.get("next_action")),
+        "active_run_id": _non_empty_text(payload.get("active_run_id")),
+        "needs_human_intervention": bool(payload.get("needs_human_intervention")),
+        "supervisor_tick_status": _non_empty_text(payload.get("supervisor_tick_status")),
+    }
+    canonical = json.dumps(stable_payload, ensure_ascii=False, sort_keys=True)
+    return {
+        "path": str(resolved),
+        "exists": True,
+        "stable_payload_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "stable_payload": stable_payload,
+    }
+
+
+def _managed_outer_loop_wakeup_fingerprint(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    quest_root = _candidate_path(status_payload.get("quest_root"))
+    watched_payload = {
+        "status": {
+            "study_id": _non_empty_text(status_payload.get("study_id")),
+            "quest_id": _non_empty_text(status_payload.get("quest_id")),
+            "quest_root": str(quest_root) if quest_root is not None else None,
+            "quest_status": _non_empty_text(status_payload.get("quest_status")),
+            "decision": _non_empty_text(status_payload.get("decision")),
+            "reason": _non_empty_text(status_payload.get("reason")),
+            "active_run_id": _payload_active_run_id(status_payload),
+            "runtime_liveness_status": _payload_runtime_liveness_status(status_payload),
+            "runtime_event_ref": dict(status_payload.get("runtime_event_ref") or {})
+            if isinstance(status_payload.get("runtime_event_ref"), Mapping)
+            else None,
+            "runtime_escalation_ref": dict(status_payload.get("runtime_escalation_ref") or {})
+            if isinstance(status_payload.get("runtime_escalation_ref"), Mapping)
+            else None,
+            "publication_supervisor_state": dict(status_payload.get("publication_supervisor_state") or {})
+            if isinstance(status_payload.get("publication_supervisor_state"), Mapping)
+            else None,
+        },
+        "artifacts": {
+            "publication_eval_latest": _artifact_fingerprint(
+                resolved_study_root / "artifacts" / "publication_eval" / "latest.json"
+            ),
+            "evaluation_summary_latest": _artifact_fingerprint(
+                resolved_study_root / "artifacts" / "evaluation_summary" / "latest.json"
+            ),
+            "controller_decision_latest": _artifact_fingerprint(
+                resolved_study_root / "artifacts" / "controller_decisions" / "latest.json"
+            ),
+            "runtime_supervision_latest": _runtime_supervision_artifact_fingerprint(
+                resolved_study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
+            ),
+            "publication_gate_latest": _artifact_fingerprint(
+                (quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
+                if quest_root is not None
+                else None
+            ),
+        },
+    }
+    canonical = json.dumps(watched_payload, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest(), watched_payload
+
+
+def _build_outer_loop_wakeup_audit(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    input_fingerprint, watched_payload = _managed_outer_loop_wakeup_fingerprint(
+        study_root=study_root,
+        status_payload=status_payload,
+    )
+    latest_path = _runtime_watch_wakeup_latest_path(Path(study_root).expanduser().resolve())
+    previous = _read_json_object(latest_path) or {}
+    previous_outcome = _non_empty_text(previous.get("outcome"))
+    previous_fingerprint = _non_empty_text(previous.get("input_fingerprint"))
+    return {
+        "schema_version": 1,
+        "recorded_at": utc_now(),
+        "study_id": _non_empty_text(status_payload.get("study_id")) or Path(study_root).name,
+        "quest_id": _non_empty_text(status_payload.get("quest_id")),
+        "input_fingerprint": input_fingerprint,
+        "previous_input_fingerprint": previous_fingerprint,
+        "previous_outcome": previous_outcome,
+        "dispatch_cause": "input_unchanged" if previous_fingerprint == input_fingerprint else "input_changed",
+        "watched_inputs": watched_payload,
+        "latest_path": str(latest_path),
+    }
+
+
+def _outer_loop_wakeup_inputs_unchanged(audit: Mapping[str, Any]) -> bool:
+    if _non_empty_text(audit.get("dispatch_cause")) != "input_unchanged":
+        return False
+    return _non_empty_text(audit.get("previous_outcome")) in {
+        "no_request",
+        "skipped_matching_decision",
+        "skipped_unchanged_inputs",
+    }
+
+
+def _write_outer_loop_wakeup_audit(*, study_root: Path, audit: Mapping[str, Any]) -> None:
+    _write_json_object(_runtime_watch_wakeup_latest_path(Path(study_root).expanduser().resolve()), audit)
+
+
 def _runtime_alert_notification_state(supervision_report: Mapping[str, Any]) -> str | None:
     health_status = _non_empty_text(supervision_report.get("health_status"))
     if health_status == "live" and _non_empty_text(supervision_report.get("last_transition")) == "recovered":
@@ -1029,6 +1171,7 @@ def run_watch_for_runtime(
     managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
     managed_study_auto_recoveries: list[dict[str, Any]] = []
     managed_study_outer_loop_dispatches: list[dict[str, Any]] = []
+    managed_study_outer_loop_wakeup_audits: list[dict[str, Any]] = []
     managed_study_alert_deliveries: list[dict[str, Any]] = []
     if ensure_study_runtimes:
         if profile is None:
@@ -1113,45 +1256,78 @@ def run_watch_for_runtime(
         quest_root = _candidate_path(status_payload.get("quest_root"))
         quest_report = report_by_quest_root.get(str(quest_root)) if quest_root is not None else None
         if apply and profile is not None:
-            tick_request = study_outer_loop.build_runtime_watch_outer_loop_tick_request(
+            wakeup_audit = _build_outer_loop_wakeup_audit(
                 study_root=study_root,
                 status_payload=status_payload,
             )
-            if tick_request is not None and not _controller_decision_latest_matches_outer_loop_request(
-                study_root=study_root,
-                status_payload=status_payload,
-                tick_request=tick_request,
-            ):
-                outer_loop_result = study_runtime_router.study_outer_loop_tick(
-                    profile=profile,
-                    source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
-                    **tick_request,
+            if _outer_loop_wakeup_inputs_unchanged(wakeup_audit):
+                wakeup_audit = {
+                    **wakeup_audit,
+                    "outcome": "skipped_unchanged_inputs",
+                    "reason": "outer-loop wakeup inputs match a prior terminal no-op state",
+                }
+                _write_outer_loop_wakeup_audit(study_root=study_root, audit=wakeup_audit)
+                managed_study_outer_loop_wakeup_audits.append(wakeup_audit)
+            else:
+                tick_request = study_outer_loop.build_runtime_watch_outer_loop_tick_request(
+                    study_root=study_root,
+                    status_payload=status_payload,
                 )
-                if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
-                    raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
-                dispatch_payload = _serialize_managed_study_outer_loop_dispatch(
+                if tick_request is None:
+                    wakeup_audit = {
+                        **wakeup_audit,
+                        "outcome": "no_request",
+                        "reason": "outer-loop wakeup did not produce an autonomous request",
+                    }
+                elif _controller_decision_latest_matches_outer_loop_request(
+                    study_root=study_root,
+                    status_payload=status_payload,
                     tick_request=tick_request,
-                    outer_loop_result=outer_loop_result,
-                )
-                managed_study_outer_loop_dispatches.append(dispatch_payload)
-                if quest_report is None:
-                    quest_report = _materialize_placeholder_quest_watch_report(status_payload)
-                    if isinstance(quest_report, dict):
-                        reports.append(quest_report)
-                        quest_root = _candidate_path(status_payload.get("quest_root"))
-                        if quest_root is not None:
-                            report_by_quest_root[str(quest_root)] = quest_report
-                if isinstance(quest_report, dict):
-                    _attach_outer_loop_dispatch_to_quest_report(
-                        quest_report=quest_report,
-                        dispatch_payload=dispatch_payload,
-                    )
-                status_payload = _managed_study_status_payload(
-                    study_runtime_router.study_runtime_status(
+                ):
+                    wakeup_audit = {
+                        **wakeup_audit,
+                        "outcome": "skipped_matching_decision",
+                        "reason": "controller_decisions/latest.json already matches the wakeup request",
+                    }
+                else:
+                    outer_loop_result = study_runtime_router.study_outer_loop_tick(
                         profile=profile,
-                        study_root=study_root,
+                        source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
+                        **tick_request,
                     )
-                )
+                    if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
+                        raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
+                    dispatch_payload = _serialize_managed_study_outer_loop_dispatch(
+                        tick_request=tick_request,
+                        outer_loop_result=outer_loop_result,
+                    )
+                    managed_study_outer_loop_dispatches.append(dispatch_payload)
+                    if quest_report is None:
+                        quest_report = _materialize_placeholder_quest_watch_report(status_payload)
+                        if isinstance(quest_report, dict):
+                            reports.append(quest_report)
+                            quest_root = _candidate_path(status_payload.get("quest_root"))
+                            if quest_root is not None:
+                                report_by_quest_root[str(quest_root)] = quest_report
+                    if isinstance(quest_report, dict):
+                        _attach_outer_loop_dispatch_to_quest_report(
+                            quest_report=quest_report,
+                            dispatch_payload=dispatch_payload,
+                        )
+                    wakeup_audit = {
+                        **wakeup_audit,
+                        "outcome": "dispatched",
+                        "reason": "outer-loop wakeup dispatched an autonomous controller decision",
+                        "dispatch": dispatch_payload,
+                    }
+                    status_payload = _managed_study_status_payload(
+                        study_runtime_router.study_runtime_status(
+                            profile=profile,
+                            study_root=study_root,
+                        )
+                    )
+                _write_outer_loop_wakeup_audit(study_root=study_root, audit=wakeup_audit)
+                managed_study_outer_loop_wakeup_audits.append(wakeup_audit)
         quest_root = _candidate_path(status_payload.get("quest_root"))
         quest_report = report_by_quest_root.get(str(quest_root)) if quest_root is not None else None
         supervision_report = runtime_supervision.materialize_runtime_supervision(
@@ -1189,6 +1365,7 @@ def run_watch_for_runtime(
         "managed_study_actions": managed_study_actions,
         "managed_study_auto_recoveries": managed_study_auto_recoveries,
         "managed_study_outer_loop_dispatches": managed_study_outer_loop_dispatches,
+        "managed_study_outer_loop_wakeup_audits": managed_study_outer_loop_wakeup_audits,
         "managed_study_supervision": managed_study_supervision,
         "managed_study_alert_deliveries": managed_study_alert_deliveries,
         "reports": reports,

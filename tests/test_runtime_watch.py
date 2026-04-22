@@ -1636,6 +1636,87 @@ def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path
     ]
 
 
+def test_watch_runtime_skips_outer_loop_wakeup_when_inputs_stabilize_after_no_request(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "quest-001"
+    status_payload = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="noop",
+            reason="quest_already_running",
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+        "active_run_id": "run-1",
+        "runtime_liveness_status": "live",
+        "runtime_liveness_audit": {
+            "status": "live",
+            "active_run_id": "run-1",
+            "runtime_audit": {
+                "status": "live",
+                "worker_running": True,
+                "active_run_id": "run-1",
+            },
+        },
+        "execution": {
+            "engine": "med-deepscientist",
+            "auto_entry": "on_managed_research_intent",
+            "quest_id": "quest-001",
+            "auto_resume": True,
+        },
+    }
+    build_calls: list[str] = []
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    monkeypatch.setattr(
+        module.study_outer_loop,
+        "build_runtime_watch_outer_loop_tick_request",
+        lambda **kwargs: (build_calls.append(str(kwargs["study_root"])), None)[1],
+    )
+
+    first = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+    second = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+    third = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    latest_path = study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json"
+    latest_record = json.loads(latest_path.read_text(encoding="utf-8"))
+
+    assert build_calls == [str(study_root), str(study_root)]
+    assert first["managed_study_outer_loop_wakeup_audits"][0]["outcome"] == "no_request"
+    assert second["managed_study_outer_loop_wakeup_audits"][0]["outcome"] == "no_request"
+    assert third["managed_study_outer_loop_wakeup_audits"][0]["outcome"] == "skipped_unchanged_inputs"
+    assert latest_record["outcome"] == "skipped_unchanged_inputs"
+    assert latest_record["input_fingerprint"] == second["managed_study_outer_loop_wakeup_audits"][0]["input_fingerprint"]
+
+
 def test_watch_runtime_uses_typed_surface_attributes_for_managed_study_actions(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
