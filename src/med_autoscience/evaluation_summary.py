@@ -61,7 +61,7 @@ _QUALITY_ASSESSMENT_REVIEW_ORDER = (
 _QUALITY_EXECUTION_LANE_LABELS = {
     "reviewer_first": "reviewer-first 收口",
     "claim_evidence": "claim-evidence 修复",
-    "submission_hardening": "submission hardening 收口",
+    "submission_hardening": "投稿包硬化收口",
     "write_ready": "同线写作推进",
     "general_quality_repair": "质量修复",
 }
@@ -79,7 +79,7 @@ _SAME_LINE_ROUTE_STATE_LABELS = {
     "same_line_route_back": "同线质量修复",
     "bounded_analysis": "有限补充分析",
     "write_continuation": "同线写作推进",
-    "finalize_only_remaining": "同线 finalize 收口",
+    "finalize_only_remaining": "同线定稿与投稿包收尾",
 }
 _SAME_LINE_ROUTE_MODES = frozenset({"return", "enter", "continue"})
 _SAME_LINE_ROUTE_TARGET_LABELS = {
@@ -497,6 +497,7 @@ def _quality_review_agenda_from_summary_payload(summary_payload: dict[str, Any])
         if isinstance(summary_payload.get("route_repair_plan"), dict)
         else {}
     )
+    quality_execution_lane = _quality_execution_lane_from_summary_payload(summary_payload)
     quality_closure_truth = (
         dict(summary_payload.get("quality_closure_truth") or {})
         if isinstance(summary_payload.get("quality_closure_truth"), dict)
@@ -521,7 +522,8 @@ def _quality_review_agenda_from_summary_payload(summary_payload: dict[str, Any])
     else:
         suggested_revision = _optional_text(summary_payload.get("verdict_summary")) or "继续按当前评估结论收窄修订。"
     next_review_focus = (
-        _optional_text(route_repair_plan.get("route_key_question"))
+        _optional_text(quality_execution_lane.get("route_key_question"))
+        or _optional_text(route_repair_plan.get("route_key_question"))
         or f"复评时确认“{top_priority_issue}”是否已经形成可复核证据闭环。"
     )
     return {
@@ -1255,10 +1257,12 @@ def _quality_execution_lane_from_summary_payload(summary_payload: dict[str, Any]
 
     if lane_id == "submission_hardening":
         route_target = "finalize"
-        route_key_question = "当前论文线还差哪一步 finalize / submission bundle 收口？"
+        route_key_question = "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"
         repair_mode = "same_line_route_back"
 
-    if route_target and route_key_question:
+    if lane_id == "submission_hardening":
+        summary = f"当前质量执行线聚焦{lane_label}；先回到定稿与投稿收尾，回答“{route_key_question}”。"
+    elif route_target and route_key_question:
         verb = "进入" if repair_mode == "bounded_analysis" else "回到"
         summary = f"当前质量执行线聚焦 {lane_label}；先{verb} {route_target}，回答“{route_key_question}”。"
     elif route_target:
@@ -1467,11 +1471,18 @@ def _quality_review_agenda(
             if current_required_action is not None
             else "继续按当前评估结论收窄修订。"
         )
+    agenda_summary_payload = {
+        "verdict_summary": _optional_text((publication_eval.get("verdict") or {}).get("summary")),
+        "route_repair_plan": route_repair_plan,
+        "quality_closure_truth": quality_closure_truth,
+    }
+    quality_execution_lane = _quality_execution_lane_from_summary_payload(agenda_summary_payload)
     if reviewer_agenda["next_review_focus"]:
         next_review_focus = reviewer_agenda["next_review_focus"]
     else:
         next_review_focus = (
-            _optional_text((route_repair_plan or {}).get("route_key_question"))
+            _optional_text(quality_execution_lane.get("route_key_question"))
+            or _optional_text((route_repair_plan or {}).get("route_key_question"))
             or (
                 f"复评时确认“{priority_gap['summary']}”是否已闭环，并补齐对应证据引用。"
                 if priority_gap is not None
@@ -1485,12 +1496,7 @@ def _quality_review_agenda(
     }
     return _normalized_quality_review_agenda(
         agenda_payload=declared_agenda if declared_agenda is not None else derived_agenda,
-        summary_payload={
-            "verdict_summary": _optional_text((publication_eval.get("verdict") or {}).get("summary")),
-            "route_repair_plan": route_repair_plan,
-            "quality_closure_truth": quality_closure_truth,
-            "quality_review_agenda": derived_agenda,
-        },
+        summary_payload={**agenda_summary_payload, "quality_review_agenda": derived_agenda},
     )
 
 
@@ -1711,7 +1717,7 @@ def build_same_line_route_truth(
         same_line_state = "finalize_only_remaining"
         route_mode = "return"
         route_target = "finalize"
-        summary = "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。"
+        summary = "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。"
     elif lane_id == "write_ready" or closure_state == "write_line_ready" or route_target == "write":
         same_line_state = "write_continuation"
         route_mode = "continue"

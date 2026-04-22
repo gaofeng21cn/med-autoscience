@@ -762,7 +762,7 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
 
     assert evaluation_summary_payload["quality_closure_truth"] == {
         "state": "bundle_only_remaining",
-        "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+        "summary": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
         "current_required_action": "complete_bundle_stage",
         "route_target": "finalize",
     }
@@ -772,8 +772,8 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
         "repair_mode": "same_line_route_back",
         "route_target": "finalize",
         "route_target_label": "定稿与投稿收尾",
-        "route_key_question": "当前论文线还差哪一步 finalize / submission bundle 收口？",
-        "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一步 finalize / submission bundle 收口？”。",
+        "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+        "summary": "当前质量执行线聚焦投稿包硬化收口；先回到定稿与投稿收尾，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
         "why_now": "bundle-stage blockers are now on the critical path for this paper line",
         "current_required_action": "complete_bundle_stage",
         "closure_state": "bundle_only_remaining",
@@ -787,7 +787,7 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
         "policy_id": "medical_publication_critique_v1",
         "plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
         "execution_status": "planned",
-        "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+        "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
         "weight_contract": {
             "clinical_significance": 25,
             "evidence_strength": 35,
@@ -801,12 +801,12 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
                 "dimension": "human_review_readiness",
                 "action_type": "stabilize_submission_bundle",
                 "action": "先在 finalize 修订，完成当前最小投稿包收口。",
-                "rationale": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
-                "done_criteria": "下一轮复评能够明确确认：当前论文线还差哪一步 finalize / submission bundle 收口？",
+                "rationale": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
+                "done_criteria": "下一轮复评能够明确确认：当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
                 "route_target": "finalize",
             }
         ],
-        "next_review_focus": ["当前论文线还差哪一步 finalize / submission bundle 收口？"],
+        "next_review_focus": ["当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"],
     }
     assert evaluation_summary_payload["quality_review_loop"] == {
         "policy_id": "medical_publication_critique_v1",
@@ -820,8 +820,8 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
         "active_plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
         "active_plan_execution_status": "planned",
         "blocking_issue_count": 1,
-        "blocking_issues": ["核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。"],
-        "next_review_focus": ["当前论文线还差哪一步 finalize / submission bundle 收口？"],
+        "blocking_issues": ["核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。"],
+        "next_review_focus": ["当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"],
         "re_review_ready": False,
         "summary": "核心科学质量已经闭环，当前只剩投稿包与人工审阅面的收口修订。",
         "recommended_next_action": "先在 finalize 修订，完成当前最小投稿包收口。",
@@ -829,12 +829,12 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
     assert evaluation_summary_payload["same_line_route_truth"] == {
         "surface_kind": "same_line_route_truth",
         "same_line_state": "finalize_only_remaining",
-        "same_line_state_label": "同线 finalize 收口",
+        "same_line_state_label": "同线定稿与投稿包收尾",
         "route_mode": "return",
         "route_target": "finalize",
         "route_target_label": "定稿与投稿收尾",
-        "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
-        "current_focus": "当前论文线还差哪一步 finalize / submission bundle 收口？",
+        "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
+        "current_focus": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
     }
 
 

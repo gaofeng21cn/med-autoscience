@@ -235,7 +235,7 @@ def test_build_study_quality_truth_marks_bundle_only_remaining_as_same_contract_
         },
         quality_closure_truth={
             "state": "bundle_only_remaining",
-            "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+            "summary": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
             "current_required_action": "complete_bundle_stage",
             "route_target": "finalize",
         },
@@ -268,11 +268,11 @@ def test_build_study_quality_truth_marks_bundle_only_remaining_as_same_contract_
         },
         quality_execution_lane={
             "lane_id": "submission_hardening",
-            "lane_label": "submission hardening 收口",
+            "lane_label": "投稿包硬化收口",
             "repair_mode": "same_line_route_back",
             "route_target": "finalize",
             "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-            "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
+            "summary": "当前质量执行线聚焦投稿包硬化收口；先回到定稿与投稿收尾，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
             "why_now": "The paper itself is ready for human review and only finalize-level cleanup remains.",
         },
         review_ledger_payload={
@@ -355,7 +355,7 @@ def test_build_study_quality_truth_blocks_finalize_without_reviewer_first_ready(
         },
         quality_closure_truth={
             "state": "bundle_only_remaining",
-            "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+            "summary": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
             "current_required_action": "complete_bundle_stage",
             "route_target": "finalize",
         },
@@ -388,11 +388,11 @@ def test_build_study_quality_truth_blocks_finalize_without_reviewer_first_ready(
         },
         quality_execution_lane={
             "lane_id": "submission_hardening",
-            "lane_label": "submission hardening 收口",
+            "lane_label": "投稿包硬化收口",
             "repair_mode": "same_line_route_back",
             "route_target": "finalize",
             "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-            "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
+            "summary": "当前质量执行线聚焦投稿包硬化收口；先回到定稿与投稿收尾，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
             "why_now": "The paper itself is ready for human review and only finalize-level cleanup remains.",
         },
         review_ledger_payload=None,
@@ -570,7 +570,7 @@ def test_evaluation_summary_materializes_study_quality_truth_on_durable_surface(
         "study_id": "001-risk",
         "contract_state": "bundle_only_remaining",
         "contract_closed": True,
-        "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+        "summary": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
         "narrowest_scientific_gap": {
             "state": "closed",
             "gap_id": None,

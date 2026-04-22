@@ -1433,28 +1433,28 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
 
     assert result["quality_closure_truth"] == {
         "state": "bundle_only_remaining",
-        "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+        "summary": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
         "current_required_action": "complete_bundle_stage",
         "route_target": "finalize",
     }
     assert result["quality_execution_lane"] == {
         "lane_id": "submission_hardening",
-        "lane_label": "submission hardening 收口",
+        "lane_label": "投稿包硬化收口",
         "repair_mode": "same_line_route_back",
         "route_target": "finalize",
-        "route_key_question": "当前论文线还差哪一步 finalize / submission bundle 收口？",
-        "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一步 finalize / submission bundle 收口？”。",
+        "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+        "summary": "当前质量执行线聚焦投稿包硬化收口；先回到定稿与投稿收尾，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
         "why_now": "核心科学问题已经回答，当前只剩同线 finalize 收口。",
     }
     assert result["same_line_route_truth"] == {
         "surface_kind": "same_line_route_truth",
         "same_line_state": "finalize_only_remaining",
-        "same_line_state_label": "同线 finalize 收口",
+        "same_line_state_label": "同线定稿与投稿包收尾",
         "route_mode": "return",
         "route_target": "finalize",
         "route_target_label": "定稿与投稿收尾",
-        "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
-        "current_focus": "当前论文线还差哪一步 finalize / submission bundle 收口？",
+        "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
+        "current_focus": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
     }
     assert result["quality_closure_basis"]["evidence_strength"]["status"] == "ready"
     assert result["module_surfaces"]["eval_hygiene"]["quality_closure_truth"] == result["quality_closure_truth"]
@@ -1462,18 +1462,18 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
     assert result["quality_review_agenda"] == {
         "top_priority_issue": "必须优先修复：外部验证队列还没有补齐。",
         "suggested_revision": "先在 finalize 修订：当前主线只剩 finalize / bundle 收口。",
-        "next_review_focus": "当前论文线还差哪一步 finalize / submission bundle 收口？",
+        "next_review_focus": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
         "agenda_summary": (
             "优先修复：必须优先修复：外部验证队列还没有补齐。；"
             "建议修订：先在 finalize 修订：当前主线只剩 finalize / bundle 收口。；"
-            "下一轮复评重点：当前论文线还差哪一步 finalize / submission bundle 收口？"
+            "下一轮复评重点：当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"
         ),
     }
     assert result["quality_revision_plan"] == {
         "policy_id": "medical_publication_critique_v1",
         "plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-10T09:09:00+00:00",
         "execution_status": "planned",
-        "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+        "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
         "weight_contract": {
             "clinical_significance": 25,
             "evidence_strength": 35,
@@ -1487,12 +1487,12 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
                 "dimension": "human_review_readiness",
                 "action_type": "stabilize_submission_bundle",
                 "action": "先在 finalize 修订，完成当前最小投稿包收口。",
-                "rationale": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
-                "done_criteria": "下一轮复评能够明确确认：当前论文线还差哪一步 finalize / submission bundle 收口？",
+                "rationale": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
+                "done_criteria": "下一轮复评能够明确确认：当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
                 "route_target": "finalize",
             }
         ],
-        "next_review_focus": ["当前论文线还差哪一步 finalize / submission bundle 收口？"],
+        "next_review_focus": ["当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"],
     }
     assert result["quality_review_loop"] == {
         "policy_id": "medical_publication_critique_v1",
@@ -1506,8 +1506,8 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
         "active_plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-10T09:09:00+00:00",
         "active_plan_execution_status": "planned",
         "blocking_issue_count": 1,
-        "blocking_issues": ["核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。"],
-        "next_review_focus": ["当前论文线还差哪一步 finalize / submission bundle 收口？"],
+        "blocking_issues": ["核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。"],
+        "next_review_focus": ["当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"],
         "re_review_ready": False,
         "summary": "核心科学质量已经闭环，当前只剩投稿包与人工审阅面的收口修订。",
         "recommended_next_action": "先在 finalize 修订，完成当前最小投稿包收口。",
@@ -1525,18 +1525,18 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
     assert "当前阻塞数: 1" in markdown
     assert "闭环摘要: 核心科学质量已经闭环，当前只剩投稿包与人工审阅面的收口修订。" in markdown
     assert "下一动作: 先在 定稿与投稿收尾 修订，完成当前最小投稿包收口。" in markdown
-    assert "当前阻塞项: 核心科学质量已经闭环；剩余工作收口在 定稿与投稿收尾 / 最小投稿包，同一论文线可以继续自动推进。" in markdown
-    assert "复评关注点: 当前论文线还差哪一步 定稿与投稿收尾 / 最小投稿包 收口？" in markdown
+    assert "当前阻塞项: 核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。" in markdown
+    assert "复评关注点: 当前论文线还差哪一个最窄的定稿或投稿包收尾动作？" in markdown
     assert "当前优先问题: 必须优先修复：外部验证队列还没有补齐。" in markdown
     assert "建议修订动作:" in markdown
     assert "当前主线只剩 定稿与投稿收尾 / bundle 收口。" in markdown
-    assert "下一轮复评重点: 当前论文线还差哪一步 定稿与投稿收尾 / 最小投稿包 收口？" in markdown
+    assert "下一轮复评重点: 当前论文线还差哪一个最窄的定稿或投稿包收尾动作？" in markdown
     assert "P0 [人工审阅准备度] -> 定稿与投稿收尾" in markdown
     assert "完成当前最小投稿包收口。" in markdown
-    assert "完成标准: 下一轮复评能够明确确认：当前论文线还差哪一步 定稿与投稿收尾 / 最小投稿包 收口？" in markdown
+    assert "完成标准: 下一轮复评能够明确确认：当前论文线还差哪一个最窄的定稿或投稿包收尾动作？" in markdown
     assert "核心科学质量已经闭环" in markdown
     assert "核心科学证据已经闭环，剩余工作不在核心证据面。" in markdown
-    assert "当前质量执行线聚焦 submission hardening 收口" in markdown
+    assert "当前质量执行线聚焦投稿包硬化收口" in markdown
 
 
 def test_study_progress_normalizes_legacy_non_mapping_quality_execution_lane_from_existing_projection(
@@ -1580,11 +1580,11 @@ def test_study_progress_normalizes_legacy_non_mapping_quality_execution_lane_fro
     assert result["same_line_route_truth"] == {
         "surface_kind": "same_line_route_truth",
         "same_line_state": "finalize_only_remaining",
-        "same_line_state_label": "同线 finalize 收口",
+        "same_line_state_label": "同线定稿与投稿包收尾",
         "route_mode": "return",
         "route_target": "finalize",
         "route_target_label": "定稿与投稿收尾",
-        "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
+        "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
         "current_focus": "Only finalize-level submission hardening remains.",
     }
     assert result["module_surfaces"]["eval_hygiene"]["quality_execution_lane"] == result["quality_execution_lane"]
@@ -1627,11 +1627,11 @@ def test_study_progress_suppresses_same_line_route_when_publication_supervisor_b
                 "same_line_route_truth": {
                     "surface_kind": "same_line_route_truth",
                     "same_line_state": "finalize_only_remaining",
-                    "same_line_state_label": "同线 finalize 收口",
+                    "same_line_state_label": "同线定稿与投稿包收尾",
                     "route_mode": "return",
                     "route_target": "finalize",
                     "route_target_label": "定稿与投稿收尾",
-                    "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
+                    "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
                     "current_focus": "Only finalize-level submission hardening remains.",
                 },
                 "same_line_route_surface": {
@@ -1640,8 +1640,8 @@ def test_study_progress_suppresses_same_line_route_when_publication_supervisor_b
                     "repair_mode": "same_line_route_back",
                     "route_target": "finalize",
                     "route_target_label": "定稿与投稿收尾",
-                    "route_key_question": "当前论文线还差哪一步 finalize / submission bundle 收口？",
-                    "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一步 finalize / submission bundle 收口？”。",
+                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                    "summary": "当前质量执行线聚焦投稿包硬化收口；先回到定稿与投稿收尾，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
                     "why_now": "bundle-stage work is unlocked and can proceed on the critical path",
                     "current_required_action": "continue_bundle_stage",
                     "closure_state": "bundle_only_remaining",
@@ -1651,11 +1651,11 @@ def test_study_progress_suppresses_same_line_route_when_publication_supervisor_b
                         "same_line_route_truth": {
                             "surface_kind": "same_line_route_truth",
                             "same_line_state": "finalize_only_remaining",
-                            "same_line_state_label": "同线 finalize 收口",
+                            "same_line_state_label": "同线定稿与投稿包收尾",
                             "route_mode": "return",
                             "route_target": "finalize",
                             "route_target_label": "定稿与投稿收尾",
-                            "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
+                            "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
                             "current_focus": "Only finalize-level submission hardening remains.",
                         },
                         "same_line_route_surface": {
@@ -1664,8 +1664,8 @@ def test_study_progress_suppresses_same_line_route_when_publication_supervisor_b
                             "repair_mode": "same_line_route_back",
                             "route_target": "finalize",
                             "route_target_label": "定稿与投稿收尾",
-                            "route_key_question": "当前论文线还差哪一步 finalize / submission bundle 收口？",
-                            "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一步 finalize / submission bundle 收口？”。",
+                            "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                            "summary": "当前质量执行线聚焦投稿包硬化收口；先回到定稿与投稿收尾，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
                             "why_now": "bundle-stage work is unlocked and can proceed on the critical path",
                             "current_required_action": "continue_bundle_stage",
                             "closure_state": "bundle_only_remaining",

@@ -1931,7 +1931,7 @@ def _quality_execution_lane_title(study_id: str, lane: Mapping[str, Any] | None)
     if lane_id == "claim_evidence":
         return f"{study_id} 当前先做 claim-evidence 修复"
     if lane_id == "submission_hardening":
-        return f"{study_id} 当前先做 submission hardening 收口"
+        return f"{study_id} 当前先做投稿包硬化收口"
     if lane_id == "write_ready":
         return f"{study_id} 当前进入同线写作推进"
     if lane_id == "general_quality_repair":
@@ -1945,7 +1945,7 @@ def _same_line_route_truth_title(study_id: str, truth: Mapping[str, Any] | None)
     same_line_state = _non_empty_text(truth.get("same_line_state"))
     route_target_label = _non_empty_text(truth.get("route_target_label")) or _non_empty_text(truth.get("route_target"))
     if same_line_state == "finalize_only_remaining":
-        return f"{study_id} 当前已进入同线 finalize 收口"
+        return f"{study_id} 当前已进入同线定稿与投稿包收尾"
     if same_line_state == "write_continuation":
         return f"{study_id} 当前进入同线写作推进"
     if same_line_state == "bounded_analysis" and route_target_label is not None:

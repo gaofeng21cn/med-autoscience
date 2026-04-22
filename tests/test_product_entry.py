@@ -90,12 +90,12 @@ def test_attention_queue_uses_quality_execution_lane_for_generic_study_blocked()
                 "same_line_route_truth": {
                     "surface_kind": "same_line_route_truth",
                     "same_line_state": "finalize_only_remaining",
-                    "same_line_state_label": "同线 finalize 收口",
+                    "same_line_state_label": "同线定稿与投稿包收尾",
                     "route_mode": "return",
                     "route_target": "finalize",
                     "route_target_label": "定稿与投稿收尾",
-                    "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
-                    "current_focus": "当前论文线还差哪一步 finalize / submission bundle 收口？",
+                    "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
+                    "current_focus": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
                 },
                 "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
             }
@@ -104,10 +104,10 @@ def test_attention_queue_uses_quality_execution_lane_for_generic_study_blocked()
     )
 
     assert queue[0]["code"] == "study_blocked"
-    assert queue[0]["title"] == "001-risk 当前已进入同线 finalize 收口"
+    assert queue[0]["title"] == "001-risk 当前已进入同线定稿与投稿包收尾"
     assert (
         queue[0]["summary"]
-        == "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。"
+        == "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。"
     )
 
 
@@ -4226,10 +4226,10 @@ def test_render_product_frontdesk_markdown_shows_quality_closure_preview() -> No
             "workspace_preview": None,
             "workspace_attention_queue_preview": [
                 {
-                    "title": "001-risk 当前已进入同线 finalize 收口",
+                    "title": "001-risk 当前已进入同线定稿与投稿包收尾",
                     "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
                     "quality_closure_truth": {
-                        "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+                        "summary": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
                     },
                 }
             ],
@@ -4242,7 +4242,7 @@ def test_render_product_frontdesk_markdown_shows_quality_closure_preview() -> No
         }
     )
 
-    assert "质量闭环: 核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。" in markdown
+    assert "质量闭环: 核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。" in markdown
 
 
 def test_render_product_frontdesk_markdown_shows_quality_execution_lane_preview() -> None:
@@ -4285,10 +4285,10 @@ def test_render_product_frontdesk_markdown_shows_same_line_route_truth_preview()
             "workspace_preview": None,
             "workspace_attention_queue_preview": [
                 {
-                    "title": "001-risk 当前已进入同线 finalize 收口",
+                    "title": "001-risk 当前已进入同线定稿与投稿包收尾",
                     "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
                     "same_line_route_truth": {
-                        "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
+                        "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
                     },
                 }
             ],
@@ -4301,7 +4301,7 @@ def test_render_product_frontdesk_markdown_shows_same_line_route_truth_preview()
         }
     )
 
-    assert "同线路由: 当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。" in markdown
+    assert "同线路由: 当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。" in markdown
 
 
 def test_render_product_frontdesk_markdown_shows_autonomy_soak_and_quality_followthrough_preview() -> None:

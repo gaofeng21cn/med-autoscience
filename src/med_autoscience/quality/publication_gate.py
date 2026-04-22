@@ -5,7 +5,7 @@ from typing import Any
 QUALITY_EXECUTION_LANE_LABELS = {
     "reviewer_first": "reviewer-first 收口",
     "claim_evidence": "claim-evidence 修复",
-    "submission_hardening": "submission hardening 收口",
+    "submission_hardening": "投稿包硬化收口",
     "write_ready": "同线写作推进",
     "general_quality_repair": "质量修复",
 }
@@ -32,7 +32,7 @@ def derive_quality_closure_truth(
     if current_required_action in {"continue_bundle_stage", "complete_bundle_stage"} and evidence_strength_status == "ready":
         return {
             "state": "bundle_only_remaining",
-            "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+            "summary": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
             "current_required_action": current_required_action,
             "route_target": "finalize",
         }
@@ -98,7 +98,7 @@ def derive_quality_execution_lane(
 
     if lane_id == "submission_hardening":
         route_target = "finalize"
-        route_key_question = "当前论文线还差哪一步 finalize / submission bundle 收口？"
+        route_key_question = "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"
         repair_mode = "same_line_route_back"
         if str((route_repair_plan or {}).get("route_target") or "").strip() != "finalize":
             route_rationale = _required_text(
@@ -108,7 +108,9 @@ def derive_quality_execution_lane(
             )
 
     lane_label = QUALITY_EXECUTION_LANE_LABELS[lane_id]
-    if route_target and route_key_question:
+    if lane_id == "submission_hardening":
+        summary = f"当前质量执行线聚焦{lane_label}；先回到定稿与投稿收尾，回答“{route_key_question}”。"
+    elif route_target and route_key_question:
         verb = "进入" if repair_mode == "bounded_analysis" else "回到"
         summary = f"当前质量执行线聚焦 {lane_label}；先{verb} {route_target}，回答“{route_key_question}”。"
     elif route_target:
