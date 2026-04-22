@@ -87,10 +87,15 @@ def test_attention_queue_uses_quality_execution_lane_for_generic_study_blocked()
                     "primary_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
                 },
                 "operator_status_card": {},
-                "quality_execution_lane": {
-                    "lane_id": "submission_hardening",
-                    "route_key_question": "当前论文线还差哪一步 finalize / submission bundle 收口？",
-                    "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一步 finalize / submission bundle 收口？”。",
+                "same_line_route_truth": {
+                    "surface_kind": "same_line_route_truth",
+                    "same_line_state": "finalize_only_remaining",
+                    "same_line_state_label": "同线 finalize 收口",
+                    "route_mode": "return",
+                    "route_target": "finalize",
+                    "route_target_label": "定稿与投稿收尾",
+                    "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
+                    "current_focus": "当前论文线还差哪一步 finalize / submission bundle 收口？",
                 },
                 "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
             }
@@ -99,10 +104,10 @@ def test_attention_queue_uses_quality_execution_lane_for_generic_study_blocked()
     )
 
     assert queue[0]["code"] == "study_blocked"
-    assert queue[0]["title"] == "001-risk 当前先做 submission hardening 收口"
+    assert queue[0]["title"] == "001-risk 当前已进入同线 finalize 收口"
     assert (
         queue[0]["summary"]
-        == "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一步 finalize / submission bundle 收口？”。"
+        == "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。"
     )
 
 
@@ -1000,6 +1005,16 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
                 "route_key_question": "当前稿面最窄的 claim-evidence 修复动作是什么？",
                 "summary": "当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“当前稿面最窄的 claim-evidence 修复动作是什么？”。",
             },
+            "same_line_route_truth": {
+                "surface_kind": "same_line_route_truth",
+                "same_line_state": "bounded_analysis",
+                "same_line_state_label": "有限补充分析",
+                "route_mode": "enter",
+                "route_target": "analysis-campaign",
+                "route_target_label": "补充分析与稳健性验证",
+                "summary": "当前论文线仍在同线质量修复；先进入 analysis-campaign 收口当前最窄 claim-evidence 缺口。",
+                "current_focus": "当前稿面最窄的 claim-evidence 修复动作是什么？",
+            },
             "recommended_command": (
                 "uv run python -m med_autoscience.cli study-progress --profile "
                 + str(profile_ref.resolve())
@@ -1038,6 +1053,7 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
     assert payload["attention_queue"][0]["recommended_step_id"] == "inspect_study_progress"
     assert payload["operator_brief"]["recommended_step_id"] == "inspect_study_progress"
     assert payload["attention_queue"][0]["quality_execution_lane"]["route_key_question"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
+    assert payload["attention_queue"][0]["same_line_route_truth"]["route_target"] == "analysis-campaign"
     assert payload["operator_brief"]["current_focus"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
 
 
@@ -1452,7 +1468,7 @@ def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monke
     assert "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。" in markdown
 
 
-def test_build_product_frontdesk_uses_quality_execution_lane_for_current_focus(monkeypatch, tmp_path: Path) -> None:
+def test_build_product_frontdesk_uses_same_line_route_truth_for_current_focus(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
@@ -1556,8 +1572,15 @@ def test_build_product_frontdesk_uses_quality_execution_lane_for_current_focus(m
                         "next_confirmation_signal": "看 publication_eval/latest.json 是否继续收窄当前修复线。",
                         "user_visible_verdict": "MAS 正在处理当前论文线的质量修复。",
                     },
-                    "quality_execution_lane": {
-                        "route_key_question": "当前稿面最窄的 claim-evidence 修复动作是什么？",
+                    "same_line_route_truth": {
+                        "surface_kind": "same_line_route_truth",
+                        "same_line_state": "bounded_analysis",
+                        "same_line_state_label": "有限补充分析",
+                        "route_mode": "enter",
+                        "route_target": "analysis-campaign",
+                        "route_target_label": "补充分析与稳健性验证",
+                        "summary": "当前论文线仍在同线质量修复；先进入 analysis-campaign 收口当前最窄 claim-evidence 缺口。",
+                        "current_focus": "当前稿面最窄的 claim-evidence 修复动作是什么？",
                     },
                 }
             ],
@@ -2325,6 +2348,8 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         ),
         "autonomy_soak_status_field": "autonomy_soak_status",
         "quality_execution_lane_field": "quality_execution_lane",
+        "same_line_route_truth_field": "same_line_route_truth",
+        "same_line_route_surface_field": "same_line_route_surface",
         "quality_review_followthrough_field": "quality_review_followthrough",
         "gate_clearing_followthrough_field": "gate_clearing_followthrough",
     }
@@ -4043,6 +4068,33 @@ def test_render_product_frontdesk_markdown_shows_quality_execution_lane_preview(
     )
 
     assert "质量执行线: 当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“哪一轮最小补充分析足以恢复当前 claim-evidence 支撑？”。" in markdown
+
+
+def test_render_product_frontdesk_markdown_shows_same_line_route_truth_preview() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    markdown = module.render_product_frontdesk_markdown(
+        {
+            "workspace_preview": None,
+            "workspace_attention_queue_preview": [
+                {
+                    "title": "001-risk 当前已进入同线 finalize 收口",
+                    "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "same_line_route_truth": {
+                        "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
+                    },
+                }
+            ],
+            "phase2_user_product_loop": {},
+            "product_entry_guardrails": {},
+            "phase3_clearance_lane": {"clearance_targets": [], "clearance_loop": []},
+            "phase4_backend_deconstruction": {"substrate_targets": []},
+            "phase5_platform_target": {"capability_targets": [], "readiness_gates": []},
+            "remaining_gaps": [],
+        }
+    )
+
+    assert "同线路由: 当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。" in markdown
 
 
 def test_render_product_frontdesk_markdown_shows_autonomy_soak_and_quality_followthrough_preview() -> None:

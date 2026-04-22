@@ -7,6 +7,7 @@ from typing import Any, Iterable, Mapping
 
 from med_autoscience.controllers import hermes_supervision, mainline_status, study_progress, study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _execution_payload, _resolve_study
+from med_autoscience.evaluation_summary import build_same_line_route_truth
 from med_autoscience.domain_entry_contract import (
     PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
     PRODUCT_FRONTDESK_SCHEMA_REF,
@@ -279,6 +280,12 @@ def _quality_review_followthrough_preview(payload: Mapping[str, Any] | None) -> 
     if not parts:
         return None
     return "；".join(parts)
+
+
+def _same_line_route_truth_preview(payload: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(payload, Mapping):
+        return None
+    return _non_empty_text(payload.get("summary")) or _non_empty_text(payload.get("current_focus"))
 
 
 def _gate_clearing_followthrough_summary(payload: Mapping[str, Any] | None) -> str | None:
@@ -1424,6 +1431,8 @@ def _attention_item(
     autonomy_contract: dict[str, Any] | None = None,
     quality_closure_truth: dict[str, Any] | None = None,
     quality_execution_lane: dict[str, Any] | None = None,
+    same_line_route_truth: dict[str, Any] | None = None,
+    same_line_route_surface: dict[str, Any] | None = None,
     quality_review_followthrough: dict[str, Any] | None = None,
     gate_clearing_followthrough: dict[str, Any] | None = None,
     autonomy_soak_status: dict[str, Any] | None = None,
@@ -1441,6 +1450,8 @@ def _attention_item(
         "autonomy_contract": dict(autonomy_contract or {}) or None,
         "quality_closure_truth": dict(quality_closure_truth or {}) or None,
         "quality_execution_lane": dict(quality_execution_lane or {}) or None,
+        "same_line_route_truth": dict(same_line_route_truth or {}) or None,
+        "same_line_route_surface": dict(same_line_route_surface or {}) or None,
         "quality_review_followthrough": dict(quality_review_followthrough or {}) or None,
         "gate_clearing_followthrough": dict(gate_clearing_followthrough or {}) or None,
         "autonomy_soak_status": dict(autonomy_soak_status or {}) or None,
@@ -1459,6 +1470,18 @@ def _quality_route_focus(intervention_lane: Mapping[str, Any] | None) -> str | N
     return _non_empty_text(intervention_lane.get("route_summary"))
 
 
+def _same_line_route_truth_payload(item: Mapping[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(item, Mapping):
+        return {}
+    direct_truth = dict(item.get("same_line_route_truth") or {})
+    if direct_truth:
+        return direct_truth
+    return build_same_line_route_truth(
+        quality_closure_truth=dict(item.get("quality_closure_truth") or {}),
+        quality_execution_lane=dict(item.get("quality_execution_lane") or {}),
+    )
+
+
 def _quality_execution_focus(item: Mapping[str, Any] | None) -> str | None:
     if not isinstance(item, Mapping):
         return None
@@ -1467,6 +1490,21 @@ def _quality_execution_focus(item: Mapping[str, Any] | None) -> str | None:
     if route_key_question is not None:
         return route_key_question
     return _non_empty_text(quality_execution_lane.get("summary"))
+
+
+def _same_line_route_focus(item: Mapping[str, Any] | None) -> str | None:
+    same_line_route_truth = _same_line_route_truth_payload(item)
+    if same_line_route_truth:
+        return _non_empty_text(same_line_route_truth.get("current_focus")) or _non_empty_text(
+            same_line_route_truth.get("summary")
+        )
+    if not isinstance(item, Mapping):
+        return None
+    same_line_route_surface = dict(item.get("same_line_route_surface") or {})
+    route_key_question = _non_empty_text(same_line_route_surface.get("route_key_question"))
+    if route_key_question is not None:
+        return route_key_question
+    return _non_empty_text(same_line_route_surface.get("summary"))
 
 
 def _autonomy_soak_focus(item: Mapping[str, Any] | None) -> str | None:
@@ -1512,6 +1550,24 @@ def _quality_execution_lane_title(study_id: str, lane: Mapping[str, Any] | None)
     if lane_id == "write_ready":
         return f"{study_id} 当前进入同线写作推进"
     if lane_id == "general_quality_repair":
+        return f"{study_id} 当前先做质量修复收口"
+    return None
+
+
+def _same_line_route_truth_title(study_id: str, truth: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(truth, Mapping):
+        return None
+    same_line_state = _non_empty_text(truth.get("same_line_state"))
+    route_target_label = _non_empty_text(truth.get("route_target_label")) or _non_empty_text(truth.get("route_target"))
+    if same_line_state == "finalize_only_remaining":
+        return f"{study_id} 当前已进入同线 finalize 收口"
+    if same_line_state == "write_continuation":
+        return f"{study_id} 当前进入同线写作推进"
+    if same_line_state == "bounded_analysis" and route_target_label is not None:
+        return f"{study_id} 当前需要进入{route_target_label}完成有限补充分析"
+    if same_line_state == "same_line_route_back" and route_target_label is not None:
+        return f"{study_id} 当前需要回到{route_target_label}修复质量阻塞"
+    if same_line_state == "quality_repair_pending":
         return f"{study_id} 当前先做质量修复收口"
     return None
 
@@ -1579,6 +1635,7 @@ def _workspace_operator_brief(
         }
         current_focus = (
             _non_empty_text(operator_status_card.get("current_focus"))
+            or _same_line_route_focus(top)
             or _gate_clearing_followthrough_focus(top)
             or _quality_execution_focus(top)
             or _quality_review_followthrough_focus(top)
@@ -1633,6 +1690,7 @@ def _workspace_operator_brief(
     }
     current_focus = (
         _non_empty_text(lead_status_card.get("current_focus"))
+        or _same_line_route_focus(lead_study)
         or _gate_clearing_followthrough_focus(lead_study)
         or _quality_review_followthrough_focus(lead_study)
         or _autonomy_soak_focus(lead_study)
@@ -1679,6 +1737,8 @@ def _attention_queue(
         autonomy_contract = dict(item.get("autonomy_contract") or {})
         quality_closure_truth = dict(item.get("quality_closure_truth") or {})
         quality_execution_lane = dict(item.get("quality_execution_lane") or {})
+        same_line_route_truth = _same_line_route_truth_payload(item)
+        same_line_route_surface = dict(item.get("same_line_route_surface") or {})
         quality_review_followthrough = dict(item.get("quality_review_followthrough") or {})
         gate_clearing_followthrough = dict(item.get("gate_clearing_followthrough") or {})
         autonomy_soak_status = dict(item.get("autonomy_soak_status") or {})
@@ -1720,6 +1780,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    same_line_route_truth=same_line_route_truth,
+                    same_line_route_surface=same_line_route_surface,
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
@@ -1740,6 +1802,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    same_line_route_truth=same_line_route_truth,
+                    same_line_route_surface=same_line_route_surface,
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
@@ -1760,6 +1824,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    same_line_route_truth=same_line_route_truth,
+                    same_line_route_surface=same_line_route_surface,
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
@@ -1774,6 +1840,8 @@ def _attention_queue(
                     title=_quality_blocker_title(study_id, intervention_lane),
                     summary=(
                         gate_clearing_summary
+                        or _non_empty_text(same_line_route_truth.get("summary"))
+                        or _non_empty_text(same_line_route_surface.get("summary"))
                         or
                         _non_empty_text(quality_execution_lane.get("summary"))
                         or
@@ -1791,6 +1859,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    same_line_route_truth=same_line_route_truth,
+                    same_line_route_surface=same_line_route_surface,
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
@@ -1813,6 +1883,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    same_line_route_truth=same_line_route_truth,
+                    same_line_route_surface=same_line_route_surface,
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
@@ -1835,6 +1907,8 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    same_line_route_truth=same_line_route_truth,
+                    same_line_route_surface=same_line_route_surface,
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
@@ -1842,12 +1916,15 @@ def _attention_queue(
             )
             continue
         if blocker_list or workspace_status in {"attention_required", "blocked"}:
+            same_line_title = _same_line_route_truth_title(study_id, same_line_route_truth)
             quality_lane_title = _quality_execution_lane_title(study_id, quality_execution_lane)
             queue.append(
                 _attention_item(
                     code="study_blocked",
-                    title=quality_lane_title or f"{study_id} 仍有主线阻塞",
+                    title=same_line_title or quality_lane_title or f"{study_id} 仍有主线阻塞",
                     summary=gate_clearing_summary
+                    or _non_empty_text(same_line_route_truth.get("summary"))
+                    or _non_empty_text(same_line_route_surface.get("summary"))
                     or _non_empty_text(quality_execution_lane.get("summary"))
                     or _non_empty_text(blocker_list[0] if blocker_list else None)
                     or current_stage_summary
@@ -1861,6 +1938,7 @@ def _attention_queue(
                     autonomy_contract=autonomy_contract,
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
+                    same_line_route_truth=same_line_route_truth,
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
@@ -1941,6 +2019,8 @@ def _study_item(
     autonomy_soak_status = dict(progress_payload.get("autonomy_soak_status") or {})
     quality_closure_truth = dict(progress_payload.get("quality_closure_truth") or {})
     quality_execution_lane = dict(progress_payload.get("quality_execution_lane") or {})
+    same_line_route_truth = _same_line_route_truth_payload(progress_payload)
+    same_line_route_surface = dict(progress_payload.get("same_line_route_surface") or {})
     quality_review_loop = dict(progress_payload.get("quality_review_loop") or {})
     quality_review_followthrough = dict(progress_payload.get("quality_review_followthrough") or {})
     gate_clearing_followthrough = dict(progress_payload.get("gate_clearing_followthrough") or {})
@@ -1960,6 +2040,8 @@ def _study_item(
         "autonomy_soak_status": autonomy_soak_status or None,
         "quality_closure_truth": quality_closure_truth or None,
         "quality_execution_lane": quality_execution_lane or None,
+        "same_line_route_truth": same_line_route_truth or None,
+        "same_line_route_surface": same_line_route_surface or None,
         "quality_review_loop": quality_review_loop or None,
         "quality_review_followthrough": quality_review_followthrough or None,
         "gate_clearing_followthrough": gate_clearing_followthrough or None,
@@ -2165,6 +2247,9 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             quality_execution_lane = dict(item.get("quality_execution_lane") or {})
             if quality_execution_lane.get("summary"):
                 lines.append(f"  质量执行线: {quality_execution_lane.get('summary')}")
+            same_line_route_truth_preview = _same_line_route_truth_preview(item.get("same_line_route_truth"))
+            if same_line_route_truth_preview:
+                lines.append(f"  同线路由: {same_line_route_truth_preview}")
             quality_review_loop_preview = _quality_review_loop_preview(item.get("quality_review_loop"))
             if quality_review_loop_preview:
                 lines.append(f"  质量评审闭环: {quality_review_loop_preview}")
@@ -2253,6 +2338,9 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         quality_execution_lane = dict(item.get("quality_execution_lane") or {})
         if quality_execution_lane.get("summary"):
             lines.append(f"- 质量执行线: {quality_execution_lane.get('summary')}")
+        same_line_route_truth_preview = _same_line_route_truth_preview(item.get("same_line_route_truth"))
+        if same_line_route_truth_preview:
+            lines.append(f"- 同线路由: {same_line_route_truth_preview}")
         quality_review_loop_preview = _quality_review_loop_preview(item.get("quality_review_loop"))
         if quality_review_loop_preview:
             lines.append(f"- 质量评审闭环: {quality_review_loop_preview}")
@@ -3007,7 +3095,7 @@ def build_product_frontdesk(
         }
         current_focus = _non_empty_text(top_attention_status_card.get("current_focus")) or _non_empty_text(
             workspace_operator_brief.get("current_focus")
-        ) or _gate_clearing_followthrough_focus(top_attention) or _quality_execution_focus(top_attention) or _quality_review_followthrough_focus(top_attention) or _autonomy_soak_focus(top_attention)
+        ) or _gate_clearing_followthrough_focus(top_attention) or _same_line_route_focus(top_attention) or _quality_execution_focus(top_attention) or _quality_review_followthrough_focus(top_attention) or _autonomy_soak_focus(top_attention)
         if current_focus is not None:
             operator_brief["current_focus"] = current_focus
         next_confirmation_signal = _non_empty_text(top_attention_status_card.get("next_confirmation_signal")) or _non_empty_text(
@@ -3043,7 +3131,7 @@ def build_product_frontdesk(
         }
         current_focus = _non_empty_text(workspace_operator_brief.get("current_focus")) or _quality_review_followthrough_focus(
             workspace_operator_brief
-        ) or _gate_clearing_followthrough_focus(workspace_operator_brief) or _autonomy_soak_focus(workspace_operator_brief)
+        ) or _gate_clearing_followthrough_focus(workspace_operator_brief) or _same_line_route_focus(workspace_operator_brief) or _autonomy_soak_focus(workspace_operator_brief)
         if current_focus is not None:
             operator_brief["current_focus"] = current_focus
 
@@ -3181,6 +3269,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         quality_execution_lane = dict(item.get("quality_execution_lane") or {})
         if quality_execution_lane.get("summary"):
             lines.append(f"- 质量执行线: {quality_execution_lane.get('summary')}")
+        same_line_route_truth_preview = _same_line_route_truth_preview(item.get("same_line_route_truth"))
+        if same_line_route_truth_preview:
+            lines.append(f"- 同线路由: {same_line_route_truth_preview}")
         quality_review_loop_preview = _quality_review_loop_preview(item.get("quality_review_loop"))
         if quality_review_loop_preview:
             lines.append(f"- 质量评审闭环: {quality_review_loop_preview}")
@@ -3458,6 +3549,8 @@ def build_product_entry(
                 "command": commands["study_progress"],
                 "autonomy_soak_status_field": "autonomy_soak_status",
                 "quality_execution_lane_field": "quality_execution_lane",
+                "same_line_route_truth_field": "same_line_route_truth",
+                "same_line_route_surface_field": "same_line_route_surface",
                 "quality_review_followthrough_field": "quality_review_followthrough",
                 "gate_clearing_followthrough_field": "gate_clearing_followthrough",
             },
@@ -3524,6 +3617,7 @@ def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
             f"- 进度真相命令: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('command') or 'none')}`",
             f"- 自治 proof 字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('autonomy_soak_status_field') or 'none')}`",
             f"- 质量执行线字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('quality_execution_lane_field') or 'none')}`",
+            f"- 同线路由真相字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('same_line_route_truth_field') or 'none')}`",
             f"- 质量复评跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('quality_review_followthrough_field') or 'none')}`",
             f"- gate-clearing 跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('gate_clearing_followthrough_field') or 'none')}`",
             f"- 运行监管路径: `{return_surface_contract.get('runtime_supervision_path') or 'none'}`",

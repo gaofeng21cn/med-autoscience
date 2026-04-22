@@ -22,6 +22,7 @@ from med_autoscience.controller_summary import read_controller_summary, stable_c
 from med_autoscience.controllers import gate_clearing_batch, study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.evaluation_summary import (
+    build_same_line_route_truth,
     materialize_evaluation_summary_artifacts,
     read_evaluation_summary,
     stable_evaluation_summary_path,
@@ -340,6 +341,32 @@ def _normalized_quality_execution_lane_payload(payload: Mapping[str, Any]) -> di
     return fallback_lane or None
 
 
+def _normalized_same_line_route_surface_payload(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    direct_surface = _mapping_copy(payload.get("same_line_route_surface"))
+    if direct_surface:
+        return direct_surface
+    module_surfaces = _mapping_copy(payload.get("module_surfaces"))
+    eval_hygiene_surface = _mapping_copy(module_surfaces.get("eval_hygiene"))
+    fallback_surface = _mapping_copy(eval_hygiene_surface.get("same_line_route_surface"))
+    return fallback_surface or None
+
+
+def _normalized_same_line_route_truth_payload(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    direct_truth = _mapping_copy(payload.get("same_line_route_truth"))
+    if direct_truth:
+        return direct_truth
+    module_surfaces = _mapping_copy(payload.get("module_surfaces"))
+    eval_hygiene_surface = _mapping_copy(module_surfaces.get("eval_hygiene"))
+    fallback_truth = _mapping_copy(eval_hygiene_surface.get("same_line_route_truth"))
+    if fallback_truth:
+        return fallback_truth
+    derived_truth = build_same_line_route_truth(
+        quality_closure_truth=_mapping_copy(payload.get("quality_closure_truth")),
+        quality_execution_lane=_normalized_quality_execution_lane_payload(payload) or {},
+    )
+    return derived_truth or None
+
+
 def _normalize_study_progress_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     normalized = dict(payload)
     module_surfaces = _mapping_copy(normalized.get("module_surfaces"))
@@ -349,9 +376,20 @@ def _normalize_study_progress_payload(payload: Mapping[str, Any]) -> dict[str, A
             eval_hygiene_surface["quality_execution_lane"] = _mapping_copy(
                 eval_hygiene_surface.get("quality_execution_lane")
             ) or None
+            eval_hygiene_surface["same_line_route_surface"] = _mapping_copy(
+                eval_hygiene_surface.get("same_line_route_surface")
+            ) or None
+            eval_hygiene_surface["same_line_route_truth"] = _mapping_copy(
+                eval_hygiene_surface.get("same_line_route_truth")
+            ) or build_same_line_route_truth(
+                quality_closure_truth=_mapping_copy(eval_hygiene_surface.get("quality_closure_truth")),
+                quality_execution_lane=_mapping_copy(eval_hygiene_surface.get("quality_execution_lane")),
+            ) or None
             module_surfaces["eval_hygiene"] = eval_hygiene_surface
             normalized["module_surfaces"] = module_surfaces
     normalized["quality_execution_lane"] = _normalized_quality_execution_lane_payload(normalized)
+    normalized["same_line_route_truth"] = _normalized_same_line_route_truth_payload(normalized)
+    normalized["same_line_route_surface"] = _normalized_same_line_route_surface_payload(normalized)
     return normalized
 
 
@@ -982,6 +1020,8 @@ def _evaluation_module_surface(
     promotion_gate_status = _mapping_copy(summary.get("promotion_gate_status"))
     quality_closure_truth = _mapping_copy(summary.get("quality_closure_truth"))
     quality_execution_lane = _mapping_copy(summary.get("quality_execution_lane"))
+    same_line_route_truth = _mapping_copy(summary.get("same_line_route_truth"))
+    same_line_route_surface = _mapping_copy(summary.get("same_line_route_surface"))
     quality_closure_basis = _mapping_copy(summary.get("quality_closure_basis"))
     quality_review_agenda = _mapping_copy(summary.get("quality_review_agenda"))
     quality_revision_plan = _mapping_copy(summary.get("quality_revision_plan"))
@@ -1023,6 +1063,8 @@ def _evaluation_module_surface(
         "next_action_summary": next_action_summary,
         "quality_closure_truth": quality_closure_truth or None,
         "quality_execution_lane": quality_execution_lane or None,
+        "same_line_route_truth": same_line_route_truth or None,
+        "same_line_route_surface": same_line_route_surface or None,
         "quality_closure_basis": quality_closure_basis or None,
         "quality_review_agenda": quality_review_agenda or None,
         "quality_revision_plan": quality_revision_plan or None,
@@ -3174,6 +3216,16 @@ def build_study_progress_projection(
         if evaluation_module_surface is not None
         else {}
     )
+    same_line_route_truth = (
+        _mapping_copy(evaluation_module_surface.get("same_line_route_truth"))
+        if evaluation_module_surface is not None
+        else {}
+    )
+    same_line_route_surface = (
+        _mapping_copy(evaluation_module_surface.get("same_line_route_surface"))
+        if evaluation_module_surface is not None
+        else {}
+    )
     quality_closure_basis = (
         _mapping_copy(evaluation_module_surface.get("quality_closure_basis"))
         if evaluation_module_surface is not None
@@ -3252,6 +3304,8 @@ def build_study_progress_projection(
         "progress_freshness": progress_freshness,
         "quality_closure_truth": quality_closure_truth or None,
         "quality_execution_lane": quality_execution_lane or None,
+        "same_line_route_truth": same_line_route_truth or None,
+        "same_line_route_surface": same_line_route_surface or None,
         "quality_closure_basis": quality_closure_basis or None,
         "quality_review_agenda": quality_review_agenda or None,
         "quality_revision_plan": quality_revision_plan or None,
@@ -3393,6 +3447,8 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     autonomy_contract = _mapping_copy(normalized_payload.get("autonomy_contract"))
     quality_closure_truth = _mapping_copy(normalized_payload.get("quality_closure_truth"))
     quality_execution_lane = _mapping_copy(normalized_payload.get("quality_execution_lane"))
+    same_line_route_truth = _mapping_copy(normalized_payload.get("same_line_route_truth"))
+    same_line_route_surface = _mapping_copy(normalized_payload.get("same_line_route_surface"))
     quality_closure_basis = _mapping_copy(normalized_payload.get("quality_closure_basis"))
     quality_review_agenda = _mapping_copy(normalized_payload.get("quality_review_agenda"))
     quality_revision_plan = _mapping_copy(normalized_payload.get("quality_revision_plan"))
@@ -3548,6 +3604,34 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- 剩余 gate blocker: {gate_clearing_batch_followthrough.get('blocking_issue_count')}")
         if gate_clearing_batch_followthrough.get("next_confirmation_signal"):
             lines.append(f"- 下一确认信号: {gate_clearing_batch_followthrough.get('next_confirmation_signal')}")
+    if same_line_route_truth:
+        lines.extend(
+            [
+                "",
+                "## 同线路由真相",
+                "",
+                f"- 路由状态: {same_line_route_truth.get('same_line_state_label') or '未知'}",
+                f"- 当前判断: {same_line_route_truth.get('summary') or 'none'}",
+                f"- 当前关键问题: {same_line_route_truth.get('current_focus') or 'none'}",
+            ]
+        )
+        if same_line_route_truth.get("route_target_label") or same_line_route_truth.get("route_target"):
+            lines.append(
+                f"- 收口目标: {same_line_route_truth.get('route_target_label') or same_line_route_truth.get('route_target')}"
+            )
+    elif same_line_route_surface:
+        lines.extend(
+            [
+                "",
+                "## 同线收口动作",
+                "",
+                f"- 收口目标: {same_line_route_surface.get('route_target_label') or same_line_route_surface.get('route_target') or '未知'}",
+                f"- 当前判断: {same_line_route_surface.get('summary') or 'none'}",
+                f"- 当前关键问题: {same_line_route_surface.get('route_key_question') or 'none'}",
+            ]
+        )
+        if same_line_route_surface.get("why_now"):
+            lines.append(f"- 为什么现在做: {same_line_route_surface.get('why_now')}")
     if module_surfaces:
         lines.extend(
             [

@@ -15,6 +15,7 @@ from med_autoscience.study_charter import read_study_charter, resolve_study_char
 __all__ = [
     "STABLE_EVALUATION_SUMMARY_RELATIVE_PATH",
     "STABLE_PROMOTION_GATE_RELATIVE_PATH",
+    "build_same_line_route_truth",
     "materialize_evaluation_summary_artifacts",
     "read_evaluation_summary",
     "read_promotion_gate",
@@ -58,6 +59,28 @@ _QUALITY_EXECUTION_LANE_LABELS = {
     "submission_hardening": "submission hardening 收口",
     "write_ready": "同线写作推进",
     "general_quality_repair": "质量修复",
+}
+_SAME_LINE_ROUTE_STATES = frozenset(
+    {
+        "quality_repair_pending",
+        "same_line_route_back",
+        "bounded_analysis",
+        "write_continuation",
+        "finalize_only_remaining",
+    }
+)
+_SAME_LINE_ROUTE_STATE_LABELS = {
+    "quality_repair_pending": "同线质量修复待定",
+    "same_line_route_back": "同线质量修复",
+    "bounded_analysis": "有限补充分析",
+    "write_continuation": "同线写作推进",
+    "finalize_only_remaining": "同线 finalize 收口",
+}
+_SAME_LINE_ROUTE_MODES = frozenset({"return", "enter", "continue"})
+_SAME_LINE_ROUTE_TARGET_LABELS = {
+    "analysis-campaign": "补充分析与稳健性验证",
+    "write": "论文写作与结果收紧",
+    "finalize": "定稿与投稿收尾",
 }
 _PUBLICATION_CRITIQUE_WEIGHT_CONTRACT = build_publication_critique_weight_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
 _PUBLICATION_CRITIQUE_ACTION_CONTRACT = frozenset(build_revision_action_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY))
@@ -200,6 +223,12 @@ def _optional_string_list(label: str, field_name: str, value: object) -> list[st
     if value is None:
         return []
     return _required_string_list(label, field_name, value)
+
+
+def _same_line_route_target_label(route_target: str | None) -> str | None:
+    if route_target is None:
+        return None
+    return _SAME_LINE_ROUTE_TARGET_LABELS.get(route_target, route_target)
 
 
 def _read_json_object(path: Path, *, label: str) -> dict[str, Any]:
@@ -1256,6 +1285,59 @@ def _normalized_quality_execution_lane_payload(summary_payload: dict[str, Any]) 
         return {}
 
 
+def _same_line_route_surface_from_summary_payload(summary_payload: dict[str, Any]) -> dict[str, Any]:
+    quality_closure_truth = (
+        dict(summary_payload.get("quality_closure_truth") or {})
+        if isinstance(summary_payload.get("quality_closure_truth"), dict)
+        else {}
+    )
+    quality_execution_lane = _normalized_quality_execution_lane_payload(summary_payload)
+    repair_mode = _optional_text(quality_execution_lane.get("repair_mode"))
+    route_target = _optional_text(quality_execution_lane.get("route_target"))
+    if repair_mode != "same_line_route_back" or route_target not in _SAME_LINE_ROUTE_TARGET_LABELS:
+        return {}
+    route_key_question = _optional_text(quality_execution_lane.get("route_key_question"))
+    if route_key_question is None:
+        return {}
+    return {
+        "surface_kind": "same_line_route_surface",
+        "lane_id": _optional_text(quality_execution_lane.get("lane_id")) or "general_quality_repair",
+        "repair_mode": repair_mode,
+        "route_target": route_target,
+        "route_target_label": _SAME_LINE_ROUTE_TARGET_LABELS[route_target],
+        "route_key_question": route_key_question,
+        "summary": _optional_text(quality_execution_lane.get("summary"))
+        or f"当前已经收窄到同线 {route_target} 收口。",
+        "why_now": _optional_text(quality_execution_lane.get("why_now"))
+        or _optional_text(quality_closure_truth.get("summary"))
+        or "当前应沿同一论文线继续收口。",
+        "current_required_action": _optional_text(quality_closure_truth.get("current_required_action"))
+        or "return_to_publishability_gate",
+        "closure_state": _optional_text(quality_closure_truth.get("state")) or "quality_repair_required",
+    }
+
+
+def _normalized_same_line_route_surface_payload(summary_payload: dict[str, Any]) -> dict[str, Any]:
+    raw_surface = summary_payload.get("same_line_route_surface")
+    if isinstance(raw_surface, dict):
+        return dict(raw_surface)
+    return _same_line_route_surface_from_summary_payload(summary_payload)
+
+
+def _normalized_same_line_route_truth_payload(summary_payload: dict[str, Any]) -> dict[str, Any]:
+    raw_truth = summary_payload.get("same_line_route_truth")
+    if isinstance(raw_truth, dict):
+        return dict(raw_truth)
+    return build_same_line_route_truth(
+        quality_closure_truth=(
+            dict(summary_payload.get("quality_closure_truth") or {})
+            if isinstance(summary_payload.get("quality_closure_truth"), dict)
+            else {}
+        ),
+        quality_execution_lane=_normalized_quality_execution_lane_payload(summary_payload),
+    )
+
+
 def _normalized_quality_review_loop(
     *,
     loop_payload: dict[str, Any] | None,
@@ -1650,6 +1732,61 @@ def _quality_execution_lane(
     }
 
 
+def build_same_line_route_truth(
+    *,
+    quality_closure_truth: dict[str, Any] | None,
+    quality_execution_lane: dict[str, Any] | None,
+) -> dict[str, Any]:
+    closure_truth = dict(quality_closure_truth or {})
+    execution_lane = dict(quality_execution_lane or {})
+    if not closure_truth and not execution_lane:
+        return {}
+
+    closure_state = _optional_text(closure_truth.get("state"))
+    lane_id = _optional_text(execution_lane.get("lane_id"))
+    repair_mode = _optional_text(execution_lane.get("repair_mode"))
+    route_target = _optional_text(execution_lane.get("route_target")) or _optional_text(closure_truth.get("route_target"))
+    route_key_question = _optional_text(execution_lane.get("route_key_question"))
+    lane_summary = _optional_text(execution_lane.get("summary"))
+
+    if lane_id == "submission_hardening" or closure_state == "bundle_only_remaining":
+        same_line_state = "finalize_only_remaining"
+        route_mode = "return"
+        route_target = "finalize"
+        summary = "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。"
+    elif lane_id == "write_ready" or closure_state == "write_line_ready" or route_target == "write":
+        same_line_state = "write_continuation"
+        route_mode = "continue"
+        route_target = "write"
+        summary = "当前同线路由已经进入写作收口；可以沿当前论文线继续推进写作与有限补充。"
+    elif repair_mode == "bounded_analysis" or route_target == "analysis-campaign":
+        same_line_state = "bounded_analysis"
+        route_mode = "enter"
+        summary = (
+            f"当前论文线仍在同线质量修复；先进入 {route_target or 'analysis-campaign'} 收口当前最窄缺口。"
+        )
+    elif route_target is not None:
+        same_line_state = "same_line_route_back"
+        route_mode = "return"
+        summary = f"当前论文线仍在同线质量修复；先回到 {route_target} 收口当前最窄缺口。"
+    else:
+        same_line_state = "quality_repair_pending"
+        route_mode = None
+        summary = lane_summary or _optional_text(closure_truth.get("summary")) or "当前论文线仍有待收口的质量修复。"
+
+    current_focus = route_key_question or lane_summary or _optional_text(closure_truth.get("summary")) or summary
+    return {
+        "surface_kind": "same_line_route_truth",
+        "same_line_state": same_line_state,
+        "same_line_state_label": _SAME_LINE_ROUTE_STATE_LABELS[same_line_state],
+        "route_mode": route_mode,
+        "route_target": route_target or None,
+        "route_target_label": _same_line_route_target_label(route_target),
+        "summary": summary,
+        "current_focus": current_focus,
+    }
+
+
 def _build_evaluation_summary_payload(
     *,
     study_root: Path,
@@ -1700,6 +1837,16 @@ def _build_evaluation_summary_payload(
         promotion_gate_payload=promotion_gate_payload,
         route_repair_plan=route_repair_plan,
     )
+    same_line_route_truth = build_same_line_route_truth(
+        quality_closure_truth=quality_closure_truth,
+        quality_execution_lane=quality_execution_lane,
+    )
+    same_line_route_surface = _same_line_route_surface_from_summary_payload(
+        {
+            "quality_closure_truth": quality_closure_truth,
+            "quality_execution_lane": quality_execution_lane,
+        }
+    )
     quality_review_agenda = _quality_review_agenda(
         publication_eval=publication_eval,
         gaps=gaps,
@@ -1716,6 +1863,8 @@ def _build_evaluation_summary_payload(
             "route_repair_plan": route_repair_plan,
             "quality_closure_truth": quality_closure_truth,
             "quality_execution_lane": quality_execution_lane,
+            "same_line_route_truth": same_line_route_truth or None,
+            "same_line_route_surface": same_line_route_surface or None,
             "quality_closure_basis": quality_closure_basis,
             "quality_review_agenda": quality_review_agenda,
         },
@@ -1726,6 +1875,8 @@ def _build_evaluation_summary_payload(
             "study_id": publication_eval["study_id"],
             "quality_closure_truth": quality_closure_truth,
             "quality_execution_lane": quality_execution_lane,
+            "same_line_route_truth": same_line_route_truth or None,
+            "same_line_route_surface": same_line_route_surface or None,
             "quality_review_agenda": quality_review_agenda,
             "quality_revision_plan": quality_revision_plan,
         }
@@ -1770,6 +1921,8 @@ def _build_evaluation_summary_payload(
         "route_repair_plan": route_repair_plan,
         "quality_closure_truth": quality_closure_truth,
         "quality_execution_lane": quality_execution_lane,
+        "same_line_route_truth": same_line_route_truth or None,
+        "same_line_route_surface": same_line_route_surface or None,
         "quality_closure_basis": quality_closure_basis,
         "quality_review_agenda": quality_review_agenda,
         "quality_revision_plan": quality_revision_plan,
@@ -1899,6 +2052,8 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
         else None
     )
     quality_execution_lane = _normalized_quality_execution_lane_payload(payload)
+    same_line_route_truth = _normalized_same_line_route_truth_payload(payload)
+    same_line_route_surface = _normalized_same_line_route_surface_payload(payload)
     normalized_quality_review_agenda = _normalized_quality_review_agenda(
         agenda_payload=quality_review_agenda,
         summary_payload=payload,
@@ -2050,6 +2205,119 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
                 quality_execution_lane.get("why_now"),
             ),
         },
+        "same_line_route_truth": {
+            "surface_kind": _required_text(
+                "evaluation summary same_line_route_truth",
+                "surface_kind",
+                same_line_route_truth.get("surface_kind"),
+            ),
+            "same_line_state": _required_choice(
+                "evaluation summary same_line_route_truth",
+                "same_line_state",
+                same_line_route_truth.get("same_line_state"),
+                _SAME_LINE_ROUTE_STATES,
+            ),
+            "same_line_state_label": _required_text(
+                "evaluation summary same_line_route_truth",
+                "same_line_state_label",
+                same_line_route_truth.get("same_line_state_label"),
+            ),
+            "route_mode": (
+                None
+                if same_line_route_truth.get("route_mode") is None
+                else _required_choice(
+                    "evaluation summary same_line_route_truth",
+                    "route_mode",
+                    same_line_route_truth.get("route_mode"),
+                    _SAME_LINE_ROUTE_MODES,
+                )
+            ),
+            "route_target": (
+                None
+                if same_line_route_truth.get("route_target") is None
+                else _required_text(
+                    "evaluation summary same_line_route_truth",
+                    "route_target",
+                    same_line_route_truth.get("route_target"),
+                )
+            ),
+            "route_target_label": (
+                None
+                if same_line_route_truth.get("route_target_label") is None
+                else _required_text(
+                    "evaluation summary same_line_route_truth",
+                    "route_target_label",
+                    same_line_route_truth.get("route_target_label"),
+                )
+            ),
+            "summary": _required_text(
+                "evaluation summary same_line_route_truth",
+                "summary",
+                same_line_route_truth.get("summary"),
+            ),
+            "current_focus": _required_text(
+                "evaluation summary same_line_route_truth",
+                "current_focus",
+                same_line_route_truth.get("current_focus"),
+            ),
+        },
+        "same_line_route_surface": (
+            None
+            if not same_line_route_surface
+            else {
+                "surface_kind": _required_text(
+                    "evaluation summary same_line_route_surface",
+                    "surface_kind",
+                    same_line_route_surface.get("surface_kind"),
+                ),
+                "lane_id": _required_text(
+                    "evaluation summary same_line_route_surface",
+                    "lane_id",
+                    same_line_route_surface.get("lane_id"),
+                ),
+                "repair_mode": _required_text(
+                    "evaluation summary same_line_route_surface",
+                    "repair_mode",
+                    same_line_route_surface.get("repair_mode"),
+                ),
+                "route_target": _required_text(
+                    "evaluation summary same_line_route_surface",
+                    "route_target",
+                    same_line_route_surface.get("route_target"),
+                ),
+                "route_target_label": _required_text(
+                    "evaluation summary same_line_route_surface",
+                    "route_target_label",
+                    same_line_route_surface.get("route_target_label"),
+                ),
+                "route_key_question": _required_text(
+                    "evaluation summary same_line_route_surface",
+                    "route_key_question",
+                    same_line_route_surface.get("route_key_question"),
+                ),
+                "summary": _required_text(
+                    "evaluation summary same_line_route_surface",
+                    "summary",
+                    same_line_route_surface.get("summary"),
+                ),
+                "why_now": _required_text(
+                    "evaluation summary same_line_route_surface",
+                    "why_now",
+                    same_line_route_surface.get("why_now"),
+                ),
+                "current_required_action": _required_text(
+                    "evaluation summary same_line_route_surface",
+                    "current_required_action",
+                    same_line_route_surface.get("current_required_action"),
+                ),
+                "closure_state": _required_choice(
+                    "evaluation summary same_line_route_surface",
+                    "closure_state",
+                    same_line_route_surface.get("closure_state"),
+                    _QUALITY_CLOSURE_STATES,
+                ),
+            }
+        ),
         "quality_closure_basis": {
             key: _coerce_quality_basis_item(
                 payload=_required_mapping("evaluation summary quality_closure_basis", key, quality_closure_basis.get(key)),

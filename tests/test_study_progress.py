@@ -1419,8 +1419,19 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
         "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一步 finalize / submission bundle 收口？”。",
         "why_now": "核心科学问题已经回答，当前只剩同线 finalize 收口。",
     }
+    assert result["same_line_route_truth"] == {
+        "surface_kind": "same_line_route_truth",
+        "same_line_state": "finalize_only_remaining",
+        "same_line_state_label": "同线 finalize 收口",
+        "route_mode": "return",
+        "route_target": "finalize",
+        "route_target_label": "定稿与投稿收尾",
+        "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
+        "current_focus": "当前论文线还差哪一步 finalize / submission bundle 收口？",
+    }
     assert result["quality_closure_basis"]["evidence_strength"]["status"] == "ready"
     assert result["module_surfaces"]["eval_hygiene"]["quality_closure_truth"] == result["quality_closure_truth"]
+    assert result["module_surfaces"]["eval_hygiene"]["same_line_route_truth"] == result["same_line_route_truth"]
     assert result["quality_review_agenda"] == {
         "top_priority_issue": "必须优先修复：外部验证队列还没有补齐。",
         "suggested_revision": "先在 finalize 修订：当前主线只剩 finalize / bundle 收口。",
@@ -1539,7 +1550,18 @@ def test_study_progress_normalizes_legacy_non_mapping_quality_execution_lane_fro
         "lane_id": "submission_hardening",
         "summary": "Only finalize-level submission hardening remains.",
     }
+    assert result["same_line_route_truth"] == {
+        "surface_kind": "same_line_route_truth",
+        "same_line_state": "finalize_only_remaining",
+        "same_line_state_label": "同线 finalize 收口",
+        "route_mode": "return",
+        "route_target": "finalize",
+        "route_target_label": "定稿与投稿收尾",
+        "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
+        "current_focus": "Only finalize-level submission hardening remains.",
+    }
     assert result["module_surfaces"]["eval_hygiene"]["quality_execution_lane"] == result["quality_execution_lane"]
+    assert result["module_surfaces"]["eval_hygiene"]["same_line_route_truth"] == result["same_line_route_truth"]
     markdown = module.render_study_progress_markdown(result)
     assert "# 研究进度" in markdown
     assert "study_id: `001-risk`" in markdown

@@ -348,6 +348,17 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
             "summary": "当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“What is the narrowest supplementary analysis needed to restore endpoint provenance support?”。",
             "why_now": "The study direction remains valid; only a bounded analysis-campaign repair is needed.",
         },
+        "same_line_route_truth": {
+            "surface_kind": "same_line_route_truth",
+            "same_line_state": "bounded_analysis",
+            "same_line_state_label": "有限补充分析",
+            "route_mode": "enter",
+            "route_target": "analysis-campaign",
+            "route_target_label": "补充分析与稳健性验证",
+            "summary": "当前论文线仍在同线质量修复；先进入 analysis-campaign 收口当前最窄缺口。",
+            "current_focus": "What is the narrowest supplementary analysis needed to restore endpoint provenance support?",
+        },
+        "same_line_route_surface": None,
         "quality_closure_basis": {
             "clinical_significance": {
                 "status": "partial",
@@ -709,6 +720,18 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
         "current_required_action": "complete_bundle_stage",
         "route_target": "finalize",
     }
+    assert evaluation_summary_payload["same_line_route_surface"] == {
+        "surface_kind": "same_line_route_surface",
+        "lane_id": "submission_hardening",
+        "repair_mode": "same_line_route_back",
+        "route_target": "finalize",
+        "route_target_label": "定稿与投稿收尾",
+        "route_key_question": "当前论文线还差哪一步 finalize / submission bundle 收口？",
+        "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一步 finalize / submission bundle 收口？”。",
+        "why_now": "bundle-stage blockers are now on the critical path for this paper line",
+        "current_required_action": "complete_bundle_stage",
+        "closure_state": "bundle_only_remaining",
+    }
     assert evaluation_summary_payload["quality_closure_basis"]["publication_gate"] == {
         "status": "partial",
         "summary": "核心科学面已经闭环；剩余阻塞只落在当前论文线的 finalize / bundle 收口。",
@@ -756,6 +779,16 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
         "re_review_ready": False,
         "summary": "核心科学质量已经闭环，当前只剩投稿包与人工审阅面的收口修订。",
         "recommended_next_action": "先在 finalize 修订，完成当前最小投稿包收口。",
+    }
+    assert evaluation_summary_payload["same_line_route_truth"] == {
+        "surface_kind": "same_line_route_truth",
+        "same_line_state": "finalize_only_remaining",
+        "same_line_state_label": "同线 finalize 收口",
+        "route_mode": "return",
+        "route_target": "finalize",
+        "route_target_label": "定稿与投稿收尾",
+        "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
+        "current_focus": "当前论文线还差哪一步 finalize / submission bundle 收口？",
     }
 
 
@@ -890,6 +923,98 @@ def test_read_evaluation_summary_derives_quality_execution_lane_when_non_mapping
     summary = module.read_evaluation_summary(study_root=study_root)
 
     assert summary["quality_execution_lane"] == expected_lane
+
+
+def test_read_evaluation_summary_derives_same_line_route_surface_when_missing(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    publication_eval_path = inputs["publication_eval_path"]
+    gate_report_path = inputs["gate_report_path"]
+    publication_eval_payload = dict(inputs["publication_eval_payload"])
+    publication_eval_payload["verdict"] = {
+        "overall_verdict": "blocked",
+        "primary_claim_status": "supported",
+        "summary": "Core science is closed; remaining work is finalize-stage package hardening.",
+        "stop_loss_pressure": "none",
+    }
+    _write_json(publication_eval_path, publication_eval_payload)
+    _write_json(
+        gate_report_path,
+        {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-05T06:05:00+00:00",
+            "quest_id": "quest-001",
+            "status": "blocked",
+            "allow_write": False,
+            "recommended_action": "complete_bundle_stage",
+            "latest_gate_path": str(gate_report_path),
+            "supervisor_phase": "bundle_stage_blocked",
+            "current_required_action": "complete_bundle_stage",
+            "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
+            "blockers": ["missing_submission_minimal"],
+        },
+    )
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
+    summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    expected_surface = payload["same_line_route_surface"]
+    payload.pop("same_line_route_surface", None)
+    _write_json(summary_path, payload)
+
+    summary = module.read_evaluation_summary(study_root=study_root)
+
+    assert summary["same_line_route_surface"] == expected_surface
+
+
+def test_read_evaluation_summary_derives_same_line_route_truth_when_missing(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    gate_report_path = inputs["gate_report_path"]
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
+    summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    expected_truth = payload["same_line_route_truth"]
+    payload.pop("same_line_route_truth", None)
+    _write_json(summary_path, payload)
+
+    summary = module.read_evaluation_summary(study_root=study_root)
+
+    assert summary["same_line_route_truth"] == expected_truth
+
+
+def test_read_evaluation_summary_derives_same_line_route_truth_when_non_mapping(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    gate_report_path = inputs["gate_report_path"]
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
+    summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    expected_truth = payload["same_line_route_truth"]
+    payload["same_line_route_truth"] = "legacy-string-payload"
+    _write_json(summary_path, payload)
+
+    summary = module.read_evaluation_summary(study_root=study_root)
+
+    assert summary["same_line_route_truth"] == expected_truth
 
 
 def test_read_evaluation_summary_projects_re_review_required_loop_when_plan_completed(tmp_path: Path) -> None:
