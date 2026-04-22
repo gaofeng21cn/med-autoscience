@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
+import threading
 from types import SimpleNamespace
 
 import pytest
@@ -667,6 +668,109 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert "The Lancet Digital Health" in markdown
     assert "Hermes-hosted runtime supervision 已注册，但当前未处于调度中。" in markdown
     assert "launch-study" in markdown
+
+
+def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    write_study(profile.workspace_root, "001-risk")
+    write_study(profile.workspace_root, "002-risk")
+
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: SimpleNamespace(
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            med_deepscientist_runtime_exists=True,
+            medical_overlay_ready=True,
+            external_runtime_contract={"ready": True},
+            workspace_supervision_contract={
+                "status": "loaded",
+                "loaded": True,
+                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "drift_reasons": [],
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_inspect_workspace_supervision",
+        lambda profile: {
+            "manager": "launchd",
+            "status": "loaded",
+            "loaded": True,
+            "job_exists": True,
+            "summary": "Hermes-hosted runtime supervision 已在线。",
+            "drift_reasons": [],
+        },
+    )
+    monkeypatch.setattr(
+        module.mainline_status,
+        "read_mainline_status",
+        lambda: {
+            "program_id": "research-foundry-medical-mainline",
+            "current_stage": {"id": "phase-x", "status": "in_progress", "summary": "current stage"},
+            "current_program_phase": {"id": "phase-y", "status": "in_progress", "summary": "current phase"},
+            "next_focus": [],
+            "explicitly_not_now": [],
+        },
+    )
+
+    second_started = threading.Event()
+
+    def fake_progress(
+        *,
+        profile,
+        profile_ref=None,
+        study_id: str | None = None,
+        study_root: Path | None = None,
+        entry_mode=None,
+    ) -> dict[str, object]:
+        resolved_study_id = study_id or Path(study_root).name
+        if resolved_study_id == "001-risk":
+            assert second_started.wait(0.5), "workspace cockpit should fan out study progress reads in parallel"
+        else:
+            second_started.set()
+        return {
+            "study_id": resolved_study_id,
+            "current_stage": "publication_supervision",
+            "current_stage_summary": f"{resolved_study_id} stage",
+            "current_blockers": [],
+            "next_system_action": f"{resolved_study_id} next",
+            "recommended_command": (
+                "uv run python -m med_autoscience.cli study-progress --profile "
+                + str(profile_ref.resolve())
+                + " --study-id "
+                + resolved_study_id
+            ),
+            "recommended_commands": [],
+            "recovery_contract": {},
+            "needs_physician_decision": False,
+            "supervision": {
+                "browser_url": None,
+                "quest_session_api_url": None,
+                "active_run_id": None,
+                "health_status": "live",
+                "supervisor_tick_status": "fresh",
+            },
+            "task_intake": {},
+            "progress_freshness": {"status": "fresh", "summary": "fresh"},
+        }
+
+    monkeypatch.setattr(module.study_progress, "read_study_progress", fake_progress)
+
+    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+
+    assert [item["study_id"] for item in payload["studies"]] == ["001-risk", "002-risk"]
+    assert payload["studies"][0]["current_stage_summary"] == "001-risk stage"
+    assert payload["studies"][1]["current_stage_summary"] == "002-risk stage"
 
 
 def test_workspace_cockpit_markdown_prefers_shared_human_status_narration() -> None:
@@ -2200,7 +2304,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
     )
     monkeypatch.setattr(
         module.study_progress,
-        "read_study_progress",
+        "build_study_progress_projection",
         lambda **kwargs: {
             "study_id": "001-risk",
             "current_stage": "publication_supervision",
@@ -2260,6 +2364,11 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
                 "summary": "最近 12 小时内仍有明确研究推进记录。",
             },
         },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("launch_study should reuse the runtime status payload")),
     )
 
     payload = module.launch_study(

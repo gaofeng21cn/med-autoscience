@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import shlex
 from datetime import datetime, timezone
 from pathlib import Path
@@ -2554,6 +2555,36 @@ def _study_item(
     }
 
 
+def _study_roots(profile: WorkspaceProfile) -> list[Path]:
+    if not profile.studies_root.exists():
+        return []
+    return [
+        study_root
+        for study_root in sorted(path for path in profile.studies_root.iterdir() if path.is_dir())
+        if (study_root / "study.yaml").exists()
+    ]
+
+
+def _workspace_cockpit_study_snapshot(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None,
+    study_root: Path,
+) -> tuple[dict[str, Any], list[str]]:
+    progress_payload = study_progress.read_study_progress(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_root=study_root,
+    )
+    item = _study_item(progress_payload=progress_payload, profile_ref=profile_ref)
+    alerts = list(item["current_blockers"])
+    progress_freshness = dict(item.get("progress_freshness") or {})
+    progress_summary = _non_empty_text(progress_freshness.get("summary"))
+    if _non_empty_text(progress_freshness.get("status")) in {"stale", "missing"} and progress_summary is not None:
+        alerts.append(progress_summary)
+    return item, alerts
+
+
 def read_workspace_cockpit(
     *,
     profile: WorkspaceProfile,
@@ -2562,23 +2593,24 @@ def read_workspace_cockpit(
     doctor_report = build_doctor_report(profile)
     workspace_alerts = _workspace_ready_alerts(doctor_report)
     studies: list[dict[str, Any]] = []
-    for study_root in sorted(path for path in profile.studies_root.iterdir() if path.is_dir()) if profile.studies_root.exists() else []:
-        if not (study_root / "study.yaml").exists():
-            continue
-        progress_payload = study_progress.read_study_progress(
-            profile=profile,
-            profile_ref=profile_ref,
-            study_root=study_root,
-        )
-        item = _study_item(progress_payload=progress_payload, profile_ref=profile_ref)
-        studies.append(item)
-        for blocker in item["current_blockers"]:
-            if blocker not in workspace_alerts:
-                workspace_alerts.append(blocker)
-        progress_freshness = dict(item.get("progress_freshness") or {})
-        progress_summary = _non_empty_text(progress_freshness.get("summary"))
-        if _non_empty_text(progress_freshness.get("status")) in {"stale", "missing"} and progress_summary not in workspace_alerts:
-            workspace_alerts.append(progress_summary)
+    study_roots = _study_roots(profile)
+    if study_roots:
+        with ThreadPoolExecutor(max_workers=len(study_roots)) as executor:
+            futures = [
+                executor.submit(
+                    _workspace_cockpit_study_snapshot,
+                    profile=profile,
+                    profile_ref=profile_ref,
+                    study_root=study_root,
+                )
+                for study_root in study_roots
+            ]
+            for future in futures:
+                item, item_alerts = future.result()
+                studies.append(item)
+                for alert in item_alerts:
+                    if alert not in workspace_alerts:
+                        workspace_alerts.append(alert)
     service = _inspect_workspace_supervision(profile)
     workspace_supervision = _workspace_supervision_summary(studies=studies, service=service)
     if (
@@ -2890,25 +2922,35 @@ def launch_study(
     allow_stopped_relaunch: bool = False,
     force: bool = False,
 ) -> dict[str, Any]:
+    resolved_study_id, resolved_study_root, _study_payload = _resolve_study(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+    )
     runtime_status = _serialize_runtime_status(
         study_runtime_router.ensure_study_runtime(
             profile=profile,
-            study_id=study_id,
-            study_root=study_root,
+            study_id=resolved_study_id,
+            study_root=resolved_study_root,
             entry_mode=entry_mode,
             allow_stopped_relaunch=allow_stopped_relaunch,
             force=force,
             source="product_entry",
         )
     )
-    progress_payload = study_progress.read_study_progress(
+    progress_payload = study_progress.build_study_progress_projection(
         profile=profile,
         profile_ref=profile_ref,
-        study_id=study_id,
-        study_root=study_root,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        status_payload=runtime_status,
         entry_mode=entry_mode,
     )
-    resolved_study_id = _non_empty_text(progress_payload.get("study_id")) or _non_empty_text(runtime_status.get("study_id")) or study_id
+    resolved_study_id = (
+        _non_empty_text(progress_payload.get("study_id"))
+        or _non_empty_text(runtime_status.get("study_id"))
+        or resolved_study_id
+    )
     commands = {
         "progress": (
             f"{_command_prefix(profile_ref)} study-progress --profile {_profile_arg(profile_ref)} "
