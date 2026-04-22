@@ -10,6 +10,11 @@ from med_autoscience.policies import (
     build_revision_action_contract,
 )
 from med_autoscience.publication_eval_latest import read_publication_eval_latest, stable_publication_eval_latest_path
+from med_autoscience.quality.publication_gate import (
+    derive_quality_closure_truth,
+    derive_quality_execution_lane,
+)
+from med_autoscience.quality.study_quality import build_study_quality_truth
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 
 __all__ = [
@@ -1620,37 +1625,11 @@ def _quality_closure_truth(
     route_repair_plan: dict[str, str] | None,
     quality_closure_basis: dict[str, Any],
 ) -> dict[str, Any]:
-    current_required_action = _required_text(
-        "promotion gate",
-        "current_required_action",
-        promotion_gate_payload.get("current_required_action"),
+    return derive_quality_closure_truth(
+        promotion_gate_payload=promotion_gate_payload,
+        route_repair_plan=route_repair_plan,
+        quality_closure_basis=quality_closure_basis,
     )
-    evidence_strength_status = str((quality_closure_basis.get("evidence_strength") or {}).get("status") or "").strip()
-    if current_required_action in {"continue_bundle_stage", "complete_bundle_stage"} and evidence_strength_status == "ready":
-        return {
-            "state": "bundle_only_remaining",
-            "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
-            "current_required_action": current_required_action,
-            "route_target": "finalize",
-        }
-    if current_required_action == "continue_write_stage" and evidence_strength_status == "ready":
-        return {
-            "state": "write_line_ready",
-            "summary": "核心科学质量已经够稳；当前可以继续同一论文线的写作与有限补充收口。",
-            "current_required_action": current_required_action,
-            "route_target": "write",
-        }
-    route_target = str((route_repair_plan or {}).get("route_target") or "").strip()
-    if route_target:
-        summary = f"核心科学质量还没有闭环；当前应先回到 {route_target} 完成最窄补充修复。"
-    else:
-        summary = "核心科学质量还没有闭环；当前仍需先补齐论文质量缺口。"
-    return {
-        "state": "quality_repair_required",
-        "summary": summary,
-        "current_required_action": current_required_action,
-        "route_target": route_target or None,
-    }
 
 
 def _quality_execution_lane(
@@ -1658,78 +1637,57 @@ def _quality_execution_lane(
     promotion_gate_payload: dict[str, Any],
     route_repair_plan: dict[str, str] | None,
 ) -> dict[str, Any]:
-    current_required_action = _required_text(
-        "promotion gate",
-        "current_required_action",
-        promotion_gate_payload.get("current_required_action"),
+    return derive_quality_execution_lane(
+        promotion_gate_payload=promotion_gate_payload,
+        route_repair_plan=route_repair_plan,
     )
-    named_blockers = _optional_string_list(
-        "promotion gate",
-        "medical_publication_surface_named_blockers",
-        promotion_gate_payload.get("medical_publication_surface_named_blockers"),
+
+
+def _load_review_ledger_context(
+    publication_eval: dict[str, Any],
+) -> tuple[dict[str, Any] | None, str | None]:
+    delivery_context_refs = (
+        dict(publication_eval.get("delivery_context_refs") or {})
+        if isinstance(publication_eval.get("delivery_context_refs"), dict)
+        else {}
     )
-    route_target = str((route_repair_plan or {}).get("route_target") or "").strip()
-    route_key_question = str((route_repair_plan or {}).get("route_key_question") or "").strip()
-    route_rationale = str((route_repair_plan or {}).get("route_rationale") or "").strip()
-    repair_mode = (
-        "bounded_analysis"
-        if str((route_repair_plan or {}).get("action_type") or "").strip() == "bounded_analysis"
-        else "same_line_route_back"
-        if route_repair_plan is not None
+    paper_root_ref = _optional_text(delivery_context_refs.get("paper_root_ref"))
+    if paper_root_ref is None:
+        return None, None
+    review_ledger_path = Path(paper_root_ref).expanduser().resolve() / "review" / "review_ledger.json"
+    if not review_ledger_path.exists():
+        return None, str(review_ledger_path)
+    return _read_json_object(review_ledger_path, label="review ledger"), str(review_ledger_path)
+
+
+def _study_quality_truth_from_summary_payload(
+    *,
+    study_root: Path,
+    summary_payload: dict[str, Any],
+    quality_closure_truth: dict[str, Any],
+    quality_closure_basis: dict[str, Any],
+    quality_execution_lane: dict[str, Any],
+) -> dict[str, Any]:
+    publication_eval = read_publication_eval_latest(study_root=study_root)
+    charter_payload = read_study_charter(study_root=study_root)
+    review_ledger_payload, review_ledger_path = _load_review_ledger_context(publication_eval)
+    route_repair_plan = (
+        dict(summary_payload.get("route_repair_plan") or {})
+        if isinstance(summary_payload.get("route_repair_plan"), dict)
         else None
     )
-
-    if "reviewer_first_concerns_unresolved" in named_blockers:
-        lane_id = "reviewer_first"
-    elif "claim_evidence_consistency_failed" in named_blockers:
-        lane_id = "claim_evidence"
-    elif "submission_hardening_incomplete" in named_blockers or current_required_action in {
-        "continue_bundle_stage",
-        "complete_bundle_stage",
-    }:
-        lane_id = "submission_hardening"
-    elif current_required_action == "continue_write_stage":
-        lane_id = "write_ready"
-    else:
-        lane_id = "general_quality_repair"
-
-    if lane_id == "submission_hardening":
-        route_target = "finalize"
-        route_key_question = "当前论文线还差哪一步 finalize / submission bundle 收口？"
-        repair_mode = "same_line_route_back"
-        if str((route_repair_plan or {}).get("route_target") or "").strip() != "finalize":
-            route_rationale = _required_text(
-                "promotion gate",
-                "controller_stage_note",
-                promotion_gate_payload.get("controller_stage_note"),
-            )
-
-    lane_label = _QUALITY_EXECUTION_LANE_LABELS[lane_id]
-    if route_target and route_key_question:
-        verb = "进入" if repair_mode == "bounded_analysis" else "回到"
-        summary = f"当前质量执行线聚焦 {lane_label}；先{verb} {route_target}，回答“{route_key_question}”。"
-    elif route_target:
-        verb = "进入" if repair_mode == "bounded_analysis" else "回到"
-        summary = f"当前质量执行线聚焦 {lane_label}；先{verb} {route_target} 收口当前缺口。"
-    elif current_required_action == "continue_write_stage":
-        summary = "当前质量执行线已经进入同线写作推进；核心科学面允许继续往写作收口。"
-    else:
-        summary = f"当前质量执行线聚焦 {lane_label}；应先收口当前质量缺口。"
-
-    why_now = route_rationale or _required_text(
-        "promotion gate",
-        "controller_stage_note",
-        promotion_gate_payload.get("controller_stage_note"),
+    return build_study_quality_truth(
+        study_id=_required_text("evaluation summary", "study_id", summary_payload.get("study_id")),
+        charter_payload=charter_payload,
+        publication_eval=publication_eval,
+        promotion_gate_payload=dict(summary_payload.get("promotion_gate_status") or {}),
+        route_repair_plan=route_repair_plan,
+        quality_closure_truth=quality_closure_truth,
+        quality_closure_basis=quality_closure_basis,
+        quality_execution_lane=quality_execution_lane,
+        review_ledger_payload=review_ledger_payload,
+        review_ledger_path=review_ledger_path,
     )
-    return {
-        "lane_id": lane_id,
-        "lane_label": lane_label,
-        "repair_mode": repair_mode,
-        "route_target": route_target or None,
-        "route_key_question": route_key_question or None,
-        "summary": summary,
-        "why_now": why_now,
-    }
 
 
 def build_same_line_route_truth(
@@ -1837,6 +1795,19 @@ def _build_evaluation_summary_payload(
         promotion_gate_payload=promotion_gate_payload,
         route_repair_plan=route_repair_plan,
     )
+    review_ledger_payload, review_ledger_path = _load_review_ledger_context(publication_eval)
+    study_quality_truth = build_study_quality_truth(
+        study_id=_required_text("publication eval", "study_id", publication_eval.get("study_id")),
+        charter_payload=charter_payload,
+        publication_eval=publication_eval,
+        promotion_gate_payload=promotion_gate_payload,
+        route_repair_plan=route_repair_plan,
+        quality_closure_truth=quality_closure_truth,
+        quality_closure_basis=quality_closure_basis,
+        quality_execution_lane=quality_execution_lane,
+        review_ledger_payload=review_ledger_payload,
+        review_ledger_path=review_ledger_path,
+    )
     same_line_route_truth = build_same_line_route_truth(
         quality_closure_truth=quality_closure_truth,
         quality_execution_lane=quality_execution_lane,
@@ -1921,6 +1892,7 @@ def _build_evaluation_summary_payload(
         "route_repair_plan": route_repair_plan,
         "quality_closure_truth": quality_closure_truth,
         "quality_execution_lane": quality_execution_lane,
+        "study_quality_truth": study_quality_truth,
         "same_line_route_truth": same_line_route_truth or None,
         "same_line_route_surface": same_line_route_surface or None,
         "quality_closure_basis": quality_closure_basis,
@@ -2021,7 +1993,7 @@ def _normalized_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
+def _normalized_evaluation_summary(payload: dict[str, Any], *, study_root: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise TypeError("evaluation summary payload must be a mapping")
     if payload.get("schema_version") != 1:
@@ -2069,6 +2041,18 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
             "quality_review_agenda": normalized_quality_review_agenda,
             "quality_revision_plan": normalized_quality_revision_plan,
         },
+    )
+    raw_study_quality_truth = (
+        dict(payload.get("study_quality_truth") or {})
+        if isinstance(payload.get("study_quality_truth"), dict)
+        else None
+    )
+    normalized_study_quality_truth = raw_study_quality_truth or _study_quality_truth_from_summary_payload(
+        study_root=study_root,
+        summary_payload=payload,
+        quality_closure_truth=quality_closure_truth,
+        quality_closure_basis=quality_closure_basis,
+        quality_execution_lane=quality_execution_lane,
     )
     return {
         "schema_version": 1,
@@ -2203,6 +2187,58 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
                 "evaluation summary quality_execution_lane",
                 "why_now",
                 quality_execution_lane.get("why_now"),
+            ),
+        },
+        "study_quality_truth": {
+            "study_id": _required_text(
+                "evaluation summary study_quality_truth",
+                "study_id",
+                normalized_study_quality_truth.get("study_id"),
+            ),
+            "contract_state": _required_choice(
+                "evaluation summary study_quality_truth",
+                "contract_state",
+                normalized_study_quality_truth.get("contract_state"),
+                _QUALITY_CLOSURE_STATES,
+            ),
+            "contract_closed": _required_bool(
+                "evaluation summary study_quality_truth",
+                "contract_closed",
+                normalized_study_quality_truth.get("contract_closed"),
+            ),
+            "summary": _required_text(
+                "evaluation summary study_quality_truth",
+                "summary",
+                normalized_study_quality_truth.get("summary"),
+            ),
+            "narrowest_scientific_gap": _required_mapping(
+                "evaluation summary study_quality_truth",
+                "narrowest_scientific_gap",
+                normalized_study_quality_truth.get("narrowest_scientific_gap"),
+            ),
+            "reviewer_first": _required_mapping(
+                "evaluation summary study_quality_truth",
+                "reviewer_first",
+                normalized_study_quality_truth.get("reviewer_first"),
+            ),
+            "bounded_analysis": _required_mapping(
+                "evaluation summary study_quality_truth",
+                "bounded_analysis",
+                normalized_study_quality_truth.get("bounded_analysis"),
+            ),
+            "finalize_bundle_readiness": _required_mapping(
+                "evaluation summary study_quality_truth",
+                "finalize_bundle_readiness",
+                normalized_study_quality_truth.get("finalize_bundle_readiness"),
+            ),
+            "publication_gate_required_action": (
+                None
+                if normalized_study_quality_truth.get("publication_gate_required_action") is None
+                else _required_text(
+                    "evaluation summary study_quality_truth",
+                    "publication_gate_required_action",
+                    normalized_study_quality_truth.get("publication_gate_required_action"),
+                )
             ),
         },
         "same_line_route_truth": {
@@ -2360,7 +2396,7 @@ def read_evaluation_summary(
 ) -> dict[str, Any]:
     summary_path = resolve_evaluation_summary_ref(study_root=study_root, ref=ref)
     payload = _read_json_object(summary_path, label="evaluation summary")
-    return _normalized_evaluation_summary(payload)
+    return _normalized_evaluation_summary(payload, study_root=study_root)
 
 
 def materialize_evaluation_summary_artifacts(
@@ -2417,7 +2453,12 @@ def materialize_evaluation_summary_artifacts(
     evaluation_summary_path = stable_evaluation_summary_path(study_root=resolved_study_root)
     evaluation_summary_path.parent.mkdir(parents=True, exist_ok=True)
     evaluation_summary_path.write_text(
-        json.dumps(_normalized_evaluation_summary(evaluation_summary_payload), ensure_ascii=False, indent=2) + "\n",
+        json.dumps(
+            _normalized_evaluation_summary(evaluation_summary_payload, study_root=resolved_study_root),
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
         encoding="utf-8",
     )
     return {
