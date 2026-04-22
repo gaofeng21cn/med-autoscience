@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from importlib import import_module
 import shutil
@@ -185,6 +186,138 @@ def _current_workspace_root(*, quest_root: Path, default: Path) -> Path:
     if raw is None:
         return default
     return Path(raw).expanduser().resolve()
+
+
+def _path_fingerprint(path: Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.exists():
+        return {"path": str(resolved), "exists": False}
+    stat = resolved.stat()
+    return {
+        "path": str(resolved),
+        "exists": True,
+        "size": stat.st_size,
+        "mtime_ns": stat.st_mtime_ns,
+    }
+
+
+def _globbed_path_fingerprints(root: Path, *patterns: str, limit: int = 64) -> list[dict[str, Any]]:
+    if not root.exists():
+        return []
+    fingerprints: list[dict[str, Any]] = []
+    seen: set[Path] = set()
+    for pattern in patterns:
+        for path in sorted(root.glob(pattern)):
+            if not path.is_file():
+                continue
+            resolved = path.expanduser().resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            fingerprint = _path_fingerprint(resolved)
+            if fingerprint is not None:
+                fingerprints.append(fingerprint)
+            if len(fingerprints) >= limit:
+                return fingerprints
+    return fingerprints
+
+
+def _repair_unit_fingerprint(
+    *,
+    unit_id: str,
+    paper_root: Path,
+    gate_report: dict[str, Any],
+) -> str | None:
+    payload: dict[str, Any] | None
+    if unit_id == "materialize_display_surface":
+        payload = {
+            "unit_id": unit_id,
+            "medical_publication_surface_status": _non_empty_text(gate_report.get("medical_publication_surface_status")),
+            "medical_publication_surface_named_blockers": sorted(
+                str(item or "").strip()
+                for item in (gate_report.get("medical_publication_surface_named_blockers") or [])
+                if str(item or "").strip()
+            ),
+            "display_registry": _path_fingerprint(paper_root / "display_registry.json"),
+            "manuscript_assets": _globbed_path_fingerprints(
+                paper_root,
+                "figures/*.json",
+                "tables/*.json",
+                "figures/*.csv",
+                "tables/*.csv",
+                "results/*.json",
+            ),
+        }
+    elif unit_id == "workspace_display_repair_script":
+        payload = {
+            "unit_id": unit_id,
+            "medical_publication_surface_status": _non_empty_text(gate_report.get("medical_publication_surface_status")),
+            "medical_publication_surface_named_blockers": sorted(
+                str(item or "").strip()
+                for item in (gate_report.get("medical_publication_surface_named_blockers") or [])
+                if str(item or "").strip()
+            ),
+            "script": _path_fingerprint(paper_root / "build" / "generate_display_exports.py"),
+            "display_registry": _path_fingerprint(paper_root / "display_registry.json"),
+        }
+    elif unit_id == "sync_submission_minimal_delivery":
+        payload = {
+            "unit_id": unit_id,
+            "study_delivery_status": _study_delivery_status(gate_report),
+            "study_delivery_stale_reason": _study_delivery_stale_reason(gate_report),
+            "study_delivery_manifest_path": _non_empty_text(gate_report.get("study_delivery_manifest_path")),
+            "study_delivery_current_package_root": _non_empty_text(gate_report.get("study_delivery_current_package_root")),
+            "study_delivery_current_package_zip": _non_empty_text(gate_report.get("study_delivery_current_package_zip")),
+            "study_delivery_missing_source_paths": _string_list(gate_report.get("study_delivery_missing_source_paths")),
+            "submission_minimal_manifest": _path_fingerprint(paper_root / "submission_minimal" / "submission_manifest.json"),
+            "submission_minimal_assets": _globbed_path_fingerprints(
+                paper_root / "submission_minimal",
+                "*.docx",
+                "*.pdf",
+                "*.json",
+                "*.zip",
+            ),
+        }
+    else:
+        payload = None
+    if payload is None:
+        return None
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _latest_unit_status(latest_batch: dict[str, Any], *, unit_id: str) -> str | None:
+    for item in (latest_batch.get("unit_results") or []):
+        if not isinstance(item, dict):
+            continue
+        if _non_empty_text(item.get("unit_id")) != unit_id:
+            continue
+        return _non_empty_text(item.get("status"))
+    return None
+
+
+def _latest_unit_fingerprint(latest_batch: dict[str, Any], *, unit_id: str) -> str | None:
+    payload = latest_batch.get("unit_fingerprints")
+    if not isinstance(payload, dict):
+        return None
+    return _non_empty_text(payload.get(unit_id))
+
+
+def _can_skip_repair_unit(
+    latest_batch: dict[str, Any],
+    *,
+    unit_id: str,
+    unit_fingerprint: str | None,
+) -> bool:
+    if unit_fingerprint is None:
+        return False
+    previous_fingerprint = _latest_unit_fingerprint(latest_batch, unit_id=unit_id)
+    previous_status = _latest_unit_status(latest_batch, unit_id=unit_id)
+    if previous_fingerprint != unit_fingerprint:
+        return False
+    return previous_status is not None and previous_status not in {"failed", "missing"}
 
 
 def _latest_batch_record(*, study_root: Path) -> dict[str, Any]:
@@ -639,32 +772,62 @@ def run_gate_clearing_batch(
             "gate_blockers": sorted(gate_blockers),
         }
 
-    unit_results: list[dict[str, Any]] = []
-    if repair_units:
-        with ThreadPoolExecutor(max_workers=len(repair_units)) as executor:
-            futures = {executor.submit(unit.run): unit for unit in repair_units}
-            for future, unit in ((future, futures[future]) for future in futures):
+    unit_results_by_id: dict[str, dict[str, Any]] = {}
+    unit_fingerprints: dict[str, str] = {}
+    units_to_run: list[tuple[GateClearingRepairUnit, str | None]] = []
+    for unit in repair_units:
+        unit_fingerprint = _repair_unit_fingerprint(
+            unit_id=unit.unit_id,
+            paper_root=paper_root,
+            gate_report=gate_report,
+        )
+        if unit_fingerprint is not None:
+            unit_fingerprints[unit.unit_id] = unit_fingerprint
+        if _can_skip_repair_unit(latest_batch, unit_id=unit.unit_id, unit_fingerprint=unit_fingerprint):
+            unit_results_by_id[unit.unit_id] = {
+                "unit_id": unit.unit_id,
+                "label": unit.label,
+                "parallel_safe": unit.parallel_safe,
+                "status": "skipped_matching_unit_fingerprint",
+                "fingerprint": unit_fingerprint,
+                "previous_status": _latest_unit_status(latest_batch, unit_id=unit.unit_id),
+            }
+            continue
+        units_to_run.append((unit, unit_fingerprint))
+
+    if units_to_run:
+        with ThreadPoolExecutor(max_workers=len(units_to_run)) as executor:
+            futures = {executor.submit(unit.run): (unit, unit_fingerprint) for unit, unit_fingerprint in units_to_run}
+            for future, (unit, unit_fingerprint) in ((future, futures[future]) for future in futures):
                 try:
                     result = future.result()
-                    unit_results.append(
-                        {
-                            "unit_id": unit.unit_id,
-                            "label": unit.label,
-                            "parallel_safe": unit.parallel_safe,
-                            "status": str(result.get("status") or "ok"),
-                            "result": result,
-                        }
-                    )
+                    item = {
+                        "unit_id": unit.unit_id,
+                        "label": unit.label,
+                        "parallel_safe": unit.parallel_safe,
+                        "status": str(result.get("status") or "ok"),
+                        "result": result,
+                    }
+                    if unit_fingerprint is not None:
+                        item["fingerprint"] = unit_fingerprint
+                    unit_results_by_id[unit.unit_id] = item
                 except Exception as exc:
-                    unit_results.append(
-                        {
-                            "unit_id": unit.unit_id,
-                            "label": unit.label,
-                            "parallel_safe": unit.parallel_safe,
-                            "status": "failed",
-                            "error": str(exc),
-                        }
-                    )
+                    item = {
+                        "unit_id": unit.unit_id,
+                        "label": unit.label,
+                        "parallel_safe": unit.parallel_safe,
+                        "status": "failed",
+                        "error": str(exc),
+                    }
+                    if unit_fingerprint is not None:
+                        item["fingerprint"] = unit_fingerprint
+                    unit_results_by_id[unit.unit_id] = item
+
+    unit_results: list[dict[str, Any]] = [
+        unit_results_by_id[unit.unit_id]
+        for unit in repair_units
+        if unit.unit_id in unit_results_by_id
+    ]
 
     submission_minimal_refreshed = False
     if bundle_stage_repair and submission_minimal_refresh_requested:
@@ -732,6 +895,7 @@ def run_gate_clearing_batch(
         "current_workspace_root": str(current_workspace_root),
         "gate_blockers": sorted(gate_blockers),
         "unit_results": unit_results,
+        "unit_fingerprints": unit_fingerprints,
         "gate_replay": gate_replay,
     }
     record_path = stable_gate_clearing_batch_path(study_root=resolved_study_root)

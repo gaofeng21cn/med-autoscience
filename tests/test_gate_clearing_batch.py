@@ -698,6 +698,136 @@ def test_run_gate_clearing_batch_executes_delivery_refresh_fast_lane_for_stale_p
     assert result["gate_blockers"] == ["stale_study_delivery_mirror"]
 
 
+def test_run_gate_clearing_batch_skips_repair_units_when_unit_fingerprints_match_latest_record(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    latest_record_path = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+    _write_json(
+        latest_record_path,
+        {
+            "schema_version": 1,
+            "source_eval_id": "publication-eval::004-invasive-architecture::quest-004::2026-04-21T12:42:39+00:00",
+            "status": "executed",
+            "unit_results": [
+                {"unit_id": "materialize_display_surface", "status": "materialized"},
+                {"unit_id": "sync_submission_minimal_delivery", "status": "synced"},
+            ],
+            "unit_fingerprints": {
+                "materialize_display_surface": "display-fp",
+                "sync_submission_minimal_delivery": "delivery-fp",
+            },
+            "gate_replay": {
+                "status": "blocked",
+                "blockers": ["stale_study_delivery_mirror", "medical_publication_surface_blocked"],
+            },
+        },
+    )
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-004")
+    publication_eval_payload["eval_id"] = "publication-eval::004-invasive-architecture::quest-004::2026-04-22T12:42:39+00:00"
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": ["stale_study_delivery_mirror", "medical_publication_surface_blocked"],
+            "medical_publication_surface_status": "blocked",
+            "study_delivery_status": "stale_projection_missing",
+            "study_delivery_stale_reason": "delivery_projection_missing",
+            "study_delivery_missing_source_paths": [],
+        },
+    )
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(
+        module,
+        "_repair_unit_fingerprint",
+        lambda *, unit_id, **kwargs: {
+            "materialize_display_surface": "display-fp",
+            "sync_submission_minimal_delivery": "delivery-fp",
+        }.get(unit_id),
+    )
+    monkeypatch.setattr(
+        module,
+        "_materialize_display_surface",
+        lambda **_: (_ for _ in ()).throw(AssertionError("matching display fingerprint should skip heavy refresh")),
+    )
+    monkeypatch.setattr(
+        module,
+        "_repair_paper_live_paths",
+        lambda **_: {"ok": True, "status": "updated", "repaired_files": ["paper/live-paths.json"]},
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "can_sync_study_delivery",
+        lambda *, paper_root: True,
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "sync_study_delivery",
+        lambda **_: (_ for _ in ()).throw(AssertionError("matching delivery fingerprint should skip sync")),
+    )
+    replay_calls: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **kwargs: (
+            replay_calls.append(kwargs),
+            {
+                "status": "blocked",
+                "allow_write": False,
+                "blockers": ["stale_study_delivery_mirror"],
+                "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+            },
+        )[1],
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id="quest-004",
+        source="test-source",
+    )
+
+    assert replay_calls == [{"quest_root": quest_root, "apply": True, "source": "test-source"}]
+    assert result["ok"] is True
+    result_by_unit = {item["unit_id"]: item for item in result["unit_results"]}
+    assert set(result_by_unit) == {
+        "repair_paper_live_paths",
+        "materialize_display_surface",
+        "sync_submission_minimal_delivery",
+    }
+    assert result_by_unit["materialize_display_surface"]["status"] == "skipped_matching_unit_fingerprint"
+    assert result_by_unit["sync_submission_minimal_delivery"]["status"] == "skipped_matching_unit_fingerprint"
+    assert result_by_unit["materialize_display_surface"]["fingerprint"] == "display-fp"
+    assert result_by_unit["sync_submission_minimal_delivery"]["fingerprint"] == "delivery-fp"
+    saved = json.loads(latest_record_path.read_text(encoding="utf-8"))
+    assert saved["source_eval_id"] == publication_eval_payload["eval_id"]
+    assert saved["unit_fingerprints"] == {
+        "materialize_display_surface": "display-fp",
+        "sync_submission_minimal_delivery": "delivery-fp",
+    }
+
+
 def test_study_outer_loop_executes_gate_clearing_batch_controller_action(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     runtime_protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
