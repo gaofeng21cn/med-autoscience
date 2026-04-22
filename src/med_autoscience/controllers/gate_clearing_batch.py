@@ -41,6 +41,19 @@ _BUNDLE_STAGE_GATE_BLOCKERS = frozenset(
         "submission_hardening_incomplete",
     }
 )
+_SUBMISSION_MINIMAL_REPAIR_GATE_BLOCKERS = frozenset(
+    {
+        "submission_surface_qc_failure_present",
+        "submission_hardening_incomplete",
+    }
+)
+_DIRECT_SUBMISSION_DELIVERY_SYNC_STALE_REASONS = frozenset(
+    {
+        "delivery_projection_missing",
+        "delivery_manifest_source_changed",
+        "delivery_manifest_source_mismatch",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -215,6 +228,28 @@ def _bundle_stage_batch_action(
         "requires_controller_decision": requires_controller_decision,
         "current_required_action": current_required_action or None,
     }
+
+
+def _study_delivery_status(gate_report: dict[str, Any]) -> str:
+    return str(gate_report.get("study_delivery_status") or "").strip()
+
+
+def _study_delivery_stale_reason(gate_report: dict[str, Any]) -> str:
+    return str(gate_report.get("study_delivery_stale_reason") or "").strip()
+
+
+def _submission_minimal_refresh_requested(*, gate_report: dict[str, Any]) -> bool:
+    current_required_action = str(gate_report.get("current_required_action") or "").strip()
+    if current_required_action == "complete_bundle_stage":
+        return True
+    return bool(_gate_blockers(gate_report) & _SUBMISSION_MINIMAL_REPAIR_GATE_BLOCKERS)
+
+
+def _direct_submission_delivery_sync_requested(*, gate_report: dict[str, Any]) -> bool:
+    return (
+        _study_delivery_status(gate_report).startswith("stale")
+        and _study_delivery_stale_reason(gate_report) in _DIRECT_SUBMISSION_DELIVERY_SYNC_STALE_REASONS
+    )
 
 
 def _eligible_mapping_payload(*, quest_root: Path, study_root: Path) -> tuple[Path | None, dict[str, Any]]:
@@ -431,6 +466,14 @@ def _create_submission_minimal_package(*, paper_root: Path, profile: WorkspacePr
     )
 
 
+def _sync_submission_minimal_delivery(*, paper_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
+    return study_delivery_sync.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        publication_profile=profile.default_publication_profile,
+    )
+
+
 def run_gate_clearing_batch(
     *,
     profile: WorkspaceProfile,
@@ -472,6 +515,14 @@ def run_gate_clearing_batch(
     )
     gate_blockers = _gate_blockers(gate_report)
     bundle_stage_repair = _bundle_stage_repair_requested(gate_report=gate_report)
+    study_delivery_status = _study_delivery_status(gate_report)
+    submission_minimal_refresh_requested = _submission_minimal_refresh_requested(gate_report=gate_report)
+    direct_submission_delivery_sync_requested = (
+        bundle_stage_repair
+        and not submission_minimal_refresh_requested
+        and _direct_submission_delivery_sync_requested(gate_report=gate_report)
+        and study_delivery_sync.can_sync_study_delivery(paper_root=paper_root)
+    )
 
     repair_units: list[GateClearingRepairUnit] = []
     if mapping_payload:
@@ -535,12 +586,21 @@ def run_gate_clearing_batch(
                 run=lambda: _run_workspace_display_repair_script(paper_root=paper_root),
             )
         )
-    if not repair_units and str(gate_report.get("study_delivery_status") or "").strip().startswith("stale"):
+    if direct_submission_delivery_sync_requested:
+        repair_units.append(
+            GateClearingRepairUnit(
+                unit_id="sync_submission_minimal_delivery",
+                label="Refresh the study-owned submission-minimal delivery mirror before gate replay",
+                parallel_safe=True,
+                run=lambda: _sync_submission_minimal_delivery(paper_root=paper_root, profile=profile),
+            )
+        )
+    if not repair_units and study_delivery_status.startswith("stale"):
         # Let publication_gate.run_controller(apply=True) own stale delivery refresh even when
         # there are no other deterministic repairs to launch in parallel.
         repair_units = []
 
-    if not repair_units and not bundle_stage_repair and not str(gate_report.get("study_delivery_status") or "").strip().startswith("stale"):
+    if not repair_units and not bundle_stage_repair and not study_delivery_status.startswith("stale"):
         return {
             "ok": False,
             "status": "no_repair_units",
@@ -575,7 +635,8 @@ def run_gate_clearing_batch(
                         }
                     )
 
-    if bundle_stage_repair:
+    submission_minimal_refreshed = False
+    if bundle_stage_repair and submission_minimal_refresh_requested:
         try:
             result = _create_submission_minimal_package(paper_root=paper_root, profile=profile)
             unit_results.append(
@@ -587,11 +648,34 @@ def run_gate_clearing_batch(
                     "result": result,
                 }
             )
+            submission_minimal_refreshed = True
         except Exception as exc:
             unit_results.append(
                 {
                     "unit_id": "create_submission_minimal_package",
                     "label": "Regenerate submission-minimal assets before gate replay",
+                    "parallel_safe": False,
+                    "status": "failed",
+                    "error": str(exc),
+                }
+            )
+    if submission_minimal_refreshed and study_delivery_status.startswith("stale"):
+        try:
+            result = _sync_submission_minimal_delivery(paper_root=paper_root, profile=profile)
+            unit_results.append(
+                {
+                    "unit_id": "sync_submission_minimal_delivery",
+                    "label": "Refresh the study-owned submission-minimal delivery mirror before gate replay",
+                    "parallel_safe": False,
+                    "status": str(result.get("status") or "updated"),
+                    "result": result,
+                }
+            )
+        except Exception as exc:
+            unit_results.append(
+                {
+                    "unit_id": "sync_submission_minimal_delivery",
+                    "label": "Refresh the study-owned submission-minimal delivery mirror before gate replay",
                     "parallel_safe": False,
                     "status": "failed",
                     "error": str(exc),
