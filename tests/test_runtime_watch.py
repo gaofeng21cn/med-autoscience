@@ -540,32 +540,26 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
             "current_required_action": "continue_bundle_stage",
         },
     }
-    stopped_status = {
+    refreshed_status = {
         **initial_status,
-        "quest_status": "stopped",
-        "decision": "blocked",
-        "reason": "quest_waiting_for_submission_metadata",
+        "decision": "noop",
+        "reason": "quest_already_running",
     }
     ensure_calls: list[tuple[str, bool]] = []
-    stop_calls: list[dict[str, object]] = []
-    stopped = False
 
     def fake_ensure(**kwargs):
         ensure_calls.append((str(kwargs.get("source") or "").strip(), bool(kwargs.get("allow_stopped_relaunch"))))
-        return initial_status
+        if kwargs.get("source") == "runtime_watch":
+            return initial_status
+        if kwargs.get("source") == "runtime_watch_outer_loop_wakeup":
+            return refreshed_status
+        raise AssertionError(f"unexpected ensure source: {kwargs.get('source')}")
 
     def fake_status(**kwargs):
-        return stopped_status if stopped else initial_status
-
-    def fake_stop_quest(**kwargs):
-        nonlocal stopped
-        stopped = True
-        stop_calls.append(kwargs)
-        return {"ok": True, "quest_id": "quest-001", "status": "stopped", "snapshot": {"status": "stopped"}}
+        return refreshed_status if ensure_calls and ensure_calls[-1][0] == "runtime_watch_outer_loop_wakeup" else initial_status
 
     monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
     monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", fake_status)
-    monkeypatch.setattr(module.study_runtime_router.managed_runtime_transport, "stop_quest", fake_stop_quest)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
     monkeypatch.setattr(module.study_outer_loop, "_utc_now", lambda: "2026-04-05T05:58:00+00:00")
 
@@ -588,9 +582,9 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
 
     assert ensure_calls == [
         ("runtime_watch", False),
+        ("runtime_watch_outer_loop_wakeup", False),
         ("runtime_watch", False),
     ]
-    assert len(stop_calls) == 1
     assert first["managed_study_outer_loop_dispatches"] == [
         {
             "study_id": "001-risk",
@@ -598,7 +592,7 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
             "decision_type": "continue_same_line",
             "route_target": "finalize",
             "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
-            "controller_action_type": "stop_runtime",
+            "controller_action_type": "ensure_study_runtime",
             "study_decision_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
             "dispatch_status": "executed",
             "source": "runtime_watch_outer_loop_wakeup",
@@ -607,11 +601,11 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
     assert second["managed_study_outer_loop_dispatches"] == []
     assert payload["controller_actions"] == [
         {
-            "action_type": "stop_runtime",
+            "action_type": "ensure_study_runtime",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
-    assert payload["reason"] == "Human-review milestone reached; stop the live runtime and wait for explicit resume."
+    assert payload["reason"] == "Bundle-stage work is unlocked; continue the same paper line and keep runtime continuity."
     assert payload["runtime_escalation_ref"]["record_id"] == (
         "runtime-escalation::001-risk::quest-001::quest_already_running::2026-04-05T05:58:00+00:00"
     )

@@ -1502,7 +1502,7 @@ def test_build_runtime_watch_outer_loop_tick_request_autoparks_ready_submission_
     assert request["route_target"] == "finalize"
     assert request["controller_actions"] == [
         {
-            "action_type": "stop_runtime",
+            "action_type": "ensure_study_runtime",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
@@ -1648,7 +1648,7 @@ def test_build_runtime_watch_outer_loop_tick_request_autoparks_without_runtime_e
     assert request is not None
     assert request["controller_actions"] == [
         {
-            "action_type": "stop_runtime",
+            "action_type": "ensure_study_runtime",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]

@@ -571,19 +571,18 @@ def _recommended_submission_milestone_autopark_action(
     route_rationale = str(
         quality_execution_lane.get("summary")
         or quality_closure_truth.get("summary")
-        or "Human-review milestone reached and only finalize-level bundle cleanup remains."
+        or "Only finalize-level bundle cleanup remains on the current paper line."
     ).strip()
     return {
-        "action_id": f"quality-milestone::{study_root.name}::autopark",
+        "action_id": f"quality-milestone::{study_root.name}::continue_bundle_stage",
         "action_type": StudyDecisionType.CONTINUE_SAME_LINE.value,
         "priority": "now",
-        "reason": "Human-review milestone reached; stop the live runtime and wait for explicit resume.",
+        "reason": "Bundle-stage work is unlocked; continue the same paper line and keep runtime continuity.",
         "route_target": "finalize",
         "route_key_question": route_key_question
         or "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
         "route_rationale": route_rationale,
         "requires_controller_decision": True,
-        "controller_action_type": StudyDecisionActionType.STOP_RUNTIME.value,
     }
 
 
