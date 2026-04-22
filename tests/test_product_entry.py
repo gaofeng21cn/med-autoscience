@@ -265,6 +265,48 @@ def test_attention_queue_prefers_gate_clearing_followthrough_for_quality_blocker
     )
 
 
+def test_study_item_normalizes_gate_clearing_batch_followthrough_from_progress_payload() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile_ref = Path("profile.local.toml").resolve()
+
+    item = module._study_item(
+        progress_payload={
+            "study_id": "001-risk",
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "summary": "最近一轮 gate-clearing batch 已执行；当前仍剩 2 个 gate blocker。",
+                "gate_replay_status": "blocked",
+                "blocking_issue_count": 2,
+                "failed_unit_count": 0,
+                "next_confirmation_signal": "看 publication_eval/latest.json 或最新 gate replay 是否继续收窄 blocker。",
+                "user_intervention_required_now": False,
+                "latest_record_path": "/tmp/gate_clearing_batch/latest.json",
+            },
+        },
+        profile_ref=profile_ref,
+    )
+
+    assert item["gate_clearing_followthrough"] == {
+        "surface_kind": "gate_clearing_followthrough",
+        "state": "waiting_gate_replay",
+        "state_label": "等待 gate replay",
+        "summary": "最近一轮 gate-clearing batch 已执行；当前仍剩 2 个 gate blocker。",
+        "next_confirmation_signal": "看 publication_eval/latest.json 或最新 gate replay 是否继续收窄 blocker。",
+        "recommended_step_id": "inspect_gate_clearing_followthrough",
+        "recommended_command": (
+            "uv run python -m med_autoscience.cli study-progress --profile "
+            + str(profile_ref)
+            + " --study-id 001-risk"
+        ),
+        "gate_replay_status": "blocked",
+        "failed_unit_count": 0,
+        "blocking_issue_count": 2,
+        "latest_record_path": "/tmp/gate_clearing_batch/latest.json",
+        "user_intervention_required_now": False,
+    }
+
+
 def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
@@ -2430,7 +2472,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "same_line_route_surface_field": "same_line_route_surface",
         "quality_repair_batch_followthrough_field": "quality_repair_batch_followthrough",
         "quality_review_followthrough_field": "quality_review_followthrough",
-        "gate_clearing_followthrough_field": "gate_clearing_followthrough",
+        "gate_clearing_batch_followthrough_field": "gate_clearing_batch_followthrough",
         "research_runtime_control_projection_field": "research_runtime_control_projection",
     }
     assert payload["return_surface_contract"]["research_runtime_control_projection_contract"] == {
