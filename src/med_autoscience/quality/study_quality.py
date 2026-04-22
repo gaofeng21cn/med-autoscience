@@ -230,6 +230,24 @@ def _finalize_bundle_readiness(
             "why_stable": "当前最窄 scientific gap 仍未闭环，先完成同线质量修复再进入 finalize / bundle。",
             "basis_dimensions": [],
         }
+    if reviewer_first.get("source") != "review_ledger":
+        return {
+            "status": "missing_review_ledger",
+            "ready_for_finalize": False,
+            "reviewer_first_ready": False,
+            "summary": "核心科学质量已进入 bundle-only 收口，但 reviewer-first readiness 还没有由 review ledger 证明。",
+            "why_stable": "先补齐 review ledger 或关闭 reviewer concern，再把 finalize / bundle readiness 视为稳定。",
+            "basis_dimensions": [],
+        }
+    if not bool(reviewer_first.get("ready")):
+        return {
+            "status": "reviewer_first_not_ready",
+            "ready_for_finalize": False,
+            "reviewer_first_ready": False,
+            "summary": "核心科学质量已进入 bundle-only 收口，但 reviewer-first concern 仍未关闭。",
+            "why_stable": "先关闭 review ledger 中的阻塞 concern，再把 finalize / bundle readiness 视为稳定。",
+            "basis_dimensions": [],
+        }
     return {
         "status": "bundle_only_remaining",
         "ready_for_finalize": True,

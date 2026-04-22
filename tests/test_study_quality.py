@@ -323,6 +323,94 @@ def test_build_study_quality_truth_marks_bundle_only_remaining_as_same_contract_
     }
 
 
+def test_build_study_quality_truth_blocks_finalize_without_reviewer_first_ready() -> None:
+    module = _load_module()
+
+    truth = module.build_study_quality_truth(
+        study_id="001-risk",
+        charter_payload=_charter_payload(),
+        publication_eval={
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "delivery",
+                    "severity": "optional",
+                    "summary": "Only submission bundle alignment remains.",
+                    "evidence_refs": ["/tmp/runtime/main_result.json"],
+                }
+            ],
+        },
+        promotion_gate_payload={
+            "current_required_action": "complete_bundle_stage",
+            "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
+            "medical_publication_surface_named_blockers": ["submission_hardening_incomplete"],
+        },
+        route_repair_plan={
+            "action_id": "action-003",
+            "action_type": "route_back_same_line",
+            "priority": "now",
+            "route_target": "finalize",
+            "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+            "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
+        },
+        quality_closure_truth={
+            "state": "bundle_only_remaining",
+            "summary": "核心科学质量已经闭环；剩余工作收口在 finalize / submission bundle，同一论文线可以继续自动推进。",
+            "current_required_action": "complete_bundle_stage",
+            "route_target": "finalize",
+        },
+        quality_closure_basis={
+            "clinical_significance": {
+                "status": "ready",
+                "summary": "Clinical framing is already stable.",
+                "evidence_refs": ["/tmp/gate.json"],
+            },
+            "evidence_strength": {
+                "status": "ready",
+                "summary": "Core evidence is already closed.",
+                "evidence_refs": ["/tmp/gate.json"],
+            },
+            "novelty_positioning": {
+                "status": "ready",
+                "summary": "Novelty boundary is already fixed.",
+                "evidence_refs": ["/tmp/charter.json"],
+            },
+            "human_review_readiness": {
+                "status": "partial",
+                "summary": "Human review package still needs reviewer-ledger proof.",
+                "evidence_refs": ["/tmp/gate.json"],
+            },
+            "publication_gate": {
+                "status": "partial",
+                "summary": "Only finalize-level bundle cleanup remains.",
+                "evidence_refs": ["/tmp/promotion_gate.json"],
+            },
+        },
+        quality_execution_lane={
+            "lane_id": "submission_hardening",
+            "lane_label": "submission hardening 收口",
+            "repair_mode": "same_line_route_back",
+            "route_target": "finalize",
+            "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+            "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“What is the narrowest finalize or submission-bundle step still required on the current paper line?”。",
+            "why_now": "The paper itself is ready for human review and only finalize-level cleanup remains.",
+        },
+        review_ledger_payload=None,
+        review_ledger_path="/tmp/workspace/studies/001-risk/paper/review/review_ledger.json",
+    )
+
+    assert truth["reviewer_first"]["ready"] is False
+    assert truth["reviewer_first"]["source"] == "publication_eval"
+    assert truth["finalize_bundle_readiness"] == {
+        "status": "missing_review_ledger",
+        "ready_for_finalize": False,
+        "reviewer_first_ready": False,
+        "summary": "核心科学质量已进入 bundle-only 收口，但 reviewer-first readiness 还没有由 review ledger 证明。",
+        "why_stable": "先补齐 review ledger 或关闭 reviewer concern，再把 finalize / bundle readiness 视为稳定。",
+        "basis_dimensions": [],
+    }
+
+
 def test_evaluation_summary_materializes_study_quality_truth_on_durable_surface(tmp_path: Path) -> None:
     summary_module = importlib.import_module("med_autoscience.evaluation_summary")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
