@@ -5,7 +5,7 @@ import shlex
 from datetime import datetime, timezone
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from opl_harness_shared.status_narration import (
     PROGRESS_ANSWER_CHECKLIST,
@@ -19,7 +19,6 @@ from med_autoscience.controller_confirmation_summary import (
     stable_controller_confirmation_summary_path,
 )
 from med_autoscience.controller_summary import read_controller_summary, stable_controller_summary_path
-from med_autoscience.controllers import gate_clearing_batch, study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.evaluation_summary import (
     build_same_line_route_truth,
@@ -236,6 +235,36 @@ _TEXT_REPLACEMENTS = (
 )
 _SUPERVISOR_TICK_GAP_STATUSES = {"missing", "invalid", "stale"}
 _PROGRESS_STALE_AFTER_SECONDS = 12 * 60 * 60
+
+
+def _load_controller(module_name: str):
+    return import_module(f"med_autoscience.controllers.{module_name}")
+
+
+class _LazyModuleProxy:
+    def __init__(self, loader: Callable[[], Any]) -> None:
+        object.__setattr__(self, "_loader", loader)
+        object.__setattr__(self, "_module", None)
+
+    def _resolve(self):
+        module = object.__getattribute__(self, "_module")
+        if module is None:
+            module = object.__getattribute__(self, "_loader")()
+            object.__setattr__(self, "_module", module)
+        return module
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._resolve(), name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name.startswith("_"):
+            object.__setattr__(self, name, value)
+            return
+        setattr(self._resolve(), name, value)
+
+
+gate_clearing_batch = _LazyModuleProxy(lambda: _load_controller("gate_clearing_batch"))
+study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
 _QUALITY_CLOSURE_BASIS_LABELS = {
     "clinical_significance": "临床意义",
     "evidence_strength": "证据强度",

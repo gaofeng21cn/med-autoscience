@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import builtins
 from datetime import datetime, timezone
 import importlib
 import json
 from pathlib import Path
+import sys
 
 from tests.study_runtime_test_helpers import (
     make_profile,
@@ -16,6 +18,31 @@ from tests.study_runtime_test_helpers import (
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def test_study_progress_import_does_not_require_submission_pdf_dependency(monkeypatch) -> None:
+    for module_name in list(sys.modules):
+        if module_name in {
+            "med_autoscience.controllers.study_progress",
+            "med_autoscience.controllers.gate_clearing_batch",
+            "med_autoscience.controllers.publication_gate",
+            "med_autoscience.controllers.submission_minimal",
+            "pypdf",
+        }:
+            sys.modules.pop(module_name, None)
+
+    real_import = builtins.__import__
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "pypdf" or name.startswith("pypdf."):
+            raise ModuleNotFoundError("No module named 'pypdf'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    assert callable(module.read_study_progress)
 
 
 def _write_publication_eval(

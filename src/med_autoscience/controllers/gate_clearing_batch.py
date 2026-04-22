@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from importlib import import_module
 import shutil
 import subprocess
 import sys
@@ -11,9 +12,6 @@ from typing import Any, Callable
 
 import yaml
 
-from med_autoscience.controllers import display_surface_materialization, publication_gate
-from med_autoscience.controllers import study_delivery_sync, submission_minimal
-from med_autoscience.controllers import study_runtime_router
 from med_autoscience.publication_eval_latest import read_publication_eval_latest
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
@@ -54,6 +52,39 @@ _DIRECT_SUBMISSION_DELIVERY_SYNC_STALE_REASONS = frozenset(
         "delivery_manifest_source_mismatch",
     }
 )
+
+
+def _load_controller(module_name: str):
+    return import_module(f"med_autoscience.controllers.{module_name}")
+
+
+class _LazyModuleProxy:
+    def __init__(self, loader: Callable[[], Any]) -> None:
+        object.__setattr__(self, "_loader", loader)
+        object.__setattr__(self, "_module", None)
+
+    def _resolve(self):
+        module = object.__getattribute__(self, "_module")
+        if module is None:
+            module = object.__getattribute__(self, "_loader")()
+            object.__setattr__(self, "_module", module)
+        return module
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._resolve(), name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name.startswith("_"):
+            object.__setattr__(self, name, value)
+            return
+        setattr(self._resolve(), name, value)
+
+
+display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("display_surface_materialization"))
+publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
+study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
+submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
+study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
 
 
 @dataclass(frozen=True)
