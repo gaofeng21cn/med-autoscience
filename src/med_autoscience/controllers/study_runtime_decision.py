@@ -1842,15 +1842,11 @@ def _status_state(
     )
     bundle_only_manual_finish = (
         quest_exists
-<<<<<<< HEAD
         and not task_intake_overrides_auto_manual_finish
-        and _bundle_only_submission_ready_manual_finish_active(study_root=study_root)
-=======
         and _bundle_only_submission_ready_manual_finish_active(
             study_root=study_root,
             quest_root=quest_root,
         )
->>>>>>> 9e1bd98 (Guard submission bundle parking on authority freshness)
     )
     explicit_manual_finish_compatibility_guard = _explicit_manual_finish_compatibility_guard_active(
         study_root=study_root,
