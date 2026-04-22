@@ -70,6 +70,171 @@ def _managed_runtime_transport(module: object):
     return transport
 
 
+def _materialize_bundle_only_remaining_evaluation_summary(*, study_root: Path, quest_root: Path) -> None:
+    summary_module = importlib.import_module("med_autoscience.evaluation_summary")
+    study_id = study_root.name
+    quest_id = quest_root.name
+    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    runtime_escalation_path = quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+    gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
+    publication_objective = "risk stratification external validation"
+
+    write_text(
+        charter_path,
+        json.dumps(
+            {
+                "schema_version": 1,
+                "charter_id": f"charter::{study_id}::v1",
+                "study_id": study_id,
+                "publication_objective": publication_objective,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        publication_eval_path,
+        json.dumps(
+            {
+                "schema_version": 1,
+                "eval_id": f"publication-eval::{study_id}::{quest_id}::2026-04-05T06:00:00+00:00",
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "emitted_at": "2026-04-05T06:00:00+00:00",
+                "evaluation_scope": "publication",
+                "charter_context_ref": {
+                    "ref": str(charter_path),
+                    "charter_id": f"charter::{study_id}::v1",
+                    "publication_objective": publication_objective,
+                },
+                "runtime_context_refs": {
+                    "runtime_escalation_ref": str(runtime_escalation_path),
+                    "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
+                },
+                "delivery_context_refs": {
+                    "paper_root_ref": str(study_root / "paper"),
+                    "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+                },
+                "verdict": {
+                    "overall_verdict": "blocked",
+                    "primary_claim_status": "supported",
+                    "summary": "Core science is closed; remaining work is finalize-stage package hardening.",
+                    "stop_loss_pressure": "none",
+                },
+                "quality_assessment": {
+                    "clinical_significance": {
+                        "status": "ready",
+                        "summary": "Clinical framing and result surface are already reviewable.",
+                        "evidence_refs": [str(gate_report_path)],
+                    },
+                    "evidence_strength": {
+                        "status": "ready",
+                        "summary": "Core evidence is already closed; remaining issues are downstream-only.",
+                        "evidence_refs": [str(gate_report_path)],
+                    },
+                    "novelty_positioning": {
+                        "status": "ready",
+                        "summary": "Contribution boundaries are already frozen in the charter and manuscript lane.",
+                        "evidence_refs": [str(charter_path)],
+                    },
+                    "human_review_readiness": {
+                        "status": "partial",
+                        "summary": "Current package still needs one more finalize pass before human audit.",
+                        "evidence_refs": [str(gate_report_path)],
+                    },
+                },
+                "gaps": [
+                    {
+                        "gap_id": "gap-001",
+                        "gap_type": "delivery",
+                        "severity": "optional",
+                        "summary": "Only submission bundle alignment remains.",
+                        "evidence_refs": [str(gate_report_path)],
+                    }
+                ],
+                "recommended_actions": [
+                    {
+                        "action_id": "action-003",
+                        "action_type": "route_back_same_line",
+                        "priority": "now",
+                        "reason": "Return to finalize for last-mile bundle stabilization.",
+                        "route_target": "finalize",
+                        "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                        "route_rationale": (
+                            "The paper itself is ready for human review and only finalize-level cleanup remains."
+                        ),
+                        "evidence_refs": [str(gate_report_path)],
+                        "requires_controller_decision": True,
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        runtime_escalation_path,
+        json.dumps(
+            {
+                "schema_version": 1,
+                "record_id": (
+                    f"runtime-escalation::{study_id}::{quest_id}::"
+                    "publishability_gate_blocked::2026-04-05T05:58:00+00:00"
+                ),
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "emitted_at": "2026-04-05T05:58:00+00:00",
+                "trigger": {"trigger_id": "publishability_gate_blocked", "source": "publication_gate"},
+                "scope": "quest",
+                "severity": "study",
+                "reason": "publishability_gate_blocked",
+                "recommended_actions": ["return_to_controller", "review_publishability_gate"],
+                "evidence_refs": [str(gate_report_path)],
+                "runtime_context_refs": {
+                    "launch_report_path": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+                },
+                "summary_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+                "artifact_path": str(runtime_escalation_path),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        gate_report_path,
+        json.dumps(
+            {
+                "schema_version": 1,
+                "gate_kind": "publishability_control",
+                "generated_at": "2026-04-05T06:05:00+00:00",
+                "quest_id": quest_id,
+                "status": "blocked",
+                "allow_write": False,
+                "recommended_action": "complete_bundle_stage",
+                "latest_gate_path": str(gate_report_path),
+                "supervisor_phase": "bundle_stage_blocked",
+                "current_required_action": "complete_bundle_stage",
+                "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
+                "blockers": ["missing_submission_minimal"],
+                "medical_publication_surface_named_blockers": ["submission_hardening_incomplete"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+
+    summary_module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(runtime_escalation_path),
+        publishability_gate_report_ref=gate_report_path,
+    )
+
+
 @pytest.fixture(autouse=True)
 def _patch_runtime_sidecars(monkeypatch):
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
@@ -1022,6 +1187,160 @@ def test_ensure_study_runtime_explicitly_relaunches_stopped_quest(monkeypatch, t
     assert launch_report["decision"] == "relaunch_stopped"
     assert launch_report["reason"] == "quest_stopped_explicit_relaunch_requested"
     assert launch_report["daemon_result"]["resume"]["action"] == "resume"
+
+
+def test_study_runtime_status_reopened_task_intake_does_not_keep_bundle_only_handoff_parked(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    write_auditable_current_package(study_root)
+    current_package_root = study_root / "manuscript" / "current_package"
+    (current_package_root / "submission_checklist.json").unlink()
+    write_text(current_package_root / "submission_manifest.json", '{"schema_version":1}\n')
+    quest_root = profile.runtime_root / "001-risk"
+    _materialize_bundle_only_remaining_evaluation_summary(study_root=study_root, quest_root=quest_root)
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent=(
+            "按最新专家意见重新打开同一论文线的修订任务；当前稿件不能按已达投稿包里程碑直接收口，"
+            "并把当前 submission-ready/finalize 判断降回待修订后再评估。"
+        ),
+        constraints=("本轮不得直接按外投收口。",),
+        first_cycle_outputs=("补充分层统计分析并写回 manuscript。",),
+    )
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"stopped"}\n')
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert result["quest_status"] == "stopped"
+
+
+def test_ensure_study_runtime_relaunches_stopped_quest_after_reopened_task_intake(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    write_auditable_current_package(study_root)
+    current_package_root = study_root / "manuscript" / "current_package"
+    (current_package_root / "submission_checklist.json").unlink()
+    write_text(current_package_root / "submission_manifest.json", '{"schema_version":1}\n')
+    quest_root = profile.runtime_root / "001-risk"
+    _materialize_bundle_only_remaining_evaluation_summary(study_root=study_root, quest_root=quest_root)
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent=(
+            "按最新专家意见重新打开同一论文线的修订任务；当前稿件不能按已达投稿包里程碑直接收口，"
+            "并把当前 submission-ready/finalize 判断降回待修订后再评估。"
+        ),
+        constraints=("本轮不得直接按外投收口。",),
+        first_cycle_outputs=("补充分层统计分析并写回 manuscript。",),
+    )
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"stopped"}\n')
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    resumed: dict[str, object] = {}
+
+    def fake_resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
+        resumed.update(
+            {
+                "runtime_root": runtime_root,
+                "quest_id": quest_id,
+                "source": source,
+            }
+        )
+        return {
+            "ok": True,
+            "quest_id": quest_id,
+            "action": "resume",
+            "status": "active",
+            "snapshot": {
+                "quest_id": quest_id,
+                "status": "active",
+            },
+        }
+
+    monkeypatch.setattr(_managed_runtime_transport(module), "resume_quest", fake_resume_quest)
+
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id="001-risk",
+        allow_stopped_relaunch=True,
+        source="medautosci-test",
+    )
+
+    assert result["decision"] == "relaunch_stopped"
+    assert result["reason"] == "quest_stopped_explicit_relaunch_requested"
+    assert result["quest_status"] == "active"
+    assert resumed == {
+        "runtime_root": profile.med_deepscientist_runtime_root,
+        "quest_id": "001-risk",
+        "source": "medautosci-test",
+    }
 
 
 def test_study_runtime_status_auto_resumes_controller_owned_stopped_completion_request_when_publication_gate_is_blocked(

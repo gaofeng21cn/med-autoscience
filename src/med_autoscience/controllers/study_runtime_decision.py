@@ -55,6 +55,10 @@ from med_autoscience.study_manual_finish import (
     resolve_study_manual_finish_contract,
     resolve_submission_metadata_only_manual_finish_contract,
 )
+from med_autoscience.study_task_intake import (
+    read_latest_task_intake,
+    task_intake_overrides_auto_manual_finish,
+)
 
 
 _SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS = paper_artifacts.SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS
@@ -258,6 +262,10 @@ def _bundle_only_submission_ready_manual_finish_active(*, study_root: Path) -> b
 def _explicit_manual_finish_compatibility_guard_active(*, study_root: Path) -> bool:
     contract = resolve_study_manual_finish_contract(study_root=study_root)
     return contract is not None and contract.compatibility_guard_only
+
+
+def _task_intake_overrides_auto_manual_finish_active(*, study_root: Path) -> bool:
+    return task_intake_overrides_auto_manual_finish(read_latest_task_intake(study_root=study_root))
 
 
 def _publication_eval_evidence_refs(*values: object) -> tuple[str, ...]:
@@ -1818,8 +1826,12 @@ def _status_state(
         enforce_startup_hydration=quest_status in _LIVE_QUEST_STATUSES,
     )
     completion_state = router._study_completion_state(study_root=study_root)
+    task_intake_overrides_auto_manual_finish = _task_intake_overrides_auto_manual_finish_active(
+        study_root=study_root,
+    )
     submission_metadata_only_manual_finish = (
         quest_exists
+        and not task_intake_overrides_auto_manual_finish
         and _submission_metadata_only_manual_finish_active(
             study_root=study_root,
             quest_root=quest_root,
@@ -1827,6 +1839,7 @@ def _status_state(
     )
     bundle_only_manual_finish = (
         quest_exists
+        and not task_intake_overrides_auto_manual_finish
         and _bundle_only_submission_ready_manual_finish_active(study_root=study_root)
     )
     explicit_manual_finish_compatibility_guard = _explicit_manual_finish_compatibility_guard_active(
@@ -1840,6 +1853,7 @@ def _status_state(
     submission_metadata_only_wait = (
         quest_exists
         and quest_status == StudyRuntimeQuestStatus.WAITING_FOR_USER
+        and not task_intake_overrides_auto_manual_finish
         and _waiting_submission_metadata_only(quest_root)
     )
 
