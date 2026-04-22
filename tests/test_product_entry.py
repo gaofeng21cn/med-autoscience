@@ -149,6 +149,65 @@ def test_attention_queue_prefers_autonomy_contract_summary_for_runtime_recovery(
     assert queue[0]["summary"] == "恢复点已冻结；当前停在 resume_from_checkpoint，下一次确认看恢复信号。"
 
 
+def test_attention_queue_prefers_gate_clearing_followthrough_for_quality_blockers() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    followthrough_command = (
+        "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk --format json"
+    )
+
+    queue = module._attention_queue(
+        workspace_status="attention_required",
+        workspace_supervision={
+            "service": {"loaded": True, "drift_reasons": []},
+            "study_counts": {},
+        },
+        studies=[
+            {
+                "study_id": "001-risk",
+                "monitoring": {"supervisor_tick_status": "fresh"},
+                "progress_freshness": {"status": "fresh"},
+                "current_stage_summary": "当前进入 controller-owned gate-clearing followthrough。",
+                "next_system_action": "等待新的 publication gate 结论。",
+                "current_blockers": ["publication gate 还没有重新回写清障结果。"],
+                "intervention_lane": {
+                    "lane_id": "quality_floor_blocker",
+                    "repair_mode": "bounded_analysis",
+                    "route_target_label": "analysis-campaign",
+                },
+                "operator_verdict": {
+                    "summary": "generic gate-clearing summary",
+                    "primary_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                },
+                "operator_status_card": {},
+                "quality_execution_lane": {
+                    "lane_id": "claim_evidence",
+                    "summary": "旧的质量执行线摘要。",
+                },
+                "gate_clearing_followthrough": {
+                    "surface_kind": "gate_clearing_followthrough",
+                    "state": "waiting_gate_replay",
+                    "state_label": "等待 gate replay",
+                    "summary": "当前已按 gate-clearing batch 回放 deterministic 修复，正在等待新的 publication gate 结论。",
+                    "next_confirmation_signal": "看 replay 后的 publication gate 是否收窄 medical_publication_surface_blocked。",
+                    "recommended_step_id": "inspect_gate_clearing_followthrough",
+                    "recommended_command": followthrough_command,
+                },
+            }
+        ],
+        commands={},
+    )
+
+    assert queue[0]["code"] == "study_quality_floor_blocker"
+    assert queue[0]["summary"] == "当前已按 gate-clearing batch 回放 deterministic 修复，正在等待新的 publication gate 结论。"
+    assert queue[0]["recommended_step_id"] == "inspect_gate_clearing_followthrough"
+    assert queue[0]["recommended_command"] == followthrough_command
+    assert queue[0]["gate_clearing_followthrough"]["state_label"] == "等待 gate replay"
+    assert (
+        queue[0]["gate_clearing_followthrough"]["next_confirmation_signal"]
+        == "看 replay 后的 publication gate 是否收窄 medical_publication_surface_blocked。"
+    )
+
+
 def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
@@ -1034,6 +1093,140 @@ def test_workspace_cockpit_projects_autonomy_soak_and_quality_followthrough() ->
     assert "质量复评跟进: 等待复评；当前修订计划已完成，下一步应由 MAS 发起 re-review。；看 publication_eval/latest.json 是否出现新的复评结论。" in markdown
 
 
+def test_workspace_cockpit_projects_gate_clearing_followthrough_into_attention_and_brief(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    write_study(profile.workspace_root, "001-risk")
+    followthrough_command = (
+        "uv run python -m med_autoscience.cli study-progress --profile "
+        + str(profile_ref.resolve())
+        + " --study-id 001-risk"
+    )
+    followthrough_summary = "当前已按 gate-clearing batch 回放 deterministic 修复，正在等待新的 publication gate 结论。"
+    next_signal = "看 replay 后的 publication gate 是否收窄 medical_publication_surface_blocked。"
+
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: SimpleNamespace(
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            med_deepscientist_runtime_exists=True,
+            medical_overlay_ready=True,
+            external_runtime_contract={"ready": True},
+            workspace_supervision_contract={
+                "status": "loaded",
+                "loaded": True,
+                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "drift_reasons": [],
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_inspect_workspace_supervision",
+        lambda profile: {
+            "manager": "launchd",
+            "status": "loaded",
+            "loaded": True,
+            "job_exists": True,
+            "summary": "Hermes-hosted runtime supervision 已在线。",
+            "drift_reasons": [],
+        },
+    )
+    monkeypatch.setattr(
+        module.mainline_status,
+        "read_mainline_status",
+        lambda: {
+            "program_id": "research-foundry-medical-mainline",
+            "current_stage": {"id": "f4_blocker_closeout", "status": "in_progress", "summary": "继续收口 blocker。"},
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **kwargs: {
+            "study_id": "001-risk",
+            "current_stage": "publication_supervision",
+            "current_stage_summary": "当前进入 controller-owned gate-clearing followthrough。",
+            "current_blockers": ["publication gate 还没有重新回写清障结果。"],
+            "next_system_action": "等待新的 publication gate 结论。",
+            "intervention_lane": {
+                "lane_id": "quality_floor_blocker",
+                "title": "继续 gate-clearing followthrough",
+                "severity": "warning",
+                "summary": "当前在等 gate replay 回写。",
+            },
+            "operator_verdict": {
+                "surface_kind": "study_operator_verdict",
+                "verdict_id": "study_operator_verdict::001-risk::quality_floor_blocker",
+                "study_id": "001-risk",
+                "lane_id": "quality_floor_blocker",
+                "severity": "warning",
+                "decision_mode": "monitor_only",
+                "needs_intervention": False,
+                "focus_scope": "study",
+                "summary": "当前在等 gate replay 回写。",
+                "reason_summary": "当前在等 gate replay 回写。",
+                "primary_step_id": "inspect_study_progress",
+                "primary_surface_kind": "study_progress",
+                "primary_command": followthrough_command,
+            },
+            "operator_status_card": {
+                "surface_kind": "study_operator_status_card",
+                "handling_state": "monitor_only",
+            },
+            "recommended_command": followthrough_command,
+            "recommended_commands": [],
+            "gate_clearing_followthrough": {
+                "surface_kind": "gate_clearing_followthrough",
+                "state": "waiting_gate_replay",
+                "state_label": "等待 gate replay",
+                "summary": followthrough_summary,
+                "next_confirmation_signal": next_signal,
+                "recommended_step_id": "inspect_gate_clearing_followthrough",
+                "recommended_command": followthrough_command,
+            },
+            "needs_physician_decision": False,
+            "supervision": {
+                "browser_url": "http://127.0.0.1:20999",
+                "quest_session_api_url": "http://127.0.0.1:20999/api/quests/001-risk/session",
+                "active_run_id": "run-001",
+                "health_status": "live",
+                "supervisor_tick_status": "fresh",
+            },
+            "task_intake": {
+                "task_intent": "推进 001-risk 到重新过 gate。",
+                "journal_target": "BMC Medicine",
+            },
+            "progress_freshness": {
+                "status": "fresh",
+                "summary": "最近 12 小时内仍有明确研究推进记录。",
+            },
+        },
+    )
+
+    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    markdown = module.render_workspace_cockpit_markdown(payload)
+
+    assert payload["attention_queue"][0]["summary"] == followthrough_summary
+    assert payload["attention_queue"][0]["recommended_step_id"] == "inspect_gate_clearing_followthrough"
+    assert payload["operator_brief"]["summary"] == followthrough_summary
+    assert payload["operator_brief"]["current_focus"] == next_signal
+    assert payload["operator_brief"]["recommended_step_id"] == "inspect_gate_clearing_followthrough"
+    assert payload["studies"][0]["gate_clearing_followthrough"]["state_label"] == "等待 gate replay"
+    assert (
+        "gate-clearing 跟进: 等待 gate replay；当前已按 gate-clearing batch 回放 deterministic 修复，正在等待新的 publication gate 结论。；看 replay 后的 publication gate 是否收窄 medical_publication_surface_blocked。"
+        in markdown
+    )
+
+
 def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
@@ -1436,6 +1629,98 @@ def test_build_product_frontdesk_uses_quality_review_followthrough_for_monitor_f
 
     assert payload["operator_brief"]["recommended_step_id"] == "open_workspace_cockpit"
     assert payload["operator_brief"]["current_focus"] == "看 publication_eval/latest.json 是否出现新的复评结论。"
+
+
+def test_build_product_frontdesk_uses_gate_clearing_followthrough_for_attention_brief(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    followthrough_command = (
+        "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk"
+    )
+    followthrough_summary = "当前已按 gate-clearing batch 回放 deterministic 修复，正在等待新的 publication gate 结论。"
+    next_signal = "看 replay 后的 publication gate 是否收窄 medical_publication_surface_blocked。"
+
+    monkeypatch.setattr(module, "build_product_entry_manifest", lambda **kwargs: {
+        "surface_kind": "product_entry_manifest",
+        "manifest_version": 2,
+        "manifest_kind": "med_autoscience_product_entry_manifest",
+        "target_domain_id": "med-autoscience",
+        "formal_entry": {"default": "CLI", "supported_protocols": ["MCP"], "internal_surface": "controller"},
+        "workspace_locator": {"profile_name": "test-profile"},
+        "product_entry_shell": {
+            "product_frontdesk": {"command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "surface_kind": "product_frontdesk"},
+            "workspace_cockpit": {"command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "surface_kind": "workspace_cockpit"},
+            "submit_study_task": {"command": "uv run python -m med_autoscience.cli submit-study-task --profile profile.local.toml", "surface_kind": "study_task_intake"},
+            "launch_study": {"command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml", "surface_kind": "launch_study"},
+            "study_progress": {"command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml", "surface_kind": "study_progress"},
+            "mainline_status": {"command": "uv run python -m med_autoscience.cli mainline-status", "surface_kind": "mainline_status"},
+            "mainline_phase": {"command": "uv run python -m med_autoscience.cli mainline-phase", "surface_kind": "mainline_phase"},
+        },
+        "shared_handoff": {"direct_entry_builder": {"command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct", "entry_mode": "direct"}},
+        "runtime": {"runtime_owner": "upstream_hermes_agent"},
+        "product_entry_status": {"summary": "test status"},
+        "frontdesk_surface": {"surface_kind": "product_frontdesk", "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "summary": "open frontdesk"},
+        "operator_loop_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "summary": "open workspace cockpit"},
+        "operator_loop_actions": {},
+        "product_entry_start": {"surface_kind": "product_entry_start", "summary": "open frontdesk first", "recommended_mode_id": "open_frontdesk", "modes": [{"mode_id": "open_frontdesk", "title": "Open frontdesk", "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "surface_kind": "product_frontdesk", "summary": "open frontdesk", "requires": []}], "resume_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "session_locator_field": "profile_name"}, "human_gate_ids": ["workspace_gate"]},
+        "product_entry_overview": {"surface_kind": "product_entry_overview", "summary": "workspace overview", "frontdesk_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "operator_loop_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "progress_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"}, "resume_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "session_locator_field": "profile_name"}, "recommended_step_id": "open_frontdesk", "next_focus": ["open workspace cockpit"], "remaining_gaps_count": 0, "human_gate_ids": ["workspace_gate"]},
+        "domain_entry_contract": {"entry_adapter": "MedAutoScienceDomainEntry", "service_safe_surface_kind": "med_autoscience_service_safe_domain_entry", "product_entry_builder_command": "build-product-entry", "supported_commands": ["workspace-cockpit"], "command_contracts": [{"command": "workspace-cockpit", "required_fields": [], "optional_fields": []}]},
+        "gateway_interaction_contract": {"surface_kind": "gateway_interaction_contract", "frontdoor_owner": "opl_gateway_or_domain_gui", "user_interaction_mode": "natural_language_frontdoor", "user_commands_required": False, "command_surfaces_for_agent_consumption_only": True, "shared_downstream_entry": "MedAutoScienceDomainEntry", "shared_handoff_envelope": ["target_domain_id"]},
+        "product_entry_preflight": {"surface_kind": "product_entry_preflight", "summary": "preflight ready", "ready_to_try_now": True, "recommended_check_command": "uv run python -m med_autoscience.cli doctor", "recommended_start_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "blocking_check_ids": [], "checks": []},
+        "product_entry_readiness": {"surface_kind": "product_entry_readiness", "verdict": "ready_for_task", "usable_now": True, "good_to_use_now": True, "fully_automatic": False, "summary": "workspace ready", "recommended_start_surface": "product_frontdesk", "recommended_start_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "recommended_loop_surface": "workspace_cockpit", "recommended_loop_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "blocking_gaps": []},
+        "product_entry_quickstart": {"surface_kind": "product_entry_quickstart", "recommended_step_id": "open_frontdesk", "summary": "open frontdesk first", "steps": [{"step_id": "open_frontdesk", "title": "Open frontdesk", "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml", "surface_kind": "product_frontdesk", "summary": "open frontdesk", "requires": []}], "resume_contract": {"surface_kind": "workspace_cockpit", "session_locator_field": "profile_name"}, "human_gate_ids": ["workspace_gate"]},
+        "family_orchestration": {"human_gates": [{"gate_id": "workspace_gate"}], "resume_contract": {"surface_kind": "workspace_cockpit", "session_locator_field": "profile_name"}},
+        "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
+        "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+        "summary": {"recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"},
+        "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "research_backend", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["physical monorepo absorb"], "not_now": ["not now"]},
+    })
+    monkeypatch.setattr(module, "read_workspace_cockpit", lambda **kwargs: {
+        "operator_brief": {
+            "surface_kind": "workspace_operator_brief",
+            "verdict": "attention_required",
+            "summary": followthrough_summary,
+            "should_intervene_now": True,
+            "focus_scope": "study",
+            "focus_study_id": "001-risk",
+            "recommended_step_id": "inspect_gate_clearing_followthrough",
+            "recommended_command": followthrough_command,
+            "current_focus": next_signal,
+        },
+        "attention_queue": [
+            {
+                "study_id": "001-risk",
+                "code": "study_quality_floor_blocker",
+                "title": "001-risk 当前进入 gate-clearing followthrough",
+                "summary": followthrough_summary,
+                "recommended_step_id": "inspect_gate_clearing_followthrough",
+                "recommended_command": followthrough_command,
+                "operator_status_card": {
+                    "handling_state": "monitor_only",
+                },
+                "gate_clearing_followthrough": {
+                    "surface_kind": "gate_clearing_followthrough",
+                    "state": "waiting_gate_replay",
+                    "state_label": "等待 gate replay",
+                    "summary": followthrough_summary,
+                    "next_confirmation_signal": next_signal,
+                    "recommended_step_id": "inspect_gate_clearing_followthrough",
+                    "recommended_command": followthrough_command,
+                },
+            }
+        ],
+    })
+
+    payload = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
+
+    assert payload["operator_brief"]["summary"] == followthrough_summary
+    assert payload["operator_brief"]["recommended_step_id"] == "inspect_gate_clearing_followthrough"
+    assert payload["operator_brief"]["recommended_command"] == followthrough_command
+    assert payload["operator_brief"]["current_focus"] == next_signal
 
 
 def test_build_product_entry_manifest_passes_contract_bundle_via_named_shared_kwargs(
@@ -2041,6 +2326,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "autonomy_soak_status_field": "autonomy_soak_status",
         "quality_execution_lane_field": "quality_execution_lane",
         "quality_review_followthrough_field": "quality_review_followthrough",
+        "gate_clearing_followthrough_field": "gate_clearing_followthrough",
     }
     assert payload["return_surface_contract"]["domain_entry_contract"]["service_safe_surface_kind"] == (
         "med_autoscience_service_safe_domain_entry"
@@ -2104,6 +2390,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     assert "进度真相命令" in markdown
     assert "自治 proof 字段" in markdown
     assert "质量复评跟进字段" in markdown
+    assert "gate-clearing 跟进字段" in markdown
     assert "当前入口模式" in markdown
     assert "目标域" in markdown
     assert "task_intent:" not in markdown
@@ -3796,6 +4083,38 @@ def test_render_product_frontdesk_markdown_shows_autonomy_soak_and_quality_follo
     assert "质量复评跟进: 等待复评；当前修订计划已完成，下一步应由 MAS 发起 re-review。；看 publication_eval/latest.json 是否出现新的复评结论。" in markdown
     assert (
         "质量评审闭环: 等待复评 -> 发起复评；当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。"
+        in markdown
+    )
+
+
+def test_render_product_frontdesk_markdown_shows_gate_clearing_followthrough_preview() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    markdown = module.render_product_frontdesk_markdown(
+        {
+            "workspace_preview": None,
+            "workspace_attention_queue_preview": [
+                {
+                    "title": "001-risk 当前进入 gate-clearing followthrough",
+                    "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "gate_clearing_followthrough": {
+                        "state_label": "等待 gate replay",
+                        "summary": "当前已按 gate-clearing batch 回放 deterministic 修复，正在等待新的 publication gate 结论。",
+                        "next_confirmation_signal": "看 replay 后的 publication gate 是否收窄 medical_publication_surface_blocked。",
+                    },
+                }
+            ],
+            "phase2_user_product_loop": {},
+            "product_entry_guardrails": {},
+            "phase3_clearance_lane": {"clearance_targets": [], "clearance_loop": []},
+            "phase4_backend_deconstruction": {"substrate_targets": []},
+            "phase5_platform_target": {"capability_targets": [], "readiness_gates": []},
+            "remaining_gaps": [],
+        }
+    )
+
+    assert (
+        "gate-clearing 跟进: 等待 gate replay；当前已按 gate-clearing batch 回放 deterministic 修复，正在等待新的 publication gate 结论。；看 replay 后的 publication gate 是否收窄 medical_publication_surface_blocked。"
         in markdown
     )
 

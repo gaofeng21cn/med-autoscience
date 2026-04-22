@@ -281,6 +281,34 @@ def _quality_review_followthrough_preview(payload: Mapping[str, Any] | None) -> 
     return "；".join(parts)
 
 
+def _gate_clearing_followthrough_summary(payload: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(payload, Mapping):
+        return None
+    return (
+        _non_empty_text(payload.get("summary"))
+        or _non_empty_text(payload.get("blocking_reason"))
+        or _non_empty_text(payload.get("action_summary"))
+        or _non_empty_text(payload.get("current_focus"))
+        or _non_empty_text(payload.get("latest_unit_summary"))
+        or _non_empty_text(payload.get("gate_replay_summary"))
+    )
+
+
+def _gate_clearing_followthrough_preview(payload: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(payload, Mapping):
+        return None
+    state_label = _non_empty_text(payload.get("state_label"))
+    summary = _gate_clearing_followthrough_summary(payload)
+    action_summary = _non_empty_text(payload.get("action_summary"))
+    if action_summary == summary:
+        action_summary = None
+    next_confirmation_signal = _non_empty_text(payload.get("next_confirmation_signal"))
+    parts = [part for part in (state_label, summary, action_summary, next_confirmation_signal) if part]
+    if not parts:
+        return None
+    return "；".join(parts)
+
+
 def _status_narration_human_view(payload: Mapping[str, Any]) -> dict[str, Any]:
     return _build_shared_status_narration_human_view(
         payload,
@@ -1397,6 +1425,7 @@ def _attention_item(
     quality_closure_truth: dict[str, Any] | None = None,
     quality_execution_lane: dict[str, Any] | None = None,
     quality_review_followthrough: dict[str, Any] | None = None,
+    gate_clearing_followthrough: dict[str, Any] | None = None,
     autonomy_soak_status: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
@@ -1413,6 +1442,7 @@ def _attention_item(
         "quality_closure_truth": dict(quality_closure_truth or {}) or None,
         "quality_execution_lane": dict(quality_execution_lane or {}) or None,
         "quality_review_followthrough": dict(quality_review_followthrough or {}) or None,
+        "gate_clearing_followthrough": dict(gate_clearing_followthrough or {}) or None,
         "autonomy_soak_status": dict(autonomy_soak_status or {}) or None,
     }
 
@@ -1455,6 +1485,17 @@ def _quality_review_followthrough_focus(item: Mapping[str, Any] | None) -> str |
     followthrough = dict(item.get("quality_review_followthrough") or {})
     return _non_empty_text(followthrough.get("next_confirmation_signal")) or _non_empty_text(
         followthrough.get("summary")
+    )
+
+
+def _gate_clearing_followthrough_focus(item: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(item, Mapping):
+        return None
+    followthrough = dict(item.get("gate_clearing_followthrough") or {})
+    return (
+        _non_empty_text(followthrough.get("next_confirmation_signal"))
+        or _non_empty_text(followthrough.get("current_focus"))
+        or _gate_clearing_followthrough_summary(followthrough)
     )
 
 
@@ -1538,6 +1579,7 @@ def _workspace_operator_brief(
         }
         current_focus = (
             _non_empty_text(operator_status_card.get("current_focus"))
+            or _gate_clearing_followthrough_focus(top)
             or _quality_execution_focus(top)
             or _quality_review_followthrough_focus(top)
             or _autonomy_soak_focus(top)
@@ -1568,7 +1610,10 @@ def _workspace_operator_brief(
     )
     summary = (
         _operator_status_summary(lead_status_card)
-        or _quality_review_followthrough_preview(lead_study.get("quality_review_followthrough"))
+        or
+        _gate_clearing_followthrough_preview(lead_study.get("gate_clearing_followthrough"))
+        or
+        _quality_review_followthrough_preview(lead_study.get("quality_review_followthrough"))
         or _non_empty_text((lead_study.get("autonomy_soak_status") or {}).get("summary"))
         or (
             f"当前没有新的 workspace 级硬告警，继续盯住 {lead_study_id} 的进度与监管即可。"
@@ -1588,6 +1633,7 @@ def _workspace_operator_brief(
     }
     current_focus = (
         _non_empty_text(lead_status_card.get("current_focus"))
+        or _gate_clearing_followthrough_focus(lead_study)
         or _quality_review_followthrough_focus(lead_study)
         or _autonomy_soak_focus(lead_study)
     )
@@ -1634,10 +1680,14 @@ def _attention_queue(
         quality_closure_truth = dict(item.get("quality_closure_truth") or {})
         quality_execution_lane = dict(item.get("quality_execution_lane") or {})
         quality_review_followthrough = dict(item.get("quality_review_followthrough") or {})
+        gate_clearing_followthrough = dict(item.get("gate_clearing_followthrough") or {})
         autonomy_soak_status = dict(item.get("autonomy_soak_status") or {})
+        gate_clearing_summary = _gate_clearing_followthrough_summary(gate_clearing_followthrough)
+        gate_clearing_step_id = _non_empty_text(gate_clearing_followthrough.get("recommended_step_id"))
+        gate_clearing_command = _non_empty_text(gate_clearing_followthrough.get("recommended_command"))
         progress_command = _non_empty_text(((item.get("commands") or {}).get("progress")))
         launch_command = _non_empty_text(((item.get("commands") or {}).get("launch")))
-        preferred_command = _non_empty_text(item.get("recommended_command")) or _non_empty_text(
+        preferred_command = gate_clearing_command or _non_empty_text(item.get("recommended_command")) or _non_empty_text(
             operator_verdict.get("primary_command")
         )
         supervisor_tick_status = _non_empty_text(monitoring.get("supervisor_tick_status"))
@@ -1649,6 +1699,7 @@ def _attention_queue(
         autonomy_summary = _non_empty_text(autonomy_contract.get("summary"))
         lane_summary = (
             _operator_status_summary(operator_status_card)
+            or gate_clearing_summary
             or _non_empty_text(operator_verdict.get("summary"))
             or _non_empty_text(intervention_lane.get("summary"))
             or current_stage_summary
@@ -1661,7 +1712,7 @@ def _attention_queue(
                     code="study_needs_physician_decision",
                     title=f"{study_id} 需要医生或 PI 判断",
                     summary=lane_summary or "当前 study 已到需要人工明确决策的节点。",
-                    recommended_step_id=_attention_step_id("study_needs_physician_decision"),
+                    recommended_step_id=gate_clearing_step_id or _attention_step_id("study_needs_physician_decision"),
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1670,6 +1721,7 @@ def _attention_queue(
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
                     quality_review_followthrough=quality_review_followthrough,
+                    gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                 )
             )
@@ -1680,7 +1732,7 @@ def _attention_queue(
                     code="study_supervision_gap",
                     title=f"{study_id} 当前失去新鲜监管心跳",
                     summary=lane_summary or "Hermes-hosted 托管监管存在缺口。",
-                    recommended_step_id=_attention_step_id("study_supervision_gap"),
+                    recommended_step_id=gate_clearing_step_id or _attention_step_id("study_supervision_gap"),
                     recommended_command=preferred_command or commands.get("supervisor_tick") or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1689,6 +1741,7 @@ def _attention_queue(
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
                     quality_review_followthrough=quality_review_followthrough,
+                    gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                 )
             )
@@ -1699,7 +1752,7 @@ def _attention_queue(
                     code="study_runtime_recovery_required",
                     title=f"{study_id} 当前需要优先处理 runtime recovery",
                     summary=autonomy_summary or lane_summary or "托管运行恢复失败或健康降级，需要尽快介入。",
-                    recommended_step_id=_attention_step_id("study_runtime_recovery_required"),
+                    recommended_step_id=gate_clearing_step_id or _attention_step_id("study_runtime_recovery_required"),
                     recommended_command=preferred_command or launch_command or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1708,6 +1761,7 @@ def _attention_queue(
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
                     quality_review_followthrough=quality_review_followthrough,
+                    gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                 )
             )
@@ -1719,6 +1773,8 @@ def _attention_queue(
                     code="study_quality_floor_blocker",
                     title=_quality_blocker_title(study_id, intervention_lane),
                     summary=(
+                        gate_clearing_summary
+                        or
                         _non_empty_text(quality_execution_lane.get("summary"))
                         or
                         route_focus
@@ -1727,7 +1783,7 @@ def _attention_queue(
                         or _non_empty_text(blocker_list[0] if blocker_list else None)
                         or "当前 study 存在质量或发表门控硬阻塞。"
                     ),
-                    recommended_step_id=_attention_step_id("study_quality_floor_blocker"),
+                    recommended_step_id=gate_clearing_step_id or _attention_step_id("study_quality_floor_blocker"),
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1736,6 +1792,7 @@ def _attention_queue(
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
                     quality_review_followthrough=quality_review_followthrough,
+                    gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                 )
             )
@@ -1745,9 +1802,10 @@ def _attention_queue(
                 _attention_item(
                     code="study_progress_stale",
                     title=f"{study_id} 进度信号已陈旧",
-                    summary=_non_empty_text(progress_freshness.get("summary"))
+                    summary=gate_clearing_summary
+                    or _non_empty_text(progress_freshness.get("summary"))
                     or "最近缺少新的明确研究推进记录，需要排查是否卡住或空转。",
-                    recommended_step_id=_attention_step_id("study_progress_stale"),
+                    recommended_step_id=gate_clearing_step_id or _attention_step_id("study_progress_stale"),
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1756,6 +1814,7 @@ def _attention_queue(
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
                     quality_review_followthrough=quality_review_followthrough,
+                    gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                 )
             )
@@ -1765,9 +1824,10 @@ def _attention_queue(
                 _attention_item(
                     code="study_progress_missing",
                     title=f"{study_id} 缺少明确进度信号",
-                    summary=_non_empty_text(progress_freshness.get("summary"))
+                    summary=gate_clearing_summary
+                    or _non_empty_text(progress_freshness.get("summary"))
                     or "当前还没有看到明确的研究推进记录。",
-                    recommended_step_id=_attention_step_id("study_progress_missing"),
+                    recommended_step_id=gate_clearing_step_id or _attention_step_id("study_progress_missing"),
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1776,6 +1836,7 @@ def _attention_queue(
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
                     quality_review_followthrough=quality_review_followthrough,
+                    gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                 )
             )
@@ -1786,12 +1847,13 @@ def _attention_queue(
                 _attention_item(
                     code="study_blocked",
                     title=quality_lane_title or f"{study_id} 仍有主线阻塞",
-                    summary=_non_empty_text(quality_execution_lane.get("summary"))
+                    summary=gate_clearing_summary
+                    or _non_empty_text(quality_execution_lane.get("summary"))
                     or _non_empty_text(blocker_list[0] if blocker_list else None)
                     or current_stage_summary
                     or next_system_action
                     or "当前 study 仍有待收口问题。",
-                    recommended_step_id=_attention_step_id("study_blocked"),
+                    recommended_step_id=gate_clearing_step_id or _attention_step_id("study_blocked"),
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1800,6 +1862,7 @@ def _attention_queue(
                     quality_closure_truth=quality_closure_truth,
                     quality_execution_lane=quality_execution_lane,
                     quality_review_followthrough=quality_review_followthrough,
+                    gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                 )
             )
@@ -1880,6 +1943,7 @@ def _study_item(
     quality_execution_lane = dict(progress_payload.get("quality_execution_lane") or {})
     quality_review_loop = dict(progress_payload.get("quality_review_loop") or {})
     quality_review_followthrough = dict(progress_payload.get("quality_review_followthrough") or {})
+    gate_clearing_followthrough = dict(progress_payload.get("gate_clearing_followthrough") or {})
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     return {
         "study_id": study_id,
@@ -1898,6 +1962,7 @@ def _study_item(
         "quality_execution_lane": quality_execution_lane or None,
         "quality_review_loop": quality_review_loop or None,
         "quality_review_followthrough": quality_review_followthrough or None,
+        "gate_clearing_followthrough": gate_clearing_followthrough or None,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
         "monitoring": monitoring,
@@ -2108,6 +2173,11 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             )
             if quality_review_followthrough_preview:
                 lines.append(f"  质量复评跟进: {quality_review_followthrough_preview}")
+            gate_clearing_followthrough_preview = _gate_clearing_followthrough_preview(
+                item.get("gate_clearing_followthrough")
+            )
+            if gate_clearing_followthrough_preview:
+                lines.append(f"  gate-clearing 跟进: {gate_clearing_followthrough_preview}")
             restore_point = dict(autonomy_contract.get("restore_point") or {})
             if restore_point.get("summary"):
                 lines.append(f"  恢复点: {restore_point.get('summary')}")
@@ -2191,6 +2261,11 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         )
         if quality_review_followthrough_preview:
             lines.append(f"- 质量复评跟进: {quality_review_followthrough_preview}")
+        gate_clearing_followthrough_preview = _gate_clearing_followthrough_preview(
+            item.get("gate_clearing_followthrough")
+        )
+        if gate_clearing_followthrough_preview:
+            lines.append(f"- gate-clearing 跟进: {gate_clearing_followthrough_preview}")
         restore_point = dict(autonomy_contract.get("restore_point") or {})
         if restore_point.get("summary"):
             lines.append(f"- 恢复点: {restore_point.get('summary')}")
@@ -2917,6 +2992,7 @@ def build_product_frontdesk(
             "surface_kind": "product_frontdesk_operator_brief",
             "verdict": "attention_required",
             "summary": _operator_status_summary(top_attention_status_card)
+            or _gate_clearing_followthrough_summary(top_attention.get("gate_clearing_followthrough"))
             or _non_empty_text(workspace_operator_brief.get("summary"))
             or "当前 workspace 已有需要优先处理的 attention item。",
             "should_intervene_now": True,
@@ -2931,7 +3007,7 @@ def build_product_frontdesk(
         }
         current_focus = _non_empty_text(top_attention_status_card.get("current_focus")) or _non_empty_text(
             workspace_operator_brief.get("current_focus")
-        ) or _quality_execution_focus(top_attention) or _quality_review_followthrough_focus(top_attention) or _autonomy_soak_focus(top_attention)
+        ) or _gate_clearing_followthrough_focus(top_attention) or _quality_execution_focus(top_attention) or _quality_review_followthrough_focus(top_attention) or _autonomy_soak_focus(top_attention)
         if current_focus is not None:
             operator_brief["current_focus"] = current_focus
         next_confirmation_signal = _non_empty_text(top_attention_status_card.get("next_confirmation_signal")) or _non_empty_text(
@@ -2967,7 +3043,7 @@ def build_product_frontdesk(
         }
         current_focus = _non_empty_text(workspace_operator_brief.get("current_focus")) or _quality_review_followthrough_focus(
             workspace_operator_brief
-        ) or _autonomy_soak_focus(workspace_operator_brief)
+        ) or _gate_clearing_followthrough_focus(workspace_operator_brief) or _autonomy_soak_focus(workspace_operator_brief)
         if current_focus is not None:
             operator_brief["current_focus"] = current_focus
 
@@ -3113,6 +3189,11 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         )
         if quality_review_followthrough_preview:
             lines.append(f"- 质量复评跟进: {quality_review_followthrough_preview}")
+        gate_clearing_followthrough_preview = _gate_clearing_followthrough_preview(
+            item.get("gate_clearing_followthrough")
+        )
+        if gate_clearing_followthrough_preview:
+            lines.append(f"- gate-clearing 跟进: {gate_clearing_followthrough_preview}")
         restore_point = dict(autonomy_contract.get("restore_point") or {})
         if restore_point.get("summary"):
             lines.append(f"- 恢复点: {restore_point.get('summary')}")
@@ -3378,6 +3459,7 @@ def build_product_entry(
                 "autonomy_soak_status_field": "autonomy_soak_status",
                 "quality_execution_lane_field": "quality_execution_lane",
                 "quality_review_followthrough_field": "quality_review_followthrough",
+                "gate_clearing_followthrough_field": "gate_clearing_followthrough",
             },
             "domain_entry_contract": _build_domain_entry_contract(),
             "gateway_interaction_contract": _build_gateway_interaction_contract(),
@@ -3443,6 +3525,7 @@ def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
             f"- 自治 proof 字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('autonomy_soak_status_field') or 'none')}`",
             f"- 质量执行线字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('quality_execution_lane_field') or 'none')}`",
             f"- 质量复评跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('quality_review_followthrough_field') or 'none')}`",
+            f"- gate-clearing 跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('gate_clearing_followthrough_field') or 'none')}`",
             f"- 运行监管路径: `{return_surface_contract.get('runtime_supervision_path') or 'none'}`",
             f"- 发表评估路径: `{return_surface_contract.get('publication_eval_path') or 'none'}`",
             f"- 控制器决策路径: `{return_surface_contract.get('controller_decision_path') or 'none'}`",
