@@ -33,6 +33,8 @@ def make_quest(
     submission_checklist: dict[str, object] | None = None,
     paper_line_state: dict[str, object] | None = None,
     figure_catalog: dict[str, object] | None = None,
+    table_catalog: dict[str, object] | None = None,
+    include_submission_authority_inputs: bool = True,
 ) -> Path:
     quest_id = "002-early-residual-risk"
     study_id = quest_id
@@ -111,6 +113,8 @@ def make_quest(
             "compile_report_path": "paper/build/compile_report.json",
             "bundle_inputs": {
                 "compiled_markdown_path": "paper/build/review_manuscript.md",
+                "figure_catalog_path": "paper/figures/figure_catalog.json",
+                "table_catalog_path": "paper/tables/table_catalog.json",
             },
         },
     )
@@ -122,8 +126,18 @@ def make_quest(
             "summary": "compile report summary",
             "bibliography_entry_count": 21,
             "author_metadata_status": "placeholder_external_input_required",
+            "source_markdown_path": "paper/build/review_manuscript.md",
         },
     )
+    if include_submission_authority_inputs:
+        write_text(
+            worktree_root / "paper" / "build" / "review_manuscript.md",
+            "# Review Manuscript\n\nCurrent authority draft.\n",
+        )
+        write_text(
+            worktree_root / "paper" / "references.bib",
+            "@article{ref1,title={Ref}}\n",
+        )
     if paper_line_state is not None:
         dump_json(
             worktree_root / "paper" / "paper_line_state.json",
@@ -134,12 +148,48 @@ def make_quest(
             worktree_root / "paper" / "figures" / "figure_catalog.json",
             figure_catalog,
         )
+    elif include_submission_authority_inputs:
+        dump_json(
+            worktree_root / "paper" / "figures" / "figure_catalog.json",
+            {
+                "schema_version": 1,
+                "figures": [
+                    {
+                        "figure_id": f"F{index}",
+                        "paper_role": "main_text",
+                        "manuscript_status": "locked_main_text_evidence",
+                    }
+                    for index in range(1, 5)
+                ],
+            },
+        )
+    if table_catalog is not None:
+        dump_json(
+            worktree_root / "paper" / "tables" / "table_catalog.json",
+            table_catalog,
+        )
+    elif include_submission_authority_inputs:
+        dump_json(
+            worktree_root / "paper" / "tables" / "table_catalog.json",
+            {
+                "schema_version": 1,
+                "tables": [],
+            },
+        )
     if submission_checklist is not None:
         dump_json(
             worktree_root / "paper" / "review" / "submission_checklist.json",
             submission_checklist,
         )
     if include_submission_minimal:
+        (worktree_root / "paper" / "submission_minimal").mkdir(parents=True, exist_ok=True)
+        (worktree_root / "paper" / "submission_minimal" / "manuscript.docx").write_text("docx", encoding="utf-8")
+        (worktree_root / "paper" / "submission_minimal" / "paper.pdf").write_text("%PDF", encoding="utf-8")
+        if include_submission_authority_inputs:
+            (worktree_root / "paper" / "submission_minimal" / "references.bib").write_text(
+                "@article{ref1,title={Ref}}\n",
+                encoding="utf-8",
+            )
         dump_json(
             worktree_root / "paper" / "submission_minimal" / "submission_manifest.json",
             {
@@ -151,8 +201,6 @@ def make_quest(
                 },
             },
         )
-        (worktree_root / "paper" / "submission_minimal" / "manuscript.docx").write_text("docx", encoding="utf-8")
-        (worktree_root / "paper" / "submission_minimal" / "paper.pdf").write_text("%PDF", encoding="utf-8")
     if include_unmanaged_submission_surface:
         (worktree_root / "paper" / "submission_pituitary").mkdir(parents=True, exist_ok=True)
         dump_json(
@@ -254,6 +302,7 @@ def test_build_gate_report_uses_authoritative_source_markdown_path_for_submissio
         tmp_path,
         include_submission_minimal=True,
         include_current_medical_publication_surface_report=True,
+        include_submission_authority_inputs=False,
         figure_catalog={
             "schema_version": 1,
             "figures": [
@@ -407,8 +456,9 @@ def test_build_gate_state_uses_latest_parseable_gate_report_when_newer_report_is
     }
 
 
-def test_build_gate_report_supports_finalize_only_paper_bundle_without_main_result(tmp_path: Path) -> None:
+def test_build_gate_report_supports_finalize_only_paper_bundle_without_main_result(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -439,8 +489,9 @@ def test_build_gate_report_supports_finalize_only_paper_bundle_without_main_resu
     assert report["phase_owner"] == "publication_gate"
 
 
-def test_build_gate_report_clears_stale_paper_line_blockers_when_bundle_stage_reopens(tmp_path: Path) -> None:
+def test_build_gate_report_clears_stale_paper_line_blockers_when_bundle_stage_reopens(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -1196,6 +1247,38 @@ def test_build_gate_report_marks_stale_study_delivery_mirror_when_authority_pack
     assert report["current_required_action"] == "complete_bundle_stage"
 
 
+def test_build_gate_report_blocks_stale_submission_minimal_authority_when_paper_inputs_change(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+        figure_catalog={"schema_version": 1, "figures": []},
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    write_text(paper_root / "build" / "review_manuscript.md", "# Review Manuscript\n\nOriginal authority draft.\n")
+    dump_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [],
+        },
+    )
+    write_text(
+        paper_root / "build" / "review_manuscript.md",
+        "# Review Manuscript\n\nAuthority draft updated after submission package generation.\n",
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["submission_minimal_authority_status"] == "stale_source_changed"
+    assert report["submission_minimal_authority_stale_reason"] == "submission_source_newer_than_manifest"
+    assert "stale_submission_minimal_authority" in report["blockers"]
+
+
 def test_build_gate_report_marks_bundle_tasks_downstream_when_publication_anchor_is_missing(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(
@@ -1522,6 +1605,7 @@ def test_run_controller_resyncs_delivery_when_only_current_package_projection_is
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -1612,6 +1696,7 @@ def test_run_controller_unlocks_write_after_main_result_stale_delivery_resync(
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -1724,6 +1809,7 @@ def test_run_controller_resyncs_delivery_when_authority_package_changes_without_
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -1815,6 +1901,7 @@ def test_run_controller_resyncs_delivery_when_authority_package_source_mismatch_
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -1918,8 +2005,9 @@ def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: P
     ]
 
 
-def test_build_gate_report_accepts_archived_reference_only_legacy_submission_surface(tmp_path: Path) -> None:
+def test_build_gate_report_accepts_archived_reference_only_legacy_submission_surface(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -2039,7 +2127,14 @@ def test_build_gate_report_blocks_forbidden_manuscript_terminology(tmp_path: Pat
 
 def test_build_gate_report_blocks_submission_surface_qc_failures(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        figure_catalog={
+            "schema_version": 1,
+            "figures": [],
+        },
+    )
     submission_manifest_path = (
         quest_root
         / ".ds"
@@ -2089,6 +2184,7 @@ def test_build_gate_report_blocks_submission_manuscript_surface_without_embedded
         tmp_path,
         include_submission_minimal=True,
         include_current_medical_publication_surface_report=True,
+        include_submission_authority_inputs=False,
         figure_catalog={
             "schema_version": 1,
             "figures": [
@@ -2408,8 +2504,9 @@ def test_build_gate_report_routes_each_surface_blocker_to_core_controller_route(
     assert "submission hardening" not in submission_hardening_report["controller_stage_note"]
 
 
-def test_build_gate_report_keeps_named_surface_blockers_clear_when_surface_is_clear(tmp_path: Path) -> None:
+def test_build_gate_report_keeps_named_surface_blockers_clear_when_surface_is_clear(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,

@@ -252,9 +252,12 @@ def _submission_metadata_only_manual_finish_active(*, study_root: Path, quest_ro
     )
 
 
-def _bundle_only_submission_ready_manual_finish_active(*, study_root: Path) -> bool:
+def _bundle_only_submission_ready_manual_finish_active(*, study_root: Path, quest_root: Path | None = None) -> bool:
     return (
-        resolve_bundle_only_submission_ready_manual_finish_contract(study_root=study_root)
+        resolve_bundle_only_submission_ready_manual_finish_contract(
+            study_root=study_root,
+            quest_root=quest_root,
+        )
         is not None
     )
 
@@ -1839,8 +1842,15 @@ def _status_state(
     )
     bundle_only_manual_finish = (
         quest_exists
+<<<<<<< HEAD
         and not task_intake_overrides_auto_manual_finish
         and _bundle_only_submission_ready_manual_finish_active(study_root=study_root)
+=======
+        and _bundle_only_submission_ready_manual_finish_active(
+            study_root=study_root,
+            quest_root=quest_root,
+        )
+>>>>>>> 9e1bd98 (Guard submission bundle parking on authority freshness)
     )
     explicit_manual_finish_compatibility_guard = _explicit_manual_finish_compatibility_guard_active(
         study_root=study_root,

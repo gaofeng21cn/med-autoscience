@@ -536,6 +536,72 @@ def test_run_gate_clearing_batch_executes_bundle_stage_submission_refresh_then_r
     assert result["gate_blockers"] == ["submission_surface_qc_failure_present"]
 
 
+def test_run_gate_clearing_batch_refreshes_stale_submission_minimal_authority_without_bundle_stage_override(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": ["stale_submission_minimal_authority"],
+            "current_required_action": "continue_bundle_stage",
+            "medical_publication_surface_status": "clear",
+            "study_delivery_status": "current",
+        },
+    )
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(
+        module.submission_minimal,
+        "create_submission_minimal_package",
+        lambda **_: {"output_root": "paper/submission_minimal", "status": "ready"},
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id="quest-004",
+        source="test-source",
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "executed"
+    assert [item["unit_id"] for item in result["unit_results"]] == ["create_submission_minimal_package"]
+    assert result["gate_replay"]["status"] == "clear"
+    assert result["gate_blockers"] == ["stale_submission_minimal_authority"]
+
+
 def test_run_gate_clearing_batch_executes_bundle_stage_workspace_refresh_before_submission_replay(
     monkeypatch,
     tmp_path: Path,

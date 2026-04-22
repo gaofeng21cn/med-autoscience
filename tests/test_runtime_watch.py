@@ -388,6 +388,7 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    (study_root / "artifacts" / "controller" / "study_charter.json").unlink()
     quest_root = profile.runtime_root / "quest-001"
     _write_charter(study_root)
     dump_json(
@@ -848,6 +849,7 @@ def test_watch_runtime_fails_closed_when_outer_loop_candidate_lacks_stable_chart
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    (study_root / "artifacts" / "controller" / "study_charter.json").unlink()
     quest_root = profile.runtime_root / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(quest_root, study_root)
     _write_publication_eval(study_root, quest_root)

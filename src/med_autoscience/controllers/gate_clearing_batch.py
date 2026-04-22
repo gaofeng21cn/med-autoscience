@@ -36,12 +36,14 @@ _BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "co
 _BUNDLE_STAGE_GATE_BLOCKERS = frozenset(
     {
         "stale_study_delivery_mirror",
+        "stale_submission_minimal_authority",
         "submission_surface_qc_failure_present",
         "submission_hardening_incomplete",
     }
 )
 _SUBMISSION_MINIMAL_REPAIR_GATE_BLOCKERS = frozenset(
     {
+        "stale_submission_minimal_authority",
         "submission_surface_qc_failure_present",
         "submission_hardening_incomplete",
     }

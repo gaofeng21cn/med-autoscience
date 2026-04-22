@@ -6,6 +6,7 @@ from pathlib import Path
 from tests.study_runtime_test_helpers import (
     make_profile,
     write_auditable_current_package,
+    write_synced_submission_delivery,
     write_study,
     write_submission_metadata_only_bundle,
 )
@@ -68,7 +69,7 @@ def test_resolve_effective_study_manual_finish_contract_derives_submission_metad
         quest_root,
         blocking_item_ids=["author_metadata", "ethics_statement"],
     )
-    write_auditable_current_package(study_root)
+    write_synced_submission_delivery(study_root, quest_root)
 
     contract = module.resolve_effective_study_manual_finish_contract(
         study_root=study_root,
@@ -93,10 +94,13 @@ def test_resolve_effective_study_manual_finish_contract_derives_bundle_only_subm
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    write_auditable_current_package(study_root)
+    quest_root = profile.runtime_root / "001-risk"
+    write_synced_submission_delivery(
+        study_root,
+        quest_root,
+        include_submission_checklist=False,
+    )
     current_package_root = study_root / "manuscript" / "current_package"
-    (current_package_root / "submission_checklist.json").unlink()
-    (current_package_root / "submission_manifest.json").write_text("{}", encoding="utf-8")
     summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(
@@ -109,7 +113,7 @@ def test_resolve_effective_study_manual_finish_contract_derives_bundle_only_subm
 
     contract = module.resolve_effective_study_manual_finish_contract(
         study_root=study_root,
-        quest_root=profile.runtime_root / "001-risk",
+        quest_root=quest_root,
     )
 
     assert contract is not None
@@ -118,11 +122,18 @@ def test_resolve_effective_study_manual_finish_contract_derives_bundle_only_subm
     assert "投稿包里程碑" in contract.summary
 
 
+<<<<<<< HEAD
 def test_resolve_effective_study_manual_finish_contract_suppresses_auto_parking_for_reopened_revision(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.study_manual_finish")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+=======
+def test_resolve_effective_study_manual_finish_contract_rejects_stale_bundle_only_submission_package(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_manual_finish")
+>>>>>>> 9e1bd98 (Guard submission bundle parking on authority freshness)
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -131,10 +142,20 @@ def test_resolve_effective_study_manual_finish_contract_suppresses_auto_parking_
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
+<<<<<<< HEAD
     write_auditable_current_package(study_root)
     current_package_root = study_root / "manuscript" / "current_package"
     (current_package_root / "submission_checklist.json").unlink()
     (current_package_root / "submission_manifest.json").write_text("{}", encoding="utf-8")
+=======
+    quest_root = profile.runtime_root / "001-risk"
+    write_synced_submission_delivery(
+        study_root,
+        quest_root,
+        include_submission_checklist=False,
+        stale_authority_input=True,
+    )
+>>>>>>> 9e1bd98 (Guard submission bundle parking on authority freshness)
     summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(
@@ -144,6 +165,7 @@ def test_resolve_effective_study_manual_finish_contract_suppresses_auto_parking_
         "}\n",
         encoding="utf-8",
     )
+<<<<<<< HEAD
     task_intake_module.write_task_intake(
         profile=profile,
         study_id="001-risk",
@@ -210,3 +232,12 @@ def test_resolve_effective_study_manual_finish_contract_keeps_reporting_only_mil
 
     assert contract is not None
     assert "投稿包里程碑" in contract.summary
+=======
+
+    contract = module.resolve_effective_study_manual_finish_contract(
+        study_root=study_root,
+        quest_root=quest_root,
+    )
+
+    assert contract is None
+>>>>>>> 9e1bd98 (Guard submission bundle parking on authority freshness)

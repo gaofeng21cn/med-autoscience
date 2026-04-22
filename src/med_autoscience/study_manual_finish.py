@@ -7,6 +7,7 @@ from pathlib import Path
 
 import yaml
 
+from med_autoscience.controllers import study_delivery_sync, submission_minimal
 from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.study_task_intake import (
     read_latest_task_intake,
@@ -90,22 +91,74 @@ def _optional_string(raw_value: object) -> str | None:
     return raw_value.strip()
 
 
-def _autonomous_current_package_ready(*, study_root: Path) -> bool:
+def _delivery_authority_context(
+    *,
+    study_root: Path,
+    quest_root: Path | None = None,
+) -> tuple[Path | None, str]:
+    manifest_payload = _read_json_dict(study_root / "manuscript" / "delivery_manifest.json")
+    publication_profile = str(manifest_payload.get("publication_profile") or "").strip() or "general_medical_journal"
+    surface_roles = (
+        dict(manifest_payload.get("surface_roles") or {})
+        if isinstance(manifest_payload.get("surface_roles"), dict)
+        else {}
+    )
+    raw_paper_root = str(surface_roles.get("controller_authorized_paper_root") or "").strip()
+    if raw_paper_root:
+        candidate = Path(raw_paper_root).expanduser().resolve()
+        if candidate.exists():
+            return candidate, publication_profile
+    if quest_root is not None:
+        paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(quest_root)
+        if paper_bundle_manifest_path is not None:
+            return paper_bundle_manifest_path.parent.resolve(), publication_profile
+    return None, publication_profile
+
+
+def _submission_surfaces_current(
+    *,
+    study_root: Path,
+    quest_root: Path | None = None,
+) -> bool:
+    paper_root, publication_profile = _delivery_authority_context(
+        study_root=study_root,
+        quest_root=quest_root,
+    )
+    if paper_root is None or not study_delivery_sync.can_sync_study_delivery(paper_root=paper_root):
+        return False
+    delivery_status = study_delivery_sync.describe_submission_delivery(
+        paper_root=paper_root,
+        publication_profile=publication_profile,
+    )
+    if str(delivery_status.get("status") or "").strip() != "current":
+        return False
+    authority_status = submission_minimal.describe_submission_minimal_authority(
+        paper_root=paper_root,
+        publication_profile=publication_profile,
+    )
+    return str(authority_status.get("status") or "").strip() == "current"
+
+
+def _autonomous_current_package_ready(*, study_root: Path, quest_root: Path | None = None) -> bool:
     manuscript_root = study_root / "manuscript"
     current_package_root = manuscript_root / "current_package"
     current_package_zip = manuscript_root / "current_package.zip"
     if not current_package_root.exists() or not current_package_zip.exists():
         return False
-    return all((current_package_root / relative_path).exists() for relative_path in _AUTONOMOUS_CURRENT_PACKAGE_REQUIRED_FILES)
+    if not all((current_package_root / relative_path).exists() for relative_path in _AUTONOMOUS_CURRENT_PACKAGE_REQUIRED_FILES):
+        return False
+    return _submission_surfaces_current(study_root=study_root, quest_root=quest_root)
 
 
-def _bundle_only_current_package_ready(*, study_root: Path) -> bool:
+def _bundle_only_current_package_ready(*, study_root: Path, quest_root: Path | None = None) -> bool:
     manuscript_root = study_root / "manuscript"
     current_package_root = manuscript_root / "current_package"
     current_package_zip = manuscript_root / "current_package.zip"
     if not current_package_root.exists() or not current_package_zip.exists():
         return False
-    return all((current_package_root / relative_path).exists() for relative_path in _BUNDLE_ONLY_CURRENT_PACKAGE_REQUIRED_FILES)
+    if not all((current_package_root / relative_path).exists() for relative_path in _BUNDLE_ONLY_CURRENT_PACKAGE_REQUIRED_FILES):
+        return False
+    return _submission_surfaces_current(study_root=study_root, quest_root=quest_root)
 
 
 def _read_json_dict(path: Path) -> dict[str, object]:
@@ -118,8 +171,8 @@ def _read_json_dict(path: Path) -> dict[str, object]:
     return payload if isinstance(payload, dict) else {}
 
 
-def _bundle_only_submission_ready(*, study_root: Path) -> bool:
-    if not _bundle_only_current_package_ready(study_root=study_root):
+def _bundle_only_submission_ready(*, study_root: Path, quest_root: Path | None = None) -> bool:
+    if not _bundle_only_current_package_ready(study_root=study_root, quest_root=quest_root):
         return False
     summary_payload = _read_json_dict(
         study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
@@ -164,7 +217,7 @@ def resolve_submission_metadata_only_manual_finish_contract(
         return None
     resolved_study_root = Path(study_root).expanduser().resolve()
     resolved_quest_root = Path(quest_root).expanduser().resolve()
-    if not _autonomous_current_package_ready(study_root=resolved_study_root):
+    if not _autonomous_current_package_ready(study_root=resolved_study_root, quest_root=resolved_quest_root):
         return None
     paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(resolved_quest_root)
     if paper_bundle_manifest_path is None:
@@ -184,11 +237,13 @@ def resolve_submission_metadata_only_manual_finish_contract(
 def resolve_bundle_only_submission_ready_manual_finish_contract(
     *,
     study_root: Path | None,
+    quest_root: Path | None = None,
 ) -> StudyManualFinishContract | None:
     if study_root is None:
         return None
     resolved_study_root = Path(study_root).expanduser().resolve()
-    if not _bundle_only_submission_ready(study_root=resolved_study_root):
+    resolved_quest_root = Path(quest_root).expanduser().resolve() if quest_root is not None else None
+    if not _bundle_only_submission_ready(study_root=resolved_study_root, quest_root=resolved_quest_root):
         return None
     return StudyManualFinishContract(
         study_root=resolved_study_root,
@@ -236,4 +291,4 @@ def resolve_effective_study_manual_finish_contract(
     )
     if metadata_only_contract is not None:
         return metadata_only_contract
-    return resolve_bundle_only_submission_ready_manual_finish_contract(study_root=study_root)
+    return resolve_bundle_only_submission_ready_manual_finish_contract(study_root=study_root, quest_root=quest_root)

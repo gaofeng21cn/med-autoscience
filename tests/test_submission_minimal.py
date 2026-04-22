@@ -512,6 +512,54 @@ def test_create_submission_minimal_package_writes_manifest_and_docx_path(tmp_pat
     assert manifest_payload == manifest
 
 
+def test_describe_submission_minimal_authority_detects_changed_compiled_markdown(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    current = module.describe_submission_minimal_authority(paper_root=paper_root)
+    assert current["status"] == "current"
+
+    write_text(
+        paper_root / "build" / "review_manuscript.md",
+        "# Updated review manuscript\n\nLate-stage authority change.\n",
+    )
+
+    stale = module.describe_submission_minimal_authority(paper_root=paper_root)
+    assert stale["status"] == "stale_source_changed"
+    assert stale["stale_reason"] == "submission_source_signature_mismatch"
+
+
+def test_describe_submission_minimal_authority_flags_legacy_manifest_when_source_is_newer(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+    manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
+    manifest.pop("source_signature", None)
+    manifest.pop("source_contract", None)
+    dump_json(manifest_path, manifest)
+
+    current = module.describe_submission_minimal_authority(paper_root=paper_root)
+    assert current["status"] == "current"
+
+    write_text(
+        paper_root / "build" / "review_manuscript.md",
+        "# Updated review manuscript\n\nLegacy package is now stale.\n",
+    )
+
+    stale = module.describe_submission_minimal_authority(paper_root=paper_root)
+    assert stale["status"] == "stale_source_changed"
+    assert stale["stale_reason"] == "submission_source_newer_than_manifest"
+
+
 def test_create_submission_minimal_package_defaults_to_ama_citation_style(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.submission_minimal")

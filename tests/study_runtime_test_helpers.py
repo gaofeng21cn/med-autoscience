@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
+import shutil
 
 import yaml
 
@@ -177,6 +178,12 @@ def make_partial_quest_recovery_payload(*, quest_id: str = "quest-001") -> dict[
 
 def write_submission_metadata_only_bundle(quest_root: Path, *, blocking_item_ids: list[str]) -> None:
     paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    quest_id = quest_root.name
+    write_text(quest_root / "quest.yaml", f"quest_id: {quest_id}\nstudy_id: {quest_id}\n")
+    write_text(
+        quest_root / ".ds" / "worktrees" / "paper-main" / "quest.yaml",
+        f"quest_id: {quest_id}\nstudy_id: {quest_id}\n",
+    )
     write_text(
         paper_root / "paper_bundle_manifest.json",
         json.dumps(
@@ -184,6 +191,11 @@ def write_submission_metadata_only_bundle(quest_root: Path, *, blocking_item_ids
                 "schema_version": 1,
                 "paper_branch": "paper/main",
                 "compile_report_path": str(paper_root / "build" / "compile_report.json"),
+                "bundle_inputs": {
+                    "compiled_markdown_path": "paper/build/review_manuscript.md",
+                    "figure_catalog_path": "paper/figures/figure_catalog.json",
+                    "table_catalog_path": "paper/tables/table_catalog.json",
+                },
             },
             ensure_ascii=False,
             indent=2,
@@ -197,6 +209,7 @@ def write_submission_metadata_only_bundle(quest_root: Path, *, blocking_item_ids
                 "schema_version": 1,
                 "status": "compiled_with_open_submission_items",
                 "author_metadata_status": "placeholder_external_input_required",
+                "source_markdown_path": "paper/build/review_manuscript.md",
             },
             ensure_ascii=False,
             indent=2,
@@ -236,6 +249,148 @@ def write_auditable_current_package(study_root: Path) -> None:
     )
     write_text(current_package_root / "SUBMISSION_TODO.md", "# Submission TODO\n")
     write_text(study_root / "manuscript" / "current_package.zip", "zip placeholder")
+
+
+def write_synced_submission_delivery(
+    study_root: Path,
+    quest_root: Path,
+    *,
+    include_submission_checklist: bool = True,
+    stale_authority_input: bool = False,
+) -> Path:
+    study_id = study_root.name
+    quest_id = quest_root.name
+    worktree_root = quest_root / ".ds" / "worktrees" / "paper-main"
+    paper_root = worktree_root / "paper"
+    submission_root = paper_root / "submission_minimal"
+    current_package_root = study_root / "manuscript" / "current_package"
+    current_package_zip = study_root / "manuscript" / "current_package.zip"
+    compiled_markdown_path = paper_root / "build" / "review_manuscript.md"
+
+    write_text(quest_root / "quest.yaml", f"quest_id: {quest_id}\nstudy_id: {study_id}\n")
+    write_text(worktree_root / "quest.yaml", f"quest_id: {quest_id}\nstudy_id: {study_id}\n")
+    write_text(study_root / "runtime_binding.yaml", f"quest_id: {quest_id}\nstudy_id: {study_id}\n")
+    if not compiled_markdown_path.exists():
+        write_text(compiled_markdown_path, "# Review Manuscript\n\nAuthority draft.\n")
+    if not (paper_root / "paper_bundle_manifest.json").exists():
+        write_text(
+            paper_root / "paper_bundle_manifest.json",
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "paper_branch": "paper/main",
+                    "bundle_inputs": {
+                        "compile_report_path": "paper/build/compile_report.json",
+                        "compiled_markdown_path": "paper/build/review_manuscript.md",
+                        "figure_catalog_path": "paper/figures/figure_catalog.json",
+                        "table_catalog_path": "paper/tables/table_catalog.json",
+                    },
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+        )
+    if not (paper_root / "build" / "compile_report.json").exists():
+        write_text(
+            paper_root / "build" / "compile_report.json",
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "compiled_with_open_submission_items" if include_submission_checklist else "success",
+                    "source_markdown_path": "paper/build/review_manuscript.md",
+                    "author_metadata_status": "placeholder_external_input_required" if include_submission_checklist else "complete",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+        )
+    if not (paper_root / "figures" / "figure_catalog.json").exists():
+        write_text(
+            paper_root / "figures" / "figure_catalog.json",
+            json.dumps({"schema_version": 1, "figures": []}, ensure_ascii=False, indent=2) + "\n",
+        )
+    if not (paper_root / "tables" / "table_catalog.json").exists():
+        write_text(
+            paper_root / "tables" / "table_catalog.json",
+            json.dumps({"schema_version": 1, "tables": []}, ensure_ascii=False, indent=2) + "\n",
+        )
+    if not (paper_root / "references.bib").exists():
+        write_text(paper_root / "references.bib", "@article{ref1,title={Ref}}\n")
+    write_text(submission_root / "manuscript.docx", "docx placeholder")
+    write_text(submission_root / "paper.pdf", "pdf placeholder")
+    write_text(submission_root / "references.bib", "@article{ref1,title={Ref}}\n")
+    write_text(
+        submission_root / "submission_manifest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "publication_profile": "general_medical_journal",
+                "manuscript": {
+                    "docx_path": "paper/submission_minimal/manuscript.docx",
+                    "pdf_path": "paper/submission_minimal/paper.pdf",
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+
+    if current_package_root.exists():
+        shutil.rmtree(current_package_root)
+    current_package_root.mkdir(parents=True, exist_ok=True)
+    copied_files: list[dict[str, str]] = []
+    for source_path in sorted(submission_root.rglob("*")):
+        if not source_path.is_file():
+            continue
+        relative_path = source_path.relative_to(submission_root)
+        target_path = current_package_root / relative_path
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, target_path)
+        copied_files.append(
+            {
+                "source_path": str(source_path.resolve()),
+                "target_path": str(target_path.resolve()),
+            }
+        )
+    write_text(current_package_root / "SUBMISSION_TODO.md", "# Submission TODO\n")
+    if include_submission_checklist:
+        write_text(
+            current_package_root / "submission_checklist.json",
+            json.dumps({"status": "external_metadata_gap"}, ensure_ascii=False, indent=2) + "\n",
+        )
+    write_text(current_package_zip, "zip placeholder")
+    write_text(
+        study_root / "manuscript" / "delivery_manifest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "stage": "submission_minimal",
+                "publication_profile": "general_medical_journal",
+                "source": {
+                    "paper_root": str(paper_root.resolve()),
+                    "package_source_root": str(submission_root.resolve()),
+                },
+                "surface_roles": {
+                    "controller_authorized_paper_root": str(paper_root.resolve()),
+                    "controller_authorized_package_source_root": str(submission_root.resolve()),
+                    "human_facing_current_package_root": str(current_package_root.resolve()),
+                    "human_facing_current_package_zip": str(current_package_zip.resolve()),
+                },
+                "copied_files": copied_files,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+
+    if stale_authority_input:
+        write_text(compiled_markdown_path, "# Review Manuscript\n\nAuthority draft updated after package generation.\n")
+
+    return paper_root
 
 
 def write_study(
@@ -391,6 +546,24 @@ def write_study(
     write_text(
         study_root / "study.yaml",
         "\n".join(lines),
+    )
+    write_text(
+        study_root / "runtime_binding.yaml",
+        f"quest_id: {quest_id or study_id}\nstudy_id: {study_id}\n",
+    )
+    write_text(
+        study_root / "artifacts" / "controller" / "study_charter.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "charter_id": f"charter::{study_id}::v1",
+                "study_id": study_id,
+                "publication_objective": "Deliver a manuscript-safe submission package.",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
     )
     write_text(study_root / "brief.md", "# Brief\n")
     write_text(study_root / "protocol.md", "# Protocol\n")

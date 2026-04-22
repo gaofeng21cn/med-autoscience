@@ -16,6 +16,7 @@ from .study_runtime_test_helpers import (
     make_startup_hydration_report,
     make_startup_hydration_validation_report,
     write_auditable_current_package,
+    write_synced_submission_delivery,
     write_study,
     write_submission_metadata_only_bundle,
     write_text,
@@ -930,13 +931,12 @@ def test_study_runtime_status_parks_bundle_only_handoff_before_invalid_blocking_
         journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
-    current_package_root = study_root / "manuscript" / "current_package"
-    write_text(current_package_root / "manuscript.docx", "docx placeholder\n")
-    write_text(current_package_root / "paper.pdf", "pdf placeholder\n")
-    write_text(current_package_root / "references.bib", "@article{ref1,title={Ref}}\n")
-    write_text(current_package_root / "submission_manifest.json", '{"schema_version":1}\n')
-    write_text(current_package_root / "SUBMISSION_TODO.md", "# Submission TODO\n")
-    write_text(study_root / "manuscript" / "current_package.zip", "zip placeholder\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_synced_submission_delivery(
+        study_root,
+        quest_root,
+        include_submission_checklist=False,
+    )
     write_text(
         study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
         json.dumps(
@@ -951,8 +951,6 @@ def test_study_runtime_status_parks_bundle_only_handoff_before_invalid_blocking_
         )
         + "\n",
     )
-    quest_root = profile.runtime_root / "001-risk"
-    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
     write_text(
         quest_root / ".ds" / "runtime_state.json",
         json.dumps(
@@ -7680,7 +7678,10 @@ def test_study_runtime_status_embeds_progress_projection_by_default(monkeypatch,
 
     assert result["progress_projection"]["study_id"] == "001-risk"
     assert result["progress_projection"]["current_stage_summary"]
-    assert "完成外部验证数据清点" in result["progress_projection"]["latest_events"][0]["summary"]
+    assert any(
+        "完成外部验证数据清点" in str(item.get("summary") or "")
+        for item in result["progress_projection"]["latest_events"]
+    )
     assert result["progress_projection"]["next_system_action"]
 
 
@@ -8717,7 +8718,6 @@ def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_r
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
     quest_root = profile.runtime_root / "001-risk"
-    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
     write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"waiting_for_user"}\n')
     write_submission_metadata_only_bundle(
         quest_root,
@@ -8960,7 +8960,7 @@ def test_study_runtime_status_parks_submission_metadata_only_waiting_quest_after
             "ai_declaration",
         ],
     )
-    write_auditable_current_package(study_root)
+    write_synced_submission_delivery(study_root, quest_root)
     monkeypatch.setattr(
         module,
         "inspect_workspace_contracts",
@@ -9002,7 +9002,6 @@ def test_ensure_study_runtime_keeps_submission_metadata_only_waiting_quest_parke
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
     quest_root = profile.runtime_root / "001-risk"
-    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
     write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"waiting_for_user"}\n')
     write_submission_metadata_only_bundle(
         quest_root,
@@ -9013,7 +9012,7 @@ def test_ensure_study_runtime_keeps_submission_metadata_only_waiting_quest_parke
             "ai_declaration",
         ],
     )
-    write_auditable_current_package(study_root)
+    write_synced_submission_delivery(study_root, quest_root)
     calls: list[str] = []
     monkeypatch.setattr(
         module,

@@ -10,6 +10,7 @@ import sys
 from tests.study_runtime_test_helpers import (
     make_profile,
     write_auditable_current_package,
+    write_synced_submission_delivery,
     write_study,
     write_submission_metadata_only_bundle,
 )
@@ -2295,7 +2296,6 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_manual_fi
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    write_auditable_current_package(study_root)
     quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
     write_submission_metadata_only_bundle(
         quest_root,
@@ -2306,6 +2306,7 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_manual_fi
             "ai_declaration",
         ],
     )
+    write_synced_submission_delivery(study_root, quest_root)
     publication_eval_path = _write_publication_eval(study_root, quest_root)
 
     monkeypatch.setattr(
@@ -3302,13 +3303,12 @@ def test_study_progress_projects_bundle_only_submission_ready_parking_before_run
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    current_package_root = study_root / "manuscript" / "current_package"
-    current_package_root.mkdir(parents=True, exist_ok=True)
-    for rel in ["manuscript.docx", "paper.pdf", "references.bib", "submission_manifest.json", "SUBMISSION_TODO.md"]:
-        path = current_package_root / rel
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("placeholder\n", encoding="utf-8")
-    (study_root / "manuscript" / "current_package.zip").write_text("zip\n", encoding="utf-8")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    write_synced_submission_delivery(
+        study_root,
+        quest_root,
+        include_submission_checklist=False,
+    )
     summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(
@@ -3319,7 +3319,6 @@ def test_study_progress_projects_bundle_only_submission_ready_parking_before_run
         "}\n",
         encoding="utf-8",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
     monkeypatch.setattr(
         module,
         "read_evaluation_summary",

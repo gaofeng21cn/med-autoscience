@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -728,6 +729,270 @@ def materialize_submission_references(
         "source_path": relpath_from_workspace(source_path, workspace_root),
         "output_path": relpath_from_workspace(target_path, workspace_root),
         "entry_count": entry_count,
+    }
+
+
+def _hash_file_bytes(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while True:
+            chunk = handle.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _source_contract_path_label(*, path: Path, workspace_root: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return relpath_from_workspace(resolved, workspace_root)
+    except ValueError:
+        return str(resolved)
+
+
+def _append_source_contract_entry(
+    *,
+    entries_by_path: dict[str, dict[str, Any]],
+    path: Path,
+    workspace_root: Path,
+) -> None:
+    resolved = path.expanduser().resolve()
+    if not resolved.exists() or not resolved.is_file():
+        return
+    key = str(resolved)
+    if key in entries_by_path:
+        return
+    stat = resolved.stat()
+    entries_by_path[key] = {
+        "path": _source_contract_path_label(path=resolved, workspace_root=workspace_root),
+        "size": stat.st_size,
+        "mtime_ns": stat.st_mtime_ns,
+        "sha256": _hash_file_bytes(resolved),
+    }
+
+
+def build_submission_minimal_source_contract(
+    *,
+    paper_root: Path,
+    workspace_root: Path,
+    compile_report_path: Path,
+    compiled_markdown_path: Path,
+    figure_catalog_path: Path,
+    table_catalog_path: Path,
+    figure_catalog: dict[str, Any],
+    table_catalog: dict[str, Any],
+    pack_lock_path: Path | None = None,
+) -> dict[str, Any]:
+    resolved_paper_root = paper_root.expanduser().resolve()
+    resolved_workspace_root = workspace_root.expanduser().resolve()
+    entries_by_path: dict[str, dict[str, Any]] = {}
+    missing_source_paths: set[str] = set()
+
+    def add_required(path: Path) -> None:
+        resolved = path.expanduser().resolve()
+        if not resolved.exists() or not resolved.is_file():
+            missing_source_paths.add(_source_contract_path_label(path=resolved, workspace_root=resolved_workspace_root))
+            return
+        _append_source_contract_entry(
+            entries_by_path=entries_by_path,
+            path=resolved,
+            workspace_root=resolved_workspace_root,
+        )
+
+    add_required(resolved_paper_root / "paper_bundle_manifest.json")
+    add_required(compile_report_path)
+    add_required(compiled_markdown_path)
+    add_required(figure_catalog_path)
+    add_required(table_catalog_path)
+
+    references_path = resolved_paper_root / "references.bib"
+    if references_path.exists():
+        add_required(references_path)
+    if pack_lock_path is not None and pack_lock_path.exists():
+        add_required(pack_lock_path)
+    for relative_path in study_delivery_sync.FORMAL_PAPER_DELIVERY_RELATIVE_PATHS:
+        source_path = resolved_paper_root / relative_path
+        if source_path.exists():
+            add_required(source_path)
+
+    for entry in figure_catalog.get("figures", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        for source_rel in resolve_figure_source_paths(entry):
+            source_path = resolve_relpath(resolved_workspace_root, source_rel)
+            if not source_path.exists():
+                missing_source_paths.add(source_rel)
+                continue
+            add_required(source_path)
+
+    for entry in table_catalog.get("tables", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        for source_rel in resolve_table_source_paths(entry):
+            source_path = resolve_relpath(resolved_workspace_root, source_rel)
+            if not source_path.exists():
+                missing_source_paths.add(source_rel)
+                continue
+            add_required(source_path)
+
+    source_files = sorted(entries_by_path.values(), key=lambda item: str(item["path"]))
+    source_signature = hashlib.sha256(
+        json.dumps(source_files, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    latest_source_mtime_ns = max((int(item["mtime_ns"]) for item in source_files), default=0)
+    return {
+        "schema_version": 1,
+        "source_files": source_files,
+        "source_paths": [str(item["path"]) for item in source_files],
+        "source_signature": source_signature,
+        "latest_source_mtime_ns": latest_source_mtime_ns,
+        "missing_source_paths": sorted(missing_source_paths),
+    }
+
+
+def describe_submission_minimal_authority(
+    *,
+    paper_root: Path,
+    publication_profile: str = GENERAL_MEDICAL_JOURNAL_PROFILE,
+) -> dict[str, Any]:
+    resolved_paper_root = paper_root.expanduser().resolve()
+    workspace_root = workspace_root_from_paper_root(resolved_paper_root)
+    normalized_publication_profile = normalize_publication_profile(publication_profile)
+    submission_root = resolve_output_root(
+        paper_root=resolved_paper_root,
+        publication_profile=normalized_publication_profile,
+    )
+    submission_manifest_path = submission_root / "submission_manifest.json"
+    if not submission_manifest_path.exists():
+        return {
+            "applicable": True,
+            "status": "missing",
+            "stale_reason": "submission_manifest_missing",
+            "submission_root": str(submission_root),
+            "submission_manifest_path": None,
+            "source_signature": None,
+            "recorded_source_signature": None,
+            "missing_source_paths": [],
+        }
+
+    try:
+        submission_manifest = load_json(submission_manifest_path)
+    except json.JSONDecodeError:
+        return {
+            "applicable": True,
+            "status": "invalid",
+            "stale_reason": "submission_manifest_invalid",
+            "submission_root": str(submission_root),
+            "submission_manifest_path": str(submission_manifest_path),
+            "source_signature": None,
+            "recorded_source_signature": None,
+            "missing_source_paths": [],
+        }
+    if not isinstance(submission_manifest, dict):
+        return {
+            "applicable": True,
+            "status": "invalid",
+            "stale_reason": "submission_manifest_invalid",
+            "submission_root": str(submission_root),
+            "submission_manifest_path": str(submission_manifest_path),
+            "source_signature": None,
+            "recorded_source_signature": None,
+            "missing_source_paths": [],
+        }
+
+    bundle_manifest_path = resolved_paper_root / "paper_bundle_manifest.json"
+    try:
+        bundle_manifest = load_json(bundle_manifest_path)
+        compile_report_path = resolve_relpath(
+            workspace_root,
+            resolve_bundle_input_path(
+                bundle_manifest=bundle_manifest,
+                key="compile_report_path",
+            ),
+        )
+        figure_catalog_path = resolve_relpath(
+            workspace_root,
+            resolve_bundle_input_path(
+                bundle_manifest=bundle_manifest,
+                key="figure_catalog_path",
+                fallback="paper/figures/figure_catalog.json",
+            ),
+        )
+        table_catalog_path = resolve_relpath(
+            workspace_root,
+            resolve_bundle_input_path(
+                bundle_manifest=bundle_manifest,
+                key="table_catalog_path",
+                fallback="paper/tables/table_catalog.json",
+            ),
+        )
+        compile_report = load_json(compile_report_path)
+        figure_catalog = load_json(figure_catalog_path)
+        table_catalog = load_json(table_catalog_path)
+        compiled_markdown_path = resolve_compiled_markdown_path(
+            workspace_root=workspace_root,
+            bundle_manifest=bundle_manifest,
+            compile_report=compile_report,
+            excluded_roots=(),
+        )
+        pack_lock_payload = _load_display_pack_lock_payload(paper_root=resolved_paper_root)
+    except (FileNotFoundError, KeyError, json.JSONDecodeError):
+        return {
+            "applicable": True,
+            "status": "stale_source_missing",
+            "stale_reason": "submission_source_inputs_missing",
+            "submission_root": str(submission_root),
+            "submission_manifest_path": str(submission_manifest_path),
+            "source_signature": None,
+            "recorded_source_signature": None,
+            "missing_source_paths": [],
+        }
+
+    source_contract = build_submission_minimal_source_contract(
+        paper_root=resolved_paper_root,
+        workspace_root=workspace_root,
+        compile_report_path=compile_report_path,
+        compiled_markdown_path=compiled_markdown_path,
+        figure_catalog_path=figure_catalog_path,
+        table_catalog_path=table_catalog_path,
+        figure_catalog=figure_catalog if isinstance(figure_catalog, dict) else {},
+        table_catalog=table_catalog if isinstance(table_catalog, dict) else {},
+        pack_lock_path=pack_lock_payload[0] if pack_lock_payload is not None else None,
+    )
+    recorded_contract = (
+        dict(submission_manifest.get("source_contract") or {})
+        if isinstance(submission_manifest.get("source_contract"), dict)
+        else {}
+    )
+    recorded_source_signature = _first_nonempty_string(
+        submission_manifest.get("source_signature"),
+        recorded_contract.get("source_signature"),
+    )
+    if source_contract["missing_source_paths"]:
+        status = "stale_source_missing"
+        stale_reason = "submission_source_inputs_missing"
+    elif recorded_source_signature:
+        status = "current" if recorded_source_signature == source_contract["source_signature"] else "stale_source_changed"
+        stale_reason = None if status == "current" else "submission_source_signature_mismatch"
+    else:
+        manifest_mtime_ns = submission_manifest_path.stat().st_mtime_ns
+        status = (
+            "current"
+            if manifest_mtime_ns >= int(source_contract["latest_source_mtime_ns"])
+            else "stale_source_changed"
+        )
+        stale_reason = None if status == "current" else "submission_source_newer_than_manifest"
+    return {
+        "applicable": True,
+        "status": status,
+        "stale_reason": stale_reason,
+        "submission_root": str(submission_root),
+        "submission_manifest_path": str(submission_manifest_path),
+        "source_signature": source_contract["source_signature"],
+        "recorded_source_signature": recorded_source_signature,
+        "missing_source_paths": list(source_contract["missing_source_paths"]),
+        "latest_source_mtime_ns": int(source_contract["latest_source_mtime_ns"]),
     }
 
 
@@ -2048,6 +2313,17 @@ def create_submission_minimal_package(
         pdf_path=output_pdf_path,
         expected_main_figure_count=count_main_text_figures_in_catalog(figure_catalog),
     )
+    source_contract = build_submission_minimal_source_contract(
+        paper_root=paper_root,
+        workspace_root=workspace_root,
+        compile_report_path=compile_report_path,
+        compiled_markdown_path=compiled_markdown_path,
+        figure_catalog_path=figure_catalog_path,
+        table_catalog_path=table_catalog_path,
+        figure_catalog=figure_catalog,
+        table_catalog=table_catalog,
+        pack_lock_path=pack_lock_path,
+    )
     submission_root_rel = relpath_from_workspace(submission_root, workspace_root)
     source_markdown_metadata, _ = split_front_matter(source_markdown_path.read_text(encoding="utf-8"))
     manifest: dict[str, Any] = {
@@ -2072,6 +2348,8 @@ def create_submission_minimal_package(
         "front_matter_placeholders": build_front_matter_placeholders(
             metadata=source_markdown_metadata,
         ),
+        "source_signature": source_contract["source_signature"],
+        "source_contract": source_contract,
     }
     if references_manifest is not None:
         manifest["references"] = references_manifest

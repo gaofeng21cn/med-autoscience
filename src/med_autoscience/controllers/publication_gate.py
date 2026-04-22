@@ -41,6 +41,7 @@ _BUNDLE_STAGE_ONLY_BLOCKERS = frozenset(
     {
         "missing_paper_compile_report",
         "missing_submission_minimal",
+        "stale_submission_minimal_authority",
         "missing_journal_package",
         "stale_study_delivery_mirror",
         "submission_surface_qc_failure_present",
@@ -1124,6 +1125,20 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     study_delivery = state.study_delivery or {}
     study_delivery_status = str(study_delivery.get("status") or "").strip() or "not_applicable"
     draft_handoff_delivery = state.draft_handoff_delivery or {}
+    submission_minimal_authority = (
+        submission_minimal.describe_submission_minimal_authority(
+            paper_root=state.paper_root,
+            publication_profile=infer_submission_publication_profile(state.submission_minimal_manifest),
+        )
+        if state.paper_root is not None and isinstance(state.submission_minimal_manifest, dict)
+        else {}
+    )
+    submission_minimal_authority_status = (
+        str(submission_minimal_authority.get("status") or "").strip() or "not_applicable"
+    )
+    submission_minimal_authority_stale_reason = _non_empty_text(
+        submission_minimal_authority.get("stale_reason")
+    )
     primary_journal_target = resolve_primary_journal_target(paper_root=state.paper_root)
     journal_requirements_state = resolve_journal_requirement_state(paper_root=state.paper_root)
     journal_package_state = resolve_journal_package_state(paper_root=state.paper_root)
@@ -1220,6 +1235,11 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         conclusion = (state.paper_bundle_manifest or {}).get("summary") or (state.compile_report or {}).get("summary")
     if state.unmanaged_submission_surface_roots:
         blockers.append("unmanaged_submission_surface_present")
+    if (
+        state.submission_minimal_manifest is not None
+        and submission_minimal_authority_status != "current"
+    ):
+        blockers.append("stale_submission_minimal_authority")
     if charter_contract_linkage_status in {"study_charter_missing", "study_charter_invalid"}:
         blockers.append(charter_contract_linkage_status)
     if study_delivery_status.startswith("stale"):
@@ -1340,6 +1360,8 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "submission_minimal_present": state.submission_minimal_manifest is not None,
         "submission_minimal_docx_present": state.submission_minimal_docx_present,
         "submission_minimal_pdf_present": state.submission_minimal_pdf_present,
+        "submission_minimal_authority_status": submission_minimal_authority_status,
+        "submission_minimal_authority_stale_reason": submission_minimal_authority_stale_reason,
         "study_delivery_status": study_delivery_status,
         "study_delivery_stale_reason": _non_empty_text(study_delivery.get("stale_reason")),
         "study_delivery_manifest_path": _non_empty_text(study_delivery.get("delivery_manifest_path")),
@@ -1572,6 +1594,8 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
             f"- `submission_minimal_present`: `{str(report.get('submission_minimal_present')).lower()}`",
             f"- `submission_minimal_docx_present`: `{str(report.get('submission_minimal_docx_present')).lower()}`",
             f"- `submission_minimal_pdf_present`: `{str(report.get('submission_minimal_pdf_present')).lower()}`",
+            f"- `submission_minimal_authority_status`: `{report.get('submission_minimal_authority_status')}`",
+            f"- `submission_minimal_authority_stale_reason`: `{report.get('submission_minimal_authority_stale_reason')}`",
             f"- `draft_handoff_delivery_required`: `{str(report.get('draft_handoff_delivery_required')).lower()}`",
             f"- `draft_handoff_delivery_status`: `{report.get('draft_handoff_delivery_status')}`",
             f"- `draft_handoff_delivery_manifest_path`: `{report.get('draft_handoff_delivery_manifest_path')}`",
