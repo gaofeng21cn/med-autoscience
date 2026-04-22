@@ -2428,6 +2428,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "quality_execution_lane_field": "quality_execution_lane",
         "same_line_route_truth_field": "same_line_route_truth",
         "same_line_route_surface_field": "same_line_route_surface",
+        "quality_repair_batch_followthrough_field": "quality_repair_batch_followthrough",
         "quality_review_followthrough_field": "quality_review_followthrough",
         "gate_clearing_followthrough_field": "gate_clearing_followthrough",
         "research_runtime_control_projection_field": "research_runtime_control_projection",
@@ -4373,6 +4374,38 @@ def test_render_product_frontdesk_markdown_shows_gate_clearing_followthrough_pre
 
     assert (
         "gate-clearing 跟进: 等待 gate replay；当前已按 gate-clearing batch 回放 deterministic 修复，正在等待新的 publication gate 结论。；看 replay 后的 publication gate 是否收窄 medical_publication_surface_blocked。"
+        in markdown
+    )
+
+
+def test_render_product_frontdesk_markdown_shows_quality_repair_followthrough_preview() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    markdown = module.render_product_frontdesk_markdown(
+        {
+            "workspace_preview": None,
+            "workspace_attention_queue_preview": [
+                {
+                    "title": "001-risk 当前进入 quality-repair followthrough",
+                    "recommended_command": "uv run python -m med_autoscience.cli study quality-repair-batch --study-id 001-risk",
+                    "quality_repair_followthrough": {
+                        "state_label": "等待 quality gate replay",
+                        "summary": "当前已按 quality-repair batch 回放 deterministic 修复，正在等待新的 publication eval 结论。",
+                        "next_confirmation_signal": "看 publication_eval/latest.json 是否继续收窄 quality blocker。",
+                    },
+                }
+            ],
+            "phase2_user_product_loop": {},
+            "product_entry_guardrails": {},
+            "phase3_clearance_lane": {"clearance_targets": [], "clearance_loop": []},
+            "phase4_backend_deconstruction": {"substrate_targets": []},
+            "phase5_platform_target": {"capability_targets": [], "readiness_gates": []},
+            "remaining_gaps": [],
+        }
+    )
+
+    assert (
+        "quality-repair 跟进: 等待 quality gate replay；当前已按 quality-repair batch 回放 deterministic 修复，正在等待新的 publication eval 结论。；看 publication_eval/latest.json 是否继续收窄 quality blocker。"
         in markdown
     )
 

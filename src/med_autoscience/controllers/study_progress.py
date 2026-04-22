@@ -264,6 +264,7 @@ class _LazyModuleProxy:
 
 
 gate_clearing_batch = _LazyModuleProxy(lambda: _load_controller("gate_clearing_batch"))
+quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
 study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
 _QUALITY_CLOSURE_BASIS_LABELS = {
     "clinical_significance": "临床意义",
@@ -1262,6 +1263,66 @@ def _gate_clearing_batch_followthrough(
     }
 
 
+def _quality_repair_batch_followthrough(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any] | None,
+    recommended_command: str | None,
+) -> dict[str, Any] | None:
+    record_path = quality_repair_batch.stable_quality_repair_batch_path(study_root=study_root)
+    record = _read_json_object(record_path)
+    if record is None:
+        return None
+    current_eval_id = _non_empty_text((publication_eval_payload or {}).get("eval_id"))
+    source_eval_id = _non_empty_text(record.get("source_eval_id"))
+    if current_eval_id is None or source_eval_id is None or current_eval_id != source_eval_id:
+        return None
+    gate_batch = dict(record.get("gate_clearing_batch") or {})
+    unit_results = [
+        dict(item)
+        for item in (gate_batch.get("unit_results") or [])
+        if isinstance(item, dict)
+    ]
+    failed_units = [item for item in unit_results if _non_empty_text(item.get("status")) == "failed"]
+    gate_replay = dict(gate_batch.get("gate_replay") or {})
+    gate_replay_status = _non_empty_text(gate_replay.get("status")) or "unknown"
+    if failed_units:
+        summary = "最近一轮 quality-repair batch 已执行，但仍有修复单元失败，当前不能继续自动前推。"
+        next_confirmation_signal = "先修掉失败 repair unit，再看 publication_eval/latest.json 是否进入新的复评或放行结论。"
+        user_intervention_required_now = True
+    elif gate_replay_status == "clear":
+        summary = "最近一轮 quality-repair batch 已执行，并已把 quality gate replay 到放行状态。"
+        next_confirmation_signal = "看 publication_eval/latest.json 是否刷新为新的放行结论，并确认当前 study 已进入下一阶段。"
+        user_intervention_required_now = False
+    else:
+        blockers = [
+            _non_empty_text(item)
+            for item in (gate_replay.get("blockers") or [])
+            if _non_empty_text(item) is not None
+        ]
+        blocker_summary = f"当前 gate replay 仍剩 {len(blockers)} 个 blocker。" if blockers else "当前 quality gate replay 仍未完全收口。"
+        summary = f"最近一轮 quality-repair batch 已执行；{blocker_summary}"
+        next_confirmation_signal = "看 publication_eval/latest.json 或最新 quality gate replay 是否继续收窄 blocker。"
+        user_intervention_required_now = False
+    payload = {
+        "surface_kind": "quality_repair_batch_followthrough",
+        "status": _non_empty_text(record.get("status")) or "executed",
+        "quality_closure_state": _non_empty_text(record.get("quality_closure_state")),
+        "quality_execution_lane_id": _non_empty_text(record.get("quality_execution_lane_id")),
+        "summary": summary,
+        "gate_replay_status": gate_replay_status,
+        "blocking_issue_count": len(gate_replay.get("blockers") or []),
+        "failed_unit_count": len(failed_units),
+        "next_confirmation_signal": next_confirmation_signal,
+        "user_intervention_required_now": user_intervention_required_now,
+        "latest_record_path": str(record_path),
+    }
+    if recommended_command is not None:
+        payload["recommended_step_id"] = "run_quality_repair_batch"
+        payload["recommended_command"] = recommended_command
+    return payload
+
+
 def _event(
     *,
     timestamp: str | None,
@@ -2067,6 +2128,7 @@ def _study_command_surfaces(
         "workspace_cockpit": f"{prefix} workspace cockpit --profile {profile_arg}",
         "study_progress": f"{prefix} study progress --profile {profile_arg} {selector}",
         "study_runtime_status": f"{prefix} study-runtime-status --profile {profile_arg} {selector}",
+        "quality_repair_batch": f"{prefix} study quality-repair-batch --profile {profile_arg} {selector}",
         "launch_study": f"{prefix} study launch --profile {profile_arg} {selector}",
         "refresh_supervision": (
             f"{prefix} runtime watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
@@ -3304,9 +3366,19 @@ def build_study_progress_projection(
         if evaluation_module_surface is not None
         else {}
     )
+    study_commands = _study_command_surfaces(
+        profile=profile,
+        study_id=resolved_study_id,
+        profile_ref=profile_ref,
+    )
     gate_clearing_batch_followthrough = _gate_clearing_batch_followthrough(
         study_root=resolved_study_root,
         publication_eval_payload=publication_eval_payload,
+    )
+    quality_repair_batch_followthrough = _quality_repair_batch_followthrough(
+        study_root=resolved_study_root,
+        publication_eval_payload=publication_eval_payload,
+        recommended_command=study_commands.get("quality_repair_batch"),
     )
     quality_review_followthrough = _quality_review_followthrough_projection(
         quality_review_loop=quality_review_loop,
@@ -3368,6 +3440,7 @@ def build_study_progress_projection(
         "quality_review_agenda": quality_review_agenda or None,
         "quality_revision_plan": quality_revision_plan or None,
         "quality_review_loop": quality_review_loop or None,
+        "quality_repair_batch_followthrough": quality_repair_batch_followthrough or None,
         "gate_clearing_batch_followthrough": gate_clearing_batch_followthrough or None,
         "quality_review_followthrough": quality_review_followthrough or None,
         "module_surfaces": module_surfaces,
@@ -3511,6 +3584,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     quality_review_agenda = _mapping_copy(normalized_payload.get("quality_review_agenda"))
     quality_revision_plan = _mapping_copy(normalized_payload.get("quality_revision_plan"))
     quality_review_loop = _mapping_copy(normalized_payload.get("quality_review_loop"))
+    quality_repair_batch_followthrough = _mapping_copy(normalized_payload.get("quality_repair_batch_followthrough"))
     gate_clearing_batch_followthrough = _mapping_copy(normalized_payload.get("gate_clearing_batch_followthrough"))
     quality_review_followthrough = _mapping_copy(normalized_payload.get("quality_review_followthrough"))
     recovery_contract = _mapping_copy(normalized_payload.get("recovery_contract"))
@@ -3645,6 +3719,23 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- 未自动继续原因: {quality_review_followthrough.get('blocking_reason')}")
         if quality_review_followthrough.get("next_confirmation_signal"):
             lines.append(f"- 下一确认信号: {quality_review_followthrough.get('next_confirmation_signal')}")
+    if quality_repair_batch_followthrough:
+        lines.extend(
+            [
+                "",
+                "## Quality-Repair Batch",
+                "",
+                f"- 当前状态: {quality_repair_batch_followthrough.get('status') or 'unknown'}",
+            ]
+        )
+        if quality_repair_batch_followthrough.get("summary"):
+            lines.append(f"- 当前判断: {quality_repair_batch_followthrough.get('summary')}")
+        if quality_repair_batch_followthrough.get("failed_unit_count") is not None:
+            lines.append(f"- 失败单元数: {quality_repair_batch_followthrough.get('failed_unit_count')}")
+        if quality_repair_batch_followthrough.get("blocking_issue_count") is not None:
+            lines.append(f"- 剩余 gate blocker: {quality_repair_batch_followthrough.get('blocking_issue_count')}")
+        if quality_repair_batch_followthrough.get("next_confirmation_signal"):
+            lines.append(f"- 下一确认信号: {quality_repair_batch_followthrough.get('next_confirmation_signal')}")
     if gate_clearing_batch_followthrough:
         lines.extend(
             [

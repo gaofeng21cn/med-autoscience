@@ -1235,6 +1235,60 @@ def test_study_runtime_status_command_serializes_typed_controller_result(monkeyp
     assert '"study_id": "001-risk"' in captured.out
 
 
+def test_quality_repair_batch_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **kwargs: {
+            "study_id": kwargs["study_id"],
+            "study_root": str(tmp_path / "workspace" / "studies" / "001-risk"),
+            "quest_id": "quest-001",
+        },
+    )
+
+    def fake_run_quality_repair_batch(
+        *,
+        profile,
+        study_id: str,
+        study_root: Path,
+        quest_id: str,
+        source: str,
+    ) -> dict:
+        called["profile"] = profile
+        called["study_id"] = study_id
+        called["study_root"] = study_root
+        called["quest_id"] = quest_id
+        called["source"] = source
+        return {"ok": True, "status": "executed", "quest_id": quest_id}
+
+    monkeypatch.setattr(cli.quality_repair_batch, "run_quality_repair_batch", fake_run_quality_repair_batch)
+
+    exit_code = cli.main(
+        [
+            "study",
+            "quality-repair-batch",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["study_id"] == "001-risk"
+    assert called["study_root"] == tmp_path / "workspace" / "studies" / "001-risk"
+    assert called["quest_id"] == "quest-001"
+    assert called["source"] == "cli"
+    assert json.loads(captured.out)["status"] == "executed"
+
+
 def test_legacy_grouped_study_runtime_status_alias_is_removed() -> None:
     cli = importlib.import_module("med_autoscience.cli")
 

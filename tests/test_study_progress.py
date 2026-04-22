@@ -4242,6 +4242,81 @@ def test_study_progress_projects_gate_clearing_batch_followthrough(tmp_path: Pat
     }
 
 
+def test_study_progress_projects_quality_repair_batch_followthrough(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-05T05:58:00+00:00",
+            "verdict": {
+                "overall_verdict": "blocked",
+                "primary_claim_status": "partial",
+                "summary": "当前仍需 deterministic quality repair。",
+                "stop_loss_pressure": "watch",
+            },
+            "gaps": [],
+            "recommended_actions": [],
+        },
+    )
+    quality_batch_path = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    _write_json(
+        quality_batch_path,
+        {
+            "schema_version": 1,
+            "source_eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
+            "source_summary_id": "evaluation-summary::001-risk::latest",
+            "status": "executed",
+            "quality_closure_state": "quality_repair_required",
+            "quality_execution_lane_id": "general_quality_repair",
+            "gate_clearing_batch": {
+                "status": "executed",
+                "unit_results": [
+                    {"unit_id": "materialize_display_surface", "status": "updated"},
+                ],
+                "gate_replay": {
+                    "status": "blocked",
+                    "blockers": ["medical_publication_surface_blocked"],
+                },
+            },
+        },
+    )
+
+    result = module._quality_repair_batch_followthrough(
+        study_root=study_root,
+        publication_eval_payload=json.loads(publication_eval_path.read_text(encoding="utf-8")),
+        recommended_command="uv run python -m med_autoscience.cli study quality-repair-batch --profile profile.local.toml --study-id 001-risk",
+    )
+
+    assert result == {
+        "surface_kind": "quality_repair_batch_followthrough",
+        "status": "executed",
+        "quality_closure_state": "quality_repair_required",
+        "quality_execution_lane_id": "general_quality_repair",
+        "summary": "最近一轮 quality-repair batch 已执行；当前 gate replay 仍剩 1 个 blocker。",
+        "gate_replay_status": "blocked",
+        "blocking_issue_count": 1,
+        "failed_unit_count": 0,
+        "next_confirmation_signal": "看 publication_eval/latest.json 或最新 quality gate replay 是否继续收窄 blocker。",
+        "user_intervention_required_now": False,
+        "recommended_step_id": "run_quality_repair_batch",
+        "recommended_command": "uv run python -m med_autoscience.cli study quality-repair-batch --profile profile.local.toml --study-id 001-risk",
+        "latest_record_path": str(quality_batch_path),
+    }
+
+
 def test_render_study_progress_markdown_surfaces_gate_clearing_batch_followthrough() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 
@@ -4276,4 +4351,40 @@ def test_render_study_progress_markdown_surfaces_gate_clearing_batch_followthrou
     assert "## Gate-Clearing Batch" in markdown
     assert "当前判断: 最近一轮 gate-clearing batch 已执行；当前仍剩 2 个 gate blocker。" in markdown
     assert "剩余 gate blocker: 2" in markdown
-    assert "下一确认信号: 看 publication_eval/latest.json 或最新 gate replay 是否继续收窄 blocker。" in markdown
+
+
+def test_render_study_progress_markdown_surfaces_quality_repair_batch_followthrough() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    markdown = module.render_study_progress_markdown(
+        {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "current_stage": "publication_supervision",
+            "current_stage_summary": "当前仍在质量修复收口。",
+            "paper_stage": "finalize",
+            "paper_stage_summary": "当前仍需 deterministic quality repair。",
+            "latest_events": [],
+            "current_blockers": [],
+            "next_system_action": "等待下一轮质量门控回放。",
+            "runtime_decision": "blocked",
+            "runtime_reason": "publication_quality_gap",
+            "progress_freshness": {},
+            "supervision": {},
+            "intervention_lane": {},
+            "operator_status_card": {},
+            "quality_repair_batch_followthrough": {
+                "status": "executed",
+                "summary": "最近一轮 quality-repair batch 已执行；当前 gate replay 仍剩 1 个 blocker。",
+                "failed_unit_count": 0,
+                "blocking_issue_count": 1,
+                "next_confirmation_signal": "看 publication_eval/latest.json 或最新 quality gate replay 是否继续收窄 blocker。",
+            },
+            "module_surfaces": {},
+        }
+    )
+
+    assert "## Quality-Repair Batch" in markdown
+    assert "当前判断: 最近一轮 quality-repair batch 已执行；当前 gate replay 仍剩 1 个 blocker。" in markdown
+    assert "剩余 gate blocker: 1" in markdown
+    assert "下一确认信号: 看 publication_eval/latest.json 或最新 quality gate replay 是否继续收窄 blocker。" in markdown

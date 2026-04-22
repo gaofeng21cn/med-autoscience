@@ -66,6 +66,7 @@ mainline_status = _LazyModuleProxy(lambda: _load_controller("mainline_status"))
 portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
 product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
+quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
 runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
 sidecar_provider_controller = _LazyModuleProxy(lambda: _load_controller("sidecar_provider"))
@@ -429,6 +430,12 @@ def build_parser() -> argparse.ArgumentParser:
     study_progress_parser.add_argument("--entry-mode", type=str)
     study_progress_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
 
+    quality_repair_batch_parser = subparsers.add_parser("quality-repair-batch")
+    quality_repair_batch_parser.add_argument("--profile", required=True)
+    quality_repair_batch_parser.add_argument("--study-id", type=str)
+    quality_repair_batch_parser.add_argument("--study-root", type=str)
+    quality_repair_batch_parser.add_argument("--quest-id", type=str)
+
     workspace_cockpit_parser = subparsers.add_parser("workspace-cockpit")
     workspace_cockpit_parser.add_argument("--profile", required=True)
     workspace_cockpit_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
@@ -546,6 +553,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("runtime", "ensure-analysis-bundle"): "ensure-study-runtime-analysis-bundle",
     ("study", "ensure-runtime"): "ensure-study-runtime",
     ("study", "progress"): "study-progress",
+    ("study", "quality-repair-batch"): "quality-repair-batch",
     ("study", "launch"): "launch-study",
     ("study", "submit-task"): "submit-study-task",
     ("study", "resolve-reference-papers"): "resolve-reference-papers",
@@ -786,6 +794,39 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(study_progress.render_study_progress_markdown(result), end="")
+        return 0
+
+    if args.command == "quality-repair-batch":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        study_root = Path(args.study_root) if args.study_root else None
+        quest_id = str(args.quest_id or "").strip() or None
+        if quest_id is None or study_root is None:
+            status = study_runtime_router.study_runtime_status(
+                profile=profile,
+                study_id=args.study_id,
+                study_root=study_root,
+                entry_mode=None,
+            )
+            if study_root is None:
+                resolved_study_root = status.get("study_root")
+                if not isinstance(resolved_study_root, str) or not resolved_study_root.strip():
+                    parser.error("Unable to resolve study_root for quality-repair-batch")
+                study_root = Path(resolved_study_root)
+            if quest_id is None:
+                resolved_quest_id = str(status.get("quest_id") or "").strip()
+                if not resolved_quest_id:
+                    parser.error("Unable to resolve quest_id for quality-repair-batch")
+                quest_id = resolved_quest_id
+        result = quality_repair_batch.run_quality_repair_batch(
+            profile=profile,
+            study_id=args.study_id or study_root.name,
+            study_root=study_root,
+            quest_id=quest_id,
+            source="cli",
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "workspace-cockpit":
