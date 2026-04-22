@@ -16,6 +16,7 @@ from med_autoscience.quality.publication_gate import (
 )
 from med_autoscience.quality.study_quality import build_study_quality_truth
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
+from med_autoscience.study_task_intake import read_latest_task_intake, summarize_task_intake
 
 __all__ = [
     "STABLE_EVALUATION_SUMMARY_RELATIVE_PATH",
@@ -135,6 +136,54 @@ _QUALITY_REVIEW_LOOP_NEXT_PHASE_LABELS = {
     "write": "继续写作",
     "finalize": "定稿与投稿收尾",
 }
+_TASK_INTAKE_REPORTING_SCOPE_HINTS = frozenset(
+    {
+        "reporting/display contract mismatch",
+        "delivery/reporting contract mismatch",
+        "display contract",
+        "display registry",
+        "registry_contract_mismatch",
+        "medical_reporting_audit",
+        "稿面契约",
+        "显示契约",
+    }
+)
+_TASK_INTAKE_NO_CLAIM_REOPEN_HINTS = frozenset(
+    {
+        "do not change scientific claims",
+        "do not reopen scientific claims",
+        "不要改变科学结论",
+        "不要改 scientific claims",
+        "不改变科学主张",
+    }
+)
+_TASK_INTAKE_NO_EVIDENCE_REOPEN_HINTS = frozenset(
+    {
+        "do not reopen manuscript evidence adequacy",
+        "not manuscript evidence failure",
+        "不要重开 manuscript evidence adequacy",
+        "不得重开证据充分性",
+        "只使用现有证据",
+        "只基于当前数据",
+    }
+)
+_TASK_INTAKE_NO_PUBLIC_DATA_EXPANSION_HINTS = frozenset(
+    {
+        "do not expand public data",
+        "不要扩 public data",
+        "不扩 public data",
+    }
+)
+_TASK_INTAKE_STATUS_RECHECK_HINTS = frozenset(
+    {
+        "medical_reporting_audit",
+        "runtime_watch",
+        "publication-gate",
+        "publication gate",
+    }
+)
+_TASK_INTAKE_DISPLAY_REGISTRY_HINTS = frozenset({"display registry", "registry_contract_mismatch"})
+_TASK_INTAKE_SHELL_INPUT_HINTS = frozenset({"shell/input", "input surfaces"})
 
 
 def stable_evaluation_summary_path(*, study_root: Path) -> Path:
@@ -492,6 +541,9 @@ def _agenda_summary(
 
 
 def _quality_review_agenda_from_summary_payload(summary_payload: dict[str, Any]) -> dict[str, str]:
+    scoped_agenda = _task_intake_scoped_quality_agenda(summary_payload)
+    if scoped_agenda is not None:
+        return scoped_agenda
     route_repair_plan = (
         dict(summary_payload.get("route_repair_plan") or {})
         if isinstance(summary_payload.get("route_repair_plan"), dict)
@@ -589,6 +641,9 @@ def _normalized_quality_review_agenda(
     agenda_payload: dict[str, Any] | None,
     summary_payload: dict[str, Any],
 ) -> dict[str, str]:
+    scoped_agenda = _task_intake_scoped_quality_agenda(summary_payload)
+    if scoped_agenda is not None:
+        return scoped_agenda
     fallback = _quality_review_agenda_from_summary_payload(summary_payload)
     if not isinstance(agenda_payload, dict):
         return fallback
@@ -649,6 +704,94 @@ def _unique_non_empty_texts(*values: object) -> list[str]:
             ordered.append(text)
             seen.add(text)
     return ordered
+
+
+def _task_intake_scope_texts(task_intake: dict[str, Any] | None) -> list[str]:
+    if not isinstance(task_intake, dict):
+        return []
+    return _unique_non_empty_texts(
+        list(task_intake.get("trusted_inputs") or []),
+        list(task_intake.get("constraints") or []),
+        task_intake.get("task_intent"),
+        list(task_intake.get("evidence_boundary") or []),
+        list(task_intake.get("first_cycle_outputs") or []),
+    )
+
+
+def _task_intake_contains_hint(texts: list[str], hints: frozenset[str]) -> bool:
+    lowered_texts = [text.casefold() for text in texts]
+    return any(hint in text for text in lowered_texts for hint in hints)
+
+
+def _format_revision_scope_targets(targets: list[str]) -> str:
+    unique_targets = _unique_non_empty_texts(targets)
+    if not unique_targets:
+        return "reporting contract"
+    if len(unique_targets) == 1:
+        return unique_targets[0]
+    if len(unique_targets) == 2:
+        return f"{unique_targets[0]} 与 {unique_targets[1]}"
+    return f"{'、'.join(unique_targets[:-1])} 与{unique_targets[-1]}"
+
+
+def _task_intake_scoped_quality_agenda(summary_payload: dict[str, Any]) -> dict[str, str] | None:
+    task_intake = (
+        dict(summary_payload.get("task_intake") or {})
+        if isinstance(summary_payload.get("task_intake"), dict)
+        else None
+    )
+    if not isinstance(task_intake, dict):
+        return None
+    quality_closure_truth = (
+        dict(summary_payload.get("quality_closure_truth") or {})
+        if isinstance(summary_payload.get("quality_closure_truth"), dict)
+        else {}
+    )
+    quality_execution_lane = (
+        dict(summary_payload.get("quality_execution_lane") or {})
+        if isinstance(summary_payload.get("quality_execution_lane"), dict)
+        else {}
+    )
+    if _optional_text(quality_closure_truth.get("state")) != "bundle_only_remaining" and _optional_text(
+        quality_execution_lane.get("lane_id")
+    ) != "submission_hardening":
+        return None
+    texts = _task_intake_scope_texts(task_intake)
+    if not texts:
+        return None
+    if not _task_intake_contains_hint(texts, _TASK_INTAKE_REPORTING_SCOPE_HINTS):
+        return None
+    if not (
+        _task_intake_contains_hint(texts, _TASK_INTAKE_NO_CLAIM_REOPEN_HINTS)
+        or _task_intake_contains_hint(texts, _TASK_INTAKE_NO_EVIDENCE_REOPEN_HINTS)
+        or _task_intake_contains_hint(texts, _TASK_INTAKE_NO_PUBLIC_DATA_EXPANSION_HINTS)
+    ):
+        return None
+    revision_targets = ["reporting contract"]
+    if _task_intake_contains_hint(texts, _TASK_INTAKE_DISPLAY_REGISTRY_HINTS):
+        revision_targets.append("display registry")
+    if _task_intake_contains_hint(texts, _TASK_INTAKE_SHELL_INPUT_HINTS):
+        revision_targets.append("必需 shell/input surfaces")
+    top_priority_issue = "当前任务范围已收窄到 reporting/display contract mismatch；现阶段不要重开 manuscript evidence adequacy 或 scientific claims。"
+    suggested_revision = (
+        f"对齐 {_format_revision_scope_targets(revision_targets)}，"
+        "让 current package 与已接受展示包保持一致。"
+    )
+    next_review_focus = (
+        "复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。"
+        if _task_intake_contains_hint(texts, _TASK_INTAKE_STATUS_RECHECK_HINTS)
+        else "复核 reporting/display contract mismatch 是否已经清零，且 current package 与 submission surfaces 保持事实一致。"
+    )
+    return {
+        "top_priority_issue": top_priority_issue,
+        "suggested_revision": suggested_revision,
+        "next_review_focus": next_review_focus,
+        "agenda_summary": _agenda_summary(
+            top_priority_issue=top_priority_issue,
+            suggested_revision=suggested_revision,
+            next_review_focus=next_review_focus,
+        ),
+    }
 
 
 def _quality_revision_plan_id(summary_payload: dict[str, Any]) -> str:
@@ -1037,6 +1180,39 @@ def _normalized_quality_revision_plan(
     summary_payload: dict[str, Any],
 ) -> dict[str, Any]:
     fallback = _quality_revision_plan_from_summary_payload(summary_payload)
+    scoped_agenda = _task_intake_scoped_quality_agenda(summary_payload)
+    if scoped_agenda is not None:
+        scoped_items = [dict(item) for item in fallback["items"]]
+        if scoped_items:
+            scoped_items[0] = {
+                **scoped_items[0],
+                "action": scoped_agenda["suggested_revision"],
+                "rationale": scoped_agenda["top_priority_issue"],
+                "done_criteria": f"下一轮复评能够明确确认：{scoped_agenda['next_review_focus']}",
+            }
+        if not isinstance(plan_payload, dict):
+            return {
+                **fallback,
+                "items": scoped_items,
+                "next_review_focus": [scoped_agenda["next_review_focus"]],
+            }
+        execution_status = _optional_text(plan_payload.get("execution_status")) or fallback["execution_status"]
+        if execution_status not in _QUALITY_REVISION_PLAN_STATUSES:
+            allowed = ", ".join(sorted(_QUALITY_REVISION_PLAN_STATUSES))
+            raise ValueError(f"quality revision plan execution_status must be one of: {allowed}")
+        return {
+            "policy_id": _optional_text(plan_payload.get("policy_id")) or fallback["policy_id"],
+            "plan_id": (
+                _optional_text(plan_payload.get("plan_id"))
+                or _optional_text(plan_payload.get("revision_plan_id"))
+                or fallback["plan_id"]
+            ),
+            "execution_status": execution_status,
+            "overall_diagnosis": fallback["overall_diagnosis"],
+            "weight_contract": _normalized_weight_contract(plan_payload.get("weight_contract")),
+            "items": scoped_items,
+            "next_review_focus": [scoped_agenda["next_review_focus"]],
+        }
     if not isinstance(plan_payload, dict):
         return fallback
     execution_status = _optional_text(plan_payload.get("execution_status")) or fallback["execution_status"]
@@ -1353,6 +1529,28 @@ def _normalized_quality_review_loop(
     summary_payload: dict[str, Any],
 ) -> dict[str, Any]:
     fallback = _quality_review_loop_from_summary_payload(summary_payload)
+    scoped_agenda = _task_intake_scoped_quality_agenda(summary_payload)
+    if scoped_agenda is not None:
+        if not isinstance(loop_payload, dict):
+            return fallback
+        return {
+            "policy_id": _optional_text(loop_payload.get("policy_id")) or fallback["policy_id"],
+            "loop_id": _optional_text(loop_payload.get("loop_id")) or fallback["loop_id"],
+            "closure_state": fallback["closure_state"],
+            "lane_id": fallback["lane_id"],
+            "current_phase": fallback["current_phase"],
+            "current_phase_label": fallback["current_phase_label"],
+            "recommended_next_phase": fallback["recommended_next_phase"],
+            "recommended_next_phase_label": fallback["recommended_next_phase_label"],
+            "active_plan_id": _optional_text(loop_payload.get("active_plan_id")) or fallback["active_plan_id"],
+            "active_plan_execution_status": fallback["active_plan_execution_status"],
+            "blocking_issue_count": fallback["blocking_issue_count"],
+            "blocking_issues": list(fallback["blocking_issues"]),
+            "next_review_focus": list(fallback["next_review_focus"]),
+            "re_review_ready": fallback["re_review_ready"],
+            "summary": fallback["summary"],
+            "recommended_next_action": fallback["recommended_next_action"],
+        }
     if not isinstance(loop_payload, dict):
         return fallback
     current_phase = _optional_text(loop_payload.get("current_phase")) or fallback["current_phase"]
@@ -2029,21 +2227,25 @@ def _normalized_evaluation_summary(payload: dict[str, Any], *, study_root: Path)
         if isinstance(payload.get("quality_review_loop"), dict)
         else None
     )
+    summary_payload = {
+        **payload,
+        "task_intake": summarize_task_intake(read_latest_task_intake(study_root=study_root)),
+    }
     quality_execution_lane = _normalized_quality_execution_lane_payload(payload)
     same_line_route_truth = _normalized_same_line_route_truth_payload(payload)
     same_line_route_surface = _normalized_same_line_route_surface_payload(payload)
     normalized_quality_review_agenda = _normalized_quality_review_agenda(
         agenda_payload=quality_review_agenda,
-        summary_payload=payload,
+        summary_payload=summary_payload,
     )
     normalized_quality_revision_plan = _normalized_quality_revision_plan(
         plan_payload=quality_revision_plan,
-        summary_payload={**payload, "quality_review_agenda": normalized_quality_review_agenda},
+        summary_payload={**summary_payload, "quality_review_agenda": normalized_quality_review_agenda},
     )
     normalized_quality_review_loop = _normalized_quality_review_loop(
         loop_payload=quality_review_loop,
         summary_payload={
-            **payload,
+            **summary_payload,
             "quality_review_agenda": normalized_quality_review_agenda,
             "quality_revision_plan": normalized_quality_revision_plan,
         },

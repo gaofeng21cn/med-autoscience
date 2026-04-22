@@ -184,6 +184,42 @@ def _stable_inputs(tmp_path: Path) -> dict[str, object]:
     }
 
 
+def _write_reporting_contract_task_intake(study_root: Path) -> dict[str, object]:
+    payload = {
+        "schema_version": 1,
+        "task_id": f"study-task::{study_root.name}::20260418T210434Z",
+        "emitted_at": "2026-04-18T21:04:34+00:00",
+        "study_id": study_root.name,
+        "study_root": str(study_root.resolve()),
+        "entry_mode": "full_research",
+        "task_intent": (
+            "Continue non-final write/review maintenance under supervisor-only runtime ownership. "
+            "Repair the medical reporting/display contract mismatch that still blocks medical_reporting_audit: "
+            "registry_contract_mismatch, missing_local_architecture_overview_shell, and "
+            "missing_local_architecture_overview_inputs. Do not reopen manuscript evidence adequacy, "
+            "do not expand public data, and do not change scientific claims; align the reporting contract, "
+            "display registry, and required shell/input surfaces to the already accepted active display package. "
+            "After the repair, rerun medical_reporting_audit/runtime_watch/publication-gate status so the "
+            "study-level progress card no longer reports stale quality-floor blockers."
+        ),
+        "journal_target": None,
+        "constraints": [
+            "Keep route non-final write/review; do not treat gate clear, bundle presence, or checklist handoff as finalize or quest completion.",
+            "Foreground Codex remains supervisor-only and must not directly edit runtime-owned paper surfaces unless runtime is explicitly paused and takeover is approved.",
+        ],
+        "evidence_boundary": [
+            "Retained public evidence stays unchanged; do not reopen manuscript evidence adequacy or expand public data."
+        ],
+        "trusted_inputs": [
+            "Latest manuscript/story contract is valid; current blocker is delivery/reporting contract mismatch, not manuscript evidence failure."
+        ],
+        "reference_papers": [],
+        "first_cycle_outputs": [],
+    }
+    _write_json(study_root / "artifacts" / "controller" / "task_intake" / "latest.json", payload)
+    return payload
+
+
 def test_resolve_evaluation_summary_ref_defaults_to_eval_hygiene_latest_surface(tmp_path: Path) -> None:
     module = importlib.import_module(MODULE_NAME)
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
@@ -835,6 +871,267 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
         "route_target_label": "定稿与投稿收尾",
         "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
         "current_focus": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+    }
+
+
+def test_materialize_evaluation_summary_artifacts_aligns_bundle_only_agenda_with_latest_task_intake_scope(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    publication_eval_path = inputs["publication_eval_path"]
+    gate_report_path = inputs["gate_report_path"]
+    publication_eval_payload = dict(inputs["publication_eval_payload"])
+    publication_eval_payload["verdict"] = {
+        "overall_verdict": "promising",
+        "primary_claim_status": "supported",
+        "summary": "bundle-stage work is unlocked and can proceed on the critical path",
+        "stop_loss_pressure": "none",
+    }
+    publication_eval_payload["quality_assessment"] = {
+        "clinical_significance": {
+            "status": "partial",
+            "summary": "主临床问题与结果表面已具备，但 charter 里还缺更显式的 clinician-facing interpretation target。",
+            "reviewer_reason": "主临床问题与结果表面已具备，但 clinician-facing interpretation target 仍未显式冻结。",
+            "reviewer_revision_advice": "在 charter 补齐 clinician-facing interpretation target，再做临床叙事定稿。",
+            "reviewer_next_round_focus": "下一轮重点确认解释目标是否能覆盖主临床结论的每一条关键陈述。",
+            "evidence_refs": [str(gate_report_path)],
+        },
+        "evidence_strength": {
+            "status": "ready",
+            "summary": "核心科学证据链已经清楚，当前剩余问题位于交付/刷新层。",
+            "reviewer_reason": "核心科学证据链已经清楚，当前剩余问题位于交付/刷新层。",
+            "reviewer_revision_advice": "核心证据链已达标，下一轮优先清理交付与刷新层阻塞，避免再次影响审阅入口。",
+            "reviewer_next_round_focus": "下一轮重点确认 current package 与 submission surfaces 的刷新时序。",
+            "evidence_refs": [str(gate_report_path)],
+        },
+        "novelty_positioning": {
+            "status": "underdefined",
+            "summary": "当前 charter 还缺显式的 scientific follow-up 或 explanation targets，创新性 framing 仍偏弱。",
+            "reviewer_reason": "当前 charter 缺少显式 scientific follow-up 或 explanation targets，创新性 framing 仍偏弱。",
+            "reviewer_revision_advice": "先在 charter 增补可审计的 scientific follow-up questions 或 explanation targets。",
+            "reviewer_next_round_focus": "补齐 scientific follow-up questions 或 explanation targets，再复核创新叙事与主结论边界。",
+            "evidence_refs": [str(inputs["charter_path"])],
+        },
+        "human_review_readiness": {
+            "status": "ready",
+            "summary": "给人看的 current_package 和 submission_minimal 已同步到最新真相，可以进入人工审阅。",
+            "reviewer_reason": "current_package 与 submission_minimal 已同步到最新真相，人工审阅入口已就绪。",
+            "reviewer_revision_advice": "保持当前交付状态并仅做事实一致性修订。",
+            "reviewer_next_round_focus": "下一轮重点复核审阅包中的引用路径与提交清单一致性。",
+            "evidence_refs": [str(gate_report_path)],
+        },
+    }
+    _write_json(publication_eval_path, publication_eval_payload)
+    _write_json(
+        gate_report_path,
+        {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-05T06:05:00+00:00",
+            "quest_id": "quest-001",
+            "status": "blocked",
+            "allow_write": False,
+            "recommended_action": "continue_bundle_stage",
+            "latest_gate_path": str(gate_report_path),
+            "supervisor_phase": "bundle_stage_ready",
+            "current_required_action": "continue_bundle_stage",
+            "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+            "blockers": ["registry_contract_mismatch"],
+        },
+    )
+    _write_reporting_contract_task_intake(study_root)
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
+
+    summary = module.read_evaluation_summary(study_root=study_root)
+
+    assert summary["quality_review_agenda"] == {
+        "top_priority_issue": "当前任务范围已收窄到 reporting/display contract mismatch；现阶段不要重开 manuscript evidence adequacy 或 scientific claims。",
+        "suggested_revision": "对齐 reporting contract、display registry 与必需 shell/input surfaces，让 current package 与已接受展示包保持一致。",
+        "next_review_focus": "复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。",
+        "agenda_summary": (
+            "优先修复：当前任务范围已收窄到 reporting/display contract mismatch；现阶段不要重开 manuscript evidence adequacy 或 scientific claims。；"
+            "建议修订：对齐 reporting contract、display registry 与必需 shell/input surfaces，让 current package 与已接受展示包保持一致。；"
+            "下一轮复评重点：复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。"
+        ),
+    }
+    assert summary["quality_revision_plan"] == {
+        "policy_id": "medical_publication_critique_v1",
+        "plan_id": "quality-revision-plan::evaluation-summary::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+        "execution_status": "planned",
+        "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
+        "weight_contract": {
+            "clinical_significance": 25,
+            "evidence_strength": 35,
+            "novelty_positioning": 20,
+            "human_review_readiness": 20,
+        },
+        "items": [
+            {
+                "item_id": "quality-revision-item-1",
+                "priority": "p0",
+                "dimension": "human_review_readiness",
+                "action_type": "stabilize_submission_bundle",
+                "action": "对齐 reporting contract、display registry 与必需 shell/input surfaces，让 current package 与已接受展示包保持一致。",
+                "rationale": "当前任务范围已收窄到 reporting/display contract mismatch；现阶段不要重开 manuscript evidence adequacy 或 scientific claims。",
+                "done_criteria": "下一轮复评能够明确确认：复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。",
+                "route_target": "finalize",
+            }
+        ],
+        "next_review_focus": ["复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。"],
+    }
+
+
+def test_read_evaluation_summary_overrides_stale_bundle_only_agenda_with_latest_task_intake_scope(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    publication_eval_path = inputs["publication_eval_path"]
+    gate_report_path = inputs["gate_report_path"]
+    publication_eval_payload = dict(inputs["publication_eval_payload"])
+    publication_eval_payload["verdict"] = {
+        "overall_verdict": "promising",
+        "primary_claim_status": "supported",
+        "summary": "bundle-stage work is unlocked and can proceed on the critical path",
+        "stop_loss_pressure": "none",
+    }
+    publication_eval_payload["quality_assessment"] = {
+        "clinical_significance": {
+            "status": "partial",
+            "summary": "主临床问题与结果表面已具备，但 charter 里还缺更显式的 clinician-facing interpretation target。",
+            "reviewer_reason": "主临床问题与结果表面已具备，但 clinician-facing interpretation target 仍未显式冻结。",
+            "reviewer_revision_advice": "在 charter 补齐 clinician-facing interpretation target，再做临床叙事定稿。",
+            "reviewer_next_round_focus": "下一轮重点确认解释目标是否能覆盖主临床结论的每一条关键陈述。",
+            "evidence_refs": [str(gate_report_path)],
+        },
+        "evidence_strength": {
+            "status": "ready",
+            "summary": "核心科学证据链已经清楚，当前剩余问题位于交付/刷新层。",
+            "reviewer_reason": "核心科学证据链已经清楚，当前剩余问题位于交付/刷新层。",
+            "reviewer_revision_advice": "核心证据链已达标，下一轮优先清理交付与刷新层阻塞，避免再次影响审阅入口。",
+            "reviewer_next_round_focus": "下一轮重点确认 current package 与 submission surfaces 的刷新时序。",
+            "evidence_refs": [str(gate_report_path)],
+        },
+        "novelty_positioning": {
+            "status": "underdefined",
+            "summary": "当前 charter 还缺显式的 scientific follow-up 或 explanation targets，创新性 framing 仍偏弱。",
+            "reviewer_reason": "当前 charter 缺少显式 scientific follow-up 或 explanation targets，创新性 framing 仍偏弱。",
+            "reviewer_revision_advice": "先在 charter 增补可审计的 scientific follow-up questions 或 explanation targets。",
+            "reviewer_next_round_focus": "补齐 scientific follow-up questions 或 explanation targets，再复核创新叙事与主结论边界。",
+            "evidence_refs": [str(inputs["charter_path"])],
+        },
+        "human_review_readiness": {
+            "status": "ready",
+            "summary": "给人看的 current_package 和 submission_minimal 已同步到最新真相，可以进入人工审阅。",
+            "reviewer_reason": "current_package 与 submission_minimal 已同步到最新真相，人工审阅入口已就绪。",
+            "reviewer_revision_advice": "保持当前交付状态并仅做事实一致性修订。",
+            "reviewer_next_round_focus": "下一轮重点复核审阅包中的引用路径与提交清单一致性。",
+            "evidence_refs": [str(gate_report_path)],
+        },
+    }
+    _write_json(publication_eval_path, publication_eval_payload)
+    _write_json(
+        gate_report_path,
+        {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-05T06:05:00+00:00",
+            "quest_id": "quest-001",
+            "status": "blocked",
+            "allow_write": False,
+            "recommended_action": "continue_bundle_stage",
+            "latest_gate_path": str(gate_report_path),
+            "supervisor_phase": "bundle_stage_ready",
+            "current_required_action": "continue_bundle_stage",
+            "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+            "blockers": ["registry_contract_mismatch"],
+        },
+    )
+    _write_reporting_contract_task_intake(study_root)
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
+    summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    payload["quality_review_agenda"] = {
+        "top_priority_issue": "当前 charter 缺少显式 scientific follow-up 或 explanation targets，创新性 framing 仍偏弱。",
+        "suggested_revision": "先在 charter 增补可审计的 scientific follow-up questions 或 explanation targets。",
+        "next_review_focus": "补齐 scientific follow-up questions 或 explanation targets，再复核创新叙事与主结论边界。",
+    }
+    payload["quality_revision_plan"] = {
+        "policy_id": "medical_publication_critique_v1",
+        "plan_id": "quality-revision-plan::stale",
+        "execution_status": "in_progress",
+        "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
+        "weight_contract": {
+            "clinical_significance": 25,
+            "evidence_strength": 35,
+            "novelty_positioning": 20,
+            "human_review_readiness": 20,
+        },
+        "items": [
+            {
+                "item_id": "quality-revision-item-1",
+                "priority": "p1",
+                "dimension": "novelty_positioning",
+                "action_type": "stabilize_submission_bundle",
+                "action": "先在 charter 增补可审计的 scientific follow-up questions 或 explanation targets。",
+                "rationale": "当前 charter 缺少显式 scientific follow-up 或 explanation targets，创新性 framing 仍偏弱。",
+                "done_criteria": "下一轮复评能够明确确认：补齐 scientific follow-up questions 或 explanation targets，再复核创新叙事与主结论边界。",
+                "route_target": "finalize",
+            }
+        ],
+        "next_review_focus": ["补齐 scientific follow-up questions 或 explanation targets，再复核创新叙事与主结论边界。"],
+    }
+    _write_json(summary_path, payload)
+
+    summary = module.read_evaluation_summary(study_root=study_root)
+
+    assert summary["quality_review_agenda"] == {
+        "top_priority_issue": "当前任务范围已收窄到 reporting/display contract mismatch；现阶段不要重开 manuscript evidence adequacy 或 scientific claims。",
+        "suggested_revision": "对齐 reporting contract、display registry 与必需 shell/input surfaces，让 current package 与已接受展示包保持一致。",
+        "next_review_focus": "复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。",
+        "agenda_summary": (
+            "优先修复：当前任务范围已收窄到 reporting/display contract mismatch；现阶段不要重开 manuscript evidence adequacy 或 scientific claims。；"
+            "建议修订：对齐 reporting contract、display registry 与必需 shell/input surfaces，让 current package 与已接受展示包保持一致。；"
+            "下一轮复评重点：复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。"
+        ),
+    }
+    assert summary["quality_revision_plan"] == {
+        "policy_id": "medical_publication_critique_v1",
+        "plan_id": "quality-revision-plan::stale",
+        "execution_status": "in_progress",
+        "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
+        "weight_contract": {
+            "clinical_significance": 25,
+            "evidence_strength": 35,
+            "novelty_positioning": 20,
+            "human_review_readiness": 20,
+        },
+        "items": [
+            {
+                "item_id": "quality-revision-item-1",
+                "priority": "p0",
+                "dimension": "human_review_readiness",
+                "action_type": "stabilize_submission_bundle",
+                "action": "对齐 reporting contract、display registry 与必需 shell/input surfaces，让 current package 与已接受展示包保持一致。",
+                "rationale": "当前任务范围已收窄到 reporting/display contract mismatch；现阶段不要重开 manuscript evidence adequacy 或 scientific claims。",
+                "done_criteria": "下一轮复评能够明确确认：复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。",
+                "route_target": "finalize",
+            }
+        ],
+        "next_review_focus": ["复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。"],
     }
 
 
