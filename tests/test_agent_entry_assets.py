@@ -206,6 +206,7 @@ def test_render_entry_modes_guide_contains_required_contract_context() -> None:
 
     assert "Do not enter `startup_boundary_gated_routes`" in guide
     assert "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode" in guide
+    assert "report `browser_url`, `quest_session_api_url`, and `active_run_id` when present" in guide
     assert "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions." in guide
 
 
@@ -266,6 +267,7 @@ def test_entry_prompts_include_per_mode_route_contract_and_upgrade_rule(render_p
 
     assert "Do not enter `startup_boundary_gated_routes`" in prompt
     assert "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode" in prompt
+    assert "report `browser_url`, `quest_session_api_url`, and `active_run_id` when present" in prompt
     assert "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions." in prompt
 
 

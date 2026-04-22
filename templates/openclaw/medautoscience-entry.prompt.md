@@ -148,5 +148,5 @@ If `upgrade_triggers` is non-empty and any trigger is satisfied, upgrade from li
 Run `ensure-study-runtime` before any managed compute decision. Do not enter `startup_boundary_gated_routes` unless that controller reports `startup_boundary_gate.allow_compute_stage = true`; otherwise stay within `managed_routes`, `governance_routes`, and any writing-only delivery route.
 
 ## Live Runtime Ownership Rule
-If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode, notify the user, and do not write runtime-owned study surfaces.
+If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode, notify the user, report `browser_url`, `quest_session_api_url`, and `active_run_id` when present, and do not write runtime-owned study surfaces.
 Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions.
