@@ -9,6 +9,7 @@ from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers import gate_clearing_batch
+from med_autoscience.controllers import publication_gate as publication_gate_controller
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.controller_confirmation_summary import (
     materialize_controller_confirmation_summary,

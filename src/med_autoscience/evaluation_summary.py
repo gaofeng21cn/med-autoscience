@@ -1178,6 +1178,74 @@ def _quality_review_loop_from_summary_payload(summary_payload: dict[str, Any]) -
     }
 
 
+def _quality_execution_lane_from_summary_payload(summary_payload: dict[str, Any]) -> dict[str, Any]:
+    quality_closure_truth = (
+        dict(summary_payload.get("quality_closure_truth") or {})
+        if isinstance(summary_payload.get("quality_closure_truth"), dict)
+        else {}
+    )
+    route_repair_plan = (
+        dict(summary_payload.get("route_repair_plan") or {})
+        if isinstance(summary_payload.get("route_repair_plan"), dict)
+        else {}
+    )
+    current_required_action = _optional_text(quality_closure_truth.get("current_required_action")) or "return_to_publishability_gate"
+    closure_state = _optional_text(quality_closure_truth.get("state")) or "quality_repair_required"
+    route_target = _optional_text(route_repair_plan.get("route_target")) or _optional_text(quality_closure_truth.get("route_target"))
+    route_key_question = _optional_text(route_repair_plan.get("route_key_question"))
+    route_rationale = (
+        _optional_text(route_repair_plan.get("route_rationale"))
+        or _optional_text(quality_closure_truth.get("summary"))
+        or _optional_text(summary_payload.get("verdict_summary"))
+        or "当前应先收口现有论文质量缺口。"
+    )
+    action_type = _optional_text(route_repair_plan.get("action_type"))
+
+    if action_type == "bounded_analysis" or route_target == "analysis-campaign":
+        lane_id = "claim_evidence"
+    elif closure_state == "bundle_only_remaining" or current_required_action in {"continue_bundle_stage", "complete_bundle_stage"}:
+        lane_id = "submission_hardening"
+    elif current_required_action == "continue_write_stage" or route_target == "write":
+        lane_id = "write_ready"
+    else:
+        lane_id = "general_quality_repair"
+
+    lane_label = _QUALITY_EXECUTION_LANE_LABELS[lane_id]
+    repair_mode = (
+        "bounded_analysis"
+        if action_type == "bounded_analysis"
+        else "same_line_route_back"
+        if route_target is not None
+        else None
+    )
+
+    if lane_id == "submission_hardening":
+        route_target = "finalize"
+        route_key_question = "当前论文线还差哪一步 finalize / submission bundle 收口？"
+        repair_mode = "same_line_route_back"
+
+    if route_target and route_key_question:
+        verb = "进入" if repair_mode == "bounded_analysis" else "回到"
+        summary = f"当前质量执行线聚焦 {lane_label}；先{verb} {route_target}，回答“{route_key_question}”。"
+    elif route_target:
+        verb = "进入" if repair_mode == "bounded_analysis" else "回到"
+        summary = f"当前质量执行线聚焦 {lane_label}；先{verb} {route_target} 收口当前缺口。"
+    elif current_required_action == "continue_write_stage":
+        summary = "当前质量执行线已经进入同线写作推进；核心科学面允许继续往写作收口。"
+    else:
+        summary = f"当前质量执行线聚焦 {lane_label}；应先收口当前质量缺口。"
+
+    return {
+        "lane_id": lane_id,
+        "lane_label": lane_label,
+        "repair_mode": repair_mode,
+        "route_target": route_target or None,
+        "route_key_question": route_key_question or None,
+        "summary": summary,
+        "why_now": route_rationale,
+    }
+
+
 def _normalized_quality_review_loop(
     *,
     loop_payload: dict[str, Any] | None,
@@ -1820,10 +1888,14 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
         if isinstance(payload.get("quality_review_loop"), dict)
         else None
     )
-    quality_execution_lane = _required_mapping(
-        "evaluation summary",
-        "quality_execution_lane",
-        payload.get("quality_execution_lane"),
+    quality_execution_lane = (
+        _required_mapping(
+            "evaluation summary",
+            "quality_execution_lane",
+            payload.get("quality_execution_lane"),
+        )
+        if isinstance(payload.get("quality_execution_lane"), dict)
+        else _quality_execution_lane_from_summary_payload(payload)
     )
     normalized_quality_review_agenda = _normalized_quality_review_agenda(
         agenda_payload=quality_review_agenda,

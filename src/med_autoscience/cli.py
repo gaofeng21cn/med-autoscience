@@ -942,6 +942,8 @@ def main(argv: list[str] | None = None) -> int:
                     ensure_study_runtimes=bool(args.ensure_study_runtimes),
                 )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        if args.loop and isinstance(result, dict) and list(result.get("tick_errors") or []):
+            return 1
         return 0
 
     if args.command == "runtime-supervision-status":
