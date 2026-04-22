@@ -52,6 +52,7 @@ class StudyDecisionActionType(StrEnum):
     PAUSE_RUNTIME = "pause_runtime"
     STOP_RUNTIME = "stop_runtime"
     RUN_GATE_CLEARING_BATCH = "run_gate_clearing_batch"
+    RUN_QUALITY_REPAIR_BATCH = "run_quality_repair_batch"
 
 
 def _reject_unknown_fields(label: str, payload: dict[str, Any], allowed_fields: frozenset[str]) -> None:
