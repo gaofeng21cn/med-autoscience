@@ -1103,6 +1103,19 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
         },
         "latest_outer_loop_dispatch": None,
     }
+    projection = result["research_runtime_control_projection"]
+    assert projection["surface_kind"] == "research_runtime_control_projection"
+    assert projection["session_lineage_surface"]["field_path"] == "family_checkpoint_lineage"
+    assert projection["restore_point_surface"]["field_path"] == "autonomy_contract.restore_point"
+    assert projection["progress_surface"]["field_path"] == "operator_status_card.current_focus"
+    assert projection["artifact_pickup_surface"]["field_path"] == "refs.evaluation_summary_path"
+    assert str(study_root / "artifacts" / "publication_eval" / "latest.json") in projection["artifact_pickup_surface"]["pickup_refs"]
+    assert str(study_root / "artifacts" / "controller_decisions" / "latest.json") in projection["artifact_pickup_surface"][
+        "pickup_refs"
+    ]
+    assert projection["research_gate_surface"]["approval_gate_field"] == "needs_physician_decision"
+    assert projection["research_gate_surface"]["approval_gate_required"] is False
+    assert projection["research_gate_surface"]["interrupt_policy"] == "continue_or_relaunch"
     assert result["latest_events"][0]["category"] == "runtime_supervision"
     assert "连续两次恢复失败" in result["latest_events"][0]["summary"]
     assert any("人工介入" in item for item in result["current_blockers"])
@@ -1192,6 +1205,11 @@ def test_study_progress_autonomy_contract_projects_restore_point_from_checkpoint
         "human_gate_required": False,
         "summary": "当前恢复点采用 resume_from_checkpoint；continuation policy 为 wait_for_user_or_resume；最近一次续跑原因是运行停在未变化的定稿总结态。",
     }
+    projection = result["research_runtime_control_projection"]
+    assert projection["session_lineage_surface"]["lineage_version"] == "family-checkpoint-lineage.v1"
+    assert projection["session_lineage_surface"]["continuation_anchor"] == "decision"
+    assert projection["restore_point_surface"]["lineage_anchor_field"] == "family_checkpoint_lineage.resume_contract"
+    assert projection["research_gate_surface"]["approval_gate_required"] is False
 
 
 def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(

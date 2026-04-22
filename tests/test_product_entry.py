@@ -1109,6 +1109,18 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
                 "summary": "当前论文线仍在同线质量修复；先进入 analysis-campaign 收口当前最窄 claim-evidence 缺口。",
                 "current_focus": "当前稿面最窄的 claim-evidence 修复动作是什么？",
             },
+            "research_runtime_control_projection": {
+                "surface_kind": "research_runtime_control_projection",
+                "restore_point_surface": {
+                    "surface_kind": "study_progress",
+                    "field_path": "autonomy_contract.restore_point",
+                },
+                "research_gate_surface": {
+                    "surface_kind": "study_progress",
+                    "approval_gate_field": "needs_physician_decision",
+                    "interrupt_policy_field": "intervention_lane.recommended_action_id",
+                },
+            },
             "recommended_command": (
                 "uv run python -m med_autoscience.cli study-progress --profile "
                 + str(profile_ref.resolve())
@@ -1148,6 +1160,9 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
     assert payload["operator_brief"]["recommended_step_id"] == "inspect_study_progress"
     assert payload["attention_queue"][0]["quality_execution_lane"]["route_key_question"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
     assert payload["attention_queue"][0]["same_line_route_truth"]["route_target"] == "analysis-campaign"
+    assert payload["studies"][0]["research_runtime_control_projection"]["research_gate_surface"]["approval_gate_field"] == (
+        "needs_physician_decision"
+    )
     assert payload["operator_brief"]["current_focus"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
 
 
@@ -2482,21 +2497,40 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
             "study_owner": "med-autoscience",
             "executor_owner": "med_deepscientist",
         },
+        "session_lineage_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "family_checkpoint_lineage",
+            "resume_contract_field": "family_checkpoint_lineage.resume_contract",
+            "continuation_state_field": "continuation_state",
+            "active_run_id_field": "supervision.active_run_id",
+        },
         "restore_point_surface": {
             "surface_kind": "study_progress",
             "field_path": "autonomy_contract.restore_point",
+            "lineage_anchor_field": "family_checkpoint_lineage.resume_contract",
         },
         "progress_cursor_surface": {
             "surface_kind": "study_progress",
             "field_path": "operator_status_card.current_focus",
         },
+        "progress_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "operator_status_card.current_focus",
+            "fallback_field_path": "next_system_action",
+        },
         "artifact_inventory_surface": {
-            "surface_kind": "artifact_inventory",
-            "field_path": "supporting_files",
+            "surface_kind": "study_progress",
+            "field_path": "refs",
         },
         "artifact_pickup_surface": {
-            "surface_kind": "artifact_inventory",
-            "field_path": "deliverable_files",
+            "surface_kind": "study_progress",
+            "field_path": "refs.evaluation_summary_path",
+            "fallback_fields": [
+                "refs.publication_eval_path",
+                "refs.controller_decision_path",
+                "refs.runtime_supervision_path",
+                "refs.runtime_watch_report_path",
+            ],
         },
         "command_templates": {
             "resume": (
@@ -2517,9 +2551,10 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         },
         "research_gate_surface": {
             "surface_kind": "study_progress",
-            "field_path": "intervention_lane",
-            "approval_gate_field": "requires_physician_decision",
-            "interrupt_policy_field": "recommended_action_id",
+            "approval_gate_field": "needs_physician_decision",
+            "approval_gate_owner": "mas_controller",
+            "interrupt_policy_field": "intervention_lane.recommended_action_id",
+            "gate_lane_field": "intervention_lane.lane_id",
         },
     }
     assert payload["return_surface_contract"]["domain_entry_contract"]["service_safe_surface_kind"] == (
@@ -2711,21 +2746,40 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
             "study_owner": "med-autoscience",
             "executor_owner": "med_deepscientist",
         },
+        "session_lineage_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "family_checkpoint_lineage",
+            "resume_contract_field": "family_checkpoint_lineage.resume_contract",
+            "continuation_state_field": "continuation_state",
+            "active_run_id_field": "supervision.active_run_id",
+        },
         "restore_point_surface": {
             "surface_kind": "study_progress",
             "field_path": "autonomy_contract.restore_point",
+            "lineage_anchor_field": "family_checkpoint_lineage.resume_contract",
         },
         "progress_cursor_surface": {
             "surface_kind": "study_progress",
             "field_path": "operator_status_card.current_focus",
         },
+        "progress_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "operator_status_card.current_focus",
+            "fallback_field_path": "next_system_action",
+        },
         "artifact_inventory_surface": {
-            "surface_kind": "artifact_inventory",
-            "field_path": "supporting_files",
+            "surface_kind": "study_progress",
+            "field_path": "refs",
         },
         "artifact_pickup_surface": {
-            "surface_kind": "artifact_inventory",
-            "field_path": "deliverable_files",
+            "surface_kind": "study_progress",
+            "field_path": "refs.evaluation_summary_path",
+            "fallback_fields": [
+                "refs.publication_eval_path",
+                "refs.controller_decision_path",
+                "refs.runtime_supervision_path",
+                "refs.runtime_watch_report_path",
+            ],
         },
         "command_templates": {
             "resume": (
@@ -2746,9 +2800,10 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         },
         "research_gate_surface": {
             "surface_kind": "study_progress",
-            "field_path": "intervention_lane",
-            "approval_gate_field": "requires_physician_decision",
-            "interrupt_policy_field": "recommended_action_id",
+            "approval_gate_field": "needs_physician_decision",
+            "approval_gate_owner": "mas_controller",
+            "interrupt_policy_field": "intervention_lane.recommended_action_id",
+            "gate_lane_field": "intervention_lane.lane_id",
         },
     }
     assert payload["artifact_inventory"]["surface_kind"] == "artifact_inventory"

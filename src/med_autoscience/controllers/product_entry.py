@@ -1538,21 +1538,40 @@ def _build_research_runtime_control_projection(
             "study_owner": TARGET_DOMAIN_ID,
             "executor_owner": "med_deepscientist",
         },
+        "session_lineage_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "family_checkpoint_lineage",
+            "resume_contract_field": "family_checkpoint_lineage.resume_contract",
+            "continuation_state_field": "continuation_state",
+            "active_run_id_field": "supervision.active_run_id",
+        },
         "restore_point_surface": {
             "surface_kind": "study_progress",
             "field_path": "autonomy_contract.restore_point",
+            "lineage_anchor_field": "family_checkpoint_lineage.resume_contract",
         },
         "progress_cursor_surface": {
             "surface_kind": "study_progress",
             "field_path": "operator_status_card.current_focus",
         },
+        "progress_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "operator_status_card.current_focus",
+            "fallback_field_path": "next_system_action",
+        },
         "artifact_inventory_surface": {
-            "surface_kind": "artifact_inventory",
-            "field_path": "supporting_files",
+            "surface_kind": "study_progress",
+            "field_path": "refs",
         },
         "artifact_pickup_surface": {
-            "surface_kind": "artifact_inventory",
-            "field_path": "deliverable_files",
+            "surface_kind": "study_progress",
+            "field_path": "refs.evaluation_summary_path",
+            "fallback_fields": [
+                "refs.publication_eval_path",
+                "refs.controller_decision_path",
+                "refs.runtime_supervision_path",
+                "refs.runtime_watch_report_path",
+            ],
         },
         "command_templates": {
             "resume": resume_command,
@@ -1561,9 +1580,10 @@ def _build_research_runtime_control_projection(
         },
         "research_gate_surface": {
             "surface_kind": "study_progress",
-            "field_path": "intervention_lane",
-            "approval_gate_field": "requires_physician_decision",
-            "interrupt_policy_field": "recommended_action_id",
+            "approval_gate_field": "needs_physician_decision",
+            "approval_gate_owner": "mas_controller",
+            "interrupt_policy_field": "intervention_lane.recommended_action_id",
+            "gate_lane_field": "intervention_lane.lane_id",
         },
     }
 
@@ -2502,6 +2522,7 @@ def _study_item(
         fallback_command=commands["progress"],
     )
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
+    research_runtime_control_projection = dict(progress_payload.get("research_runtime_control_projection") or {})
     return {
         "study_id": study_id,
         "current_stage": progress_payload.get("current_stage"),
@@ -2523,6 +2544,7 @@ def _study_item(
         "quality_repair_followthrough": quality_repair_followthrough or None,
         "quality_review_followthrough": quality_review_followthrough or None,
         "gate_clearing_followthrough": gate_clearing_followthrough or None,
+        "research_runtime_control_projection": research_runtime_control_projection or None,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
         "monitoring": monitoring,

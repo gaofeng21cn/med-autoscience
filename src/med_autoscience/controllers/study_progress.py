@@ -365,6 +365,104 @@ def _mapping_copy(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
 
 
+def _runtime_control_pickup_refs(
+    *,
+    evaluation_summary_ref: object = None,
+    refs_payload: Mapping[str, Any] | None = None,
+    publication_eval_ref: object = None,
+    controller_decision_ref: object = None,
+    runtime_supervision_ref: object = None,
+    runtime_watch_ref: object = None,
+) -> list[str]:
+    refs = dict(refs_payload or {})
+    candidates = [
+        _non_empty_text(evaluation_summary_ref),
+        _non_empty_text(refs.get("evaluation_summary_path")),
+        _non_empty_text(publication_eval_ref),
+        _non_empty_text(refs.get("publication_eval_path")),
+        _non_empty_text(controller_decision_ref),
+        _non_empty_text(refs.get("controller_decision_path")),
+        _non_empty_text(runtime_supervision_ref),
+        _non_empty_text(refs.get("runtime_supervision_path")),
+        _non_empty_text(runtime_watch_ref),
+        _non_empty_text(refs.get("runtime_watch_report_path")),
+    ]
+    ordered_refs: list[str] = []
+    for ref in candidates:
+        if ref is None or ref in ordered_refs:
+            continue
+        ordered_refs.append(ref)
+    return ordered_refs
+
+
+def _normalized_research_runtime_control_projection_payload(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    direct_projection = _mapping_copy(payload.get("research_runtime_control_projection"))
+    if direct_projection:
+        return direct_projection
+    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
+    interrupt_policy = _non_empty_text(intervention_lane.get("recommended_action_id"))
+    refs = _mapping_copy(payload.get("refs"))
+    pickup_refs = _runtime_control_pickup_refs(refs_payload=refs)
+    return {
+        "surface_kind": "research_runtime_control_projection",
+        "study_session_owner": {
+            "runtime_owner": "upstream_hermes_agent",
+            "study_owner": "med-autoscience",
+            "executor_owner": "med_deepscientist",
+        },
+        "session_lineage_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "family_checkpoint_lineage",
+            "resume_contract_field": "family_checkpoint_lineage.resume_contract",
+            "continuation_state_field": "continuation_state",
+            "active_run_id_field": "supervision.active_run_id",
+        },
+        "restore_point_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "autonomy_contract.restore_point",
+            "lineage_anchor_field": "family_checkpoint_lineage.resume_contract",
+        },
+        "progress_cursor_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "operator_status_card.current_focus",
+        },
+        "progress_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "operator_status_card.current_focus",
+            "fallback_field_path": "next_system_action",
+        },
+        "artifact_inventory_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "refs",
+        },
+        "artifact_pickup_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "refs.evaluation_summary_path",
+            "fallback_fields": [
+                "refs.publication_eval_path",
+                "refs.controller_decision_path",
+                "refs.runtime_supervision_path",
+                "refs.runtime_watch_report_path",
+            ],
+            "pickup_refs": pickup_refs,
+        },
+        "command_templates": {
+            "resume": None,
+            "check_progress": None,
+            "check_runtime_status": None,
+        },
+        "research_gate_surface": {
+            "surface_kind": "study_progress",
+            "approval_gate_field": "needs_physician_decision",
+            "approval_gate_owner": "mas_controller",
+            "interrupt_policy_field": "intervention_lane.recommended_action_id",
+            "interrupt_policy": interrupt_policy,
+            "gate_lane_field": "intervention_lane.lane_id",
+            "gate_lane": _non_empty_text(intervention_lane.get("lane_id")),
+        },
+    }
+
+
 def _normalized_quality_execution_lane_payload(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     direct_lane = _mapping_copy(payload.get("quality_execution_lane"))
     if direct_lane:
@@ -424,6 +522,7 @@ def _normalize_study_progress_payload(payload: Mapping[str, Any]) -> dict[str, A
     normalized["quality_execution_lane"] = _normalized_quality_execution_lane_payload(normalized)
     normalized["same_line_route_truth"] = _normalized_same_line_route_truth_payload(normalized)
     normalized["same_line_route_surface"] = _normalized_same_line_route_surface_payload(normalized)
+    normalized["research_runtime_control_projection"] = _normalized_research_runtime_control_projection_payload(normalized)
     if _publication_supervisor_blocks_same_line_route(_mapping_copy(normalized.get("publication_supervisor_state"))):
         normalized["same_line_route_truth"] = None
         normalized["same_line_route_surface"] = None
@@ -2576,6 +2675,105 @@ def _autonomy_soak_status(
     }
 
 
+def _research_runtime_control_projection(
+    *,
+    study_commands: Mapping[str, str],
+    autonomy_contract: Mapping[str, Any],
+    operator_status_card: Mapping[str, Any],
+    continuation_state: Mapping[str, Any],
+    family_checkpoint_lineage: Mapping[str, Any],
+    intervention_lane: Mapping[str, Any],
+    needs_physician_decision: bool,
+    evaluation_summary_ref: str | None,
+    publication_eval_ref: str,
+    controller_decision_ref: str,
+    runtime_supervision_ref: str | None,
+    runtime_watch_ref: str | None,
+) -> dict[str, Any]:
+    restore_point = _mapping_copy(autonomy_contract.get("restore_point"))
+    interrupt_policy = _non_empty_text(intervention_lane.get("recommended_action_id"))
+    pickup_refs = _runtime_control_pickup_refs(
+        evaluation_summary_ref=evaluation_summary_ref,
+        publication_eval_ref=publication_eval_ref,
+        controller_decision_ref=controller_decision_ref,
+        runtime_supervision_ref=runtime_supervision_ref,
+        runtime_watch_ref=runtime_watch_ref,
+    )
+    return {
+        "surface_kind": "research_runtime_control_projection",
+        "study_session_owner": {
+            "runtime_owner": "upstream_hermes_agent",
+            "study_owner": "med-autoscience",
+            "executor_owner": "med_deepscientist",
+        },
+        "session_lineage_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "family_checkpoint_lineage",
+            "resume_contract_field": "family_checkpoint_lineage.resume_contract",
+            "continuation_state_field": "continuation_state",
+            "active_run_id_field": "supervision.active_run_id",
+            "lineage_version": _non_empty_text(family_checkpoint_lineage.get("version")),
+            "continuation_anchor": _non_empty_text(continuation_state.get("continuation_anchor")),
+        },
+        "restore_point_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "autonomy_contract.restore_point",
+            "lineage_anchor_field": "family_checkpoint_lineage.resume_contract",
+            "summary": _non_empty_text(restore_point.get("summary")),
+        },
+        "progress_cursor_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "operator_status_card.current_focus",
+        },
+        "progress_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "operator_status_card.current_focus",
+            "fallback_field_path": "next_system_action",
+            "workspace_cockpit_command": _non_empty_text(study_commands.get("workspace_cockpit")),
+            "current_focus": _non_empty_text(operator_status_card.get("current_focus")),
+        },
+        "artifact_inventory_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "refs",
+            "refs": {
+                "evaluation_summary_path": evaluation_summary_ref,
+                "publication_eval_path": publication_eval_ref,
+                "controller_decision_path": controller_decision_ref,
+                "runtime_supervision_path": runtime_supervision_ref,
+                "runtime_watch_report_path": runtime_watch_ref,
+            },
+        },
+        "artifact_pickup_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "refs.evaluation_summary_path",
+            "fallback_fields": [
+                "refs.publication_eval_path",
+                "refs.controller_decision_path",
+                "refs.runtime_supervision_path",
+                "refs.runtime_watch_report_path",
+            ],
+            "pickup_refs": pickup_refs,
+        },
+        "command_templates": {
+            "resume": _non_empty_text(study_commands.get("launch_study")),
+            "check_progress": _non_empty_text(study_commands.get("study_progress")),
+            "check_runtime_status": _non_empty_text(study_commands.get("study_runtime_status")),
+        },
+        "research_gate_surface": {
+            "surface_kind": "study_progress",
+            "approval_gate_field": "needs_physician_decision",
+            "approval_gate_owner": "mas_controller",
+            "approval_gate_required": bool(needs_physician_decision),
+            "interrupt_policy_field": "intervention_lane.recommended_action_id",
+            "interrupt_policy": interrupt_policy,
+            "gate_lane_field": "intervention_lane.lane_id",
+            "gate_lane": _non_empty_text(intervention_lane.get("lane_id")),
+            "gate_summary_field": "intervention_lane.summary",
+            "gate_summary": _non_empty_text(intervention_lane.get("summary")),
+        },
+    }
+
+
 def _operator_verdict(
     *,
     study_id: str,
@@ -3555,6 +3753,22 @@ def build_study_progress_projection(
         runtime_watch_path=runtime_watch_path,
         controller_decision_path=controller_decision_path,
     )
+    research_runtime_control_projection = _research_runtime_control_projection(
+        study_commands=study_commands,
+        autonomy_contract=autonomy_contract,
+        operator_status_card=operator_status_card,
+        continuation_state=continuation_state,
+        family_checkpoint_lineage=family_checkpoint_lineage,
+        intervention_lane=intervention_lane,
+        needs_physician_decision=needs_physician_decision,
+        evaluation_summary_ref=(
+            evaluation_module_surface["summary_ref"] if evaluation_module_surface is not None else None
+        ),
+        publication_eval_ref=str(publication_eval_path),
+        controller_decision_ref=str(controller_decision_path),
+        runtime_supervision_ref=str(runtime_supervision_path) if runtime_supervision_payload is not None else None,
+        runtime_watch_ref=str(runtime_watch_path) if runtime_watch_path is not None else None,
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -3599,6 +3813,7 @@ def build_study_progress_projection(
         "quality_repair_batch_followthrough": quality_repair_batch_followthrough or None,
         "gate_clearing_batch_followthrough": gate_clearing_batch_followthrough or None,
         "quality_review_followthrough": quality_review_followthrough or None,
+        "research_runtime_control_projection": research_runtime_control_projection,
         "module_surfaces": module_surfaces,
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
