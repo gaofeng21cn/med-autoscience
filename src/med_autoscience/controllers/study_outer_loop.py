@@ -10,6 +10,7 @@ from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers import gate_clearing_batch
 from med_autoscience.controllers import publication_gate as publication_gate_controller
+from med_autoscience.controllers import quality_repair_batch
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.controller_confirmation_summary import (
     materialize_controller_confirmation_summary,
@@ -680,13 +681,21 @@ def build_runtime_watch_outer_loop_tick_request(
             )
         else:
             gate_report = {}
-        batch_action = gate_clearing_batch.build_gate_clearing_batch_recommended_action(
+        batch_action = quality_repair_batch.build_quality_repair_batch_recommended_action(
             profile=profile,
             study_root=resolved_study_root,
             quest_id=quest_id,
             publication_eval_payload=publication_eval_payload,
             gate_report=gate_report,
         )
+        if batch_action is None:
+            batch_action = gate_clearing_batch.build_gate_clearing_batch_recommended_action(
+                profile=profile,
+                study_root=resolved_study_root,
+                quest_id=quest_id,
+                publication_eval_payload=publication_eval_payload,
+                gate_report=gate_report,
+            )
         if batch_action is not None:
             recommended_action = batch_action
     decision_type = _autonomous_decision_type_for_publication_eval_action(recommended_action)
@@ -796,6 +805,14 @@ def _execute_controller_action(
             )
     elif action.action_type is StudyDecisionActionType.RUN_GATE_CLEARING_BATCH:
         result = gate_clearing_batch.run_gate_clearing_batch(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            quest_id=quest_id,
+            source=source,
+        )
+    elif action.action_type is StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH:
+        result = quality_repair_batch.run_quality_repair_batch(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
