@@ -40,11 +40,12 @@
 - 当前 repo-side 落地已经把这条 continuation 的 durable chain 固定在既有 `MAS` surface 上：`publication_eval/latest.json` 负责给出 route truth，`controller_decisions/latest.json` 负责记录 controller action，`artifacts/controller/gate_clearing_batch/latest.json` 负责记录 batch repair 与 gate replay，`runtime_watch` / `study-progress` 继续消费 outer-loop dispatch 与下一次确认信号。
 - 当前 repo-side 落地已经把长期自治 proof/soak 继续压成稳定表面：`study-progress` 现已导出 `autonomy_soak_status`，`product-frontdesk` / `workspace-cockpit` 也开始显式消费最近一次自治续跑与其确认信号，不再只靠泛化 runtime summary 解释长跑状态。
 - 当前 repo-side 落地已经把 `study-progress`、`workspace-cockpit`、`product-frontdesk` 三个用户面对论文质量 readiness 的解释也收口到统一质量 truth：当核心科学质量已经闭环、当前只剩同线写作或 finalize / bundle 收口时，用户面会直接说清“为什么已经够稳、还剩什么范围、这条判断由哪些质量依据支撑”。
+- 当前 repo-side 落地已经把 `same_line_route_truth` 正式前推到 caller / frontdesk 合同：`build_product_entry.return_surface_contract.study_progress_projection_contract` 会显式声明这个字段，`workspace-cockpit` / `product-frontdesk` 的 attention queue、operator brief 和 markdown 也会直接投影“当前仍在同一论文线做什么、当前关键问题是什么”。
 - 当前 repo-side 落地已经把质量复评后续动作继续前推到用户面：`study-progress` 现已导出 `quality_review_followthrough`，`workspace-cockpit` / `product-frontdesk` 可以直接解释“当前在等系统自动复评、为什么还没继续、下一次确认看什么”。
 - 这条 gate-clearing batch 口径同时服务三个当前目标：对质量面，它清掉当前论文线里可确定修复的稿面/锚点/交付阻塞；对自治面，它把“先清 gate 再继续”保持在 controller-owned continuation 链里；对 single-project 边界，它继续只写 `MAS` 的 study/controller durable surface，不为 `MDS` 或其他 companion 打开新的 owner 面。
 - proof/soak 口径当前围绕真实 study 的长期自治与质量闭环是否已经闭合，不围绕 `MDS` 再造一套长期 owner 面；`MDS` 只保留 migration oracle、backend compatibility、upstream intake buffer 三个迁移期角色。
 - 当前 tranche 的 repo-side 落点是单项目 owner truth、用户可见边界和 program/mainline 口径收紧；这一步不推进 `physical monorepo absorb`、跨仓 `runtime core ingest` 或把 `MDS` 重新解释成并行产品面。
-- 当前 `build_product_entry.return_surface_contract` 已经开始把 `single_project_boundary` 与 `study_progress` truth field contract 一并交给外部 caller；调用方可以不回 `mainline-status` 也读到 MAS/MDS owner boundary 和当前应消费的 progress truth 字段。
+- 当前 `build_product_entry.return_surface_contract` 已经开始把 `single_project_boundary` 与 `study_progress` truth field contract 一并交给外部 caller；调用方可以不回 `mainline-status` 也读到 MAS/MDS owner boundary，以及 `autonomy_soak_status`、`quality_execution_lane`、`same_line_route_truth`、`quality_review_followthrough` 这些当前应消费的 progress truth 字段。
 - 当前 tranche 的通过条件是：`MAS` 已能默认自治推进方向锁定后的研究与有限补充分析，用户可见 truth 与 durable surface 对齐，major boundary 与最终投稿审计之外不再把 human 判断留在 `MDS` 或隐藏 owner 面里。
 
 ## 当前验收与 proof 口径

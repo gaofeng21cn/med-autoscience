@@ -1567,6 +1567,94 @@ def test_study_progress_normalizes_legacy_non_mapping_quality_execution_lane_fro
     assert "study_id: `001-risk`" in markdown
 
 
+def test_study_progress_suppresses_same_line_route_when_publication_supervisor_blocks_bundle_tasks(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        status_payload={
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+            },
+            "progress_projection": {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "current_stage": "publication_supervision",
+                "current_stage_summary": "当前主线仍需先回到发表门控。",
+                "paper_stage": "publishability_gate_blocked",
+                "paper_stage_summary": "当前发表门控仍未放行。",
+                "next_system_action": "先回到发表门控。",
+                "needs_physician_decision": False,
+                "quality_execution_lane": {
+                    "lane_id": "submission_hardening",
+                    "summary": "Only finalize-level submission hardening remains.",
+                },
+                "same_line_route_truth": {
+                    "surface_kind": "same_line_route_truth",
+                    "same_line_state": "finalize_only_remaining",
+                    "same_line_state_label": "同线 finalize 收口",
+                    "route_mode": "return",
+                    "route_target": "finalize",
+                    "route_target_label": "定稿与投稿收尾",
+                    "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
+                    "current_focus": "Only finalize-level submission hardening remains.",
+                },
+                "same_line_route_surface": {
+                    "surface_kind": "same_line_route_surface",
+                    "lane_id": "submission_hardening",
+                    "repair_mode": "same_line_route_back",
+                    "route_target": "finalize",
+                    "route_target_label": "定稿与投稿收尾",
+                    "route_key_question": "当前论文线还差哪一步 finalize / submission bundle 收口？",
+                    "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一步 finalize / submission bundle 收口？”。",
+                    "why_now": "bundle-stage work is unlocked and can proceed on the critical path",
+                    "current_required_action": "continue_bundle_stage",
+                    "closure_state": "bundle_only_remaining",
+                },
+                "module_surfaces": {
+                    "eval_hygiene": {
+                        "same_line_route_truth": {
+                            "surface_kind": "same_line_route_truth",
+                            "same_line_state": "finalize_only_remaining",
+                            "same_line_state_label": "同线 finalize 收口",
+                            "route_mode": "return",
+                            "route_target": "finalize",
+                            "route_target_label": "定稿与投稿收尾",
+                            "summary": "当前同线路由已经收窄到 finalize / submission bundle 收口；先回到 finalize 完成当前最小投稿包收口。",
+                            "current_focus": "Only finalize-level submission hardening remains.",
+                        },
+                        "same_line_route_surface": {
+                            "surface_kind": "same_line_route_surface",
+                            "lane_id": "submission_hardening",
+                            "repair_mode": "same_line_route_back",
+                            "route_target": "finalize",
+                            "route_target_label": "定稿与投稿收尾",
+                            "route_key_question": "当前论文线还差哪一步 finalize / submission bundle 收口？",
+                            "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一步 finalize / submission bundle 收口？”。",
+                            "why_now": "bundle-stage work is unlocked and can proceed on the critical path",
+                            "current_required_action": "continue_bundle_stage",
+                            "closure_state": "bundle_only_remaining",
+                        },
+                    }
+                },
+            },
+        },
+    )
+
+    assert result["same_line_route_truth"] is None
+    assert result["same_line_route_surface"] is None
+    assert result["module_surfaces"]["eval_hygiene"]["same_line_route_truth"] is None
+    assert result["module_surfaces"]["eval_hygiene"]["same_line_route_surface"] is None
+
+
 def test_study_progress_does_not_project_resume_arbitration_as_physician_decision(
     monkeypatch,
     tmp_path: Path,

@@ -390,6 +390,16 @@ def _normalize_study_progress_payload(payload: Mapping[str, Any]) -> dict[str, A
     normalized["quality_execution_lane"] = _normalized_quality_execution_lane_payload(normalized)
     normalized["same_line_route_truth"] = _normalized_same_line_route_truth_payload(normalized)
     normalized["same_line_route_surface"] = _normalized_same_line_route_surface_payload(normalized)
+    if _publication_supervisor_blocks_same_line_route(_mapping_copy(normalized.get("publication_supervisor_state"))):
+        normalized["same_line_route_truth"] = None
+        normalized["same_line_route_surface"] = None
+        if module_surfaces:
+            eval_hygiene_surface = _mapping_copy(module_surfaces.get("eval_hygiene"))
+            if eval_hygiene_surface:
+                eval_hygiene_surface["same_line_route_truth"] = None
+                eval_hygiene_surface["same_line_route_surface"] = None
+                module_surfaces["eval_hygiene"] = eval_hygiene_surface
+                normalized["module_surfaces"] = module_surfaces
     return normalized
 
 
@@ -430,6 +440,15 @@ def _publication_eval_semantically_stale_against_gate(
         if severity and severity != "optional":
             return True
     return False
+
+
+def _publication_supervisor_blocks_same_line_route(publication_supervisor_state: Mapping[str, Any] | None) -> bool:
+    if not isinstance(publication_supervisor_state, Mapping):
+        return False
+    current_required_action = _non_empty_text(publication_supervisor_state.get("current_required_action"))
+    if current_required_action == "return_to_publishability_gate":
+        return True
+    return bool(publication_supervisor_state.get("bundle_tasks_downstream_only"))
 
 
 def _candidate_path(value: object) -> Path | None:
@@ -2848,7 +2867,14 @@ def build_study_progress_projection(
     status = _status_payload(status_payload)
     existing_projection = status.get("progress_projection")
     if isinstance(existing_projection, dict) and _non_empty_text(existing_projection.get("study_id")) == study_id:
-        return _normalize_study_progress_payload(existing_projection)
+        normalized_existing = _normalize_study_progress_payload(
+            {
+                **existing_projection,
+                "publication_supervisor_state": _mapping_copy(status.get("publication_supervisor_state")),
+            }
+        )
+        normalized_existing.pop("publication_supervisor_state", None)
+        return normalized_existing
 
     resolved_study_id = study_id
     resolved_study_root = study_root
@@ -3226,6 +3252,9 @@ def build_study_progress_projection(
         if evaluation_module_surface is not None
         else {}
     )
+    if _publication_supervisor_blocks_same_line_route(publication_supervisor_state):
+        same_line_route_truth = {}
+        same_line_route_surface = {}
     quality_closure_basis = (
         _mapping_copy(evaluation_module_surface.get("quality_closure_basis"))
         if evaluation_module_surface is not None
