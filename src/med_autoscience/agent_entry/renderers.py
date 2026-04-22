@@ -103,7 +103,8 @@ def render_entry_modes_guide() -> str:
             "",
             "## Live Runtime Ownership Rule",
             "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode, "
-            "notify the user, and do not write runtime-owned study surfaces.",
+            "notify the user, report `browser_url`, `quest_session_api_url`, and `active_run_id` when present, "
+            "and do not write runtime-owned study surfaces.",
             "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions.",
         )
     )
@@ -257,7 +258,8 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
             "",
             "## Live Runtime Ownership Rule",
             "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode, "
-            "notify the user, and do not write runtime-owned study surfaces.",
+            "notify the user, report `browser_url`, `quest_session_api_url`, and `active_run_id` when present, "
+            "and do not write runtime-owned study surfaces.",
             "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions.",
         )
     )
