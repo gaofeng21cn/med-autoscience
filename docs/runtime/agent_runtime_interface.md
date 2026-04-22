@@ -83,6 +83,13 @@
 
 因此 monorepo 现在的 honest 读法是：顺序已经冻结、当前步骤已经可见，但 `physical absorb` 仍是严格 post-gate 工作。
 
+当前 `stabilize_user_product_loop` 这一步里，已经落地一条 controller-owned same-line continuation step：
+
+- 起点是 `publication_eval/latest.json` 给出的 blocked `bounded_analysis` route truth，再叠加 `publication_gate` 已能识别的 repairable blockers。
+- 当 scientific-anchor 冻结、paper live path repair、display/export refresh、submission-minimal replay 或 stale delivery replay 属于当前可确定修复项时，`study_outer_loop` 会把泛化 route-back 收口成 `run_gate_clearing_batch`。
+- 这一步先批量执行当前 study line 上的确定性修复，再重放 `publication_gate`；它服务的是当前质量/自治/single-project 主线里的 continuation，不是新的 owner-facing lane。
+- 因此它属于现有 `quality route truth -> controller decision -> gate replay -> same-line continuation` 链路：质量面负责回答为什么先修这一批，runtime/controller 面负责执行并留下 durable record，read-model 继续消费既有 controller dispatch 信号。
+
 ## Execution Handle 与 Durable Surface
 
 当前主线下，Agent 不应把所有运行身份混写成一个“run id”。
@@ -110,6 +117,7 @@
 - `studies/<study_id>/artifacts/publication_eval/latest.json`
 - `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
 - `studies/<study_id>/artifacts/controller_decisions/latest.json`
+- `studies/<study_id>/artifacts/controller/gate_clearing_batch/latest.json`
 - `studies/<study_id>/artifacts/runtime/last_launch_report.json`
 
 这意味着：
@@ -118,6 +126,7 @@
 - `publication_eval` 必须继续落在 study-owned latest surface，而不是回写到 runtime 临时目录
 - `runtime_escalation_record` 与 `runtime_watch` 继续是 quest-owned runtime artifact
 - `controller_decisions/latest.json` 是 study-owned outer-loop / controller decision surface
+- `artifacts/controller/gate_clearing_batch/latest.json` 是 study-owned same-line continuation execution record：它只记录一次 controller-owned batch repair 与 gate replay，不替代 `controller_decisions/latest.json` 作为 authority decision surface
 - 本地未跟踪 handoff scratch 不替代 repo-tracked runtime truth
 
 如果你是医学用户，希望先理解这个项目是什么、适合什么课题、能产出什么，请先看仓库首页 [README.md](../README.md)。

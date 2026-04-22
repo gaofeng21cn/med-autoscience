@@ -31,7 +31,9 @@
 当前 repo-side 已经开始把这件事压成可读、可测的具体 truth：
 
 - 质量闭环不再只写成泛化 blocker，而是要求说清当前是同线质量修复还是 `bounded_analysis`，以及为什么要回到该现有主线。
+- 当 `publication_eval/latest.json` 已经把当前 blocked route 收口成 `bounded_analysis`，且 `publication_gate` 只剩 scientific-anchor 冻结、paper-facing surface repair、display/export refresh、submission-minimal replay 或 stale delivery replay 这类可确定修复项时，`study_outer_loop` 会把这条同线 route-back 前推成一次 `run_gate_clearing_batch`，先清当前 gate，再把 study 送回同一条托管主线。
 - 用户可见面不再把质量修复、有限补充分析、runtime recovery、human gate 混成同一种“待确认”，而是要求投影出不同 owner 语义。
+- 这条 gate-clearing batch 同时服务三个目标：对质量面，它并行清掉当前论文线里可确定修复的稿面/锚点/交付阻塞；对自治面，它把“先清 gate 再继续”保留在 controller-owned continuation 链里；对 single-project 边界，它继续只写 `publication_eval`、`controller_decisions`、`artifacts/controller/gate_clearing_batch/latest.json` 与 gate replay 这组既有 `MAS` durable surface。
 - program 口径不再把 `MDS` 当作长期并行 owner，而是把它固定在 oracle / backend / intake buffer 三个迁移期角色里。
 
 这个 tranche 的 repo-side 落点也需要说清楚：
@@ -286,6 +288,7 @@ human gate 收窄到少数重大边界：
 4. 质量总合同、执行账本、前台 truth 三层之间的 owner 与关系已经能在 `MAS` program truth 里闭合。
 5. 当质量闭环要求 route-back 时，`MAS` 可以把“回到哪条现有主线、该主线当前关键问题是什么、为什么这是最窄修复路径”解释成 repo-tracked truth。
 6. `mainline` / `status` / program truth 已经能明确区分“当前 tranche 正在收什么”和“post-gate 才能启动的 physical monorepo / runtime core ingest”。
+7. 当同线 route-back 只剩 controller 可确定修复的 batch work 时，`MAS` 已经能把它写成 `run_gate_clearing_batch` 这类 controller-owned continuation step，而不是再为这一步单独扩出新的 owner 面。
 
 ### Phase 3：做单项目等价 proof
 
@@ -306,13 +309,13 @@ human gate 收窄到少数重大边界：
 进入这个阶段后，proof 与 soak 口径固定为：
 
 1. **质量闭环 proof**
-   真实 study 上，study charter 的质量总合同可以持续约束 evidence / review ledger，并支撑方向锁定后的质量裁决与 `bounded_analysis` 自动收口。
+   真实 study 上，study charter 的质量总合同可以持续约束 evidence / review ledger，并支撑方向锁定后的质量裁决与 `bounded_analysis` 自动收口；当 blocked route 只剩可确定修复项时，这个 proof 也应覆盖 `run_gate_clearing_batch` 是否真的把 scientific-anchor、paper-facing surface 与 delivery blocker 收回到同一条质量主线。
 2. **truth projection proof**
-   用户面、维护面、controller 面读取到的当前阶段、关键证据、阻塞、下一步和恢复点来自同一组 `MAS` durable surface，文档口径与运行口径一致；同线质量修复、`bounded_analysis`、runtime recovery、human gate 四类语义不会在前台混淆。到这一步，`autonomy_soak_status`、`quality_review_followthrough` 与 caller-facing `return_surface_contract` 也应进入同一套 truth projection。
+   用户面、维护面、controller 面读取到的当前阶段、关键证据、阻塞、下一步和恢复点来自同一组 `MAS` durable surface，文档口径与运行口径一致；同线质量修复、`bounded_analysis`、runtime recovery、human gate 四类语义不会在前台混淆。到这一步，`autonomy_soak_status`、`quality_review_followthrough`、caller-facing `return_surface_contract`，以及 `publication_eval -> controller_decisions -> gate_clearing_batch record -> publication_gate replay` 这条 same-line continuation chain 都应进入同一套 truth projection。
 3. **autonomy soak**
-   真实 study 的长时间推进、停滞、恢复、有限补充分析追加、human gate 升级都能在长跑中保持稳定，不需要 `MDS` 作为第二个日常 owner 介入；`workspace-cockpit`、`product-frontdesk` 和外部 caller 都能直接读到最近一次自治续跑与其确认信号。
+   真实 study 的长时间推进、停滞、恢复、有限补充分析追加、human gate 升级都能在长跑中保持稳定，不需要 `MDS` 作为第二个日常 owner 介入；`workspace-cockpit`、`product-frontdesk` 和外部 caller 都能直接读到最近一次自治续跑与其确认信号。对于 `run_gate_clearing_batch` 这类 continuation step，soak 看的是系统能否先完成这一批 controller-owned repair，再继续回到同一条 paper line，而不是把它升级成新的治理面。
 4. **oracle proof**
-   `MDS` 只用于证明行为等价、兼容存量 study 与吸收上游更新；proof 的通过结果应表现为 `MAS` owner 面更完整，而不是 `MDS` owner 面继续扩张。
+   `MDS` 只用于证明行为等价、兼容存量 study 与吸收上游更新；proof 的通过结果应表现为 `MAS` owner 面更完整，而不是 `MDS` owner 面继续扩张。`run_gate_clearing_batch` 这类同线 continuation step 也只允许强化 `MAS` controller 的 owner truth，不允许把 `MDS` 重新解释成新的 quality/autonomy owner 面。
 
 ### Phase 4：让 MAS 成为默认维护面
 

@@ -32,13 +32,16 @@
 - 质量闭环结构化的 owner 继续落在 `study_charter`、`paper evidence ledger`、`review ledger`：把方向锁定后的普通科研推进、论文质量裁决、`bounded_analysis` 边界、reviewer concern 与 submission hygiene 压成同一套 `MAS` quality contract。
 - 当前 repo-side 落地已经要求质量修复写成结构化 route truth：当前是同线质量修复，还是 `bounded_analysis` 一类有限补充分析；回到哪条现有主线；当前那条主线要回答什么关键问题；为什么这是最窄、最诚实的修复路径。
 - 当前 repo-side 落地已经把这层 blocked route truth 继续压进 `publication_eval/latest.json`：只要 `publication_gate` 已经知道应该 `return_to_write`、`return_to_analysis_campaign` 或 `return_to_finalize`，下游 durable surface 与 `study-progress` 就不再把它压回泛化 `return_to_controller`，而会直接投影成同线修复或有限补充分析。
+- 当前 repo-side 落地已经把其中一类可确定修复的同线 route-back 前推成 controller-owned continuation step：当 `publication_eval/latest.json` 要求 `bounded_analysis`，且 `publication_gate` 的阻塞只剩 scientific-anchor 冻结、paper-facing surface repair、display/export refresh、submission-minimal replay 或 stale delivery replay 这类可批处理修复项时，`study_outer_loop` 会先执行一次 `run_gate_clearing_batch`，再把 study 送回同一条托管主线。
 - 当前 repo-side 落地已经把“为什么现在已经足够继续往投稿包推进”压成稳定 truth：`evaluation_summary` / `study-progress` / `product-entry` 不只报告 blocker，也会统一投影 `quality_closure_truth + quality_closure_basis`，说明当前是仍需质量修复、已经可以继续写作，还是只剩同线 finalize / bundle 收口，以及这个判断分别建立在临床意义、证据强度、创新性定位、人工审阅准备度与发表门控哪几条依据上。
 - 用户可见真相投影的 owner 继续落在 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`：用户与维护者都应能从同一条 `MAS` 主线上读到当前阶段、关键证据、阻塞、下一步、恢复点与 human gate 原因。
 - 当前 repo-side 落地已经要求 `study-progress` / `product-entry` 能明确区分：同线质量修复、有限补充分析、runtime recovery、human gate，不再把这些自治语义混成同一种“待人工确认”或“泛化 blocker”。
 - 当前 repo-side 落地已经把 `study-progress`、`workspace-cockpit`、`product-frontdesk` 三个用户面收口到统一 `autonomy_contract`：当 study 处于自动推进、runtime recovery 或少数必须人工确认的节点时，三处表面都要讲同一套“为什么停、是否还能自动继续、恢复点是什么、下一次确认看什么”。
+- 当前 repo-side 落地已经把这条 continuation 的 durable chain 固定在既有 `MAS` surface 上：`publication_eval/latest.json` 负责给出 route truth，`controller_decisions/latest.json` 负责记录 controller action，`artifacts/controller/gate_clearing_batch/latest.json` 负责记录 batch repair 与 gate replay，`runtime_watch` / `study-progress` 继续消费 outer-loop dispatch 与下一次确认信号。
 - 当前 repo-side 落地已经把长期自治 proof/soak 继续压成稳定表面：`study-progress` 现已导出 `autonomy_soak_status`，`product-frontdesk` / `workspace-cockpit` 也开始显式消费最近一次自治续跑与其确认信号，不再只靠泛化 runtime summary 解释长跑状态。
 - 当前 repo-side 落地已经把 `study-progress`、`workspace-cockpit`、`product-frontdesk` 三个用户面对论文质量 readiness 的解释也收口到统一质量 truth：当核心科学质量已经闭环、当前只剩同线写作或 finalize / bundle 收口时，用户面会直接说清“为什么已经够稳、还剩什么范围、这条判断由哪些质量依据支撑”。
 - 当前 repo-side 落地已经把质量复评后续动作继续前推到用户面：`study-progress` 现已导出 `quality_review_followthrough`，`workspace-cockpit` / `product-frontdesk` 可以直接解释“当前在等系统自动复评、为什么还没继续、下一次确认看什么”。
+- 这条 gate-clearing batch 口径同时服务三个当前目标：对质量面，它清掉当前论文线里可确定修复的稿面/锚点/交付阻塞；对自治面，它把“先清 gate 再继续”保持在 controller-owned continuation 链里；对 single-project 边界，它继续只写 `MAS` 的 study/controller durable surface，不为 `MDS` 或其他 companion 打开新的 owner 面。
 - proof/soak 口径当前围绕真实 study 的长期自治与质量闭环是否已经闭合，不围绕 `MDS` 再造一套长期 owner 面；`MDS` 只保留 migration oracle、backend compatibility、upstream intake buffer 三个迁移期角色。
 - 当前 tranche 的 repo-side 落点是单项目 owner truth、用户可见边界和 program/mainline 口径收紧；这一步不推进 `physical monorepo absorb`、跨仓 `runtime core ingest` 或把 `MDS` 重新解释成并行产品面。
 - 当前 `build_product_entry.return_surface_contract` 已经开始把 `single_project_boundary` 与 `study_progress` truth field contract 一并交给外部 caller；调用方可以不回 `mainline-status` 也读到 MAS/MDS owner boundary 和当前应消费的 progress truth 字段。
@@ -50,6 +53,7 @@
 - 验收还要看语义是否可读：当质量闭环要求回到某条现有主线时，`MAS` 能说清“回到哪条线、当前关键问题是什么、为什么先做这一步”。
 - proof 先看 owner 是否单一：质量判断、有限补充分析推进、运行恢复与用户面进度解释默认都由 `MAS` 负责；`MDS` 提供 oracle 对照与 backend 兼容，不承担长期双 owner。
 - soak 先看真实 study 能否长期成立：长时间运行、停滞后的恢复、human gate 触发、投稿前审计前的持续推进，都要在真实 durable surface 上读得出来。
+- 同线 continuation proof/soak 现在也包括 `run_gate_clearing_batch`：proof 看 controller 是否能沿 `publication_eval -> controller_decisions -> gate_clearing_batch record -> publication_gate replay` 保持单一 owner truth，soak 看真实 study 是否能经由这一步继续回到同一条 paper line，而不是新增人工 owner 或第二条治理面。
 - 当前 stage 不要求 `MDS` 退场；要求的是 `MDS` 的存在只能解释为迁移期 proof companion，而不是另一条并行产品主线。
 - 当前 stage 也不把 `physical monorepo absorb` 当作 tranche 完成信号；那属于 external/runtime/workspace gate 清完之后的 post-gate 工作。
 
