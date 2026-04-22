@@ -20,6 +20,7 @@ from med_autoscience.startup_contract import stable_startup_contract
 BACKEND_ID = "med_deepscientist"
 ENGINE_ID = "med-deepscientist"
 DEFAULT_DAEMON_TIMEOUT_SECONDS = 10
+DAEMON_CONTROL_TIMEOUT_SECONDS = 60
 ACTIVE_BASH_SESSION_STATUSES = frozenset({"running", "terminating"})
 _STALE_PROGRESS_SILENCE_SECONDS = 30 * 60
 _UNSET = object()
@@ -1043,12 +1044,18 @@ def post_quest_control(
     url = f"{base_url}/api/quests/{quote(quest_id, safe='')}/control"
     try:
         return _normalize_stable_quest_control_result(
-            payload=_post_json(url=url, payload={"action": action, "source": source})
+            payload=_post_json(
+                url=url,
+                payload={"action": action, "source": source},
+                timeout=DAEMON_CONTROL_TIMEOUT_SECONDS,
+            )
         )
     except error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"Quest control request failed with HTTP {exc.code}: {body}") from exc
     except error.URLError as exc:
+        raise RuntimeError(f"Quest control request failed: {exc}") from exc
+    except (TimeoutError, OSError, ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"Quest control request failed: {exc}") from exc
 
 
@@ -1093,6 +1100,7 @@ def update_quest_startup_context(
             payload=_patch_json(
                 url=f"{base_url}/api/quests/{quote(quest_id, safe='')}/startup-context",
                 payload=payload,
+                timeout=DAEMON_CONTROL_TIMEOUT_SECONDS,
             )
         )
     except error.HTTPError as exc:

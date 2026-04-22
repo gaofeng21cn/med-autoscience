@@ -696,7 +696,7 @@ def test_post_quest_control_posts_json_payload(monkeypatch) -> None:
     }
     assert seen["url"] == "http://127.0.0.1:20999/api/quests/q001/control"
     assert seen["method"] == "POST"
-    assert seen["timeout"] == 10
+    assert seen["timeout"] == module.DAEMON_CONTROL_TIMEOUT_SECONDS
     assert seen["content_type"] == "application/json"
     assert seen["payload"] == {"action": "stop", "source": "codex-test"}
 
@@ -764,7 +764,7 @@ def test_post_quest_control_ensures_managed_daemon_before_resume(monkeypatch, tm
     assert seen == {
         "url": "http://127.0.0.1:21999/api/quests/001-risk/control",
         "payload": {"action": "resume", "source": "medautosci-test"},
-        "timeout": 10,
+        "timeout": module.DAEMON_CONTROL_TIMEOUT_SECONDS,
     }
 
 
@@ -793,6 +793,7 @@ def test_update_quest_startup_context_patches_payload(monkeypatch, tmp_path: Pat
     assert seen == {
         "url": "http://127.0.0.1:20999/api/quests/001-risk/startup-context",
         "payload": {"startup_contract": {"scope": "full_research"}},
+        "timeout": module.DAEMON_CONTROL_TIMEOUT_SECONDS,
     }
 
 
@@ -995,6 +996,7 @@ def test_update_quest_startup_context_patches_requested_baseline_ref_without_cre
     assert seen == {
         "url": "http://127.0.0.1:20999/api/quests/001-risk/startup-context",
         "payload": {"requested_baseline_ref": {"baseline_id": "demo-baseline"}},
+        "timeout": module.DAEMON_CONTROL_TIMEOUT_SECONDS,
     }
 
 
@@ -1187,6 +1189,24 @@ def test_stop_quest_fails_closed_when_daemon_is_unreachable(monkeypatch, tmp_pat
 
     with pytest.raises(RuntimeError, match="Quest control request failed"):
         module.stop_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
+
+
+def test_post_quest_control_wraps_daemon_timeout(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+
+    def fake_urlopen(http_request, timeout: int):
+        assert timeout == module.DAEMON_CONTROL_TIMEOUT_SECONDS
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+
+    with pytest.raises(RuntimeError, match="Quest control request failed: timed out"):
+        module.post_quest_control(
+            daemon_url="http://127.0.0.1:20999",
+            quest_id="q001",
+            action="resume",
+            source="codex-test",
+        )
 
 
 def test_post_quest_control_rejects_missing_stable_control_contract(monkeypatch) -> None:
