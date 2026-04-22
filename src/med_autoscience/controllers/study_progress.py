@@ -397,13 +397,16 @@ def _runtime_control_pickup_refs(
 
 def _normalized_research_runtime_control_projection_payload(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     direct_projection = _mapping_copy(payload.get("research_runtime_control_projection"))
-    if direct_projection:
-        return direct_projection
     intervention_lane = _mapping_copy(payload.get("intervention_lane"))
     interrupt_policy = _non_empty_text(intervention_lane.get("recommended_action_id"))
+    gate_lane = _non_empty_text(intervention_lane.get("lane_id"))
+    gate_summary = _non_empty_text(intervention_lane.get("summary"))
+    operator_status_card = _mapping_copy(payload.get("operator_status_card"))
+    autonomy_contract = _mapping_copy(payload.get("autonomy_contract"))
+    restore_point = _mapping_copy(autonomy_contract.get("restore_point"))
     refs = _mapping_copy(payload.get("refs"))
     pickup_refs = _runtime_control_pickup_refs(refs_payload=refs)
-    return {
+    default_projection: dict[str, Any] = {
         "surface_kind": "research_runtime_control_projection",
         "study_session_owner": {
             "runtime_owner": "upstream_hermes_agent",
@@ -421,6 +424,7 @@ def _normalized_research_runtime_control_projection_payload(payload: Mapping[str
             "surface_kind": "study_progress",
             "field_path": "autonomy_contract.restore_point",
             "lineage_anchor_field": "family_checkpoint_lineage.resume_contract",
+            "summary": _non_empty_text(restore_point.get("summary")),
         },
         "progress_cursor_surface": {
             "surface_kind": "study_progress",
@@ -430,6 +434,7 @@ def _normalized_research_runtime_control_projection_payload(payload: Mapping[str
             "surface_kind": "study_progress",
             "field_path": "operator_status_card.current_focus",
             "fallback_field_path": "next_system_action",
+            "current_focus": _non_empty_text(operator_status_card.get("current_focus")),
         },
         "artifact_inventory_surface": {
             "surface_kind": "study_progress",
@@ -455,12 +460,79 @@ def _normalized_research_runtime_control_projection_payload(payload: Mapping[str
             "surface_kind": "study_progress",
             "approval_gate_field": "needs_physician_decision",
             "approval_gate_owner": "mas_controller",
+            "approval_gate_required": bool(payload.get("needs_physician_decision")),
             "interrupt_policy_field": "intervention_lane.recommended_action_id",
             "interrupt_policy": interrupt_policy,
             "gate_lane_field": "intervention_lane.lane_id",
-            "gate_lane": _non_empty_text(intervention_lane.get("lane_id")),
+            "gate_lane": gate_lane,
+            "gate_summary_field": "intervention_lane.summary",
+            "gate_summary": gate_summary,
         },
     }
+    if not direct_projection:
+        return default_projection
+
+    normalized = dict(default_projection)
+    normalized.update(direct_projection)
+
+    nested_fields = (
+        "study_session_owner",
+        "session_lineage_surface",
+        "restore_point_surface",
+        "progress_cursor_surface",
+        "progress_surface",
+        "artifact_inventory_surface",
+        "artifact_pickup_surface",
+        "command_templates",
+        "research_gate_surface",
+    )
+    for field_name in nested_fields:
+        merged = _mapping_copy(default_projection.get(field_name))
+        merged.update(_mapping_copy(direct_projection.get(field_name)))
+        normalized[field_name] = merged
+
+    command_templates = _mapping_copy(normalized.get("command_templates"))
+    command_templates.setdefault("resume", None)
+    command_templates.setdefault("check_progress", None)
+    command_templates.setdefault("check_runtime_status", None)
+    normalized["command_templates"] = command_templates
+
+    artifact_pickup_surface = _mapping_copy(normalized.get("artifact_pickup_surface"))
+    merged_pickup_refs: list[str] = []
+    for ref in pickup_refs:
+        if ref not in merged_pickup_refs:
+            merged_pickup_refs.append(ref)
+    for item in artifact_pickup_surface.get("pickup_refs") or []:
+        text = _non_empty_text(item)
+        if text is None or text in merged_pickup_refs:
+            continue
+        merged_pickup_refs.append(text)
+    artifact_pickup_surface["pickup_refs"] = merged_pickup_refs
+    normalized["artifact_pickup_surface"] = artifact_pickup_surface
+
+    research_gate_surface = _mapping_copy(normalized.get("research_gate_surface"))
+    if not isinstance(research_gate_surface.get("approval_gate_required"), bool):
+        research_gate_surface["approval_gate_required"] = bool(payload.get("needs_physician_decision"))
+    if _non_empty_text(research_gate_surface.get("interrupt_policy")) is None:
+        research_gate_surface["interrupt_policy"] = interrupt_policy
+    if _non_empty_text(research_gate_surface.get("gate_lane")) is None:
+        research_gate_surface["gate_lane"] = gate_lane
+    if _non_empty_text(research_gate_surface.get("gate_summary")) is None:
+        research_gate_surface["gate_summary"] = gate_summary
+    research_gate_surface.setdefault("gate_summary_field", "intervention_lane.summary")
+    normalized["research_gate_surface"] = research_gate_surface
+
+    restore_point_surface = _mapping_copy(normalized.get("restore_point_surface"))
+    if _non_empty_text(restore_point_surface.get("summary")) is None:
+        restore_point_surface["summary"] = _non_empty_text(restore_point.get("summary"))
+    normalized["restore_point_surface"] = restore_point_surface
+
+    progress_surface = _mapping_copy(normalized.get("progress_surface"))
+    if _non_empty_text(progress_surface.get("current_focus")) is None:
+        progress_surface["current_focus"] = _non_empty_text(operator_status_card.get("current_focus"))
+    normalized["progress_surface"] = progress_surface
+
+    return normalized
 
 
 def _normalized_quality_execution_lane_payload(payload: Mapping[str, Any]) -> dict[str, Any] | None:

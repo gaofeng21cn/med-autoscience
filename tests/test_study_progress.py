@@ -1613,6 +1613,79 @@ def test_study_progress_normalizes_legacy_non_mapping_quality_execution_lane_fro
     assert "study_id: `001-risk`" in markdown
 
 
+def test_study_progress_normalizes_legacy_runtime_control_projection_from_existing_projection(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        status_payload={
+            "progress_projection": {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "current_stage": "waiting_physician_decision",
+                "current_stage_summary": "当前需要医生确认恢复策略。",
+                "paper_stage": "publishability_gate_blocked",
+                "paper_stage_summary": "发表门控仍未放行。",
+                "next_system_action": "先确认是否继续当前恢复动作。",
+                "needs_physician_decision": True,
+                "intervention_lane": {
+                    "lane_id": "human_decision_gate",
+                    "summary": "等待医生或 PI 确认下一步。",
+                    "recommended_action_id": "human_decision_review",
+                },
+                "operator_status_card": {
+                    "current_focus": "先确认是否继续当前恢复动作。",
+                },
+                "autonomy_contract": {
+                    "restore_point": {
+                        "summary": "恢复点已冻结；恢复前仍需人工确认。",
+                    }
+                },
+                "refs": {
+                    "evaluation_summary_path": "/tmp/evaluation/latest.json",
+                    "publication_eval_path": "/tmp/publication_eval/latest.json",
+                    "controller_decision_path": "/tmp/controller_decisions/latest.json",
+                },
+                "research_runtime_control_projection": {
+                    "surface_kind": "research_runtime_control_projection",
+                    "command_templates": {
+                        "resume": "uv run python -m med_autoscience.cli launch-study --study-id 001-risk",
+                    },
+                    "research_gate_surface": {
+                        "surface_kind": "study_progress",
+                    },
+                },
+            }
+        },
+    )
+
+    projection = result["research_runtime_control_projection"]
+    assert projection["surface_kind"] == "research_runtime_control_projection"
+    assert projection["restore_point_surface"]["summary"] == "恢复点已冻结；恢复前仍需人工确认。"
+    assert projection["progress_surface"]["current_focus"] == "先确认是否继续当前恢复动作。"
+    assert projection["command_templates"]["resume"] == (
+        "uv run python -m med_autoscience.cli launch-study --study-id 001-risk"
+    )
+    assert projection["command_templates"]["check_progress"] is None
+    assert projection["command_templates"]["check_runtime_status"] is None
+    assert projection["research_gate_surface"]["approval_gate_field"] == "needs_physician_decision"
+    assert projection["research_gate_surface"]["approval_gate_required"] is True
+    assert projection["research_gate_surface"]["interrupt_policy"] == "human_decision_review"
+    assert projection["research_gate_surface"]["gate_lane"] == "human_decision_gate"
+    assert projection["research_gate_surface"]["gate_summary"] == "等待医生或 PI 确认下一步。"
+    assert projection["artifact_pickup_surface"]["pickup_refs"] == [
+        "/tmp/evaluation/latest.json",
+        "/tmp/publication_eval/latest.json",
+        "/tmp/controller_decisions/latest.json",
+    ]
+
+
 def test_study_progress_suppresses_same_line_route_when_publication_supervisor_blocks_bundle_tasks(
     tmp_path: Path,
 ) -> None:

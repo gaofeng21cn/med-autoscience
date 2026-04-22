@@ -2590,6 +2590,13 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
             + str(profile_ref.resolve())
             + " --study-id 001-risk --format json"
         ),
+        "needs_physician_decision_field": "needs_physician_decision",
+        "intervention_lane_field": "intervention_lane",
+        "operator_status_card_field": "operator_status_card",
+        "autonomy_contract_field": "autonomy_contract",
+        "recovery_contract_field": "recovery_contract",
+        "continuation_state_field": "continuation_state",
+        "family_checkpoint_lineage_field": "family_checkpoint_lineage",
         "autonomy_soak_status_field": "autonomy_soak_status",
         "quality_execution_lane_field": "quality_execution_lane",
         "same_line_route_truth_field": "same_line_route_truth",
@@ -2617,6 +2624,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
             "surface_kind": "study_progress",
             "field_path": "autonomy_contract.restore_point",
             "lineage_anchor_field": "family_checkpoint_lineage.resume_contract",
+            "summary_field": "autonomy_contract.restore_point.summary",
         },
         "progress_cursor_surface": {
             "surface_kind": "study_progress",
@@ -2661,9 +2669,12 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "research_gate_surface": {
             "surface_kind": "study_progress",
             "approval_gate_field": "needs_physician_decision",
+            "approval_gate_required_field": "needs_physician_decision",
             "approval_gate_owner": "mas_controller",
             "interrupt_policy_field": "intervention_lane.recommended_action_id",
+            "interrupt_policy_value_field": "intervention_lane.recommended_action_id",
             "gate_lane_field": "intervention_lane.lane_id",
+            "gate_summary_field": "intervention_lane.summary",
         },
     }
     assert payload["return_surface_contract"]["domain_entry_contract"]["service_safe_surface_kind"] == (
@@ -2866,6 +2877,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
             "surface_kind": "study_progress",
             "field_path": "autonomy_contract.restore_point",
             "lineage_anchor_field": "family_checkpoint_lineage.resume_contract",
+            "summary_field": "autonomy_contract.restore_point.summary",
         },
         "progress_cursor_surface": {
             "surface_kind": "study_progress",
@@ -2910,9 +2922,12 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "research_gate_surface": {
             "surface_kind": "study_progress",
             "approval_gate_field": "needs_physician_decision",
+            "approval_gate_required_field": "needs_physician_decision",
             "approval_gate_owner": "mas_controller",
             "interrupt_policy_field": "intervention_lane.recommended_action_id",
+            "interrupt_policy_value_field": "intervention_lane.recommended_action_id",
             "gate_lane_field": "intervention_lane.lane_id",
+            "gate_summary_field": "intervention_lane.summary",
         },
     }
     assert payload["artifact_inventory"]["surface_kind"] == "artifact_inventory"

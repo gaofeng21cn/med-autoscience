@@ -1550,6 +1550,7 @@ def _build_research_runtime_control_projection(
             "surface_kind": "study_progress",
             "field_path": "autonomy_contract.restore_point",
             "lineage_anchor_field": "family_checkpoint_lineage.resume_contract",
+            "summary_field": "autonomy_contract.restore_point.summary",
         },
         "progress_cursor_surface": {
             "surface_kind": "study_progress",
@@ -1582,9 +1583,12 @@ def _build_research_runtime_control_projection(
         "research_gate_surface": {
             "surface_kind": "study_progress",
             "approval_gate_field": "needs_physician_decision",
+            "approval_gate_required_field": "needs_physician_decision",
             "approval_gate_owner": "mas_controller",
             "interrupt_policy_field": "intervention_lane.recommended_action_id",
+            "interrupt_policy_value_field": "intervention_lane.recommended_action_id",
             "gate_lane_field": "intervention_lane.lane_id",
+            "gate_summary_field": "intervention_lane.summary",
         },
     }
 
@@ -4150,6 +4154,13 @@ def build_product_entry(
             "study_progress_projection_contract": {
                 "surface_kind": "study_progress_projection_contract",
                 "command": commands["study_progress"],
+                "needs_physician_decision_field": "needs_physician_decision",
+                "intervention_lane_field": "intervention_lane",
+                "operator_status_card_field": "operator_status_card",
+                "autonomy_contract_field": "autonomy_contract",
+                "recovery_contract_field": "recovery_contract",
+                "continuation_state_field": "continuation_state",
+                "family_checkpoint_lineage_field": "family_checkpoint_lineage",
                 "autonomy_soak_status_field": "autonomy_soak_status",
                 "quality_execution_lane_field": "quality_execution_lane",
                 "same_line_route_truth_field": "same_line_route_truth",
