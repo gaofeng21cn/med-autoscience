@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from importlib import import_module
 import json
 from pathlib import Path
 
 import yaml
 
-from med_autoscience.controllers import study_delivery_sync, submission_minimal
+from med_autoscience.controllers import study_delivery_sync
 from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.study_task_intake import (
     read_latest_task_intake,
@@ -132,7 +133,7 @@ def _submission_surfaces_current(
     )
     if str(delivery_status.get("status") or "").strip() != "current":
         return False
-    authority_status = submission_minimal.describe_submission_minimal_authority(
+    authority_status = _submission_minimal_controller().describe_submission_minimal_authority(
         paper_root=paper_root,
         publication_profile=publication_profile,
     )
@@ -169,6 +170,10 @@ def _read_json_dict(path: Path) -> dict[str, object]:
     except (OSError, json.JSONDecodeError):
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _submission_minimal_controller():
+    return import_module("med_autoscience.controllers.submission_minimal")
 
 
 def _bundle_only_submission_ready(*, study_root: Path, quest_root: Path | None = None) -> bool:
