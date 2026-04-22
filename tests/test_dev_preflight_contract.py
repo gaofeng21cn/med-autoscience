@@ -148,6 +148,19 @@ def test_classify_changed_files_matches_family_shared_surface() -> None:
     assert result.unclassified_changes == ()
 
 
+def test_classify_changed_verify_script_as_family_shared_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "scripts/verify.sh",
+        ]
+    )
+
+    assert result.matched_categories == ("family_shared_surface",)
+    assert result.unclassified_changes == ()
+
+
 def test_plan_commands_for_categories_deduplicates_results() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 

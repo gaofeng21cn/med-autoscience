@@ -56,6 +56,13 @@ def test_pyproject_pins_opl_harness_shared_to_a_full_commit() -> None:
 def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     verify_script = _read("scripts/verify.sh")
 
+    assert 'repo_root="$(git rev-parse --show-toplevel)"' in verify_script
+    assert 'cd "${repo_root}"' in verify_script
+    assert "run_sanity_checks() {" in verify_script
+    assert "git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\\|\\|\\|\\|\\|\\|\\| )' -- ." in verify_script
+    assert "mapfile -t python_files < <(git ls-files '*.py')" in verify_script
+    assert 'uv run python -m py_compile "${python_files[@]}"' in verify_script
+    assert "run_sanity_checks" in verify_script
     assert 'if [[ -z "${lane}" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "meta" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "display" ]]; then' in verify_script
@@ -64,6 +71,12 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert "make test-meta" in verify_script
     assert "make test-display" in verify_script
     assert "make test-full" in verify_script
+
+
+def test_verify_script_runs_sanity_checks_before_default_dispatch() -> None:
+    verify_script = _read("scripts/verify.sh")
+
+    assert 'run_sanity_checks\n\nif [[ -z "${lane}" ]]; then' in verify_script
 
 
 def test_parallel_full_lane_script_covers_all_marker_groups() -> None:

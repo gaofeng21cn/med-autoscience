@@ -1,7 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+repo_root="$(git rev-parse --show-toplevel)"
+cd "${repo_root}"
+
+run_sanity_checks() {
+  if git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\|\|\|\|\|\|\| )' -- .; then
+    echo "verify.sh: unresolved merge conflict markers detected" >&2
+    exit 1
+  fi
+
+  local -a python_files=()
+  mapfile -t python_files < <(git ls-files '*.py')
+
+  if [[ "${#python_files[@]}" -gt 0 ]]; then
+    uv run python -m py_compile "${python_files[@]}"
+  fi
+}
+
 lane="${1:-}"
+
+run_sanity_checks
 
 if [[ -z "${lane}" ]]; then
   make test-fast
