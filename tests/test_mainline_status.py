@@ -9,8 +9,23 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     payload = module.read_mainline_status()
 
     assert payload["program_id"] == "research-foundry-medical-mainline"
-    assert payload["current_stage"]["id"] == "f4_blocker_closeout"
+    assert payload["current_stage"]["id"] == "mas_owner_truth_hardening"
     assert payload["current_stage"]["status"] == "in_progress"
+    assert "F4 blocker" not in payload["current_stage"]["title"]
+    assert "F4 blocker" not in payload["current_stage"]["summary"]
+    assert payload["active_tranche_owner_truth"]["surface_kind"] == "active_tranche_owner_truth"
+    assert [item["lane_id"] for item in payload["active_tranche_owner_truth"]["lanes"]] == [
+        "autonomy",
+        "quality",
+        "single_project_owner",
+    ]
+    assert payload["active_tranche_owner_truth"]["owner"] == "MedAutoScience"
+    assert [item["role_id"] for item in payload["active_tranche_owner_truth"]["mds_retained_roles"]] == [
+        "research_backend",
+        "behavior_equivalence_oracle",
+        "upstream_intake_buffer",
+    ]
+    assert all(item["owner"].startswith("MAS") for item in payload["active_tranche_owner_truth"]["lanes"])
     assert payload["ideal_state"]["runtime_topology"]["outer_runtime_substrate_owner"] == "upstream Hermes-Agent"
     assert payload["ideal_state"]["runtime_topology"]["research_backend"] == "MedDeepScientist (controlled backend)"
     assert payload["single_project_boundary"]["surface_kind"] == "single_project_boundary"
@@ -41,6 +56,11 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert len(payload["phase_ladder"]) == 5
     assert payload["phase_ladder"][1]["id"] == "phase_2_user_product_loop"
     assert payload["phase_ladder"][0]["usable_now"] is True
+    assert [item["lane_id"] for item in payload["phase_ladder"][0]["active_tranche_owner_truth"]["lanes"]] == [
+        "autonomy",
+        "quality",
+        "single_project_owner",
+    ]
     assert payload["phase_ladder"][0]["single_project_boundary"]["mas_owner_modules"] == [
         "controller_charter",
         "runtime",
@@ -161,7 +181,10 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert any(item["name"] == "workspace_cockpit" for item in payload["phase_ladder"][1]["entry_points"])
     assert any(item["id"] == "f3_real_study_soak_recovery_proof" for item in payload["completed_tranches"])
     assert any("standalone" in item for item in payload["remaining_gaps"])
-    assert any("research backend / oracle / intake buffer" in item for item in payload["next_focus"])
+    assert any("autonomy" in item for item in payload["next_focus"])
+    assert any("quality" in item for item in payload["next_focus"])
+    assert any("single-project owner" in item for item in payload["next_focus"])
+    assert all("F4 blocker" not in item for item in payload["next_focus"])
     assert any("physical migration" in item for item in payload["explicitly_not_now"])
     assert any("second long-term owner" in item for item in payload["explicitly_not_now"])
 
@@ -176,6 +199,10 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "当前主线阶段" in markdown
     assert "当前判断" in markdown
     assert "理想目标" in markdown
+    assert "Active Tranche Owner Truth" in markdown
+    assert "owner lane `autonomy`" in markdown
+    assert "owner lane `quality`" in markdown
+    assert "owner lane `single_project_owner`" in markdown
     assert "Single-Project Boundary" in markdown
     assert "MDS retained `research_backend`" in markdown
     assert "post-gate only: physical monorepo absorb" in markdown
@@ -205,6 +232,7 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "surface_kind:" not in markdown
     assert "sequence_scope:" not in markdown
     assert "monorepo_status:" not in markdown
+    assert "F4 blocker" not in markdown
 
 
 def test_mainline_phase_status_resolves_current_and_next_phase() -> None:
@@ -215,6 +243,11 @@ def test_mainline_phase_status_resolves_current_and_next_phase() -> None:
 
     assert current_payload["phase"]["id"] == "phase_1_mainline_established"
     assert current_payload["phase"]["usable_now"] is True
+    assert [item["lane_id"] for item in current_payload["phase"]["active_tranche_owner_truth"]["lanes"]] == [
+        "autonomy",
+        "quality",
+        "single_project_owner",
+    ]
     assert current_payload["phase"]["single_project_boundary"]["land_now"] == [
         "MAS 单项目 owner wording and repo-tracked truth",
         "docs/status/program/mainline boundary alignment",
@@ -259,9 +292,14 @@ def test_render_mainline_phase_markdown_surfaces_current_tranche_boundary() -> N
     markdown = module.render_mainline_phase_markdown(module.read_mainline_phase_status("current"))
 
     assert "当前 tranche 边界" in markdown
+    assert "Owner Truth Lanes" in markdown
+    assert "owner lane `autonomy`" in markdown
+    assert "owner lane `quality`" in markdown
+    assert "owner lane `single_project_owner`" in markdown
     assert "当前 tranche 收口: MAS 单项目 owner wording and repo-tracked truth" in markdown
     assert "MDS 保留 `research_backend`" in markdown
     assert "post-gate only: physical monorepo absorb" in markdown
+    assert "F4 blocker" not in markdown
 
 
 def test_phase3_clearance_lane_uses_shared_builder(monkeypatch) -> None:

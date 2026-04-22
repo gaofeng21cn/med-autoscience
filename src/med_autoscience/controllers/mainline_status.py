@@ -17,7 +17,7 @@ from opl_harness_shared.product_entry_program_companions import (
 
 SCHEMA_VERSION = 1
 PROGRAM_ID = "research-foundry-medical-mainline"
-CURRENT_STAGE_ID = "f4_blocker_closeout"
+CURRENT_STAGE_ID = "mas_owner_truth_hardening"
 CURRENT_STAGE_STATUS = "in_progress"
 CURRENT_PROGRAM_PHASE_ID = "phase_1_mainline_established"
 CURRENT_PROGRAM_PHASE_STATUS = "in_progress"
@@ -148,6 +148,71 @@ def _phase_single_project_boundary(phase_id: object) -> dict[str, Any] | None:
     return _single_project_boundary()
 
 
+def _active_tranche_owner_truth() -> dict[str, Any]:
+    return {
+        "surface_kind": "active_tranche_owner_truth",
+        "owner": "MedAutoScience",
+        "stage_id": CURRENT_STAGE_ID,
+        "summary": (
+            "当前 tranche 用 autonomy、quality、single-project owner 三线解释 MAS owner truth；"
+            "MedDeepScientist 只保留迁移期 backend、oracle、intake buffer 角色。"
+        ),
+        "lanes": [
+            {
+                "lane_id": "autonomy",
+                "title": "Autonomy lane",
+                "owner": "MAS controller/runtime",
+                "summary": (
+                    "自治推进、runtime recovery、progress freshness 与 human gate 原因继续由 MAS "
+                    "controller-owned durable surfaces 解释。"
+                ),
+                "truth_surfaces": [
+                    "study_runtime_status",
+                    "runtime_watch",
+                    "study-progress.autonomy_contract",
+                    "controller_decisions/latest.json",
+                ],
+            },
+            {
+                "lane_id": "quality",
+                "title": "Quality lane",
+                "owner": "MAS quality contract",
+                "summary": (
+                    "论文质量、同线修复、有限补充分析与投稿前审计继续落在 MAS study charter、"
+                    "evidence/review ledger 和 publication gate truth 上。"
+                ),
+                "truth_surfaces": [
+                    "study_charter",
+                    "paper evidence ledger",
+                    "review ledger",
+                    "publication_eval/latest.json",
+                    "publication_gate",
+                ],
+            },
+            {
+                "lane_id": "single_project_owner",
+                "title": "Single-project owner lane",
+                "owner": "MAS single-project program",
+                "summary": (
+                    "单项目 owner truth 继续由 MAS mainline-status/mainline-phase 暴露；"
+                    "MDS 不新增第二治理面或并行产品入口。"
+                ),
+                "truth_surfaces": [
+                    "mainline-status",
+                    "mainline-phase",
+                    "single_project_boundary",
+                ],
+            },
+        ],
+        "mds_retained_roles": list(_single_project_boundary()["mds_retained_roles"]),
+        "not_owner_surfaces": [
+            "MedDeepScientist product entry",
+            "MedDeepScientist long-term governance surface",
+            "parallel owner truth outside MAS",
+        ],
+    }
+
+
 def _platform_target() -> dict[str, Any]:
     return _build_shared_platform_target(
         summary=(
@@ -184,7 +249,10 @@ def _platform_target() -> dict[str, Any]:
                 title="Stabilize user product loop",
                 status="in_progress",
                 phase_id="phase_2_user_product_loop",
-                summary="当前活跃步骤：继续收口 F4 blocker，并把启动 / 下任务 / 看进度 / 看恢复建议收成稳定前台回路。",
+                summary=(
+                    "当前活跃步骤：用 autonomy / quality / single-project owner 三线继续收紧 MAS "
+                    "owner truth，并把启动 / 下任务 / 看进度 / 看恢复建议收成稳定前台回路。"
+                ),
             ),
             _build_shared_program_sequence_step(
                 step_id="clear_multi_workspace_host_gate",
@@ -512,11 +580,12 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "usable_now": True,
             "summary": (
                 "先证明 MAS -> Hermes-Agent target outer substrate -> controlled MedDeepScientist backend 这条主线诚实成立，"
-                "并完成 F4 blocker 收口与单项目 owner 边界收紧。"
+                "并把当前 owner truth 显式收成 autonomy、quality、single-project owner 三线。"
             ),
             "focus": [
-                "close remaining study blockers without reopening seam-only work",
-                "keep runtime truth, recovery proof, and product-entry hardening aligned",
+                "autonomy: keep runtime truth, recovery proof, and progress freshness controller-owned",
+                "quality: keep publication-grade quality route truth under MAS study contracts",
+                "single-project owner: keep MDS retained as backend/oracle/intake buffer only",
             ],
             "entry_points": [
                 {
@@ -536,15 +605,16 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 },
             ],
             "exit_criteria": [
-                "F4 blocker closeout 不再主要停留在 repo-side seam 或 host compatibility。",
+                "autonomy / quality / single-project owner 三线都能从 mainline-status 与 mainline-phase 直接读出。",
                 "当前活跃 study 的主要阻塞继续前移到 publication / completion / human-gate truth。",
-                "用户已经能稳定看到主线状态、workspace attention 和 study progress。",
+                "用户已经能稳定看到主线状态、workspace attention 和 study progress，且不会被引向 MDS 第二治理面。",
             ],
             "phase_docs": [
                 "docs/status.md",
                 "docs/project.md",
                 "docs/architecture.md",
             ],
+            "active_tranche_owner_truth": _active_tranche_owner_truth(),
             "single_project_boundary": _phase_single_project_boundary("phase_1_mainline_established"),
         },
         {
@@ -729,13 +799,15 @@ def read_mainline_status() -> dict[str, Any]:
             ],
         },
         "single_project_boundary": _single_project_boundary(),
+        "active_tranche_owner_truth": _active_tranche_owner_truth(),
         "current_stage": {
             "id": CURRENT_STAGE_ID,
             "status": CURRENT_STAGE_STATUS,
-            "title": "F4 blocker closeout",
+            "title": "MAS owner truth hardening",
             "summary": (
                 "repo-side 已拿到 external Hermes runtime truth、real adapter cutover 和至少一条真实 study "
-                "recovery/proof；当前主线进入 blocker 收口、product-entry hardening 与单项目边界收紧，而不是回去继续做 seam-only 包装。"
+                "recovery/proof；当前主线用 autonomy、quality、single-project owner 三线继续压实 MAS owner truth，"
+                "而不是回去继续做 seam-only 包装或新增 MDS 第二治理面。"
             ),
         },
         "current_program_phase": {
@@ -743,8 +815,10 @@ def read_mainline_status() -> dict[str, Any]:
             "status": CURRENT_PROGRAM_PHASE_STATUS,
             "title": "Phase 1 mainline established",
             "summary": (
-                "当前总体仍处在第一阶段尾声：主线已成立，正在把 F4 blocker 收口干净，并把用户可见入口与单项目边界继续收成真实 repo-tracked truth。"
+                "当前总体仍处在第一阶段尾声：主线已成立，正在把自治、质量与单项目 owner "
+                "边界继续收成真实 repo-tracked truth。"
             ),
+            "active_tranche_owner_truth": _active_tranche_owner_truth(),
             "single_project_boundary": _phase_single_project_boundary(CURRENT_PROGRAM_PHASE_ID),
         },
         "phase2_user_product_loop": _phase2_user_product_loop(),
@@ -786,9 +860,9 @@ def read_mainline_status() -> dict[str, Any]:
             "active study blockers still need continued closeout at publication / completion / human-gate truth surfaces",
         ],
         "next_focus": [
-            "keep the mainline on F4 blocker closeout instead of reopening seam-only work",
-            "continue hardening user-visible product-entry surfaces so task, progress, supervision, and stuck-state truth stay visible",
-            "keep MedDeepScientist wording pinned to research backend / oracle / intake buffer instead of second-owner language",
+            "autonomy: keep task, progress, supervision, stuck-state, recovery, and human-gate truth visible through MAS durable surfaces",
+            "quality: keep publication-grade route truth, same-line repair, bounded analysis, and submission readiness under MAS quality contracts",
+            "single-project owner: keep MedDeepScientist pinned to backend / oracle / intake buffer roles instead of second-owner language",
             "keep docs/status/runtime contracts aligned so OPL language, MAS role, and runtime truth do not drift",
             "only move toward broader cutover or monorepo work after the external gate is honestly cleared",
         ],
@@ -850,6 +924,7 @@ def read_mainline_phase_status(selector: str = "current") -> dict[str, Any]:
 
 def render_mainline_phase_markdown(payload: dict[str, Any]) -> str:
     phase = dict(payload.get("phase") or {})
+    active_tranche_owner_truth = dict(phase.get("active_tranche_owner_truth") or {})
     single_project_boundary = dict(phase.get("single_project_boundary") or {})
     lines = [
         "# Mainline Phase",
@@ -860,6 +935,24 @@ def render_mainline_phase_markdown(payload: dict[str, Any]) -> str:
         f"- 当前可用性: {_bool_label(phase.get('usable_now'))}",
         f"- 当前摘要: {phase.get('summary') or 'none'}",
     ]
+    if active_tranche_owner_truth:
+        lines.extend(
+            [
+                "",
+                "## Owner Truth Lanes",
+                "",
+                f"- 当前摘要: {active_tranche_owner_truth.get('summary') or 'none'}",
+                f"- owner: {active_tranche_owner_truth.get('owner') or 'none'}",
+            ]
+        )
+        for item in active_tranche_owner_truth.get("lanes") or []:
+            if not isinstance(item, dict):
+                continue
+            lines.append(f"- owner lane `{item.get('lane_id')}`: {item.get('summary') or 'none'}")
+        for item in active_tranche_owner_truth.get("mds_retained_roles") or []:
+            if not isinstance(item, dict):
+                continue
+            lines.append(f"- MDS migration role `{item.get('role_id')}`: {item.get('summary') or 'none'}")
     if single_project_boundary:
         lines.extend(
             [
@@ -913,6 +1006,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     current_stage = dict(payload.get("current_stage") or {})
     current_program_phase = dict(payload.get("current_program_phase") or {})
     runtime_topology = dict((payload.get("ideal_state") or {}).get("runtime_topology") or {})
+    active_tranche_owner_truth = dict(payload.get("active_tranche_owner_truth") or {})
     single_project_boundary = dict(payload.get("single_project_boundary") or {})
     phase2_user_product_loop = dict(payload.get("phase2_user_product_loop") or {})
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
@@ -935,23 +1029,41 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         f"- 研究后端: {runtime_topology.get('research_backend') or 'none'}",
         f"- 入口形态: {runtime_topology.get('entry_shape') or 'none'}",
         "",
-        "## Single-Project Boundary",
+        "## Active Tranche Owner Truth",
         "",
-        f"- 当前摘要: {single_project_boundary.get('summary') or 'none'}",
-        f"- MAS owner modules: `{', '.join(single_project_boundary.get('mas_owner_modules') or []) or 'none'}`",
-        "",
-        "## Phase 2 User Loop",
-        "",
-        f"- program phase 摘要: {phase2_user_product_loop.get('summary') or 'none'}",
-        f"- 推荐动作: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`",
-        f"- 推荐命令: `{phase2_user_product_loop.get('recommended_command') or 'none'}`",
-        "",
-        "## Phase 3 Clearance",
-        "",
-        f"- 清障重点: {phase3_clearance_lane.get('summary') or 'none'}",
-        f"- 推荐动作: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`",
-        f"- 推荐命令: `{phase3_clearance_lane.get('recommended_command') or 'none'}`",
+        f"- 当前摘要: {active_tranche_owner_truth.get('summary') or 'none'}",
+        f"- owner: {active_tranche_owner_truth.get('owner') or 'none'}",
+        f"- stage: `{active_tranche_owner_truth.get('stage_id') or 'none'}`",
     ]
+    for item in active_tranche_owner_truth.get("lanes") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- owner lane `{item.get('lane_id')}`: {item.get('summary') or 'none'}")
+    for item in active_tranche_owner_truth.get("mds_retained_roles") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- MDS migration role `{item.get('role_id')}`: {item.get('summary') or 'none'}")
+    lines.extend(
+        [
+            "",
+            "## Single-Project Boundary",
+            "",
+            f"- 当前摘要: {single_project_boundary.get('summary') or 'none'}",
+            f"- MAS owner modules: `{', '.join(single_project_boundary.get('mas_owner_modules') or []) or 'none'}`",
+            "",
+            "## Phase 2 User Loop",
+            "",
+            f"- program phase 摘要: {phase2_user_product_loop.get('summary') or 'none'}",
+            f"- 推荐动作: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`",
+            f"- 推荐命令: `{phase2_user_product_loop.get('recommended_command') or 'none'}`",
+            "",
+            "## Phase 3 Clearance",
+            "",
+            f"- 清障重点: {phase3_clearance_lane.get('summary') or 'none'}",
+            f"- 推荐动作: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`",
+            f"- 推荐命令: `{phase3_clearance_lane.get('recommended_command') or 'none'}`",
+        ]
+    )
     for item in phase2_user_product_loop.get("single_path") or []:
         if not isinstance(item, dict):
             continue
