@@ -2416,6 +2416,28 @@ def _status_state(
                     StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
                 )
             return _finalize_result()
+        if task_intake_overrides_auto_manual_finish:
+            if not result.startup_boundary_allows_compute_stage:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+                )
+            elif not result.runtime_reentry_allows_runtime_entry:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+                )
+            elif execution.get("auto_resume") is True:
+                result.set_decision(
+                    StudyRuntimeDecision.RESUME,
+                    StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
+                )
+            else:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
+                )
+            return _finalize_result()
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN,

@@ -1243,12 +1243,15 @@ def test_study_runtime_status_reopened_task_intake_does_not_keep_bundle_only_han
 
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
-    assert result["decision"] == "blocked"
-    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_on_invalid_blocking"
     assert result["quest_status"] == "stopped"
+    assert result["progress_projection"]["quality_closure_truth"]["state"] == "quality_repair_required"
+    assert result["progress_projection"]["quality_closure_truth"]["current_required_action"] == "return_to_analysis_campaign"
+    assert result["progress_projection"]["quality_execution_lane"]["lane_id"] == "general_quality_repair"
 
 
-def test_ensure_study_runtime_relaunches_stopped_quest_after_reopened_task_intake(
+def test_ensure_study_runtime_auto_resumes_stopped_quest_after_reopened_task_intake(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -1327,18 +1330,23 @@ def test_ensure_study_runtime_relaunches_stopped_quest_after_reopened_task_intak
     result = module.ensure_study_runtime(
         profile=profile,
         study_id="001-risk",
-        allow_stopped_relaunch=True,
         source="medautosci-test",
     )
 
-    assert result["decision"] == "relaunch_stopped"
-    assert result["reason"] == "quest_stopped_explicit_relaunch_requested"
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_on_invalid_blocking"
     assert result["quest_status"] == "active"
     assert resumed == {
         "runtime_root": profile.med_deepscientist_runtime_root,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }
+    binding = yaml.safe_load((study_root / "runtime_binding.yaml").read_text(encoding="utf-8"))
+    assert binding["last_action"] == "resume"
+    launch_report = json.loads((study_root / "artifacts" / "runtime" / "last_launch_report.json").read_text(encoding="utf-8"))
+    assert launch_report["decision"] == "resume"
+    assert launch_report["reason"] == "quest_waiting_on_invalid_blocking"
+    assert launch_report["daemon_result"]["action"] == "resume"
 
 
 def test_study_runtime_status_auto_resumes_controller_owned_stopped_completion_request_when_publication_gate_is_blocked(
