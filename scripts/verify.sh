@@ -11,7 +11,9 @@ run_sanity_checks() {
   fi
 
   local -a python_files=()
-  mapfile -t python_files < <(git ls-files '*.py')
+  while IFS= read -r python_file; do
+    python_files+=("${python_file}")
+  done < <(git ls-files '*.py')
 
   if [[ "${#python_files[@]}" -gt 0 ]]; then
     uv run python -m py_compile "${python_files[@]}"

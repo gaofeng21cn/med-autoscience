@@ -97,7 +97,10 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'cd "${repo_root}"' in verify_script
     assert "run_sanity_checks() {" in verify_script
     assert "git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\\|\\|\\|\\|\\|\\|\\| )' -- ." in verify_script
-    assert "mapfile -t python_files < <(git ls-files '*.py')" in verify_script
+    assert "while IFS= read -r python_file; do" in verify_script
+    assert "python_files+=(\"${python_file}\")" in verify_script
+    assert "done < <(git ls-files '*.py')" in verify_script
+    assert "mapfile" not in verify_script
     assert 'uv run python -m py_compile "${python_files[@]}"' in verify_script
     assert "run_sanity_checks" in verify_script
     assert 'if [[ -z "${lane}" ]]; then' in verify_script
