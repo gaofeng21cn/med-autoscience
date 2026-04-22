@@ -407,6 +407,98 @@ def test_run_gate_clearing_batch_executes_bundle_stage_submission_refresh_then_r
     assert result["gate_blockers"] == ["submission_surface_qc_failure_present"]
 
 
+def test_run_gate_clearing_batch_executes_bundle_stage_workspace_refresh_before_submission_replay(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    (paper_root / "build").mkdir(parents=True, exist_ok=True)
+    (paper_root / "build" / "generate_display_exports.py").write_text("print('ok')\n", encoding="utf-8")
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-004")
+    publication_eval_payload["recommended_actions"] = [
+        {
+            "action_id": "publication-eval-action::return_to_controller::2026-04-21T12:42:39+00:00",
+            "action_type": "return_to_controller",
+            "priority": "now",
+            "reason": "Return to controller so MAS can clear the finalize-stage blockers.",
+            "evidence_refs": [str(study_root / "paper")],
+            "requires_controller_decision": True,
+        }
+    ]
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": [
+                "submission_surface_qc_failure_present",
+            ],
+            "current_required_action": "complete_bundle_stage",
+            "medical_publication_surface_status": "clear",
+            "study_delivery_status": "current",
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_eligible_mapping_payload",
+        lambda **_: (None, {}),
+    )
+    monkeypatch.setattr(
+        module,
+        "_run_workspace_display_repair_script",
+        lambda **_: {"status": "updated", "script_path": str(paper_root / "build" / "generate_display_exports.py")},
+    )
+    monkeypatch.setattr(
+        module.submission_minimal,
+        "create_submission_minimal_package",
+        lambda **_: {"output_root": "paper/submission_minimal", "status": "ready"},
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["submission_surface_qc_failure_present"],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id="quest-004",
+        source="test-source",
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "executed"
+    assert [item["unit_id"] for item in result["unit_results"]] == [
+        "workspace_display_repair_script",
+        "create_submission_minimal_package",
+    ]
+    assert result["gate_replay"]["status"] == "blocked"
+    assert result["gate_blockers"] == ["submission_surface_qc_failure_present"]
+
+
 def test_study_outer_loop_executes_gate_clearing_batch_controller_action(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     runtime_protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")

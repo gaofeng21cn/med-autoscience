@@ -493,6 +493,7 @@ def run_gate_clearing_batch(
         for item in (gate_report.get("blockers") or [])
         if str(item or "").strip()
     }
+    display_repair_script_path = paper_root / "build" / "generate_display_exports.py"
     if str(gate_report.get("medical_publication_surface_status") or "").strip() == "blocked":
         repair_units.append(
             GateClearingRepairUnit(
@@ -507,7 +508,6 @@ def run_gate_clearing_batch(
                 ),
             )
         )
-        display_repair_script_path = paper_root / "build" / "generate_display_exports.py"
         if display_repair_script_path.exists():
             repair_units.append(
                 GateClearingRepairUnit(
@@ -526,6 +526,15 @@ def run_gate_clearing_batch(
                     run=lambda: _materialize_display_surface(paper_root=paper_root),
                 )
             )
+    elif bundle_stage_repair and display_repair_script_path.exists():
+        repair_units.append(
+            GateClearingRepairUnit(
+                unit_id="workspace_display_repair_script",
+                label="Run the workspace-authored display repair script before bundle-stage gate replay",
+                parallel_safe=True,
+                run=lambda: _run_workspace_display_repair_script(paper_root=paper_root),
+            )
+        )
     if not repair_units and str(gate_report.get("study_delivery_status") or "").strip().startswith("stale"):
         # Let publication_gate.run_controller(apply=True) own stale delivery refresh even when
         # there are no other deterministic repairs to launch in parallel.
