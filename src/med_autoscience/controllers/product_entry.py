@@ -71,8 +71,11 @@ from opl_harness_shared.product_entry_program_companions import (
     build_program_sequence_step as _build_shared_program_sequence_step,
 )
 from opl_harness_shared.runtime_task_companions import (
+    build_artifact_inventory as _build_shared_artifact_inventory,
     build_checkpoint_summary as _build_shared_checkpoint_summary,
+    build_progress_projection as _build_shared_progress_projection,
     build_runtime_inventory as _build_shared_runtime_inventory,
+    build_session_continuity as _build_shared_session_continuity,
     build_task_lifecycle as _build_shared_task_lifecycle,
 )
 from opl_harness_shared.status_narration import (
@@ -1211,6 +1214,171 @@ def _build_task_lifecycle_surface(
             "current_program_phase_id": repo_mainline.get("current_program_phase_id"),
             "recommended_loop_surface": operator_loop_surface.get("surface_kind"),
             "recommended_loop_command": operator_loop_surface.get("command"),
+        },
+    )
+
+
+def _build_session_continuity_surface(
+    *,
+    runtime: Mapping[str, Any],
+    product_entry_preflight: Mapping[str, Any],
+    family_orchestration: Mapping[str, Any],
+    product_entry_shell: Mapping[str, Any],
+    task_lifecycle: Mapping[str, Any],
+    study_runtime_status_command: str,
+) -> dict[str, Any]:
+    blocking_check_ids = list(product_entry_preflight.get("blocking_check_ids") or [])
+    ready_to_try_now = bool(product_entry_preflight.get("ready_to_try_now")) and not blocking_check_ids
+    checkpoint_summary = dict(task_lifecycle.get("checkpoint_summary") or {})
+    return _build_shared_session_continuity(
+        summary=(
+            "MAS session continuity 指针已就绪；恢复入口与进度/工件真相仍以 study-local durable surfaces 为 authority。"
+            if ready_to_try_now
+            else "MAS session continuity 当前被 preflight blocking；仍可按指针定位 durable truth，但恢复前先清障。"
+        ),
+        domain_agent_id="mas",
+        runtime_owner=str(runtime.get("runtime_owner") or ""),
+        domain_owner=str(runtime.get("domain_owner") or ""),
+        executor_owner=str(runtime.get("executor_owner") or ""),
+        status="ready" if ready_to_try_now else "blocked",
+        progress_surface={
+            "surface_kind": "study_progress",
+            "summary": "读取 study progress projection（只读投影，不替代 runtime/controller 真相）。",
+            "command": str((product_entry_shell.get("study_progress") or {}).get("command") or ""),
+            "step_id": "inspect_progress",
+            "locator_fields": ["profile_ref", "study_id"],
+        },
+        artifact_surface={
+            "surface_kind": "study_runtime_status",
+            "summary": "读取 runtime 恢复合同与运行态，必要时决定接管/重启。",
+            "command": study_runtime_status_command,
+            "step_id": "inspect_runtime_status",
+            "locator_fields": ["profile_ref", "study_id"],
+        },
+        restore_surface={
+            "surface_kind": "launch_study",
+            "summary": "按 study_id 启动或续跑当前研究运行（restore 指针）。",
+            "command": str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
+            "step_id": "continue_study",
+            "locator_fields": ["profile_ref", "study_id"],
+        },
+        checkpoint_summary=checkpoint_summary if checkpoint_summary else None,
+        human_gate_ids=_collect_family_human_gate_ids(family_orchestration),
+        domain_projection={
+            "runtime_supervision_path_template": "studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json",
+            "publication_eval_path_template": "studies/<study_id>/artifacts/publication_eval/latest.json",
+            "controller_decision_path_template": "studies/<study_id>/artifacts/controller_decisions/latest.json",
+        },
+    )
+
+
+def _build_progress_projection_surface(
+    *,
+    profile: WorkspaceProfile,
+    repo_mainline: Mapping[str, Any],
+    product_entry_status: Mapping[str, Any],
+    product_entry_preflight: Mapping[str, Any],
+    product_entry_readiness: Mapping[str, Any],
+    family_orchestration: Mapping[str, Any],
+    operator_loop_surface: Mapping[str, Any],
+    product_entry_shell: Mapping[str, Any],
+    study_runtime_status_command: str,
+) -> dict[str, Any]:
+    headline = _non_empty_text(product_entry_status.get("summary")) or "MAS 当前保持 repo-owned product entry continuity。"
+    next_step = _non_empty_text(operator_loop_surface.get("command")) or "none"
+    latest_update = _non_empty_text(repo_mainline.get("current_stage_summary")) or _non_empty_text(
+        repo_mainline.get("current_program_phase_summary")
+    ) or headline
+    blocking_check_ids = list(product_entry_preflight.get("blocking_check_ids") or [])
+    attention_items = list(product_entry_status.get("next_focus") or [])
+    if blocking_check_ids:
+        attention_items.extend(f"preflight_blocking::{item}" for item in blocking_check_ids)
+    return _build_shared_progress_projection(
+        headline=headline,
+        latest_update=latest_update,
+        next_step=next_step,
+        status_summary=_non_empty_text(product_entry_readiness.get("summary")) or "none",
+        current_status=_non_empty_text(product_entry_readiness.get("verdict")) or "runtime_ready_not_standalone_product",
+        runtime_status="ready" if bool(product_entry_preflight.get("ready_to_try_now")) and not blocking_check_ids else "blocked",
+        progress_surface={
+            "surface_kind": "workspace_cockpit",
+            "summary": "读取 workspace attention queue 与监督在线态（progress 指针）。",
+            "command": next_step,
+            "step_id": "open_loop",
+            "locator_fields": ["profile_ref"],
+        },
+        artifact_surface={
+            "surface_kind": "study_runtime_status",
+            "summary": "按 study_id 读取 runtime 恢复合同与运行态（artifact/restore 辅助指针）。",
+            "command": study_runtime_status_command,
+            "step_id": "inspect_runtime_status",
+            "locator_fields": ["profile_ref", "study_id"],
+        },
+        inspect_paths=[str(profile.workspace_root), str(profile.runtime_root), "studies/<study_id>/artifacts"],
+        attention_items=attention_items,
+        human_gate_ids=_collect_family_human_gate_ids(family_orchestration),
+        domain_projection={
+            "recommended_restore_command": str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
+            "recommended_progress_command": str((product_entry_shell.get("study_progress") or {}).get("command") or ""),
+        },
+    )
+
+
+def _build_artifact_inventory_surface(
+    *,
+    profile: WorkspaceProfile,
+    progress_projection: Mapping[str, Any],
+    product_entry_shell: Mapping[str, Any],
+    study_runtime_status_command: str,
+) -> dict[str, Any]:
+    supporting_files = [
+        {
+            "file_id": "task_intake_latest",
+            "label": "Study task intake (latest)",
+            "path": "studies/<study_id>/artifacts/controller/task_intake/latest.json",
+            "summary": "durable task intake truth (task_id/intent/entry_mode/return_surface_contract).",
+        },
+        {
+            "file_id": "runtime_watch_latest",
+            "label": "Runtime watch (latest)",
+            "path": "studies/<study_id>/artifacts/runtime_watch/latest.json",
+            "summary": "runtime watch event companion for supervision freshness.",
+        },
+        {
+            "file_id": "runtime_supervision_latest",
+            "label": "Runtime supervision (latest)",
+            "path": "studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json",
+            "summary": "runtime supervision truth owned by MAS runtime/progress durable surfaces.",
+        },
+        {
+            "file_id": "publication_eval_latest",
+            "label": "Publication eval (latest)",
+            "path": "studies/<study_id>/artifacts/publication_eval/latest.json",
+            "summary": "publication eval truth (publishability/quality closure state).",
+        },
+        {
+            "file_id": "controller_decisions_latest",
+            "label": "Controller decisions (latest)",
+            "path": "studies/<study_id>/artifacts/controller_decisions/latest.json",
+            "summary": "controller decision truth (gate decisions / interventions / followthrough).",
+        },
+    ]
+    return _build_shared_artifact_inventory(
+        deliverable_files=[],
+        supporting_files=supporting_files,
+        workspace_path=str(profile.workspace_root),
+        progress_headline=_non_empty_text(progress_projection.get("headline")) or None,
+        artifact_surface={
+            "surface_kind": "study_runtime_status",
+            "summary": "按 study_id 读取 runtime 恢复合同与运行态。",
+            "command": study_runtime_status_command,
+            "step_id": "inspect_runtime_status",
+            "locator_fields": ["profile_ref", "study_id"],
+        },
+        inspect_paths=[str(profile.workspace_root), "studies/<study_id>/artifacts", str(profile.runtime_root)],
+        domain_projection={
+            "recommended_restore_command": str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
+            "recommended_progress_command": str((product_entry_shell.get("study_progress") or {}).get("command") or ""),
         },
     )
 
@@ -2503,6 +2671,9 @@ def build_product_entry_manifest(
     profile_arg = _profile_arg(profile_ref)
     prefix = _command_prefix(profile_ref)
     workspace_root = str(profile.workspace_root)
+    study_runtime_status_command = _json_surface_command(
+        f"{prefix} study-runtime-status --profile {profile_arg} --study-id <study_id>"
+    )
 
     product_entry_shell = _build_shared_product_entry_shell_catalog({
         "product_frontdesk": {
@@ -2851,6 +3022,31 @@ def build_product_entry_manifest(
         operator_loop_surface=operator_loop_surface,
         product_entry_shell=product_entry_shell,
     )
+    session_continuity = _build_session_continuity_surface(
+        runtime=runtime,
+        product_entry_preflight=product_entry_preflight,
+        family_orchestration=family_orchestration,
+        product_entry_shell=product_entry_shell,
+        task_lifecycle=task_lifecycle,
+        study_runtime_status_command=study_runtime_status_command,
+    )
+    progress_projection = _build_progress_projection_surface(
+        profile=profile,
+        repo_mainline=repo_mainline,
+        product_entry_status=product_entry_status,
+        product_entry_preflight=product_entry_preflight,
+        product_entry_readiness=product_entry_readiness,
+        family_orchestration=family_orchestration,
+        operator_loop_surface=operator_loop_surface,
+        product_entry_shell=product_entry_shell,
+        study_runtime_status_command=study_runtime_status_command,
+    )
+    artifact_inventory = _build_artifact_inventory_surface(
+        profile=profile,
+        progress_projection=progress_projection,
+        product_entry_shell=product_entry_shell,
+        study_runtime_status_command=study_runtime_status_command,
+    )
     skill_catalog = _build_skill_catalog_surface(
         product_entry_status=product_entry_status,
         domain_entry_contract=domain_entry_contract,
@@ -2889,6 +3085,9 @@ def build_product_entry_manifest(
         shared_handoff=shared_handoff,
         runtime_inventory=runtime_inventory,
         task_lifecycle=task_lifecycle,
+        session_continuity=session_continuity,
+        progress_projection=progress_projection,
+        artifact_inventory=artifact_inventory,
         skill_catalog=skill_catalog,
         automation=automation,
         product_entry_start=product_entry_start,

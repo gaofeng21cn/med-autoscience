@@ -1775,6 +1775,9 @@ def test_build_product_entry_manifest_passes_contract_bundle_via_named_shared_kw
     assert captured["schema_ref"] == module.PRODUCT_ENTRY_MANIFEST_SCHEMA_REF
     assert captured["domain_entry_contract"] == module._build_domain_entry_contract()
     assert captured["gateway_interaction_contract"] == module._build_gateway_interaction_contract()
+    assert captured["session_continuity"]["surface_kind"] == "session_continuity"
+    assert captured["progress_projection"]["surface_kind"] == "progress_projection"
+    assert captured["artifact_inventory"]["surface_kind"] == "artifact_inventory"
     assert "schema_ref" not in captured["extra_payload"]
     assert "domain_entry_contract" not in captured["extra_payload"]
     assert "gateway_interaction_contract" not in captured["extra_payload"]
@@ -2527,6 +2530,23 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["runtime_inventory"]["workspace_binding"]["workspace_root"] == str(profile.workspace_root)
     assert payload["runtime_inventory"]["workspace_binding"]["profile_name"] == profile.name
     assert payload["runtime_inventory"]["domain_projection"]["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
+    assert payload["session_continuity"]["surface_kind"] == "session_continuity"
+    assert payload["session_continuity"]["domain_agent_id"] == "mas"
+    assert payload["session_continuity"]["restore_surface"]["surface_kind"] == "launch_study"
+    assert payload["session_continuity"]["progress_surface"]["surface_kind"] == "study_progress"
+    assert payload["session_continuity"]["artifact_surface"]["surface_kind"] == "study_runtime_status"
+    assert payload["progress_projection"]["surface_kind"] == "progress_projection"
+    assert payload["progress_projection"]["progress_surface"]["surface_kind"] == "workspace_cockpit"
+    assert "studies/<study_id>/artifacts" in payload["progress_projection"]["inspect_paths"]
+    assert payload["artifact_inventory"]["surface_kind"] == "artifact_inventory"
+    assert payload["artifact_inventory"]["summary"]["deliverable_files_count"] == 0
+    assert payload["artifact_inventory"]["summary"]["supporting_files_count"] == 5
+    assert payload["artifact_inventory"]["summary"]["total_files_count"] == 5
+    assert payload["artifact_inventory"]["supporting_files"][0]["kind"] == "supporting"
+    assert any(
+        entry.get("path") == "studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json"
+        for entry in payload["artifact_inventory"]["supporting_files"]
+    )
     assert payload["executor_defaults"]["default_executor_name"] == "codex_cli"
     assert payload["executor_defaults"]["default_executor_mode"] == "autonomous"
     assert payload["executor_defaults"]["default_model"] == "inherit_local_codex_default"
