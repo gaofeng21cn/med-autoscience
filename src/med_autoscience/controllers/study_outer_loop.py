@@ -34,6 +34,7 @@ from med_autoscience.runtime_escalation_record import (
     RuntimeEscalationRecordRef,
     RuntimeEscalationTrigger,
 )
+from med_autoscience.runtime.autonomy_governance import build_autonomy_governance_contract
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 from med_autoscience.study_decision_record import (
@@ -902,6 +903,13 @@ def study_outer_loop_tick(
             decision_type=decision_type,
             controller_action_types=(action.action_type for action in normalized_controller_actions),
         )
+    autonomy_governance_contract = build_autonomy_governance_contract(
+        decision_type=decision_type,
+        controller_action_types=(action.action_type for action in normalized_controller_actions),
+        route_target=route_target,
+        requires_human_confirmation=requires_human_confirmation,
+        direction_locked=True,
+    )
     family_evidence_refs = [
         {
             "ref_kind": "repo_path",
@@ -996,6 +1004,7 @@ def study_outer_loop_tick(
             route_target=route_target,
             route_key_question=route_key_question,
             route_rationale=route_rationale,
+            autonomy_governance_contract=autonomy_governance_contract,
             family_event_envelope=family_companion["family_event_envelope"],
             family_checkpoint_lineage=family_companion["family_checkpoint_lineage"],
             family_human_gates=tuple(family_companion["family_human_gates"]),

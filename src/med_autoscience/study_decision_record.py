@@ -24,6 +24,7 @@ _RECORD_ALLOWED_FIELDS = frozenset(
         "route_target",
         "route_key_question",
         "route_rationale",
+        "autonomy_governance_contract",
         "family_event_envelope",
         "family_checkpoint_lineage",
         "family_human_gates",
@@ -291,6 +292,7 @@ class StudyDecisionRecord:
     route_target: str | None = None
     route_key_question: str | None = None
     route_rationale: str | None = None
+    autonomy_governance_contract: dict[str, Any] | None = None
     family_event_envelope: dict[str, Any] | None = None
     family_checkpoint_lineage: dict[str, Any] | None = None
     family_human_gates: tuple[dict[str, Any], ...] = ()
@@ -362,6 +364,8 @@ class StudyDecisionRecord:
         object.__setattr__(self, "route_target", normalized_route_target)
         object.__setattr__(self, "route_key_question", normalized_route_key_question)
         object.__setattr__(self, "route_rationale", normalized_route_rationale)
+        if self.autonomy_governance_contract is not None and not isinstance(self.autonomy_governance_contract, dict):
+            raise TypeError("study decision record autonomy_governance_contract must be mapping or None")
         if self.family_event_envelope is not None and not isinstance(self.family_event_envelope, dict):
             raise TypeError("study decision record family_event_envelope must be mapping or None")
         if self.family_checkpoint_lineage is not None and not isinstance(self.family_checkpoint_lineage, dict):
@@ -394,6 +398,9 @@ class StudyDecisionRecord:
             route_target=self.route_target,
             route_key_question=self.route_key_question,
             route_rationale=self.route_rationale,
+            autonomy_governance_contract=(
+                dict(self.autonomy_governance_contract) if isinstance(self.autonomy_governance_contract, dict) else None
+            ),
             family_event_envelope=dict(self.family_event_envelope) if isinstance(self.family_event_envelope, dict) else None,
             family_checkpoint_lineage=(
                 dict(self.family_checkpoint_lineage) if isinstance(self.family_checkpoint_lineage, dict) else None
@@ -429,6 +436,8 @@ class StudyDecisionRecord:
             payload["route_target"] = self.route_target
             payload["route_key_question"] = self.route_key_question
             payload["route_rationale"] = self.route_rationale
+        if self.autonomy_governance_contract is not None:
+            payload["autonomy_governance_contract"] = dict(self.autonomy_governance_contract)
         if self.family_event_envelope is not None:
             payload["family_event_envelope"] = dict(self.family_event_envelope)
         if self.family_checkpoint_lineage is not None:
@@ -469,6 +478,11 @@ class StudyDecisionRecord:
             route_target=_optional_payload_text(payload, "route_target"),
             route_key_question=_optional_payload_text(payload, "route_key_question"),
             route_rationale=_optional_payload_text(payload, "route_rationale"),
+            autonomy_governance_contract=_optional_payload_mapping(
+                payload,
+                "autonomy_governance_contract",
+                "study decision record",
+            ),
             family_event_envelope=_optional_payload_mapping(payload, "family_event_envelope", "study decision record"),
             family_checkpoint_lineage=_optional_payload_mapping(
                 payload,
