@@ -556,6 +556,8 @@ def _normalized_same_line_route_surface_payload(payload: Mapping[str, Any]) -> d
 
 
 def _normalized_same_line_route_truth_payload(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    if "same_line_route_truth" in payload and payload.get("same_line_route_truth") is None:
+        return None
     direct_truth = _mapping_copy(payload.get("same_line_route_truth"))
     if direct_truth:
         return direct_truth

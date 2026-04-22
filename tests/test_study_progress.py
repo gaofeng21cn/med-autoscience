@@ -3792,6 +3792,7 @@ def test_study_progress_suppresses_task_intake_route_inside_eval_surface_when_ga
     assert result["same_line_route_surface"] is None
     assert result["module_surfaces"]["eval_hygiene"]["same_line_route_truth"] is None
     assert result["module_surfaces"]["eval_hygiene"]["same_line_route_surface"] is None
+    assert "## 同线路由真相" not in module.render_study_progress_markdown(result)
 
 
 def test_render_study_progress_markdown_humanizes_decision_continuation_reason() -> None:
