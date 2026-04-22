@@ -25,12 +25,29 @@ def test_core_pack_evidence_renderer_is_split_into_maintainable_modules() -> Non
 
     module_line_counts = {
         path.relative_to(CORE_PACK_MODULE_ROOT).as_posix(): len(path.read_text(encoding="utf-8").splitlines())
-        for path in evidence_package.glob("*.py")
+        for path in evidence_package.rglob("*.py")
     }
 
     assert module_line_counts
     assert module_line_counts["evidence_figures/__init__.py"] <= 220
-    assert max(module_line_counts.values()) <= 6500
+    assert max(module_line_counts.values()) <= 1500
+
+
+def test_core_pack_illustration_shells_are_split_into_maintainable_modules() -> None:
+    legacy_single_file = CORE_PACK_MODULE_ROOT / "illustration_shells.py"
+    illustration_package = CORE_PACK_MODULE_ROOT / "illustration_shells"
+
+    assert not legacy_single_file.exists()
+    assert (illustration_package / "__init__.py").exists()
+
+    module_line_counts = {
+        path.relative_to(CORE_PACK_MODULE_ROOT).as_posix(): len(path.read_text(encoding="utf-8").splitlines())
+        for path in illustration_package.rglob("*.py")
+    }
+
+    assert module_line_counts
+    assert module_line_counts["illustration_shells/__init__.py"] <= 80
+    assert max(module_line_counts.values()) <= 1500
 
 
 def test_core_pack_evidence_renderer_keeps_stable_entrypoints() -> None:

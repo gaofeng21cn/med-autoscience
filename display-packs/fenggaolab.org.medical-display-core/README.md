@@ -24,13 +24,19 @@ Evidence-figure entrypoints remain stable at:
 The implementation is split under `src/fenggaolab_org_medical_display_core/evidence_figures/`:
 
 - `r_renderer.py`: shared R/ggplot2 renderer script and executor.
-- `clinical_time_to_event.py`: clinical utility, risk layering, and time-to-event panels.
-- `model_explanation_shap.py`: SHAP summary, importance, local explanation, and decision-path panels.
-- `model_explanation_response.py`: PDP, ICE, interaction, subgroup-response, and ALE panels.
-- `model_explanation_composites.py`: higher-order explanation composites with support-domain evidence.
-- `effect_generalizability.py`: effect-estimate, heterogeneity, transportability, and generalizability panels.
-- `omics_matrix.py`: matrix, dotplot, oncoplot, CNV, genomic consequence, and omics panels.
-- `atlas_geometry.py`: atlas, spatial, trajectory, multimanifold, and signature-heatmap panels.
+- `clinical_time_to_event/`: clinical utility, risk layering, and time-to-event panels.
+- `model_explanation_shap/`: SHAP summary, importance, local explanation, and decision-path panels.
+- `model_explanation_response/`: PDP, ICE, interaction, subgroup-response, and ALE panels.
+- `model_explanation_composites/`: higher-order explanation composites with support-domain evidence.
+- `effect_generalizability/`: effect-estimate, heterogeneity, transportability, and generalizability panels.
+- `omics_matrix/`: matrix, dotplot, oncoplot, CNV, genomic consequence, and omics panels.
+- `atlas_geometry/`: atlas, spatial, trajectory, multimanifold, and signature-heatmap panels.
 - `python_registry.py`: template-id to renderer-function dispatch table.
 
-This keeps the manifest-facing API stable while making renderer upgrades traceable by paper family and capability cluster.
+Illustration-shell entrypoint also remains stable at:
+
+- `fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell`
+
+The implementation is split under `src/fenggaolab_org_medical_display_core/illustration_shells/` by validator, renderer, and dispatcher.
+
+This keeps the manifest-facing API stable while making renderer upgrades traceable by paper family, capability cluster, and template shell.
