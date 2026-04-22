@@ -79,3 +79,40 @@ def test_resolve_effective_study_manual_finish_contract_derives_submission_metad
     assert contract.status.value == "active"
     assert contract.compatibility_guard_only is True
     assert "系统已停车" in contract.summary
+
+
+def test_resolve_effective_study_manual_finish_contract_derives_bundle_only_submission_ready_parking(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_manual_finish")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    write_auditable_current_package(study_root)
+    current_package_root = study_root / "manuscript" / "current_package"
+    (current_package_root / "submission_checklist.json").unlink()
+    (current_package_root / "submission_manifest.json").write_text("{}", encoding="utf-8")
+    summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(
+        "{\n"
+        '  "quality_closure_truth": {"state": "bundle_only_remaining"},\n'
+        '  "quality_assessment": {"human_review_readiness": {"status": "ready"}}\n'
+        "}\n",
+        encoding="utf-8",
+    )
+
+    contract = module.resolve_effective_study_manual_finish_contract(
+        study_root=study_root,
+        quest_root=profile.runtime_root / "001-risk",
+    )
+
+    assert contract is not None
+    assert contract.status.value == "active"
+    assert contract.compatibility_guard_only is True
+    assert "投稿包里程碑" in contract.summary

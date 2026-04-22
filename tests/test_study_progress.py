@@ -3132,6 +3132,148 @@ def test_study_progress_projects_manual_finishing_contract_before_runtime_blocke
     assert "兼容性" in result["next_system_action"]
 
 
+def test_study_progress_projects_bundle_only_submission_ready_parking_before_runtime_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    current_package_root = study_root / "manuscript" / "current_package"
+    current_package_root.mkdir(parents=True, exist_ok=True)
+    for rel in ["manuscript.docx", "paper.pdf", "references.bib", "submission_manifest.json", "SUBMISSION_TODO.md"]:
+        path = current_package_root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("placeholder\n", encoding="utf-8")
+    (study_root / "manuscript" / "current_package.zip").write_text("zip\n", encoding="utf-8")
+    summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(
+        "{\n"
+        '  "quality_closure_truth": {"state": "bundle_only_remaining"},\n'
+        '  "quality_review_loop": {"closure_state": "bundle_only_remaining"},\n'
+        '  "quality_assessment": {"human_review_readiness": {"status": "ready"}}\n'
+        "}\n",
+        encoding="utf-8",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    monkeypatch.setattr(
+        module,
+        "read_evaluation_summary",
+        lambda *, study_root, ref: {
+            "schema_version": 1,
+            "quality_closure_truth": {"state": "bundle_only_remaining"},
+            "quality_assessment": {
+                "human_review_readiness": {
+                    "status": "ready",
+                    "summary": "Human-review package is ready.",
+                }
+            },
+            "quality_execution_lane": {
+                "lane_id": "submission_hardening",
+                "route_target": "finalize",
+                "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+                "summary": "Only finalize-level submission hardening remains.",
+            },
+            "quality_review_loop": {
+                "closure_state": "bundle_only_remaining",
+                "current_phase": "bundle_hardening",
+                "current_phase_label": "投稿包收口",
+                "recommended_next_phase": "finalize",
+                "recommended_next_phase_label": "定稿与投稿收尾",
+                "active_plan_id": "quality-plan::001-risk::v1",
+                "active_plan_execution_status": "planned",
+                "blocking_issue_count": 1,
+                "blocking_issues": ["Only finalize-level cleanup remains."],
+                "next_review_focus": ["What is the narrowest finalize or submission-bundle step still required on the current paper line?"],
+                "re_review_ready": False,
+                "summary": "Core scientific quality is closed; only finalize-level bundle cleanup remains.",
+                "recommended_next_action": "Return to finalize only if the runtime is explicitly resumed later.",
+            },
+            "module": "eval_hygiene",
+            "surface_kind": "evaluation_module_surface",
+            "summary_id": "evaluation-summary::001-risk::latest",
+            "summary_ref": str(study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"),
+            "promotion_gate_ref": str(study_root / "artifacts" / "eval_hygiene" / "promotion_gate" / "latest.json"),
+            "next_action_summary": "先在 finalize 修订，完成当前最小投稿包收口。",
+            "overall_verdict": "promising",
+            "primary_claim_status": "supported",
+            "stop_loss_pressure": "none",
+            "requires_controller_decision": True,
+            "verdict_summary": "bundle-stage work is unlocked and can proceed on the critical path",
+            "status_summary": "bundle-stage work is unlocked and can proceed on the critical path",
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+                "auto_resume": True,
+            },
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "stopped",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "blocked",
+            "reason": "quest_stopped_requires_explicit_rerun",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": False,
+                "current_required_action": "continue_bundle_stage",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "reason": "supervisor_tick_report_fresh",
+                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+                "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
+                "latest_report_path": str(study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"),
+                "latest_recorded_at": "2026-04-10T09:00:00+00:00",
+                "seconds_since_latest_recorded_at": 30,
+                "expected_interval_seconds": 300,
+                "stale_after_seconds": 600,
+            },
+            "continuation_state": {
+                "quest_status": "stopped",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "unchanged_finalize_state",
+                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["current_stage"] == "manual_finishing"
+    assert "投稿包里程碑" in result["current_stage_summary"]
+    assert "显式 rerun 或 relaunch" not in result["current_stage_summary"]
+    assert "当前 quest 已停止；如需继续，必须显式 rerun 或 relaunch。" not in result["current_blockers"]
+
+
 def test_study_progress_does_not_project_study_completed_when_completion_contract_is_not_ready(
     monkeypatch,
     tmp_path: Path,
