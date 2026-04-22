@@ -56,7 +56,7 @@ def _write_blocked_publication_eval(study_root: Path, *, quest_id: str) -> dict[
                 "priority": "now",
                 "reason": "Run the narrowest bounded analysis first.",
                 "route_target": "analysis-campaign",
-                "route_key_question": "What is the narrowest supplementary analysis still required before the paper line can continue?",
+                "route_key_question": "当前论文线继续前还差哪一个最窄的补充分析？",
                 "route_rationale": "The publication gate remains blocked.",
                 "evidence_refs": [str(study_root / "paper")],
                 "requires_controller_decision": True,

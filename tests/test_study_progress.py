@@ -3205,7 +3205,7 @@ def test_study_progress_projects_bundle_only_submission_ready_parking_before_run
             "quality_execution_lane": {
                 "lane_id": "submission_hardening",
                 "route_target": "finalize",
-                "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+                "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
                 "summary": "Only finalize-level submission hardening remains.",
             },
             "quality_review_loop": {
@@ -3218,7 +3218,7 @@ def test_study_progress_projects_bundle_only_submission_ready_parking_before_run
                 "active_plan_execution_status": "planned",
                 "blocking_issue_count": 1,
                 "blocking_issues": ["Only finalize-level cleanup remains."],
-                "next_review_focus": ["What is the narrowest finalize or submission-bundle step still required on the current paper line?"],
+                "next_review_focus": ["当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"],
                 "re_review_ready": False,
                 "summary": "Core scientific quality is closed; only finalize-level bundle cleanup remains.",
                 "recommended_next_action": "Return to finalize only if the runtime is explicitly resumed later.",

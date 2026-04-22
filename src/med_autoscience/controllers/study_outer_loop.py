@@ -582,7 +582,7 @@ def _recommended_submission_milestone_autopark_action(
         "reason": "Human-review milestone reached; stop the live runtime and wait for explicit resume.",
         "route_target": "finalize",
         "route_key_question": route_key_question
-        or "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+        or "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
         "route_rationale": route_rationale,
         "requires_controller_decision": True,
         "controller_action_type": StudyDecisionActionType.STOP_RUNTIME.value,

@@ -230,7 +230,7 @@ def test_build_study_quality_truth_marks_bundle_only_remaining_as_same_contract_
             "action_type": "route_back_same_line",
             "priority": "now",
             "route_target": "finalize",
-            "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+            "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
             "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
         },
         quality_closure_truth={
@@ -271,8 +271,8 @@ def test_build_study_quality_truth_marks_bundle_only_remaining_as_same_contract_
             "lane_label": "submission hardening 收口",
             "repair_mode": "same_line_route_back",
             "route_target": "finalize",
-            "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
-            "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“What is the narrowest finalize or submission-bundle step still required on the current paper line?”。",
+            "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+            "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
             "why_now": "The paper itself is ready for human review and only finalize-level cleanup remains.",
         },
         review_ledger_payload={
@@ -305,7 +305,7 @@ def test_build_study_quality_truth_marks_bundle_only_remaining_as_same_contract_
         "severity": None,
         "summary": "Open scientific gap is already closed; only finalize / submission-bundle stabilization remains.",
         "route_target": "finalize",
-        "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+        "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
         "why_now": "The paper itself is ready for human review and only finalize-level cleanup remains.",
     }
     assert truth["finalize_bundle_readiness"] == {
@@ -350,7 +350,7 @@ def test_build_study_quality_truth_blocks_finalize_without_reviewer_first_ready(
             "action_type": "route_back_same_line",
             "priority": "now",
             "route_target": "finalize",
-            "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+            "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
             "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
         },
         quality_closure_truth={
@@ -391,8 +391,8 @@ def test_build_study_quality_truth_blocks_finalize_without_reviewer_first_ready(
             "lane_label": "submission hardening 收口",
             "repair_mode": "same_line_route_back",
             "route_target": "finalize",
-            "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
-            "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“What is the narrowest finalize or submission-bundle step still required on the current paper line?”。",
+            "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+            "summary": "当前质量执行线聚焦 submission hardening 收口；先回到 finalize，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
             "why_now": "The paper itself is ready for human review and only finalize-level cleanup remains.",
         },
         review_ledger_payload=None,
@@ -510,7 +510,7 @@ def test_evaluation_summary_materializes_study_quality_truth_on_durable_surface(
                     "priority": "now",
                     "reason": "Return to finalize for last-mile bundle stabilization.",
                     "route_target": "finalize",
-                    "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
                     "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
                     "evidence_refs": [str(gate_report_path)],
                     "requires_controller_decision": True,
@@ -577,7 +577,7 @@ def test_evaluation_summary_materializes_study_quality_truth_on_durable_surface(
             "severity": None,
             "summary": "Open scientific gap is already closed; only finalize / submission-bundle stabilization remains.",
             "route_target": "finalize",
-            "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+            "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
             "why_now": "The paper itself is ready for human review and only finalize-level cleanup remains.",
         },
         "reviewer_first": {
@@ -596,7 +596,7 @@ def test_evaluation_summary_materializes_study_quality_truth_on_durable_surface(
             "entry_state": "not_required",
             "completion_state": "satisfied",
             "route_target": "finalize",
-            "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+            "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
             "allowed_scenarios": [
                 "close_predeclared_evidence_gap_within_locked_direction",
                 "answer_predeclared_reviewer_method_question",

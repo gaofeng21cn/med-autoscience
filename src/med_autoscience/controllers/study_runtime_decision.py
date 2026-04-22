@@ -566,7 +566,7 @@ def _publication_eval_action(
         if current_required_action in {"continue_bundle_stage", "complete_bundle_stage"}:
             return {
                 "route_target": "finalize",
-                "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+                "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
                 "route_rationale": (
                     controller_stage_note
                     or "The publication gate is clear and the current paper line can continue into finalize-stage work."
@@ -601,7 +601,7 @@ def _publication_eval_action(
                 "route_back_same_line",
                 {
                     "route_target": "finalize",
-                    "route_key_question": "What is the narrowest same-line finalize or submission-bundle repair required now?",
+                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
                     "route_rationale": (
                         controller_stage_note
                         or "The current blocked publication surface should route back to finalize on the same paper line."

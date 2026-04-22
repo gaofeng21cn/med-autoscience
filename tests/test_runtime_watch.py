@@ -482,7 +482,7 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
                     "priority": "now",
                     "reason": "Only finalize-level bundle cleanup remains on the current paper line.",
                     "route_target": "finalize",
-                    "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
                     "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
                     "evidence_refs": [str(publication_eval_path)],
                     "requires_controller_decision": True,
@@ -511,7 +511,7 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
             "quality_execution_lane": {
                 "lane_id": "submission_hardening",
                 "route_target": "finalize",
-                "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+                "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
                 "summary": "Only finalize-level submission hardening remains.",
             },
         },
@@ -597,7 +597,7 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
             "quest_id": "quest-001",
             "decision_type": "continue_same_line",
             "route_target": "finalize",
-            "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+            "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
             "controller_action_type": "stop_runtime",
             "study_decision_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
             "dispatch_status": "executed",
@@ -1021,7 +1021,7 @@ def test_publication_eval_action_routes_blocked_bundle_stage_back_to_same_line_f
     assert action.priority == "now"
     assert action.route_target == "finalize"
     assert action.route_key_question == (
-        "What is the narrowest finalize or submission-bundle step still required on the current paper line?"
+        "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"
     )
     assert action.route_rationale == "bundle-stage blockers are now on the critical path for this paper line"
 

@@ -375,7 +375,7 @@ def _bundle_stage_batch_action(
     )
     route_key_question = (
         str((source_action or {}).get("route_key_question") or "").strip()
-        or "What is the narrowest finalize or submission-bundle step still required on the current paper line?"
+        or "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"
     )
     priority = str((source_action or {}).get("priority") or "").strip() or "now"
     requires_controller_decision = bool((source_action or {}).get("requires_controller_decision"))
