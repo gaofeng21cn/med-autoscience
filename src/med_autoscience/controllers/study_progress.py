@@ -35,7 +35,11 @@ from med_autoscience.runtime_status_summary import (
 )
 from med_autoscience.study_charter import stable_study_charter_path
 from med_autoscience.study_manual_finish import resolve_effective_study_manual_finish_contract
-from med_autoscience.study_task_intake import read_latest_task_intake, summarize_task_intake
+from med_autoscience.study_task_intake import (
+    build_task_intake_progress_override,
+    read_latest_task_intake,
+    summarize_task_intake,
+)
 
 
 SCHEMA_VERSION = 1
@@ -1518,6 +1522,7 @@ def _current_stage(
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
+    task_intake_progress_override: dict[str, Any] | None,
 ) -> str:
     quest_status = _non_empty_text(status.get("quest_status"))
     decision = _non_empty_text(status.get("decision"))
@@ -1533,6 +1538,8 @@ def _current_stage(
         return "study_completed"
     if bool((manual_finish_contract or {}).get("compatibility_guard_only")):
         return "manual_finishing"
+    if task_intake_progress_override:
+        return "publication_supervision"
     if needs_physician_decision:
         return "waiting_physician_decision"
     if runtime_health_status == "recovering" and not live_managed_runtime:
@@ -1621,6 +1628,7 @@ def _stage_summary(
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
+    task_intake_progress_override: dict[str, Any] | None,
 ) -> str:
     if current_stage == "study_completed":
         return "研究主线已经进入结题/交付阶段，系统不会继续自动实验。"
@@ -1628,6 +1636,12 @@ def _stage_summary(
         return (
             _non_empty_text((manual_finish_contract or {}).get("summary"))
             or "当前 study 已转入人工收尾；MAS 只保持兼容性与监督入口，不再把它视为默认自动续跑对象。"
+        )
+    if task_intake_progress_override:
+        return (
+            _non_empty_text(task_intake_progress_override.get("current_stage_summary"))
+            or _non_empty_text(task_intake_progress_override.get("blocker_summary"))
+            or "最新 task intake 已经接管当前论文线优先级，系统将先回到待修订状态。"
         )
     if current_stage in {
         "managed_runtime_recovering",
@@ -1851,11 +1865,18 @@ def _next_system_action(
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
+    task_intake_progress_override: dict[str, Any] | None,
 ) -> str:
     if bool((manual_finish_contract or {}).get("compatibility_guard_only")):
         return (
             _non_empty_text((manual_finish_contract or {}).get("next_action_summary"))
             or "继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。"
+        )
+    if task_intake_progress_override:
+        return (
+            _non_empty_text(task_intake_progress_override.get("next_system_action"))
+            or _non_empty_text(task_intake_progress_override.get("current_stage_summary"))
+            or "先回到最新 task intake 指定的修订范围。"
         )
     if needs_physician_decision:
         controller_actions = list((controller_decision_payload or {}).get("controller_actions") or [])
@@ -1932,6 +1953,7 @@ def _current_blockers(
     supervisor_tick_audit: dict[str, Any],
     progress_freshness: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
+    task_intake_progress_override: dict[str, Any] | None,
 ) -> list[str]:
     blockers: list[str] = []
     manual_finish_active = _manual_finish_active(manual_finish_contract)
@@ -1959,7 +1981,13 @@ def _current_blockers(
         )
     if manual_finish_active:
         return blockers
-    if _non_empty_text(status.get("decision")) == "blocked" and not manual_finish_active:
+    if task_intake_progress_override:
+        _append_unique(blockers, _non_empty_text(task_intake_progress_override.get("blocker_summary")))
+    if (
+        _non_empty_text(status.get("decision")) == "blocked"
+        and not manual_finish_active
+        and not task_intake_progress_override
+    ):
         _append_unique(
             blockers,
             _reason_label(status.get("reason")) or _non_empty_text(status.get("reason")),
@@ -1973,7 +2001,7 @@ def _current_blockers(
             _controller_confirmation_summary_text(controller_confirmation_summary)
             or "当前控制面决策需要医生/PI 确认，系统不会自动越权继续。",
         )
-    if metadata_wait:
+    if metadata_wait and not task_intake_progress_override:
         _append_unique(
             blockers,
             _non_empty_text((pending_user_interaction or {}).get("summary"))
@@ -2049,6 +2077,7 @@ def _intervention_lane(
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
+    task_intake_progress_override: dict[str, Any] | None,
 ) -> dict[str, Any]:
     blocker_summary = _non_empty_text(current_blockers[0] if current_blockers else None)
     progress_status = _non_empty_text((progress_freshness or {}).get("status"))
@@ -2072,6 +2101,36 @@ def _intervention_lane(
             ),
             "recommended_action_id": "maintain_compatibility_guard",
         }
+    if task_intake_progress_override:
+        same_line_route_truth = _mapping_copy(task_intake_progress_override.get("same_line_route_truth"))
+        payload = {
+            "lane_id": "quality_floor_blocker",
+            "title": (
+                "优先完成有限补充分析"
+                if _non_empty_text(same_line_route_truth.get("same_line_state")) == "bounded_analysis"
+                else "优先收口同线质量硬阻塞"
+            ),
+            "severity": "critical",
+            "summary": (
+                _non_empty_text(task_intake_progress_override.get("next_system_action"))
+                or _non_empty_text(task_intake_progress_override.get("blocker_summary"))
+                or current_stage_summary
+                or next_system_action
+            ),
+            "recommended_action_id": _non_empty_text(task_intake_progress_override.get("current_required_action"))
+            or "inspect_progress",
+        }
+        if same_line_route_truth:
+            payload.update(
+                {
+                    "repair_mode": _non_empty_text(same_line_route_truth.get("same_line_state")),
+                    "route_target": _non_empty_text(same_line_route_truth.get("route_target")),
+                    "route_target_label": _non_empty_text(same_line_route_truth.get("route_target_label")),
+                    "route_key_question": _non_empty_text(same_line_route_truth.get("current_focus")),
+                    "route_summary": _non_empty_text(same_line_route_truth.get("summary")),
+                }
+            )
+        return payload
     if _supervisor_tick_gap_present(supervisor_tick_audit):
         return {
             "lane_id": "workspace_supervision_gap",
@@ -3159,7 +3218,13 @@ def build_study_progress_projection(
         _non_empty_text(paper_contract_health.get("recommended_next_stage"))
         or _non_empty_text(publication_supervisor_state.get("supervisor_phase"))
     )
-    task_intake = summarize_task_intake(read_latest_task_intake(study_root=resolved_study_root))
+    latest_task_intake_payload = read_latest_task_intake(study_root=resolved_study_root)
+    task_intake = summarize_task_intake(latest_task_intake_payload)
+    task_intake_progress_override = (
+        build_task_intake_progress_override(latest_task_intake_payload)
+        if manual_finish_contract is None
+        else None
+    )
     latest_progress_message = None
     latest_session = ((bash_summary_payload or {}).get("latest_session"))
     if isinstance(latest_session, dict) and isinstance(latest_session.get("last_progress"), dict):
@@ -3188,6 +3253,7 @@ def build_study_progress_projection(
         runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
+        task_intake_progress_override=task_intake_progress_override,
     )
     progress_freshness = _progress_freshness(
         current_stage=current_stage,
@@ -3205,12 +3271,21 @@ def build_study_progress_projection(
         runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
+        task_intake_progress_override=task_intake_progress_override,
     )) or ""
+    if task_intake_progress_override:
+        paper_stage = _non_empty_text(task_intake_progress_override.get("paper_stage")) or paper_stage
     paper_stage_summary = _display_text(_paper_stage_summary(
         paper_stage=paper_stage,
         publication_supervisor_state=publication_supervisor_state,
         publication_eval_payload=publication_eval_payload,
     )) or ""
+    if task_intake_progress_override:
+        paper_stage_summary = (
+            _display_text(task_intake_progress_override.get("paper_stage_summary"))
+            or _non_empty_text(task_intake_progress_override.get("paper_stage_summary"))
+            or paper_stage_summary
+        )
     current_blockers = _humanized_blockers(
         _current_blockers(
             status=status,
@@ -3225,6 +3300,7 @@ def build_study_progress_projection(
             supervisor_tick_audit=supervisor_tick_audit,
             progress_freshness=progress_freshness,
             manual_finish_contract=manual_finish_contract,
+            task_intake_progress_override=task_intake_progress_override,
         )
     )
     next_system_action = _display_text(_next_system_action(
@@ -3241,6 +3317,7 @@ def build_study_progress_projection(
         runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
+        task_intake_progress_override=task_intake_progress_override,
     )) or ""
     physician_decision_summary = _display_text(_physician_decision_summary(
         status=status,
@@ -3265,6 +3342,7 @@ def build_study_progress_projection(
         runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
+        task_intake_progress_override=task_intake_progress_override,
     )
     recommended_command, recommended_commands, recovery_contract = _recovery_contract(
         profile=profile,
@@ -3409,6 +3487,18 @@ def build_study_progress_projection(
         if evaluation_module_surface is not None
         else {}
     )
+    if task_intake_progress_override:
+        quality_closure_truth = _mapping_copy(task_intake_progress_override.get("quality_closure_truth"))
+        quality_execution_lane = _mapping_copy(task_intake_progress_override.get("quality_execution_lane"))
+        same_line_route_truth = _mapping_copy(task_intake_progress_override.get("same_line_route_truth"))
+        same_line_route_surface = _mapping_copy(task_intake_progress_override.get("same_line_route_surface"))
+        eval_surface = _mapping_copy(module_surfaces.get("eval_hygiene"))
+        if eval_surface:
+            eval_surface["quality_closure_truth"] = quality_closure_truth or None
+            eval_surface["quality_execution_lane"] = quality_execution_lane or None
+            eval_surface["same_line_route_truth"] = same_line_route_truth or None
+            eval_surface["same_line_route_surface"] = same_line_route_surface or None
+            module_surfaces["eval_hygiene"] = eval_surface
     if _publication_supervisor_blocks_same_line_route(publication_supervisor_state):
         same_line_route_truth = {}
         same_line_route_surface = {}

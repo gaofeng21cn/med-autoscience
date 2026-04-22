@@ -15,6 +15,22 @@ STARTUP_BRIEF_BLOCK_END = "<!-- MAS_TASK_INTAKE:END -->"
 _ENTRY_MODE_LABELS = {
     "full_research": "完整研究（full_research）",
 }
+_DIRECT_FINALIZE_DOWNGRADE_MARKERS = (
+    "不能按已达投稿包里程碑直接收口",
+    "不得直接按外投收口",
+    "submission-ready/finalize 判断降回",
+    "降回待修订后再评估",
+    "downgrade the current submission-ready/finalize judgment",
+)
+_ANALYSIS_ROUTE_MARKERS = (
+    "统计分析",
+    "subgroup",
+    "association analysis",
+    "补充分析",
+    "分层",
+    "卡方",
+    "analysis-campaign",
+)
 
 
 def _utc_now() -> str:
@@ -93,6 +109,119 @@ def summarize_task_intake(payload: dict[str, Any] | None) -> dict[str, Any] | No
         "trusted_inputs": _normalized_strings(payload.get("trusted_inputs") or []),
         "reference_papers": _normalized_strings(payload.get("reference_papers") or []),
         "first_cycle_outputs": _normalized_strings(payload.get("first_cycle_outputs") or []),
+    }
+
+
+def _task_intake_text_corpus(payload: dict[str, Any] | None) -> tuple[str, ...]:
+    if not isinstance(payload, dict):
+        return ()
+    values: list[object] = [
+        payload.get("task_intent"),
+        *(payload.get("constraints") or []),
+        *(payload.get("evidence_boundary") or []),
+        *(payload.get("trusted_inputs") or []),
+        *(payload.get("reference_papers") or []),
+        *(payload.get("first_cycle_outputs") or []),
+    ]
+    return tuple(_normalized_strings(values))
+
+
+def _task_intake_contains_any(payload: dict[str, Any] | None, markers: tuple[str, ...]) -> bool:
+    corpus = _task_intake_text_corpus(payload)
+    if not corpus:
+        return False
+    for text in corpus:
+        lowered = text.lower()
+        if any(marker.lower() in lowered for marker in markers):
+            return True
+    return False
+
+
+def task_intake_overrides_auto_manual_finish(payload: dict[str, Any] | None) -> bool:
+    # 这里只接受 durable task intake 中明确写出的强语义，不做泛化 NLP 推断。
+    return _task_intake_contains_any(payload, _DIRECT_FINALIZE_DOWNGRADE_MARKERS)
+
+
+def build_task_intake_progress_override(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not task_intake_overrides_auto_manual_finish(payload):
+        return None
+    route_target = "analysis-campaign" if _task_intake_contains_any(payload, _ANALYSIS_ROUTE_MARKERS) else "write"
+    route_target_label = {
+        "analysis-campaign": "补充分析与稳健性验证",
+        "write": "论文写作与结果收紧",
+    }[route_target]
+    current_required_action = {
+        "analysis-campaign": "return_to_analysis_campaign",
+        "write": "continue_write_stage",
+    }[route_target]
+    same_line_state = "bounded_analysis" if route_target == "analysis-campaign" else "same_line_route_back"
+    same_line_state_label = {
+        "bounded_analysis": "有限补充分析",
+        "same_line_route_back": "同线质量修复",
+    }[same_line_state]
+    first_cycle_outputs = _normalized_strings(payload.get("first_cycle_outputs") or [])
+    current_focus = (
+        first_cycle_outputs[0]
+        if first_cycle_outputs
+        else "当前最新 task intake 指定的首轮修订产出是否已经补齐并写回 manuscript？"
+    )
+    blocker_summary = (
+        "最新 task intake 已明确要求回到待修订状态；旧的 submission-ready/finalize 收口判断不能继续作为当前真相。"
+    )
+    route_summary = (
+        f"最新 task intake 已明确重开同一论文线修订；先回到“{route_target_label}”，"
+        f"完成“{current_focus}”，再重新评估 submission-ready/finalize。"
+    )
+    execution_summary = (
+        f"当前质量执行线服从最新 task intake；先回到“{route_target_label}”，完成“{current_focus}”。"
+    )
+    quality_closure_summary = (
+        f"{blocker_summary} 当前应先完成“{current_focus}”，再进入下一轮论文质量复评。"
+    )
+    return {
+        "blocker_summary": blocker_summary,
+        "current_stage_summary": blocker_summary,
+        "next_system_action": route_summary,
+        "current_required_action": current_required_action,
+        "paper_stage": route_target,
+        "paper_stage_summary": route_summary,
+        "quality_closure_truth": {
+            "state": "quality_repair_required",
+            "summary": quality_closure_summary,
+            "current_required_action": current_required_action,
+            "route_target": route_target,
+        },
+        "quality_execution_lane": {
+            "lane_id": "general_quality_repair",
+            "lane_label": "质量修复",
+            "repair_mode": same_line_state,
+            "route_target": route_target,
+            "route_key_question": current_focus,
+            "summary": execution_summary,
+            "why_now": blocker_summary,
+        },
+        "same_line_route_truth": {
+            "surface_kind": "same_line_route_truth",
+            "same_line_state": same_line_state,
+            "same_line_state_label": same_line_state_label,
+            "route_mode": "return",
+            "route_target": route_target,
+            "route_target_label": route_target_label,
+            "summary": route_summary,
+            "current_focus": current_focus,
+        },
+        "same_line_route_surface": {
+            "surface_kind": "same_line_route_surface",
+            "lane_id": "general_quality_repair",
+            "repair_mode": same_line_state,
+            "route_target": route_target,
+            "route_target_label": route_target_label,
+            "route_key_question": current_focus,
+            "summary": execution_summary,
+            "why_now": blocker_summary,
+            "current_required_action": current_required_action,
+            "closure_state": "quality_repair_required",
+        },
     }
 
 

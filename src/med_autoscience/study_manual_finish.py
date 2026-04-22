@@ -8,6 +8,10 @@ from pathlib import Path
 import yaml
 
 from med_autoscience.runtime_protocol import paper_artifacts
+from med_autoscience.study_task_intake import (
+    read_latest_task_intake,
+    task_intake_overrides_auto_manual_finish,
+)
 
 
 class StudyManualFinishStatus(StrEnum):
@@ -222,6 +226,10 @@ def resolve_effective_study_manual_finish_contract(
     explicit_contract = resolve_study_manual_finish_contract(study_root=study_root)
     if explicit_contract is not None:
         return explicit_contract
+    if task_intake_overrides_auto_manual_finish(
+        read_latest_task_intake(study_root=Path(study_root).expanduser().resolve()) if study_root is not None else None
+    ):
+        return None
     metadata_only_contract = resolve_submission_metadata_only_manual_finish_contract(
         study_root=study_root,
         quest_root=quest_root,
