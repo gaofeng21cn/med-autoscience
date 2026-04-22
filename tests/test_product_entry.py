@@ -3403,13 +3403,16 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
                 "phase_id": "phase_1_mainline_established",
                 "summary": "mainline topology、product-entry companions 与 post-gate platform wording 已冻结成 repo-tracked truth。",
             },
-            {
-                "step_id": "stabilize_user_product_loop",
-                "title": "Stabilize user product loop",
-                "status": "in_progress",
-                "phase_id": "phase_2_user_product_loop",
-                "summary": "当前活跃步骤：继续收口 F4 blocker，并把启动 / 下任务 / 看进度 / 看恢复建议收成稳定前台回路。",
-            },
+                {
+                    "step_id": "stabilize_user_product_loop",
+                    "title": "Stabilize user product loop",
+                    "status": "in_progress",
+                    "phase_id": "phase_2_user_product_loop",
+                    "summary": (
+                        "当前活跃步骤：用 autonomy / quality / single-project owner 三线继续收紧 MAS "
+                        "owner truth，并把启动 / 下任务 / 看进度 / 看恢复建议收成稳定前台回路。"
+                    ),
+                },
             {
                 "step_id": "clear_multi_workspace_host_gate",
                 "title": "Clear multi-workspace / host gate",
