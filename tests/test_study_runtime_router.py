@@ -748,6 +748,122 @@ def test_study_runtime_status_keeps_explicit_manual_finish_contract_parked_even_
     assert result["quest_status"] == "stopped"
 
 
+def test_study_runtime_status_parks_bundle_only_handoff_before_invalid_blocking_resume(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    current_package_root = study_root / "manuscript" / "current_package"
+    write_text(current_package_root / "manuscript.docx", "docx placeholder\n")
+    write_text(current_package_root / "paper.pdf", "pdf placeholder\n")
+    write_text(current_package_root / "references.bib", "@article{ref1,title={Ref}}\n")
+    write_text(current_package_root / "submission_manifest.json", '{"schema_version":1}\n')
+    write_text(current_package_root / "SUBMISSION_TODO.md", "# Submission TODO\n")
+    write_text(study_root / "manuscript" / "current_package.zip", "zip placeholder\n")
+    write_text(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "quality_closure_truth": {"state": "bundle_only_remaining"},
+                "quality_review_loop": {"closure_state": "bundle_only_remaining"},
+                "quality_assessment": {"human_review_readiness": {"status": "ready"}},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "stopped",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "decision:decision-handoff-001",
+                "active_interaction_id": "progress-invalid-001",
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+    )
+    write_text(
+        quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-invalid-001.json",
+        json.dumps(
+            {
+                "kind": "progress",
+                "schema_version": 1,
+                "artifact_id": "progress-invalid-001",
+                "id": "progress-invalid-001",
+                "quest_id": "001-risk",
+                "status": "active",
+                "message": "Human-review package has been handed off.",
+                "summary": "Waiting for the outer controller.",
+                "expects_reply": True,
+                "reply_mode": "blocking",
+                "options": [],
+                "allow_free_text": True,
+                "reply_schema": {"type": "free_text"},
+                "guidance_vm": {"requires_user_decision": False},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    study_progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setattr(
+        study_progress_module,
+        "build_study_progress_projection",
+        lambda **_: {
+            "study_id": "001-risk",
+            "current_stage": "manual_finishing",
+            "current_stage_summary": "Human-review package is ready.",
+            "paper_stage": "manual_finishing",
+            "paper_stage_summary": "Human-review package is ready.",
+            "next_system_action": "Wait for explicit user resume.",
+            "needs_physician_decision": False,
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_for_submission_metadata"
+    assert result["quest_status"] == "stopped"
+    assert result["interaction_arbitration"]["classification"] == "invalid_blocking"
+
+
 def test_study_runtime_status_refreshes_stale_launch_report_for_stopped_quest(
     monkeypatch,
     tmp_path: Path,

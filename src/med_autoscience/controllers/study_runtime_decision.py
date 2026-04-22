@@ -51,6 +51,7 @@ from med_autoscience.controllers.study_runtime_transport import _get_quest_sessi
 from med_autoscience.study_charter import read_study_charter
 from med_autoscience.study_completion import StudyCompletionStateStatus
 from med_autoscience.study_manual_finish import (
+    resolve_bundle_only_submission_ready_manual_finish_contract,
     resolve_study_manual_finish_contract,
     resolve_submission_metadata_only_manual_finish_contract,
 )
@@ -243,6 +244,13 @@ def _submission_metadata_only_manual_finish_active(*, study_root: Path, quest_ro
             study_root=study_root,
             quest_root=quest_root,
         )
+        is not None
+    )
+
+
+def _bundle_only_submission_ready_manual_finish_active(*, study_root: Path) -> bool:
+    return (
+        resolve_bundle_only_submission_ready_manual_finish_contract(study_root=study_root)
         is not None
     )
 
@@ -1817,8 +1825,17 @@ def _status_state(
             quest_root=quest_root,
         )
     )
+    bundle_only_manual_finish = (
+        quest_exists
+        and _bundle_only_submission_ready_manual_finish_active(study_root=study_root)
+    )
     explicit_manual_finish_compatibility_guard = _explicit_manual_finish_compatibility_guard_active(
         study_root=study_root,
+    )
+    manual_finish_compatibility_guard = (
+        explicit_manual_finish_compatibility_guard
+        or submission_metadata_only_manual_finish
+        or bundle_only_manual_finish
     )
     submission_metadata_only_wait = (
         quest_exists
@@ -2057,7 +2074,7 @@ def _status_state(
         )
         return _finalize_result()
 
-    if explicit_manual_finish_compatibility_guard and quest_status not in _LIVE_QUEST_STATUSES:
+    if manual_finish_compatibility_guard and quest_status not in _LIVE_QUEST_STATUSES:
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
@@ -2087,7 +2104,12 @@ def _status_state(
         audit_status = router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
         controller_owned_finalize_parking = _is_controller_owned_finalize_parking(result)
         if audit_status is quest_state.QuestRuntimeLivenessStatus.UNKNOWN:
-            if _stale_progress_without_live_bash_sessions(result):
+            if manual_finish_compatibility_guard:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+                )
+            elif _stale_progress_without_live_bash_sessions(result):
                 if not result.startup_boundary_allows_compute_stage:
                     result.set_decision(
                         StudyRuntimeDecision.BLOCKED,
@@ -2114,7 +2136,7 @@ def _status_state(
                     StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
                 )
         elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
-            if submission_metadata_only_manual_finish:
+            if manual_finish_compatibility_guard:
                 result.set_decision(
                     StudyRuntimeDecision.PAUSE,
                     StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
