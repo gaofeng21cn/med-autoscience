@@ -2430,6 +2430,54 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "same_line_route_surface_field": "same_line_route_surface",
         "quality_review_followthrough_field": "quality_review_followthrough",
         "gate_clearing_followthrough_field": "gate_clearing_followthrough",
+        "research_runtime_control_projection_field": "research_runtime_control_projection",
+    }
+    assert payload["return_surface_contract"]["research_runtime_control_projection_contract"] == {
+        "surface_kind": "research_runtime_control_projection_contract",
+        "study_session_owner": {
+            "runtime_owner": "upstream_hermes_agent",
+            "study_owner": "med-autoscience",
+            "executor_owner": "med_deepscientist",
+        },
+        "restore_point_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "autonomy_contract.restore_point",
+        },
+        "progress_cursor_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "operator_status_card.current_focus",
+        },
+        "artifact_inventory_surface": {
+            "surface_kind": "artifact_inventory",
+            "field_path": "supporting_files",
+        },
+        "artifact_pickup_surface": {
+            "surface_kind": "artifact_inventory",
+            "field_path": "deliverable_files",
+        },
+        "command_templates": {
+            "resume": (
+                "uv run python -m med_autoscience.cli launch-study --profile "
+                + str(profile_ref.resolve())
+                + " --study-id 001-risk"
+            ),
+            "check_progress": (
+                "uv run python -m med_autoscience.cli study-progress --profile "
+                + str(profile_ref.resolve())
+                + " --study-id 001-risk --format json"
+            ),
+            "check_runtime_status": (
+                "uv run python -m med_autoscience.cli study-runtime-status --profile "
+                + str(profile_ref.resolve())
+                + " --study-id 001-risk"
+            ),
+        },
+        "research_gate_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "intervention_lane",
+            "approval_gate_field": "requires_physician_decision",
+            "interrupt_policy_field": "recommended_action_id",
+        },
     }
     assert payload["return_surface_contract"]["domain_entry_contract"]["service_safe_surface_kind"] == (
         "med_autoscience_service_safe_domain_entry"
@@ -2613,6 +2661,53 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["progress_projection"]["surface_kind"] == "progress_projection"
     assert payload["progress_projection"]["progress_surface"]["surface_kind"] == "workspace_cockpit"
     assert "studies/<study_id>/artifacts" in payload["progress_projection"]["inspect_paths"]
+    assert payload["progress_projection"]["domain_projection"]["research_runtime_control_projection"] == {
+        "surface_kind": "research_runtime_control_projection",
+        "study_session_owner": {
+            "runtime_owner": "upstream_hermes_agent",
+            "study_owner": "med-autoscience",
+            "executor_owner": "med_deepscientist",
+        },
+        "restore_point_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "autonomy_contract.restore_point",
+        },
+        "progress_cursor_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "operator_status_card.current_focus",
+        },
+        "artifact_inventory_surface": {
+            "surface_kind": "artifact_inventory",
+            "field_path": "supporting_files",
+        },
+        "artifact_pickup_surface": {
+            "surface_kind": "artifact_inventory",
+            "field_path": "deliverable_files",
+        },
+        "command_templates": {
+            "resume": (
+                "uv run python -m med_autoscience.cli launch-study --profile "
+                + str(profile_ref.resolve())
+                + " --study-id <study_id>"
+            ),
+            "check_progress": (
+                "uv run python -m med_autoscience.cli study-progress --profile "
+                + str(profile_ref.resolve())
+                + " --study-id <study_id> --format json"
+            ),
+            "check_runtime_status": (
+                "uv run python -m med_autoscience.cli study-runtime-status --profile "
+                + str(profile_ref.resolve())
+                + " --study-id <study_id> --format json"
+            ),
+        },
+        "research_gate_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "intervention_lane",
+            "approval_gate_field": "requires_physician_decision",
+            "interrupt_policy_field": "recommended_action_id",
+        },
+    }
     assert payload["artifact_inventory"]["surface_kind"] == "artifact_inventory"
     assert payload["artifact_inventory"]["summary"]["deliverable_files_count"] == 0
     assert payload["artifact_inventory"]["summary"]["supporting_files_count"] == 5

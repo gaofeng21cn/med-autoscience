@@ -46,6 +46,7 @@
 - proof/soak 口径当前围绕真实 study 的长期自治与质量闭环是否已经闭合，不围绕 `MDS` 再造一套长期 owner 面；`MDS` 只保留 migration oracle、backend compatibility、upstream intake buffer 三个迁移期角色。
 - 当前 tranche 的 repo-side 落点是单项目 owner truth、用户可见边界和 program/mainline 口径收紧；这一步不推进 `physical monorepo absorb`、跨仓 `runtime core ingest` 或把 `MDS` 重新解释成并行产品面。
 - 当前 `build_product_entry.return_surface_contract` 已经开始把 `single_project_boundary` 与 `study_progress` truth field contract 一并交给外部 caller；调用方可以不回 `mainline-status` 也读到 MAS/MDS owner boundary，以及 `autonomy_soak_status`、`quality_execution_lane`、`same_line_route_truth`、`quality_review_followthrough` 这些当前应消费的 progress truth 字段。
+- 当前 `build_product_entry.return_surface_contract` 额外导出 `research_runtime_control_projection` 合同：调用方可统一读取 `study/session owner`、`restore_point`、`progress cursor/surface`、`artifact inventory/pickup`、`resume/check command template` 与 `research gate(approval/interrupt)` 对应字段，不需要引入 display 支线。
 - 当前 `mainline-status` / `mainline-phase` / `product-frontdesk` / `product-entry-manifest` / `build-product-entry.return_surface_contract` 已经同步投影 `capability_owner_boundary`：研究入口、task intake、controller outer loop、progress truth、publication quality gate、runtime recovery 与 program/mainline truth 都是 MAS-owned capability；`MDS` 只保留 migration-only 的 backend / behavior-equivalence oracle / upstream intake buffer 角色。
 - 当前 tranche 的通过条件是：`MAS` 已能默认自治推进方向锁定后的研究与有限补充分析，用户可见 truth 与 durable surface 对齐，major boundary 与最终投稿审计之外不再把 human 判断留在 `MDS` 或隐藏 owner 面里。
 

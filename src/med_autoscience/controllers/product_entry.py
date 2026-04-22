@@ -1459,8 +1459,58 @@ def _build_progress_projection_surface(
         domain_projection={
             "recommended_restore_command": str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
             "recommended_progress_command": str((product_entry_shell.get("study_progress") or {}).get("command") or ""),
+            "research_runtime_control_projection": _build_research_runtime_control_projection(
+                resume_command=str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
+                check_progress_command=str((product_entry_shell.get("study_progress") or {}).get("command") or ""),
+                check_runtime_status_command=study_runtime_status_command,
+                surface_kind="research_runtime_control_projection",
+            ),
         },
     )
+
+
+def _build_research_runtime_control_projection(
+    *,
+    resume_command: str,
+    check_progress_command: str,
+    check_runtime_status_command: str,
+    surface_kind: str,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": surface_kind,
+        "study_session_owner": {
+            "runtime_owner": "upstream_hermes_agent",
+            "study_owner": TARGET_DOMAIN_ID,
+            "executor_owner": "med_deepscientist",
+        },
+        "restore_point_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "autonomy_contract.restore_point",
+        },
+        "progress_cursor_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "operator_status_card.current_focus",
+        },
+        "artifact_inventory_surface": {
+            "surface_kind": "artifact_inventory",
+            "field_path": "supporting_files",
+        },
+        "artifact_pickup_surface": {
+            "surface_kind": "artifact_inventory",
+            "field_path": "deliverable_files",
+        },
+        "command_templates": {
+            "resume": resume_command,
+            "check_progress": check_progress_command,
+            "check_runtime_status": check_runtime_status_command,
+        },
+        "research_gate_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "intervention_lane",
+            "approval_gate_field": "requires_physician_decision",
+            "interrupt_policy_field": "recommended_action_id",
+        },
+    }
 
 
 def _build_artifact_inventory_surface(
@@ -3936,7 +3986,14 @@ def build_product_entry(
                 "same_line_route_surface_field": "same_line_route_surface",
                 "quality_review_followthrough_field": "quality_review_followthrough",
                 "gate_clearing_followthrough_field": "gate_clearing_followthrough",
+                "research_runtime_control_projection_field": "research_runtime_control_projection",
             },
+            "research_runtime_control_projection_contract": _build_research_runtime_control_projection(
+                resume_command=commands["launch_study"],
+                check_progress_command=commands["study_progress"],
+                check_runtime_status_command=commands["study_runtime_status"],
+                surface_kind="research_runtime_control_projection_contract",
+            ),
             "domain_entry_contract": _build_domain_entry_contract(),
             "gateway_interaction_contract": _build_gateway_interaction_contract(),
             "cockpit_command": commands["workspace_cockpit"],
@@ -4007,6 +4064,7 @@ def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
             f"- 同线路由真相字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('same_line_route_truth_field') or 'none')}`",
             f"- 质量复评跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('quality_review_followthrough_field') or 'none')}`",
             f"- gate-clearing 跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('gate_clearing_followthrough_field') or 'none')}`",
+            f"- runtime control projection 字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('research_runtime_control_projection_field') or 'none')}`",
             f"- 运行监管路径: `{return_surface_contract.get('runtime_supervision_path') or 'none'}`",
             f"- 发表评估路径: `{return_surface_contract.get('publication_eval_path') or 'none'}`",
             f"- 控制器决策路径: `{return_surface_contract.get('controller_decision_path') or 'none'}`",
