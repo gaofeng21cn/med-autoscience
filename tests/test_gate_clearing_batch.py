@@ -326,16 +326,18 @@ def test_run_gate_clearing_batch_executes_parallel_units_then_replays_gate(monke
         "create_submission_minimal_package",
         lambda **_: {"output_root": "paper/submission_minimal", "status": "ready"},
     )
-    monkeypatch.setattr(
-        module.publication_gate,
-        "run_controller",
-        lambda **_: {
+    replay_kwargs: dict[str, Any] = {}
+
+    def fake_run_controller(**kwargs: Any) -> dict[str, Any]:
+        replay_kwargs.update(kwargs)
+        return {
             "status": "blocked",
             "allow_write": False,
             "blockers": ["claim_evidence_consistency_failed"],
             "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
-        },
-    )
+        }
+
+    monkeypatch.setattr(module.publication_gate, "run_controller", fake_run_controller)
 
     result = module.run_gate_clearing_batch(
         profile=profile,
@@ -353,6 +355,7 @@ def test_run_gate_clearing_batch_executes_parallel_units_then_replays_gate(monke
         "materialize_display_surface",
     ]
     assert result["gate_replay"]["status"] == "blocked"
+    assert replay_kwargs["enqueue_intervention"] is False
     record = json.loads(Path(result["record_path"]).read_text(encoding="utf-8"))
     assert record["source_eval_id"] == publication_eval_payload["eval_id"]
     assert record["unit_results"][0]["unit_id"] == "freeze_scientific_anchor_fields"
@@ -1089,7 +1092,14 @@ def test_run_gate_clearing_batch_skips_repair_units_when_unit_fingerprints_match
         source="test-source",
     )
 
-    assert replay_calls == [{"quest_root": quest_root, "apply": True, "source": "test-source"}]
+    assert replay_calls == [
+        {
+            "quest_root": quest_root,
+            "apply": True,
+            "source": "test-source",
+            "enqueue_intervention": False,
+        }
+    ]
     assert result["ok"] is True
     result_by_unit = {item["unit_id"]: item for item in result["unit_results"]}
     assert set(result_by_unit) == {
@@ -1211,7 +1221,14 @@ def test_run_gate_clearing_batch_skips_submission_refresh_only_when_inputs_match
     assert result_by_unit["create_submission_minimal_package"]["last_success_status"] == "ok"
     assert result_by_unit["sync_submission_minimal_delivery"]["status"] == "synced"
     assert sync_calls == [paper_root]
-    assert replay_calls == [{"quest_root": quest_root, "apply": True, "source": "test-source"}]
+    assert replay_calls == [
+        {
+            "quest_root": quest_root,
+            "apply": True,
+            "source": "test-source",
+            "enqueue_intervention": False,
+        }
+    ]
 
 
 def test_run_gate_clearing_batch_reruns_submission_refresh_when_previous_matching_run_failed(

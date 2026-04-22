@@ -1287,6 +1287,7 @@ def run_gate_clearing_batch(
         quest_root=quest_root,
         apply=True,
         source=source,
+        enqueue_intervention=False,
     )
     record = {
         "schema_version": SCHEMA_VERSION,

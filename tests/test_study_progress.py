@@ -3744,6 +3744,56 @@ def test_study_progress_does_not_project_study_completed_when_completion_contrac
     assert any("final submission 证据还未补齐" in item for item in result["current_blockers"])
 
 
+def test_study_progress_suppresses_task_intake_route_inside_eval_surface_when_gate_blocked() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    payload = {
+        "study_id": "001-risk",
+        "quality_execution_lane": {
+            "lane_id": "general_quality_repair",
+            "route_target": "analysis-campaign",
+        },
+        "same_line_route_truth": {
+            "surface_kind": "same_line_route_truth",
+            "same_line_state": "bounded_analysis",
+            "route_target": "analysis-campaign",
+        },
+        "same_line_route_surface": {
+            "surface_kind": "same_line_route_surface",
+            "route_target": "analysis-campaign",
+        },
+        "publication_supervisor_state": {
+            "supervisor_phase": "publishability_gate_blocked",
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+        },
+        "module_surfaces": {
+            "eval_hygiene": {
+                "quality_execution_lane": {
+                    "lane_id": "general_quality_repair",
+                    "route_target": "analysis-campaign",
+                },
+                "same_line_route_truth": {
+                    "surface_kind": "same_line_route_truth",
+                    "same_line_state": "bounded_analysis",
+                    "route_target": "analysis-campaign",
+                },
+                "same_line_route_surface": {
+                    "surface_kind": "same_line_route_surface",
+                    "route_target": "analysis-campaign",
+                },
+            }
+        },
+    }
+
+    result = module._normalize_study_progress_payload(payload)
+
+    assert result["same_line_route_truth"] is None
+    assert result["same_line_route_surface"] is None
+    assert result["module_surfaces"]["eval_hygiene"]["same_line_route_truth"] is None
+    assert result["module_surfaces"]["eval_hygiene"]["same_line_route_surface"] is None
+
+
 def test_render_study_progress_markdown_humanizes_decision_continuation_reason() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 

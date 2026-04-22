@@ -1135,6 +1135,125 @@ def test_build_runtime_watch_outer_loop_tick_request_materializes_bounded_analys
     ]
 
 
+def test_runtime_watch_outer_loop_prefers_active_task_intake_analysis_over_gate_clearing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    _write_charter(study_root)
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::001-risk::quest-001::2026-04-22T13:19:00+00:00",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-22T13:19:00+00:00",
+            "evaluation_scope": "publication",
+            "charter_context_ref": {
+                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                "charter_id": "charter::001-risk::v1",
+                "publication_objective": "risk stratification external validation",
+            },
+            "runtime_context_refs": {
+                "runtime_escalation_ref": str(
+                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+                ),
+                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            },
+            "delivery_context_refs": {
+                "paper_root_ref": str(study_root / "paper"),
+                "submission_minimal_ref": str(
+                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+                ),
+            },
+            "verdict": {
+                "overall_verdict": "blocked",
+                "primary_claim_status": "partial",
+                "summary": "Return to finalize to close submission-readiness gaps.",
+                "stop_loss_pressure": "watch",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "delivery",
+                    "severity": "must_fix",
+                    "summary": "stale_submission_minimal_authority",
+                    "evidence_refs": [str(publication_eval_path)],
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "action-finalize",
+                    "action_type": "route_back_same_line",
+                    "priority": "now",
+                    "reason": "Return to finalize.",
+                    "route_target": "finalize",
+                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                    "route_rationale": "Return to finalize.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "requires_controller_decision": True,
+                }
+            ],
+        },
+    )
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent=(
+            "当前稿件不能按已达投稿包里程碑直接收口；必须补做分层统计分析，"
+            "并把当前 submission-ready/finalize 判断降回待修订后再评估。"
+        ),
+        constraints=("本轮不得直接按外投收口。",),
+        evidence_boundary=("统计扩展限于预设 subgroup / association analysis。",),
+        first_cycle_outputs=("价格顾虑有/无分层的生物制剂使用结构比较表与统计检验结果。",),
+    )
+    monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
+
+    def fail_batch_recommendation(**_: object) -> None:
+        raise AssertionError("gate-clearing batch should not preempt active task-intake bounded analysis")
+
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "build_gate_clearing_batch_recommended_action",
+        fail_batch_recommendation,
+    )
+    monkeypatch.setattr(
+        module.quality_repair_batch,
+        "build_quality_repair_batch_recommended_action",
+        fail_batch_recommendation,
+    )
+
+    request = module.build_runtime_watch_outer_loop_tick_request(
+        study_root=study_root,
+        status_payload={
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "reason": "publication_quality_gap",
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+
+    assert request is not None
+    assert request["decision_type"] == "bounded_analysis"
+    assert request["route_target"] == "analysis-campaign"
+    assert request["route_key_question"] == "价格顾虑有/无分层的生物制剂使用结构比较表与统计检验结果。"
+    assert request["controller_actions"] == [
+        {
+            "action_type": "ensure_study_runtime",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
+
+
 @pytest.mark.parametrize(
     ("status_reason", "expected_action_type"),
     [

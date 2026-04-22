@@ -1759,6 +1759,7 @@ def run_controller(
     quest_root: Path,
     apply: bool,
     source: str = "codex-publication-gate",
+    enqueue_intervention: bool = True,
 ) -> dict[str, Any]:
     state = build_gate_state(quest_root)
     report = build_gate_report(state)
@@ -1829,7 +1830,7 @@ def run_controller(
             },
         )
     intervention = None
-    if apply and report["blockers"]:
+    if apply and enqueue_intervention and report["blockers"]:
         intervention = user_message.enqueue_user_message(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,

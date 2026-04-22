@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import runtime_backend as runtime_backend_contract
+from med_autoscience import study_task_intake
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers import gate_clearing_batch
@@ -480,6 +481,53 @@ def _recommended_publication_eval_action(publication_eval_payload: dict[str, Any
     return None
 
 
+def _recommended_task_intake_action(*, study_root: Path) -> dict[str, Any] | None:
+    task_intake_payload = study_task_intake.read_latest_task_intake(study_root=study_root)
+    task_intake_override = study_task_intake.build_task_intake_progress_override(task_intake_payload)
+    if not isinstance(task_intake_override, dict):
+        return None
+    current_required_action = str(task_intake_override.get("current_required_action") or "").strip()
+    if current_required_action != "return_to_analysis_campaign":
+        return None
+    quality_closure_truth = (
+        dict(task_intake_override.get("quality_closure_truth") or {})
+        if isinstance(task_intake_override.get("quality_closure_truth"), dict)
+        else {}
+    )
+    quality_execution_lane = (
+        dict(task_intake_override.get("quality_execution_lane") or {})
+        if isinstance(task_intake_override.get("quality_execution_lane"), dict)
+        else {}
+    )
+    same_line_route_truth = (
+        dict(task_intake_override.get("same_line_route_truth") or {})
+        if isinstance(task_intake_override.get("same_line_route_truth"), dict)
+        else {}
+    )
+    route_key_question = (
+        str(quality_execution_lane.get("route_key_question") or "").strip()
+        or str(same_line_route_truth.get("current_focus") or "").strip()
+        or "What is the narrowest supplementary analysis still required before the paper line can continue?"
+    )
+    route_rationale = (
+        str(quality_execution_lane.get("summary") or "").strip()
+        or str(quality_closure_truth.get("summary") or "").strip()
+        or str(task_intake_override.get("next_system_action") or "").strip()
+        or "Latest task intake requires bounded supplementary analysis before returning to the publication gate."
+    )
+    return {
+        "action_id": f"task-intake::{Path(study_root).expanduser().resolve().name}::bounded_analysis",
+        "action_type": StudyDecisionType.BOUNDED_ANALYSIS.value,
+        "priority": "now",
+        "reason": route_rationale,
+        "route_target": "analysis-campaign",
+        "route_key_question": route_key_question,
+        "route_rationale": route_rationale,
+        "requires_controller_decision": True,
+        "controller_action_type": StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value,
+    }
+
+
 def _read_evaluation_summary_payload(*, study_root: Path) -> dict[str, Any] | None:
     summary_path = resolve_evaluation_summary_ref(study_root=study_root)
     if not summary_path.exists():
@@ -661,7 +709,8 @@ def build_runtime_watch_outer_loop_tick_request(
         study_root=resolved_study_root,
         ref=publication_eval_path,
     )
-    recommended_action = _recommended_submission_milestone_autopark_action(
+    task_intake_action = _recommended_task_intake_action(study_root=resolved_study_root)
+    recommended_action = task_intake_action or _recommended_submission_milestone_autopark_action(
         study_root=resolved_study_root,
         status_payload=status_payload,
         publication_eval_payload=publication_eval_payload,
@@ -673,7 +722,7 @@ def build_runtime_watch_outer_loop_tick_request(
     if recommended_action is None:
         return None
     profile = gate_clearing_batch.resolve_profile_for_study_root(resolved_study_root)
-    if profile is not None:
+    if profile is not None and task_intake_action is None:
         quest_id = str(status_payload.get("quest_id") or "").strip()
         if quest_id:
             quest_root = Path(profile.runtime_root).expanduser().resolve() / quest_id

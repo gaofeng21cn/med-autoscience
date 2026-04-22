@@ -3772,6 +3772,11 @@ def build_study_progress_projection(
     if _publication_supervisor_blocks_same_line_route(publication_supervisor_state):
         same_line_route_truth = {}
         same_line_route_surface = {}
+        eval_surface = _mapping_copy(module_surfaces.get("eval_hygiene"))
+        if eval_surface:
+            eval_surface["same_line_route_truth"] = None
+            eval_surface["same_line_route_surface"] = None
+            module_surfaces["eval_hygiene"] = eval_surface
     quality_closure_basis = (
         _mapping_copy(evaluation_module_surface.get("quality_closure_basis"))
         if evaluation_module_surface is not None
