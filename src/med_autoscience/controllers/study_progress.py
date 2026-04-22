@@ -1514,6 +1514,7 @@ def _current_stage(
     publication_supervisor_state: dict[str, Any],
     autonomous_runtime_notice: dict[str, Any],
     execution_owner_guard: dict[str, Any],
+    continuation_state: dict[str, Any],
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
@@ -1522,17 +1523,23 @@ def _current_stage(
     decision = _non_empty_text(status.get("decision"))
     runtime_reason = _non_empty_text(status.get("reason"))
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
+    live_managed_runtime = _live_managed_runtime_present(
+        status=status,
+        autonomous_runtime_notice=autonomous_runtime_notice,
+        execution_owner_guard=execution_owner_guard,
+        continuation_state=continuation_state,
+    )
     if decision == "completed" or (quest_status == "completed" and decision != "blocked"):
         return "study_completed"
     if bool((manual_finish_contract or {}).get("compatibility_guard_only")):
         return "manual_finishing"
     if needs_physician_decision:
         return "waiting_physician_decision"
-    if runtime_health_status == "recovering":
+    if runtime_health_status == "recovering" and not live_managed_runtime:
         return "managed_runtime_recovering"
-    if runtime_health_status == "degraded":
+    if runtime_health_status == "degraded" and not live_managed_runtime:
         return "managed_runtime_degraded"
-    if runtime_health_status == "escalated":
+    if runtime_health_status == "escalated" and not live_managed_runtime:
         return "managed_runtime_escalated"
     if _supervisor_tick_gap_present(supervisor_tick_audit):
         return "managed_runtime_supervision_gap"
@@ -1549,6 +1556,36 @@ def _current_stage(
     if decision == "blocked":
         return "runtime_blocked"
     return "runtime_preflight"
+
+
+def _live_managed_runtime_present(
+    *,
+    status: dict[str, Any],
+    autonomous_runtime_notice: dict[str, Any],
+    execution_owner_guard: dict[str, Any],
+    continuation_state: dict[str, Any],
+) -> bool:
+    runtime_liveness_status = _non_empty_text(status.get("runtime_liveness_status"))
+    if runtime_liveness_status == "live":
+        return True
+    if not bool((execution_owner_guard or {}).get("supervisor_only")):
+        return False
+    active_run_id = (
+        _non_empty_text((execution_owner_guard or {}).get("active_run_id"))
+        or _non_empty_text((autonomous_runtime_notice or {}).get("active_run_id"))
+        or _non_empty_text((continuation_state or {}).get("active_run_id"))
+    )
+    if active_run_id is None:
+        return False
+    guard_reason = _non_empty_text((execution_owner_guard or {}).get("guard_reason"))
+    notice_reason = _non_empty_text((autonomous_runtime_notice or {}).get("notification_reason"))
+    continuation_quest_status = _non_empty_text((continuation_state or {}).get("quest_status"))
+    if continuation_quest_status != "running":
+        return False
+    return (
+        guard_reason in {"live_managed_runtime", "runtime_live"}
+        or notice_reason in {"managed_runtime_live", "detected_existing_live_managed_runtime"}
+    )
 
 
 def _paper_stage_summary(
@@ -1809,6 +1846,8 @@ def _next_system_action(
     current_blockers: list[str],
     execution_owner_guard: dict[str, Any],
     status: dict[str, Any],
+    autonomous_runtime_notice: dict[str, Any],
+    continuation_state: dict[str, Any],
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
@@ -1830,7 +1869,17 @@ def _next_system_action(
         return supervisor_tick_next_action
     runtime_next_action = _non_empty_text((runtime_supervision_payload or {}).get("next_action_summary"))
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
-    if runtime_health_status in {"recovering", "degraded", "escalated"} and runtime_next_action is not None:
+    live_managed_runtime = _live_managed_runtime_present(
+        status=status,
+        autonomous_runtime_notice=autonomous_runtime_notice,
+        execution_owner_guard=execution_owner_guard,
+        continuation_state=continuation_state,
+    )
+    if (
+        runtime_health_status in {"recovering", "degraded", "escalated"}
+        and runtime_next_action is not None
+        and not live_managed_runtime
+    ):
         return runtime_next_action
     decision = _non_empty_text(status.get("decision"))
     if decision == "blocked":
@@ -1993,6 +2042,10 @@ def _intervention_lane(
     progress_freshness: dict[str, Any],
     publication_eval_payload: dict[str, Any] | None,
     runtime_watch_payload: dict[str, Any] | None,
+    status: dict[str, Any],
+    autonomous_runtime_notice: dict[str, Any],
+    execution_owner_guard: dict[str, Any],
+    continuation_state: dict[str, Any],
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
@@ -2000,6 +2053,12 @@ def _intervention_lane(
     blocker_summary = _non_empty_text(current_blockers[0] if current_blockers else None)
     progress_status = _non_empty_text((progress_freshness or {}).get("status"))
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
+    live_managed_runtime = _live_managed_runtime_present(
+        status=status,
+        autonomous_runtime_notice=autonomous_runtime_notice,
+        execution_owner_guard=execution_owner_guard,
+        continuation_state=continuation_state,
+    )
 
     if _manual_finish_active(manual_finish_contract):
         return {
@@ -2026,7 +2085,7 @@ def _intervention_lane(
             ),
             "recommended_action_id": "refresh_supervision",
         }
-    if runtime_health_status in {"recovering", "degraded", "escalated"}:
+    if runtime_health_status in {"recovering", "degraded", "escalated"} and not live_managed_runtime:
         return {
             "lane_id": "runtime_recovery_required",
             "title": "优先处理 runtime recovery",
@@ -3125,6 +3184,7 @@ def build_study_progress_projection(
         publication_supervisor_state=publication_supervisor_state,
         autonomous_runtime_notice=autonomous_runtime_notice,
         execution_owner_guard=execution_owner_guard,
+        continuation_state=continuation_state,
         runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
@@ -3176,6 +3236,8 @@ def build_study_progress_projection(
         current_blockers=current_blockers,
         execution_owner_guard=execution_owner_guard,
         status=status,
+        autonomous_runtime_notice=autonomous_runtime_notice,
+        continuation_state=continuation_state,
         runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
@@ -3196,6 +3258,10 @@ def build_study_progress_projection(
         progress_freshness=progress_freshness,
         publication_eval_payload=publication_eval_payload,
         runtime_watch_payload=runtime_watch_payload,
+        status=status,
+        autonomous_runtime_notice=autonomous_runtime_notice,
+        execution_owner_guard=execution_owner_guard,
+        continuation_state=continuation_state,
         runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
