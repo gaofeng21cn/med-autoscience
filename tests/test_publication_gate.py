@@ -2255,6 +2255,86 @@ def test_build_gate_report_maps_surface_signals_to_named_controller_blockers(tmp
     assert "reviewer-first hardening" not in report["controller_stage_note"]
 
 
+def test_build_gate_report_projects_surface_charter_expectation_gaps(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    evidence_gap_text = "External validation evidence package is durably archived for the manuscript route."
+    review_gap_text = "Residual-risk framing is defended against calibration drift before submission."
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+        medical_publication_surface_report={
+            "status": "blocked",
+            "blockers": ["charter_expectation_closure_incomplete"],
+            "charter_expectation_closure_summary": {
+                "status": "blocked",
+                "blocking_items": [
+                    {
+                        "expectation_key": "minimum_sci_ready_evidence_package",
+                        "expectation_text": evidence_gap_text,
+                        "ledger_name": "evidence_ledger",
+                        "ledger_path": "paper/evidence_ledger.json",
+                        "contract_json_pointer": (
+                            "/paper_quality_contract/evidence_expectations/minimum_sci_ready_evidence_package"
+                        ),
+                        "closure_status": "blocked",
+                        "recorded": True,
+                        "record_count": 1,
+                        "blocker": True,
+                    },
+                    {
+                        "expectation_key": "scientific_followup_questions",
+                        "expectation_text": review_gap_text,
+                        "ledger_name": "review_ledger",
+                        "ledger_path": "paper/review/review_ledger.json",
+                        "contract_json_pointer": (
+                            "/paper_quality_contract/review_expectations/scientific_followup_questions"
+                        ),
+                        "closure_status": "open",
+                        "recorded": True,
+                        "record_count": 1,
+                        "blocker": True,
+                    },
+                ],
+            },
+        },
+    )
+
+    report = module.build_gate_report(module.build_gate_state(quest_root))
+    gaps = report["medical_publication_surface_expectation_gaps"]
+
+    assert report["status"] == "blocked"
+    assert "medical_publication_surface_blocked" in report["blockers"]
+    assert "charter_expectation_closure_incomplete" in report["blockers"]
+    assert report["medical_publication_surface_named_blockers"] == [
+        "reviewer_first_concerns_unresolved",
+        "claim_evidence_consistency_failed",
+    ]
+    assert report["medical_publication_surface_route_back_recommendation"] == "return_to_write"
+    assert [gap["expectation_key"] for gap in gaps] == [
+        "minimum_sci_ready_evidence_package",
+        "scientific_followup_questions",
+    ]
+    assert {gap["expectation_text"] for gap in gaps} == {evidence_gap_text, review_gap_text}
+    assert {gap["ledger_name"] for gap in gaps} == {"evidence_ledger", "review_ledger"}
+    assert {gap["closure_status"] for gap in gaps} == {"blocked", "open"}
+    assert {gap["contract_json_pointer"] for gap in gaps} == {
+        "/paper_quality_contract/evidence_expectations/minimum_sci_ready_evidence_package",
+        "/paper_quality_contract/review_expectations/scientific_followup_questions",
+    }
+
+    markdown = module.render_gate_markdown(report)
+    assert "## Medical Publication Surface Expectation Gaps" in markdown
+    assert evidence_gap_text in markdown
+    assert review_gap_text in markdown
+    assert "contract_json_pointer=`/paper_quality_contract/evidence_expectations/minimum_sci_ready_evidence_package`" in markdown
+    assert "contract_json_pointer=`/paper_quality_contract/review_expectations/scientific_followup_questions`" in markdown
+    assert "ledger=`evidence_ledger`" in markdown
+    assert "ledger=`review_ledger`" in markdown
+
+
 def test_build_gate_report_routes_each_surface_blocker_to_core_controller_route(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
 

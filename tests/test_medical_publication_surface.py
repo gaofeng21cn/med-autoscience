@@ -1441,6 +1441,50 @@ def test_build_report_blocks_when_charter_expectation_closure_status_is_not_clos
     assert blocker["ledger_name"] == "review_ledger"
 
 
+def test_build_report_projects_blocking_charter_expectation_closure_gaps(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root, include_charter_expectations=True)
+    paper_root = _paper_root_from_quest(quest_root)
+    _write_charter_expectation_closures(
+        paper_root / "evidence_ledger.json",
+        [_charter_expectation_record("minimum_sci_ready_evidence_package")],
+    )
+    _write_charter_expectation_closures(
+        paper_root / "review" / "review_ledger.json",
+        [
+            _charter_expectation_record("scientific_followup_questions", status="open"),
+            _charter_expectation_record("manuscript_conclusion_redlines"),
+        ],
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+    gaps = report["charter_expectation_closure_gaps"]
+
+    assert report["status"] == "blocked"
+    assert "charter_expectation_closure_incomplete" in report["blockers"]
+    assert len(gaps) == 1
+    assert gaps[0]["expectation_key"] == "scientific_followup_questions"
+    assert (
+        gaps[0]["expectation_text"]
+        == CHARTER_EXPECTATION_FIXTURES["scientific_followup_questions"]["expectation_text"]
+    )
+    assert gaps[0]["ledger_name"] == "review_ledger"
+    assert gaps[0]["closure_status"] == "open"
+    assert gaps[0]["contract_json_pointer"] == "/paper_quality_contract/review_expectations/scientific_followup_questions"
+    assert gaps[0]["blocker"] is True
+
+    markdown = module.render_surface_markdown(report)
+    assert "## Charter Expectation Closure Gaps" in markdown
+    assert CHARTER_EXPECTATION_FIXTURES["scientific_followup_questions"]["expectation_text"] in markdown
+    assert "contract_json_pointer=`/paper_quality_contract/review_expectations/scientific_followup_questions`" in markdown
+    assert "ledger=`review_ledger`" in markdown
+    assert "closure_status=`open`" in markdown
+
+
 def test_build_report_blocks_when_charter_expectation_closure_records_are_duplicated(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)

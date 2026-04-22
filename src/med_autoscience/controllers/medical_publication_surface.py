@@ -226,16 +226,19 @@ CHARTER_EXPECTATION_CLOSURE_SPECS: tuple[dict[str, str], ...] = (
     {
         "expectation_key": "minimum_sci_ready_evidence_package",
         "ledger_name": "evidence_ledger",
+        "contract_collection": "evidence_expectations",
         "label": "minimum_sci_ready_evidence_package",
     },
     {
         "expectation_key": "scientific_followup_questions",
         "ledger_name": "review_ledger",
+        "contract_collection": "review_expectations",
         "label": "scientific_followup_questions",
     },
     {
         "expectation_key": "manuscript_conclusion_redlines",
         "ledger_name": "review_ledger",
+        "contract_collection": "review_expectations",
         "label": "manuscript_conclusion_redlines",
     },
 )
@@ -306,6 +309,7 @@ def build_charter_expectation_closure_summary(
     for spec in CHARTER_EXPECTATION_CLOSURE_SPECS:
         expectation_key = spec["expectation_key"]
         ledger_name = spec["ledger_name"]
+        contract_collection = spec["contract_collection"]
         charter_items = _normalized_charter_expectation_items(quality_expectations.get(expectation_key))
         matching_records: dict[str, list[dict[str, Any]]] = {}
         for record in ledger_records[ledger_name]:
@@ -323,6 +327,7 @@ def build_charter_expectation_closure_summary(
                 "expectation_text": expectation_text,
                 "ledger_name": ledger_name,
                 "ledger_path": _normalized_path(ledger_paths[ledger_name]),
+                "contract_json_pointer": f"/paper_quality_contract/{contract_collection}/{expectation_key}",
             }
             matched_records = matching_records.get(expectation_text, [])
             if not matched_records:
@@ -2365,6 +2370,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         evidence_ledger_path=state.evidence_ledger_path,
         review_ledger_path=state.review_ledger_path,
     )
+    charter_expectation_closure_gaps = list(charter_expectation_closure_summary.get("blocking_items") or [])
     charter_expectation_closure_hits = [
         {
             "path": str(item["ledger_path"] or state.paper_root),
@@ -2548,6 +2554,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "paper_pdf_present": state.paper_pdf_path.exists(),
         "charter_contract_linkage": charter_contract_linkage,
         "charter_expectation_closure_summary": charter_expectation_closure_summary,
+        "charter_expectation_closure_gaps": charter_expectation_closure_gaps,
         "public_data_anchor_count": int(public_evidence_surface_state.get("anchor_count") or 0),
         "public_data_surface_reference_count": len(public_data_surface_hits),
         "public_evidence_decision_count": int(public_evidence_surface_state.get("decision_count") or 0),
@@ -2635,9 +2642,28 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- results_narration_hit_count: `{report['results_narration_hit_count']}`",
         f"- non_formal_question_hit_count: `{report.get('non_formal_question_hit_count', 0)}`",
         "",
-        "## Charter Expectation Closure Summary",
+        "## Charter Expectation Closure Gaps",
         "",
     ]
+    charter_expectation_closure_gaps = report.get("charter_expectation_closure_gaps") or []
+    if not charter_expectation_closure_gaps:
+        lines.append("- none")
+    else:
+        for item in charter_expectation_closure_gaps:
+            note_clause = f"; note={item['note']}" if item.get("note") else ""
+            lines.append(
+                f"- `{item['expectation_text']}` (expectation_key=`{item['expectation_key']}`, "
+                f"ledger=`{item['ledger_name']}`, closure_status=`{item['closure_status']}`, "
+                f"record_count=`{item['record_count']}`, "
+                f"contract_json_pointer=`{item['contract_json_pointer']}`{note_clause})"
+            )
+    lines.extend(
+        [
+            "",
+            "## Charter Expectation Closure Summary",
+            "",
+        ]
+    )
     for category in charter_expectation_closure_summary.get("categories") or []:
         lines.extend(
             [

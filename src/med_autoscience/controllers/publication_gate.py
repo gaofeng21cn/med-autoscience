@@ -103,6 +103,11 @@ _MEDICAL_PUBLICATION_SURFACE_ROUTE_BACK_NOTE_CLAUSES = {
 _DEFAULT_SUBMISSION_GRADE_MIN_ACTIVE_FIGURES = 4
 
 
+def _append_unique(items: list[str], item: str) -> None:
+    if item not in items:
+        items.append(item)
+
+
 @dataclass
 class GateState:
     quest_root: Path
@@ -343,22 +348,73 @@ def _medical_publication_surface_named_blockers(surface_report: dict[str, Any] |
     if not isinstance(surface_report, dict):
         return []
     surface_blockers = _normalized_blocker_set(surface_report.get("blockers"))
+    expectation_gap_ledgers = {
+        str(item.get("ledger_name") or "").strip()
+        for item in _medical_publication_surface_expectation_gaps(surface_report)
+    }
     named_blockers: list[str] = []
     if (
         surface_report.get("review_ledger_valid") is False
         or surface_blockers.intersection(_MEDICAL_PUBLICATION_SURFACE_REVIEWER_FIRST_BLOCKERS)
+        or "review_ledger" in expectation_gap_ledgers
     ):
-        named_blockers.append("reviewer_first_concerns_unresolved")
+        _append_unique(named_blockers, "reviewer_first_concerns_unresolved")
     if (
         surface_report.get("claim_evidence_map_valid") is False
         or surface_report.get("evidence_ledger_valid") is False
         or surface_report.get("medical_story_contract_valid") is False
         or surface_blockers.intersection(_MEDICAL_PUBLICATION_SURFACE_CLAIM_EVIDENCE_BLOCKERS)
+        or "evidence_ledger" in expectation_gap_ledgers
     ):
-        named_blockers.append("claim_evidence_consistency_failed")
+        _append_unique(named_blockers, "claim_evidence_consistency_failed")
     if surface_blockers.intersection(_MEDICAL_PUBLICATION_SURFACE_SUBMISSION_HARDENING_BLOCKERS):
-        named_blockers.append("submission_hardening_incomplete")
+        _append_unique(named_blockers, "submission_hardening_incomplete")
     return named_blockers
+
+
+def _medical_publication_surface_expectation_gaps(surface_report: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not isinstance(surface_report, dict):
+        return []
+    raw_gaps = surface_report.get("charter_expectation_closure_gaps")
+    if not isinstance(raw_gaps, list):
+        summary = surface_report.get("charter_expectation_closure_summary")
+        raw_gaps = summary.get("blocking_items") if isinstance(summary, dict) else []
+    if not isinstance(raw_gaps, list):
+        return []
+
+    gaps: list[dict[str, Any]] = []
+    for raw_gap in raw_gaps:
+        if not isinstance(raw_gap, dict):
+            continue
+        expectation_key = str(raw_gap.get("expectation_key") or "").strip()
+        expectation_text = str(raw_gap.get("expectation_text") or "").strip()
+        ledger_name = str(raw_gap.get("ledger_name") or "").strip()
+        contract_json_pointer = str(raw_gap.get("contract_json_pointer") or "").strip()
+        closure_status = str(raw_gap.get("closure_status") or "").strip()
+        if (
+            not expectation_key
+            or not expectation_text
+            or not ledger_name
+            or not contract_json_pointer
+            or not closure_status
+        ):
+            continue
+        gaps.append(
+            {
+                "expectation_key": expectation_key,
+                "expectation_text": expectation_text,
+                "ledger_name": ledger_name,
+                "ledger_path": _non_empty_text(raw_gap.get("ledger_path")),
+                "contract_json_pointer": contract_json_pointer,
+                "closure_status": closure_status,
+                "recorded": bool(raw_gap.get("recorded")),
+                "record_count": int(raw_gap.get("record_count") or 0),
+                "blocker": bool(raw_gap.get("blocker")),
+                "closed_at": _non_empty_text(raw_gap.get("closed_at")),
+                "note": _non_empty_text(raw_gap.get("note")),
+            }
+        )
+    return gaps
 
 
 def _medical_publication_surface_route_back_recommendation(named_blockers: list[str]) -> str | None:
@@ -1170,6 +1226,9 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         blockers.append("stale_study_delivery_mirror")
     medical_publication_surface_status = str((state.latest_medical_publication_surface or {}).get("status") or "").strip()
     if medical_publication_surface_current:
+        medical_publication_surface_expectation_gaps = _medical_publication_surface_expectation_gaps(
+            state.latest_medical_publication_surface
+        )
         medical_publication_surface_named_blockers = _medical_publication_surface_named_blockers(
             state.latest_medical_publication_surface
         )
@@ -1177,10 +1236,13 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
             medical_publication_surface_named_blockers
         )
     else:
+        medical_publication_surface_expectation_gaps = []
         medical_publication_surface_named_blockers = []
         medical_publication_surface_route_back_recommendation = None
     if medical_publication_surface_current and medical_publication_surface_status and medical_publication_surface_status != "clear":
         blockers.append("medical_publication_surface_blocked")
+        if medical_publication_surface_expectation_gaps:
+            blockers.append("charter_expectation_closure_incomplete")
         blockers.extend(medical_publication_surface_named_blockers)
     if state.submission_surface_qc_failures:
         blockers.append("submission_surface_qc_failure_present")
@@ -1308,6 +1370,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "medical_publication_surface_status": medical_publication_surface_status or None,
         "charter_contract_linkage": dict(state.charter_contract_linkage or {}),
         "charter_contract_linkage_status": charter_contract_linkage_status or None,
+        "medical_publication_surface_expectation_gaps": medical_publication_surface_expectation_gaps,
         "medical_publication_surface_named_blockers": medical_publication_surface_named_blockers,
         "medical_publication_surface_route_back_recommendation": medical_publication_surface_route_back_recommendation,
         "submission_surface_qc_failures": list(state.submission_surface_qc_failures),
@@ -1421,6 +1484,7 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
     blockers = report.get("blockers") or []
     medical_surface_named_blockers = report.get("medical_publication_surface_named_blockers") or []
     medical_surface_route_back_recommendation = report.get("medical_publication_surface_route_back_recommendation")
+    medical_surface_expectation_gaps = report.get("medical_publication_surface_expectation_gaps") or []
     missing = report.get("missing_non_scalar_deliverables") or []
     metrics = report.get("headline_metrics") or {}
     terminology_violations = report.get("manuscript_terminology_violations") or []
@@ -1456,6 +1520,22 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
         lines.append(
             f"- route_back_recommendation: `{medical_surface_route_back_recommendation or 'return_to_publishability_gate'}`"
         )
+    if medical_surface_expectation_gaps:
+        lines.extend(
+            [
+                "",
+                "## Medical Publication Surface Expectation Gaps",
+                "",
+            ]
+        )
+        for item in medical_surface_expectation_gaps:
+            note_clause = f"; note={item['note']}" if item.get("note") else ""
+            lines.append(
+                f"- `{item['expectation_text']}` (expectation_key=`{item['expectation_key']}`, "
+                f"ledger=`{item['ledger_name']}`, closure_status=`{item['closure_status']}`, "
+                f"record_count=`{item['record_count']}`, "
+                f"contract_json_pointer=`{item['contract_json_pointer']}`{note_clause})"
+            )
     lines.extend(
         [
             "",
