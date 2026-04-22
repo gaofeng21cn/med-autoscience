@@ -1246,6 +1246,16 @@ def _quality_execution_lane_from_summary_payload(summary_payload: dict[str, Any]
     }
 
 
+def _normalized_quality_execution_lane_payload(summary_payload: dict[str, Any]) -> dict[str, Any]:
+    raw_lane = summary_payload.get("quality_execution_lane")
+    if isinstance(raw_lane, dict):
+        return dict(raw_lane)
+    try:
+        return _quality_execution_lane_from_summary_payload(summary_payload)
+    except (TypeError, ValueError):
+        return {}
+
+
 def _normalized_quality_review_loop(
     *,
     loop_payload: dict[str, Any] | None,
@@ -1888,15 +1898,7 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
         if isinstance(payload.get("quality_review_loop"), dict)
         else None
     )
-    quality_execution_lane = (
-        _required_mapping(
-            "evaluation summary",
-            "quality_execution_lane",
-            payload.get("quality_execution_lane"),
-        )
-        if isinstance(payload.get("quality_execution_lane"), dict)
-        else _quality_execution_lane_from_summary_payload(payload)
-    )
+    quality_execution_lane = _normalized_quality_execution_lane_payload(payload)
     normalized_quality_review_agenda = _normalized_quality_review_agenda(
         agenda_payload=quality_review_agenda,
         summary_payload=payload,

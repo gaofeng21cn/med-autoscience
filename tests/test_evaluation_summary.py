@@ -870,6 +870,28 @@ def test_read_evaluation_summary_derives_quality_execution_lane_when_missing(tmp
     assert summary["quality_execution_lane"] == expected_lane
 
 
+def test_read_evaluation_summary_derives_quality_execution_lane_when_non_mapping(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    gate_report_path = inputs["gate_report_path"]
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
+    summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    expected_lane = payload["quality_execution_lane"]
+    payload["quality_execution_lane"] = "legacy-string-payload"
+    _write_json(summary_path, payload)
+
+    summary = module.read_evaluation_summary(study_root=study_root)
+
+    assert summary["quality_execution_lane"] == expected_lane
+
+
 def test_read_evaluation_summary_projects_re_review_required_loop_when_plan_completed(tmp_path: Path) -> None:
     module = importlib.import_module(MODULE_NAME)
     inputs = _stable_inputs(tmp_path)

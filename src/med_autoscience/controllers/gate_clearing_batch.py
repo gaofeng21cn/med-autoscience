@@ -33,6 +33,14 @@ REPAIRABLE_MEDICAL_SURFACE_BLOCKERS = frozenset(
         "derived_analysis_manifest_missing_or_incomplete",
     }
 )
+_BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
+_BUNDLE_STAGE_GATE_BLOCKERS = frozenset(
+    {
+        "stale_study_delivery_mirror",
+        "submission_surface_qc_failure_present",
+        "submission_hardening_incomplete",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -139,6 +147,76 @@ def _latest_batch_record(*, study_root: Path) -> dict[str, Any]:
     return _read_json(stable_gate_clearing_batch_path(study_root=study_root))
 
 
+def _recommended_action_by_type(
+    *,
+    publication_eval_payload: dict[str, Any],
+    action_types: frozenset[str],
+) -> dict[str, Any] | None:
+    recommended_actions = publication_eval_payload.get("recommended_actions") or []
+    if not isinstance(recommended_actions, list):
+        return None
+    return next(
+        (
+            dict(action)
+            for action in recommended_actions
+            if isinstance(action, dict) and str(action.get("action_type") or "").strip() in action_types
+        ),
+        None,
+    )
+
+
+def _gate_blockers(gate_report: dict[str, Any]) -> set[str]:
+    return {
+        str(item or "").strip()
+        for item in (gate_report.get("blockers") or [])
+        if str(item or "").strip()
+    }
+
+
+def _bundle_stage_repair_requested(*, gate_report: dict[str, Any]) -> bool:
+    current_required_action = str(gate_report.get("current_required_action") or "").strip()
+    if current_required_action in _BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS:
+        return True
+    return bool(_gate_blockers(gate_report) & _BUNDLE_STAGE_GATE_BLOCKERS)
+
+
+def _bundle_stage_batch_action(
+    *,
+    source_action: dict[str, Any] | None,
+    gate_report: dict[str, Any],
+) -> dict[str, Any]:
+    current_required_action = str(gate_report.get("current_required_action") or "").strip()
+    reason = (
+        str((source_action or {}).get("reason") or "").strip()
+        or str(gate_report.get("controller_stage_note") or "").strip()
+        or "Run one controller-owned finalize/submission repair batch before returning to the same paper line."
+    )
+    route_rationale = (
+        str((source_action or {}).get("route_rationale") or "").strip()
+        or str(gate_report.get("controller_stage_note") or "").strip()
+        or "The remaining bundle-stage blockers are deterministic finalize/submission repairs."
+    )
+    route_key_question = (
+        str((source_action or {}).get("route_key_question") or "").strip()
+        or "What is the narrowest finalize or submission-bundle step still required on the current paper line?"
+    )
+    priority = str((source_action or {}).get("priority") or "").strip() or "now"
+    requires_controller_decision = bool((source_action or {}).get("requires_controller_decision"))
+    if source_action is None:
+        requires_controller_decision = True
+    return {
+        **(source_action or {}),
+        "action_type": "route_back_same_line",
+        "priority": priority,
+        "reason": reason,
+        "route_target": "finalize",
+        "route_key_question": route_key_question,
+        "route_rationale": route_rationale,
+        "requires_controller_decision": requires_controller_decision,
+        "current_required_action": current_required_action or None,
+    }
+
+
 def _eligible_mapping_payload(*, quest_root: Path, study_root: Path) -> tuple[Path | None, dict[str, Any]]:
     mapping_path = _latest_scientific_anchor_mapping_path(quest_root=quest_root)
     if mapping_path is None:
@@ -170,29 +248,24 @@ def build_gate_clearing_batch_recommended_action(
     verdict = publication_eval_payload.get("verdict")
     if not isinstance(verdict, dict) or str(verdict.get("overall_verdict") or "").strip() != "blocked":
         return None
-    recommended_actions = publication_eval_payload.get("recommended_actions") or []
-    if not isinstance(recommended_actions, list):
-        return None
-    bounded_analysis_action = next(
-        (
-            action
-            for action in recommended_actions
-            if isinstance(action, dict) and str(action.get("action_type") or "").strip() == "bounded_analysis"
-        ),
-        None,
+    bounded_analysis_action = _recommended_action_by_type(
+        publication_eval_payload=publication_eval_payload,
+        action_types=frozenset({"bounded_analysis"}),
     )
-    if bounded_analysis_action is None:
-        return None
+    same_line_action = _recommended_action_by_type(
+        publication_eval_payload=publication_eval_payload,
+        action_types=frozenset({"continue_same_line", "route_back_same_line"}),
+    )
+    controller_return_action = _recommended_action_by_type(
+        publication_eval_payload=publication_eval_payload,
+        action_types=frozenset({"return_to_controller"}),
+    )
 
     gate_status = str(gate_report.get("status") or "").strip()
     if gate_status != "blocked":
         return None
 
-    gate_blockers = {
-        str(item or "").strip()
-        for item in (gate_report.get("blockers") or [])
-        if str(item or "").strip()
-    }
+    gate_blockers = _gate_blockers(gate_report)
     if not gate_blockers:
         return None
 
@@ -203,18 +276,31 @@ def build_gate_clearing_batch_recommended_action(
     }
     repairable_surface = bool(medical_surface_blockers & REPAIRABLE_MEDICAL_SURFACE_BLOCKERS)
     stale_delivery = "stale_study_delivery_mirror" in gate_blockers
+    bundle_stage_repair = _bundle_stage_repair_requested(gate_report=gate_report)
     quest_root = _quest_root(profile, quest_id=quest_id)
     mapping_path, mapping_payload = _eligible_mapping_payload(
         quest_root=quest_root,
         study_root=study_root,
     )
     anchor_repairable = bool(mapping_payload)
-    if not any((repairable_surface, stale_delivery, anchor_repairable)):
+    if not any((repairable_surface, stale_delivery, anchor_repairable, bundle_stage_repair)):
+        return None
+    if (repairable_surface or anchor_repairable) and bounded_analysis_action is None:
         return None
 
     latest_batch = _latest_batch_record(study_root=study_root)
     current_eval_id = str(publication_eval_payload.get("eval_id") or "").strip()
     if str(latest_batch.get("source_eval_id") or "").strip() == current_eval_id:
+        return None
+
+    if anchor_repairable or repairable_surface:
+        selected_action = dict(bounded_analysis_action or {})
+    elif bundle_stage_repair:
+        selected_action = _bundle_stage_batch_action(
+            source_action=same_line_action or controller_return_action,
+            gate_report=gate_report,
+        )
+    else:
         return None
 
     reason_bits: list[str] = []
@@ -224,11 +310,13 @@ def build_gate_clearing_batch_recommended_action(
         reason_bits.append("paper-facing display/reporting blockers are deterministic repair candidates")
     if stale_delivery:
         reason_bits.append("study delivery mirror is stale but repairable through controller-owned replay")
+    if bundle_stage_repair:
+        reason_bits.append("finalize/submission bundle blockers are deterministic same-line repair candidates")
     return {
-        **bounded_analysis_action,
+        **selected_action,
         "controller_action_type": "run_gate_clearing_batch",
         "reason": (
-            str(bounded_analysis_action.get("reason") or "").strip()
+            str(selected_action.get("reason") or "").strip()
             or "Run one controller-owned gate-clearing batch before sending the study back into the next managed route."
         ),
         "gate_clearing_batch_reason": "; ".join(reason_bits),
@@ -381,6 +469,8 @@ def run_gate_clearing_batch(
         quest_root=quest_root,
         study_root=resolved_study_root,
     )
+    gate_blockers = _gate_blockers(gate_report)
+    bundle_stage_repair = _bundle_stage_repair_requested(gate_report=gate_report)
 
     repair_units: list[GateClearingRepairUnit] = []
     if mapping_payload:
@@ -435,12 +525,12 @@ def run_gate_clearing_batch(
         # there are no other deterministic repairs to launch in parallel.
         repair_units = []
 
-    if not repair_units and not str(gate_report.get("study_delivery_status") or "").strip().startswith("stale"):
+    if not repair_units and not bundle_stage_repair and not str(gate_report.get("study_delivery_status") or "").strip().startswith("stale"):
         return {
             "ok": False,
             "status": "no_repair_units",
             "source_eval_id": current_eval_id,
-            "gate_blockers": list(gate_report.get("blockers") or []),
+            "gate_blockers": sorted(gate_blockers),
         }
 
     unit_results: list[dict[str, Any]] = []
@@ -470,10 +560,7 @@ def run_gate_clearing_batch(
                         }
                     )
 
-    if (
-        "stale_study_delivery_mirror" in {str(item or "").strip() for item in (gate_report.get("blockers") or [])}
-        or "submission_hardening_incomplete" in {str(item or "").strip() for item in (gate_report.get("blockers") or [])}
-    ):
+    if bundle_stage_repair:
         try:
             result = _create_submission_minimal_package(paper_root=paper_root, profile=profile)
             unit_results.append(
@@ -513,6 +600,7 @@ def run_gate_clearing_batch(
         "paper_root": str(paper_root),
         "workspace_root": str(paper_root.parent),
         "current_workspace_root": str(current_workspace_root),
+        "gate_blockers": sorted(gate_blockers),
         "unit_results": unit_results,
         "gate_replay": gate_replay,
     }

@@ -326,6 +326,35 @@ def _non_empty_text(value: object) -> str | None:
     return text or None
 
 
+def _mapping_copy(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _normalized_quality_execution_lane_payload(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    direct_lane = _mapping_copy(payload.get("quality_execution_lane"))
+    if direct_lane:
+        return direct_lane
+    module_surfaces = _mapping_copy(payload.get("module_surfaces"))
+    eval_hygiene_surface = _mapping_copy(module_surfaces.get("eval_hygiene"))
+    fallback_lane = _mapping_copy(eval_hygiene_surface.get("quality_execution_lane"))
+    return fallback_lane or None
+
+
+def _normalize_study_progress_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    normalized = dict(payload)
+    module_surfaces = _mapping_copy(normalized.get("module_surfaces"))
+    if module_surfaces:
+        eval_hygiene_surface = _mapping_copy(module_surfaces.get("eval_hygiene"))
+        if eval_hygiene_surface:
+            eval_hygiene_surface["quality_execution_lane"] = _mapping_copy(
+                eval_hygiene_surface.get("quality_execution_lane")
+            ) or None
+            module_surfaces["eval_hygiene"] = eval_hygiene_surface
+            normalized["module_surfaces"] = module_surfaces
+    normalized["quality_execution_lane"] = _normalized_quality_execution_lane_payload(normalized)
+    return normalized
+
+
 def _timestamp_is_newer(candidate: object, baseline: object) -> bool:
     candidate_text = _normalize_timestamp(candidate)
     if candidate_text is None:
@@ -950,13 +979,13 @@ def _evaluation_module_surface(
     if not evaluation_summary_path.exists():
         return None
     summary = read_evaluation_summary(study_root=study_root, ref=evaluation_summary_path)
-    promotion_gate_status = dict(summary.get("promotion_gate_status") or {})
-    quality_closure_truth = dict(summary.get("quality_closure_truth") or {})
-    quality_execution_lane = dict(summary.get("quality_execution_lane") or {})
-    quality_closure_basis = dict(summary.get("quality_closure_basis") or {})
-    quality_review_agenda = dict(summary.get("quality_review_agenda") or {})
-    quality_revision_plan = dict(summary.get("quality_revision_plan") or {})
-    quality_review_loop = dict(summary.get("quality_review_loop") or {})
+    promotion_gate_status = _mapping_copy(summary.get("promotion_gate_status"))
+    quality_closure_truth = _mapping_copy(summary.get("quality_closure_truth"))
+    quality_execution_lane = _mapping_copy(summary.get("quality_execution_lane"))
+    quality_closure_basis = _mapping_copy(summary.get("quality_closure_basis"))
+    quality_review_agenda = _mapping_copy(summary.get("quality_review_agenda"))
+    quality_revision_plan = _mapping_copy(summary.get("quality_revision_plan"))
+    quality_review_loop = _mapping_copy(summary.get("quality_review_loop"))
     current_required_action = _non_empty_text(promotion_gate_status.get("current_required_action"))
     plan_items = [
         dict(item)
@@ -2777,7 +2806,7 @@ def build_study_progress_projection(
     status = _status_payload(status_payload)
     existing_projection = status.get("progress_projection")
     if isinstance(existing_projection, dict) and _non_empty_text(existing_projection.get("study_id")) == study_id:
-        return dict(existing_projection)
+        return _normalize_study_progress_payload(existing_projection)
 
     resolved_study_id = study_id
     resolved_study_root = study_root
@@ -3136,32 +3165,32 @@ def build_study_progress_projection(
     if evaluation_module_surface is not None:
         module_surfaces["eval_hygiene"] = evaluation_module_surface
     quality_closure_truth = (
-        dict(evaluation_module_surface.get("quality_closure_truth") or {})
+        _mapping_copy(evaluation_module_surface.get("quality_closure_truth"))
         if evaluation_module_surface is not None
         else {}
     )
     quality_execution_lane = (
-        dict(evaluation_module_surface.get("quality_execution_lane") or {})
+        _mapping_copy(evaluation_module_surface.get("quality_execution_lane"))
         if evaluation_module_surface is not None
         else {}
     )
     quality_closure_basis = (
-        dict(evaluation_module_surface.get("quality_closure_basis") or {})
+        _mapping_copy(evaluation_module_surface.get("quality_closure_basis"))
         if evaluation_module_surface is not None
         else {}
     )
     quality_review_agenda = (
-        dict(evaluation_module_surface.get("quality_review_agenda") or {})
+        _mapping_copy(evaluation_module_surface.get("quality_review_agenda"))
         if evaluation_module_surface is not None
         else {}
     )
     quality_revision_plan = (
-        dict(evaluation_module_surface.get("quality_revision_plan") or {})
+        _mapping_copy(evaluation_module_surface.get("quality_revision_plan"))
         if evaluation_module_surface is not None
         else {}
     )
     quality_review_loop = (
-        dict(evaluation_module_surface.get("quality_review_loop") or {})
+        _mapping_copy(evaluation_module_surface.get("quality_review_loop"))
         if evaluation_module_surface is not None
         else {}
     )
@@ -3349,8 +3378,9 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     next_step_summary = _non_empty_text(status_human_view.get("next_step")) or str(
         payload.get("next_system_action") or ""
     ).strip()
-    paper_stage = _paper_stage_label(payload.get("paper_stage")) or "未知"
-    intervention_lane = dict(payload.get("intervention_lane") or {})
+    normalized_payload = _normalize_study_progress_payload(payload)
+    paper_stage = _paper_stage_label(normalized_payload.get("paper_stage")) or "未知"
+    intervention_lane = _mapping_copy(normalized_payload.get("intervention_lane"))
     intervention_title = _non_empty_text(intervention_lane.get("title"))
     intervention_summary = _display_text(intervention_lane.get("summary")) or _non_empty_text(
         intervention_lane.get("summary")
@@ -3359,18 +3389,18 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         _non_empty_text(intervention_lane.get("severity")) or "",
         "",
     )
-    operator_status_card = dict(payload.get("operator_status_card") or {})
-    autonomy_contract = dict(payload.get("autonomy_contract") or {})
-    quality_closure_truth = dict(payload.get("quality_closure_truth") or {})
-    quality_execution_lane = dict(payload.get("quality_execution_lane") or {})
-    quality_closure_basis = dict(payload.get("quality_closure_basis") or {})
-    quality_review_agenda = dict(payload.get("quality_review_agenda") or {})
-    quality_revision_plan = dict(payload.get("quality_revision_plan") or {})
-    quality_review_loop = dict(payload.get("quality_review_loop") or {})
-    gate_clearing_batch_followthrough = dict(payload.get("gate_clearing_batch_followthrough") or {})
-    quality_review_followthrough = dict(payload.get("quality_review_followthrough") or {})
-    recovery_contract = dict(payload.get("recovery_contract") or {})
-    module_surfaces = dict(payload.get("module_surfaces") or {})
+    operator_status_card = _mapping_copy(normalized_payload.get("operator_status_card"))
+    autonomy_contract = _mapping_copy(normalized_payload.get("autonomy_contract"))
+    quality_closure_truth = _mapping_copy(normalized_payload.get("quality_closure_truth"))
+    quality_execution_lane = _mapping_copy(normalized_payload.get("quality_execution_lane"))
+    quality_closure_basis = _mapping_copy(normalized_payload.get("quality_closure_basis"))
+    quality_review_agenda = _mapping_copy(normalized_payload.get("quality_review_agenda"))
+    quality_revision_plan = _mapping_copy(normalized_payload.get("quality_revision_plan"))
+    quality_review_loop = _mapping_copy(normalized_payload.get("quality_review_loop"))
+    gate_clearing_batch_followthrough = _mapping_copy(normalized_payload.get("gate_clearing_batch_followthrough"))
+    quality_review_followthrough = _mapping_copy(normalized_payload.get("quality_review_followthrough"))
+    recovery_contract = _mapping_copy(normalized_payload.get("recovery_contract"))
+    module_surfaces = _mapping_copy(normalized_payload.get("module_surfaces"))
     if bool(quality_review_followthrough.get("waiting_auto_re_review")):
         current_judgment = _non_empty_text(quality_review_followthrough.get("summary")) or current_judgment
         next_step_summary = (
@@ -3384,14 +3414,14 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     )
     recovery_steps = [
         dict(item)
-        for item in (payload.get("recommended_commands") or [])
+        for item in (normalized_payload.get("recommended_commands") or [])
         if isinstance(item, dict)
     ]
     lines = [
         "# 研究进度",
         "",
-        f"- study_id: `{str(payload.get('study_id') or '')}`",
-        f"- quest_id: `{str(payload.get('quest_id') or 'none')}`",
+        f"- study_id: `{str(normalized_payload.get('study_id') or '')}`",
+        f"- quest_id: `{str(normalized_payload.get('quest_id') or 'none')}`",
         f"- 当前阶段: {current_stage}",
     ]
     if current_judgment:
@@ -3431,7 +3461,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             "## 论文推进",
             "",
             f"- 论文阶段: {paper_stage}",
-            f"- 论文摘要: {_display_text(payload.get('paper_stage_summary')) or str(payload.get('paper_stage_summary') or '').strip()}",
+            f"- 论文摘要: {_display_text(normalized_payload.get('paper_stage_summary')) or str(normalized_payload.get('paper_stage_summary') or '').strip()}",
             "",
             "## 运行监管",
             "",
@@ -3586,7 +3616,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
                     or latest_outer_loop_dispatch.get("summary")
                 )
             )
-    autonomy_soak_status = dict(payload.get("autonomy_soak_status") or {})
+    autonomy_soak_status = _mapping_copy(normalized_payload.get("autonomy_soak_status"))
     if autonomy_soak_status:
         lines.extend(["", "## 自治 Proof / Soak", ""])
         if autonomy_soak_status.get("summary"):

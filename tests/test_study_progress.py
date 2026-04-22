@@ -1501,6 +1501,50 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
     assert "当前质量执行线聚焦 submission hardening 收口" in markdown
 
 
+def test_study_progress_normalizes_legacy_non_mapping_quality_execution_lane_from_existing_projection(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        status_payload={
+            "progress_projection": {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "current_stage": "publication_supervision",
+                "current_stage_summary": "当前主线在 finalize 收口。",
+                "paper_stage": "finalize",
+                "paper_stage_summary": "当前主线只剩 finalize 收口。",
+                "next_system_action": "继续 finalize 收口。",
+                "needs_physician_decision": False,
+                "quality_execution_lane": "legacy-string-payload",
+                "module_surfaces": {
+                    "eval_hygiene": {
+                        "quality_execution_lane": {
+                            "lane_id": "submission_hardening",
+                            "summary": "Only finalize-level submission hardening remains.",
+                        }
+                    }
+                },
+            }
+        },
+    )
+
+    assert result["quality_execution_lane"] == {
+        "lane_id": "submission_hardening",
+        "summary": "Only finalize-level submission hardening remains.",
+    }
+    assert result["module_surfaces"]["eval_hygiene"]["quality_execution_lane"] == result["quality_execution_lane"]
+    markdown = module.render_study_progress_markdown(result)
+    assert "# 研究进度" in markdown
+    assert "study_id: `001-risk`" in markdown
+
+
 def test_study_progress_does_not_project_resume_arbitration_as_physician_decision(
     monkeypatch,
     tmp_path: Path,

@@ -127,6 +127,56 @@ def test_build_gate_clearing_batch_recommended_action_promotes_blocked_bounded_a
     assert "scientific-anchor fields can be frozen" in action["gate_clearing_batch_reason"]
 
 
+def test_build_gate_clearing_batch_recommended_action_promotes_bundle_stage_return_to_finalize(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-004")
+    publication_eval_payload["recommended_actions"] = [
+        {
+            "action_id": "publication-eval-action::return_to_controller::2026-04-21T12:42:39+00:00",
+            "action_type": "return_to_controller",
+            "priority": "now",
+            "reason": "Let MAS re-evaluate the finalize-stage blockers before the same paper line resumes.",
+            "evidence_refs": [str(study_root / "paper")],
+            "requires_controller_decision": True,
+        }
+    ]
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    gate_report = {
+        "status": "blocked",
+        "blockers": [
+            "submission_surface_qc_failure_present",
+        ],
+        "current_required_action": "complete_bundle_stage",
+        "controller_stage_note": "Only finalize or submission-bundle repairs remain on the current paper line.",
+        "medical_publication_surface_status": "clear",
+        "medical_publication_surface_named_blockers": [],
+    }
+
+    action = module.build_gate_clearing_batch_recommended_action(
+        profile=profile,
+        study_root=study_root,
+        quest_id="quest-004",
+        publication_eval_payload=publication_eval_payload,
+        gate_report=gate_report,
+    )
+
+    assert action is not None
+    assert action["action_type"] == "route_back_same_line"
+    assert action["route_target"] == "finalize"
+    assert action["controller_action_type"] == "run_gate_clearing_batch"
+    assert "finalize/submission bundle blockers are deterministic same-line repair candidates" in action[
+        "gate_clearing_batch_reason"
+    ]
+
+
 def test_run_gate_clearing_batch_executes_parallel_units_then_replays_gate(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
     profile = make_profile(tmp_path)
@@ -223,6 +273,89 @@ def test_run_gate_clearing_batch_executes_parallel_units_then_replays_gate(monke
     record = json.loads(Path(result["record_path"]).read_text(encoding="utf-8"))
     assert record["source_eval_id"] == publication_eval_payload["eval_id"]
     assert record["unit_results"][0]["unit_id"] == "freeze_scientific_anchor_fields"
+
+
+def test_run_gate_clearing_batch_executes_bundle_stage_submission_refresh_then_replays_gate(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-004")
+    publication_eval_payload["recommended_actions"] = [
+        {
+            "action_id": "publication-eval-action::return_to_controller::2026-04-21T12:42:39+00:00",
+            "action_type": "return_to_controller",
+            "priority": "now",
+            "reason": "Return to controller so MAS can clear the finalize-stage blockers.",
+            "evidence_refs": [str(study_root / "paper")],
+            "requires_controller_decision": True,
+        }
+    ]
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": [
+                "submission_surface_qc_failure_present",
+            ],
+            "current_required_action": "complete_bundle_stage",
+            "medical_publication_surface_status": "clear",
+            "study_delivery_status": "current",
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_eligible_mapping_payload",
+        lambda **_: (None, {}),
+    )
+    monkeypatch.setattr(
+        module.submission_minimal,
+        "create_submission_minimal_package",
+        lambda **_: {"output_root": "paper/submission_minimal", "status": "ready"},
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["submission_surface_qc_failure_present"],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id="quest-004",
+        source="test-source",
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "executed"
+    assert [item["unit_id"] for item in result["unit_results"]] == ["create_submission_minimal_package"]
+    assert result["gate_replay"]["status"] == "blocked"
+    assert result["gate_blockers"] == ["submission_surface_qc_failure_present"]
 
 
 def test_study_outer_loop_executes_gate_clearing_batch_controller_action(monkeypatch, tmp_path: Path) -> None:
