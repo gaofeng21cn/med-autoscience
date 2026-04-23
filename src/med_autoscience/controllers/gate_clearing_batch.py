@@ -397,23 +397,13 @@ def _submission_minimal_fingerprint_payload(
             paper_root=paper_root,
             publication_profile=profile_config.publication_profile,
         )
-        managed_submission_surface_roots = tuple(
-            root.resolve()
-            for root in submission_minimal.resolve_managed_submission_surface_roots(paper_root)
-            if root.resolve() != submission_root.resolve()
-        )
-        compiled_pdf_candidate_values = [
-            compile_report.get("output_pdf"),
-            compile_report.get("pdf_path"),
-            bundle_manifest.get("pdf_path"),
-        ]
-        exclude_live_submission_root = _candidate_values_include_root(
+        excluded_compiled_source_roots = submission_minimal.resolve_submission_compiled_source_excluded_roots(
+            paper_root=paper_root,
             workspace_root=workspace_root,
-            candidate_values=compiled_pdf_candidate_values,
-            root=submission_root,
-        )
-        excluded_compiled_source_roots = managed_submission_surface_roots + (
-            (submission_root.resolve(),) if exclude_live_submission_root else ()
+            submission_root=submission_root,
+            bundle_manifest=bundle_manifest,
+            compile_report=compile_report,
+            exclude_live_submission_root_for_markdown_candidates=True,
         )
         compiled_markdown_path = submission_minimal.resolve_compiled_markdown_path(
             workspace_root=workspace_root,

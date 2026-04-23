@@ -294,6 +294,7 @@ def resolve_submission_compiled_source_excluded_roots(
     submission_root: Path,
     bundle_manifest: dict[str, Any],
     compile_report: dict[str, Any],
+    exclude_live_submission_root_for_markdown_candidates: bool = False,
 ) -> tuple[Path, ...]:
     managed_submission_surface_roots = tuple(
         root.resolve()
@@ -305,9 +306,20 @@ def resolve_submission_compiled_source_excluded_roots(
         compile_report.get("pdf_path"),
         bundle_manifest.get("pdf_path"),
     ]
+    if exclude_live_submission_root_for_markdown_candidates:
+        bundle_inputs = bundle_manifest.get("bundle_inputs") or {}
+        compiled_surface_candidate_values = [
+            bundle_inputs.get("compiled_markdown_path"),
+            compile_report.get("source_markdown_path"),
+            compile_report.get("source_markdown"),
+            bundle_manifest.get("draft_path"),
+            *compiled_pdf_candidate_values,
+        ]
+    else:
+        compiled_surface_candidate_values = compiled_pdf_candidate_values
     exclude_live_submission_root = _candidate_values_include_root(
         workspace_root=workspace_root,
-        candidate_values=compiled_pdf_candidate_values,
+        candidate_values=compiled_surface_candidate_values,
         root=submission_root,
     )
     return managed_submission_surface_roots + (

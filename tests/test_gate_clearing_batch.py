@@ -152,6 +152,29 @@ def _write_submission_minimal_fingerprint_inputs(paper_root: Path) -> None:
     )
 
 
+def test_submission_minimal_fingerprint_payload_ignores_materialized_submission_source_from_compile_report(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    submission_minimal_tests = importlib.import_module("tests.test_submission_minimal")
+    paper_root = submission_minimal_tests.make_materialized_submission_source_workspace(tmp_path)
+    profile = make_profile(tmp_path)
+
+    payload = module._submission_minimal_fingerprint_payload(
+        paper_root=paper_root,
+        gate_report={
+            "status": "blocked",
+            "blockers": ["stale_submission_minimal_authority"],
+            "current_required_action": "complete_bundle_stage",
+            "medical_publication_surface_status": "clear",
+            "study_delivery_status": "current",
+        },
+        profile=profile,
+    )
+
+    assert payload["compiled_markdown"]["path"] == str((paper_root / "draft.md").resolve())
+
+
 def test_build_gate_clearing_batch_recommended_action_promotes_blocked_bounded_analysis(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
     profile = make_profile(tmp_path)
