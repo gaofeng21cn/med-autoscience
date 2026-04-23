@@ -4,6 +4,7 @@ import importlib
 import json
 import os
 from pathlib import Path
+import shutil
 import zipfile
 import zlib
 
@@ -447,6 +448,59 @@ Materialized figure caption.
     return paper_root
 
 
+def make_authoritative_worktree_source_workspace(tmp_path: Path) -> Path:
+    seed_paper_root = make_paper_workspace(tmp_path / "seed")
+    paper_root = tmp_path / "quest" / ".ds" / "worktrees" / "paper-run-123" / "paper"
+    shutil.copytree(seed_paper_root, paper_root, dirs_exist_ok=True)
+
+    write_png(paper_root / "figures" / "generated" / "F1.png")
+    write_text(paper_root / "figures" / "generated" / "F1.pdf", "%PDF-1.4\n%authoritative figure\n")
+    write_text(paper_root / "tables" / "generated" / "T1.csv", "Characteristic,Value\nAge,99\n")
+    write_text(
+        paper_root / "tables" / "generated" / "T1.md",
+        "| Characteristic | Value |\n| --- | --- |\n| Age | 99 |\n",
+    )
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "paper_role": "main_text",
+                    "title": "Authoritative figure",
+                    "export_paths": [
+                        "../../../paper/figures/generated/F1.pdf",
+                        "../../../paper/figures/generated/F1.png",
+                    ],
+                    "planned_exports": [
+                        "paper/figures/generated/F1.pdf",
+                        "paper/figures/generated/F1.png",
+                    ],
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "table_id": "T1",
+                    "paper_role": "main_text",
+                    "title": "Authoritative table",
+                    "asset_paths": [
+                        "../../../paper/tables/generated/T1.csv",
+                        "../../../paper/tables/generated/T1.md",
+                    ],
+                }
+            ],
+        },
+    )
+    return paper_root
+
+
 def test_create_submission_minimal_package_creates_output_directory_and_copies_pdf(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.submission_minimal")
@@ -558,6 +612,52 @@ def test_describe_submission_minimal_authority_flags_legacy_manifest_when_source
     stale = module.describe_submission_minimal_authority(paper_root=paper_root)
     assert stale["status"] == "stale_source_changed"
     assert stale["stale_reason"] == "submission_source_newer_than_manifest"
+
+
+def test_describe_submission_minimal_authority_ignores_source_mtime_only_drift(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    references_path = paper_root / "references.bib"
+    references_stat = references_path.stat()
+    os.utime(
+        references_path,
+        ns=(references_stat.st_atime_ns, references_stat.st_mtime_ns + 1_000_000_000),
+    )
+
+    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+
+    assert authority["status"] == "current"
+    assert authority["stale_reason"] is None
+    assert authority["source_signature"] == manifest["source_signature"]
+
+
+def test_create_submission_minimal_package_canonicalizes_authoritative_worktree_source_paths(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_authoritative_worktree_source_workspace(tmp_path)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    source_paths = [item["path"] for item in manifest["source_contract"]["source_files"]]
+    assert all(not path.startswith("/") for path in source_paths)
+    assert "paper/figures/generated/F1.png" in source_paths
+    assert "paper/tables/generated/T1.csv" in source_paths
+    assert (paper_root / "submission_minimal" / "tables" / "Table1.csv").read_text(encoding="utf-8") == (
+        "Characteristic,Value\nAge,99\n"
+    )
+
+    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+    assert authority["status"] == "current"
 
 
 def test_create_submission_minimal_package_defaults_to_ama_citation_style(tmp_path: Path) -> None:

@@ -55,6 +55,12 @@ _DIRECT_SUBMISSION_DELIVERY_SYNC_STALE_REASONS = frozenset(
         "delivery_manifest_source_mismatch",
     }
 )
+_SUBMISSION_MINIMAL_SOURCE_MISSING_STALE_REASONS = frozenset(
+    {
+        "current_submission_source_missing",
+        "delivery_manifest_sources_missing",
+    }
+)
 
 
 def _load_controller(module_name: str):
@@ -396,6 +402,13 @@ def _submission_minimal_fingerprint_payload(
         submission_root = submission_minimal.resolve_output_root(
             paper_root=paper_root,
             publication_profile=profile_config.publication_profile,
+        )
+        payload["submission_root"] = _path_fingerprint(submission_root)
+        payload["submission_outputs"] = _path_fingerprints(
+            submission_root / "manuscript.docx",
+            submission_root / "paper.pdf",
+            submission_root / "submission_manifest.json",
+            submission_root / "README.md",
         )
         excluded_compiled_source_roots = submission_minimal.resolve_submission_compiled_source_excluded_roots(
             paper_root=paper_root,
@@ -827,11 +840,28 @@ def _study_delivery_stale_reason(gate_report: dict[str, Any]) -> str:
     return str(gate_report.get("study_delivery_stale_reason") or "").strip()
 
 
+def _submission_minimal_core_outputs_missing(gate_report: dict[str, Any]) -> bool:
+    manifest_present = bool(_non_empty_text(gate_report.get("submission_minimal_manifest_path")))
+    if gate_report.get("submission_minimal_present") is not None:
+        manifest_present = bool(gate_report.get("submission_minimal_present"))
+    return (
+        not manifest_present
+        or not bool(gate_report.get("submission_minimal_docx_present"))
+        or not bool(gate_report.get("submission_minimal_pdf_present"))
+    )
+
+
 def _submission_minimal_refresh_requested(*, gate_report: dict[str, Any]) -> bool:
     current_required_action = str(gate_report.get("current_required_action") or "").strip()
     if current_required_action == "complete_bundle_stage":
         return True
-    return bool(_gate_blockers(gate_report) & _SUBMISSION_MINIMAL_REPAIR_GATE_BLOCKERS)
+    if _gate_blockers(gate_report) & _SUBMISSION_MINIMAL_REPAIR_GATE_BLOCKERS:
+        return True
+    return (
+        _submission_minimal_core_outputs_missing(gate_report)
+        and _study_delivery_status(gate_report).startswith("stale")
+        and _study_delivery_stale_reason(gate_report) in _SUBMISSION_MINIMAL_SOURCE_MISSING_STALE_REASONS
+    )
 
 
 def _direct_submission_delivery_sync_requested(*, gate_report: dict[str, Any]) -> bool:

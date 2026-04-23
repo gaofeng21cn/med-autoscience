@@ -123,6 +123,14 @@ def default_frontiers_supplementary_template_docx_path() -> Path:
     return frontiers_cache_dir() / "Supplementary_Material.docx"
 
 
+def _canonical_paper_relative_path(value: str | Path) -> str | None:
+    parts = Path(str(value).strip()).parts
+    paper_indexes = [index for index, part in enumerate(parts) if part == "paper"]
+    if not paper_indexes:
+        return None
+    return Path(*parts[paper_indexes[-1] :]).as_posix()
+
+
 def build_figure_basename(figure_id: str) -> str:
     if figure_id.startswith("SupplementaryFigure"):
         return figure_id
@@ -330,6 +338,7 @@ def resolve_submission_compiled_source_excluded_roots(
 def copy_with_renamed_targets(
     *,
     workspace_root: Path,
+    paper_root: Path,
     source_paths: list[str],
     output_dir: Path,
     basename: str,
@@ -337,7 +346,11 @@ def copy_with_renamed_targets(
     output_relpaths: list[str] = []
     output_dir.mkdir(parents=True, exist_ok=True)
     for source_rel in source_paths:
-        source_path = resolve_relpath(workspace_root, source_rel)
+        source_path = resolve_submission_source_path(
+            workspace_root=workspace_root,
+            paper_root=paper_root,
+            candidate_path=source_rel,
+        )
         if not source_path.exists():
             raise FileNotFoundError(f"missing submission asset: {source_path}")
         suffix = source_path.suffix
@@ -347,10 +360,29 @@ def copy_with_renamed_targets(
     return output_relpaths
 
 
-def find_missing_source_paths(*, workspace_root: Path, source_paths: list[str]) -> list[Path]:
+def resolve_submission_source_path(
+    *,
+    workspace_root: Path,
+    paper_root: Path,
+    candidate_path: str,
+) -> Path:
+    normalized_candidate = str(candidate_path).strip()
+    canonical_paper_relpath = _canonical_paper_relative_path(normalized_candidate)
+    if canonical_paper_relpath is not None:
+        canonical_candidate = (paper_root.parent / canonical_paper_relpath).resolve()
+        if canonical_candidate.exists():
+            return canonical_candidate
+    return resolve_relpath(workspace_root, normalized_candidate).resolve()
+
+
+def find_missing_source_paths(*, workspace_root: Path, paper_root: Path, source_paths: list[str]) -> list[Path]:
     missing: list[Path] = []
     for source_rel in source_paths:
-        source_path = resolve_relpath(workspace_root, source_rel)
+        source_path = resolve_submission_source_path(
+            workspace_root=workspace_root,
+            paper_root=paper_root,
+            candidate_path=source_rel,
+        )
         if not source_path.exists():
             missing.append(source_path)
     return missing
@@ -812,6 +844,17 @@ def _append_source_contract_entry(
     }
 
 
+def _source_signature_payload(source_files: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "path": item["path"],
+            "size": item["size"],
+            "sha256": item["sha256"],
+        }
+        for item in source_files
+    ]
+
+
 def build_submission_minimal_source_contract(
     *,
     paper_root: Path,
@@ -860,7 +903,11 @@ def build_submission_minimal_source_contract(
         if not isinstance(entry, dict):
             continue
         for source_rel in resolve_figure_source_paths(entry):
-            source_path = resolve_relpath(resolved_workspace_root, source_rel)
+            source_path = resolve_submission_source_path(
+                workspace_root=resolved_workspace_root,
+                paper_root=resolved_paper_root,
+                candidate_path=source_rel,
+            )
             if not source_path.exists():
                 missing_source_paths.add(source_rel)
                 continue
@@ -870,7 +917,11 @@ def build_submission_minimal_source_contract(
         if not isinstance(entry, dict):
             continue
         for source_rel in resolve_table_source_paths(entry):
-            source_path = resolve_relpath(resolved_workspace_root, source_rel)
+            source_path = resolve_submission_source_path(
+                workspace_root=resolved_workspace_root,
+                paper_root=resolved_paper_root,
+                candidate_path=source_rel,
+            )
             if not source_path.exists():
                 missing_source_paths.add(source_rel)
                 continue
@@ -878,7 +929,7 @@ def build_submission_minimal_source_contract(
 
     source_files = sorted(entries_by_path.values(), key=lambda item: str(item["path"]))
     source_signature = hashlib.sha256(
-        json.dumps(source_files, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        json.dumps(_source_signature_payload(source_files), ensure_ascii=False, sort_keys=True).encode("utf-8")
     ).hexdigest()
     latest_source_mtime_ns = max((int(item["mtime_ns"]) for item in source_files), default=0)
     return {
@@ -2237,7 +2288,11 @@ def create_submission_minimal_package(
         export_paths = resolve_figure_source_paths(entry)
         if not export_paths:
             continue
-        missing_paths = find_missing_source_paths(workspace_root=workspace_root, source_paths=export_paths)
+        missing_paths = find_missing_source_paths(
+            workspace_root=workspace_root,
+            paper_root=paper_root,
+            source_paths=export_paths,
+        )
         if missing_paths:
             if is_planned_catalog_entry(entry):
                 continue
@@ -2246,6 +2301,7 @@ def create_submission_minimal_package(
         basename = build_figure_basename(str(entry["figure_id"]))
         output_paths = copy_with_renamed_targets(
             workspace_root=workspace_root,
+            paper_root=paper_root,
             source_paths=export_paths,
             output_dir=figures_output_dir,
             basename=basename,
@@ -2277,7 +2333,11 @@ def create_submission_minimal_package(
         asset_paths = resolve_table_source_paths(entry)
         if not asset_paths:
             continue
-        missing_paths = find_missing_source_paths(workspace_root=workspace_root, source_paths=asset_paths)
+        missing_paths = find_missing_source_paths(
+            workspace_root=workspace_root,
+            paper_root=paper_root,
+            source_paths=asset_paths,
+        )
         if missing_paths:
             if is_planned_catalog_entry(entry):
                 continue
@@ -2286,6 +2346,7 @@ def create_submission_minimal_package(
         basename = build_table_basename(str(entry["table_id"]))
         output_paths = copy_with_renamed_targets(
             workspace_root=workspace_root,
+            paper_root=paper_root,
             source_paths=asset_paths,
             output_dir=tables_output_dir,
             basename=basename,
