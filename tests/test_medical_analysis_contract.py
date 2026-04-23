@@ -98,3 +98,35 @@ def test_resolve_medical_analysis_contract_for_survey_trend_analysis() -> None:
         "predictive_model_framing",
         "figure_by_figure_results_narration",
     )
+
+
+def test_resolve_medical_analysis_contract_for_clinical_subtype_reconstruction() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_analysis_contract")
+
+    contract = module.resolve_medical_analysis_contract(
+        study_archetype="clinical_subtype_reconstruction",
+        endpoint_type="descriptive",
+        submission_target_family="general_medical_journal",
+    )
+
+    assert contract.study_archetype == "clinical_subtype_reconstruction"
+    assert contract.endpoint_type == "descriptive"
+    assert contract.required_analysis_packages == (
+        "subtype_derivation",
+        "subtype_stability_assessment",
+        "clinical_characterization",
+        "treatment_pattern_comparison",
+        "site_held_out_validation",
+        "subgroup_heterogeneity",
+    )
+    assert contract.required_reporting_items == (
+        "paper_experiment_matrix",
+        "derived_analysis_manifest",
+        "subtype_variable_manifest",
+        "subtype_assignment_contract",
+    )
+    assert contract.forbidden_default_routes == (
+        "predictive_model_framing",
+        "causal_treatment_recommendation",
+        "figure_by_figure_results_narration",
+    )

@@ -23,6 +23,7 @@ RECOMMENDED_MANAGED_STUDY_FIELDS = (
 )
 DEFAULT_MANUSCRIPT_FAMILY_BY_ARCHETYPE: dict[str, str] = {
     "clinical_classifier": "prediction_model",
+    "clinical_subtype_reconstruction": "clinical_observation",
     "survey_trend_analysis": "clinical_observation",
 }
 

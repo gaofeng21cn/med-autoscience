@@ -254,6 +254,49 @@ def test_analysis_contract_for_study_supports_survey_trend_analysis(tmp_path: Pa
     ]
 
 
+def test_analysis_contract_for_study_supports_clinical_subtype_reconstruction(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
+    profile = make_profile(
+        tmp_path,
+        preferred_study_archetypes=("clinical_classifier", "clinical_subtype_reconstruction"),
+    )
+    study_root = write_study(
+        profile.studies_root,
+        "001-clinical-subtype",
+        {
+            "study_id": "001-clinical-subtype",
+            "study_archetype": "clinical_subtype_reconstruction",
+            "endpoint_type": "descriptive",
+            "manuscript_family": "clinical_observation",
+        },
+    )
+
+    result = module.resolve_medical_analysis_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+
+    assert result["status"] == "resolved"
+    assert result["study_archetype"] == "clinical_subtype_reconstruction"
+    assert result["endpoint_type"] == "descriptive"
+    assert result["manuscript_family"] == "clinical_observation"
+    assert result["required_analysis_packages"] == [
+        "subtype_derivation",
+        "subtype_stability_assessment",
+        "clinical_characterization",
+        "treatment_pattern_comparison",
+        "site_held_out_validation",
+        "subgroup_heterogeneity",
+    ]
+    assert result["required_reporting_items"] == [
+        "paper_experiment_matrix",
+        "derived_analysis_manifest",
+        "subtype_variable_manifest",
+        "subtype_assignment_contract",
+    ]
+
+
 def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
     profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
@@ -396,6 +439,79 @@ def test_reporting_contract_supports_survey_trend_analysis(tmp_path: Path) -> No
             "display_kind": "figure",
             "story_role": "result_interpretive",
             "narrative_purpose": "divergence_decomposition_or_robustness",
+            "tier": "core",
+        },
+    ]
+    assert result["display_shell_plan"] == [
+        {
+            "display_id": "cohort_flow",
+            "display_kind": "figure",
+            "requirement_key": "cohort_flow_figure",
+            "catalog_id": "F1",
+            "story_role": "study_setup",
+        },
+        {
+            "display_id": "baseline_characteristics",
+            "display_kind": "table",
+            "requirement_key": "table1_baseline_characteristics",
+            "catalog_id": "T1",
+            "story_role": "study_setup",
+        },
+    ]
+
+
+def test_reporting_contract_supports_clinical_subtype_reconstruction(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
+    profile = make_profile(
+        tmp_path,
+        preferred_study_archetypes=("clinical_classifier", "clinical_subtype_reconstruction"),
+    )
+    study_root = write_study(
+        profile.studies_root,
+        "001-clinical-subtype-reporting",
+        {
+            "study_id": "001-clinical-subtype-reporting",
+            "study_archetype": "clinical_subtype_reconstruction",
+            "endpoint_type": "descriptive",
+            "manuscript_family": "clinical_observation",
+        },
+    )
+
+    result = module.resolve_medical_reporting_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+
+    assert result["status"] == "resolved"
+    assert result["study_archetype"] == "clinical_subtype_reconstruction"
+    assert result["endpoint_type"] == "descriptive"
+    assert result["manuscript_family"] == "clinical_observation"
+    assert result["reporting_guideline_family"] == "STROBE"
+    assert result["required_illustration_shells"] == ["cohort_flow_figure"]
+    assert result["required_table_shells"] == ["table1_baseline_characteristics"]
+    assert result["display_ambition"] == "strong"
+    assert result["minimum_main_text_figures"] == 4
+    assert result["recommended_main_text_figures"] == [
+        {
+            "catalog_id": "F2",
+            "display_kind": "figure",
+            "story_role": "result_primary",
+            "narrative_purpose": "phenotype_characterization_and_gap_structure",
+            "tier": "core",
+        },
+        {
+            "catalog_id": "F3",
+            "display_kind": "figure",
+            "story_role": "result_validation",
+            "narrative_purpose": "site_held_out_reproducibility_or_assignment_stability",
+            "tier": "core",
+        },
+        {
+            "catalog_id": "F4",
+            "display_kind": "figure",
+            "story_role": "result_treatment",
+            "narrative_purpose": "treatment_target_gap_alignment",
             "tier": "core",
         },
     ]

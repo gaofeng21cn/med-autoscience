@@ -64,6 +64,49 @@ def test_resolve_medical_reporting_contract_defaults_to_strobe_for_non_predictio
     assert contract.reporting_guideline_family == "STROBE"
 
 
+def test_resolve_medical_reporting_contract_for_clinical_subtype_reconstruction() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
+
+    contract = module.resolve_medical_reporting_contract(
+        study_archetype="clinical_subtype_reconstruction",
+        manuscript_family="clinical_observation",
+        endpoint_type="descriptive",
+        submission_target_family="general_medical_journal",
+    )
+
+    assert contract.reporting_guideline_family == "STROBE"
+    assert contract.table_shell_requirements == ("table1_baseline_characteristics",)
+    assert contract.figure_shell_requirements == ("cohort_flow_figure",)
+    assert contract.required_illustration_shells == ("cohort_flow_figure",)
+    assert contract.required_table_shells == ("table1_baseline_characteristics",)
+    assert contract.required_evidence_templates == ()
+    assert contract.display_ambition == "strong"
+    assert contract.minimum_main_text_figures == 4
+    assert contract.recommended_main_text_figures == (
+        module.DisplayBlueprintItem(
+            catalog_id="F2",
+            display_kind="figure",
+            story_role="result_primary",
+            narrative_purpose="phenotype_characterization_and_gap_structure",
+            tier="core",
+        ),
+        module.DisplayBlueprintItem(
+            catalog_id="F3",
+            display_kind="figure",
+            story_role="result_validation",
+            narrative_purpose="site_held_out_reproducibility_or_assignment_stability",
+            tier="core",
+        ),
+        module.DisplayBlueprintItem(
+            catalog_id="F4",
+            display_kind="figure",
+            story_role="result_treatment",
+            narrative_purpose="treatment_target_gap_alignment",
+            tier="core",
+        ),
+    )
+
+
 def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
 

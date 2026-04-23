@@ -43,7 +43,11 @@ SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES: dict[str, str] = {
     "clinical_observation": "STROBE",
     "randomized_trial": "CONSORT",
 }
-SUPPORTED_STUDY_ARCHETYPES = ("clinical_classifier", "survey_trend_analysis")
+SUPPORTED_STUDY_ARCHETYPES = (
+    "clinical_classifier",
+    "clinical_subtype_reconstruction",
+    "survey_trend_analysis",
+)
 SUPPORTED_ENDPOINT_TYPES = ("binary", "time_to_event", "descriptive")
 SUPPORTED_SUBMISSION_TARGET_FAMILIES = ("general_medical_journal",)
 _LEGACY_REQUIREMENT_KEY_ALIASES: dict[str, tuple[str, ...]] = {
@@ -169,6 +173,37 @@ def resolve_medical_reporting_contract(
     minimum_main_text_figures = 1
     recommended_main_text_figures: tuple[DisplayBlueprintItem, ...] = ()
     if (
+        study_archetype == "clinical_subtype_reconstruction"
+        and manuscript_family == "clinical_observation"
+        and endpoint_type == "descriptive"
+        and submission_target_family == "general_medical_journal"
+    ):
+        display_ambition = "strong"
+        minimum_main_text_figures = 4
+        recommended_main_text_figures = (
+            DisplayBlueprintItem(
+                catalog_id="F2",
+                display_kind="figure",
+                story_role="result_primary",
+                narrative_purpose="phenotype_characterization_and_gap_structure",
+                tier="core",
+            ),
+            DisplayBlueprintItem(
+                catalog_id="F3",
+                display_kind="figure",
+                story_role="result_validation",
+                narrative_purpose="site_held_out_reproducibility_or_assignment_stability",
+                tier="core",
+            ),
+            DisplayBlueprintItem(
+                catalog_id="F4",
+                display_kind="figure",
+                story_role="result_treatment",
+                narrative_purpose="treatment_target_gap_alignment",
+                tier="core",
+            ),
+        )
+    elif (
         study_archetype == "clinical_classifier"
         and manuscript_family == "prediction_model"
         and endpoint_type == "time_to_event"

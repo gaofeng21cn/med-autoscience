@@ -12,7 +12,11 @@ class MedicalAnalysisContract:
     required_reporting_items: tuple[str, ...]
     forbidden_default_routes: tuple[str, ...]
 
-SUPPORTED_STUDY_ARCHETYPES = ("clinical_classifier", "survey_trend_analysis")
+SUPPORTED_STUDY_ARCHETYPES = (
+    "clinical_classifier",
+    "clinical_subtype_reconstruction",
+    "survey_trend_analysis",
+)
 SUPPORTED_ENDPOINT_TYPES = ("binary", "time_to_event", "descriptive")
 SUPPORTED_SUBMISSION_TARGET_FAMILIES = ("general_medical_journal",)
 
@@ -31,6 +35,14 @@ ANALYSIS_PACKAGES: dict[tuple[str, str], tuple[str, ...]] = {
         "censoring_aware_validation",
         "subgroup_heterogeneity",
         "sensitivity_support",
+    ),
+    ("clinical_subtype_reconstruction", "descriptive"): (
+        "subtype_derivation",
+        "subtype_stability_assessment",
+        "clinical_characterization",
+        "treatment_pattern_comparison",
+        "site_held_out_validation",
+        "subgroup_heterogeneity",
     ),
     ("survey_trend_analysis", "descriptive"): (
         "descriptive_prevalence_estimation",
@@ -51,6 +63,12 @@ REQUIRED_REPORTING_ITEMS: dict[tuple[str, str], tuple[str, ...]] = {
         "horizon_definition",
         "model_specification",
     ),
+    ("clinical_subtype_reconstruction", "descriptive"): (
+        "paper_experiment_matrix",
+        "derived_analysis_manifest",
+        "subtype_variable_manifest",
+        "subtype_assignment_contract",
+    ),
     ("survey_trend_analysis", "descriptive"): (
         "paper_experiment_matrix",
         "derived_analysis_manifest",
@@ -60,6 +78,11 @@ REQUIRED_REPORTING_ITEMS: dict[tuple[str, str], tuple[str, ...]] = {
 FORBIDDEN_DEFAULT_ROUTES: dict[tuple[str, str], tuple[str, ...]] = {
     ("clinical_classifier", "binary"): ("figure_by_figure_results_narration",),
     ("clinical_classifier", "time_to_event"): ("figure_by_figure_results_narration",),
+    ("clinical_subtype_reconstruction", "descriptive"): (
+        "predictive_model_framing",
+        "causal_treatment_recommendation",
+        "figure_by_figure_results_narration",
+    ),
     ("survey_trend_analysis", "descriptive"): (
         "predictive_model_framing",
         "figure_by_figure_results_narration",
