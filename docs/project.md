@@ -5,13 +5,14 @@
 ## 三层结构
 
 - 用户层：研究问题、工作区、进度反馈、交付文件都统一由 `Med Auto Science` 这条 domain agent 主线承载；MAS 是唯一研究入口与 owner。
-- 操作与集成层：`CLI`、`MCP`、`controller` 供 MAS 控制面与自动化使用；`OPL` 与机器可读产品接入接口只做 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不接管研究 owner 身份。
-- 运行时层：`Med Auto Science` 持有课题与工作区权威语义以及发表判断；上游 `Hermes-Agent` 是外部运行时目标；`MedDeepScientist` 只保留为受控后端、behavior oracle 与 upstream intake buffer，不是用户入口，也不是第二 owner。
+- 操作与集成层：`CLI`、`MCP`、`controller`，以及 repo-tracked 的 workspace commands / scripts / contracts，共同构成 MAS 对外稳定 capability surface；`OPL` 与机器可读产品接入接口只做 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不接管研究 owner 身份。
+- 运行时层：`Med Auto Science` 持有课题与工作区权威语义以及发表判断；默认执行继续继承本机 `Codex` 配置；`Hermes-Agent` 只作为可选 hosted runtime target / reference-layer 运行载体；`MedDeepScientist` 只保留为受控后端、behavior oracle 与 upstream intake buffer，不是用户入口，也不是第二 owner。
 
 ## 当前目标
 
 - 把医学研究的关键判断和运行状态沉到可审计的仓库跟踪合同与持久表面。
 - 让研究问题、工作区语境、进度反馈和文件交付始终围绕同一条课题线组织。
+- 把 CLI、本地程序/脚本、durable surface 与 repo-tracked contract 收口成稳定 capability surface，方便 `Codex` / `OPL` skill activation 直接调用。
 - 让方向锁定后的自治推进、论文质量合同和投稿前审计沿同一条 controller 主线收口。
 - 维护稳定的运行时合同、进度表面和交付表面，确保研究推进可验证、可回看、可迭代。
 
@@ -20,7 +21,7 @@
 - `Med Auto Science` 负责医学研究工作线本身，并作为唯一研究入口与 owner。
 - `Med Auto Science` 的 `direct entry` 与 `OPL handoff` 共享同一套研究语义与 durable truth surfaces。
 - `OPL` 是更高层的整合入口；它不会改写 MAS 的领域真相，也不把 MAS 定义为内部模块。
-- `Hermes-Agent` 作为外部运行时目标继续用来描述长期在线运行底座与监管责任方。
+- `Hermes-Agent` 继续只出现在可选 hosted runtime target 或 reference-layer 语境，不改写 MAS 的稳定 capability surface 或研究 owner 语义。
 - `MedDeepScientist` 继续承载当前仍保留在受控后端中的研究执行能力，同时保留 behavior oracle 与 upstream intake buffer 职责；它不作为用户入口，也不承担第二 owner 身份。
 
 ## 当前非目标

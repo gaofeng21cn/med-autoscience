@@ -7,14 +7,15 @@
 - `Med Auto Science` 是面向专病研究的医学研究工作台，负责研究问题进入、工作区语境、证据推进、人话进度和论文相关文件交付。
 - 仓库首页负责用户入口；`CLI`、`MCP`、`controller` 负责操作与自动化入口。
 - `Med Auto Science` 作为独立 medical research domain agent，支持 `direct entry` 与 `OPL handoff` 两条路径，且两条路径研究语义一致。
+- 对外稳定 capability surface 继续是本地 CLI、workspace commands / scripts、durable truth surface 与 repo-tracked contract，方便 `Codex` / `OPL` 直接调用。
 - `OPL` 是上层 family-level session/runtime/projection 整合入口，并维护 shared modules/contracts/indexes；它不改写 MAS 的 domain owner 语义。
-- 上游 `Hermes-Agent` 指外部运行时目标与监管责任方；当前受控研究后端继续是 `MedDeepScientist`，但它在单项目主线里只保留 research backend、行为等价 oracle、上游 intake buffer 三个迁移期角色。
+- `Hermes-Agent` 只在可选 hosted runtime target / reference-layer 语境出现；当前受控研究后端继续是 `MedDeepScientist`，但它在单项目主线里只保留 research backend、行为等价 oracle、上游 intake buffer 三个迁移期角色。
 
 ## 当前推荐使用方式
 
 - 用户视角：给出病种、数据、目标问题和期望论文结果，在同一个工作区里持续推进研究。
 - 研究推进视角：围绕同一条课题线管理问题定义、证据补足、进度反馈和文件交付。
-- 命令行操作视角：当前最小操作路径仍是 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 这一组接口。
+- 命令行操作视角：当前最小操作路径仍是 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 这一组接口；这组接口与其他 repo-tracked contracts 共同构成面向 `Codex` / `OPL` 的稳定 capability surface。
 
 ## 当前执行与监管模型
 

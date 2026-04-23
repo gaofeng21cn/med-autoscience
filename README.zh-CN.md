@@ -60,6 +60,7 @@
 
 - `Med Auto Science` 是独立的 medical research domain agent，可被 Codex、OPL 或其他通用 agent 直接调用。
 - 它同时支持 `direct entry` 与 `OPL handoff` 两条入口路径，两条路径的研究语义、authority 边界与 durable truth surface 保持一致。
+- 它对外稳定暴露的 capability surface 是本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract，方便 `Codex` 或 `OPL` skill activation 直接调用。
 - 它负责课题接收、工作区语境、证据推进、进度投影和面向论文的交付。
 - `OPL` 只负责 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不把 MAS 改写成内部模块。
 - 临床问题界定、结论采用和投稿决策由研究者与课题负责人把关。
@@ -79,7 +80,7 @@
 - 先读 [文档索引](./docs/README.zh-CN.md)。这里已经把当前产品边界、operator entry surface 和技术阅读顺序列清楚了。
 - 如果你要接管或初始化一个专病 workspace，下一跳读 [Bootstrap](./bootstrap/README.md)。它说明了 workspace-first 心智模型，以及 `init-workspace -> doctor -> show-profile -> bootstrap` 这条最短接管路径。
 - 在改 runtime、入口表述或 docs 之前，把 [项目概览](./docs/project.md)、[当前状态](./docs/status.md)、[架构](./docs/architecture.md)、[不可变约束](./docs/invariants.md) 和 [关键决策](./docs/decisions.md) 当成 repo-tracked 真相集。
-- 当前正式 operator entry surfaces 是 `CLI`、`MCP` 和 `controller`。产品入口与运行时合同主要放在 `docs/runtime/` 和 `docs/program/`，Agent 可以直接从这些文档切入，不必先通读代码。
+- 当前正式 operator entry surfaces 是 `CLI`、`MCP` 和 `controller`。产品入口与运行时合同主要放在 `docs/runtime/` 和 `docs/program/`，Agent 可以直接从这些文档切入，不必先通读代码；稳定可调用面继续是本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract。
 
 </details>
 

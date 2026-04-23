@@ -9,13 +9,13 @@
    - `Med Auto Science` 在这一层以独立 medical research domain agent 身份组织同一条课题线，支持 direct entry 与 federated entry。
 
 2. 操作与集成层
-   - `CLI`、`MCP`、`controller` 是操作与自动化接口。
+   - `CLI`、`MCP`、`controller`，以及 repo-tracked 的 workspace commands / scripts / contracts，是操作与自动化接口，也是对外稳定 capability surface。
    - `OPL`、`product-entry manifest` 和其他机器可读桥接属于上层整合与自动化消费面。
    - 这一层负责把 MAS 控制面接到更高层入口；`direct entry` 与 `OPL handoff` 必须保持同一套研究语义与 owner 边界。
 
 3. 运行时与持久真相层
    - `Med Auto Science` 持有课题与工作区权威语义、进度语义和发表判断，是唯一研究入口与 owner。
-   - 上游 `Hermes-Agent` 指外部运行时目标与监管责任方。
+   - 默认执行继续继承本机 `Codex` 配置；`Hermes-Agent` 只作为可选 hosted runtime target / reference-layer 运行载体。
    - `MedDeepScientist` 只保留为当前受控研究后端、behavior oracle 与 upstream intake buffer，承接仍留在后端的研究执行能力；它不是用户入口，也不是第二 owner。
 
 ## 当前主链路
@@ -43,8 +43,8 @@
 
 ## 当前运行时责任分层
 
-- `Med Auto Science`：唯一研究入口、课题与工作区权威语义、进度语义、发表判断 owner。
-- 上游 `Hermes-Agent`：外部运行时底座与监管责任方。
+- `Med Auto Science`：唯一研究入口、课题与工作区权威语义、进度语义、发表判断 owner，同时对外暴露稳定 capability surface。
+- `Hermes-Agent`：只在可选 hosted runtime target / reference-layer 语境出现，不改写默认 capability contract。
 - `MedDeepScientist`：当前受控研究后端、behavior oracle、upstream intake buffer；不承担用户入口或第二 owner 身份。
 
 ## 当前自治与质量合同主线
