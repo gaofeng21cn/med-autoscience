@@ -37,6 +37,35 @@ def test_domain_entry_dispatches_product_frontdesk(monkeypatch, tmp_path: Path) 
     }
 
 
+def test_domain_entry_dispatches_skill_catalog(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.domain_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    monkeypatch.setattr(module, "load_profile", lambda ref: profile)
+    monkeypatch.setattr(
+        module.product_entry,
+        "build_skill_catalog",
+        lambda *, profile, profile_ref=None: {
+            "surface_kind": "skill_catalog",
+            "skills": [{"skill_id": "mas_workspace_cockpit"}],
+        },
+    )
+
+    payload = module.MedAutoScienceDomainEntry().dispatch(
+        {
+            "command": "skill-catalog",
+            "profile_ref": str(profile_ref),
+        }
+    )
+
+    assert payload == {
+        "command": "skill-catalog",
+        "surface_kind": "skill_catalog",
+        "skills": [{"skill_id": "mas_workspace_cockpit"}],
+    }
+
+
 def test_external_caller_can_consume_domain_entry_contract_without_repo_local_helper(
     monkeypatch,
     tmp_path: Path,

@@ -1384,6 +1384,28 @@ def test_product_start_command_dispatches_product_entry_controller(monkeypatch, 
     assert json.loads(captured.out)["surface_kind"] == "product_entry_start"
 
 
+def test_product_skill_catalog_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_build_skill_catalog(*, profile, profile_ref) -> dict:
+        called["profile"] = profile
+        called["profile_ref"] = profile_ref
+        return {"surface_kind": "skill_catalog", "skills": [{"skill_id": "mas_workspace_cockpit"}]}
+
+    monkeypatch.setattr(cli.product_entry, "build_skill_catalog", fake_build_skill_catalog)
+
+    exit_code = cli.main(["product", "skill-catalog", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["profile_ref"] == Path(profile_path)
+    assert json.loads(captured.out)["surface_kind"] == "skill_catalog"
+
+
 def test_mainline_status_command_dispatches_controller(monkeypatch, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

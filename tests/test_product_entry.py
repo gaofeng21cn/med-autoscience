@@ -2686,6 +2686,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "product-preflight",
         "product-start",
         "product-entry-manifest",
+        "skill-catalog",
         "study-progress",
         "study-runtime-status",
         "launch-study",

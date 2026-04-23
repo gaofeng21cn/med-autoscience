@@ -36,6 +36,7 @@ SERVICE_SAFE_DOMAIN_COMMANDS: dict[str, DomainEntryCommandSpec] = {
     "product-preflight": DomainEntryCommandSpec(("profile_ref",)),
     "product-start": DomainEntryCommandSpec(("profile_ref",)),
     "product-entry-manifest": DomainEntryCommandSpec(("profile_ref",)),
+    "skill-catalog": DomainEntryCommandSpec(("profile_ref",)),
     "study-progress": DomainEntryCommandSpec(("profile_ref", "study_id"), ("entry_mode",)),
     "study-runtime-status": DomainEntryCommandSpec(("profile_ref", "study_id"), ("entry_mode",)),
     "launch-study": DomainEntryCommandSpec(

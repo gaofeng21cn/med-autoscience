@@ -456,6 +456,10 @@ def build_parser() -> argparse.ArgumentParser:
     product_entry_manifest_parser.add_argument("--profile", required=True)
     product_entry_manifest_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
 
+    skill_catalog_parser = subparsers.add_parser("skill-catalog")
+    skill_catalog_parser.add_argument("--profile", required=True)
+    skill_catalog_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
     build_product_entry_parser = subparsers.add_parser("build-product-entry")
     build_product_entry_parser.add_argument("--profile", required=True)
     build_product_entry_parser.add_argument("--study-id", type=str)
@@ -576,6 +580,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("product", "preflight"): "product-preflight",
     ("product", "start"): "product-start",
     ("product", "manifest"): "product-entry-manifest",
+    ("product", "skill-catalog"): "skill-catalog",
     ("product", "build-entry"): "build-product-entry",
 }
 
@@ -614,6 +619,7 @@ def _print_public_help() -> None:
             "  medautosci doctor report --profile <profile>",
             "  medautosci study progress --profile <profile> --study-id <study_id>",
             "  medautosci product manifest --profile <profile> --study-id <study_id>",
+            "  medautosci product skill-catalog --profile <profile> --format json",
         ]
     )
     print("\n".join(lines))
@@ -887,6 +893,18 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(product_entry.render_product_entry_manifest_markdown(result), end="")
+        return 0
+
+    if args.command == "skill-catalog":
+        profile = load_profile(args.profile)
+        result = product_entry.build_skill_catalog(
+            profile=profile,
+            profile_ref=Path(args.profile),
+        )
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(product_entry.render_skill_catalog_markdown(result), end="")
         return 0
 
     if args.command == "build-product-entry":

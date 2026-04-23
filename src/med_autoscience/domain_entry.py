@@ -43,6 +43,8 @@ class MedAutoScienceDomainEntry:
             payload = product_entry.build_product_entry_start(profile=profile, profile_ref=profile_ref)
         elif command == "product-entry-manifest":
             payload = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+        elif command == "skill-catalog":
+            payload = product_entry.build_skill_catalog(profile=profile, profile_ref=profile_ref)
         elif command == "study-progress":
             payload = study_progress.read_study_progress(
                 profile=profile,

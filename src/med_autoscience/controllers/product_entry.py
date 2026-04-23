@@ -3538,6 +3538,18 @@ def build_product_entry_manifest(
     return payload
 
 
+def build_skill_catalog(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None = None,
+) -> dict[str, Any]:
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    skill_catalog = dict(manifest.get("skill_catalog") or {})
+    if not skill_catalog:
+        raise ValueError("product entry manifest 缺少 skill_catalog。")
+    return skill_catalog
+
+
 def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
     workspace_locator = dict(payload.get("workspace_locator") or {})
     repo_mainline = dict(payload.get("repo_mainline") or {})
@@ -3626,6 +3638,36 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
     else:
         lines.append("- none")
     lines.append("")
+    return "\n".join(lines)
+
+
+def render_skill_catalog_markdown(payload: dict[str, Any]) -> str:
+    skills = [dict(item) for item in (payload.get("skills") or []) if isinstance(item, Mapping)]
+    lines = [
+        "# Skill Catalog",
+        "",
+        f"- surface kind: `{payload.get('surface_kind') or 'none'}`",
+        f"- summary: {payload.get('summary') or 'none'}",
+        "",
+        "## Skills",
+        "",
+    ]
+    if not skills:
+        lines.append("- 当前没有 skill descriptor。")
+    for skill in skills:
+        lines.append(f"- `{skill.get('skill_id') or 'unknown'}`: {skill.get('description') or 'none'}")
+        lines.append(f"  - target surface: `{skill.get('target_surface_kind') or 'none'}`")
+        lines.append(f"  - command: `{skill.get('command') or 'none'}`")
+    command_contracts = [dict(item) for item in (payload.get("command_contracts") or []) if isinstance(item, Mapping)]
+    lines.extend(["", "## Command Contracts", ""])
+    if not command_contracts:
+        lines.append("- 当前没有 command contract。")
+    for contract in command_contracts:
+        required_fields = ", ".join(contract.get("required_fields") or []) or "none"
+        optional_fields = ", ".join(contract.get("optional_fields") or []) or "none"
+        lines.append(f"- `{contract.get('command') or 'unknown'}`")
+        lines.append(f"  - required: {required_fields}")
+        lines.append(f"  - optional: {optional_fields}")
     return "\n".join(lines)
 
 
