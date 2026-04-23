@@ -14,6 +14,14 @@ _TARGETS = (
     Path("tests/display_schema_contract_cases/chunk_02_omics_matrix.py"),
     Path("tests/display_schema_contract_cases/chunk_02_effects_and_explanations.py"),
     Path("tests/display_schema_contract_cases/chunk_02_clinical_and_shells.py"),
+    Path("tests/test_medical_publication_surface.py"),
+    Path("tests/medical_publication_surface_cases/shared_base.py"),
+    Path("tests/medical_publication_surface_cases/quest_factory.py"),
+    Path("tests/medical_publication_surface_cases/chunk_01.py"),
+    Path("tests/medical_publication_surface_cases/chunk_02.py"),
+    Path("tests/medical_publication_surface_cases/chunk_03.py"),
+    Path("tests/medical_publication_surface_cases/chunk_04.py"),
+    Path("tests/medical_publication_surface_cases/chunk_05.py"),
 )
 
 
