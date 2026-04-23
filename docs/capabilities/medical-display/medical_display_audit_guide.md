@@ -28,8 +28,8 @@ This guide covers the audited display surface only. A display counts as "impleme
 
 1. It is registered in `src/med_autoscience/display_registry.py`.
 2. It is covered by `src/med_autoscience/display_schema_contract.py`.
-3. `src/med_autoscience/controllers/display_surface_materialization.py` can materialize it from the registered input schema.
-4. Its output is checked by the registered QC profile in `src/med_autoscience/display_layout_qc.py`, or by the registered table/shell contract.
+3. `src/med_autoscience/controllers/display_surface_materialization/` can materialize it from the registered input schema.
+4. Its output is checked by the registered QC profile in `src/med_autoscience/display_layout_qc/`, or by the registered table/shell contract.
 5. The resulting catalog entry survives publication-surface and submission-minimal validation.
 
 This definition is intentionally stricter than "present in a catalog" or "listed in a planning document".
@@ -44,9 +44,9 @@ The audited source files are:
   - Official registry of evidence figures, illustration shells, and table shells.
 - `src/med_autoscience/display_schema_contract.py`
   - Official schema classes and input-schema field contracts.
-- `src/med_autoscience/controllers/display_surface_materialization.py`
+- `src/med_autoscience/controllers/display_surface_materialization/`
   - Official materialization path from payload to exported surface.
-- `src/med_autoscience/display_layout_qc.py`
+- `src/med_autoscience/display_layout_qc/`
   - Official layout QC engine for publication-facing figures.
 - `src/med_autoscience/controllers/medical_publication_surface.py`
   - Official manuscript-safety scan and catalog contract enforcement layer.

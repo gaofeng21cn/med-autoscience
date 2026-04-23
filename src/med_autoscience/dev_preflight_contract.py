@@ -79,11 +79,9 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         exact_paths=(
             "docs/capabilities/medical-display/medical_display_audit_guide.md",
             "docs/capabilities/medical-display/medical_display_template_catalog.md",
-            "src/med_autoscience/display_layout_qc.py",
             "src/med_autoscience/display_registry.py",
             "src/med_autoscience/display_schema_contract.py",
             "src/med_autoscience/display_template_catalog.py",
-            "src/med_autoscience/controllers/display_surface_materialization.py",
             "src/med_autoscience/controllers/medical_publication_surface.py",
             "src/med_autoscience/controllers/publication_gate.py",
             "tests/test_display_layout_qc.py",
@@ -92,7 +90,10 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "tests/test_medical_publication_surface.py",
             "tests/test_publication_gate.py",
         ),
-        prefix_paths=(),
+        prefix_paths=(
+            "src/med_autoscience/display_layout_qc/",
+            "src/med_autoscience/controllers/display_surface_materialization/",
+        ),
         commands=(
             "uv run pytest tests/test_display_schema_contract.py -q",
             "uv run pytest tests/test_display_surface_materialization.py -q",

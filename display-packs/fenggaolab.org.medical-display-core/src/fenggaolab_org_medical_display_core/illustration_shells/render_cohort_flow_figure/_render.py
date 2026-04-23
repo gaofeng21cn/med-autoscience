@@ -7,11 +7,10 @@ import matplotlib
 
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
-from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-from ..shared import (
+from ...shared import (
     _FlowNodeSpec,
-    _FlowTextLine,
     _GraphvizNodeBox,
     _flow_box_to_normalized,
     _flow_html_label_for_node,
@@ -19,10 +18,17 @@ from ..shared import (
     _measure_flow_text_width_pt,
     _require_non_empty_string,
     _run_graphviz_layout,
-    _wrap_flow_text_to_width,
-    dump_json,
 )
 
+from ._single_panel import _render_single_panel_cards
+from ._specs import (
+    _build_cohort_flow_design_panel_specs,
+    _build_cohort_flow_exclusion_spec,
+    _build_cohort_flow_step_spec,
+    _cohort_flow_block_colors,
+    _cohort_flow_spec_base_height,
+)
+from ._write_outputs import _write_multi_panel_outputs
 
 _COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES: dict[str, str] = {
     "full_right": "wide_top",
@@ -139,302 +145,35 @@ def _render_cohort_flow_figure(
     exclusion_min_rendered_padding_pt = read_float(layout_override, "flow_exclusion_min_rendered_padding_pt", 6.0)
 
     if layout_mode == "single_panel_cards":
-        comparison_title = str(comparison_summary.get("title") or "Shared descriptive comparison").strip()
-        comparison_body = str(
-            comparison_summary.get("body")
-            or "The three surveys define the historical patient, contemporary patient, and contemporary clinician surfaces used throughout the main manuscript displays."
-        ).strip()
-        top_margin_pt = read_float(layout_override, "single_panel_top_margin_pt", 56.0)
-        bottom_margin_single_panel_pt = read_float(layout_override, "single_panel_bottom_margin_pt", 28.0)
-        card_gap_pt = read_float(layout_override, "single_panel_card_gap_pt", 32.0)
-        card_height_pt = read_float(layout_override, "single_panel_card_height_pt", 212.0)
-        header_height_pt = read_float(layout_override, "single_panel_card_header_height_pt", 54.0)
-        summary_gap_pt = read_float(layout_override, "single_panel_summary_gap_pt", 38.0)
-        summary_height_pt = read_float(layout_override, "single_panel_summary_height_pt", 132.0)
-        summary_header_height_pt = read_float(layout_override, "single_panel_summary_header_height_pt", 42.0)
-        step_count = max(1, len(steps))
-        available_width_pt = max(420.0, figure_width_pt - side_margin_pt * 2.0)
-        default_card_width_pt = (available_width_pt - max(0, step_count - 1) * card_gap_pt) / step_count
-        card_width_pt = read_float(layout_override, "single_panel_card_width_pt", default_card_width_pt)
-        card_width_pt = min(card_width_pt, default_card_width_pt)
-        cards_total_width_pt = card_width_pt * step_count + max(0, step_count - 1) * card_gap_pt
-        card_start_x = (figure_width_pt - cards_total_width_pt) / 2.0
-        comparison_width_pt = min(
-            read_float(layout_override, "single_panel_summary_width_pt", min(available_width_pt, 520.0)),
-            available_width_pt,
+        _render_single_panel_cards(
+            output_svg_path=output_svg_path,
+            output_png_path=output_png_path,
+            output_layout_path=output_layout_path,
+            steps=steps,
+            exclusions=exclusions,
+            endpoint_inventory=endpoint_inventory,
+            design_panels=design_panels,
+            comparison_summary=comparison_summary,
+            layout_override=layout_override,
+            side_margin_pt=side_margin_pt,
+            figure_width_pt=figure_width_pt,
+            flow_main_fill=flow_main_fill,
+            flow_main_edge=flow_main_edge,
+            flow_secondary_fill=flow_secondary_fill,
+            flow_secondary_edge=flow_secondary_edge,
+            flow_context_fill=flow_context_fill,
+            flow_primary_edge=flow_primary_edge,
+            flow_title_text=flow_title_text,
+            flow_body_text=flow_body_text,
+            flow_connector=flow_connector,
+            base_card_title_size=base_card_title_size,
+            base_label_size=base_label_size,
+            base_detail_size=base_detail_size,
+            base_secondary_linewidth=base_secondary_linewidth,
+            base_connector_linewidth=base_connector_linewidth,
+            render_context_payload=render_context_payload,
+            read_float=read_float,
         )
-        comparison_x0 = (figure_width_pt - comparison_width_pt) / 2.0
-        comparison_y0 = bottom_margin_single_panel_pt
-        card_y0 = comparison_y0 + summary_height_pt + summary_gap_pt
-        canvas_height_pt = card_y0 + card_height_pt + top_margin_pt
-
-        figure_width_in = figure_width_pt / 72.0
-        figure_height_in = canvas_height_pt / 72.0
-        fig, ax = plt.subplots(figsize=(figure_width_in, figure_height_in))
-        fig.patch.set_facecolor("white")
-        ax.set_xlim(0.0, figure_width_pt)
-        ax.set_ylim(0.0, canvas_height_pt)
-        ax.axis("off")
-
-        layout_boxes: list[dict[str, Any]] = []
-        panel_boxes: list[dict[str, Any]] = []
-        guide_boxes: list[dict[str, Any]] = []
-        flow_nodes: list[dict[str, Any]] = []
-        card_boxes: list[dict[str, float]] = []
-
-        body_number_size = max(base_card_title_size + 17.0, 27.0)
-        body_label_size = max(base_label_size + 2.5, 13.0)
-        role_label_size = max(base_detail_size + 2.2, 11.5)
-
-        for index, step in enumerate(steps):
-            x0 = card_start_x + index * (card_width_pt + card_gap_pt)
-            x1 = x0 + card_width_pt
-            y1 = card_y0 + card_height_pt
-            y0 = card_y0
-            outer_patch = FancyBboxPatch(
-                (x0, y0),
-                card_width_pt,
-                card_height_pt,
-                boxstyle="round,pad=0.0,rounding_size=20",
-                facecolor=flow_main_fill,
-                edgecolor=flow_main_edge,
-                linewidth=max(1.2, base_secondary_linewidth),
-            )
-            ax.add_patch(outer_patch)
-            ax.add_patch(
-                Rectangle(
-                    (x0, y1 - header_height_pt),
-                    card_width_pt,
-                    header_height_pt,
-                    facecolor=flow_context_fill,
-                    edgecolor="none",
-                )
-            )
-            title_lines = _wrap_flow_text_to_width(
-                str(step["label"]),
-                max_width_pt=card_width_pt - 28.0,
-                font_size=max(base_card_title_size + 0.6, 13.0),
-                font_weight="bold",
-                max_chars=24,
-            )
-            ax.text(
-                (x0 + x1) / 2.0,
-                y1 - header_height_pt / 2.0,
-                "\n".join(title_lines),
-                fontsize=max(base_card_title_size + 0.6, 13.0),
-                fontweight="bold",
-                color=flow_title_text,
-                ha="center",
-                va="center",
-            )
-            ax.text(
-                (x0 + x1) / 2.0,
-                y0 + card_height_pt * 0.58,
-                f"n={step['n']}",
-                fontsize=body_number_size,
-                fontweight="bold",
-                color=flow_primary_edge,
-                ha="center",
-                va="center",
-            )
-            columns = step.get("columns")
-            if isinstance(columns, int):
-                ax.text(
-                    (x0 + x1) / 2.0,
-                    y0 + card_height_pt * 0.40,
-                    f"{columns} columns",
-                    fontsize=body_label_size,
-                    color=flow_body_text,
-                    ha="center",
-                    va="center",
-                )
-            role_label = str(step.get("role_label") or step.get("detail") or "").strip()
-            if role_label:
-                role_lines = _wrap_flow_text_to_width(
-                    role_label,
-                    max_width_pt=card_width_pt - 34.0,
-                    font_size=role_label_size,
-                    font_weight="normal",
-                    max_chars=28,
-                )
-                ax.text(
-                    (x0 + x1) / 2.0,
-                    y0 + 26.0,
-                    "\n".join(role_lines),
-                    fontsize=role_label_size,
-                    color=flow_body_text,
-                    ha="center",
-                    va="bottom",
-                )
-            card_box = {"x0": x0, "y0": y0, "x1": x1, "y1": y1}
-            card_boxes.append(card_box)
-            layout_boxes.append(
-                _flow_box_to_normalized(
-                    **card_box,
-                    canvas_width_pt=figure_width_pt,
-                    canvas_height_pt=canvas_height_pt,
-                    box_id=f"survey_card_{step['step_id']}",
-                    box_type="survey_card",
-                )
-            )
-            flow_nodes.append(
-                {
-                    "box_id": f"survey_card_{step['step_id']}",
-                    "box_type": "survey_card",
-                    "line_count": len(title_lines) + (1 if role_label else 0) + (1 if isinstance(columns, int) else 0) + 1,
-                    "max_line_chars": max(
-                        [len(str(step["label"])), len(f"n={step['n']}"), len(str(columns) + " columns") if isinstance(columns, int) else 0]
-                        + [len(role_label)]
-                    ),
-                    "rendered_height_pt": card_height_pt,
-                    "rendered_width_pt": card_width_pt,
-                    "padding_pt": 18.0,
-                }
-            )
-
-        comparison_box = {
-            "x0": comparison_x0,
-            "y0": comparison_y0,
-            "x1": comparison_x0 + comparison_width_pt,
-            "y1": comparison_y0 + summary_height_pt,
-        }
-        ax.add_patch(
-            FancyBboxPatch(
-                (comparison_box["x0"], comparison_box["y0"]),
-                comparison_width_pt,
-                summary_height_pt,
-                boxstyle="round,pad=0.0,rounding_size=18",
-                facecolor=flow_secondary_fill,
-                edgecolor=flow_secondary_edge,
-                linewidth=max(1.2, base_secondary_linewidth),
-            )
-        )
-        ax.add_patch(
-            Rectangle(
-                (comparison_box["x0"], comparison_box["y1"] - summary_header_height_pt),
-                comparison_width_pt,
-                summary_header_height_pt,
-                facecolor=flow_context_fill,
-                edgecolor="none",
-            )
-        )
-        ax.text(
-            (comparison_box["x0"] + comparison_box["x1"]) / 2.0,
-            comparison_box["y1"] - summary_header_height_pt / 2.0,
-            comparison_title,
-            fontsize=max(base_card_title_size + 0.8, 13.0),
-            fontweight="bold",
-            color=flow_title_text,
-            ha="center",
-            va="center",
-        )
-        comparison_lines = _wrap_flow_text_to_width(
-            comparison_body,
-            max_width_pt=comparison_width_pt - 36.0,
-            font_size=max(base_label_size + 1.4, 11.5),
-            font_weight="normal",
-            max_chars=56,
-        )
-        ax.text(
-            (comparison_box["x0"] + comparison_box["x1"]) / 2.0,
-            comparison_box["y0"] + (summary_height_pt - summary_header_height_pt) / 2.0,
-            "\n".join(comparison_lines),
-            fontsize=max(base_label_size + 1.4, 11.5),
-            color=flow_body_text,
-            ha="center",
-            va="center",
-        )
-        layout_boxes.append(
-            _flow_box_to_normalized(
-                **comparison_box,
-                canvas_width_pt=figure_width_pt,
-                canvas_height_pt=canvas_height_pt,
-                box_id="comparison_box",
-                box_type="comparison_summary",
-            )
-        )
-        flow_nodes.append(
-            {
-                "box_id": "comparison_box",
-                "box_type": "comparison_summary",
-                "line_count": len(comparison_lines) + 1,
-                "max_line_chars": max([len(comparison_title)] + [len(line) for line in comparison_lines]),
-                "rendered_height_pt": summary_height_pt,
-                "rendered_width_pt": comparison_width_pt,
-                "padding_pt": 18.0,
-            }
-        )
-
-        arrow_targets = (
-            comparison_box["x0"] + comparison_width_pt * 0.18,
-            (comparison_box["x0"] + comparison_box["x1"]) / 2.0,
-            comparison_box["x1"] - comparison_width_pt * 0.18,
-        )
-        for card_box, arrow_x in zip(card_boxes, arrow_targets, strict=False):
-            start_x = (card_box["x0"] + card_box["x1"]) / 2.0
-            start_y = card_box["y0"] - 8.0
-            end_y = comparison_box["y1"] + 8.0
-            ax.add_patch(
-                FancyArrowPatch(
-                    (start_x, start_y),
-                    (arrow_x, end_y),
-                    arrowstyle="-|>",
-                    mutation_scale=12.0,
-                    linewidth=max(1.0, base_connector_linewidth),
-                    color=flow_connector,
-                    connectionstyle="arc3,rad=0.0",
-                )
-            )
-            guide_boxes.append(
-                _flow_box_to_normalized(
-                    x0=min(start_x, arrow_x) - 6.0,
-                    y0=min(start_y, end_y) - 6.0,
-                    x1=max(start_x, arrow_x) + 6.0,
-                    y1=max(start_y, end_y) + 6.0,
-                    canvas_width_pt=figure_width_pt,
-                    canvas_height_pt=canvas_height_pt,
-                    box_id=f"comparison_connector_{len(guide_boxes) + 1}",
-                    box_type="flow_connector",
-                )
-            )
-
-        panel_union = _flow_union_box(
-            boxes=[*card_boxes, comparison_box],
-            box_id="subfigure_panel_main",
-            box_type="subfigure_panel",
-        )
-        panel_boxes.append(
-            _flow_box_to_normalized(
-                **panel_union,
-                canvas_width_pt=figure_width_pt,
-                canvas_height_pt=canvas_height_pt,
-                box_id="subfigure_panel_main",
-                box_type="subfigure_panel",
-            )
-        )
-        dump_json(
-            output_layout_path,
-            {
-                "template_id": "cohort_flow_figure",
-                "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-                "layout_boxes": layout_boxes,
-                "panel_boxes": panel_boxes,
-                "guide_boxes": guide_boxes,
-                "metrics": {
-                    "layout_mode": layout_mode,
-                    "steps": steps,
-                    "exclusions": exclusions,
-                    "endpoint_inventory": endpoint_inventory,
-                    "design_panels": design_panels,
-                    "comparison_summary": {"title": comparison_title, "body": comparison_body},
-                    "flow_nodes": flow_nodes,
-                },
-                "render_context": render_context_payload,
-            },
-        )
-        fig.savefig(output_svg_path, format="svg")
-        fig.savefig(output_png_path, format="png", dpi=220)
-        plt.close(fig)
         return
 
     modern_roles = {"wide_top", "wide_bottom", "left_middle", "right_middle", "left_bottom", "right_bottom"}
@@ -457,234 +196,71 @@ def _render_cohort_flow_figure(
     )
 
     def block_colors(style_role: str) -> tuple[str, str]:
-        if style_role == "primary":
-            return flow_primary_fill, flow_primary_edge
-        if style_role == "context":
-            return flow_context_fill, flow_context_edge
-        if style_role == "audit":
-            return flow_audit_fill, flow_audit_edge
-        return flow_secondary_fill, flow_secondary_edge
+        return _cohort_flow_block_colors(
+            style_role=style_role,
+            flow_primary_fill=flow_primary_fill,
+            flow_primary_edge=flow_primary_edge,
+            flow_context_fill=flow_context_fill,
+            flow_context_edge=flow_context_edge,
+            flow_audit_fill=flow_audit_fill,
+            flow_audit_edge=flow_audit_edge,
+            flow_secondary_fill=flow_secondary_fill,
+            flow_secondary_edge=flow_secondary_edge,
+        )
 
     def build_step_spec(step: dict[str, Any]) -> _FlowNodeSpec:
-        content_width_pt = step_width_pt - 28.0
-        title_lines = _wrap_flow_text_to_width(
-            str(step["label"]),
-            max_width_pt=content_width_pt,
-            font_size=base_card_title_size + 0.5,
-            font_weight="bold",
-            max_chars=36,
-        )
-        detail_lines = _wrap_flow_text_to_width(
-            str(step.get("detail") or ""),
-            max_width_pt=content_width_pt,
-            font_size=base_detail_size,
-            font_weight="normal",
-            max_chars=44,
-        )
-        lines = [
-            *[
-                _FlowTextLine(
-                    text=line,
-                    font_size=base_card_title_size + 0.5,
-                    font_weight="bold",
-                    color=flow_title_text,
-                )
-                for line in title_lines
-            ],
-            _FlowTextLine(
-                text=f"n = {step['n']}",
-                font_size=base_label_size,
-                font_weight="normal",
-                color=flow_body_text,
-                gap_before=14.0,
-            ),
-        ]
-        lines.extend(
-            _FlowTextLine(
-                text=line,
-                font_size=base_detail_size,
-                font_weight="normal",
-                color=flow_body_text,
-                gap_before=12.0 if index == 0 else 0.0,
-            )
-            for index, line in enumerate(detail_lines)
-        )
-        return _FlowNodeSpec(
-            node_id=f"step_{step['step_id']}",
-            box_id=f"step_{step['step_id']}",
-            box_type="main_step",
-            panel_role="flow",
-            fill_color=flow_main_fill,
-            edge_color=flow_main_edge,
-            linewidth=base_secondary_linewidth,
-            lines=tuple(lines),
-            width_pt=step_width_pt,
-            padding_pt=step_padding_pt,
+        return _build_cohort_flow_step_spec(
+            step=step,
+            step_width_pt=step_width_pt,
+            base_card_title_size=base_card_title_size,
+            base_detail_size=base_detail_size,
+            base_label_size=base_label_size,
+            flow_title_text=flow_title_text,
+            flow_body_text=flow_body_text,
+            flow_main_fill=flow_main_fill,
+            flow_main_edge=flow_main_edge,
+            base_secondary_linewidth=base_secondary_linewidth,
+            step_padding_pt=step_padding_pt,
         )
 
     def build_exclusion_spec(exclusion: dict[str, Any]) -> _FlowNodeSpec:
-        content_width_pt = exclusion_width_pt - 24.0
-        title_lines = _wrap_flow_text_to_width(
-            f"{exclusion['label']} (n={exclusion['n']})",
-            max_width_pt=content_width_pt,
-            font_size=base_label_size,
-            font_weight="bold",
-            max_chars=40,
-        )
-        detail_lines = _wrap_flow_text_to_width(
-            str(exclusion.get("detail") or ""),
-            max_width_pt=content_width_pt,
-            font_size=base_detail_size,
-            font_weight="normal",
-            max_chars=44,
-        )
-        lines = [
-            *[
-                _FlowTextLine(
-                    text=line,
-                    font_size=base_label_size,
-                    font_weight="bold",
-                    color=flow_exclusion_edge,
-                )
-                for line in title_lines
-            ]
-        ]
-        lines.extend(
-            _FlowTextLine(
-                text=line,
-                font_size=base_detail_size,
-                font_weight="normal",
-                color=flow_exclusion_edge,
-                gap_before=8.0 if index == 0 else 0.0,
-            )
-            for index, line in enumerate(detail_lines)
-        )
-        return _FlowNodeSpec(
-            node_id=f"exclusion_{exclusion['exclusion_id']}",
-            box_id=f"exclusion_{exclusion['exclusion_id']}",
-            box_type="exclusion_box",
-            panel_role="flow",
-            fill_color=flow_exclusion_fill,
-            edge_color=flow_exclusion_edge,
-            linewidth=max(1.2, base_secondary_linewidth - 0.2),
-            lines=tuple(lines),
-            width_pt=exclusion_width_pt,
-            padding_pt=exclusion_padding_pt,
-        )
-
-    def build_design_panel_spec(block: dict[str, Any]) -> _FlowNodeSpec:
-        style_role = str(block.get("style_role") or "secondary")
-        panel_role = str(block["layout_role"])
-        fill_color, edge_color = block_colors(style_role)
-        is_wide = panel_role in {"wide_top", "wide_bottom", "wide_left", "footer_stack"}
-        width_pt = wide_block_width_pt if is_wide else standard_block_width_pt
-        if sparse_modern_layout and panel_role in {"left_middle", "right_middle", "left_bottom", "right_bottom"}:
-            width_pt = wide_block_width_pt
-        if panel_role == "footer_stack":
-            width_pt = footer_block_width_pt
-        content_width_pt = width_pt - 26.0
-        title_lines = _wrap_flow_text_to_width(
-            str(block["title"]),
-            max_width_pt=content_width_pt,
-            font_size=base_card_title_size,
-            font_weight="bold",
-        )
-        lines: list[_FlowTextLine] = [
-            *[
-                _FlowTextLine(
-                    text=line,
-                    font_size=base_card_title_size,
-                    font_weight="bold",
-                    color=flow_title_text,
-                )
-                for line in title_lines
-            ]
-        ]
-        for item_index, item in enumerate(block["lines"]):
-            label_lines = _wrap_flow_text_to_width(
-                str(item["label"]),
-                max_width_pt=content_width_pt,
-                font_size=base_label_size,
-                font_weight="bold",
-            )
-            detail_lines = _wrap_flow_text_to_width(
-                str(item.get("detail") or ""),
-                max_width_pt=content_width_pt,
-                font_size=base_detail_size,
-                font_weight="normal",
-            )
-            item_gap = 8.0 if item_index == 0 else 10.0
-            for label_index, line in enumerate(label_lines):
-                lines.append(
-                    _FlowTextLine(
-                        text=line,
-                        font_size=base_label_size,
-                        font_weight="bold",
-                        color=flow_title_text,
-                        gap_before=item_gap if label_index == 0 else 0.0,
-                    )
-                )
-            for detail_index, line in enumerate(detail_lines):
-                lines.append(
-                    _FlowTextLine(
-                        text=line,
-                        font_size=base_detail_size,
-                        font_weight="normal",
-                        color=flow_body_text,
-                        gap_before=4.0 if detail_index == 0 else 0.0,
-                    )
-                )
-        return _FlowNodeSpec(
-            node_id=f"secondary_panel_{block['panel_id']}",
-            box_id=f"secondary_panel_{block['panel_id']}",
-            box_type="secondary_panel",
-            panel_role=panel_role,
-            fill_color=fill_color,
-            edge_color=edge_color,
-            linewidth=base_primary_linewidth if style_role == "primary" else base_secondary_linewidth,
-            lines=tuple(lines),
-            width_pt=width_pt,
-            padding_pt=hierarchy_padding_pt,
-        )
-
-    def spec_base_height(spec: _FlowNodeSpec) -> float:
-        height = spec.padding_pt * 2.0
-        for line in spec.lines:
-            height += line.gap_before
-            height += line.font_size * 1.24
-        return height
-
-    right_blocks: list[dict[str, Any]] = [*design_panels]
-    if endpoint_inventory:
-        right_blocks.append(
-            {
-                "panel_id": "endpoint_inventory",
-                "layout_role": "footer_stack",
-                "style_role": "audit",
-                "title": "Endpoint inventory",
-                "lines": [
-                    {
-                        "label": (
-                            f"{item['label']} (n={item['n']})"
-                            if isinstance(item.get("n"), int)
-                            else str(item["label"])
-                        ),
-                        "detail": str(item.get("detail") or "").strip(),
-                    }
-                    for item in endpoint_inventory
-                ],
-            }
+        return _build_cohort_flow_exclusion_spec(
+            exclusion=exclusion,
+            exclusion_width_pt=exclusion_width_pt,
+            base_label_size=base_label_size,
+            base_detail_size=base_detail_size,
+            flow_exclusion_fill=flow_exclusion_fill,
+            flow_exclusion_edge=flow_exclusion_edge,
+            base_secondary_linewidth=base_secondary_linewidth,
+            exclusion_padding_pt=exclusion_padding_pt,
         )
 
     step_specs = [build_step_spec(step) for step in steps]
     exclusion_specs = {str(item["exclusion_id"]): build_exclusion_spec(item) for item in exclusions}
-    design_specs = [build_design_panel_spec(block) for block in right_blocks]
+    design_specs = _build_cohort_flow_design_panel_specs(
+        design_panels=design_panels,
+        endpoint_inventory=endpoint_inventory,
+        block_colors=block_colors,
+        sparse_modern_layout=sparse_modern_layout,
+        wide_block_width_pt=wide_block_width_pt,
+        standard_block_width_pt=standard_block_width_pt,
+        footer_block_width_pt=footer_block_width_pt,
+        base_card_title_size=base_card_title_size,
+        base_label_size=base_label_size,
+        base_detail_size=base_detail_size,
+        flow_title_text=flow_title_text,
+        flow_body_text=flow_body_text,
+        base_primary_linewidth=base_primary_linewidth,
+        base_secondary_linewidth=base_secondary_linewidth,
+        hierarchy_padding_pt=hierarchy_padding_pt,
+    )
+
 
     exclusions_by_step: dict[str, list[dict[str, Any]]] = {}
     for exclusion in exclusions:
         exclusions_by_step.setdefault(str(exclusion["from_step_id"]), []).append(exclusion)
-    step_heights_pt = {spec.node_id: spec_base_height(spec) for spec in step_specs}
-    exclusion_heights_pt = {spec.node_id: spec_base_height(spec) for spec in exclusion_specs.values()}
+    step_heights_pt = {spec.node_id: _cohort_flow_spec_base_height(spec) for spec in step_specs}
+    exclusion_heights_pt = {spec.node_id: _cohort_flow_spec_base_height(spec) for spec in exclusion_specs.values()}
     step_stack_gap_pt: dict[str, float] = {}
     stage_cluster_heights_pt: dict[str, float] = {}
     panel_a_base_height_pt = 0.0
@@ -784,7 +360,7 @@ def _render_cohort_flow_figure(
 
     footer_stack_base_height = 0.0
     if footer_specs:
-        footer_stack_base_height = sum(spec_base_height(spec) for spec in footer_specs) + footer_gap_pt * max(0, len(footer_specs) - 1)
+        footer_stack_base_height = sum(_cohort_flow_spec_base_height(spec) for spec in footer_specs) + footer_gap_pt * max(0, len(footer_specs) - 1)
     sparse_stack_specs = (
         [
             blocks_by_role[role]
@@ -795,7 +371,7 @@ def _render_cohort_flow_figure(
         else []
     )
     panel_b_main_base_height = (
-        sum(spec_base_height(spec) for spec in sparse_stack_specs) + sparse_stack_gap_pt * max(0, len(sparse_stack_specs) - 1)
+        sum(_cohort_flow_spec_base_height(spec) for spec in sparse_stack_specs) + sparse_stack_gap_pt * max(0, len(sparse_stack_specs) - 1)
         if sparse_modern_layout
         else hierarchy_layout.height_pt
     )
@@ -1154,7 +730,7 @@ def _render_cohort_flow_figure(
     if sparse_modern_layout:
         current_top = panel_b_main_y0 + panel_b_main_base_height * scale
         for spec in sparse_stack_specs:
-            box_height_pt = spec_base_height(spec) * scale
+            box_height_pt = _cohort_flow_spec_base_height(spec) * scale
             box_width_pt = spec.width_pt * scale
             box = {
                 "x0": panel_b_x0 + (panel_b_main_width_pt - box_width_pt) / 2.0,
@@ -1199,7 +775,7 @@ def _render_cohort_flow_figure(
     if footer_specs:
         footer_cursor_y = panel_b_total_y0
         for spec in footer_specs:
-            footer_height_pt = spec_base_height(spec) * scale
+            footer_height_pt = _cohort_flow_spec_base_height(spec) * scale
             footer_x0 = panel_b_x0 + (panel_b_width_pt - spec.width_pt * scale) / 2.0
             footer_box = {
                 "x0": footer_x0,
@@ -1382,58 +958,22 @@ def _render_cohort_flow_figure(
             va="top",
         )
 
-    output_svg_path.parent.mkdir(parents=True, exist_ok=True)
-    flow_nodes = []
-    for spec in step_specs:
-        box = step_boxes_by_id.get(spec.node_id)
-        if box is None:
-            continue
-        flow_nodes.append(
-            {
-                "box_id": spec.box_id,
-                "box_type": spec.box_type,
-                "line_count": len(spec.lines),
-                "max_line_chars": max((len(line.text) for line in spec.lines), default=0),
-                "rendered_height_pt": box["y1"] - box["y0"],
-                "rendered_width_pt": box["x1"] - box["x0"],
-                "padding_pt": rendered_padding_for_spec(spec),
-            }
-        )
-    for spec in exclusion_specs.values():
-        box = exclusion_boxes_by_id.get(spec.node_id)
-        if box is None:
-            continue
-        flow_nodes.append(
-            {
-                "box_id": spec.box_id,
-                "box_type": spec.box_type,
-                "line_count": len(spec.lines),
-                "max_line_chars": max((len(line.text) for line in spec.lines), default=0),
-                "rendered_height_pt": box["y1"] - box["y0"],
-                "rendered_width_pt": box["x1"] - box["x0"],
-                "padding_pt": rendered_padding_for_spec(spec),
-            }
-        )
-    dump_json(
-        output_layout_path,
-        {
-            "template_id": "cohort_flow_figure",
-            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-            "layout_boxes": layout_boxes,
-            "panel_boxes": panel_boxes,
-            "guide_boxes": guide_boxes,
-            "metrics": {
-                "steps": steps,
-                "exclusions": exclusions,
-                "endpoint_inventory": endpoint_inventory,
-                "design_panels": design_panels,
-                "flow_nodes": flow_nodes,
-            },
-            "render_context": render_context_payload,
-        },
+    _write_multi_panel_outputs(
+        output_svg_path=output_svg_path,
+        output_png_path=output_png_path,
+        output_layout_path=output_layout_path,
+        step_specs=step_specs,
+        exclusion_specs=exclusion_specs,
+        step_boxes_by_id=step_boxes_by_id,
+        exclusion_boxes_by_id=exclusion_boxes_by_id,
+        rendered_padding_for_spec=rendered_padding_for_spec,
+        layout_boxes=layout_boxes,
+        panel_boxes=panel_boxes,
+        guide_boxes=guide_boxes,
+        steps=steps,
+        exclusions=exclusions,
+        endpoint_inventory=endpoint_inventory,
+        design_panels=design_panels,
+        render_context_payload=render_context_payload,
+        fig=fig,
     )
-
-    fig.savefig(output_svg_path, format="svg")
-    fig.savefig(output_png_path, format="png", dpi=220)
-    plt.close(fig)
-
