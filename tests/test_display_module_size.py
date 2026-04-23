@@ -9,6 +9,11 @@ _TARGETS = (
     Path("tests/test_display_schema_contract.py"),
     Path("tests/test_display_layout_qc.py"),
     Path("tests/test_display_surface_materialization.py"),
+    Path("tests/display_schema_contract_cases/chunk_02.py"),
+    Path("tests/display_schema_contract_cases/chunk_02_data_geometry.py"),
+    Path("tests/display_schema_contract_cases/chunk_02_omics_matrix.py"),
+    Path("tests/display_schema_contract_cases/chunk_02_effects_and_explanations.py"),
+    Path("tests/display_schema_contract_cases/chunk_02_clinical_and_shells.py"),
 )
 
 
