@@ -22,6 +22,12 @@ _TARGETS = (
     Path("tests/medical_publication_surface_cases/chunk_03.py"),
     Path("tests/medical_publication_surface_cases/chunk_04.py"),
     Path("tests/medical_publication_surface_cases/chunk_05.py"),
+    Path("src/med_autoscience/controllers/medical_publication_surface.py"),
+    Path("src/med_autoscience/controllers/medical_publication_surface_parts/shared_base.py"),
+    Path("src/med_autoscience/controllers/medical_publication_surface_parts/asset_scans.py"),
+    Path("src/med_autoscience/controllers/medical_publication_surface_parts/catalog_checks.py"),
+    Path("src/med_autoscience/controllers/medical_publication_surface_parts/manuscript_checks.py"),
+    Path("src/med_autoscience/controllers/medical_publication_surface_parts/reporting.py"),
 )
 
 
