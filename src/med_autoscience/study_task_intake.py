@@ -31,6 +31,14 @@ _ANALYSIS_ROUTE_MARKERS = (
     "卡方",
     "analysis-campaign",
 )
+_DETERMINISTIC_SUBMISSION_CLOSEOUT_BLOCKERS = frozenset(
+    {
+        "stale_submission_minimal_authority",
+        "stale_study_delivery_mirror",
+        "submission_surface_qc_failure_present",
+        "submission_hardening_incomplete",
+    }
+)
 
 
 def _utc_now() -> str:
@@ -142,8 +150,59 @@ def task_intake_overrides_auto_manual_finish(payload: dict[str, Any] | None) -> 
     return _task_intake_contains_any(payload, _DIRECT_FINALIZE_DOWNGRADE_MARKERS)
 
 
-def build_task_intake_progress_override(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+def _integer_value(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        text = value.strip()
+        if text.isdigit():
+            return int(text)
+    return None
+
+
+def task_intake_yields_to_deterministic_submission_closeout(
+    payload: dict[str, Any] | None,
+    *,
+    publishability_gate_report: dict[str, Any] | None,
+) -> bool:
     if not task_intake_overrides_auto_manual_finish(payload):
+        return False
+    if not isinstance(publishability_gate_report, dict):
+        return False
+    if _non_empty_text(publishability_gate_report.get("status")) != "blocked":
+        return False
+    blockers = {
+        str(item or "").strip()
+        for item in (publishability_gate_report.get("blockers") or [])
+        if str(item or "").strip()
+    }
+    if not blockers or blockers - _DETERMINISTIC_SUBMISSION_CLOSEOUT_BLOCKERS:
+        return False
+    open_supplementary_count = _integer_value(
+        publishability_gate_report.get("paper_line_open_supplementary_count")
+    )
+    if open_supplementary_count != 0:
+        return False
+    if _non_empty_text(publishability_gate_report.get("medical_publication_surface_status")) == "blocked":
+        return False
+    if publishability_gate_report.get("medical_publication_surface_current") is False:
+        return False
+    return True
+
+
+def build_task_intake_progress_override(
+    payload: dict[str, Any] | None,
+    *,
+    publishability_gate_report: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    if not task_intake_overrides_auto_manual_finish(payload):
+        return None
+    if task_intake_yields_to_deterministic_submission_closeout(
+        payload,
+        publishability_gate_report=publishability_gate_report,
+    ):
         return None
     route_target = "analysis-campaign" if _task_intake_contains_any(payload, _ANALYSIS_ROUTE_MARKERS) else "write"
     route_target_label = {

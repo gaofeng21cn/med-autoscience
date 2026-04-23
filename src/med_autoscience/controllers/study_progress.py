@@ -3493,7 +3493,10 @@ def build_study_progress_projection(
     latest_task_intake_payload = read_latest_task_intake(study_root=resolved_study_root)
     task_intake = summarize_task_intake(latest_task_intake_payload)
     task_intake_progress_override = (
-        build_task_intake_progress_override(latest_task_intake_payload)
+        build_task_intake_progress_override(
+            latest_task_intake_payload,
+            publishability_gate_report=_publishability_gate_payload,
+        )
         if manual_finish_contract is None
         else None
     )

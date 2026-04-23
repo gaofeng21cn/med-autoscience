@@ -481,9 +481,16 @@ def _recommended_publication_eval_action(publication_eval_payload: dict[str, Any
     return None
 
 
-def _recommended_task_intake_action(*, study_root: Path) -> dict[str, Any] | None:
+def _recommended_task_intake_action(
+    *,
+    study_root: Path,
+    publishability_gate_report: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
     task_intake_payload = study_task_intake.read_latest_task_intake(study_root=study_root)
-    task_intake_override = study_task_intake.build_task_intake_progress_override(task_intake_payload)
+    task_intake_override = study_task_intake.build_task_intake_progress_override(
+        task_intake_payload,
+        publishability_gate_report=publishability_gate_report,
+    )
     if not isinstance(task_intake_override, dict):
         return None
     current_required_action = str(task_intake_override.get("current_required_action") or "").strip()
@@ -709,7 +716,18 @@ def build_runtime_watch_outer_loop_tick_request(
         study_root=resolved_study_root,
         ref=publication_eval_path,
     )
-    task_intake_action = _recommended_task_intake_action(study_root=resolved_study_root)
+    profile = gate_clearing_batch.resolve_profile_for_study_root(resolved_study_root)
+    quest_id = str(status_payload.get("quest_id") or "").strip()
+    gate_report: dict[str, Any] = {}
+    if profile is not None and quest_id:
+        quest_root = Path(profile.runtime_root).expanduser().resolve() / quest_id
+        gate_report = publication_gate_controller.build_gate_report(
+            publication_gate_controller.build_gate_state(quest_root)
+        )
+    task_intake_action = _recommended_task_intake_action(
+        study_root=resolved_study_root,
+        publishability_gate_report=gate_report,
+    )
     recommended_action = task_intake_action or _recommended_submission_milestone_autopark_action(
         study_root=resolved_study_root,
         status_payload=status_payload,
@@ -719,18 +737,7 @@ def build_runtime_watch_outer_loop_tick_request(
         recommended_action = _recommended_quality_review_loop_action(study_root=resolved_study_root)
     if recommended_action is None:
         recommended_action = _recommended_publication_eval_action(publication_eval_payload)
-    if recommended_action is None:
-        return None
-    profile = gate_clearing_batch.resolve_profile_for_study_root(resolved_study_root)
     if profile is not None and task_intake_action is None:
-        quest_id = str(status_payload.get("quest_id") or "").strip()
-        if quest_id:
-            quest_root = Path(profile.runtime_root).expanduser().resolve() / quest_id
-            gate_report = publication_gate_controller.build_gate_report(
-                publication_gate_controller.build_gate_state(quest_root)
-            )
-        else:
-            gate_report = {}
         batch_action = quality_repair_batch.build_quality_repair_batch_recommended_action(
             profile=profile,
             study_root=resolved_study_root,
@@ -748,6 +755,8 @@ def build_runtime_watch_outer_loop_tick_request(
             )
         if batch_action is not None:
             recommended_action = batch_action
+    if recommended_action is None:
+        return None
     decision_type = _autonomous_decision_type_for_publication_eval_action(recommended_action)
     if decision_type is None:
         return None
