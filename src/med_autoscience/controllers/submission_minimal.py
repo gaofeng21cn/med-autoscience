@@ -287,6 +287,34 @@ def resolve_compiled_pdf_path(
     )
 
 
+def resolve_submission_compiled_source_excluded_roots(
+    *,
+    paper_root: Path,
+    workspace_root: Path,
+    submission_root: Path,
+    bundle_manifest: dict[str, Any],
+    compile_report: dict[str, Any],
+) -> tuple[Path, ...]:
+    managed_submission_surface_roots = tuple(
+        root.resolve()
+        for root in resolve_managed_submission_surface_roots(paper_root)
+        if root.resolve() != submission_root.resolve()
+    )
+    compiled_pdf_candidate_values = [
+        compile_report.get("output_pdf"),
+        compile_report.get("pdf_path"),
+        bundle_manifest.get("pdf_path"),
+    ]
+    exclude_live_submission_root = _candidate_values_include_root(
+        workspace_root=workspace_root,
+        candidate_values=compiled_pdf_candidate_values,
+        root=submission_root,
+    )
+    return managed_submission_surface_roots + (
+        (submission_root.resolve(),) if exclude_live_submission_root else ()
+    )
+
+
 def copy_with_renamed_targets(
     *,
     workspace_root: Path,
@@ -930,11 +958,18 @@ def describe_submission_minimal_authority(
         compile_report = load_json(compile_report_path)
         figure_catalog = load_json(figure_catalog_path)
         table_catalog = load_json(table_catalog_path)
+        excluded_compiled_source_roots = resolve_submission_compiled_source_excluded_roots(
+            paper_root=resolved_paper_root,
+            workspace_root=workspace_root,
+            submission_root=submission_root,
+            bundle_manifest=bundle_manifest,
+            compile_report=compile_report,
+        )
         compiled_markdown_path = resolve_compiled_markdown_path(
             workspace_root=workspace_root,
             bundle_manifest=bundle_manifest,
             compile_report=compile_report,
-            excluded_roots=(),
+            excluded_roots=excluded_compiled_source_roots,
         )
         pack_lock_payload = _load_display_pack_lock_payload(paper_root=resolved_paper_root)
     except (FileNotFoundError, KeyError, json.JSONDecodeError):
@@ -2114,23 +2149,12 @@ def create_submission_minimal_package(
         pack_lock_payload[0],
         _build_display_pack_summary_by_id(pack_lock_payload[1]),
     ) if pack_lock_payload is not None else (None, {})
-    managed_submission_surface_roots = tuple(
-        root.resolve()
-        for root in resolve_managed_submission_surface_roots(paper_root)
-        if root.resolve() != submission_root.resolve()
-    )
-    compiled_pdf_candidate_values = [
-        compile_report.get("output_pdf"),
-        compile_report.get("pdf_path"),
-        bundle_manifest.get("pdf_path"),
-    ]
-    exclude_live_submission_root = _candidate_values_include_root(
+    excluded_compiled_source_roots = resolve_submission_compiled_source_excluded_roots(
+        paper_root=paper_root,
         workspace_root=workspace_root,
-        candidate_values=compiled_pdf_candidate_values,
-        root=submission_root,
-    )
-    excluded_compiled_source_roots = managed_submission_surface_roots + (
-        (submission_root.resolve(),) if exclude_live_submission_root else ()
+        submission_root=submission_root,
+        bundle_manifest=bundle_manifest,
+        compile_report=compile_report,
     )
 
     compiled_markdown_path = resolve_compiled_markdown_path(

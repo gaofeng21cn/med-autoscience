@@ -1661,6 +1661,25 @@ def test_create_submission_minimal_package_accepts_materialized_submission_sourc
     assert sum(len(page.images) for page in pdf_reader.pages) >= 1
 
 
+def test_describe_submission_minimal_authority_accepts_materialized_submission_source_from_compile_report(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_materialized_submission_source_workspace(tmp_path)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+
+    assert authority["status"] == "current"
+    assert authority["stale_reason"] is None
+    assert authority["recorded_source_signature"] == manifest["source_signature"]
+    assert authority["source_signature"] == manifest["source_signature"]
+
+
 def test_create_submission_minimal_package_falls_back_when_compile_report_points_to_missing_submission_source(
     tmp_path: Path,
 ) -> None:
