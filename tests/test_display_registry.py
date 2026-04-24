@@ -163,6 +163,27 @@ def test_time_to_event_multihorizon_calibration_panel_is_registered() -> None:
     assert spec.layout_qc_profile == "publication_time_to_event_multihorizon_calibration_panel"
 
 
+@pytest.mark.parametrize(
+    ("template_id", "expected_input_schema_id", "expected_qc_profile"),
+    [
+        ("phenotype_gap_structure_figure", "dpcc_phenotype_gap_structure_v1", "publication_evidence_curve"),
+        ("site_held_out_stability_figure", "dpcc_transition_site_support_v1", "publication_survival_curve"),
+        ("treatment_gap_alignment_figure", "dpcc_treatment_gap_alignment_v1", "publication_evidence_curve"),
+    ],
+)
+def test_dpcc_primary_care_figures_are_registered(
+    template_id: str,
+    expected_input_schema_id: str,
+    expected_qc_profile: str,
+) -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id(template_id))
+
+    assert spec.template_id == _full_id(template_id)
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == expected_input_schema_id
+    assert spec.layout_qc_profile == expected_qc_profile
+
+
 def test_single_cell_atlas_overview_panel_is_registered() -> None:
     spec = display_registry.get_evidence_figure_spec(_full_id("single_cell_atlas_overview_panel"))
 

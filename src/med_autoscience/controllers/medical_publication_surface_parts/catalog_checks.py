@@ -98,20 +98,25 @@ def load_display_catalog_story_roles(path: Path) -> dict[str, str]:
     if not isinstance(payload, dict):
         raise ValueError(f"medical_reporting_contract at {path} must be a JSON object")
     story_roles: dict[str, str] = {}
+    role_sources = []
     display_shell_plan = payload.get("display_shell_plan")
-    if not isinstance(display_shell_plan, list):
-        return story_roles
-    for item in display_shell_plan:
-        if not isinstance(item, dict):
-            continue
-        catalog_id = str(item.get("catalog_id") or "").strip()
-        if not catalog_id:
-            continue
-        story_role = str(item.get("story_role") or "").strip() or display_story_role_for_requirement_key(
-            item.get("requirement_key")
-        )
-        if story_role:
-            story_roles[catalog_id] = story_role
+    if isinstance(display_shell_plan, list):
+        role_sources.append(display_shell_plan)
+    recommended_main_text_figures = payload.get("recommended_main_text_figures")
+    if isinstance(recommended_main_text_figures, list):
+        role_sources.append(recommended_main_text_figures)
+    for source in role_sources:
+        for item in source:
+            if not isinstance(item, dict):
+                continue
+            catalog_id = str(item.get("catalog_id") or "").strip()
+            if not catalog_id:
+                continue
+            story_role = str(item.get("story_role") or "").strip() or display_story_role_for_requirement_key(
+                item.get("requirement_key")
+            )
+            if story_role:
+                story_roles[catalog_id] = story_role
     return story_roles
 
 
@@ -555,5 +560,4 @@ def ama_pdf_defaults_present(review_defaults_path: Path, ama_csl_path: Path) -> 
         return False
     defaults_text = read_review_defaults(review_defaults_path)
     return bool(medical_surface_policy.ama_defaults_regex().search(defaults_text))
-
 

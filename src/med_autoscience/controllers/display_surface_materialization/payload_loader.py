@@ -11,6 +11,7 @@ from .validation_generalizability import _validate_center_transportability_gover
 from .validation_omics_genomic import _validate_genomic_alteration_consequence_panel_display_payload, _validate_genomic_alteration_landscape_panel_display_payload, _validate_genomic_alteration_multiomic_consequence_panel_display_payload, _validate_genomic_alteration_pathway_integrated_composite_panel_display_payload, _validate_genomic_program_governance_summary_panel_display_payload, _validate_omics_volcano_panel_display_payload
 from .validation_omics_heatmaps import _validate_clustered_heatmap_display_payload, _validate_confusion_matrix_heatmap_binary_display_payload, _validate_gsva_ssgsea_heatmap_display_payload, _validate_heatmap_display_payload, _validate_performance_heatmap_display_payload
 from .validation_omics_panels import _validate_celltype_marker_dotplot_panel_display_payload, _validate_cnv_recurrence_summary_panel_display_payload, _validate_oncoplot_mutation_landscape_panel_display_payload, _validate_pathway_enrichment_dotplot_panel_display_payload
+from .validation_dpcc_primary_care import _validate_dpcc_phenotype_gap_structure_display_payload, _validate_dpcc_transition_site_support_display_payload, _validate_dpcc_treatment_gap_alignment_display_payload
 from .validation_response_primary import _validate_partial_dependence_ice_panel_display_payload, _validate_partial_dependence_interaction_contour_panel_display_payload
 from .validation_response_secondary import _validate_accumulated_local_effects_panel_display_payload, _validate_partial_dependence_interaction_slice_panel_display_payload, _validate_partial_dependence_subgroup_comparison_panel_display_payload
 from .validation_shap_importance import _validate_shap_bar_importance_display_payload, _validate_shap_multicohort_importance_panel_display_payload, _validate_shap_signed_importance_panel_display_payload
@@ -41,6 +42,27 @@ def _load_evidence_display_payload(
     if matched_display is None:
         raise ValueError(f"{payload_path.name} does not define display `{display_id}` for template `{spec.template_id}`")
 
+    if spec.input_schema_id == "dpcc_phenotype_gap_structure_v1":
+        return payload_path, _validate_dpcc_phenotype_gap_structure_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "dpcc_transition_site_support_v1":
+        return payload_path, _validate_dpcc_transition_site_support_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "dpcc_treatment_gap_alignment_v1":
+        return payload_path, _validate_dpcc_treatment_gap_alignment_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
     if spec.input_schema_id == "binary_prediction_curve_inputs_v1":
         return payload_path, _validate_binary_curve_display_payload(
             path=payload_path,

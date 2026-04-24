@@ -136,6 +136,33 @@ def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
+def _parse_json_object_from_cli_stdout(stdout: str) -> dict[str, Any]:
+    text = (stdout or "").strip()
+    if not text:
+        return {}
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        decoder = json.JSONDecoder()
+        payload = None
+        for index, char in enumerate(text):
+            if char != "{":
+                continue
+            try:
+                candidate, consumed = decoder.raw_decode(text[index:])
+            except json.JSONDecodeError:
+                continue
+            if text[index + consumed :].strip():
+                continue
+            payload = candidate
+            break
+        if payload is None:
+            raise
+    if not isinstance(payload, dict):
+        raise RuntimeError("CLI returned a non-object JSON payload")
+    return payload
+
+
 def _non_empty_text(value: object) -> str | None:
     if not isinstance(value, str):
         return None
@@ -696,6 +723,8 @@ def _execute_repair_units(
             else:
                 ready_sequential_units.append(unit)
         if not ready_parallel_units and not ready_sequential_units:
+            if not remaining_units:
+                break
             raise RuntimeError("gate-clearing batch repair dependency graph could not be resolved")
         if ready_parallel_units:
             execution_summary["parallel_wave_count"] += 1
@@ -1045,10 +1074,7 @@ def _repair_paper_live_paths(
         str(current_workspace_root),
     ]
     completed = subprocess.run(command, check=True, capture_output=True, text=True)
-    payload = json.loads(completed.stdout or "{}")
-    if not isinstance(payload, dict):
-        raise RuntimeError("paper-live-path repair returned a non-object payload")
-    return payload
+    return _parse_json_object_from_cli_stdout(completed.stdout or "")
 
 
 def _materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:

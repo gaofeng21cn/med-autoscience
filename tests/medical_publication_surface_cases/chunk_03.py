@@ -127,6 +127,84 @@ def test_build_report_blocks_when_results_sections_are_supported_only_by_setup_d
     assert any(hit["pattern_id"] == "results_narrative_map_setup_only_display_support" for hit in report["top_hits"])
 
 
+def test_build_report_allows_leading_setup_section_when_later_sections_use_result_figures(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    paper_root = tmp_path / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    reporting_contract_path = paper_root / "medical_reporting_contract.json"
+    dump_json(
+        reporting_contract_path,
+        {
+            "status": "resolved",
+            "display_shell_plan": [
+                {
+                    "display_id": "cohort_flow",
+                    "display_kind": "figure",
+                    "requirement_key": "cohort_flow_figure",
+                    "catalog_id": "F1",
+                    "story_role": "study_setup",
+                },
+                {
+                    "display_id": "baseline_characteristics",
+                    "display_kind": "table",
+                    "requirement_key": "table1_baseline_characteristics",
+                    "catalog_id": "T1",
+                    "story_role": "study_setup",
+                },
+            ],
+            "recommended_main_text_figures": [
+                {
+                    "catalog_id": "F2",
+                    "display_kind": "figure",
+                    "story_role": "result_primary",
+                    "narrative_purpose": "primary_result_surface",
+                    "tier": "core",
+                },
+                {
+                    "catalog_id": "F3",
+                    "display_kind": "figure",
+                    "story_role": "result_validation",
+                    "narrative_purpose": "validation_surface",
+                    "tier": "core",
+                },
+                {
+                    "catalog_id": "F4",
+                    "display_kind": "figure",
+                    "story_role": "result_treatment",
+                    "narrative_purpose": "treatment_surface",
+                    "tier": "core",
+                }
+            ],
+        },
+    )
+    narrative_path = paper_root / "results_narrative_map.json"
+    narrative_payload = {
+        "sections": [
+            {"section_id": "cohort", "supporting_display_items": ["F1", "T1"]},
+            {"section_id": "primary", "supporting_display_items": ["F2"]},
+            {"section_id": "validation", "supporting_display_items": ["F3"]},
+            {"section_id": "treatment", "supporting_display_items": ["F4"]},
+        ]
+    }
+    narrative_path.write_text(json.dumps(narrative_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    display_story_roles = module.load_display_catalog_story_roles(reporting_contract_path)
+    hits = module.inspect_results_display_surface_coverage(
+        path=narrative_path,
+        payload=narrative_payload,
+        display_story_roles=display_story_roles,
+    )
+
+    assert display_story_roles == {
+        "F1": "study_setup",
+        "T1": "study_setup",
+        "F2": "result_primary",
+        "F3": "result_validation",
+        "F4": "result_treatment",
+    }
+    assert hits == []
+
+
 def test_build_report_blocks_when_required_display_catalog_item_is_missing(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
@@ -468,5 +546,3 @@ def test_build_report_allows_submission_companion_renderer_contract_in_figure_se
 
     assert report["status"] == "clear"
     assert "figure_semantics_manifest_missing_or_incomplete" not in report["blockers"]
-
-

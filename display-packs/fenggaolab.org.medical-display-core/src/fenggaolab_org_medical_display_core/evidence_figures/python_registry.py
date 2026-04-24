@@ -42,6 +42,11 @@ from .model_explanation_composites import (
     _render_python_shap_multigroup_decision_path_support_domain_panel,
     _render_python_shap_signed_importance_local_support_domain_panel,
 )
+from .dpcc_primary_care import (
+    _render_python_phenotype_gap_structure_figure,
+    _render_python_site_held_out_stability_figure,
+    _render_python_treatment_gap_alignment_figure,
+)
 from .model_explanation_response import (
     _render_python_accumulated_local_effects_panel,
     _render_python_partial_dependence_ice_panel,
@@ -79,6 +84,9 @@ _PYTHON_EVIDENCE_RENDERERS = {
     "compact_effect_estimate_panel": _render_python_compact_effect_estimate_panel,
     "coefficient_path_panel": _render_python_coefficient_path_panel,
     "broader_heterogeneity_summary_panel": _render_python_broader_heterogeneity_summary_panel,
+    "phenotype_gap_structure_figure": _render_python_phenotype_gap_structure_figure,
+    "site_held_out_stability_figure": _render_python_site_held_out_stability_figure,
+    "treatment_gap_alignment_figure": _render_python_treatment_gap_alignment_figure,
     "interaction_effect_summary_panel": _render_python_interaction_effect_summary_panel,
     "center_transportability_governance_summary_panel": _render_python_center_transportability_governance_summary_panel,
     "generalizability_subgroup_composite_panel": _render_python_generalizability_subgroup_composite_panel,
