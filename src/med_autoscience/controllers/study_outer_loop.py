@@ -649,6 +649,22 @@ def _runtime_status_is_live(status_payload: dict[str, Any]) -> bool:
     return str(status_payload.get("quest_status") or "").strip() in {"active", "running"}
 
 
+def _parked_submission_milestone_manual_finish(status_payload: dict[str, Any]) -> bool:
+    reason = str(status_payload.get("reason") or "").strip()
+    if reason not in {
+        "quest_waiting_for_submission_metadata",
+        "quest_waiting_for_submission_metadata_but_auto_resume_disabled",
+    }:
+        return False
+    continuation_state = status_payload.get("continuation_state")
+    if not isinstance(continuation_state, dict):
+        return True
+    if str(continuation_state.get("active_run_id") or "").strip():
+        return False
+    continuation_policy = str(continuation_state.get("continuation_policy") or "").strip()
+    return not continuation_policy or continuation_policy == "wait_for_user_or_resume"
+
+
 def _submission_milestone_route_context(
     *,
     study_root: Path,
@@ -789,6 +805,8 @@ def build_runtime_watch_outer_loop_tick_request(
 ) -> dict[str, Any] | None:
     resolved_study_root = Path(study_root).expanduser().resolve()
     status_payload = _hydrate_managed_runtime_refs(status_payload)
+    if _parked_submission_milestone_manual_finish(status_payload):
+        return None
     if _publication_supervisor_human_gate_requested(status_payload):
         return None
     if _controller_confirmation_pending(study_root=resolved_study_root):
