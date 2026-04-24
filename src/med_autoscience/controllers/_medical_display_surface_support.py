@@ -46,6 +46,49 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
         schema_value="table2_time_to_event_performance_summary",
         status="required_pending_materialization",
     ),
+    "phenotype_gap_structure_figure": RequiredDisplaySurfaceStub(
+        filename="phenotype_gap_structure_inputs.json",
+        blocker_key="missing_phenotype_gap_structure_inputs",
+        stub_kind="evidence_inputs",
+        schema_key="input_schema_id",
+        schema_value="phenotype_gap_structure_inputs_v1",
+        status="required_pending_materialization",
+        template_id="phenotype_gap_structure_figure",
+    ),
+    "table2_phenotype_gap_summary": RequiredDisplaySurfaceStub(
+        filename="phenotype_gap_summary_schema.json",
+        blocker_key="missing_phenotype_gap_summary_schema",
+        stub_kind="table_shell",
+        schema_key="table_shell_id",
+        schema_value="table2_phenotype_gap_summary",
+        status="required_pending_materialization",
+    ),
+    "site_held_out_stability_figure": RequiredDisplaySurfaceStub(
+        filename="site_held_out_stability_inputs.json",
+        blocker_key="missing_site_held_out_stability_inputs",
+        stub_kind="evidence_inputs",
+        schema_key="input_schema_id",
+        schema_value="site_held_out_stability_inputs_v1",
+        status="required_pending_materialization",
+        template_id="site_held_out_stability_figure",
+    ),
+    "table3_transition_site_support_summary": RequiredDisplaySurfaceStub(
+        filename="transition_site_support_summary_schema.json",
+        blocker_key="missing_transition_site_support_summary_schema",
+        stub_kind="table_shell",
+        schema_key="table_shell_id",
+        schema_value="table3_transition_site_support_summary",
+        status="required_pending_materialization",
+    ),
+    "treatment_gap_alignment_figure": RequiredDisplaySurfaceStub(
+        filename="treatment_gap_alignment_inputs.json",
+        blocker_key="missing_treatment_gap_alignment_inputs",
+        stub_kind="evidence_inputs",
+        schema_key="input_schema_id",
+        schema_value="treatment_gap_alignment_inputs_v1",
+        status="required_pending_materialization",
+        template_id="treatment_gap_alignment_figure",
+    ),
     "time_to_event_discrimination_calibration_panel": RequiredDisplaySurfaceStub(
         filename="time_to_event_discrimination_calibration_inputs.json",
         blocker_key="missing_time_to_event_discrimination_calibration_inputs",
@@ -125,7 +168,7 @@ def build_required_display_surface_stub_payload(
         if spec.schema_value == "table1_baseline_characteristics":
             payload["group_columns"] = []
             payload["variables"] = []
-        elif spec.schema_value == "table2_time_to_event_performance_summary":
+        else:
             payload["columns"] = []
             payload["rows"] = []
     else:
