@@ -94,10 +94,10 @@ These are the first-priority cross-paper regression families because they have a
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
-- Implemented evidence figure templates: `81`
+- Implemented evidence figure templates: `84`
 - Illustration shells: `7`
-- Table shells: `5`
-- Total implemented display templates: `93`
+- Table shells: `7`
+- Total implemented display templates: `98`
 
 ### Evidence Classes
 
@@ -117,9 +117,9 @@ Current implemented display inventory:
 
 | Kind | Implemented Templates | Input Schemas | Contract Gate |
 | --- | ---: | --- | --- |
-| Accepted Descriptive Evidence Figures | 3 | `accepted_descriptive_display_data_v1` | evidence profile + catalog contract |
+| Accepted Descriptive Evidence Figures | 6 | `accepted_descriptive_display_data_v1`, `dpcc_phenotype_gap_structure_v1`, `dpcc_transition_site_support_v1`, `dpcc_treatment_gap_alignment_v1` | evidence profile + catalog contract |
 | Illustration Shell | 7 | `cohort_flow_shell_inputs_v1`, `submission_graphical_abstract_inputs_v1`, `workflow_fact_sheet_panel_inputs_v1`, `design_evidence_composite_shell_inputs_v1`, `baseline_missingness_qc_panel_inputs_v1`, `center_coverage_batch_transportability_panel_inputs_v1`, `transportability_recalibration_governance_panel_inputs_v1` | shell profile + catalog contract |
-| Table Shell | 5 | `baseline_characteristics_schema_v1`, `time_to_event_performance_summary_v1`, `clinical_interpretation_summary_v1`, `performance_summary_table_generic_v1`, `grouped_risk_event_summary_table_v1` | table profile + catalog contract |
+| Table Shell | 7 | `baseline_characteristics_schema_v1`, `phenotype_gap_summary_schema_v1`, `transition_site_support_summary_schema_v1`, `time_to_event_performance_summary_v1`, `clinical_interpretation_summary_v1`, `performance_summary_table_generic_v1`, `grouped_risk_event_summary_table_v1` | table profile + catalog contract |
 
 ## Current Audit-Family Map
 
@@ -350,6 +350,18 @@ Authoritative contract:
 
 ### Accepted Descriptive Evidence Figures
 
+- `fenggaolab.org.medical-display-core::phenotype_gap_structure_figure`
+  - Input schema: `dpcc_phenotype_gap_structure_v1`
+  - Required exports: `png`, `pdf`, `svg`
+  - Role: paper-facing phenotype-gap structure figure for descriptive survey studies
+- `fenggaolab.org.medical-display-core::site_held_out_stability_figure`
+  - Input schema: `dpcc_transition_site_support_v1`
+  - Required exports: `png`, `pdf`, `svg`
+  - Role: paper-facing site-held-out stability figure for descriptive survey studies
+- `fenggaolab.org.medical-display-core::treatment_gap_alignment_figure`
+  - Input schema: `dpcc_treatment_gap_alignment_v1`
+  - Required exports: `png`, `pdf`, `svg`
+  - Role: paper-facing treatment-gap alignment figure for descriptive survey studies
 - `fenggaolab.org.medical-display-core::treatment_shift_alignment_figure`
   - Input schema: `accepted_descriptive_display_data_v1`
   - Required exports: `png`, `svg`
@@ -395,6 +407,12 @@ Authoritative contract:
 - `fenggaolab.org.medical-display-core::table1_baseline_characteristics`
   - Input schema: `baseline_characteristics_schema_v1`
   - Required exports: `csv`, `md`
+- `fenggaolab.org.medical-display-core::table2_phenotype_gap_summary`
+  - Input schema: `phenotype_gap_summary_schema_v1`
+  - Required exports: `md`
+- `fenggaolab.org.medical-display-core::table3_transition_site_support_summary`
+  - Input schema: `transition_site_support_summary_schema_v1`
+  - Required exports: `md`
 - `fenggaolab.org.medical-display-core::table2_time_to_event_performance_summary`
   - Input schema: `time_to_event_performance_summary_v1`
   - Required exports: `md`

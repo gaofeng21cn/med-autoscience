@@ -28,6 +28,17 @@ _TARGETS = (
     Path("src/med_autoscience/controllers/medical_publication_surface_parts/catalog_checks.py"),
     Path("src/med_autoscience/controllers/medical_publication_surface_parts/manuscript_checks.py"),
     Path("src/med_autoscience/controllers/medical_publication_surface_parts/reporting.py"),
+    Path("src/med_autoscience/controllers/submission_minimal.py"),
+    Path("src/med_autoscience/controllers/submission_minimal_parts/shared_base.py"),
+    Path("src/med_autoscience/controllers/submission_minimal_parts/authority.py"),
+    Path("src/med_autoscience/controllers/submission_minimal_parts/markdown_surface.py"),
+    Path("src/med_autoscience/controllers/submission_minimal_parts/profile_builders.py"),
+    Path("src/med_autoscience/controllers/submission_minimal_parts/package_builder.py"),
+    Path("tests/test_submission_minimal.py"),
+    Path("tests/submission_minimal_cases/shared_base.py"),
+    Path("tests/submission_minimal_cases/chunk_01.py"),
+    Path("tests/submission_minimal_cases/chunk_02.py"),
+    Path("tests/submission_minimal_cases/chunk_03.py"),
 )
 
 

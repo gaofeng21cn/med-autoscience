@@ -21,7 +21,7 @@
 
 本文统计的是“当前已进入 strict registry / template catalog / audited guide 真相面的绘图军火库”，不是任一时刻共享 `main` 工作树上恰好已经吸收完毕的全部代码状态。
 
-当前生效统计口径以 registry / template catalog / audited guide 的一致真相为准，现行库存是 `93`。
+当前生效统计口径以 registry / template catalog / audited guide 的一致真相为准，现行库存是 `98`。
 
 `2026-04-07` 的 `31` 模板冻结边界只保留为历史 provenance，用来解释这条主线是如何从首批冻结快照继续扩容到当前库存的。对应历史锚点如下：
 
@@ -41,10 +41,10 @@
   - 证据型图模板 `24`
   - 插图壳层模板 `2`
   - 表格壳层模板 `5`
-- 当前 strict registry / template catalog 工程口径统一为 `93`：
-  - 证据型图模板 `81`
+- 当前 strict registry / template catalog 工程口径统一为 `98`：
+  - 证据型图模板 `84`
   - 插图壳层模板 `7`
-  - 表格壳层模板 `5`
+  - 表格壳层模板 `7`
 - 截至 `2026-04-20`，post-baseline rolling expansion 已在冻结基线上正式收口五十五个 capability cluster：
   - `celltype_signature_heatmap`：把 `D/E/G` 从“仅候选复合图式”推进到第一个 pack 化 `embedding + signature heatmap` 复合模板；
   - `time_to_event_landmark_performance_panel`：把 `A/B` 从“已有 horizon ROC / grouped calibration 组件”推进到正式的 landmark/time-slice discrimination + Brier error + calibration slope 治理模板；
