@@ -10,6 +10,7 @@ import tomllib
 
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
 from med_autoscience.controllers import workspace_literature as workspace_literature_controller
+from med_autoscience.controllers.workspace_agents_template import render_workspace_agents
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
@@ -122,40 +123,7 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
 
 
 def _render_workspace_agents(*, workspace_name: str) -> str:
-    return (
-        f"# {workspace_name} Workspace Rules\n\n"
-        "适用范围：当前 workspace 根目录及所有子目录。\n\n"
-        "这个文件由 `medautosci init-workspace` 自动生成，用于声明当前 workspace 的执行约束、方法学边界与基座回灌要求。\n"
-        "平台默认的 controller-first 与 automation-ready 运行语义统一维护在 "
-        "[`WORKSPACE_AUTOSCIENCE_RULES.md`](WORKSPACE_AUTOSCIENCE_RULES.md)；"
-        "这里保留 Agent 工作时需要最先读取的通用约束。\n\n"
-        "## 交流与工具\n\n"
-        "- 始终使用中文回应。\n"
-        "- 优先使用 `rtk` 前缀运行 shell 命令。\n"
-        "- 对于不冲突、可并行的任务，优先使用 subagent 提高效率。\n"
-        "- 浏览网页优先使用 `agent-browser`。\n"
-        "- 涉及 PDF、图片、Office、网页内容提取时，优先使用官方 `mineru-document-extractor`，并优先读取 `MINERU_TOKEN`。\n\n"
-        "## MAS 入口约束\n\n"
-        "- 进入当前 workspace 前，先读取本文件、`README.md`、`WORKSPACE_AUTOSCIENCE_RULES.md` 与相关 study 文档。\n"
-        "- 研究任务的创建、恢复、门禁判断和状态读取统一走 `MedAutoScience` controller / CLI / overlay skill。\n"
-        "- 默认通过 `ops/medautoscience/bin/show-profile`、`ops/medautoscience/bin/bootstrap`、"
-        "`ops/medautoscience/bin/enter-study` 与 `ops/medautoscience/bin/watch-runtime` 调用 MAS 工作流。\n"
-        "- `ops/med-deepscientist/` 是 runtime 状态和运维脚本目录；研究治理入口归属 MAS。\n\n"
-        "## 研究边界\n\n"
-        "- 这是病种/课题级 research workspace，负责管理共享数据底座、数据契约、历史证据、运行入口和多个未来论文方向。\n"
-        "- `study` 是论文交付单元，一篇准备投稿的论文对应一个 `study`。\n"
-        "- 同一篇论文里的模型对比、方法竞争、敏感性分析、解释性分析，必须留在同一个 `study` 内。\n"
-        "- 只有当研究问题、终点定义、论文叙事或投稿目标真正分叉，才允许新建下一个 `study`。\n\n"
-        "## 方法学约束\n\n"
-        "- 避免采用降级处理、兜底方案、临时补丁、启发式方法、局部稳定化手段，以及非严谨通用算法的后处理补救措施。\n"
-        "- `refs/` 中存在冲突、漂移或未验证的旧规则必须先完成当前 workspace 审计，再升级为正式 contract。\n"
-        "- 正式 contract 只吸收经当前 workspace 审计后仍然可信的内容。\n\n"
-        "## 基座回灌约束\n\n"
-        "- 在论文、study 或 workspace 执行过程中，如果遇到的 bug 属于流程问题、运行时问题、controller / contract 问题、overlay 问题、prompt / skill 问题，或依赖环境本身的问题，必须回到对应依赖仓进行正式修复。\n"
-        "- 优先在 `MedAutoScience` 与 `med-deepscientist` repo 中完成基座层修复，再回到当前 workspace 验证修复后的行为。\n"
-        "- 当前工作目录中的修复只用于辅助定位问题或验证根因；基座缺陷需要通过依赖仓修复与回灌收口。\n"
-    )
-
+    return render_workspace_agents(workspace_name=workspace_name)
 
 def _render_workspace_rules() -> str:
     controller_first_summary = render_controller_first_summary()

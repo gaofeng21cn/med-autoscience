@@ -48,7 +48,7 @@ bash scripts/install-codex-plugin.sh
 
 - 以 editable 方式安装当前仓库
 - 提供 `medautosci` 和 `medautosci-mcp`
-- 在 `~/plugins/med-autoscience` 建立 home-local plugin 链接
+- 在 `~/plugins/mas` 建立 home-local plugin 链接
 - 在 `~/.agents/skills/med-autoscience` 建立 skill 发现链接
 - 在 `~/.agents/plugins/marketplace.json` 写入插件入口
 
@@ -69,9 +69,9 @@ bash scripts/install-codex-plugin.sh
 
 仓库内的关键文件如下：
 
-- `plugins/med-autoscience/.codex-plugin/plugin.json`
-- `plugins/med-autoscience/.mcp.json`
-- `plugins/med-autoscience/skills/med-autoscience/SKILL.md`
+- `plugins/mas/.codex-plugin/plugin.json`
+- `plugins/mas/.mcp.json`
+- `plugins/mas/skills/mas/SKILL.md`
 - `src/med_autoscience/mcp_server.py`
 - `src/med_autoscience/codex_plugin_installer.py`
 - `scripts/install-codex-plugin.sh`

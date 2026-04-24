@@ -1,6 +1,6 @@
 # Codex Plugin 接入
 
-`MedAutoScience` 现在可以通过仓库内置的 Codex plugin 暴露给 Agent，路径在 `plugins/med-autoscience/`。
+`MedAutoScience` 现在可以通过仓库内置的 Codex plugin 暴露给 Agent，路径在 `plugins/mas/`。
 
 如果想看更高层的发布说明，可参考 [codex_plugin_release.md](codex_plugin_release.md)。
 
@@ -9,7 +9,7 @@
 - 通过 `.codex-plugin/plugin.json` 提供 Codex 可发现、可安装的入口
 - 通过 `.agents/plugins/marketplace.json` 提供本仓库内的 plugin 市场元数据
 - 提供一层 plugin skill，让 Codex 通过稳定接口操作 `MedAutoScience`
-- 提供 `plugins/med-autoscience/.mcp.json`，让 Codex 直接接入 `medautosci-mcp`
+- 提供 `plugins/mas/.mcp.json`，让 Codex 直接接入 `medautosci-mcp`
 
 ## 这个 plugin 不替代什么
 
@@ -88,7 +88,7 @@ Compatibility note:
 
 如果你想把 plugin 放在 home-local，而不是 repo-local，也可以复制或同步：
 
-- `plugins/med-autoscience/` to `~/plugins/med-autoscience/`
+- `plugins/mas/` to `~/plugins/mas/`
 - `.agents/plugins/marketplace.json` into `~/.agents/plugins/marketplace.json`
 
 然后确保 `medautosci-mcp` 仍然在 `PATH` 上。

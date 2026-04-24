@@ -7,10 +7,11 @@ from pathlib import Path
 from typing import Any
 
 
-PLUGIN_NAME = "med-autoscience"
-MARKETPLACE_NAME = "med-autoscience-local"
-MARKETPLACE_DISPLAY_NAME = "MedAutoScience Local"
+PLUGIN_NAME = "mas"
+MARKETPLACE_NAME = "mas-local"
+MARKETPLACE_DISPLAY_NAME = "MAS Local"
 PLUGIN_CATEGORY = "Research"
+LEGACY_PLUGIN_NAMES = ("med-autoscience",)
 
 
 def _repo_plugin_root(repo_root: Path) -> Path:
@@ -56,6 +57,11 @@ def _ensure_expected_symlink(*, link_path: Path, target_path: Path) -> None:
     os.symlink(target_path, link_path)
 
 
+def _remove_legacy_symlink(path: Path) -> None:
+    if path.is_symlink():
+        path.unlink()
+
+
 def _upsert_marketplace(*, marketplace_path: Path) -> None:
     payload = _load_json(marketplace_path)
     plugins = payload.get("plugins")
@@ -79,6 +85,8 @@ def _upsert_marketplace(*, marketplace_path: Path) -> None:
     normalized_plugins: list[dict[str, Any]] = []
     for item in plugins:
         if not isinstance(item, dict):
+            continue
+        if item.get("name") in LEGACY_PLUGIN_NAMES:
             continue
         if item.get("name") == PLUGIN_NAME:
             normalized_plugins.append(plugin_entry)
@@ -112,6 +120,10 @@ def install_home_local_codex_plugin(*, repo_root: Path, home: Path | None = None
     user_plugin_root = _user_plugin_root(resolved_home)
     user_skill_root = _user_skill_root(resolved_home)
     marketplace_path = _user_marketplace_path(resolved_home)
+
+    for legacy_name in LEGACY_PLUGIN_NAMES:
+        _remove_legacy_symlink(resolved_home / "plugins" / legacy_name)
+        _remove_legacy_symlink(resolved_home / ".agents" / "skills" / legacy_name)
 
     _ensure_expected_symlink(link_path=user_plugin_root, target_path=repo_plugin_root)
     _ensure_expected_symlink(link_path=user_skill_root, target_path=repo_skill_root)

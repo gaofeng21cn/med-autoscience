@@ -1,5 +1,5 @@
 {
-  "name": "med-autoscience",
+  "name": "mas",
   "version": "0.1.0a4",
   "description": "Codex plugin shell for the MedAutoScience medical research orchestration runtime.",
   "author": {
@@ -18,7 +18,7 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "MedAutoScience",
+    "displayName": "MAS",
     "shortDescription": "Agent-first medical research runtime for Codex.",
     "longDescription": "Adds a thin Codex plugin entry for MedAutoScience while preserving the existing Python CLI, controller contracts, profile binding, and DeepScientist overlay workflow.",
     "developerName": "Gao Feng",

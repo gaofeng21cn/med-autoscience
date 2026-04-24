@@ -721,7 +721,7 @@ def _build_skill_catalog_surface(
     )
     skills = [
         _build_shared_skill_descriptor(
-            skill_id="med-autoscience",
+            skill_id="mas",
             title="Med Auto Science",
             owner=TARGET_DOMAIN_ID,
             distribution_mode="repo_tracked",
@@ -731,8 +731,8 @@ def _build_skill_catalog_surface(
             readiness="landed",
             tags=["domain-app", "medical-research", "study"],
             domain_projection={
-                "plugin_name": "med-autoscience",
-                "skill_entry": "med-autoscience",
+                "plugin_name": "mas",
+                "skill_entry": "mas",
                 "recommended_shell": "workspace_cockpit",
                 "skill_semantics": "domain_app",
                 "entry_shell_key": "product_frontdesk",

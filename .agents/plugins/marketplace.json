@@ -1,14 +1,14 @@
 {
-  "name": "med-autoscience-local",
+  "name": "mas-local",
   "interface": {
-    "displayName": "MedAutoScience Local"
+    "displayName": "MAS Local"
   },
   "plugins": [
     {
-      "name": "med-autoscience",
+      "name": "mas",
       "source": {
         "source": "local",
-        "path": "./plugins/med-autoscience"
+        "path": "./plugins/mas"
       },
       "policy": {
         "installation": "AVAILABLE",

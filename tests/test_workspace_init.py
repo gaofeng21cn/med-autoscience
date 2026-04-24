@@ -180,10 +180,15 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "适用范围：当前 workspace 根目录及所有子目录。" in root_agents_text
     assert "[`WORKSPACE_AUTOSCIENCE_RULES.md`](WORKSPACE_AUTOSCIENCE_RULES.md)" in root_agents_text
     assert "始终使用中文回应。" in root_agents_text
+    assert "先给结论，再补必要上下文" in root_agents_text
+    assert "确认真实生效位置、调用链路和约束" in root_agents_text
     assert "优先使用 `rtk` 前缀运行 shell 命令。" in root_agents_text
     assert "浏览网页优先使用 `agent-browser`。" in root_agents_text
+    assert "## 执行原则" in root_agents_text
+    assert "不改无关文件，不覆盖用户已有本地修改" in root_agents_text
     assert "病种/课题级 research workspace" in root_agents_text
     assert "`study` 是论文交付单元" in root_agents_text
+    assert "不把探索性发现写成确认性结论" in root_agents_text
     assert "正式 contract 只吸收经当前 workspace 审计后仍然可信的内容。" in root_agents_text
     assert "优先在 `MedAutoScience` 与 `med-deepscientist` repo 中完成基座层修复" in root_agents_text
 

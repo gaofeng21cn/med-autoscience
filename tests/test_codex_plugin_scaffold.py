@@ -6,9 +6,9 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PLUGIN_ROOT = REPO_ROOT / "plugins" / "med-autoscience"
+PLUGIN_ROOT = REPO_ROOT / "plugins" / "mas"
 PLUGIN_MANIFEST_PATH = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
-PLUGIN_SKILL_PATH = PLUGIN_ROOT / "skills" / "med-autoscience" / "SKILL.md"
+PLUGIN_SKILL_PATH = PLUGIN_ROOT / "skills" / "mas" / "SKILL.md"
 PLUGIN_MCP_PATH = PLUGIN_ROOT / ".mcp.json"
 MARKETPLACE_PATH = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
 
@@ -19,19 +19,19 @@ def test_codex_plugin_scaffold_exists_and_points_to_repo_local_plugin() -> None:
     skill_text = PLUGIN_SKILL_PATH.read_text(encoding="utf-8")
 
     assert PLUGIN_ROOT.is_dir()
-    assert manifest["name"] == "med-autoscience"
+    assert manifest["name"] == "mas"
     assert manifest["skills"] == "./skills/"
     assert manifest["mcpServers"] == "./.mcp.json"
-    assert manifest["interface"]["displayName"] == "MedAutoScience"
+    assert manifest["interface"]["displayName"] == "MAS"
     assert "medautosci" in skill_text
     assert json.loads(PLUGIN_MCP_PATH.read_text(encoding="utf-8"))["mcpServers"]["med-autoscience"]["command"] == (
         "medautosci-mcp"
     )
 
-    plugin_entry = next(item for item in marketplace["plugins"] if item["name"] == "med-autoscience")
+    plugin_entry = next(item for item in marketplace["plugins"] if item["name"] == "mas")
     assert plugin_entry["source"] == {
         "source": "local",
-        "path": "./plugins/med-autoscience",
+        "path": "./plugins/mas",
     }
     assert plugin_entry["policy"] == {
         "installation": "AVAILABLE",

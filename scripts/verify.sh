@@ -5,6 +5,8 @@ repo_root="$(git rev-parse --show-toplevel)"
 cd "${repo_root}"
 
 run_sanity_checks() {
+  python scripts/line_budget.py
+
   if git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\|\|\|\|\|\|\| )' -- .; then
     echo "verify.sh: unresolved merge conflict markers detected" >&2
     exit 1
