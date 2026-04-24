@@ -892,6 +892,35 @@ def resolve_primary_journal_target(*, paper_root: Path | None) -> dict[str, Any]
     }
 
 
+def _resolved_optional_path(value: object) -> Path | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return Path(text).expanduser().resolve()
+
+
+def _resolve_current_journal_source_manifest_path(
+    *,
+    paper_root: Path | None,
+    primary_target: dict[str, Any] | None,
+) -> Path | None:
+    if paper_root is None or primary_target is None:
+        return None
+    publication_profile = (
+        _non_empty_text(primary_target.get("publication_profile"))
+        or submission_minimal.GENERAL_MEDICAL_JOURNAL_PROFILE
+    )
+    try:
+        source_root = study_delivery_sync.build_submission_source_root(
+            paper_root=paper_root,
+            publication_profile=publication_profile,
+        )
+    except ValueError:
+        return None
+    manifest_path = source_root / "submission_manifest.json"
+    return manifest_path.resolve() if manifest_path.exists() else None
+
+
 def resolve_journal_requirement_state(*, paper_root: Path | None) -> dict[str, Any]:
     study_root = _resolve_gate_study_root(paper_root=paper_root)
     primary_target = resolve_primary_journal_target(paper_root=paper_root)
@@ -926,10 +955,63 @@ def resolve_journal_package_state(*, paper_root: Path | None) -> dict[str, Any]:
             "submission_manifest_path": None,
             "zip_path": None,
         }
-    return describe_journal_submission_package(
+    package_state = describe_journal_submission_package(
         study_root=study_root,
         journal_slug=str(primary_target["journal_slug"]),
     )
+    current_source_manifest_path = _resolve_current_journal_source_manifest_path(
+        paper_root=paper_root,
+        primary_target=primary_target,
+    )
+    if package_state["status"] != "current":
+        return {
+            **package_state,
+            "stale_reason": None,
+            "current_source_submission_manifest_path": (
+                str(current_source_manifest_path) if current_source_manifest_path is not None else None
+            ),
+        }
+    package_manifest_path = _resolved_optional_path(package_state.get("submission_manifest_path"))
+    try:
+        package_manifest = load_json(package_manifest_path, default=None) if package_manifest_path is not None else None
+    except json.JSONDecodeError:
+        return {
+            **package_state,
+            "status": "incomplete",
+            "stale_reason": "journal_package_manifest_invalid",
+            "current_source_submission_manifest_path": (
+                str(current_source_manifest_path) if current_source_manifest_path is not None else None
+            ),
+        }
+    recorded_source_manifest_path = _resolved_optional_path(
+        (package_manifest or {}).get("source_submission_manifest_path")
+    )
+    recorded_source_root = _resolved_optional_path((package_manifest or {}).get("source_submission_root"))
+    current_source_root = current_source_manifest_path.parent if current_source_manifest_path is not None else None
+    status = str(package_state["status"])
+    stale_reason: str | None = None
+    if current_source_manifest_path is not None:
+        if (
+            recorded_source_manifest_path is not None
+            and recorded_source_manifest_path != current_source_manifest_path
+        ):
+            status = "stale_source_mismatch"
+            stale_reason = "source_submission_manifest_mismatch"
+        elif recorded_source_root is not None and current_source_root is not None and recorded_source_root != current_source_root:
+            status = "stale_source_mismatch"
+            stale_reason = "source_submission_root_mismatch"
+        elif package_manifest_path is not None and package_manifest_path.exists():
+            if package_manifest_path.stat().st_mtime < current_source_manifest_path.stat().st_mtime:
+                status = "stale_source_changed"
+                stale_reason = "source_submission_manifest_newer"
+    return {
+        **package_state,
+        "status": status,
+        "stale_reason": stale_reason,
+        "current_source_submission_manifest_path": (
+            str(current_source_manifest_path) if current_source_manifest_path is not None else None
+        ),
+    }
 
 
 def resolve_primary_anchor(
@@ -1373,9 +1455,13 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "journal_requirements_path": journal_requirements_state.get("requirements_path"),
         "journal_requirements_study_root": journal_requirements_state.get("study_root"),
         "journal_package_status": journal_package_state["status"],
+        "journal_package_stale_reason": journal_package_state.get("stale_reason"),
         "journal_package_root": journal_package_state.get("package_root"),
         "journal_package_manifest_path": journal_package_state.get("submission_manifest_path"),
         "journal_package_zip_path": journal_package_state.get("zip_path"),
+        "journal_package_current_source_submission_manifest_path": journal_package_state.get(
+            "current_source_submission_manifest_path"
+        ),
         "draft_handoff_delivery_required": draft_handoff_delivery_required,
         "draft_handoff_delivery_status": draft_handoff_delivery_status,
         "draft_handoff_delivery_manifest_path": _non_empty_text(draft_handoff_delivery.get("delivery_manifest_path")),
@@ -1808,7 +1894,7 @@ def run_controller(
         and state.paper_root is not None
         and isinstance(report.get("primary_journal_target"), dict)
         and str(report.get("journal_requirements_status") or "").strip() == "resolved"
-        and str(report.get("journal_package_status") or "").strip() in {"missing", "incomplete"}
+        and str(report.get("journal_package_status") or "").strip() != "current"
         and _non_empty_text(report.get("journal_requirements_study_root"))
     ):
         primary_journal_target = report["primary_journal_target"]

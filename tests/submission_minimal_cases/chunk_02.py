@@ -38,6 +38,7 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    package_builder = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
     paper_root = make_paper_workspace(tmp_path)
     called: dict[str, object] = {}
 
@@ -76,6 +77,44 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
     readme_text = (paper_root / "submission_minimal" / "README.md").read_text(encoding="utf-8")
     assert "paper/submission_minimal/" in readme_text
     assert "manuscript/" in readme_text
+
+
+def test_create_submission_minimal_package_replays_post_materialization_sync_when_context_is_available(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    package_builder = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
+    paper_root = make_paper_workspace(tmp_path)
+    called: dict[str, object] = {}
+
+    monkeypatch.setattr(package_builder.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        package_builder.study_delivery_sync,
+        "sync_study_delivery",
+        lambda **_: {"stage": "submission_minimal"},
+    )
+
+    def fake_replay(*, paper_root: Path) -> dict[str, object]:
+        called["paper_root"] = paper_root
+        return {
+            "status": "synced",
+            "quest_root": "/tmp/runtime/quests/quest-001",
+        }
+
+    monkeypatch.setattr(package_builder, "replay_post_submission_minimal_sync", fake_replay)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    assert called["paper_root"] == paper_root
+    assert manifest["delivery_sync"] == {"stage": "submission_minimal"}
+    assert manifest["post_materialization_sync"] == {
+        "status": "synced",
+        "quest_root": "/tmp/runtime/quests/quest-001",
+    }
 
 
 def test_create_submission_minimal_package_frontiers_family_profile_creates_journal_specific_assets(
@@ -546,5 +585,4 @@ Legend text for the main figure under the Main Figures alias.
     assert inspection["figure_block_count"] == 1
     assert inspection["figure_blocks_with_images"] == 1
     assert inspection["figure_blocks_with_legends"] == 1
-
 

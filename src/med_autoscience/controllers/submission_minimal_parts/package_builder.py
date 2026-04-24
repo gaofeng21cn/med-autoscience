@@ -1,6 +1,7 @@
 from .shared import *
 from .authority import *
 from .markdown_surface import *
+from .post_materialization_sync import replay_post_submission_minimal_sync
 from .profile_builders import *
 
 def create_submission_minimal_package(
@@ -417,17 +418,21 @@ def create_submission_minimal_package(
         ]
         dump_json(submission_manifest_path, manifest)
     delivery_sync_result: dict[str, Any] | None = None
+    post_materialization_sync_result: dict[str, Any] | None = None
     if study_delivery_sync.can_sync_study_delivery(paper_root=paper_root):
         delivery_sync_result = study_delivery_sync.sync_study_delivery(
             paper_root=paper_root,
             stage="submission_minimal",
             publication_profile=resolved_publication_profile,
         )
-    if delivery_sync_result is not None:
-        return {
-            **manifest,
-            "delivery_sync": delivery_sync_result,
-        }
+        post_materialization_sync_result = replay_post_submission_minimal_sync(paper_root=paper_root)
+    if delivery_sync_result is not None or post_materialization_sync_result is not None:
+        result = dict(manifest)
+        if delivery_sync_result is not None:
+            result["delivery_sync"] = delivery_sync_result
+        if post_materialization_sync_result is not None:
+            result["post_materialization_sync"] = post_materialization_sync_result
+        return result
     return manifest
 
 

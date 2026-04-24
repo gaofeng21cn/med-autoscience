@@ -1987,6 +1987,126 @@ def test_run_controller_resyncs_delivery_when_authority_package_source_mismatch_
             "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
         },
     }
+
+
+def test_run_controller_refreshes_stale_journal_package_when_source_submission_manifest_advances(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    journal_package_module = importlib.import_module("med_autoscience.controllers.journal_package")
+    requirements_module = importlib.import_module("med_autoscience.journal_requirements")
+    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+    )
+    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    journal_slug = "rheumatology-international"
+
+    dump_json(
+        paper_root / "submission_targets.resolved.json",
+        {
+            "schema_version": 1,
+            "updated_at": "2026-04-06T00:00:00+00:00",
+            "decision_kind": "journal_selected",
+            "decision_source": "controller_explicit",
+            "primary_target": {
+                "journal_name": "Rheumatology International",
+                "journal_slug": journal_slug,
+                "publication_profile": "general_medical_journal",
+                "official_guidelines_url": "https://example.org/ri-guide",
+                "package_required": True,
+                "resolution_status": "resolved",
+            },
+            "blocked_items": [],
+        },
+    )
+    requirements_module.write_journal_requirements(
+        study_root=study_root,
+        requirements=requirements_module.JournalRequirements(
+            journal_name="Rheumatology International",
+            journal_slug=journal_slug,
+            official_guidelines_url="https://example.org/ri-guide",
+            publication_profile="general_medical_journal",
+            abstract_word_cap=250,
+            title_word_cap=None,
+            keyword_limit=None,
+            main_text_word_cap=None,
+            main_display_budget=6,
+            table_budget=2,
+            figure_budget=4,
+            supplementary_allowed=True,
+            title_page_required=True,
+            blinded_main_document=False,
+            reference_style_family="AMA",
+            required_sections=(),
+            declaration_requirements=(),
+            submission_checklist_items=(),
+            template_assets=(),
+        ),
+    )
+    journal_package_module.materialize_journal_package(
+        paper_root=paper_root,
+        study_root=study_root,
+        journal_slug=journal_slug,
+        publication_profile="general_medical_journal",
+    )
+    source_manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
+    source_manifest_payload = json.loads(source_manifest_path.read_text(encoding="utf-8"))
+    source_manifest_payload["generated_at"] = "2026-04-06T00:00:01+00:00"
+    source_manifest_path.write_text(
+        json.dumps(source_manifest_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_draft_handoff_delivery",
+        lambda *, paper_root: {
+            "applicable": False,
+            "status": "not_applicable",
+            "current_package_root": None,
+            "current_package_zip": None,
+            "delivery_manifest_path": None,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_submission_delivery",
+        lambda *, paper_root, publication_profile="general_medical_journal": {
+            "applicable": True,
+            "status": "current",
+            "stale_reason": None,
+            "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
+            "current_package_root": "/tmp/studies/002/manuscript/current_package",
+            "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
+            "missing_source_paths": [],
+        },
+    )
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    assert result["status"] == "clear"
+    assert result["allow_write"] is True
+    assert result["current_required_action"] == "continue_bundle_stage"
+    assert result["journal_package_sync"] == {
+        "status": "materialized",
+        "study_root": str(study_root.resolve()),
+        "paper_root": str(paper_root.resolve()),
+        "journal_slug": journal_slug,
+        "journal_name": "Rheumatology International",
+        "publication_profile": "general_medical_journal",
+        "package_root": str((study_root / "submission_packages" / journal_slug).resolve()),
+        "submission_manifest_path": str((study_root / "submission_packages" / journal_slug / "submission_manifest.json").resolve()),
+        "zip_path": str((study_root / "submission_packages" / journal_slug / f"{journal_slug}_submission_package.zip").resolve()),
+        "package_status": "current",
+    }
 def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(

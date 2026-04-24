@@ -58,6 +58,7 @@ from med_autoscience.study_manual_finish import (
 from med_autoscience.study_task_intake import (
     read_latest_task_intake,
     task_intake_overrides_auto_manual_finish,
+    task_intake_yields_to_deterministic_submission_closeout,
 )
 
 
@@ -269,6 +270,24 @@ def _explicit_manual_finish_compatibility_guard_active(*, study_root: Path) -> b
 
 def _task_intake_overrides_auto_manual_finish_active(*, study_root: Path) -> bool:
     return task_intake_overrides_auto_manual_finish(read_latest_task_intake(study_root=study_root))
+
+
+def _task_intake_yields_to_submission_closeout_active(
+    *,
+    study_root: Path,
+    publication_gate_report: dict[str, object] | None,
+) -> bool:
+    payload = read_latest_task_intake(study_root=study_root)
+    if not task_intake_overrides_auto_manual_finish(payload):
+        return False
+    evaluation_summary_payload = _load_json_dict(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    )
+    return task_intake_yields_to_deterministic_submission_closeout(
+        payload,
+        publishability_gate_report=dict(publication_gate_report) if isinstance(publication_gate_report, dict) else None,
+        evaluation_summary=evaluation_summary_payload,
+    )
 
 
 def _publication_eval_evidence_refs(*values: object) -> tuple[str, ...]:
@@ -1915,6 +1934,10 @@ def _status_state(
         )
     else:
         publication_gate_report = None
+    task_intake_yields_to_submission_closeout = _task_intake_yields_to_submission_closeout_active(
+        study_root=study_root,
+        publication_gate_report=publication_gate_report,
+    )
     _record_continuation_state_if_present(status=result, quest_root=quest_root)
     _record_pending_user_interaction_if_required(
         status=result,
@@ -2434,8 +2457,12 @@ def _status_state(
                     StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
                 )
             return _finalize_result()
-        if task_intake_overrides_auto_manual_finish and _task_intake_override_allows_stopped_auto_resume(
+        if (
+            task_intake_overrides_auto_manual_finish
+            and not task_intake_yields_to_submission_closeout
+            and _task_intake_override_allows_stopped_auto_resume(
             quest_root=quest_root
+        )
         ):
             if not result.startup_boundary_allows_compute_stage:
                 result.set_decision(

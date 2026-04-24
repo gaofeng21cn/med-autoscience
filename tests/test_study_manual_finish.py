@@ -208,6 +208,58 @@ def test_resolve_effective_study_manual_finish_contract_suppresses_auto_parking_
     assert contract is None
 
 
+def test_resolve_effective_study_manual_finish_contract_restores_bundle_only_parking_after_fresh_closeout(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_manual_finish")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent=(
+            "按最新专家意见重新打开同一论文线的修订任务；当前稿件不能按已达投稿包里程碑直接收口，"
+            "并把当前 submission-ready/finalize 判断降回待修订后再评估。"
+        ),
+        constraints=("本轮不得直接按外投收口。",),
+        first_cycle_outputs=("补充分层统计分析并写回 manuscript。",),
+    )
+    write_synced_submission_delivery(
+        study_root,
+        quest_root,
+        include_submission_checklist=False,
+    )
+    summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(
+        "{\n"
+        '  "emitted_at": "2099-01-01T00:00:00+00:00",\n'
+        '  "quality_closure_truth": {"state": "bundle_only_remaining", "current_required_action": "continue_bundle_stage"},\n'
+        '  "quality_review_loop": {"closure_state": "bundle_only_remaining"},\n'
+        '  "quality_assessment": {"human_review_readiness": {"status": "ready"}}\n'
+        "}\n",
+        encoding="utf-8",
+    )
+
+    contract = module.resolve_effective_study_manual_finish_contract(
+        study_root=study_root,
+        quest_root=quest_root,
+    )
+
+    assert contract is not None
+    assert "投稿包里程碑" in contract.summary
+
+
 def test_resolve_effective_study_manual_finish_contract_keeps_reporting_only_milestone_parking(
     tmp_path: Path,
 ) -> None:

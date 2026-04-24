@@ -992,12 +992,46 @@ def _runtime_module_surface(
     recovery_contract: dict[str, Any],
     execution_owner_guard: dict[str, Any],
     publication_supervisor_state: dict[str, Any],
+    current_stage: str,
     current_stage_summary: str,
     next_system_action: str,
     needs_physician_decision: bool,
     status: dict[str, Any],
     supervisor_tick_audit: dict[str, Any],
+    manual_finish_contract: dict[str, Any] | None,
 ) -> dict[str, Any]:
+    manual_finish_active = _manual_finish_active(manual_finish_contract)
+    runtime_health_status = (
+        _non_empty_text(status.get("runtime_liveness_status")) or "none"
+        if manual_finish_active
+        else _non_empty_text((runtime_supervision_payload or {}).get("health_status")) or "unknown"
+    )
+    current_required_action = (
+        _non_empty_text(publication_supervisor_state.get("current_required_action"))
+        if manual_finish_active
+        else (
+            _non_empty_text(execution_owner_guard.get("current_required_action"))
+            or _non_empty_text((runtime_supervision_payload or {}).get("next_action"))
+        )
+    )
+    status_summary = (
+        current_stage_summary
+        if manual_finish_active
+        else (
+            _display_text((runtime_supervision_payload or {}).get("summary"))
+            or current_stage_summary
+            or next_system_action
+        )
+    )
+    next_action_summary = (
+        next_system_action
+        if manual_finish_active
+        else (
+            _display_text((runtime_supervision_payload or {}).get("next_action_summary"))
+            or next_system_action
+            or current_stage_summary
+        )
+    )
     summary = build_runtime_status_summary(
         study_id=study_id,
         quest_id=quest_id,
@@ -1012,29 +1046,18 @@ def _runtime_module_surface(
             str(runtime_escalation_path.resolve()) if runtime_escalation_path is not None else None
         ),
         runtime_watch_ref=str(runtime_watch_path.resolve()) if runtime_watch_path is not None else None,
-        health_status=_non_empty_text((runtime_supervision_payload or {}).get("health_status")) or "unknown",
+        health_status=runtime_health_status,
         runtime_decision=_non_empty_text(status.get("decision")) or "noop",
         runtime_reason=_non_empty_text(status.get("reason")),
         recovery_action_mode=_non_empty_text(recovery_contract.get("action_mode")) or "monitor_only",
         supervisor_tick_status=_non_empty_text(supervisor_tick_audit.get("status")),
-        current_required_action=(
-            _non_empty_text(execution_owner_guard.get("current_required_action"))
-            or _non_empty_text((runtime_supervision_payload or {}).get("next_action"))
-        ),
+        current_required_action=current_required_action,
         controller_stage_note=(
             _non_empty_text(execution_owner_guard.get("controller_stage_note"))
             or _non_empty_text(publication_supervisor_state.get("controller_stage_note"))
         ),
-        status_summary=(
-            _display_text((runtime_supervision_payload or {}).get("summary"))
-            or current_stage_summary
-            or next_system_action
-        ),
-        next_action_summary=(
-            _display_text((runtime_supervision_payload or {}).get("next_action_summary"))
-            or next_system_action
-            or current_stage_summary
-        ),
+        status_summary=status_summary,
+        next_action_summary=next_action_summary,
         needs_human_intervention=(
             bool((runtime_supervision_payload or {}).get("needs_human_intervention")) or needs_physician_decision
         ),
@@ -1070,16 +1093,27 @@ def _publishability_gate_report_path(
         else {}
     )
     report_json = _non_empty_text(publication_gate.get("report_json"))
+    runtime_watch_candidate: Path | None = None
     if report_json is not None:
         candidate = Path(report_json).expanduser()
         if candidate.is_absolute():
-            return candidate.resolve()
-        if quest_root is not None:
-            return (quest_root / candidate).resolve()
-    if quest_root is None:
-        return None
-    candidate = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
-    return candidate.resolve() if candidate.exists() else None
+            runtime_watch_candidate = candidate.resolve()
+        elif quest_root is not None:
+            runtime_watch_candidate = (quest_root / candidate).resolve()
+    latest_candidate = None
+    if quest_root is not None:
+        candidate = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
+        if candidate.exists():
+            latest_candidate = candidate.resolve()
+    if runtime_watch_candidate is None:
+        return latest_candidate
+    if latest_candidate is None:
+        return runtime_watch_candidate
+    if not runtime_watch_candidate.exists():
+        return latest_candidate
+    if latest_candidate.stat().st_mtime >= runtime_watch_candidate.stat().st_mtime:
+        return latest_candidate
+    return runtime_watch_candidate
 
 
 def _refresh_publication_surfaces_from_gate_report(
@@ -2130,6 +2164,8 @@ def _current_blockers(
 ) -> list[str]:
     blockers: list[str] = []
     manual_finish_active = _manual_finish_active(manual_finish_contract)
+    if manual_finish_active:
+        return blockers
     metadata_wait = _resume_arbitration_external_metadata_wait(
         status=status,
         pending_user_interaction=pending_user_interaction,
@@ -2152,8 +2188,6 @@ def _current_blockers(
             _non_empty_text((runtime_supervision_payload or {}).get("summary"))
             or _non_empty_text((runtime_supervision_payload or {}).get("clinician_update")),
         )
-    if manual_finish_active:
-        return blockers
     if task_intake_progress_override:
         _append_unique(blockers, _non_empty_text(task_intake_progress_override.get("blocker_summary")))
     if (
@@ -3422,6 +3456,7 @@ def build_study_progress_projection(
     bash_summary_payload = _read_json_object(bash_summary_path) if bash_summary_path is not None else None
     details_projection_wrapper = _read_json_object(details_projection_path) if details_projection_path is not None else None
     details_projection_payload = _details_projection_payload(details_projection_path)
+    evaluation_summary_payload = _read_json_object(stable_evaluation_summary_path(study_root=resolved_study_root))
 
     publication_supervisor_state = (
         dict(status.get("publication_supervisor_state") or {})
@@ -3496,6 +3531,7 @@ def build_study_progress_projection(
         build_task_intake_progress_override(
             latest_task_intake_payload,
             publishability_gate_report=_publishability_gate_payload,
+            evaluation_summary=evaluation_summary_payload,
         )
         if manual_finish_contract is None
         else None
@@ -3730,11 +3766,13 @@ def build_study_progress_projection(
         recovery_contract=recovery_contract,
         execution_owner_guard=execution_owner_guard,
         publication_supervisor_state=publication_supervisor_state,
+        current_stage=current_stage,
         current_stage_summary=current_stage_summary,
         next_system_action=next_system_action,
         needs_physician_decision=needs_physician_decision,
         status=status,
         supervisor_tick_audit=supervisor_tick_audit,
+        manual_finish_contract=manual_finish_contract,
     )
     module_surfaces: dict[str, Any] = {}
     if controller_module_surface is not None:

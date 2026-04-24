@@ -31,6 +31,7 @@ _ANALYSIS_ROUTE_MARKERS = (
     "卡方",
     "analysis-campaign",
 )
+_BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
 _DETERMINISTIC_SUBMISSION_CLOSEOUT_BLOCKERS = frozenset(
     {
         "stale_submission_minimal_authority",
@@ -66,6 +67,21 @@ def _normalized_strings(values: Iterable[object]) -> list[str]:
 def _entry_mode_label(value: object) -> str:
     text = _non_empty_text(value) or "full_research"
     return _ENTRY_MODE_LABELS.get(text, text)
+
+
+def _normalize_timestamp(value: object) -> datetime | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def task_intake_root(*, study_root: Path) -> Path:
@@ -162,13 +178,37 @@ def _integer_value(value: object) -> int | None:
     return None
 
 
-def task_intake_yields_to_deterministic_submission_closeout(
+def _mapping_value(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _surface_emitted_at(payload: dict[str, Any] | None) -> datetime | None:
+    if not isinstance(payload, dict):
+        return None
+    return _normalize_timestamp(payload.get("emitted_at") or payload.get("generated_at"))
+
+
+def _closeout_surface_is_fresher_than_task_intake(
     payload: dict[str, Any] | None,
-    *,
+    *surfaces: dict[str, Any] | None,
+) -> bool:
+    task_intake_emitted_at = _surface_emitted_at(payload)
+    if task_intake_emitted_at is None:
+        return False
+    latest_surface_emitted_at = max(
+        (
+            surface_emitted_at
+            for surface_emitted_at in (_surface_emitted_at(surface) for surface in surfaces)
+            if surface_emitted_at is not None
+        ),
+        default=None,
+    )
+    return latest_surface_emitted_at is not None and latest_surface_emitted_at >= task_intake_emitted_at
+
+
+def _task_intake_yields_to_blocked_submission_closeout(
     publishability_gate_report: dict[str, Any] | None,
 ) -> bool:
-    if not task_intake_overrides_auto_manual_finish(payload):
-        return False
     if not isinstance(publishability_gate_report, dict):
         return False
     if _non_empty_text(publishability_gate_report.get("status")) != "blocked":
@@ -192,16 +232,79 @@ def task_intake_yields_to_deterministic_submission_closeout(
     return True
 
 
+def _task_intake_yields_to_bundle_only_submission_closeout(
+    *,
+    payload: dict[str, Any] | None,
+    publishability_gate_report: dict[str, Any] | None,
+    evaluation_summary: dict[str, Any] | None,
+) -> bool:
+    quality_closure_truth = _mapping_value((evaluation_summary or {}).get("quality_closure_truth"))
+    quality_review_loop = _mapping_value((evaluation_summary or {}).get("quality_review_loop"))
+    quality_assessment = _mapping_value((evaluation_summary or {}).get("quality_assessment"))
+    human_review_readiness = _mapping_value(quality_assessment.get("human_review_readiness"))
+    closure_state = (
+        _non_empty_text(quality_closure_truth.get("state"))
+        or _non_empty_text(quality_review_loop.get("closure_state"))
+    )
+    if closure_state != "bundle_only_remaining":
+        return False
+    human_review_status = _non_empty_text(human_review_readiness.get("status"))
+    if human_review_status not in {None, "ready"}:
+        return False
+    if isinstance(publishability_gate_report, dict):
+        if _non_empty_text(publishability_gate_report.get("status")) not in {None, "clear"}:
+            return False
+        gate_blockers = {
+            str(item or "").strip()
+            for item in (publishability_gate_report.get("blockers") or [])
+            if str(item or "").strip()
+        }
+        if gate_blockers:
+            return False
+        current_required_action = _non_empty_text(publishability_gate_report.get("current_required_action"))
+        if (
+            current_required_action is not None
+            and current_required_action not in _BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS
+        ):
+            return False
+        if publishability_gate_report.get("bundle_tasks_downstream_only") is True:
+            return False
+    return _closeout_surface_is_fresher_than_task_intake(
+        payload,
+        publishability_gate_report,
+        evaluation_summary,
+    )
+
+
+def task_intake_yields_to_deterministic_submission_closeout(
+    payload: dict[str, Any] | None,
+    *,
+    publishability_gate_report: dict[str, Any] | None,
+    evaluation_summary: dict[str, Any] | None = None,
+) -> bool:
+    if not task_intake_overrides_auto_manual_finish(payload):
+        return False
+    if _task_intake_yields_to_blocked_submission_closeout(publishability_gate_report):
+        return True
+    return _task_intake_yields_to_bundle_only_submission_closeout(
+        payload=payload,
+        publishability_gate_report=publishability_gate_report,
+        evaluation_summary=evaluation_summary,
+    )
+
+
 def build_task_intake_progress_override(
     payload: dict[str, Any] | None,
     *,
     publishability_gate_report: dict[str, Any] | None = None,
+    evaluation_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     if not task_intake_overrides_auto_manual_finish(payload):
         return None
     if task_intake_yields_to_deterministic_submission_closeout(
         payload,
         publishability_gate_report=publishability_gate_report,
+        evaluation_summary=evaluation_summary,
     ):
         return None
     route_target = "analysis-campaign" if _task_intake_contains_any(payload, _ANALYSIS_ROUTE_MARKERS) else "write"

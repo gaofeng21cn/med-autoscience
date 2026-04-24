@@ -13,6 +13,7 @@ from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.study_task_intake import (
     read_latest_task_intake,
     task_intake_overrides_auto_manual_finish,
+    task_intake_yields_to_deterministic_submission_closeout,
 )
 
 
@@ -286,10 +287,24 @@ def resolve_effective_study_manual_finish_contract(
     explicit_contract = resolve_study_manual_finish_contract(study_root=study_root)
     if explicit_contract is not None:
         return explicit_contract
-    if task_intake_overrides_auto_manual_finish(
-        read_latest_task_intake(study_root=Path(study_root).expanduser().resolve()) if study_root is not None else None
-    ):
-        return None
+    resolved_study_root = Path(study_root).expanduser().resolve() if study_root is not None else None
+    latest_task_intake = (
+        read_latest_task_intake(study_root=resolved_study_root) if resolved_study_root is not None else None
+    )
+    if task_intake_overrides_auto_manual_finish(latest_task_intake):
+        evaluation_summary_payload = (
+            _read_json_dict(
+                resolved_study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+            )
+            if resolved_study_root is not None
+            else {}
+        )
+        if not task_intake_yields_to_deterministic_submission_closeout(
+            latest_task_intake,
+            publishability_gate_report=None,
+            evaluation_summary=evaluation_summary_payload,
+        ):
+            return None
     metadata_only_contract = resolve_submission_metadata_only_manual_finish_contract(
         study_root=study_root,
         quest_root=quest_root,
