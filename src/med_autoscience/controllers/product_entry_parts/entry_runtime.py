@@ -372,6 +372,7 @@ def submit_study_task(
         "trusted_inputs": list(latest_payload.get("trusted_inputs") or []),
         "reference_papers": list(latest_payload.get("reference_papers") or []),
         "first_cycle_outputs": list(latest_payload.get("first_cycle_outputs") or []),
+        "revision_intake": latest_payload.get("revision_intake"),
         "startup_brief_path": str(startup_brief_path),
         "artifacts": dict(payload.get("artifact_refs") or {}),
         "runtime_intervention": runtime_intervention,

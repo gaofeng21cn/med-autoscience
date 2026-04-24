@@ -573,6 +573,30 @@ def test_submit_study_task_writes_durable_intake_and_updates_startup_brief_block
     assert payload["study_root"] == str(study_root)
 
 
+def test_submit_study_task_projects_reviewer_revision_intake(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "001-risk")
+
+    payload = module.submit_study_task(
+        profile=profile,
+        study_id="001-risk",
+        task_intent="根据审稿意见和导师反馈做 manuscript revision，补齐 Methods、Results、Figure/Table feedback。",
+        trusted_inputs=("reviewer feedback letter",),
+        first_cycle_outputs=("revision checklist", "durable handoff note"),
+    )
+
+    latest_json = Path(payload["artifacts"]["latest_json"])
+    latest_markdown = Path(payload["artifacts"]["latest_markdown"])
+    written_payload = json.loads(latest_json.read_text(encoding="utf-8"))
+    latest_markdown_text = latest_markdown.read_text(encoding="utf-8")
+
+    assert payload["revision_intake"]["kind"] == "reviewer_revision"
+    assert written_payload["revision_intake"]["handoff_required"] is True
+    assert "Revision Intake Checklist" in latest_markdown_text
+    assert "MDS 恢复前必须优先读取 latest revision handoff/evidence surface" in latest_markdown_text
+
+
 def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelope(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
