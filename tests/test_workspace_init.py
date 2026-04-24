@@ -182,15 +182,17 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "始终使用中文回应。" in root_agents_text
     assert "先给结论，再补必要上下文" in root_agents_text
     assert "确认真实生效位置、调用链路和约束" in root_agents_text
-    assert "优先使用 `rtk` 前缀运行 shell 命令。" in root_agents_text
     assert "浏览网页优先使用 `agent-browser`。" in root_agents_text
+    assert "优先读取 `MINERU_TOKEN`" not in root_agents_text
     assert "## 执行原则" in root_agents_text
     assert "不改无关文件，不覆盖用户已有本地修改" in root_agents_text
     assert "病种/课题级 research workspace" in root_agents_text
     assert "`study` 是论文交付单元" in root_agents_text
-    assert "不把探索性发现写成确认性结论" in root_agents_text
-    assert "正式 contract 只吸收经当前 workspace 审计后仍然可信的内容。" in root_agents_text
-    assert "优先在 `MedAutoScience` 与 `med-deepscientist` repo 中完成基座层修复" in root_agents_text
+    assert "## Workspace 边界" in root_agents_text
+    assert "只约束 Codex 进入本目录后的工作方式、MAS 入口选择和本地文件边界" in root_agents_text
+    assert "研究设计、统计方法、投稿判断、publication gate 与 study 质量判断归属 MAS / MDS" in root_agents_text
+    assert "优先在 `med-autoscience` 与 `med-deepscientist` repo 中完成基座层修复" in root_agents_text
+    assert "开独立 worktree 实施和验证" in root_agents_text
 
     deepscientist_readme = workspace_root / "ops" / "med-deepscientist" / "README.md"
     assert deepscientist_readme.is_file()
