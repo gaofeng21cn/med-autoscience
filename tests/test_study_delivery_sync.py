@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import shutil
 
+import pytest
+
 
 PNG_1X1_BASE64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8"
@@ -414,6 +416,50 @@ def test_sync_study_delivery_for_submission_minimal_mirrors_review_ledger(tmp_pa
         and item["target_path"] == str(mirrored_ledger_path.resolve())
         for item in delivery_manifest["copied_files"]
     )
+
+
+def test_sync_study_delivery_preserves_existing_submission_delivery_when_projection_write_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    manuscript_root = study_root / "manuscript"
+    baseline_manuscript_docx = (manuscript_root / "manuscript.docx").read_text(encoding="utf-8")
+    baseline_current_package_docx = (
+        manuscript_root / "current_package" / "manuscript.docx"
+    ).read_text(encoding="utf-8")
+    baseline_current_package_zip = (manuscript_root / "current_package.zip").read_bytes()
+    baseline_delivery_manifest = (manuscript_root / "delivery_manifest.json").read_text(encoding="utf-8")
+
+    write_text(paper_root / "submission_minimal" / "manuscript.docx", "updated docx")
+    original_build_zip = module.build_zip_from_directory
+
+    def failing_build_zip(*, source_root: Path, output_path: Path) -> None:
+        if output_path.name == "current_package.zip":
+            raise RuntimeError("simulated current package zip failure")
+        original_build_zip(source_root=source_root, output_path=output_path)
+
+    monkeypatch.setattr(module, "build_zip_from_directory", failing_build_zip)
+
+    with pytest.raises(RuntimeError, match="simulated current package zip failure"):
+        module.sync_study_delivery(
+            paper_root=paper_root,
+            stage="submission_minimal",
+        )
+
+    assert (manuscript_root / "manuscript.docx").read_text(encoding="utf-8") == baseline_manuscript_docx
+    assert (
+        manuscript_root / "current_package" / "manuscript.docx"
+    ).read_text(encoding="utf-8") == baseline_current_package_docx
+    assert (manuscript_root / "current_package.zip").read_bytes() == baseline_current_package_zip
+    assert (manuscript_root / "delivery_manifest.json").read_text(encoding="utf-8") == baseline_delivery_manifest
 
 
 def test_sync_study_delivery_projects_charter_linkage_into_manifest_and_current_package(tmp_path: Path) -> None:
