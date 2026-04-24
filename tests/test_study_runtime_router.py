@@ -1349,6 +1349,161 @@ def test_ensure_study_runtime_auto_resumes_stopped_quest_after_reopened_task_int
     assert launch_report["daemon_result"]["action"] == "resume"
 
 
+def test_study_runtime_status_keeps_explicit_rerun_for_reopened_task_intake_after_manual_takeover_stop(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    write_auditable_current_package(study_root)
+    current_package_root = study_root / "manuscript" / "current_package"
+    (current_package_root / "submission_checklist.json").unlink()
+    write_text(current_package_root / "submission_manifest.json", '{"schema_version":1}\n')
+    quest_root = profile.runtime_root / "001-risk"
+    _materialize_bundle_only_remaining_evaluation_summary(study_root=study_root, quest_root=quest_root)
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent=(
+            "按最新专家意见重新打开同一论文线的修订任务；当前稿件不能按已达投稿包里程碑直接收口，"
+            "并把当前 submission-ready/finalize 判断降回待修订后再评估。"
+        ),
+        constraints=("本轮不得直接按外投收口。",),
+        first_cycle_outputs=("补充分层统计分析并写回 manuscript。",),
+    )
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "stopped",
+                "stop_reason": "controller_stop:codex-human-takeover",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "decision:decision-continue-001",
+            }
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert result["quest_status"] == "stopped"
+
+
+def test_ensure_study_runtime_keeps_explicit_rerun_for_reopened_task_intake_after_manual_takeover_stop(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    write_auditable_current_package(study_root)
+    current_package_root = study_root / "manuscript" / "current_package"
+    (current_package_root / "submission_checklist.json").unlink()
+    write_text(current_package_root / "submission_manifest.json", '{"schema_version":1}\n')
+    quest_root = profile.runtime_root / "001-risk"
+    _materialize_bundle_only_remaining_evaluation_summary(study_root=study_root, quest_root=quest_root)
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent=(
+            "按最新专家意见重新打开同一论文线的修订任务；当前稿件不能按已达投稿包里程碑直接收口，"
+            "并把当前 submission-ready/finalize 判断降回待修订后再评估。"
+        ),
+        constraints=("本轮不得直接按外投收口。",),
+        first_cycle_outputs=("补充分层统计分析并写回 manuscript。",),
+    )
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "stopped",
+                "stop_reason": "controller_stop:codex-human-takeover",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "decision:decision-continue-001",
+            }
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "resume_quest",
+        lambda **kwargs: pytest.fail("resume_quest should not run after an explicit manual takeover stop"),
+    )
+
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id="001-risk",
+        source="medautosci-test",
+    )
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert result["quest_status"] == "stopped"
+
+
 def test_study_runtime_status_auto_resumes_controller_owned_stopped_completion_request_when_publication_gate_is_blocked(
     monkeypatch,
     tmp_path: Path,

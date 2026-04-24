@@ -1619,6 +1619,12 @@ def _stopped_controller_owned_auto_recovery_context(
     }
 
 
+def _task_intake_override_allows_stopped_auto_resume(*, quest_root: Path) -> bool:
+    runtime_state = _load_json_dict(_runtime_state_path(quest_root))
+    stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
+    return stop_reason is None
+
+
 def _pending_user_interaction_payload(
     *,
     runtime_root: Path,
@@ -2416,7 +2422,9 @@ def _status_state(
                     StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
                 )
             return _finalize_result()
-        if task_intake_overrides_auto_manual_finish:
+        if task_intake_overrides_auto_manual_finish and _task_intake_override_allows_stopped_auto_resume(
+            quest_root=quest_root
+        ):
             if not result.startup_boundary_allows_compute_stage:
                 result.set_decision(
                     StudyRuntimeDecision.BLOCKED,
