@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from tests.medical_publication_surface_cases.chunk_01 import *
-from tests.medical_publication_surface_cases.chunk_02 import *
-from tests.medical_publication_surface_cases.chunk_03 import *
-from tests.medical_publication_surface_cases.chunk_04 import *
-from tests.medical_publication_surface_cases.chunk_05 import *
+from tests.medical_publication_surface_cases.report_terms_sections_and_charter import *
+from tests.medical_publication_surface_cases.formal_language_review_and_model_entries import *
+from tests.medical_publication_surface_cases.figure_narrative_and_renderer_contracts import *
+from tests.medical_publication_surface_cases.catalog_tables_and_public_data_contracts import *
+from tests.medical_publication_surface_cases.controller_and_surface_state import *

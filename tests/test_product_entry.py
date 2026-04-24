@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from tests.product_entry_cases.chunk_01 import *
-from tests.product_entry_cases.chunk_02 import *
-from tests.product_entry_cases.chunk_03 import *
-from tests.product_entry_cases.chunk_04 import *
-from tests.product_entry_cases.chunk_05 import *
+from tests.product_entry_cases.attention_queue_and_cockpit_base import *
+from tests.product_entry_cases.cockpit_status_and_frontdesk_focus import *
+from tests.product_entry_cases.manifest_launch_and_task_intake import *
+from tests.product_entry_cases.repo_shell_and_handoff_templates import *
+from tests.product_entry_cases.frontdoor_preflight_and_task_submission import *

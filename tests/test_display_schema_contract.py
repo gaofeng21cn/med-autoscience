@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from tests.display_schema_contract_cases.shared import *
-from tests.display_schema_contract_cases.chunk_01 import *
-from tests.display_schema_contract_cases.chunk_02 import *
-from tests.display_schema_contract_cases.chunk_03 import *
-from tests.display_schema_contract_cases.chunk_04 import *
+from tests.display_schema_contract_cases.top_level_display_classes import *
+from tests.display_schema_contract_cases.input_shape_contracts import *
+from tests.display_schema_contract_cases.registered_display_surface_contracts import *
+from tests.display_schema_contract_cases.shap_templates_and_docs_contracts import *

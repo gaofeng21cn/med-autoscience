@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from . import shared as _shared
-from . import chunk_01 as _chunk_01
+from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -9,7 +9,7 @@ def _module_reexport(module) -> None:
             globals()[name] = value
 
 _module_reexport(_shared)
-_module_reexport(_chunk_01)
+_module_reexport(_attention_queue_and_cockpit_base)
 
 def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")

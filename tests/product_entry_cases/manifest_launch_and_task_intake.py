@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from . import shared as _shared
-from . import chunk_01 as _chunk_01
-from . import chunk_02 as _chunk_02
+from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
+from . import cockpit_status_and_frontdesk_focus as _cockpit_status_and_frontdesk_focus
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -10,8 +10,8 @@ def _module_reexport(module) -> None:
             globals()[name] = value
 
 _module_reexport(_shared)
-_module_reexport(_chunk_01)
-_module_reexport(_chunk_02)
+_module_reexport(_attention_queue_and_cockpit_base)
+_module_reexport(_cockpit_status_and_frontdesk_focus)
 
 def test_build_product_entry_manifest_passes_contract_bundle_via_named_shared_kwargs(
     monkeypatch,

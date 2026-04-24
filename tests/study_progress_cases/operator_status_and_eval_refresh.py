@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from . import shared as _shared
-from . import chunk_01 as _chunk_01
-from . import chunk_02 as _chunk_02
+from . import runtime_projection_basics as _runtime_projection_basics
+from . import autonomy_quality_and_route_projection as _autonomy_quality_and_route_projection
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -10,8 +10,8 @@ def _module_reexport(module) -> None:
             globals()[name] = value
 
 _module_reexport(_shared)
-_module_reexport(_chunk_01)
-_module_reexport(_chunk_02)
+_module_reexport(_runtime_projection_basics)
+_module_reexport(_autonomy_quality_and_route_projection)
 
 def test_study_progress_surfaces_bounded_analysis_quality_focus_without_human_gate(
     monkeypatch,

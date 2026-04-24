@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from . import shared as _shared
-from . import chunk_01 as _chunk_01
-from . import chunk_02 as _chunk_02
-from . import chunk_03 as _chunk_03
+from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
+from . import cockpit_status_and_frontdesk_focus as _cockpit_status_and_frontdesk_focus
+from . import manifest_launch_and_task_intake as _manifest_launch_and_task_intake
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -11,9 +11,9 @@ def _module_reexport(module) -> None:
             globals()[name] = value
 
 _module_reexport(_shared)
-_module_reexport(_chunk_01)
-_module_reexport(_chunk_02)
-_module_reexport(_chunk_03)
+_module_reexport(_attention_queue_and_cockpit_base)
+_module_reexport(_cockpit_status_and_frontdesk_focus)
+_module_reexport(_manifest_launch_and_task_intake)
 
 def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_templates(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")

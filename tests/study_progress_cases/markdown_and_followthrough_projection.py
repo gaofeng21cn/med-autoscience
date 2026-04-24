@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from . import shared as _shared
-from . import chunk_01 as _chunk_01
-from . import chunk_02 as _chunk_02
-from . import chunk_03 as _chunk_03
-from . import chunk_04 as _chunk_04
+from . import runtime_projection_basics as _runtime_projection_basics
+from . import autonomy_quality_and_route_projection as _autonomy_quality_and_route_projection
+from . import operator_status_and_eval_refresh as _operator_status_and_eval_refresh
+from . import supervision_blockers_and_task_reopen as _supervision_blockers_and_task_reopen
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -12,10 +12,10 @@ def _module_reexport(module) -> None:
             globals()[name] = value
 
 _module_reexport(_shared)
-_module_reexport(_chunk_01)
-_module_reexport(_chunk_02)
-_module_reexport(_chunk_03)
-_module_reexport(_chunk_04)
+_module_reexport(_runtime_projection_basics)
+_module_reexport(_autonomy_quality_and_route_projection)
+_module_reexport(_operator_status_and_eval_refresh)
+_module_reexport(_supervision_blockers_and_task_reopen)
 
 def test_study_progress_suppresses_task_intake_route_inside_eval_surface_when_gate_blocked() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")

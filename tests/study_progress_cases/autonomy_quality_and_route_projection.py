@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from . import shared as _shared
-from . import chunk_01 as _chunk_01
+from . import runtime_projection_basics as _runtime_projection_basics
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -9,7 +9,7 @@ def _module_reexport(module) -> None:
             globals()[name] = value
 
 _module_reexport(_shared)
-_module_reexport(_chunk_01)
+_module_reexport(_runtime_projection_basics)
 
 def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
     monkeypatch,

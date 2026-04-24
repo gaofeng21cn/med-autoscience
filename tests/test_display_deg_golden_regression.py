@@ -1,6 +1,6 @@
 from __future__ import annotations
 
 from tests.display_deg_golden_regression_cases.shared import *
-from tests.display_deg_golden_regression_cases.chunk_01 import *
-from tests.display_deg_golden_regression_cases.chunk_02 import *
-from tests.display_deg_golden_regression_cases.chunk_03 import *
+from tests.display_deg_golden_regression_cases.deg_omics_and_genomic_golden import *
+from tests.display_deg_golden_regression_cases.multiomic_spatial_and_trajectory_golden import *
+from tests.display_deg_golden_regression_cases.atlas_spatial_trajectory_golden import *

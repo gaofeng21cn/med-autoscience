@@ -1,5 +1,5 @@
 from __future__ import annotations
 
-from tests.submission_minimal_cases.chunk_01 import *
-from tests.submission_minimal_cases.chunk_02 import *
-from tests.submission_minimal_cases.chunk_03 import *
+from tests.submission_minimal_cases.package_core_and_authority import *
+from tests.submission_minimal_cases.frontiers_profile_and_sync import *
+from tests.submission_minimal_cases.source_markdown_and_materialized_refs import *
