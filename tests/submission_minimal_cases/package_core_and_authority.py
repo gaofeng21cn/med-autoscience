@@ -1,7 +1,5 @@
 from .shared import *
 
-import hashlib
-
 import pytest
 
 def test_create_submission_minimal_package_creates_output_directory_and_copies_pdf(tmp_path: Path) -> None:
@@ -301,7 +299,7 @@ def test_create_submission_minimal_package_uses_existing_figure_exports_when_cat
     assert authority["missing_source_paths"] == []
 
 
-def test_create_submission_minimal_package_refreshes_source_contract_after_post_materialization_sync(
+def test_create_submission_minimal_package_authority_ignores_post_gate_evidence_ledger_refresh(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -328,13 +326,9 @@ def test_create_submission_minimal_package_refreshes_source_contract_after_post_
         publication_profile="general_medical_journal",
     )
 
-    evidence_entries = [
-        item
-        for item in manifest["source_contract"]["source_files"]
-        if item["path"] == "paper/evidence_ledger.json"
-    ]
-    assert len(evidence_entries) == 1
-    assert evidence_entries[0]["sha256"] == hashlib.sha256((paper_root / "evidence_ledger.json").read_bytes()).hexdigest()
+    assert "paper/evidence_ledger.json" not in manifest["source_contract"]["source_paths"]
+
+    write_text(paper_root / "evidence_ledger.json", '{"schema_version":1,"items":[{"id":"gate-refresh"}]}' + "\n")
 
     authority = module.describe_submission_minimal_authority(paper_root=paper_root)
     assert authority["status"] == "current"

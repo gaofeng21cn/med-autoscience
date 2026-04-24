@@ -961,11 +961,6 @@ def build_submission_minimal_source_contract(
         add_required(references_path)
     if pack_lock_path is not None and pack_lock_path.exists():
         add_required(pack_lock_path)
-    for relative_path in study_delivery_sync.FORMAL_PAPER_DELIVERY_RELATIVE_PATHS:
-        source_path = resolved_paper_root / relative_path
-        if source_path.exists():
-            add_required(source_path)
-
     for entry in figure_catalog.get("figures", []) or []:
         if not isinstance(entry, dict):
             continue
