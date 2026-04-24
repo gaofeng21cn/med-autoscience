@@ -8,7 +8,7 @@
 
 <h1 align="center">Med Auto Science</h1>
 
-<p align="center"><strong>An independent medical research domain agent and workspace for turning data, study questions, and evidence into manuscript-ready work</strong></p>
+<p align="center"><strong>An independent medical research domain agent with a single MAS app skill for turning data, study questions, and evidence into manuscript-ready work</strong></p>
 <p align="center">Disease Studies · Evidence Organization · Manuscript Delivery</p>
 
 <table>
@@ -58,9 +58,10 @@ You can start with prompts like:
 
 ## Current Boundary
 
-- `Med Auto Science` is an independent medical research domain agent that can be called directly by Codex, OPL, or other general-purpose agents.
-- It supports `direct entry` and `OPL handoff` as two equivalent entry routes with the same study semantics, authority boundary, and durable truth surfaces.
-- Its stable product capability surface is the local CLI, workspace commands/scripts, durable surfaces, and repo-tracked contracts that `Codex` or `OPL` skill activation can call directly.
+- `Med Auto Science` is an independent medical research domain agent that can be called directly by Codex or other general-purpose agents.
+- Its single MAS app skill is the stable front door for callers that want the repo-tracked skill surface.
+- Under that skill, the stable callable surface is the local CLI, workspace commands/scripts, durable surfaces, and repo-tracked contracts.
+- `OPL` handoff, the product-entry manifest, and other machine-readable bridge payloads belong to the integration or reference layer.
 - It owns study intake, workspace context, evidence progression, progress reporting, and manuscript-facing delivery.
 - `OPL` stays at family-level session/runtime/projection orchestration and shared modules/contracts/indexes; it does not redefine MAS as an internal module.
 - Clinical framing, claim acceptance, and submission decisions stay with researchers and PIs.
@@ -81,7 +82,7 @@ You can start with prompts like:
 - If you need to bootstrap or take over a disease workspace, read [Bootstrap](./bootstrap/README.md) next. It explains the workspace-first model and the `init-workspace -> doctor -> show-profile -> bootstrap` path.
 - Treat [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md) as the repo-tracked truth set before changing runtime or docs.
 - The current operator entry surfaces are `CLI`, `MCP`, and `controller`. Product-entry and runtime contracts live under `docs/runtime/` and `docs/program/`, so an agent can start there instead of reverse-engineering the codebase; the stable callable surface remains the local CLI, workspace commands/scripts, durable surfaces, and repo-tracked contracts.
-- When an external agent needs the repo-tracked MAS skill surface directly, use `medautosci product skill-catalog --profile <profile> --format json`; it returns one MAS app skill plus the underlying command contracts.
+- When an external agent needs the repo-tracked MAS skill surface directly, use `medautosci product skill-catalog --profile <profile> --format json`; it returns the single MAS app skill plus the underlying command contracts.
 
 </details>
 

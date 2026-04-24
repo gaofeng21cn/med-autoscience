@@ -22,11 +22,11 @@ This guide is for readers who need product boundary, operator entry surfaces, ru
 
 ## Current Reading Baseline
 
-- `Med Auto Science` is a disease-focused medical research workspace and manuscript-delivery line.
+- `Med Auto Science` is a disease-focused medical research domain agent with a single MAS app skill and a manuscript-delivery workspace.
 - The default user concern is study question, workspace context, progress narration, and file delivery.
 - `CLI`, `MCP`, and `controller` are operator and automation entry surfaces.
-- The stable callable surface is the local CLI, workspace commands/scripts, durable surfaces, and repo-tracked contracts that `Codex` or `OPL` can consume directly.
-- `OPL` integration and machine-readable product-entry surfaces belong to the integration layer.
+- The stable callable surface is exposed through the single MAS app skill and includes the local CLI, workspace commands/scripts, durable surfaces, and repo-tracked contracts.
+- `OPL` integration, the product-entry manifest, and other machine-readable bridge surfaces belong to the integration and reference layers.
 - Hosted runtime carriers such as `Hermes-Agent` stay in explicit optional or reference-layer positions; they do not redefine the default MAS capability contract.
 - Historical migration terms and older naming stay in reference or history layers.
 

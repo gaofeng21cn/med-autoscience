@@ -6,12 +6,13 @@
 
 1. 产品层
    - 面向用户的对象是研究问题、工作区、进度反馈和文件交付。
-   - `Med Auto Science` 在这一层以独立 medical research domain agent 身份组织同一条课题线，支持 direct entry 与 federated entry。
+   - `Med Auto Science` 在这一层以独立 medical research domain agent 身份组织同一条课题线，由单一 MAS app skill 先承接稳定 callable surface。
 
 2. 操作与集成层
    - `CLI`、`MCP`、`controller`，以及 repo-tracked 的 workspace commands / scripts / contracts，是操作与自动化接口，也是对外稳定 capability surface。
-   - `OPL`、`product-entry manifest` 和其他机器可读桥接属于上层整合与自动化消费面。
-   - 这一层负责把 MAS 控制面接到更高层入口；`direct entry` 与 `OPL handoff` 必须保持同一套研究语义与 owner 边界。
+   - 单一 MAS app skill 负责把这些稳定接口对外承接起来。
+   - `OPL`、`product-entry manifest` 和其他机器可读桥接属于上层整合与自动化消费面，不是第一主语。
+   - 这一层负责把 MAS 控制面接到更高层入口；如果使用 integration handoff，它必须保持同一套研究语义与 owner 边界。
 
 3. 运行时与持久真相层
    - `Med Auto Science` 持有课题与工作区权威语义、进度语义和发表判断，是唯一研究入口与 owner。
@@ -39,7 +40,7 @@
 
 当前操作路径继续由 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 这一组接口组成。
 它们描述的是当前可执行的操作面。
-`OPL` 调用、`product-entry manifest`、`handoff envelope` 和其他机器可读载荷继续属于集成接口。
+`OPL` 调用、`product-entry manifest`、`handoff envelope` 和其他机器可读载荷继续属于集成接口和参考层。
 
 ## 当前运行时责任分层
 

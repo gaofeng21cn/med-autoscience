@@ -143,11 +143,12 @@ uv run python -m med_autoscience.cli init-workspace \
 
 ## Runtime Boundary
 
-- `MedAutoScience` 是正式研究入口
+- `MedAutoScience` 是正式研究入口，单一 MAS app skill 负责承接其稳定 callable surface
 - `Hermes` 是默认 outer runtime substrate owner
 - `MedDeepScientist` 是 controlled research backend
 - 不要直接通过 `MedDeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
 - `ops/med-deepscientist/bin/*` 只用于启动、查看、停止 runtime，不用于研究治理
+- `OPL` handoff、product-entry manifest 与其他机器可读桥接只保留在集成或参考层
 
 ## 常见误区
 

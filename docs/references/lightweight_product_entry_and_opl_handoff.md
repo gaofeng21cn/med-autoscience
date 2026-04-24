@@ -1,48 +1,37 @@
-# Med Auto Science 轻量产品入口与 OPL Handoff
+# Med Auto Science 集成参考：产品入口载荷与 OPL Handoff
 
-## 1. 当前真相
+## 1. 这份参考记录什么
 
-`Med Auto Science` 现在已经有稳定的：
+这份文档记录 `Med Auto Science` 的产品入口载荷和 `OPL` handoff 之间的集成合同。
 
-- `operator entry`
-  - workspace 准备、调试、检查、人工治理
-- `agent entry`
-  - `CLI` / `MCP`，由 `Codex` 或其他 host-agent 调用
+对外第一主语仍然是独立 medical research domain agent 和单一 MAS app skill；这里记录的是桥接载荷如何保持一致，而不是把桥接载荷写成前台产品主线。
 
-但还没有成熟的用户级 `product entry`。
-
-因此，当前最诚实的用户路径仍然是：
-
-- 用户把医学研究目标、数据和约束交给自己的 agent
-- agent 以 `direct entry` 或 `OPL handoff` 方式调用 `Med Auto Science`
-
-而不是已经存在一个完整稳定的医疗研究产品前台。
-不过现在 repo 内已经把一层 shared-envelope shell 落成 machine-readable surface：
+repo 内已经把一层 shared-envelope shell 落成 machine-readable surface：
 
 - `build-product-entry`
-  - 基于已有 durable study task intake 输出 `direct` / `opl-handoff` 共用 envelope
+  - 基于已有 durable study task intake 输出共用 envelope
   - 继续只覆盖 research 主线，不碰 display 支线
   - 当缺少 durable intake 或 selector 不成立时保持 fail-closed
 
 ## 2. 目标形态
 
-这个仓对外主语固定为“独立 medical research domain agent”，因此目标形态优先表达两条等价入口路径：
+这个仓对外主语固定为“独立 medical research domain agent”和“单一 MAS app skill”，因此目标形态只记录两类集成路径：
 
-- direct entry：
-  `User/Agent -> Med Auto Science Direct Entry -> Med Auto Science Domain Agent -> runtime/session surfaces`
+- direct path：
+  `User/Agent -> Med Auto Science -> single MAS app skill -> runtime/session surfaces`
 
-- federated handoff（经 `OPL`）：
-  `User/Agent -> OPL Entry -> OPL session/runtime/projection orchestration -> MAS handoff envelope -> Med Auto Science Domain Agent`
+- OPL integration handoff：
+  `User/Agent -> OPL Entry -> OPL session/runtime/projection orchestration -> MAS handoff envelope -> Med Auto Science`
 
 `gateway / harness` 术语继续保留为内部架构边界语言，不作为 MAS 的对外第一身份。
 
 这意味着：
 
-- `Med Auto Science` 是独立 medical research domain agent，可直连调用，也可被 `OPL` handoff。
+- `Med Auto Science` 是独立 medical research domain agent，可直连调用。
 - `OPL` 负责 family-level session/runtime/projection 编排与 shared modules/contracts/indexes，不承担研究 owner。
-- 两条入口路径共享同一套 `study semantics`、authority boundary 与 return surface contract。
+- 两条集成路径共享同一套 `study semantics`、authority boundary 与 return surface contract。
 
-## 3. 为什么这一层现在只能冻结到合同
+## 3. 为什么这一层只保留为参考
 
 `Med Auto Science` 和别的业务仓不同，它当前还有真实 external runtime gate：
 
@@ -55,7 +44,7 @@
 
 - 入口语义
 - handoff 语义
-- 未来 product entry 的边界
+- 未来 product entry / handoff 的边界
 
 而不是宣称它已经落成一个成熟的 direct product entry。
 
@@ -96,5 +85,5 @@
 ## 7. 下一步落地方向
 
 1. 继续保持 `CLI / MCP / controller` 的入口语义稳定。
-2. 在 external gate 不突破的前提下，先把 product-entry shell 与 OPL handoff contract 写清；当前 repo 内已经把 `workspace-cockpit` 收成用户 inbox，`build-product-entry` 也已把 direct / `OPL` handoff envelope 收成 machine-readable shell，但这仍然只是 shell，不是成熟 direct entry。
-3. 等 external runtime gate 真正清除后，再把 product entry、runtime session、resume、watch、study progression 接成真实 direct entry。
+2. 在 external gate 不突破的前提下，先把 product-entry shell 与 OPL handoff contract 写清；当前 repo 内已经把 `workspace-cockpit` 收成用户 inbox，`build-product-entry` 也已把共用 envelope 收成 machine-readable shell，但这仍然只是 shell，不是成熟前台。
+3. 等 external runtime gate 真正清除后，再把 product entry、runtime session、resume、watch、study progression 接成更完整的 direct path。

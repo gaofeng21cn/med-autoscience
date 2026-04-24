@@ -12,7 +12,8 @@ description: Use when Codex should operate MedAutoScience through its stable run
 - `MedAutoScience` 面向 Codex 的单一 domain app skill
 - 叠加在现有 Python package、CLI、controller、overlay 与 workspace profile 之上
 - 不替代 `medautosci` CLI、controller contract，也不替代非 Codex 集成
-- skill 入口只有一个；`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 等命令是这个 app skill 的内部 command contract
+- skill 入口只有一个；`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress`、`product-frontdesk` 等命令是这个 app skill 的内部 command contract
+- `OPL` handoff、product-entry manifest 和其他机器可读桥接属于集成层，不是这个 skill 的前台主语
 
 ## 核心规则
 

@@ -206,7 +206,7 @@
 - 人话进度投影：`study progress --profile <profile> --study-id <study_id>`
 - Hermes-hosted supervision tick：`runtime watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
 - Hermes-hosted supervision job 安装入口：`ops/medautoscience/bin/install-watch-runtime-service`
-- frontdesk / manifest companion：`product-frontdesk --profile <profile>`、`product-entry-manifest --profile <profile>`，其中当前会显式导出 `product_entry_guardrails`、`phase3_clearance_lane`、`phase4_backend_deconstruction` 与 `phase5_platform_target`
+- frontdesk / manifest companion：`product-frontdesk --profile <profile>`、`product-entry-manifest --profile <profile>`，它们是单一 MAS app skill 下的内部 command contract，并在 integration layer 暴露机器可读 companion；当前会显式导出 `product_entry_guardrails`、`phase3_clearance_lane`、`phase4_backend_deconstruction` 与 `phase5_platform_target`
 
 低层兼容入口仍然保留：
 

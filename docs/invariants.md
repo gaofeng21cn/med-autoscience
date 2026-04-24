@@ -16,9 +16,9 @@
 - 重大变更必须在独立 worktree 中完成，保持可追溯与可回滚。
 - 一旦目标 runtime topology 已明确，新增投入默认服务目标形态；旧 substrate 只允许作为迁移桥、兼容层或回归基线存在。
 - 当前目标形态是 `Codex-default host-agent runtime` 加 `MAS` 自己的稳定 capability surface；可选 hosted runtime carrier（例如 `Hermes-Agent`）只能作为显式附加层或 reference-layer 材料出现，不得改写默认入口语义。
-- `MedAutoScience` 对外第一身份固定为独立 medical research domain agent：可 direct entry，也可经 `OPL` handoff；两条路径的研究语义、authority boundary 与 durable truth surface 必须一致。
+- `MedAutoScience` 对外第一身份固定为独立 medical research domain agent；其单一 MAS app skill 承接稳定 capability surface。`OPL` handoff、product-entry manifest 与其他机器可读桥接只作为集成或参考层存在，不得改写第一主语。
 - `OPL` 只承担 family-level session/runtime/projection 与 shared modules/contracts/indexes 编排，不把 `MedAutoScience` 改写为内部模块或研究 owner。
-- `MedAutoScience` 的对外稳定 capability surface 固定为本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract。
+- `MedAutoScience` 的对外稳定 capability surface 固定为本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract，并由单一 MAS app skill 承接。
 
 ## 文档与结构
 

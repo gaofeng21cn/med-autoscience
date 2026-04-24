@@ -1,10 +1,10 @@
 # 关键决策记录
 
-## 2026-04-21：公开主语固定为独立 domain agent，OPL 只做上层 federation
+## 2026-04-21：公开主语固定为独立 domain agent，单一 app skill 承接稳定 surface，OPL 只做上层 federation
 
-- 决策：`Med Auto Science` 的对外第一身份固定为“可被 Codex/OPL/其他通用 agent 直接调用的独立 medical research domain agent”；`OPL` 只承担 family-level session/runtime/projection 编排与 shared modules/contracts/indexes。
-- 理由：公开主语直接决定用户入口与 owner 语义。将 MAS 固定为独立 domain agent，才能同时支持 direct entry 与 federated handoff，并避免把 MAS 误写成 OPL 内部模块。
-- 影响：README 与核心 docs 必须明确 `direct entry` 和 `OPL handoff` 的研究语义一致；`gateway / harness` 术语保留为内部架构边界语言，不作为对外第一身份。
+- 决策：`Med Auto Science` 的对外第一身份固定为“可被 Codex 或其他通用 agent 直接调用的独立 medical research domain agent”；其单一 MAS app skill 承接稳定 callable surface；`OPL` 只承担 family-level session/runtime/projection 编排与 shared modules/contracts/indexes。
+- 理由：公开主语直接决定用户入口与 owner 语义。将 MAS 固定为独立 domain agent，并把稳定 surface 收口到单一 app skill，才能避免把 MAS 误写成 OPL 内部模块，也避免把桥接载荷写成第一主语。
+- 影响：README 与核心 docs 必须明确 domain agent、单一 app skill、CLI/workspace commands 和 durable surface 的主次关系；`OPL handoff`、`product-entry manifest` 与 `gateway / harness` 术语保留为内部集成或架构边界语言，不作为对外第一身份。
 
 ## 2026-04-11：统一 docs 骨架与分层
 

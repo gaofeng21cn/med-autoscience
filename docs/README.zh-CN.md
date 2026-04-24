@@ -22,11 +22,11 @@
 
 ## 当前阅读基线
 
-- `Med Auto Science` 是面向专病研究的医学研究工作台，也是论文交付主线。
+- `Med Auto Science` 是面向专病研究的医学研究 domain agent，配有单一 MAS app skill，也承担论文交付工作台角色。
 - 默认用户最关心的是研究问题、工作区语境、人话进度和文件交付。
 - `CLI`、`MCP`、`controller` 属于操作与自动化入口。
-- 稳定可调用面是本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract，方便 `Codex` 或 `OPL` 直接消费。
-- `OPL` 集成和机器可读的产品接入接口属于集成层。
+- 稳定可调用面通过单一 MAS app skill 对外承接，包含本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract。
+- `OPL` 集成、product-entry manifest 和其他机器可读桥接面都属于集成或参考层。
 - `Hermes-Agent` 只保留在显式可选 hosted runtime 或 reference-layer 语境中，不改写默认 capability contract。
 - 历史迁移术语和旧命名继续留在参考层或历史层。
 

@@ -4,7 +4,7 @@
 
 在顶层定位上，应始终按下面这条理解：
 
-- `MedAutoScience` = `Research Ops` 的 `domain gateway + Domain Harness OS`
+- `MedAutoScience` = `Research Ops` 的 `domain gateway + Domain Harness OS`，并由单一 MAS app skill 承接稳定 callable surface
 - 上游 `Hermes-Agent` = 目标 outer runtime substrate owner；当前通过 repo-side seam 暴露
 - `MedDeepScientist` = 当前由 `MedAutoScience` / repo-side seam 控制的 controlled research backend
 - 如果存在 `OPL Gateway`，它位于 `MedAutoScience` 之上，而不是替代 `MedAutoScience`
@@ -119,6 +119,8 @@ wrapper 不应继续硬编码：
 - `ops/med-deepscientist/bin/*` 是 runtime 运维入口
 - 两者不能混用
 - workspace 内所有 `ops/med-deepscientist/...` 路径派生应统一走 `med_autoscience.runtime_protocol.layout`
+
+`OPL` handoff、product-entry manifest 和其他机器可读桥接只保留在集成或参考层。
 
 ## 标准分层
 
