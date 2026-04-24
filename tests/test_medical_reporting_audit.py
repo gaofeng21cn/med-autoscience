@@ -22,6 +22,61 @@ def test_medical_reporting_audit_blocks_missing_population_accounting(tmp_path: 
     assert "missing_reporting_guideline_checklist" in report["blockers"]
 
 
+def test_medical_reporting_audit_blocks_structured_publication_reporting_gaps(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
+    quest_root = tmp_path / "runtime" / "quests" / "003-dpcc-phenotypes"
+    paper_root = quest_root / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    (paper_root / "medical_reporting_contract.json").write_text(
+        json.dumps(
+            {
+                "reporting_guideline_family": "STROBE",
+                "display_registry_required": False,
+                "cohort_flow_required": False,
+                "baseline_characteristics_required": False,
+                "display_shell_plan": [],
+                "paper_archetype": "phenotype_real_world",
+                "methods_completeness": {
+                    "study_design": True,
+                    "cohort": True,
+                    "variables": True,
+                    "model": True,
+                },
+                "statistical_reporting": {
+                    "summary_format": True,
+                    "p_values": True,
+                },
+                "table_figure_claim_map": [],
+                "clinical_actionability": {
+                    "treatment_gap": True,
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "reporting_guideline_checklist.json").write_text("{}", encoding="utf-8")
+
+    report = module.run_controller(quest_root=quest_root, apply=False)
+
+    assert report["status"] == "blocked"
+    assert "methods_completeness_incomplete" in report["blockers"]
+    assert "statistical_reporting_incomplete" in report["blockers"]
+    assert "table_figure_claim_map_missing_or_incomplete" in report["blockers"]
+    assert "clinical_actionability_incomplete" in report["blockers"]
+    report_payload = json.loads(Path(report["report_json"]).read_text(encoding="utf-8"))
+    assert report_payload["structured_reporting_checklist"]["methods_completeness"]["missing_items"] == [
+        "validation",
+        "statistical_analysis",
+    ]
+    assert report_payload["structured_reporting_checklist"]["statistical_reporting"]["missing_items"] == [
+        "subgroup_tests"
+    ]
+    assert report_payload["structured_reporting_checklist"]["clinical_actionability"]["missing_items"] == [
+        "follow_up_or_outcome_relevance"
+    ]
+
+
 def test_write_audit_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"

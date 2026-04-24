@@ -2,6 +2,7 @@ from .shared import *
 from .asset_scans import *
 from .catalog_checks import *
 from .manuscript_checks import *
+from med_autoscience.policies.medical_reporting_checklist import build_structured_reporting_checklist
 
 def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     forbidden_hits: list[dict[str, Any]] = []
@@ -33,6 +34,10 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     all_figure_ids = figure_ids_from_catalog(state.figure_catalog_path, include_all_roles=True)
     table_ids = table_ids_from_catalog(state.table_catalog_path)
     reporting_contract_path = state.paper_root / "medical_reporting_contract.json"
+    reporting_contract_payload = load_json(reporting_contract_path, default={})
+    if not isinstance(reporting_contract_payload, dict):
+        reporting_contract_payload = {}
+    structured_reporting_checklist = build_structured_reporting_checklist(reporting_contract_payload)
     display_story_roles = load_display_catalog_story_roles(reporting_contract_path)
     required_display_catalog_coverage_valid, required_display_catalog_hits = inspect_required_display_catalog_coverage(
         reporting_contract_path=reporting_contract_path,
@@ -386,6 +391,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append(charter_contract_linkage_status)
     if charter_expectation_closure_summary.get("blocking_items"):
         blockers.append("charter_expectation_closure_incomplete")
+    blockers.extend(structured_reporting_checklist["blockers"])
 
     return {
         "schema_version": 1,
@@ -456,6 +462,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "charter_contract_linkage": charter_contract_linkage,
         "charter_expectation_closure_summary": charter_expectation_closure_summary,
         "charter_expectation_closure_gaps": charter_expectation_closure_gaps,
+        "structured_reporting_checklist": structured_reporting_checklist,
         "public_data_anchor_count": int(public_evidence_surface_state.get("anchor_count") or 0),
         "public_data_surface_reference_count": len(public_data_surface_hits),
         "public_evidence_decision_count": int(public_evidence_surface_state.get("decision_count") or 0),
@@ -534,6 +541,7 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- charter_expectation_declared_record_count: `{charter_expectation_closure_summary.get('declared_record_count', 0)}`",
         f"- charter_expectation_closed_item_count: `{charter_expectation_closure_summary.get('closed_item_count', 0)}`",
         f"- charter_expectation_advisory_item_count: `{len(charter_expectation_closure_summary.get('advisory_items') or [])}`",
+        f"- structured_reporting_checklist_status: `{(report.get('structured_reporting_checklist') or {}).get('status', 'not_available')}`",
         f"- public_data_anchor_count: `{report.get('public_data_anchor_count', 0)}`",
         f"- public_data_surface_reference_count: `{report.get('public_data_surface_reference_count', 0)}`",
         f"- public_evidence_decision_count: `{report.get('public_evidence_decision_count', 0)}`",

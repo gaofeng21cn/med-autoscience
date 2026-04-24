@@ -128,6 +128,10 @@ _WATCH_BLOCKER_LABELS = {
     "figure_semantics_manifest_missing_or_incomplete": "图表语义清单仍不完整。",
     "derived_analysis_manifest_missing_or_incomplete": "衍生分析清单仍不完整。",
     "submission_checklist_contains_unclassified_blocking_items": "投稿检查清单里仍有未归类的硬阻塞。",
+    "methods_completeness_incomplete": "医学论文方法报告仍不完整，需补齐研究设计、队列、变量、模型、验证和统计分析说明。",
+    "statistical_reporting_incomplete": "统计报告仍不完整，需补齐汇总格式、P 值和亚组检验说明。",
+    "table_figure_claim_map_missing_or_incomplete": "表图与论文 claim 的对应关系仍未补齐。",
+    "clinical_actionability_incomplete": "分型/真实世界论文仍缺少临床可行动性说明，包括治疗缺口和随访或结局相关性。",
 }
 _BLOCKER_LABELS = {
     "active_run_drifting_into_write_without_gate_approval": "当前 live run 已经漂进写作或定稿，但发表门控仍未放行，必须先拉回论文门控主线。",
@@ -140,6 +144,10 @@ _BLOCKER_LABELS = {
     "public_evidence_decisions_missing_or_incomplete": "公开数据进入论文前缺少明确的 earned/drop 决策记录。",
     "paper_facing_public_data_without_earned_evidence": "公开数据已经写入论文面，但还没有真正 earned 的结果支撑。",
     "submission_checklist_contains_unclassified_blocking_items": "投稿检查清单里仍有未归类的硬阻塞。",
+    "methods_completeness_incomplete": "医学论文方法报告仍不完整，需补齐研究设计、队列、变量、模型、验证和统计分析说明。",
+    "statistical_reporting_incomplete": "统计报告仍不完整，需补齐汇总格式、P 值和亚组检验说明。",
+    "table_figure_claim_map_missing_or_incomplete": "表图与论文 claim 的对应关系仍未补齐。",
+    "clinical_actionability_incomplete": "分型/真实世界论文仍缺少临床可行动性说明，包括治疗缺口和随访或结局相关性。",
 }
 _ACTION_LABELS = {
     "return_to_publishability_gate": "先补齐论文证据与叙事，再回到发表门控复核。",
