@@ -353,7 +353,12 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert [item["skill_id"] for item in payload["skill_catalog"]["skills"]] == ["med-autoscience"]
     assert payload["skill_catalog"]["skills"][0]["target_surface_kind"] == "product_frontdesk"
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["skill_semantics"] == "domain_app"
+    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["skill_entry"] == "med-autoscience"
+    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["recommended_shell"] == "workspace_cockpit"
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["entry_shell_key"] == "product_frontdesk"
+    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["entry_command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["supporting_shell_keys"] == [
         "workspace_cockpit",
         "submit_study_task",

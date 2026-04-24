@@ -548,6 +548,15 @@ def build_skill_catalog(
     skill_catalog = dict(manifest.get("skill_catalog") or {})
     if not skill_catalog:
         raise ValueError("product entry manifest 缺少 skill_catalog。")
+    recommended_shell = _non_empty_text(manifest.get("recommended_shell"))
+    if recommended_shell is not None:
+        skill_catalog["recommended_shell"] = recommended_shell
+    recommended_command = _non_empty_text(manifest.get("recommended_command"))
+    if recommended_command is not None:
+        skill_catalog["recommended_command"] = recommended_command
+    skill_catalog["manifest_command"] = (
+        f"{_command_prefix(profile_ref)} product-entry-manifest --profile {_profile_arg(profile_ref)} --format json"
+    )
     return skill_catalog
 
 

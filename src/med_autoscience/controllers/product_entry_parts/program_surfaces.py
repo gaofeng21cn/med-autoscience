@@ -730,6 +730,8 @@ def _build_skill_catalog_surface(
             tags=["domain-app", "medical-research", "study"],
             domain_projection={
                 "plugin_name": "med-autoscience",
+                "skill_entry": "med-autoscience",
+                "recommended_shell": "workspace_cockpit",
                 "skill_semantics": "domain_app",
                 "entry_shell_key": "product_frontdesk",
                 "entry_command": command_catalog["product_frontdesk"],
