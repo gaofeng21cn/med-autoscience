@@ -1775,6 +1775,164 @@ def test_build_runtime_watch_outer_loop_tick_request_autoparks_ready_submission_
     ]
 
 
+def test_build_runtime_watch_outer_loop_tick_request_ignores_stale_task_intake_after_bundle_only_closeout(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    _write_charter(study_root)
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::001-risk::quest-001::2026-04-24T04:41:53+00:00",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-24T04:41:53+00:00",
+            "evaluation_scope": "publication",
+            "charter_context_ref": {
+                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                "charter_id": "charter::001-risk::v1",
+                "publication_objective": "risk stratification external validation",
+            },
+            "runtime_context_refs": {
+                "runtime_escalation_ref": str(
+                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+                ),
+                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            },
+            "delivery_context_refs": {
+                "paper_root_ref": str(study_root / "paper"),
+                "submission_minimal_ref": str(
+                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+                ),
+            },
+            "verdict": {
+                "overall_verdict": "promising",
+                "primary_claim_status": "supported",
+                "summary": "Human-review package is ready and only finalize-level cleanup remains.",
+                "stop_loss_pressure": "none",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "delivery",
+                    "severity": "optional",
+                    "summary": "Only optional submission-bundle cleanup remains.",
+                    "evidence_refs": [str(publication_eval_path)],
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "action-001",
+                    "action_type": "continue_same_line",
+                    "priority": "now",
+                    "reason": "Only finalize-level bundle cleanup remains on the current paper line.",
+                    "route_target": "finalize",
+                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                    "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "requires_controller_decision": True,
+                }
+            ],
+        },
+    )
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent=(
+            "当前稿件不能按已达投稿包里程碑直接收口；必须补做分层统计分析，"
+            "并把当前 submission-ready/finalize 判断降回待修订后再评估。"
+        ),
+        constraints=("本轮不得直接按外投收口。",),
+        evidence_boundary=("统计扩展限于预设 subgroup / association analysis。",),
+        first_cycle_outputs=("价格顾虑有/无分层的生物制剂使用结构比较表与统计检验结果。",),
+    )
+    _write_json(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
+        {
+            "schema_version": 1,
+            "summary_id": "evaluation-summary::001-risk::2099-04-24T23:59:59+00:00",
+            "emitted_at": "2099-04-24T23:59:59+00:00",
+            "overall_verdict": "promising",
+            "quality_closure_truth": {
+                "state": "bundle_only_remaining",
+                "summary": "Core scientific quality is already closed and only finalize-level bundle cleanup remains.",
+                "current_required_action": "continue_bundle_stage",
+                "route_target": "finalize",
+            },
+            "quality_assessment": {
+                "human_review_readiness": {
+                    "status": "ready",
+                    "summary": "Human-review package is ready.",
+                }
+            },
+            "quality_execution_lane": {
+                "lane_id": "submission_hardening",
+                "route_target": "finalize",
+                "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                "summary": "Only finalize-level submission hardening remains.",
+            },
+        },
+    )
+    gate_report = {
+        "status": "clear",
+        "blockers": [],
+        "current_required_action": "continue_bundle_stage",
+        "paper_line_open_supplementary_count": 0,
+        "medical_publication_surface_status": "clear",
+        "medical_publication_surface_current": True,
+    }
+    monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
+    monkeypatch.setattr(
+        module.publication_gate_controller,
+        "build_gate_state",
+        lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
+    )
+    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "build_gate_clearing_batch_recommended_action",
+        lambda **_: None,
+    )
+    monkeypatch.setattr(
+        module.quality_repair_batch,
+        "build_quality_repair_batch_recommended_action",
+        lambda **_: None,
+    )
+
+    request = module.build_runtime_watch_outer_loop_tick_request(
+        study_root=study_root,
+        status_payload={
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "quest_status": "active",
+            "runtime_liveness_status": "live",
+            "active_run_id": "run-001",
+            "reason": "quest_already_running",
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+
+    assert request is not None
+    assert request["decision_type"] == "continue_same_line"
+    assert request["route_target"] == "finalize"
+    assert request["controller_actions"] == [
+        {
+            "action_type": "stop_runtime",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
+
+
 def test_build_runtime_watch_outer_loop_tick_request_autoparks_without_runtime_escalation_ref(
     tmp_path: Path,
 ) -> None:
@@ -1914,6 +2072,131 @@ def test_build_runtime_watch_outer_loop_tick_request_autoparks_without_runtime_e
 
     assert request is not None
     assert request["controller_actions"] == [
+        {
+            "action_type": "stop_runtime",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
+
+
+def test_refresh_parked_submission_milestone_controller_decision_writes_parked_finalize_record(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    _write_charter(study_root)
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::001-risk::quest-001::2026-04-24T04:41:53+00:00",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-24T04:41:53+00:00",
+            "evaluation_scope": "publication",
+            "charter_context_ref": {
+                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                "charter_id": "charter::001-risk::v1",
+                "publication_objective": "risk stratification external validation",
+            },
+            "runtime_context_refs": {
+                "runtime_escalation_ref": str(
+                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+                ),
+                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            },
+            "delivery_context_refs": {
+                "paper_root_ref": str(study_root / "paper"),
+                "submission_minimal_ref": str(
+                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+                ),
+            },
+            "verdict": {
+                "overall_verdict": "promising",
+                "primary_claim_status": "supported",
+                "summary": "Human-review package is ready and only finalize-level cleanup remains.",
+                "stop_loss_pressure": "none",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "delivery",
+                    "severity": "optional",
+                    "summary": "Only optional submission-bundle cleanup remains.",
+                    "evidence_refs": [str(publication_eval_path)],
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "action-001",
+                    "action_type": "continue_same_line",
+                    "priority": "now",
+                    "reason": "Only finalize-level bundle cleanup remains on the current paper line.",
+                    "route_target": "finalize",
+                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                    "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "requires_controller_decision": True,
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
+        {
+            "schema_version": 1,
+            "summary_id": "evaluation-summary::001-risk::2026-04-24T04:49:03+00:00",
+            "emitted_at": "2026-04-24T04:49:03+00:00",
+            "overall_verdict": "promising",
+            "quality_closure_truth": {
+                "state": "bundle_only_remaining",
+                "summary": "Core scientific quality is already closed and only finalize-level bundle cleanup remains.",
+                "current_required_action": "continue_bundle_stage",
+                "route_target": "finalize",
+            },
+            "quality_assessment": {
+                "human_review_readiness": {
+                    "status": "ready",
+                    "summary": "Human-review package is ready.",
+                }
+            },
+            "quality_execution_lane": {
+                "lane_id": "submission_hardening",
+                "route_target": "finalize",
+                "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                "summary": "Only finalize-level submission hardening remains.",
+            },
+        },
+    )
+
+    result = module.refresh_parked_submission_milestone_controller_decision(
+        profile=profile,
+        study_root=study_root,
+        status_payload={
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_status": "stopped",
+            "reason": "quest_waiting_for_submission_metadata",
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+        source="submission-minimal-post-materialization",
+        recorded_at="2026-04-24T04:49:03+00:00",
+    )
+
+    assert result is not None
+    assert result["status"] == "refreshed"
+    assert result["decision_type"] == "continue_same_line"
+    assert result["route_target"] == "finalize"
+    payload = json.loads((study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8"))
+    assert payload["decision_type"] == "continue_same_line"
+    assert payload["route_target"] == "finalize"
+    assert payload["requires_human_confirmation"] is False
+    assert payload["controller_actions"] == [
         {
             "action_type": "stop_runtime",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),

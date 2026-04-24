@@ -19,6 +19,7 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
     )
     gate_calls: list[tuple[Path, bool, str, bool]] = []
     progress_calls: list[tuple[object, Path, str, Path]] = []
+    decision_refresh_calls: list[tuple[object, Path, str]] = []
 
     monkeypatch.setattr(module, "resolve_paper_root_context", lambda _paper_root: context)
     monkeypatch.setattr(
@@ -66,6 +67,18 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
 
     monkeypatch.setattr(module.publication_gate, "run_controller", fake_gate_run_controller)
     monkeypatch.setattr(module.study_progress, "read_study_progress", fake_read_study_progress)
+    monkeypatch.setattr(
+        module.study_outer_loop,
+        "refresh_parked_submission_milestone_controller_decision",
+        lambda *, profile, study_root, study_id, source: (
+            decision_refresh_calls.append((profile, study_root, study_id)),
+            {
+                "status": "refreshed",
+                "decision_type": "continue_same_line",
+                "route_target": "finalize",
+            },
+        )[1],
+    )
 
     result = module.replay_post_submission_minimal_sync(paper_root=paper_root)
 
@@ -83,6 +96,13 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
             tmp_path / "profiles" / "test.local.toml",
             "001-risk",
             context.study_root,
+        )
+    ]
+    assert decision_refresh_calls == [
+        (
+            decision_refresh_calls[0][0],
+            context.study_root,
+            "001-risk",
         )
     ]
     assert result == {
@@ -105,6 +125,11 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
             "evaluation_summary_path": "/tmp/eval/latest.json",
             "runtime_status_summary_path": "/tmp/runtime/runtime_status_summary.json",
             "publication_eval_path": "/tmp/publication_eval/latest.json",
+        },
+        "controller_decision_refresh": {
+            "status": "refreshed",
+            "decision_type": "continue_same_line",
+            "route_target": "finalize",
         },
     }
 

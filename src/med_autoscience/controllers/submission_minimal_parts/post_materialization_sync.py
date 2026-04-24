@@ -36,6 +36,7 @@ class _LazyModuleProxy:
 
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
+study_outer_loop = _LazyModuleProxy(lambda: _load_controller("study_outer_loop"))
 
 
 def _read_optional_config_env_value(*, path: Path, key: str) -> str | None:
@@ -120,6 +121,12 @@ def replay_post_submission_minimal_sync(*, paper_root: Path) -> dict[str, Any] |
         study_root=context.study_root,
     )
     refs = dict(progress_payload.get("refs") or {})
+    controller_decision_refresh = study_outer_loop.refresh_parked_submission_milestone_controller_decision(
+        profile=profile,
+        study_id=context.study_id,
+        study_root=context.study_root,
+        source="submission-minimal-post-materialization",
+    )
     return {
         "status": "synced",
         "quest_root": str(context.quest_root),
@@ -133,4 +140,5 @@ def replay_post_submission_minimal_sync(*, paper_root: Path) -> dict[str, Any] |
             "runtime_status_summary_path": str(refs.get("runtime_status_summary_path") or "").strip() or None,
             "publication_eval_path": str(refs.get("publication_eval_path") or "").strip() or None,
         },
+        "controller_decision_refresh": controller_decision_refresh,
     }
