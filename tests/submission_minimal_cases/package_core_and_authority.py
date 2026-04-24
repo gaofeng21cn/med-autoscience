@@ -1,5 +1,7 @@
 from .shared import *
 
+import hashlib
+
 import pytest
 
 def test_create_submission_minimal_package_creates_output_directory_and_copies_pdf(tmp_path: Path) -> None:
@@ -297,6 +299,45 @@ def test_create_submission_minimal_package_uses_existing_figure_exports_when_cat
     authority = module.describe_submission_minimal_authority(paper_root=paper_root)
     assert authority["status"] == "current"
     assert authority["missing_source_paths"] == []
+
+
+def test_create_submission_minimal_package_refreshes_source_contract_after_post_materialization_sync(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    package_builder = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
+    paper_root = make_paper_workspace(tmp_path)
+    write_text(paper_root / "evidence_ledger.json", '{"schema_version":1,"items":[]}' + "\n")
+
+    monkeypatch.setattr(package_builder.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+
+    def sync_study_delivery(*, paper_root: Path, stage: str, publication_profile: str) -> dict:
+        write_text(paper_root / "evidence_ledger.json", '{"schema_version":1,"items":[{"id":"post-sync"}]}' + "\n")
+        return {"status": "synced", "stage": stage, "publication_profile": publication_profile}
+
+    monkeypatch.setattr(package_builder.study_delivery_sync, "sync_study_delivery", sync_study_delivery)
+    monkeypatch.setattr(
+        package_builder,
+        "replay_post_submission_minimal_sync",
+        lambda *, paper_root: {"status": "synced"},
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    evidence_entries = [
+        item
+        for item in manifest["source_contract"]["source_files"]
+        if item["path"] == "paper/evidence_ledger.json"
+    ]
+    assert len(evidence_entries) == 1
+    assert evidence_entries[0]["sha256"] == hashlib.sha256((paper_root / "evidence_ledger.json").read_bytes()).hexdigest()
+
+    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+    assert authority["status"] == "current"
 
 
 def test_create_submission_minimal_package_general_profile_writes_figure_legends_and_tables(tmp_path: Path) -> None:

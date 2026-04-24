@@ -433,6 +433,20 @@ def create_submission_minimal_package(
             publication_profile=resolved_publication_profile,
         )
         post_materialization_sync_result = replay_post_submission_minimal_sync(paper_root=paper_root)
+        refreshed_source_contract = build_submission_minimal_source_contract(
+            paper_root=paper_root,
+            workspace_root=workspace_root,
+            compile_report_path=compile_report_path,
+            compiled_markdown_path=compiled_markdown_path,
+            figure_catalog_path=figure_catalog_path,
+            table_catalog_path=table_catalog_path,
+            figure_catalog=figure_catalog,
+            table_catalog=table_catalog,
+            pack_lock_path=pack_lock_path,
+        )
+        manifest["source_signature"] = refreshed_source_contract["source_signature"]
+        manifest["source_contract"] = refreshed_source_contract
+        dump_json(submission_manifest_path, manifest)
     if delivery_sync_result is not None or post_materialization_sync_result is not None:
         result = dict(manifest)
         if delivery_sync_result is not None:
