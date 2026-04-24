@@ -687,6 +687,35 @@ def _controller_stop_is_auto_recoverable(
     ) or _publication_gate_allows_post_clear_runtime_continuation(publication_gate_report)
 
 
+def _publication_gate_requests_submission_hardening_continuation(
+    publication_gate_report: dict[str, object] | None,
+) -> bool:
+    if not isinstance(publication_gate_report, dict):
+        return False
+    if str(publication_gate_report.get("status") or "").strip() in {"", "clear"}:
+        return False
+    if _publication_supervisor_requires_human_confirmation_from_payload(publication_gate_report):
+        return False
+    blockers = {
+        str(item).strip()
+        for item in (publication_gate_report.get("blockers") or [])
+        if str(item).strip()
+    }
+    named_blockers = {
+        str(item).strip()
+        for item in (publication_gate_report.get("medical_publication_surface_named_blockers") or [])
+        if str(item).strip()
+    }
+    return (
+        "submission_hardening_incomplete" in blockers
+        or "submission_hardening_incomplete" in named_blockers
+    ) and str(publication_gate_report.get("medical_publication_surface_route_back_recommendation") or "").strip() == "return_to_finalize"
+
+
+def _publication_supervisor_requires_human_confirmation_from_payload(payload: dict[str, object]) -> bool:
+    return _publication_supervisor_current_required_action(payload) == _HUMAN_CONFIRMATION_REQUIRED_ACTION
+
+
 def _int_or_none(value: object) -> int | None:
     if isinstance(value, bool):
         return None
@@ -717,20 +746,33 @@ def _stopped_controller_owned_auto_recovery_context(
     continuation_anchor = str(runtime_state.get("continuation_anchor") or "").strip() or None
     continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
     stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
-    if continuation_policy != "auto":
+    if continuation_policy not in {"auto", "wait_for_user_or_resume"}:
         return None
     recovery_mode: str | None = None
     pending_user_message_count = _int_or_none(runtime_state.get("pending_user_message_count"))
+    has_pending_user_message = pending_user_message_count is not None and pending_user_message_count > 0
+    controller_stopped_for_submission_hardening = (
+        stop_reason is not None
+        and stop_reason.startswith("controller_stop:")
+        and has_pending_user_message
+        and continuation_anchor == "decision"
+        and continuation_reason is not None
+        and continuation_reason.startswith("decision:")
+        and _publication_gate_requests_submission_hardening_continuation(publication_gate_report)
+    )
+    if controller_stopped_for_submission_hardening:
+        recovery_mode = "managed_auto_continuation"
     if stop_reason == "user_stop":
         if (
             continuation_reason is not None
             and continuation_reason.startswith("decision:")
-            and pending_user_message_count is not None
-            and pending_user_message_count > 0
+            and has_pending_user_message
         ):
             recovery_mode = "managed_auto_continuation"
         else:
             return None
+    elif recovery_mode is not None:
+        pass
     elif stop_reason and not stop_reason.startswith("controller_stop:"):
         return None
     elif continuation_anchor == "decision" and continuation_reason is not None and continuation_reason.startswith("decision:"):
