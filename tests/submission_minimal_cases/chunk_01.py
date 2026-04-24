@@ -1,5 +1,7 @@
 from .shared import *
 
+import pytest
+
 def test_create_submission_minimal_package_creates_output_directory_and_copies_pdf(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.submission_minimal")
@@ -63,6 +65,51 @@ def test_create_submission_minimal_package_writes_manifest_and_docx_path(tmp_pat
         "paper/tables/T1_summary.md",
     ]
     assert manifest_payload == manifest
+
+
+def test_create_submission_minimal_package_preserves_existing_package_when_materialization_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    package_builder = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
+    paper_root = make_paper_workspace(tmp_path)
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    manifest_path = submission_root / "submission_manifest.json"
+    pdf_path = submission_root / "paper.pdf"
+    docx_path = submission_root / "manuscript.docx"
+
+    old_manifest = '{"sentinel":"old-manifest"}\n'
+    old_pdf = b"%PDF-1.4\n%old-pdf\n"
+    old_docx = b"old-docx"
+    manifest_path.write_text(old_manifest, encoding="utf-8")
+    pdf_path.write_bytes(old_pdf)
+    docx_path.write_bytes(old_docx)
+
+    original_export_pdf = package_builder.export_pdf
+
+    def failing_export_pdf(*args, **kwargs):
+        original_export_pdf(*args, **kwargs)
+        raise RuntimeError("simulated pdf export failure")
+
+    monkeypatch.setattr(package_builder, "export_pdf", failing_export_pdf)
+
+    with pytest.raises(RuntimeError, match="simulated pdf export failure"):
+        module.create_submission_minimal_package(
+            paper_root=paper_root,
+            publication_profile="general_medical_journal",
+        )
+
+    assert submission_root.exists()
+    assert manifest_path.read_text(encoding="utf-8") == old_manifest
+    assert pdf_path.read_bytes() == old_pdf
+    assert docx_path.read_bytes() == old_docx
 
 
 def test_describe_submission_minimal_authority_detects_changed_compiled_markdown(tmp_path: Path) -> None:
@@ -541,5 +588,3 @@ def test_create_submission_minimal_package_accepts_current_figure_and_table_cata
     assert (submission_root / "figures" / "figure1.pdf").exists()
     assert (submission_root / "figures" / "figure1.png").exists()
     assert (submission_root / "tables" / "table1.md").exists()
-
-

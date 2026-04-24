@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -566,6 +567,59 @@ def resolve_output_root(*, paper_root: Path, publication_profile: str) -> Path:
     return paper_root / "journal_submissions" / normalized_profile
 
 
+def create_staging_output_root(*, target_root: Path) -> Path:
+    target_root.parent.mkdir(parents=True, exist_ok=True)
+    return Path(
+        tempfile.mkdtemp(
+            dir=target_root.parent,
+            prefix=f".{target_root.name}.tmp-",
+        )
+    ).resolve()
+
+
+def remap_staging_path_to_target(*, path: Path, staging_root: Path, target_root: Path) -> Path:
+    resolved_path = path.expanduser().resolve()
+    try:
+        relative = resolved_path.relative_to(staging_root.expanduser().resolve())
+    except ValueError:
+        return resolved_path
+    return (target_root.expanduser().resolve() / relative).resolve()
+
+
+def remap_staging_relpath_to_target(*, relpath: str, workspace_root: Path, staging_root: Path, target_root: Path) -> str:
+    return relpath_from_workspace(
+        remap_staging_path_to_target(
+            path=resolve_relpath(workspace_root, relpath),
+            staging_root=staging_root,
+            target_root=target_root,
+        ),
+        workspace_root,
+    )
+
+
+def replace_directory_atomically(*, staging_root: Path, target_root: Path) -> None:
+    resolved_staging_root = staging_root.expanduser().resolve()
+    resolved_target_root = target_root.expanduser().resolve()
+    backup_root = resolved_target_root.parent / (
+        f".{resolved_target_root.name}.bak-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}"
+    )
+    replaced_existing_root = False
+    try:
+        if resolved_target_root.exists():
+            resolved_target_root.replace(backup_root)
+            replaced_existing_root = True
+        resolved_staging_root.replace(resolved_target_root)
+    except Exception:
+        if resolved_target_root.exists():
+            shutil.rmtree(resolved_target_root, ignore_errors=True)
+        if replaced_existing_root and backup_root.exists():
+            backup_root.replace(resolved_target_root)
+        raise
+    finally:
+        if backup_root.exists():
+            shutil.rmtree(backup_root, ignore_errors=True)
+
+
 def build_submission_minimal_readme(*, publication_profile: str) -> str:
     normalized_profile = normalize_publication_profile(publication_profile)
     canonical_package_root = (
@@ -940,4 +994,3 @@ def build_submission_minimal_source_contract(
         "latest_source_mtime_ns": latest_source_mtime_ns,
         "missing_source_paths": sorted(missing_source_paths),
     }
-
