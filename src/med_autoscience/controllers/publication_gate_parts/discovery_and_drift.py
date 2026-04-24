@@ -17,6 +17,7 @@ from med_autoscience.journal_requirements import (
     slugify_journal_name,
 )
 from med_autoscience.policies import publication_gate as publication_gate_policy
+from med_autoscience.policies.medical_reporting_checklist import REPORTING_CHECKLIST_BLOCKER_KEYS
 from med_autoscience.runtime_protocol import (
     paper_artifacts,
     quest_state,
@@ -86,6 +87,7 @@ _MEDICAL_PUBLICATION_SURFACE_SUBMISSION_HARDENING_BLOCKERS = frozenset(
         "endpoint_provenance_note_missing_or_unapplied",
         "undefined_methodology_labels_present",
         "public_evidence_decisions_missing_or_incomplete",
+        *REPORTING_CHECKLIST_BLOCKER_KEYS,
     }
 )
 _MEDICAL_PUBLICATION_SURFACE_ROUTE_BACK_RECOMMENDATIONS = {

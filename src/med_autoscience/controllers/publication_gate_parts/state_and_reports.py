@@ -17,6 +17,7 @@ from med_autoscience.journal_requirements import (
     slugify_journal_name,
 )
 from med_autoscience.policies import publication_gate as publication_gate_policy
+from med_autoscience.policies.medical_reporting_checklist import REPORTING_CHECKLIST_BLOCKER_KEYS
 from med_autoscience.runtime_protocol import (
     paper_artifacts,
     quest_state,
@@ -469,6 +470,32 @@ def build_gate_state(quest_root: Path) -> GateState:
     )
 
 
+def _build_blocker_taxonomy(
+    *,
+    blockers: list[str],
+    medical_publication_surface_named_blockers: list[str],
+    medical_publication_surface_raw_blockers: list[str],
+    non_scientific_handoff_gaps: list[str],
+) -> dict[str, list[str]]:
+    science_reporting_blockers: list[str] = []
+    bundle_package_blockers: list[str] = []
+    for blocker in blockers:
+        if blocker in _BUNDLE_STAGE_ONLY_BLOCKERS:
+            _append_unique(bundle_package_blockers, blocker)
+        else:
+            _append_unique(science_reporting_blockers, blocker)
+    for blocker in medical_publication_surface_named_blockers:
+        _append_unique(science_reporting_blockers, blocker)
+    for blocker in medical_publication_surface_raw_blockers:
+        if blocker in REPORTING_CHECKLIST_BLOCKER_KEYS:
+            _append_unique(science_reporting_blockers, blocker)
+    return {
+        "science_reporting_blockers": science_reporting_blockers,
+        "bundle_package_blockers": bundle_package_blockers,
+        "human_metadata_admin_todos": list(non_scientific_handoff_gaps),
+    }
+
+
 def build_gate_report(state: GateState) -> dict[str, Any]:
     baseline_items = (state.main_result or {}).get("baseline_comparisons", {}).get("items") or []
     primary_delta = None
@@ -677,6 +704,16 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
                 "before autonomous publication work continues"
             ),
         }
+    medical_publication_surface_raw_blockers = list((state.latest_medical_publication_surface or {}).get("blockers") or [])
+    blocker_taxonomy = _build_blocker_taxonomy(
+        blockers=blockers,
+        medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
+        medical_publication_surface_raw_blockers=medical_publication_surface_raw_blockers,
+        non_scientific_handoff_gaps=non_scientific_handoff_gaps,
+    )
+    publication_reporting_checklist = (state.latest_medical_publication_surface or {}).get("structured_reporting_checklist")
+    if not isinstance(publication_reporting_checklist, dict):
+        publication_reporting_checklist = None
     controller_stage_note = _medical_publication_surface_stage_note(
         base_note=str(supervisor_state["controller_stage_note"]),
         named_blockers=medical_publication_surface_named_blockers,
@@ -728,6 +765,8 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "submission_checklist_blocking_items": submission_checklist_blocking_items,
         "submission_checklist_unclassified_blocking_items": submission_checklist_unclassified_blocking_items,
         "non_scientific_handoff_gaps": non_scientific_handoff_gaps,
+        "blocker_taxonomy": blocker_taxonomy,
+        "publication_reporting_checklist": publication_reporting_checklist,
         "closure_bundle_ready": closure_bundle_ready,
         "submission_minimal_manifest_path": (
             str(state.submission_minimal_manifest_path) if state.submission_minimal_manifest_path else None

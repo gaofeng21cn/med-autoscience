@@ -6,6 +6,7 @@ from pathlib import Path
 
 from med_autoscience.controllers._medical_display_surface_support import resolve_required_display_surface_stub
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
+from med_autoscience.policies.medical_reporting_checklist import build_structured_reporting_checklist
 from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
@@ -210,6 +211,8 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
             advisories.append("missing_reporting_guideline_checklist")
         else:
             blockers.append("missing_reporting_guideline_checklist")
+    structured_reporting_checklist = build_structured_reporting_checklist(reporting_contract)
+    blockers.extend(structured_reporting_checklist["blockers"])
     medical_story_contract_valid = _medical_story_contract_is_valid(paper_root)
     if not medical_story_contract_valid:
         blockers.append("missing_medical_story_contract")
@@ -221,6 +224,7 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
         "action": "clear",
         "quest_root": str(resolved_quest_root),
         "medical_story_contract_valid": medical_story_contract_valid,
+        "structured_reporting_checklist": structured_reporting_checklist,
         "submission_checklist_handoff_ready": submission_checklist_handoff_ready,
         "submission_checklist_unclassified_blocking_items": submission_checklist_unclassified_blocking_items,
     }
