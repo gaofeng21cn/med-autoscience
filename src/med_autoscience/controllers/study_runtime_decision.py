@@ -2344,7 +2344,7 @@ def _status_state(
         return _finalize_result()
 
     if quest_status == StudyRuntimeQuestStatus.STOPPED:
-        if submission_metadata_only_manual_finish:
+        if submission_metadata_only_manual_finish or bundle_only_manual_finish:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
