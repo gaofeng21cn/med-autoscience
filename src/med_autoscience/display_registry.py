@@ -100,6 +100,9 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "time_to_event_risk_group_summary",
         "time_to_event_decision_curve",
         "multicenter_generalizability_overview",
+        "phenotype_gap_structure_figure",
+        "site_held_out_stability_figure",
+        "treatment_gap_alignment_figure",
         "treatment_shift_alignment_figure",
         "practical_factor_dot_figure",
         "preferred_class_sensitivity_figure",
@@ -121,6 +124,8 @@ _TABLE_SHELL_ORDER = tuple(
     _full_id(item)
     for item in (
         "table1_baseline_characteristics",
+        "table2_phenotype_gap_summary",
+        "table3_transition_site_support_summary",
         "table2_time_to_event_performance_summary",
         "table3_clinical_interpretation_summary",
         "performance_summary_table_generic",

@@ -1730,6 +1730,48 @@ def test_create_submission_minimal_package_supports_manuscript_shaped_draft_with
     assert any("A primary source" in paragraph for paragraph in paragraphs)
 
 
+def test_create_submission_minimal_package_preserves_top_level_figures_in_manuscript_shaped_draft(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
+    draft_path = paper_root / "draft.md"
+
+    write_png(paper_root / "figures" / "F1.png")
+    write_text(
+        draft_path,
+        draft_path.read_text(encoding="utf-8")
+        + """
+
+# Figures
+
+## Figure 1. Preserved top-level figure
+
+![](figures/F1.png)
+
+Preserved legend for the manuscript-shaped top-level figures block.
+""",
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
+
+    assert submission_markdown.splitlines().count("# Figures") == 1
+    assert "## Figure 1. Preserved top-level figure" in submission_markdown
+    assert "![](figures/Figure1.png)" in submission_markdown
+    assert "Preserved legend for the manuscript-shaped top-level figures block." in submission_markdown
+
+    manuscript_surface_qc = manifest["manuscript"]["surface_qc"]
+    assert manuscript_surface_qc["status"] == "pass"
+    assert manuscript_surface_qc["source_markdown"]["figure_blocks_with_images"] == 1
+    assert manuscript_surface_qc["source_markdown"]["figure_blocks_with_legends"] == 1
+
+
 def test_create_submission_minimal_package_accepts_materialized_submission_source_from_compile_report(
     tmp_path: Path,
 ) -> None:

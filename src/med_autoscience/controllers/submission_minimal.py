@@ -1171,7 +1171,7 @@ def build_frontiers_required_sections() -> str:
 
 
 def parse_heading_blocks(text: str, heading_prefix: str) -> list[tuple[str, str]]:
-    pattern = re.compile(rf"(?ms)^## ({re.escape(heading_prefix)}[^\n]*)\n\n(.*?)(?=^## |\Z)")
+    pattern = re.compile(rf"(?ms)^## ({re.escape(heading_prefix)}[^\n]*)\n\n(.*?)(?=^# |^## |\Z)")
     blocks: list[tuple[str, str]] = []
     for match in pattern.finditer(text.strip()):
         heading = match.group(1).strip()
@@ -1194,6 +1194,28 @@ def normalize_markdown_heading_key(heading: str) -> str:
     return re.sub(r"\s+", " ", str(heading or "").strip()).casefold()
 
 
+MANUSCRIPT_SHAPED_AUXILIARY_TOP_LEVEL_HEADINGS = (
+    "Main Tables",
+    "Tables",
+    "Main Figures",
+    "Figures",
+    "Main-text figures",
+    "Figure Legends",
+    "Figure Legend",
+    "Appendix",
+)
+
+
+def collect_named_top_level_blocks(text: str, *headings: str) -> dict[str, str]:
+    heading_keys = {normalize_markdown_heading_key(heading) for heading in headings}
+    blocks: dict[str, str] = {}
+    for heading, block_body in parse_top_level_blocks(text):
+        key = normalize_markdown_heading_key(heading)
+        if key in heading_keys and block_body.strip() and key not in blocks:
+            blocks[key] = block_body.strip()
+    return blocks
+
+
 def extract_top_level_markdown_block(body: str, *headings: str) -> str:
     heading_keys = {normalize_markdown_heading_key(heading) for heading in headings}
     for heading, block_body in parse_top_level_blocks(body):
@@ -1203,7 +1225,7 @@ def extract_top_level_markdown_block(body: str, *headings: str) -> str:
 
 
 def parse_second_level_blocks(text: str) -> list[tuple[str, str]]:
-    pattern = re.compile(r"(?ms)^## ([^\n]+)\n\n(.*?)(?=^## |\Z)")
+    pattern = re.compile(r"(?ms)^## ([^\n]+)\n\n(.*?)(?=^# |^## |\Z)")
     blocks: list[tuple[str, str]] = []
     for match in pattern.finditer(text.strip()):
         heading = match.group(1).strip()
@@ -1213,7 +1235,7 @@ def parse_second_level_blocks(text: str) -> list[tuple[str, str]]:
 
 
 def parse_third_level_blocks(text: str) -> list[tuple[str, str]]:
-    pattern = re.compile(r"(?ms)^### ([^\n]+)\n\n(.*?)(?=^### |\Z)")
+    pattern = re.compile(r"(?ms)^### ([^\n]+)\n\n(.*?)(?=^# |^## |^### |\Z)")
     blocks: list[tuple[str, str]] = []
     for match in pattern.finditer(text.strip()):
         heading = match.group(1).strip()
@@ -1222,22 +1244,31 @@ def parse_third_level_blocks(text: str) -> list[tuple[str, str]]:
     return blocks
 
 
-def parse_manuscript_shaped_draft(text: str) -> tuple[str | None, dict[str, str]]:
+def parse_manuscript_shaped_draft(text: str) -> tuple[str | None, dict[str, str], dict[str, str]]:
     stripped = text.strip()
     title_match = re.match(r"(?ms)^# ([^\n]+)\n+(.*)$", stripped)
     if title_match is None:
-        return None, {}
+        return None, {}, {}
     title = title_match.group(1).strip()
     if not title or title.lower() == "draft":
-        return None, {}
+        return None, {}, {}
     body = title_match.group(2).strip()
     blocks = {heading: block_body for heading, block_body in parse_second_level_blocks(body)}
-    return title, blocks
+    auxiliary_blocks = collect_named_top_level_blocks(body, *MANUSCRIPT_SHAPED_AUXILIARY_TOP_LEVEL_HEADINGS)
+    return title, blocks, auxiliary_blocks
 
 
 def first_nonempty_block(section_blocks: dict[str, str], *headings: str) -> str:
     for heading in headings:
         value = section_blocks.get(heading, "")
+        if value.strip():
+            return value.strip()
+    return ""
+
+
+def first_nonempty_named_block(named_blocks: dict[str, str], *headings: str) -> str:
+    for heading in headings:
+        value = named_blocks.get(normalize_markdown_heading_key(heading), "")
         if value.strip():
             return value.strip()
     return ""
@@ -1899,7 +1930,7 @@ def build_general_medical_submission_markdown(
     main_tables = ""
     main_figures = ""
     figure_semantics_map: dict[str, dict[str, Any]] = {}
-    manuscript_title, manuscript_sections = parse_manuscript_shaped_draft(compiled_text)
+    manuscript_title, manuscript_sections, manuscript_auxiliary_blocks = parse_manuscript_shaped_draft(compiled_text)
 
     if compiled_text.lstrip().startswith("# Draft"):
         title = extract_block_between_markers(
@@ -1945,7 +1976,7 @@ def build_general_medical_submission_markdown(
             label="Conclusion",
         )
         bibliography_path = (paper_root / "references.bib").resolve()
-    elif manuscript_title and manuscript_sections:
+    elif manuscript_title and (manuscript_sections or manuscript_auxiliary_blocks):
         title = manuscript_title
         abstract = first_nonempty_block(manuscript_sections, "Abstract")
         introduction = first_nonempty_block(manuscript_sections, "Introduction")
@@ -1954,7 +1985,16 @@ def build_general_medical_submission_markdown(
         discussion = first_nonempty_block(manuscript_sections, "Discussion")
         conclusion = first_nonempty_block(manuscript_sections, "Conclusion", "Conclusions")
         main_tables = first_nonempty_block(manuscript_sections, "Main Tables", "Tables")
+        if not main_tables:
+            main_tables = first_nonempty_named_block(manuscript_auxiliary_blocks, "Main Tables", "Tables")
         main_figures = first_nonempty_block(manuscript_sections, "Main Figures", "Figures", "Main-text figures")
+        if not main_figures:
+            main_figures = first_nonempty_named_block(
+                manuscript_auxiliary_blocks,
+                "Main Figures",
+                "Figures",
+                "Main-text figures",
+            )
         figure_semantics_map = load_figure_semantics_map(paper_root)
         bibliography_path = (paper_root / "references.bib").resolve()
     else:

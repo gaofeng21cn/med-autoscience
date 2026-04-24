@@ -75,11 +75,79 @@ def test_resolve_medical_reporting_contract_for_clinical_subtype_reconstruction(
     )
 
     assert contract.reporting_guideline_family == "STROBE"
-    assert contract.table_shell_requirements == ("table1_baseline_characteristics",)
-    assert contract.figure_shell_requirements == ("cohort_flow_figure",)
+    assert contract.table_shell_requirements == (
+        "table1_baseline_characteristics",
+        "table2_phenotype_gap_summary",
+        "table3_transition_site_support_summary",
+    )
+    assert contract.figure_shell_requirements == (
+        "cohort_flow_figure",
+        "phenotype_gap_structure_figure",
+        "site_held_out_stability_figure",
+        "treatment_gap_alignment_figure",
+    )
     assert contract.required_illustration_shells == ("cohort_flow_figure",)
-    assert contract.required_table_shells == ("table1_baseline_characteristics",)
-    assert contract.required_evidence_templates == ()
+    assert contract.required_table_shells == (
+        "table1_baseline_characteristics",
+        "table2_phenotype_gap_summary",
+        "table3_transition_site_support_summary",
+    )
+    assert contract.required_evidence_templates == (
+        "phenotype_gap_structure_figure",
+        "site_held_out_stability_figure",
+        "treatment_gap_alignment_figure",
+    )
+    assert contract.display_shell_plan == (
+        module.DisplayShellPlanItem(
+            display_id="cohort_flow",
+            display_kind="figure",
+            requirement_key="cohort_flow_figure",
+            catalog_id="F1",
+            story_role="study_setup",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="phenotype_gap_structure",
+            display_kind="figure",
+            requirement_key="phenotype_gap_structure_figure",
+            catalog_id="F2",
+            story_role="result_evidence",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="site_held_out_stability",
+            display_kind="figure",
+            requirement_key="site_held_out_stability_figure",
+            catalog_id="F3",
+            story_role="result_evidence",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="treatment_gap_alignment",
+            display_kind="figure",
+            requirement_key="treatment_gap_alignment_figure",
+            catalog_id="F4",
+            story_role="result_evidence",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="baseline_characteristics",
+            display_kind="table",
+            requirement_key="table1_baseline_characteristics",
+            catalog_id="T1",
+            story_role="study_setup",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="phenotype_gap_summary",
+            display_kind="table",
+            requirement_key="table2_phenotype_gap_summary",
+            catalog_id="T2",
+            story_role="result_evidence",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="transition_site_support_summary",
+            display_kind="table",
+            requirement_key="table3_transition_site_support_summary",
+            catalog_id="T3",
+            story_role="result_evidence",
+        ),
+    )
     assert contract.display_ambition == "strong"
     assert contract.minimum_main_text_figures == 4
     assert contract.recommended_main_text_figures == (

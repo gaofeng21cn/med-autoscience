@@ -62,6 +62,11 @@ _STUDY_SETUP_REQUIREMENT_KEYS = frozenset(
 _DISPLAY_INSTANCE_MAP: dict[str, tuple[str, str, str]] = {
     "cohort_flow_figure": ("cohort_flow", "figure", "F1"),
     "table1_baseline_characteristics": ("baseline_characteristics", "table", "T1"),
+    "phenotype_gap_structure_figure": ("phenotype_gap_structure", "figure", "F2"),
+    "table2_phenotype_gap_summary": ("phenotype_gap_summary", "table", "T2"),
+    "site_held_out_stability_figure": ("site_held_out_stability", "figure", "F3"),
+    "table3_transition_site_support_summary": ("transition_site_support_summary", "table", "T3"),
+    "treatment_gap_alignment_figure": ("treatment_gap_alignment", "figure", "F4"),
     "table2_time_to_event_performance_summary": ("time_to_event_performance_summary", "table", "T2"),
     "time_to_event_discrimination_calibration_panel": ("discrimination_calibration", "figure", "F2"),
     "time_to_event_risk_group_summary": ("km_risk_stratification", "figure", "F3"),
@@ -178,6 +183,17 @@ def resolve_medical_reporting_contract(
         and endpoint_type == "descriptive"
         and submission_target_family == "general_medical_journal"
     ):
+        table_shell_requirements = (
+            "table1_baseline_characteristics",
+            "table2_phenotype_gap_summary",
+            "table3_transition_site_support_summary",
+        )
+        figure_shell_requirements = (
+            "cohort_flow_figure",
+            "phenotype_gap_structure_figure",
+            "site_held_out_stability_figure",
+            "treatment_gap_alignment_figure",
+        )
         display_ambition = "strong"
         minimum_main_text_figures = 4
         recommended_main_text_figures = (
