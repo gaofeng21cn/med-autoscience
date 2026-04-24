@@ -3,6 +3,7 @@ from .authority import *
 from .markdown_surface import *
 from .post_materialization_sync import replay_post_submission_minimal_sync
 from .profile_builders import *
+from .source_contract import build_submission_minimal_source_contract
 
 def create_submission_minimal_package(
     *,

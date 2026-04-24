@@ -1,4 +1,5 @@
 from .shared import *
+from .source_contract import build_submission_minimal_source_contract
 
 def describe_submission_minimal_authority(
     *,
@@ -150,5 +151,4 @@ def describe_submission_minimal_authority(
         "missing_source_paths": list(source_contract["missing_source_paths"]),
         "latest_source_mtime_ns": int(source_contract["latest_source_mtime_ns"]),
     }
-
 
