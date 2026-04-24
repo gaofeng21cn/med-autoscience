@@ -131,6 +131,7 @@ route_contracts:
       - analysis campaign summary with question-to-result traceability
       - added result artifacts or evidence refs for every resolved gap
       - explicit record of remaining gaps that still require route-back
+      - reviewer/Codex revision handoff when the bounded analysis is triggered by a user manuscript-change request
     human_gate_boundary:
       - requested follow-up analysis adds a new primary claim or leaves bounded analysis scope
       - campaign needs another gate window beyond the predeclared analysis budget boundary
@@ -151,14 +152,17 @@ route_contracts:
       - active claim and supporting evidence package are readable
       - required route artifacts are linked or referenced
       - reviewer-first pressure can be applied against the current draft
+      - user manuscript-change requests from Codex have been converted into a study revision intake with runtime ownership checked
     hard_success_gate:
       - manuscript line states claims that match cited evidence
       - open gaps, caveats, and next actions are explicit in the writing surface
       - draft is ready for finalize or route-back with named reasons
+      - any direct human-facing package edit has a durable MAS/MDS handoff and canonical-source reconciliation note
     durable_outputs_minimum:
       - manuscript draft or section update tied to current claim scope
       - claim-evidence map or equivalent traceability surface
       - reviewer-first pass note with explicit concerns
+      - revision handoff stating data source, scripts, changed tables/figures, claim guardrails, and whether `current_package` was reconciled back to controller-authorized `paper/`
     human_gate_boundary:
       - manuscript claims expand beyond the current evidence package or locked study objective
       - draft is ready for external circulation or submission-facing release
@@ -169,6 +173,7 @@ route_contracts:
       - any active claim lacks supporting evidence
       - reviewer-first scan finds unresolved logic, novelty, or rigor gaps
       - manuscript narrative changes the claim boundary
+      - foreground edits only touched `manuscript/current_package/` and have not been reconciled into the MAS/MDS canonical paper source
   finalize:
     route_id: finalize
     display_name: Finalize
@@ -182,6 +187,7 @@ route_contracts:
       - final package is internally consistent across claim, evidence, and limitations
       - required review artifacts are complete enough for final audit
       - route recommendation is explicit between submit-ready and route-back
+      - no unreconciled foreground `current_package` revision overlay remains
     durable_outputs_minimum:
       - final package checklist or equivalent delivery record
       - updated limitations, caveats, and readiness statement

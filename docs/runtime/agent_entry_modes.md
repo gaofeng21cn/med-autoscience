@@ -117,7 +117,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - goal: Close the bounded evidence gaps that still block claim acceptance or reviewer pressure.
 - enter_conditions: baseline or primary result artifact exists | bounded analysis question is explicit | study charter still allows the requested follow-up analyses
 - hard_success_gate: each targeted gap has a resolved outcome or explicit stop decision | added analyses stay within the bounded scope of the active line | resulting evidence package can support writing or a decision review
-- durable_outputs_minimum: analysis campaign summary with question-to-result traceability | added result artifacts or evidence refs for every resolved gap | explicit record of remaining gaps that still require route-back
+- durable_outputs_minimum: analysis campaign summary with question-to-result traceability | added result artifacts or evidence refs for every resolved gap | explicit record of remaining gaps that still require route-back | reviewer/Codex revision handoff when the bounded analysis is triggered by a user manuscript-change request
 - human_gate_boundary: requested follow-up analysis adds a new primary claim or leaves bounded analysis scope | campaign needs another gate window beyond the predeclared analysis budget boundary
 - next_routes: write | finalize | decision
 - route_back_triggers: new gaps expand beyond bounded analysis scope | claim support weakens after follow-up analysis | reviewer-first scan requests a different baseline or study line
@@ -125,18 +125,18 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 ### write (Write)
 - key_question: Does the manuscript narrative faithfully carry the current evidence?
 - goal: Convert the current evidence line into a manuscript-facing narrative that can withstand review.
-- enter_conditions: active claim and supporting evidence package are readable | required route artifacts are linked or referenced | reviewer-first pressure can be applied against the current draft
-- hard_success_gate: manuscript line states claims that match cited evidence | open gaps, caveats, and next actions are explicit in the writing surface | draft is ready for finalize or route-back with named reasons
-- durable_outputs_minimum: manuscript draft or section update tied to current claim scope | claim-evidence map or equivalent traceability surface | reviewer-first pass note with explicit concerns
+- enter_conditions: active claim and supporting evidence package are readable | required route artifacts are linked or referenced | reviewer-first pressure can be applied against the current draft | user manuscript-change requests from Codex have been converted into a study revision intake with runtime ownership checked
+- hard_success_gate: manuscript line states claims that match cited evidence | open gaps, caveats, and next actions are explicit in the writing surface | draft is ready for finalize or route-back with named reasons | any direct human-facing package edit has a durable MAS/MDS handoff and canonical-source reconciliation note
+- durable_outputs_minimum: manuscript draft or section update tied to current claim scope | claim-evidence map or equivalent traceability surface | reviewer-first pass note with explicit concerns | revision handoff stating data source, scripts, changed tables/figures, claim guardrails, and whether `current_package` was reconciled back to controller-authorized `paper/`
 - human_gate_boundary: manuscript claims expand beyond the current evidence package or locked study objective | draft is ready for external circulation or submission-facing release
 - next_routes: finalize | decision
-- route_back_triggers: any active claim lacks supporting evidence | reviewer-first scan finds unresolved logic, novelty, or rigor gaps | manuscript narrative changes the claim boundary
+- route_back_triggers: any active claim lacks supporting evidence | reviewer-first scan finds unresolved logic, novelty, or rigor gaps | manuscript narrative changes the claim boundary | foreground edits only touched `manuscript/current_package/` and have not been reconciled into the MAS/MDS canonical paper source
 
 ### finalize (Finalize)
 - key_question: Is the submission package ready for final audit?
 - goal: Assemble the submission-facing package and verify that the line is ready for final judgment.
 - enter_conditions: manuscript-facing draft exists | claim-evidence mapping is current | remaining risks are reviewable as a bounded package
-- hard_success_gate: final package is internally consistent across claim, evidence, and limitations | required review artifacts are complete enough for final audit | route recommendation is explicit between submit-ready and route-back
+- hard_success_gate: final package is internally consistent across claim, evidence, and limitations | required review artifacts are complete enough for final audit | route recommendation is explicit between submit-ready and route-back | no unreconciled foreground `current_package` revision overlay remains
 - durable_outputs_minimum: final package checklist or equivalent delivery record | updated limitations, caveats, and readiness statement | final review summary with explicit go or reroute recommendation
 - human_gate_boundary: submission-ready judgment or external delivery authorization is required | final package changes the claim, limitation, or outlet boundary materially
 - next_routes: decision | write

@@ -208,6 +208,9 @@ def test_render_entry_modes_guide_contains_required_contract_context() -> None:
     assert "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode" in guide
     assert "report `browser_url`, `quest_session_api_url`, and `active_run_id` when present" in guide
     assert "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions." in guide
+    assert "user manuscript-change requests from Codex have been converted into a study revision intake" in guide
+    assert "revision handoff stating data source, scripts, changed tables/figures, claim guardrails" in guide
+    assert "no unreconciled foreground `current_package` revision overlay remains" in guide
 
 
 @pytest.mark.parametrize("render_prompt", [render_codex_entry_skill, render_openclaw_entry_prompt])
@@ -269,6 +272,9 @@ def test_entry_prompts_include_per_mode_route_contract_and_upgrade_rule(render_p
     assert "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode" in prompt
     assert "report `browser_url`, `quest_session_api_url`, and `active_run_id` when present" in prompt
     assert "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions." in prompt
+    assert "user manuscript-change requests from Codex have been converted into a study revision intake" in prompt
+    assert "revision handoff stating data source, scripts, changed tables/figures, claim guardrails" in prompt
+    assert "no unreconciled foreground `current_package` revision overlay remains" in prompt
 
 
 def _extract_mode_block(prompt: str, mode_id: str) -> str:
