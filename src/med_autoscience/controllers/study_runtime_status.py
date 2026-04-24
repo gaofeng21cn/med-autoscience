@@ -45,9 +45,9 @@ from .study_runtime_status_parts import (
     StudyRuntimeStatus,
     __all__,
 )
-from .study_runtime_status_parts import chunk_01 as chunk_01
-from .study_runtime_status_parts import chunk_02 as chunk_02
-from .study_runtime_status_parts import chunk_03 as chunk_03
+from .study_runtime_status_parts import enums_and_audits as enums_and_audits
+from .study_runtime_status_parts import runtime_result_types as runtime_result_types
+from .study_runtime_status_parts import status_model as status_model
 
 import sys
 from types import ModuleType
@@ -60,7 +60,7 @@ def _split_chunks() -> tuple[ModuleType, ...]:
     return tuple(
         value
         for name, value in globals().items()
-        if name.startswith("chunk_") and isinstance(value, ModuleType)
+        if isinstance(value, ModuleType) and name in {'enums_and_audits', 'runtime_result_types', 'status_model'} # and isinstance(value, ModuleType)
     )
 
 

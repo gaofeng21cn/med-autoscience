@@ -25,7 +25,7 @@ from med_autoscience.runtime_protocol import (
 )
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
-from .chunk_01 import (
+from .discovery_and_drift import (
     PUBLICATION_SUPERVISOR_KEYS,
     _NON_SCIENTIFIC_HANDOFF_BLOCKING_ITEM_KEYS,
     _BUNDLE_STAGE_ONLY_BLOCKERS,
@@ -39,7 +39,7 @@ from .chunk_01 import (
     GateState,
     utc_now,
 )
-from .chunk_01 import (
+from .discovery_and_drift import (
     load_json,
     dump_json,
     _non_empty_text,
@@ -53,7 +53,7 @@ from .chunk_01 import (
     find_latest_medical_publication_surface_report,
     _write_drift_text_surfaces,
 )
-from .chunk_01 import (
+from .discovery_and_drift import (
     detect_write_drift,
     _paper_line_open_supplementary_count,
     _paper_line_recommended_action,
@@ -67,7 +67,7 @@ from .chunk_01 import (
     _bundle_manifest_branch,
     _paper_line_branch,
 )
-from .chunk_01 import (
+from .discovery_and_drift import (
     _projected_bundle_manifest_path,
     _resolve_worktree_bundle_manifest_by_branch,
     resolve_bundle_authority_paper_root,
@@ -81,7 +81,7 @@ from .chunk_01 import (
     detect_manuscript_terminology_violations,
     _load_catalog_entries,
 )
-from .chunk_01 import (
+from .discovery_and_drift import (
     active_manuscript_figure_count,
     active_main_text_figure_count,
     infer_submission_publication_profile,

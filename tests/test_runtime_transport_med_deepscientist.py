@@ -8,6 +8,6 @@ globals().update({
     if not name.startswith('__')
 })
 
-from .test_runtime_transport_med_deepscientist_cases.chunk_01 import *  # noqa: F403,F401
-from .test_runtime_transport_med_deepscientist_cases.chunk_02 import *  # noqa: F403,F401
-from .test_runtime_transport_med_deepscientist_cases.chunk_03 import *  # noqa: F403,F401
+from .test_runtime_transport_med_deepscientist_cases.quest_lifecycle_cases import *  # noqa: F403,F401
+from .test_runtime_transport_med_deepscientist_cases.package_and_runtime_cases import *  # noqa: F403,F401
+from .test_runtime_transport_med_deepscientist_cases.submission_and_status_cases import *  # noqa: F403,F401

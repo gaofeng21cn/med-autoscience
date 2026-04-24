@@ -8,5 +8,5 @@ globals().update({
     if not name.startswith('__')
 })
 
-from .test_evaluation_summary_cases.chunk_01 import *  # noqa: F403,F401
-from .test_evaluation_summary_cases.chunk_02 import *  # noqa: F403,F401
+from .test_evaluation_summary_cases.materialization_cases import *  # noqa: F403,F401
+from .test_evaluation_summary_cases.derived_quality_cases import *  # noqa: F403,F401

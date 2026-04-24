@@ -18,7 +18,7 @@ from med_autoscience.quality.study_quality import build_study_quality_truth
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 from med_autoscience.study_task_intake import read_latest_task_intake, summarize_task_intake
 
-from .chunk_01 import (
+from .refs_and_validation import (
     __all__,
     STABLE_EVALUATION_SUMMARY_RELATIVE_PATH,
     STABLE_PROMOTION_GATE_RELATIVE_PATH,
@@ -32,7 +32,7 @@ from .chunk_01 import (
     _QUALITY_CLOSURE_BASIS_KEYS,
     _QUALITY_REVIEW_STATUS_RANK,
 )
-from .chunk_01 import (
+from .refs_and_validation import (
     _QUALITY_ASSESSMENT_REVIEW_ORDER,
     _QUALITY_EXECUTION_LANE_LABELS,
     _SAME_LINE_ROUTE_STATES,
@@ -46,7 +46,7 @@ from .chunk_01 import (
     _QUALITY_REVISION_PRIORITY_BY_STATUS,
     _QUALITY_REVISION_DIMENSIONS,
 )
-from .chunk_01 import (
+from .refs_and_validation import (
     _QUALITY_REVISION_ACTION_BY_DIMENSION,
     _QUALITY_REVISION_DEFAULT_ACTIONS,
     _QUALITY_REVISION_DEFAULT_DONE_CRITERIA,
@@ -60,7 +60,7 @@ from .chunk_01 import (
     _TASK_INTAKE_NO_PUBLIC_DATA_EXPANSION_HINTS,
     _TASK_INTAKE_STATUS_RECHECK_HINTS,
 )
-from .chunk_01 import (
+from .refs_and_validation import (
     _TASK_INTAKE_DISPLAY_REGISTRY_HINTS,
     _TASK_INTAKE_SHELL_INPUT_HINTS,
     stable_evaluation_summary_path,
@@ -74,7 +74,7 @@ from .chunk_01 import (
     _required_choice,
     _required_mapping,
 )
-from .chunk_01 import (
+from .refs_and_validation import (
     _required_string_list,
     _optional_string_list,
     _same_line_route_target_label,
@@ -88,7 +88,7 @@ from .chunk_01 import (
     _highest_priority_gap,
     _highest_priority_action,
 )
-from .chunk_01 import (
+from .refs_and_validation import (
     _agenda_field,
     _agenda_summary,
     _quality_review_agenda_from_summary_payload,

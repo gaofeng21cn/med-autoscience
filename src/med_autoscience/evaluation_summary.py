@@ -131,10 +131,10 @@ from .evaluation_summary_parts import (
     materialize_evaluation_summary_artifacts,
     __all__,
 )
-from .evaluation_summary_parts import chunk_01 as chunk_01
-from .evaluation_summary_parts import chunk_02 as chunk_02
-from .evaluation_summary_parts import chunk_03 as chunk_03
-from .evaluation_summary_parts import chunk_04 as chunk_04
+from .evaluation_summary_parts import refs_and_validation as refs_and_validation
+from .evaluation_summary_parts import quality_revision_plan as quality_revision_plan
+from .evaluation_summary_parts import quality_closure_truth as quality_closure_truth
+from .evaluation_summary_parts import materialization as materialization
 
 import sys
 from types import ModuleType
@@ -147,7 +147,7 @@ def _split_chunks() -> tuple[ModuleType, ...]:
     return tuple(
         value
         for name, value in globals().items()
-        if name.startswith("chunk_") and isinstance(value, ModuleType)
+        if isinstance(value, ModuleType) and name in {"refs_and_validation", "quality_revision_plan", "quality_closure_truth", "materialization"} # and isinstance(value, ModuleType)
     )
 
 

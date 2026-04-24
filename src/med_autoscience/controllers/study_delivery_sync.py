@@ -94,9 +94,9 @@ from .study_delivery_sync_parts import (
     main,
     __all__,
 )
-from .study_delivery_sync_parts import chunk_01 as chunk_01
-from .study_delivery_sync_parts import chunk_02 as chunk_02
-from .study_delivery_sync_parts import chunk_03 as chunk_03
+from .study_delivery_sync_parts import staging_and_sources as staging_and_sources
+from .study_delivery_sync_parts import delivery_descriptions as delivery_descriptions
+from .study_delivery_sync_parts import sync_orchestration as sync_orchestration
 
 import sys
 from types import ModuleType
@@ -109,7 +109,7 @@ def _split_chunks() -> tuple[ModuleType, ...]:
     return tuple(
         value
         for name, value in globals().items()
-        if name.startswith("chunk_") and isinstance(value, ModuleType)
+        if isinstance(value, ModuleType) and name in {'staging_and_sources', 'delivery_descriptions', 'sync_orchestration'} # and isinstance(value, ModuleType)
     )
 
 

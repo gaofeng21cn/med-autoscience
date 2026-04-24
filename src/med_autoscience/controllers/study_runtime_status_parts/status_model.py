@@ -13,7 +13,7 @@ from med_autoscience.study_completion import (
     StudyCompletionStateStatus,
 )
 
-from .chunk_01 import (
+from .enums_and_audits import (
     __all__,
     _UNSET,
     _absent_study_completion_state,
@@ -27,7 +27,7 @@ from .chunk_01 import (
     _RESUMABLE_QUEST_STATUSES,
     StudyRuntimeAuditRecord,
 )
-from .chunk_01 import (
+from .enums_and_audits import (
     StudyRuntimeAutonomousRuntimeNotice,
     StudyRuntimeSummaryAlignment,
     StudyRuntimeExecutionOwnerGuard,
@@ -35,7 +35,7 @@ from .chunk_01 import (
     StudyRuntimeInteractionArbitration,
     StudyRuntimeContinuationState,
 )
-from .chunk_02 import (
+from .runtime_result_types import (
     StudyRuntimeAnalysisBundleResult,
     StudyRuntimeOverlayAudit,
     StudyRuntimeOverlayResult,

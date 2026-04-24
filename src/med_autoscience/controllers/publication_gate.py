@@ -101,9 +101,9 @@ from .publication_gate_parts import (
     main,
     __all__,
 )
-from .publication_gate_parts import chunk_01 as chunk_01
-from .publication_gate_parts import chunk_02 as chunk_02
-from .publication_gate_parts import chunk_03 as chunk_03
+from .publication_gate_parts import discovery_and_drift as discovery_and_drift
+from .publication_gate_parts import state_and_reports as state_and_reports
+from .publication_gate_parts import supervisor_and_cli as supervisor_and_cli
 
 import sys
 from types import ModuleType
@@ -116,7 +116,7 @@ def _split_chunks() -> tuple[ModuleType, ...]:
     return tuple(
         value
         for name, value in globals().items()
-        if name.startswith("chunk_") and isinstance(value, ModuleType)
+        if isinstance(value, ModuleType) and name in {'discovery_and_drift', 'state_and_reports', 'supervisor_and_cli'} # and isinstance(value, ModuleType)
     )
 
 

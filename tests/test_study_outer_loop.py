@@ -8,7 +8,7 @@ globals().update({
     if not name.startswith('__')
 })
 
-from .test_study_outer_loop_cases.chunk_01 import *  # noqa: F403,F401
-from .test_study_outer_loop_cases.chunk_02 import *  # noqa: F403,F401
-from .test_study_outer_loop_cases.chunk_03 import *  # noqa: F403,F401
-from .test_study_outer_loop_cases.chunk_04 import *  # noqa: F403,F401
+from .test_study_outer_loop_cases.controller_and_manifest_cases import *  # noqa: F403,F401
+from .test_study_outer_loop_cases.runtime_resume_cases import *  # noqa: F403,F401
+from .test_study_outer_loop_cases.publication_gate_cases import *  # noqa: F403,F401
+from .test_study_outer_loop_cases.user_gate_cases import *  # noqa: F403,F401

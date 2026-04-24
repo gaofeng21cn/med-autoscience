@@ -8,4 +8,4 @@ globals().update({
     if not name.startswith('__')
 })
 
-from .test_study_delivery_sync_cases.chunk_01 import *  # noqa: F403,F401
+from .test_study_delivery_sync_cases.delivery_sync_cases import *  # noqa: F403,F401

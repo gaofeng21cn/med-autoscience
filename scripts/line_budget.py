@@ -16,7 +16,7 @@ BASELINE = {
     'src/med_autoscience/controllers/product_entry_parts/workspace_surfaces.py': 1292,
     'tests/product_entry_cases/chunk_02.py': 1289,
     'tests/product_entry_cases/chunk_04.py': 1265,
-    'src/med_autoscience/controllers/workspace_init.py': 1218,
+    'src/med_autoscience/controllers/workspace_init.py': 1186,
     'tests/product_entry_cases/chunk_05.py': 1180,
     'src/med_autoscience/controllers/study_progress_parts/projection.py': 1155,
     'src/med_autoscience/runtime_transport/med_deepscientist.py': 1146,

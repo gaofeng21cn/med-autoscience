@@ -8,7 +8,7 @@ globals().update({
     if not name.startswith('__')
 })
 
-from .test_cli_cases.chunk_01 import *  # noqa: F403,F401
-from .test_cli_cases.chunk_02 import *  # noqa: F403,F401
-from .test_cli_cases.chunk_03 import *  # noqa: F403,F401
-from .test_cli_cases.chunk_04 import *  # noqa: F403,F401
+from .test_cli_cases.public_entry_commands import *  # noqa: F403,F401
+from .test_cli_cases.runtime_and_quality_commands import *  # noqa: F403,F401
+from .test_cli_cases.sidecar_and_submission_commands import *  # noqa: F403,F401
+from .test_cli_cases.bootstrap_and_bundle_commands import *  # noqa: F403,F401

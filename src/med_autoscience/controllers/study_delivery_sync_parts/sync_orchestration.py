@@ -19,7 +19,7 @@ from med_autoscience.publication_profiles import (
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
 
-from .chunk_01 import (
+from .staging_and_sources import (
     SYNC_STAGES,
     FORMAL_PAPER_DELIVERY_RELATIVE_PATHS,
     utc_now,
@@ -33,7 +33,7 @@ from .chunk_01 import (
     create_staging_root,
     remap_staging_path_string,
 )
-from .chunk_01 import (
+from .staging_and_sources import (
     remap_staging_file_records,
     replace_directory_atomically,
     clear_directory_contents,
@@ -47,7 +47,7 @@ from .chunk_01 import (
     build_general_delivery_readme,
     _submission_delivery_stale_reason_label,
 )
-from .chunk_01 import (
+from .staging_and_sources import (
     build_unavailable_general_delivery_readme,
     build_preview_general_delivery_readme,
     build_manuscript_root_readme,
@@ -61,7 +61,7 @@ from .chunk_01 import (
     resolve_finalize_resume_packet_source,
     build_zip_from_directory,
 )
-from .chunk_01 import (
+from .staging_and_sources import (
     build_authority_source_relative_root,
     FRONT_MATTER_LABELS,
     METADATA_CLOSEOUT_LABELS,
@@ -72,7 +72,7 @@ from .chunk_01 import (
     build_current_package_readme,
     sync_current_package_projection,
 )
-from .chunk_02 import (
+from .delivery_descriptions import (
     _copy_relative_files,
     copy_review_ledger_to_delivery_root,
     _copy_optional_file,
@@ -86,7 +86,7 @@ from .chunk_02 import (
     CURRENT_PACKAGE_JSON_VOLATILE_TOP_LEVEL_KEYS,
     _submission_source_relative_paths,
 )
-from .chunk_02 import (
+from .delivery_descriptions import (
     _submission_source_signature,
     _load_json_file,
     _normalize_projection_json_payload,
