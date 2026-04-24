@@ -41,5 +41,6 @@ testpaths = ["tests"]
 markers = [
   "meta: repo-tracked docs, workflow, packaging, and command-surface checks",
   "display_heavy: display materialization and golden-regression tests that dominate wall-clock time",
+  "submission_heavy: submission package materialization tests that dominate fast-lane wall-clock time",
   "family: family shared boundary tests that depend on cross-repo shared-module topology",
 ]

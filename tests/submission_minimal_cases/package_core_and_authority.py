@@ -251,6 +251,54 @@ def test_create_submission_minimal_package_copies_figures_and_tables(tmp_path: P
         assert path.exists(), path
 
 
+def test_create_submission_minimal_package_uses_existing_figure_exports_when_catalog_lists_missing_alternative(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "paper_role": "main_text",
+                    "title": "Main figure",
+                    "export_paths": [
+                        "paper/figures/F1_main.png",
+                        "paper/figures/F1_main.pdf",
+                        "paper/figures/F1_main.svg",
+                    ],
+                }
+            ],
+        },
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    assert (submission_root / "figures" / "Figure1.png").exists()
+    assert (submission_root / "figures" / "Figure1.pdf").exists()
+    assert not (submission_root / "figures" / "Figure1.svg").exists()
+    assert manifest["figures"][0]["source_paths"] == [
+        "paper/figures/F1_main.png",
+        "paper/figures/F1_main.pdf",
+    ]
+    source_contract_paths = [item["path"] for item in manifest["source_contract"]["source_files"]]
+    assert "paper/figures/F1_main.png" in source_contract_paths
+    assert "paper/figures/F1_main.pdf" in source_contract_paths
+    assert "paper/figures/F1_main.svg" not in source_contract_paths
+
+    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+    assert authority["status"] == "current"
+    assert authority["missing_source_paths"] == []
+
+
 def test_create_submission_minimal_package_general_profile_writes_figure_legends_and_tables(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)

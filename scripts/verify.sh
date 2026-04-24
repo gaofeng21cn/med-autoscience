@@ -46,6 +46,11 @@ if [[ "${lane}" == "display" ]]; then
   exit 0
 fi
 
+if [[ "${lane}" == "submission" ]]; then
+  make test-submission
+  exit 0
+fi
+
 if [[ "${lane}" == "family" ]]; then
   make test-family
   exit 0
@@ -56,5 +61,5 @@ if [[ "${lane}" == "full" ]]; then
   exit 0
 fi
 
-echo "Usage: scripts/verify.sh [fast|meta|display|family|full]" >&2
+echo "Usage: scripts/verify.sh [fast|meta|display|submission|family|full]" >&2
 exit 1

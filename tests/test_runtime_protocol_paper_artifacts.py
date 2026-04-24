@@ -150,6 +150,20 @@ def test_resolve_artifact_manifest_from_main_result_evidence_paths(tmp_path: Pat
     assert result == manifest
 
 
+def test_resolve_artifact_manifest_from_main_result_accepts_absolute_evidence_without_worktree_root(
+    tmp_path: Path,
+) -> None:
+    manifest = tmp_path / "artifacts" / "artifact_manifest.json"
+    dump_json(manifest, {"schema_version": 1})
+    main_result = {
+        "evidence_paths": [str(manifest), str(tmp_path / "paper" / "build" / "review_manuscript.md")],
+    }
+
+    result = resolve_artifact_manifest_from_main_result(main_result)
+
+    assert result == manifest
+
+
 def test_resolve_submission_minimal_output_paths_from_manifest(tmp_path: Path) -> None:
     paper_bundle_manifest = tmp_path / "worktree" / "paper" / "paper_bundle_manifest.json"
     dump_json(paper_bundle_manifest, {"schema_version": 1})

@@ -10,6 +10,7 @@ lanes=(
   "test-fast"
   "test-meta"
   "test-display"
+  "test-submission"
   "test-family"
 )
 

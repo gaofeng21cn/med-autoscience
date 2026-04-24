@@ -136,6 +136,13 @@ def create_submission_minimal_package(
             export_paths = resolve_figure_source_paths(entry)
             if not export_paths:
                 continue
+            existing_export_paths = filter_existing_source_paths(
+                workspace_root=workspace_root,
+                paper_root=paper_root,
+                source_paths=export_paths,
+            )
+            if existing_export_paths:
+                export_paths = existing_export_paths
             missing_paths = find_missing_source_paths(
                 workspace_root=workspace_root,
                 paper_root=paper_root,

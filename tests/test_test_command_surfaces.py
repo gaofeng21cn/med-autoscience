@@ -20,11 +20,13 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     makefile = _read("Makefile")
 
     assert "test-fast:" in makefile
-    assert 'uv run pytest -q -m "not meta and not display_heavy and not family"' in makefile
+    assert 'uv run pytest -q -m "not meta and not display_heavy and not submission_heavy and not family"' in makefile
     assert "test-meta:" in makefile
     assert "uv run pytest -q -m meta" in makefile
     assert "test-display:" in makefile
     assert "uv run pytest -q -m display_heavy" in makefile
+    assert "test-submission:" in makefile
+    assert "uv run pytest -q -m submission_heavy" in makefile
     assert "test-family:" in makefile
     assert (
         "uv run pytest tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py "
@@ -34,12 +36,13 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     assert "./scripts/run-parallel-test-lanes.sh full" in makefile
 
 
-def test_pyproject_registers_meta_and_display_markers() -> None:
+def test_pyproject_registers_meta_display_and_submission_markers() -> None:
     pyproject = tomllib.loads(_read("pyproject.toml"))
     markers = pyproject["tool"]["pytest"]["ini_options"]["markers"]
 
     assert "meta: repo-tracked docs, workflow, packaging, and command-surface checks" in markers
     assert "display_heavy: display materialization and golden-regression tests that dominate wall-clock time" in markers
+    assert "submission_heavy: submission package materialization tests that dominate fast-lane wall-clock time" in markers
     assert "family: family shared boundary tests that depend on cross-repo shared-module topology" in markers
 
 
@@ -106,10 +109,12 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'if [[ -z "${lane}" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "meta" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "display" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "submission" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "full" ]]; then' in verify_script
     assert "make test-fast" in verify_script
     assert "make test-meta" in verify_script
     assert "make test-display" in verify_script
+    assert "make test-submission" in verify_script
     assert "make test-full" in verify_script
 
 
@@ -126,6 +131,7 @@ def test_parallel_full_lane_script_covers_all_marker_groups() -> None:
     assert '"test-fast"' in script
     assert '"test-meta"' in script
     assert '"test-display"' in script
+    assert '"test-submission"' in script
     assert '"test-family"' in script
     assert 'make "${lane}"' in script
 

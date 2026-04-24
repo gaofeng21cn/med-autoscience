@@ -404,9 +404,16 @@ def materialize_archived_reference_only_submission_surface_manifests(
 
 def resolve_artifact_manifest_from_main_result(main_result: dict[str, Any]) -> Path | None:
     evidence_paths = [str(item) for item in (main_result.get("evidence_paths") or [])]
-    worktree_root = _resolve_path(Path(str(main_result["worktree_root"])))
+    worktree_root_value = str(main_result.get("worktree_root") or "").strip()
+    worktree_root = _resolve_path(Path(worktree_root_value)) if worktree_root_value else None
     for rel in evidence_paths:
-        candidate = worktree_root / rel
+        raw_candidate = Path(rel)
+        if raw_candidate.is_absolute():
+            candidate = _resolve_path(raw_candidate)
+        elif worktree_root is not None:
+            candidate = worktree_root / rel
+        else:
+            continue
         if candidate.name == "artifact_manifest.json" and candidate.exists():
             return candidate
     return None

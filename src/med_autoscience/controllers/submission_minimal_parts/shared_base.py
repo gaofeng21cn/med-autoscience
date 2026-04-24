@@ -389,6 +389,19 @@ def find_missing_source_paths(*, workspace_root: Path, paper_root: Path, source_
     return missing
 
 
+def filter_existing_source_paths(*, workspace_root: Path, paper_root: Path, source_paths: list[str]) -> list[str]:
+    existing: list[str] = []
+    for source_rel in source_paths:
+        source_path = resolve_submission_source_path(
+            workspace_root=workspace_root,
+            paper_root=paper_root,
+            candidate_path=source_rel,
+        )
+        if source_path.exists():
+            existing.append(source_rel)
+    return existing
+
+
 def resolve_figure_source_paths(entry: dict[str, Any]) -> list[str]:
     export_paths = entry.get("export_paths")
     if isinstance(export_paths, list):
@@ -956,7 +969,15 @@ def build_submission_minimal_source_contract(
     for entry in figure_catalog.get("figures", []) or []:
         if not isinstance(entry, dict):
             continue
-        for source_rel in resolve_figure_source_paths(entry):
+        source_paths = resolve_figure_source_paths(entry)
+        existing_source_paths = filter_existing_source_paths(
+            workspace_root=resolved_workspace_root,
+            paper_root=resolved_paper_root,
+            source_paths=source_paths,
+        )
+        if existing_source_paths:
+            source_paths = existing_source_paths
+        for source_rel in source_paths:
             source_path = resolve_submission_source_path(
                 workspace_root=resolved_workspace_root,
                 paper_root=resolved_paper_root,
