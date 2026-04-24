@@ -495,6 +495,12 @@ def test_load_overlay_skill_text_for_write_includes_medical_methods_and_results_
     assert "inclusion_criteria" in write_text
     assert "exclusion_criteria" in write_text
     assert "variable_definitions" in write_text
+    assert "structured_reporting_contract" in write_text
+    assert "Methods completeness plan" in write_text
+    assert "statistical reporting plan" in write_text
+    assert "treatment-management relevance plan" in write_text
+    assert "submission metadata TODO separation" in write_text
+    assert "clinical_actionability_required=true" in write_text
     assert "operational_definition" in write_text
     assert "calibration-first" in write_text
     assert "research_question" in write_text

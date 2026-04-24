@@ -77,6 +77,43 @@ def test_medical_reporting_audit_blocks_structured_publication_reporting_gaps(tm
     ]
 
 
+def test_structured_reporting_checklist_accepts_charter_nested_contract() -> None:
+    policy = importlib.import_module("med_autoscience.policies.medical_reporting_checklist")
+
+    checklist = policy.build_structured_reporting_checklist(
+        {
+            "structured_reporting_contract": {
+                "paper_archetype": "phenotype_real_world",
+                "clinical_actionability_required": True,
+                "methods_completeness": {
+                    "study_design": "complete",
+                    "cohort": "complete",
+                    "variables": "complete",
+                    "model": "complete",
+                    "validation": "complete",
+                    "statistical_analysis": "complete",
+                },
+                "statistical_reporting": {
+                    "summary_format": "complete",
+                    "p_values": "complete",
+                    "subgroup_tests": "complete",
+                },
+                "table_figure_claim_map": [
+                    {"claim_id": "treatment-gap", "table_figure_refs": ["Table3", "Figure3"]}
+                ],
+                "clinical_actionability": {
+                    "treatment_gap": "complete",
+                    "follow_up_or_outcome_relevance": "complete",
+                },
+            }
+        }
+    )
+
+    assert checklist["status"] == "clear"
+    assert checklist["blockers"] == []
+    assert checklist["clinical_actionability"]["status"] == "clear"
+
+
 def test_write_audit_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"

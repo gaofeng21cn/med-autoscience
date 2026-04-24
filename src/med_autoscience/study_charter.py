@@ -64,6 +64,34 @@ DEFAULT_BOUNDED_ANALYSIS_COMPLETION_BOUNDARY = {
         "publication_eval",
     ],
 }
+
+DEFAULT_METHODS_COMPLETENESS_CONTRACT = {
+    "study_design": {"status": "required_before_first_full_draft"},
+    "cohort": {"status": "required_before_first_full_draft"},
+    "variables": {"status": "required_before_first_full_draft"},
+    "model": {"status": "required_before_first_full_draft"},
+    "validation": {"status": "required_before_first_full_draft"},
+    "statistical_analysis": {"status": "required_before_first_full_draft"},
+}
+DEFAULT_STATISTICAL_REPORTING_CONTRACT = {
+    "summary_format": {"status": "required_before_first_full_draft"},
+    "p_values": {"status": "required_before_first_full_draft"},
+    "subgroup_tests": {"status": "required_before_first_full_draft"},
+}
+DEFAULT_CLINICAL_ACTIONABILITY_CONTRACT = {
+    "treatment_gap": {"status": "required_before_first_full_draft"},
+    "follow_up_or_outcome_relevance": {"status": "required_before_first_full_draft"},
+}
+DEFAULT_DRAFT_PREVENTION_GATES = (
+    "introduction_three_paragraph_medical_narrative",
+    "methods_subsections_complete_before_first_full_draft",
+    "statistical_reporting_plan_before_results_prose",
+    "table_figure_claim_map_before_results_prose",
+    "phenotype_clinical_actionability_before_submission_package",
+    "human_metadata_todo_separated_from_scientific_blockers",
+)
+
+
 def stable_study_charter_path(*, study_root: Path) -> Path:
     return (Path(study_root).expanduser().resolve() / STABLE_STUDY_CHARTER_RELATIVE_PATH).resolve()
 
@@ -180,6 +208,43 @@ def _materialize_bounded_analysis_contract(study_payload: dict[str, Any]) -> dic
     }
 
 
+def _materialize_structured_reporting_contract(study_payload: dict[str, Any]) -> dict[str, Any]:
+    raw_contract = _mapping(study_payload.get("structured_reporting_contract"))
+    actionability_required = raw_contract.get("clinical_actionability_required")
+    if actionability_required is None:
+        actionability_required = study_payload.get("clinical_actionability_required")
+    archetype = (
+        _non_empty_string(raw_contract.get("paper_archetype"))
+        or _non_empty_string(study_payload.get("paper_archetype"))
+        or _non_empty_string(study_payload.get("study_archetype"))
+    )
+    contract = {
+        "draft_prevention_gates": list(DEFAULT_DRAFT_PREVENTION_GATES),
+        "methods_completeness": _mapping(raw_contract.get("methods_completeness"))
+        or dict(DEFAULT_METHODS_COMPLETENESS_CONTRACT),
+        "statistical_reporting": _mapping(raw_contract.get("statistical_reporting"))
+        or dict(DEFAULT_STATISTICAL_REPORTING_CONTRACT),
+        "table_figure_claim_map_required": raw_contract.get("table_figure_claim_map_required") is not False,
+        "human_metadata_admin_todos": [
+            "authors",
+            "affiliations",
+            "corresponding_author",
+            "ethics",
+            "funding",
+            "conflict_of_interest",
+            "data_availability",
+        ],
+    }
+    if archetype is not None:
+        contract["paper_archetype"] = archetype
+    if actionability_required is True:
+        contract["clinical_actionability_required"] = True
+        contract["clinical_actionability"] = _mapping(raw_contract.get("clinical_actionability")) or dict(
+            DEFAULT_CLINICAL_ACTIONABILITY_CONTRACT
+        )
+    return contract
+
+
 def resolve_study_charter_ref(
     *,
     study_root: Path,
@@ -275,6 +340,7 @@ def materialize_study_charter(
                 "manuscript_conclusion_redlines": manuscript_conclusion_redlines,
             },
             "bounded_analysis": _materialize_bounded_analysis_contract(study_payload),
+            "structured_reporting_contract": _materialize_structured_reporting_contract(study_payload),
             "downstream_contract_roles": dict(DOWNSTREAM_CONTRACT_ROLES),
         },
     }

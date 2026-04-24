@@ -75,7 +75,17 @@ def _phenotype_actionability_required(contract: dict[str, Any]) -> bool:
     return any(token in text for token in PHENOTYPE_ARCHETYPE_TOKENS)
 
 
+def _structured_contract_source(contract: dict[str, Any]) -> dict[str, Any]:
+    nested = contract.get("structured_reporting_contract")
+    if isinstance(nested, dict):
+        merged = dict(contract)
+        merged.update(nested)
+        return merged
+    return contract
+
+
 def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, Any]:
+    contract = _structured_contract_source(contract)
     actionability_required = _phenotype_actionability_required(contract)
     explicit_structured_contract = any(
         key in contract

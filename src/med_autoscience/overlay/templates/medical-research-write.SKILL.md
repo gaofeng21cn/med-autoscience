@@ -636,6 +636,8 @@ Before step 1, durably establish the writing-surface contract:
 
 - `writing_profile = general_medical_journal` unless explicitly overridden
 - `submission_minimal_required = true`
+- `paper/medical_reporting_contract.json` should include `structured_reporting_contract` or equivalent first-draft prevention fields before the first complete manuscript draft
+- for real-world, phenotype, subtype, or cluster papers, set `clinical_actionability_required=true` unless the study charter explicitly says the paper is descriptive only
 - terminology redline for body text, figure titles, and captions (no internal engineering terms, no internal model names)
 - `paper/claim_evidence_map.json`, `paper/results_narrative_map.json`, and `paper/figure_semantics_manifest.json` must agree on the main-text display obligations before you treat a bundle as closure-capable
 
@@ -661,6 +663,10 @@ Before real drafting, force one explicit planning pass that stabilizes at least:
 - the paper experiment matrix
 - the figure/table plan
 - the main evidence gaps
+- the Methods completeness plan: study design/cohort, variables, model building, validation framework, and statistical analysis
+- the statistical reporting plan: summary format, p-values or interval reporting, and subgroup or between-group tests when the paper compares phenotypes/groups
+- the treatment-management relevance plan for phenotype papers: treatment-gap profiles plus follow-up, outcome, safety, or intensification evidence
+- the submission metadata TODO separation: author, affiliation, corresponding-author, ethics, funding, conflict, and data-availability gaps are admin TODOs rather than scientific blockers
 
 If these are still unstable, continue planning or route back for evidence instead of polishing prose early.
 
