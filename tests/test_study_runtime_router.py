@@ -1349,7 +1349,7 @@ def test_ensure_study_runtime_auto_resumes_stopped_quest_after_reopened_task_int
     assert launch_report["daemon_result"]["action"] == "resume"
 
 
-def test_study_runtime_status_keeps_explicit_rerun_for_reopened_task_intake_after_fresh_bundle_only_closeout(
+def test_study_runtime_status_parks_reopened_task_intake_after_fresh_bundle_only_closeout(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -1465,11 +1465,11 @@ def test_study_runtime_status_keeps_explicit_rerun_for_reopened_task_intake_afte
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
-    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert result["reason"] == "quest_waiting_for_submission_metadata"
     assert result["quest_status"] == "stopped"
 
 
-def test_ensure_study_runtime_keeps_explicit_rerun_for_reopened_task_intake_after_fresh_bundle_only_closeout(
+def test_ensure_study_runtime_parks_reopened_task_intake_after_fresh_bundle_only_closeout(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -1590,7 +1590,7 @@ def test_ensure_study_runtime_keeps_explicit_rerun_for_reopened_task_intake_afte
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
     assert result["decision"] == "blocked"
-    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert result["reason"] == "quest_waiting_for_submission_metadata"
     assert result["quest_status"] == "stopped"
 
 

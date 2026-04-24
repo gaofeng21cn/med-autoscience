@@ -1874,14 +1874,25 @@ def _status_state(
             quest_root=quest_root,
         )
     )
+    task_intake_yields_to_submission_closeout = False
     bundle_only_manual_finish = (
         quest_exists
-        and not task_intake_overrides_auto_manual_finish
         and _bundle_only_submission_ready_manual_finish_active(
             study_root=study_root,
             quest_root=quest_root,
         )
     )
+    if task_intake_overrides_auto_manual_finish and bundle_only_manual_finish:
+        summary_payload = _load_json_dict(
+            study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+        )
+        task_intake_yields_to_submission_closeout = task_intake_yields_to_deterministic_submission_closeout(
+            read_latest_task_intake(study_root=study_root),
+            publishability_gate_report=None,
+            evaluation_summary=summary_payload,
+        )
+        if not task_intake_yields_to_submission_closeout:
+            bundle_only_manual_finish = False
     explicit_manual_finish_compatibility_guard = _explicit_manual_finish_compatibility_guard_active(
         study_root=study_root,
     )
@@ -1934,7 +1945,7 @@ def _status_state(
         )
     else:
         publication_gate_report = None
-    task_intake_yields_to_submission_closeout = _task_intake_yields_to_submission_closeout_active(
+    task_intake_yields_to_submission_closeout = task_intake_yields_to_submission_closeout or _task_intake_yields_to_submission_closeout_active(
         study_root=study_root,
         publication_gate_report=publication_gate_report,
     )
@@ -2307,7 +2318,7 @@ def _status_state(
         return _finalize_result()
 
     if quest_status in _RESUMABLE_QUEST_STATUSES:
-        if submission_metadata_only_manual_finish:
+        if submission_metadata_only_manual_finish or bundle_only_manual_finish:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
