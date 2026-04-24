@@ -43,6 +43,19 @@ def test_find_latest_main_result_path_prefers_latest_candidate(tmp_path: Path) -
     assert latest == second
 
 
+def test_find_latest_main_result_path_prefers_canonical_artifact_over_newer_worktree_result(tmp_path: Path) -> None:
+    quest_root = tmp_path / "q001"
+    canonical = quest_root / "artifacts" / "results" / "main_result.json"
+    worktree_result = quest_root / ".ds" / "worktrees" / "run-a" / "experiments" / "main" / "001" / "RESULT.json"
+    dump_json(canonical, {"run_id": "canonical"})
+    dump_json(worktree_result, {"run_id": "001"})
+    worktree_result.touch()
+
+    latest = find_latest_main_result_path(quest_root)
+
+    assert latest == canonical
+
+
 def test_resolve_active_stdout_path_reads_active_run_id(tmp_path: Path) -> None:
     quest_root = tmp_path / "q001"
     stdout_path = quest_root / ".ds" / "runs" / "run-123" / "stdout.jsonl"

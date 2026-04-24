@@ -105,6 +105,9 @@ def iter_active_quests(runtime_root: Path) -> list[Path]:
 
 def find_latest_main_result_path(quest_root: Path) -> Path:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
+    canonical_main_result = resolved_quest_root / "artifacts" / "results" / "main_result.json"
+    if canonical_main_result.exists():
+        return canonical_main_result
     patterns = [
         ".ds/worktrees/*/experiments/main/*/RESULT.json",
         "experiments/main/*/RESULT.json",
