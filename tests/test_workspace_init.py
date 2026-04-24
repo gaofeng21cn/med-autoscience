@@ -179,13 +179,18 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "# glioma Workspace Rules" in root_agents_text
     assert "适用范围：当前 workspace 根目录及所有子目录。" in root_agents_text
     assert "[`WORKSPACE_AUTOSCIENCE_RULES.md`](WORKSPACE_AUTOSCIENCE_RULES.md)" in root_agents_text
-    assert "通用交互、工具选择、执行风格与验证规则遵守上层或系统级 `AGENTS.md`" in root_agents_text
+    assert "先给结论，再补必要上下文" in root_agents_text
+    assert "复杂任务先拆清边界、依赖和验收口径" in root_agents_text
+    assert "优先使用 subagent 提高效率" in root_agents_text
     assert "确认真实生效位置、调用链路和约束" in root_agents_text
     assert "优先使用 `rtk` 前缀运行 shell 命令。" not in root_agents_text
-    assert "浏览网页优先使用 `agent-browser`。" not in root_agents_text
+    assert "浏览网页优先使用 `agent-browser`。" in root_agents_text
+    assert "优先使用官方 `mineru-document-extractor`" in root_agents_text
     assert "优先读取 `MINERU_TOKEN`" not in root_agents_text
     assert "## 本地执行约束" in root_agents_text
     assert "不改无关文件，不覆盖用户已有本地修改" in root_agents_text
+    assert "优先做直接、可验证、可维护的根因解法" in root_agents_text
+    assert "避免采用降级处理、兜底方案、临时补丁" in root_agents_text
     assert "能复用既有 controller、contract、schema 和 workspace pattern" in root_agents_text
     assert "病种/课题级 research workspace" in root_agents_text
     assert "`study` 是论文交付单元" in root_agents_text
@@ -194,6 +199,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "研究设计、统计方法、投稿判断、publication gate 与 study 质量判断归属 MAS / MDS" in root_agents_text
     assert "优先在 `med-autoscience` 与 `med-deepscientist` repo 中完成基座层修复" in root_agents_text
     assert "开独立 worktree 实施和验证" in root_agents_text
+    assert "如果登录账号是 `gaofeng21cn`，可以直接提交并推送到对应 repo；否则只能向对应 GitHub repo 提交 PR" in root_agents_text
 
     deepscientist_readme = workspace_root / "ops" / "med-deepscientist" / "README.md"
     assert deepscientist_readme.is_file()
