@@ -1175,6 +1175,6 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
     assert payload["manifest_command"].endswith(
         "product-entry-manifest --profile " + str(profile_ref.resolve()) + " --format json"
     )
-    assert payload["skills"][0]["domain_projection"]["skill_entry"] == "med-autoscience"
+    assert payload["skills"][0]["domain_projection"]["skill_entry"] == "mas"
     assert payload["skills"][0]["domain_projection"]["recommended_shell"] == "workspace_cockpit"
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]
