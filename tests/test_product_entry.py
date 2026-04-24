@@ -3084,20 +3084,22 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["skill_catalog"]["summary"] == payload["product_entry_status"]["summary"]
     assert payload["skill_catalog"]["supported_commands"] == payload["domain_entry_contract"]["supported_commands"]
     assert payload["skill_catalog"]["command_contracts"] == payload["domain_entry_contract"]["command_contracts"]
-    assert [item["skill_id"] for item in payload["skill_catalog"]["skills"]] == [
-        "mas_product_frontdesk",
-        "mas_workspace_cockpit",
-        "mas_submit_study_task",
-        "mas_launch_study",
-        "mas_study_progress",
-    ]
+    assert [item["skill_id"] for item in payload["skill_catalog"]["skills"]] == ["med-autoscience"]
     assert payload["skill_catalog"]["skills"][0]["target_surface_kind"] == "product_frontdesk"
-    assert payload["skill_catalog"]["skills"][1]["target_surface_kind"] == "workspace_cockpit"
-    assert payload["skill_catalog"]["skills"][2]["target_surface_kind"] == "study_task_intake"
-    assert payload["skill_catalog"]["skills"][2]["command"].endswith(
+    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["skill_semantics"] == "domain_app"
+    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["entry_shell_key"] == "product_frontdesk"
+    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["supporting_shell_keys"] == [
+        "workspace_cockpit",
+        "submit_study_task",
+        "launch_study",
+        "study_progress",
+    ]
+    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["shell_commands"]["submit_study_task"].endswith(
         "--study-id <study_id> --task-intent '<task_intent>'"
     )
-    assert payload["skill_catalog"]["skills"][4]["target_surface_kind"] == "study_progress"
+    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["shell_commands"]["study_progress"].endswith(
+        "--study-id <study_id> --format json"
+    )
     assert payload["automation"]["surface_kind"] == "automation"
     assert payload["automation"]["summary"] == payload["product_entry_status"]["summary"]
     assert payload["automation"]["readiness_summary"].startswith("Automation-ready rule:")

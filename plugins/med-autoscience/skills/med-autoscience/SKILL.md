@@ -3,15 +3,16 @@ name: med-autoscience
 description: Use when Codex should operate MedAutoScience through its stable runtime, controller, overlay, and workspace contracts instead of ad-hoc scripts.
 ---
 
-# MedAutoScience Plugin
+# MedAutoScience App Skill
 
-当 Codex 需要通过稳定运行面操作 `MedAutoScience`，而不是把仓库当成临时脚本集合来直接拼装时，使用这个 plugin。
+当 Codex 需要通过稳定运行面操作 `MedAutoScience`，而不是把仓库当成临时脚本集合来直接拼装时，使用这个 app skill。
 
-## 这个 plugin 是什么
+## 这个 app skill 是什么
 
-- `MedAutoScience` 面向 Codex 的薄入口层
+- `MedAutoScience` 面向 Codex 的单一 domain app skill
 - 叠加在现有 Python package、CLI、controller、overlay 与 workspace profile 之上
 - 不替代 `medautosci` CLI、controller contract，也不替代非 Codex 集成
+- skill 入口只有一个；`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 等命令是这个 app skill 的内部 command contract
 
 ## 核心规则
 

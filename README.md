@@ -81,7 +81,7 @@ You can start with prompts like:
 - If you need to bootstrap or take over a disease workspace, read [Bootstrap](./bootstrap/README.md) next. It explains the workspace-first model and the `init-workspace -> doctor -> show-profile -> bootstrap` path.
 - Treat [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md) as the repo-tracked truth set before changing runtime or docs.
 - The current operator entry surfaces are `CLI`, `MCP`, and `controller`. Product-entry and runtime contracts live under `docs/runtime/` and `docs/program/`, so an agent can start there instead of reverse-engineering the codebase; the stable callable surface remains the local CLI, workspace commands/scripts, durable surfaces, and repo-tracked contracts.
-- When an external agent needs the repo-tracked MAS skill surface directly, use `medautosci product skill-catalog --profile <profile> --format json`.
+- When an external agent needs the repo-tracked MAS skill surface directly, use `medautosci product skill-catalog --profile <profile> --format json`; it returns one MAS app skill plus the underlying command contracts.
 
 </details>
 

@@ -44,3 +44,24 @@ def test_codex_plugin_installer_script_sets_up_user_level_codex_paths(tmp_path: 
     assert (home_dir / "plugins" / "med-autoscience").is_symlink()
     assert (home_dir / ".agents" / "skills" / "med-autoscience").is_symlink()
     assert (home_dir / ".agents" / "plugins" / "marketplace.json").exists()
+
+
+def test_codex_plugin_installer_script_skip_tools_only_syncs_plugin_paths(tmp_path: Path) -> None:
+    home_dir = tmp_path / "home"
+    home_dir.mkdir()
+
+    env = os.environ.copy()
+    env["HOME"] = str(home_dir)
+
+    result = subprocess.run(
+        ["bash", str(INSTALLER_PATH), "--skip-tools", "--home", str(home_dir), "--repo-root", str(REPO_ROOT)],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (home_dir / "plugins" / "med-autoscience").is_symlink()
+    assert (home_dir / ".agents" / "skills" / "med-autoscience").is_symlink()
+    assert (home_dir / ".agents" / "plugins" / "marketplace.json").exists()

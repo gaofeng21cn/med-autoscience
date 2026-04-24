@@ -15,7 +15,7 @@
 
 - 用户视角：给出病种、数据、目标问题和期望论文结果，在同一个工作区里持续推进研究。
 - 研究推进视角：围绕同一条课题线管理问题定义、证据补足、进度反馈和文件交付。
-- 命令行操作视角：当前最小操作路径仍是 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 这一组接口；这组接口与其他 repo-tracked contracts 共同构成面向 `Codex` / `OPL` 的稳定 capability surface。
+- 命令行操作视角：当前最小操作路径仍是 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 这一组接口；对 `Codex` / `OPL` 暴露时，它们收口在单一 `Med Auto Science` app skill 之下，并继续通过 repo-tracked command contracts 被调用。
 
 ## 当前执行与监管模型
 

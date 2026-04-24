@@ -7,6 +7,7 @@ readonly UV_INSTALL_SCRIPT_URL="https://astral.sh/uv/install.sh"
 
 REPO_ROOT="${DEFAULT_REPO_ROOT}"
 INSTALL_HOME="${HOME}"
+SKIP_TOOLS=0
 
 fail() {
   printf "med-autoscience codex installer error: %s\n" "$1" >&2
@@ -15,7 +16,7 @@ fail() {
 
 usage() {
   cat >&2 <<'EOF'
-Usage: install-codex-plugin.sh [--repo-root /abs/path/to/repo] [--home /abs/path/to/home]
+Usage: install-codex-plugin.sh [--repo-root /abs/path/to/repo] [--home /abs/path/to/home] [--skip-tools]
 EOF
 }
 
@@ -31,6 +32,10 @@ parse_args() {
         [[ $# -ge 2 ]] || fail "--home requires a value"
         INSTALL_HOME="$2"
         shift 2
+        ;;
+      --skip-tools)
+        SKIP_TOOLS=1
+        shift
         ;;
       -h|--help)
         usage
@@ -83,8 +88,12 @@ install_codex_paths() {
 main() {
   parse_args "$@"
   check_dependencies
-  ensure_uv
-  install_python_tools
+  if [[ "${SKIP_TOOLS}" -eq 0 ]]; then
+    ensure_uv
+    install_python_tools
+  else
+    printf "skip tool installation; only syncing MedAutoScience Codex plugin paths into %s\n" "${INSTALL_HOME}" >&2
+  fi
   install_codex_paths
   printf "installed MedAutoScience Codex integration into %s\n" "${INSTALL_HOME}" >&2
   printf "restart Codex so native skill discovery and plugin metadata are reloaded\n" >&2
