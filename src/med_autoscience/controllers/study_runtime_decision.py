@@ -1625,6 +1625,15 @@ def _task_intake_override_allows_stopped_auto_resume(*, quest_root: Path) -> boo
     return stop_reason is None
 
 
+def _stopped_invalid_blocking_auto_resume_allowed(
+    *, stopped_recovery_context: dict[str, str | None] | None
+) -> bool:
+    if not isinstance(stopped_recovery_context, dict):
+        return False
+    stop_reason = str(stopped_recovery_context.get("stop_reason") or "").strip() or None
+    return stop_reason is None
+
+
 def _pending_user_interaction_payload(
     *,
     runtime_root: Path,
@@ -2357,7 +2366,10 @@ def _status_state(
         if stopped_recovery_context is not None and isinstance(interaction_arbitration, dict):
             classification = str(interaction_arbitration.get("classification") or "").strip()
             action = str(interaction_arbitration.get("action") or "").strip()
-            if action == "resume":
+            if action == "resume" and (
+                classification != "invalid_blocking"
+                or _stopped_invalid_blocking_auto_resume_allowed(stopped_recovery_context=stopped_recovery_context)
+            ):
                 if not result.startup_boundary_allows_compute_stage:
                     result.set_decision(
                         StudyRuntimeDecision.BLOCKED,

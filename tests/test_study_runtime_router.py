@@ -1504,6 +1504,275 @@ def test_ensure_study_runtime_keeps_explicit_rerun_for_reopened_task_intake_afte
     assert result["quest_status"] == "stopped"
 
 
+def test_study_runtime_status_keeps_explicit_rerun_for_manual_takeover_stop_with_invalid_blocking_progress(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    interaction_id = "progress-invalid-001"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "stopped",
+                "active_run_id": None,
+                "active_interaction_id": interaction_id,
+                "stop_reason": "controller_stop:codex-human-takeover",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "decision:decision-continue-001",
+            }
+        )
+        + "\n",
+    )
+    progress_path = quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / f"{interaction_id}.json"
+    write_text(
+        progress_path,
+        json.dumps(
+            {
+                "kind": "progress",
+                "schema_version": 1,
+                "artifact_id": interaction_id,
+                "id": interaction_id,
+                "quest_id": "001-risk",
+                "created_at": "2026-04-09T01:24:52+00:00",
+                "updated_at": "2026-04-09T01:24:52+00:00",
+                "status": "active",
+                "message": "[等待决策] 这一步已经处理完，等待 Gateway 接管并转发给用户。",
+                "summary": "等待 Gateway 侧转发新的用户指令。",
+                "interaction_phase": "ack",
+                "importance": "info",
+                "interaction_id": interaction_id,
+                "expects_reply": False,
+                "reply_mode": "threaded",
+                "surface_actions": [],
+                "options": [],
+                "allow_free_text": True,
+                "reply_schema": {"type": "free_text"},
+                "guidance_vm": {"requires_user_decision": False},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "clear",
+            "blockers": [],
+            "supervisor_phase": "bundle_stage_ready",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": False,
+            "current_required_action": "continue_bundle_stage",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+        },
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {
+                "status": "stopped",
+                "waiting_interaction_id": None,
+                "default_reply_interaction_id": interaction_id,
+                "pending_decisions": [],
+                "active_interaction_id": interaction_id,
+            },
+            "runtime_audit": {
+                "ok": True,
+                "status": "none",
+                "source": "quest_session_runtime_audit",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+        raising=False,
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert result["quest_status"] == "stopped"
+    assert result["interaction_arbitration"]["classification"] == "invalid_blocking"
+    assert result["interaction_arbitration"]["action"] == "resume"
+    assert result["interaction_arbitration"]["source_artifact_path"] == str(progress_path)
+
+
+def test_ensure_study_runtime_keeps_explicit_rerun_for_manual_takeover_stop_with_invalid_blocking_progress(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    interaction_id = "progress-invalid-001"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "stopped",
+                "active_run_id": None,
+                "active_interaction_id": interaction_id,
+                "stop_reason": "controller_stop:codex-human-takeover",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "decision:decision-continue-001",
+            }
+        )
+        + "\n",
+    )
+    write_text(
+        quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / f"{interaction_id}.json",
+        json.dumps(
+            {
+                "kind": "progress",
+                "schema_version": 1,
+                "artifact_id": interaction_id,
+                "id": interaction_id,
+                "quest_id": "001-risk",
+                "created_at": "2026-04-09T01:24:52+00:00",
+                "updated_at": "2026-04-09T01:24:52+00:00",
+                "status": "active",
+                "message": "[等待决策] 这一步已经处理完，等待 Gateway 接管并转发给用户。",
+                "summary": "等待 Gateway 侧转发新的用户指令。",
+                "interaction_phase": "ack",
+                "importance": "info",
+                "interaction_id": interaction_id,
+                "expects_reply": False,
+                "reply_mode": "threaded",
+                "surface_actions": [],
+                "options": [],
+                "allow_free_text": True,
+                "reply_schema": {"type": "free_text"},
+                "guidance_vm": {"requires_user_decision": False},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "clear",
+            "blockers": [],
+            "supervisor_phase": "bundle_stage_ready",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": False,
+            "current_required_action": "continue_bundle_stage",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+        },
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {
+                "status": "stopped",
+                "waiting_interaction_id": None,
+                "default_reply_interaction_id": interaction_id,
+                "pending_decisions": [],
+                "active_interaction_id": interaction_id,
+            },
+            "runtime_audit": {
+                "ok": True,
+                "status": "none",
+                "source": "quest_session_runtime_audit",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+        raising=False,
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "resume_quest",
+        lambda **kwargs: pytest.fail("resume_quest should not run after a manual takeover stop"),
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert result["quest_status"] == "stopped"
+
+
 def test_study_runtime_status_auto_resumes_controller_owned_stopped_completion_request_when_publication_gate_is_blocked(
     monkeypatch,
     tmp_path: Path,
