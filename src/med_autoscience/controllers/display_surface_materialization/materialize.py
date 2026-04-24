@@ -400,6 +400,13 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 spec=spec,
                 display_id=display_id,
             )
+            payload_template_id = str(display_payload.get("template_id") or "").strip()
+            if payload_template_id and payload_template_id != spec.template_id:
+                spec = display_registry.get_evidence_figure_spec(payload_template_id)
+                pack_id, template_short_id = _require_namespaced_registry_id(
+                    spec.template_id,
+                    label=f"{requirement_key} template_id",
+                )
             render_context = _build_render_context(
                 style_profile=style_profile,
                 display_overrides=display_overrides,

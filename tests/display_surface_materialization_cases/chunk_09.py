@@ -139,6 +139,53 @@ def test_materialize_display_surface_preserves_structured_time_horizon_metrics_f
     assert f16_layout["metrics"]["time_horizon_months"] == 24
     assert f18_layout["metrics"]["time_horizon_months"] == 24
 
+def test_load_evidence_display_payload_accepts_legacy_cumulative_incidence_grouped_alias(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    payload_path = paper_root / "time_to_event_grouped_inputs.json"
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    display = next(item for item in payload["displays"] if item["display_id"] == "Figure15")
+    display["template_id"] = full_id("cumulative_incidence_grouped")
+    display.pop("risk_group_summaries", None)
+    display["groups"] = [
+        {"label": "China Q1", "times": [0, 1, 2, 3, 4, 5], "values": [0.0, 0.02, 0.04, 0.07, 0.10, 0.13]},
+        {"label": "China Q4", "times": [0, 1, 2, 3, 4, 5], "values": [0.0, 0.05, 0.10, 0.16, 0.23, 0.31]},
+    ]
+    dump_json(payload_path, payload)
+
+    spec = module.display_registry.get_evidence_figure_spec("time_to_event_risk_group_summary")
+    _, normalized = module._load_evidence_display_payload(
+        paper_root=paper_root,
+        spec=spec,
+        display_id="Figure15",
+    )
+
+    assert normalized["template_id"] == full_id("cumulative_incidence_grouped")
+    assert [item["label"] for item in normalized["groups"]] == ["China Q1", "China Q4"]
+
+def test_materialize_display_surface_accepts_legacy_cumulative_incidence_grouped_alias(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    restrict_display_registry_to_display_ids(paper_root, "Figure15")
+    payload_path = paper_root / "time_to_event_grouped_inputs.json"
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    display = next(item for item in payload["displays"] if item["display_id"] == "Figure15")
+    display["template_id"] = full_id("cumulative_incidence_grouped")
+    display.pop("risk_group_summaries", None)
+    display["groups"] = [
+        {"label": "China Q1", "times": [0, 1, 2, 3, 4, 5], "values": [0.0, 0.02, 0.04, 0.07, 0.10, 0.13]},
+        {"label": "China Q4", "times": [0, 1, 2, 3, 4, 5], "values": [0.0, 0.05, 0.10, 0.16, 0.23, 0.31]},
+    ]
+    dump_json(payload_path, payload)
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure = next(item for item in figure_catalog["figures"] if item["figure_id"] == "F15")
+
+    assert result["status"] == "materialized"
+    assert figure["template_id"] == full_id("cumulative_incidence_grouped")
+    assert figure["renderer_family"] == "r_ggplot2"
+
 def test_load_evidence_display_payload_rejects_non_monotonic_stratified_cumulative_incidence_panel(
     tmp_path: Path,
 ) -> None:

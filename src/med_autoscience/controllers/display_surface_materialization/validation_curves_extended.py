@@ -450,6 +450,25 @@ def _validate_time_to_event_display_payload(
     expected_template_id: str,
     expected_display_id: str,
 ) -> dict[str, Any]:
+    raw_template_id = str(payload.get("template_id") or "").strip()
+    template_id = raw_template_id
+    if raw_template_id != expected_template_id:
+        _, expected_short_id = _require_namespaced_registry_id(
+            expected_template_id,
+            label=f"{path.name} display `{expected_display_id}` expected template_id",
+        )
+        _, raw_short_id = _require_namespaced_registry_id(
+            raw_template_id,
+            label=f"{path.name} display `{expected_display_id}` template_id",
+        )
+        if not (
+            expected_short_id == "time_to_event_risk_group_summary"
+            and raw_short_id == "cumulative_incidence_grouped"
+        ):
+            raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+        template_id = raw_template_id
+    if template_id != expected_template_id:
+        expected_template_id = template_id
     if str(payload.get("template_id") or "").strip() != expected_template_id:
         raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
     title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
