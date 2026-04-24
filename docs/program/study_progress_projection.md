@@ -84,6 +84,10 @@
 - `progress_freshness`
 - `latest_events`
 - `autonomy_soak_status`
+- `autonomy_contract.restore_point`
+- `quality_closure_truth`
+- `quality_review_followthrough`
+- `research_runtime_control_projection`
 - `current_blockers`
 - `next_system_action`
 - `needs_physician_decision`
@@ -99,6 +103,9 @@
 - `progress_freshness` 表示“最近有没有明确研究推进信号”，用于尽早暴露卡住、没进度或空转
 - `latest_events` 必须带明确时间戳
 - `autonomy_soak_status` 用于表达最近一次已被 durable surface 记录的自治续跑 / outer-loop dispatch，至少要能回答“系统自动转去了哪条线、关键问题是什么、下一次确认看什么、证据引用在哪里”
+- `autonomy_contract.restore_point` 是恢复点与 human gate 的前台真相；调用方应读取其中的 `human_gate_required` 与 `summary`，不要从泛化 blocker 推断恢复许可
+- `quality_closure_truth` / `quality_review_followthrough` 分别表达质量闭环裁决与复评后的跟进状态，用于和 `autonomy_soak_status` 一起解释“系统是否仍在同线自动收口”
+- `research_runtime_control_projection` 是给 `workspace-cockpit`、`product-frontdesk`、`build-product-entry` 和上层 gateway 消费的控制投影；它必须把 `restore_point_surface`、`artifact_pickup_surface.pickup_refs`、`command_templates` 与 `research_gate_surface` 固定到同一条 `study-progress` 字段路径上
 - `needs_physician_decision` 只在触达正式人类 gate 边界时为 true
 - `physician_decision_summary` 必须说明触达的是初始方向锁定、重大转向、止损、外部凭据/秘密、投稿客观信息或最终投稿前审计中的哪一类
 - `supervision` 至少包含 `browser_url`、`quest_session_api_url`、`active_run_id`、`launch_report_path`

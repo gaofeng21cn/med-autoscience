@@ -117,6 +117,7 @@ def _attention_item(
     quality_review_followthrough: dict[str, Any] | None = None,
     gate_clearing_followthrough: dict[str, Any] | None = None,
     autonomy_soak_status: dict[str, Any] | None = None,
+    research_runtime_control_projection: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "priority": _ATTENTION_PRIORITIES.get(code, 999),
@@ -137,6 +138,7 @@ def _attention_item(
         "quality_review_followthrough": dict(quality_review_followthrough or {}) or None,
         "gate_clearing_followthrough": dict(gate_clearing_followthrough or {}) or None,
         "autonomy_soak_status": dict(autonomy_soak_status or {}) or None,
+        "research_runtime_control_projection": dict(research_runtime_control_projection or {}) or None,
     }
 
 
@@ -338,6 +340,9 @@ def _workspace_operator_brief(
         next_confirmation_signal = _non_empty_text(operator_status_card.get("next_confirmation_signal"))
         if next_confirmation_signal is not None:
             brief["next_confirmation_signal"] = next_confirmation_signal
+        research_runtime_control_projection = dict(top.get("research_runtime_control_projection") or {})
+        if research_runtime_control_projection:
+            brief["research_runtime_control_projection"] = research_runtime_control_projection
         return brief
     if not studies:
         return {
@@ -395,6 +400,9 @@ def _workspace_operator_brief(
     next_confirmation_signal = _non_empty_text(lead_status_card.get("next_confirmation_signal"))
     if next_confirmation_signal is not None:
         brief["next_confirmation_signal"] = next_confirmation_signal
+    research_runtime_control_projection = dict(lead_study.get("research_runtime_control_projection") or {})
+    if research_runtime_control_projection:
+        brief["research_runtime_control_projection"] = research_runtime_control_projection
     return brief
 
 
@@ -438,6 +446,7 @@ def _attention_queue(
         quality_review_followthrough = dict(item.get("quality_review_followthrough") or {})
         gate_clearing_followthrough = dict(item.get("gate_clearing_followthrough") or {})
         autonomy_soak_status = dict(item.get("autonomy_soak_status") or {})
+        research_runtime_control_projection = dict(item.get("research_runtime_control_projection") or {})
         gate_clearing_summary = _gate_clearing_followthrough_summary(gate_clearing_followthrough)
         quality_repair_step_id = _non_empty_text(quality_repair_followthrough.get("recommended_step_id"))
         quality_repair_command = _non_empty_text(quality_repair_followthrough.get("recommended_command"))
@@ -484,6 +493,7 @@ def _attention_queue(
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
+                    research_runtime_control_projection=research_runtime_control_projection,
                 )
             )
             continue
@@ -507,6 +517,7 @@ def _attention_queue(
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
+                    research_runtime_control_projection=research_runtime_control_projection,
                 )
             )
             continue
@@ -530,6 +541,7 @@ def _attention_queue(
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
+                    research_runtime_control_projection=research_runtime_control_projection,
                 )
             )
             continue
@@ -557,6 +569,7 @@ def _attention_queue(
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
+                    research_runtime_control_projection=research_runtime_control_projection,
                 )
             )
             continue
@@ -594,6 +607,7 @@ def _attention_queue(
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
+                    research_runtime_control_projection=research_runtime_control_projection,
                 )
             )
             continue
@@ -620,6 +634,7 @@ def _attention_queue(
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
+                    research_runtime_control_projection=research_runtime_control_projection,
                 )
             )
             continue
@@ -646,6 +661,7 @@ def _attention_queue(
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
+                    research_runtime_control_projection=research_runtime_control_projection,
                 )
             )
             continue
@@ -678,6 +694,7 @@ def _attention_queue(
                     quality_review_followthrough=quality_review_followthrough,
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
+                    research_runtime_control_projection=research_runtime_control_projection,
                 )
             )
 

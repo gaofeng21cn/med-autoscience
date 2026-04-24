@@ -39,6 +39,7 @@
 ## 当前操作与自动化接口
 
 当前操作路径继续由 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 这一组接口组成。
+其中 `study-progress` 是 restore point、autonomy soak、quality closure、artifact pickup 与 human gate 的源头投影；`workspace-cockpit` 负责把同一条 `research_runtime_control_projection` 放进 study item、attention queue 与 operator brief；`product-frontdesk` 只消费 cockpit preview，不另建第二套运行解释。
 它们描述的是当前可执行的操作面。
 `OPL` 调用、`product-entry manifest`、`handoff envelope` 和其他机器可读载荷继续属于集成接口和参考层。
 

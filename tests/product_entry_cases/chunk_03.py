@@ -648,10 +648,13 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "intervention_lane_field": "intervention_lane",
         "operator_status_card_field": "operator_status_card",
         "autonomy_contract_field": "autonomy_contract",
+        "restore_point_field": "autonomy_contract.restore_point",
+        "human_gate_required_field": "autonomy_contract.restore_point.human_gate_required",
         "recovery_contract_field": "recovery_contract",
         "continuation_state_field": "continuation_state",
         "family_checkpoint_lineage_field": "family_checkpoint_lineage",
         "autonomy_soak_status_field": "autonomy_soak_status",
+        "quality_closure_truth_field": "quality_closure_truth",
         "quality_execution_lane_field": "quality_execution_lane",
         "same_line_route_truth_field": "same_line_route_truth",
         "same_line_route_surface_field": "same_line_route_surface",
@@ -659,6 +662,9 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "quality_review_followthrough_field": "quality_review_followthrough",
         "gate_clearing_batch_followthrough_field": "gate_clearing_batch_followthrough",
         "research_runtime_control_projection_field": "research_runtime_control_projection",
+        "artifact_pickup_field": "research_runtime_control_projection.artifact_pickup_surface",
+        "artifact_pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
+        "runtime_human_gate_field": "research_runtime_control_projection.research_gate_surface",
     }
     assert payload["return_surface_contract"]["research_runtime_control_projection_contract"] == {
         "surface_kind": "research_runtime_control_projection_contract",
@@ -702,6 +708,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
                 "refs.runtime_supervision_path",
                 "refs.runtime_watch_report_path",
             ],
+            "pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
         },
         "command_templates": {
             "resume": (
@@ -729,6 +736,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
             "interrupt_policy_value_field": "intervention_lane.recommended_action_id",
             "gate_lane_field": "intervention_lane.lane_id",
             "gate_summary_field": "intervention_lane.summary",
+            "human_gate_required_field": "autonomy_contract.restore_point.human_gate_required",
         },
     }
     assert payload["return_surface_contract"]["domain_entry_contract"]["service_safe_surface_kind"] == (

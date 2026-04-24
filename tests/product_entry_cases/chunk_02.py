@@ -55,7 +55,10 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
             {
                 "title": "001-risk figure loop",
                 "summary": "图表推进陷入重复打磨循环。",
-                "recommended_command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli study-progress "
+                    "--profile profile.local.toml --study-id 001-risk"
+                ),
                 "operator_status_card": {
                     "handling_state": "paper_surface_refresh_in_progress",
                     "next_confirmation_signal": "看 delivery_manifest 是否刷新。",
@@ -116,7 +119,10 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
                 "recovery_contract": {
                     "action_mode": "inspect_progress",
                 },
-                "recommended_command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli study-progress "
+                    "--profile profile.local.toml --study-id 001-risk"
+                ),
                 "current_blockers": ["图表推进陷入重复打磨循环。"],
                 "commands": {
                     "launch": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml --study-id 001-risk",
@@ -517,6 +523,122 @@ def test_workspace_cockpit_projects_autonomy_soak_and_quality_followthrough() ->
     assert "质量复评跟进: 等待复评；当前修订计划已完成，下一步应由 MAS 发起 re-review。；看 publication_eval/latest.json 是否出现新的复评结论。" in markdown
 
 
+def test_workspace_cockpit_attention_queue_carries_runtime_control_pickup_and_gate() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    payload = {
+        "attention_queue": module._attention_queue(
+            workspace_status="ready",
+            workspace_supervision={"service": {"loaded": True}, "study_counts": {}},
+            commands={},
+            studies=[
+                {
+                "study_id": "001-risk",
+                "current_stage": "runtime_soak",
+                "current_stage_summary": "runtime soak 正在等待 artifact pickup 与 human gate 确认。",
+                "current_blockers": ["需要人工确认后恢复。"],
+                "next_system_action": "等待 human gate。",
+                "intervention_lane": {
+                    "lane_id": "wait_for_user",
+                    "recommended_action_id": "human_gate",
+                    "summary": "恢复前需要人工确认。",
+                },
+                "operator_status_card": {
+                    "surface_kind": "study_operator_status_card",
+                    "handling_state": "waiting_for_human_gate",
+                    "user_visible_verdict": "恢复点已冻结；等待人工确认。",
+                    "current_focus": "确认是否从冻结恢复点继续。",
+                    "next_confirmation_signal": "人工批准后再恢复 runtime。",
+                },
+                "autonomy_contract": {
+                    "summary": "当前自治状态停在 human gate。",
+                    "restore_point": {
+                        "summary": "恢复点已冻结；恢复前仍需人工确认。",
+                        "human_gate_required": True,
+                    },
+                },
+                "autonomy_soak_status": {
+                    "summary": "最近一次自治外环已完成 soak dispatch。",
+                    "next_confirmation_signal": "看 runtime_watch 是否刷新。",
+                },
+                "quality_closure_truth": {"summary": "质量闭环已进入 bundle-only 收口。"},
+                "quality_review_followthrough": {
+                    "summary": "复评已完成，等待 pickup。",
+                    "next_confirmation_signal": "看 publication_eval/latest.json。",
+                },
+                "research_runtime_control_projection": {
+                    "surface_kind": "research_runtime_control_projection",
+                    "restore_point_surface": {
+                        "surface_kind": "study_progress",
+                        "field_path": "autonomy_contract.restore_point",
+                        "summary": "恢复点已冻结；恢复前仍需人工确认。",
+                    },
+                    "artifact_pickup_surface": {
+                        "surface_kind": "study_progress",
+                        "field_path": "refs.evaluation_summary_path",
+                        "pickup_refs": [
+                            {
+                                "ref_id": "publication_eval_path",
+                                "path": "/tmp/workspace/studies/001-risk/artifacts/publication_eval/latest.json",
+                            }
+                        ],
+                    },
+                    "research_gate_surface": {
+                        "surface_kind": "study_progress",
+                        "approval_gate_field": "needs_physician_decision",
+                        "approval_gate_required": True,
+                        "approval_gate_owner": "mas_controller",
+                        "interrupt_policy_field": "intervention_lane.recommended_action_id",
+                        "interrupt_policy": "human_gate",
+                    },
+                },
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli study-progress "
+                    "--profile profile.local.toml --study-id 001-risk"
+                ),
+                "recommended_commands": [],
+                "recovery_contract": {
+                    "contract_kind": "study_recovery_contract",
+                    "lane_id": "wait_for_user",
+                    "action_mode": "monitor_only",
+                    "summary": "等待 human gate。",
+                    "recommended_step_id": "inspect_study_progress",
+                    "steps": [],
+                },
+                "needs_physician_decision": True,
+                "supervision": {},
+                "task_intake": {},
+                "progress_freshness": {"status": "fresh"},
+                }
+            ],
+        ),
+    }
+    payload["operator_brief"] = module._workspace_operator_brief(
+        workspace_status="ready",
+        workspace_alerts=[],
+        attention_queue=payload["attention_queue"],
+        studies=[],
+        user_loop={},
+        commands={},
+    )
+
+    attention_item = payload["attention_queue"][0]
+    assert attention_item["research_runtime_control_projection"]["restore_point_surface"]["field_path"] == (
+        "autonomy_contract.restore_point"
+    )
+    assert attention_item["research_runtime_control_projection"]["artifact_pickup_surface"]["pickup_refs"] == [
+        {
+            "ref_id": "publication_eval_path",
+            "path": "/tmp/workspace/studies/001-risk/artifacts/publication_eval/latest.json",
+        }
+    ]
+    assert attention_item["research_runtime_control_projection"]["research_gate_surface"]["approval_gate_required"] is True
+    assert (
+        payload["operator_brief"]["research_runtime_control_projection"]["research_gate_surface"]["interrupt_policy"]
+        == "human_gate"
+    )
+
+
 def test_workspace_cockpit_projects_gate_clearing_followthrough_into_attention_and_brief(
     monkeypatch,
     tmp_path: Path,
@@ -846,7 +968,10 @@ def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monke
                 "focus_scope": "study",
                 "focus_study_id": "001-risk",
                 "recommended_step_id": "handle_attention_item",
-                "recommended_command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli study-progress "
+                    "--profile profile.local.toml --study-id 001-risk"
+                ),
             },
             "attention_queue": [
                 {
@@ -855,7 +980,10 @@ def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monke
                     "code": "study_quality_floor_blocker",
                     "title": "001-risk 当前需要刷新投稿包镜像",
                     "summary": "generic summary",
-                    "recommended_command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
+                    "recommended_command": (
+                    "uv run python -m med_autoscience.cli study-progress "
+                    "--profile profile.local.toml --study-id 001-risk"
+                ),
                     "operator_status_card": {
                         "surface_kind": "study_operator_status_card",
                         "handling_state": "paper_surface_refresh_in_progress",
@@ -963,7 +1091,10 @@ def test_build_product_frontdesk_uses_same_line_route_truth_for_current_focus(mo
                 "focus_scope": "study",
                 "focus_study_id": "001-risk",
                 "recommended_step_id": "handle_attention_item",
-                "recommended_command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli study-progress "
+                    "--profile profile.local.toml --study-id 001-risk"
+                ),
             },
             "attention_queue": [
                 {
@@ -973,7 +1104,10 @@ def test_build_product_frontdesk_uses_same_line_route_truth_for_current_focus(mo
                     "title": "001-risk 当前先做 claim-evidence 修复",
                     "summary": "当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“当前稿面最窄的 claim-evidence 修复动作是什么？”。",
                     "recommended_step_id": "inspect_study_progress",
-                    "recommended_command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
+                    "recommended_command": (
+                    "uv run python -m med_autoscience.cli study-progress "
+                    "--profile profile.local.toml --study-id 001-risk"
+                ),
                     "operator_status_card": {
                         "surface_kind": "study_operator_status_card",
                         "handling_state": "scientific_or_quality_repair_in_progress",

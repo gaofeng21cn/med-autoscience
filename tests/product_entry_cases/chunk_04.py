@@ -168,6 +168,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
                 "refs.runtime_supervision_path",
                 "refs.runtime_watch_report_path",
             ],
+            "pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
         },
         "command_templates": {
             "resume": (
@@ -195,6 +196,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
             "interrupt_policy_value_field": "intervention_lane.recommended_action_id",
             "gate_lane_field": "intervention_lane.lane_id",
             "gate_summary_field": "intervention_lane.summary",
+            "human_gate_required_field": "autonomy_contract.restore_point.human_gate_required",
         },
     }
     assert payload["artifact_inventory"]["surface_kind"] == "artifact_inventory"

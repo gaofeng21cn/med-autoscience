@@ -579,6 +579,7 @@ def _build_research_runtime_control_projection(
                 "refs.runtime_supervision_path",
                 "refs.runtime_watch_report_path",
             ],
+            "pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
         },
         "command_templates": {
             "resume": resume_command,
@@ -594,6 +595,7 @@ def _build_research_runtime_control_projection(
             "interrupt_policy_value_field": "intervention_lane.recommended_action_id",
             "gate_lane_field": "intervention_lane.lane_id",
             "gate_summary_field": "intervention_lane.summary",
+            "human_gate_required_field": "autonomy_contract.restore_point.human_gate_required",
         },
     }
 
