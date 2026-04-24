@@ -3683,6 +3683,86 @@ def test_ensure_study_runtime_keeps_completion_blocked_when_publishability_gate_
     assert result["study_completion_contract"]["ready"] is True
 
 
+def test_study_runtime_status_parks_completed_delivered_package_despite_stale_publishability_gate(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-legacy",
+        study_status="completed",
+        quest_id="002-legacy-managed",
+        study_completion={
+            "status": "completed",
+            "summary": "Delivered package is complete; objective metadata remains external.",
+            "evidence_paths": ["manuscript/submission_manifest.json"],
+        },
+    )
+    package_root = study_root / "manuscript" / "submission_package"
+    manifest = {
+        "schema_version": 1,
+        "publication_profile": "frontiers_family_harvard",
+        "manuscript": {"docx_path": "paper/journal_submissions/frontiers/manuscript.docx", "pdf_path": "paper/journal_submissions/frontiers/paper.pdf"},
+        "figures": [{"figure_id": "F1", "output_paths": ["paper/journal_submissions/frontiers/figures/Figure1.png"]}],
+        "tables": [{"table_id": "T1", "output_paths": ["paper/journal_submissions/frontiers/tables/Table1.csv"]}],
+    }
+    write_text(package_root / "manuscript.docx", "docx placeholder")
+    write_text(package_root / "paper.pdf", "pdf placeholder")
+    write_text(package_root / "figures" / "Figure1.png", "figure placeholder")
+    write_text(package_root / "tables" / "Table1.csv", "a,b\n1,2\n")
+    write_text(package_root / "submission_manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+    write_text(study_root / "manuscript" / "submission_manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+
+    monkeypatch.setattr(
+        module.quest_state,
+        "inspect_quest_runtime",
+        lambda quest_root: module.quest_state.QuestRuntimeSnapshot(
+            quest_exists=True,
+            quest_status="completed",
+            bash_session_audit=None,
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "002-legacy"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "blocked",
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": False,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": ["finalize_paper_line"],
+            "controller_stage_note": "legacy completion gate is stale after delivered package handoff",
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="002-legacy")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_for_submission_metadata"
+    assert result["quest_status"] == "completed"
+
+
 def test_sync_study_completion_rejects_program_human_confirmation_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     completion_module = importlib.import_module("med_autoscience.study_completion")

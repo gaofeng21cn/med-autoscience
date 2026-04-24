@@ -52,6 +52,7 @@ from med_autoscience.study_charter import read_study_charter
 from med_autoscience.study_completion import StudyCompletionStateStatus
 from med_autoscience.study_manual_finish import (
     resolve_bundle_only_submission_ready_manual_finish_contract,
+    resolve_delivered_submission_package_manual_finish_contract,
     resolve_study_manual_finish_contract,
     resolve_submission_metadata_only_manual_finish_contract,
 )
@@ -261,6 +262,10 @@ def _bundle_only_submission_ready_manual_finish_active(*, study_root: Path, ques
         )
         is not None
     )
+
+
+def _delivered_submission_package_manual_finish_active(*, study_root: Path) -> bool:
+    return resolve_delivered_submission_package_manual_finish_contract(study_root=study_root) is not None
 
 
 def _explicit_manual_finish_compatibility_guard_active(*, study_root: Path) -> bool:
@@ -1877,9 +1882,12 @@ def _status_state(
     task_intake_yields_to_submission_closeout = False
     bundle_only_manual_finish = (
         quest_exists
-        and _bundle_only_submission_ready_manual_finish_active(
-            study_root=study_root,
-            quest_root=quest_root,
+        and (
+            _bundle_only_submission_ready_manual_finish_active(
+                study_root=study_root,
+                quest_root=quest_root,
+            )
+            or _delivered_submission_package_manual_finish_active(study_root=study_root)
         )
     )
     if task_intake_overrides_auto_manual_finish and bundle_only_manual_finish:
@@ -2071,6 +2079,12 @@ def _status_state(
             )
             return _finalize_result()
         if publication_gate_report is not None and str(publication_gate_report.get("status") or "").strip() != "clear":
+            if manual_finish_compatibility_guard:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+                )
+                return _finalize_result()
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.STUDY_COMPLETION_PUBLISHABILITY_GATE_BLOCKED,

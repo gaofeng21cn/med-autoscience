@@ -72,6 +72,59 @@ _BUNDLE_ONLY_MANUAL_FINISH_SUMMARY = (
 _BUNDLE_ONLY_MANUAL_FINISH_NEXT_ACTION = (
     "当前包已经可直接交给用户审阅；如需继续补元数据、外投或新增 bounded 任务，再显式 resume 或 relaunch。"
 )
+_ADMINISTRATIVE_TODO_TERMS = frozenset(
+    {
+        "affiliation",
+        "affiliations",
+        "author",
+        "authors",
+        "corresponding author",
+        "ethics",
+        "ethics approval",
+        "ethics approval number",
+        "irb",
+        "funding",
+        "grant",
+        "grants",
+        "conflict of interest",
+        "competing interest",
+        "competing interests",
+        "data availability",
+        "consent",
+        "acknowledgement",
+        "acknowledgements",
+        "cover letter",
+        "title page",
+        "orcid",
+        "copyright",
+        "license",
+        "clinical trial registration",
+    }
+)
+_SCIENTIFIC_TODO_TERMS = frozenset(
+    {
+        "analysis",
+        "model",
+        "revise statistical",
+        "sensitivity",
+        "subgroup",
+        "result",
+        "results",
+        "figure",
+        "table",
+        "method",
+        "methods",
+        "discussion",
+        "limitation",
+        "claim",
+        "evidence",
+        "cohort",
+        "data cleaning",
+        "rerun",
+        "re-run",
+        "experiment",
+    }
+)
 
 
 def _load_yaml_dict(path: Path) -> dict[str, object]:
@@ -173,6 +226,121 @@ def _read_json_dict(path: Path) -> dict[str, object]:
     return payload if isinstance(payload, dict) else {}
 
 
+def _manifest_surface_qc_accepts_delivered_package(manifest_payload: dict[str, object]) -> bool:
+    manuscript_payload = manifest_payload.get("manuscript")
+    manuscript = manuscript_payload if isinstance(manuscript_payload, dict) else {}
+    qc_payload = manuscript.get("surface_qc") or manifest_payload.get("surface_qc")
+    if not isinstance(qc_payload, dict):
+        return True
+    failures = qc_payload.get("failures")
+    if isinstance(failures, list) and failures:
+        return False
+    status = str(qc_payload.get("status") or "").strip().lower()
+    return status == "pass"
+
+
+def _package_manifest_has_nonzero_display_assets(manifest_payload: dict[str, object]) -> bool:
+    figures = manifest_payload.get("figures")
+    tables = manifest_payload.get("tables")
+    return isinstance(figures, list) and len(figures) > 0 and isinstance(tables, list) and len(tables) > 0
+
+
+def _package_root_has_required_delivery_files(package_root: Path) -> bool:
+    if not (package_root / "manuscript.docx").exists() or not (package_root / "paper.pdf").exists():
+        return False
+    has_figure = any(path.is_file() for path in (package_root / "figures").glob("*"))
+    has_table = any(path.is_file() for path in (package_root / "tables").glob("*"))
+    return has_figure and has_table
+
+
+def _submission_todo_is_administrative_only(todo_path: Path) -> bool:
+    if not todo_path.exists():
+        return False
+    todo_text = todo_path.read_text(encoding="utf-8").strip()
+    if not todo_text:
+        return True
+    actionable_lines = []
+    for raw_line in todo_text.splitlines():
+        line = raw_line.strip().lower()
+        if not line or line.startswith("#"):
+            continue
+        if line in {
+            "pending items:",
+            "these items are administrative/front-matter handoff tasks. they are listed here so the current package can be reviewed for scientific audit while formal submission details are completed.",
+        }:
+            continue
+        if line.startswith("- ") or line.startswith("* "):
+            line = line[2:].strip()
+        if line.startswith("[ ]"):
+            line = line[3:].strip()
+        actionable_lines.append(line)
+    if not actionable_lines:
+        return True
+    for line in actionable_lines:
+        if any(term in line for term in _SCIENTIFIC_TODO_TERMS):
+            return False
+        if not any(term in line for term in _ADMINISTRATIVE_TODO_TERMS):
+            return False
+    return True
+
+
+def _delivered_package_ready(
+    *,
+    study_root: Path,
+    package_root: Path,
+    require_zip_path: Path | None = None,
+    require_administrative_todo: bool = True,
+) -> bool:
+    if not package_root.exists() or not package_root.is_dir():
+        return False
+    if require_zip_path is not None and not require_zip_path.exists():
+        return False
+    manifest_payload = _read_json_dict(package_root / "submission_manifest.json")
+    if not manifest_payload:
+        manifest_payload = _read_json_dict(study_root / "manuscript" / "submission_manifest.json")
+    if not manifest_payload:
+        return False
+    if not _package_root_has_required_delivery_files(package_root):
+        return False
+    if not _package_manifest_has_nonzero_display_assets(manifest_payload):
+        return False
+    if not _manifest_surface_qc_accepts_delivered_package(manifest_payload):
+        return False
+    todo_path = package_root / "SUBMISSION_TODO.md"
+    if require_administrative_todo and not _submission_todo_is_administrative_only(todo_path):
+        return False
+    if todo_path.exists() and not _submission_todo_is_administrative_only(todo_path):
+        return False
+    return True
+
+
+def _delivered_submission_package_ready(*, study_root: Path) -> bool:
+    manuscript_root = study_root / "manuscript"
+    if _delivered_package_ready(
+        study_root=study_root,
+        package_root=manuscript_root / "current_package",
+        require_zip_path=manuscript_root / "current_package.zip",
+        require_administrative_todo=True,
+    ):
+        return True
+    if _delivered_package_ready(
+        study_root=study_root,
+        package_root=manuscript_root / "submission_package",
+        require_administrative_todo=False,
+    ):
+        return True
+    journal_mirror_root = manuscript_root / "journal_package_mirrors"
+    if journal_mirror_root.exists():
+        for package_root in sorted(path for path in journal_mirror_root.iterdir() if path.is_dir()):
+            if _delivered_package_ready(
+                study_root=study_root,
+                package_root=package_root,
+                require_administrative_todo=False,
+            ):
+                return True
+    return False
+
+
 def _submission_minimal_controller():
     return import_module("med_autoscience.controllers.submission_minimal")
 
@@ -260,6 +428,24 @@ def resolve_bundle_only_submission_ready_manual_finish_contract(
     )
 
 
+def resolve_delivered_submission_package_manual_finish_contract(
+    *,
+    study_root: Path | None,
+) -> StudyManualFinishContract | None:
+    if study_root is None:
+        return None
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    if not _delivered_submission_package_ready(study_root=resolved_study_root):
+        return None
+    return StudyManualFinishContract(
+        study_root=resolved_study_root,
+        status=StudyManualFinishStatus.ACTIVE,
+        summary=_BUNDLE_ONLY_MANUAL_FINISH_SUMMARY,
+        next_action_summary=_BUNDLE_ONLY_MANUAL_FINISH_NEXT_ACTION,
+        compatibility_guard_only=True,
+    )
+
+
 def resolve_study_manual_finish_contract(*, study_root: Path | None) -> StudyManualFinishContract | None:
     if study_root is None:
         return None
@@ -311,4 +497,7 @@ def resolve_effective_study_manual_finish_contract(
     )
     if metadata_only_contract is not None:
         return metadata_only_contract
-    return resolve_bundle_only_submission_ready_manual_finish_contract(study_root=study_root, quest_root=quest_root)
+    bundle_only_contract = resolve_bundle_only_submission_ready_manual_finish_contract(study_root=study_root, quest_root=quest_root)
+    if bundle_only_contract is not None:
+        return bundle_only_contract
+    return resolve_delivered_submission_package_manual_finish_contract(study_root=study_root)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import (
@@ -9,6 +10,7 @@ from tests.study_runtime_test_helpers import (
     write_synced_submission_delivery,
     write_study,
     write_submission_metadata_only_bundle,
+    write_text,
 )
 
 
@@ -303,6 +305,149 @@ def test_resolve_effective_study_manual_finish_contract_keeps_reporting_only_mil
     contract = module.resolve_effective_study_manual_finish_contract(
         study_root=study_root,
         quest_root=quest_root,
+    )
+
+    assert contract is not None
+    assert "投稿包里程碑" in contract.summary
+
+
+def test_resolve_effective_study_manual_finish_contract_accepts_delivered_current_package_with_admin_todo(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_manual_finish")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-attribution",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="clinical_epidemiology",
+    )
+    quest_root = profile.runtime_root / "002-attribution"
+    current_package_root = study_root / "manuscript" / "current_package"
+    current_package_root.mkdir(parents=True, exist_ok=True)
+    write_text(current_package_root / "manuscript.docx", "docx placeholder")
+    write_text(current_package_root / "paper.pdf", "pdf placeholder")
+    write_text(current_package_root / "references.bib", "@article{ref1,title={Ref}}\n")
+    write_text(current_package_root / "figures" / "Figure1.png", "figure placeholder")
+    write_text(current_package_root / "tables" / "Table1.csv", "a,b\n1,2\n")
+    write_text(
+        current_package_root / "submission_manifest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "publication_profile": "general_medical_journal",
+                "manuscript": {
+                    "docx_path": "paper/submission_minimal/manuscript.docx",
+                    "pdf_path": "paper/submission_minimal/paper.pdf",
+                    "surface_qc": {"status": "pass", "failures": []},
+                },
+                "figures": [{"figure_id": "F1", "output_paths": ["paper/submission_minimal/figures/Figure1.png"]}],
+                "tables": [{"table_id": "T1", "output_paths": ["paper/submission_minimal/tables/Table1.csv"]}],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        current_package_root / "SUBMISSION_TODO.md",
+        "# Submission TODO\n\n"
+        "Pending items:\n"
+        "- Affiliations: pending\n"
+        "- Authors: pending\n"
+        "- Ethics approval number: pending\n"
+        "- Funding: pending\n"
+        "- Conflict of interest: pending\n"
+        "- Data availability: pending\n",
+    )
+    write_text(study_root / "manuscript" / "current_package.zip", "zip placeholder")
+
+    contract = module.resolve_effective_study_manual_finish_contract(
+        study_root=study_root,
+        quest_root=quest_root,
+    )
+
+    assert contract is not None
+    assert contract.status.value == "active"
+    assert contract.compatibility_guard_only is True
+    assert "投稿包里程碑" in contract.summary
+
+
+def test_resolve_effective_study_manual_finish_contract_rejects_delivered_package_with_scientific_todo(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_manual_finish")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-attribution",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="clinical_epidemiology",
+    )
+    package_root = study_root / "manuscript" / "current_package"
+    package_root.mkdir(parents=True, exist_ok=True)
+    write_text(package_root / "manuscript.docx", "docx placeholder")
+    write_text(package_root / "paper.pdf", "pdf placeholder")
+    write_text(package_root / "figures" / "Figure1.png", "figure placeholder")
+    write_text(package_root / "tables" / "Table1.csv", "a,b\n1,2\n")
+    write_text(
+        package_root / "submission_manifest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "manuscript": {"surface_qc": {"status": "pass", "failures": []}},
+                "figures": [{"figure_id": "F1"}],
+                "tables": [{"table_id": "T1"}],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(package_root / "SUBMISSION_TODO.md", "# Submission TODO\n\n- Revise statistical analysis: pending\n")
+    write_text(study_root / "manuscript" / "current_package.zip", "zip placeholder")
+
+    contract = module.resolve_effective_study_manual_finish_contract(
+        study_root=study_root,
+        quest_root=profile.runtime_root / "002-attribution",
+    )
+
+    assert contract is None
+
+
+def test_resolve_effective_study_manual_finish_contract_accepts_legacy_submission_package(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_manual_finish")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-legacy",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="clinical_epidemiology",
+    )
+    package_root = study_root / "manuscript" / "submission_package"
+    package_root.mkdir(parents=True, exist_ok=True)
+    write_text(package_root / "manuscript.docx", "docx placeholder")
+    write_text(package_root / "paper.pdf", "pdf placeholder")
+    write_text(package_root / "figures" / "Figure1.png", "figure placeholder")
+    write_text(package_root / "tables" / "Table1.csv", "a,b\n1,2\n")
+    manifest = {
+        "schema_version": 1,
+        "publication_profile": "frontiers_family_harvard",
+        "manuscript": {"docx_path": "paper/journal_submissions/frontiers/manuscript.docx", "pdf_path": "paper/journal_submissions/frontiers/paper.pdf"},
+        "figures": [{"figure_id": "F1", "output_paths": ["paper/journal_submissions/frontiers/figures/Figure1.png"]}],
+        "tables": [{"table_id": "T1", "output_paths": ["paper/journal_submissions/frontiers/tables/Table1.csv"]}],
+    }
+    write_text(package_root / "submission_manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+    write_text(study_root / "manuscript" / "submission_manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+
+    contract = module.resolve_effective_study_manual_finish_contract(
+        study_root=study_root,
+        quest_root=profile.runtime_root / "002-legacy",
     )
 
     assert contract is not None
