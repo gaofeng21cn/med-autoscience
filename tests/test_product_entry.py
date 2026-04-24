@@ -3100,6 +3100,34 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["shell_commands"]["study_progress"].endswith(
         "--study-id <study_id> --format json"
     )
+    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["runtime_continuity"] == {
+        "surface_kind": "skill_runtime_continuity",
+        "runtime_owner": "upstream_hermes_agent",
+        "domain_owner": "med-autoscience",
+        "executor_owner": "med_deepscientist",
+        "session_locator_field": "study_id",
+        "session_surface_ref": "/session_continuity",
+        "progress_surface_ref": "/progress_projection/progress_surface",
+        "artifact_surface_ref": "/artifact_inventory/artifact_surface",
+        "restore_point_surface_ref": (
+            "/progress_projection/domain_projection/research_runtime_control_projection/restore_point_surface"
+        ),
+        "recommended_resume_command": (
+            "uv run python -m med_autoscience.cli launch-study --profile "
+            + str(profile_ref.resolve())
+            + " --study-id <study_id>"
+        ),
+        "recommended_progress_command": (
+            "uv run python -m med_autoscience.cli study-progress --profile "
+            + str(profile_ref.resolve())
+            + " --study-id <study_id> --format json"
+        ),
+        "recommended_artifact_command": (
+            "uv run python -m med_autoscience.cli study-runtime-status --profile "
+            + str(profile_ref.resolve())
+            + " --study-id <study_id> --format json"
+        ),
+    }
     assert payload["automation"]["surface_kind"] == "automation"
     assert payload["automation"]["summary"] == payload["product_entry_status"]["summary"]
     assert payload["automation"]["readiness_summary"].startswith("Automation-ready rule:")

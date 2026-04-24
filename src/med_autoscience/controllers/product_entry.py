@@ -1652,8 +1652,47 @@ def _build_artifact_inventory_surface(
     )
 
 
+def _build_skill_runtime_continuity_envelope(
+    *,
+    runtime: Mapping[str, Any],
+    family_orchestration: Mapping[str, Any],
+    session_continuity: Mapping[str, Any],
+    progress_projection: Mapping[str, Any],
+    artifact_inventory: Mapping[str, Any],
+) -> dict[str, Any]:
+    resume_contract = dict(family_orchestration.get("resume_contract") or {})
+    restore_surface = dict(session_continuity.get("restore_surface") or {})
+    session_progress_surface = dict(session_continuity.get("progress_surface") or {})
+    artifact_surface = dict(artifact_inventory.get("artifact_surface") or {})
+    progress_domain_projection = dict(progress_projection.get("domain_projection") or {})
+    restore_point_surface_ref = "/session_continuity/restore_surface"
+    if isinstance(progress_domain_projection.get("research_runtime_control_projection"), Mapping):
+        restore_point_surface_ref = (
+            "/progress_projection/domain_projection/research_runtime_control_projection/restore_point_surface"
+        )
+    return {
+        "surface_kind": "skill_runtime_continuity",
+        "runtime_owner": str(runtime.get("runtime_owner") or ""),
+        "domain_owner": str(runtime.get("domain_owner") or ""),
+        "executor_owner": str(runtime.get("executor_owner") or ""),
+        "session_locator_field": str(resume_contract.get("session_locator_field") or ""),
+        "session_surface_ref": "/session_continuity",
+        "progress_surface_ref": "/progress_projection/progress_surface",
+        "artifact_surface_ref": "/artifact_inventory/artifact_surface",
+        "restore_point_surface_ref": restore_point_surface_ref,
+        "recommended_resume_command": str(restore_surface.get("command") or ""),
+        "recommended_progress_command": str(session_progress_surface.get("command") or ""),
+        "recommended_artifact_command": str(artifact_surface.get("command") or ""),
+    }
+
+
 def _build_skill_catalog_surface(
     *,
+    runtime: Mapping[str, Any],
+    family_orchestration: Mapping[str, Any],
+    session_continuity: Mapping[str, Any],
+    progress_projection: Mapping[str, Any],
+    artifact_inventory: Mapping[str, Any],
     product_entry_status: Mapping[str, Any],
     domain_entry_contract: Mapping[str, Any],
     product_entry_shell: Mapping[str, Any],
@@ -1666,6 +1705,13 @@ def _build_skill_catalog_surface(
         "launch_study": str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
         "study_progress": str((product_entry_shell.get("study_progress") or {}).get("command") or ""),
     }
+    runtime_continuity = _build_skill_runtime_continuity_envelope(
+        runtime=runtime,
+        family_orchestration=family_orchestration,
+        session_continuity=session_continuity,
+        progress_projection=progress_projection,
+        artifact_inventory=artifact_inventory,
+    )
     skills = [
         _build_shared_skill_descriptor(
             skill_id="med-autoscience",
@@ -1689,6 +1735,7 @@ def _build_skill_catalog_surface(
                     "study_progress",
                 ],
                 "shell_commands": command_catalog,
+                "runtime_continuity": runtime_continuity,
             },
         ),
     ]
@@ -3408,6 +3455,11 @@ def build_product_entry_manifest(
         study_runtime_status_command=study_runtime_status_command,
     )
     skill_catalog = _build_skill_catalog_surface(
+        runtime=runtime,
+        family_orchestration=family_orchestration,
+        session_continuity=session_continuity,
+        progress_projection=progress_projection,
+        artifact_inventory=artifact_inventory,
         product_entry_status=product_entry_status,
         domain_entry_contract=domain_entry_contract,
         product_entry_shell=product_entry_shell,
