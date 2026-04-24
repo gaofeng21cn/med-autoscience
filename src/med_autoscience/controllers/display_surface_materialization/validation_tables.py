@@ -1,6 +1,54 @@
 from __future__ import annotations
 
+import re
+
 from .shared import Any, Path, _COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES, _format_percent_1dp, _require_non_empty_string, _require_non_negative_int, _require_numeric_list, _require_numeric_value, _require_probability_value, display_registry
+
+def _slugify_legacy_cohort_flow_id(raw_value: object, *, label: str) -> str:
+    normalized = re.sub(r"[^a-z0-9]+", "_", str(raw_value or "").strip().lower()).strip("_")
+    if not normalized:
+        raise ValueError(f"{label} must normalize to a non-empty identifier")
+    return normalized
+
+
+def _normalize_cohort_flow_step_id(*, path: Path, step: dict[str, Any], index: int) -> str:
+    step_id = str(step.get("step_id") or "").strip()
+    if step_id:
+        return step_id
+    legacy_cohort = str(step.get("cohort") or "").strip()
+    if not legacy_cohort:
+        raise ValueError(f"{path.name} steps[{index}] must include step_id or legacy cohort, and label")
+    return _slugify_legacy_cohort_flow_id(
+        legacy_cohort,
+        label=f"{path.name} steps[{index}].cohort",
+    )
+
+
+def _normalize_cohort_flow_endpoint_id(*, path: Path, endpoint: dict[str, Any], index: int) -> str:
+    endpoint_id = str(endpoint.get("endpoint_id") or "").strip()
+    if endpoint_id:
+        return endpoint_id
+    legacy_endpoint = str(endpoint.get("endpoint") or "").strip()
+    if not legacy_endpoint:
+        raise ValueError(f"{path.name} endpoint_inventory[{index}] must include endpoint_id or legacy endpoint, and label")
+    return _slugify_legacy_cohort_flow_id(
+        legacy_endpoint,
+        label=f"{path.name} endpoint_inventory[{index}].endpoint",
+    )
+
+
+def _normalize_cohort_flow_design_panel_items(items: object) -> list[dict[str, Any]]:
+    if not isinstance(items, list):
+        return []
+    normalized_items: list[dict[str, Any]] = []
+    for item in items:
+        if isinstance(item, str):
+            normalized_items.append({"label": item.strip(), "detail": ""})
+        elif isinstance(item, dict):
+            normalized_items.append(item)
+        else:
+            normalized_items.append({})
+    return normalized_items
 
 def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[str, Any]:
     steps = payload.get("steps")
@@ -11,11 +59,11 @@ def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[s
     for index, step in enumerate(steps):
         if not isinstance(step, dict):
             raise ValueError(f"{path.name} steps[{index}] must be an object")
-        step_id = str(step.get("step_id") or "").strip()
+        step_id = _normalize_cohort_flow_step_id(path=path, step=step, index=index)
         label = str(step.get("label") or "").strip()
         detail = str(step.get("detail") or "").strip()
-        if not step_id or not label:
-            raise ValueError(f"{path.name} steps[{index}] must include step_id and label")
+        if not label:
+            raise ValueError(f"{path.name} steps[{index}] must include step_id or legacy cohort, and label")
         if step_id in step_ids:
             raise ValueError(f"{path.name} steps[{index}].step_id must be unique")
         step_ids.add(step_id)
@@ -68,11 +116,11 @@ def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[s
     for index, endpoint in enumerate(endpoint_inventory_payload):
         if not isinstance(endpoint, dict):
             raise ValueError(f"{path.name} endpoint_inventory[{index}] must be an object")
-        endpoint_id = str(endpoint.get("endpoint_id") or "").strip()
-        label = str(endpoint.get("label") or "").strip()
-        detail = str(endpoint.get("detail") or "").strip()
-        if not endpoint_id or not label:
-            raise ValueError(f"{path.name} endpoint_inventory[{index}] must include endpoint_id and label")
+        endpoint_id = _normalize_cohort_flow_endpoint_id(path=path, endpoint=endpoint, index=index)
+        label = str(endpoint.get("label") or endpoint.get("endpoint") or "").strip()
+        detail = str(endpoint.get("detail") or endpoint.get("status") or "").strip()
+        if not label:
+            raise ValueError(f"{path.name} endpoint_inventory[{index}] must include endpoint_id or legacy endpoint, and label")
         if endpoint_id in endpoint_ids:
             raise ValueError(f"{path.name} endpoint_inventory[{index}].endpoint_id must be unique")
         raw_n = endpoint.get("n")
@@ -100,16 +148,20 @@ def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[s
     for index, block in enumerate(design_panels_payload):
         if not isinstance(block, dict):
             raise ValueError(f"{path.name} design_panels[{index}] must be an object")
+        title = str(block.get("title") or block.get("label") or "").strip()
         block_id = str(block.get("panel_id") or block.get("block_id") or "").strip()
+        if not block_id and title:
+            block_id = _slugify_legacy_cohort_flow_id(title, label=f"{path.name} design_panels[{index}].label")
         raw_block_type = str(block.get("layout_role") or block.get("block_type") or "").strip()
+        if not raw_block_type and block.get("items") is not None:
+            raw_block_type = "wide_bottom"
         block_type = _COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES.get(raw_block_type, raw_block_type)
         style_role = str(block.get("style_role") or "secondary").strip().lower()
-        title = str(block.get("title") or "").strip()
         items = block.get("lines")
         if items is None:
-            items = block.get("items")
+            items = _normalize_cohort_flow_design_panel_items(block.get("items"))
         if not block_id or not block_type or not title:
-            raise ValueError(f"{path.name} design_panels[{index}] must include panel_id/block_id, layout_role/block_type, and title")
+            raise ValueError(f"{path.name} design_panels[{index}] must include panel_id/block_id or legacy label, layout_role/block_type, and title/label")
         if style_role not in {"primary", "secondary", "context", "audit"}:
             raise ValueError(
                 f"{path.name} design_panels[{index}].style_role must be one of primary, secondary, context, audit"

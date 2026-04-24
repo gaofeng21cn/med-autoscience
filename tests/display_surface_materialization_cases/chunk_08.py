@@ -714,6 +714,84 @@ def test_materialize_display_surface_rejects_incomplete_cohort_flow_input(tmp_pa
     else:
         raise AssertionError("expected incomplete cohort flow input to fail")
 
+def test_materialize_display_surface_accepts_legacy_cohort_flow_steps(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    dump_json(
+        paper_root / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "shell_id": "cohort_flow_figure",
+            "display_id": "Figure1",
+            "title": "Study cohort flow",
+            "steps": [
+                {"cohort": "China", "label": "China development cohort", "n": 15789},
+                {"cohort": "NHANES", "label": "US external validation cohort", "n": 5659},
+            ],
+            "endpoint_inventory": [
+                {"endpoint": "5-year all-cause mortality", "status": "frozen"},
+            ],
+            "design_panels": [
+                {
+                    "label": "Common predictor set",
+                    "items": ["Age", "Sex", "Smoke", "HbA1c", "HDL", "SBP", "DBP"],
+                },
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+
+    assert result["status"] == "materialized"
+    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.svg").exists()
+    assert any(
+        item.get("figure_id") == "F1" and item.get("template_id") == full_id("cohort_flow_figure")
+        for item in figure_catalog["figures"]
+    )
+
+def test_validate_cohort_flow_payload_normalizes_legacy_cohort_steps() -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+
+    normalized = module._validate_cohort_flow_payload(
+        Path("cohort_flow.json"),
+        {
+            "display_id": "Figure1",
+            "steps": [
+                {"cohort": "screened population", "label": "Patients screened", "n": 186},
+                {"cohort": "eligible.population", "label": "Eligible after criteria review", "n": 142},
+            ],
+            "endpoint_inventory": [
+                {"endpoint": "5-year all-cause mortality", "status": "frozen"},
+            ],
+            "design_panels": [
+                {"label": "Common predictor set", "items": ["Age", "Sex"]},
+            ],
+        },
+    )
+
+    assert [item["step_id"] for item in normalized["steps"]] == [
+        "screened_population",
+        "eligible_population",
+    ]
+    assert normalized["endpoint_inventory"] == [
+        {
+            "endpoint_id": "5_year_all_cause_mortality",
+            "label": "5-year all-cause mortality",
+            "detail": "frozen",
+            "n": None,
+        }
+    ]
+    assert normalized["design_panels"] == [
+        {
+            "panel_id": "common_predictor_set",
+            "layout_role": "wide_bottom",
+            "style_role": "secondary",
+            "title": "Common predictor set",
+            "lines": [{"label": "Age", "detail": ""}, {"label": "Sex", "detail": ""}],
+        }
+    ]
+
 def test_load_evidence_display_payload_rejects_incomplete_clustered_heatmap_grid(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
