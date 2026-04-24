@@ -114,6 +114,7 @@ def build_publication_supervisor_state(
     anchor_kind: str,
     allow_write: bool,
     blockers: list[str],
+    medical_publication_surface_named_blockers: list[str] | None = None,
     bundle_stage_ready: bool = False,
 ) -> dict[str, Any]:
     deferred_downstream_actions: list[str] = []
@@ -150,6 +151,19 @@ def build_publication_supervisor_state(
                 "deferred_downstream_actions": deferred_downstream_actions,
                 "controller_stage_note": "the publication gate allows write; writing-stage work is now on the critical path",
             }
+        if _bundle_stage_is_on_critical_path(
+            blockers=blockers,
+            medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
+        ):
+            return {
+                "supervisor_phase": "bundle_stage_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": False,
+                "current_required_action": "complete_bundle_stage",
+                "deferred_downstream_actions": deferred_downstream_actions,
+                "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
+            }
         return {
             "supervisor_phase": "publishability_gate_blocked",
             "phase_owner": "publication_gate",
@@ -169,7 +183,10 @@ def build_publication_supervisor_state(
             "deferred_downstream_actions": deferred_downstream_actions,
             "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
         }
-    if not _bundle_stage_is_on_critical_path(blockers=blockers):
+    if not _bundle_stage_is_on_critical_path(
+        blockers=blockers,
+        medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
+    ):
         return {
             "supervisor_phase": "publishability_gate_blocked",
             "phase_owner": "publication_gate",

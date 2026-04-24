@@ -686,6 +686,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         anchor_kind=state.anchor_kind,
         allow_write=allow_write,
         blockers=blockers,
+        medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
         bundle_stage_ready=bundle_stage_ready,
     )
     if charter_contract_linkage_status == "study_charter_missing":
@@ -827,6 +828,18 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     }
 
 
-def _bundle_stage_is_on_critical_path(*, blockers: list[str]) -> bool:
+def _bundle_stage_is_on_critical_path(
+    *,
+    blockers: list[str],
+    medical_publication_surface_named_blockers: list[str] | None = None,
+) -> bool:
     normalized_blockers = {str(item or "").strip() for item in blockers if str(item or "").strip()}
-    return bool(normalized_blockers) and normalized_blockers.issubset(_BUNDLE_STAGE_ONLY_BLOCKERS)
+    named_blockers = {
+        str(item or "").strip()
+        for item in (medical_publication_surface_named_blockers or [])
+        if str(item or "").strip()
+    }
+    bundle_stage_blockers = set(_BUNDLE_STAGE_ONLY_BLOCKERS) | {"submission_hardening_incomplete"}
+    if normalized_blockers == {"medical_publication_surface_blocked", "submission_hardening_incomplete"}:
+        return named_blockers == {"submission_hardening_incomplete"}
+    return bool(normalized_blockers) and normalized_blockers.issubset(bundle_stage_blockers)

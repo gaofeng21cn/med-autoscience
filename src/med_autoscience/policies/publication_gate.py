@@ -81,6 +81,17 @@ def _format_metric(metrics: dict[str, object], key: str) -> str:
 def build_intervention_message(report: dict[str, object]) -> str:
     missing = ", ".join(report.get("missing_non_scalar_deliverables") or []) or "none"
     metrics = report.get("headline_metrics") or {}
+    blockers = {str(item).strip() for item in (report.get("blockers") or []) if str(item).strip()}
+    route_back = str(report.get("medical_publication_surface_route_back_recommendation") or "").strip()
+    if blockers and blockers.issubset({"medical_publication_surface_blocked", "submission_hardening_incomplete"}) and route_back == "return_to_finalize":
+        return (
+            "Hard control message from Codex orchestration layer: stop uncontrolled expansion now. "
+            "The latest publication gate blockers are limited to submission hardening. "
+            "Do not launch new model search, new broad literature expansion, or new analysis campaigns. "
+            "Resume the same paper line through a bounded `finalize` / submission-hardening pass: "
+            "repair manuscript Methods, statistical reporting, claim-to-table/figure mapping, and clinical actionability, "
+            "then rebuild submission_minimal and rerun the publication gate."
+        )
     return (
         "Hard control message from Codex orchestration layer: immediately stop the current "
         "transition into `write` / outline generation. Outline creation counts as `write` and "

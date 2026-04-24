@@ -549,7 +549,7 @@ def test_build_gate_report_projects_surface_charter_expectation_gaps(tmp_path: P
     assert "contract_json_pointer=`/paper_quality_contract/review_expectations/scientific_followup_questions`" in markdown
     assert "ledger=`evidence_ledger`" in markdown
     assert "ledger=`review_ledger`" in markdown
-def test_build_gate_report_routes_each_surface_blocker_to_core_controller_route(tmp_path: Path) -> None:
+def test_build_gate_report_routes_each_surface_blocker_to_core_controller_route(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
 
     reviewer_first_root = make_quest(
@@ -602,7 +602,7 @@ def test_build_gate_report_routes_each_surface_blocker_to_core_controller_route(
     submission_hardening_root = make_quest(
         tmp_path / "submission-hardening",
         include_submission_minimal=True,
-        include_main_result=False,
+        include_main_result=True,
         runtime_status="waiting_for_user",
         include_current_medical_publication_surface_report=True,
         medical_publication_surface_report={
@@ -610,12 +610,40 @@ def test_build_gate_report_routes_each_surface_blocker_to_core_controller_route(
             "blockers": ["public_evidence_decisions_missing_or_incomplete"],
         },
     )
+    main_result_path = (
+        submission_hardening_root
+        / ".ds"
+        / "worktrees"
+        / "paper-run-1"
+        / "experiments"
+        / "main"
+        / "run-1"
+        / "RESULT.json"
+    )
+    gate_report_path = submission_hardening_root / "artifacts" / "reports" / "publishability_gate" / "2026-04-17T000000Z.json"
+    dump_json(
+        gate_report_path,
+        {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-17T00:00:00+00:00",
+            "status": "clear",
+            "allow_write": False,
+            "blockers": [],
+        },
+    )
+    os.utime(main_result_path, (1, 1))
+    os.utime(gate_report_path, (3, 3))
+    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
     submission_hardening_report = module.build_gate_report(module.build_gate_state(submission_hardening_root))
 
     assert submission_hardening_report["medical_publication_surface_named_blockers"] == [
         "submission_hardening_incomplete"
     ]
     assert submission_hardening_report["medical_publication_surface_route_back_recommendation"] == "return_to_finalize"
+    assert submission_hardening_report["supervisor_phase"] == "bundle_stage_blocked"
+    assert submission_hardening_report["bundle_tasks_downstream_only"] is False
+    assert submission_hardening_report["current_required_action"] == "complete_bundle_stage"
     assert "route back to `finalize` to close submission-readiness gaps" in submission_hardening_report[
         "controller_stage_note"
     ]
@@ -799,3 +827,21 @@ def test_build_gate_report_uses_authoritative_bundle_manifest_for_surface_curren
     assert report["medical_publication_surface_report_path"] == str(surface_report_path)
     assert report["medical_publication_surface_current"] is True
     assert "missing_current_medical_publication_surface_report" not in report["blockers"]
+
+
+def test_publication_gate_intervention_allows_bounded_submission_hardening_finalize() -> None:
+    policy = importlib.import_module("med_autoscience.policies.publication_gate")
+
+    message = policy.build_intervention_message(
+        {
+            "run_id": "run-001",
+            "blockers": ["medical_publication_surface_blocked", "submission_hardening_incomplete"],
+            "missing_non_scalar_deliverables": [],
+            "headline_metrics": {},
+            "medical_publication_surface_route_back_recommendation": "return_to_finalize",
+        }
+    )
+
+    assert "bounded `finalize` / submission-hardening pass" in message
+    assert "Do not continue write" not in message
+    assert "new analysis campaigns" in message
