@@ -150,3 +150,7 @@ Run `ensure-study-runtime` before any managed compute decision. Do not enter `st
 ## Live Runtime Ownership Rule
 If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode, notify the user, report `browser_url`, `quest_session_api_url`, and `active_run_id` when present, and do not write runtime-owned study surfaces.
 Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions.
+
+## Revision Intake Rule
+Treat reviewer feedback, manuscript revision, mentor feedback, 审稿意见, 导师反馈, 论文修改, and Introduction/Methods/Results/Figure/Table feedback as `reviewer_revision` study task intake.
+Before foreground manuscript edits, require a structured revision checklist and durable handoff/evidence surface; MDS resume must read the latest revision handoff/evidence surface first.

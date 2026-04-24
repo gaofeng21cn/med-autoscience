@@ -73,3 +73,54 @@ def test_task_intake_progress_override_yields_to_fresh_bundle_only_closeout() ->
         publishability_gate_report=gate_report,
         evaluation_summary=evaluation_summary,
     ) is None
+
+
+def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "study_id": "study-revision",
+        "emitted_at": "2026-04-24T00:00:00+00:00",
+        "task_intent": "根据导师反馈和审稿意见推进论文修改，补齐 Introduction/Methods/Results/Figure/Table feedback。",
+        "constraints": ["前台直接改稿后必须留下 durable handoff。"],
+        "trusted_inputs": ["reviewer feedback letter", "导师反馈截图"],
+        "first_cycle_outputs": ["revision checklist", "MDS handoff note"],
+    }
+
+    summary = module.summarize_task_intake(payload)
+    assert summary["revision_intake"]["kind"] == "reviewer_revision"
+    assert summary["revision_intake"]["status"] == "active"
+    assert summary["revision_intake"]["checklist"] == [
+        "text_revisions",
+        "methods_completeness",
+        "statistical_analysis",
+        "tables_figures",
+        "follow_up_evidence",
+        "discussion_claim_guardrails",
+        "handoff_evidence_surface",
+    ]
+    assert summary["revision_intake"]["handoff_required"] is True
+
+    markdown = module.render_task_intake_markdown(payload)
+    assert "## Revision Intake Checklist" in markdown
+    assert "text revisions" in markdown
+    assert "handoff/evidence surface" in markdown
+
+    runtime_context = module.render_task_intake_runtime_context(payload)
+    assert "Revision intake: reviewer_revision" in runtime_context
+    assert "Latest revision handoff/evidence surface must be read before MDS resume." in runtime_context
+
+
+def test_non_revision_intake_does_not_emit_revision_checklist() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "study_id": "study-scout",
+        "emitted_at": "2026-04-24T00:00:00+00:00",
+        "task_intent": "为新队列做 early evidence framing。",
+        "trusted_inputs": ["dataset dictionary"],
+    }
+
+    summary = module.summarize_task_intake(payload)
+    assert summary.get("revision_intake") is None
+    assert "Revision Intake Checklist" not in module.render_task_intake_markdown(payload)

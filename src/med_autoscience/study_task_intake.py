@@ -31,6 +31,41 @@ _ANALYSIS_ROUTE_MARKERS = (
     "卡方",
     "analysis-campaign",
 )
+_REVIEWER_REVISION_MARKERS = (
+    "reviewer feedback",
+    "reviewer comment",
+    "review comments",
+    "reviewer revision",
+    "manuscript revision",
+    "manuscript-change",
+    "paper revision",
+    "revise manuscript",
+    "revision checklist",
+    "导师反馈",
+    "专家反馈",
+    "审稿意见",
+    "审稿人意见",
+    "论文修改",
+    "稿件修改",
+    "修改意见",
+    "补分析",
+    "改表",
+    "改图",
+    "introduction feedback",
+    "methods feedback",
+    "results feedback",
+    "figure feedback",
+    "table feedback",
+)
+_REVISION_INTAKE_CHECKLIST: tuple[tuple[str, str, str], ...] = (
+    ("text_revisions", "text revisions", "Introduction/Methods/Results/Discussion 等文字修订点已逐条定位。"),
+    ("methods_completeness", "methods completeness", "方法学补充、数据来源、纳排、变量和流程说明已补齐或记录为缺口。"),
+    ("statistical_analysis", "statistical analysis", "新增或修订统计分析、敏感性/亚组/稳健性需求已绑定证据来源。"),
+    ("tables_figures", "tables/figures", "表格、图片、图注和补充材料改动范围已列明。"),
+    ("follow_up_evidence", "follow-up evidence", "后续证据、补充结果和不可完成项有明确状态。"),
+    ("discussion_claim_guardrails", "discussion/claim guardrails", "讨论、结论和 claim 边界没有越过当前证据包。"),
+    ("handoff_evidence_surface", "handoff/evidence surface", "durable handoff 写明数据源、脚本入口、输出表图、改动范围、claim guardrails 与 canonical source 回灌状态。"),
+)
 _BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
 _DETERMINISTIC_SUBMISSION_CLOSEOUT_BLOCKERS = frozenset(
     {
@@ -121,7 +156,7 @@ def summarize_task_intake(payload: dict[str, Any] | None) -> dict[str, Any] | No
     entry_mode = _non_empty_text(payload.get("entry_mode")) or "full_research"
     if task_intent is None and entry_mode is None:
         return None
-    return {
+    summary = {
         "task_id": _non_empty_text(payload.get("task_id")),
         "study_id": _non_empty_text(payload.get("study_id")),
         "emitted_at": _non_empty_text(payload.get("emitted_at")),
@@ -134,6 +169,10 @@ def summarize_task_intake(payload: dict[str, Any] | None) -> dict[str, Any] | No
         "reference_papers": _normalized_strings(payload.get("reference_papers") or []),
         "first_cycle_outputs": _normalized_strings(payload.get("first_cycle_outputs") or []),
     }
+    revision_intake = build_reviewer_revision_intake(payload)
+    if revision_intake is not None:
+        summary["revision_intake"] = revision_intake
+    return summary
 
 
 def _task_intake_text_corpus(payload: dict[str, Any] | None) -> tuple[str, ...]:
@@ -159,6 +198,38 @@ def _task_intake_contains_any(payload: dict[str, Any] | None, markers: tuple[str
         if any(marker.lower() in lowered for marker in markers):
             return True
     return False
+
+
+def task_intake_is_reviewer_revision(payload: dict[str, Any] | None) -> bool:
+    return _task_intake_contains_any(payload, _REVIEWER_REVISION_MARKERS)
+
+
+def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not task_intake_is_reviewer_revision(payload):
+        return None
+    return {
+        "kind": "reviewer_revision",
+        "status": "active",
+        "checklist": [item_id for item_id, _, _ in _REVISION_INTAKE_CHECKLIST],
+        "checklist_items": [
+            {"id": item_id, "label": label, "status": "pending", "requirement": requirement}
+            for item_id, label, requirement in _REVISION_INTAKE_CHECKLIST
+        ],
+        "handoff_required": True,
+        "handoff_evidence_surface": {
+            "required": True,
+            "read_before_mds_resume": True,
+            "minimum_fields": [
+                "data sources",
+                "script entrypoints",
+                "changed tables/figures",
+                "change scope",
+                "claim guardrails",
+                "canonical source reconciliation status",
+                "next owner: MAS controller or MDS paper surface",
+            ],
+        },
+    }
 
 
 def task_intake_overrides_auto_manual_finish(payload: dict[str, Any] | None) -> bool:
@@ -432,6 +503,20 @@ def render_task_intake_markdown(payload: dict[str, Any]) -> str:
         lines.extend(f"- {item}" for item in first_cycle_outputs)
     else:
         lines.append("- None")
+    revision_intake = build_reviewer_revision_intake(payload)
+    if revision_intake is not None:
+        lines.extend(["", "## Revision Intake Checklist", ""])
+        for item in revision_intake["checklist_items"]:
+            lines.append(f"- [{item['status']}] {item['label']}: {item['requirement']}")
+        lines.extend(
+            [
+                "",
+                "## Revision Handoff Constraint",
+                "",
+                "- 前台直接改稿必须留下 durable handoff/evidence surface。",
+                "- MDS 恢复前必须优先读取 latest revision handoff/evidence surface。",
+            ]
+        )
     lines.append("")
     return "\n".join(lines)
 
@@ -460,6 +545,17 @@ def render_task_intake_runtime_context(payload: dict[str, Any]) -> str:
     if first_cycle_outputs:
         lines.append("First-cycle outputs:")
         lines.extend(f"- {item}" for item in first_cycle_outputs)
+    revision_intake = build_reviewer_revision_intake(payload)
+    if revision_intake is not None:
+        checklist = ", ".join(item["id"] for item in revision_intake["checklist_items"])
+        lines.extend(
+            [
+                "Revision intake: reviewer_revision",
+                f"Revision checklist: {checklist}",
+                "Foreground manuscript edits require durable handoff/evidence surface.",
+                "Latest revision handoff/evidence surface must be read before MDS resume.",
+            ]
+        )
     return "\n".join(lines)
 
 
@@ -542,6 +638,9 @@ def write_task_intake(
             ),
         },
     }
+    revision_intake = build_reviewer_revision_intake(payload)
+    if revision_intake is not None:
+        payload["revision_intake"] = revision_intake
     latest_json_path = latest_task_intake_json_path(study_root=resolved_study_root)
     latest_markdown_path = latest_task_intake_markdown_path(study_root=resolved_study_root)
     timestamped_json_path = _timestamped_task_intake_json_path(study_root=resolved_study_root, slug=slug)
