@@ -17,21 +17,14 @@ from med_autoscience.publication_eval_latest import read_publication_eval_latest
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.study_charter import materialize_study_charter
+from med_autoscience.controllers.gate_clearing_batch_blockers import (
+    REPAIRABLE_MEDICAL_SURFACE_BLOCKERS,
+    medical_surface_repair_blockers,
+)
 
 
 SCHEMA_VERSION = 1
 STABLE_GATE_CLEARING_BATCH_RELATIVE_PATH = Path("artifacts/controller/gate_clearing_batch/latest.json")
-REPAIRABLE_MEDICAL_SURFACE_BLOCKERS = frozenset(
-    {
-        "missing_medical_story_contract",
-        "claim_evidence_map_missing_or_incomplete",
-        "figure_catalog_missing_or_incomplete",
-        "table_catalog_missing_or_incomplete",
-        "required_display_catalog_coverage_incomplete",
-        "results_narrative_map_missing_or_incomplete",
-        "derived_analysis_manifest_missing_or_incomplete",
-    }
-)
 _BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
 _BUNDLE_STAGE_GATE_BLOCKERS = frozenset(
     {
@@ -953,12 +946,11 @@ def build_gate_clearing_batch_recommended_action(
         return None
     current_required_action = str(gate_report.get("current_required_action") or "").strip()
 
-    medical_surface_blockers = {
-        str(item or "").strip()
-        for item in (gate_report.get("medical_publication_surface_named_blockers") or [])
-        if str(item or "").strip()
-    }
-    repairable_surface = bool(medical_surface_blockers & REPAIRABLE_MEDICAL_SURFACE_BLOCKERS)
+    medical_surface_blockers = medical_surface_repair_blockers(gate_report)
+    repairable_surface = bool(
+        medical_surface_blockers & REPAIRABLE_MEDICAL_SURFACE_BLOCKERS
+        or "claim_evidence_consistency_failed" in medical_surface_blockers
+    )
     stale_delivery = "stale_study_delivery_mirror" in gate_blockers
     bundle_stage_repair = _bundle_stage_repair_requested(gate_report=gate_report)
     quest_root = _quest_root(profile, quest_id=quest_id)

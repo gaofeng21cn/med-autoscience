@@ -18,6 +18,7 @@ _PARTS = (
     "submission_metadata_resume_signal_cases.py",
     "submission_metadata_drift_cases.py",
     "submission_metadata_cases.py",
+    "submission_metadata_revision_intake_cases.py",
     "live_write_drift_cases.py",
     "restart_and_submission_cases.py",
 )

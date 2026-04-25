@@ -634,6 +634,8 @@ def _should_refresh_runtime_supervision_from_status(
     quest_status = str(status_payload.get("quest_status") or "").strip() or None
     if strict_live:
         target_health_status = "live"
+    elif runtime_supervision_controller.needs_recovery_projection(status_payload, strict_live=strict_live):
+        target_health_status = "recovering"
     elif runtime_supervision_controller._needs_drop_detection(status_payload, strict_live=strict_live):
         target_health_status = "degraded"
     else:

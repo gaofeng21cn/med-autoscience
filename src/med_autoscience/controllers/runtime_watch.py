@@ -27,6 +27,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_escalation_record import RuntimeEscalationRecordRef
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import runtime_watch as runtime_watch_protocol
+from med_autoscience.controllers.runtime_watch_outer_loop_policy import outer_loop_request_requires_fresh_controller_execution
 from med_autoscience.study_decision_record import (
     StudyDecisionCharterRef,
     StudyDecisionControllerAction,
@@ -776,7 +777,6 @@ def _controller_decision_latest_matches_outer_loop_request(
         return True
     return record.runtime_escalation_ref.to_dict() == desired_runtime_escalation_ref
 
-
 def _quest_report_requests_managed_study_reroute(report: Mapping[str, Any] | None) -> bool:
     if not isinstance(report, Mapping):
         return False
@@ -1283,7 +1283,7 @@ def run_watch_for_runtime(
                     study_root=study_root,
                     status_payload=status_payload,
                     tick_request=tick_request,
-                ):
+                ) and not outer_loop_request_requires_fresh_controller_execution(tick_request):
                     wakeup_audit = {
                         **wakeup_audit,
                         "outcome": "skipped_matching_decision",

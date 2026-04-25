@@ -216,13 +216,52 @@ def _status_state(
                 status=result,
                 runtime_context=runtime_context,
             )
-        if _should_refresh_runtime_supervision_from_status(status=result, study_root=study_root):
+        supervisor_tick_is_fresh = str(
+            (result.extras.get("supervisor_tick_audit") or {}).get("status")
+            if isinstance(result.extras.get("supervisor_tick_audit"), dict)
+            else ""
+        ).strip() == "fresh"
+        status_payload_for_supervision = result.to_dict()
+        runtime_facts_for_supervision = runtime_supervision_controller._runtime_facts(status_payload_for_supervision)
+        quest_status_for_supervision = str(status_payload_for_supervision.get("quest_status") or "").strip()
+        refreshable_runtime_supervision = bool(
+            runtime_facts_for_supervision["strict_live"]
+            or (
+                quest_status_for_supervision in {"running", "active"}
+                and runtime_supervision_controller.needs_recovery_projection(
+                    status_payload_for_supervision,
+                    strict_live=bool(runtime_facts_for_supervision["strict_live"]),
+                )
+            )
+        )
+        if (
+            supervisor_tick_is_fresh
+            and refreshable_runtime_supervision
+            and _should_refresh_runtime_supervision_from_status(status=result, study_root=study_root)
+        ):
             runtime_supervision_controller.materialize_runtime_supervision(
                 study_root=study_root,
-                status_payload=result.to_dict(),
+                status_payload=status_payload_for_supervision,
                 recorded_at=router._utc_now(),
                 apply=False,
             )
+            _record_supervisor_tick_audit(status=result, study_root=study_root)
+            if sync_runtime_summary:
+                study_runtime_protocol.persist_runtime_artifacts(
+                    runtime_binding_path=runtime_context.runtime_binding_path,
+                    launch_report_path=runtime_context.launch_report_path,
+                    runtime_root=runtime_context.runtime_root,
+                    study_id=result.study_id,
+                    study_root=Path(result.study_root),
+                    quest_id=result.quest_id if result.quest_exists else None,
+                    last_action=None,
+                    status=result.to_dict(),
+                    source="study_runtime_status",
+                    force=False,
+                    startup_payload_path=None,
+                    daemon_result=None,
+                    recorded_at=router._utc_now(),
+                )
         if include_progress_projection:
             from med_autoscience.controllers import study_progress as study_progress_controller
 

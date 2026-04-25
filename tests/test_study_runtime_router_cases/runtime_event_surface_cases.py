@@ -682,16 +682,18 @@ def test_study_runtime_status_prefers_executor_kind_for_family_source_surface(
 
 
 @pytest.mark.parametrize(
-    ("launch_report_overrides", "expected_mismatch_reason"),
+    ("launch_report_overrides", "expected_mismatch_reason", "existing_supervision_health_status"),
     [
-        ({"active_run_id": "run-launch"}, "launch_report_active_run_id_mismatch"),
+        ({"active_run_id": "run-launch"}, "launch_report_active_run_id_mismatch", "live"),
         (
             {"runtime_liveness_audit": {"status": "none", "active_run_id": "run-live"}},
             "launch_report_runtime_liveness_status_mismatch",
+            "live",
         ),
         (
             {"supervisor_tick_audit": {"status": "stale"}},
             "launch_report_supervisor_tick_status_mismatch",
+            "degraded",
         ),
         (
             {
@@ -706,6 +708,7 @@ def test_study_runtime_status_prefers_executor_kind_for_family_source_surface(
                 }
             },
             "launch_report_publication_supervisor_state_mismatch",
+            "live",
         ),
     ],
 )
@@ -714,6 +717,7 @@ def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_
     tmp_path: Path,
     launch_report_overrides: dict[str, object],
     expected_mismatch_reason: str,
+    existing_supervision_health_status: str,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
@@ -740,7 +744,7 @@ def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_
             {
                 "schema_version": 1,
                 "recorded_at": "2026-04-10T09:25:00+00:00",
-                "health_status": "live",
+                "health_status": existing_supervision_health_status,
             },
             ensure_ascii=False,
         )
@@ -858,6 +862,8 @@ def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_
     assert refreshed_launch_report["active_run_id"] == "run-live"
     assert refreshed_launch_report["runtime_liveness_audit"]["status"] == "live"
     assert refreshed_launch_report["supervisor_tick_audit"]["status"] == "fresh"
+    assert refreshed_launch_report["supervisor_tick_audit"]["last_known_health_status"] == "live"
+    assert result["supervisor_tick_audit"]["last_known_health_status"] == "live"
     assert refreshed_launch_report["publication_supervisor_state"]["supervisor_phase"] == "publishability_gate_blocked"
     assert refreshed_launch_report["publication_supervisor_state"]["bundle_tasks_downstream_only"] is True
     refreshed_runtime_supervision = json.loads(

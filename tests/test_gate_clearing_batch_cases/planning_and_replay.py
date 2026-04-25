@@ -163,6 +163,43 @@ def test_build_gate_clearing_batch_recommended_action_promotes_blocked_bounded_a
     assert action["controller_action_type"] == "run_gate_clearing_batch"
     assert action["gate_clearing_batch_mapping_path"] == str(mapping_path)
     assert "scientific-anchor fields can be frozen" in action["gate_clearing_batch_reason"]
+def test_build_gate_clearing_batch_recommended_action_uses_surface_blocker_details(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+        study_archetype="cross_sectional",
+        endpoint_type="treatment_gap",
+        manuscript_family="observational_study",
+    )
+    publication_eval_payload = _write_blocked_publication_eval(
+        study_root,
+        quest_id="003-dpcc-primary-care-phenotype-treatment-gap",
+    )
+    gate_report = {
+        "status": "blocked",
+        "blockers": ["medical_publication_surface_blocked"],
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_blockers": [
+            "missing_medical_story_contract",
+            "figure_semantics_manifest_missing_or_incomplete",
+            "undefined_methodology_labels_present",
+            "treatment_gap_reporting_incomplete",
+        ],
+    }
+
+    action = module.build_gate_clearing_batch_recommended_action(
+        profile=profile,
+        study_root=study_root,
+        quest_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        publication_eval_payload=publication_eval_payload,
+        gate_report=gate_report,
+    )
+
+    assert action is not None
+    assert action["controller_action_type"] == "run_gate_clearing_batch"
+    assert "paper-facing display/reporting blockers" in action["gate_clearing_batch_reason"]
 def test_build_gate_clearing_batch_recommended_action_promotes_bundle_stage_return_to_finalize(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
     profile = make_profile(tmp_path)
