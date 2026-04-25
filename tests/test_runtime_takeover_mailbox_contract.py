@@ -22,6 +22,8 @@ def test_runtime_control_surface_defines_mailbox_and_takeover_semantics() -> Non
 
     assert "## 6. takeover / mailbox semantics" in doc
     assert "新的用户消息不启动第二个 runner" in doc
+    assert "新用户消息必须优先于 retry / backoff 计时" in doc
+    assert "preempt retry/backoff" in doc
     assert "pending_user_message_count" in doc
     assert "queued user messages 不得被静默 replay" in doc
     assert "人工接管不是本地文件旁路写入" in doc

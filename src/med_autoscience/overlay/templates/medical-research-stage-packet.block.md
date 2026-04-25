@@ -37,8 +37,8 @@ Before leaving the stage, write or refresh a stage-end packet with:
 
 ### Medical route mapping
 
-- `idea`: produce an objective contract and candidate board before selecting a route.
-- `analysis-campaign`: bind every analysis batch to a claim, concern, or bounded route-back reason.
-- `write`: bind each section repair to evidence refs and reviewer-first concerns.
-- `finalize`: verify submission-facing truth, declarations, caveats, and artifact freshness before package readiness.
-- `decision`: choose continue, route-back, human gate, or stop from durable truth, not from momentum.
+- `idea`: produce an idea objective contract and candidate board before selecting a route; record why each serious candidate remains viable or is rejected.
+- `analysis-campaign`: define a bounded campaign before running analysis; bind every batch to a claim, concern, or bounded route-back reason.
+- `write`: treat each repair as an evidence-bound repair; bind section edits to evidence refs, reviewer-first concerns, caveats, and claim downgrades.
+- `finalize`: verify submission truth before package readiness, including declarations, caveats, artifact freshness, submission gates, and unresolved human gates.
+- `decision`: record the route outcome from durable truth: continue, route-back, bounded analysis, write repair, finalize, human gate, or stop.

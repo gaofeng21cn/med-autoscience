@@ -16,13 +16,17 @@
 
 ## MAS 吸收决策
 
-| Lesson | Decision | MAS owner surface | 落地方式 |
-| --- | --- | --- | --- |
-| durable continuity spine | `adopt_contract` | runtime / workspace projection | 明确 artifact、memory、execution evidence 在 MAS 的职责分工 |
-| takeover / resume / mailbox semantics | `adopt_contract` | runtime control surface | 定义 running study 收到新用户输入、暂停、继续、停止、接管的治理语义 |
-| inspectable workspace | `adopt_contract` | product-entry / study-progress | 将 workspace 可见性表达为 artifact inventory、恢复点和可接管状态 |
-| stage operational packets | `adopt_template` | controller_charter / eval_hygiene | 新增医学化 stage packet 模板，覆盖 idea、bounded analysis、write repair、finalize |
-| failed-path learning | `adopt_contract` | portfolio memory / evidence-review | 失败路线和 reproduction lesson 进入 durable truth 或 reusable memory 的边界 |
+| Upstream change | Lesson | Decision | MAS owner surface | 落地方式 |
+| --- | --- | --- | --- | --- |
+| `daemon: prioritize new user messages over retry backoff` | MDS retry priority | `adopt_code_slice` | runtime control surface | 新用户输入必须 preempt retry/backoff，进入 durable mailbox / takeover semantics，且不启动第二个 authority writer |
+| `artifact: add overwrite baseline refresh flow` | baseline refresh | `adopt_contract` | runtime / eval_hygiene | 将 overwrite 约束为 medical baseline refresh record，要求 affected surfaces、verification refs 和 route decision |
+| `skills: refine idea, analysis, and write SOPs` | stage operational packets / SOP | `adopt_template` | controller_charter / eval_hygiene | 医学化 stage packet 覆盖 idea objective contract / candidate board、analysis bounded campaign、write evidence-bound repair、finalize submission truth、decision route outcome |
+| quest / artifact / memory continuity reinforcement | durable continuity spine | `adopt_contract` | runtime / workspace projection | 明确 artifact、memory、execution evidence 在 MAS 的职责分工 |
+| workspace visibility and recovery affordances | inspectable workspace | `adopt_contract` | product-entry / study-progress | 将 workspace 可见性表达为 artifact inventory、恢复点和可接管状态 |
+| failed-path and reproduction notes | failed-path learning | `adopt_contract` | portfolio memory / evidence-review | 失败路线和 reproduction lesson 进入 durable truth 或 reusable memory 的边界 |
+| `feat: add idea draft template and attachment preview modal` | idea template shape and attachment visibility | `watch_only` | workspace projection | 只观察交互形态；MAS 不把 modal / product UI 当作 owner truth |
+| `ui: update workspace, settings, and copilot surfaces` | UI / product shell | `watch_only` | none | 保留为可见性参考，不追随 upstream UI 包 |
+| provider / connector / commercial entry changes | provider / connector surface | `reject` | none | 不吸收 provider 配置扩面、connector 入口或 marketing surface |
 
 ## 不吸收的内容
 

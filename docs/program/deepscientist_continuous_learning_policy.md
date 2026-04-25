@@ -8,6 +8,18 @@
 
 `MAS` 学习 `DeepScientist`，学习的是可迁移的研究系统能力，而不是追随仓库形态、UI 外观或 provider 配置。
 
+学习对象按 owner truth 固定为三类：
+
+- behavior：长期研究如何保持连续、可接管、可恢复、可审计。
+- contract：这些行为如何落到 `MAS` 的 study / runtime / publication / controller 合同。
+- packet：每个研究阶段如何留下可接力的 objective、evidence、route outcome、resume point 和 failed-path 记录。
+
+明确不学习三类内容作为 MAS 主线：
+
+- provider：上游新增 provider、connector、账号配置、商业入口或 hosted 产品路径。
+- UI：workspace、settings、copilot、modal、附件预览等产品界面形态。
+- marketing：产品文案、商业化表述、demo 包装或非医学研究 owner surface。
+
 长期学习对象固定为五类：
 
 1. durable continuity spine：任务、文件、artifact、memory、branch、terminal 如何组成可恢复研究状态。
@@ -76,6 +88,7 @@
 
 - 不把 upstream 大包 merge 当成学习。
 - 不把 provider、商业化入口、UI 文案更新当成 MAS 主线能力。
+- 不把 provider / UI / marketing 变化升级成 MAS behavior、contract 或 packet。
 - 不让上游 prompt 或 workflow 直接覆盖 MAS 医学研究合同。
 - 不用 memory 替代 study-level durable truth。
 - 不用 MDS fork 现状限制 MAS 的长期学习面。

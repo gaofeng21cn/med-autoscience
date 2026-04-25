@@ -25,6 +25,11 @@ def test_medical_stage_packet_block_defines_start_end_and_tool_discipline() -> N
     assert "exact resume point" in packet
     assert "Use memory only when a reusable lesson should change future default behavior" in packet
     assert "Medical route mapping" in packet
+    assert "idea objective contract and candidate board" in packet
+    assert "bounded campaign" in packet
+    assert "evidence-bound repair" in packet
+    assert "submission truth" in packet
+    assert "route outcome from durable truth" in packet
 
 
 def test_core_medical_stage_templates_reference_stage_packet_block() -> None:

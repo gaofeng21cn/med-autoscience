@@ -217,6 +217,8 @@
 
 正式语义：
 
+- 新用户消息必须优先于 retry / backoff 计时；runtime 可以 preempt retry/backoff 进入下一次可审计 interaction point。
+- preempt 只改变调度优先级，不改变 study authority，也不允许 provider / UI bypass。
 - 消息进入 quest-local `user_message_queue`。
 - runtime state 必须暴露 `pending_user_message_count`。
 - interaction journal 必须留下 `user_inbound` 事件。
