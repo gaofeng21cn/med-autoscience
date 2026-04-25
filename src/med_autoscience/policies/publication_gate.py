@@ -83,10 +83,21 @@ def build_intervention_message(report: dict[str, object]) -> str:
     metrics = report.get("headline_metrics") or {}
     blockers = {str(item).strip() for item in (report.get("blockers") or []) if str(item).strip()}
     route_back = str(report.get("medical_publication_surface_route_back_recommendation") or "").strip()
-    if blockers and blockers.issubset({"medical_publication_surface_blocked", "submission_hardening_incomplete"}) and route_back == "return_to_finalize":
+    bundle_stage_blockers = {
+        "medical_publication_surface_blocked",
+        "submission_hardening_incomplete",
+        "stale_submission_minimal_authority",
+        "submission_surface_qc_failure_present",
+        "missing_submission_minimal",
+        "missing_paper_compile_report",
+        "missing_journal_package",
+        "stale_study_delivery_mirror",
+        "unmanaged_submission_surface_present",
+    }
+    if blockers and blockers.issubset(bundle_stage_blockers) and "submission_hardening_incomplete" in blockers and route_back == "return_to_finalize":
         return (
             "Hard control message from Codex orchestration layer: stop uncontrolled expansion now. "
-            "The latest publication gate blockers are limited to submission hardening. "
+            "The latest publication gate blockers are limited to same-line submission hardening and package synchronization. "
             "Do not launch new model search, new broad literature expansion, or new analysis campaigns. "
             "Resume the same paper line through a bounded `finalize` / submission-hardening pass: "
             "repair manuscript Methods, statistical reporting, claim-to-table/figure mapping, and clinical actionability, "

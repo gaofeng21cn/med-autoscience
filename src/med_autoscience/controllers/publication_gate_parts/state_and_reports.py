@@ -840,6 +840,10 @@ def _bundle_stage_is_on_critical_path(
         if str(item or "").strip()
     }
     bundle_stage_blockers = set(_BUNDLE_STAGE_ONLY_BLOCKERS) | {"submission_hardening_incomplete"}
-    if normalized_blockers == {"medical_publication_surface_blocked", "submission_hardening_incomplete"}:
-        return named_blockers == {"submission_hardening_incomplete"}
+    if "medical_publication_surface_blocked" in normalized_blockers:
+        if named_blockers != {"submission_hardening_incomplete"}:
+            return False
+        normalized_blockers = normalized_blockers - {"medical_publication_surface_blocked"}
+        if "submission_hardening_incomplete" not in normalized_blockers:
+            return False
     return bool(normalized_blockers) and normalized_blockers.issubset(bundle_stage_blockers)

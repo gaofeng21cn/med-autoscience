@@ -845,3 +845,47 @@ def test_publication_gate_intervention_allows_bounded_submission_hardening_final
     assert "bounded `finalize` / submission-hardening pass" in message
     assert "Do not continue write" not in message
     assert "new analysis campaigns" in message
+
+
+def test_submission_hardening_with_stale_package_stays_on_bundle_path() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+
+    state = module.build_publication_supervisor_state(
+        anchor_kind="paper_bundle",
+        allow_write=False,
+        blockers=[
+            "stale_submission_minimal_authority",
+            "medical_publication_surface_blocked",
+            "submission_hardening_incomplete",
+            "submission_surface_qc_failure_present",
+        ],
+        medical_publication_surface_named_blockers=["submission_hardening_incomplete"],
+        bundle_stage_ready=True,
+    )
+
+    assert state["supervisor_phase"] == "bundle_stage_blocked"
+    assert state["bundle_tasks_downstream_only"] is False
+    assert state["current_required_action"] == "complete_bundle_stage"
+
+
+def test_submission_hardening_intervention_allows_bounded_finalize_with_package_sync() -> None:
+    module = importlib.import_module("med_autoscience.policies.publication_gate")
+
+    message = module.build_intervention_message(
+        {
+            "run_id": "run-hardening",
+            "blockers": [
+                "stale_submission_minimal_authority",
+                "medical_publication_surface_blocked",
+                "submission_hardening_incomplete",
+                "submission_surface_qc_failure_present",
+            ],
+            "medical_publication_surface_route_back_recommendation": "return_to_finalize",
+            "missing_non_scalar_deliverables": [],
+            "headline_metrics": {},
+        }
+    )
+
+    assert "bounded `finalize` / submission-hardening pass" in message
+    assert "Do not continue write" not in message
+    assert "rebuild submission_minimal" in message
