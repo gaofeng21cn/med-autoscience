@@ -60,7 +60,7 @@ You can start with prompts like:
 
 - `Med Auto Science` is an independent medical research domain agent that can be called directly by Codex or other general-purpose agents.
 - Its single MAS app skill is the stable front door for callers that want the repo-tracked skill surface.
-- Under that skill, the stable callable surface is the local CLI, workspace commands/scripts, durable surfaces, and repo-tracked contracts.
+- Under that skill, the stable callable surface is the local CLI, MCP tools, product-entry surfaces, controller-authorized workspace commands/scripts, durable surfaces, and repo-tracked contracts.
 - `OPL` handoff, the product-entry manifest, and other machine-readable bridge payloads belong to the integration or reference layer.
 - It owns study intake, workspace context, evidence progression, progress reporting, and manuscript-facing delivery.
 - `OPL` stays at family-level session/runtime/projection orchestration and shared modules/contracts/indexes; it does not redefine MAS as an internal module.
@@ -81,7 +81,7 @@ You can start with prompts like:
 - Read the [Docs Guide](./docs/README.md) first. It maps the current product boundary, operator entry surfaces, and the technical reading order.
 - If you need to bootstrap or take over a disease workspace, read [Bootstrap](./bootstrap/README.md) next. It explains the workspace-first model and the `init-workspace -> doctor -> show-profile -> bootstrap` path.
 - Treat [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md) as the repo-tracked truth set before changing runtime or docs.
-- The current operator entry surfaces are `CLI`, `MCP`, and `controller`. Product-entry and runtime contracts live under `docs/runtime/` and `docs/program/`, so an agent can start there instead of reverse-engineering the codebase; the stable callable surface remains the local CLI, workspace commands/scripts, durable surfaces, and repo-tracked contracts.
+- The current operator entry surfaces are `CLI`, `MCP`, `product-entry`, and `controller`. Product-entry and runtime contracts live under `docs/runtime/` and `docs/program/`, so an agent can start there instead of reverse-engineering the codebase; the stable callable surface remains the local CLI, MCP tools, product-entry surfaces, controller-authorized workspace commands/scripts, durable surfaces, and repo-tracked contracts.
 - When an external agent needs the repo-tracked MAS skill surface directly, use `medautosci product skill-catalog --profile <profile> --format json`; it returns the single MAS app skill, the underlying command contracts, and a machine-readable `runtime_continuity` envelope projected from existing runtime/session/progress/artifact surfaces.
 
 </details>

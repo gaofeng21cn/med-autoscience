@@ -208,6 +208,10 @@ def test_render_entry_modes_guide_contains_required_contract_context() -> None:
     assert "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode" in guide
     assert "report `browser_url`, `quest_session_api_url`, and `active_run_id` when present" in guide
     assert "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions." in guide
+    assert "## No Ad-hoc Execution Rule" in guide
+    assert "agents must use controller-authorized `CLI`, `MCP`, `product-entry`, or runtime surfaces" in guide
+    assert "stop and close the contract gap" in guide
+    assert "do not bypass MAS with ad-hoc scripts" in guide
     assert "Treat reviewer feedback, manuscript revision, mentor feedback" in guide
     assert "MDS resume must read the latest revision handoff/evidence surface first" in guide
     assert "user manuscript-change requests from Codex have been converted into a study revision intake" in guide

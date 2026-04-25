@@ -208,7 +208,7 @@ def list_tools() -> list[dict[str, Any]]:
         },
         {
             "name": "product_entry",
-            "description": "Read MedAutoScience product-entry surfaces through one tool: product_frontdesk, product_preflight, product_start, product_entry_manifest, or build_product_entry.",
+            "description": "Read MedAutoScience product-entry surfaces through one tool: product_frontdesk, product_preflight, product_start, product_entry_manifest, or build_product_entry. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution.",
             "inputSchema": {
                 "type": "object",
                 "properties": {

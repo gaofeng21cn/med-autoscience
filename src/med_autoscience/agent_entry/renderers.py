@@ -107,6 +107,13 @@ def render_entry_modes_guide() -> str:
             "and do not write runtime-owned study surfaces.",
             "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions.",
             "",
+            "## No Ad-hoc Execution Rule",
+            "When operating MAS-covered work, agents must use controller-authorized `CLI`, `MCP`, "
+            "`product-entry`, or runtime surfaces before writing research outputs or advancing a study route.",
+            "If a required capability is not exposed through those MAS contracts, stop and close the contract gap "
+            "in the repo-tracked controller/callable surface before continuing; do not bypass MAS with ad-hoc "
+            "scripts, direct artifact edits, prompt-only research chains, or generic document/PDF/Office tooling.",
+            "",
             "## Revision Intake Rule",
             "Treat reviewer feedback, manuscript revision, mentor feedback, 审稿意见, 导师反馈, 论文修改, "
             "and Introduction/Methods/Results/Figure/Table feedback as `reviewer_revision` study task intake.",
@@ -267,6 +274,13 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
             "notify the user, report `browser_url`, `quest_session_api_url`, and `active_run_id` when present, "
             "and do not write runtime-owned study surfaces.",
             "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions.",
+            "",
+            "## No Ad-hoc Execution Rule",
+            "When operating MAS-covered work, agents must use controller-authorized `CLI`, `MCP`, "
+            "`product-entry`, or runtime surfaces before writing research outputs or advancing a study route.",
+            "If a required capability is not exposed through those MAS contracts, stop and close the contract gap "
+            "in the repo-tracked controller/callable surface before continuing; do not bypass MAS with ad-hoc "
+            "scripts, direct artifact edits, prompt-only research chains, or generic document/PDF/Office tooling.",
             "",
             "## Revision Intake Rule",
             "Treat reviewer feedback, manuscript revision, mentor feedback, 审稿意见, 导师反馈, 论文修改, "
