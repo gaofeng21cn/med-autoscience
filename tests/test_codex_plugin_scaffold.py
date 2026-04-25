@@ -22,7 +22,7 @@ def test_codex_plugin_scaffold_exists_and_points_to_repo_local_plugin() -> None:
     assert manifest["name"] == "mas"
     assert manifest["skills"] == "./skills/"
     assert manifest["mcpServers"] == "./.mcp.json"
-    assert manifest["interface"]["displayName"] == "MAS"
+    assert manifest["interface"]["displayName"] == "Med Auto Science"
     assert "medautosci" in skill_text
     assert json.loads(PLUGIN_MCP_PATH.read_text(encoding="utf-8"))["mcpServers"]["med-autoscience"]["command"] == (
         "medautosci-mcp"
