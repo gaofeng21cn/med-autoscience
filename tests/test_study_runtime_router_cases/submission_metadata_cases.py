@@ -974,3 +974,94 @@ def test_study_runtime_status_reroutes_live_write_drift_back_to_publication_gate
     assert result["reason"] == "quest_drifting_into_write_without_gate_approval"
     assert result["publication_supervisor_state"]["current_required_action"] == "return_to_publishability_gate"
     assert result["execution_owner_guard"]["supervisor_only"] is True
+
+
+def test_explicit_reviewer_revision_intake_resumes_paused_delivered_package(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+    write_submission_metadata_only_bundle(
+        quest_root,
+        blocking_item_ids=[
+            "author_metadata",
+            "ethics_statement",
+            "human_subjects_consent_statement",
+            "ai_declaration",
+        ],
+    )
+    write_synced_submission_delivery(study_root, quest_root)
+    write_text(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "emitted_at": "2026-04-25T03:00:00+00:00",
+                "entry_mode": "full_research",
+                "task_intent": "Reviewer revision: absorb reviewer feedback and revise manuscript tables and figures.",
+                "constraints": [
+                    "Treat this as explicit user wakeup after submission-package parking.",
+                    "Do not keep the previous submission-ready/finalize parking state as current truth.",
+                ],
+                "first_cycle_outputs": ["revised manuscript package"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    calls: list[str] = []
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "_prepare_runtime_overlay",
+        lambda *, profile, quest_root: calls.append("prepare_overlay") or make_runtime_overlay_result(),
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
+        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: calls.append("resume")
+        or {"ok": True, "status": "running", "snapshot": {"status": "running"}},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="user_explicit_wakeup")
+
+    assert result["decision"] == "resume"
+    assert result["quest_status"] == "running"
+    assert calls == ["prepare_overlay", "sync_context", "resume"]

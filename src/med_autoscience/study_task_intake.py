@@ -234,7 +234,10 @@ def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, 
 
 def task_intake_overrides_auto_manual_finish(payload: dict[str, Any] | None) -> bool:
     # 这里只接受 durable task intake 中明确写出的强语义，不做泛化 NLP 推断。
-    return _task_intake_contains_any(payload, _DIRECT_FINALIZE_DOWNGRADE_MARKERS)
+    return task_intake_is_reviewer_revision(payload) or _task_intake_contains_any(
+        payload,
+        _DIRECT_FINALIZE_DOWNGRADE_MARKERS,
+    )
 
 
 def _integer_value(value: object) -> int | None:
