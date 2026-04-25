@@ -358,6 +358,8 @@ def task_intake_yields_to_deterministic_submission_closeout(
 ) -> bool:
     if not task_intake_overrides_auto_manual_finish(payload):
         return False
+    if task_intake_is_reviewer_revision(payload):
+        return False
     if _task_intake_yields_to_blocked_submission_closeout(publishability_gate_report):
         return True
     return _task_intake_yields_to_bundle_only_submission_closeout(
