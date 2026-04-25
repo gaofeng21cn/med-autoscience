@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
@@ -16,9 +15,12 @@ from med_autoscience.runtime_protocol import (
     study_runtime as study_runtime_protocol,
     user_message,
 )
-from med_autoscience.study_decision_record import StudyDecisionRecord
 from med_autoscience.study_completion import StudyCompletionState
 
+from .study_runtime_execution_parts.controller_authorization import (
+    _load_controller_decision_route_context,
+    _relay_controller_decision_authorization_if_required,
+)
 from .study_runtime_transport import _get_quest_session
 from .study_runtime_status import (
     StudyCompletionSyncResult,
@@ -58,12 +60,6 @@ _LIVE_CONTROLLER_REROUTE_REQUIRED_ACTION_BY_REASON = {
     StudyRuntimeReason.QUEST_DRIFTING_INTO_WRITE_WITHOUT_GATE_APPROVAL: "return_to_publishability_gate",
     StudyRuntimeReason.QUEST_STALE_DECISION_AFTER_WRITE_STAGE_READY: "continue_write_stage",
 }
-_ROUTE_TARGET_LABELS = {
-    "analysis-campaign": "有限补充分析",
-    "write": "当前论文主线写作",
-    "review": "质量复评",
-    "finalize": "finalize / 投稿包收口",
-}
 
 
 def _router_module():
@@ -72,29 +68,6 @@ def _router_module():
 
 def _should_run_startup_hydration_for_resume(*, status: StudyRuntimeStatus) -> bool:
     return status.runtime_reentry_gate_result.require_startup_hydration
-
-
-def _load_controller_decision_route_context(*, study_root: Path) -> dict[str, str] | None:
-    decision_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
-    if not decision_path.exists():
-        return None
-    try:
-        payload = json.loads(decision_path.read_text(encoding="utf-8")) or {}
-        record = StudyDecisionRecord.from_payload(payload if isinstance(payload, dict) else {})
-    except (OSError, ValueError, TypeError):
-        return None
-    if (
-        record.route_target is None
-        or record.route_key_question is None
-        or record.route_rationale is None
-    ):
-        return None
-    return {
-        "route_target": record.route_target,
-        "route_target_label": _ROUTE_TARGET_LABELS.get(record.route_target, record.route_target),
-        "route_key_question": record.route_key_question,
-        "route_rationale": record.route_rationale,
-    }
 
 
 def _append_route_context_to_message(*, message: str, route_context: dict[str, str] | None) -> str:
@@ -783,6 +756,7 @@ def _execute_resume_runtime_decision(
                 quest_state.load_runtime_state(context.quest_root).get("same_fingerprint_auto_turn_count") or 0
             ),
         }
+    _relay_controller_decision_authorization_if_required(status=status, context=context)
     _relay_controller_owned_runtime_reply_if_required(status=status, context=context)
     if _should_skip_redundant_resume_for_live_controller_reroute(status=status) and not force_live_controller_reroute_restart:
         outcome.binding_last_action = StudyRuntimeBindingAction.NOOP
@@ -943,6 +917,7 @@ def _execute_runtime_decision(
     if status.decision == StudyRuntimeDecision.COMPLETED:
         return StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.COMPLETED)
     if status.decision == StudyRuntimeDecision.NOOP:
+        _relay_controller_decision_authorization_if_required(status=status, context=context)
         return StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.NOOP)
     if status.decision == StudyRuntimeDecision.BLOCKED:
         return StudyRuntimeExecutionOutcome(

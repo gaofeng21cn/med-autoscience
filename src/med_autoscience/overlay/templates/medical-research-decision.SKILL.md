@@ -14,6 +14,7 @@ Use this skill whenever continuation is non-trivial.
 - Message templates are references only. Adapt to context and vary wording so updates feel natural and non-robotic.
 - If the runtime starts an auto-continue turn with no new user message, continue from the active requirements and durable quest state instead of replaying the previous user turn.
 - If `startup_contract.decision_policy = autonomous`, do not emit ordinary `artifact.interact(kind='decision_request', ...)` calls; decide the route yourself, record the reason, and continue.
+- If `publication_eval/latest.json` asks for `requires_controller_decision=true`, but `artifacts/controller_decisions/latest.json` already records the matching route, treat that controller decision as the MAS authorization for the next bounded route instead of asking the user to send `/resume`.
 - In MAS-managed mode, do not use runtime blocking for internal route selection, finalize transitions, package adequacy, publishability, or completion coordination.
 - If a threaded user reply arrives, interpret it relative to the latest decision or progress interaction before assuming the task changed completely.
 - In MAS-managed autonomous mode, completion is handled by MAS outer-loop policy; MDS must not open a runtime blocking approval request for routine quest closure.

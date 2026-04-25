@@ -412,6 +412,16 @@ def test_load_overlay_skill_text_hard_blocks_compute_until_startup_boundary_is_r
     assert "Do not execute legacy implementation code" in text
 
 
+def test_analysis_campaign_overlay_treats_materialized_controller_decision_as_authorization() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    text = module.load_overlay_skill_text("analysis-campaign", base_text="# upstream analysis-campaign\n")
+
+    assert "artifacts/controller_decisions/latest.json" in text
+    assert "treat that controller decision as the active MAS authorization" in text
+    assert "Do not park solely because `publication_eval/latest.json` still says `requires_controller_decision=true`" in text
+
+
 def test_ensure_medical_overlay_noops_when_targets_are_ready(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     home = tmp_path / "home"

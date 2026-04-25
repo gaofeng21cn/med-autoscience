@@ -7,6 +7,12 @@ Apply [medical stage packet discipline](./medical-research-stage-packet.block.md
 
 Treat follow-up campaigns as publication-strength evidence building, not as endless metric polishing.
 
+Controller reentry rule:
+
+- If an auto-continue turn has no new user message, but `artifacts/controller_decisions/latest.json` authorizes the current `analysis-campaign` route, treat that controller decision as the active MAS authorization for this bounded campaign.
+- Do not park solely because `publication_eval/latest.json` still says `requires_controller_decision=true` when the matching controller decision has already been materialized.
+- In that case, execute the named `route_key_question` and write the answer back to durable evidence, review, or route surfaces; only stop if a true external credential, human-only choice, or startup boundary blocks the route.
+
 {{MED_AUTOSCIENCE_ROUTE_BIAS}}
 
 {{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}

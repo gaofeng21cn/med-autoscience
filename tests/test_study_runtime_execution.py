@@ -44,6 +44,60 @@ def _patch_router(monkeypatch, module) -> None:
     )
 
 
+def _write_controller_decision_authorization(study_root: Path) -> Path:
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    decision_path.parent.mkdir(parents=True, exist_ok=True)
+    decision_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "decision_id": "decision-analysis-001",
+                "study_id": "001-risk",
+                "quest_id": "quest-001",
+                "emitted_at": "2026-04-25T06:20:00+00:00",
+                "decision_type": "bounded_analysis",
+                "charter_ref": {
+                    "charter_id": "charter::001-risk::v1",
+                    "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                },
+                "runtime_escalation_ref": {
+                    "record_id": "runtime-escalation::001-risk::quest-001::controller-gap",
+                    "artifact_path": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
+                    "summary_ref": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
+                },
+                "publication_eval_ref": {
+                    "eval_id": "publication-eval::001-risk::quest-001::latest",
+                    "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                },
+                "requires_human_confirmation": False,
+                "controller_actions": [
+                    {
+                        "action_type": "ensure_study_runtime",
+                        "payload_ref": str(decision_path),
+                    }
+                ],
+                "reason": "Route bounded revision analysis back into the active runtime.",
+                "route_target": "analysis-campaign",
+                "route_key_question": (
+                    "revision checklist mapping each user comment to manuscript/table/figure/reference changes"
+                ),
+                "route_rationale": "The revision line needs a bounded quality pass under the same manuscript route.",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return decision_path
+
+
+def _write_runtime_state(quest_root: Path, payload: dict[str, object]) -> None:
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def test_runtime_execution_router_patch_exposes_generic_managed_runtime_transport_alias(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     _patch_router(monkeypatch, module)
@@ -182,6 +236,119 @@ def test_controller_owned_interaction_reply_message_appends_route_context(monkey
     assert "当前正式 route 是“当前论文主线写作”" in message
     assert "当前关键问题是" in message
     assert "这样推进的理由是" in message
+
+
+def test_execute_noop_runtime_decision_relays_controller_authorization_to_live_runtime(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    decision_path = _write_controller_decision_authorization(study_root)
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-live-001",
+            "pending_user_message_count": 0,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    chats: list[dict[str, object]] = []
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            chats.append(
+                {
+                    "runtime_root": runtime_root,
+                    "quest_id": quest_id,
+                    "text": text,
+                    "source": source,
+                }
+            )
+            return {"ok": True, "message": {"id": "msg-auth-001"}}
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert len(chats) == 1
+    assert chats[0]["quest_id"] == "quest-001"
+    assert chats[0]["source"] == "medautosci-test"
+    assert str(decision_path) in str(chats[0]["text"])
+    assert "publication_eval/latest.json" in str(chats[0]["text"])
+    assert "requires_controller_decision=true" in str(chats[0]["text"])
+    assert "revision checklist mapping each user comment" in str(chats[0]["text"])
+    relay = status.to_dict()["controller_decision_authorization_relay"]
+    assert relay["delivery_mode"] == "managed_runtime_chat"
+    assert relay["message_id"] == "msg-auth-001"
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert runtime_state["last_controller_decision_authorization"] == {
+        "decision_id": "decision-analysis-001",
+        "route_target": "analysis-campaign",
+        "route_key_question": (
+            "revision checklist mapping each user comment to manuscript/table/figure/reference changes"
+        ),
+        "active_run_id": "run-live-001",
+        "delivery_mode": "managed_runtime_chat",
+        "message_id": "msg-auth-001",
+        "source": "medautosci-test",
+    }
+
+
+def test_execute_noop_runtime_decision_deduplicates_controller_authorization_for_same_run(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    _write_controller_decision_authorization(study_root)
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-live-001",
+            "pending_user_message_count": 0,
+            "last_controller_decision_authorization": {
+                "decision_id": "decision-analysis-001",
+                "route_target": "analysis-campaign",
+                "route_key_question": (
+                    "revision checklist mapping each user comment to manuscript/table/figure/reference changes"
+                ),
+                "active_run_id": "run-live-001",
+                "delivery_mode": "managed_runtime_chat",
+                "message_id": "msg-auth-001",
+                "source": "medautosci-test",
+            },
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("controller authorization should be deduplicated for the same active run")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert "controller_decision_authorization_relay" not in status.to_dict()
 
 
 def test_force_restart_for_live_controller_reroute_supports_write_stage_ready(monkeypatch, tmp_path: Path) -> None:
