@@ -2,8 +2,8 @@
 
 `MedAutoScience` 默认按 `Agent-first, human-auditable` 的方式运行。
 
-对外，它是 `Research Ops` 的 `domain gateway`。
-对内，它是承载 controller、runtime、eval、delivery 的医学自动科研 `Domain Harness OS`。
+对外，它是疾病研究与 manuscript-delivery 方向的独立 medical research domain agent。
+对内，`domain gateway / Domain Harness OS` 只作为 controller、runtime、eval、delivery 的边界层与执行层语言保留。
 
 这不是一句 README 口号，而是平台级操作约束：
 
@@ -13,7 +13,7 @@
 
 在 `OPL` 联邦链路里，推荐始终按下面这条理解：
 
-`Human / Agent -> OPL Gateway -> MedAutoScience domain gateway -> MedAutoScience Domain Harness OS -> runtime / eval / delivery surfaces`
+`Human / Agent -> MAS app skill / MedAutoScience domain-agent entry -> controlled runtime backend -> runtime / eval / delivery surfaces`
 
 这意味着：
 
@@ -57,7 +57,7 @@
 ### MedDeepScientist
 
 - 作为底层自动科研执行引擎，负责 scout、idea、experiment、write、finalize 等任务推进
-- 由 `MedAutoScience` 这个 domain gateway / harness OS 控制面注入医学特化 overlay、研究偏置和论文门控
+- 由 `MedAutoScience` 的 domain-agent 控制面注入医学特化 overlay、研究偏置和论文门控
 
 ### ToolUniverse 与公开数据侧挂
 
@@ -81,7 +81,7 @@
 - portfolio / studies / runtime artifacts
   - 作为人类审核面和长期审计面
 
-这些操作面属于 `MedAutoScience` 的 domain gateway 对外控制表面；它们驱动的 controller、runtime、eval、delivery 链条，则属于内部 harness OS 的运行表面。
+这些操作面属于 `MedAutoScience` 的 domain-agent 对外控制表面；它们驱动的 controller、runtime、eval、delivery 链条，则属于内部 execution/runtime surface。
 当前 repo-tracked 产品主线按 `Auto-only` 理解；未来若要做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate，而不是把当前仓改成同仓双模。
 
 对 workspace 的状态 mutation，默认遵循以下原则：

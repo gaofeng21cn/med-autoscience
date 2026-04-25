@@ -3,12 +3,13 @@
 ## 文档目的
 
 这份文档用于统一内部口径：`Med Auto Science` 不是一个独立新造的公共基础框架，而是运行在共享 `Unified Harness Engineering Substrate` 上的医学 `Research Ops` `Domain Harness OS`。
+当前状态说明（2026-04-25）：本文保留为内部 harness/substrate 边界参考。当前公开第一身份是独立 medical research domain agent 与单一 MAS app skill；`Domain Harness OS` 词汇只用于内部执行、治理与兼容边界。
 
 ## 1) 在 Unified Harness Engineering Substrate 中的位置
 
 可按下面这条链路理解：
 
-`User / Agent -> OPL Gateway（可选）-> Unified Harness Engineering Substrate -> Med Auto Science（医学 Domain Harness OS）-> 受控 MedDeepScientist surface`
+`User / Agent -> MAS app skill / MedAutoScience domain-agent entry -> 受控 MedDeepScientist backend -> runtime / eval / delivery surfaces`
 
 其中：
 
@@ -40,7 +41,7 @@
 
 当前 repo-tracked 默认 runtime 形态不是继续深化旧 `Codex-default host-agent runtime`，而是：
 
-- `MedAutoScience` = 唯一研究入口与 domain gateway
+- `MedAutoScience` = 唯一研究入口与 domain-agent entry
 - `Hermes` = 默认 outer runtime substrate owner
 - `MedDeepScientist` = controlled research backend
 - 旧 `Codex-default host-agent runtime` = 只保留为迁移期对照面与 regression oracle
