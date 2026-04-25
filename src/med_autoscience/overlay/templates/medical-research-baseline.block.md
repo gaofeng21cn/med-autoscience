@@ -30,3 +30,11 @@ Before declaring a baseline trustworthy, make the medical contract explicit:
 - software package, version, and configuration surface when the baseline may later enter manuscript Methods
 
 If baseline work is consuming effort without improving the eventual clinical paper package, route back through `decision` instead of expanding low-yield comparator work.
+
+Baseline refresh discipline:
+
+- If an accepted comparator, cohort definition, endpoint, time horizon, Table 1, external-validation surface, or manuscript-facing baseline changes, create or update a baseline refresh record before treating the new surface as authoritative.
+- Do not silently overwrite baseline truth. Route through `decision` when refresh affects claims, evidence ledgers, review ledgers, publication gate, or paper-facing displays.
+- A refresh can replace an old comparator only when the reason, affected surfaces, verification refs, and route decision are durable.
+
+See `docs/runtime/baseline_refresh_contract.md`.
