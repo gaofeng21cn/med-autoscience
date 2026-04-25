@@ -44,7 +44,11 @@ def _patch_router(monkeypatch, module) -> None:
     )
 
 
-def _write_controller_decision_authorization(study_root: Path) -> Path:
+def _write_controller_decision_authorization(
+    study_root: Path,
+    *,
+    action_type: str = "ensure_study_runtime",
+) -> Path:
     decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     decision_path.parent.mkdir(parents=True, exist_ok=True)
     decision_path.write_text(
@@ -72,7 +76,7 @@ def _write_controller_decision_authorization(study_root: Path) -> Path:
                 "requires_human_confirmation": False,
                 "controller_actions": [
                     {
-                        "action_type": "ensure_study_runtime",
+                        "action_type": action_type,
                         "payload_ref": str(decision_path),
                     }
                 ],
@@ -302,6 +306,62 @@ def test_execute_noop_runtime_decision_relays_controller_authorization_to_live_r
         "message_id": "msg-auth-001",
         "source": "medautosci-test",
     }
+
+
+def test_execute_noop_runtime_decision_relays_gate_clearing_controller_authorization_to_live_runtime(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    decision_path = _write_controller_decision_authorization(
+        study_root,
+        action_type="run_gate_clearing_batch",
+    )
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-live-001",
+            "pending_user_message_count": 0,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    chats: list[dict[str, object]] = []
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            chats.append(
+                {
+                    "runtime_root": runtime_root,
+                    "quest_id": quest_id,
+                    "text": text,
+                    "source": source,
+                }
+            )
+            return {"ok": True, "message": {"id": "msg-gate-clear-001"}}
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert len(chats) == 1
+    assert str(decision_path) in str(chats[0]["text"])
+    assert "run_gate_clearing_batch" in str(chats[0]["text"])
+    assert "execute the authorized route_key_question" in str(chats[0]["text"])
+    relay = status.to_dict()["controller_decision_authorization_relay"]
+    assert relay["delivery_mode"] == "managed_runtime_chat"
+    assert relay["message_id"] == "msg-gate-clear-001"
 
 
 def test_execute_noop_runtime_decision_deduplicates_controller_authorization_for_same_run(tmp_path: Path) -> None:

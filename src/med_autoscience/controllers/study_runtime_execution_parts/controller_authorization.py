@@ -17,6 +17,8 @@ from ..study_runtime_status import (
 _CONTROLLER_DECISION_RUNTIME_AUTHORIZATION_ACTIONS = {
     "ensure_study_runtime",
     "ensure_study_runtime_relaunch_stopped",
+    "run_gate_clearing_batch",
+    "run_quality_repair_batch",
 }
 _CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authorization"
 _ROUTE_TARGET_LABELS = {
@@ -122,10 +124,16 @@ def _controller_decision_authorization_message(*, authorization_context: dict[st
     route_rationale = str(authorization_context.get("route_rationale") or "").strip()
     decision_id = str(authorization_context.get("decision_id") or "").strip()
     decision_path = str(authorization_context.get("decision_path") or "artifacts/controller_decisions/latest.json").strip()
+    controller_actions = ", ".join(
+        f"`{action}`"
+        for action in authorization_context.get("controller_actions") or ()
+        if str(action).strip()
+    )
     return (
         "MAS controller authorization. "
         f"`{decision_path}` is the active MAS authorization for this runtime turn.\n\n"
         f"- decision_id: `{decision_id}`\n"
+        f"- controller_actions: {controller_actions}\n"
         f"- route_target: `{route_target}` ({route_target_label})\n"
         f"- route_key_question: {route_key_question}\n"
         f"- route_rationale: {route_rationale}\n"
