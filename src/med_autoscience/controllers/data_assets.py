@@ -135,6 +135,21 @@ def _normalize_int(value: object) -> int | None:
     return None
 
 
+def _standardization_status(release_contract: dict[str, object]) -> dict[str, object]:
+    access_tier = release_contract.get("access_tier") if isinstance(release_contract.get("access_tier"), str) else None
+    contracts = _normalize_dict(release_contract.get("standardization_contracts"))
+    has_medication = bool(contracts.get("medication_standardization"))
+    has_numeric = bool(contracts.get("numeric_unit_and_plausibility"))
+    is_standardized = access_tier in {"analysis_ready_standardized", "publication_ready_standardized"}
+    return {
+        "is_standardized": is_standardized,
+        "access_tier": access_tier,
+        "has_medication_standardization": has_medication,
+        "has_numeric_unit_and_plausibility": has_numeric,
+        "contracts": contracts,
+    }
+
+
 def _list_release_files(version_root: Path) -> list[Path]:
     return sorted(path for path in version_root.rglob("*") if path.is_file())
 
@@ -171,6 +186,7 @@ def _build_private_release(*, family_id: str, version_root: Path) -> dict[str, o
         "main_outputs": main_outputs,
         "notes": notes,
         "declared_release_contract": declared_release_contract,
+        "standardization_status": _standardization_status(declared_release_contract),
         "inventory_summary": inventory_summary,
         "file_count": inventory_summary["file_count"],
     }
@@ -746,6 +762,11 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
                     "private_contract_status": private_contract_status,
                     "upgrade_diff_report_path": upgrade_diff_report_path,
                     "upgrade_diff_report_exists": upgrade_diff_report_exists,
+                    "standardization_status": (
+                        bound_release.get("standardization_status")
+                        if isinstance(bound_release, dict)
+                        else None
+                    ),
                     "public_support_count": len(public_matches),
                     "public_support_dataset_ids": [item.get("dataset_id") for item in public_matches],
                     "public_support_roles": sorted(

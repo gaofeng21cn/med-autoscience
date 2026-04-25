@@ -8,6 +8,20 @@ from med_autoscience.controllers import data_assets
 
 STARTUP_READINESS_SCHEMA_VERSION = 1
 STARTUP_READINESS_BASENAME = "latest_startup_data_readiness.json"
+STANDARDIZED_ACCESS_TIERS = {"analysis_ready_standardized", "publication_ready_standardized"}
+STANDARDIZATION_SENSITIVE_TERMS = {
+    "medication",
+    "drug",
+    "treatment",
+    "therapy",
+    "gap",
+    "attainment",
+    "用药",
+    "药物",
+    "治疗",
+    "达标",
+    "缺口",
+}
 
 
 def _startup_root(workspace_root: Path) -> Path:
@@ -64,12 +78,30 @@ def _dataset_has_actionable_public_match(
     return False
 
 
+def _study_declares_standardization_sensitive_scope(study_id: str, dataset_inputs: list[dict[str, Any]]) -> bool:
+    haystack_parts = [study_id]
+    for dataset in dataset_inputs:
+        for key in ("dataset_id", "source_path", "family_id"):
+            value = dataset.get(key)
+            if isinstance(value, str):
+                haystack_parts.append(value)
+    haystack = " ".join(haystack_parts).lower()
+    return any(term.lower() in haystack for term in STANDARDIZATION_SENSITIVE_TERMS)
+
+
+def _release_lacks_standardized_contract(dataset: dict[str, Any]) -> bool:
+    status = data_assets._normalize_dict(dataset.get("standardization_status"))
+    access_tier = status.get("access_tier")
+    return access_tier not in STANDARDIZED_ACCESS_TIERS
+
+
 def _study_summary(impact_report: dict[str, Any], *, actionable_public_datasets: list[dict[str, Any]]) -> dict[str, Any]:
     studies = impact_report.get("studies") or []
     review_needed_study_ids: list[str] = []
     clear_study_ids: list[str] = []
     outdated_private_release_study_ids: list[str] = []
     unresolved_contract_study_ids: list[str] = []
+    standardization_blocked_study_ids: list[str] = []
     public_extension_study_ids: list[str] = []
 
     for item in studies:
@@ -90,7 +122,15 @@ def _study_summary(impact_report: dict[str, Any], *, actionable_public_datasets:
             for dataset in dataset_inputs
             if isinstance(dataset, dict)
         )
-        if has_outdated_private_release or has_unresolved_contract:
+        has_standardization_blocker = (
+            _study_declares_standardization_sensitive_scope(study_id, dataset_inputs)
+            and any(
+                _release_lacks_standardized_contract(dataset)
+                for dataset in dataset_inputs
+                if isinstance(dataset, dict) and dataset.get("private_version_status") != "public_registry_backed"
+            )
+        )
+        if has_outdated_private_release or has_unresolved_contract or has_standardization_blocker:
             review_needed_study_ids.append(study_id)
         else:
             clear_study_ids.append(study_id)
@@ -98,6 +138,8 @@ def _study_summary(impact_report: dict[str, Any], *, actionable_public_datasets:
             outdated_private_release_study_ids.append(study_id)
         if has_unresolved_contract:
             unresolved_contract_study_ids.append(study_id)
+        if has_standardization_blocker:
+            standardization_blocked_study_ids.append(study_id)
         if any(
             _dataset_has_actionable_public_match(
                 dataset_input=dataset,
@@ -116,6 +158,7 @@ def _study_summary(impact_report: dict[str, Any], *, actionable_public_datasets:
         "clear_study_ids": sorted(clear_study_ids),
         "outdated_private_release_study_ids": sorted(outdated_private_release_study_ids),
         "unresolved_contract_study_ids": sorted(unresolved_contract_study_ids),
+        "standardization_blocked_study_ids": sorted(standardization_blocked_study_ids),
         "public_extension_study_ids": sorted(public_extension_study_ids),
     }
 
@@ -222,6 +265,8 @@ def _recommendations(*, private_release_count: int, study_summary: dict[str, Any
         recommendations.append("register_private_releases_before_launch")
     if study_summary["unresolved_contract_study_ids"]:
         recommendations.append("repair_study_dataset_contracts")
+    if study_summary.get("standardization_blocked_study_ids"):
+        recommendations.append("materialize_standardized_analysis_release")
     if study_summary["outdated_private_release_study_ids"]:
         recommendations.append("reassess_studies_against_latest_private_release")
     if valid_public_dataset_count > 0:
@@ -271,6 +316,7 @@ def startup_data_readiness(*, workspace_root: Path) -> dict[str, Any]:
             if len(releases) == 0
             or bool(study_summary["unresolved_contract_study_ids"])
             or bool(study_summary["outdated_private_release_study_ids"])
+            or bool(study_summary.get("standardization_blocked_study_ids"))
             else "clear"
         ),
         "private_release_count": len(releases),

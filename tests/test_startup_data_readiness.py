@@ -43,6 +43,7 @@ def write_private_release_manifest(
     raw_snapshot: str,
     generated_by: str,
     main_outputs: dict[str, str],
+    release_contract: dict[str, object] | None = None,
 ) -> None:
     payload = {
         "dataset_id": dataset_id,
@@ -51,6 +52,8 @@ def write_private_release_manifest(
         "generated_by": generated_by,
         "main_outputs": main_outputs,
     }
+    if release_contract is not None:
+        payload["release_contract"] = release_contract
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(payload, sort_keys=False, allow_unicode=True), encoding="utf-8")
 
@@ -443,3 +446,68 @@ def test_startup_data_readiness_resolves_study_yaml_dataset_inputs_without_path_
     assert result["study_summary"]["study_count"] == 1
     assert result["study_summary"]["clear_study_ids"] == ["003-followup-risk"]
     assert result["study_summary"]["unresolved_contract_study_ids"] == []
+
+def test_startup_data_readiness_blocks_treatment_study_without_standardized_release(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
+    workspace_root = tmp_path / "workspace"
+    release_root = workspace_root / "datasets" / "deidentified_longitudinal" / "v2026-04-23"
+    release_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        release_root / "dataset_manifest.yaml",
+        dataset_id="dpcc_primary_care_visits_deidentified",
+        version="v2026-04-23",
+        raw_snapshot="deidentified_source",
+        generated_by="ops/data_assets/ingest_dpcc_visit_assets.py",
+        main_outputs={"analysis_csv": "visits.csv"},
+        release_contract={"access_tier": "analysis_ready_deidentified"},
+    )
+    (release_root / "visits.csv").write_text("id\n1\n", encoding="utf-8")
+    write_study_manifest(
+        workspace_root / "studies" / "003-treatment-gap" / "study.yaml",
+        dataset_id="dpcc_primary_care_visits_deidentified",
+        relative_path="../../datasets/deidentified_longitudinal/v2026-04-23/visits.csv",
+        version="v2026-04-23",
+    )
+
+    result = module.startup_data_readiness(workspace_root=workspace_root)
+
+    assert result["status"] == "attention_needed"
+    assert result["study_summary"]["standardization_blocked_study_ids"] == ["003-treatment-gap"]
+    assert result["study_summary"]["review_needed_study_ids"] == ["003-treatment-gap"]
+    assert result["recommendations"] == ["materialize_standardized_analysis_release"]
+
+
+def test_startup_data_readiness_accepts_treatment_study_with_standardized_release(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
+    workspace_root = tmp_path / "workspace"
+    release_root = workspace_root / "datasets" / "standardized_longitudinal" / "v2026-04-25"
+    release_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        release_root / "dataset_manifest.yaml",
+        dataset_id="dpcc_primary_care_visits_standardized",
+        version="v2026-04-25",
+        raw_snapshot="derived_from_deidentified_source",
+        generated_by="ops/data_assets/standardize_dpcc_visit_release.py",
+        main_outputs={"analysis_csv": "visits_standardized.csv"},
+        release_contract={
+            "access_tier": "analysis_ready_standardized",
+            "standardization_contracts": {
+                "medication_standardization": "medication_dictionary.csv",
+                "numeric_unit_and_plausibility": "numeric_variable_contract.csv",
+            },
+        },
+    )
+    (release_root / "visits_standardized.csv").write_text("id\n1\n", encoding="utf-8")
+    write_study_manifest(
+        workspace_root / "studies" / "003-treatment-gap" / "study.yaml",
+        dataset_id="dpcc_primary_care_visits_standardized",
+        relative_path="../../datasets/standardized_longitudinal/v2026-04-25/visits_standardized.csv",
+        version="v2026-04-25",
+    )
+
+    result = module.startup_data_readiness(workspace_root=workspace_root)
+
+    assert result["status"] == "clear"
+    assert result["study_summary"]["standardization_blocked_study_ids"] == []
+    assert result["study_summary"]["clear_study_ids"] == ["003-treatment-gap"]
+    assert result["recommendations"] == ["startup_data_ready"]
