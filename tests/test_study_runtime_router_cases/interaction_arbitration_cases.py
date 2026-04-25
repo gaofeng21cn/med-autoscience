@@ -845,3 +845,88 @@ def test_ensure_study_runtime_blocks_when_managed_skill_audit_is_required_but_ov
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "managed_skill_audit_not_available"
+
+def test_ensure_study_runtime_auto_resumes_controller_stopped_submission_hardening_with_pending_message(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "stopped",
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "decision:decision-hardening-001",
+                "stop_reason": "controller_stop:codex-medical-publication-surface",
+                "active_interaction_id": "progress-hardening-001",
+                "pending_user_message_count": 1,
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "blocked",
+            "supervisor_phase": "bundle_stage_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "current_required_action": "complete_bundle_stage",
+            "bundle_tasks_downstream_only": False,
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "submission hardening is on the critical path",
+            "blockers": ["medical_publication_surface_blocked", "submission_hardening_incomplete"],
+            "medical_publication_surface_named_blockers": ["submission_hardening_incomplete"],
+            "medical_publication_surface_route_back_recommendation": "return_to_finalize",
+        },
+    )
+    resumed: dict[str, object] = {}
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda **kwargs: resumed.update(kwargs) or {"ok": True, "status": "running"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_on_invalid_blocking"
+    assert result["quest_status"] == "running"
+    assert resumed["source"] == "medautosci-test"
+    assert resumed["runtime_root"] == profile.med_deepscientist_runtime_root
+    assert resumed["quest_id"] == "001-risk"
