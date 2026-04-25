@@ -374,7 +374,11 @@ def _status_state(
         )
         return _finalize_result()
 
-    if manual_finish_compatibility_guard and quest_status not in _LIVE_QUEST_STATUSES:
+    if (
+        manual_finish_compatibility_guard
+        and not task_intake_overrides_auto_manual_finish
+        and quest_status not in _LIVE_QUEST_STATUSES
+    ):
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
@@ -549,7 +553,10 @@ def _status_state(
         return _finalize_result()
 
     if quest_status in _RESUMABLE_QUEST_STATUSES:
-        if submission_metadata_only_manual_finish or bundle_only_manual_finish:
+        if (
+            (submission_metadata_only_manual_finish or bundle_only_manual_finish)
+            and not task_intake_overrides_auto_manual_finish
+        ):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
