@@ -9,6 +9,10 @@
 3. 这些主题分别落到 `MAS` 的哪个 owner 面
 4. 即使未来 `MDS` 进一步被吸收，这条学习主线还要持续关注什么
 
+## 0. 长期政策入口
+
+持续学习上游 `DeepScientist` 的长期规则固定在 [DeepScientist Continuous Learning Policy](./deepscientist_continuous_learning_policy.md)。本计划负责当前阶段排序；政策文档负责说明即使 `MDS` 被 `MAS` 完全吸收后，学习主线如何继续。
+
 ## 1. 当前判断
 
 当前阶段最值得持续学习的对象，是 `DeepScientist` 体系里已经证明有效的研究行为组织方式，而不是 repo 名称、交互外观或局部实现细节。
