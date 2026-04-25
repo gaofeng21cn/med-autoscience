@@ -18,8 +18,8 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "MAS",
-    "shortDescription": "Agent-first medical research runtime for Codex.",
+    "displayName": "Med Auto Science",
+    "shortDescription": "Medical research orchestration for Codex.",
     "longDescription": "Adds a thin Codex plugin entry for MedAutoScience while preserving the existing Python CLI, controller contracts, profile binding, and DeepScientist overlay workflow.",
     "developerName": "Gao Feng",
     "category": "Research",

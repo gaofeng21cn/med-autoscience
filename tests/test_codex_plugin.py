@@ -23,7 +23,7 @@ def test_codex_plugin_manifest_tracks_repo_metadata_and_skill_layout() -> None:
     assert manifest["repository"] == "https://github.com/gaofeng21cn/med-autoscience"
     assert manifest["skills"] == "./skills/"
     assert manifest["mcpServers"] == "./.mcp.json"
-    assert manifest["interface"]["displayName"] == "MAS"
+    assert manifest["interface"]["displayName"] == "Med Auto Science"
     assert manifest["interface"]["category"] == "Research"
     assert "runtime" in manifest["description"].lower()
     assert PLUGIN_SKILL_PATH.is_file()
