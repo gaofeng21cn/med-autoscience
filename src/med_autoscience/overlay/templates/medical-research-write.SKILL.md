@@ -62,6 +62,9 @@ This skill intentionally absorbs the strongest legacy runtime writing discipline
 - If a threaded user reply arrives, interpret it relative to the latest writing progress update before assuming the task changed completely.
 - Use milestone updates deliberately when outline selection, claim downgrades, proofing completion, bundle readiness, or route-back-to-experiment decisions become durably true.
 
+Before treating write work as complete, apply [medical stage packet discipline](./medical-research-stage-packet.block.md): every section repair must point to evidence refs, reviewer-first concerns, remaining caveats, and a route outcome.
+
+
 ## Stage purpose
 
 The write stage does not exist to make the quest sound finished.

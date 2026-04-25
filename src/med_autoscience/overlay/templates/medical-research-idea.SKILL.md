@@ -18,6 +18,9 @@ Use this skill to turn the current baseline and problem frame into concrete, lit
 - Message templates are references only. Adapt to the actual context and vary wording so updates feel natural and non-robotic.
 - If a threaded user reply arrives, interpret it relative to the latest idea progress update before assuming the task changed completely.
 
+Before selecting or rejecting a direction, apply [medical stage packet discipline](./medical-research-stage-packet.block.md): freeze the objective contract, candidate board, failed paths, winning path, and exact resume point as durable route truth.
+
+
 ## Stage purpose
 
 The idea stage should not generate vague inspiration.

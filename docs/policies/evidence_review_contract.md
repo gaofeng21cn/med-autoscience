@@ -40,6 +40,17 @@ canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_m
 - `open`、`in_progress`、`blocked`、缺失记录、非法状态、重复记录，全部视为 charter expectation closure blocker。
 - medical publication surface 必须把这层 blocker 投影成独立 truth，而不是把它吞进一般 prose blocker。
 
+## Tool Usage 规则
+
+学习 `DeepScientist` 的 tool discipline 后，`MAS` 固定采用以下分工：
+
+- artifact / reports 承担 stage truth、route outcome、handoff 和恢复点。
+- evidence / review ledgers 承担 claim、rigor、novelty、clinical relevance 与 reviewer concern closure。
+- memory 只记录会改变未来默认行为的 reusable lesson。
+- execution logs 只作为第一手执行证据，不承担 paper state、baseline state 或 publication gate authority。
+
+因此，任何 proof package 都不能只靠 memory 或 terminal prose 证明过线；必须回到 evidence / review / publication surface。
+
 ## 维护规则
 
 - evidence / review 合同统一维护在 canonical YAML，不在单个 route prose 里重复定义另一套规则。

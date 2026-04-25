@@ -17,6 +17,9 @@ Use this skill to close or pause a quest responsibly.
 - In MAS-managed autonomous mode, do not open runtime completion approval. Finalize should materialize closure evidence and completion handoff is decided by MAS outer loop.
 - If the startup contract explicitly requires program-level human confirmation, stop at a MAS-visible blocker instead of emitting a direct runtime approval request.
 
+Before final package readiness, apply [medical stage packet discipline](./medical-research-stage-packet.block.md): verify submission-facing truth, artifact freshness, declarations, unresolved human gates, and the exact resume or delivery point.
+
+
 ## Stage purpose
 
 The finalize stage should not pretend every line succeeded.

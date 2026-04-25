@@ -1,3 +1,6 @@
+
+Apply [medical stage packet discipline](./medical-research-stage-packet.block.md) before and after the analysis campaign: bind every batch to a claim, reviewer concern, bounded route-back reason, and explicit next route.
+
 <!-- MED_AUTOSCIENCE_APPEND_BLOCK:analysis-campaign -->
 
 ## medical analysis-campaign gate

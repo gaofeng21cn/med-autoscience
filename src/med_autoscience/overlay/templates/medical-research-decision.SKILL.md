@@ -19,6 +19,9 @@ Use this skill whenever continuation is non-trivial.
 - In MAS-managed autonomous mode, completion is handled by MAS outer-loop policy; MDS must not open a runtime blocking approval request for routine quest closure.
 - Only explicit external secrets or credentials that MAS cannot infer or act on may become runtime blocking requests.
 
+Use [medical stage packet discipline](./medical-research-stage-packet.block.md) when choosing continue, route-back, human gate, or stop: the decision must come from durable truth, not from momentum.
+
+
 ## Stage purpose
 
 `decision` is not a normal anchor.
