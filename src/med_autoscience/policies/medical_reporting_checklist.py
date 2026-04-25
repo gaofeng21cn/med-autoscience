@@ -12,6 +12,13 @@ METHODS_COMPLETENESS_ITEMS = (
 )
 STATISTICAL_REPORTING_ITEMS = ("summary_format", "p_values", "subgroup_tests")
 CLINICAL_ACTIONABILITY_ITEMS = ("treatment_gap", "follow_up_or_outcome_relevance")
+TREATMENT_GAP_REPORTING_ITEMS = (
+    "explicit_numerator_denominator_rules",
+    "overall_burden_and_group_rates",
+    "table_role_consistency",
+    "figure_legend_uniqueness",
+    "non_causal_claim_guardrail",
+)
 PHENOTYPE_ARCHETYPE_TOKENS = ("phenotype", "subtype", "cluster", "real_world")
 
 REPORTING_CHECKLIST_BLOCKER_KEYS = frozenset(
@@ -20,6 +27,7 @@ REPORTING_CHECKLIST_BLOCKER_KEYS = frozenset(
         "statistical_reporting_incomplete",
         "table_figure_claim_map_missing_or_incomplete",
         "clinical_actionability_incomplete",
+        "treatment_gap_reporting_incomplete",
     }
 )
 
@@ -94,6 +102,7 @@ def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, 
             "statistical_reporting",
             "table_figure_claim_map",
             "clinical_actionability",
+            "treatment_gap_reporting",
         )
     )
     if not actionability_required and not explicit_structured_contract:
@@ -120,6 +129,11 @@ def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, 
                 "required_items": list(CLINICAL_ACTIONABILITY_ITEMS),
                 "missing_items": [],
             },
+            "treatment_gap_reporting": {
+                "status": "not_required",
+                "required_items": list(TREATMENT_GAP_REPORTING_ITEMS),
+                "missing_items": [],
+            },
         }
     methods = _section_status(contract.get("methods_completeness"), METHODS_COMPLETENESS_ITEMS)
     statistics = _section_status(contract.get("statistical_reporting"), STATISTICAL_REPORTING_ITEMS)
@@ -133,6 +147,15 @@ def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, 
             "missing_items": [],
         }
     )
+    treatment_gap_reporting = (
+        _section_status(contract.get("treatment_gap_reporting"), TREATMENT_GAP_REPORTING_ITEMS)
+        if actionability_required
+        else {
+            "status": "not_required",
+            "required_items": list(TREATMENT_GAP_REPORTING_ITEMS),
+            "missing_items": [],
+        }
+    )
     blockers: list[str] = []
     if methods["status"] == "blocked":
         blockers.append("methods_completeness_incomplete")
@@ -142,6 +165,8 @@ def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, 
         blockers.append("table_figure_claim_map_missing_or_incomplete")
     if actionability["status"] == "blocked":
         blockers.append("clinical_actionability_incomplete")
+    if treatment_gap_reporting["status"] == "blocked":
+        blockers.append("treatment_gap_reporting_incomplete")
     return {
         "status": "blocked" if blockers else "clear",
         "blockers": blockers,
@@ -149,6 +174,7 @@ def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, 
         "statistical_reporting": statistics,
         "table_figure_claim_map": claim_map,
         "clinical_actionability": actionability,
+        "treatment_gap_reporting": treatment_gap_reporting,
     }
 
 

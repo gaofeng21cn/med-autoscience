@@ -64,6 +64,7 @@ def test_medical_reporting_audit_blocks_structured_publication_reporting_gaps(tm
     assert "statistical_reporting_incomplete" in report["blockers"]
     assert "table_figure_claim_map_missing_or_incomplete" in report["blockers"]
     assert "clinical_actionability_incomplete" in report["blockers"]
+    assert "treatment_gap_reporting_incomplete" in report["blockers"]
     report_payload = json.loads(Path(report["report_json"]).read_text(encoding="utf-8"))
     assert report_payload["structured_reporting_checklist"]["methods_completeness"]["missing_items"] == [
         "validation",
@@ -74,6 +75,13 @@ def test_medical_reporting_audit_blocks_structured_publication_reporting_gaps(tm
     ]
     assert report_payload["structured_reporting_checklist"]["clinical_actionability"]["missing_items"] == [
         "follow_up_or_outcome_relevance"
+    ]
+    assert report_payload["structured_reporting_checklist"]["treatment_gap_reporting"]["missing_items"] == [
+        "explicit_numerator_denominator_rules",
+        "overall_burden_and_group_rates",
+        "table_role_consistency",
+        "figure_legend_uniqueness",
+        "non_causal_claim_guardrail",
     ]
 
 
@@ -105,6 +113,13 @@ def test_structured_reporting_checklist_accepts_charter_nested_contract() -> Non
                     "treatment_gap": "complete",
                     "follow_up_or_outcome_relevance": "complete",
                 },
+                "treatment_gap_reporting": {
+                    "explicit_numerator_denominator_rules": "complete",
+                    "overall_burden_and_group_rates": "complete",
+                    "table_role_consistency": "complete",
+                    "figure_legend_uniqueness": "complete",
+                    "non_causal_claim_guardrail": "complete",
+                },
             }
         }
     )
@@ -112,6 +127,7 @@ def test_structured_reporting_checklist_accepts_charter_nested_contract() -> Non
     assert checklist["status"] == "clear"
     assert checklist["blockers"] == []
     assert checklist["clinical_actionability"]["status"] == "clear"
+    assert checklist["treatment_gap_reporting"]["status"] == "clear"
 
 
 def test_write_audit_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
