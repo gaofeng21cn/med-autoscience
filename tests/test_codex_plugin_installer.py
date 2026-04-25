@@ -59,6 +59,37 @@ def test_install_repo_local_codex_plugin_keeps_skill_repo_local(tmp_path: Path) 
     assert result["skill_root"] == str(REPO_ROOT / "plugins" / "mas" / "skills" / "mas")
 
 
+def test_install_repo_local_codex_plugin_removes_legacy_test_skill_stub(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.codex_plugin_installer")
+    home = tmp_path / "home"
+    stub = home / ".codex" / "skills" / "mas"
+    stub.mkdir(parents=True)
+    (stub / "SKILL.md").write_text(
+        "---\nname: mas\ndescription: mas test skill\n---\n\n# mas\n",
+        encoding="utf-8",
+    )
+
+    module.install_repo_local_codex_plugin(repo_root=REPO_ROOT, home=home)
+
+    assert not stub.exists()
+
+
+def test_install_repo_local_codex_plugin_preserves_non_stub_user_skill(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.codex_plugin_installer")
+    home = tmp_path / "home"
+    skill = home / ".codex" / "skills" / "mas"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text(
+        "---\nname: mas\ndescription: custom local MAS skill\n---\n\n# mas\n",
+        encoding="utf-8",
+    )
+
+    module.install_repo_local_codex_plugin(repo_root=REPO_ROOT, home=home)
+
+    assert skill.exists()
+    assert "custom local MAS skill" in (skill / "SKILL.md").read_text(encoding="utf-8")
+
+
 def test_install_home_local_codex_plugin_is_idempotent(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.codex_plugin_installer")
     home = tmp_path / "home"
