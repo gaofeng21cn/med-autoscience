@@ -52,6 +52,7 @@ from med_autoscience.study_charter import read_study_charter
 from med_autoscience.study_completion import StudyCompletionStateStatus
 from med_autoscience.study_manual_finish import (
     resolve_bundle_only_submission_ready_manual_finish_contract,
+    resolve_delivered_submission_package_manual_finish_contract,
     resolve_study_manual_finish_contract,
     resolve_submission_metadata_only_manual_finish_contract,
 )
@@ -261,6 +262,10 @@ def _bundle_only_submission_ready_manual_finish_active(*, study_root: Path, ques
         )
         is not None
     )
+
+
+def _delivered_submission_package_manual_finish_active(*, study_root: Path) -> bool:
+    return resolve_delivered_submission_package_manual_finish_contract(study_root=study_root) is not None
 
 
 def _explicit_manual_finish_compatibility_guard_active(*, study_root: Path) -> bool:

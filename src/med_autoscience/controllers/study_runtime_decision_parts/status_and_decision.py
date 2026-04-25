@@ -109,6 +109,9 @@ def _status_state(
             quest_root=quest_root,
         )
     )
+    delivered_package_manual_finish = quest_exists and _delivered_submission_package_manual_finish_active(
+        study_root=study_root,
+    )
     if task_intake_overrides_auto_manual_finish and bundle_only_manual_finish:
         summary_payload = _load_json_dict(
             study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
@@ -127,6 +130,7 @@ def _status_state(
         explicit_manual_finish_compatibility_guard
         or submission_metadata_only_manual_finish
         or bundle_only_manual_finish
+        or delivered_package_manual_finish
     )
     submission_metadata_only_wait = (
         quest_exists
