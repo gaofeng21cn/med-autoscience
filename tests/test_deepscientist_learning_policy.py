@@ -33,7 +33,34 @@ def test_current_learning_plan_points_to_policy_entry() -> None:
     plan = _read("docs/program/med_deepscientist_continuous_learning_plan.md")
 
     assert "DeepScientist Continuous Learning Policy" in plan
+    assert "DeepScientist Latest-Update Learning Protocol" in plan
     assert "学习主线如何继续" in plan
+
+
+def test_latest_update_learning_protocol_defines_trigger_and_landing_workflow() -> None:
+    protocol = _read("docs/program/deepscientist_latest_update_learning_protocol.md")
+    policy = _read("docs/program/deepscientist_continuous_learning_policy.md")
+    status = _read("docs/status.md")
+
+    assert "学习一下 `DeepScientist` 的最新更新" in protocol
+    assert "learning-and-landing intake" in protocol
+    for required_step in (
+        "fresh upstream audit",
+        "decision matrix",
+        "Parallel worktrees",
+        "Verification gate",
+        "Audit record",
+        "吸收回 `main`",
+        "清理 worktree",
+    ):
+        assert required_step in protocol
+    for decision in ("adopt_code_slice", "adopt_contract", "adopt_template", "watch_only", "reject"):
+        assert decision in protocol
+    for owner_surface in ("MDS runtime/backend lane", "MAS contract/template lane", "MAS runtime-consumer lane"):
+        assert owner_surface in protocol
+    assert "provider / UI / marketing" in protocol
+    assert "DeepScientist Latest-Update Learning Protocol" in policy
+    assert "DeepScientist Latest-Update Learning Protocol" in status
 
 
 def test_2026_04_25_intake_records_decisions_and_owner_surfaces() -> None:

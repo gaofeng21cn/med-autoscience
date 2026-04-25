@@ -45,6 +45,8 @@
 
 每次 DeepScientist 学习 intake 先做方法层 triage，再决定是否进入代码层吸收。
 
+当维护者说“学习一下 `DeepScientist` 的最新更新”“看看 `DeepScientist` 最近更新有什么值得吸收”或类似表达时，默认启动一轮执行型 learning-and-landing intake，而不是只读调研。具体触发语义、固定阅读入口、decision matrix、worktree 并行规则、验证门槛和完成定义见 [DeepScientist Latest-Update Learning Protocol](./deepscientist_latest_update_learning_protocol.md)。
+
 ### 方法层 triage
 
 必须回答：

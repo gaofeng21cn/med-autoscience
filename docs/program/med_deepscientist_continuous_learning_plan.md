@@ -13,6 +13,8 @@
 
 持续学习上游 `DeepScientist` 的长期规则固定在 [DeepScientist Continuous Learning Policy](./deepscientist_continuous_learning_policy.md)。本计划负责当前阶段排序；政策文档负责说明即使 `MDS` 被 `MAS` 完全吸收后，学习主线如何继续。
 
+维护者触发“学习一下 `DeepScientist` 的最新更新”这类周期性学习任务时，执行入口固定为 [DeepScientist Latest-Update Learning Protocol](./deepscientist_latest_update_learning_protocol.md)。它把这句话解释为 fresh upstream audit、decision matrix、并行 worktree 落地、验证、吸收回 `main` 和清理的完整流程。
+
 ## 1. 当前判断
 
 当前阶段最值得持续学习的对象，是 `DeepScientist` 体系里已经证明有效的研究行为组织方式，而不是 repo 名称、交互外观或局部实现细节。
