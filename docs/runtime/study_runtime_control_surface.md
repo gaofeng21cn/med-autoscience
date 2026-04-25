@@ -207,7 +207,53 @@
 - 提供 `question_for_user`、`allowed_responses`、`next_action_if_approved`
 - 供 `study_progress` 与 runtime 决策面读取
 
-## 6. 当前正式支持的 outer-loop controller actions
+## 6. takeover / mailbox semantics
+
+本节把从 `DeepScientist` 上游学习到的 mailbox / takeover 思路翻译成 `MAS` 的正式 runtime control contract。
+
+### 6.1 running study 收到新用户消息
+
+当 quest 已经处于 running / active 状态时，新的用户消息不启动第二个 runner，也不绕过 controller 直接改写 study / paper durable truth。
+
+正式语义：
+
+- 消息进入 quest-local `user_message_queue`。
+- runtime state 必须暴露 `pending_user_message_count`。
+- interaction journal 必须留下 `user_inbound` 事件。
+- 下一次 agent / controller interaction point 才能消费该消息。
+- 若消息表达的是人类 gate 所需的客观信息，controller 在 gate 清除后继续 dispatch。
+- 若消息表达的是重大方向变化、终止、暂停或投稿前最终审计，controller 写出 `study_decision_record` 并进入 human confirmation gate。
+
+这保证用户输入不会丢失，同时避免同一 study 出现两个并行 authority writer。
+
+### 6.2 pause / resume / stop 与消息队列
+
+`pause_runtime`、`resume` 和 `stop_runtime` 对 queued user messages 的处理必须保持单义：
+
+- `pause_runtime` 收回 compute，但保留 queued user messages、quest identity、artifact 和 branch。
+- `resume` 在 startup / reentry gate 清除后继续同一 quest identity，并允许后续 interaction point 消费 queued user messages。
+- `stop_runtime` 是 terminal control action，必须取消自动 dispatch；queued user messages 不得被静默 replay 成新的研究动作。
+- stopped quest 的后续动作只能走显式 stopped-quest relaunch policy，并在 controller 记录中标注为 relaunch。
+
+### 6.3 takeover boundary
+
+人工接管不是本地文件旁路写入。正式接管必须满足：
+
+1. 先通过 `pause_runtime` 或 human gate 收回运行时写权。
+2. 人工修改只写入对应的 controller-owned artifact、study docs、paper surface 或明确的 workspace 文件。
+3. 接管完成后，通过 `study_decision_record` 或 runtime-facing startup projection 表达新的恢复点。
+4. `ensure_study_runtime(...)` 只能从该恢复点继续，不得根据旧队列或旧 launch summary 隐式重放。
+
+### 6.4 durable surface 分工
+
+- `artifact` / reports：记录 stage result、route truth、checkpoint、handoff 和恢复点。
+- `memory` / portfolio lesson：只记录会改变未来默认行为的 reusable lesson。
+- `bash_exec` / terminal evidence：记录第一手执行证据，不承担研究结论 authority。
+- `study_charter`、`evidence_ledger`、`review_ledger`、`publication_eval/latest.json`、`controller_decisions/latest.json`：承担 `MAS` 医学研究 owner truth。
+
+`memory` 不得替代 baseline、analysis、paper state 或 publication gate 的主记录。
+
+## 7. 当前正式支持的 outer-loop controller actions
 
 当前只冻结四类 action：
 
@@ -222,7 +268,7 @@
 - `stop-after-current-step` 的正式状态是 unsupported
 - future rerun action 需要新的 canonical spec 才能加入
 
-## 7. bridge 到现有文档
+## 8. bridge 到现有文档
 
 - `./outer_loop_wakeup_and_decision_loop.md`
   - 负责 outer-loop wakeup、artifact loop、decision write-back 主链路
@@ -231,7 +277,7 @@
 - `./study_runtime_control_surface.md`（本文）
   - 负责 stop / rerun / human-confirmation / outer-loop action surface 的单义收口
 
-## 8. runtime truth priority
+## 9. runtime truth priority
 
 workspace 层 runtime 真相优先级当前固定为：
 
