@@ -15,7 +15,7 @@
 当前插件已经提供：
 
 - plugin manifest
-- repo-local / home-local plugin 目录形态
+- repo-local plugin 目录形态
 - plugin skill
 - plugin-local MCP manifest
 - 只读 MCP server，覆盖 doctor、profile、overlay、runtime watch、data assets status、startup data readiness、MedDeepScientist upgrade check
@@ -48,13 +48,13 @@ bash scripts/install-codex-plugin.sh
 
 - 以 editable 方式安装当前仓库
 - 提供 `medautosci` 和 `medautosci-mcp`
-- 在 `~/plugins/mas` 建立 home-local plugin 链接
-- 在 `~/.agents/skills/med-autoscience` 建立 skill 发现链接
-- 在 `~/.agents/plugins/marketplace.json` 写入插件入口
+- 刷新仓库内 `.agents/plugins/marketplace.json`
+- 保持 MAS skill 位于仓库内 `plugins/mas/skills/mas`
+- 不写入系统级 `~/.agents/skills`、`~/.codex/skills` 或 `~/.agents/plugins/marketplace.json`
 
 它不会替你安装 `MedDeepScientist` runtime；研究运行前仍需本机准备 `med-deepscientist` 并把 profile 指向该 checkout。
 
-执行后请重启 Codex。
+执行后请在本仓库工作目录中重启 Codex。
 
 ### 换一台电脑
 
@@ -63,7 +63,7 @@ bash scripts/install-codex-plugin.sh
 1. clone 本仓库
 2. 进入仓库根目录
 3. 运行 `bash scripts/install-codex-plugin.sh`
-4. 重启 Codex
+4. 在本仓库工作目录中重启 Codex
 
 ## 文件位置
 

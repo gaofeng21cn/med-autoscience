@@ -9,7 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 INSTALLER_PATH = REPO_ROOT / "scripts" / "install-codex-plugin.sh"
 
 
-def test_codex_plugin_installer_script_sets_up_user_level_codex_paths(tmp_path: Path) -> None:
+def test_codex_plugin_installer_script_keeps_codex_paths_repo_local(tmp_path: Path) -> None:
     fake_bin = tmp_path / "fake-bin"
     fake_bin.mkdir()
     home_dir = tmp_path / "home"
@@ -41,9 +41,10 @@ def test_codex_plugin_installer_script_sets_up_user_level_codex_paths(tmp_path: 
     assert result.returncode == 0, result.stderr
     assert (home_dir / ".local" / "bin" / "medautosci").exists()
     assert (home_dir / ".local" / "bin" / "medautosci-mcp").exists()
-    assert (home_dir / "plugins" / "med-autoscience").is_symlink()
-    assert (home_dir / ".agents" / "skills" / "med-autoscience").is_symlink()
-    assert (home_dir / ".agents" / "plugins" / "marketplace.json").exists()
+    assert not (home_dir / "plugins" / "mas").exists()
+    assert not (home_dir / ".agents" / "skills" / "mas").exists()
+    assert not (home_dir / ".agents" / "plugins" / "marketplace.json").exists()
+    assert (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
 
 
 def test_codex_plugin_installer_script_skip_tools_only_syncs_plugin_paths(tmp_path: Path) -> None:
@@ -62,6 +63,7 @@ def test_codex_plugin_installer_script_skip_tools_only_syncs_plugin_paths(tmp_pa
     )
 
     assert result.returncode == 0, result.stderr
-    assert (home_dir / "plugins" / "med-autoscience").is_symlink()
-    assert (home_dir / ".agents" / "skills" / "med-autoscience").is_symlink()
-    assert (home_dir / ".agents" / "plugins" / "marketplace.json").exists()
+    assert not (home_dir / "plugins" / "mas").exists()
+    assert not (home_dir / ".agents" / "skills" / "mas").exists()
+    assert not (home_dir / ".agents" / "plugins" / "marketplace.json").exists()
+    assert (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()

@@ -8,7 +8,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_install_home_local_codex_plugin_creates_plugin_links_and_marketplace(tmp_path: Path) -> None:
+def test_install_repo_local_codex_plugin_uses_repo_local_plugin_and_marketplace(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.codex_plugin_installer")
     home = tmp_path / "home"
     legacy_plugin_link = home / "plugins" / "med-autoscience"
@@ -26,28 +26,37 @@ def test_install_home_local_codex_plugin_creates_plugin_links_and_marketplace(tm
         encoding="utf-8",
     )
 
-    result = module.install_home_local_codex_plugin(repo_root=REPO_ROOT, home=home)
+    result = module.install_repo_local_codex_plugin(repo_root=REPO_ROOT, home=home)
 
     plugin_link = home / "plugins" / "mas"
     skill_link = home / ".agents" / "skills" / "mas"
-    marketplace_path = home / ".agents" / "plugins" / "marketplace.json"
+    marketplace_path = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
     marketplace = json.loads(marketplace_path.read_text(encoding="utf-8"))
     plugin_entry = next(item for item in marketplace["plugins"] if item["name"] == "mas")
 
     assert not legacy_plugin_link.exists()
     assert not legacy_skill_link.exists()
     assert all(item["name"] != "med-autoscience" for item in marketplace["plugins"])
-    assert result["plugin_root"] == str(plugin_link)
-    assert result["skill_root"] == str(skill_link)
-    assert plugin_link.is_symlink()
-    assert skill_link.is_symlink()
-    assert plugin_link.resolve() == REPO_ROOT / "plugins" / "mas"
-    assert skill_link.resolve() == REPO_ROOT / "plugins" / "mas" / "skills" / "mas"
+    assert result["plugin_root"] == str(REPO_ROOT / "plugins" / "mas")
+    assert result["skill_root"] == str(REPO_ROOT / "plugins" / "mas" / "skills" / "mas")
+    assert not plugin_link.exists()
+    assert not skill_link.exists()
     assert plugin_entry["source"] == {
         "source": "local",
         "path": "./plugins/mas",
     }
     assert plugin_entry["category"] == "Research"
+
+
+def test_install_repo_local_codex_plugin_keeps_skill_repo_local(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.codex_plugin_installer")
+    home = tmp_path / "home"
+
+    result = module.install_repo_local_codex_plugin(repo_root=REPO_ROOT, home=home)
+
+    assert not (home / ".agents" / "skills" / "mas").exists()
+    assert not (home / ".codex" / "skills" / "mas").exists()
+    assert result["skill_root"] == str(REPO_ROOT / "plugins" / "mas" / "skills" / "mas")
 
 
 def test_install_home_local_codex_plugin_is_idempotent(tmp_path: Path) -> None:

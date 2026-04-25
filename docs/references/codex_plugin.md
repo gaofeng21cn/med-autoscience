@@ -66,10 +66,10 @@ Compatibility note:
 
 ## 当前安装状态
 
-仓库里存在 plugin 文件，不等于 Codex 已经全局启用它。
+仓库里存在 plugin 文件，不等于 Codex 已经全局启用它。MAS skill 默认只随本仓库工作目录发现，不应安装到系统级 skill 目录。
 
 - 仓库内状态：plugin 已经存在于当前仓库，可被仓库自己的 marketplace 元数据发现
-- 全局状态：只有当 `~/.codex/config.toml` 中启用了对应 plugin，Codex 才会在整机范围把它当作已安装入口
+- 全局状态：`scripts/install-codex-plugin.sh` 不写入 `~/.agents/skills`、`~/.codex/skills` 或 `~/.agents/plugins/marketplace.json`
 
 因此，仓库内置 plugin 和整机可用 plugin 不是一回事。
 
@@ -84,14 +84,9 @@ Compatibility note:
    bash scripts/install-codex-plugin.sh
    ```
 
-3. 重启 Codex，让 skill 和 plugin 元数据重新加载
+3. 在本仓库工作目录中重启 Codex，让 repo-local skill 和 plugin 元数据重新加载
 
-如果你想把 plugin 放在 home-local，而不是 repo-local，也可以复制或同步：
-
-- `plugins/mas/` to `~/plugins/mas/`
-- `.agents/plugins/marketplace.json` into `~/.agents/plugins/marketplace.json`
-
-然后确保 `medautosci-mcp` 仍然在 `PATH` 上。
+然后确保 `medautosci-mcp` 仍然在 `PATH` 上。不要把 MAS/MDS 这类任务 skill 复制到 home-local 或系统级 skill 目录；需要研究运行时，应通过仓库内 `plugins/mas/` 与当前 workspace 初始化面发现。
 
 这里仍然只安装 `MedAutoScience` 的 plugin / skill / MCP 入口，不会顺带安装 `MedDeepScientist` runtime。
 

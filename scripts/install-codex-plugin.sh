@@ -92,11 +92,11 @@ main() {
     ensure_uv
     install_python_tools
   else
-    printf "skip tool installation; only syncing MedAutoScience Codex plugin paths into %s\n" "${INSTALL_HOME}" >&2
+    printf "skip tool installation; only refreshing MedAutoScience repo-local Codex plugin metadata\n" >&2
   fi
   install_codex_paths
-  printf "installed MedAutoScience Codex integration into %s\n" "${INSTALL_HOME}" >&2
-  printf "restart Codex so native skill discovery and plugin metadata are reloaded\n" >&2
+  printf "installed MedAutoScience CLI tools into %s and refreshed repo-local Codex plugin metadata\n" "${INSTALL_HOME}" >&2
+  printf "restart Codex in this repository so repo-local skill discovery and plugin metadata are reloaded\n" >&2
 }
 
 main "$@"

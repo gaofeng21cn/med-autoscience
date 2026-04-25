@@ -22,16 +22,16 @@ def _repo_skill_root(repo_root: Path) -> Path:
     return _repo_plugin_root(repo_root) / "skills" / PLUGIN_NAME
 
 
+def _repo_marketplace_path(repo_root: Path) -> Path:
+    return repo_root / ".agents" / "plugins" / "marketplace.json"
+
+
 def _user_plugin_root(home: Path) -> Path:
     return home / "plugins" / PLUGIN_NAME
 
 
 def _user_skill_root(home: Path) -> Path:
     return home / ".agents" / "skills" / PLUGIN_NAME
-
-
-def _user_marketplace_path(home: Path) -> Path:
-    return home / ".agents" / "plugins" / "marketplace.json"
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -106,7 +106,7 @@ def _upsert_marketplace(*, marketplace_path: Path) -> None:
     _write_json(marketplace_path, normalized_payload)
 
 
-def install_home_local_codex_plugin(*, repo_root: Path, home: Path | None = None) -> dict[str, str]:
+def install_repo_local_codex_plugin(*, repo_root: Path, home: Path | None = None) -> dict[str, str]:
     resolved_repo_root = repo_root.expanduser().resolve()
     resolved_home = (home or Path.home()).expanduser().resolve()
 
@@ -117,25 +117,27 @@ def install_home_local_codex_plugin(*, repo_root: Path, home: Path | None = None
     if not repo_skill_root.is_dir():
         raise FileNotFoundError(f"Plugin skill root not found: {repo_skill_root}")
 
-    user_plugin_root = _user_plugin_root(resolved_home)
-    user_skill_root = _user_skill_root(resolved_home)
-    marketplace_path = _user_marketplace_path(resolved_home)
+    marketplace_path = _repo_marketplace_path(resolved_repo_root)
 
     for legacy_name in LEGACY_PLUGIN_NAMES:
         _remove_legacy_symlink(resolved_home / "plugins" / legacy_name)
         _remove_legacy_symlink(resolved_home / ".agents" / "skills" / legacy_name)
+    _remove_legacy_symlink(_user_plugin_root(resolved_home))
+    _remove_legacy_symlink(_user_skill_root(resolved_home))
 
-    _ensure_expected_symlink(link_path=user_plugin_root, target_path=repo_plugin_root)
-    _ensure_expected_symlink(link_path=user_skill_root, target_path=repo_skill_root)
     _upsert_marketplace(marketplace_path=marketplace_path)
 
     return {
         "repo_root": str(resolved_repo_root),
         "home": str(resolved_home),
-        "plugin_root": str(user_plugin_root),
-        "skill_root": str(user_skill_root),
+        "plugin_root": str(repo_plugin_root),
+        "skill_root": str(repo_skill_root),
         "marketplace_path": str(marketplace_path),
     }
+
+
+def install_home_local_codex_plugin(*, repo_root: Path, home: Path | None = None) -> dict[str, str]:
+    return install_repo_local_codex_plugin(repo_root=repo_root, home=home)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -147,7 +149,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    result = install_home_local_codex_plugin(
+    result = install_repo_local_codex_plugin(
         repo_root=Path(args.repo_root),
         home=Path(args.home) if args.home else None,
     )
