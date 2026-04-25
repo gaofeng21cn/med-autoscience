@@ -248,10 +248,12 @@ def _enqueue_task_intake_for_live_runtime(
     payload: dict[str, Any],
 ) -> dict[str, Any]:
     layout = build_workspace_runtime_layout_for_profile(profile)
-    quest_root = layout.quest_root(study_id)
+    managed_quest_id = _non_empty_text((execution or {}).get("quest_id")) or study_id
+    quest_root = layout.quest_root(managed_quest_id)
     runtime_message = _build_live_task_intake_runtime_message(payload)
     result: dict[str, Any] = {
         "quest_root": str(quest_root),
+        "quest_id": managed_quest_id,
         "quest_status": None,
         "intervention_enqueued": False,
         "message_id": None,
@@ -271,14 +273,14 @@ def _enqueue_task_intake_for_live_runtime(
         result["reason"] = "quest_not_live"
         return result
 
-    runtime_state["quest_id"] = study_id
+    runtime_state["quest_id"] = managed_quest_id
     backend = runtime_backend_contract.resolve_managed_runtime_backend(execution)
     if backend is not None:
         result["runtime_backend_id"] = backend.BACKEND_ID
         try:
             response = backend.chat_quest(
                 runtime_root=layout.runtime_root,
-                quest_id=study_id,
+                quest_id=managed_quest_id,
                 text=runtime_message,
                 source="codex-study-task-intake",
             )
