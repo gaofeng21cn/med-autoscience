@@ -440,7 +440,7 @@ def build_product_entry_manifest(
         artifact_inventory=artifact_inventory,
         product_entry_status=product_entry_status,
         domain_entry_contract=domain_entry_contract,
-        product_entry_shell=product_entry_shell,
+        product_entry_shell=product_entry_shell, skill_catalog_command=_json_surface_command(f"{prefix} skill-catalog --profile {profile_arg}"),
     )
     automation = _build_automation_surface(
         profile=profile,

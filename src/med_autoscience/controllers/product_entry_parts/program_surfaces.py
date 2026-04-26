@@ -693,6 +693,64 @@ def _build_skill_runtime_continuity_envelope(
     }
 
 
+def _build_opl_runtime_manager_registration(
+    *,
+    runtime: Mapping[str, Any],
+    runtime_continuity: Mapping[str, Any],
+    command_catalog: Mapping[str, str],
+    skill_catalog_command: str,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_runtime_manager_domain_registration",
+        "version": "v1",
+        "registration_id": "mas.opl_runtime_manager.registration.v1",
+        "manager_surface_id": "opl_runtime_manager",
+        "domain_id": "medautoscience",
+        "domain_owner": TARGET_DOMAIN_ID,
+        "runtime_owner": str(runtime.get("runtime_owner") or ""),
+        "executor_owner": str(runtime.get("executor_owner") or ""),
+        "domain_entry_surface": {
+            "surface_kind": PRODUCT_FRONTDESK_KIND,
+            "command": command_catalog["product_frontdesk"],
+            "manifest_command": command_catalog["workspace_cockpit"],
+        },
+        "registration_surface": {
+            "surface_kind": "skill_catalog",
+            "ref": "/skill_catalog/skills/0/domain_projection/opl_runtime_manager_registration",
+            "command": skill_catalog_command,
+        },
+        "consumable_projection_refs": [
+            "/skill_catalog/skills/0/domain_projection/runtime_continuity",
+            "/progress_projection/domain_projection/research_runtime_control_projection",
+            "/artifact_inventory/artifact_surface",
+            "/automation/automations/0",
+        ],
+        "state_index_inputs": {
+            "workspace_registry_index": "/workspace_locator",
+            "managed_session_ledger_index": "/session_continuity",
+            "artifact_projection_index": "/artifact_inventory",
+            "attention_queue_index": "/automation/automations/0",
+            "runtime_health_snapshot_index": "/runtime_inventory",
+        },
+        "resume_contract": {
+            "session_locator_field": str(runtime_continuity.get("session_locator_field") or ""),
+            "recommended_resume_command": str(runtime_continuity.get("recommended_resume_command") or ""),
+            "recommended_progress_command": str(runtime_continuity.get("recommended_progress_command") or ""),
+        },
+        "wakeup_boundary": {
+            "owner": TARGET_DOMAIN_ID,
+            "surface_ref": "/automation/automations/0",
+            "policy": "domain_owned_runtime_supervision_loop",
+        },
+        "non_goals": [
+            "not_a_study_truth_owner",
+            "not_a_publication_gate",
+            "not_an_evidence_or_review_ledger",
+            "not_a_concrete_executor",
+        ],
+    }
+
+
 def _build_skill_catalog_surface(
     *,
     runtime: Mapping[str, Any],
@@ -703,6 +761,7 @@ def _build_skill_catalog_surface(
     product_entry_status: Mapping[str, Any],
     domain_entry_contract: Mapping[str, Any],
     product_entry_shell: Mapping[str, Any],
+    skill_catalog_command: str,
 ) -> dict[str, Any]:
     summary = _non_empty_text(product_entry_status.get("summary")) or "MAS product entry skill catalog."
     command_catalog = {
@@ -718,6 +777,12 @@ def _build_skill_catalog_surface(
         session_continuity=session_continuity,
         progress_projection=progress_projection,
         artifact_inventory=artifact_inventory,
+    )
+    opl_runtime_manager_registration = _build_opl_runtime_manager_registration(
+        runtime=runtime,
+        runtime_continuity=runtime_continuity,
+        command_catalog=command_catalog,
+        skill_catalog_command=skill_catalog_command,
     )
     skills = [
         _build_shared_skill_descriptor(
@@ -745,6 +810,7 @@ def _build_skill_catalog_surface(
                 ],
                 "shell_commands": command_catalog,
                 "runtime_continuity": runtime_continuity,
+                "opl_runtime_manager_registration": opl_runtime_manager_registration,
             },
         ),
     ]

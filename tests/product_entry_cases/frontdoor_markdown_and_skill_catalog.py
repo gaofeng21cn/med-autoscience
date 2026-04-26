@@ -80,4 +80,16 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
     )
     assert payload["skills"][0]["domain_projection"]["skill_entry"] == "mas"
     assert payload["skills"][0]["domain_projection"]["recommended_shell"] == "workspace_cockpit"
+    runtime_manager_registration = payload["skills"][0]["domain_projection"]["opl_runtime_manager_registration"]
+    assert runtime_manager_registration["surface_kind"] == "opl_runtime_manager_domain_registration"
+    assert runtime_manager_registration["registration_id"] == "mas.opl_runtime_manager.registration.v1"
+    assert runtime_manager_registration["domain_id"] == "medautoscience"
+    assert runtime_manager_registration["registration_surface"]["command"].endswith(
+        "skill-catalog --profile " + str(profile_ref.resolve()) + " --format json"
+    )
+    assert (
+        "/progress_projection/domain_projection/research_runtime_control_projection"
+        in runtime_manager_registration["consumable_projection_refs"]
+    )
+    assert runtime_manager_registration["state_index_inputs"]["artifact_projection_index"] == "/artifact_inventory"
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]
