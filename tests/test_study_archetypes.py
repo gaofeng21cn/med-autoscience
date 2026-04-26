@@ -60,4 +60,19 @@ def test_resolve_explicit_survey_trend_analysis_archetype() -> None:
     assert [item.archetype_id for item in archetypes] == ["survey_trend_analysis"]
     assert archetypes[0].title == "Survey trend / guideline correspondence"
     assert "trend comparison across timepoints" in archetypes[0].expected_paper_package
+    assert (
+        "pre-draft asset upgrade scan across timepoint, stakeholder, center/geography, and guideline axes"
+        in archetypes[0].expected_paper_package
+    )
+    assert (
+        "field-verified multicenter or geography coverage before national or multicenter framing"
+        in archetypes[0].expected_paper_package
+    )
+    assert "prespecified subgroup or association analyses when verified variables support them" in (
+        archetypes[0].expected_paper_package
+    )
+    assert (
+        "guideline-to-reality constraint discussion covering price, reimbursement, access, safety, and clinician recommendation gaps"
+        in archetypes[0].expected_paper_package
+    )
     assert "practice or preference drift" in archetypes[0].public_data_roles

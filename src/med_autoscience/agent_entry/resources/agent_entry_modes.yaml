@@ -155,6 +155,7 @@ route_contracts:
       - user manuscript-change requests from Codex have been converted into a study revision intake with runtime ownership checked
     hard_success_gate:
       - manuscript line states claims that match cited evidence
+      - first-draft quality scan has checked underused data-asset dimensions before calling the draft ready
       - open gaps, caveats, and next actions are explicit in the writing surface
       - draft is ready for finalize or route-back with named reasons
       - any direct human-facing package edit has a durable MAS/MDS handoff and canonical-source reconciliation note
@@ -162,6 +163,7 @@ route_contracts:
       - manuscript draft or section update tied to current claim scope
       - claim-evidence map or equivalent traceability surface
       - reviewer-first pass note with explicit concerns
+      - first-draft quality note covering field-verified multicenter/geography, subgroup/association, guideline, and real-world constraint axes
       - revision handoff stating data source, scripts, changed tables/figures, claim guardrails, and whether `current_package` was reconciled back to controller-authorized `paper/`
     human_gate_boundary:
       - manuscript claims expand beyond the current evidence package or locked study objective
@@ -172,6 +174,7 @@ route_contracts:
     route_back_triggers:
       - any active claim lacks supporting evidence
       - reviewer-first scan finds unresolved logic, novelty, or rigor gaps
+      - first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing
       - manuscript narrative changes the claim boundary
       - foreground edits only touched `manuscript/current_package/` and have not been reconciled into the MAS/MDS canonical paper source
   finalize:
@@ -268,6 +271,7 @@ evidence_review_contract:
   reviewer_first_checks:
     - apply reviewer-first pressure before treating any draft or package as ready
     - state the strongest concern first and tie it to the affected claim or evidence gap
+    - test whether the current draft underuses verified timepoint, stakeholder, center/geography, guideline, subgroup, or adoption-constraint dimensions
     - record whether the concern routes back to scout, baseline, analysis-campaign, or write
   claim_evidence_consistency_requirements:
     - every active claim must map to concrete evidence already present in the current proof package
@@ -276,6 +280,7 @@ evidence_review_contract:
   route_back_policy:
     - route back immediately when a claim loses direct evidence support
     - route back immediately when reviewer-first checks expose a material gap in rigor, novelty, or relevance
+    - route back to analysis-campaign when a too-light descriptive draft leaves verified data dimensions unused within the locked claim boundary
     - route back to the narrowest earlier route that can close the gap while keeping the study boundary honest
 modes:
   - mode_id: full_research

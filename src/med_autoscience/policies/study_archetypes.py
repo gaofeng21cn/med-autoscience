@@ -167,9 +167,13 @@ _ARCHETYPES = {
             "cross-timepoint prevalence / uptake / preference trend tables",
             "explicit survey harmonization and denominator contract",
             "trend comparison across timepoints",
+            "pre-draft asset upgrade scan across timepoint, stakeholder, center/geography, and guideline axes",
+            "field-verified multicenter or geography coverage before national or multicenter framing",
             "subgroup comparison across clinically legible respondent strata",
+            "prespecified subgroup or association analyses when verified variables support them",
             "guideline-correspondence matrix on mechanism or family axes",
             "practice or preference drift interpretation with access, reimbursement, and safety context",
+            "guideline-to-reality constraint discussion covering price, reimbursement, access, safety, and clinician recommendation gaps",
             "transparent separation between current-use, future-preference, and clinician-adoption surfaces",
         ),
         public_data_roles=(

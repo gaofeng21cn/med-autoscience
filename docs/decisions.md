@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-04-26：初稿质量升级扫描进入 study charter 与 reviewer-first route-back
+
+- 决策：`study_charter.paper_quality_contract` 固定新增 first-draft quality contract；写作 route 在判断 draft ready 前必须扫描已验证数据资产是否支持更强的时间点、角色/人群、中心/地理、指南对应、亚组/关联分析和现实采用约束叙事。若当前初稿过轻且不改变锁定 claim 边界，默认 route back 到 `analysis-campaign` 做有限补充分析。
+- 理由：近期 manuscript 修改反馈暴露出一个系统性问题：初稿如果只按已有结果描述成稿，容易漏掉数据资产本身已经能支撑的更强 paper shape。把这类反馈上收到 MAS 合同层，可以在初稿前阻断“描述性够用”的低质量出口。
+- 影响：后续 `survey_trend_analysis`、写作 route、reviewer-first 检查与 evidence/review 合同都必须先问“数据资产还能否支撑更强且可验证的论文形态”，再决定写作、有限补充分析或 human gate。
+
 ## 2026-04-26：OPL Runtime Manager 作为薄运行管理层接入 MAS projection
 
 - 决策：MAS 与 OPL 的长线对齐采用 `OPL Runtime Manager -> external Hermes-Agent runtime substrate -> MAS domain entry/projection` 的分层口径。MAS 只暴露 task registration、runtime_control projection、status/artifact locator、approval/wakeup boundary 与现有 durable truth surface；`OPL Runtime Manager` 只负责上层管理、索引、doctor/repair/resume 与 native helper catalog，不成为 MAS 研究 truth 或执行器 owner。

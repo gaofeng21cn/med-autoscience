@@ -217,6 +217,9 @@ def test_render_entry_modes_guide_contains_required_contract_context() -> None:
     assert "user manuscript-change requests from Codex have been converted into a study revision intake" in guide
     assert "revision handoff stating data source, scripts, changed tables/figures, claim guardrails" in guide
     assert "no unreconciled foreground `current_package` revision overlay remains" in guide
+    assert "first-draft quality scan has checked underused data-asset dimensions" in guide
+    assert "field-verified multicenter/geography, subgroup/association, guideline" in guide
+    assert "too-light descriptive draft leaves verified data dimensions unused" in guide
 
 
 @pytest.mark.parametrize("render_prompt", [render_codex_entry_skill, render_openclaw_entry_prompt])
@@ -283,6 +286,9 @@ def test_entry_prompts_include_per_mode_route_contract_and_upgrade_rule(render_p
     assert "user manuscript-change requests from Codex have been converted into a study revision intake" in prompt
     assert "revision handoff stating data source, scripts, changed tables/figures, claim guardrails" in prompt
     assert "no unreconciled foreground `current_package` revision overlay remains" in prompt
+    assert "first-draft quality scan has checked underused data-asset dimensions" in prompt
+    assert "field-verified multicenter/geography, subgroup/association, guideline" in prompt
+    assert "too-light descriptive draft leaves verified data dimensions unused" in prompt
 
 
 def _extract_mode_block(prompt: str, mode_id: str) -> str:

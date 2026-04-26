@@ -25,6 +25,7 @@ canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_m
 - 任何 route 离开前，都要留下下一条 route 能直接接住的 durable artifact、ledger、decision record 或等价引用面。
 - 只要 study charter 已经显式声明 evidence expectation 或 review expectation，对应 ledger 就必须留下同名 expectation 的显式 closure 记录；没有记录、不合法状态、重复记录，都属于未闭环。
 - reviewer-first 检查必须优先暴露 strongest concern，并把 concern 绑定到具体 claim、evidence gap 或 rigor gap。
+- 初稿质量检查必须先判断现有数据资产是否被低估，包括时间点、角色/人群、中心/地理、指南对应、亚组/关联分析和现实采用约束；如果字段已验证且仍在锁定 claim 边界内，应 route back 到 `analysis-campaign`，而不是把过轻的描述性初稿直接推进。
 - claim wording、cited evidence、caveat、limitation 必须在同一 proof package 里相互对齐。
 - 只要当前 claim 失去直接证据支撑，或 reviewer-first 检查暴露出 material gap，就应立即 route back。
 

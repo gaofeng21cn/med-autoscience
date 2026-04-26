@@ -249,6 +249,7 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
                 "methods_subsections_complete_before_first_full_draft",
                 "statistical_reporting_plan_before_results_prose",
                 "table_figure_claim_map_before_results_prose",
+                "first_draft_asset_upgrade_scan_before_full_draft",
                 "phenotype_clinical_actionability_before_submission_package",
                 "human_metadata_todo_separated_from_scientific_blockers",
             ],
@@ -264,6 +265,43 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
                 "summary_format": {"status": "required_before_first_full_draft"},
                 "p_values": {"status": "required_before_first_full_draft"},
                 "subgroup_tests": {"status": "required_before_first_full_draft"},
+            },
+            "first_draft_quality_contract": {
+                "status": "required_before_first_full_draft",
+                "pre_draft_upgrade_scan": {
+                    "status": "required_before_first_full_draft",
+                    "required_axes": [
+                        "timepoint_or_temporal_depth",
+                        "stakeholder_or_role_contrast",
+                        "center_geography_or_site_coverage",
+                        "guideline_correspondence",
+                        "clinically_legible_subgroup_or_association_plan",
+                        "real_world_adoption_constraints",
+                    ],
+                },
+                "field_verification_policy": {
+                    "multicenter_or_national_claims": (
+                        "verify supporting fields before using multicenter or national framing"
+                    ),
+                    "subgroup_or_association_analyses": (
+                        "predeclare bounded analyses only when verified variables support them"
+                    ),
+                },
+                "too_light_draft_route_back": {
+                    "route": "analysis-campaign",
+                    "trigger": (
+                        "verified data dimensions can support a stronger paper than the current descriptive draft"
+                    ),
+                    "claim_boundary": "no_new_primary_claims_without_human_gate",
+                },
+                "discussion_floor": [
+                    "guideline_logic",
+                    "price_or_cost",
+                    "reimbursement",
+                    "access",
+                    "safety",
+                    "clinician_recommendation",
+                ],
             },
             "table_figure_claim_map_required": True,
             "human_metadata_admin_todos": [
@@ -362,6 +400,7 @@ def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Pa
                 "methods_subsections_complete_before_first_full_draft",
                 "statistical_reporting_plan_before_results_prose",
                 "table_figure_claim_map_before_results_prose",
+                "first_draft_asset_upgrade_scan_before_full_draft",
                 "phenotype_clinical_actionability_before_submission_package",
                 "human_metadata_todo_separated_from_scientific_blockers",
             ],
@@ -377,6 +416,43 @@ def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Pa
                 "summary_format": {"status": "required_before_first_full_draft"},
                 "p_values": {"status": "required_before_first_full_draft"},
                 "subgroup_tests": {"status": "required_before_first_full_draft"},
+            },
+            "first_draft_quality_contract": {
+                "status": "required_before_first_full_draft",
+                "pre_draft_upgrade_scan": {
+                    "status": "required_before_first_full_draft",
+                    "required_axes": [
+                        "timepoint_or_temporal_depth",
+                        "stakeholder_or_role_contrast",
+                        "center_geography_or_site_coverage",
+                        "guideline_correspondence",
+                        "clinically_legible_subgroup_or_association_plan",
+                        "real_world_adoption_constraints",
+                    ],
+                },
+                "field_verification_policy": {
+                    "multicenter_or_national_claims": (
+                        "verify supporting fields before using multicenter or national framing"
+                    ),
+                    "subgroup_or_association_analyses": (
+                        "predeclare bounded analyses only when verified variables support them"
+                    ),
+                },
+                "too_light_draft_route_back": {
+                    "route": "analysis-campaign",
+                    "trigger": (
+                        "verified data dimensions can support a stronger paper than the current descriptive draft"
+                    ),
+                    "claim_boundary": "no_new_primary_claims_without_human_gate",
+                },
+                "discussion_floor": [
+                    "guideline_logic",
+                    "price_or_cost",
+                    "reimbursement",
+                    "access",
+                    "safety",
+                    "clinician_recommendation",
+                ],
             },
             "table_figure_claim_map_required": True,
             "human_metadata_admin_todos": [

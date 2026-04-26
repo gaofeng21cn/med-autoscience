@@ -47,7 +47,7 @@ canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_m
 从 `DeepScientist` stage operational packet 学到的规则，在 `MAS` 中统一表达为医学化 stage packet：
 
 - 进入阶段前，必须能恢复 `study_id`、`active_route`、`quest_id`、study charter 边界、objective contract、ledger refs 与当前 blocker。
-- 离开阶段前，必须留下 route outcome、evidence refs、reviewer-first concern 状态、failed paths、winning path、resume point 与 next route。
+- 离开阶段前，必须留下 route outcome、evidence refs、reviewer-first concern 状态、first-draft quality scan、failed paths、winning path、resume point 与 next route。
 - `idea`、`analysis-campaign`、`write`、`finalize`、`decision` 都应引用 overlay 中的 `medical-research-stage-packet.block.md`，避免每个 stage 各写一套不可比较的 prose。
 - stage packet 是 route truth 的最小可接力单元；它可以被 `study-progress`、controller、publication gate 或人工接管读取。
 
