@@ -136,6 +136,83 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
     ]
 
 
+def test_study_cycle_profiler_uses_current_manual_finishing_state_over_window_churn(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+    study_root = workspace_root / "studies" / "004-ready"
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-004"
+    study_root.mkdir(parents=True)
+    quest_root.mkdir(parents=True)
+    (study_root / "runtime_binding.yaml").write_text(
+        "\n".join(
+            [
+                "study_id: 004-ready",
+                "quest_id: quest-004",
+                f"runtime_root: {workspace_root / 'ops' / 'med-deepscientist' / 'runtime' / 'quests'}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "20260425T000000Z.json",
+        {
+            "recorded_at": "2026-04-25T00:00:00+00:00",
+            "health_status": "recovering",
+            "runtime_reason": "quest_marked_running_but_no_live_session",
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {
+            "recorded_at": "2026-04-25T00:20:00+00:00",
+            "health_status": "inactive",
+            "runtime_decision": "blocked",
+            "runtime_reason": "quest_waiting_for_submission_metadata",
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "emitted_at": "2026-04-25T00:15:00+00:00",
+            "gaps": [
+                {
+                    "severity": "optional",
+                    "summary": "bundle-stage work is unlocked and can proceed on the critical path",
+                }
+            ],
+        },
+    )
+    _write_json(
+        quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json",
+        {
+            "generated_at": "2026-04-25T00:20:00+00:00",
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "supervisor_phase": "bundle_stage_ready",
+            "current_required_action": "continue_bundle_stage",
+        },
+    )
+    _touch(study_root / "paper" / "manuscript.md", 1_777_000_000)
+    _touch(study_root / "manuscript" / "current_package" / "manuscript.docx", 1_776_999_000)
+
+    profile_payload = module.profile_study_cycle(
+        profile=profile,
+        study_id="004-ready",
+        study_root=None,
+        since="2026-04-24T23:50:00+00:00",
+    )
+
+    assert profile_payload["current_state_summary"]["state"] == "manual_finishing"
+    assert profile_payload["gate_blocker_summary"]["current_blockers"] == []
+    assert profile_payload["eta_confidence_band"]["classification"] == "manual_finishing"
+    assert profile_payload["bottlenecks"] == []
+
+
 def test_study_cycle_profiler_renders_markdown(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
 

@@ -11,6 +11,10 @@ from typing import Any, Callable, Iterable, Mapping
 import yaml
 
 from med_autoscience.controllers import publication_work_units
+from med_autoscience.controllers.study_cycle_profiler_current_state import (
+    current_state_summary,
+    publishability_gate_is_clear,
+)
 from med_autoscience.controllers.study_cycle_profiler_eta import eta_confidence_band
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -317,14 +321,12 @@ def _latest_current_payloads(*, study_root: Path, quest_root: Path | None) -> tu
 
 
 def _gate_blocker_summary(*, publication_eval_latest: Mapping[str, Any] | None, publishability_gate_latest: Mapping[str, Any] | None) -> dict[str, Any]:
-    blockers = sorted(
-        dict.fromkeys(
-            [
-                *_extract_blockers(publication_eval_latest),
-                *_extract_blockers(publishability_gate_latest),
-            ]
-        )
-    )
+    blocker_sources: list[Mapping[str, Any] | None]
+    if publishability_gate_is_clear(publishability_gate_latest):
+        blocker_sources = [publishability_gate_latest]
+    else:
+        blocker_sources = [publication_eval_latest, publishability_gate_latest]
+    blockers = sorted(dict.fromkeys(blocker for payload in blocker_sources for blocker in _extract_blockers(payload)))
     actions: list[dict[str, Any]] = []
     for payload in (publication_eval_latest, publishability_gate_latest):
         if not isinstance(payload, Mapping):
@@ -487,7 +489,10 @@ def _bottlenecks(
     controller_decision_fingerprints: Mapping[str, Any],
     gate_blocker_summary: Mapping[str, Any],
     package_currentness: Mapping[str, Any],
+    current_state_summary: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
+    if isinstance(current_state_summary, Mapping) and current_state_summary.get("state") == "manual_finishing":
+        return []
     bottlenecks: list[dict[str, Any]] = []
     health_counts = runtime_transition_summary.get("health_status_counts")
     if isinstance(health_counts, Mapping) and any(
@@ -769,6 +774,10 @@ def profile_study_cycle(
         publication_eval_latest=publication_eval_latest,
         publishability_gate_latest=publishability_gate_latest,
     )
+    current_state = current_state_summary(
+        study_root=resolved_study_root,
+        publishability_gate_latest=publishability_gate_latest,
+    )
     package_currentness = _package_currentness(resolved_study_root)
     step_latest_times = _step_latest_times(
         category_windows=category_windows,
@@ -779,11 +788,13 @@ def profile_study_cycle(
         controller_decision_fingerprints=decision_fingerprints,
         gate_blocker_summary=gate_summary,
         package_currentness=package_currentness,
+        current_state_summary=current_state,
     )
     eta_band = eta_confidence_band(
         runtime_transition_summary=runtime_summary,
         gate_blocker_summary=gate_summary,
         package_currentness=package_currentness,
+        current_state_summary=current_state,
     )
     return {
         "study_id": resolved_study_id,
@@ -798,6 +809,7 @@ def profile_study_cycle(
         "category_windows": category_windows,
         "runtime_transition_summary": runtime_summary,
         "controller_decision_fingerprints": decision_fingerprints,
+        "current_state_summary": current_state,
         "gate_blocker_summary": gate_summary,
         "package_currentness": package_currentness,
         "step_latest_times": step_latest_times,

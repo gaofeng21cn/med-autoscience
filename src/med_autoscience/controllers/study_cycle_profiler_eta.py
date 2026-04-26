@@ -20,7 +20,17 @@ def eta_confidence_band(
     runtime_transition_summary: Mapping[str, Any],
     gate_blocker_summary: Mapping[str, Any],
     package_currentness: Mapping[str, Any],
+    current_state_summary: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if isinstance(current_state_summary, Mapping) and current_state_summary.get("state") == "manual_finishing":
+        return {
+            "classification": "manual_finishing",
+            "label": "manual finishing",
+            "confidence": "blocked",
+            "min_seconds": None,
+            "max_seconds": None,
+            "reason": "The study is parked at a milestone package/manual-finishing state; historical runtime churn in the window should not drive an autonomous completion ETA.",
+        }
     health_counts = runtime_transition_summary.get("health_status_counts")
     if isinstance(health_counts, Mapping) and any(
         int(health_counts.get(status) or 0) > 0 for status in ("recovering", "degraded", "escalated")
