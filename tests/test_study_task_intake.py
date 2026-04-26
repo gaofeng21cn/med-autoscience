@@ -136,6 +136,23 @@ def test_reviewer_revision_intake_detects_chinese_submission_review_feedback_rea
     assert module.summarize_task_intake(payload)["revision_intake"]["kind"] == "reviewer_revision"
 
 
+def test_reviewer_first_user_feedback_intake_detects_revision_reactivation() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "task_intent": (
+            "Resume the same 001 manuscript line for reviewer-first revision based on explicit user feedback. "
+            "Do not directly edit manuscript/current_package; use paper/rebuttal/input as trusted input and "
+            "route the work back through MAS/MDS write/review/publication gate surfaces."
+        ),
+        "constraints": ["Do not edit manuscript/current_package directly."],
+    }
+
+    assert module.task_intake_is_reviewer_revision(payload) is True
+    assert module.task_intake_overrides_auto_manual_finish(payload) is True
+    assert module.summarize_task_intake(payload)["revision_intake"]["reactivation_required"] is True
+
+
 def test_reviewer_revision_intake_yields_to_reviewer_first_bundle_stage_closeout() -> None:
     module = importlib.import_module("med_autoscience.study_task_intake")
 

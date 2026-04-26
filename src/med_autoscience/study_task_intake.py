@@ -36,6 +36,8 @@ _REVIEWER_REVISION_MARKERS = (
     "reviewer comment",
     "review comments",
     "reviewer revision",
+    "reviewer-first revision",
+    "reviewer first revision",
     "manuscript revision",
     "manuscript-change",
     "paper revision",
@@ -62,6 +64,9 @@ _REVIEWER_REVISION_MARKERS = (
     "results feedback",
     "figure feedback",
     "table feedback",
+    "user feedback",
+    "explicit user feedback",
+    "scientific revision feedback",
 )
 _REVISION_INTAKE_CHECKLIST: tuple[tuple[str, str, str], ...] = (
     ("text_revisions", "text revisions", "Introduction/Methods/Results/Discussion 等文字修订点已逐条定位。"),
