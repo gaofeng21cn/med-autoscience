@@ -14,7 +14,7 @@ from med_autoscience.quality.publication_gate import (
     derive_quality_closure_truth,
     derive_quality_execution_lane,
 )
-from med_autoscience.quality.study_quality import build_study_quality_truth
+from med_autoscience.quality.study_quality import build_study_quality_truth, publication_eval_ai_reviewer_backed
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 from med_autoscience.study_task_intake import read_latest_task_intake, summarize_task_intake
 
@@ -379,6 +379,8 @@ def _quality_revision_candidates(
     publication_eval: dict[str, Any],
     summary_payload: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], list[str]]:
+    if not publication_eval_ai_reviewer_backed(publication_eval):
+        return [], []
     quality_assessment = (
         dict(publication_eval.get("quality_assessment") or {})
         if isinstance(publication_eval.get("quality_assessment"), dict)
@@ -450,11 +452,42 @@ def _quality_revision_candidates(
     return normalized, focuses
 
 
+def _ai_reviewer_required_quality_revision_plan(summary_payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "policy_id": DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"],
+        "plan_id": _quality_revision_plan_id(summary_payload),
+        "execution_status": "planned",
+        "overall_diagnosis": (
+            "当前 publication_eval 只是机械投影；必须先由 AI reviewer 读取 manuscript、"
+            "evidence ledger、review ledger 与 study charter 后再形成质量修订计划。"
+        ),
+        "weight_contract": dict(_PUBLICATION_CRITIQUE_WEIGHT_CONTRACT),
+        "items": [
+            _quality_revision_item(
+                item_id="quality-revision-item-1",
+                priority="p0",
+                dimension="human_review_readiness",
+                action_type="refresh_review_surface",
+                route_target=None,
+                action="先发起 AI reviewer 复评，并把 reviewer-authored assessment 写回 publication_eval。",
+                rationale="缺少 assessment_provenance.owner=ai_reviewer 的当前质量判断。",
+                done_criteria=(
+                    "AI reviewer 已读取 manuscript、evidence ledger、review ledger 与 study charter，"
+                    "并写回 medical_publication_critique_v1 质量判断。"
+                ),
+            )
+        ],
+        "next_review_focus": ["AI reviewer-backed publication_eval"],
+    }
+
+
 def _quality_revision_plan(
     *,
     publication_eval: dict[str, Any],
     summary_payload: dict[str, Any],
 ) -> dict[str, Any]:
+    if not publication_eval_ai_reviewer_backed(publication_eval):
+        return _ai_reviewer_required_quality_revision_plan(summary_payload)
     declared_plan = (
         dict(publication_eval.get("quality_revision_plan") or {})
         if isinstance(publication_eval.get("quality_revision_plan"), dict)

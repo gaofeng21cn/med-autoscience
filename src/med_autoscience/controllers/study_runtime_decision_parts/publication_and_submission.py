@@ -38,6 +38,7 @@ from med_autoscience.controllers.study_runtime_types import (
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.publication_eval_latest import materialize_publication_eval_latest
 from med_autoscience.publication_eval_record import (
+    PublicationEvalAssessmentProvenance,
     PublicationEvalCharterContextRef,
     PublicationEvalGap,
     PublicationEvalQualityAssessment,
@@ -799,6 +800,13 @@ def _materialize_publication_eval_from_gate_report(
             "paper_root_ref": paper_root_ref,
             "submission_minimal_ref": submission_minimal_ref,
         },
+        assessment_provenance=PublicationEvalAssessmentProvenance(
+            owner="mechanical_projection",
+            source_kind="publication_gate_report",
+            policy_id="publication_gate_projection_v1",
+            source_refs=evidence_refs,
+            ai_reviewer_required=True,
+        ),
         verdict=_publication_eval_verdict(publication_gate_report),
         quality_assessment=_publication_eval_quality_assessment(
             report=publication_gate_report,

@@ -592,6 +592,17 @@ def _quality_review_agenda_from_summary_payload(summary_payload: dict[str, Any])
 
 
 def _reviewer_agenda_from_quality_assessment(publication_eval: dict[str, Any]) -> dict[str, str]:
+    provenance = (
+        dict(publication_eval.get("assessment_provenance") or {})
+        if isinstance(publication_eval.get("assessment_provenance"), dict)
+        else {}
+    )
+    if provenance.get("owner") != "ai_reviewer" or provenance.get("ai_reviewer_required") is not False:
+        return {
+            "top_priority_issue": "",
+            "suggested_revision": "",
+            "next_review_focus": "",
+        }
     quality_assessment = (
         dict(publication_eval.get("quality_assessment") or {})
         if isinstance(publication_eval.get("quality_assessment"), dict)

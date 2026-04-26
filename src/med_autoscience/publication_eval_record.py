@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from med_autoscience.publication_eval_record_provenance import PublicationEvalAssessmentProvenance
+
 
 _RECORD_ALLOWED_FIELDS = frozenset(
     {
@@ -15,6 +17,7 @@ _RECORD_ALLOWED_FIELDS = frozenset(
         "charter_context_ref",
         "runtime_context_refs",
         "delivery_context_refs",
+        "assessment_provenance",
         "verdict",
         "quality_assessment",
         "gaps",
@@ -244,6 +247,25 @@ def _payload_true(payload: dict[str, Any], field_name: str, label: str) -> bool:
     return True
 
 
+def _dedupe_ref_texts(*values: object) -> tuple[str, ...]:
+    refs: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if isinstance(value, dict):
+            items = value.values()
+        elif isinstance(value, (list, tuple)):
+            items = value
+        else:
+            items = (value,)
+        for item in items:
+            text = str(item or "").strip()
+            if not text or text in seen:
+                continue
+            seen.add(text)
+            refs.append(text)
+    return tuple(refs)
+
+
 @dataclass(frozen=True)
 class PublicationEvalCharterContextRef:
     ref: str
@@ -284,7 +306,6 @@ class PublicationEvalCharterContextRef:
                 "publication eval charter context ref",
             ),
         )
-
 
 @dataclass(frozen=True)
 class PublicationEvalVerdict:
@@ -766,6 +787,7 @@ class PublicationEvalRecord:
     verdict: PublicationEvalVerdict
     gaps: tuple[PublicationEvalGap, ...]
     recommended_actions: tuple[PublicationEvalRecommendedAction, ...]
+    assessment_provenance: PublicationEvalAssessmentProvenance | None = None
     quality_assessment: PublicationEvalQualityAssessment | None = None
 
     def __post_init__(self) -> None:
@@ -812,6 +834,32 @@ class PublicationEvalRecord:
                 required_keys=_REQUIRED_DELIVERY_CONTEXT_REF_KEYS,
             ),
         )
+        if self.assessment_provenance is None:
+            object.__setattr__(
+                self,
+                "assessment_provenance",
+                PublicationEvalAssessmentProvenance(
+                    owner="mechanical_projection",
+                    source_kind="legacy_publication_eval_projection",
+                    policy_id="publication_gate_projection_v1",
+                    source_refs=_dedupe_ref_texts(
+                        self.charter_context_ref.ref,
+                        self.runtime_context_refs,
+                        self.delivery_context_refs,
+                    ),
+                    ai_reviewer_required=True,
+                ),
+            )
+        else:
+            object.__setattr__(
+                self,
+                "assessment_provenance",
+                (
+                    self.assessment_provenance
+                    if isinstance(self.assessment_provenance, PublicationEvalAssessmentProvenance)
+                    else PublicationEvalAssessmentProvenance.from_payload(self.assessment_provenance)
+                ),
+            )
         object.__setattr__(
             self,
             "verdict",
@@ -861,6 +909,7 @@ class PublicationEvalRecord:
             "charter_context_ref": self.charter_context_ref.to_dict(),
             "runtime_context_refs": dict(self.runtime_context_refs),
             "delivery_context_refs": dict(self.delivery_context_refs),
+            "assessment_provenance": self.assessment_provenance.to_dict(),
             "verdict": self.verdict.to_dict(),
             "gaps": [gap.to_dict() for gap in self.gaps],
             "recommended_actions": [action.to_dict() for action in self.recommended_actions],
@@ -886,6 +935,13 @@ class PublicationEvalRecord:
             ),
             runtime_context_refs=_payload_ref_mapping(payload, "runtime_context_refs", "publication eval record"),
             delivery_context_refs=_payload_ref_mapping(payload, "delivery_context_refs", "publication eval record"),
+            assessment_provenance=(
+                PublicationEvalAssessmentProvenance.from_payload(
+                    _payload_object(payload, "assessment_provenance", "publication eval record")
+                )
+                if "assessment_provenance" in payload
+                else None
+            ),
             verdict=PublicationEvalVerdict.from_payload(_payload_object(payload, "verdict", "publication eval record")),
             quality_assessment=(
                 PublicationEvalQualityAssessment.from_payload(
@@ -906,6 +962,7 @@ class PublicationEvalRecord:
 
 
 __all__ = [
+    "PublicationEvalAssessmentProvenance",
     "PublicationEvalCharterContextRef",
     "PublicationEvalGap",
     "PublicationEvalQualityAssessment",

@@ -147,6 +147,18 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
     _write_publication_eval(
         study_root,
         quest_root,
+        assessment_provenance={
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [
+                str(study_root / "paper"),
+                str(quest_root / "artifacts" / "results" / "main_result.json"),
+                str(study_root / "paper" / "review" / "review_ledger.json"),
+                str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            ],
+            "ai_reviewer_required": False,
+        },
         quality_assessment={
             "clinical_significance": {
                 "status": "ready",

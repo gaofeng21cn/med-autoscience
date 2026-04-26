@@ -92,6 +92,7 @@ def _write_publication_eval(
     *,
     recommended_actions: list[dict[str, object]] | None = None,
     quality_assessment: dict[str, object] | None = None,
+    assessment_provenance: dict[str, object] | None = None,
 ) -> Path:
     payload = {
         "schema_version": 1,
@@ -175,6 +176,8 @@ def _write_publication_eval(
             }
         ],
     }
+    if assessment_provenance is not None:
+        payload["assessment_provenance"] = assessment_provenance
     path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(path, payload)
     return path

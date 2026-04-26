@@ -13,6 +13,59 @@ _QUALITY_DIMENSION_ORDER = (
 )
 
 
+def _publication_eval_assessment_provenance(publication_eval: dict[str, Any]) -> dict[str, Any]:
+    provenance = publication_eval.get("assessment_provenance")
+    if isinstance(provenance, dict):
+        source_refs = _required_string_list(provenance.get("source_refs"))
+        return {
+            "owner": _optional_text(provenance.get("owner")) or "mechanical_projection",
+            "source_kind": _optional_text(provenance.get("source_kind")) or "unknown",
+            "policy_id": _optional_text(provenance.get("policy_id")) or "unknown",
+            "source_refs": source_refs,
+            "ai_reviewer_required": bool(provenance.get("ai_reviewer_required", True)),
+        }
+    refs: list[str] = []
+    for item in (
+        (publication_eval.get("charter_context_ref") or {}).get("ref")
+        if isinstance(publication_eval.get("charter_context_ref"), dict)
+        else None,
+        *((publication_eval.get("runtime_context_refs") or {}).values()
+          if isinstance(publication_eval.get("runtime_context_refs"), dict)
+          else ()),
+        *((publication_eval.get("delivery_context_refs") or {}).values()
+          if isinstance(publication_eval.get("delivery_context_refs"), dict)
+          else ()),
+    ):
+        text = _optional_text(item)
+        if text is not None and text not in refs:
+            refs.append(text)
+    return {
+        "owner": "mechanical_projection",
+        "source_kind": "legacy_publication_eval_projection",
+        "policy_id": "publication_gate_projection_v1",
+        "source_refs": refs,
+        "ai_reviewer_required": True,
+    }
+
+
+def publication_eval_ai_reviewer_backed(publication_eval: dict[str, Any]) -> bool:
+    provenance = _publication_eval_assessment_provenance(publication_eval)
+    return provenance["owner"] == "ai_reviewer" and not bool(provenance["ai_reviewer_required"])
+
+
+def _projection_only_reviewer_first(provenance: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "required": True,
+        "status": "review_required",
+        "ready": False,
+        "source": "publication_eval_projection",
+        "summary": "当前 publication_eval 只是机械投影；必须先由 AI reviewer 读取 manuscript、evidence ledger、review ledger 与 study charter 后再给出 reviewer-first readiness。",
+        "open_concern_count": 0,
+        "resolved_concern_count": 0,
+        "evidence_refs": list(provenance.get("source_refs") or []),
+    }
+
+
 def _optional_text(value: object) -> str | None:
     if not isinstance(value, str):
         return None
@@ -274,33 +327,45 @@ def build_study_quality_truth(
     review_ledger_payload: dict[str, Any] | None,
     review_ledger_path: str | Path | None,
 ) -> dict[str, Any]:
-    reviewer_first = build_reviewer_first_readiness(
-        review_ledger_payload=review_ledger_payload,
-        review_ledger_path=review_ledger_path,
-        fallback_basis_item=_quality_basis_item(quality_closure_basis, "human_review_readiness"),
-    )
+    assessment_provenance = _publication_eval_assessment_provenance(publication_eval)
+    ai_reviewer_backed = publication_eval_ai_reviewer_backed(publication_eval)
+    if ai_reviewer_backed:
+        reviewer_first = build_reviewer_first_readiness(
+            review_ledger_payload=review_ledger_payload,
+            review_ledger_path=review_ledger_path,
+            fallback_basis_item=_quality_basis_item(quality_closure_basis, "human_review_readiness"),
+        )
+        effective_quality_closure_truth = dict(quality_closure_truth)
+    else:
+        reviewer_first = _projection_only_reviewer_first(assessment_provenance)
+        effective_quality_closure_truth = dict(quality_closure_truth)
+        effective_quality_closure_truth["state"] = "quality_repair_required"
+        effective_quality_closure_truth["summary"] = reviewer_first["summary"]
     bounded_analysis = _bounded_analysis_truth(
         charter_payload=charter_payload,
         route_repair_plan=route_repair_plan,
-        quality_closure_truth=quality_closure_truth,
+        quality_closure_truth=effective_quality_closure_truth,
     )
     narrowest_scientific_gap = _narrowest_scientific_gap(
         publication_eval=publication_eval,
         route_repair_plan=route_repair_plan,
-        quality_closure_truth=quality_closure_truth,
+        quality_closure_truth=effective_quality_closure_truth,
         quality_execution_lane=quality_execution_lane,
     )
     finalize_bundle_readiness = _finalize_bundle_readiness(
-        quality_closure_truth=quality_closure_truth,
+        quality_closure_truth=effective_quality_closure_truth,
         quality_closure_basis=quality_closure_basis,
         reviewer_first=reviewer_first,
     )
-    contract_state = str(quality_closure_truth.get("state") or "").strip() or "quality_repair_required"
+    contract_state = str(effective_quality_closure_truth.get("state") or "").strip() or "quality_repair_required"
     return {
         "study_id": study_id,
+        "assessment_owner": str(assessment_provenance.get("owner") or "mechanical_projection"),
+        "assessment_provenance": assessment_provenance,
+        "ai_reviewer_required": not ai_reviewer_backed,
         "contract_state": contract_state,
         "contract_closed": contract_state in {"write_line_ready", "bundle_only_remaining"},
-        "summary": str(quality_closure_truth.get("summary") or "").strip(),
+        "summary": str(effective_quality_closure_truth.get("summary") or "").strip(),
         "narrowest_scientific_gap": narrowest_scientific_gap,
         "reviewer_first": reviewer_first,
         "bounded_analysis": bounded_analysis,

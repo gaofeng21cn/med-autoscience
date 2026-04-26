@@ -52,6 +52,17 @@ def _charter_payload() -> dict[str, object]:
     }
 
 
+def _ai_reviewer_provenance(*source_refs: str) -> dict[str, object]:
+    refs = [ref for ref in source_refs if ref]
+    return {
+        "owner": "ai_reviewer",
+        "source_kind": "publication_eval_ai_reviewer",
+        "policy_id": "medical_publication_critique_v1",
+        "source_refs": refs or ["/tmp/workspace/studies/001-risk/paper/manuscript.md"],
+        "ai_reviewer_required": False,
+    }
+
+
 def test_build_study_quality_truth_explains_bounded_analysis_gap_and_contract() -> None:
     module = _load_module()
 
@@ -59,6 +70,7 @@ def test_build_study_quality_truth_explains_bounded_analysis_gap_and_contract() 
         study_id="001-risk",
         charter_payload=_charter_payload(),
         publication_eval={
+            "assessment_provenance": _ai_reviewer_provenance("/tmp/workspace/studies/001-risk/paper/manuscript.md"),
             "gaps": [
                 {
                     "gap_id": "gap-001",
@@ -210,6 +222,7 @@ def test_build_study_quality_truth_marks_bundle_only_remaining_as_same_contract_
         study_id="001-risk",
         charter_payload=_charter_payload(),
         publication_eval={
+            "assessment_provenance": _ai_reviewer_provenance("/tmp/workspace/studies/001-risk/paper/manuscript.md"),
             "gaps": [
                 {
                     "gap_id": "gap-001",
@@ -330,6 +343,7 @@ def test_build_study_quality_truth_blocks_finalize_without_reviewer_first_ready(
         study_id="001-risk",
         charter_payload=_charter_payload(),
         publication_eval={
+            "assessment_provenance": _ai_reviewer_provenance("/tmp/workspace/studies/001-risk/paper/manuscript.md"),
             "gaps": [
                 {
                     "gap_id": "gap-001",
@@ -411,6 +425,111 @@ def test_build_study_quality_truth_blocks_finalize_without_reviewer_first_ready(
     }
 
 
+def test_projection_only_publication_eval_cannot_close_ai_first_quality_contract() -> None:
+    module = _load_module()
+
+    truth = module.build_study_quality_truth(
+        study_id="001-risk",
+        charter_payload=_charter_payload(),
+        publication_eval={
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "source_kind": "publication_gate_report",
+                "policy_id": "publication_gate_projection_v1",
+                "source_refs": ["/tmp/gate.json"],
+                "ai_reviewer_required": True,
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "delivery",
+                    "severity": "optional",
+                    "summary": "Only submission bundle alignment remains.",
+                    "evidence_refs": ["/tmp/runtime/main_result.json"],
+                }
+            ],
+        },
+        promotion_gate_payload={
+            "current_required_action": "complete_bundle_stage",
+            "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
+            "medical_publication_surface_named_blockers": ["submission_hardening_incomplete"],
+        },
+        route_repair_plan={
+            "action_id": "action-003",
+            "action_type": "route_back_same_line",
+            "priority": "now",
+            "route_target": "finalize",
+            "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+            "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
+        },
+        quality_closure_truth={
+            "state": "bundle_only_remaining",
+            "summary": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
+            "current_required_action": "complete_bundle_stage",
+            "route_target": "finalize",
+        },
+        quality_closure_basis={
+            "clinical_significance": {
+                "status": "ready",
+                "summary": "Clinical framing is already stable.",
+                "evidence_refs": ["/tmp/gate.json"],
+            },
+            "evidence_strength": {
+                "status": "ready",
+                "summary": "Core evidence is already closed.",
+                "evidence_refs": ["/tmp/gate.json"],
+            },
+            "novelty_positioning": {
+                "status": "ready",
+                "summary": "Novelty boundary is already fixed.",
+                "evidence_refs": ["/tmp/charter.json"],
+            },
+            "human_review_readiness": {
+                "status": "ready",
+                "summary": "Human review package is synchronized.",
+                "evidence_refs": ["/tmp/review_ledger.json"],
+            },
+            "publication_gate": {
+                "status": "partial",
+                "summary": "Only finalize-level bundle cleanup remains.",
+                "evidence_refs": ["/tmp/promotion_gate.json"],
+            },
+        },
+        quality_execution_lane={
+            "lane_id": "submission_hardening",
+            "lane_label": "投稿包硬化收口",
+            "repair_mode": "same_line_route_back",
+            "route_target": "finalize",
+            "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+            "summary": "当前质量执行线聚焦投稿包硬化收口；先回到定稿与投稿收尾，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
+            "why_now": "The paper itself is ready for human review and only finalize-level cleanup remains.",
+        },
+        review_ledger_payload={
+            "schema_version": 1,
+            "concerns": [
+                {
+                    "concern_id": "RC1",
+                    "reviewer_id": "reviewer-1",
+                    "summary": "Clarify the endpoint boundary in Results.",
+                    "severity": "major",
+                    "status": "resolved",
+                    "owner_action": "rewrite_results_boundary_paragraph",
+                    "revision_links": [],
+                }
+            ],
+        },
+        review_ledger_path="/tmp/workspace/studies/001-risk/paper/review/review_ledger.json",
+    )
+
+    assert truth["assessment_owner"] == "mechanical_projection"
+    assert truth["ai_reviewer_required"] is True
+    assert truth["contract_state"] == "quality_repair_required"
+    assert truth["contract_closed"] is False
+    assert truth["reviewer_first"]["source"] == "publication_eval_projection"
+    assert truth["reviewer_first"]["ready"] is False
+    assert truth["finalize_bundle_readiness"]["ready_for_finalize"] is False
+
+
 def test_evaluation_summary_materializes_study_quality_truth_on_durable_surface(tmp_path: Path) -> None:
     summary_module = importlib.import_module("med_autoscience.evaluation_summary")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
@@ -466,6 +585,12 @@ def test_evaluation_summary_materializes_study_quality_truth_on_durable_surface(
                 "paper_root_ref": str(study_root / "paper"),
                 "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
             },
+            "assessment_provenance": _ai_reviewer_provenance(
+                str(study_root / "paper" / "manuscript.md"),
+                str(quest_root / "artifacts" / "results" / "main_result.json"),
+                str(review_ledger_path),
+                str(charter_path),
+            ),
             "verdict": {
                 "overall_verdict": "blocked",
                 "primary_claim_status": "supported",
@@ -568,6 +693,20 @@ def test_evaluation_summary_materializes_study_quality_truth_on_durable_surface(
 
     assert summary["study_quality_truth"] == {
         "study_id": "001-risk",
+        "assessment_owner": "ai_reviewer",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [
+                str(study_root / "paper" / "manuscript.md"),
+                str(quest_root / "artifacts" / "results" / "main_result.json"),
+                str(review_ledger_path),
+                str(charter_path),
+            ],
+            "ai_reviewer_required": False,
+        },
+        "ai_reviewer_required": False,
         "contract_state": "bundle_only_remaining",
         "contract_closed": True,
         "summary": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",

@@ -4,10 +4,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.policies import DEFAULT_PUBLICATION_CRITIQUE_POLICY
 from med_autoscience.publication_eval_record import PublicationEvalRecord
 
 __all__ = [
     "STABLE_PUBLICATION_EVAL_LATEST_RELATIVE_PATH",
+    "materialize_ai_reviewer_publication_eval_latest",
     "materialize_publication_eval_latest",
     "read_publication_eval_latest",
     "resolve_publication_eval_latest_ref",
@@ -72,3 +74,26 @@ def materialize_publication_eval_latest(
         "eval_id": normalized_record.eval_id,
         "artifact_path": str(latest_path),
     }
+
+
+def materialize_ai_reviewer_publication_eval_latest(
+    *,
+    study_root: Path,
+    record: PublicationEvalRecord | dict[str, Any],
+) -> dict[str, str]:
+    normalized_record = (
+        record
+        if isinstance(record, PublicationEvalRecord)
+        else PublicationEvalRecord.from_payload(record)
+    )
+    payload = normalized_record.to_dict()
+    provenance = payload["assessment_provenance"]
+    if provenance["owner"] != "ai_reviewer":
+        raise ValueError("AI reviewer publication eval must declare assessment_provenance.owner=ai_reviewer")
+    if provenance["ai_reviewer_required"] is not False:
+        raise ValueError("AI reviewer publication eval cannot still require AI reviewer judgment")
+    if provenance["policy_id"] != DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"]:
+        raise ValueError(
+            f"AI reviewer publication eval policy_id must be {DEFAULT_PUBLICATION_CRITIQUE_POLICY['policy_id']}"
+        )
+    return materialize_publication_eval_latest(study_root=study_root, record=normalized_record)

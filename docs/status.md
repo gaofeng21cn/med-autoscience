@@ -32,6 +32,7 @@
 
 - 当前 tranche 固定为“质量闭环结构化 + 用户可见真相投影 + 对应 proof/soak 口径”。
 - 质量闭环结构化的 owner 继续落在 `study_charter`、`paper evidence ledger`、`review ledger`：把方向锁定后的普通科研推进、论文质量裁决、`bounded_analysis` 边界、reviewer concern 与 submission hygiene 压成同一套 `MAS` quality contract。
+- AI-first 质量边界已显式进入 `publication_eval/latest.json`：`publication_gate` 或 `medical_reporting_audit` 派生的记录只能标记为 `assessment_provenance.owner=mechanical_projection`，用于表达 gate/blocker/projection；只有由 AI reviewer 读取 manuscript、evidence ledger、review ledger 与 study charter 后按 `medical_publication_critique_v1` 写回的记录，才能标记为 `owner=ai_reviewer` 并驱动 reviewer-first ready、bundle-only remaining 或 finalize-ready 判断。
 - 当前 repo-side 落地已经要求质量修复写成结构化 route truth：当前是同线质量修复，还是 `bounded_analysis` 一类有限补充分析；回到哪条现有主线；当前那条主线要回答什么关键问题；为什么这是最窄、最诚实的修复路径。
 - 当前 repo-side 落地已经把这层 blocked route truth 继续压进 `publication_eval/latest.json`：只要 `publication_gate` 已经知道应该 `return_to_write`、`return_to_analysis_campaign` 或 `return_to_finalize`，下游 durable surface 与 `study-progress` 就不再把它压回泛化 `return_to_controller`，而会直接投影成同线修复或有限补充分析。
 - 当前 repo-side 落地已经把其中一类可确定修复的同线 route-back 前推成 controller-owned continuation step：当 `publication_eval/latest.json` 要求 `bounded_analysis`，且 `publication_gate` 的阻塞只剩 scientific-anchor 冻结、paper-facing surface repair、display/export refresh、submission-minimal replay 或 stale delivery replay 这类可批处理修复项时，`study_outer_loop` 会先执行一次 `run_gate_clearing_batch`，再把 study 送回同一条托管主线。

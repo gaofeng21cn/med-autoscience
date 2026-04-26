@@ -190,6 +190,7 @@ def _build_evaluation_summary_payload(
         route_repair_plan=route_repair_plan,
     )
     quality_closure_truth = _quality_closure_truth(
+        publication_eval=publication_eval,
         promotion_gate_payload=promotion_gate_payload,
         route_repair_plan=route_repair_plan,
         quality_closure_basis=quality_closure_basis,
@@ -396,6 +397,54 @@ def _normalized_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _normalized_study_quality_assessment_provenance(
+    study_quality_truth: dict[str, Any],
+    *,
+    study_root: Path,
+) -> dict[str, Any]:
+    provenance = (
+        dict(study_quality_truth.get("assessment_provenance") or {})
+        if isinstance(study_quality_truth.get("assessment_provenance"), dict)
+        else None
+    )
+    if provenance is None:
+        return {
+            "owner": "mechanical_projection",
+            "source_kind": "legacy_study_quality_projection",
+            "policy_id": "publication_gate_projection_v1",
+            "source_refs": [str(stable_publication_eval_latest_path(study_root=study_root))],
+            "ai_reviewer_required": True,
+        }
+    return {
+        "owner": _required_choice(
+            "evaluation summary study_quality_truth assessment_provenance",
+            "owner",
+            provenance.get("owner"),
+            frozenset({"mechanical_projection", "ai_reviewer"}),
+        ),
+        "source_kind": _required_text(
+            "evaluation summary study_quality_truth assessment_provenance",
+            "source_kind",
+            provenance.get("source_kind"),
+        ),
+        "policy_id": _required_text(
+            "evaluation summary study_quality_truth assessment_provenance",
+            "policy_id",
+            provenance.get("policy_id"),
+        ),
+        "source_refs": _required_string_list(
+            "evaluation summary study_quality_truth assessment_provenance",
+            "source_refs",
+            provenance.get("source_refs"),
+        ),
+        "ai_reviewer_required": _required_bool(
+            "evaluation summary study_quality_truth assessment_provenance",
+            "ai_reviewer_required",
+            provenance.get("ai_reviewer_required"),
+        ),
+    }
+
+
 def _normalized_evaluation_summary(payload: dict[str, Any], *, study_root: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise TypeError("evaluation summary payload must be a mapping")
@@ -460,6 +509,10 @@ def _normalized_evaluation_summary(payload: dict[str, Any], *, study_root: Path)
         quality_closure_truth=quality_closure_truth,
         quality_closure_basis=quality_closure_basis,
         quality_execution_lane=quality_execution_lane,
+    )
+    study_quality_assessment_provenance = _normalized_study_quality_assessment_provenance(
+        normalized_study_quality_truth,
+        study_root=study_root,
     )
     return {
         "schema_version": 1,
@@ -601,6 +654,48 @@ def _normalized_evaluation_summary(payload: dict[str, Any], *, study_root: Path)
                 "evaluation summary study_quality_truth",
                 "study_id",
                 normalized_study_quality_truth.get("study_id"),
+            ),
+            "assessment_owner": _required_choice(
+                "evaluation summary study_quality_truth",
+                "assessment_owner",
+                normalized_study_quality_truth.get("assessment_owner")
+                or study_quality_assessment_provenance.get("owner"),
+                frozenset({"mechanical_projection", "ai_reviewer"}),
+            ),
+            "assessment_provenance": {
+                "owner": _required_choice(
+                    "evaluation summary study_quality_truth assessment_provenance",
+                    "owner",
+                    study_quality_assessment_provenance.get("owner"),
+                    frozenset({"mechanical_projection", "ai_reviewer"}),
+                ),
+                "source_kind": _required_text(
+                    "evaluation summary study_quality_truth assessment_provenance",
+                    "source_kind",
+                    study_quality_assessment_provenance.get("source_kind"),
+                ),
+                "policy_id": _required_text(
+                    "evaluation summary study_quality_truth assessment_provenance",
+                    "policy_id",
+                    study_quality_assessment_provenance.get("policy_id"),
+                ),
+                "source_refs": _required_string_list(
+                    "evaluation summary study_quality_truth assessment_provenance",
+                    "source_refs",
+                    study_quality_assessment_provenance.get("source_refs"),
+                ),
+                "ai_reviewer_required": _required_bool(
+                    "evaluation summary study_quality_truth assessment_provenance",
+                    "ai_reviewer_required",
+                    study_quality_assessment_provenance.get("ai_reviewer_required"),
+                ),
+            },
+            "ai_reviewer_required": _required_bool(
+                "evaluation summary study_quality_truth",
+                "ai_reviewer_required",
+                normalized_study_quality_truth.get("ai_reviewer_required")
+                if isinstance(normalized_study_quality_truth.get("ai_reviewer_required"), bool)
+                else study_quality_assessment_provenance.get("ai_reviewer_required"),
             ),
             "contract_state": _required_choice(
                 "evaluation summary study_quality_truth",

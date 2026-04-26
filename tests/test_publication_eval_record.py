@@ -121,7 +121,23 @@ def test_publication_eval_record_from_payload_round_trips_minimal_shape() -> Non
             ),
         ),
     )
-    assert record.to_dict() == payload
+    expected_payload = {
+        **payload,
+        "assessment_provenance": {
+            "owner": "mechanical_projection",
+            "source_kind": "legacy_publication_eval_projection",
+            "policy_id": "publication_gate_projection_v1",
+            "source_refs": [
+                payload["charter_context_ref"]["ref"],
+                payload["runtime_context_refs"]["runtime_escalation_ref"],
+                payload["runtime_context_refs"]["main_result_ref"],
+                payload["delivery_context_refs"]["paper_root_ref"],
+                payload["delivery_context_refs"]["submission_minimal_ref"],
+            ],
+            "ai_reviewer_required": True,
+        },
+    }
+    assert record.to_dict() == expected_payload
 
 
 def test_publication_eval_record_quality_dimension_guidance_round_trips() -> None:
