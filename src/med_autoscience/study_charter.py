@@ -5,7 +5,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.medical_reporting_guidelines import build_guideline_quality_gate_expectation
 from med_autoscience.policies.medical_reporting_checklist import build_default_structured_reporting_contract
+from med_autoscience.policies.medical_reporting_contract import SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES
 
 __all__ = [
     "STABLE_STUDY_CHARTER_RELATIVE_PATH",
@@ -248,6 +250,21 @@ def _materialize_structured_reporting_contract(study_payload: dict[str, Any]) ->
     actionability_required = raw_contract.get("clinical_actionability_required")
     if actionability_required is None:
         actionability_required = study_payload.get("clinical_actionability_required")
+    manuscript_family = _non_empty_string(raw_contract.get("manuscript_family")) or _non_empty_string(
+        study_payload.get("manuscript_family")
+    )
+    endpoint_type = _non_empty_string(raw_contract.get("endpoint_type")) or _non_empty_string(
+        study_payload.get("endpoint_type")
+    )
+    reporting_guideline_family = (
+        _non_empty_string(raw_contract.get("reporting_guideline_family"))
+        or _non_empty_string(study_payload.get("reporting_guideline_family"))
+        or (
+            SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES.get(manuscript_family)
+            if manuscript_family is not None
+            else None
+        )
+    )
     archetype = (
         _non_empty_string(raw_contract.get("paper_archetype"))
         or _non_empty_string(study_payload.get("paper_archetype"))
@@ -283,10 +300,8 @@ def _materialize_structured_reporting_contract(study_payload: dict[str, Any]) ->
     prediction_defaults = build_default_structured_reporting_contract(
         study_archetype=_non_empty_string(study_payload.get("study_archetype")),
         paper_archetype=archetype,
-        manuscript_family=_non_empty_string(raw_contract.get("manuscript_family"))
-        or _non_empty_string(study_payload.get("manuscript_family")),
-        endpoint_type=_non_empty_string(raw_contract.get("endpoint_type"))
-        or _non_empty_string(study_payload.get("endpoint_type")),
+        manuscript_family=manuscript_family,
+        endpoint_type=endpoint_type,
     )
     if prediction_defaults.get("prediction_model_reporting_required") is True:
         for key in (
@@ -312,6 +327,11 @@ def _materialize_structured_reporting_contract(study_payload: dict[str, Any]) ->
                 contract[key] = raw_value
             elif key not in contract:
                 contract[key] = deepcopy(prediction_defaults[key])
+    if reporting_guideline_family is not None:
+        contract["reporting_guideline_family"] = reporting_guideline_family.strip().upper()
+        contract["quality_gate_expectation"] = build_guideline_quality_gate_expectation(
+            reporting_guideline_family
+        )
     return contract
 
 

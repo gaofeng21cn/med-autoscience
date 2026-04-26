@@ -140,6 +140,40 @@ def build_reporting_guideline_expectation(guideline_family: str) -> dict[str, An
     }
 
 
+def build_guideline_quality_gate_expectation(guideline_family: str) -> dict[str, Any]:
+    expectation = build_reporting_guideline_expectation(guideline_family)
+    gates = expectation["gates"]
+    return {
+        "authority": expectation["authority"],
+        "guideline_family": expectation["guideline_family"],
+        "applies_to": expectation["applies_to"],
+        "checklist_surface": expectation["checklist_surface"],
+        "required_domains": list(expectation["required_domains"]),
+        "gate_relaxation_allowed": False,
+        "required_before_accelerated_handoff": True,
+        "quality_non_degradation_constraint": {
+            "can_parallelize_quality_work": True,
+            "can_skip_pre_draft_gate": False,
+            "can_skip_review_handoff_gate": False,
+            "can_downgrade_blockers_to_advisories": False,
+        },
+        "gates": {
+            "before_first_full_draft": {
+                "required_status": gates["before_first_full_draft"]["required_status"],
+                "required_items": list(gates["before_first_full_draft"]["required_items"]),
+                "blocks": "first_full_draft",
+                "owner_surface": "study_charter.paper_quality_contract.structured_reporting_contract",
+            },
+            "before_review_handoff": {
+                "required_status": gates["before_review_handoff"]["required_status"],
+                "required_items": list(gates["before_review_handoff"]["required_items"]),
+                "blocks": "review_handoff_or_submission_package",
+                "owner_surface": "study_charter.paper_quality_contract.structured_reporting_contract",
+            },
+        },
+    }
+
+
 def guideline_expectations(guideline_family: str) -> dict[str, Any]:
     expectation = build_reporting_guideline_expectation(guideline_family)
     return {

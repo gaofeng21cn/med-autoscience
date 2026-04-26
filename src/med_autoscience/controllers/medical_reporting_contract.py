@@ -22,6 +22,7 @@ from med_autoscience.policies.medical_reporting_contract import (
 )
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.medical_reporting_guidelines import (
+    build_guideline_quality_gate_expectation,
     build_reporting_guideline_expectation,
     guideline_expectations,
 )
@@ -134,9 +135,11 @@ def resolve_medical_reporting_contract_for_study(
         submission_target_family=str(target_context["submission_target_family"]),
     )
     reporting_guideline_expectation = build_reporting_guideline_expectation(contract.reporting_guideline_family)
+    quality_gate_expectation = build_guideline_quality_gate_expectation(contract.reporting_guideline_family)
     structured_reporting_contract = dict(contract.structured_reporting_contract)
     structured_reporting_contract["reporting_guideline_family"] = contract.reporting_guideline_family
     structured_reporting_contract["reporting_guideline_expectation"] = reporting_guideline_expectation
+    structured_reporting_contract["quality_gate_expectation"] = quality_gate_expectation
     return build_contract_summary(
         study_root=study_root,
         status="resolved",
@@ -150,6 +153,7 @@ def resolve_medical_reporting_contract_for_study(
             "reporting_guideline_family": contract.reporting_guideline_family,
             "reporting_guideline_expectation": reporting_guideline_expectation,
             "reporting_guideline_expectations": guideline_expectations(contract.reporting_guideline_family),
+            "quality_gate_expectation": quality_gate_expectation,
             "cohort_flow_required": contract.cohort_flow_required,
             "baseline_characteristics_required": contract.baseline_characteristics_required,
             "table_shell_requirements": list(contract.table_shell_requirements),

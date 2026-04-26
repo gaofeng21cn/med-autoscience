@@ -88,6 +88,28 @@ def test_reporting_guideline_expectation_registry_covers_equator_families() -> N
     assert "prisma_search_selection_flow" in expectation["gates"]["before_review_handoff"]["required_items"]
 
 
+def test_quality_gate_expectation_for_strobe_disallows_relaxation() -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_guidelines")
+
+    expectation = module.build_guideline_quality_gate_expectation("STROBE")
+
+    assert expectation["authority"] == "EQUATOR"
+    assert expectation["guideline_family"] == "STROBE"
+    assert expectation["gate_relaxation_allowed"] is False
+    assert expectation["required_before_accelerated_handoff"] is True
+    assert expectation["quality_non_degradation_constraint"] == {
+        "can_parallelize_quality_work": True,
+        "can_skip_pre_draft_gate": False,
+        "can_skip_review_handoff_gate": False,
+        "can_downgrade_blockers_to_advisories": False,
+    }
+    assert expectation["gates"]["before_first_full_draft"]["required_status"] == "closed"
+    assert expectation["gates"]["before_review_handoff"]["required_status"] == "closed"
+    assert "strobe_statistical_methods_and_subgroups" in expectation["gates"][
+        "before_review_handoff"
+    ]["required_items"]
+
+
 def test_controller_summary_embeds_guideline_expectation_and_pre_review_gates(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
     profile = _make_profile(tmp_path)
@@ -109,6 +131,7 @@ def test_controller_summary_embeds_guideline_expectation_and_pre_review_gates(tm
     )
 
     expectation = result["reporting_guideline_expectation"]
+    quality_gate_expectation = result["quality_gate_expectation"]
     structured_contract = result["structured_reporting_contract"]
 
     assert expectation["authority"] == "EQUATOR"
@@ -117,8 +140,15 @@ def test_controller_summary_embeds_guideline_expectation_and_pre_review_gates(tm
     assert "tripod_model_performance_validation_calibration" in expectation["gates"][
         "before_review_handoff"
     ]["required_items"]
+    assert quality_gate_expectation["guideline_family"] == "TRIPOD"
+    assert quality_gate_expectation["gate_relaxation_allowed"] is False
+    assert quality_gate_expectation["gates"]["before_review_handoff"]["required_status"] == "closed"
+    assert "tripod_model_performance_validation_calibration" in quality_gate_expectation["gates"][
+        "before_review_handoff"
+    ]["required_items"]
     assert structured_contract["reporting_guideline_family"] == "TRIPOD"
     assert structured_contract["reporting_guideline_expectation"] == expectation
+    assert structured_contract["quality_gate_expectation"] == quality_gate_expectation
     assert structured_contract["methods_completeness"]["study_design"]["status"] == (
         "required_before_first_full_draft"
     )
