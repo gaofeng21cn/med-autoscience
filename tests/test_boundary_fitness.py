@@ -85,3 +85,48 @@ def test_current_repo_boundary_guard_has_no_blocking_findings() -> None:
 
     assert report.blocking_findings == ()
     assert any(finding.kind == "oversized_file" for finding in report.findings)
+
+
+def test_program_boundary_map_prioritizes_natural_mas_mds_boundaries() -> None:
+    module = _boundary_fitness_module()
+    gate_path = "src/med_autoscience/controllers/gate_clearing_batch.py"
+    runtime_path = "src/med_autoscience/runtime_transport/med_deepscientist.py"
+    observability_path = "src/med_autoscience/controllers/study_cycle_profiler.py"
+
+    boundary_map = module.build_program_boundary_map(
+        tracked_files=(gate_path, runtime_path, observability_path),
+        findings=(
+            module.BoundaryFinding(
+                path=gate_path,
+                kind="oversized_file",
+                severity="violation",
+                message="too large",
+                recommendation="split by deterministic repair and gate replay responsibilities",
+                line_count=1600,
+                limit=1500,
+            ),
+            module.BoundaryFinding(
+                path=runtime_path,
+                kind="oversized_file",
+                severity="advisory",
+                message="large adapter",
+                recommendation="split by runtime protocol and compatibility responsibilities",
+                line_count=1146,
+                limit=1000,
+            ),
+        ),
+    )
+
+    priorities = boundary_map["priorities"]
+    assert priorities[0]["boundary_id"] == "paper_quality_gate"
+    assert priorities[0]["priority"] == "now"
+    assert "deterministic repair" in priorities[0]["recommended_split_direction"]
+    assert {item["boundary_id"] for item in priorities} >= {
+        "paper_quality_gate",
+        "mds_runtime_interop",
+        "observability_delivery_metrics",
+    }
+    split_text = " ".join(item["recommended_split_direction"].lower() for item in priorities)
+    assert "chunk" not in split_text
+    assert "part_" not in split_text
+    assert "numbered" not in split_text

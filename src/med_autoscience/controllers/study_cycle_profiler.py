@@ -13,6 +13,7 @@ import yaml
 from med_autoscience.controllers import autonomy_incidents
 from med_autoscience.controllers import autonomy_observability
 from med_autoscience.controllers import autonomy_slo
+from med_autoscience.controllers import paper_line_delivery_metrics
 from med_autoscience.controllers import profile_sli
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import study_soak_replay
@@ -836,6 +837,29 @@ def profile_study_cycle(
             "package_currentness": package_currentness,
         }
     )
+    paper_line_events = paper_line_delivery_metrics.events_from_cycle_profile(
+        ordered_events=ordered_events,
+        study_root=resolved_study_root,
+        publication_eval_latest=publication_eval_latest,
+        publishability_gate_latest=publishability_gate_latest,
+        package_currentness=package_currentness,
+    )
+    trace_identity = paper_line_delivery_metrics.trace_identity_from_events(
+        study_id=resolved_study_id,
+        quest_id=quest_id,
+        events=paper_line_events,
+        gate_blocker_summary=gate_summary,
+        sli_summary=sli_summary,
+    )
+    delivery_metrics = paper_line_delivery_metrics.build_paper_line_delivery_metrics(
+        {
+            "study_id": resolved_study_id,
+            "quest_id": quest_id,
+            "trace_identity": trace_identity,
+            "gate_blocker_summary": gate_summary,
+            "paper_line_events": paper_line_events,
+        }
+    )
     autonomy_incident_candidates = autonomy_incidents.incident_candidates_from_profile(
         {
             "study_id": resolved_study_id,
@@ -873,6 +897,8 @@ def profile_study_cycle(
             "runtime_transition_summary": runtime_summary,
             "controller_decision_fingerprints": decision_fingerprints,
             "gate_blocker_summary": gate_summary,
+            "trace_identity": trace_identity,
+            "paper_line_delivery_metrics": delivery_metrics,
             "step_timings": _step_timings(step_latest_times),
             "sli_summary": sli_summary,
             "autonomy_slo": autonomy_slo_signals,
@@ -907,6 +933,9 @@ def profile_study_cycle(
         "step_timings": _step_timings(step_latest_times),
         "eta_confidence_band": eta_band,
         "sli_summary": sli_summary,
+        "trace_identity": trace_identity,
+        "paper_line_events": paper_line_events,
+        "paper_line_delivery_metrics": delivery_metrics,
         "bottlenecks": bottlenecks,
         "autonomy_incident_candidates": autonomy_incident_candidates,
         "autonomy_slo": autonomy_slo_signals,
