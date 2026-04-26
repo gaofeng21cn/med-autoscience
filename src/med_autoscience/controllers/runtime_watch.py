@@ -1151,6 +1151,10 @@ def run_watch_for_runtime(
                         status_payload=preflight_payload,
                     )
                     if recovery_hold is not None:
+                        runtime_watch_recovery_policy.write_recovery_probe(
+                            study_root=study_root,
+                            recovery_hold=recovery_hold,
+                        )
                         managed_study_recovery_holds.append(recovery_hold)
                     else:
                         action_payload = study_runtime_router.ensure_study_runtime(

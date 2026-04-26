@@ -221,8 +221,101 @@ def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_acti
             "hold_reason": "flapping_circuit_breaker_active",
             "recommended_probe": "refresh_runtime_liveness_before_resume",
             "flapping_episode_count": 2,
+            "recovery_probe": {
+                "probe_id": "recovery-probe::001-risk::001-risk::flapping-circuit-breaker::2",
+                "status": "hold_active",
+                "recommended_action": "hold",
+                "reason": "flapping_circuit_breaker_active",
+                "next_probe_id": "recovery-probe::001-risk::001-risk::flapping-circuit-breaker::3",
+                "liveness": {
+                    "status": "none",
+                    "active_run_id": None,
+                    "worker_running": False,
+                    "worker_pending": False,
+                    "stop_requested": False,
+                },
+                "current_status": {
+                    "quest_status": "running",
+                    "decision": "resume",
+                    "reason": "quest_marked_running_but_no_live_session",
+                    "runtime_stability_status": "flapping",
+                    "flapping_circuit_breaker": True,
+                    "flapping_episode_count": 2,
+                },
+            },
         }
     ]
+    persisted_probe = json.loads(
+        (study_root / "artifacts" / "runtime" / "recovery_probe" / "latest.json").read_text(encoding="utf-8")
+    )
+    assert persisted_probe == result["managed_study_recovery_holds"][0]["recovery_probe"]
+
+
+def test_flapping_recovery_probe_clears_hold_when_current_status_is_live(
+    tmp_path: Path,
+) -> None:
+    policy = importlib.import_module("med_autoscience.controllers.runtime_watch_recovery_policy")
+    study_root = tmp_path / "studies" / "001-risk"
+    dump_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {
+            "schema_version": 1,
+            "recorded_at": "2026-04-26T00:01:00+00:00",
+            "study_id": "001-risk",
+            "quest_id": "001-risk",
+            "health_status": "recovering",
+            "runtime_stability_status": "flapping",
+            "flapping_episode_count": 2,
+            "flapping_circuit_breaker": True,
+        },
+    )
+
+    hold = policy.hold_for_flapping_circuit_breaker(
+        study_root=study_root,
+        status_payload={
+            **make_study_runtime_status_payload(
+                study_id="001-risk",
+                decision="resume",
+                reason="quest_marked_running_but_no_live_session",
+            ),
+            "quest_status": "running",
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": "run-recovered",
+                "runtime_audit": {
+                    "status": "live",
+                    "active_run_id": "run-recovered",
+                    "worker_running": True,
+                    "worker_pending": False,
+                    "stop_requested": False,
+                },
+            },
+        },
+    )
+
+    assert hold is not None
+    assert hold["recovery_probe"] == {
+        "probe_id": "recovery-probe::001-risk::001-risk::flapping-circuit-breaker::2",
+        "status": "clear_hold",
+        "recommended_action": "ready_to_resume",
+        "reason": "runtime_liveness_confirmed_live",
+        "next_probe_id": None,
+        "liveness": {
+            "status": "live",
+            "active_run_id": "run-recovered",
+            "worker_running": True,
+            "worker_pending": False,
+            "stop_requested": False,
+        },
+        "current_status": {
+            "quest_status": "running",
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+            "runtime_stability_status": "live",
+            "flapping_circuit_breaker": False,
+            "flapping_episode_count": 2,
+        },
+    }
 
 
 def test_run_watch_for_runtime_auto_recovers_stopped_controller_guard_quest(tmp_path: Path, monkeypatch) -> None:
