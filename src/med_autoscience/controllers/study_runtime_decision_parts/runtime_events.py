@@ -797,7 +797,9 @@ def _stopped_controller_owned_auto_recovery_context(
 def _task_intake_override_allows_stopped_auto_resume(*, quest_root: Path) -> bool:
     runtime_state = _load_json_dict(_runtime_state_path(quest_root))
     stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
-    return stop_reason is None
+    if stop_reason is None:
+        return True
+    return _controller_stop_source(stop_reason) == "runtime_watch_outer_loop_wakeup"
 
 
 def _stopped_invalid_blocking_auto_resume_allowed(

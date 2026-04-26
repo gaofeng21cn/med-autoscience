@@ -119,6 +119,23 @@ def test_reviewer_revision_intake_does_not_yield_to_fresh_bundle_only_closeout()
     assert "revision checklist" in override["next_system_action"]
 
 
+def test_reviewer_revision_intake_detects_chinese_submission_review_feedback_reactivation() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "task_intent": (
+            "用户已对修改后投稿包给出新的审稿式反馈；这不是 submission metadata 收口，"
+            "而是显式重新激活同一论文线，要求 MAS/MDS 以 revision/rebuttal 模式重新处理。"
+            "必须先把反馈拆成可审计 action matrix，然后完成结构性返修与重建投稿包。"
+        ),
+        "constraints": ["不得手工 patch current_package 投影作为最终修复。"],
+    }
+
+    assert module.task_intake_is_reviewer_revision(payload) is True
+    assert module.task_intake_overrides_auto_manual_finish(payload) is True
+    assert module.summarize_task_intake(payload)["revision_intake"]["kind"] == "reviewer_revision"
+
+
 def test_reviewer_revision_intake_yields_to_reviewer_first_bundle_stage_closeout() -> None:
     module = importlib.import_module("med_autoscience.study_task_intake")
 

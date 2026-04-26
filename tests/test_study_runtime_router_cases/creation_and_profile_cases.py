@@ -500,6 +500,111 @@ def test_ensure_study_runtime_auto_resumes_stopped_quest_after_reopened_task_int
     assert launch_report["daemon_result"]["action"] == "resume"
 
 
+def test_ensure_study_runtime_auto_resumes_controller_parked_quest_after_review_feedback_task_intake(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    write_auditable_current_package(study_root)
+    current_package_root = study_root / "manuscript" / "current_package"
+    (current_package_root / "submission_checklist.json").unlink()
+    write_text(current_package_root / "submission_manifest.json", '{"schema_version":1}\n')
+    quest_root = profile.runtime_root / "001-risk"
+    _materialize_bundle_only_remaining_evaluation_summary(study_root=study_root, quest_root=quest_root)
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent=(
+            "用户已对修改后投稿包给出新的审稿式反馈；这不是 submission metadata 收口，"
+            "而是显式重新激活同一论文线，要求 MAS/MDS 以 revision/rebuttal 模式重新处理。"
+        ),
+        constraints=("不得手工 patch current_package 投影作为最终修复。",),
+        first_cycle_outputs=("review matrix plus manuscript deltas",),
+    )
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "stopped",
+                "stop_reason": "controller_stop:runtime_watch_outer_loop_wakeup",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "decision:decision-continue-001",
+                "active_interaction_id": "progress-001",
+            }
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    resumed: dict[str, object] = {}
+
+    def fake_resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
+        resumed.update(
+            {
+                "runtime_root": runtime_root,
+                "quest_id": quest_id,
+                "source": source,
+            }
+        )
+        return {
+            "ok": True,
+            "quest_id": quest_id,
+            "action": "resume",
+            "status": "active",
+            "snapshot": {
+                "quest_id": quest_id,
+                "status": "active",
+            },
+        }
+
+    monkeypatch.setattr(_managed_runtime_transport(module), "resume_quest", fake_resume_quest)
+
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id="001-risk",
+        source="medautosci-test",
+    )
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_on_invalid_blocking"
+    assert result["quest_status"] == "active"
+    assert resumed == {
+        "runtime_root": profile.med_deepscientist_runtime_root,
+        "quest_id": "001-risk",
+        "source": "medautosci-test",
+    }
+
+
 def test_study_runtime_status_parks_reopened_task_intake_after_fresh_bundle_only_closeout(
     monkeypatch,
     tmp_path: Path,
