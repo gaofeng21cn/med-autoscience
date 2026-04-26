@@ -111,4 +111,17 @@ def filter_repair_units_for_publication_work_unit(
     allowed_unit_ids = PUBLICATION_WORK_UNIT_REPAIR_IDS.get(unit_id)
     if allowed_unit_ids is None:
         return repair_units
-    return [unit for unit in repair_units if unit.unit_id in allowed_unit_ids]
+    units_by_id = {unit.unit_id: unit for unit in repair_units}
+    selected_unit_ids = set(allowed_unit_ids)
+    pending_unit_ids = list(allowed_unit_ids)
+    while pending_unit_ids:
+        selected_unit_id = pending_unit_ids.pop()
+        unit = units_by_id.get(selected_unit_id)
+        if unit is None:
+            continue
+        for dependency_id in getattr(unit, "depends_on", ()):
+            if dependency_id in selected_unit_ids:
+                continue
+            selected_unit_ids.add(dependency_id)
+            pending_unit_ids.append(dependency_id)
+    return [unit for unit in repair_units if unit.unit_id in selected_unit_ids]

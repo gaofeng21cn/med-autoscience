@@ -233,3 +233,76 @@ def test_autonomy_incident_candidates_are_structured_and_writable(tmp_path: Path
     payload = json.loads(written.read_text(encoding="utf-8"))
     assert payload["incident_id"].startswith("autonomy-incident::003-dpcc::")
     assert payload["source"] == "profile-cycle"
+
+
+def test_autonomy_slo_signals_prioritize_recovery_without_relaxing_quality_gate() -> None:
+    module = importlib.import_module("med_autoscience.controllers.autonomy_slo")
+
+    payload = module.build_autonomy_slo_signals(
+        {
+            "study_id": "003-dpcc",
+            "quest_id": "quest-003",
+            "sli_summary": {
+                "runtime_live_ratio": 0.75,
+                "runtime_recovery_observations": 2,
+                "runtime_flapping_transitions": 1,
+                "duplicate_dispatch_active": False,
+                "next_work_unit_id": "analysis_claim_evidence_repair",
+            },
+            "mds_worker_activity": {
+                "activity_state": "recovering",
+                "heartbeat_state": "missing_live_session",
+            },
+            "gate_blocker_summary": {
+                "current_blockers": ["claim_evidence_consistency_failed"],
+                "actionability_status": "actionable",
+                "next_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
+            },
+            "bottlenecks": [
+                {"bottleneck_id": "runtime_recovery_churn", "severity": "high"},
+                {"bottleneck_id": "publication_gate_blocked", "severity": "high"},
+            ],
+            "autonomy_incident_candidates": [
+                {
+                    "incident_id": "incident-runtime",
+                    "incident_type": "runtime_recovery_churn",
+                    "severity": "high",
+                    "next_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
+                }
+            ],
+        }
+    )
+
+    assert payload["surface"] == "autonomy_slo"
+    assert payload["long_run_health"]["state"] == "breach"
+    assert payload["incident_loop"]["top_action_type"] == "probe_runtime_recovery"
+    assert payload["recovery_actions"][0]["quality_gate_relaxation_allowed"] is False
+    assert payload["quality_constraint"]["gate_relaxation_allowed"] is False
+    assert "publication_eval/latest.json" in payload["quality_constraint"]["must_preserve_authority_surfaces"]
+
+
+def test_autonomy_slo_signals_block_fast_lane_for_non_actionable_gate() -> None:
+    module = importlib.import_module("med_autoscience.controllers.autonomy_slo")
+
+    payload = module.build_autonomy_slo_signals(
+        {
+            "study_id": "004-pituitary",
+            "sli_summary": {
+                "runtime_live_ratio": 1.0,
+                "runtime_recovery_observations": 0,
+                "runtime_flapping_transitions": 0,
+                "duplicate_dispatch_active": False,
+            },
+            "gate_blocker_summary": {
+                "current_blockers": ["publication_gate_blocked"],
+                "actionability_status": "blocked_by_non_actionable_gate",
+                "next_work_unit": None,
+            },
+            "bottlenecks": [{"bottleneck_id": "non_actionable_gate", "severity": "high"}],
+        }
+    )
+
+    assert payload["progress_health"]["no_progress_candidate"] is True
+    assert payload["quality_constraint"]["requires_concrete_publication_blocker"] is True
+    assert payload["incident_loop"]["top_action_type"] == "request_gate_specificity"
+    assert payload["quality_constraint"]["gate_relaxation_allowed"] is False

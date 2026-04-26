@@ -21,6 +21,10 @@ from med_autoscience.policies.medical_reporting_contract import (
     resolve_medical_reporting_contract,
 )
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.controllers.medical_reporting_guidelines import (
+    build_reporting_guideline_expectation,
+    guideline_expectations,
+)
 
 
 def resolve_medical_reporting_contract_for_study(
@@ -129,6 +133,10 @@ def resolve_medical_reporting_contract_for_study(
         endpoint_type=endpoint_type,
         submission_target_family=str(target_context["submission_target_family"]),
     )
+    reporting_guideline_expectation = build_reporting_guideline_expectation(contract.reporting_guideline_family)
+    structured_reporting_contract = dict(contract.structured_reporting_contract)
+    structured_reporting_contract["reporting_guideline_family"] = contract.reporting_guideline_family
+    structured_reporting_contract["reporting_guideline_expectation"] = reporting_guideline_expectation
     return build_contract_summary(
         study_root=study_root,
         status="resolved",
@@ -140,6 +148,8 @@ def resolve_medical_reporting_contract_for_study(
         extra={
             **managed_study_field_summary(study_payload=study_payload),
             "reporting_guideline_family": contract.reporting_guideline_family,
+            "reporting_guideline_expectation": reporting_guideline_expectation,
+            "reporting_guideline_expectations": guideline_expectations(contract.reporting_guideline_family),
             "cohort_flow_required": contract.cohort_flow_required,
             "baseline_characteristics_required": contract.baseline_characteristics_required,
             "table_shell_requirements": list(contract.table_shell_requirements),
@@ -152,6 +162,6 @@ def resolve_medical_reporting_contract_for_study(
             "display_ambition": contract.display_ambition,
             "minimum_main_text_figures": contract.minimum_main_text_figures,
             "recommended_main_text_figures": [asdict(item) for item in contract.recommended_main_text_figures],
-            "structured_reporting_contract": contract.structured_reporting_contract,
+            "structured_reporting_contract": structured_reporting_contract,
         },
     )

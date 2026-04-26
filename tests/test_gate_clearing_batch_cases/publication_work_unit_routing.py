@@ -9,6 +9,70 @@ globals().update({
 })
 
 
+def test_next_work_unit_filter_preserves_submission_refresh_dependency_closure(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    work_units = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_work_units")
+    profile = make_profile(tmp_path)
+    paper_root = tmp_path / "paper"
+    paper_root.mkdir(parents=True)
+
+    repair_units = [
+        module.GateClearingRepairUnit(
+            unit_id="repair_paper_live_paths",
+            label="repair paper live paths",
+            parallel_safe=True,
+            run=lambda: {"status": "updated"},
+        ),
+        module.GateClearingRepairUnit(
+            unit_id="workspace_display_repair_script",
+            label="workspace display repair script",
+            parallel_safe=True,
+            depends_on=("repair_paper_live_paths",),
+            run=lambda: {"status": "updated"},
+        ),
+        module.GateClearingRepairUnit(
+            unit_id="create_submission_minimal_package",
+            label="create submission minimal package",
+            parallel_safe=False,
+            depends_on=("workspace_display_repair_script",),
+            run=lambda: {"status": "ready"},
+        ),
+        module.GateClearingRepairUnit(
+            unit_id="sync_submission_minimal_delivery",
+            label="sync submission minimal delivery",
+            parallel_safe=False,
+            depends_on=("create_submission_minimal_package",),
+            run=lambda: {"status": "synced"},
+        ),
+        module.GateClearingRepairUnit(
+            unit_id="freeze_scientific_anchor_fields",
+            label="freeze scientific anchor fields",
+            parallel_safe=True,
+            run=lambda: {"status": "updated"},
+        ),
+    ]
+
+    filtered_units = work_units.filter_repair_units_for_publication_work_unit(
+        repair_units,
+        next_work_unit={"unit_id": "submission_minimal_refresh"},
+    )
+
+    assert [unit.unit_id for unit in filtered_units] == [
+        "repair_paper_live_paths",
+        "workspace_display_repair_script",
+        "create_submission_minimal_package",
+        "sync_submission_minimal_delivery",
+    ]
+    unit_results, _, _ = module._execute_repair_units(
+        repair_units=filtered_units,
+        latest_batch={},
+        paper_root=paper_root,
+        gate_report={},
+        profile=profile,
+    )
+    assert [item["status"] for item in unit_results] == ["updated", "updated", "ready", "synced"]
+
+
 def test_next_work_unit_limits_gate_clearing_batch_to_analysis_repair_without_submission_refresh(
     monkeypatch,
     tmp_path: Path,

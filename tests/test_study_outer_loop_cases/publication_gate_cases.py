@@ -308,6 +308,186 @@ def test_build_runtime_watch_outer_loop_tick_request_autoparks_without_runtime_e
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
+
+
+def test_build_runtime_watch_outer_loop_tick_request_routes_active_write_task_intake_before_autopark(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_charter(study_root)
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-05T05:58:00+00:00",
+            "evaluation_scope": "publication",
+            "charter_context_ref": {
+                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                "charter_id": "charter::001-risk::v1",
+                "publication_objective": "risk stratification external validation",
+            },
+            "runtime_context_refs": {
+                "runtime_escalation_ref": str(
+                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+                ),
+                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            },
+            "delivery_context_refs": {
+                "paper_root_ref": str(study_root / "paper"),
+                "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+            },
+            "verdict": {
+                "overall_verdict": "promising",
+                "primary_claim_status": "supported",
+                "summary": "Human-review package is ready and only bundle-stage cleanup remains.",
+                "stop_loss_pressure": "none",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "reporting",
+                    "severity": "optional",
+                    "summary": "Only optional submission-bundle cleanup remains.",
+                    "evidence_refs": [str(publication_eval_path)],
+                }
+            ],
+            "quality_assessment": {
+                "clinical_significance": {
+                    "status": "ready",
+                    "summary": "Clinical question is already publication-ready.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "reviewer_reason": "Clinical framing is stable.",
+                    "reviewer_revision_advice": "Only minor bundle cleanup remains.",
+                    "reviewer_next_round_focus": "Keep the clinician-facing framing consistent across surfaces.",
+                },
+                "evidence_strength": {
+                    "status": "ready",
+                    "summary": "Evidence chain is already closed.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "reviewer_reason": "Evidence posture is stable.",
+                    "reviewer_revision_advice": "Only refresh delivery surfaces if needed.",
+                    "reviewer_next_round_focus": "Keep evidence references synchronized across package surfaces.",
+                },
+                "novelty_positioning": {
+                    "status": "ready",
+                    "summary": "Contribution boundary is already explicit.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "reviewer_reason": "Novelty framing is fixed.",
+                    "reviewer_revision_advice": "Do not expand the claim boundary.",
+                    "reviewer_next_round_focus": "Keep contribution wording aligned with the frozen charter.",
+                },
+                "human_review_readiness": {
+                    "status": "ready",
+                    "summary": "The human-facing current package is ready for review.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "reviewer_reason": "The review package is synchronized.",
+                    "reviewer_revision_advice": "Only keep bundle surfaces aligned.",
+                    "reviewer_next_round_focus": "Double-check package surface consistency before submission.",
+                }
+            },
+            "recommended_actions": [
+                {
+                    "action_id": "action-001",
+                    "action_type": "continue_same_line",
+                    "priority": "now",
+                    "reason": "Only finalize-level bundle cleanup remains on the current paper line.",
+                    "route_target": "finalize",
+                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                    "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "requires_controller_decision": True,
+                }
+            ],
+        },
+    )
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent=(
+            "Revise the manuscript after human reviewer feedback: unify manuscript.docx and paper.pdf, "
+            "remove draft/internal wording, strengthen endpoint definitions, and align figure/table numbering."
+        ),
+        constraints=("Keep the paper positioned as a single-center internally validated clinical risk stratification tool.",),
+        trusted_inputs=("Human reviewer feedback supplied in Codex thread.",),
+        first_cycle_outputs=(),
+    )
+    _write_json(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
+        {
+            "schema_version": 1,
+            "summary_id": "evaluation-summary::001-risk::2026-04-05T06:00:00+00:00",
+            "overall_verdict": "promising",
+            "quality_closure_truth": {
+                "state": "bundle_only_remaining",
+                "summary": "Core scientific quality is already closed and only bundle cleanup remains.",
+                "current_required_action": "continue_bundle_stage",
+                "route_target": "finalize",
+            },
+            "quality_assessment": {
+                "human_review_readiness": {
+                    "status": "ready",
+                    "summary": "Human-review package is ready.",
+                }
+            },
+            "quality_execution_lane": {
+                "lane_id": "submission_hardening",
+                "route_target": "finalize",
+                "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                "summary": "Only finalize-level submission hardening remains.",
+            },
+        },
+    )
+    gate_report = {
+        "status": "clear",
+        "blockers": [],
+        "current_required_action": "continue_bundle_stage",
+        "paper_line_open_supplementary_count": 0,
+        "medical_publication_surface_status": "clear",
+        "medical_publication_surface_current": True,
+    }
+    monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
+    monkeypatch.setattr(
+        module.publication_gate_controller,
+        "build_gate_state",
+        lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
+    )
+    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: gate_report)
+
+    request = module.build_runtime_watch_outer_loop_tick_request(
+        study_root=study_root,
+        status_payload={
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_status": "active",
+            "runtime_liveness_status": "live",
+            "active_run_id": "run-001",
+            "reason": "quest_already_running",
+        },
+    )
+
+    assert request is not None
+    assert request["decision_type"] == "continue_same_line"
+    assert request["route_target"] == "write"
+    assert request["controller_actions"] == [
+        {
+            "action_type": "ensure_study_runtime",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
+
+
 def test_refresh_parked_submission_milestone_controller_decision_writes_parked_finalize_record(
     tmp_path: Path,
 ) -> None:

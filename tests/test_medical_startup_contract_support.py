@@ -332,6 +332,21 @@ def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_pat
         "manuscript_family",
     ]
     assert result["display_registry_required"] is True
+    assert result["reporting_guideline_expectations"] == {
+        "registry": "EQUATOR",
+        "guideline_family": "TRIPOD",
+        "applies_to": "prediction_model_or_validation_study",
+        "checklist_surface_required": True,
+        "quality_gate_timing": "before_first_full_draft_and_before_submission_gate",
+        "required_domains": [
+            "source_of_data_and_participants",
+            "outcome_definition_and_follow_up",
+            "candidate_predictors_and_missing_data",
+            "model_specification_or_validation",
+            "performance_calibration_and_clinical_utility",
+            "interpretation_limitations_and_use_case",
+        ],
+    }
     assert result["required_illustration_shells"] == ["cohort_flow_figure"]
     assert result["required_table_shells"] == [
         "table1_baseline_characteristics",
@@ -415,6 +430,9 @@ def test_reporting_contract_supports_survey_trend_analysis(tmp_path: Path) -> No
     assert result["endpoint_type"] == "descriptive"
     assert result["manuscript_family"] == "clinical_observation"
     assert result["reporting_guideline_family"] == "STROBE"
+    assert result["reporting_guideline_expectations"]["registry"] == "EQUATOR"
+    assert result["reporting_guideline_expectations"]["guideline_family"] == "STROBE"
+    assert "statistical_methods_and_subgroups" in result["reporting_guideline_expectations"]["required_domains"]
     assert result["required_illustration_shells"] == ["cohort_flow_figure"]
     assert result["required_table_shells"] == ["table1_baseline_characteristics"]
     assert result["display_ambition"] == "strong"
@@ -488,8 +506,14 @@ def test_reporting_contract_supports_clinical_subtype_reconstruction(tmp_path: P
     assert result["endpoint_type"] == "descriptive"
     assert result["manuscript_family"] == "clinical_observation"
     assert result["reporting_guideline_family"] == "STROBE"
+    assert result["reporting_guideline_expectations"]["guideline_family"] == "STROBE"
+    assert "participant_flow_and_eligibility" in result["reporting_guideline_expectations"]["required_domains"]
     assert result["required_illustration_shells"] == ["cohort_flow_figure"]
-    assert result["required_table_shells"] == ["table1_baseline_characteristics"]
+    assert result["required_table_shells"] == [
+        "table1_baseline_characteristics",
+        "table2_phenotype_gap_summary",
+        "table3_transition_site_support_summary",
+    ]
     assert result["display_ambition"] == "strong"
     assert result["minimum_main_text_figures"] == 4
     assert result["recommended_main_text_figures"] == [
@@ -524,11 +548,46 @@ def test_reporting_contract_supports_clinical_subtype_reconstruction(tmp_path: P
             "story_role": "study_setup",
         },
         {
+            "display_id": "phenotype_gap_structure",
+            "display_kind": "figure",
+            "requirement_key": "phenotype_gap_structure_figure",
+            "catalog_id": "F2",
+            "story_role": "result_evidence",
+        },
+        {
+            "display_id": "site_held_out_stability",
+            "display_kind": "figure",
+            "requirement_key": "site_held_out_stability_figure",
+            "catalog_id": "F3",
+            "story_role": "result_evidence",
+        },
+        {
+            "display_id": "treatment_gap_alignment",
+            "display_kind": "figure",
+            "requirement_key": "treatment_gap_alignment_figure",
+            "catalog_id": "F4",
+            "story_role": "result_evidence",
+        },
+        {
             "display_id": "baseline_characteristics",
             "display_kind": "table",
             "requirement_key": "table1_baseline_characteristics",
             "catalog_id": "T1",
             "story_role": "study_setup",
+        },
+        {
+            "display_id": "phenotype_gap_summary",
+            "display_kind": "table",
+            "requirement_key": "table2_phenotype_gap_summary",
+            "catalog_id": "T2",
+            "story_role": "result_evidence",
+        },
+        {
+            "display_id": "transition_site_support_summary",
+            "display_kind": "table",
+            "requirement_key": "table3_transition_site_support_summary",
+            "catalog_id": "T3",
+            "story_role": "result_evidence",
         },
     ]
 

@@ -1,7 +1,47 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
+
 import pytest
+import yaml
+
+
+def _make_profile(tmp_path: Path, **overrides):
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "workspace"
+    payload = {
+        "name": "diabetes",
+        "workspace_root": workspace_root,
+        "runtime_root": workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests",
+        "studies_root": workspace_root / "studies",
+        "portfolio_root": workspace_root / "portfolio",
+        "med_deepscientist_runtime_root": workspace_root / "ops" / "med-deepscientist" / "runtime",
+        "med_deepscientist_repo_root": tmp_path / "med-deepscientist",
+        "default_publication_profile": "general_medical_journal",
+        "default_citation_style": "AMA",
+        "enable_medical_overlay": True,
+        "medical_overlay_scope": "workspace",
+        "medical_overlay_skills": ("intake-audit", "baseline", "write", "finalize"),
+        "research_route_bias_policy": "high_plasticity_medical",
+        "preferred_study_archetypes": ("clinical_classifier",),
+        "default_submission_targets": (),
+        "default_startup_anchor_policy": "scout_first_for_continue_existing_state",
+        "legacy_code_execution_policy": "forbid_without_user_approval",
+        "startup_boundary_requirements": ("paper_framing", "journal_shortlist", "evidence_package"),
+    }
+    payload.update(overrides)
+    return profiles.WorkspaceProfile(**payload)
+
+
+def _write_study(studies_root: Path, study_id: str, payload: dict[str, object]) -> Path:
+    study_root = studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(
+        yaml.safe_dump(payload, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    return study_root
 
 
 def test_resolve_medical_reporting_contract_for_prediction_manuscript() -> None:
@@ -28,6 +68,61 @@ def test_resolve_medical_reporting_contract_for_prediction_manuscript() -> None:
         "decision_curve_clinical_utility"
     ]
     assert "time_to_event_prediction_reporting" not in contract.structured_reporting_contract
+
+
+def test_reporting_guideline_expectation_registry_covers_equator_families() -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_guidelines")
+
+    assert module.SUPPORTED_REPORTING_GUIDELINE_EXPECTATION_FAMILIES == (
+        "STROBE",
+        "TRIPOD",
+        "CONSORT",
+        "PRISMA",
+    )
+    expectation = module.build_reporting_guideline_expectation("PRISMA")
+
+    assert expectation["authority"] == "EQUATOR"
+    assert expectation["guideline_family"] == "PRISMA"
+    assert expectation["checklist_surface"] == "reporting_guideline_checklist.json"
+    assert expectation["gates"]["before_first_full_draft"]["required_status"] == "closed"
+    assert "prisma_search_selection_flow" in expectation["gates"]["before_review_handoff"]["required_items"]
+
+
+def test_controller_summary_embeds_guideline_expectation_and_pre_review_gates(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
+    profile = _make_profile(tmp_path)
+    study_root = _write_study(
+        profile.studies_root,
+        "001-survival-reporting",
+        {
+            "study_id": "001-survival-reporting",
+            "study_archetype": "clinical_classifier",
+            "endpoint_type": "time_to_event",
+            "manuscript_family": "prediction_model",
+        },
+    )
+
+    result = module.resolve_medical_reporting_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+
+    expectation = result["reporting_guideline_expectation"]
+    structured_contract = result["structured_reporting_contract"]
+
+    assert expectation["authority"] == "EQUATOR"
+    assert expectation["guideline_family"] == "TRIPOD"
+    assert expectation["gates"]["before_first_full_draft"]["required_status"] == "closed"
+    assert "tripod_model_performance_validation_calibration" in expectation["gates"][
+        "before_review_handoff"
+    ]["required_items"]
+    assert structured_contract["reporting_guideline_family"] == "TRIPOD"
+    assert structured_contract["reporting_guideline_expectation"] == expectation
+    assert structured_contract["methods_completeness"]["study_design"]["status"] == (
+        "required_before_first_full_draft"
+    )
+    assert structured_contract["table_figure_claim_map_required"] is True
 
 
 def test_resolve_medical_reporting_contract_for_randomized_trial_publication() -> None:
