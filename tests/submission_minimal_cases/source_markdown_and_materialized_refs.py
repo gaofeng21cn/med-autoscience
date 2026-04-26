@@ -138,6 +138,102 @@ def test_create_submission_minimal_package_supports_manuscript_shaped_draft_with
     assert any("A primary source" in paragraph for paragraph in paragraphs)
 
 
+def test_create_submission_minimal_package_supports_front_matter_manuscript_shaped_draft(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
+    write_text(
+        paper_root / "draft.md",
+        """---
+title: "Front Matter Manuscript-Shaped Draft"
+bibliography: references.bib
+---
+
+## Abstract
+
+Structured abstract paragraph.
+
+## Introduction
+
+Frontmatter introduction paragraph.
+
+## Methods
+
+Frontmatter methods paragraph.
+
+## Results
+
+Frontmatter results paragraph.
+
+## Discussion
+
+Frontmatter discussion paragraph.
+""",
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(
+        encoding="utf-8"
+    )
+    assert 'title: "Front Matter Manuscript-Shaped Draft"' in submission_markdown
+    for heading in ["# Abstract", "# Introduction", "# Methods", "# Results", "# Discussion"]:
+        assert submission_markdown.splitlines().count(heading) == 1
+    for paragraph in [
+        "Structured abstract paragraph.",
+        "Frontmatter introduction paragraph.",
+        "Frontmatter methods paragraph.",
+        "Frontmatter results paragraph.",
+        "Frontmatter discussion paragraph.",
+    ]:
+        assert submission_markdown.count(paragraph) == 1
+
+
+def test_create_submission_minimal_package_filters_internal_instruction_semantics_from_figure_legends(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    dump_json(
+        paper_root / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "direct_message": "The paper should open with this burden-architecture figure.",
+                    "clinical_implication": "The figure summarizes the observed cohort architecture.",
+                    "interpretation_boundary": "Do not recast this figure as causal proof.",
+                    "panel_messages": [
+                        {"panel_id": "A", "message": "Panel A must not claim external validation."}
+                    ],
+                    "threshold_semantics": "Thresholds are descriptive operating points.",
+                    "recommendation_boundary": "This figure should not be framed as treatment guidance.",
+                }
+            ],
+        },
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(
+        encoding="utf-8"
+    )
+    assert "The figure summarizes the observed cohort architecture." in submission_markdown
+    assert "Thresholds are descriptive operating points." in submission_markdown
+    assert "paper should" not in submission_markdown.lower()
+    assert "do not recast" not in submission_markdown.lower()
+    assert "must not" not in submission_markdown.lower()
+    assert "should not" not in submission_markdown.lower()
+
+
 def test_create_submission_minimal_package_preserves_top_level_figures_in_manuscript_shaped_draft(
     tmp_path: Path,
 ) -> None:
