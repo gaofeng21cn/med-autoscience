@@ -16,6 +16,9 @@ from med_autoscience.controllers.study_cycle_profiler_current_state import (
     publishability_gate_is_clear,
 )
 from med_autoscience.controllers.study_cycle_profiler_eta import eta_confidence_band
+from med_autoscience.controllers.study_cycle_profiler_package_currentness import (
+    package_currentness as resolve_package_currentness,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -264,6 +267,7 @@ def _controller_decision_fingerprints(events: tuple[_CycleEvent, ...]) -> dict[s
     counts: Counter[str] = Counter()
     examples: dict[str, dict[str, Any]] = {}
     latest_paths: dict[str, str] = {}
+    latest_times: dict[str, datetime] = {}
     for event in events:
         if event.category != "controller_decision":
             continue
@@ -271,12 +275,14 @@ def _controller_decision_fingerprints(events: tuple[_CycleEvent, ...]) -> dict[s
         counts[fingerprint] += 1
         examples.setdefault(fingerprint, parts)
         latest_paths[fingerprint] = str(event.path)
+        latest_times[fingerprint] = event.timestamp
     top_repeats = [
         {
             "fingerprint": fingerprint,
             "count": count,
             "decision": examples[fingerprint],
             "latest_event_path": latest_paths[fingerprint],
+            "latest_event_at": _iso(latest_times[fingerprint]),
         }
         for fingerprint, count in counts.most_common()
         if count > 1
@@ -320,6 +326,42 @@ def _latest_current_payloads(*, study_root: Path, quest_root: Path | None) -> tu
     return publication_eval_latest, publishability_gate_latest
 
 
+def _runtime_watch_wakeup_dedupe_summary(
+    *,
+    study_root: Path,
+    controller_decision_fingerprints: Mapping[str, Any],
+) -> dict[str, Any]:
+    latest_path = study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json"
+    payload = _read_json_mapping(latest_path)
+    if payload is None:
+        return {"status": "not_observed"}
+    recorded_at = _payload_timestamp(payload, latest_path)
+    top_repeats = controller_decision_fingerprints.get("top_repeats")
+    latest_repeat_at = None
+    if isinstance(top_repeats, list):
+        latest_repeat_at = _max_dt(
+            *(
+                _parse_timestamp(item.get("latest_event_at"))
+                for item in top_repeats
+                if isinstance(item, Mapping)
+            )
+        )
+    outcome = _non_empty_text(payload.get("outcome"))
+    dedupe_confirmed = (
+        outcome == "skipped_matching_work_unit"
+        and (latest_repeat_at is None or recorded_at >= latest_repeat_at)
+    )
+    return {
+        "status": "dedupe_confirmed" if dedupe_confirmed else "not_confirmed",
+        "outcome": outcome,
+        "reason": _non_empty_text(payload.get("reason")),
+        "recorded_at": _iso(recorded_at),
+        "latest_repeated_decision_at": _iso(latest_repeat_at),
+        "work_unit_dispatch_key": _non_empty_text(payload.get("work_unit_dispatch_key")),
+        "work_unit_fingerprint": _non_empty_text(payload.get("work_unit_fingerprint")),
+    }
+
+
 def _gate_blocker_summary(*, publication_eval_latest: Mapping[str, Any] | None, publishability_gate_latest: Mapping[str, Any] | None) -> dict[str, Any]:
     blocker_sources: list[Mapping[str, Any] | None]
     if publishability_gate_is_clear(publishability_gate_latest):
@@ -354,60 +396,6 @@ def _gate_blocker_summary(*, publication_eval_latest: Mapping[str, Any] | None, 
         "specificity_questions": work_unit_payload.get("specificity_questions") or [],
         "blocking_work_units": work_unit_payload.get("blocking_work_units") or [],
         "next_work_unit": work_unit_payload.get("next_work_unit"),
-    }
-
-
-def _latest_file_mtime(root: Path) -> datetime | None:
-    if not root.exists():
-        return None
-    candidates = [path for path in root.rglob("*") if path.is_file()]
-    if root.is_file():
-        candidates.append(root)
-    if not candidates:
-        return None
-    return datetime.fromtimestamp(max(path.stat().st_mtime for path in candidates), timezone.utc)
-
-
-def _package_currentness(study_root: Path) -> dict[str, Any]:
-    authority_latest = max(
-        (
-            timestamp
-            for timestamp in (
-                _latest_file_mtime(study_root / "paper"),
-                _latest_file_mtime(study_root / "artifacts" / "controller"),
-                _latest_file_mtime(study_root / "artifacts" / "publication_eval"),
-            )
-            if timestamp is not None
-        ),
-        default=None,
-    )
-    current_package_latest = max(
-        (
-            timestamp
-            for timestamp in (
-                _latest_file_mtime(study_root / "manuscript" / "current_package"),
-                _latest_file_mtime(study_root / "manuscript" / "current_package.zip"),
-            )
-            if timestamp is not None
-        ),
-        default=None,
-    )
-    if current_package_latest is None:
-        status = "missing"
-    elif authority_latest is not None and current_package_latest < authority_latest:
-        status = "stale"
-    else:
-        status = "fresh"
-    stale_seconds = (
-        int((authority_latest - current_package_latest).total_seconds())
-        if authority_latest is not None and current_package_latest is not None and current_package_latest < authority_latest
-        else 0
-    )
-    return {
-        "status": status,
-        "authority_latest_mtime": _iso(authority_latest),
-        "current_package_latest_mtime": _iso(current_package_latest),
-        "stale_seconds": stale_seconds,
     }
 
 
@@ -487,6 +475,7 @@ def _bottlenecks(
     *,
     runtime_transition_summary: Mapping[str, Any],
     controller_decision_fingerprints: Mapping[str, Any],
+    runtime_watch_wakeup_dedupe_summary: Mapping[str, Any],
     gate_blocker_summary: Mapping[str, Any],
     package_currentness: Mapping[str, Any],
     current_state_summary: Mapping[str, Any] | None = None,
@@ -506,7 +495,11 @@ def _bottlenecks(
             }
         )
     top_repeats = controller_decision_fingerprints.get("top_repeats")
-    if isinstance(top_repeats, list) and top_repeats:
+    if (
+        isinstance(top_repeats, list)
+        and top_repeats
+        and runtime_watch_wakeup_dedupe_summary.get("status") != "dedupe_confirmed"
+    ):
         bottlenecks.append(
             {
                 "bottleneck_id": "repeated_controller_decision",
@@ -778,7 +771,15 @@ def profile_study_cycle(
         study_root=resolved_study_root,
         publishability_gate_latest=publishability_gate_latest,
     )
-    package_currentness = _package_currentness(resolved_study_root)
+    runtime_watch_wakeup_dedupe = _runtime_watch_wakeup_dedupe_summary(
+        study_root=resolved_study_root,
+        controller_decision_fingerprints=decision_fingerprints,
+    )
+    package_currentness = resolve_package_currentness(
+        study_root=resolved_study_root,
+        publication_eval_latest=publication_eval_latest,
+        publishability_gate_latest=publishability_gate_latest,
+    )
     step_latest_times = _step_latest_times(
         category_windows=category_windows,
         package_currentness=package_currentness,
@@ -786,6 +787,7 @@ def profile_study_cycle(
     bottlenecks = _bottlenecks(
         runtime_transition_summary=runtime_summary,
         controller_decision_fingerprints=decision_fingerprints,
+        runtime_watch_wakeup_dedupe_summary=runtime_watch_wakeup_dedupe,
         gate_blocker_summary=gate_summary,
         package_currentness=package_currentness,
         current_state_summary=current_state,
@@ -809,6 +811,7 @@ def profile_study_cycle(
         "category_windows": category_windows,
         "runtime_transition_summary": runtime_summary,
         "controller_decision_fingerprints": decision_fingerprints,
+        "runtime_watch_wakeup_dedupe_summary": runtime_watch_wakeup_dedupe,
         "current_state_summary": current_state,
         "gate_blocker_summary": gate_summary,
         "package_currentness": package_currentness,

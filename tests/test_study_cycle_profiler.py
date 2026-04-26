@@ -214,6 +214,113 @@ def test_study_cycle_profiler_uses_current_manual_finishing_state_over_window_ch
     assert profile_payload["bottlenecks"] == []
 
 
+def test_study_cycle_profiler_does_not_treat_control_refresh_as_package_drift(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+    study_root = workspace_root / "studies" / "003-dpcc"
+    study_root.mkdir(parents=True)
+    control_report = workspace_root / "ops" / "runtime" / "quests" / "003-dpcc" / "artifacts" / "reports" / "publishability_gate" / "latest.json"
+    _write_json(control_report, {"generated_at": "2026-04-25T00:20:00+00:00"})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "emitted_at": "2026-04-25T00:30:00+00:00",
+            "gaps": [{"summary": "claim_evidence_consistency_failed", "evidence_refs": [str(control_report)]}],
+        },
+    )
+    _touch(study_root / "manuscript" / "current_package" / "manuscript.docx", 1_777_000_000)
+    _touch(control_report, 1_777_000_100)
+    _touch(study_root / "artifacts" / "publication_eval" / "latest.json", 1_777_000_100)
+
+    profile_payload = module.profile_study_cycle(profile=profile, study_id="003-dpcc", study_root=None)
+
+    assert profile_payload["package_currentness"]["status"] == "fresh"
+    assert profile_payload["package_currentness"]["status_reason"] == "content_authority_not_newer_than_current_package"
+    assert profile_payload["package_currentness"]["control_surface_latest_mtime"] == "2026-04-24T03:08:20+00:00"
+    assert "stale_current_package" not in {
+        item["bottleneck_id"] for item in profile_payload["bottlenecks"]
+    }
+
+
+def test_study_cycle_profiler_marks_package_stale_from_new_content_evidence_ref(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+    study_root = workspace_root / "studies" / "003-dpcc"
+    study_root.mkdir(parents=True)
+    paper_root = workspace_root / "ops" / "runtime" / "quests" / "003-dpcc" / ".ds" / "worktrees" / "paper-main" / "paper"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "emitted_at": "2026-04-25T00:30:00+00:00",
+            "gaps": [{"summary": "claim_evidence_consistency_failed", "evidence_refs": [str(paper_root)]}],
+        },
+    )
+    _touch(study_root / "manuscript" / "current_package" / "manuscript.docx", 1_777_000_000)
+    _touch(paper_root / "paper_line_state.json", 1_777_000_180)
+    _touch(study_root / "artifacts" / "publication_eval" / "latest.json", 1_777_000_020)
+
+    profile_payload = module.profile_study_cycle(profile=profile, study_id="003-dpcc", study_root=None)
+
+    assert profile_payload["package_currentness"]["status"] == "stale"
+    assert profile_payload["package_currentness"]["status_reason"] == "content_authority_newer_than_current_package"
+    assert profile_payload["package_currentness"]["stale_seconds"] == 180
+    assert profile_payload["package_currentness"]["authority_source"]["path"] == str(paper_root.resolve())
+    assert "stale_current_package" in {
+        item["bottleneck_id"] for item in profile_payload["bottlenecks"]
+    }
+
+
+def test_study_cycle_profiler_suppresses_repeated_decision_after_work_unit_dedupe(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+    study_root = workspace_root / "studies" / "003-dpcc"
+    study_root.mkdir(parents=True)
+    for minute in (10, 11):
+        _write_json(
+            study_root / "artifacts" / "controller_decisions" / f"20260425T00{minute}00Z.json",
+            {
+                "emitted_at": f"2026-04-25T00:{minute}:00+00:00",
+                "decision_type": "bounded_analysis",
+                "route_target": "analysis-campaign",
+                "reason": "same blocker fingerprint",
+            },
+        )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json",
+        {
+            "recorded_at": "2026-04-25T00:12:00+00:00",
+            "outcome": "skipped_matching_work_unit",
+            "reason": "outer-loop work unit already dispatched for the same blocker fingerprint",
+            "work_unit_dispatch_key": "publication-blockers::abc::analysis_claim_evidence_repair::run_gate_clearing_batch",
+        },
+    )
+
+    profile_payload = module.profile_study_cycle(
+        profile=profile,
+        study_id="003-dpcc",
+        study_root=None,
+        since="2026-04-25T00:00:00+00:00",
+    )
+
+    assert profile_payload["controller_decision_fingerprints"]["top_repeats"][0]["count"] == 2
+    assert profile_payload["runtime_watch_wakeup_dedupe_summary"]["status"] == "dedupe_confirmed"
+    assert "repeated_controller_decision" not in {
+        item["bottleneck_id"] for item in profile_payload["bottlenecks"]
+    }
+    assert "dedupe-controller-dispatch" not in {
+        item["recommendation_id"] for item in profile_payload["optimization_recommendations"]
+    }
+
+
 def test_study_cycle_profiler_renders_markdown(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
 
