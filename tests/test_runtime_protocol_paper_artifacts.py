@@ -295,6 +295,9 @@ def test_materializes_archived_reference_only_manifest_for_legacy_journal_surfac
     )
     legacy_surface_root = paper_root / "journal_submissions" / "rheumatology_international"
     legacy_surface_root.mkdir(parents=True, exist_ok=True)
+    (legacy_surface_root / "frontiers_manuscript.md").write_text("stale generated text", encoding="utf-8")
+    (legacy_surface_root / "tables").mkdir()
+    (legacy_surface_root / "tables" / "Table3.md").write_text("stale table text", encoding="utf-8")
 
     materialized = paper_artifacts.materialize_archived_reference_only_submission_surface_manifests(paper_root)
 
@@ -306,6 +309,12 @@ def test_materializes_archived_reference_only_manifest_for_legacy_journal_surfac
         "archive_reason": "Retained only as a historical journal-target package.",
         "active_managed_submission_manifest_path": "paper/submission_minimal/submission_manifest.json",
     }
+    archived_files = sorted(
+        path.relative_to(legacy_surface_root).as_posix()
+        for path in legacy_surface_root.rglob("*")
+        if path.is_file()
+    )
+    assert archived_files == ["submission_manifest.json"]
     assert resolve_archived_submission_surface_roots(paper_root) == (legacy_surface_root.resolve(),)
     assert find_unmanaged_submission_surface_roots(paper_root) == ()
 

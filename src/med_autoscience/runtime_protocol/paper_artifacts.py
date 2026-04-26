@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -326,6 +327,21 @@ def _workspace_relative_manifest_path(*, paper_root: Path, manifest_path: Path) 
         return str(resolved_manifest_path)
 
 
+def _prune_archived_reference_only_surface_root(*, surface_root: Path, manifest_path: Path) -> bool:
+    pruned = False
+    resolved_manifest_path = manifest_path.resolve()
+    for child in sorted(surface_root.iterdir()):
+        if child.resolve() == resolved_manifest_path:
+            continue
+        if child.is_dir():
+            shutil.rmtree(child)
+            pruned = True
+            continue
+        child.unlink()
+        pruned = True
+    return pruned
+
+
 def _iter_legacy_submission_surface_roots(paper_root: Path) -> tuple[Path, ...]:
     resolved_paper_root = _resolve_path(paper_root)
     if not resolved_paper_root.exists():
@@ -393,7 +409,13 @@ def materialize_archived_reference_only_submission_surface_manifests(
             continue
         manifest_path = surface_root / "submission_manifest.json"
         existing_manifest = load_submission_surface_manifest(surface_root)
+        pruned_surface = _prune_archived_reference_only_surface_root(
+            surface_root=surface_root,
+            manifest_path=manifest_path,
+        )
         if existing_manifest == archive_manifest:
+            if pruned_surface:
+                materialized_roots.append(surface_root.resolve())
             continue
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(json.dumps(archive_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
