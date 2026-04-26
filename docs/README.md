@@ -79,6 +79,7 @@ Public-facing material should stay mirrored in English and Chinese.
 
 - [Research Foundry medical execution map](program/research_foundry_medical_execution_map.md)
 - [Research Foundry medical mainline](program/research_foundry_medical_mainline.md)
+- [MAS/MDS autonomy operating system program](program/mas_mds_autonomy_operating_system_program.md)
 - [MAS single-project quality and autonomy mainline](program/mas_single_project_quality_and_autonomy_mainline.md)
 - [MedDeepScientist deconstruction map](program/med_deepscientist_deconstruction_map.md)
 - [External runtime dependency gate](program/external_runtime_dependency_gate.md)
