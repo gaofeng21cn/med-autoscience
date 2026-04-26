@@ -4,6 +4,7 @@ from . import shared as _shared
 from . import program_surfaces as _program_surfaces
 from . import workspace_surfaces as _workspace_surfaces
 from . import manifest_surfaces as _manifest_surfaces
+from med_autoscience.study_task_intake import task_intake_overrides_auto_manual_finish
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -240,9 +241,64 @@ def _runtime_message_id(payload: Mapping[str, Any] | None) -> str | None:
     return _non_empty_text(payload.get("message_id")) or _non_empty_text(payload.get("id"))
 
 
+def _study_reactivation_command(
+    *,
+    profile_ref: str | Path | None,
+    study_id: str,
+    stopped_relaunch: bool,
+) -> str:
+    command = (
+        f"{_command_prefix(profile_ref)} launch-study --profile {_profile_arg(profile_ref)} "
+        f"{_study_selector(study_id=study_id)}"
+    )
+    if stopped_relaunch:
+        command = f"{command} --allow-stopped-relaunch"
+    return _json_surface_command(command)
+
+
+def _apply_revision_reactivation_guidance(
+    *,
+    result: dict[str, Any],
+    payload: dict[str, Any],
+    profile_ref: str | Path | None,
+    study_id: str,
+) -> None:
+    result["requires_study_reactivation"] = False
+    result["next_required_action"] = None
+    result["recommended_next_command"] = None
+    result["current_package_edit_policy"] = None
+    if not task_intake_overrides_auto_manual_finish(payload):
+        return
+    quest_status = str(result.get("quest_status") or "").strip().lower()
+    stopped_relaunch = quest_status == "stopped"
+    result["requires_study_reactivation"] = True
+    result["next_required_action"] = (
+        "launch_study_with_stopped_relaunch" if stopped_relaunch else "launch_study_or_resume"
+    )
+    result["recommended_next_command"] = _study_reactivation_command(
+        profile_ref=profile_ref,
+        study_id=study_id,
+        stopped_relaunch=stopped_relaunch,
+    )
+    result["current_package_edit_policy"] = {
+        "surface_kind": "human_facing_projection",
+        "direct_current_package_edit_allowed": False,
+        "reason": (
+            "reviewer_revision_reactivates_same_study_line; "
+            "manuscript/current_package must be regenerated from controller-authorized paper authority"
+        ),
+    }
+    result["reason"] = (
+        "stopped_revision_requires_study_reactivation"
+        if stopped_relaunch
+        else "non_live_revision_requires_study_reactivation"
+    )
+
+
 def _enqueue_task_intake_for_live_runtime(
     *,
     profile: WorkspaceProfile,
+    profile_ref: str | Path | None = None,
     study_id: str,
     execution: Mapping[str, Any] | None,
     payload: dict[str, Any],
@@ -261,9 +317,19 @@ def _enqueue_task_intake_for_live_runtime(
         "delivery_mode": None,
         "runtime_backend_id": None,
         "backend_submit_error": None,
+        "requires_study_reactivation": False,
+        "next_required_action": None,
+        "recommended_next_command": None,
+        "current_package_edit_policy": None,
     }
     if not (quest_root / "quest.yaml").exists():
         result["reason"] = "quest_not_found"
+        _apply_revision_reactivation_guidance(
+            result=result,
+            payload=payload,
+            profile_ref=profile_ref,
+            study_id=study_id,
+        )
         return result
 
     runtime_state = quest_state.load_runtime_state(quest_root)
@@ -271,6 +337,12 @@ def _enqueue_task_intake_for_live_runtime(
     result["quest_status"] = quest_status or None
     if quest_status not in _LIVE_TASK_INTAKE_RUNTIME_STATUSES:
         result["reason"] = "quest_not_live"
+        _apply_revision_reactivation_guidance(
+            result=result,
+            payload=payload,
+            profile_ref=profile_ref,
+            study_id=study_id,
+        )
         return result
 
     runtime_state["quest_id"] = managed_quest_id
@@ -309,6 +381,7 @@ def _enqueue_task_intake_for_live_runtime(
 def submit_study_task(
     *,
     profile: WorkspaceProfile,
+    profile_ref: str | Path | None = None,
     study_id: str | None = None,
     study_root: Path | None = None,
     task_intent: str,
@@ -357,6 +430,7 @@ def submit_study_task(
     latest_payload = read_latest_task_intake(study_root=resolved_study_root) or payload
     runtime_intervention = _enqueue_task_intake_for_live_runtime(
         profile=profile,
+        profile_ref=profile_ref,
         study_id=resolved_study_id,
         execution=execution,
         payload=latest_payload,
@@ -402,5 +476,13 @@ def render_submit_study_task_markdown(payload: dict[str, Any]) -> str:
         f"- latest_json: `{((payload.get('artifacts') or {}).get('latest_json') or 'none')}`\n"
         f"- latest_markdown: `{((payload.get('artifacts') or {}).get('latest_markdown') or 'none')}`\n"
     )
+    runtime_intervention = dict(payload.get("runtime_intervention") or {})
+    if runtime_intervention.get("requires_study_reactivation") is True:
+        lines += (
+            "\n## Runtime Reactivation\n\n"
+            "- 当前 runtime 不在可接收 live intervention 状态；本次 revision 已写入 durable intake，但还必须重新激活同一 study。\n"
+            f"- 推荐命令: `{runtime_intervention.get('recommended_next_command') or 'none'}`\n"
+            "- 在 MAS/MDS 接管 canonical paper surface 前，不要把直接改 `manuscript/current_package/` 当作完成态。\n"
+        )
     return lines
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

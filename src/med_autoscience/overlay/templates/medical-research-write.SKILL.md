@@ -58,6 +58,7 @@ This skill intentionally absorbs the strongest legacy runtime writing discipline
 - If the selected renderer family is `python`, start from the system prompt Morandi plotting template and only adjust figure size, labels, and series colors as needed.
 - If the selected renderer family is `r_ggplot2`, keep the script publication-oriented, deterministic, and audit-ready; do not use it as an excuse to introduce a different statistical result surface.
 - If the runtime starts an auto-continue turn with no new user message, keep drafting or verifying from the durable state and active requirements instead of replaying the previous user turn.
+- If the latest user/reviewer feedback arrived after a stopped, submission-ready, or finalize milestone, treat it as same-line revision reactivation. Read the durable `reviewer_revision` intake first, work on the canonical paper authority, and regenerate `manuscript/current_package/`; do not treat foreground edits to that projection as completed MDS work.
 - Message templates are references only. Adapt to the actual context and vary wording so updates feel respectful, human, and non-robotic.
 - If a threaded user reply arrives, interpret it relative to the latest writing progress update before assuming the task changed completely.
 - Use milestone updates deliberately when outline selection, claim downgrades, proofing completion, bundle readiness, or route-back-to-experiment decisions become durably true.

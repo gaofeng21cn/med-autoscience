@@ -201,7 +201,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "识别为 `reviewer_revision` study task intake" in root_agents_text
     assert "text revisions、methods completeness、statistical analysis、tables/figures" in root_agents_text
     assert "必须查询对应 study 的 `study-runtime-status`" in root_agents_text
-    assert "留下 MAS/MDS 可接手的 durable handoff" in root_agents_text
+    assert "stopped/submission-ready/finalize 状态不是前台直接改 `manuscript/current_package/` 的许可" in root_agents_text
+    assert "`launch-study --allow-stopped-relaunch`" in root_agents_text
     assert "MDS 恢复同一论文线前，必须优先读取 latest revision handoff/evidence surface" in root_agents_text
     assert "`manuscript/current_package/` 是 human-facing projection" in root_agents_text
     assert "优先在 `med-autoscience` 与 `med-deepscientist` repo 中完成基座层修复" in root_agents_text

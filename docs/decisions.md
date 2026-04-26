@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-04-26：稿件反馈后的 stopped milestone 统一视为 revision reactivation
+
+- 决策：已达投稿包、submission-ready 或 finalize 里程碑后，如果收到用户、导师或审稿层面的稿件反馈，必须把该反馈作为同一 study 的 `reviewer_revision` reactivation intake 处理。`stopped` 状态和 `current_package` 存在只说明旧里程碑曾经成立，不能授权 Codex 前台直接修改 `manuscript/current_package/` 后宣称完成。
+- 理由：003 / 004 类 manuscript revision 暴露出重复误判风险：Agent 容易把“quest 已停车”误读成“当前包可人工小修”。这会绕开 MAS/MDS 的 study truth、claim-evidence、review ledger 和 package regeneration 链路。
+- 影响：`submit-study-task` 对非 live reviewer revision 要返回 reactivation guidance；workspace AGENTS、agent-entry templates、MDS write/finalize overlay 和 invariants 都必须显式要求先 durable intake，再 MAS/MDS relaunch/resume，最后从 canonical paper authority 重新生成 `current_package`。
+
 ## 2026-04-26：初稿质量升级扫描进入 study charter 与 reviewer-first route-back
 
 - 决策：`study_charter.paper_quality_contract` 固定新增 first-draft quality contract；写作 route 在判断 draft ready 前必须扫描已验证数据资产是否支持更强的时间点、角色/人群、中心/地理、指南对应、亚组/关联分析和现实采用约束叙事。若当前初稿过轻且不改变锁定 claim 边界，默认 route back 到 `analysis-campaign` 做有限补充分析。

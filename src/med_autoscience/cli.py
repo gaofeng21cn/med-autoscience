@@ -14,7 +14,6 @@ from med_autoscience.figure_routes import supported_required_route_help
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile, profile_to_dict
 
-
 @lru_cache(maxsize=None)
 def _load_module(module_name: str) -> Any:
     return importlib.import_module(module_name)
@@ -950,6 +949,7 @@ def main(argv: list[str] | None = None) -> int:
         profile = load_profile(args.profile)
         result = product_entry.submit_study_task(
             profile=profile,
+            profile_ref=Path(args.profile),
             study_id=args.study_id,
             study_root=Path(args.study_root) if args.study_root else None,
             task_intent=args.task_intent,

@@ -21,6 +21,7 @@
 - `OPL Runtime Manager` 只能作为 OPL 侧薄 adapter/projection layer 管理外部 runtime substrate 与高频索引；不得成为 MAS 的 scheduler kernel、session store、memory store、study truth、publication gate、artifact authority 或 concrete executor owner。
 - OPL native helper 与高频状态索引只能缓存、探测和投影 MAS 已暴露的 durable truth surface，不得替代 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_charter`、evidence ledger 或 review ledger。
 - `MedAutoScience` 的对外稳定 capability surface 固定为本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract，并由单一 MAS app skill 承接。
+- 已达投稿包、submission-ready 或 finalize 里程碑后收到用户、导师或审稿稿件反馈时，反馈本身就是同一 study 的重新激活信号；旧 stopped/submission-ready/finalize 状态不得被解释为前台直接修改 `manuscript/current_package/` 的许可，必须先写入 durable revision intake，再通过 MAS/MDS relaunch/resume 接管 canonical paper surface 并重新生成投影包。
 
 ## 文档与结构
 

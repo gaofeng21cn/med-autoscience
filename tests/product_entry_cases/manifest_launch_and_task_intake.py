@@ -592,9 +592,11 @@ def test_submit_study_task_projects_reviewer_revision_intake(tmp_path: Path) -> 
     latest_markdown_text = latest_markdown.read_text(encoding="utf-8")
 
     assert payload["revision_intake"]["kind"] == "reviewer_revision"
+    assert payload["revision_intake"]["reactivation_required"] is True
+    assert payload["revision_intake"]["current_package_edit_policy"]["direct_current_package_edit_allowed"] is False
     assert written_payload["revision_intake"]["handoff_required"] is True
     assert "Revision Intake Checklist" in latest_markdown_text
-    assert "MDS 恢复前必须优先读取 latest revision handoff/evidence surface" in latest_markdown_text
+    assert "旧 stopped/submission-ready/finalize 状态不能作为前台直接修改" in latest_markdown_text
 
 
 def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelope(tmp_path: Path) -> None:

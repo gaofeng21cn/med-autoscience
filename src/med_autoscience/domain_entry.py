@@ -71,6 +71,7 @@ class MedAutoScienceDomainEntry:
         elif command == "submit-study-task":
             payload = product_entry.submit_study_task(
                 profile=profile,
+                profile_ref=profile_ref,
                 study_id=str(request["study_id"]),
                 task_intent=str(request["task_intent"]),
                 entry_mode=_optional_text(request.get("entry_mode")),

@@ -213,6 +213,46 @@ def test_submit_study_task_uses_managed_quest_id_for_live_runtime_intervention(
     assert runtime_intervention["message_id"] == "msg-managed-quest"
     assert runtime_intervention["reason"] == "live_runtime_task_context_submitted"
 
+
+def test_submit_study_task_requires_reactivation_for_stopped_reviewer_revision(tmp_path: Path) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk"
+    write_text(quest_root / "quest.yaml", "id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": "001-risk",
+                "status": "stopped",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+
+    result = product_entry.submit_study_task(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id="001-risk",
+        task_intent="根据用户反馈和审稿意见推进 manuscript revision，修复 Methods、Figure/Table 与投稿包版本不一致。",
+        first_cycle_outputs=("revision checklist",),
+    )
+
+    runtime_intervention = result["runtime_intervention"]
+    assert runtime_intervention["intervention_enqueued"] is False
+    assert runtime_intervention["quest_status"] == "stopped"
+    assert runtime_intervention["reason"] == "stopped_revision_requires_study_reactivation"
+    assert runtime_intervention["requires_study_reactivation"] is True
+    assert runtime_intervention["next_required_action"] == "launch_study_with_stopped_relaunch"
+    assert "--allow-stopped-relaunch" in runtime_intervention["recommended_next_command"]
+    assert str(profile_ref.resolve()) in runtime_intervention["recommended_next_command"]
+    assert runtime_intervention["current_package_edit_policy"]["direct_current_package_edit_allowed"] is False
+
+
 def test_submit_study_task_falls_back_to_durable_queue_when_backend_chat_is_unavailable(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

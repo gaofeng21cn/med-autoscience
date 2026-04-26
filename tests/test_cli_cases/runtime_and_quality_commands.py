@@ -636,6 +636,7 @@ def test_submit_study_task_command_dispatches_product_entry_controller(monkeypat
     def fake_submit(
         *,
         profile,
+        profile_ref: Path,
         study_id: str | None,
         study_root: Path | None,
         task_intent: str,
@@ -648,6 +649,7 @@ def test_submit_study_task_command_dispatches_product_entry_controller(monkeypat
         first_cycle_outputs: tuple[str, ...],
     ) -> dict:
         called["profile"] = profile
+        called["profile_ref"] = profile_ref
         called["study_id"] = study_id
         called["study_root"] = study_root
         called["task_intent"] = task_intent
@@ -698,6 +700,7 @@ def test_submit_study_task_command_dispatches_product_entry_controller(monkeypat
 
     assert exit_code == 0
     assert called["profile"].name == "nfpitnet"
+    assert called["profile_ref"] == profile_path
     assert called["study_id"] == "001-risk"
     assert called["study_root"] is None
     assert called["task_intent"] == "持续推进到投稿态"

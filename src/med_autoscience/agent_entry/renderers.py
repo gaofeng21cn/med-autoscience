@@ -117,8 +117,10 @@ def render_entry_modes_guide() -> str:
             "## Revision Intake Rule",
             "Treat reviewer feedback, manuscript revision, mentor feedback, 审稿意见, 导师反馈, 论文修改, "
             "and Introduction/Methods/Results/Figure/Table feedback as `reviewer_revision` study task intake.",
-            "Before foreground manuscript edits, require a structured revision checklist and durable "
-            "handoff/evidence surface; MDS resume must read the latest revision handoff/evidence surface first.",
+            "Explicit user/reviewer manuscript feedback after a stopped, submission-ready, or finalize milestone "
+            "reactivates the same study line; it is not permission to foreground-edit `manuscript/current_package`.",
+            "After writing the durable task intake, relaunch/resume through MAS/MDS before editing canonical "
+            "paper sources, and regenerate `current_package` from that authority.",
         )
     )
     return "\n".join(lines).rstrip() + "\n"
@@ -285,8 +287,10 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
             "## Revision Intake Rule",
             "Treat reviewer feedback, manuscript revision, mentor feedback, 审稿意见, 导师反馈, 论文修改, "
             "and Introduction/Methods/Results/Figure/Table feedback as `reviewer_revision` study task intake.",
-            "Before foreground manuscript edits, require a structured revision checklist and durable "
-            "handoff/evidence surface; MDS resume must read the latest revision handoff/evidence surface first.",
+            "Explicit user/reviewer manuscript feedback after a stopped, submission-ready, or finalize milestone "
+            "reactivates the same study line; it is not permission to foreground-edit `manuscript/current_package`.",
+            "After writing the durable task intake, relaunch/resume through MAS/MDS before editing canonical "
+            "paper sources, and regenerate `current_package` from that authority.",
         )
     )
     return "\n".join(lines).rstrip() + "\n"

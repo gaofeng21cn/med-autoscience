@@ -292,16 +292,24 @@ def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
         "discussion_claim_guardrails",
         "handoff_evidence_surface",
     ]
+    assert summary["revision_intake"]["reactivation_required"] is True
+    assert (
+        summary["revision_intake"]["current_package_edit_policy"]["direct_current_package_edit_allowed"]
+        is False
+    )
     assert summary["revision_intake"]["handoff_required"] is True
 
     markdown = module.render_task_intake_markdown(payload)
     assert "## Revision Intake Checklist" in markdown
     assert "text revisions" in markdown
     assert "handoff/evidence surface" in markdown
+    assert "stopped/submission-ready/finalize" in markdown
+    assert "先通过 MAS/MDS relaunch/resume 接管 canonical paper surface" in markdown
 
     runtime_context = module.render_task_intake_runtime_context(payload)
     assert "Revision intake: reviewer_revision" in runtime_context
-    assert "Latest revision handoff/evidence surface must be read before MDS resume." in runtime_context
+    assert "stopped milestone state is not foreground current_package edit permission" in runtime_context
+    assert "Relaunch/resume MAS/MDS before editing canonical paper sources." in runtime_context
 
 
 def test_non_revision_intake_does_not_emit_revision_checklist() -> None:

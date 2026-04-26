@@ -16,6 +16,7 @@ Use this skill to close or pause a quest responsibly.
 - When finalize reaches a real closure state, pause-ready packet, or route-back decision, send one threaded `artifact.interact(kind='milestone', ...)` update that names the recommendation, why it is the right call, and any reopen condition that still matters.
 - In MAS-managed autonomous mode, do not open runtime completion approval. Finalize should materialize closure evidence and completion handoff is decided by MAS outer loop.
 - If the startup contract explicitly requires program-level human confirmation, stop at a MAS-visible blocker instead of emitting a direct runtime approval request.
+- New user/reviewer manuscript feedback after a stopped, submission-ready, or finalize milestone reopens the same study line. Do not close by polishing `manuscript/current_package/`; route back through durable revision intake and MAS/MDS reactivation.
 
 Before final package readiness, apply [medical stage packet discipline](./medical-research-stage-packet.block.md): verify submission-facing truth, artifact freshness, declarations, unresolved human gates, and the exact resume or delivery point.
 

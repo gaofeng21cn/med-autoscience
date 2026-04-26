@@ -169,8 +169,9 @@ route_contracts:
       calling the draft ready
     - open gaps, caveats, and next actions are explicit in the writing surface
     - draft is ready for finalize or route-back with named reasons
-    - any direct human-facing package edit has a durable MAS/MDS handoff and canonical-source
-      reconciliation note
+    - explicit user/reviewer manuscript feedback after a stopped or submission-ready
+      milestone has been handled as same-line revision reactivation, not as direct
+      `current_package` editing
     durable_outputs_minimum:
     - manuscript draft or section update tied to current claim scope
     - claim-evidence map or equivalent traceability surface
@@ -178,8 +179,8 @@ route_contracts:
     - first-draft quality note covering field-verified multicenter/geography, subgroup/association,
       guideline, and real-world constraint axes
     - revision handoff stating data source, scripts, changed tables/figures, claim
-      guardrails, and whether `current_package` was reconciled back to controller-authorized
-      `paper/`
+      guardrails, MAS/MDS reactivation state, and whether `current_package` was regenerated
+      from controller-authorized `paper/`
     human_gate_boundary:
     - manuscript claims expand beyond the current evidence package or locked study
       objective
@@ -193,8 +194,8 @@ route_contracts:
     - first-draft quality scan finds verified asset dimensions that can support a
       stronger bounded analysis or manuscript framing
     - manuscript narrative changes the claim boundary
-    - foreground edits only touched `manuscript/current_package/` and have not been
-      reconciled into the MAS/MDS canonical paper source
+    - foreground edits only touched `manuscript/current_package/` before MAS/MDS reactivation
+      or have not been reconciled into the canonical paper source
   finalize:
     route_id: finalize
     display_name: Finalize

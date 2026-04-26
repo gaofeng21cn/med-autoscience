@@ -213,7 +213,9 @@ def test_render_entry_modes_guide_contains_required_contract_context() -> None:
     assert "stop and close the contract gap" in guide
     assert "do not bypass MAS with ad-hoc scripts" in guide
     assert "Treat reviewer feedback, manuscript revision, mentor feedback" in guide
-    assert "MDS resume must read the latest revision handoff/evidence surface first" in guide
+    assert "reactivates the same study line" in guide
+    assert "not permission to foreground-edit `manuscript/current_package`" in guide
+    assert "relaunch/resume through MAS/MDS before editing canonical paper sources" in guide
     assert "user manuscript-change requests from Codex have been converted into a study revision intake" in guide
     assert "revision handoff stating data source, scripts, changed tables/figures, claim guardrails" in guide
     assert "no unreconciled foreground `current_package` revision overlay remains" in guide
@@ -282,7 +284,9 @@ def test_entry_prompts_include_per_mode_route_contract_and_upgrade_rule(render_p
     assert "report `browser_url`, `quest_session_api_url`, and `active_run_id` when present" in prompt
     assert "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions." in prompt
     assert "Treat reviewer feedback, manuscript revision, mentor feedback" in prompt
-    assert "MDS resume must read the latest revision handoff/evidence surface first" in prompt
+    assert "reactivates the same study line" in prompt
+    assert "not permission to foreground-edit `manuscript/current_package`" in prompt
+    assert "relaunch/resume through MAS/MDS before editing canonical paper sources" in prompt
     assert "user manuscript-change requests from Codex have been converted into a study revision intake" in prompt
     assert "revision handoff stating data source, scripts, changed tables/figures, claim guardrails" in prompt
     assert "no unreconciled foreground `current_package` revision overlay remains" in prompt
