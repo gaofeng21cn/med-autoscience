@@ -100,6 +100,120 @@ def normalize_markdown_heading_key(heading: str) -> str:
     return re.sub(r"\s+", " ", str(heading or "").strip()).casefold()
 
 
+MANUSCRIPT_MAJOR_SECTION_ALIASES = {
+    "abstract": {"abstract"},
+    "introduction": {"introduction"},
+    "methods": {
+        "methods",
+        "materials and methods",
+        "patients and methods",
+        "methods and materials",
+    },
+    "results": {"results"},
+    "discussion": {"discussion"},
+    "conclusion": {"conclusion", "conclusions"},
+    "appendix": {"appendix"},
+    "figures": {"figures", "main figures", "main-text figures"},
+    "figure_legends": {"figure legends", "figure legend"},
+    "tables": {"tables", "main tables"},
+}
+MANUSCRIPT_MAJOR_SECTION_LOOKUP = {
+    alias: section
+    for section, aliases in MANUSCRIPT_MAJOR_SECTION_ALIASES.items()
+    for alias in aliases
+}
+MANUSCRIPT_MAJOR_HEADING_PATTERN = re.compile(r"(?m)^(#{1,2})\s+([^\n]+?)\s*$")
+INTERNAL_MANUSCRIPT_INSTRUCTION_PATTERNS = (
+    (
+        "manuscript_directive",
+        re.compile(r"\b(?:the|this)\s+manuscript\s+(?:should|must|can)\b", flags=re.IGNORECASE),
+    ),
+    (
+        "paper_directive",
+        re.compile(r"\bthe\s+paper\s+(?:should|must|can)\b", flags=re.IGNORECASE),
+    ),
+    (
+        "imperative_use_as",
+        re.compile(r"(?:^|[.;]\s+)use\s+as\b", flags=re.IGNORECASE),
+    ),
+    (
+        "imperative_reframe_guard",
+        re.compile(r"(?:^|[.;]\s+)do\s+not\s+(?:recast|reframe|promote|soften)\b", flags=re.IGNORECASE),
+    ),
+    (
+        "figure_must_not_directive",
+        re.compile(
+            r"\b(?:this\s+figure|the\s+figure|figure\s+\d+[^\n.;]*)\b[^\n.;]*\bmust\s+not\b",
+            flags=re.IGNORECASE,
+        ),
+    ),
+    (
+        "must_not_reframe_directive",
+        re.compile(
+            r"\bmust\s+not\s+be\s+(?:reframed|recast|softened|promoted)\b",
+            flags=re.IGNORECASE,
+        ),
+    ),
+)
+
+
+def canonicalize_manuscript_major_heading(heading: str) -> str:
+    normalized = normalize_markdown_heading_key(heading)
+    if not normalized:
+        return ""
+    prefix = re.split(r"[:.]", normalized, maxsplit=1)[0].strip()
+    return MANUSCRIPT_MAJOR_SECTION_LOOKUP.get(prefix, "")
+
+
+def collect_duplicate_manuscript_major_sections(markdown_text: str) -> list[dict[str, Any]]:
+    occurrences_by_section: dict[str, list[dict[str, Any]]] = {}
+    for match in MANUSCRIPT_MAJOR_HEADING_PATTERN.finditer(markdown_text):
+        section_key = canonicalize_manuscript_major_heading(match.group(2))
+        if not section_key:
+            continue
+        line_number = markdown_text.count("\n", 0, match.start()) + 1
+        occurrences_by_section.setdefault(section_key, []).append(
+            {
+                "heading": match.group(2).strip(),
+                "level": len(match.group(1)),
+                "line": line_number,
+            }
+        )
+    return [
+        {
+            "section": section_key,
+            "count": len(occurrences),
+            "occurrences": occurrences,
+        }
+        for section_key, occurrences in occurrences_by_section.items()
+        if len(occurrences) > 1
+    ]
+
+
+def collect_internal_instruction_hits(markdown_text: str) -> list[dict[str, Any]]:
+    hits: list[dict[str, Any]] = []
+    seen: set[tuple[int, str]] = set()
+    for line_number, line in enumerate(markdown_text.splitlines(), start=1):
+        stripped_line = line.strip()
+        if not stripped_line:
+            continue
+        for marker, pattern in INTERNAL_MANUSCRIPT_INSTRUCTION_PATTERNS:
+            if not pattern.search(stripped_line):
+                continue
+            key = (line_number, marker)
+            if key in seen:
+                continue
+            seen.add(key)
+            hits.append(
+                {
+                    "line": line_number,
+                    "marker": marker,
+                    "text": stripped_line[:240],
+                }
+            )
+    return hits
+
+
 MANUSCRIPT_SHAPED_AUXILIARY_TOP_LEVEL_HEADINGS = (
     "Main Tables",
     "Tables",
@@ -607,6 +721,8 @@ def inspect_submission_source_markdown(source_markdown_path: Path) -> dict[str, 
             "figure_block_count": 0,
             "figure_blocks_with_images": 0,
             "figure_blocks_with_legends": 0,
+            "duplicate_major_sections": [],
+            "internal_instruction_hits": [],
         }
     markdown_text = source_markdown_path.read_text(encoding="utf-8")
     _, body = split_front_matter(markdown_text)
@@ -633,6 +749,8 @@ def inspect_submission_source_markdown(source_markdown_path: Path) -> dict[str, 
         "figure_block_count": len(figure_blocks),
         "figure_blocks_with_images": figure_blocks_with_images,
         "figure_blocks_with_legends": figure_blocks_with_legends,
+        "duplicate_major_sections": collect_duplicate_manuscript_major_sections(markdown_text),
+        "internal_instruction_hits": collect_internal_instruction_hits(markdown_text),
     }
 
 
@@ -760,6 +878,30 @@ def build_submission_manuscript_surface_qc(
                     "audit_classes": ["manuscript_surface"],
                 }
             )
+        if source_stats["duplicate_major_sections"]:
+            failures.append(
+                {
+                    "collection": "manuscript",
+                    "item_id": "source_markdown",
+                    "descriptor": source_markdown_path.name,
+                    "qc_profile": qc_profile,
+                    "failure_reason": "submission_source_markdown_duplicate_sections",
+                    "audit_classes": ["manuscript_surface", "hygiene"],
+                    "duplicate_major_sections": source_stats["duplicate_major_sections"],
+                }
+            )
+        if source_stats["internal_instruction_hits"]:
+            failures.append(
+                {
+                    "collection": "manuscript",
+                    "item_id": "source_markdown",
+                    "descriptor": source_markdown_path.name,
+                    "qc_profile": qc_profile,
+                    "failure_reason": "submission_source_markdown_internal_instruction_leakage",
+                    "audit_classes": ["manuscript_surface", "hygiene"],
+                    "internal_instruction_hits": source_stats["internal_instruction_hits"],
+                }
+            )
 
     if docx_stats["embedded_image_count"] < expected_main_figure_count:
         failures.append(
@@ -815,5 +957,4 @@ def build_submission_manuscript_surface_qc(
         "pdf": pdf_stats,
         "failures": failures,
     }
-
 
