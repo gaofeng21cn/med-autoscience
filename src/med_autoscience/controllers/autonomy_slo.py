@@ -2,8 +2,17 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.controllers import runtime_failure_taxonomy
+
 
 _RUNTIME_LIVE_RATIO_TARGET = 0.95
+_QUALITY_AUTHORITY_SURFACES = [
+    "study_charter",
+    "evidence_ledger",
+    "review_ledger",
+    "publication_eval/latest.json",
+    "controller_decisions/latest.json",
+]
 
 _ACTION_BY_INCIDENT = {
     "runtime_recovery_churn": {
@@ -259,6 +268,100 @@ def _recovery_actions(profile_payload: Mapping[str, Any]) -> list[dict[str, Any]
     return ordered
 
 
+def _runtime_failure_action(
+    *,
+    study_id: str,
+    classification: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    action_mode = _text(classification.get("action_mode"))
+    blocker_class = _text(classification.get("blocker_class"))
+    diagnosis_code = _text(classification.get("diagnosis_code"))
+    if action_mode in {"external_fix_required", "provider_backoff_and_recheck"}:
+        return {
+            "action_id": f"autonomy-slo-action::{study_id}::{diagnosis_code or blocker_class}",
+            "study_id": study_id,
+            "source": "mds_failure_taxonomy",
+            "source_ref": diagnosis_code,
+            "source_incident_type": blocker_class,
+            "source_severity": "high" if action_mode == "external_fix_required" else "medium",
+            "next_work_unit_id": None,
+            "apply_mode": "human_required" if action_mode == "external_fix_required" else "controller_only",
+            "quality_gate_relaxation_allowed": False,
+            "action_type": "external_runtime_blocker",
+            "controller_surface": "runtime_watch",
+            "priority": "now",
+            "summary": "Resolve the external runtime/provider blocker before retrying MAS work.",
+            "restore_rank": 0,
+        }
+    if action_mode == "platform_repair_required":
+        return {
+            "action_id": f"autonomy-slo-action::{study_id}::{diagnosis_code or blocker_class}",
+            "study_id": study_id,
+            "source": "mds_failure_taxonomy",
+            "source_ref": diagnosis_code,
+            "source_incident_type": blocker_class,
+            "source_severity": "high",
+            "next_work_unit_id": None,
+            "apply_mode": "platform_repair",
+            "quality_gate_relaxation_allowed": False,
+            "action_type": "platform_runtime_repair",
+            "controller_surface": "runtime_watch",
+            "priority": "now",
+            "summary": "Repair the MAS/MDS runtime protocol path before resuming the study.",
+            "restore_rank": 0,
+        }
+    if action_mode == "wait_for_user_or_explicit_resume":
+        return {
+            "action_id": f"autonomy-slo-action::{study_id}::{diagnosis_code or blocker_class}",
+            "study_id": study_id,
+            "source": "mds_failure_taxonomy",
+            "source_ref": diagnosis_code,
+            "source_incident_type": blocker_class,
+            "source_severity": "medium",
+            "next_work_unit_id": None,
+            "apply_mode": "human_required",
+            "quality_gate_relaxation_allowed": False,
+            "action_type": "human_resume_gate",
+            "controller_surface": "runtime_watch",
+            "priority": "now",
+            "summary": "Wait for the explicit user/resume gate instead of relaunching blindly.",
+            "restore_rank": 0,
+        }
+    return None
+
+
+def _slo_execution_plan(
+    *,
+    runtime_failure_action: Mapping[str, Any] | None,
+    runtime_failure_classification: Mapping[str, Any],
+    recovery_actions: list[dict[str, Any]],
+) -> dict[str, Any]:
+    steps = (
+        [dict(runtime_failure_action)]
+        if runtime_failure_action is not None
+        else [dict(action) for action in recovery_actions]
+    )
+    action_mode = _text(runtime_failure_classification.get("action_mode"))
+    if action_mode in {"external_fix_required", "provider_backoff_and_recheck"}:
+        state = "blocked_by_external_runtime"
+    elif action_mode in {"platform_repair_required", "wait_for_user_or_explicit_resume"}:
+        state = "blocked_by_runtime_gate"
+    elif steps:
+        state = "ready_for_controller_execution"
+    else:
+        state = "monitor_only"
+    return {
+        "surface": "autonomy_slo_execution_plan",
+        "schema_version": 1,
+        "state": state,
+        "step_count": len(steps),
+        "steps": steps,
+        "gate_relaxation_allowed": False,
+        "apply_mode": steps[0].get("apply_mode") if steps else "monitor",
+        "quality_authority_surfaces": list(_QUALITY_AUTHORITY_SURFACES),
+    }
+
+
 def _efficiency_signals(
     *,
     sli_summary: Mapping[str, Any],
@@ -330,8 +433,18 @@ def build_autonomy_slo_signals(profile_payload: Mapping[str, Any]) -> dict[str, 
         incident_types=incident_types,
         bottleneck_types=bottleneck_types,
     )
+    runtime_failure_classification = runtime_failure_taxonomy.classify_runtime_failure_from_profile(profile_payload)
     recovery_actions = _recovery_actions(profile_payload)
-    top_action = recovery_actions[0] if recovery_actions else {}
+    runtime_failure_action = _runtime_failure_action(
+        study_id=_text(profile_payload.get("study_id")) or "unknown-study",
+        classification=runtime_failure_classification,
+    )
+    slo_execution_plan = _slo_execution_plan(
+        runtime_failure_action=runtime_failure_action,
+        runtime_failure_classification=runtime_failure_classification,
+        recovery_actions=recovery_actions,
+    )
+    top_action = (slo_execution_plan["steps"][0] if slo_execution_plan["steps"] else {})
     efficiency_signals = _efficiency_signals(
         sli_summary=sli_summary,
         mds_activity=mds_activity,
@@ -367,7 +480,9 @@ def build_autonomy_slo_signals(profile_payload: Mapping[str, Any]) -> dict[str, 
             "top_action_type": top_action.get("action_type") or "monitor_autonomy_slo",
             "top_controller_surface": top_action.get("controller_surface"),
         },
+        "runtime_failure_classification": runtime_failure_classification,
         "recovery_actions": recovery_actions,
+        "slo_execution_plan": slo_execution_plan,
         "efficiency_summary": {
             "signal_count": len(efficiency_signals),
             "breach_signal_ids": breach_signal_ids,
@@ -382,11 +497,7 @@ def build_autonomy_slo_signals(profile_payload: Mapping[str, Any]) -> dict[str, 
                 gate_summary.get("actionability_status") == "blocked_by_non_actionable_gate"
             ),
             "must_preserve_authority_surfaces": [
-                "study_charter",
-                "evidence_ledger",
-                "review_ledger",
-                "publication_eval/latest.json",
-                "controller_decisions/latest.json",
+                *_QUALITY_AUTHORITY_SURFACES,
             ],
         },
     }

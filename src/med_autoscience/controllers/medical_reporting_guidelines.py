@@ -140,6 +140,17 @@ def build_reporting_guideline_expectation(guideline_family: str) -> dict[str, An
     }
 
 
+def build_evidence_review_ledger_contract() -> dict[str, Any]:
+    return {
+        "evidence_ledger_surface": "paper/evidence_ledger.json",
+        "review_ledger_surface": "paper/review_ledger.json",
+        "publication_eval_surface": "artifacts/publication_eval/latest.json",
+        "required_evidence_status": "closed",
+        "required_review_status": "closed",
+        "blocks_accelerated_handoff_when_missing": True,
+    }
+
+
 def build_guideline_quality_gate_expectation(guideline_family: str) -> dict[str, Any]:
     expectation = build_reporting_guideline_expectation(guideline_family)
     gates = expectation["gates"]
@@ -157,6 +168,7 @@ def build_guideline_quality_gate_expectation(guideline_family: str) -> dict[str,
             "can_skip_review_handoff_gate": False,
             "can_downgrade_blockers_to_advisories": False,
         },
+        "evidence_review_ledger_contract": build_evidence_review_ledger_contract(),
         "gates": {
             "before_first_full_draft": {
                 "required_status": gates["before_first_full_draft"]["required_status"],

@@ -66,6 +66,38 @@ def test_next_work_unit_filter_preserves_submission_refresh_dependency_closure(t
     ]
     execution_plan = scheduler.build_repair_unit_execution_plan(filtered_units)
     assert execution_plan["status"] == "planned"
+    assert execution_plan["execution_policy"] == {
+        "mode": "quality_preserving_fast_lane",
+        "gate_relaxation_allowed": False,
+        "requires_publication_gate_replay": True,
+        "requires_authority_surface_refresh": True,
+    }
+    assert execution_plan["dispatch_batches"] == [
+        {
+            "batch_index": 1,
+            "dispatch_mode": "parallel",
+            "unit_ids": ["repair_paper_live_paths"],
+            "quality_gate_relaxation_allowed": False,
+        },
+        {
+            "batch_index": 2,
+            "dispatch_mode": "parallel",
+            "unit_ids": ["workspace_display_repair_script"],
+            "quality_gate_relaxation_allowed": False,
+        },
+        {
+            "batch_index": 3,
+            "dispatch_mode": "sequential",
+            "unit_ids": ["create_submission_minimal_package"],
+            "quality_gate_relaxation_allowed": False,
+        },
+        {
+            "batch_index": 4,
+            "dispatch_mode": "sequential",
+            "unit_ids": ["sync_submission_minimal_delivery"],
+            "quality_gate_relaxation_allowed": False,
+        },
+    ]
     assert execution_plan["critical_path_depth"] == 4
     assert execution_plan["waves"] == [
         {
