@@ -27,6 +27,7 @@
 - `CLI`、`MCP`、`controller` 属于操作与自动化入口。
 - 稳定可调用面通过单一 MAS app skill 对外承接，包含本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract。
 - `OPL` 集成、product-entry manifest 和其他机器可读桥接面都属于集成或参考层。
+- `OPL Runtime Manager` 是目标形态中的 family-level 薄运行管理层，位于外部 `Hermes-Agent` substrate 之上；它可以消费 MAS task registration、runtime-control projection、status/artifact locator 与 wakeup/approval 边界，但不持有 MAS study truth。
 - `Hermes-Agent` 只保留在显式可选 hosted runtime 或 reference-layer 语境中，不改写默认 capability contract。
 - 历史迁移术语和旧命名继续留在参考层或历史层。
 

@@ -64,6 +64,7 @@ You can start with prompts like:
 - `OPL` handoff, the product-entry manifest, and other machine-readable bridge payloads belong to the integration or reference layer.
 - It owns study intake, workspace context, evidence progression, progress reporting, and manuscript-facing delivery.
 - `OPL` stays at family-level session/runtime/projection orchestration and shared modules/contracts/indexes; it does not redefine MAS as an internal module.
+- The target `OPL Runtime Manager` may index MAS task/runtime/artifact projections over an external `Hermes-Agent` substrate, but MAS remains the owner of study truth and publication judgment.
 - Clinical framing, claim acceptance, and submission decisions stay with researchers and PIs.
 - Journal submission and external system interaction stay under human supervision.
 

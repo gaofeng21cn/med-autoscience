@@ -64,6 +64,7 @@
 - `OPL` handoff、product-entry manifest 以及其他机器可读桥接载荷都只保留在集成或参考层。
 - 它负责课题接收、工作区语境、证据推进、进度投影和面向论文的交付。
 - `OPL` 只负责 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不把 MAS 改写成内部模块。
+- 目标形态中的 `OPL Runtime Manager` 可以在外部 `Hermes-Agent` substrate 之上索引 MAS task/runtime/artifact projection，但 MAS 继续持有 study truth 与 publication judgment。
 - 临床问题界定、结论采用和投稿决策由研究者与课题负责人把关。
 - 期刊投稿和外部系统交互由人工监督完成。
 

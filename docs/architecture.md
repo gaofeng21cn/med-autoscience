@@ -12,6 +12,7 @@
    - `CLI`、`MCP`、`controller`，以及 repo-tracked 的 workspace commands / scripts / contracts，是操作与自动化接口，也是对外稳定 capability surface。
    - 单一 MAS app skill 负责把这些稳定接口对外承接起来。
    - `OPL`、`product-entry manifest` 和其他机器可读桥接属于上层整合与自动化消费面，不是第一主语。
+   - `OPL Runtime Manager` 是 OPL 侧的薄运行管理/投影层：它接收 MAS 暴露的 task registration、runtime_control projection、status/artifact locator 与 approval/wakeup 边界，再把这些信息挂到外部 `Hermes-Agent` substrate 的 profile、task、resume、doctor 与索引面。
    - 这一层负责把 MAS 控制面接到更高层入口；如果使用 integration handoff，它必须保持同一套研究语义与 owner 边界。
 
 3. 运行时与持久真相层
@@ -42,11 +43,13 @@
 其中 `study-progress` 是 restore point、autonomy soak、quality closure、artifact pickup 与 human gate 的源头投影；`workspace-cockpit` 负责把同一条 `research_runtime_control_projection` 放进 study item、attention queue 与 operator brief；`product-frontdesk` 只消费 cockpit preview，不另建第二套运行解释。
 它们描述的是当前可执行的操作面。
 `OPL` 调用、`product-entry manifest`、`handoff envelope` 和其他机器可读载荷继续属于集成接口和参考层。
+当 OPL 需要长期托管、跨域唤醒或统一状态面时，`OPL Runtime Manager` 只能消费这些现有 MAS projection，并把结果索引为 family-level runtime status；它不能在 OPL 侧生成新的 study truth、publication judgment 或 evidence ledger。
 
 ## 当前运行时责任分层
 
 - `Med Auto Science`：唯一研究入口、课题与工作区权威语义、进度语义、发表判断 owner，同时对外暴露稳定 capability surface。
-- `Hermes-Agent`：只在可选 hosted runtime target / reference-layer 语境出现，不改写默认 capability contract。
+- `OPL Runtime Manager`：OPL 侧 product-managed adapter/projection layer，负责把 MAS registration/projection 接到外部 runtime substrate、高频索引、doctor/repair/resume 与 native helper catalog；不持有 MAS domain truth。
+- `Hermes-Agent`：外部 runtime substrate / hosted carrier，只在可选 hosted runtime target / reference-layer 语境出现，不改写默认 capability contract。
 - `MedDeepScientist`：当前受控研究后端、behavior oracle、upstream intake buffer；不承担用户入口或第二 owner 身份。
 
 ## 当前自治与质量合同主线

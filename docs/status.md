@@ -1,6 +1,6 @@
 # 当前状态
 
-**更新时间：2026-04-21**
+**更新时间：2026-04-26**
 
 ## 当前角色
 
@@ -9,6 +9,7 @@
 - `Med Auto Science` 作为独立 medical research domain agent，对外先由单一 MAS app skill 统一承接；direct path 和经过 OPL 的 integration handoff 共享同一套研究语义。
 - 对外稳定 capability surface 继续是本地 CLI、workspace commands / scripts、durable truth surface 与 repo-tracked contract，方便 `Codex` 直接调用。
 - `OPL` 是上层 family-level session/runtime/projection 整合入口，并维护 shared modules/contracts/indexes；它不改写 MAS 的 domain owner 语义。
+- `OPL Runtime Manager` 是 OPL 侧新增的薄运行管理/投影目标层，负责把 MAS registration/projection 接到外部 `Hermes-Agent` substrate、native helper catalog、高频状态索引与 doctor/repair/resume 面；它不持有 MAS study truth、publication gate 或 evidence/review ledger。
 - `Hermes-Agent` 只在可选 hosted runtime target / reference-layer 语境出现；当前受控研究后端继续是 `MedDeepScientist`，但它在单项目主线里只保留 research backend、行为等价 oracle、上游 intake buffer 三个迁移期角色。
 
 ## 当前推荐使用方式
@@ -71,13 +72,14 @@
 - 期刊投稿和外部系统交互继续由人工监督。
 - `OPL` 集成、`product-entry manifest`、`handoff envelope` 和其他机器可读桥接继续留在集成层与参考层阅读。
 - `physical monorepo absorb`、`runtime core ingest` 与更大的平台化结构调整继续是 post-gate 长线，不属于当前 tranche 的 repo-side 验收面。
+- 自有长期常驻 OPL sidecar 不是当前 MAS 侧目标；只有当外部 `Hermes-Agent` substrate 无法表达 task/wakeup/approval/audit/product isolation contract 时，才通过 OPL Runtime Manager 的已冻结 adapter/projection 边界进入 promotion 评估。
 
 ## 当前维护重点
 
 1. 保持 `README*` 与 `docs/README*` 继续面向医生、课题负责人和潜在使用者。
 2. 保持 `docs/project.md`、`docs/status.md`、`docs/architecture.md` 对齐同一套产品边界、执行回路和 owner 层级。
 3. 保持 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 作为 MAS 的核心可执行回路，同时保持 `CLI`、`MCP`、`controller` 作为正式操作与自动化入口。
-4. 保持 `Hermes-Agent` 作为外部长期在线网关的 readiness 检查，并把维护者细节继续留在 reference / program 层。
+4. 保持 `OPL Runtime Manager`、外部 `Hermes-Agent` substrate 与 MAS durable projection 的 owner split 清晰；维护者细节继续留在 reference / program 层。
 5. 把“医学论文质量 + 长时间全自动驾驶优化”正式收口到 `MAS` 单项目主线，由 `controller_charter / runtime / eval_hygiene` 共同承担 owner；`MDS` 迁移期角色继续收敛为 research backend、行为等价 oracle、上游 intake buffer。
 6. 把 study charter 升级为质量总合同入口；`paper evidence ledger` 与 `review ledger` 作为该合同的执行与审阅记录，统一承载主结果、`bounded_analysis`、reviewer concern 与 submission hygiene 的落地状态。
 7. 把用户可见真相投影压实到 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json` 这一组 durable surface 上，让当前阶段、关键证据、阻塞、下一步、恢复点、artifact pickup 与 human gate 原因都能被同一条 `MAS` 主线读取；当前统一出口已经收口成 `autonomy_contract + restore_point + autonomy_soak_status`、`quality_closure_truth + quality_closure_basis + quality_review_followthrough` 与 `research_runtime_control_projection` 三条互补 truth。

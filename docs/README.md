@@ -27,6 +27,7 @@ This guide is for readers who need product boundary, operator entry surfaces, ru
 - `CLI`, `MCP`, and `controller` are operator and automation entry surfaces.
 - The stable callable surface is exposed through the single MAS app skill and includes the local CLI, workspace commands/scripts, durable surfaces, and repo-tracked contracts.
 - `OPL` integration, the product-entry manifest, and other machine-readable bridge surfaces belong to the integration and reference layers.
+- `OPL Runtime Manager` is the target family-level thin manager over the external `Hermes-Agent` substrate; it may consume MAS task registration, runtime-control projection, status/artifact locators, and wakeup/approval boundaries, but it does not own MAS study truth.
 - Hosted runtime carriers such as `Hermes-Agent` stay in explicit optional or reference-layer positions; they do not redefine the default MAS capability contract.
 - Historical migration terms and older naming stay in reference or history layers.
 
