@@ -141,3 +141,61 @@ def test_outer_loop_tick_request_carries_publication_work_unit_context(tmp_path:
     assert request is not None
     assert request["work_unit_fingerprint"] == "publication-blockers::same"
     assert request["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+
+
+def test_work_unit_dedupe_reuses_prior_upstream_unit_when_blocker_fingerprint_churns(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
+    study_root = tmp_path / "studies" / "001-risk"
+    latest_path = study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json"
+    latest_path.parent.mkdir(parents=True)
+    latest_path.write_text(
+        json.dumps(
+            {
+                "outcome": "dispatched",
+                "work_unit_dispatch_key": "publication-blockers::old::analysis_claim_evidence_repair::run_gate_clearing_batch",
+            }
+        ),
+        encoding="utf-8",
+    )
+    tick_request = {
+        "work_unit_fingerprint": "publication-blockers::new",
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
+        "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+    }
+
+    already_executed, dispatch_key = module.dispatch_already_executed(
+        study_root=study_root,
+        tick_request=tick_request,
+    )
+
+    assert already_executed is True
+    assert dispatch_key == "publication-blockers::new::analysis_claim_evidence_repair::run_gate_clearing_batch"
+
+
+def test_work_unit_dedupe_does_not_reuse_prior_delivery_unit_when_fingerprint_changes(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
+    study_root = tmp_path / "studies" / "001-risk"
+    latest_path = study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json"
+    latest_path.parent.mkdir(parents=True)
+    latest_path.write_text(
+        json.dumps(
+            {
+                "outcome": "dispatched",
+                "work_unit_dispatch_key": "publication-blockers::old::submission_minimal_refresh::run_gate_clearing_batch",
+            }
+        ),
+        encoding="utf-8",
+    )
+    tick_request = {
+        "work_unit_fingerprint": "publication-blockers::new",
+        "next_work_unit": {"unit_id": "submission_minimal_refresh"},
+        "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+    }
+
+    already_executed, dispatch_key = module.dispatch_already_executed(
+        study_root=study_root,
+        tick_request=tick_request,
+    )
+
+    assert already_executed is False
+    assert dispatch_key == "publication-blockers::new::submission_minimal_refresh::run_gate_clearing_batch"

@@ -136,6 +136,34 @@ def test_same_blocker_set_has_stable_order_independent_fingerprint() -> None:
     assert first["fingerprint"] == second["fingerprint"]
 
 
+def test_analysis_work_unit_fingerprint_ignores_downstream_delivery_blocker_churn() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    with_delivery_churn = module.derive_publication_work_units(
+        {
+            "blockers": [
+                "claim_evidence_consistency_failed",
+                "medical_publication_surface_blocked",
+                "stale_submission_minimal_authority",
+                "stale_study_delivery_mirror",
+                "submission_surface_qc_failure_present",
+            ],
+        }
+    )
+    claim_only = module.derive_publication_work_units(
+        {
+            "blockers": [
+                "claim_evidence_consistency_failed",
+                "medical_publication_surface_blocked",
+            ],
+        }
+    )
+
+    assert with_delivery_churn["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert with_delivery_churn["fingerprint"] == claim_only["fingerprint"]
+    assert with_delivery_churn["fingerprint_blockers"] == ["claim_evidence_consistency_failed"]
+
+
 def test_non_actionable_gate_labels_require_specificity_before_dispatch() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 

@@ -60,6 +60,8 @@ _LOCAL_ARCHITECTURE_BLOCKERS = frozenset(
 _SUBMISSION_REFRESH_BLOCKERS = frozenset(
     {
         "stale_submission_minimal_authority",
+        "stale_study_delivery_mirror",
+        "stale_study_delivery",
         "submission_minimal_stale",
         "submission_minimal_missing",
         "current_package_outdated",
@@ -133,6 +135,29 @@ def _fingerprint(blockers: tuple[str, ...]) -> str:
         json.dumps(blockers, ensure_ascii=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()[:16]
     return f"publication-blockers::{digest}"
+
+
+def _fingerprint_blockers(*, blockers: tuple[str, ...], next_work_unit: Mapping[str, Any]) -> tuple[str, ...]:
+    unit_id = str(next_work_unit.get("unit_id") or "").strip()
+    blocker_set_by_unit = {
+        "analysis_claim_evidence_repair": (
+            _CLAIM_EVIDENCE_BLOCKERS
+            | _STORY_BLOCKERS
+            | _FIGURE_RESULTS_BLOCKERS
+            | _TREATMENT_GAP_BLOCKERS
+        ),
+        "manuscript_story_repair": _STORY_BLOCKERS,
+        "figure_results_trace_repair": _FIGURE_RESULTS_BLOCKERS,
+        "treatment_gap_reporting_repair": _TREATMENT_GAP_BLOCKERS,
+        "submission_minimal_refresh": _SUBMISSION_REFRESH_BLOCKERS,
+        "display_reporting_contract_repair": _DISPLAY_REGISTRY_BLOCKERS,
+        "local_architecture_overview_repair": _LOCAL_ARCHITECTURE_BLOCKERS,
+    }
+    scoped_blockers = blocker_set_by_unit.get(unit_id)
+    if scoped_blockers is None:
+        return blockers
+    filtered = tuple(blocker for blocker in blockers if blocker in scoped_blockers)
+    return filtered or blockers
 
 
 def _unit(unit_id: str, lane: str, summary: str) -> dict[str, str]:
@@ -249,8 +274,10 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
             )
         )
 
+    fingerprint_blockers = _fingerprint_blockers(blockers=blockers, next_work_unit=units[0])
     return {
-        "fingerprint": _fingerprint(blockers),
+        "fingerprint": _fingerprint(fingerprint_blockers),
+        "fingerprint_blockers": list(fingerprint_blockers),
         "blockers": list(blockers),
         "actionability_status": actionability_status,
         "specificity_questions": list(specificity_questions),
