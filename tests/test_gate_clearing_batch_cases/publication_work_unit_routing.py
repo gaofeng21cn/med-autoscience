@@ -11,6 +11,7 @@ globals().update({
 
 def test_next_work_unit_filter_preserves_submission_refresh_dependency_closure(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    scheduler = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_scheduler")
     work_units = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_work_units")
     profile = make_profile(tmp_path)
     paper_root = tmp_path / "paper"
@@ -62,6 +63,35 @@ def test_next_work_unit_filter_preserves_submission_refresh_dependency_closure(t
         "workspace_display_repair_script",
         "create_submission_minimal_package",
         "sync_submission_minimal_delivery",
+    ]
+    execution_plan = scheduler.build_repair_unit_execution_plan(filtered_units)
+    assert execution_plan["status"] == "planned"
+    assert execution_plan["critical_path_depth"] == 4
+    assert execution_plan["waves"] == [
+        {
+            "wave_index": 1,
+            "parallel_unit_ids": ["repair_paper_live_paths"],
+            "sequential_unit_ids": [],
+            "unit_ids": ["repair_paper_live_paths"],
+        },
+        {
+            "wave_index": 2,
+            "parallel_unit_ids": ["workspace_display_repair_script"],
+            "sequential_unit_ids": [],
+            "unit_ids": ["workspace_display_repair_script"],
+        },
+        {
+            "wave_index": 3,
+            "parallel_unit_ids": [],
+            "sequential_unit_ids": ["create_submission_minimal_package"],
+            "unit_ids": ["create_submission_minimal_package"],
+        },
+        {
+            "wave_index": 4,
+            "parallel_unit_ids": [],
+            "sequential_unit_ids": ["sync_submission_minimal_delivery"],
+            "unit_ids": ["sync_submission_minimal_delivery"],
+        },
     ]
     unit_results, _, _ = module._execute_repair_units(
         repair_units=filtered_units,
@@ -155,6 +185,8 @@ def test_next_work_unit_limits_gate_clearing_batch_to_analysis_repair_without_su
     )
 
     assert materialize_calls == [paper_root]
+    assert result["repair_unit_execution_plan"]["status"] == "planned"
+    assert result["repair_unit_execution_plan"]["parallel_wave_count"] == 2
     assert [item["unit_id"] for item in result["unit_results"]] == [
         "repair_paper_live_paths",
         "materialize_display_surface",
