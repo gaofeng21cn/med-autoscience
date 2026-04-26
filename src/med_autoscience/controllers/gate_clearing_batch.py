@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from importlib import import_module
 import shutil
 import subprocess
 import sys
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
@@ -29,8 +26,11 @@ from med_autoscience.controllers.gate_clearing_batch_fingerprints import (
 from med_autoscience.controllers import gate_clearing_batch_package_freshness
 from med_autoscience.controllers import gate_clearing_batch_submission
 from med_autoscience.controllers import gate_clearing_batch_scheduler
+from med_autoscience.controllers import gate_clearing_batch_execution
+from med_autoscience.controllers import gate_clearing_batch_repair_fingerprints
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import publication_work_unit_lifecycle
+from med_autoscience.controllers.gate_clearing_batch_execution import GateClearingRepairUnit
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     derived_next_publication_work_unit,
     explicit_next_publication_work_unit,
@@ -74,15 +74,6 @@ publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate")
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
 study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
-
-
-@dataclass(frozen=True)
-class GateClearingRepairUnit:
-    unit_id: str
-    label: str
-    parallel_safe: bool
-    run: Callable[[], dict[str, Any]]
-    depends_on: tuple[str, ...] = ()
 
 
 def stable_gate_clearing_batch_path(*, study_root: Path) -> Path:
@@ -236,28 +227,15 @@ def _catalog_asset_fingerprints(
     resolve_source_paths: Callable[[dict[str, Any]], list[str]],
     limit: int = 128,
 ) -> list[dict[str, Any]]:
-    items = catalog_payload.get(item_key)
-    if not isinstance(items, list):
-        return []
-    fingerprints: list[dict[str, Any]] = []
-    seen: set[Path] = set()
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        for raw_path in resolve_source_paths(item):
-            normalized = str(raw_path or "").strip()
-            if not normalized:
-                continue
-            resolved = submission_minimal.resolve_relpath(workspace_root, normalized).expanduser().resolve()
-            if resolved in seen:
-                continue
-            seen.add(resolved)
-            fingerprint = _path_fingerprint(resolved)
-            if fingerprint is not None:
-                fingerprints.append(fingerprint)
-            if len(fingerprints) >= limit:
-                return fingerprints
-    return fingerprints
+    return gate_clearing_batch_repair_fingerprints.catalog_asset_fingerprints(
+        workspace_root=workspace_root,
+        catalog_payload=catalog_payload,
+        item_key=item_key,
+        resolve_source_paths=resolve_source_paths,
+        submission_minimal_controller=submission_minimal,
+        path_fingerprint=_path_fingerprint,
+        limit=limit,
+    )
 
 
 def _submission_minimal_fingerprint_payload(
@@ -266,144 +244,14 @@ def _submission_minimal_fingerprint_payload(
     gate_report: dict[str, Any],
     profile: WorkspaceProfile | None,
 ) -> dict[str, Any]:
-    bundle_manifest_path = paper_root / "paper_bundle_manifest.json"
-    payload: dict[str, Any] = {
-        "unit_id": "create_submission_minimal_package",
-        "current_required_action": _non_empty_text(gate_report.get("current_required_action")),
-        "gate_blockers": sorted(_gate_blockers(gate_report)),
-        "paper_bundle_manifest": _path_fingerprint(bundle_manifest_path),
-        "display_pack_lock": _path_fingerprint(paper_root / "build" / "display_pack_lock.json"),
-    }
-    if profile is not None:
-        payload["requested_publication_profile"] = profile.default_publication_profile
-        payload["requested_citation_style"] = profile.default_citation_style
-    workspace_root = submission_minimal.workspace_root_from_paper_root(paper_root)
-    if not bundle_manifest_path.exists():
-        return payload
-    try:
-        bundle_manifest = submission_minimal.load_json(bundle_manifest_path)
-    except Exception as exc:
-        payload["bundle_manifest_error"] = str(exc)
-        return payload
-
-    try:
-        requested_publication_profile = (
-            profile.default_publication_profile
-            if profile is not None
-            else submission_minimal.GENERAL_MEDICAL_JOURNAL_PROFILE
-        )
-        requested_citation_style = profile.default_citation_style if profile is not None else "auto"
-        profile_config = submission_minimal.resolve_publication_profile_config(
-            publication_profile=requested_publication_profile,
-            citation_style=requested_citation_style,
-        )
-        payload["resolved_publication_profile"] = profile_config.publication_profile
-        payload["profile_artifacts"] = _path_fingerprints(
-            profile_config.csl_path,
-            profile_config.reference_doc_path,
-            profile_config.supplementary_reference_doc_path,
-        )
-    except Exception as exc:
-        payload["profile_config_error"] = str(exc)
-        return payload
-
-    try:
-        compile_report_path = submission_minimal.resolve_relpath(
-            workspace_root,
-            submission_minimal.resolve_bundle_input_path(
-                bundle_manifest=bundle_manifest,
-                key="compile_report_path",
-            ),
-        )
-        figure_catalog_path = submission_minimal.resolve_relpath(
-            workspace_root,
-            submission_minimal.resolve_bundle_input_path(
-                bundle_manifest=bundle_manifest,
-                key="figure_catalog_path",
-                fallback="paper/figures/figure_catalog.json",
-            ),
-        )
-        table_catalog_path = submission_minimal.resolve_relpath(
-            workspace_root,
-            submission_minimal.resolve_bundle_input_path(
-                bundle_manifest=bundle_manifest,
-                key="table_catalog_path",
-                fallback="paper/tables/table_catalog.json",
-            ),
-        )
-    except Exception as exc:
-        payload["bundle_inputs_error"] = str(exc)
-        return payload
-    payload["compile_report"] = _path_fingerprint(compile_report_path)
-    payload["figure_catalog"] = _path_fingerprint(figure_catalog_path)
-    payload["table_catalog"] = _path_fingerprint(table_catalog_path)
-
-    compile_report: dict[str, Any] = {}
-    figure_catalog: dict[str, Any] = {}
-    table_catalog: dict[str, Any] = {}
-    try:
-        compile_report = submission_minimal.load_json(compile_report_path)
-    except Exception as exc:
-        payload["compile_report_error"] = str(exc)
-    try:
-        figure_catalog = submission_minimal.load_json(figure_catalog_path)
-    except Exception as exc:
-        payload["figure_catalog_error"] = str(exc)
-    try:
-        table_catalog = submission_minimal.load_json(table_catalog_path)
-    except Exception as exc:
-        payload["table_catalog_error"] = str(exc)
-
-    try:
-        submission_root = submission_minimal.resolve_output_root(
-            paper_root=paper_root,
-            publication_profile=profile_config.publication_profile,
-        )
-        payload["submission_root"] = _path_fingerprint(submission_root)
-        payload["submission_outputs"] = _path_fingerprints(
-            submission_root / "manuscript.docx",
-            submission_root / "paper.pdf",
-            submission_root / "submission_manifest.json",
-            submission_root / "README.md",
-        )
-        excluded_compiled_source_roots = submission_minimal.resolve_submission_compiled_source_excluded_roots(
-            paper_root=paper_root,
-            workspace_root=workspace_root,
-            submission_root=submission_root,
-            bundle_manifest=bundle_manifest,
-            compile_report=compile_report,
-            exclude_live_submission_root_for_markdown_candidates=True,
-        )
-        compiled_markdown_path = submission_minimal.resolve_compiled_markdown_path(
-            workspace_root=workspace_root,
-            bundle_manifest=bundle_manifest,
-            compile_report=compile_report,
-            excluded_roots=excluded_compiled_source_roots,
-        )
-        compiled_pdf_path = submission_minimal.resolve_compiled_pdf_path(
-            workspace_root=workspace_root,
-            bundle_manifest=bundle_manifest,
-            compile_report=compile_report,
-            excluded_roots=excluded_compiled_source_roots,
-        )
-        payload["compiled_markdown"] = _path_fingerprint(compiled_markdown_path)
-        payload["compiled_pdf"] = _path_fingerprint(compiled_pdf_path)
-    except Exception as exc:
-        payload["compiled_surface_error"] = str(exc)
-
-    payload["figure_assets"] = _catalog_asset_fingerprints(
-        workspace_root=workspace_root,
-        catalog_payload=figure_catalog,
-        item_key="figures",
-        resolve_source_paths=submission_minimal.resolve_figure_source_paths,
+    return gate_clearing_batch_repair_fingerprints.submission_minimal_fingerprint_payload(
+        paper_root=paper_root,
+        gate_report=gate_report,
+        profile=profile,
+        submission_minimal_controller=submission_minimal,
+        path_fingerprint=_path_fingerprint,
+        path_fingerprints=_path_fingerprints,
     )
-    payload["table_assets"] = _catalog_asset_fingerprints(
-        workspace_root=workspace_root,
-        catalog_payload=table_catalog,
-        item_key="tables",
-        resolve_source_paths=submission_minimal.resolve_table_source_paths,
-    )
-    return payload
 
 
 def _repair_unit_fingerprint(
@@ -413,116 +261,36 @@ def _repair_unit_fingerprint(
     gate_report: dict[str, Any],
     profile: WorkspaceProfile | None = None,
 ) -> str | None:
-    payload: dict[str, Any] | None
-    if unit_id == "materialize_display_surface":
-        payload = {
-            "unit_id": unit_id,
-            "medical_publication_surface_status": _non_empty_text(gate_report.get("medical_publication_surface_status")),
-            "medical_publication_surface_named_blockers": sorted(
-                str(item or "").strip()
-                for item in (gate_report.get("medical_publication_surface_named_blockers") or [])
-                if str(item or "").strip()
-            ),
-            "display_registry": _path_fingerprint(paper_root / "display_registry.json"),
-            "manuscript_assets": _globbed_path_fingerprints(
-                paper_root,
-                "figures/*.json",
-                "tables/*.json",
-                "figures/*.csv",
-                "tables/*.csv",
-                "results/*.json",
-            ),
-        }
-    elif unit_id == "workspace_display_repair_script":
-        payload = {
-            "unit_id": unit_id,
-            "medical_publication_surface_status": _non_empty_text(gate_report.get("medical_publication_surface_status")),
-            "medical_publication_surface_named_blockers": sorted(
-                str(item or "").strip()
-                for item in (gate_report.get("medical_publication_surface_named_blockers") or [])
-                if str(item or "").strip()
-            ),
-            "script": _path_fingerprint(paper_root / "build" / "generate_display_exports.py"),
-            "display_registry": _path_fingerprint(paper_root / "display_registry.json"),
-        }
-    elif unit_id == "sync_submission_minimal_delivery":
-        payload = {
-            "unit_id": unit_id,
-            "study_delivery_status": gate_clearing_batch_submission.study_delivery_status(gate_report),
-            "study_delivery_stale_reason": gate_clearing_batch_submission.study_delivery_stale_reason(gate_report),
-            "study_delivery_manifest_path": _non_empty_text(gate_report.get("study_delivery_manifest_path")),
-            "study_delivery_current_package_root": _non_empty_text(gate_report.get("study_delivery_current_package_root")),
-            "study_delivery_current_package_zip": _non_empty_text(gate_report.get("study_delivery_current_package_zip")),
-            "study_delivery_missing_source_paths": _string_list(gate_report.get("study_delivery_missing_source_paths")),
-            "submission_minimal_manifest": _path_fingerprint(paper_root / "submission_minimal" / "submission_manifest.json"),
-            "submission_minimal_assets": _globbed_path_fingerprints(
-                paper_root / "submission_minimal",
-                "*.docx",
-                "*.pdf",
-                "*.json",
-                "*.zip",
-            ),
-        }
-    elif unit_id == "create_submission_minimal_package":
-        payload = _submission_minimal_fingerprint_payload(
-            paper_root=paper_root,
-            gate_report=gate_report,
-            profile=profile,
-        )
-    else:
-        payload = None
-    if payload is None:
-        return None
-    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True)
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return gate_clearing_batch_repair_fingerprints.repair_unit_fingerprint(
+        unit_id=unit_id,
+        paper_root=paper_root,
+        gate_report=gate_report,
+        profile=profile,
+        submission_minimal_controller=submission_minimal,
+        path_fingerprint=_path_fingerprint,
+        path_fingerprints=_path_fingerprints,
+        globbed_path_fingerprints=_globbed_path_fingerprints,
+    )
 
 
 def _latest_unit_result(latest_batch: dict[str, Any], *, unit_id: str) -> dict[str, Any] | None:
-    for item in (latest_batch.get("unit_results") or []):
-        if not isinstance(item, dict):
-            continue
-        if _non_empty_text(item.get("unit_id")) != unit_id:
-            continue
-        return item
-    return None
+    return gate_clearing_batch_execution.latest_unit_result(latest_batch, unit_id=unit_id)
 
 
 def _latest_unit_status(latest_batch: dict[str, Any], *, unit_id: str) -> str | None:
-    item = _latest_unit_result(latest_batch, unit_id=unit_id)
-    if item is None:
-        return None
-    return _non_empty_text(item.get("status"))
+    return gate_clearing_batch_execution.latest_unit_status(latest_batch, unit_id=unit_id)
 
 
 def _unit_status_is_success(status: str | None) -> bool:
-    return status not in {
-        None,
-        "failed",
-        "missing",
-        "skipped_failed_dependency",
-        "skipped_matching_unit_fingerprint",
-        "skipped_authority_not_settled",
-    }
+    return gate_clearing_batch_execution.unit_status_is_success(status)
 
 
 def _latest_unit_success_status(latest_batch: dict[str, Any], *, unit_id: str) -> str | None:
-    item = _latest_unit_result(latest_batch, unit_id=unit_id)
-    if item is None:
-        return None
-    last_success_status = _non_empty_text(item.get("last_success_status"))
-    if last_success_status is not None:
-        return last_success_status
-    status = _non_empty_text(item.get("status"))
-    if _unit_status_is_success(status):
-        return status
-    return None
+    return gate_clearing_batch_execution.latest_unit_success_status(latest_batch, unit_id=unit_id)
 
 
 def _latest_unit_fingerprint(latest_batch: dict[str, Any], *, unit_id: str) -> str | None:
-    payload = latest_batch.get("unit_fingerprints")
-    if not isinstance(payload, dict):
-        return None
-    return _non_empty_text(payload.get(unit_id))
+    return gate_clearing_batch_execution.latest_unit_fingerprint(latest_batch, unit_id=unit_id)
 
 
 def _can_skip_repair_unit(
@@ -531,24 +299,22 @@ def _can_skip_repair_unit(
     unit_id: str,
     unit_fingerprint: str | None,
 ) -> bool:
-    if unit_fingerprint is None:
-        return False
-    previous_fingerprint = _latest_unit_fingerprint(latest_batch, unit_id=unit_id)
-    if previous_fingerprint != unit_fingerprint:
-        return False
-    return _latest_unit_success_status(latest_batch, unit_id=unit_id) is not None
+    return gate_clearing_batch_execution.can_skip_repair_unit(
+        latest_batch,
+        unit_id=unit_id,
+        unit_fingerprint=unit_fingerprint,
+    )
 
 
 def _unit_status_blocks_dependents(status: str | None) -> bool:
-    return status in {"failed", "missing", "skipped_failed_dependency", "skipped_authority_not_settled"}
+    return gate_clearing_batch_execution.unit_status_blocks_dependents(status)
 
 
 def _existing_dependency_ids(
     repair_units: list[GateClearingRepairUnit],
     *candidate_unit_ids: str,
 ) -> tuple[str, ...]:
-    existing_ids = {unit.unit_id for unit in repair_units}
-    return tuple(unit_id for unit_id in candidate_unit_ids if unit_id in existing_ids)
+    return gate_clearing_batch_execution.existing_dependency_ids(repair_units, *candidate_unit_ids)
 
 
 def _run_repair_unit(
@@ -559,68 +325,15 @@ def _run_repair_unit(
     gate_report: dict[str, Any],
     profile: WorkspaceProfile,
 ) -> tuple[dict[str, Any], str | None]:
-    unit_fingerprint = _repair_unit_fingerprint(
-        unit_id=unit.unit_id,
+    return gate_clearing_batch_execution.run_repair_unit(
+        unit=unit,
+        latest_batch=latest_batch,
         paper_root=paper_root,
         gate_report=gate_report,
         profile=profile,
+        repair_unit_fingerprint=_repair_unit_fingerprint,
+        clock_snapshot=_clock_snapshot,
     )
-    item: dict[str, Any]
-    if _can_skip_repair_unit(latest_batch, unit_id=unit.unit_id, unit_fingerprint=unit_fingerprint):
-        previous_status = _latest_unit_status(latest_batch, unit_id=unit.unit_id)
-        last_success_status = _latest_unit_success_status(latest_batch, unit_id=unit.unit_id)
-        item = {
-            "unit_id": unit.unit_id,
-            "label": unit.label,
-            "parallel_safe": unit.parallel_safe,
-            "status": "skipped_matching_unit_fingerprint",
-            "previous_status": previous_status,
-            **publication_work_unit_lifecycle.instant_timing(clock=_clock_snapshot),
-        }
-        if last_success_status is not None:
-            item["last_success_status"] = last_success_status
-    else:
-        started_ns, started_at = _clock_snapshot()
-        try:
-            result = unit.run()
-            finished_ns, finished_at = _clock_snapshot()
-            timing = {
-                "started_at": started_at,
-                "finished_at": finished_at,
-                "duration_seconds": publication_work_unit_lifecycle.duration_seconds(started_ns, finished_ns),
-            }
-            item = {
-                "unit_id": unit.unit_id,
-                "label": unit.label,
-                "parallel_safe": unit.parallel_safe,
-                "status": str(result.get("status") or "ok"),
-                "result": result,
-                **timing,
-            }
-            publication_work_unit_lifecycle.copy_step_surface_metadata(item, result)
-            if _unit_status_is_success(_non_empty_text(item.get("status"))):
-                item["last_success_status"] = item["status"]
-        except Exception as exc:
-            item = {
-                "unit_id": unit.unit_id,
-                "label": unit.label,
-                "parallel_safe": unit.parallel_safe,
-                "status": "failed",
-                "error": str(exc),
-            }
-            finished_ns, finished_at = _clock_snapshot()
-            item.update(
-                {
-                    "started_at": started_at,
-                    "finished_at": finished_at,
-                    "duration_seconds": publication_work_unit_lifecycle.duration_seconds(started_ns, finished_ns),
-                }
-            )
-    if unit.depends_on:
-        item["depends_on"] = list(unit.depends_on)
-    if unit_fingerprint is not None:
-        item["fingerprint"] = unit_fingerprint
-    return item, unit_fingerprint
 
 
 def _execute_repair_units(
@@ -631,115 +344,24 @@ def _execute_repair_units(
     gate_report: dict[str, Any],
     profile: WorkspaceProfile,
 ) -> tuple[list[dict[str, Any]], dict[str, str], dict[str, int]]:
-    unit_results_by_id: dict[str, dict[str, Any]] = {}
-    unit_fingerprints: dict[str, str] = {}
-    execution_summary = {
-        "parallel_wave_count": 0,
-        "parallel_unit_count": 0,
-        "sequential_unit_count": 0,
-        "skipped_dependency_unit_count": 0,
-    }
-    pending_units = list(repair_units)
-    while pending_units:
-        remaining_units: list[GateClearingRepairUnit] = []
-        ready_parallel_units: list[GateClearingRepairUnit] = []
-        ready_sequential_units: list[GateClearingRepairUnit] = []
-        for unit in pending_units:
-            dependency_statuses = {
-                dependency_id: _non_empty_text((unit_results_by_id.get(dependency_id) or {}).get("status"))
-                for dependency_id in unit.depends_on
-                if dependency_id in unit_results_by_id
-            }
-            failed_dependencies = [
-                dependency_id
-                for dependency_id, status in dependency_statuses.items()
-                if _unit_status_blocks_dependents(status)
-            ]
-            if failed_dependencies:
-                unit_results_by_id[unit.unit_id] = {
-                    "unit_id": unit.unit_id,
-                    "label": unit.label,
-                    "parallel_safe": unit.parallel_safe,
-                    "status": "skipped_failed_dependency",
-                    "failed_dependencies": failed_dependencies,
-                    "depends_on": list(unit.depends_on),
-                    **publication_work_unit_lifecycle.instant_timing(clock=_clock_snapshot),
-                }
-                execution_summary["skipped_dependency_unit_count"] += 1
-                continue
-            unresolved_dependencies = [
-                dependency_id for dependency_id in unit.depends_on if dependency_id not in unit_results_by_id
-            ]
-            if unresolved_dependencies:
-                remaining_units.append(unit)
-                continue
-            if unit.parallel_safe:
-                ready_parallel_units.append(unit)
-            else:
-                ready_sequential_units.append(unit)
-        if not ready_parallel_units and not ready_sequential_units:
-            if not remaining_units:
-                break
-            raise RuntimeError("gate-clearing batch repair dependency graph could not be resolved")
-        if ready_parallel_units:
-            execution_summary["parallel_wave_count"] += 1
-            execution_summary["parallel_unit_count"] += len(ready_parallel_units)
-            with ThreadPoolExecutor(max_workers=len(ready_parallel_units)) as executor:
-                futures = {
-                    unit.unit_id: executor.submit(
-                        _run_repair_unit,
-                        unit=unit,
-                        latest_batch=latest_batch,
-                        paper_root=paper_root,
-                        gate_report=gate_report,
-                        profile=profile,
-                    )
-                    for unit in ready_parallel_units
-                }
-                for unit in ready_parallel_units:
-                    item, unit_fingerprint = futures[unit.unit_id].result()
-                    unit_results_by_id[unit.unit_id] = item
-                    if unit_fingerprint is not None:
-                        unit_fingerprints[unit.unit_id] = unit_fingerprint
-        for unit in ready_sequential_units:
-            item, unit_fingerprint = _run_repair_unit(
-                unit=unit,
-                latest_batch=latest_batch,
-                paper_root=paper_root,
-                gate_report=gate_report,
-                profile=profile,
-            )
-            unit_results_by_id[unit.unit_id] = item
-            if unit_fingerprint is not None:
-                unit_fingerprints[unit.unit_id] = unit_fingerprint
-            execution_summary["sequential_unit_count"] += 1
-        pending_units = remaining_units
-    unit_results = [
-        unit_results_by_id[unit.unit_id]
-        for unit in repair_units
-        if unit.unit_id in unit_results_by_id
-    ]
-    return unit_results, unit_fingerprints, execution_summary
+    return gate_clearing_batch_execution.execute_repair_units(
+        repair_units=repair_units,
+        latest_batch=latest_batch,
+        paper_root=paper_root,
+        gate_report=gate_report,
+        profile=profile,
+        repair_unit_fingerprint=_repair_unit_fingerprint,
+        clock_snapshot=_clock_snapshot,
+    )
 
 
 def _reuse_embedded_submission_delivery_sync(
     *,
     create_submission_result: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
-    if not isinstance(create_submission_result, dict):
-        return None
-    delivery_sync = create_submission_result.get("delivery_sync")
-    if not isinstance(delivery_sync, dict) or not delivery_sync:
-        return None
-    return {
-        "unit_id": "sync_submission_minimal_delivery",
-        "label": "Refresh the study-owned submission-minimal delivery mirror before gate replay",
-        "parallel_safe": False,
-        "status": _non_empty_text(delivery_sync.get("status")) or "updated",
-        "result": delivery_sync,
-        "reused_embedded_delivery_sync": True,
-        "depends_on": ["create_submission_minimal_package"],
-    }
+    return gate_clearing_batch_execution.reuse_embedded_submission_delivery_sync(
+        create_submission_result=create_submission_result,
+    )
 
 
 def _latest_batch_record(*, study_root: Path) -> dict[str, Any]:
@@ -1192,10 +814,12 @@ def run_gate_clearing_batch(
             else None,
         )
         if embedded_delivery_sync is not None:
-            authority_settled, authority_fingerprints = gate_clearing_batch_submission.current_package_authority_settled(
-                paper_root=paper_root,
-                path_fingerprints=_path_fingerprints,
-                settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
+            authority_settled, authority_fingerprints = (
+                gate_clearing_batch_submission.current_package_authority_settled(
+                    paper_root=paper_root,
+                    path_fingerprints=_path_fingerprints,
+                    settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
+                )
             )
             if authority_settled:
                 embedded_delivery_sync["authority_fingerprints"] = authority_fingerprints
