@@ -133,7 +133,6 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
         "runtime_recovery_churn",
         "repeated_controller_decision",
         "publication_gate_blocked",
-        "stale_current_package",
     ]
 
 
@@ -258,7 +257,7 @@ def test_study_cycle_profiler_marks_package_stale_from_new_content_evidence_ref(
         study_root / "artifacts" / "publication_eval" / "latest.json",
         {
             "emitted_at": "2026-04-25T00:30:00+00:00",
-            "gaps": [{"summary": "claim_evidence_consistency_failed", "evidence_refs": [str(paper_root)]}],
+            "gaps": [{"summary": "stale_submission_minimal_authority", "evidence_refs": [str(paper_root)]}],
         },
     )
     _touch(study_root / "manuscript" / "current_package" / "manuscript.docx", 1_777_000_000)
@@ -554,7 +553,7 @@ def test_workspace_cycle_profiler_emits_action_units_and_scheduler_queue(tmp_pat
     )
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
-        {"emitted_at": "2026-04-25T00:20:00+00:00", "blockers": ["claim_evidence_consistency_failed"]},
+        {"emitted_at": "2026-04-25T00:20:00+00:00", "blockers": ["stale_submission_minimal_authority"]},
     )
     _touch(study_root / "paper" / "manuscript.md", 1_777_000_000)
     _touch(study_root / "manuscript" / "current_package" / "manuscript.docx", 1_776_999_900)

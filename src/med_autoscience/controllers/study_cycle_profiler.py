@@ -535,7 +535,17 @@ def _bottlenecks(
                 "summary": "Publication gate blockers remain active and should be narrowed into work units.",
             }
         )
-    if package_currentness.get("status") == "stale":
+    upstream_scientific_blocked = (
+        any(
+            "claim" in str(blocker or "").lower()
+            or "evidence" in str(blocker or "").lower()
+            or "medical_publication_surface" in str(blocker or "").lower()
+            for blocker in current_blockers
+        )
+        if isinstance(current_blockers, list)
+        else False
+    )
+    if package_currentness.get("status") == "stale" and not upstream_scientific_blocked:
         bottlenecks.append(
             {
                 "bottleneck_id": "stale_current_package",
