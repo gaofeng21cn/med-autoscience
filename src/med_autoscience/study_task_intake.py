@@ -384,11 +384,16 @@ def _task_intake_yields_to_reviewer_bundle_stage_closeout(
 ) -> bool:
     if not _evaluation_summary_confirms_reviewer_first_ready(evaluation_summary):
         return False
-    if not isinstance(publishability_gate_report, dict):
+    gate_report = (
+        publishability_gate_report
+        if isinstance(publishability_gate_report, dict)
+        else _mapping_value((evaluation_summary or {}).get("promotion_gate_status"))
+    )
+    if not gate_report:
         return False
     return _task_intake_yields_to_bundle_only_submission_closeout(
         payload=payload,
-        publishability_gate_report=publishability_gate_report,
+        publishability_gate_report=gate_report,
         evaluation_summary=evaluation_summary,
     )
 
