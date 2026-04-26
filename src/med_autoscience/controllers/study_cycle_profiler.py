@@ -10,6 +10,8 @@ from typing import Any, Callable, Iterable, Mapping
 
 import yaml
 
+from med_autoscience.controllers import autonomy_incidents
+from med_autoscience.controllers import profile_sli
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers.study_cycle_profiler_current_state import (
     current_state_summary,
@@ -819,6 +821,22 @@ def profile_study_cycle(
         package_currentness=package_currentness,
         current_state_summary=current_state,
     )
+    sli_summary = profile_sli.build_sli_summary(
+        {
+            "runtime_transition_summary": runtime_summary,
+            "runtime_watch_wakeup_dedupe_summary": runtime_watch_wakeup_dedupe,
+            "gate_blocker_summary": gate_summary,
+            "package_currentness": package_currentness,
+        }
+    )
+    autonomy_incident_candidates = autonomy_incidents.incident_candidates_from_profile(
+        {
+            "study_id": resolved_study_id,
+            "bottlenecks": bottlenecks,
+            "sli_summary": sli_summary,
+            "gate_blocker_summary": gate_summary,
+        }
+    )
     return {
         "study_id": resolved_study_id,
         "study_root": str(resolved_study_root),
@@ -839,7 +857,9 @@ def profile_study_cycle(
         "step_latest_times": step_latest_times,
         "step_timings": _step_timings(step_latest_times),
         "eta_confidence_band": eta_band,
+        "sli_summary": sli_summary,
         "bottlenecks": bottlenecks,
+        "autonomy_incident_candidates": autonomy_incident_candidates,
         "optimization_recommendations": _optimization_recommendations(bottlenecks),
     }
 

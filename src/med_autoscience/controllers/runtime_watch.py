@@ -429,16 +429,6 @@ def _build_outer_loop_wakeup_audit(
     }
 
 
-def _outer_loop_wakeup_inputs_unchanged(audit: Mapping[str, Any]) -> bool:
-    if _non_empty_text(audit.get("dispatch_cause")) != "input_unchanged":
-        return False
-    return _non_empty_text(audit.get("previous_outcome")) in {
-        "no_request",
-        "skipped_matching_decision",
-        "skipped_unchanged_inputs",
-    }
-
-
 def _write_outer_loop_wakeup_audit(*, study_root: Path, audit: Mapping[str, Any]) -> None:
     _write_json_object(_runtime_watch_wakeup_latest_path(Path(study_root).expanduser().resolve()), audit)
 
@@ -1223,7 +1213,7 @@ def run_watch_for_runtime(
                 study_root=study_root,
                 status_payload=status_payload,
             )
-            if _outer_loop_wakeup_inputs_unchanged(wakeup_audit):
+            if runtime_watch_work_units.outer_loop_wakeup_inputs_unchanged(wakeup_audit):
                 wakeup_audit = {
                     **wakeup_audit,
                     "outcome": "skipped_unchanged_inputs",
@@ -1260,6 +1250,14 @@ def run_watch_for_runtime(
                         "dedupe_scope": "controller_decision_blocker_authority",
                         **work_unit_context,
                     }
+                    runtime_watch_work_units.append_ledger_event(
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        tick_request=tick_request,
+                        event_type="skipped_duplicate",
+                        wakeup_audit=wakeup_audit,
+                        default_recorded_at=utc_now(),
+                    )
                 elif _controller_decision_latest_matches_outer_loop_request(
                     study_root=study_root,
                     status_payload=status_payload,
@@ -1310,6 +1308,14 @@ def run_watch_for_runtime(
                             work_unit_dispatch_key=work_unit_dispatch_key,
                         ),
                     }
+                    runtime_watch_work_units.append_ledger_event(
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        tick_request=tick_request,
+                        event_type="dispatched",
+                        wakeup_audit=wakeup_audit,
+                        default_recorded_at=utc_now(),
+                    )
                     status_payload = _managed_study_status_payload(
                         study_runtime_router.study_runtime_status(
                             profile=profile,

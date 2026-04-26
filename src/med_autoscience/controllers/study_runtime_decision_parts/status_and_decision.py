@@ -331,6 +331,7 @@ def _status_state(
             study_root=study_root,
             runtime_context=runtime_context,
         )
+        _record_mds_worker_activity(result)
         return result
 
     if explicit_runtime_backend_id is not None and managed_runtime_backend is None:

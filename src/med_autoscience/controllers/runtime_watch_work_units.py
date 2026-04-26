@@ -5,6 +5,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.control_identity import ControlWorkUnitIdentity
+from med_autoscience.controllers import work_unit_ledger
+
 
 _UPSTREAM_REPAIR_UNITS = frozenset(
     {
@@ -14,6 +17,7 @@ _UPSTREAM_REPAIR_UNITS = frozenset(
         "treatment_gap_reporting_repair",
     }
 )
+_OUTER_LOOP_WAKEUP_SOURCE = "runtime_watch_outer_loop_wakeup"
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -52,6 +56,85 @@ def dispatch_key(tick_request: Mapping[str, Any]) -> str | None:
     if work_unit_fingerprint is None or unit_id is None or action_type is None:
         return None
     return f"{work_unit_fingerprint}::{unit_id}::{action_type}"
+
+
+def identity_from_tick_request(
+    *,
+    study_id: str,
+    quest_id: str | None,
+    tick_request: Mapping[str, Any],
+) -> ControlWorkUnitIdentity | None:
+    work_unit_fingerprint = _non_empty_text(tick_request.get("work_unit_fingerprint"))
+    next_work_unit = tick_request.get("next_work_unit")
+    unit_id = (
+        _non_empty_text(next_work_unit.get("unit_id"))
+        if isinstance(next_work_unit, Mapping)
+        else None
+    )
+    lane = (
+        _non_empty_text(next_work_unit.get("lane"))
+        if isinstance(next_work_unit, Mapping)
+        else None
+    )
+    controller_actions = tick_request.get("controller_actions")
+    first_controller_action = (
+        controller_actions[0]
+        if isinstance(controller_actions, list) and controller_actions and isinstance(controller_actions[0], Mapping)
+        else {}
+    )
+    action_type = _non_empty_text(first_controller_action.get("action_type"))
+    if work_unit_fingerprint is None or unit_id is None or lane is None or action_type is None:
+        return None
+    return ControlWorkUnitIdentity(
+        domain="publication-work-unit",
+        study_id=study_id,
+        quest_id=quest_id,
+        lane=lane,
+        unit_id=unit_id,
+        action_type=action_type,
+        effective_blockers=(work_unit_fingerprint,),
+        fingerprint_override=work_unit_fingerprint,
+    )
+
+
+def outer_loop_wakeup_inputs_unchanged(audit: Mapping[str, Any]) -> bool:
+    if _non_empty_text(audit.get("dispatch_cause")) != "input_unchanged":
+        return False
+    return _non_empty_text(audit.get("previous_outcome")) in {
+        "no_request",
+        "skipped_matching_decision",
+        "skipped_unchanged_inputs",
+    }
+
+
+def append_ledger_event(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+    tick_request: Mapping[str, Any],
+    event_type: str,
+    wakeup_audit: Mapping[str, Any],
+    default_recorded_at: str,
+) -> None:
+    identity = identity_from_tick_request(
+        study_id=_non_empty_text(status_payload.get("study_id")) or Path(study_root).name,
+        quest_id=_non_empty_text(status_payload.get("quest_id")),
+        tick_request=tick_request,
+    )
+    if identity is None:
+        return
+    recorded_at = _non_empty_text(wakeup_audit.get("recorded_at")) or default_recorded_at
+    work_unit_ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type=event_type,
+        payload={
+            "source": _OUTER_LOOP_WAKEUP_SOURCE,
+            "wakeup_outcome": _non_empty_text(wakeup_audit.get("outcome")),
+            "wakeup_reason": _non_empty_text(wakeup_audit.get("reason")),
+        },
+        recorded_at=recorded_at,
+    )
 
 
 def _unit_dispatch_suffix(tick_request: Mapping[str, Any]) -> tuple[str | None, str | None]:

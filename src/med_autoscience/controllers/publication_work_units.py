@@ -137,7 +137,7 @@ def _fingerprint(blockers: tuple[str, ...]) -> str:
     return f"publication-blockers::{digest}"
 
 
-def _fingerprint_blockers(*, blockers: tuple[str, ...], next_work_unit: Mapping[str, Any]) -> tuple[str, ...]:
+def fingerprint_blockers_for_work_unit(*, blockers: tuple[str, ...], next_work_unit: Mapping[str, Any]) -> tuple[str, ...]:
     unit_id = str(next_work_unit.get("unit_id") or "").strip()
     blocker_set_by_unit = {
         "analysis_claim_evidence_repair": (
@@ -274,7 +274,7 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
             )
         )
 
-    fingerprint_blockers = _fingerprint_blockers(blockers=blockers, next_work_unit=units[0])
+    fingerprint_blockers = fingerprint_blockers_for_work_unit(blockers=blockers, next_work_unit=units[0])
     return {
         "fingerprint": _fingerprint(fingerprint_blockers),
         "fingerprint_blockers": list(fingerprint_blockers),

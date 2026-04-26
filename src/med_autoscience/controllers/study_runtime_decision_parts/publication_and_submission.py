@@ -12,6 +12,7 @@ from med_autoscience.controller_confirmation_summary import (
     stable_controller_confirmation_summary_path,
 )
 from med_autoscience.controllers import (
+    mds_worker_activity,
     publication_work_units,
     publication_gate as publication_gate_controller,
     runtime_supervision as runtime_supervision_controller,
@@ -826,6 +827,10 @@ def _record_quest_runtime_audits(
     status.record_runtime_liveness_audit(runtime_liveness_audit)
     status.record_bash_session_audit(bash_session_audit)
     return quest_runtime.runtime_liveness_status
+
+
+def _record_mds_worker_activity(status: StudyRuntimeStatus) -> None:
+    status["mds_worker_activity"] = mds_worker_activity.normalize_activity(status.to_dict())
 
 
 def _publication_gate_allows_direct_write(status: StudyRuntimeStatus) -> bool:

@@ -129,6 +129,9 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
     }
     assert profile_payload["current_state_summary"]["runtime_health_status"] == "live"
     assert profile_payload["eta_confidence_band"]["classification"] == "claim_evidence"
+    assert profile_payload["sli_summary"]["runtime_live_ratio"] == 0.5
+    assert profile_payload["sli_summary"]["next_work_unit_id"] == "analysis_claim_evidence_repair"
+    assert profile_payload["autonomy_incident_candidates"][0]["incident_type"] == "runtime_recovery_churn"
     assert [item["bottleneck_id"] for item in profile_payload["bottlenecks"]] == [
         "runtime_recovery_churn",
         "repeated_controller_decision",

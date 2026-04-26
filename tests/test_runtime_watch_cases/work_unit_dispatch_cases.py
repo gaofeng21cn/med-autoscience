@@ -92,10 +92,17 @@ def test_watch_runtime_suppresses_repeated_work_unit_dispatch(
     wakeup_latest = json.loads(
         (study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json").read_text(encoding="utf-8")
     )
+    ledger_events = [
+        json.loads(line)
+        for line in (
+            study_root / "artifacts" / "runtime" / "work_unit_ledger" / "events.jsonl"
+        ).read_text(encoding="utf-8").splitlines()
+    ]
 
     assert calls == ["runtime_watch_outer_loop_wakeup"]
     assert len(first["managed_study_outer_loop_dispatches"]) == 1
     assert second["managed_study_outer_loop_dispatches"] == []
+    assert [event["event_type"] for event in ledger_events] == ["dispatched", "skipped_duplicate"]
     assert wakeup_latest["outcome"] == "skipped_matching_work_unit"
     assert wakeup_latest["no_op_acknowledged"] is True
     assert wakeup_latest["dedupe_scope"] == "controller_decision_blocker_authority"
