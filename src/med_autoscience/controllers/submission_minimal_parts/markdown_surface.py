@@ -212,6 +212,15 @@ def collect_internal_instruction_hits(markdown_text: str) -> list[dict[str, Any]
     return hits
 
 
+def contains_internal_instruction_text(text: str) -> bool:
+    stripped = str(text or "").strip()
+    if not stripped:
+        return False
+    if collect_internal_instruction_hits(stripped):
+        return True
+    return bool(re.search(r"\b(?:should|must)\s+not\b|^do\s+not\b", stripped, flags=re.IGNORECASE))
+
+
 MANUSCRIPT_SHAPED_AUXILIARY_TOP_LEVEL_HEADINGS = (
     "Main Tables",
     "Tables",
@@ -242,6 +251,16 @@ def extract_top_level_markdown_block(body: str, *headings: str) -> str:
     return ""
 
 
+def collect_named_second_level_blocks(text: str, *headings: str) -> dict[str, str]:
+    heading_keys = {normalize_markdown_heading_key(heading) for heading in headings}
+    blocks: dict[str, str] = {}
+    for heading, block_body in parse_second_level_blocks(text):
+        key = normalize_markdown_heading_key(heading)
+        if key in heading_keys and block_body.strip() and key not in blocks:
+            blocks[key] = block_body.strip()
+    return blocks
+
+
 def parse_second_level_blocks(text: str) -> list[tuple[str, str]]:
     pattern = re.compile(r"(?ms)^## ([^\n]+)\n\n(.*?)(?=^# |^## |\Z)")
     blocks: list[tuple[str, str]] = []
@@ -264,6 +283,27 @@ def parse_third_level_blocks(text: str) -> list[tuple[str, str]]:
 
 def parse_manuscript_shaped_draft(text: str) -> tuple[str | None, dict[str, str], dict[str, str]]:
     stripped = text.strip()
+    metadata, front_matter_body = split_front_matter(stripped)
+    front_matter_title = str(metadata.get("title") or "").strip()
+    if front_matter_title and front_matter_title.lower() != "draft":
+        body = front_matter_body.strip()
+        block_pairs = parse_second_level_blocks(body)
+        section_keys = {
+            canonicalize_manuscript_major_heading(heading)
+            for heading, block_body in block_pairs
+            if block_body.strip()
+        }
+        manuscript_section_count = len(
+            section_keys.intersection({"abstract", "introduction", "methods", "results", "discussion"})
+        )
+        if manuscript_section_count >= 3:
+            blocks = {heading: block_body for heading, block_body in block_pairs}
+            auxiliary_blocks = collect_named_top_level_blocks(body, *MANUSCRIPT_SHAPED_AUXILIARY_TOP_LEVEL_HEADINGS)
+            auxiliary_blocks.update(
+                collect_named_second_level_blocks(body, *MANUSCRIPT_SHAPED_AUXILIARY_TOP_LEVEL_HEADINGS)
+            )
+            return front_matter_title, blocks, auxiliary_blocks
+
     title_match = re.match(r"(?ms)^# ([^\n]+)\n+(.*)$", stripped)
     if title_match is None:
         return None, {}, {}
@@ -506,6 +546,8 @@ def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: di
     def normalize_sentence(value: str) -> str:
         text = str(value or "").strip()
         if not text:
+            return ""
+        if contains_internal_instruction_text(text):
             return ""
         if text[-1] not in ".!?":
             return f"{text}."
