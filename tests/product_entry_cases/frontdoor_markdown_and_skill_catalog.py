@@ -92,4 +92,10 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
         in runtime_manager_registration["consumable_projection_refs"]
     )
     assert runtime_manager_registration["state_index_inputs"]["artifact_projection_index"] == "/artifact_inventory"
+    native_helper_consumption = runtime_manager_registration["native_helper_consumption"]
+    assert native_helper_consumption["protocol_ref"] == "contracts/opl-gateway/native-helper-contract.json"
+    assert native_helper_consumption["language"] == "rust"
+    assert native_helper_consumption["indexes"]["artifact_projection_index"]["backing_helper_id"] == "opl-artifact-indexer"
+    assert native_helper_consumption["indexes"]["runtime_health_snapshot_index"]["backing_helper_id"] == "opl-runtime-watch"
+    assert native_helper_consumption["source_of_truth_rule"].startswith("Rust helpers may index MAS")
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

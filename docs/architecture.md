@@ -12,7 +12,7 @@
    - `CLI`、`MCP`、`controller`，以及 repo-tracked 的 workspace commands / scripts / contracts，是操作与自动化接口，也是对外稳定 capability surface。
    - 单一 MAS app skill 负责把这些稳定接口对外承接起来。
    - `OPL`、`product-entry manifest` 和其他机器可读桥接属于上层整合与自动化消费面，不是第一主语。
-   - `OPL Runtime Manager` 是 OPL 侧的薄运行管理/投影层：它接收 MAS 暴露的 task registration、runtime_control projection、status/artifact locator 与 approval/wakeup 边界，再把这些信息挂到外部 `Hermes-Agent` substrate 的 profile、task、resume、doctor 与索引面。
+   - `OPL Runtime Manager` 是 OPL 侧的薄运行管理/投影层：它接收 MAS 暴露的 task registration、runtime_control projection、status/artifact locator 与 approval/wakeup 边界，再把这些信息挂到外部 `Hermes-Agent` substrate 的 profile、task、resume、doctor 与索引面；高频文件/状态索引可由 OPL Rust native helper 加速，但不能写成 MAS 研究真相来源。
    - 这一层负责把 MAS 控制面接到更高层入口；如果使用 integration handoff，它必须保持同一套研究语义与 owner 边界。
 
 3. 运行时与持久真相层

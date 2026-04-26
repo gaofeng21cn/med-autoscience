@@ -732,6 +732,37 @@ def _build_opl_runtime_manager_registration(
             "attention_queue_index": "/automation/automations/0",
             "runtime_health_snapshot_index": "/runtime_inventory",
         },
+        "native_helper_consumption": {
+            "protocol_ref": "contracts/opl-gateway/native-helper-contract.json",
+            "language": "rust",
+            "managed_by": "one-person-lab",
+            "source_of_truth_rule": (
+                "Rust helpers may index MAS workspace, session, artifact, attention, and runtime-health "
+                "surfaces, but MAS durable study truth remains authoritative."
+            ),
+            "indexes": {
+                "workspace_registry_index": {
+                    "input_ref": "/workspace_locator",
+                    "backing_helper_id": "opl-state-indexer",
+                },
+                "managed_session_ledger_index": {
+                    "input_ref": "/session_continuity",
+                    "backing_helper_id": "opl-state-indexer",
+                },
+                "artifact_projection_index": {
+                    "input_ref": "/artifact_inventory",
+                    "backing_helper_id": "opl-artifact-indexer",
+                },
+                "attention_queue_index": {
+                    "input_ref": "/automation/automations/0",
+                    "backing_helper_id": "opl-state-indexer",
+                },
+                "runtime_health_snapshot_index": {
+                    "input_ref": "/runtime_inventory",
+                    "backing_helper_id": "opl-runtime-watch",
+                },
+            },
+        },
         "resume_contract": {
             "session_locator_field": str(runtime_continuity.get("session_locator_field") or ""),
             "recommended_resume_command": str(runtime_continuity.get("recommended_resume_command") or ""),
