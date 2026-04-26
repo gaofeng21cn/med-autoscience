@@ -74,6 +74,18 @@ def _stable_inputs(tmp_path: Path) -> dict[str, object]:
             "paper_root_ref": str(study_root / "paper"),
             "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
         },
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [
+                str(study_root / "paper"),
+                str(quest_root / "artifacts" / "results" / "main_result.json"),
+                str(study_root / "paper" / "review" / "review_ledger.json"),
+                str(charter_path),
+            ],
+            "ai_reviewer_required": False,
+        },
         "verdict": {
             "overall_verdict": "blocked",
             "primary_claim_status": "partial",
@@ -218,7 +230,6 @@ def _write_reporting_contract_task_intake(study_root: Path) -> dict[str, object]
     }
     _write_json(study_root / "artifacts" / "controller" / "task_intake" / "latest.json", payload)
     return payload
-
 
 
 

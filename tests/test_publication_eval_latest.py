@@ -37,6 +37,16 @@ def _minimal_payload(study_root: Path) -> dict[str, object]:
             "paper_root_ref": str(study_root / "paper"),
             "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
         },
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [
+                str(study_root / "paper"),
+                str(quest_root / "artifacts" / "results" / "main_result.json"),
+            ],
+            "ai_reviewer_required": False,
+        },
         "verdict": {
             "overall_verdict": "blocked",
             "primary_claim_status": "partial",
@@ -122,6 +132,60 @@ def test_read_publication_eval_latest_accepts_quality_assessment(tmp_path: Path)
     resolved = module.read_publication_eval_latest(study_root=study_root)
 
     assert resolved == payload
+
+
+def test_read_publication_eval_latest_marks_legacy_payload_as_projection_only(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    latest_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    payload = _minimal_payload(study_root)
+    payload.pop("assessment_provenance")
+    _write_json(latest_path, payload)
+
+    resolved = module.read_publication_eval_latest(study_root=study_root)
+
+    assert resolved["assessment_provenance"] == {
+        "owner": "mechanical_projection",
+        "source_kind": "legacy_publication_eval_projection",
+        "policy_id": "publication_gate_projection_v1",
+        "source_refs": [
+            payload["charter_context_ref"]["ref"],
+            payload["runtime_context_refs"]["runtime_escalation_ref"],
+            payload["runtime_context_refs"]["main_result_ref"],
+            payload["delivery_context_refs"]["paper_root_ref"],
+            payload["delivery_context_refs"]["submission_minimal_ref"],
+        ],
+        "ai_reviewer_required": True,
+    }
+
+
+def test_ai_reviewer_publication_eval_materializer_rejects_gate_projection_payload(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    payload["assessment_provenance"] = {
+        "owner": "mechanical_projection",
+        "source_kind": "publication_gate_report",
+        "policy_id": "publication_gate_projection_v1",
+        "source_refs": [payload["runtime_context_refs"]["runtime_escalation_ref"]],
+        "ai_reviewer_required": True,
+    }
+
+    with pytest.raises(ValueError, match="owner=ai_reviewer"):
+        module.materialize_ai_reviewer_publication_eval_latest(study_root=study_root, record=payload)
+
+
+def test_ai_reviewer_publication_eval_materializer_writes_review_backed_latest(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+
+    result = module.materialize_ai_reviewer_publication_eval_latest(study_root=study_root, record=payload)
+
+    assert result["eval_id"] == payload["eval_id"]
+    resolved = module.read_publication_eval_latest(study_root=study_root)
+    assert resolved["assessment_provenance"]["owner"] == "ai_reviewer"
+    assert resolved["assessment_provenance"]["policy_id"] == "medical_publication_critique_v1"
 
 
 def test_resolve_publication_eval_latest_ref_rejects_med_deepscientist_runtime_paths(tmp_path: Path) -> None:

@@ -14,7 +14,7 @@ from med_autoscience.quality.publication_gate import (
     derive_quality_closure_truth,
     derive_quality_execution_lane,
 )
-from med_autoscience.quality.study_quality import build_study_quality_truth
+from med_autoscience.quality.study_quality import build_study_quality_truth, publication_eval_ai_reviewer_backed
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 from med_autoscience.study_task_intake import read_latest_task_intake, summarize_task_intake
 
@@ -563,10 +563,26 @@ def _quality_closure_basis(
 
 def _quality_closure_truth(
     *,
+    publication_eval: dict[str, Any],
     promotion_gate_payload: dict[str, Any],
     route_repair_plan: dict[str, str] | None,
     quality_closure_basis: dict[str, Any],
 ) -> dict[str, Any]:
+    if not publication_eval_ai_reviewer_backed(publication_eval):
+        provenance = (
+            dict(publication_eval.get("assessment_provenance") or {})
+            if isinstance(publication_eval.get("assessment_provenance"), dict)
+            else {}
+        )
+        return {
+            "state": "quality_repair_required",
+            "summary": "当前 publication_eval 只是机械投影；必须先由 AI reviewer 读取 manuscript、evidence ledger、review ledger 与 study charter 后再给出科学质量闭环判断。",
+            "current_required_action": _optional_text(promotion_gate_payload.get("current_required_action"))
+            or "return_to_publishability_gate",
+            "route_target": _optional_text((route_repair_plan or {}).get("route_target")),
+            "assessment_owner": _optional_text(provenance.get("owner")) or "mechanical_projection",
+            "ai_reviewer_required": True,
+        }
     return derive_quality_closure_truth(
         promotion_gate_payload=promotion_gate_payload,
         route_repair_plan=route_repair_plan,

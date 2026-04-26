@@ -168,6 +168,20 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
         },
         "study_quality_truth": {
             "study_id": "001-risk",
+            "assessment_owner": "ai_reviewer",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "policy_id": "medical_publication_critique_v1",
+                "source_refs": [
+                    str(study_root / "paper"),
+                    str(inputs["quest_root"] / "artifacts" / "results" / "main_result.json"),
+                    str(study_root / "paper" / "review" / "review_ledger.json"),
+                    str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                ],
+                "ai_reviewer_required": False,
+            },
+            "ai_reviewer_required": False,
             "contract_state": "quality_repair_required",
             "contract_closed": False,
             "summary": "核心科学质量还没有闭环；当前应先回到 analysis-campaign 完成最窄补充修复。",
