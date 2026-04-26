@@ -86,6 +86,7 @@ def test_fast_lane_manifest_requires_quality_enforcement_and_replay() -> None:
 
     assert manifest["surface"] == "fast_lane_execution_manifest"
     assert manifest["manifest_type"] == "gate_clearing_fast_lane_execution"
+    assert manifest["schema_version"] == 2
     assert manifest["manifest_state"] == "ready"
     assert manifest["gate_relaxation_allowed"] is False
     assert manifest["paper_body_edit_allowed"] is False
@@ -120,6 +121,57 @@ def test_fast_lane_manifest_requires_quality_enforcement_and_replay() -> None:
         "requires_publication_gate_replay": True,
         "requires_authority_surface_refresh": True,
         "requires_successful_replay_before_completion": True,
+    }
+    assert manifest["fast_lane_v2_contract"]["allowed_work_unit_classes"] == [
+        "authority_surface_refresh",
+        "ledger_closure_repair",
+        "reporting_guideline_checklist_repair",
+        "display_or_package_manifest_repair",
+        "publication_gate_replay",
+        "controller_decision_recording",
+    ]
+    assert manifest["fast_lane_v2_contract"]["forbidden_scientific_changes"] == [
+        "primary_question_change",
+        "primary_endpoint_change",
+        "new_primary_claim",
+        "cohort_boundary_redefinition",
+        "statistical_method_replacement",
+        "unreviewed_subgroup_or_sensitivity_analysis",
+        "paper_body_claim_rewrite",
+        "quality_gate_relaxation",
+    ]
+    assert manifest["fast_lane_v2_contract"]["rollback_requirements"] == {
+        "checkpoint_before_each_action_batch": True,
+        "rollback_on_failed_replay": True,
+        "rollback_on_quality_gate_regression": True,
+        "rollback_scope": "touched_authority_surfaces_and_generated_package_assets",
+    }
+    assert manifest["fast_lane_v2_contract"]["refingerprint_requirements"] == {
+        "before_execute": True,
+        "after_each_action_batch": True,
+        "after_replay": True,
+        "fingerprint_scope": [
+            "study_charter",
+            "paper/evidence_ledger.json",
+            "paper/review_ledger.json",
+            "artifacts/publication_eval/latest.json",
+            "reporting_guideline_checklist.json",
+            "submission_package_assets",
+        ],
+    }
+    assert manifest["fast_lane_v2_contract"]["completion_claim_policy"] == {
+        "mechanical_repair_complete_equals_scientific_quality_complete": False,
+        "mechanical_repair_completion_claim": "mechanical_work_units_complete",
+        "scientific_quality_completion_claim": "scientific_quality_complete_after_quality_gates_replayed_and_closed",
+        "requires_closed_surfaces": [
+            "study_charter.paper_quality_contract",
+            "paper/evidence_ledger.json",
+            "paper/review_ledger.json",
+            "artifacts/publication_eval/latest.json",
+            "reporting_guideline_checklist.json",
+        ],
+        "requires_successful_publication_gate_replay": True,
+        "allows_completion_claim_without_review_ledger": False,
     }
     assert manifest["replay_requirements"] == {
         "publication_gate_replay_required": True,

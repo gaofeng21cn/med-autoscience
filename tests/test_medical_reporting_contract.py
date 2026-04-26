@@ -76,8 +76,11 @@ def test_reporting_guideline_expectation_registry_covers_equator_families() -> N
     assert module.SUPPORTED_REPORTING_GUIDELINE_EXPECTATION_FAMILIES == (
         "STROBE",
         "TRIPOD",
+        "TRIPOD+AI",
         "CONSORT",
+        "CONSORT-AI",
         "PRISMA",
+        "RECORD",
     )
     expectation = module.build_reporting_guideline_expectation("PRISMA")
 
@@ -86,6 +89,33 @@ def test_reporting_guideline_expectation_registry_covers_equator_families() -> N
     assert expectation["checklist_surface"] == "reporting_guideline_checklist.json"
     assert expectation["gates"]["before_first_full_draft"]["required_status"] == "closed"
     assert "prisma_search_selection_flow" in expectation["gates"]["before_review_handoff"]["required_items"]
+
+
+def test_reporting_guideline_expectation_registry_covers_ai_and_record_extensions() -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_guidelines")
+
+    tripod_ai = module.build_reporting_guideline_expectation("TRIPOD+AI")
+    consort_ai = module.build_reporting_guideline_expectation("CONSORT-AI")
+    record = module.build_reporting_guideline_expectation("RECORD")
+
+    assert tripod_ai["authority"] == "EQUATOR"
+    assert tripod_ai["guideline_family"] == "TRIPOD+AI"
+    assert tripod_ai["base_guideline_family"] == "TRIPOD"
+    assert "ai_model_specification_preprocessing_and_training" in tripod_ai["required_domains"]
+    assert "tripod_ai_model_specification_and_training" in tripod_ai["gates"][
+        "before_review_handoff"
+    ]["required_items"]
+    assert consort_ai["guideline_family"] == "CONSORT-AI"
+    assert consort_ai["base_guideline_family"] == "CONSORT"
+    assert "consort_ai_intervention_versioning_and_integration" in consort_ai["gates"][
+        "before_review_handoff"
+    ]["required_items"]
+    assert record["guideline_family"] == "RECORD"
+    assert record["overlay_guideline"] is True
+    assert record["base_guideline_family"] == "STROBE"
+    assert "record_data_source_linkage_and_cleaning" in record["gates"][
+        "before_review_handoff"
+    ]["required_items"]
 
 
 def test_quality_gate_expectation_for_strobe_disallows_relaxation() -> None:
