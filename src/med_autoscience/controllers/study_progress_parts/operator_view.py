@@ -781,6 +781,21 @@ def _operator_status_card(
     }
 
 
+def _task_intake_override_event_summary(task_intake_progress_override: dict[str, Any] | None) -> str | None:
+    if not isinstance(task_intake_progress_override, dict) or not task_intake_progress_override:
+        return None
+    quality_closure_truth = _mapping_copy(task_intake_progress_override.get("quality_closure_truth"))
+    for value in (
+        quality_closure_truth.get("summary"),
+        task_intake_progress_override.get("current_stage_summary"),
+        task_intake_progress_override.get("next_system_action"),
+    ):
+        summary = _display_text(value) or _non_empty_text(value)
+        if summary is not None:
+            return summary
+    return None
+
+
 def _latest_events(
     *,
     launch_report_payload: dict[str, Any] | None,
@@ -800,8 +815,10 @@ def _latest_events(
     bash_summary_payload: dict[str, Any] | None,
     bash_summary_path: Path | None,
     publication_supervisor_state: dict[str, Any] | None = None,
+    task_intake_progress_override: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
+    task_override_summary = _task_intake_override_event_summary(task_intake_progress_override)
     if runtime_supervision_payload is not None:
         runtime_health_status = _non_empty_text(runtime_supervision_payload.get("health_status")) or "runtime"
         runtime_summary = (
@@ -868,7 +885,8 @@ def _latest_events(
     if publication_eval_payload is not None:
         verdict = (publication_eval_payload.get("verdict") or {}) if isinstance(publication_eval_payload, dict) else {}
         verdict_summary = (
-            _display_text(_non_empty_text(verdict.get("summary")))
+            task_override_summary
+            or _display_text(_non_empty_text(verdict.get("summary")))
             or _non_empty_text(verdict.get("summary"))
             or "发表评估已更新。"
         )
@@ -891,7 +909,9 @@ def _latest_events(
             watch_summary = "系统完成一次研究运行巡检。"
             if isinstance(publication_gate, dict):
                 controller_note = _non_empty_text(publication_gate.get("controller_stage_note"))
-                if controller_note is not None:
+                if task_override_summary is not None:
+                    watch_summary = task_override_summary
+                elif controller_note is not None:
                     watch_summary = _display_text(controller_note) or controller_note
                 else:
                     blockers = [

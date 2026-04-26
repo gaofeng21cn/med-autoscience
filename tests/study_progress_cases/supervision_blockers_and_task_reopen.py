@@ -477,6 +477,34 @@ def test_study_progress_reopened_task_intake_overrides_bundle_only_parking(
         first_cycle_outputs=("价格顾虑有/无分层的生物制剂使用结构比较表与统计检验结果。",),
     )
     quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::001-risk::quest-001::2026-04-26T07:22:54+00:00",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-26T07:22:54+00:00",
+            "verdict": {
+                "overall_verdict": "promising",
+                "summary": "bundle-stage work is unlocked and can proceed on the critical path",
+            },
+            "gaps": [],
+            "recommended_actions": [],
+        },
+    )
+    _write_json(
+        quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json",
+        {
+            "schema_version": 1,
+            "scanned_at": "2026-04-26T07:17:19+00:00",
+            "controllers": {
+                "publication_gate": {
+                    "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+                }
+            },
+        },
+    )
     monkeypatch.setattr(
         module,
         "read_evaluation_summary",
@@ -588,6 +616,9 @@ def test_study_progress_reopened_task_intake_overrides_bundle_only_parking(
     assert result["same_line_route_truth"]["route_target"] == "analysis-campaign"
     assert result["module_surfaces"]["eval_hygiene"]["same_line_route_truth"]["route_target"] == "analysis-campaign"
     assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
+    event_summaries = [str(item.get("summary") or "") for item in result["latest_events"]]
+    assert "待修订状态" in result["latest_events"][0]["summary"]
+    assert not any("bundle-stage work is unlocked" in item for item in event_summaries)
 
 
 def test_study_progress_reopened_task_intake_yields_to_fresh_bundle_only_closeout(

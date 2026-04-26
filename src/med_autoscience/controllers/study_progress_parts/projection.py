@@ -350,6 +350,7 @@ def build_study_progress_projection(
         bash_summary_payload=bash_summary_payload,
         bash_summary_path=bash_summary_path,
         publication_supervisor_state=publication_supervisor_state,
+        task_intake_progress_override=task_intake_progress_override,
     )
     operator_status_card = _operator_status_card(
         study_id=resolved_study_id,
