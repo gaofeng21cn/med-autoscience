@@ -427,6 +427,7 @@ def build_parser() -> argparse.ArgumentParser:
     workspace_cockpit_parser = subparsers.add_parser("workspace-cockpit")
     workspace_cockpit_parser.add_argument("--profile", required=True)
     workspace_cockpit_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    study_cycle_profiler.add_workspace_cli_parser(subparsers)
     product_frontdesk_parser = subparsers.add_parser("product-frontdesk")
     product_frontdesk_parser.add_argument("--profile", required=True)
     product_frontdesk_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
@@ -517,6 +518,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("workspace", "bootstrap"): "bootstrap",
     ("workspace", "init"): "init-workspace",
     ("workspace", "cockpit"): "workspace-cockpit",
+    ("workspace", "profile-cycles"): "workspace-profile-cycles",
     ("data", "init-assets"): "init-data-assets",
     ("data", "assets-status"): "data-assets-status",
     ("data", "init-memory"): "init-portfolio-memory",
@@ -794,6 +796,12 @@ def main(argv: list[str] | None = None) -> int:
             args,
             profile_loader=load_profile,
             profile_study_cycle_runner=study_cycle_profiler.profile_study_cycle,
+        )
+    if args.command == "workspace-profile-cycles":
+        return study_cycle_profiler.run_workspace_cli_command(
+            args,
+            profile_loader=load_profile,
+            profile_workspace_cycles_runner=study_cycle_profiler.profile_workspace_cycles,
         )
     if args.command == "quality-repair-batch":
         if bool(args.study_id) == bool(args.study_root):

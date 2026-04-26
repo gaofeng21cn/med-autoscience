@@ -140,3 +140,108 @@ def test_study_cycle_profiler_renders_markdown(tmp_path: Path) -> None:
 
     assert "# Study Cycle Profile: 001-risk" in rendered
     assert "Package currentness: fresh" in rendered
+
+
+def test_workspace_cycle_profiler_profiles_active_studies_and_sorts_bottlenecks(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+
+    active_root = workspace_root / "studies" / "001-risk"
+    quieter_root = workspace_root / "studies" / "002-followup"
+    inactive_root = workspace_root / "studies" / "draft-no-study-yaml"
+    for study_root in (active_root, quieter_root, inactive_root):
+        study_root.mkdir(parents=True)
+    (active_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+    (quieter_root / "study.yaml").write_text("study_id: 002-followup\n", encoding="utf-8")
+
+    for index, status in enumerate(("live", "recovering", "live", "degraded")):
+        _write_json(
+            active_root / "artifacts" / "runtime" / "runtime_supervision" / f"20260425T000{index}00Z.json",
+            {
+                "recorded_at": f"2026-04-25T00:0{index}:00+00:00",
+                "health_status": status,
+                "runtime_reason": "runtime_flap" if status != "live" else "quest_already_running",
+            },
+        )
+    for index in range(3):
+        _write_json(
+            active_root / "artifacts" / "controller_decisions" / f"20260425T001{index}00Z.json",
+            {
+                "emitted_at": f"2026-04-25T00:1{index}:00+00:00",
+                "decision_type": "bounded_analysis",
+                "route_target": "analysis-campaign",
+                "reason": "same dispatch",
+            },
+        )
+    _write_json(
+        active_root / "artifacts" / "publication_eval" / "latest.json",
+        {"emitted_at": "2026-04-25T00:20:00+00:00", "blockers": ["claim_evidence_consistency_failed"]},
+    )
+    _touch(active_root / "artifacts" / "publication_eval" / "latest.json", 1_777_000_000)
+    _touch(active_root / "paper" / "manuscript.md", 1_777_000_000)
+    _touch(active_root / "manuscript" / "current_package" / "manuscript.docx", 1_776_999_900)
+
+    _write_json(
+        quieter_root / "artifacts" / "runtime" / "runtime_supervision" / "20260425T000000Z.json",
+        {"recorded_at": "2026-04-25T00:00:00+00:00", "health_status": "live"},
+    )
+    _touch(quieter_root / "paper" / "manuscript.md", 1_777_000_000)
+    _touch(quieter_root / "manuscript" / "current_package" / "manuscript.docx", 1_777_000_000)
+
+    payload = module.profile_workspace_cycles(
+        profile=profile,
+        since="2026-04-25T00:00:00+00:00",
+    )
+
+    assert payload["workspace_root"] == str(workspace_root.resolve())
+    assert payload["study_count"] == 2
+    assert [item["study_id"] for item in payload["studies"]] == ["001-risk", "002-followup"]
+    active_summary = payload["studies"][0]["cycle_summary"]
+    assert active_summary["repeated_controller_dispatch_count"] == 2
+    assert active_summary["runtime_recovery_churn_count"] == 2
+    assert active_summary["runtime_flapping_transition_count"] == 3
+    assert active_summary["package_stale_seconds"] == 100
+    assert payload["workspace_totals"] == {
+        "repeated_controller_dispatch_count": 2,
+        "runtime_recovery_churn_count": 2,
+        "runtime_flapping_transition_count": 3,
+        "package_stale_seconds": 100,
+    }
+
+
+def test_workspace_cycle_profiler_renders_markdown() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+
+    rendered = module.render_workspace_cycle_profile_markdown(
+        {
+            "profile_name": "nfpitnet",
+            "workspace_root": "/tmp/workspace",
+            "study_count": 1,
+            "workspace_totals": {
+                "repeated_controller_dispatch_count": 2,
+                "runtime_recovery_churn_count": 1,
+                "runtime_flapping_transition_count": 3,
+                "package_stale_seconds": 100,
+            },
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "bottleneck_score": 10,
+                    "cycle_summary": {
+                        "repeated_controller_dispatch_count": 2,
+                        "runtime_recovery_churn_count": 1,
+                        "runtime_flapping_transition_count": 3,
+                        "package_stale_seconds": 100,
+                    },
+                    "bottlenecks": [{"bottleneck_id": "runtime_recovery_churn"}],
+                }
+            ],
+        }
+    )
+
+    assert "# Workspace Cycle Profile: nfpitnet" in rendered
+    assert "001-risk" in rendered
+    assert "repeated dispatch: 2" in rendered

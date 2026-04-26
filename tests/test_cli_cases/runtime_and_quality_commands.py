@@ -408,6 +408,48 @@ def test_workspace_cockpit_command_dispatches_product_entry_controller(monkeypat
     assert called["profile"].name == "nfpitnet"
     assert called["profile_ref"] == Path(profile_path)
     assert json.loads(captured.out)["workspace_status"] == "ready"
+def test_workspace_profile_cycles_command_dispatches_profiler(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_profile_workspace_cycles(*, profile, since: str | None) -> dict[str, object]:
+        called["profile"] = profile
+        called["since"] = since
+        return {
+            "profile_name": profile.name,
+            "workspace_root": str(profile.workspace_root),
+            "study_count": 0,
+            "workspace_totals": {
+                "repeated_controller_dispatch_count": 0,
+                "runtime_recovery_churn_count": 0,
+                "runtime_flapping_transition_count": 0,
+                "package_stale_seconds": 0,
+            },
+            "studies": [],
+        }
+
+    monkeypatch.setattr(cli.study_cycle_profiler, "profile_workspace_cycles", fake_profile_workspace_cycles)
+
+    exit_code = cli.main(
+        [
+            "workspace",
+            "profile-cycles",
+            "--profile",
+            str(profile_path),
+            "--since",
+            "2026-04-25T00:00:00Z",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["since"] == "2026-04-25T00:00:00Z"
+    assert json.loads(captured.out)["profile_name"] == "nfpitnet"
 def test_product_frontdesk_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

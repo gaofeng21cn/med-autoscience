@@ -27,6 +27,13 @@ def add_cli_parser(subparsers: Any) -> None:
     parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
 
 
+def add_workspace_cli_parser(subparsers: Any) -> None:
+    parser = subparsers.add_parser("workspace-profile-cycles")
+    parser.add_argument("--profile", required=True)
+    parser.add_argument("--since", type=str)
+    parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
+
 def run_cli_command(
     args: Any,
     *,
@@ -44,6 +51,21 @@ def run_cli_command(
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         print(render_study_cycle_profile_markdown(result), end="")
+    return 0
+
+
+def run_workspace_cli_command(
+    args: Any,
+    *,
+    profile_loader: Callable[[str], WorkspaceProfile],
+    profile_workspace_cycles_runner: Callable[..., dict[str, Any]],
+) -> int:
+    profile = profile_loader(args.profile)
+    result = profile_workspace_cycles_runner(profile=profile, since=args.since)
+    if args.format == "json":
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        print(render_workspace_cycle_profile_markdown(result), end="")
     return 0
 
 
@@ -461,6 +483,80 @@ def _optimization_recommendations(bottlenecks: list[dict[str, Any]]) -> list[dic
     return recommendations
 
 
+def _active_study_roots(profile: WorkspaceProfile) -> tuple[Path, ...]:
+    if not profile.studies_root.exists():
+        return ()
+    return tuple(
+        study_root
+        for study_root in sorted(path for path in profile.studies_root.iterdir() if path.is_dir())
+        if (study_root / "study.yaml").exists()
+    )
+
+
+def _cycle_summary(payload: Mapping[str, Any]) -> dict[str, int]:
+    decision_fingerprints = payload.get("controller_decision_fingerprints")
+    top_repeats = (
+        decision_fingerprints.get("top_repeats")
+        if isinstance(decision_fingerprints, Mapping)
+        else None
+    )
+    repeated_dispatch_count = 0
+    if isinstance(top_repeats, list):
+        for item in top_repeats:
+            if isinstance(item, Mapping):
+                repeated_dispatch_count += max(int(item.get("count") or 0) - 1, 0)
+    runtime_summary = payload.get("runtime_transition_summary")
+    health_counts = runtime_summary.get("health_status_counts") if isinstance(runtime_summary, Mapping) else None
+    recovery_churn_count = 0
+    if isinstance(health_counts, Mapping):
+        recovery_churn_count = sum(int(health_counts.get(status) or 0) for status in ("recovering", "degraded", "escalated"))
+    transition_counts = runtime_summary.get("transition_counts") if isinstance(runtime_summary, Mapping) else None
+    flapping_transition_count = sum(int(count or 0) for count in transition_counts.values()) if isinstance(transition_counts, Mapping) else 0
+    package_currentness = payload.get("package_currentness")
+    package_stale_seconds = (
+        int(package_currentness.get("stale_seconds") or 0)
+        if isinstance(package_currentness, Mapping)
+        else 0
+    )
+    return {
+        "repeated_controller_dispatch_count": repeated_dispatch_count,
+        "runtime_recovery_churn_count": recovery_churn_count,
+        "runtime_flapping_transition_count": flapping_transition_count,
+        "package_stale_seconds": package_stale_seconds,
+    }
+
+
+def _bottleneck_score(*, bottlenecks: object, cycle_summary: Mapping[str, int]) -> int:
+    severity_score = {"high": 5, "medium": 3, "low": 1}
+    score = 0
+    if isinstance(bottlenecks, list):
+        for bottleneck in bottlenecks:
+            if isinstance(bottleneck, Mapping):
+                score += severity_score.get(str(bottleneck.get("severity") or ""), 1)
+    score += int(cycle_summary.get("repeated_controller_dispatch_count") or 0)
+    score += int(cycle_summary.get("runtime_recovery_churn_count") or 0)
+    score += int(cycle_summary.get("runtime_flapping_transition_count") or 0)
+    if int(cycle_summary.get("package_stale_seconds") or 0) > 0:
+        score += 1
+    return score
+
+
+def _workspace_totals(studies: Iterable[Mapping[str, Any]]) -> dict[str, int]:
+    totals = {
+        "repeated_controller_dispatch_count": 0,
+        "runtime_recovery_churn_count": 0,
+        "runtime_flapping_transition_count": 0,
+        "package_stale_seconds": 0,
+    }
+    for study in studies:
+        summary = study.get("cycle_summary")
+        if not isinstance(summary, Mapping):
+            continue
+        for key in totals:
+            totals[key] += int(summary.get(key) or 0)
+    return totals
+
+
 def profile_study_cycle(
     *,
     profile: WorkspaceProfile,
@@ -516,6 +612,37 @@ def profile_study_cycle(
     }
 
 
+def profile_workspace_cycles(*, profile: WorkspaceProfile, since: str | None = None) -> dict[str, Any]:
+    studies: list[dict[str, Any]] = []
+    for study_root in _active_study_roots(profile):
+        study_payload = profile_study_cycle(profile=profile, study_id=None, study_root=study_root, since=since)
+        cycle_summary = _cycle_summary(study_payload)
+        studies.append(
+            {
+                "study_id": study_payload["study_id"],
+                "study_root": study_payload["study_root"],
+                "quest_id": study_payload["quest_id"],
+                "profiling_window": study_payload["profiling_window"],
+                "cycle_summary": cycle_summary,
+                "bottleneck_score": _bottleneck_score(
+                    bottlenecks=study_payload.get("bottlenecks"),
+                    cycle_summary=cycle_summary,
+                ),
+                "bottlenecks": study_payload["bottlenecks"],
+                "optimization_recommendations": study_payload["optimization_recommendations"],
+            }
+        )
+    studies.sort(key=lambda item: (-int(item["bottleneck_score"]), str(item["study_id"])))
+    return {
+        "profile_name": profile.name,
+        "workspace_root": str(profile.workspace_root),
+        "profiling_window": {"since": since},
+        "study_count": len(studies),
+        "workspace_totals": _workspace_totals(studies),
+        "studies": studies,
+    }
+
+
 def render_study_cycle_profile_markdown(payload: Mapping[str, Any]) -> str:
     lines = [
         f"# Study Cycle Profile: {payload.get('study_id')}",
@@ -540,6 +667,51 @@ def render_study_cycle_profile_markdown(payload: Mapping[str, Any]) -> str:
         for item in recommendations:
             if isinstance(item, Mapping):
                 lines.append(f"- {item.get('recommendation_id')}: {item.get('summary')}")
+    else:
+        lines.append("- none")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_workspace_cycle_profile_markdown(payload: Mapping[str, Any]) -> str:
+    totals = dict(payload.get("workspace_totals") or {})
+    lines = [
+        f"# Workspace Cycle Profile: {payload.get('profile_name')}",
+        "",
+        f"- Workspace root: `{payload.get('workspace_root')}`",
+        f"- Active studies: {payload.get('study_count')}",
+        (
+            "- Totals: "
+            f"repeated dispatch: {totals.get('repeated_controller_dispatch_count', 0)}, "
+            f"runtime recovery churn: {totals.get('runtime_recovery_churn_count', 0)}, "
+            f"runtime flapping transitions: {totals.get('runtime_flapping_transition_count', 0)}, "
+            f"package stale seconds: {totals.get('package_stale_seconds', 0)}"
+        ),
+        "",
+        "## Studies",
+    ]
+    studies = payload.get("studies")
+    if isinstance(studies, list) and studies:
+        for study in studies:
+            if not isinstance(study, Mapping):
+                continue
+            summary = dict(study.get("cycle_summary") or {})
+            bottlenecks = study.get("bottlenecks")
+            bottleneck_ids = [
+                str(item.get("bottleneck_id"))
+                for item in bottlenecks
+                if isinstance(item, Mapping) and item.get("bottleneck_id")
+            ] if isinstance(bottlenecks, list) else []
+            lines.append(
+                "- "
+                f"{study.get('study_id')} "
+                f"(score {study.get('bottleneck_score')}): "
+                f"repeated dispatch: {summary.get('repeated_controller_dispatch_count', 0)}, "
+                f"runtime recovery churn: {summary.get('runtime_recovery_churn_count', 0)}, "
+                f"runtime flapping transitions: {summary.get('runtime_flapping_transition_count', 0)}, "
+                f"package stale seconds: {summary.get('package_stale_seconds', 0)}, "
+                f"bottlenecks: {', '.join(bottleneck_ids) if bottleneck_ids else 'none'}"
+            )
     else:
         lines.append("- none")
     lines.append("")
