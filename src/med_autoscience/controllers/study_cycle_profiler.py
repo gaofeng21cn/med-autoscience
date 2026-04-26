@@ -351,8 +351,18 @@ def _runtime_watch_wakeup_dedupe_summary(
         outcome == "skipped_matching_work_unit"
         and (latest_repeat_at is None or recorded_at >= latest_repeat_at)
     )
+    work_unit_dispatched = (
+        outcome == "dispatched"
+        and _non_empty_text(payload.get("work_unit_dispatch_key")) is not None
+    )
     return {
-        "status": "dedupe_confirmed" if dedupe_confirmed else "not_confirmed",
+        "status": (
+            "dedupe_confirmed"
+            if dedupe_confirmed
+            else "work_unit_dispatched"
+            if work_unit_dispatched
+            else "not_confirmed"
+        ),
         "outcome": outcome,
         "reason": _non_empty_text(payload.get("reason")),
         "recorded_at": _iso(recorded_at),
@@ -498,7 +508,8 @@ def _bottlenecks(
     if (
         isinstance(top_repeats, list)
         and top_repeats
-        and runtime_watch_wakeup_dedupe_summary.get("status") != "dedupe_confirmed"
+        and runtime_watch_wakeup_dedupe_summary.get("status")
+        not in {"dedupe_confirmed", "work_unit_dispatched"}
     ):
         bottlenecks.append(
             {

@@ -321,6 +321,51 @@ def test_study_cycle_profiler_suppresses_repeated_decision_after_work_unit_dedup
     }
 
 
+def test_study_cycle_profiler_treats_concrete_work_unit_dispatch_as_not_controller_churn(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+    study_root = workspace_root / "studies" / "003-dpcc"
+    study_root.mkdir(parents=True)
+    for minute in (10, 11):
+        _write_json(
+            study_root / "artifacts" / "controller_decisions" / f"20260425T00{minute}00Z.json",
+            {
+                "emitted_at": f"2026-04-25T00:{minute}:00+00:00",
+                "decision_type": "bounded_analysis",
+                "route_target": "analysis-campaign",
+                "reason": "same route but new blocker fingerprint",
+            },
+        )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json",
+        {
+            "recorded_at": "2026-04-25T00:10:54+00:00",
+            "outcome": "dispatched",
+            "reason": "outer-loop wakeup dispatched an autonomous controller decision",
+            "work_unit_dispatch_key": "publication-blockers::new::analysis_claim_evidence_repair::run_gate_clearing_batch",
+            "work_unit_fingerprint": "publication-blockers::new",
+        },
+    )
+
+    profile_payload = module.profile_study_cycle(
+        profile=profile,
+        study_id="003-dpcc",
+        study_root=None,
+        since="2026-04-25T00:00:00+00:00",
+    )
+
+    assert profile_payload["runtime_watch_wakeup_dedupe_summary"]["status"] == "work_unit_dispatched"
+    assert "repeated_controller_decision" not in {
+        item["bottleneck_id"] for item in profile_payload["bottlenecks"]
+    }
+    assert "dedupe-controller-dispatch" not in {
+        item["recommendation_id"] for item in profile_payload["optimization_recommendations"]
+    }
+
+
 def test_study_cycle_profiler_renders_markdown(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
 
