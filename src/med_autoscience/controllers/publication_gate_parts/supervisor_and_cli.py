@@ -466,6 +466,48 @@ def _materialize_publication_eval_latest(
     )
 
 
+def _supported_publication_profile_or_none(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    normalized = study_delivery_sync.normalize_publication_profile(text)
+    if not study_delivery_sync.is_supported_publication_profile(normalized):
+        return None
+    return normalized
+
+
+def _current_package_publication_profile(report: dict[str, Any]) -> str | None:
+    current_package_root_text = _non_empty_text(report.get("study_delivery_current_package_root"))
+    if current_package_root_text is None:
+        return None
+    manifest_path = Path(current_package_root_text) / "submission_manifest.json"
+    if not manifest_path.exists():
+        return None
+    try:
+        manifest = load_json(manifest_path)
+    except (json.JSONDecodeError, OSError):
+        return None
+    return _supported_publication_profile_or_none(infer_submission_publication_profile(manifest))
+
+
+def _stale_submission_delivery_sync_profile(*, state: GateState, report: dict[str, Any]) -> str:
+    current_package_profile = _current_package_publication_profile(report)
+    if current_package_profile is not None:
+        return current_package_profile
+    primary_target = report.get("primary_journal_target")
+    if isinstance(primary_target, dict):
+        primary_profile = _supported_publication_profile_or_none(primary_target.get("publication_profile"))
+        if primary_profile is not None:
+            return primary_profile
+    if isinstance(state.submission_minimal_manifest, dict):
+        manifest_profile = _supported_publication_profile_or_none(
+            infer_submission_publication_profile(state.submission_minimal_manifest)
+        )
+        if manifest_profile is not None:
+            return manifest_profile
+    return submission_minimal.GENERAL_MEDICAL_JOURNAL_PROFILE
+
+
 def run_controller(
     *,
     quest_root: Path,
@@ -506,6 +548,7 @@ def run_controller(
             study_delivery_stale_sync = study_delivery_sync.sync_study_delivery(
                 paper_root=state.paper_root,
                 stage="submission_minimal",
+                publication_profile=_stale_submission_delivery_sync_profile(state=state, report=report),
             )
         else:
             study_delivery_stale_sync = study_delivery_sync.materialize_submission_delivery_stale_notice(
