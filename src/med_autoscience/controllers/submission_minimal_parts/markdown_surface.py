@@ -669,6 +669,7 @@ def build_submission_figure_blocks(
     main_figures: str,
     figure_semantics_map: dict[str, dict[str, Any]],
     catalog_image_map: dict[str, str] | None = None,
+    include_legends: bool = True,
 ) -> list[str]:
     figure_blocks: list[str] = []
     resolved_catalog_image_map = catalog_image_map or {}
@@ -689,7 +690,7 @@ def build_submission_figure_blocks(
         content_parts: list[str] = []
         if image_lines:
             content_parts.append("\n".join(image_lines))
-        if legend:
+        if include_legends and legend:
             content_parts.append(legend)
         if content_parts:
             normalized_heading = normalize_submission_figure_heading(heading)

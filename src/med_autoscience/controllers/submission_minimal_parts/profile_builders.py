@@ -144,6 +144,7 @@ def build_general_medical_submission_markdown(
         main_figures=main_figures,
         figure_semantics_map=figure_semantics_map,
         catalog_image_map=catalog_image_map,
+        include_legends=False,
     )
     figure_legend_blocks = build_figure_legend_blocks(
         main_figures=main_figures,
@@ -289,4 +290,3 @@ def build_frontiers_supplementary_markdown(
     output_path = submission_root / "frontiers_supplementary_material.md"
     write_text(output_path, markdown_text)
     return output_path
-
