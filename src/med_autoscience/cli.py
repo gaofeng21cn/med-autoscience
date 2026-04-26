@@ -476,10 +476,8 @@ def build_parser() -> argparse.ArgumentParser:
     submit_study_task_parser.add_argument("--reference-paper", action="append", default=[])
     submit_study_task_parser.add_argument("--first-cycle-output", action="append", default=[])
     submit_study_task_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
-
     bootstrap_parser = subparsers.add_parser("bootstrap")
     bootstrap_parser.add_argument("--profile", required=True)
-
     init_workspace_parser = subparsers.add_parser("init-workspace")
     init_workspace_parser.add_argument("--workspace-root", required=True)
     init_workspace_parser.add_argument("--workspace-name", required=True)
@@ -489,6 +487,7 @@ def build_parser() -> argparse.ArgumentParser:
     init_workspace_parser.add_argument("--hermes-home-root")
     init_workspace_parser.add_argument("--dry-run", action="store_true")
     init_workspace_parser.add_argument("--force", action="store_true")
+    init_workspace_parser.add_argument("--no-git", action="store_true")
 
     backend_upgrade_check_parser = subparsers.add_parser("backend-upgrade-check")
     backend_upgrade_check_parser.add_argument("--profile", required=True)
@@ -1453,6 +1452,7 @@ def main(argv: list[str] | None = None) -> int:
             default_citation_style=str(args.default_citation_style),
             hermes_agent_repo_root=Path(args.hermes_agent_repo_root) if args.hermes_agent_repo_root else None,
             hermes_home_root=Path(args.hermes_home_root) if args.hermes_home_root else None,
+            initialize_git=not bool(args.no_git),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

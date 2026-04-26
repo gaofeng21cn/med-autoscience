@@ -382,6 +382,7 @@ def test_mcp_server_can_call_init_workspace_tool(monkeypatch) -> None:
         default_citation_style: str,
         dry_run: bool,
         force: bool,
+        initialize_git: bool,
     ) -> dict[str, object]:
         captured["workspace_root"] = workspace_root
         captured["workspace_name"] = workspace_name
@@ -389,12 +390,14 @@ def test_mcp_server_can_call_init_workspace_tool(monkeypatch) -> None:
         captured["default_citation_style"] = default_citation_style
         captured["dry_run"] = dry_run
         captured["force"] = force
+        captured["initialize_git"] = initialize_git
         return {
             "workspace_root": str(workspace_root),
             "workspace_name": workspace_name,
             "profile_path": str(workspace_root / "ops" / "medautoscience" / "profiles" / "demo.local.toml"),
             "dry_run": dry_run,
             "force": force,
+            "workspace_git": {"enabled": initialize_git},
             "created_directories": [],
             "written_files": [],
         }
@@ -411,6 +414,7 @@ def test_mcp_server_can_call_init_workspace_tool(monkeypatch) -> None:
             "default_citation_style": "Vancouver",
             "dry_run": True,
             "force": True,
+            "initialize_git": False,
         },
     )
 
@@ -422,6 +426,7 @@ def test_mcp_server_can_call_init_workspace_tool(monkeypatch) -> None:
         "default_citation_style": "Vancouver",
         "dry_run": True,
         "force": True,
+        "initialize_git": False,
     }
     assert result["structuredContent"]["workspace_name"] == "NF-PitNET Demo"
     assert '"workspace_name": "NF-PitNET Demo"' in result["content"][0]["text"]

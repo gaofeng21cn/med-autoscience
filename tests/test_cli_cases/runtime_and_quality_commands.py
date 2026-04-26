@@ -747,6 +747,7 @@ def test_init_workspace_command_dispatches_controller(monkeypatch, tmp_path: Pat
         default_citation_style: str,
         hermes_agent_repo_root: Path | None,
         hermes_home_root: Path | None,
+        initialize_git: bool,
     ) -> dict:
         called["workspace_root"] = workspace_root
         called["workspace_name"] = workspace_name
@@ -756,11 +757,13 @@ def test_init_workspace_command_dispatches_controller(monkeypatch, tmp_path: Pat
         called["default_citation_style"] = default_citation_style
         called["hermes_agent_repo_root"] = hermes_agent_repo_root
         called["hermes_home_root"] = hermes_home_root
+        called["initialize_git"] = initialize_git
         return {
             "workspace_root": str(workspace_root),
             "workspace_name": workspace_name,
             "dry_run": dry_run,
             "force": force,
+            "initialize_git": initialize_git,
         }
 
     monkeypatch.setattr(cli.workspace_init_controller, "init_workspace", fake_init_workspace)
@@ -792,7 +795,27 @@ def test_init_workspace_command_dispatches_controller(monkeypatch, tmp_path: Pat
     assert called["default_citation_style"] == "AMA"
     assert called["hermes_agent_repo_root"] == tmp_path / "_external" / "hermes-agent"
     assert called["hermes_home_root"] == tmp_path / ".hermes"
+    assert called["initialize_git"] is True
     assert '"workspace_name": "diabetes"' in captured.out
+    assert '"initialize_git": true' in captured.out
+
+    exit_code = cli.main(
+        [
+            "workspace",
+            "init",
+            "--workspace-root",
+            str(tmp_path / "workspace-no-git"),
+            "--workspace-name",
+            "diabetes",
+            "--no-git",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace-no-git"
+    assert called["initialize_git"] is False
+    assert '"initialize_git": false' in captured.out
 def test_data_assets_status_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

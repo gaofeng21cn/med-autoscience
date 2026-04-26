@@ -23,6 +23,7 @@
 - 疾病 workspace 本身轻巧、可读、可长期维护
 - 项目专属状态保留在 workspace 内
 - 程序本体与重依赖不在每个疾病 workspace 内重复存放
+- workspace 根目录默认有自己的轻量 Git 边界，方便 Codex / MAS 快速查看 scaffold、contracts、portfolio registry 与轻量 study truth
 - 新疾病项目可以快速复制同一套目录骨架与启动方式
 - `MedAutoScience` 继续作为 `Research Ops` 的 domain gateway 与 harness OS，上游 `Hermes-Agent` 继续作为目标 outer runtime substrate owner，`MedDeepScientist`（仓库名 `med-deepscientist`）继续作为当前 controlled research backend
 
@@ -79,6 +80,9 @@
 - startup brief、startup payload、研究策略文档
 - `MedDeepScientist` quest 仓库、日志、记忆、配置等运行状态
 - workspace-scope overlay 与 quest-scope overlay 写入的本地 `.codex/skills/`
+
+workspace 根目录的外层 Git 不接管 `MedDeepScientist` quest 仓库。
+标准 scaffold 会在根级 `.gitignore` 排除 `ops/med-deepscientist/runtime/quests/` 和重运行态目录；进入具体 quest 后，`git` 命令应命中 quest 自己的内层 `.git`。
 
 ### 2. 程序本体与重依赖不进入疾病 workspace
 
@@ -408,14 +412,15 @@ wrapper 不应继续做：
 标准启动顺序应为：
 
 1. 创建新的疾病 workspace 骨架
-2. 放入原始数据、数据说明、变量定义、终点定义、已有参考文献与研究设想
-3. 配置 workspace profile
-4. 显式指向外部共享的 `MedAutoScience` repo
-5. 显式指向外部共享的 `MedDeepScientist` repo
-6. 运行 `doctor`
-7. 由 Agent 调用 `bootstrap` 初始化 workspace 级接入与数据资产状态
-8. 在 `studies/` 下创建首个 `study-id`
-9. 再进入 intake、scout、idea、experiment 等具体研究推进
+2. 确认外层 workspace Git 已初始化，且 `ops/med-deepscientist/runtime/quests/` 被根级 `.gitignore` 排除
+3. 放入原始数据、数据说明、变量定义、终点定义、已有参考文献与研究设想
+4. 配置 workspace profile
+5. 显式指向外部共享的 `MedAutoScience` repo
+6. 显式指向外部共享的 `MedDeepScientist` repo
+7. 运行 `doctor`
+8. 由 Agent 调用 `bootstrap` 初始化 workspace 级接入与数据资产状态
+9. 在 `studies/` 下创建首个 `study-id`
+10. 再进入 intake、scout、idea、experiment 等具体研究推进
 
 这样新项目不需要：
 

@@ -5,12 +5,19 @@ import os
 from pathlib import Path
 import json
 import re
-import shutil
 import tomllib
 
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
+from med_autoscience.controllers import workspace_entry_rendering as workspace_entry_rendering_controller
 from med_autoscience.controllers import workspace_literature as workspace_literature_controller
 from med_autoscience.controllers.workspace_agents_template import render_workspace_agents
+from med_autoscience.controllers.workspace_git_boundary import (
+    ensure_workspace_git,
+    is_workspace_gitignore_path,
+    merge_workspace_gitignore_content,
+    render_workspace_gitignore,
+    workspace_git_plan,
+)
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
@@ -283,61 +290,6 @@ def _render_workspace_profile(
         include_hermes_placeholders=include_hermes_placeholders,
     )
     return "\n".join(line for _, line in entries) + "\n"
-
-
-def _render_medautoscience_config(*, workspace_root: Path, profile_relpath: Path) -> str:
-    profile_path = profile_relpath if profile_relpath.is_absolute() else workspace_root / profile_relpath
-    detected_node = shutil.which("node")
-    node_config_value = detected_node if detected_node and Path(detected_node).is_absolute() else "/ABS/PATH/TO/node"
-    return (
-        "# Set the absolute path to the shared MedAutoScience checkout.\n"
-        'MED_AUTOSCIENCE_REPO="/ABS/PATH/TO/med-autoscience"\n'
-        "# Optional: set the absolute path to the uv binary used by workspace entry scripts and host services.\n"
-        'MED_AUTOSCIENCE_UV_BIN="/ABS/PATH/TO/uv"\n'
-        "# Optional: set the absolute path to Rscript so host services can still see it under minimal PATH environments.\n"
-        'MED_AUTOSCIENCE_RSCRIPT_BIN="/ABS/PATH/TO/Rscript"\n'
-        "# Optional: set the absolute path to node so managed runtime services can still launch node-backed backends under minimal PATH environments.\n"
-        f'MED_AUTOSCIENCE_NODE_BIN="{node_config_value}"\n'
-        "# Optional: override the default local profile file.\n"
-        f'MED_AUTOSCIENCE_PROFILE="{profile_path}"\n'
-    )
-
-
-def _render_med_deepscientist_config() -> str:
-    return (
-        "# Set the absolute path to the local med-deepscientist launcher binary.\n"
-        'MED_DEEPSCIENTIST_LAUNCHER="/ABS/PATH/TO/ds"\n'
-    )
-
-
-def _render_medautoscience_readme(*, profile_relpath: Path) -> str:
-    return (
-        "# MedAutoScience Workspace Entry\n\n"
-        "这个目录是当前 workspace 面向用户和 Agent 的本地入口层。\n\n"
-        "默认 profile:\n\n"
-        f"- `{profile_relpath.as_posix()}`\n"
-        "\n"
-        "推荐的长时监管入口：\n\n"
-        "- `bin/watch-runtime`\n"
-        "- `bin/install-watch-runtime-service`\n"
-        "- `bin/watch-runtime-service-status`\n"
-        "- `bin/uninstall-watch-runtime-service`\n\n"
-        "其中 `install-watch-runtime-service` / `watch-runtime-service-status` / `uninstall-watch-runtime-service`\n"
-        "会管理 Hermes-hosted supervision job，而不是再安装第二个 workspace-local 常驻 service。\n"
-    )
-
-
-def _render_med_deepscientist_readme() -> str:
-    return (
-        "# med-deepscientist Workspace Entry\n\n"
-        "这个目录保留当前 workspace 的 `med-deepscientist` project-local runtime state 与薄入口脚本。\n\n"
-        "它是 runtime 运维面，不是研究入口。\n\n"
-        "请遵守下面的边界：\n\n"
-        "- 研究 quest 的创建、恢复、门禁判断统一走 `MedAutoScience`。\n"
-        "- 不要从这里直接发起研究，不要把 `start-web`、`status`、`doctor`、`stop` 当成研究入口。\n"
-        "- 需要进入 study 时，使用 `ops/medautoscience/bin/enter-study`、`ops/medautoscience/bin/bootstrap`、`ensure-study-runtime` 等受管入口。\n"
-        "- 如果需要查看或维护 runtime，本目录下脚本只用于运维审计，不承担医学研究治理责任。\n"
-    )
 
 
 def _render_behavior_equivalence_gate() -> str:
@@ -730,7 +682,10 @@ def _is_medautoscience_config_path(path: Path) -> bool:
 def _merge_medautoscience_config_content(*, existing_content: str, workspace_root: Path, profile_relpath: Path) -> str:
     if "MED_AUTOSCIENCE_NODE_BIN" in existing_content:
         return existing_content
-    rendered_content = _render_medautoscience_config(workspace_root=workspace_root, profile_relpath=profile_relpath)
+    rendered_content = workspace_entry_rendering_controller.render_medautoscience_config(
+        workspace_root=workspace_root,
+        profile_relpath=profile_relpath,
+    )
     rendered_lines = rendered_content.splitlines()
     try:
         comment_index = rendered_lines.index(
@@ -804,6 +759,8 @@ def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
         return "upgrade"
     if _is_medautoscience_config_path(item.path) and existing_content != item.content:
         return "upgrade"
+    if is_workspace_gitignore_path(item.path) and existing_content != item.content:
+        return "upgrade"
     return "skip"
 
 
@@ -845,6 +802,10 @@ def _rendered_files(
     profile_relpath = _display_path_from_workspace_root(workspace_root=workspace_root, target_path=profile_path)
     files = [
         RenderedFile(
+            path=workspace_root / ".gitignore",
+            content=render_workspace_gitignore(),
+        ),
+        RenderedFile(
             path=workspace_root / "pyproject.toml",
             content=_render_workspace_pyproject(workspace_root=workspace_root, workspace_name=workspace_name),
         ),
@@ -874,27 +835,33 @@ def _rendered_files(
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "config.env",
-            content=_render_medautoscience_config(workspace_root=workspace_root, profile_relpath=profile_relpath),
+            content=workspace_entry_rendering_controller.render_medautoscience_config(
+                workspace_root=workspace_root,
+                profile_relpath=profile_relpath,
+            ),
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "config.env.example",
-            content=_render_medautoscience_config(workspace_root=workspace_root, profile_relpath=profile_relpath),
+            content=workspace_entry_rendering_controller.render_medautoscience_config(
+                workspace_root=workspace_root,
+                profile_relpath=profile_relpath,
+            ),
         ),
         RenderedFile(
             path=layout.config_env_path,
-            content=_render_med_deepscientist_config(),
+            content=workspace_entry_rendering_controller.render_med_deepscientist_config(),
         ),
         RenderedFile(
             path=layout.config_env_example_path,
-            content=_render_med_deepscientist_config(),
+            content=workspace_entry_rendering_controller.render_med_deepscientist_config(),
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "README.md",
-            content=_render_medautoscience_readme(profile_relpath=profile_relpath),
+            content=workspace_entry_rendering_controller.render_medautoscience_readme(profile_relpath=profile_relpath),
         ),
         RenderedFile(
             path=layout.readme_path,
-            content=_render_med_deepscientist_readme(),
+            content=workspace_entry_rendering_controller.render_med_deepscientist_readme(),
         ),
         RenderedFile(
             path=layout.behavior_gate_path,
@@ -1063,6 +1030,7 @@ def init_workspace(
     default_citation_style: str = "AMA",
     hermes_agent_repo_root: Path | None = None,
     hermes_home_root: Path | None = None,
+    initialize_git: bool = True,
 ) -> dict[str, object]:
     workspace_root = workspace_root.expanduser().resolve()
     layout = build_workspace_runtime_layout(workspace_root=workspace_root)
@@ -1123,6 +1091,20 @@ def init_workspace(
                     )
                 )
                 continue
+            if is_workspace_gitignore_path(item.path) and item.path.exists():
+                try:
+                    existing_content = item.path.read_text(encoding="utf-8")
+                except (OSError, UnicodeDecodeError):
+                    prepared_files.append(item)
+                    continue
+                prepared_files.append(
+                    RenderedFile(
+                        path=item.path,
+                        content=merge_workspace_gitignore_content(existing_content),
+                        executable=item.executable,
+                    )
+                )
+                continue
             prepared_files.append(item)
         files = prepared_files
 
@@ -1144,6 +1126,7 @@ def init_workspace(
                 upgraded_files.append(str(item.path))
             else:
                 skipped_files.append(str(item.path))
+        workspace_git = workspace_git_plan(workspace_root=workspace_root, initialize_git=initialize_git, dry_run=True)
     else:
         for path in directories:
             if not path.exists():
@@ -1164,6 +1147,7 @@ def init_workspace(
             item.path.write_text(item.content, encoding="utf-8")
             if item.executable:
                 item.path.chmod(item.path.stat().st_mode | 0o111)
+        workspace_git = ensure_workspace_git(workspace_root=workspace_root, initialize_git=initialize_git)
 
     return {
         "workspace_root": str(workspace_root),
@@ -1175,6 +1159,7 @@ def init_workspace(
         "skipped_files": skipped_files,
         "overwritten_files": overwritten_files,
         "upgraded_files": upgraded_files,
+        "workspace_git": workspace_git,
         "profile_path": str(profile_path),
         "next_steps": [
             f"edit {workspace_root / 'ops' / 'medautoscience' / 'config.env'}",

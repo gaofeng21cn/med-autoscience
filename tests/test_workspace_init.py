@@ -242,7 +242,6 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci runtime watch \\' in watch_runtime_text
     assert str(workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests") not in watch_runtime_text
 
-
 def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "pituitary-workspace"
@@ -873,6 +872,7 @@ def test_init_workspace_upgrades_current_managed_scripts_when_node_binding_is_mi
 
 def test_init_workspace_upgrades_medautoscience_config_with_detected_node_binding(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    entry_rendering = importlib.import_module("med_autoscience.controllers.workspace_entry_rendering")
     workspace_root = tmp_path / "config-upgrade-workspace"
     config_env = workspace_root / "ops" / "medautoscience" / "config.env"
     detected_node = tmp_path / "bin" / "node"
@@ -890,7 +890,7 @@ def test_init_workspace_upgrades_medautoscience_config_with_detected_node_bindin
         + "\n",
         encoding="utf-8",
     )
-    monkeypatch.setattr(module.shutil, "which", lambda executable: str(detected_node) if executable == "node" else None)
+    monkeypatch.setattr(entry_rendering.shutil, "which", lambda executable: str(detected_node) if executable == "node" else None)
 
     result = module.init_workspace(
         workspace_root=workspace_root,

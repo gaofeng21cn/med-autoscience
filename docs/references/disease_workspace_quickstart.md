@@ -104,6 +104,11 @@ uv run python -m med_autoscience.cli init-workspace \
         └── startup_payloads/
 ```
 
+默认情况下，`init-workspace` 也会在 workspace 根目录初始化一个轻量 Git 仓库，并写入根级 `.gitignore`。
+这个外层 Git 只用于让 Codex / MAS 快速识别 workspace scaffold、contracts、portfolio registry 和轻量 study truth。
+`ops/med-deepscientist/runtime/quests/` 会被外层 `.gitignore` 明确排除；每个 quest 仍由 `MedDeepScientist` 在 quest 根目录维护自己的 Git 仓库和 worktree。
+如果确实要保持旧行为，可在 CLI 使用 `--no-git`。
+
 ## 每个目录大致做什么
 
 - `datasets/`

@@ -129,6 +129,7 @@ def list_tools() -> list[dict[str, Any]]:
                     "default_citation_style": {"type": "string"},
                     "dry_run": {"type": "boolean"},
                     "force": {"type": "boolean"},
+                    "initialize_git": {"type": "boolean"},
                 },
                 "required": ["mode"],
                 "additionalProperties": False,
@@ -397,6 +398,7 @@ def _call_init_workspace(arguments: dict[str, Any]) -> dict[str, Any]:
         ),
         dry_run=_optional_bool(arguments, "dry_run"),
         force=_optional_bool(arguments, "force"),
+        initialize_git=_optional_bool(arguments, "initialize_git", default=True),
     )
     return _tool_text_result(_json_text(result), structured=result)
 
