@@ -79,6 +79,7 @@
 
 - [Research Foundry 医学执行地图](program/research_foundry_medical_execution_map.md)
 - [Research Foundry 医学主线](program/research_foundry_medical_mainline.md)
+- [MAS/MDS 自治操作系统 program](program/mas_mds_autonomy_operating_system_program.md)
 - [MAS 单项目质量与自治主线](program/mas_single_project_quality_and_autonomy_mainline.md)
 - [MedDeepScientist 解构地图](program/med_deepscientist_deconstruction_map.md)
 - [外部运行时依赖门禁](program/external_runtime_dependency_gate.md)
