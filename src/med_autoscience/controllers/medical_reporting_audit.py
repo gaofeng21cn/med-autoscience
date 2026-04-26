@@ -24,6 +24,29 @@ def _load_json_dict(path: Path) -> dict[str, object] | None:
     return payload
 
 
+def _quality_gate_expectation(reporting_contract: dict[str, object]) -> dict[str, object]:
+    candidates: list[object] = [
+        reporting_contract.get("quality_gate_expectation"),
+    ]
+    structured_contract = reporting_contract.get("structured_reporting_contract")
+    if isinstance(structured_contract, dict):
+        candidates.append(structured_contract.get("quality_gate_expectation"))
+    reporting_guideline_expectation = reporting_contract.get("reporting_guideline_expectation")
+    if isinstance(reporting_guideline_expectation, dict):
+        candidates.append(reporting_guideline_expectation.get("quality_gate_expectation"))
+    for candidate in candidates:
+        if isinstance(candidate, dict):
+            return dict(candidate)
+    return {}
+
+
+def _quality_gate_relaxation_allowed(reporting_contract: dict[str, object]) -> bool:
+    expectation = _quality_gate_expectation(reporting_contract)
+    if expectation.get("gate_relaxation_allowed") is False:
+        return False
+    return True
+
+
 def _normalize_display_shell_plan(reporting_contract: dict[str, object]) -> list[dict[str, str]]:
     plan = reporting_contract.get("display_shell_plan")
     normalized: list[dict[str, str]] = []
@@ -158,6 +181,8 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
         except (OSError, ValueError, json.JSONDecodeError):
             blockers.append("invalid_medical_reporting_contract")
             reporting_contract = {}
+    quality_gate_expectation = _quality_gate_expectation(reporting_contract)
+    quality_gate_relaxation_allowed = _quality_gate_relaxation_allowed(reporting_contract)
 
     display_shell_plan = _normalize_display_shell_plan(reporting_contract)
     if bool(reporting_contract.get("display_registry_required", bool(display_shell_plan))):
@@ -207,7 +232,11 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
             blockers.append(stub.blocker_key)
 
     if not (paper_root / "reporting_guideline_checklist.json").exists():
-        if submission_checklist_handoff_ready and not submission_checklist_unclassified_blocking_items:
+        if (
+            quality_gate_relaxation_allowed
+            and submission_checklist_handoff_ready
+            and not submission_checklist_unclassified_blocking_items
+        ):
             advisories.append("missing_reporting_guideline_checklist")
         else:
             blockers.append("missing_reporting_guideline_checklist")
@@ -225,6 +254,8 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
         "quest_root": str(resolved_quest_root),
         "medical_story_contract_valid": medical_story_contract_valid,
         "structured_reporting_checklist": structured_reporting_checklist,
+        "quality_gate_expectation": quality_gate_expectation,
+        "quality_gate_relaxation_allowed": quality_gate_relaxation_allowed,
         "submission_checklist_handoff_ready": submission_checklist_handoff_ready,
         "submission_checklist_unclassified_blocking_items": submission_checklist_unclassified_blocking_items,
     }

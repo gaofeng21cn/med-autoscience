@@ -350,6 +350,12 @@ def test_materialize_study_charter_adds_prediction_model_reporting_guardrails(tm
     assert "standardized_mean_differences" in contract["baseline_balance_reporting"]
     assert "competing_event_screen" in contract["time_to_event_prediction_reporting"]
     assert contract["competing_risk_reporting_required"] == "when_non_target_deaths_present"
+    assert contract["reporting_guideline_family"] == "TRIPOD"
+    assert contract["quality_gate_expectation"]["guideline_family"] == "TRIPOD"
+    assert contract["quality_gate_expectation"]["gate_relaxation_allowed"] is False
+    assert "tripod_model_performance_validation_calibration" in contract["quality_gate_expectation"][
+        "gates"
+    ]["before_review_handoff"]["required_items"]
 
 
 def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Path) -> None:
