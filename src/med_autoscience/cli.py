@@ -72,6 +72,7 @@ runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
 sidecar_provider_controller = _LazyModuleProxy(lambda: _load_controller("sidecar_provider"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
+study_cycle_profiler = _LazyModuleProxy(lambda: _load_controller("study_cycle_profiler"))
 study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
@@ -430,6 +431,14 @@ def build_parser() -> argparse.ArgumentParser:
     study_progress_parser.add_argument("--entry-mode", type=str)
     study_progress_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
 
+    study_profile_cycle_parser = subparsers.add_parser("study-profile-cycle")
+    study_profile_cycle_parser.add_argument("--profile", required=True)
+    study_profile_cycle_source = study_profile_cycle_parser.add_mutually_exclusive_group(required=True)
+    study_profile_cycle_source.add_argument("--study-id", type=str)
+    study_profile_cycle_source.add_argument("--study-root", type=str)
+    study_profile_cycle_parser.add_argument("--since", type=str)
+    study_profile_cycle_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
     quality_repair_batch_parser = subparsers.add_parser("quality-repair-batch")
     quality_repair_batch_parser.add_argument("--profile", required=True)
     quality_repair_batch_parser.add_argument("--study-id", type=str)
@@ -557,6 +566,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("runtime", "ensure-analysis-bundle"): "ensure-study-runtime-analysis-bundle",
     ("study", "ensure-runtime"): "ensure-study-runtime",
     ("study", "progress"): "study-progress",
+    ("study", "profile-cycle"): "study-profile-cycle",
     ("study", "quality-repair-batch"): "quality-repair-batch",
     ("study", "launch"): "launch-study",
     ("study", "submit-task"): "submit-study-task",
@@ -800,6 +810,20 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(study_progress.render_study_progress_markdown(result), end="")
+        return 0
+
+    if args.command == "study-profile-cycle":
+        profile = load_profile(args.profile)
+        result = study_cycle_profiler.profile_study_cycle(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            since=args.since,
+        )
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(study_cycle_profiler.render_study_cycle_profile_markdown(result), end="")
         return 0
 
     if args.command == "quality-repair-batch":

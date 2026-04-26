@@ -318,6 +318,71 @@ def test_quality_repair_batch_command_dispatches_controller(monkeypatch, tmp_pat
     assert called["quest_id"] == "quest-001"
     assert called["source"] == "cli"
     assert json.loads(captured.out)["status"] == "executed"
+def test_study_profile_cycle_command_dispatches_profiler(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    write_profile(profile_path, workspace_root=tmp_path / "workspace")
+    called: dict[str, object] = {}
+
+    def fake_profile_study_cycle(
+        *,
+        profile,
+        study_id: str | None,
+        study_root: Path | None,
+        since: str | None,
+    ) -> dict[str, object]:
+        called["profile"] = profile
+        called["study_id"] = study_id
+        called["study_root"] = study_root
+        called["since"] = since
+        return {
+            "study_id": study_id,
+            "study_root": str(study_root or profile.studies_root / str(study_id)),
+            "quest_id": "quest-001",
+            "quest_root": str(profile.runtime_root / "quest-001"),
+            "profiling_window": {"since": since},
+            "category_windows": {},
+            "runtime_transition_summary": {},
+            "controller_decision_fingerprints": {"top_repeats": []},
+            "gate_blocker_summary": {"current_blockers": []},
+            "package_currentness": {"status": "fresh"},
+            "bottlenecks": [],
+            "optimization_recommendations": [],
+        }
+
+    monkeypatch.setattr(cli.study_cycle_profiler, "profile_study_cycle", fake_profile_study_cycle)
+
+    exit_code = cli.main(
+        [
+            "study",
+            "profile-cycle",
+            "--profile",
+            str(profile_path),
+            "--study-root",
+            str(study_root),
+            "--since",
+            "2026-04-25T00:00:00Z",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["study_id"] is None
+    assert called["study_root"] == study_root
+    assert called["since"] == "2026-04-25T00:00:00Z"
+    assert json.loads(captured.out)["profiling_window"]["since"] == "2026-04-25T00:00:00Z"
+def test_study_group_help_surfaces_profile_cycle(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["study"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "profile-cycle" in captured.out
 def test_legacy_grouped_study_runtime_status_alias_is_removed() -> None:
     cli = importlib.import_module("med_autoscience.cli")
 

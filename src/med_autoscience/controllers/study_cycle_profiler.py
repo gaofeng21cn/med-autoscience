@@ -1,0 +1,516 @@
+from __future__ import annotations
+
+from collections import Counter
+from dataclasses import dataclass
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+from typing import Any, Iterable, Mapping
+
+import yaml
+
+from med_autoscience.profiles import WorkspaceProfile
+
+
+_TIMESTAMP_FIELDS = ("recorded_at", "generated_at", "emitted_at", "created_at", "updated_at")
+_HISTORY_ALIAS_NAMES = frozenset({"latest.json"})
+
+
+@dataclass(frozen=True)
+class _CycleEvent:
+    category: str
+    path: Path
+    timestamp: datetime
+    payload: dict[str, Any]
+
+
+def _non_empty_text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _parse_timestamp(value: object) -> datetime | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _iso(timestamp: datetime | None) -> str | None:
+    if timestamp is None:
+        return None
+    return timestamp.astimezone(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _read_json_mapping(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return dict(payload)
+
+
+def _read_yaml_mapping(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        return {}
+    return dict(payload)
+
+
+def _payload_timestamp(payload: Mapping[str, Any], path: Path) -> datetime:
+    for field_name in _TIMESTAMP_FIELDS:
+        parsed = _parse_timestamp(payload.get(field_name))
+        if parsed is not None:
+            return parsed
+    return datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
+
+
+def _iter_json_events(*, category: str, root: Path, since: datetime | None) -> Iterable[_CycleEvent]:
+    if not root.exists():
+        return
+    for path in sorted(root.glob("*.json")):
+        if path.name in _HISTORY_ALIAS_NAMES:
+            continue
+        payload = _read_json_mapping(path)
+        if payload is None:
+            continue
+        timestamp = _payload_timestamp(payload, path)
+        if since is not None and timestamp < since:
+            continue
+        yield _CycleEvent(category=category, path=path.resolve(), timestamp=timestamp, payload=payload)
+
+
+def _resolve_study_root(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str | None,
+    study_root: Path | None,
+) -> Path:
+    if bool(study_id) == bool(study_root):
+        raise ValueError("Specify exactly one of study_id or study_root")
+    if study_root is not None:
+        return Path(study_root).expanduser().resolve()
+    return (profile.studies_root / str(study_id)).expanduser().resolve()
+
+
+def _resolve_quest_root(*, profile: WorkspaceProfile, study_root: Path, study_id: str) -> tuple[str | None, Path | None]:
+    binding = _read_yaml_mapping(study_root / "runtime_binding.yaml")
+    quest_id = _non_empty_text(binding.get("quest_id")) or study_id
+    runtime_root_text = _non_empty_text(binding.get("runtime_quests_root")) or _non_empty_text(binding.get("runtime_root"))
+    runtime_root = Path(runtime_root_text).expanduser().resolve() if runtime_root_text else profile.runtime_root
+    quest_root = (runtime_root / quest_id).expanduser().resolve() if quest_id else None
+    return quest_id, quest_root
+
+
+def _category_roots(*, study_root: Path, quest_root: Path | None) -> tuple[tuple[str, Path], ...]:
+    roots: list[tuple[str, Path]] = [
+        ("runtime_supervision", study_root / "artifacts" / "runtime" / "runtime_supervision"),
+        ("controller_decision", study_root / "artifacts" / "controller_decisions"),
+        ("publication_eval", study_root / "artifacts" / "publication_eval"),
+        ("gate_clearing_batch", study_root / "artifacts" / "controller" / "gate_clearing_batch"),
+        ("quality_repair_batch", study_root / "artifacts" / "controller" / "quality_repair_batch"),
+    ]
+    if quest_root is not None:
+        roots.extend(
+            [
+                ("publishability_gate", quest_root / "artifacts" / "reports" / "publishability_gate"),
+                ("runtime_watch", quest_root / "artifacts" / "reports" / "runtime_watch"),
+            ]
+        )
+    return tuple(roots)
+
+
+def _category_windows(events: tuple[_CycleEvent, ...]) -> dict[str, dict[str, Any]]:
+    grouped: dict[str, list[_CycleEvent]] = {}
+    for event in events:
+        grouped.setdefault(event.category, []).append(event)
+    windows: dict[str, dict[str, Any]] = {}
+    for category, category_events in sorted(grouped.items()):
+        ordered = sorted(category_events, key=lambda event: event.timestamp)
+        first = ordered[0].timestamp
+        latest = ordered[-1].timestamp
+        windows[category] = {
+            "event_count": len(ordered),
+            "first_at": _iso(first),
+            "latest_at": _iso(latest),
+            "duration_seconds": int((latest - first).total_seconds()),
+            "latest_event_path": str(ordered[-1].path),
+        }
+    return windows
+
+
+def _runtime_transition_summary(events: tuple[_CycleEvent, ...]) -> dict[str, Any]:
+    runtime_events = sorted(
+        (event for event in events if event.category == "runtime_supervision"),
+        key=lambda event: event.timestamp,
+    )
+    health_statuses = [
+        str(event.payload.get("health_status") or "").strip()
+        for event in runtime_events
+        if str(event.payload.get("health_status") or "").strip()
+    ]
+    reasons = [
+        str(event.payload.get("runtime_reason") or "").strip()
+        for event in runtime_events
+        if str(event.payload.get("runtime_reason") or "").strip()
+    ]
+    transitions: Counter[str] = Counter()
+    for previous, current in zip(health_statuses, health_statuses[1:]):
+        if previous != current:
+            transitions[f"{previous}->{current}"] += 1
+    return {
+        "event_count": len(runtime_events),
+        "health_status_counts": dict(sorted(Counter(health_statuses).items())),
+        "runtime_reason_counts": dict(sorted(Counter(reasons).items())),
+        "transition_counts": dict(sorted(transitions.items())),
+    }
+
+
+def _decision_fingerprint(payload: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
+    controller_actions = payload.get("controller_actions")
+    action_types: list[str] = []
+    if isinstance(controller_actions, list):
+        for action in controller_actions:
+            if isinstance(action, Mapping):
+                action_type = _non_empty_text(action.get("action_type"))
+                if action_type:
+                    action_types.append(action_type)
+    parts = {
+        "decision_type": _non_empty_text(payload.get("decision_type")),
+        "route_target": _non_empty_text(payload.get("route_target")),
+        "route_key_question": _non_empty_text(payload.get("route_key_question")),
+        "reason": _non_empty_text(payload.get("reason")),
+        "controller_actions": tuple(sorted(action_types)),
+    }
+    encoded = json.dumps(parts, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()[:16], parts
+
+
+def _controller_decision_fingerprints(events: tuple[_CycleEvent, ...]) -> dict[str, Any]:
+    counts: Counter[str] = Counter()
+    examples: dict[str, dict[str, Any]] = {}
+    latest_paths: dict[str, str] = {}
+    for event in events:
+        if event.category != "controller_decision":
+            continue
+        fingerprint, parts = _decision_fingerprint(event.payload)
+        counts[fingerprint] += 1
+        examples.setdefault(fingerprint, parts)
+        latest_paths[fingerprint] = str(event.path)
+    top_repeats = [
+        {
+            "fingerprint": fingerprint,
+            "count": count,
+            "decision": examples[fingerprint],
+            "latest_event_path": latest_paths[fingerprint],
+        }
+        for fingerprint, count in counts.most_common()
+        if count > 1
+    ]
+    return {
+        "unique_fingerprint_count": len(counts),
+        "top_repeats": top_repeats,
+    }
+
+
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [text for item in value if (text := str(item or "").strip())]
+
+
+def _extract_blockers(payload: Mapping[str, Any] | None) -> list[str]:
+    if payload is None:
+        return []
+    blockers: list[str] = []
+    blockers.extend(_text_list(payload.get("blockers")))
+    blockers.extend(_text_list(payload.get("medical_publication_surface_blockers")))
+    gaps = payload.get("gaps")
+    if isinstance(gaps, list):
+        for gap in gaps:
+            if not isinstance(gap, Mapping):
+                continue
+            text = _non_empty_text(gap.get("summary")) or _non_empty_text(gap.get("gap_id"))
+            if text:
+                blockers.append(text)
+    return sorted(dict.fromkeys(blockers))
+
+
+def _latest_current_payloads(*, study_root: Path, quest_root: Path | None) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    publication_eval_latest = _read_json_mapping(study_root / "artifacts" / "publication_eval" / "latest.json")
+    publishability_gate_latest = (
+        _read_json_mapping(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
+        if quest_root is not None
+        else None
+    )
+    return publication_eval_latest, publishability_gate_latest
+
+
+def _gate_blocker_summary(*, publication_eval_latest: Mapping[str, Any] | None, publishability_gate_latest: Mapping[str, Any] | None) -> dict[str, Any]:
+    blockers = sorted(
+        dict.fromkeys(
+            [
+                *_extract_blockers(publication_eval_latest),
+                *_extract_blockers(publishability_gate_latest),
+            ]
+        )
+    )
+    actions: list[dict[str, Any]] = []
+    for payload in (publication_eval_latest, publishability_gate_latest):
+        if not isinstance(payload, Mapping):
+            continue
+        raw_actions = payload.get("recommended_actions")
+        if not isinstance(raw_actions, list):
+            continue
+        for action in raw_actions:
+            if isinstance(action, Mapping):
+                actions.append(
+                    {
+                        "action_type": _non_empty_text(action.get("action_type")),
+                        "route_target": _non_empty_text(action.get("route_target")),
+                        "reason": _non_empty_text(action.get("reason")),
+                    }
+                )
+    return {
+        "status": "blocked" if blockers else "clear_or_not_materialized",
+        "current_blockers": blockers,
+        "recommended_actions": actions,
+    }
+
+
+def _latest_file_mtime(root: Path) -> datetime | None:
+    if not root.exists():
+        return None
+    candidates = [path for path in root.rglob("*") if path.is_file()]
+    if root.is_file():
+        candidates.append(root)
+    if not candidates:
+        return None
+    return datetime.fromtimestamp(max(path.stat().st_mtime for path in candidates), timezone.utc)
+
+
+def _package_currentness(study_root: Path) -> dict[str, Any]:
+    authority_latest = max(
+        (
+            timestamp
+            for timestamp in (
+                _latest_file_mtime(study_root / "paper"),
+                _latest_file_mtime(study_root / "artifacts" / "controller"),
+                _latest_file_mtime(study_root / "artifacts" / "publication_eval"),
+            )
+            if timestamp is not None
+        ),
+        default=None,
+    )
+    current_package_latest = max(
+        (
+            timestamp
+            for timestamp in (
+                _latest_file_mtime(study_root / "manuscript" / "current_package"),
+                _latest_file_mtime(study_root / "manuscript" / "current_package.zip"),
+            )
+            if timestamp is not None
+        ),
+        default=None,
+    )
+    if current_package_latest is None:
+        status = "missing"
+    elif authority_latest is not None and current_package_latest < authority_latest:
+        status = "stale"
+    else:
+        status = "fresh"
+    stale_seconds = (
+        int((authority_latest - current_package_latest).total_seconds())
+        if authority_latest is not None and current_package_latest is not None and current_package_latest < authority_latest
+        else 0
+    )
+    return {
+        "status": status,
+        "authority_latest_mtime": _iso(authority_latest),
+        "current_package_latest_mtime": _iso(current_package_latest),
+        "stale_seconds": stale_seconds,
+    }
+
+
+def _bottlenecks(
+    *,
+    runtime_transition_summary: Mapping[str, Any],
+    controller_decision_fingerprints: Mapping[str, Any],
+    gate_blocker_summary: Mapping[str, Any],
+    package_currentness: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    bottlenecks: list[dict[str, Any]] = []
+    health_counts = runtime_transition_summary.get("health_status_counts")
+    if isinstance(health_counts, Mapping) and any(
+        int(health_counts.get(status) or 0) > 0 for status in ("recovering", "degraded", "escalated")
+    ):
+        bottlenecks.append(
+            {
+                "bottleneck_id": "runtime_recovery_churn",
+                "severity": "high",
+                "summary": "Runtime supervision contains recovery or dropout states in the profiling window.",
+            }
+        )
+    top_repeats = controller_decision_fingerprints.get("top_repeats")
+    if isinstance(top_repeats, list) and top_repeats:
+        bottlenecks.append(
+            {
+                "bottleneck_id": "repeated_controller_decision",
+                "severity": "medium",
+                "summary": "The same controller decision fingerprint repeats, indicating dispatch churn.",
+            }
+        )
+    current_blockers = gate_blocker_summary.get("current_blockers")
+    if isinstance(current_blockers, list) and current_blockers:
+        bottlenecks.append(
+            {
+                "bottleneck_id": "publication_gate_blocked",
+                "severity": "high",
+                "summary": "Publication gate blockers remain active and should be narrowed into work units.",
+            }
+        )
+    if package_currentness.get("status") == "stale":
+        bottlenecks.append(
+            {
+                "bottleneck_id": "stale_current_package",
+                "severity": "medium",
+                "summary": "Human-facing current_package is older than controller or paper authority surfaces.",
+            }
+        )
+    return bottlenecks
+
+
+def _optimization_recommendations(bottlenecks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    recommendation_by_bottleneck = {
+        "runtime_recovery_churn": {
+            "recommendation_id": "stabilize-runtime-observations",
+            "priority": "now",
+            "summary": "Require consecutive live observations before calling the runtime stable, and flag live-to-recovery flapping.",
+            "expected_effect": "Reduces false confidence and makes no-live-session failures actionable at MAS control level.",
+        },
+        "repeated_controller_decision": {
+            "recommendation_id": "dedupe-controller-dispatch",
+            "priority": "now",
+            "summary": "Fingerprint repeated controller decisions and route the blocker set to a single next work unit.",
+            "expected_effect": "Reduces repeated outer-loop dispatch without changing publication quality gates.",
+        },
+        "publication_gate_blocked": {
+            "recommendation_id": "narrow-publication-blockers",
+            "priority": "now",
+            "summary": "Convert publication blockers into explicit blocking work units with one next work unit.",
+            "expected_effect": "Keeps quality gates intact while making the next MAS/MDS action deterministic.",
+        },
+        "stale_current_package": {
+            "recommendation_id": "refresh-human-facing-package",
+            "priority": "next",
+            "summary": "Refresh current_package only after the authority paper and controller surfaces are current.",
+            "expected_effect": "Prevents stale human-review packages from becoming a progress ambiguity.",
+        },
+    }
+    recommendations: list[dict[str, Any]] = []
+    for bottleneck in bottlenecks:
+        bottleneck_id = str(bottleneck.get("bottleneck_id") or "").strip()
+        recommendation = recommendation_by_bottleneck.get(bottleneck_id)
+        if recommendation is not None:
+            recommendations.append(dict(recommendation))
+    return recommendations
+
+
+def profile_study_cycle(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str | None,
+    study_root: Path | None,
+    since: str | None = None,
+) -> dict[str, Any]:
+    resolved_study_root = _resolve_study_root(profile=profile, study_id=study_id, study_root=study_root)
+    resolved_study_id = study_id or resolved_study_root.name
+    quest_id, quest_root = _resolve_quest_root(profile=profile, study_root=resolved_study_root, study_id=resolved_study_id)
+    since_dt = _parse_timestamp(since)
+    events = tuple(
+        event
+        for category, root in _category_roots(study_root=resolved_study_root, quest_root=quest_root)
+        for event in _iter_json_events(category=category, root=root, since=since_dt)
+    )
+    ordered_events = sorted(events, key=lambda event: event.timestamp)
+    category_windows = _category_windows(tuple(ordered_events))
+    runtime_summary = _runtime_transition_summary(tuple(ordered_events))
+    decision_fingerprints = _controller_decision_fingerprints(tuple(ordered_events))
+    publication_eval_latest, publishability_gate_latest = _latest_current_payloads(
+        study_root=resolved_study_root,
+        quest_root=quest_root,
+    )
+    gate_summary = _gate_blocker_summary(
+        publication_eval_latest=publication_eval_latest,
+        publishability_gate_latest=publishability_gate_latest,
+    )
+    package_currentness = _package_currentness(resolved_study_root)
+    bottlenecks = _bottlenecks(
+        runtime_transition_summary=runtime_summary,
+        controller_decision_fingerprints=decision_fingerprints,
+        gate_blocker_summary=gate_summary,
+        package_currentness=package_currentness,
+    )
+    return {
+        "study_id": resolved_study_id,
+        "study_root": str(resolved_study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root) if quest_root is not None else None,
+        "profiling_window": {
+            "since": since,
+            "until": _iso(ordered_events[-1].timestamp) if ordered_events else None,
+            "event_count": len(ordered_events),
+        },
+        "category_windows": category_windows,
+        "runtime_transition_summary": runtime_summary,
+        "controller_decision_fingerprints": decision_fingerprints,
+        "gate_blocker_summary": gate_summary,
+        "package_currentness": package_currentness,
+        "bottlenecks": bottlenecks,
+        "optimization_recommendations": _optimization_recommendations(bottlenecks),
+    }
+
+
+def render_study_cycle_profile_markdown(payload: Mapping[str, Any]) -> str:
+    lines = [
+        f"# Study Cycle Profile: {payload.get('study_id')}",
+        "",
+        f"- Study root: `{payload.get('study_root')}`",
+        f"- Quest id: `{payload.get('quest_id')}`",
+        f"- Quest root: `{payload.get('quest_root')}`",
+        f"- Package currentness: {dict(payload.get('package_currentness') or {}).get('status')}",
+        "",
+        "## Bottlenecks",
+    ]
+    bottlenecks = payload.get("bottlenecks")
+    if isinstance(bottlenecks, list) and bottlenecks:
+        for item in bottlenecks:
+            if isinstance(item, Mapping):
+                lines.append(f"- {item.get('bottleneck_id')}: {item.get('summary')}")
+    else:
+        lines.append("- none")
+    lines.extend(["", "## Recommendations"])
+    recommendations = payload.get("optimization_recommendations")
+    if isinstance(recommendations, list) and recommendations:
+        for item in recommendations:
+            if isinstance(item, Mapping):
+                lines.append(f"- {item.get('recommendation_id')}: {item.get('summary')}")
+    else:
+        lines.append("- none")
+    lines.append("")
+    return "\n".join(lines)
