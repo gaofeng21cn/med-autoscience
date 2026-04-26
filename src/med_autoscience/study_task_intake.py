@@ -350,6 +350,20 @@ def _task_intake_yields_to_bundle_only_submission_closeout(
     )
 
 
+def _evaluation_summary_reports_bundle_only_remaining(
+    evaluation_summary: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(evaluation_summary, dict):
+        return False
+    quality_closure_truth = _mapping_value(evaluation_summary.get("quality_closure_truth"))
+    quality_review_loop = _mapping_value(evaluation_summary.get("quality_review_loop"))
+    closure_state = (
+        _non_empty_text(quality_closure_truth.get("state"))
+        or _non_empty_text(quality_review_loop.get("closure_state"))
+    )
+    return closure_state == "bundle_only_remaining"
+
+
 def task_intake_yields_to_deterministic_submission_closeout(
     payload: dict[str, Any] | None,
     *,
@@ -358,9 +372,18 @@ def task_intake_yields_to_deterministic_submission_closeout(
 ) -> bool:
     if not task_intake_overrides_auto_manual_finish(payload):
         return False
+    blocked_submission_closeout = _task_intake_yields_to_blocked_submission_closeout(publishability_gate_report)
     if task_intake_is_reviewer_revision(payload):
-        return False
-    if _task_intake_yields_to_blocked_submission_closeout(publishability_gate_report):
+        return (
+            blocked_submission_closeout
+            and _evaluation_summary_reports_bundle_only_remaining(evaluation_summary)
+            and _closeout_surface_is_fresher_than_task_intake(
+                payload,
+                publishability_gate_report,
+                evaluation_summary,
+            )
+        )
+    if blocked_submission_closeout:
         return True
     return _task_intake_yields_to_bundle_only_submission_closeout(
         payload=payload,

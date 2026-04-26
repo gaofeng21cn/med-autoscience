@@ -119,6 +119,47 @@ def test_reviewer_revision_intake_does_not_yield_to_fresh_bundle_only_closeout()
     assert "revision checklist" in override["next_system_action"]
 
 
+def test_reviewer_revision_intake_yields_to_blocked_deterministic_submission_closeout() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "emitted_at": "2026-04-25T04:10:49+00:00",
+        "task_intent": "根据审稿意见和用户反馈执行 manuscript revision，清理 Figure/Table feedback 与 Methods 缺口。",
+        "constraints": ["不得按旧 submission-ready/finalize 判断直接收口。"],
+        "first_cycle_outputs": ["revision checklist mapping each reviewer concern to manuscript deltas"],
+    }
+    gate_report = {
+        "emitted_at": "2026-04-26T04:27:45+00:00",
+        "status": "blocked",
+        "blockers": [
+            "stale_submission_minimal_authority",
+            "submission_surface_qc_failure_present",
+        ],
+        "paper_line_open_supplementary_count": 0,
+        "medical_publication_surface_status": "clear",
+        "medical_publication_surface_current": True,
+    }
+    evaluation_summary = {
+        "emitted_at": "2026-04-26T04:30:27+00:00",
+        "quality_review_loop": {
+            "closure_state": "bundle_only_remaining",
+            "current_phase": "bundle_hardening",
+        },
+        "quality_assessment": {
+            "human_review_readiness": {
+                "status": "blocked",
+            }
+        },
+    }
+
+    assert module.task_intake_is_reviewer_revision(payload) is True
+    assert module.build_task_intake_progress_override(
+        payload,
+        publishability_gate_report=gate_report,
+        evaluation_summary=evaluation_summary,
+    ) is None
+
+
 def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
     module = importlib.import_module("med_autoscience.study_task_intake")
 
