@@ -772,12 +772,9 @@ def _materialize_publication_eval_from_gate_report(
         paper_root_ref,
         str(quest_root.resolve()),
     )
-    work_unit_payload = publication_work_units.derive_publication_work_units(publication_gate_report)
-    work_unit_fingerprint = str(work_unit_payload.get("fingerprint") or "").strip()
-    eval_id_suffix = work_unit_fingerprint or generated_at
     record = PublicationEvalRecord(
         schema_version=1,
-        eval_id=f"publication-eval::{study_id}::{resolved_quest_id}::{eval_id_suffix}",
+        eval_id=f"publication-eval::{study_id}::{resolved_quest_id}::{generated_at}",
         study_id=study_id,
         quest_id=resolved_quest_id,
         emitted_at=generated_at,

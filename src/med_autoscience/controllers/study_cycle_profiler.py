@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 import yaml
 
@@ -15,6 +15,36 @@ from med_autoscience.profiles import WorkspaceProfile
 
 _TIMESTAMP_FIELDS = ("recorded_at", "generated_at", "emitted_at", "created_at", "updated_at")
 _HISTORY_ALIAS_NAMES = frozenset({"latest.json"})
+
+
+def add_cli_parser(subparsers: Any) -> None:
+    parser = subparsers.add_parser("study-profile-cycle")
+    parser.add_argument("--profile", required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--study-id", type=str)
+    source.add_argument("--study-root", type=str)
+    parser.add_argument("--since", type=str)
+    parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
+
+def run_cli_command(
+    args: Any,
+    *,
+    profile_loader: Callable[[str], WorkspaceProfile],
+    profile_study_cycle_runner: Callable[..., dict[str, Any]],
+) -> int:
+    profile = profile_loader(args.profile)
+    result = profile_study_cycle_runner(
+        profile=profile,
+        study_id=args.study_id,
+        study_root=Path(args.study_root) if args.study_root else None,
+        since=args.since,
+    )
+    if args.format == "json":
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        print(render_study_cycle_profile_markdown(result), end="")
+    return 0
 
 
 @dataclass(frozen=True)

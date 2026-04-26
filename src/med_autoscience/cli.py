@@ -233,35 +233,25 @@ def build_parser() -> argparse.ArgumentParser:
 
     data_assets_status_parser = subparsers.add_parser("data-assets-status")
     data_assets_status_parser.add_argument("--workspace-root", required=True)
-
     init_portfolio_memory_parser = subparsers.add_parser("init-portfolio-memory")
     init_portfolio_memory_parser.add_argument("--workspace-root", required=True)
-
     portfolio_memory_status_parser = subparsers.add_parser("portfolio-memory-status")
     portfolio_memory_status_parser.add_argument("--workspace-root", required=True)
-
     init_workspace_literature_parser = subparsers.add_parser("init-workspace-literature")
     init_workspace_literature_parser.add_argument("--workspace-root", required=True)
-
     workspace_literature_status_parser = subparsers.add_parser("workspace-literature-status")
     workspace_literature_status_parser.add_argument("--workspace-root", required=True)
-
     prepare_external_research_parser = subparsers.add_parser("prepare-external-research")
     prepare_external_research_parser.add_argument("--workspace-root", required=True)
     prepare_external_research_parser.add_argument("--as-of-date", type=str)
-
     external_research_status_parser = subparsers.add_parser("external-research-status")
     external_research_status_parser.add_argument("--workspace-root", required=True)
-
     assess_data_asset_impact_parser = subparsers.add_parser("assess-data-asset-impact")
     assess_data_asset_impact_parser.add_argument("--workspace-root", required=True)
-
     validate_public_registry_parser = subparsers.add_parser("validate-public-registry")
     validate_public_registry_parser.add_argument("--workspace-root", required=True)
-
     startup_data_readiness_parser = subparsers.add_parser("startup-data-readiness")
     startup_data_readiness_parser.add_argument("--workspace-root", required=True)
-
     apply_data_asset_update_parser = subparsers.add_parser("apply-data-asset-update")
     apply_data_asset_update_parser.add_argument("--workspace-root", required=True)
     apply_data_asset_update_parser.add_argument("--payload-file", type=str)
@@ -417,38 +407,26 @@ def build_parser() -> argparse.ArgumentParser:
     ensure_study_runtime_parser.add_argument("--entry-mode", type=str)
     ensure_study_runtime_parser.add_argument("--allow-stopped-relaunch", action="store_true")
     ensure_study_runtime_parser.add_argument("--force", action="store_true")
-
     study_runtime_status_parser = subparsers.add_parser("study-runtime-status")
     study_runtime_status_parser.add_argument("--profile", required=True)
     study_runtime_status_parser.add_argument("--study-id", type=str)
     study_runtime_status_parser.add_argument("--study-root", type=str)
     study_runtime_status_parser.add_argument("--entry-mode", type=str)
-
     study_progress_parser = subparsers.add_parser("study-progress")
     study_progress_parser.add_argument("--profile", required=True)
     study_progress_parser.add_argument("--study-id", type=str)
     study_progress_parser.add_argument("--study-root", type=str)
     study_progress_parser.add_argument("--entry-mode", type=str)
     study_progress_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
-
-    study_profile_cycle_parser = subparsers.add_parser("study-profile-cycle")
-    study_profile_cycle_parser.add_argument("--profile", required=True)
-    study_profile_cycle_source = study_profile_cycle_parser.add_mutually_exclusive_group(required=True)
-    study_profile_cycle_source.add_argument("--study-id", type=str)
-    study_profile_cycle_source.add_argument("--study-root", type=str)
-    study_profile_cycle_parser.add_argument("--since", type=str)
-    study_profile_cycle_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
-
+    study_cycle_profiler.add_cli_parser(subparsers)
     quality_repair_batch_parser = subparsers.add_parser("quality-repair-batch")
     quality_repair_batch_parser.add_argument("--profile", required=True)
     quality_repair_batch_parser.add_argument("--study-id", type=str)
     quality_repair_batch_parser.add_argument("--study-root", type=str)
     quality_repair_batch_parser.add_argument("--quest-id", type=str)
-
     workspace_cockpit_parser = subparsers.add_parser("workspace-cockpit")
     workspace_cockpit_parser.add_argument("--profile", required=True)
     workspace_cockpit_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
-
     product_frontdesk_parser = subparsers.add_parser("product-frontdesk")
     product_frontdesk_parser.add_argument("--profile", required=True)
     product_frontdesk_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
@@ -813,19 +791,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "study-profile-cycle":
-        profile = load_profile(args.profile)
-        result = study_cycle_profiler.profile_study_cycle(
-            profile=profile,
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            since=args.since,
+        return study_cycle_profiler.run_cli_command(
+            args,
+            profile_loader=load_profile,
+            profile_study_cycle_runner=study_cycle_profiler.profile_study_cycle,
         )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(study_cycle_profiler.render_study_cycle_profile_markdown(result), end="")
-        return 0
-
     if args.command == "quality-repair-batch":
         if bool(args.study_id) == bool(args.study_root):
             parser.error("Specify exactly one of --study-id or --study-root")
