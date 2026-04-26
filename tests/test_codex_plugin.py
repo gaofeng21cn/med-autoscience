@@ -9,6 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_ROOT = REPO_ROOT / "plugins" / "mas"
 PLUGIN_MANIFEST_PATH = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
 PLUGIN_SKILL_PATH = PLUGIN_ROOT / "skills" / "mas" / "SKILL.md"
+PLUGIN_SKILL_UI_METADATA_PATH = PLUGIN_ROOT / "skills" / "mas" / "agents" / "openai.yaml"
 MARKETPLACE_PATH = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
 GUIDE_PATH = REPO_ROOT / "docs" / "references" / "codex_plugin.md"
 RELEASE_GUIDE_PATH = REPO_ROOT / "docs" / "references" / "codex_plugin_release.md"
@@ -30,6 +31,7 @@ def test_codex_plugin_manifest_tracks_repo_metadata_and_skill_layout() -> None:
     assert manifest["interface"]["category"] == "Research"
     assert "runtime" in manifest["description"].lower()
     assert PLUGIN_SKILL_PATH.is_file()
+    assert PLUGIN_SKILL_UI_METADATA_PATH.is_file()
 
 
 def test_codex_plugin_marketplace_points_to_repo_local_plugin() -> None:
@@ -37,6 +39,7 @@ def test_codex_plugin_marketplace_points_to_repo_local_plugin() -> None:
 
     plugin_entry = next(item for item in marketplace["plugins"] if item["name"] == "mas")
 
+    assert marketplace["interface"]["displayName"] == "Med Auto Science Local"
     assert plugin_entry["source"] == {
         "source": "local",
         "path": "./plugins/mas",
@@ -55,11 +58,14 @@ def test_codex_plugin_support_files_exist() -> None:
 
 def test_mas_skill_pins_domain_runtime_guardrails() -> None:
     skill_text = PLUGIN_SKILL_PATH.read_text(encoding="utf-8")
+    metadata_text = PLUGIN_SKILL_UI_METADATA_PATH.read_text(encoding="utf-8")
 
     assert "Domain runtime 护栏" in skill_text
     assert "必须通过 MAS product-entry、controller、overlay 或 study runtime surface 推进" in skill_text
     assert "不得用 ad-hoc Python/R 脚本、通用文档/PDF/Office skill" in skill_text
     assert "回到 repo 层补最小 callable/controller surface" in skill_text
+    assert 'display_name: "Med Auto Science"' in metadata_text
+    assert 'default_prompt: "Use $mas' in metadata_text
 
 
 def test_readme_scopes_stable_callable_surface_to_mas_contracts() -> None:

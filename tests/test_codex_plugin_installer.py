@@ -41,6 +41,7 @@ def test_install_repo_local_codex_plugin_uses_repo_local_plugin_and_marketplace(
     assert result["skill_root"] == str(REPO_ROOT / "plugins" / "mas" / "skills" / "mas")
     assert not plugin_link.exists()
     assert not skill_link.exists()
+    assert marketplace["interface"]["displayName"] == "Med Auto Science Local"
     assert plugin_entry["source"] == {
         "source": "local",
         "path": "./plugins/mas",

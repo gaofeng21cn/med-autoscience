@@ -1,7 +1,7 @@
 {
   "name": "mas-local",
   "interface": {
-    "displayName": "MAS Local"
+    "displayName": "Med Auto Science Local"
   },
   "plugins": [
     {

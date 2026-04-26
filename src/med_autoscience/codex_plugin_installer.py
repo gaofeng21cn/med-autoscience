@@ -9,7 +9,8 @@ from typing import Any
 
 PLUGIN_NAME = "mas"
 MARKETPLACE_NAME = "mas-local"
-MARKETPLACE_DISPLAY_NAME = "MAS Local"
+MARKETPLACE_DISPLAY_NAME = "Med Auto Science Local"
+LEGACY_MARKETPLACE_DISPLAY_NAMES = ("MAS Local",)
 PLUGIN_CATEGORY = "Research"
 LEGACY_PLUGIN_NAMES = ("med-autoscience",)
 LEGACY_TEST_SKILL_MARKERS = (
@@ -119,7 +120,7 @@ def _upsert_marketplace(*, marketplace_path: Path) -> None:
         "interface": payload.get("interface") if isinstance(payload.get("interface"), dict) else {},
         "plugins": normalized_plugins,
     }
-    if not normalized_payload["interface"].get("displayName"):
+    if normalized_payload["interface"].get("displayName") in (None, "", *LEGACY_MARKETPLACE_DISPLAY_NAMES):
         normalized_payload["interface"]["displayName"] = MARKETPLACE_DISPLAY_NAME
     _write_json(marketplace_path, normalized_payload)
 

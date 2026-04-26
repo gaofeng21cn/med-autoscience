@@ -1,0 +1,4 @@
+interface:
+  display_name: "Med Auto Science"
+  short_description: "Medical research runtime for Codex"
+  default_prompt: "Use $mas to inspect the current Med Auto Science workspace status and next safe runtime action."
