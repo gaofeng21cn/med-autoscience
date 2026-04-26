@@ -6,7 +6,6 @@ from importlib import import_module
 import shutil
 import subprocess
 import sys
-import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,6 +21,7 @@ from med_autoscience.controllers.gate_clearing_batch_blockers import (
     REPAIRABLE_MEDICAL_SURFACE_BLOCKERS,
     medical_surface_repair_blockers,
 )
+from med_autoscience.controllers import gate_clearing_batch_submission
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     derived_next_publication_work_unit,
     explicit_next_publication_work_unit,
@@ -31,35 +31,6 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
 
 SCHEMA_VERSION = 1
 STABLE_GATE_CLEARING_BATCH_RELATIVE_PATH = Path("artifacts/controller/gate_clearing_batch/latest.json")
-_BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
-_BUNDLE_STAGE_GATE_BLOCKERS = frozenset(
-    {
-        "stale_study_delivery_mirror",
-        "stale_submission_minimal_authority",
-        "submission_surface_qc_failure_present",
-        "submission_hardening_incomplete",
-    }
-)
-_SUBMISSION_MINIMAL_REPAIR_GATE_BLOCKERS = frozenset(
-    {
-        "stale_submission_minimal_authority",
-        "submission_surface_qc_failure_present",
-        "submission_hardening_incomplete",
-    }
-)
-_DIRECT_SUBMISSION_DELIVERY_SYNC_STALE_REASONS = frozenset(
-    {
-        "delivery_projection_missing",
-        "delivery_manifest_source_changed",
-        "delivery_manifest_source_mismatch",
-    }
-)
-_SUBMISSION_MINIMAL_SOURCE_MISSING_STALE_REASONS = frozenset(
-    {
-        "current_submission_source_missing",
-        "delivery_manifest_sources_missing",
-    }
-)
 CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS = 5_000_000_000
 
 
@@ -519,8 +490,8 @@ def _repair_unit_fingerprint(
     elif unit_id == "sync_submission_minimal_delivery":
         payload = {
             "unit_id": unit_id,
-            "study_delivery_status": _study_delivery_status(gate_report),
-            "study_delivery_stale_reason": _study_delivery_stale_reason(gate_report),
+            "study_delivery_status": gate_clearing_batch_submission.study_delivery_status(gate_report),
+            "study_delivery_stale_reason": gate_clearing_batch_submission.study_delivery_stale_reason(gate_report),
             "study_delivery_manifest_path": _non_empty_text(gate_report.get("study_delivery_manifest_path")),
             "study_delivery_current_package_root": _non_empty_text(gate_report.get("study_delivery_current_package_root")),
             "study_delivery_current_package_zip": _non_empty_text(gate_report.get("study_delivery_current_package_zip")),
@@ -817,128 +788,6 @@ def _gate_blockers(gate_report: dict[str, Any]) -> set[str]:
     }
 
 
-def _bundle_stage_repair_requested(*, gate_report: dict[str, Any]) -> bool:
-    current_required_action = str(gate_report.get("current_required_action") or "").strip()
-    if current_required_action in _BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS:
-        return True
-    return bool(_gate_blockers(gate_report) & _BUNDLE_STAGE_GATE_BLOCKERS)
-
-
-def _bundle_stage_batch_action(
-    *,
-    source_action: dict[str, Any] | None,
-    gate_report: dict[str, Any],
-) -> dict[str, Any]:
-    current_required_action = str(gate_report.get("current_required_action") or "").strip()
-    reason = (
-        str((source_action or {}).get("reason") or "").strip()
-        or str(gate_report.get("controller_stage_note") or "").strip()
-        or "Run one controller-owned finalize/submission repair batch before returning to the same paper line."
-    )
-    route_rationale = (
-        str((source_action or {}).get("route_rationale") or "").strip()
-        or str(gate_report.get("controller_stage_note") or "").strip()
-        or "The remaining bundle-stage blockers are deterministic finalize/submission repairs."
-    )
-    route_key_question = (
-        str((source_action or {}).get("route_key_question") or "").strip()
-        or "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"
-    )
-    priority = str((source_action or {}).get("priority") or "").strip() or "now"
-    requires_controller_decision = bool((source_action or {}).get("requires_controller_decision"))
-    if source_action is None:
-        requires_controller_decision = True
-    return {
-        **(source_action or {}),
-        "action_type": "route_back_same_line",
-        "priority": priority,
-        "reason": reason,
-        "route_target": "finalize",
-        "route_key_question": route_key_question,
-        "route_rationale": route_rationale,
-        "requires_controller_decision": requires_controller_decision,
-        "current_required_action": current_required_action or None,
-    }
-
-
-def _study_delivery_status(gate_report: dict[str, Any]) -> str:
-    return str(gate_report.get("study_delivery_status") or "").strip()
-
-
-def _study_delivery_stale_reason(gate_report: dict[str, Any]) -> str:
-    return str(gate_report.get("study_delivery_stale_reason") or "").strip()
-
-
-def _submission_minimal_core_outputs_missing(gate_report: dict[str, Any]) -> bool:
-    manifest_present = bool(_non_empty_text(gate_report.get("submission_minimal_manifest_path")))
-    if gate_report.get("submission_minimal_present") is not None:
-        manifest_present = bool(gate_report.get("submission_minimal_present"))
-    return (
-        not manifest_present
-        or not bool(gate_report.get("submission_minimal_docx_present"))
-        or not bool(gate_report.get("submission_minimal_pdf_present"))
-    )
-
-
-def _submission_minimal_refresh_requested(*, gate_report: dict[str, Any]) -> bool:
-    current_required_action = str(gate_report.get("current_required_action") or "").strip()
-    if current_required_action == "complete_bundle_stage":
-        return True
-    if _gate_blockers(gate_report) & _SUBMISSION_MINIMAL_REPAIR_GATE_BLOCKERS:
-        return True
-    return (
-        _submission_minimal_core_outputs_missing(gate_report)
-        and _study_delivery_status(gate_report).startswith("stale")
-        and _study_delivery_stale_reason(gate_report) in _SUBMISSION_MINIMAL_SOURCE_MISSING_STALE_REASONS
-    )
-
-
-def _direct_submission_delivery_sync_requested(*, gate_report: dict[str, Any]) -> bool:
-    return (
-        _study_delivery_status(gate_report).startswith("stale")
-        and _study_delivery_stale_reason(gate_report) in _DIRECT_SUBMISSION_DELIVERY_SYNC_STALE_REASONS
-    )
-
-
-def _current_package_authority_fingerprints(*, paper_root: Path) -> list[dict[str, Any]]:
-    return _path_fingerprints(
-        paper_root / "submission_minimal" / "submission_manifest.json",
-        paper_root / "submission_minimal" / "manuscript.docx",
-        paper_root / "submission_minimal" / "paper.pdf",
-        paper_root / "submission_minimal" / "Supplementary_Material.docx",
-        paper_root / "submission_minimal" / "references.bib",
-        limit=16,
-    )
-
-
-def _current_package_authority_settled(*, paper_root: Path) -> tuple[bool, list[dict[str, Any]]]:
-    fingerprints = _current_package_authority_fingerprints(paper_root=paper_root)
-    now_ns = time.time_ns()
-    for fingerprint in fingerprints:
-        if not fingerprint.get("exists"):
-            continue
-        mtime_ns = fingerprint.get("mtime_ns")
-        if not isinstance(mtime_ns, int):
-            continue
-        if now_ns - mtime_ns < CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS:
-            return False, fingerprints
-    return True, fingerprints
-
-
-def _sync_submission_minimal_delivery_after_settle(*, paper_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
-    authority_settled, authority_fingerprints = _current_package_authority_settled(paper_root=paper_root)
-    if not authority_settled:
-        return {
-            "status": "skipped_authority_not_settled",
-            "authority_fingerprints": authority_fingerprints,
-            "settle_window_ns": CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
-        }
-    result = _sync_submission_minimal_delivery(paper_root=paper_root, profile=profile)
-    result["authority_fingerprints"] = authority_fingerprints
-    result["settle_window_ns"] = CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS
-    return result
-
-
 def _eligible_mapping_payload(*, quest_root: Path, study_root: Path) -> tuple[Path | None, dict[str, Any]]:
     mapping_path = _latest_scientific_anchor_mapping_path(quest_root=quest_root)
     if mapping_path is None:
@@ -998,7 +847,7 @@ def build_gate_clearing_batch_recommended_action(
         or "claim_evidence_consistency_failed" in medical_surface_blockers
     )
     stale_delivery = "stale_study_delivery_mirror" in gate_blockers
-    bundle_stage_repair = _bundle_stage_repair_requested(gate_report=gate_report)
+    bundle_stage_repair = gate_clearing_batch_submission.bundle_stage_repair_requested(gate_report=gate_report)
     quest_root = _quest_root(profile, quest_id=quest_id)
     mapping_path, mapping_payload = _eligible_mapping_payload(
         quest_root=quest_root,
@@ -1018,7 +867,7 @@ def build_gate_clearing_batch_recommended_action(
     if anchor_repairable or repairable_surface:
         selected_action = dict(bounded_analysis_action or {})
     elif bundle_stage_repair:
-        selected_action = _bundle_stage_batch_action(
+        selected_action = gate_clearing_batch_submission.bundle_stage_batch_action(
             source_action=same_line_action or controller_return_action,
             gate_report=gate_report,
         )
@@ -1199,13 +1048,15 @@ def run_gate_clearing_batch(
         study_root=resolved_study_root,
     )
     gate_blockers = _gate_blockers(gate_report)
-    bundle_stage_repair = _bundle_stage_repair_requested(gate_report=gate_report)
-    study_delivery_status = _study_delivery_status(gate_report)
-    submission_minimal_refresh_requested = _submission_minimal_refresh_requested(gate_report=gate_report)
+    bundle_stage_repair = gate_clearing_batch_submission.bundle_stage_repair_requested(gate_report=gate_report)
+    study_delivery_status = gate_clearing_batch_submission.study_delivery_status(gate_report)
+    submission_minimal_refresh_requested = gate_clearing_batch_submission.submission_minimal_refresh_requested(
+        gate_report=gate_report
+    )
     direct_submission_delivery_sync_requested = (
         bundle_stage_repair
         and not submission_minimal_refresh_requested
-        and _direct_submission_delivery_sync_requested(gate_report=gate_report)
+        and gate_clearing_batch_submission.direct_submission_delivery_sync_requested(gate_report=gate_report)
         and study_delivery_sync.can_sync_study_delivery(paper_root=paper_root)
     )
 
@@ -1285,7 +1136,13 @@ def run_gate_clearing_batch(
                     "workspace_display_repair_script",
                     "materialize_display_surface",
                 ),
-                run=lambda: _sync_submission_minimal_delivery_after_settle(paper_root=paper_root, profile=profile),
+                run=lambda: gate_clearing_batch_submission.sync_submission_minimal_delivery_after_settle(
+                    paper_root=paper_root,
+                    profile=profile,
+                    sync_submission_minimal_delivery=_sync_submission_minimal_delivery,
+                    path_fingerprints=_path_fingerprints,
+                    settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
+                ),
             )
         )
     if bundle_stage_repair and submission_minimal_refresh_requested:
@@ -1344,7 +1201,11 @@ def run_gate_clearing_batch(
             else None,
         )
         if embedded_delivery_sync is not None:
-            authority_settled, authority_fingerprints = _current_package_authority_settled(paper_root=paper_root)
+            authority_settled, authority_fingerprints = gate_clearing_batch_submission.current_package_authority_settled(
+                paper_root=paper_root,
+                path_fingerprints=_path_fingerprints,
+                settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
+            )
             if authority_settled:
                 embedded_delivery_sync["authority_fingerprints"] = authority_fingerprints
                 embedded_delivery_sync["settle_window_ns"] = CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS
@@ -1364,7 +1225,13 @@ def run_gate_clearing_batch(
             execution_summary["sequential_unit_count"] += 1
         else:
             try:
-                result = _sync_submission_minimal_delivery_after_settle(paper_root=paper_root, profile=profile)
+                result = gate_clearing_batch_submission.sync_submission_minimal_delivery_after_settle(
+                    paper_root=paper_root,
+                    profile=profile,
+                    sync_submission_minimal_delivery=_sync_submission_minimal_delivery,
+                    path_fingerprints=_path_fingerprints,
+                    settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
+                )
                 unit_results.append(
                     {
                         "unit_id": "sync_submission_minimal_delivery",

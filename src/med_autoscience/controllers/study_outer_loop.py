@@ -47,7 +47,6 @@ from med_autoscience.study_decision_record import (
     StudyDecisionType,
 )
 
-
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -910,11 +909,8 @@ def build_runtime_watch_outer_loop_tick_request(
         "reason": str(recommended_action.get("reason") or "").strip()
         or "publication eval requests an autonomous controller decision for the current line.",
         "work_unit_fingerprint": str(recommended_action.get("work_unit_fingerprint") or "").strip() or None,
-        "next_work_unit": dict(recommended_action.get("next_work_unit") or {})
-        if isinstance(recommended_action.get("next_work_unit"), dict)
-        else None,
+        "next_work_unit": dict(recommended_action.get("next_work_unit") or {}) if isinstance(recommended_action.get("next_work_unit"), dict) else None,
     }
-
 
 def _execute_controller_action(
     *,

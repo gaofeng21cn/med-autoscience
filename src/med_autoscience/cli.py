@@ -1468,10 +1468,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.error(f"unsupported command: {args.command}")
     return 2
 
-
 def entrypoint() -> None:
     raise SystemExit(main())
-
 
 if __name__ == "__main__":
     entrypoint()
