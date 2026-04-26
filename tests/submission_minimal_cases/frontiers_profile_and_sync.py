@@ -339,6 +339,47 @@ def test_create_submission_minimal_package_frontiers_family_syncs_into_study_fam
     assert called["publication_profile"] == "frontiers_family_harvard"
 
 
+def test_create_submission_minimal_package_frontiers_family_uses_admin_gap_notes_not_prompt_placeholders(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    frontiers_root = tmp_path / "frontiers_resources"
+    manuscript_template = frontiers_root / "Frontiers_Template.docx"
+    supplementary_template = frontiers_root / "Supplementary_Material.docx"
+    csl_path = frontiers_root / "frontiers.csl"
+
+    write_docx(manuscript_template, "Frontiers manuscript template")
+    write_docx(supplementary_template, "Frontiers supplementary template")
+    csl_path.write_text(module.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
+
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX", str(manuscript_template))
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX", str(supplementary_template))
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_CSL", str(csl_path))
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="frontiers_family_harvard",
+    )
+
+    frontiers_markdown = (
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "frontiers_manuscript.md"
+    ).read_text(encoding="utf-8")
+
+    forbidden_prompt_fragments = (
+        "[To be completed before submission.]",
+        "[Please replace this sentence",
+        "[Please add the exact",
+        "[Optional; complete",
+        "[Revise this statement",
+    )
+    assert not any(fragment in frontiers_markdown for fragment in forbidden_prompt_fragments)
+    assert "Authors: Pending author confirmation before formal submission." in frontiers_markdown
+    assert "Consent or waiver statement pending author confirmation before formal submission." in frontiers_markdown
+    assert "Author contributions pending author confirmation before formal submission." in frontiers_markdown
+
+
 def test_create_submission_minimal_package_builds_submission_facing_docx_for_current_draft_shape(
     tmp_path: Path,
 ) -> None:
@@ -585,4 +626,3 @@ Legend text for the main figure under the Main Figures alias.
     assert inspection["figure_block_count"] == 1
     assert inspection["figure_blocks_with_images"] == 1
     assert inspection["figure_blocks_with_legends"] == 1
-

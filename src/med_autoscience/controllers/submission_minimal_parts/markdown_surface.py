@@ -57,22 +57,20 @@ def build_frontiers_required_sections() -> str:
     return (
         "# Data Availability Statement\n\n"
         "Patient-level clinical data were analyzed in this study. Because the source dataset was derived from hospital "
-        "records, public deposition may be restricted by institutional and privacy requirements. "
-        "[Please replace this sentence with the authors' approved data-availability statement before submission.]\n\n"
+        "records, public deposition is subject to institutional and privacy approval. "
+        "Author-approved data-availability wording remains an administrative closeout item before formal submission.\n\n"
         "# Ethics Statement\n\n"
         "This study was approved by the Clinical Research Ethics Committee of the First Affiliated Hospital of "
         "Sun Yat-sen University (approval `[2024]576`). "
-        "[Please add the exact informed-consent or consent-waiver wording approved by the ethics committee before submission.]\n\n"
+        "Consent or waiver statement pending author confirmation before formal submission.\n\n"
         "# Author Contributions\n\n"
-        "[To be completed before submission.]\n\n"
+        "Author contributions pending author confirmation before formal submission.\n\n"
         "# Funding\n\n"
-        "[To be completed before submission.]\n\n"
+        "Funding statement pending author confirmation before formal submission.\n\n"
         "# Acknowledgments\n\n"
-        "[Optional; complete if applicable before submission.]\n\n"
+        "Acknowledgments pending author confirmation before formal submission, if applicable.\n\n"
         "# Conflict of Interest\n\n"
-        "The authors declare that the research was conducted in the absence of any commercial or financial "
-        "relationships that could be construed as a potential conflict of interest. "
-        "[Revise this statement if any competing interests apply.]\n"
+        "Conflict-of-interest statement pending author confirmation before formal submission.\n"
     )
 
 
@@ -957,4 +955,3 @@ def build_submission_manuscript_surface_qc(
         "pdf": pdf_stats,
         "failures": failures,
     }
-
