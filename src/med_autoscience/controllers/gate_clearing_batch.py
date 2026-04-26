@@ -22,6 +22,11 @@ from med_autoscience.controllers.gate_clearing_batch_blockers import (
     REPAIRABLE_MEDICAL_SURFACE_BLOCKERS,
     medical_surface_repair_blockers,
 )
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    derived_next_publication_work_unit,
+    explicit_next_publication_work_unit,
+    filter_repair_units_for_publication_work_unit,
+)
 
 
 SCHEMA_VERSION = 1
@@ -56,56 +61,6 @@ _SUBMISSION_MINIMAL_SOURCE_MISSING_STALE_REASONS = frozenset(
     }
 )
 CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS = 5_000_000_000
-_PUBLICATION_WORK_UNIT_REPAIR_IDS = {
-    "analysis_claim_evidence_repair": frozenset(
-        {
-            "freeze_scientific_anchor_fields",
-            "repair_paper_live_paths",
-            "workspace_display_repair_script",
-            "materialize_display_surface",
-        }
-    ),
-    "manuscript_story_repair": frozenset(
-        {
-            "repair_paper_live_paths",
-            "workspace_display_repair_script",
-            "materialize_display_surface",
-        }
-    ),
-    "figure_results_trace_repair": frozenset(
-        {
-            "repair_paper_live_paths",
-            "workspace_display_repair_script",
-            "materialize_display_surface",
-        }
-    ),
-    "treatment_gap_reporting_repair": frozenset(
-        {
-            "repair_paper_live_paths",
-            "workspace_display_repair_script",
-            "materialize_display_surface",
-        }
-    ),
-    "submission_minimal_refresh": frozenset(
-        {
-            "create_submission_minimal_package",
-            "sync_submission_minimal_delivery",
-        }
-    ),
-    "display_reporting_contract_repair": frozenset(
-        {
-            "repair_paper_live_paths",
-            "workspace_display_repair_script",
-            "materialize_display_surface",
-        }
-    ),
-    "local_architecture_overview_repair": frozenset(
-        {
-            "workspace_display_repair_script",
-            "materialize_display_surface",
-        }
-    ),
-}
 
 
 def _load_controller(module_name: str):
@@ -139,7 +94,6 @@ publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate")
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
 study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
-publication_work_units = _LazyModuleProxy(lambda: _load_controller("publication_work_units"))
 
 
 @dataclass(frozen=True)
@@ -946,64 +900,6 @@ def _direct_submission_delivery_sync_requested(*, gate_report: dict[str, Any]) -
     )
 
 
-def _explicit_next_publication_work_unit(publication_eval_payload: dict[str, Any]) -> dict[str, str] | None:
-    recommended_actions = publication_eval_payload.get("recommended_actions") or []
-    if not isinstance(recommended_actions, list):
-        return None
-    for action in recommended_actions:
-        if not isinstance(action, dict):
-            continue
-        next_work_unit = action.get("next_work_unit")
-        if not isinstance(next_work_unit, dict):
-            continue
-        unit_id = _non_empty_text(next_work_unit.get("unit_id"))
-        lane = _non_empty_text(next_work_unit.get("lane"))
-        summary = _non_empty_text(next_work_unit.get("summary"))
-        if unit_id is None:
-            continue
-        payload = {"unit_id": unit_id}
-        if lane is not None:
-            payload["lane"] = lane
-        if summary is not None:
-            payload["summary"] = summary
-        return payload
-    return None
-
-
-def _derived_next_publication_work_unit(gate_report: dict[str, Any]) -> dict[str, str] | None:
-    payload = publication_work_units.derive_publication_work_units(gate_report)
-    next_work_unit = payload.get("next_work_unit")
-    if not isinstance(next_work_unit, dict):
-        return None
-    unit_id = _non_empty_text(next_work_unit.get("unit_id"))
-    lane = _non_empty_text(next_work_unit.get("lane"))
-    summary = _non_empty_text(next_work_unit.get("summary"))
-    if unit_id is None:
-        return None
-    result = {"unit_id": unit_id}
-    if lane is not None:
-        result["lane"] = lane
-    if summary is not None:
-        result["summary"] = summary
-    return result
-
-
-def _filter_repair_units_for_publication_work_unit(
-    repair_units: list[GateClearingRepairUnit],
-    *,
-    next_work_unit: dict[str, str] | None,
-) -> list[GateClearingRepairUnit]:
-    if next_work_unit is None:
-        return repair_units
-    unit_id = _non_empty_text(next_work_unit.get("unit_id"))
-    if unit_id is None:
-        return repair_units
-    allowed_unit_ids = _PUBLICATION_WORK_UNIT_REPAIR_IDS.get(unit_id)
-    if allowed_unit_ids is None:
-        return repair_units
-    return [unit for unit in repair_units if unit.unit_id in allowed_unit_ids]
-
-
 def _current_package_authority_fingerprints(*, paper_root: Path) -> list[dict[str, Any]]:
     return _path_fingerprints(
         paper_root / "submission_minimal" / "submission_manifest.json",
@@ -1292,8 +1188,8 @@ def run_gate_clearing_batch(
             "source_eval_id": current_eval_id,
         }
 
-    explicit_next_work_unit = _explicit_next_publication_work_unit(publication_eval_payload)
-    selected_publication_work_unit = explicit_next_work_unit or _derived_next_publication_work_unit(gate_report)
+    explicit_next_work_unit = explicit_next_publication_work_unit(publication_eval_payload)
+    selected_publication_work_unit = explicit_next_work_unit or derived_next_publication_work_unit(gate_report)
     current_workspace_root = _current_workspace_root(
         quest_root=quest_root,
         default=paper_root.parent,
@@ -1407,7 +1303,7 @@ def run_gate_clearing_batch(
                 run=lambda: _create_submission_minimal_package(paper_root=paper_root, profile=profile),
             )
         )
-    repair_units = _filter_repair_units_for_publication_work_unit(
+    repair_units = filter_repair_units_for_publication_work_unit(
         repair_units,
         next_work_unit=explicit_next_work_unit,
     )
