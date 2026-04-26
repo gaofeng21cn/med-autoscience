@@ -853,6 +853,10 @@ def test_publication_eval_action_uses_bounded_analysis_for_blocked_claim_evidenc
     )
 
     assert action.action_type == "bounded_analysis"
+    assert action.action_id.startswith("publication-eval-action::bounded_analysis::publication-blockers::")
+    assert action.to_dict()["work_unit_fingerprint"].startswith("publication-blockers::")
+    assert action.to_dict()["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert action.to_dict()["blocking_work_units"][0]["unit_id"] == "analysis_claim_evidence_repair"
     assert action.reason == "当前 claim-evidence 对齐还不够，需要补一轮最小补充分析。"
     assert action.route_target == "analysis-campaign"
     assert action.route_key_question == "What is the narrowest supplementary analysis still required before the paper line can continue?"

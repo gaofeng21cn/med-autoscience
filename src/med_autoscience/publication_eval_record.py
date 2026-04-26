@@ -53,6 +53,9 @@ _RECOMMENDED_ACTION_ALLOWED_FIELDS = frozenset(
         "route_rationale",
         "evidence_refs",
         "requires_controller_decision",
+        "work_unit_fingerprint",
+        "blocking_work_units",
+        "next_work_unit",
     }
 )
 _ALLOWED_OVERALL_VERDICTS = frozenset({"promising", "mixed", "weak", "blocked"})
@@ -190,6 +193,33 @@ def _require_text_sequence(label: str, field_name: str, value: Any) -> tuple[str
     if not normalized:
         raise ValueError(f"{label} {field_name} must not be empty")
     return normalized
+
+
+def _optional_publication_work_unit(value: Any) -> dict[str, str] | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError("publication eval recommended action work unit must be a mapping")
+    normalized: dict[str, str] = {}
+    for field_name in ("unit_id", "lane", "summary"):
+        normalized[field_name] = _require_text(
+            "publication eval recommended action work unit",
+            field_name,
+            value.get(field_name),
+        )
+    return normalized
+
+
+def _optional_publication_work_units(value: Any) -> tuple[dict[str, str], ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        raise ValueError("publication eval recommended action blocking_work_units must be a list")
+    return tuple(
+        work_unit
+        for item in value
+        if (work_unit := _optional_publication_work_unit(item)) is not None
+    )
 
 
 def _payload_object_sequence(payload: dict[str, Any], field_name: str, label: str) -> list[dict[str, Any]]:
@@ -550,6 +580,9 @@ class PublicationEvalRecommendedAction:
     route_key_question: str | None = None
     route_rationale: str | None = None
     requires_controller_decision: bool = True
+    work_unit_fingerprint: str | None = None
+    blocking_work_units: tuple[dict[str, str], ...] = ()
+    next_work_unit: dict[str, str] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "action_id", _require_text("publication eval recommended action", "action_id", self.action_id))
@@ -626,6 +659,25 @@ class PublicationEvalRecommendedAction:
             raise ValueError("publication eval recommended action evidence_refs must not be empty")
         if self.requires_controller_decision is not True:
             raise ValueError("publication eval recommended action requires_controller_decision must be true")
+        object.__setattr__(
+            self,
+            "work_unit_fingerprint",
+            _optional_text(
+                "publication eval recommended action",
+                "work_unit_fingerprint",
+                self.work_unit_fingerprint,
+            ),
+        )
+        object.__setattr__(
+            self,
+            "blocking_work_units",
+            tuple(
+                work_unit
+                for item in self.blocking_work_units
+                if (work_unit := _optional_publication_work_unit(item)) is not None
+            ),
+        )
+        object.__setattr__(self, "next_work_unit", _optional_publication_work_unit(self.next_work_unit))
 
     def to_dict(self) -> dict[str, object]:
         payload: dict[str, object] = {
@@ -640,6 +692,12 @@ class PublicationEvalRecommendedAction:
             payload["route_target"] = self.route_target
             payload["route_key_question"] = self.route_key_question
             payload["route_rationale"] = self.route_rationale
+        if self.work_unit_fingerprint is not None:
+            payload["work_unit_fingerprint"] = self.work_unit_fingerprint
+        if self.blocking_work_units:
+            payload["blocking_work_units"] = list(self.blocking_work_units)
+        if self.next_work_unit is not None:
+            payload["next_work_unit"] = self.next_work_unit
         return payload
 
     @classmethod
@@ -684,6 +742,13 @@ class PublicationEvalRecommendedAction:
                 "requires_controller_decision",
                 "publication eval recommended action",
             ),
+            work_unit_fingerprint=_optional_text(
+                "publication eval recommended action",
+                "work_unit_fingerprint",
+                payload.get("work_unit_fingerprint"),
+            ),
+            blocking_work_units=_optional_publication_work_units(payload.get("blocking_work_units")),
+            next_work_unit=_optional_publication_work_unit(payload.get("next_work_unit")),
         )
 
 

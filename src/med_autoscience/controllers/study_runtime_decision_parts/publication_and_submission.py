@@ -12,6 +12,7 @@ from med_autoscience.controller_confirmation_summary import (
     stable_controller_confirmation_summary_path,
 )
 from med_autoscience.controllers import (
+    publication_work_units,
     publication_gate as publication_gate_controller,
     runtime_supervision as runtime_supervision_controller,
     study_runtime_interaction_arbitration as interaction_arbitration_controller,
@@ -687,8 +688,11 @@ def _publication_eval_action(
             str(report.get("controller_stage_note") or "").strip()
             or "Publication gate is blocked and requires controller review."
         )
+    work_unit_payload = publication_work_units.derive_publication_work_units(report)
+    work_unit_fingerprint = str(work_unit_payload.get("fingerprint") or "").strip()
+    action_id_suffix = work_unit_fingerprint or generated_at
     return PublicationEvalRecommendedAction(
-        action_id=f"publication-eval-action::{action_type}::{generated_at}",
+        action_id=f"publication-eval-action::{action_type}::{action_id_suffix}",
         action_type=action_type,
         priority="now",
         reason=reason,
@@ -697,6 +701,9 @@ def _publication_eval_action(
         route_key_question=route_contract.get("route_key_question"),
         route_rationale=route_contract.get("route_rationale"),
         requires_controller_decision=True,
+        work_unit_fingerprint=work_unit_fingerprint or None,
+        blocking_work_units=tuple(work_unit_payload.get("blocking_work_units") or ()),
+        next_work_unit=work_unit_payload.get("next_work_unit") if isinstance(work_unit_payload.get("next_work_unit"), dict) else None,
     )
 
 
@@ -765,9 +772,12 @@ def _materialize_publication_eval_from_gate_report(
         paper_root_ref,
         str(quest_root.resolve()),
     )
+    work_unit_payload = publication_work_units.derive_publication_work_units(publication_gate_report)
+    work_unit_fingerprint = str(work_unit_payload.get("fingerprint") or "").strip()
+    eval_id_suffix = work_unit_fingerprint or generated_at
     record = PublicationEvalRecord(
         schema_version=1,
-        eval_id=f"publication-eval::{study_id}::{resolved_quest_id}::{generated_at}",
+        eval_id=f"publication-eval::{study_id}::{resolved_quest_id}::{eval_id_suffix}",
         study_id=study_id,
         quest_id=resolved_quest_id,
         emitted_at=generated_at,
