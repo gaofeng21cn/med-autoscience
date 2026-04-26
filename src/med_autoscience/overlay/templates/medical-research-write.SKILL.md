@@ -25,7 +25,7 @@ This skill intentionally absorbs the strongest legacy runtime writing discipline
 - Keep ordinary subtask completions concise. When a paper/draft milestone is actually completed, upgrade to a richer `artifact.interact(kind='milestone', reply_mode='threaded', ...)` report instead of another short progress update.
 - That richer writing-stage milestone report should normally cover: which draft, section, or outline milestone finished, what is now supportable, what is still missing, and the exact recommended next revision or route decision.
 - That richer milestone report is still normally non-blocking. If the next writing or return-to-experiment step is already clear, continue automatically after reporting instead of pausing by default.
-- If a manuscript-facing draft or journal package can already be built, missing author / affiliation / corresponding-author / funding / conflict / ethics / consent / data-availability metadata must not trigger a blocking request by default. Materialize the auditable package first, keep explicit placeholders on the title-page or declaration surfaces, and record the gap in the submission checklist, package manifest, or handoff notes.
+- If a manuscript-facing draft or journal package can already be built, missing author / affiliation / corresponding-author / funding / conflict / ethics / consent / data-availability metadata must not trigger a blocking request by default. Materialize the auditable package first, keep explicit administrative gap notes on the title-page or declaration surfaces without bracketed prompt text in the manuscript body, and record the gap in the submission checklist, package manifest, or handoff notes.
 - For those package-polish metadata gaps, use a threaded `progress` or `milestone` follow-up plus TODO surfaces rather than `reply_mode='blocking'`, unless the missing item is a true external credential or secret without which no auditable package can be generated at all.
 - If the active communication surface is QQ, keep writing milestones text-first unless a final paper PDF or one clearly useful summary artifact already exists.
 - Treat connector-facing report charts separately from paper-facing figures; do not auto-send draft paper figures to QQ.
@@ -1222,7 +1222,7 @@ The self-review output should also make the verification logic externally legibl
 - what was downgraded or deferred
 
 When useful, add explicit “questions for the author” style prompts to expose what still needs proof or clarification.
-When the gap is limited to title-page or declaration metadata and an auditable package already exists, keep those questions threaded and non-blocking; the package should still be delivered with honest placeholders and a concrete follow-up checklist.
+When the gap is limited to title-page or declaration metadata and an auditable package already exists, keep those questions threaded and non-blocking; the package should still be delivered with honest administrative gap notes and a concrete follow-up checklist.
 If the draft is targeting publication quality, compare against a few strong nearby papers or templates only to raise quality, never to copy unsupported claims.
 
 Run that review with an adversarial mindset:

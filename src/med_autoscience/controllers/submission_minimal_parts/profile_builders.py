@@ -234,9 +234,9 @@ def build_frontiers_manuscript_markdown(
         f"bibliography: {bibliography_rel}\n"
         f"link-citations: true\n"
         f"---\n\n"
-        f"Authors: [To be completed before submission.]\n\n"
-        f"Affiliations: [To be completed before submission.]\n\n"
-        f"*Correspondence:* [To be completed before submission.]\n\n"
+        f"Authors: Pending author confirmation before formal submission.\n\n"
+        f"Affiliations: Pending author confirmation before formal submission.\n\n"
+        f"*Correspondence:* Pending corresponding-author confirmation before formal submission.\n\n"
         f"Keywords: {', '.join(FRONTIERS_KEYWORDS)}\n\n"
         f"# Abstract\n\n{abstract}\n\n"
         f"# Introduction\n\n{introduction}\n\n"
@@ -289,5 +289,4 @@ def build_frontiers_supplementary_markdown(
     output_path = submission_root / "frontiers_supplementary_material.md"
     write_text(output_path, markdown_text)
     return output_path
-
 
