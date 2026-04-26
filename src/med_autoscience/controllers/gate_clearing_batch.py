@@ -6,6 +6,7 @@ from importlib import import_module
 import shutil
 import subprocess
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -54,6 +55,57 @@ _SUBMISSION_MINIMAL_SOURCE_MISSING_STALE_REASONS = frozenset(
         "delivery_manifest_sources_missing",
     }
 )
+CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS = 5_000_000_000
+_PUBLICATION_WORK_UNIT_REPAIR_IDS = {
+    "analysis_claim_evidence_repair": frozenset(
+        {
+            "freeze_scientific_anchor_fields",
+            "repair_paper_live_paths",
+            "workspace_display_repair_script",
+            "materialize_display_surface",
+        }
+    ),
+    "manuscript_story_repair": frozenset(
+        {
+            "repair_paper_live_paths",
+            "workspace_display_repair_script",
+            "materialize_display_surface",
+        }
+    ),
+    "figure_results_trace_repair": frozenset(
+        {
+            "repair_paper_live_paths",
+            "workspace_display_repair_script",
+            "materialize_display_surface",
+        }
+    ),
+    "treatment_gap_reporting_repair": frozenset(
+        {
+            "repair_paper_live_paths",
+            "workspace_display_repair_script",
+            "materialize_display_surface",
+        }
+    ),
+    "submission_minimal_refresh": frozenset(
+        {
+            "create_submission_minimal_package",
+            "sync_submission_minimal_delivery",
+        }
+    ),
+    "display_reporting_contract_repair": frozenset(
+        {
+            "repair_paper_live_paths",
+            "workspace_display_repair_script",
+            "materialize_display_surface",
+        }
+    ),
+    "local_architecture_overview_repair": frozenset(
+        {
+            "workspace_display_repair_script",
+            "materialize_display_surface",
+        }
+    ),
+}
 
 
 def _load_controller(module_name: str):
@@ -87,6 +139,7 @@ publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate")
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
 study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
+publication_work_units = _LazyModuleProxy(lambda: _load_controller("publication_work_units"))
 
 
 @dataclass(frozen=True)
@@ -893,6 +946,103 @@ def _direct_submission_delivery_sync_requested(*, gate_report: dict[str, Any]) -
     )
 
 
+def _explicit_next_publication_work_unit(publication_eval_payload: dict[str, Any]) -> dict[str, str] | None:
+    recommended_actions = publication_eval_payload.get("recommended_actions") or []
+    if not isinstance(recommended_actions, list):
+        return None
+    for action in recommended_actions:
+        if not isinstance(action, dict):
+            continue
+        next_work_unit = action.get("next_work_unit")
+        if not isinstance(next_work_unit, dict):
+            continue
+        unit_id = _non_empty_text(next_work_unit.get("unit_id"))
+        lane = _non_empty_text(next_work_unit.get("lane"))
+        summary = _non_empty_text(next_work_unit.get("summary"))
+        if unit_id is None:
+            continue
+        payload = {"unit_id": unit_id}
+        if lane is not None:
+            payload["lane"] = lane
+        if summary is not None:
+            payload["summary"] = summary
+        return payload
+    return None
+
+
+def _derived_next_publication_work_unit(gate_report: dict[str, Any]) -> dict[str, str] | None:
+    payload = publication_work_units.derive_publication_work_units(gate_report)
+    next_work_unit = payload.get("next_work_unit")
+    if not isinstance(next_work_unit, dict):
+        return None
+    unit_id = _non_empty_text(next_work_unit.get("unit_id"))
+    lane = _non_empty_text(next_work_unit.get("lane"))
+    summary = _non_empty_text(next_work_unit.get("summary"))
+    if unit_id is None:
+        return None
+    result = {"unit_id": unit_id}
+    if lane is not None:
+        result["lane"] = lane
+    if summary is not None:
+        result["summary"] = summary
+    return result
+
+
+def _filter_repair_units_for_publication_work_unit(
+    repair_units: list[GateClearingRepairUnit],
+    *,
+    next_work_unit: dict[str, str] | None,
+) -> list[GateClearingRepairUnit]:
+    if next_work_unit is None:
+        return repair_units
+    unit_id = _non_empty_text(next_work_unit.get("unit_id"))
+    if unit_id is None:
+        return repair_units
+    allowed_unit_ids = _PUBLICATION_WORK_UNIT_REPAIR_IDS.get(unit_id)
+    if allowed_unit_ids is None:
+        return repair_units
+    return [unit for unit in repair_units if unit.unit_id in allowed_unit_ids]
+
+
+def _current_package_authority_fingerprints(*, paper_root: Path) -> list[dict[str, Any]]:
+    return _path_fingerprints(
+        paper_root / "submission_minimal" / "submission_manifest.json",
+        paper_root / "submission_minimal" / "manuscript.docx",
+        paper_root / "submission_minimal" / "paper.pdf",
+        paper_root / "submission_minimal" / "Supplementary_Material.docx",
+        paper_root / "submission_minimal" / "references.bib",
+        limit=16,
+    )
+
+
+def _current_package_authority_settled(*, paper_root: Path) -> tuple[bool, list[dict[str, Any]]]:
+    fingerprints = _current_package_authority_fingerprints(paper_root=paper_root)
+    now_ns = time.time_ns()
+    for fingerprint in fingerprints:
+        if not fingerprint.get("exists"):
+            continue
+        mtime_ns = fingerprint.get("mtime_ns")
+        if not isinstance(mtime_ns, int):
+            continue
+        if now_ns - mtime_ns < CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS:
+            return False, fingerprints
+    return True, fingerprints
+
+
+def _sync_submission_minimal_delivery_after_settle(*, paper_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
+    authority_settled, authority_fingerprints = _current_package_authority_settled(paper_root=paper_root)
+    if not authority_settled:
+        return {
+            "status": "skipped_authority_not_settled",
+            "authority_fingerprints": authority_fingerprints,
+            "settle_window_ns": CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
+        }
+    result = _sync_submission_minimal_delivery(paper_root=paper_root, profile=profile)
+    result["authority_fingerprints"] = authority_fingerprints
+    result["settle_window_ns"] = CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS
+    return result
+
+
 def _eligible_mapping_payload(*, quest_root: Path, study_root: Path) -> tuple[Path | None, dict[str, Any]]:
     mapping_path = _latest_scientific_anchor_mapping_path(quest_root=quest_root)
     if mapping_path is None:
@@ -1142,6 +1292,8 @@ def run_gate_clearing_batch(
             "source_eval_id": current_eval_id,
         }
 
+    explicit_next_work_unit = _explicit_next_publication_work_unit(publication_eval_payload)
+    selected_publication_work_unit = explicit_next_work_unit or _derived_next_publication_work_unit(gate_report)
     current_workspace_root = _current_workspace_root(
         quest_root=quest_root,
         default=paper_root.parent,
@@ -1237,7 +1389,7 @@ def run_gate_clearing_batch(
                     "workspace_display_repair_script",
                     "materialize_display_surface",
                 ),
-                run=lambda: _sync_submission_minimal_delivery(paper_root=paper_root, profile=profile),
+                run=lambda: _sync_submission_minimal_delivery_after_settle(paper_root=paper_root, profile=profile),
             )
         )
     if bundle_stage_repair and submission_minimal_refresh_requested:
@@ -1255,6 +1407,10 @@ def run_gate_clearing_batch(
                 run=lambda: _create_submission_minimal_package(paper_root=paper_root, profile=profile),
             )
         )
+    repair_units = _filter_repair_units_for_publication_work_unit(
+        repair_units,
+        next_work_unit=explicit_next_work_unit,
+    )
     if not repair_units and study_delivery_status.startswith("stale"):
         # Let publication_gate.run_controller(apply=True) own stale delivery refresh even when
         # there are no other deterministic repairs to launch in parallel.
@@ -1292,11 +1448,27 @@ def run_gate_clearing_batch(
             else None,
         )
         if embedded_delivery_sync is not None:
-            unit_results.append(embedded_delivery_sync)
+            authority_settled, authority_fingerprints = _current_package_authority_settled(paper_root=paper_root)
+            if authority_settled:
+                embedded_delivery_sync["authority_fingerprints"] = authority_fingerprints
+                embedded_delivery_sync["settle_window_ns"] = CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS
+                unit_results.append(embedded_delivery_sync)
+            else:
+                unit_results.append(
+                    {
+                        "unit_id": "sync_submission_minimal_delivery",
+                        "label": "Refresh the study-owned submission-minimal delivery mirror before gate replay",
+                        "parallel_safe": False,
+                        "status": "skipped_authority_not_settled",
+                        "authority_fingerprints": authority_fingerprints,
+                        "settle_window_ns": CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
+                        "depends_on": ["create_submission_minimal_package"],
+                    }
+                )
             execution_summary["sequential_unit_count"] += 1
         else:
             try:
-                result = _sync_submission_minimal_delivery(paper_root=paper_root, profile=profile)
+                result = _sync_submission_minimal_delivery_after_settle(paper_root=paper_root, profile=profile)
                 unit_results.append(
                     {
                         "unit_id": "sync_submission_minimal_delivery",
@@ -1304,6 +1476,8 @@ def run_gate_clearing_batch(
                         "parallel_safe": False,
                         "status": str(result.get("status") or "updated"),
                         "result": result,
+                        "authority_fingerprints": result.get("authority_fingerprints"),
+                        "settle_window_ns": result.get("settle_window_ns"),
                         "depends_on": ["create_submission_minimal_package"],
                     }
                 )
@@ -1340,6 +1514,8 @@ def run_gate_clearing_batch(
         "workspace_root": str(paper_root.parent),
         "current_workspace_root": str(current_workspace_root),
         "gate_blockers": sorted(gate_blockers),
+        "selected_publication_work_unit": selected_publication_work_unit,
+        "explicit_publication_work_unit": explicit_next_work_unit,
         "unit_results": unit_results,
         "unit_fingerprints": unit_fingerprints,
         "execution_summary": execution_summary,
