@@ -132,6 +132,12 @@ _WATCH_BLOCKER_LABELS = {
     "statistical_reporting_incomplete": "统计报告仍不完整，需补齐汇总格式、P 值和亚组检验说明。",
     "table_figure_claim_map_missing_or_incomplete": "表图与论文 claim 的对应关系仍未补齐。",
     "clinical_actionability_incomplete": "分型/真实世界论文仍缺少临床可行动性说明，包括治疗缺口和随访或结局相关性。",
+    "prediction_model_methods_reporting_incomplete": "预测模型方法报告仍不完整，需补齐 TRIPOD/TRIPOD+AI 关键方法字段。",
+    "time_to_event_prediction_reporting_incomplete": "时间到事件预测报告仍不完整，需补齐 PH、非线性、竞争事件 screen 和绝对风险校准说明。",
+    "decision_curve_clinical_utility_incomplete": "DCA 临床效用表述仍不完整，需绑定阈值范围、临床动作和使用边界。",
+    "prediction_performance_reporting_incomplete": "预测性能报告仍不完整，需补齐验证样本、事件数、C-index/校准和高风险尾部结果。",
+    "baseline_balance_reporting_incomplete": "基线表平衡报告仍不完整，需补齐变量级缺失和标准化差异。",
+    "competing_risk_reporting_incomplete": "竞争风险报告仍不完整，需说明非目标死亡处理和绝对风险敏感性验证。",
 }
 _BLOCKER_LABELS = {
     "active_run_drifting_into_write_without_gate_approval": "当前 live run 已经漂进写作或定稿，但发表门控仍未放行，必须先拉回论文门控主线。",
@@ -148,6 +154,12 @@ _BLOCKER_LABELS = {
     "statistical_reporting_incomplete": "统计报告仍不完整，需补齐汇总格式、P 值和亚组检验说明。",
     "table_figure_claim_map_missing_or_incomplete": "表图与论文 claim 的对应关系仍未补齐。",
     "clinical_actionability_incomplete": "分型/真实世界论文仍缺少临床可行动性说明，包括治疗缺口和随访或结局相关性。",
+    "prediction_model_methods_reporting_incomplete": "预测模型方法报告仍不完整，需补齐 TRIPOD/TRIPOD+AI 关键方法字段。",
+    "time_to_event_prediction_reporting_incomplete": "时间到事件预测报告仍不完整，需补齐 PH、非线性、竞争事件 screen 和绝对风险校准说明。",
+    "decision_curve_clinical_utility_incomplete": "DCA 临床效用表述仍不完整，需绑定阈值范围、临床动作和使用边界。",
+    "prediction_performance_reporting_incomplete": "预测性能报告仍不完整，需补齐验证样本、事件数、C-index/校准和高风险尾部结果。",
+    "baseline_balance_reporting_incomplete": "基线表平衡报告仍不完整，需补齐变量级缺失和标准化差异。",
+    "competing_risk_reporting_incomplete": "竞争风险报告仍不完整，需说明非目标死亡处理和绝对风险敏感性验证。",
 }
 _ACTION_LABELS = {
     "return_to_publishability_gate": "先补齐论文证据与叙事，再回到发表门控复核。",

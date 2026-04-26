@@ -22,6 +22,12 @@ def test_resolve_medical_reporting_contract_for_prediction_manuscript() -> None:
     assert contract.required_illustration_shells == ("cohort_flow_figure",)
     assert contract.required_table_shells == ("table1_baseline_characteristics",)
     assert contract.required_evidence_templates == ()
+    assert contract.structured_reporting_contract["prediction_model_reporting_required"] is True
+    assert "prediction_methods" in contract.structured_reporting_contract
+    assert "linked_clinical_action_scenario" in contract.structured_reporting_contract[
+        "decision_curve_clinical_utility"
+    ]
+    assert "time_to_event_prediction_reporting" not in contract.structured_reporting_contract
 
 
 def test_resolve_medical_reporting_contract_for_randomized_trial_publication() -> None:
@@ -258,6 +264,15 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
             catalog_id="T2",
             story_role="result_evidence",
         ),
+    )
+    assert contract.structured_reporting_contract["prediction_model_reporting_required"] is True
+    assert contract.structured_reporting_contract["endpoint_type"] == "time_to_event"
+    assert "competing_event_screen" in contract.structured_reporting_contract[
+        "time_to_event_prediction_reporting"
+    ]
+    assert (
+        contract.structured_reporting_contract["competing_risk_reporting_required"]
+        == "when_non_target_deaths_present"
     )
 
 

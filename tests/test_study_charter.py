@@ -322,6 +322,36 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
     }
 
 
+def test_materialize_study_charter_adds_prediction_model_reporting_guardrails(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "003-survival"
+
+    module.materialize_study_charter(
+        study_root=study_root,
+        study_id="003-survival",
+        study_payload={
+            "title": "Survival prediction",
+            "study_archetype": "clinical_classifier",
+            "manuscript_family": "prediction_model",
+            "endpoint_type": "time_to_event",
+        },
+        execution={},
+        required_first_anchor=None,
+    )
+
+    payload = json.loads((study_root / "artifacts" / "controller" / "study_charter.json").read_text(encoding="utf-8"))
+    contract = payload["paper_quality_contract"]["structured_reporting_contract"]
+
+    assert contract["prediction_model_reporting_required"] is True
+    assert contract["manuscript_family"] == "prediction_model"
+    assert contract["endpoint_type"] == "time_to_event"
+    assert "data_source_years" in contract["prediction_methods"]
+    assert "linked_clinical_action_scenario" in contract["decision_curve_clinical_utility"]
+    assert "standardized_mean_differences" in contract["baseline_balance_reporting"]
+    assert "competing_event_screen" in contract["time_to_event_prediction_reporting"]
+    assert contract["competing_risk_reporting_required"] == "when_non_target_deaths_present"
+
+
 def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Path) -> None:
     module = importlib.import_module(MODULE_NAME)
     study_root = tmp_path / "workspace" / "studies" / "002-minimal"

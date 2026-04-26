@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.policies.medical_reporting_checklist import build_default_structured_reporting_contract
+
 __all__ = [
     "STABLE_STUDY_CHARTER_RELATIVE_PATH",
     "materialize_study_charter",
@@ -278,6 +280,38 @@ def _materialize_structured_reporting_contract(study_payload: dict[str, Any]) ->
         contract["clinical_actionability"] = _mapping(raw_contract.get("clinical_actionability")) or dict(
             DEFAULT_CLINICAL_ACTIONABILITY_CONTRACT
         )
+    prediction_defaults = build_default_structured_reporting_contract(
+        study_archetype=_non_empty_string(study_payload.get("study_archetype")),
+        paper_archetype=archetype,
+        manuscript_family=_non_empty_string(raw_contract.get("manuscript_family"))
+        or _non_empty_string(study_payload.get("manuscript_family")),
+        endpoint_type=_non_empty_string(raw_contract.get("endpoint_type"))
+        or _non_empty_string(study_payload.get("endpoint_type")),
+    )
+    if prediction_defaults.get("prediction_model_reporting_required") is True:
+        for key in (
+            "study_archetype",
+            "paper_archetype",
+            "manuscript_family",
+            "endpoint_type",
+            "prediction_model_reporting_required",
+            "prediction_methods",
+            "time_to_event_prediction_reporting",
+            "decision_curve_clinical_utility",
+            "prediction_performance_reporting",
+            "baseline_balance_reporting",
+            "competing_risk_reporting_required",
+            "competing_risk_reporting",
+        ):
+            if key not in prediction_defaults:
+                continue
+            raw_value = raw_contract.get(key)
+            if isinstance(raw_value, dict):
+                contract[key] = raw_value
+            elif raw_value not in (None, "", []):
+                contract[key] = raw_value
+            elif key not in contract:
+                contract[key] = deepcopy(prediction_defaults[key])
     return contract
 
 

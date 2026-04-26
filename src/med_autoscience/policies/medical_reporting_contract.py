@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
+
+from med_autoscience.policies.medical_reporting_checklist import build_default_structured_reporting_contract
 
 
 @dataclass(frozen=True)
@@ -36,6 +39,7 @@ class MedicalReportingContract:
     display_ambition: str
     minimum_main_text_figures: int
     recommended_main_text_figures: tuple[DisplayBlueprintItem, ...]
+    structured_reporting_contract: dict[str, Any]
 
 
 SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES: dict[str, str] = {
@@ -270,6 +274,16 @@ def resolve_medical_reporting_contract(
             ),
         )
 
+    structured_reporting_contract = (
+        build_default_structured_reporting_contract(
+            study_archetype=study_archetype,
+            manuscript_family=manuscript_family,
+            endpoint_type=endpoint_type,
+        )
+        if manuscript_family == "prediction_model"
+        else {}
+    )
+
     return MedicalReportingContract(
         reporting_guideline_family=guideline,
         cohort_flow_required=True,
@@ -291,4 +305,5 @@ def resolve_medical_reporting_contract(
         display_ambition=display_ambition,
         minimum_main_text_figures=minimum_main_text_figures,
         recommended_main_text_figures=recommended_main_text_figures,
+        structured_reporting_contract=structured_reporting_contract,
     )

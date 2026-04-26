@@ -650,6 +650,7 @@ Before step 1, durably establish the writing-surface contract:
 - `submission_minimal_required = true`
 - `paper/medical_reporting_contract.json` should include `structured_reporting_contract` or equivalent first-draft prevention fields before the first complete manuscript draft
 - for real-world, phenotype, subtype, or cluster papers, set `clinical_actionability_required=true` unless the study charter explicitly says the paper is descriptive only
+- for prediction-model manuscripts, close the structured TRIPOD/TRIPOD+AI fields before prose expansion: data-source years, inclusion/exclusion, endpoint ascertainment, follow-up start, censoring, missingness, variable coding, model tuning, center effects, validation event counts, calibration, DCA threshold actions, Table 1 missingness/SMD, and time-to-event competing-event screen when applicable
 - terminology redline for body text, figure titles, and captions (no internal engineering terms, no internal model names)
 - `paper/claim_evidence_map.json`, `paper/results_narrative_map.json`, and `paper/figure_semantics_manifest.json` must agree on the main-text display obligations before you treat a bundle as closure-capable
 

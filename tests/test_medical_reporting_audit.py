@@ -130,6 +130,88 @@ def test_structured_reporting_checklist_accepts_charter_nested_contract() -> Non
     assert checklist["treatment_gap_reporting"]["status"] == "clear"
 
 
+def test_structured_reporting_checklist_blocks_prediction_model_reporting_gaps() -> None:
+    policy = importlib.import_module("med_autoscience.policies.medical_reporting_checklist")
+    complete = {"status": "complete"}
+
+    checklist = policy.build_structured_reporting_checklist(
+        {
+            "manuscript_family": "prediction_model",
+            "endpoint_type": "time_to_event",
+            "methods_completeness": {key: complete for key in policy.METHODS_COMPLETENESS_ITEMS},
+            "statistical_reporting": {key: complete for key in policy.STATISTICAL_REPORTING_ITEMS},
+            "table_figure_claim_map": [{"claim_id": "primary-model", "table_figure_refs": ["T2", "F4"]}],
+            "prediction_methods": {"data_source_years": "complete"},
+            "time_to_event_prediction_reporting": {"competing_event_screen": "complete"},
+            "decision_curve_clinical_utility": {"dca_threshold_range": "complete"},
+            "prediction_performance_reporting": {"validation_n": "complete"},
+            "baseline_balance_reporting": {"variable_level_missingness": "complete"},
+        }
+    )
+
+    assert checklist["status"] == "blocked"
+    assert "prediction_model_methods_reporting_incomplete" in checklist["blockers"]
+    assert "time_to_event_prediction_reporting_incomplete" in checklist["blockers"]
+    assert "decision_curve_clinical_utility_incomplete" in checklist["blockers"]
+    assert "prediction_performance_reporting_incomplete" in checklist["blockers"]
+    assert "baseline_balance_reporting_incomplete" in checklist["blockers"]
+    assert "competing_risk_reporting_incomplete" not in checklist["blockers"]
+    assert "linked_clinical_action_scenario" in checklist["decision_curve_clinical_utility"]["missing_items"]
+    assert "standardized_mean_differences" in checklist["baseline_balance_reporting"]["missing_items"]
+
+
+def test_structured_reporting_checklist_requires_competing_risk_details_when_events_present() -> None:
+    policy = importlib.import_module("med_autoscience.policies.medical_reporting_checklist")
+
+    def complete_section(items: tuple[str, ...]) -> dict[str, str]:
+        return {item: "complete" for item in items}
+
+    checklist = policy.build_structured_reporting_checklist(
+        {
+            "manuscript_family": "prediction_model",
+            "endpoint_type": "time_to_event",
+            "competing_risk_events_present": True,
+            "methods_completeness": complete_section(policy.METHODS_COMPLETENESS_ITEMS),
+            "statistical_reporting": complete_section(policy.STATISTICAL_REPORTING_ITEMS),
+            "table_figure_claim_map": [{"claim_id": "primary-model", "table_figure_refs": ["T2", "F4"]}],
+            "prediction_methods": complete_section(policy.PREDICTION_MODEL_METHODS_ITEMS),
+            "time_to_event_prediction_reporting": complete_section(policy.TIME_TO_EVENT_PREDICTION_ITEMS),
+            "decision_curve_clinical_utility": complete_section(policy.DECISION_CURVE_CLINICAL_UTILITY_ITEMS),
+            "prediction_performance_reporting": complete_section(
+                policy.PREDICTION_PERFORMANCE_REPORTING_ITEMS
+            ),
+            "baseline_balance_reporting": complete_section(policy.BASELINE_BALANCE_REPORTING_ITEMS),
+            "competing_risk_reporting": {
+                "target_event_definition": "complete",
+                "competing_event_definition": "complete",
+            },
+        }
+    )
+
+    assert checklist["status"] == "blocked"
+    assert checklist["blockers"] == ["competing_risk_reporting_incomplete"]
+    assert "non_target_death_handling" in checklist["competing_risk_reporting"]["missing_items"]
+    assert "fine_gray_or_competing_risk_sensitivity" in checklist["competing_risk_reporting"]["missing_items"]
+
+
+def test_default_structured_reporting_contract_for_time_to_event_prediction_sets_first_draft_gates() -> None:
+    policy = importlib.import_module("med_autoscience.policies.medical_reporting_checklist")
+
+    contract = policy.build_default_structured_reporting_contract(
+        study_archetype="clinical_classifier",
+        manuscript_family="prediction_model",
+        endpoint_type="time_to_event",
+    )
+
+    assert contract["prediction_model_reporting_required"] is True
+    assert contract["competing_risk_reporting_required"] == "when_non_target_deaths_present"
+    assert "model_tuning" in contract["prediction_methods"]
+    assert "linked_clinical_action_scenario" in contract["decision_curve_clinical_utility"]
+    assert "high_risk_predicted_observed" in contract["prediction_performance_reporting"]
+    assert "standardized_mean_differences" in contract["baseline_balance_reporting"]
+    assert "competing_event_screen" in contract["time_to_event_prediction_reporting"]
+
+
 def test_write_audit_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"
@@ -197,13 +279,13 @@ def test_medical_reporting_audit_blocks_missing_medical_story_contract(tmp_path:
     paper_root.mkdir(parents=True, exist_ok=True)
     (paper_root / "medical_reporting_contract.json").write_text(
         json.dumps(
-            {
-                "reporting_guideline_family": "TRIPOD",
-                "display_registry_required": False,
-                "cohort_flow_required": False,
-                "baseline_characteristics_required": False,
-                "display_shell_plan": [],
-            },
+                {
+                    "reporting_guideline_family": "STROBE",
+                    "display_registry_required": False,
+                    "cohort_flow_required": False,
+                    "baseline_characteristics_required": False,
+                    "display_shell_plan": [],
+                },
             ensure_ascii=False,
         ),
         encoding="utf-8",
@@ -232,7 +314,7 @@ def test_medical_reporting_audit_downgrades_missing_reporting_guideline_checklis
     (paper_root / "medical_reporting_contract.json").write_text(
         json.dumps(
             {
-                "reporting_guideline_family": "TRIPOD",
+                "reporting_guideline_family": "STROBE",
                 "display_registry_required": False,
                 "cohort_flow_required": False,
                 "baseline_characteristics_required": False,

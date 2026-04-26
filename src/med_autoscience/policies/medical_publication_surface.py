@@ -20,6 +20,7 @@ FORBIDDEN_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("study surface", "study surface", r"\bstudy surface\b", re.IGNORECASE),
     ("predictor surface", "predictor surface", r"\bpredictor surfaces?\b", re.IGNORECASE),
     ("validation surface", "validation surface", r"\bvalidation surface\b", re.IGNORECASE),
+    ("paper-facing", "paper-facing", r"\bpaper-facing\b", re.IGNORECASE),
     ("frontier", "frontier", r"\bfrontier\b", re.IGNORECASE),
     ("mainline", "mainline", r"\bmainline\b", re.IGNORECASE),
     ("sidecar", "sidecar", r"\bsidecar\b", re.IGNORECASE),
@@ -27,6 +28,20 @@ FORBIDDEN_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("control endpoint", "control endpoint", r"\bcontrol endpoint\b", re.IGNORECASE),
     ("limitation-aware", "limitation-aware", r"\blimitation-aware\b", re.IGNORECASE),
     ("post-gate", "post-gate", r"\bpost-gate\b", re.IGNORECASE),
+    ("frozen analysis outputs", "frozen analysis outputs", r"\bfrozen analysis outputs?\b", re.IGNORECASE),
+    ("supportive endpoint", "supportive endpoint", r"\bsupportive endpoint\b", re.IGNORECASE),
+    (
+        "manuscript provenance and reporting boundary",
+        "Manuscript provenance and reporting boundary",
+        r"\bmanuscript provenance and reporting boundary\b",
+        re.IGNORECASE,
+    ),
+    (
+        "this manuscript should be read as",
+        "This manuscript should be read as",
+        r"\bthis manuscript should be read as\b",
+        re.IGNORECASE,
+    ),
     ("Clinical Utility Model", "Clinical Utility Model", r"\bClinical Utility Model\b", 0),
     ("Preoperative Core Model", "Preoperative Core Model", r"\bPreoperative Core Model\b", 0),
     ("Pathology-Augmented Model", "Pathology-Augmented Model", r"\bPathology-Augmented Model\b", 0),
@@ -947,7 +962,8 @@ def build_intervention_message(report: dict[str, object]) -> str:
         f"Concrete examples: {example_text}. "
         "Required next route: first rewrite manuscript-facing prose in `paper/draft.md` and `paper/build/review_manuscript.md`, "
         "then rewrite figure/table titles and captions in the catalogs so they no longer use engineering terms such as "
-        "`deployment-facing`, `baseline-comparable`, `locked cohort`, `contract`, metric IDs such as "
+        "`deployment-facing`, `baseline-comparable`, `locked cohort`, `paper-facing`, `limitation-aware`, "
+        "`supportive endpoint`, `frozen analysis outputs`, `contract`, metric IDs such as "
         "`roc_auc`, `average_precision`, `brier_score`, `calibration_intercept`, `calibration_slope`, "
         "or tool/service references such as `deepscientist`, service URLs, or editing recommendations. "
         "Do not advertise tooling in figure captions. Do not reopen accepted figures unless in-figure visible text itself still "

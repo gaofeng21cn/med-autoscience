@@ -152,5 +152,6 @@ def resolve_medical_reporting_contract_for_study(
             "display_ambition": contract.display_ambition,
             "minimum_main_text_figures": contract.minimum_main_text_figures,
             "recommended_main_text_figures": [asdict(item) for item in contract.recommended_main_text_figures],
+            "structured_reporting_contract": contract.structured_reporting_contract,
         },
     )

@@ -115,6 +115,35 @@ def test_build_report_blocks_poster_style_figure_export_annotations(tmp_path: Pa
     assert any(hit["phrase"] == "Why this matters" for hit in report["top_hits"])
 
 
+def test_build_report_blocks_internal_project_writing_terms_from_manuscript(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    draft_path = paper_root / "draft.md"
+    draft_path.write_text(
+        draft_path.read_text(encoding="utf-8")
+        + "\n## Conclusion\n\n"
+        "This manuscript should be read as a limitation-aware report using frozen analysis outputs. "
+        "All-cause mortality remained a supportive endpoint in the paper-facing narrative.\n",
+        encoding="utf-8",
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "forbidden_manuscript_terms_present" in report["blockers"]
+    pattern_ids = {hit["pattern_id"] for hit in report["top_hits"]}
+    assert "this manuscript should be read as" in pattern_ids
+    assert "limitation-aware" in pattern_ids
+    assert "frozen analysis outputs" in pattern_ids
+    assert "supportive endpoint" in pattern_ids
+    assert "paper-facing" in pattern_ids
+
+
 def test_build_report_blocks_when_secondary_model_entry_is_incomplete(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
