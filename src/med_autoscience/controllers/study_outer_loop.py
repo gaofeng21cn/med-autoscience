@@ -909,6 +909,10 @@ def build_runtime_watch_outer_loop_tick_request(
         "controller_actions": [controller_action],
         "reason": str(recommended_action.get("reason") or "").strip()
         or "publication eval requests an autonomous controller decision for the current line.",
+        "work_unit_fingerprint": str(recommended_action.get("work_unit_fingerprint") or "").strip() or None,
+        "next_work_unit": dict(recommended_action.get("next_work_unit") or {})
+        if isinstance(recommended_action.get("next_work_unit"), dict)
+        else None,
     }
 
 

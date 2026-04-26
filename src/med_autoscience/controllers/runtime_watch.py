@@ -18,6 +18,8 @@ from med_autoscience.controllers import (
     medical_reporting_audit,
     publication_gate,
     runtime_supervision,
+    runtime_watch_outer_loop_dispatch,
+    runtime_watch_work_units,
     study_outer_loop,
     study_runtime_family_orchestration as family_orchestration,
     study_runtime_router,
@@ -683,58 +685,6 @@ def _serialize_managed_study_auto_recovery(
     }
 
 
-def _serialize_managed_study_outer_loop_dispatch(
-    *,
-    tick_request: Mapping[str, Any],
-    outer_loop_result: Mapping[str, Any],
-) -> dict[str, Any]:
-    controller_actions = tick_request.get("controller_actions")
-    first_controller_action = (
-        controller_actions[0]
-        if isinstance(controller_actions, list) and controller_actions and isinstance(controller_actions[0], Mapping)
-        else {}
-    )
-    return {
-        "study_id": _non_empty_text(outer_loop_result.get("study_id")) or _non_empty_text(tick_request.get("study_id")),
-        "quest_id": _non_empty_text(outer_loop_result.get("quest_id")) or _non_empty_text(tick_request.get("quest_id")),
-        "decision_type": _non_empty_text(tick_request.get("decision_type")),
-        "route_target": _non_empty_text(tick_request.get("route_target")),
-        "route_key_question": _non_empty_text(tick_request.get("route_key_question")),
-        "controller_action_type": _non_empty_text(first_controller_action.get("action_type")),
-        "study_decision_ref": _non_empty_text(first_controller_action.get("payload_ref")),
-        "dispatch_status": _non_empty_text(outer_loop_result.get("dispatch_status")),
-        "source": _non_empty_text(outer_loop_result.get("source")) or _non_empty_text(tick_request.get("source")),
-    }
-
-
-def _attach_outer_loop_dispatch_to_quest_report(
-    *,
-    quest_report: dict[str, Any],
-    dispatch_payload: Mapping[str, Any],
-) -> None:
-    quest_report["managed_study_outer_loop_dispatch"] = {
-        "study_id": _non_empty_text(dispatch_payload.get("study_id")),
-        "quest_id": _non_empty_text(dispatch_payload.get("quest_id")),
-        "decision_type": _non_empty_text(dispatch_payload.get("decision_type")),
-        "route_target": _non_empty_text(dispatch_payload.get("route_target")),
-        "route_key_question": _non_empty_text(dispatch_payload.get("route_key_question")),
-        "controller_action_type": _non_empty_text(dispatch_payload.get("controller_action_type")),
-        "study_decision_ref": _non_empty_text(dispatch_payload.get("study_decision_ref")),
-        "dispatch_status": _non_empty_text(dispatch_payload.get("dispatch_status")),
-        "source": _non_empty_text(dispatch_payload.get("source")),
-    }
-    latest_report_path = _candidate_path(quest_report.get("latest_report_json")) or _candidate_path(
-        quest_report.get("report_json")
-    )
-    if latest_report_path is None:
-        return
-    _write_latest_watch_alias(
-        report_dir=latest_report_path.parent,
-        report=quest_report,
-        markdown=render_watch_markdown(quest_report),
-    )
-
-
 def _controller_decision_latest_matches_outer_loop_request(
     *,
     study_root: Path,
@@ -1279,6 +1229,22 @@ def run_watch_for_runtime(
                         "outcome": "no_request",
                         "reason": "outer-loop wakeup did not produce an autonomous request",
                     }
+                elif (
+                    work_unit_duplicate := runtime_watch_work_units.dispatch_already_executed(
+                        study_root=study_root,
+                        tick_request=tick_request,
+                    )
+                )[0]:
+                    work_unit_context = runtime_watch_work_units.context_payload(
+                        tick_request,
+                        work_unit_dispatch_key=work_unit_duplicate[1],
+                    )
+                    wakeup_audit = {
+                        **wakeup_audit,
+                        "outcome": "skipped_matching_work_unit",
+                        "reason": "outer-loop work unit already dispatched for the same blocker fingerprint",
+                        **work_unit_context,
+                    }
                 elif _controller_decision_latest_matches_outer_loop_request(
                     study_root=study_root,
                     status_payload=status_payload,
@@ -1290,14 +1256,15 @@ def run_watch_for_runtime(
                         "reason": "controller_decisions/latest.json already matches the wakeup request",
                     }
                 else:
+                    work_unit_dispatch_key = runtime_watch_work_units.dispatch_key(tick_request)
                     outer_loop_result = study_runtime_router.study_outer_loop_tick(
                         profile=profile,
                         source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
-                        **tick_request,
+                        **runtime_watch_work_units.strip_context(tick_request),
                     )
                     if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
                         raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
-                    dispatch_payload = _serialize_managed_study_outer_loop_dispatch(
+                    dispatch_payload = runtime_watch_outer_loop_dispatch.serialize_outer_loop_dispatch(
                         tick_request=tick_request,
                         outer_loop_result=outer_loop_result,
                     )
@@ -1310,15 +1277,21 @@ def run_watch_for_runtime(
                             if quest_root is not None:
                                 report_by_quest_root[str(quest_root)] = quest_report
                     if isinstance(quest_report, dict):
-                        _attach_outer_loop_dispatch_to_quest_report(
+                        runtime_watch_outer_loop_dispatch.attach_to_quest_report(
                             quest_report=quest_report,
                             dispatch_payload=dispatch_payload,
+                            write_latest_watch_alias=_write_latest_watch_alias,
+                            render_watch_markdown=render_watch_markdown,
                         )
                     wakeup_audit = {
                         **wakeup_audit,
                         "outcome": "dispatched",
                         "reason": "outer-loop wakeup dispatched an autonomous controller decision",
                         "dispatch": dispatch_payload,
+                        **runtime_watch_work_units.context_payload(
+                            tick_request,
+                            work_unit_dispatch_key=work_unit_dispatch_key,
+                        ),
                     }
                     status_payload = _managed_study_status_payload(
                         study_runtime_router.study_runtime_status(

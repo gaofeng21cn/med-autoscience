@@ -146,6 +146,8 @@ def _write_publication_eval(
     *,
     action_type: str = "continue_same_line",
     reason: str = "Controller should continue the same study line.",
+    work_unit_fingerprint: str | None = None,
+    next_work_unit: dict[str, str] | None = None,
 ) -> dict[str, str]:
     if action_type == "bounded_analysis":
         route_target = "analysis-campaign"
@@ -213,6 +215,15 @@ def _write_publication_eval(
                 ),
                 "evidence_refs": [str((study_root / "artifacts" / "publication_eval" / "latest.json").resolve())],
                 "requires_controller_decision": True,
+                **(
+                    {
+                        "work_unit_fingerprint": work_unit_fingerprint,
+                        "blocking_work_units": [next_work_unit],
+                        "next_work_unit": next_work_unit,
+                    }
+                    if work_unit_fingerprint is not None and next_work_unit is not None
+                    else {}
+                ),
             }
         ],
     }
@@ -221,7 +232,6 @@ def _write_publication_eval(
         "eval_id": payload["eval_id"],
         "artifact_path": str((study_root / "artifacts" / "publication_eval" / "latest.json").resolve()),
     }
-
 
 
 
