@@ -542,6 +542,100 @@ def test_run_controller_resyncs_delivery_when_only_current_package_projection_is
             "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
         },
     }
+
+
+def test_run_controller_preserves_current_package_publication_profile_during_stale_resync(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+    )
+    current_package_root = tmp_path / "studies" / "002" / "manuscript" / "current_package"
+    dump_json(
+        current_package_root / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "publication_profile": "frontiers_family_harvard",
+            "output_root": "paper/journal_submissions/frontiers_family_harvard",
+        },
+    )
+    describe_calls = iter(
+        [
+            {
+                "applicable": True,
+                "status": "stale_projection_missing",
+                "stale_reason": "delivery_projection_missing",
+                "delivery_manifest_path": str(tmp_path / "studies" / "002" / "manuscript" / "delivery_manifest.json"),
+                "current_package_root": str(current_package_root),
+                "missing_source_paths": [],
+            },
+            {
+                "applicable": True,
+                "status": "current",
+                "stale_reason": None,
+                "delivery_manifest_path": str(tmp_path / "studies" / "002" / "manuscript" / "delivery_manifest.json"),
+                "current_package_root": str(current_package_root),
+                "missing_source_paths": [],
+            },
+        ]
+    )
+    sync_calls: list[tuple[str, str, bool]] = []
+
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_draft_handoff_delivery",
+        lambda *, paper_root: {
+            "applicable": False,
+            "status": "not_applicable",
+            "current_package_root": None,
+            "current_package_zip": None,
+            "delivery_manifest_path": None,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_submission_delivery",
+        lambda *, paper_root, publication_profile="general_medical_journal": next(describe_calls),
+    )
+
+    def fake_sync(
+        *,
+        paper_root: Path,
+        stage: str,
+        publication_profile: str = "general_medical_journal",
+        promote_to_final: bool = False,
+    ) -> dict[str, object]:
+        sync_calls.append((stage, publication_profile, promote_to_final))
+        return {
+            "stage": stage,
+            "publication_profile": publication_profile,
+            "targets": {
+                "current_package_root": str(current_package_root),
+                "current_package_zip": str(current_package_root.parent / "current_package.zip"),
+            },
+        }
+
+    monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", fake_sync)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "materialize_submission_delivery_stale_notice",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("projection-missing should use sync_study_delivery")),
+    )
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    assert sync_calls == [("submission_minimal", "frontiers_family_harvard", False)]
+    assert result["study_delivery_stale_sync"]["publication_profile"] == "frontiers_family_harvard"
+
+
 def test_run_controller_unlocks_write_after_main_result_stale_delivery_resync(
     tmp_path: Path,
     monkeypatch,
