@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.controllers import autonomy_incidents
+from med_autoscience.controllers import autonomy_state_machine
 from med_autoscience.controllers import runtime_failure_taxonomy
 
 
@@ -367,12 +369,14 @@ def _efficiency_signals(
     sli_summary: Mapping[str, Any],
     mds_activity: Mapping[str, Any],
     long_run_health: Mapping[str, Any],
+    state_machine: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     live_ratio = _float(sli_summary.get("runtime_live_ratio"))
     duplicate_dispatch_active = bool(sli_summary.get("duplicate_dispatch_active"))
     package_stale = bool(sli_summary.get("package_stale_is_current_bottleneck"))
     flapping_transitions = _int(sli_summary.get("runtime_flapping_transitions"))
     heartbeat_state = _text(mds_activity.get("heartbeat_state"))
+    autonomy_state = _text(state_machine.get("current_state"))
     signals = [
         {
             "signal_id": "runtime_live_ratio",
@@ -401,6 +405,19 @@ def _efficiency_signals(
             "state": "watch" if package_stale else "met",
             "value": package_stale,
             "target": False,
+        },
+        {
+            "signal_id": "autonomy_state_machine",
+            "source": "autonomy_state_machine",
+            "state": (
+                "met"
+                if autonomy_state == "live"
+                else "watch"
+                if autonomy_state in {"queued", "running", "recovering"}
+                else "breach"
+            ),
+            "value": autonomy_state,
+            "target": "live",
         },
     ]
     if heartbeat_state is not None:
@@ -434,6 +451,18 @@ def build_autonomy_slo_signals(profile_payload: Mapping[str, Any]) -> dict[str, 
         bottleneck_types=bottleneck_types,
     )
     runtime_failure_classification = runtime_failure_taxonomy.classify_runtime_failure_from_profile(profile_payload)
+    autonomy_state = autonomy_state_machine.build_autonomy_state_machine_surface(
+        {
+            **profile_payload,
+            "runtime_failure_classification": runtime_failure_classification,
+        }
+    )
+    incident_learning_loop = autonomy_incidents.build_platform_incident_learning_loop(
+        {
+            **profile_payload,
+            "autonomy_state_machine": autonomy_state,
+        }
+    )
     recovery_actions = _recovery_actions(profile_payload)
     runtime_failure_action = _runtime_failure_action(
         study_id=_text(profile_payload.get("study_id")) or "unknown-study",
@@ -449,6 +478,7 @@ def build_autonomy_slo_signals(profile_payload: Mapping[str, Any]) -> dict[str, 
         sli_summary=sli_summary,
         mds_activity=mds_activity,
         long_run_health=long_run_health,
+        state_machine=autonomy_state,
     )
     breach_signal_ids = [
         str(signal["signal_id"])
@@ -476,10 +506,18 @@ def build_autonomy_slo_signals(profile_payload: Mapping[str, Any]) -> dict[str, 
         "incident_loop": {
             "candidate_count": len(incident_types),
             "candidate_types": incident_types,
+            "platform_incident_count": incident_learning_loop["incident_count"],
+            "platform_incident_types": [
+                str(incident["incident_type"])
+                for incident in incident_learning_loop["incidents"]
+                if isinstance(incident, Mapping)
+            ],
             "restore_priority": top_action.get("priority") or "monitor",
             "top_action_type": top_action.get("action_type") or "monitor_autonomy_slo",
             "top_controller_surface": top_action.get("controller_surface"),
         },
+        "autonomy_state_machine": autonomy_state,
+        "incident_learning_loop": incident_learning_loop,
         "runtime_failure_classification": runtime_failure_classification,
         "recovery_actions": recovery_actions,
         "slo_execution_plan": slo_execution_plan,
