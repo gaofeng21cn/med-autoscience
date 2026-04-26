@@ -89,6 +89,38 @@ ANALYSIS_PLANE_JARGON_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("residual_ordering_signal", "residual ordering signal", r"\bresidual ordering signal\b", re.IGNORECASE),
     ("claim_boundary_surface", "claim boundary", r"\bclaim boundary\b", re.IGNORECASE),
 ]
+PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
+    (
+        "residual_hypopituitarism_endpoint_label",
+        "later persistent global hypopituitarism",
+        r"\blater persistent global hypopituitarism\b",
+        re.IGNORECASE,
+    ),
+    (
+        "process_instruction_reaudit_methods",
+        "Keep ... re-audit ... methods",
+        r"\bKeep\b.{0,180}\bre-audit\b.{0,120}\bmethods\b",
+        re.IGNORECASE,
+    ),
+    (
+        "confirmed_historical_specification_residue",
+        "confirmed historical specification",
+        r"\bconfirmed historical specification\b",
+        re.IGNORECASE,
+    ),
+    (
+        "manuscript_facing_analyses_residue",
+        "manuscript-facing analyses",
+        r"\bmanuscript-facing analyses\b",
+        re.IGNORECASE,
+    ),
+    (
+        "comparator_drift_residue",
+        "comparator drift",
+        r"\bcomparator drift\b",
+        re.IGNORECASE,
+    ),
+]
 METHOD_LABEL_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("knowledge-guided", "knowledge-guided", r"\bknowledge-guided\b", re.IGNORECASE),
     ("causal", "causal", r"\bcausal\b", re.IGNORECASE),
@@ -126,6 +158,13 @@ def get_analysis_plane_jargon_patterns() -> list[tuple[str, str, re.Pattern[str]
     return [
         (pattern_id, phrase, re.compile(pattern, flags=flags))
         for pattern_id, phrase, pattern, flags in ANALYSIS_PLANE_JARGON_PATTERN_SPECS
+    ]
+
+
+def get_publication_surface_residue_patterns() -> list[tuple[str, str, re.Pattern[str]]]:
+    return [
+        (pattern_id, phrase, re.compile(pattern, flags=flags))
+        for pattern_id, phrase, pattern, flags in PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS
     ]
 
 

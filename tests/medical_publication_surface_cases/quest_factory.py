@@ -939,7 +939,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
             "direct_answer": "The cohort derivation and endpoint inventory were prespecified before evaluation.",
             "supporting_display_items": ["F1", "T1"],
             "key_quantitative_findings": ["Cohort flow and baseline structure were fixed before model evaluation."],
-            "clinical_meaning": "Defines the clinical denominator for the manuscript-facing analyses.",
+            "clinical_meaning": "Defines the clinical denominator for the current analysis.",
             "boundary": "Descriptive cohort accounting only.",
         },
         {

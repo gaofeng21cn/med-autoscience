@@ -160,6 +160,80 @@ def test_build_report_scans_only_table3_markdown_table_body(tmp_path: Path) -> N
     assert report["top_hits"] == []
 
 
+def test_build_report_blocks_cross_endpoint_residue_in_figure_catalog(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = _paper_root_from_quest(quest_root)
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    payload = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    payload["figures"][0]["caption"] = (
+        "Risk-layering display for Risk of later persistent global hypopituitarism."
+    )
+    dump_json(figure_catalog_path, payload)
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "forbidden_manuscript_terms_present" in report["blockers"]
+    assert any(
+        hit["pattern_id"] == "residual_hypopituitarism_endpoint_label"
+        and hit["location"] == "figures[0].caption"
+        for hit in report["top_hits"]
+    )
+
+
+def test_build_report_blocks_process_instruction_in_supplement_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = _paper_root_from_quest(quest_root)
+    reproducibility_path = paper_root / "manuscript_safe_reproducibility_supplement.json"
+    payload = json.loads(reproducibility_path.read_text(encoding="utf-8"))
+    payload["random_seed_policy"] = (
+        "Keep the removal_rate 3-month MRI provenance caveat explicit and re-audit it in the methods."
+    )
+    dump_json(reproducibility_path, payload)
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "forbidden_manuscript_terms_present" in report["blockers"]
+    assert any(
+        hit["pattern_id"] == "process_instruction_reaudit_methods"
+        and hit["path"].endswith("manuscript_safe_reproducibility_supplement.json")
+        for hit in report["top_hits"]
+    )
+
+
+def test_build_report_blocks_engineering_residue_in_table_catalog(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = _paper_root_from_quest(quest_root)
+    table_catalog_path = paper_root / "tables" / "table_catalog.json"
+    payload = json.loads(table_catalog_path.read_text(encoding="utf-8"))
+    payload["tables"][0]["note"] = "Confirmed historical specification; monitor comparator drift."
+    dump_json(table_catalog_path, payload)
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "forbidden_manuscript_terms_present" in report["blockers"]
+    hit_pattern_ids = {hit["pattern_id"] for hit in report["top_hits"]}
+    assert "confirmed_historical_specification_residue" in hit_pattern_ids
+    assert "comparator_drift_residue" in hit_pattern_ids
+
+
 def test_build_report_blocks_public_data_without_surface_decision(
     tmp_path: Path,
     monkeypatch,
@@ -638,5 +712,4 @@ def test_validate_table_catalog_rejects_missing_csv_for_anchor_generic_tables() 
 
     assert "missing required export formats" in errors[0]
     assert "csv" in errors[0]
-
 

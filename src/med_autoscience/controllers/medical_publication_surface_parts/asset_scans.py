@@ -387,7 +387,11 @@ def scan_string_value_for_patterns(
     return hits
 
 
-def scan_text_file_for_patterns(path: Path, *, patterns: list[tuple[str, re.Pattern[str]]]) -> list[dict[str, Any]]:
+def scan_text_file_for_patterns(
+    path: Path,
+    *,
+    patterns: list[tuple[str, re.Pattern[str]]] | list[tuple[str, str, re.Pattern[str]]],
+) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     hits: list[dict[str, Any]] = []
@@ -401,7 +405,7 @@ def scan_catalog_strings_for_patterns(
     path: Path,
     *,
     collection_key: str,
-    patterns: list[tuple[str, re.Pattern[str]]],
+    patterns: list[tuple[str, re.Pattern[str]]] | list[tuple[str, str, re.Pattern[str]]],
 ) -> list[dict[str, Any]]:
     payload = load_json(path, default={}) or {}
     hits: list[dict[str, Any]] = []
@@ -448,7 +452,7 @@ def scan_main_text_catalog_surface_for_patterns(
     path: Path,
     *,
     collection_key: str,
-    patterns: list[tuple[str, re.Pattern[str]]],
+    patterns: list[tuple[str, re.Pattern[str]]] | list[tuple[str, str, re.Pattern[str]]],
 ) -> list[dict[str, Any]]:
     payload = load_json(path, default={}) or {}
     hits: list[dict[str, Any]] = []
@@ -585,5 +589,4 @@ def scan_methodology_labels_text_file(path: Path) -> list[dict[str, Any]]:
                     }
                 )
     return hits
-
 
