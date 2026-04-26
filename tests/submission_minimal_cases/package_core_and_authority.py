@@ -384,7 +384,9 @@ def test_create_submission_minimal_package_general_profile_writes_figure_legends
     assert "## Figure 1. Main figure" in submission_markdown
     assert "Caption." in submission_markdown
     assert "The primary display item supports the manuscript-facing clinical message." in submission_markdown
+    assert submission_markdown.count("The primary display item supports the manuscript-facing clinical message.") == 1
     assert "Panel A summarizes the main paper-facing interpretation." in submission_markdown
+    assert submission_markdown.count("Panel A summarizes the main paper-facing interpretation.") == 1
     assert (
         "Abbreviations: treat all, Assumes every patient is managed as high risk at the chosen threshold."
         in submission_markdown
