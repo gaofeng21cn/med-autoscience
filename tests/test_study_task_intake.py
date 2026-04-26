@@ -142,15 +142,26 @@ def test_reviewer_first_user_feedback_intake_detects_revision_reactivation() -> 
     payload = {
         "task_intent": (
             "Resume the same 001 manuscript line for reviewer-first revision based on explicit user feedback. "
-            "Do not directly edit manuscript/current_package; use paper/rebuttal/input as trusted input and "
-            "route the work back through MAS/MDS write/review/publication gate surfaces."
+            "Do not directly edit manuscript/current_package; use paper/rebuttal/input as trusted input and route "
+            "the work back through MAS/MDS write/review/publication gate surfaces. Tighten Methods, calibration "
+            "and clinical-claim boundaries, table/figure legends, TRIPOD/PROBAST reporting, and paper-facing wording."
         ),
-        "constraints": ["Do not edit manuscript/current_package directly."],
+        "constraints": [
+            "Do not frame the model as ready for direct clinical decision-making; state internal validation and external-validation needs."
+        ],
+        "trusted_inputs": [
+            "studies/001-dm-cvd-mortality-risk/paper/rebuttal/input/2026-04-26_user_feedback_methods_calibration_scope.md"
+        ],
+        "first_cycle_outputs": [
+            "Create or update paper/rebuttal review matrix/action plan, revise paper-facing source surfaces, run publication/reporting gate."
+        ],
     }
 
     assert module.task_intake_is_reviewer_revision(payload) is True
     assert module.task_intake_overrides_auto_manual_finish(payload) is True
-    assert module.summarize_task_intake(payload)["revision_intake"]["reactivation_required"] is True
+    summary = module.summarize_task_intake(payload)
+    assert summary["revision_intake"]["kind"] == "reviewer_revision"
+    assert summary["revision_intake"]["reactivation_required"] is True
 
 
 def test_reviewer_revision_intake_yields_to_reviewer_first_bundle_stage_closeout() -> None:

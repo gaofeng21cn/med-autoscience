@@ -65,6 +65,36 @@ def test_build_report_blocks_generic_tool_disclosure_labels_in_caption(tmp_path:
     assert any(hit["phrase"] == "online service:" for hit in report["top_hits"])
 
 
+def test_build_report_blocks_prediction_model_engineering_terms_in_manuscript_text(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    draft_path = _paper_root_from_quest(quest_root) / "draft.md"
+    draft_path.write_text(
+        "# Draft\n\n"
+        "## Abstract\n\n"
+        "The horizon contract and predictor surface were evaluated in the validation surface.\n\n"
+        "## Results\n\n"
+        "Endpoint-alignment evidence and the control endpoint supported a limitation-aware conclusion.\n",
+        encoding="utf-8",
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "forbidden_manuscript_terms_present" in report["blockers"]
+    phrases = {hit["phrase"] for hit in report["top_hits"]}
+    assert "contract" in phrases
+    assert "predictor surface" in phrases
+    assert "validation surface" in phrases
+    assert "endpoint-alignment evidence" in phrases
+    assert "control endpoint" in phrases
+    assert "limitation-aware" in phrases
+
+
 def test_build_report_blocks_poster_style_figure_export_annotations(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
@@ -242,5 +272,4 @@ def test_build_report_accepts_valid_review_ledger(tmp_path: Path) -> None:
     assert "review_ledger_missing_or_incomplete" not in report["blockers"]
     assert report["review_ledger_present"] is True
     assert report["review_ledger_valid"] is True
-
 

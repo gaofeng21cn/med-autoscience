@@ -1124,14 +1124,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             command = _non_empty_text(item.get("command")) or "none"
             lines.append(f"- {title} [{surface_label}]: `{command}`")
     if payload.get("physician_decision_summary"):
-        lines.extend(
-            [
-                "",
-                "## 医生判断",
-                "",
-                f"- {str(payload.get('physician_decision_summary') or '').strip()}",
-            ]
-        )
+        lines.extend(["", "## 医生判断", "", f"- {str(payload.get('physician_decision_summary') or '').strip()}"])
     lines.extend(["", "## 最近进展", ""])
     if latest_events:
         for item in latest_events:

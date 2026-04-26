@@ -43,6 +43,10 @@ _REVIEWER_REVISION_MARKERS = (
     "paper revision",
     "revise manuscript",
     "revision checklist",
+    "explicit user feedback",
+    "user feedback",
+    "review matrix",
+    "action matrix",
     "导师反馈",
     "专家反馈",
     "审稿意见",
@@ -64,9 +68,10 @@ _REVIEWER_REVISION_MARKERS = (
     "results feedback",
     "figure feedback",
     "table feedback",
-    "user feedback",
-    "explicit user feedback",
     "scientific revision feedback",
+    "table/figure legends",
+    "tripod",
+    "probast",
 )
 _REVISION_INTAKE_CHECKLIST: tuple[tuple[str, str, str], ...] = (
     ("text_revisions", "text revisions", "Introduction/Methods/Results/Discussion 等文字修订点已逐条定位。"),

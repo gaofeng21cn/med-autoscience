@@ -145,6 +145,14 @@ Language redlines under this profile:
 - do not use internal editorial labels such as `paper-facing`, `mainline`, `sidecar`, `analysis surface`, or `study surface` in manuscript body text, figure titles, captions, or table notes
 - explicit forbidden examples include `locked vYYYY-MM-DD`, `workspace cohort`, `data freeze`, `follow-up freeze`, `paper-facing`, and `mainline`
 - replace internal labels with externally legible, reviewer-facing terminology
+- for prediction-model papers, replace internal or conceptual phrases such as `horizon contract`, `predictor surface`, `validation surface`, `endpoint-alignment evidence`, `control endpoint`, and `sidecar material` with standard scientific terms such as `5-year prediction horizon`, `candidate predictors`, `validation cohort`, `supportive endpoint analysis`, `supportive secondary endpoint`, and `supplementary analysis`
+
+For prediction-model or time-to-event manuscripts, the first complete draft must include a reviewer-facing reporting block before any submission package is described as ready:
+
+- data source, center count, enrollment period, diabetes or disease definition, inclusion / exclusion criteria, endpoint ascertainment, follow-up source, ethics, consent or waiver, loss to follow-up, and missing-data handling
+- candidate predictor count, variable coding, continuous-variable transformation or standardization, penalization or tuning procedure, internal validation or resampling, event counts, censoring interpretation, and competing-risk interpretation when cause-specific death is modeled
+- performance table fields: endpoint, validation N, event count at the prediction horizon, discrimination with confidence interval, calibration metric, Brier score or prediction error, highest-risk-group predicted versus observed risk, and decision-curve threshold range with clinical rationale
+- Discussion and Conclusion language bounded to internal validation, risk stratification, calibration limitations, and external-validation need unless the accepted evidence explicitly supports clinical deployment
 
 {{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}
 

@@ -297,6 +297,10 @@ def test_load_overlay_skill_text_renders_policy_and_archetypes_for_front_stages(
     assert "locked vYYYY-MM-DD" in write_text
     assert "follow-up freeze" in write_text
     assert "paper-facing" in write_text
+    assert "5-year prediction horizon" in write_text
+    assert "candidate predictor count" in write_text
+    assert "competing-risk interpretation" in write_text
+    assert "highest-risk-group predicted versus observed risk" in write_text
 
 
 def test_overlay_includes_medical_runtime_contract_blocks() -> None:
@@ -332,6 +336,8 @@ def test_overlay_write_review_finalize_tighten_medical_owner_contracts() -> None
     assert "`review_ledger`" in review_text
     assert "downgrade the claim wording" in review_text
     assert "`draft-ready`, `paper-ready`, or `submission-ready`" in review_text
+    assert "Prediction-model or time-to-event drafts expose TRIPOD-style reporting" in review_text
+    assert "Clinical-use claims are bounded to internal validation" in review_text
 
     assert "## Medical closure owner boundary" in finalize_text
     assert "`study_charter`" in finalize_text
