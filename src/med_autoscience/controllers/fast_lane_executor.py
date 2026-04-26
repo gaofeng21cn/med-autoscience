@@ -51,6 +51,64 @@ def _checkpoint_requirements() -> dict[str, bool]:
     }
 
 
+def _fast_lane_v2_contract() -> dict[str, Any]:
+    return {
+        "contract_version": 2,
+        "quality_gate_relaxation_allowed": False,
+        "allowed_work_unit_classes": [
+            "authority_surface_refresh",
+            "ledger_closure_repair",
+            "reporting_guideline_checklist_repair",
+            "display_or_package_manifest_repair",
+            "publication_gate_replay",
+            "controller_decision_recording",
+        ],
+        "forbidden_scientific_changes": [
+            "primary_question_change",
+            "primary_endpoint_change",
+            "new_primary_claim",
+            "cohort_boundary_redefinition",
+            "statistical_method_replacement",
+            "unreviewed_subgroup_or_sensitivity_analysis",
+            "paper_body_claim_rewrite",
+            "quality_gate_relaxation",
+        ],
+        "rollback_requirements": {
+            "checkpoint_before_each_action_batch": True,
+            "rollback_on_failed_replay": True,
+            "rollback_on_quality_gate_regression": True,
+            "rollback_scope": "touched_authority_surfaces_and_generated_package_assets",
+        },
+        "refingerprint_requirements": {
+            "before_execute": True,
+            "after_each_action_batch": True,
+            "after_replay": True,
+            "fingerprint_scope": [
+                "study_charter",
+                "paper/evidence_ledger.json",
+                "paper/review_ledger.json",
+                "artifacts/publication_eval/latest.json",
+                "reporting_guideline_checklist.json",
+                "submission_package_assets",
+            ],
+        },
+        "completion_claim_policy": {
+            "mechanical_repair_complete_equals_scientific_quality_complete": False,
+            "mechanical_repair_completion_claim": "mechanical_work_units_complete",
+            "scientific_quality_completion_claim": "scientific_quality_complete_after_quality_gates_replayed_and_closed",
+            "requires_closed_surfaces": [
+                "study_charter.paper_quality_contract",
+                "paper/evidence_ledger.json",
+                "paper/review_ledger.json",
+                "artifacts/publication_eval/latest.json",
+                "reporting_guideline_checklist.json",
+            ],
+            "requires_successful_publication_gate_replay": True,
+            "allows_completion_claim_without_review_ledger": False,
+        },
+    }
+
+
 def build_fast_lane_execution_manifest(
     *,
     study_id: str,
@@ -74,7 +132,7 @@ def build_fast_lane_execution_manifest(
     return {
         "surface": "fast_lane_execution_manifest",
         "manifest_type": "gate_clearing_fast_lane_execution",
-        "schema_version": 1,
+        "schema_version": 2,
         "study_id": study_id_text,
         "quest_id": quest_id_text,
         "manifest_state": manifest_state,
@@ -99,6 +157,7 @@ def build_fast_lane_execution_manifest(
         "execution_plan": execution_plan,
         "quality_gate_policy": dict(_mapping(plan_manifest.get("quality_gate_policy"))),
         "quality_enforcement": dict(quality_ledger_enforcement),
+        "fast_lane_v2_contract": _fast_lane_v2_contract(),
         "checkpoint_requirements": _checkpoint_requirements(),
         "durable_checkpoint_requirements": dict(_mapping(plan_manifest.get("checkpoint_requirements"))),
         "replay_requirements": dict(_mapping(plan_manifest.get("replay_requirements"))),
