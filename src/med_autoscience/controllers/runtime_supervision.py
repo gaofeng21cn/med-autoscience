@@ -10,6 +10,8 @@ from med_autoscience.runtime_protocol import study_runtime as study_runtime_prot
 
 
 SCHEMA_VERSION = 1
+STABLE_LIVE_REQUIRED_COUNT = 2
+FLAPPING_CIRCUIT_BREAKER_THRESHOLD = 1
 _RECOVERY_DECISIONS = frozenset({"create_and_start", "resume", "relaunch_stopped"})
 _ACTIVE_QUEST_STATUSES = frozenset({"running", "active"})
 _HUMAN_CONFIRMATION_REQUIRED_ACTION = "human_confirmation_required"
@@ -53,6 +55,44 @@ def _int_or_zero(value: object) -> int:
         return max(int(text), 0)
     except ValueError:
         return 0
+
+
+def _runtime_stability_state(
+    *,
+    strict_live: bool,
+    health_status: str,
+    previous_report: Mapping[str, Any],
+) -> dict[str, Any]:
+    previous_health_status = _non_empty_text(previous_report.get("health_status"))
+    previous_stable_count = _int_or_zero(previous_report.get("stable_live_observation_count"))
+    previous_flapping_count = _int_or_zero(previous_report.get("flapping_episode_count"))
+    dropped_from_live = previous_health_status == "live" and health_status in {"recovering", "degraded", "escalated"}
+
+    if strict_live:
+        stable_live_observation_count = min(STABLE_LIVE_REQUIRED_COUNT, previous_stable_count + 1)
+        runtime_stability_status = (
+            "stable" if stable_live_observation_count >= STABLE_LIVE_REQUIRED_COUNT else "stabilizing"
+        )
+        flapping_episode_count = previous_flapping_count
+        flapping_circuit_breaker = False
+    else:
+        stable_live_observation_count = 0
+        flapping_episode_count = previous_flapping_count + 1 if dropped_from_live else previous_flapping_count
+        flapping_circuit_breaker = dropped_from_live and flapping_episode_count >= FLAPPING_CIRCUIT_BREAKER_THRESHOLD
+        if dropped_from_live:
+            runtime_stability_status = "flapping"
+        elif health_status in {"recovering", "degraded", "escalated", "inactive"}:
+            runtime_stability_status = health_status
+        else:
+            runtime_stability_status = "unknown"
+
+    return {
+        "runtime_stability_status": runtime_stability_status,
+        "stable_live_observation_count": stable_live_observation_count,
+        "stable_live_required_count": STABLE_LIVE_REQUIRED_COUNT,
+        "flapping_episode_count": flapping_episode_count,
+        "flapping_circuit_breaker": flapping_circuit_breaker,
+    }
 
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
@@ -352,6 +392,11 @@ def materialize_runtime_supervision(
         next_action = "continue_supervising_runtime"
         next_action_summary = "继续按周期刷新研究状态与前台进度。"
 
+    stability_state = _runtime_stability_state(
+        strict_live=strict_live,
+        health_status=health_status,
+        previous_report=previous_report,
+    )
     report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "recorded_at": recorded_at,
@@ -369,6 +414,7 @@ def materialize_runtime_supervision(
         "active_run_id": facts["active_run_id"],
         "recovery_attempt_count": recovery_attempt_count,
         "consecutive_failure_count": consecutive_failure_count,
+        **stability_state,
         "last_transition": last_transition,
         "needs_human_intervention": needs_human_intervention,
         "summary": summary,
