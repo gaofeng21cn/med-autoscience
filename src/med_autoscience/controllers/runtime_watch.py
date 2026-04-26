@@ -18,6 +18,7 @@ from med_autoscience.controllers import (
     medical_reporting_audit,
     publication_gate,
     runtime_supervision,
+    runtime_watch_recovery_policy,
     runtime_watch_outer_loop_dispatch,
     runtime_watch_work_units,
     study_outer_loop,
@@ -1120,6 +1121,7 @@ def run_watch_for_runtime(
     controller_runners = controller_runners or build_default_controller_runners()
     managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
     managed_study_auto_recoveries: list[dict[str, Any]] = []
+    managed_study_recovery_holds: list[dict[str, Any]] = []
     managed_study_outer_loop_dispatches: list[dict[str, Any]] = []
     managed_study_outer_loop_wakeup_audits: list[dict[str, Any]] = []
     managed_study_alert_deliveries: list[dict[str, Any]] = []
@@ -1144,18 +1146,25 @@ def run_watch_for_runtime(
                 )
                 if _should_hard_auto_recover_managed_study(action_payload):
                     preflight_payload = action_payload
-                    action_payload = study_runtime_router.ensure_study_runtime(
-                        profile=profile,
+                    recovery_hold = runtime_watch_recovery_policy.hold_for_flapping_circuit_breaker(
                         study_root=study_root,
-                        source=_MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
+                        status_payload=preflight_payload,
                     )
-                    managed_study_auto_recoveries.append(
-                        _serialize_managed_study_auto_recovery(
-                            preflight_payload=preflight_payload,
-                            applied_payload=action_payload,
+                    if recovery_hold is not None:
+                        managed_study_recovery_holds.append(recovery_hold)
+                    else:
+                        action_payload = study_runtime_router.ensure_study_runtime(
+                            profile=profile,
+                            study_root=study_root,
                             source=_MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
                         )
-                    )
+                        managed_study_auto_recoveries.append(
+                            _serialize_managed_study_auto_recovery(
+                                preflight_payload=preflight_payload,
+                                applied_payload=action_payload,
+                                source=_MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
+                            )
+                        )
             managed_study_statuses.append((study_root, _managed_study_status_payload(action_payload)))
     scanned: list[str] = []
     reports: list[dict[str, Any]] = []
@@ -1337,6 +1346,7 @@ def run_watch_for_runtime(
         "scanned_quests": scanned,
         "managed_study_actions": managed_study_actions,
         "managed_study_auto_recoveries": managed_study_auto_recoveries,
+        "managed_study_recovery_holds": managed_study_recovery_holds,
         "managed_study_outer_loop_dispatches": managed_study_outer_loop_dispatches,
         "managed_study_outer_loop_wakeup_audits": managed_study_outer_loop_wakeup_audits,
         "managed_study_supervision": managed_study_supervision,

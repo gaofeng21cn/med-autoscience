@@ -140,6 +140,91 @@ def test_watch_runtime_hard_recovers_active_no_live_resume_even_without_apply(
         }
     ]
     assert result["managed_study_supervision"][0]["health_status"] == "live"
+
+
+def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_active(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": "001-risk"})
+    quest_root = profile.runtime_root / "001-risk"
+    dump_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {
+            "schema_version": 1,
+            "recorded_at": "2026-04-26T00:00:00+00:00",
+            "study_id": "001-risk",
+            "quest_id": "001-risk",
+            "health_status": "recovering",
+            "runtime_stability_status": "flapping",
+            "flapping_episode_count": 2,
+            "flapping_circuit_breaker": True,
+            "runtime_reason": "quest_marked_running_but_no_live_session",
+        },
+    )
+    no_live_status = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="resume",
+            reason="quest_marked_running_but_no_live_session",
+        ),
+        "study_root": str(study_root),
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+        "runtime_liveness_audit": {
+            "status": "none",
+            "active_run_id": None,
+            "runtime_audit": {
+                "status": "none",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    }
+    calls: list[tuple[str, str]] = []
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or no_live_status,
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("flapping circuit breaker must suppress blind resume")),
+    )
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=False,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    assert calls == [("status", "001-risk"), ("status", "001-risk")]
+    assert result["managed_study_auto_recoveries"] == []
+    assert result["managed_study_recovery_holds"] == [
+        {
+            "study_id": "001-risk",
+            "quest_id": "001-risk",
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+            "hold_reason": "flapping_circuit_breaker_active",
+            "recommended_probe": "refresh_runtime_liveness_before_resume",
+            "flapping_episode_count": 2,
+        }
+    ]
+
+
 def test_run_watch_for_runtime_auto_recovers_stopped_controller_guard_quest(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
