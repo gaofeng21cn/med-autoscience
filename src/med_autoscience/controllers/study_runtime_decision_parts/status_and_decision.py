@@ -27,6 +27,52 @@ def _record_interaction_arbitration_if_required(
     status.record_interaction_arbitration(arbitration)
 
 
+def _record_runtime_recovery_lifecycle_if_required(status: StudyRuntimeStatus) -> None:
+    reason = status.reason.value if status.reason is not None else ""
+    decision = status.decision.value if status.decision is not None else ""
+    if reason not in {
+        StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION.value,
+        StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED.value,
+        StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED.value,
+    }:
+        return
+    runtime_liveness_audit = (
+        dict(status.extras.get("runtime_liveness_audit") or {})
+        if isinstance(status.extras.get("runtime_liveness_audit"), dict)
+        else {}
+    )
+    active_run_id = str(runtime_liveness_audit.get("active_run_id") or "").strip() or None
+    if decision == StudyRuntimeDecision.RESUME.value:
+        state = "recovering"
+        recent_recovery_action = "resume"
+        recovery_attempt_count = 1
+        next_check_reason = "confirm_recovered_live_session"
+    else:
+        state = "parked_requires_resume"
+        recent_recovery_action = (
+            "enable_auto_resume"
+            if reason == StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED.value
+            else "inspect_runtime_liveness"
+        )
+        recovery_attempt_count = 0
+        next_check_reason = "recover_runtime_audit_then_resume"
+    next_check_after_seconds = 300
+    status.extras["runtime_recovery_lifecycle"] = {
+        "state": state,
+        "reason": reason,
+        "decision": decision,
+        "runtime_liveness_status": str(runtime_liveness_audit.get("status") or "").strip() or None,
+        "active_run_id": active_run_id,
+        "recovery_attempt_count": recovery_attempt_count,
+        "recent_recovery_action": recent_recovery_action,
+        "next_check_reason": next_check_reason,
+        "next_check_after_seconds": next_check_after_seconds,
+        "next_check_at": (datetime.now(timezone.utc) + timedelta(seconds=next_check_after_seconds))
+        .replace(microsecond=0)
+        .isoformat(),
+    }
+
+
 def _status_state(
     *,
     profile: WorkspaceProfile,
@@ -198,6 +244,7 @@ def _status_state(
     )
 
     def _finalize_result() -> StudyRuntimeStatus:
+        _record_runtime_recovery_lifecycle_if_required(result)
         router._record_autonomous_runtime_notice_if_required(
             status=result,
             runtime_root=runtime_root,

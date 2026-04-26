@@ -248,6 +248,51 @@ def test_build_gate_clearing_batch_recommended_action_promotes_bundle_stage_retu
     assert "finalize/submission bundle blockers are deterministic same-line repair candidates" in action[
         "gate_clearing_batch_reason"
     ]
+
+
+def test_build_gate_clearing_batch_recommended_action_widens_bounded_analysis_to_submission_refresh(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-004")
+    assert publication_eval_payload["recommended_actions"][0]["action_type"] == "bounded_analysis"
+    gate_report = {
+        "status": "blocked",
+        "blockers": [
+            "stale_submission_minimal_authority",
+            "submission_surface_qc_failure_present",
+        ],
+        "current_required_action": "complete_bundle_stage",
+        "paper_line_open_supplementary_count": 0,
+        "medical_publication_surface_status": "clear",
+        "medical_publication_surface_current": True,
+    }
+
+    action = module.build_gate_clearing_batch_recommended_action(
+        profile=profile,
+        study_root=study_root,
+        quest_id="quest-004",
+        publication_eval_payload=publication_eval_payload,
+        gate_report=gate_report,
+    )
+
+    assert action is not None
+    assert action["action_type"] == "route_back_same_line"
+    assert action["route_target"] == "finalize"
+    assert action["controller_action_type"] == "run_gate_clearing_batch"
+    assert action["next_work_unit"] == {
+        "unit_id": "submission_minimal_refresh",
+        "lane": "finalize",
+        "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
+    }
 def test_run_gate_clearing_batch_executes_parallel_units_then_replays_gate(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
     profile = make_profile(tmp_path)

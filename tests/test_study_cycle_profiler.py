@@ -42,6 +42,15 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
         encoding="utf-8",
     )
     _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "20260424T235500Z.json",
+        {
+            "emitted_at": "2026-04-24T23:55:00+00:00",
+            "task_id": "task-001",
+            "study_id": "001-risk",
+            "task_intent": "revision intake",
+        },
+    )
+    _write_json(
         study_root / "artifacts" / "runtime" / "runtime_supervision" / "20260425T000000Z.json",
         {
             "recorded_at": "2026-04-25T00:00:00+00:00",
@@ -97,7 +106,7 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
         profile=profile,
         study_id="001-risk",
         study_root=None,
-        since="2026-04-25T00:00:00+00:00",
+        since="2026-04-24T23:50:00+00:00",
     )
 
     assert profile_payload["study_id"] == "001-risk"
@@ -110,6 +119,15 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
     assert profile_payload["controller_decision_fingerprints"]["top_repeats"][0]["count"] == 2
     assert profile_payload["gate_blocker_summary"]["current_blockers"] == ["claim_evidence_consistency_failed"]
     assert profile_payload["package_currentness"]["status"] == "stale"
+    assert profile_payload["step_latest_times"]["task_intake"] == "2026-04-24T23:55:00+00:00"
+    assert profile_payload["step_timings"][0] == {
+        "from_step": "task_intake",
+        "to_step": "run_start",
+        "from_at": "2026-04-24T23:55:00+00:00",
+        "to_at": "2026-04-25T00:00:00+00:00",
+        "duration_seconds": 300,
+    }
+    assert profile_payload["eta_confidence_band"]["classification"] == "runtime_recovering"
     assert [item["bottleneck_id"] for item in profile_payload["bottlenecks"]] == [
         "runtime_recovery_churn",
         "repeated_controller_decision",
@@ -133,6 +151,9 @@ def test_study_cycle_profiler_renders_markdown(tmp_path: Path) -> None:
             "controller_decision_fingerprints": {"top_repeats": []},
             "gate_blocker_summary": {"current_blockers": []},
             "package_currentness": {"status": "fresh"},
+            "step_latest_times": {},
+            "step_timings": [],
+            "eta_confidence_band": {"classification": "delivery_only", "label": "delivery-only"},
             "bottlenecks": [],
             "optimization_recommendations": [],
         }
@@ -209,6 +230,7 @@ def test_workspace_cycle_profiler_profiles_active_studies_and_sorts_bottlenecks(
         "runtime_recovery_churn_count": 2,
         "runtime_flapping_transition_count": 3,
         "package_stale_seconds": 100,
+        "non_actionable_gate_count": 0,
     }
 
 
@@ -225,6 +247,7 @@ def test_workspace_cycle_profiler_renders_markdown() -> None:
                 "runtime_recovery_churn_count": 1,
                 "runtime_flapping_transition_count": 3,
                 "package_stale_seconds": 100,
+                "non_actionable_gate_count": 0,
             },
             "studies": [
                 {
@@ -235,7 +258,9 @@ def test_workspace_cycle_profiler_renders_markdown() -> None:
                         "runtime_recovery_churn_count": 1,
                         "runtime_flapping_transition_count": 3,
                         "package_stale_seconds": 100,
+                        "non_actionable_gate_count": 0,
                     },
+                    "eta_confidence_band": {"classification": "runtime_recovering", "label": "runtime recovering"},
                     "bottlenecks": [{"bottleneck_id": "runtime_recovery_churn"}],
                 }
             ],
@@ -320,3 +345,38 @@ def test_workspace_cycle_profiler_emits_action_units_and_scheduler_queue(tmp_pat
         item["action_unit_id"] for item in action_units
     ]
     assert payload["workspace_scheduler"]["ready_count"] == 4
+
+
+def test_study_cycle_profiler_marks_non_actionable_gate_and_eta_band(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+    study_root = workspace_root / "studies" / "003-dpcc"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 003-dpcc\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "emitted_at": "2026-04-25T00:20:00+00:00",
+            "status": "blocked",
+            "blockers": ["publication_gate_blocked", "submission_hardening_needed"],
+        },
+    )
+
+    payload = module.profile_study_cycle(profile=profile, study_id="003-dpcc", study_root=None)
+
+    assert payload["gate_blocker_summary"]["actionability_status"] == "blocked_by_non_actionable_gate"
+    assert [item["bottleneck_id"] for item in payload["bottlenecks"]] == [
+        "non_actionable_gate",
+        "publication_gate_blocked",
+    ]
+    assert payload["eta_confidence_band"] == {
+        "classification": "non_actionable_gate",
+        "label": "non-actionable gate",
+        "confidence": "blocked",
+        "min_seconds": None,
+        "max_seconds": None,
+        "reason": "Gate blockers are label-only and must be narrowed to concrete claim, display, evidence, citation, metric, or package-artifact targets before automated execution.",
+    }

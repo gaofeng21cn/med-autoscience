@@ -97,6 +97,8 @@ def test_watch_runtime_suppresses_repeated_work_unit_dispatch(
     assert len(first["managed_study_outer_loop_dispatches"]) == 1
     assert second["managed_study_outer_loop_dispatches"] == []
     assert wakeup_latest["outcome"] == "skipped_matching_work_unit"
+    assert wakeup_latest["no_op_acknowledged"] is True
+    assert wakeup_latest["dedupe_scope"] == "controller_decision_blocker_authority"
     assert wakeup_latest["work_unit_dispatch_key"] == (
         "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
     )

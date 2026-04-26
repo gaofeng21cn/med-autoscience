@@ -134,3 +134,29 @@ def test_same_blocker_set_has_stable_order_independent_fingerprint() -> None:
     )
 
     assert first["fingerprint"] == second["fingerprint"]
+
+
+def test_non_actionable_gate_labels_require_specificity_before_dispatch() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "current_required_action": "return_to_publishability_gate",
+            "blockers": [
+                "publication_gate_blocked",
+                "submission_hardening_needed",
+            ],
+        }
+    )
+
+    assert result["actionability_status"] == "blocked_by_non_actionable_gate"
+    assert result["next_work_unit"] == {
+        "unit_id": "gate_needs_specificity",
+        "lane": "controller",
+        "summary": "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets.",
+    }
+    assert result["specificity_questions"] == [
+        "Which exact claim, figure, table, metric, citation, evidence row, or package artifact is blocking the gate?",
+        "Which durable source path proves the blocker and which controller surface should own the repair?",
+    ]

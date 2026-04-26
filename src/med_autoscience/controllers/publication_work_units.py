@@ -23,6 +23,7 @@ _STORY_BLOCKERS = frozenset(
         "medical_story_contract_missing",
         "story_contract_missing",
         "story_blocked",
+        "reviewer_first_concerns_unresolved",
     }
 )
 _FIGURE_RESULTS_BLOCKERS = frozenset(
@@ -67,6 +68,8 @@ _SUBMISSION_REFRESH_BLOCKERS = frozenset(
         "submission_surface_qc_failure_present",
         "submission_hardening_incomplete",
         "study_delivery_stale",
+        "complete_bundle_stage",
+        "continue_bundle_stage",
     }
 )
 _TREATMENT_GAP_BLOCKERS = frozenset(
@@ -76,6 +79,29 @@ _TREATMENT_GAP_BLOCKERS = frozenset(
         "treatment_gap_reporting_blocked",
         "treatment_gap_reporting_incomplete",
     }
+)
+_ACTIONABLE_OBJECT_KEYS = frozenset(
+    {
+        "claim_id",
+        "claim_ref",
+        "figure_id",
+        "figure_ref",
+        "table_id",
+        "table_ref",
+        "metric_id",
+        "metric_ref",
+        "citation_id",
+        "citation_ref",
+        "evidence_row_id",
+        "evidence_row_ref",
+        "package_artifact",
+        "artifact_path",
+        "source_path",
+    }
+)
+_SPECIFICITY_QUESTIONS = (
+    "Which exact claim, figure, table, metric, citation, evidence row, or package artifact is blocking the gate?",
+    "Which durable source path proves the blocker and which controller surface should own the repair?",
 )
 
 
@@ -90,6 +116,7 @@ def _normalized_blockers(report: Mapping[str, Any]) -> tuple[str, ...]:
     blockers = {
         *_text_sequence(report, "blockers"),
         *_text_sequence(report, "medical_publication_surface_named_blockers"),
+        *_text_sequence(report, "medical_publication_surface_blockers"),
         *_text_sequence(report, "reporting_blockers"),
     }
     delivery_status = str(report.get("study_delivery_status") or "").strip()
@@ -114,6 +141,27 @@ def _unit(unit_id: str, lane: str, summary: str) -> dict[str, str]:
         "lane": lane,
         "summary": summary,
     }
+
+
+def _mapping_has_actionable_object_ref(payload: Mapping[str, Any]) -> bool:
+    for key in _ACTIONABLE_OBJECT_KEYS:
+        if str(payload.get(key) or "").strip():
+            return True
+    return False
+
+
+def _has_actionable_object_ref(report: Mapping[str, Any]) -> bool:
+    if _mapping_has_actionable_object_ref(report):
+        return True
+    for key in ("blocker_details", "gate_blocker_details", "gaps"):
+        value = report.get(key)
+        if isinstance(value, Mapping) and _mapping_has_actionable_object_ref(value):
+            return True
+        if isinstance(value, list):
+            for item in value:
+                if isinstance(item, Mapping) and _mapping_has_actionable_object_ref(item):
+                    return True
+    return False
 
 
 def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
@@ -178,7 +226,21 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
             )
         )
 
-    if not units:
+    actionability_status = "actionable"
+    specificity_questions: tuple[str, ...] = ()
+
+    if not units and blockers and not _has_actionable_object_ref(report):
+        actionability_status = "blocked_by_non_actionable_gate"
+        specificity_questions = _SPECIFICITY_QUESTIONS
+        units.append(
+            _unit(
+                "gate_needs_specificity",
+                "controller",
+                "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets.",
+            )
+        )
+    elif not units:
+        actionability_status = "actionable_review_required" if blockers else "clear_or_unspecified"
         units.append(
             _unit(
                 "publication_gate_blocker_review",
@@ -190,6 +252,8 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "fingerprint": _fingerprint(blockers),
         "blockers": list(blockers),
+        "actionability_status": actionability_status,
+        "specificity_questions": list(specificity_questions),
         "blocking_work_units": units,
         "next_work_unit": units[0],
     }

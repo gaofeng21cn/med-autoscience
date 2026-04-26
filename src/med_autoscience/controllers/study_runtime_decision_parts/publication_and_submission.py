@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from importlib import import_module
 import json
 from pathlib import Path
@@ -689,6 +689,12 @@ def _publication_eval_action(
             or "Publication gate is blocked and requires controller review."
         )
     work_unit_payload = publication_work_units.derive_publication_work_units(report)
+    if (
+        status != "clear"
+        and str(work_unit_payload.get("actionability_status") or "").strip() == "blocked_by_non_actionable_gate"
+    ):
+        action_type = "return_to_controller"
+        route_contract = {}
     work_unit_fingerprint = str(work_unit_payload.get("fingerprint") or "").strip()
     action_id_suffix = work_unit_fingerprint or generated_at
     return PublicationEvalRecommendedAction(

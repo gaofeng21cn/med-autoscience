@@ -1256,6 +1256,8 @@ def run_watch_for_runtime(
                         **wakeup_audit,
                         "outcome": "skipped_matching_work_unit",
                         "reason": "outer-loop work unit already dispatched for the same blocker fingerprint",
+                        "no_op_acknowledged": True,
+                        "dedupe_scope": "controller_decision_blocker_authority",
                         **work_unit_context,
                     }
                 elif _controller_decision_latest_matches_outer_loop_request(
@@ -1267,6 +1269,8 @@ def run_watch_for_runtime(
                         **wakeup_audit,
                         "outcome": "skipped_matching_decision",
                         "reason": "controller_decisions/latest.json already matches the wakeup request",
+                        "no_op_acknowledged": True,
+                        "dedupe_scope": "controller_decision",
                     }
                 else:
                     work_unit_dispatch_key = runtime_watch_work_units.dispatch_key(tick_request)

@@ -362,3 +362,16 @@ def test_submission_minimal_refresh_syncs_current_package_after_authority_settle
     assert sync_calls == [paper_root]
     assert result["unit_results"][1]["unit_id"] == "sync_submission_minimal_delivery"
     assert result["unit_results"][1]["status"] == "synced"
+    assert result["current_package_freshness_proof"]["status"] == "fresh"
+    assert result["current_package_freshness_proof"]["source_unit_id"] == "sync_submission_minimal_delivery"
+    proof_record = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "controller"
+            / "current_package_freshness"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert proof_record["status"] == "fresh"
+    assert proof_record["source_eval_id"] == publication_eval_payload["eval_id"]

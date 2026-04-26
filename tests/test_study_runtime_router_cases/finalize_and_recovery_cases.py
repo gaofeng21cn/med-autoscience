@@ -276,6 +276,10 @@ def test_ensure_study_runtime_resumes_running_quest_when_daemon_has_no_live_sess
     assert result["reason"] == "quest_marked_running_but_no_live_session"
     assert result["runtime_liveness_audit"]["status"] == "none"
     assert result["bash_session_audit"]["status"] == "none"
+    assert result["runtime_recovery_lifecycle"]["state"] == "recovering"
+    assert result["runtime_recovery_lifecycle"]["recent_recovery_action"] == "resume"
+    assert result["runtime_recovery_lifecycle"]["recovery_attempt_count"] == 1
+    assert result["runtime_recovery_lifecycle"]["next_check_reason"] == "confirm_recovered_live_session"
     assert calls == [
         ("resume", "001-risk"),
     ]
@@ -464,6 +468,9 @@ def test_ensure_study_runtime_blocks_running_quest_when_live_session_audit_fails
     assert result["reason"] == "running_quest_live_session_audit_failed"
     assert result["runtime_liveness_audit"]["status"] == "unknown"
     assert result["bash_session_audit"]["status"] == "unknown"
+    assert result["runtime_recovery_lifecycle"]["state"] == "parked_requires_resume"
+    assert result["runtime_recovery_lifecycle"]["recent_recovery_action"] == "inspect_runtime_liveness"
+    assert result["runtime_recovery_lifecycle"]["next_check_reason"] == "recover_runtime_audit_then_resume"
 
 
 def test_ensure_study_runtime_auto_resumes_stale_live_runtime_without_live_bash_sessions(

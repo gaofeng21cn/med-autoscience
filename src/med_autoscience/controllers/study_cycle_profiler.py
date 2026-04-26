@@ -10,6 +10,8 @@ from typing import Any, Callable, Iterable, Mapping
 
 import yaml
 
+from med_autoscience.controllers import publication_work_units
+from med_autoscience.controllers.study_cycle_profiler_eta import eta_confidence_band
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -171,6 +173,7 @@ def _resolve_quest_root(*, profile: WorkspaceProfile, study_root: Path, study_id
 
 def _category_roots(*, study_root: Path, quest_root: Path | None) -> tuple[tuple[str, Path], ...]:
     roots: list[tuple[str, Path]] = [
+        ("task_intake", study_root / "artifacts" / "controller" / "task_intake"),
         ("runtime_supervision", study_root / "artifacts" / "runtime" / "runtime_supervision"),
         ("controller_decision", study_root / "artifacts" / "controller_decisions"),
         ("publication_eval", study_root / "artifacts" / "publication_eval"),
@@ -338,10 +341,17 @@ def _gate_blocker_summary(*, publication_eval_latest: Mapping[str, Any] | None, 
                         "reason": _non_empty_text(action.get("reason")),
                     }
                 )
+    gate_report_for_work_units = dict(publishability_gate_latest or publication_eval_latest or {})
+    gate_report_for_work_units["blockers"] = blockers
+    work_unit_payload = publication_work_units.derive_publication_work_units(gate_report_for_work_units)
     return {
         "status": "blocked" if blockers else "clear_or_not_materialized",
         "current_blockers": blockers,
         "recommended_actions": actions,
+        "actionability_status": work_unit_payload.get("actionability_status"),
+        "specificity_questions": work_unit_payload.get("specificity_questions") or [],
+        "blocking_work_units": work_unit_payload.get("blocking_work_units") or [],
+        "next_work_unit": work_unit_payload.get("next_work_unit"),
     }
 
 
@@ -399,6 +409,78 @@ def _package_currentness(study_root: Path) -> dict[str, Any]:
     }
 
 
+def _latest_dt_from_window(category_windows: Mapping[str, Any], category: str) -> datetime | None:
+    window = category_windows.get(category)
+    if not isinstance(window, Mapping):
+        return None
+    return _parse_timestamp(window.get("latest_at"))
+
+
+def _first_dt_from_window(category_windows: Mapping[str, Any], category: str) -> datetime | None:
+    window = category_windows.get(category)
+    if not isinstance(window, Mapping):
+        return None
+    return _parse_timestamp(window.get("first_at"))
+
+
+def _max_dt(*values: datetime | None) -> datetime | None:
+    candidates = [value for value in values if value is not None]
+    return max(candidates) if candidates else None
+
+
+def _step_latest_times(
+    *,
+    category_windows: Mapping[str, Any],
+    package_currentness: Mapping[str, Any],
+) -> dict[str, str]:
+    step_times = {
+        "task_intake": _latest_dt_from_window(category_windows, "task_intake"),
+        "controller_decision": _latest_dt_from_window(category_windows, "controller_decision"),
+        "run_start": _first_dt_from_window(category_windows, "runtime_supervision"),
+        "durable_artifact": _max_dt(
+            _latest_dt_from_window(category_windows, "gate_clearing_batch"),
+            _latest_dt_from_window(category_windows, "quality_repair_batch"),
+        ),
+        "gate_refresh": _max_dt(
+            _latest_dt_from_window(category_windows, "publication_eval"),
+            _latest_dt_from_window(category_windows, "publishability_gate"),
+        ),
+        "package_refresh": _parse_timestamp(package_currentness.get("current_package_latest_mtime")),
+    }
+    return {
+        step: _iso(timestamp)
+        for step, timestamp in step_times.items()
+        if timestamp is not None and _iso(timestamp) is not None
+    }
+
+
+def _step_timings(step_latest_times: Mapping[str, str]) -> list[dict[str, Any]]:
+    parsed_steps = {
+        step: parsed
+        for step, timestamp in step_latest_times.items()
+        if (parsed := _parse_timestamp(timestamp)) is not None
+    }
+    package_refresh = parsed_steps.get("package_refresh")
+    if package_refresh is not None and any(
+        step != "package_refresh" and timestamp > package_refresh
+        for step, timestamp in parsed_steps.items()
+    ):
+        parsed_steps.pop("package_refresh", None)
+    ordered = sorted(parsed_steps.items(), key=lambda item: item[1])
+    timings: list[dict[str, Any]] = []
+    for (from_step, from_at), (to_step, to_at) in zip(ordered, ordered[1:]):
+        timings.append(
+            {
+                "from_step": from_step,
+                "to_step": to_step,
+                "from_at": _iso(from_at),
+                "to_at": _iso(to_at),
+                "duration_seconds": int((to_at - from_at).total_seconds()),
+            }
+        )
+    return timings
+
+
 def _bottlenecks(
     *,
     runtime_transition_summary: Mapping[str, Any],
@@ -429,6 +511,14 @@ def _bottlenecks(
         )
     current_blockers = gate_blocker_summary.get("current_blockers")
     if isinstance(current_blockers, list) and current_blockers:
+        if gate_blocker_summary.get("actionability_status") == "blocked_by_non_actionable_gate":
+            bottlenecks.append(
+                {
+                    "bottleneck_id": "non_actionable_gate",
+                    "severity": "high",
+                    "summary": "Publication gate blockers are label-only and need concrete repair targets before dispatch.",
+                }
+            )
         bottlenecks.append(
             {
                 "bottleneck_id": "publication_gate_blocked",
@@ -466,6 +556,12 @@ def _optimization_recommendations(bottlenecks: list[dict[str, Any]]) -> list[dic
             "priority": "now",
             "summary": "Convert publication blockers into explicit blocking work units with one next work unit.",
             "expected_effect": "Keeps quality gates intact while making the next MAS/MDS action deterministic.",
+        },
+        "non_actionable_gate": {
+            "recommendation_id": "request-gate-specificity",
+            "priority": "now",
+            "summary": "Ask the gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets before dispatch.",
+            "expected_effect": "Prevents repeated bounded-analysis runs when the gate has not supplied an executable repair object.",
         },
         "stale_current_package": {
             "recommendation_id": "refresh-human-facing-package",
@@ -518,11 +614,19 @@ def _cycle_summary(payload: Mapping[str, Any]) -> dict[str, int]:
         if isinstance(package_currentness, Mapping)
         else 0
     )
+    gate_summary = payload.get("gate_blocker_summary")
+    non_actionable_gate_count = (
+        1
+        if isinstance(gate_summary, Mapping)
+        and gate_summary.get("actionability_status") == "blocked_by_non_actionable_gate"
+        else 0
+    )
     return {
         "repeated_controller_dispatch_count": repeated_dispatch_count,
         "runtime_recovery_churn_count": recovery_churn_count,
         "runtime_flapping_transition_count": flapping_transition_count,
         "package_stale_seconds": package_stale_seconds,
+        "non_actionable_gate_count": non_actionable_gate_count,
     }
 
 
@@ -547,6 +651,7 @@ def _workspace_totals(studies: Iterable[Mapping[str, Any]]) -> dict[str, int]:
         "runtime_recovery_churn_count": 0,
         "runtime_flapping_transition_count": 0,
         "package_stale_seconds": 0,
+        "non_actionable_gate_count": 0,
     }
     for study in studies:
         summary = study.get("cycle_summary")
@@ -582,6 +687,12 @@ def _optimization_action_units_for_study(study: Mapping[str, Any]) -> list[dict[
             "controller_surface": "gate_clearing_batch",
             "priority": "next",
             "summary": "Refresh the human-facing current package after authority surfaces settle.",
+        },
+        "non_actionable_gate": {
+            "action_type": "request_gate_specificity",
+            "controller_surface": "publication_gate",
+            "priority": "now",
+            "summary": "Request concrete blocker targets before dispatching another research run.",
         },
     }
     study_id = str(study.get("study_id") or "").strip()
@@ -659,9 +770,18 @@ def profile_study_cycle(
         publishability_gate_latest=publishability_gate_latest,
     )
     package_currentness = _package_currentness(resolved_study_root)
+    step_latest_times = _step_latest_times(
+        category_windows=category_windows,
+        package_currentness=package_currentness,
+    )
     bottlenecks = _bottlenecks(
         runtime_transition_summary=runtime_summary,
         controller_decision_fingerprints=decision_fingerprints,
+        gate_blocker_summary=gate_summary,
+        package_currentness=package_currentness,
+    )
+    eta_band = eta_confidence_band(
+        runtime_transition_summary=runtime_summary,
         gate_blocker_summary=gate_summary,
         package_currentness=package_currentness,
     )
@@ -680,6 +800,9 @@ def profile_study_cycle(
         "controller_decision_fingerprints": decision_fingerprints,
         "gate_blocker_summary": gate_summary,
         "package_currentness": package_currentness,
+        "step_latest_times": step_latest_times,
+        "step_timings": _step_timings(step_latest_times),
+        "eta_confidence_band": eta_band,
         "bottlenecks": bottlenecks,
         "optimization_recommendations": _optimization_recommendations(bottlenecks),
     }
@@ -697,6 +820,7 @@ def profile_workspace_cycles(*, profile: WorkspaceProfile, since: str | None = N
                 "quest_id": study_payload["quest_id"],
                 "profiling_window": study_payload["profiling_window"],
                 "cycle_summary": cycle_summary,
+                "eta_confidence_band": study_payload["eta_confidence_band"],
                 "bottleneck_score": _bottleneck_score(
                     bottlenecks=study_payload.get("bottlenecks"),
                     cycle_summary=cycle_summary,

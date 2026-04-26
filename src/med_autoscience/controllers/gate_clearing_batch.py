@@ -21,7 +21,14 @@ from med_autoscience.controllers.gate_clearing_batch_blockers import (
     REPAIRABLE_MEDICAL_SURFACE_BLOCKERS,
     medical_surface_repair_blockers,
 )
+from med_autoscience.controllers.gate_clearing_batch_fingerprints import (
+    globbed_path_fingerprints as _globbed_path_fingerprints,
+    path_fingerprint as _path_fingerprint,
+    path_fingerprints as _path_fingerprints,
+)
+from med_autoscience.controllers import gate_clearing_batch_package_freshness
 from med_autoscience.controllers import gate_clearing_batch_submission
+from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     derived_next_publication_work_unit,
@@ -197,60 +204,6 @@ def _current_workspace_root(*, quest_root: Path, default: Path) -> Path:
     if raw is None:
         return default
     return Path(raw).expanduser().resolve()
-
-
-def _path_fingerprint(path: Path | None) -> dict[str, Any] | None:
-    if path is None:
-        return None
-    resolved = Path(path).expanduser().resolve()
-    if not resolved.exists():
-        return {"path": str(resolved), "exists": False}
-    stat = resolved.stat()
-    return {
-        "path": str(resolved),
-        "exists": True,
-        "size": stat.st_size,
-        "mtime_ns": stat.st_mtime_ns,
-    }
-
-
-def _globbed_path_fingerprints(root: Path, *patterns: str, limit: int = 64) -> list[dict[str, Any]]:
-    if not root.exists():
-        return []
-    fingerprints: list[dict[str, Any]] = []
-    seen: set[Path] = set()
-    for pattern in patterns:
-        for path in sorted(root.glob(pattern)):
-            if not path.is_file():
-                continue
-            resolved = path.expanduser().resolve()
-            if resolved in seen:
-                continue
-            seen.add(resolved)
-            fingerprint = _path_fingerprint(resolved)
-            if fingerprint is not None:
-                fingerprints.append(fingerprint)
-            if len(fingerprints) >= limit:
-                return fingerprints
-    return fingerprints
-
-
-def _path_fingerprints(*paths: Path | None, limit: int = 64) -> list[dict[str, Any]]:
-    fingerprints: list[dict[str, Any]] = []
-    seen: set[Path] = set()
-    for path in paths:
-        if path is None:
-            continue
-        resolved = path.expanduser().resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        fingerprint = _path_fingerprint(resolved)
-        if fingerprint is not None:
-            fingerprints.append(fingerprint)
-        if len(fingerprints) >= limit:
-            break
-    return fingerprints
 
 
 def _candidate_values_include_root(
@@ -869,6 +822,9 @@ def build_gate_clearing_batch_recommended_action(
     gate_blockers = _gate_blockers(gate_report)
     if not gate_blockers:
         return None
+    publication_work_unit_payload = publication_work_units.derive_publication_work_units(gate_report)
+    if publication_work_unit_payload.get("actionability_status") == "blocked_by_non_actionable_gate":
+        return None
     current_required_action = str(gate_report.get("current_required_action") or "").strip()
 
     medical_surface_blockers = medical_surface_repair_blockers(gate_report)
@@ -922,6 +878,9 @@ def build_gate_clearing_batch_recommended_action(
         ),
         "gate_clearing_batch_reason": "; ".join(reason_bits),
         "gate_clearing_batch_mapping_path": str(mapping_path) if mapping_path is not None else None,
+        "work_unit_fingerprint": publication_work_unit_payload.get("fingerprint"),
+        "blocking_work_units": publication_work_unit_payload.get("blocking_work_units") or [],
+        "next_work_unit": publication_work_unit_payload.get("next_work_unit"),
     }
 
 
@@ -1324,6 +1283,13 @@ def run_gate_clearing_batch(
         selected_work_unit=selected_publication_work_unit,
         lifecycle_record=lifecycle_record,
     )
+    current_package_freshness_proof = gate_clearing_batch_package_freshness.write_current_package_freshness_proof(
+        study_root=resolved_study_root,
+        source_eval_id=current_eval_id,
+        unit_results=unit_results,
+        clock=_clock_snapshot,
+        schema_version=SCHEMA_VERSION,
+    )
     record = {
         "schema_version": SCHEMA_VERSION,
         "source_eval_id": current_eval_id,
@@ -1346,6 +1312,8 @@ def run_gate_clearing_batch(
         "gate_replay_step": gate_replay_step,
         "publication_work_unit_lifecycle": lifecycle_record,
     }
+    if current_package_freshness_proof is not None:
+        record["current_package_freshness_proof"] = current_package_freshness_proof
     record_path = stable_gate_clearing_batch_path(study_root=resolved_study_root)
     _write_json(record_path, record)
     _write_json(
