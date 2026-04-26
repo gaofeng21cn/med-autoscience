@@ -27,6 +27,7 @@ DEFAULT_BASELINE = {
     "src/med_autoscience/controllers/time_to_event_direct_migration.py": 1094,
     "tests/study_progress_cases/markdown_and_followthrough_projection.py": 1075,
     "src/med_autoscience/controllers/product_entry_parts/shared_base.py": 1020,
+    "tests/display_surface_materialization_cases/basic_displays_and_renderers.py": 1083,
 }
 CODE_EXTENSIONS = frozenset(
     {
@@ -84,6 +85,44 @@ class BoundaryFitnessReport:
         return tuple(finding for finding in self.findings if finding.kind == "mechanical_split_residue")
 
 
+PROGRAM_BOUNDARIES = (
+    {
+        "boundary_id": "paper_quality_gate",
+        "owner": "MAS",
+        "path_markers": ("gate_clearing_batch", "quality_repair_batch", "publication_gate"),
+        "recommended_split_direction": (
+            "Split by deterministic repair planning, repair execution, gate replay, and publication work-unit "
+            "lifecycle responsibilities."
+        ),
+    },
+    {
+        "boundary_id": "observability_delivery_metrics",
+        "owner": "MAS",
+        "path_markers": ("study_cycle_profiler", "autonomy_observability", "paper_line_delivery_metrics"),
+        "recommended_split_direction": (
+            "Split by event collection, paper-line delivery metrics, ETA interval projection, and user-facing "
+            "observability surfaces."
+        ),
+    },
+    {
+        "boundary_id": "mds_runtime_interop",
+        "owner": "MAS/MDS boundary",
+        "path_markers": ("runtime_transport/med_deepscientist", "runtime_transport/"),
+        "recommended_split_direction": (
+            "Split by runtime protocol identity, compatibility transport, quest lifecycle, and failure taxonomy."
+        ),
+    },
+    {
+        "boundary_id": "product_entry_surface",
+        "owner": "MAS",
+        "path_markers": ("product_entry", "frontdesk", "cockpit"),
+        "recommended_split_direction": (
+            "Split by public entry contract, cockpit projection, workspace surfaces, and handoff templates."
+        ),
+    },
+)
+
+
 def audit_boundary_fitness(
     repo_root: Path | str,
     *,
@@ -127,6 +166,46 @@ def audit_boundary_fitness(
             )
 
     return BoundaryFitnessReport(findings=tuple(sorted(findings, key=_finding_sort_key)))
+
+
+def build_program_boundary_map(
+    *,
+    tracked_files: Sequence[str],
+    findings: Sequence[BoundaryFinding] | BoundaryFitnessReport = (),
+) -> dict[str, object]:
+    finding_items = findings.findings if isinstance(findings, BoundaryFitnessReport) else tuple(findings)
+    findings_by_boundary: dict[str, list[BoundaryFinding]] = {str(item["boundary_id"]): [] for item in PROGRAM_BOUNDARIES}
+    paths_by_boundary: dict[str, set[str]] = {str(item["boundary_id"]): set() for item in PROGRAM_BOUNDARIES}
+
+    for relative_path in tracked_files:
+        normalized_path = _normalize_relative_path(relative_path)
+        boundary = _program_boundary_for_path(normalized_path)
+        if boundary is not None:
+            paths_by_boundary[str(boundary["boundary_id"])].add(normalized_path)
+
+    for finding in finding_items:
+        boundary = _program_boundary_for_path(finding.path)
+        if boundary is not None:
+            findings_by_boundary[str(boundary["boundary_id"])].append(finding)
+            paths_by_boundary[str(boundary["boundary_id"])].add(finding.path)
+
+    priorities = [
+        _program_boundary_priority(
+            boundary=boundary,
+            paths=tuple(sorted(paths_by_boundary[str(boundary["boundary_id"])])),
+            findings=tuple(findings_by_boundary[str(boundary["boundary_id"])]),
+        )
+        for boundary in PROGRAM_BOUNDARIES
+        if paths_by_boundary[str(boundary["boundary_id"])] or findings_by_boundary[str(boundary["boundary_id"])]
+    ]
+    priorities.sort(key=_program_boundary_sort_key)
+    return {
+        "surface": "program_boundary_map",
+        "schema_version": 1,
+        "scope": "mas_mds_program_boundary",
+        "external_repo_scan": False,
+        "priorities": priorities,
+    }
 
 
 def is_code_file(relative_path: str) -> bool:
@@ -262,3 +341,43 @@ def natural_boundary_recommendation(relative_path: str) -> str:
 def _finding_sort_key(finding: BoundaryFinding) -> tuple[int, str, int, str]:
     severity_rank = 0 if finding.severity == "violation" else 1
     return (severity_rank, finding.kind, -(finding.line_count or 0), finding.path)
+
+
+def _program_boundary_for_path(relative_path: str) -> Mapping[str, object] | None:
+    normalized_path = _normalize_relative_path(relative_path)
+    for boundary in PROGRAM_BOUNDARIES:
+        markers = boundary["path_markers"]
+        if isinstance(markers, tuple) and any(marker in normalized_path for marker in markers):
+            return boundary
+    return None
+
+
+def _program_boundary_priority(
+    *,
+    boundary: Mapping[str, object],
+    paths: tuple[str, ...],
+    findings: tuple[BoundaryFinding, ...],
+) -> dict[str, object]:
+    has_violation = any(finding.severity == "violation" for finding in findings)
+    has_advisory = any(finding.severity == "advisory" for finding in findings)
+    priority = "now" if has_violation else "next" if has_advisory else "monitor"
+    max_line_count = max((finding.line_count or 0 for finding in findings), default=0)
+    return {
+        "boundary_id": boundary["boundary_id"],
+        "owner": boundary["owner"],
+        "priority": priority,
+        "tracked_paths": list(paths),
+        "finding_count": len(findings),
+        "blocking_finding_count": sum(1 for finding in findings if finding.is_blocking),
+        "max_line_count": max_line_count,
+        "recommended_split_direction": boundary["recommended_split_direction"],
+    }
+
+
+def _program_boundary_sort_key(item: Mapping[str, object]) -> tuple[int, int, str]:
+    priority_weight = {"now": 0, "next": 1, "monitor": 2}
+    return (
+        priority_weight.get(str(item.get("priority") or ""), 9),
+        -int(item.get("max_line_count") or 0),
+        str(item.get("boundary_id") or ""),
+    )

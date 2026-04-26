@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Mapping
 
+from med_autoscience.controllers import paper_line_delivery_metrics
+
 
 def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
@@ -103,12 +105,14 @@ def build_cycle_observability(profile_payload: Mapping[str, Any]) -> dict[str, A
     ]
     blocker_state = "open_quality_gate" if open_blockers else "no_open_quality_gate"
     no_progress_signal = bool(repeated_dispatch_count or runtime_recovery_observations or runtime_flapping_transitions)
+    trace_identity = paper_line_delivery_metrics.normalize_trace_identity(profile_payload)
 
-    return {
+    payload = {
         "surface": "cycle_observability",
         "schema_version": 1,
         "study_id": _text(profile_payload.get("study_id")),
         "quest_id": _text(profile_payload.get("quest_id")),
+        "trace_identity": trace_identity,
         "flow_metrics": {
             "observed_event_count": _int(_mapping(profile_payload.get("profiling_window")).get("event_count")),
             "first_observed_at": first_event_at.isoformat() if first_event_at is not None else None,
@@ -148,3 +152,7 @@ def build_cycle_observability(profile_payload: Mapping[str, Any]) -> dict[str, A
             "next_work_unit_id": _text(sli_summary.get("next_work_unit_id")),
         },
     }
+    delivery_metrics = profile_payload.get("paper_line_delivery_metrics")
+    if isinstance(delivery_metrics, Mapping):
+        payload["paper_line_delivery_metrics"] = dict(delivery_metrics)
+    return payload
