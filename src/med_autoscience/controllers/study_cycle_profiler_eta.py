@@ -3,6 +3,18 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 
+def _has_human_admin_marker(blocker: str) -> bool:
+    lowered = blocker.lower()
+    if "伦理" in blocker or "作者" in blocker:
+        return True
+    tokens = {
+        token
+        for token in lowered.replace("-", "_").replace("/", "_").split("_")
+        if token
+    }
+    return bool(tokens & {"author", "authors", "affiliation", "affiliations", "metadata", "human", "admin"})
+
+
 def eta_confidence_band(
     *,
     runtime_transition_summary: Mapping[str, Any],
@@ -35,8 +47,7 @@ def eta_confidence_band(
         for item in (gate_blocker_summary.get("current_blockers") or [])
         if str(item or "").strip()
     }
-    human_admin_markers = ("author", "affiliation", "metadata", "human", "admin", "伦理", "作者")
-    if any(any(marker in blocker.lower() for marker in human_admin_markers) for blocker in blockers):
+    if any(_has_human_admin_marker(blocker) for blocker in blockers):
         return {
             "classification": "human_admin_missing",
             "label": "human/admin missing",

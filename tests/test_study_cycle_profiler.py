@@ -380,3 +380,21 @@ def test_study_cycle_profiler_marks_non_actionable_gate_and_eta_band(tmp_path: P
         "max_seconds": None,
         "reason": "Gate blockers are label-only and must be narrowed to concrete claim, display, evidence, citation, metric, or package-artifact targets before automated execution.",
     }
+
+
+def test_eta_classifies_submission_minimal_authority_as_delivery_not_human_admin() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler_eta")
+
+    band = module.eta_confidence_band(
+        runtime_transition_summary={"health_status_counts": {"live": 3}},
+        gate_blocker_summary={
+            "current_blockers": [
+                "stale_submission_minimal_authority",
+                "submission_surface_qc_failure_present",
+            ],
+            "actionability_status": "actionable",
+        },
+        package_currentness={"status": "stale"},
+    )
+
+    assert band["classification"] == "delivery_only"
