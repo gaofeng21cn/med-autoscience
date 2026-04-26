@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "surface_kind": "opl_native_helper_consumption_contract",
+  "contract_id": "mas.opl_native_helper.consumption.v1",
+  "manager_surface_id": "opl_runtime_manager",
+  "consumer_domain": "medautoscience",
+  "helper_owner": "one-person-lab",
+  "helper_language": "rust",
+  "allowed_operations": [
+    "index_only"
+  ],
+  "indexable_runtime_surface_refs": [
+    "/skill_catalog/skills/0/domain_projection/runtime_continuity",
+    "/progress_projection/domain_projection/research_runtime_control_projection",
+    "/runtime_inventory"
+  ],
+  "indexable_product_entry_surface_refs": [
+    "/skill_catalog/skills/0/domain_projection/opl_runtime_manager_registration/domain_entry_surface",
+    "/skill_catalog/skills/0/domain_projection/opl_runtime_manager_registration/registration_surface",
+    "/artifact_inventory/artifact_surface",
+    "/automation/automations/0"
+  ],
+  "authority_boundary": {
+    "domain_truth_owner": "MedAutoScience",
+    "helper_write_policy": "no_domain_truth_writes",
+    "authoritative_truth_refs": [
+      "/study_runtime_status",
+      "/runtime_watch",
+      "/publication_eval/latest.json",
+      "/controller_decisions/latest.json"
+    ]
+  },
+  "excluded_scopes": [
+    "domain_logic",
+    "publication_gate",
+    "evidence_or_review_ledger",
+    "hermes_agent_implementation",
+    "rca"
+  ]
+}

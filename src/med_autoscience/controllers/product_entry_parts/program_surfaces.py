@@ -693,6 +693,41 @@ def _build_skill_runtime_continuity_envelope(
     }
 
 
+def _build_opl_native_helper_proof_surface() -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_opl_native_helper_indexing_proof",
+        "proof_id": "mas.opl_native_helper.indexing_proof.v1",
+        "allowed_operation": "index_only",
+        "runtime_surface_refs": [
+            "/skill_catalog/skills/0/domain_projection/runtime_continuity",
+            "/progress_projection/domain_projection/research_runtime_control_projection",
+            "/runtime_inventory",
+        ],
+        "product_entry_surface_refs": [
+            "/skill_catalog/skills/0/domain_projection/opl_runtime_manager_registration/domain_entry_surface",
+            "/skill_catalog/skills/0/domain_projection/opl_runtime_manager_registration/registration_surface",
+            "/artifact_inventory/artifact_surface",
+            "/automation/automations/0",
+        ],
+        "authority_boundary": {
+            "domain_truth_owner": "MedAutoScience",
+            "helper_owner": "one-person-lab",
+            "helper_write_policy": "no_domain_truth_writes",
+            "authoritative_truth_refs": [
+                "/study_runtime_status",
+                "/runtime_watch",
+                "/publication_eval/latest.json",
+                "/controller_decisions/latest.json",
+            ],
+        },
+        "non_goals": [
+            "not_domain_logic",
+            "not_a_hermes_agent_implementation",
+            "not_an_rca_surface",
+        ],
+    }
+
+
 def _build_opl_runtime_manager_registration(
     *,
     runtime: Mapping[str, Any],
@@ -724,6 +759,7 @@ def _build_opl_runtime_manager_registration(
             "/progress_projection/domain_projection/research_runtime_control_projection",
             "/artifact_inventory/artifact_surface",
             "/automation/automations/0",
+            "/runtime_inventory",
         ],
         "state_index_inputs": {
             "workspace_registry_index": "/workspace_locator",
@@ -762,6 +798,7 @@ def _build_opl_runtime_manager_registration(
                     "backing_helper_id": "opl-runtime-watch",
                 },
             },
+            "proof_surface": _build_opl_native_helper_proof_surface(),
         },
         "resume_contract": {
             "session_locator_field": str(runtime_continuity.get("session_locator_field") or ""),

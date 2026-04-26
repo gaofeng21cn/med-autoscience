@@ -98,4 +98,34 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
     assert native_helper_consumption["indexes"]["artifact_projection_index"]["backing_helper_id"] == "opl-artifact-indexer"
     assert native_helper_consumption["indexes"]["runtime_health_snapshot_index"]["backing_helper_id"] == "opl-runtime-watch"
     assert native_helper_consumption["source_of_truth_rule"].startswith("Rust helpers may index MAS")
+    proof_surface = native_helper_consumption["proof_surface"]
+    assert proof_surface["surface_kind"] == "mas_opl_native_helper_indexing_proof"
+    assert proof_surface["proof_id"] == "mas.opl_native_helper.indexing_proof.v1"
+    assert proof_surface["allowed_operation"] == "index_only"
+    assert proof_surface["runtime_surface_refs"] == [
+        "/skill_catalog/skills/0/domain_projection/runtime_continuity",
+        "/progress_projection/domain_projection/research_runtime_control_projection",
+        "/runtime_inventory",
+    ]
+    assert proof_surface["product_entry_surface_refs"] == [
+        "/skill_catalog/skills/0/domain_projection/opl_runtime_manager_registration/domain_entry_surface",
+        "/skill_catalog/skills/0/domain_projection/opl_runtime_manager_registration/registration_surface",
+        "/artifact_inventory/artifact_surface",
+        "/automation/automations/0",
+    ]
+    assert proof_surface["authority_boundary"] == {
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes",
+        "authoritative_truth_refs": [
+            "/study_runtime_status",
+            "/runtime_watch",
+            "/publication_eval/latest.json",
+            "/controller_decisions/latest.json",
+        ],
+    }
+    native_helper_contract = json.loads(Path(native_helper_consumption["protocol_ref"]).read_text(encoding="utf-8"))
+    assert native_helper_contract["surface_kind"] == "opl_native_helper_consumption_contract"
+    assert native_helper_contract["consumer_domain"] == "medautoscience"
+    assert native_helper_contract["authority_boundary"]["domain_truth_owner"] == "MedAutoScience"
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]
