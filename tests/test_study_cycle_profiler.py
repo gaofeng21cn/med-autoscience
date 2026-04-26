@@ -127,7 +127,8 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
         "to_at": "2026-04-25T00:00:00+00:00",
         "duration_seconds": 300,
     }
-    assert profile_payload["eta_confidence_band"]["classification"] == "runtime_recovering"
+    assert profile_payload["current_state_summary"]["runtime_health_status"] == "live"
+    assert profile_payload["eta_confidence_band"]["classification"] == "claim_evidence"
     assert [item["bottleneck_id"] for item in profile_payload["bottlenecks"]] == [
         "runtime_recovery_churn",
         "repeated_controller_decision",
@@ -475,3 +476,35 @@ def test_eta_classifies_submission_minimal_authority_as_delivery_not_human_admin
     )
 
     assert band["classification"] == "delivery_only"
+
+
+def test_eta_keeps_runtime_recovering_when_latest_runtime_is_not_live() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler_eta")
+
+    band = module.eta_confidence_band(
+        runtime_transition_summary={"health_status_counts": {"live": 3, "recovering": 1}},
+        gate_blocker_summary={
+            "current_blockers": ["claim_evidence_consistency_failed"],
+            "actionability_status": "actionable",
+        },
+        package_currentness={"status": "fresh"},
+        current_state_summary={"state": "active_or_unresolved", "runtime_health_status": "recovering"},
+    )
+
+    assert band["classification"] == "runtime_recovering"
+
+
+def test_eta_uses_claim_evidence_when_latest_runtime_is_live_despite_window_churn() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler_eta")
+
+    band = module.eta_confidence_band(
+        runtime_transition_summary={"health_status_counts": {"live": 3, "recovering": 1, "degraded": 1}},
+        gate_blocker_summary={
+            "current_blockers": ["claim_evidence_consistency_failed"],
+            "actionability_status": "actionable",
+        },
+        package_currentness={"status": "fresh"},
+        current_state_summary={"state": "active_or_unresolved", "runtime_health_status": "live"},
+    )
+
+    assert band["classification"] == "claim_evidence"

@@ -44,6 +44,11 @@ def current_state_summary(
         if isinstance(latest_runtime_supervision, Mapping)
         else ""
     )
+    runtime_health_status = (
+        str((latest_runtime_supervision or {}).get("health_status") or "").strip()
+        if isinstance(latest_runtime_supervision, Mapping)
+        else ""
+    )
     runtime_decision = (
         str((latest_runtime_supervision or {}).get("runtime_decision") or "").strip()
         if isinstance(latest_runtime_supervision, Mapping)
@@ -68,6 +73,7 @@ def current_state_summary(
     ):
         return {
             "state": "manual_finishing",
+            "runtime_health_status": runtime_health_status or None,
             "runtime_reason": runtime_reason,
             "runtime_decision": runtime_decision or None,
             "supervisor_phase": supervisor_phase,
@@ -76,6 +82,7 @@ def current_state_summary(
         }
     return {
         "state": "active_or_unresolved",
+        "runtime_health_status": runtime_health_status or None,
         "runtime_reason": runtime_reason or None,
         "runtime_decision": runtime_decision or None,
         "supervisor_phase": supervisor_phase or None,

@@ -31,8 +31,13 @@ def eta_confidence_band(
             "max_seconds": None,
             "reason": "The study is parked at a milestone package/manual-finishing state; historical runtime churn in the window should not drive an autonomous completion ETA.",
         }
+    current_runtime_health_status = (
+        str(current_state_summary.get("runtime_health_status") or "").strip()
+        if isinstance(current_state_summary, Mapping)
+        else ""
+    )
     health_counts = runtime_transition_summary.get("health_status_counts")
-    if isinstance(health_counts, Mapping) and any(
+    if current_runtime_health_status != "live" and isinstance(health_counts, Mapping) and any(
         int(health_counts.get(status) or 0) > 0 for status in ("recovering", "degraded", "escalated")
     ):
         return {
