@@ -462,7 +462,7 @@ def _status_state(
 
     if (
         manual_finish_compatibility_guard
-        and not task_intake_overrides_auto_manual_finish
+        and (not task_intake_overrides_auto_manual_finish or task_intake_yields_to_submission_closeout)
         and quest_status not in _LIVE_QUEST_STATUSES
     ):
         result.set_decision(
@@ -494,7 +494,9 @@ def _status_state(
         audit_status = router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
         controller_owned_finalize_parking = _is_controller_owned_finalize_parking(result)
         if audit_status is quest_state.QuestRuntimeLivenessStatus.UNKNOWN:
-            if manual_finish_compatibility_guard and not task_intake_overrides_auto_manual_finish:
+            if manual_finish_compatibility_guard and (
+                not task_intake_overrides_auto_manual_finish or task_intake_yields_to_submission_closeout
+            ):
                 result.set_decision(
                     StudyRuntimeDecision.BLOCKED,
                     StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
@@ -526,7 +528,9 @@ def _status_state(
                     StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
                 )
         elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
-            if manual_finish_compatibility_guard and not task_intake_overrides_auto_manual_finish:
+            if manual_finish_compatibility_guard and (
+                not task_intake_overrides_auto_manual_finish or task_intake_yields_to_submission_closeout
+            ):
                 result.set_decision(
                     StudyRuntimeDecision.PAUSE,
                     StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,

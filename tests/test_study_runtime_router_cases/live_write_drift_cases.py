@@ -93,6 +93,20 @@ def test_study_runtime_status_resumes_live_stale_decision_after_write_stage_read
             },
         },
     )
+    study_progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setattr(
+        study_progress_module,
+        "build_study_progress_projection",
+        lambda **_: {
+            "study_id": "001-risk",
+            "current_stage": "manual_finishing",
+            "current_stage_summary": "当前论文线已到投稿包里程碑。",
+            "paper_stage": "bundle_stage_ready",
+            "paper_stage_summary": "当前论文线已到投稿包里程碑。",
+            "next_system_action": "等待显式接力。",
+            "needs_physician_decision": False,
+        },
+    )
 
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
