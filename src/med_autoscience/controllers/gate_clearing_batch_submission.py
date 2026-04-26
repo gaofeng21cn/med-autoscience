@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import time
 from pathlib import Path
 from typing import Any, Callable
@@ -168,6 +169,32 @@ def current_package_authority_settled(
     return True, fingerprints
 
 
+def authority_not_settled_retry_metadata(
+    *,
+    authority_fingerprints: list[dict[str, Any]],
+    settle_window_ns: int,
+) -> dict[str, Any]:
+    now_ns = time.time_ns()
+    remaining_ns = 0
+    for fingerprint in authority_fingerprints:
+        if not fingerprint.get("exists"):
+            continue
+        mtime_ns = fingerprint.get("mtime_ns")
+        if not isinstance(mtime_ns, int):
+            continue
+        remaining_ns = max(remaining_ns, settle_window_ns - (now_ns - mtime_ns))
+    retry_after_seconds = max(1, int((remaining_ns + 999_999_999) // 1_000_000_000))
+    retry_after = datetime.fromtimestamp(
+        (now_ns + retry_after_seconds * 1_000_000_000) / 1_000_000_000,
+        timezone.utc,
+    ).replace(microsecond=0).isoformat()
+    return {
+        "retry_reason": "authority_not_settled",
+        "retry_after": retry_after,
+        "retry_after_seconds": retry_after_seconds,
+    }
+
+
 def sync_submission_minimal_delivery_after_settle(
     *,
     paper_root: Path,
@@ -186,6 +213,10 @@ def sync_submission_minimal_delivery_after_settle(
             "status": "skipped_authority_not_settled",
             "authority_fingerprints": authority_fingerprints,
             "settle_window_ns": settle_window_ns,
+            **authority_not_settled_retry_metadata(
+                authority_fingerprints=authority_fingerprints,
+                settle_window_ns=settle_window_ns,
+            ),
         }
     result = sync_submission_minimal_delivery(paper_root=paper_root, profile=profile)
     result["authority_fingerprints"] = authority_fingerprints

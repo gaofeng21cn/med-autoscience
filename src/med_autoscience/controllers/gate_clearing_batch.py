@@ -22,6 +22,7 @@ from med_autoscience.controllers.gate_clearing_batch_blockers import (
     medical_surface_repair_blockers,
 )
 from med_autoscience.controllers import gate_clearing_batch_submission
+from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     derived_next_publication_work_unit,
     explicit_next_publication_work_unit,
@@ -92,6 +93,9 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+_clock_snapshot = publication_work_unit_lifecycle.clock_snapshot
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
@@ -537,7 +541,14 @@ def _latest_unit_status(latest_batch: dict[str, Any], *, unit_id: str) -> str | 
 
 
 def _unit_status_is_success(status: str | None) -> bool:
-    return status not in {None, "failed", "missing", "skipped_failed_dependency", "skipped_matching_unit_fingerprint"}
+    return status not in {
+        None,
+        "failed",
+        "missing",
+        "skipped_failed_dependency",
+        "skipped_matching_unit_fingerprint",
+        "skipped_authority_not_settled",
+    }
 
 
 def _latest_unit_success_status(latest_batch: dict[str, Any], *, unit_id: str) -> str | None:
@@ -575,7 +586,7 @@ def _can_skip_repair_unit(
 
 
 def _unit_status_blocks_dependents(status: str | None) -> bool:
-    return status in {"failed", "missing", "skipped_failed_dependency"}
+    return status in {"failed", "missing", "skipped_failed_dependency", "skipped_authority_not_settled"}
 
 
 def _existing_dependency_ids(
@@ -610,19 +621,29 @@ def _run_repair_unit(
             "parallel_safe": unit.parallel_safe,
             "status": "skipped_matching_unit_fingerprint",
             "previous_status": previous_status,
+            **publication_work_unit_lifecycle.instant_timing(clock=_clock_snapshot),
         }
         if last_success_status is not None:
             item["last_success_status"] = last_success_status
     else:
+        started_ns, started_at = _clock_snapshot()
         try:
             result = unit.run()
+            finished_ns, finished_at = _clock_snapshot()
+            timing = {
+                "started_at": started_at,
+                "finished_at": finished_at,
+                "duration_seconds": publication_work_unit_lifecycle.duration_seconds(started_ns, finished_ns),
+            }
             item = {
                 "unit_id": unit.unit_id,
                 "label": unit.label,
                 "parallel_safe": unit.parallel_safe,
                 "status": str(result.get("status") or "ok"),
                 "result": result,
+                **timing,
             }
+            publication_work_unit_lifecycle.copy_step_surface_metadata(item, result)
             if _unit_status_is_success(_non_empty_text(item.get("status"))):
                 item["last_success_status"] = item["status"]
         except Exception as exc:
@@ -633,6 +654,14 @@ def _run_repair_unit(
                 "status": "failed",
                 "error": str(exc),
             }
+            finished_ns, finished_at = _clock_snapshot()
+            item.update(
+                {
+                    "started_at": started_at,
+                    "finished_at": finished_at,
+                    "duration_seconds": publication_work_unit_lifecycle.duration_seconds(started_ns, finished_ns),
+                }
+            )
     if unit.depends_on:
         item["depends_on"] = list(unit.depends_on)
     if unit_fingerprint is not None:
@@ -680,6 +709,7 @@ def _execute_repair_units(
                     "status": "skipped_failed_dependency",
                     "failed_dependencies": failed_dependencies,
                     "depends_on": list(unit.depends_on),
+                    **publication_work_unit_lifecycle.instant_timing(clock=_clock_snapshot),
                 }
                 execution_summary["skipped_dependency_unit_count"] += 1
                 continue
@@ -1209,21 +1239,27 @@ def run_gate_clearing_batch(
             if authority_settled:
                 embedded_delivery_sync["authority_fingerprints"] = authority_fingerprints
                 embedded_delivery_sync["settle_window_ns"] = CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS
+                embedded_delivery_sync.update(
+                    publication_work_unit_lifecycle.instant_timing(clock=_clock_snapshot)
+                )
                 unit_results.append(embedded_delivery_sync)
             else:
+                retry_metadata = gate_clearing_batch_submission.authority_not_settled_retry_metadata(
+                    authority_fingerprints=authority_fingerprints,
+                    settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
+                )
                 unit_results.append(
-                    {
-                        "unit_id": "sync_submission_minimal_delivery",
-                        "label": "Refresh the study-owned submission-minimal delivery mirror before gate replay",
-                        "parallel_safe": False,
-                        "status": "skipped_authority_not_settled",
-                        "authority_fingerprints": authority_fingerprints,
-                        "settle_window_ns": CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
-                        "depends_on": ["create_submission_minimal_package"],
-                    }
+                    publication_work_unit_lifecycle.authority_not_settled_sync_unit_item(
+                        authority_fingerprints=authority_fingerprints,
+                        settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
+                        retry_metadata=retry_metadata,
+                        timing=publication_work_unit_lifecycle.instant_timing(clock=_clock_snapshot),
+                        depends_on=["create_submission_minimal_package"],
+                    )
                 )
             execution_summary["sequential_unit_count"] += 1
         else:
+            started_ns, started_at = _clock_snapshot()
             try:
                 result = gate_clearing_batch_submission.sync_submission_minimal_delivery_after_settle(
                     paper_root=paper_root,
@@ -1232,20 +1268,22 @@ def run_gate_clearing_batch(
                     path_fingerprints=_path_fingerprints,
                     settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
                 )
+                finished_ns, finished_at = _clock_snapshot()
+                timing = {
+                    "started_at": started_at,
+                    "finished_at": finished_at,
+                    "duration_seconds": publication_work_unit_lifecycle.duration_seconds(started_ns, finished_ns),
+                }
                 unit_results.append(
-                    {
-                        "unit_id": "sync_submission_minimal_delivery",
-                        "label": "Refresh the study-owned submission-minimal delivery mirror before gate replay",
-                        "parallel_safe": False,
-                        "status": str(result.get("status") or "updated"),
-                        "result": result,
-                        "authority_fingerprints": result.get("authority_fingerprints"),
-                        "settle_window_ns": result.get("settle_window_ns"),
-                        "depends_on": ["create_submission_minimal_package"],
-                    }
+                    publication_work_unit_lifecycle.submission_delivery_sync_unit_item(
+                        result=result,
+                        timing=timing,
+                        depends_on=["create_submission_minimal_package"],
+                    )
                 )
                 execution_summary["sequential_unit_count"] += 1
             except Exception as exc:
+                finished_ns, finished_at = _clock_snapshot()
                 unit_results.append(
                     {
                         "unit_id": "sync_submission_minimal_delivery",
@@ -1254,15 +1292,37 @@ def run_gate_clearing_batch(
                         "status": "failed",
                         "error": str(exc),
                         "depends_on": ["create_submission_minimal_package"],
+                        "started_at": started_at,
+                        "finished_at": finished_at,
+                        "duration_seconds": publication_work_unit_lifecycle.duration_seconds(started_ns, finished_ns),
                     }
                 )
                 execution_summary["sequential_unit_count"] += 1
 
-    gate_replay = publication_gate.run_controller(
-        quest_root=quest_root,
-        apply=True,
-        source=source,
-        enqueue_intervention=False,
+    gate_replay, gate_replay_timing = publication_work_unit_lifecycle.timed_step(
+        clock=_clock_snapshot,
+        run=lambda: publication_gate.run_controller(
+            quest_root=quest_root,
+            apply=True,
+            source=source,
+            enqueue_intervention=False,
+        ),
+    )
+    gate_replay_step = publication_work_unit_lifecycle.gate_replay_step(
+        gate_replay=gate_replay,
+        timing=gate_replay_timing,
+    )
+    lifecycle_record = publication_work_unit_lifecycle.build_lifecycle_record(
+        source_eval_id=current_eval_id,
+        study_id=study_id,
+        quest_id=quest_id,
+        selected_work_unit=selected_publication_work_unit,
+        unit_results=unit_results,
+        gate_replay=gate_replay,
+    )
+    selected_publication_work_unit = publication_work_unit_lifecycle.enrich_selected_work_unit(
+        selected_work_unit=selected_publication_work_unit,
+        lifecycle_record=lifecycle_record,
     )
     record = {
         "schema_version": SCHEMA_VERSION,
@@ -1283,9 +1343,17 @@ def run_gate_clearing_batch(
         "unit_fingerprints": unit_fingerprints,
         "execution_summary": execution_summary,
         "gate_replay": gate_replay,
+        "gate_replay_step": gate_replay_step,
+        "publication_work_unit_lifecycle": lifecycle_record,
     }
     record_path = stable_gate_clearing_batch_path(study_root=resolved_study_root)
     _write_json(record_path, record)
+    _write_json(
+        publication_work_unit_lifecycle.stable_publication_work_unit_lifecycle_path(
+            study_root=resolved_study_root
+        ),
+        lifecycle_record,
+    )
     return {
         "ok": True,
         "status": "executed",

@@ -176,6 +176,102 @@ def test_submission_minimal_refresh_skips_current_package_sync_until_authority_s
     ]
     assert result["unit_results"][1]["status"] == "skipped_authority_not_settled"
     assert "authority_fingerprints" in result["unit_results"][1]
+    assert result["unit_results"][1]["retry_reason"] == "authority_not_settled"
+    assert result["unit_results"][1]["retry_after_seconds"] > 0
+    assert result["selected_publication_work_unit"]["lifecycle_status"] == "blocked"
+    assert result["selected_publication_work_unit"]["retry"]["reason"] == "authority_not_settled"
+    lifecycle_record = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "controller"
+            / "publication_work_unit_lifecycle"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert lifecycle_record["status"] == "blocked"
+    assert lifecycle_record["retry"]["reason"] == "authority_not_settled"
+
+
+def test_gate_clearing_batch_records_step_durations_with_monkeypatched_clock(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-004")
+    publication_eval_payload["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "analysis_claim_evidence_repair",
+        "lane": "analysis-campaign",
+        "summary": "Repair claim-evidence and paper-facing traceability blockers.",
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+
+    clock_values = iter(
+        [
+            (1_000_000_000, "2026-04-26T00:00:01+00:00"),
+            (1_250_000_000, "2026-04-26T00:00:01.250000+00:00"),
+            (2_000_000_000, "2026-04-26T00:00:02+00:00"),
+            (2_500_000_000, "2026-04-26T00:00:02.500000+00:00"),
+            (3_000_000_000, "2026-04-26T00:00:03+00:00"),
+            (4_500_000_000, "2026-04-26T00:00:04.500000+00:00"),
+        ]
+    )
+
+    def fake_clock() -> tuple[int, str]:
+        return next(clock_values)
+
+    monkeypatch.setattr(module, "_clock_snapshot", fake_clock)
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": ["medical_publication_surface_blocked"],
+            "medical_publication_surface_status": "blocked",
+            "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
+            "study_delivery_status": "current",
+        },
+    )
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(module, "_repair_paper_live_paths", lambda **_: {"status": "updated"})
+    monkeypatch.setattr(module, "_materialize_display_surface", lambda **_: {"status": "materialized"})
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {"status": "blocked", "allow_write": False, "blockers": ["medical_publication_surface_blocked"]},
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id="quest-004",
+        source="test-source",
+    )
+
+    assert result["unit_results"][0]["started_at"] == "2026-04-26T00:00:01+00:00"
+    assert result["unit_results"][0]["finished_at"] == "2026-04-26T00:00:01.250000+00:00"
+    assert result["unit_results"][0]["duration_seconds"] == 0.25
+    assert result["unit_results"][1]["duration_seconds"] == 0.5
+    assert result["gate_replay_step"]["started_at"] == "2026-04-26T00:00:03+00:00"
+    assert result["gate_replay_step"]["finished_at"] == "2026-04-26T00:00:04.500000+00:00"
+    assert result["gate_replay_step"]["duration_seconds"] == 1.5
 
 
 def test_submission_minimal_refresh_syncs_current_package_after_authority_settles(
