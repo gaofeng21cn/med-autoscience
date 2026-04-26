@@ -15,6 +15,7 @@ from med_autoscience.controllers import autonomy_observability
 from med_autoscience.controllers import autonomy_slo
 from med_autoscience.controllers import profile_sli
 from med_autoscience.controllers import publication_work_units
+from med_autoscience.controllers import study_soak_replay
 from med_autoscience.controllers.study_cycle_profiler_current_state import (
     current_state_summary,
     publishability_gate_is_clear,
@@ -877,6 +878,14 @@ def profile_study_cycle(
             "autonomy_slo": autonomy_slo_signals,
         }
     )
+    study_soak_replay_case = study_soak_replay.build_study_soak_replay_case(
+        {
+            "study_id": resolved_study_id,
+            "bottlenecks": bottlenecks,
+            "gate_blocker_summary": gate_summary,
+            "runtime_failure_classification": autonomy_slo_signals.get("runtime_failure_classification"),
+        }
+    )
     return {
         "study_id": resolved_study_id,
         "study_root": str(resolved_study_root),
@@ -902,6 +911,7 @@ def profile_study_cycle(
         "autonomy_incident_candidates": autonomy_incident_candidates,
         "autonomy_slo": autonomy_slo_signals,
         "cycle_observability": cycle_observability,
+        "study_soak_replay_case": study_soak_replay_case,
         "optimization_recommendations": optimization_recommendations,
     }
 
@@ -926,6 +936,7 @@ def profile_workspace_cycles(*, profile: WorkspaceProfile, since: str | None = N
                 "bottlenecks": study_payload["bottlenecks"],
                 "autonomy_slo": study_payload["autonomy_slo"],
                 "cycle_observability": study_payload["cycle_observability"],
+                "study_soak_replay_case": study_payload["study_soak_replay_case"],
                 "optimization_recommendations": study_payload["optimization_recommendations"],
             }
         )

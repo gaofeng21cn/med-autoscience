@@ -108,6 +108,14 @@ def test_quality_gate_expectation_for_strobe_disallows_relaxation() -> None:
     assert "strobe_statistical_methods_and_subgroups" in expectation["gates"][
         "before_review_handoff"
     ]["required_items"]
+    assert expectation["evidence_review_ledger_contract"] == {
+        "evidence_ledger_surface": "paper/evidence_ledger.json",
+        "review_ledger_surface": "paper/review_ledger.json",
+        "publication_eval_surface": "artifacts/publication_eval/latest.json",
+        "required_evidence_status": "closed",
+        "required_review_status": "closed",
+        "blocks_accelerated_handoff_when_missing": True,
+    }
 
 
 def test_controller_summary_embeds_guideline_expectation_and_pre_review_gates(tmp_path: Path) -> None:

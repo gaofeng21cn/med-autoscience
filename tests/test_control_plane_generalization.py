@@ -306,3 +306,131 @@ def test_autonomy_slo_signals_block_fast_lane_for_non_actionable_gate() -> None:
     assert payload["quality_constraint"]["requires_concrete_publication_blocker"] is True
     assert payload["incident_loop"]["top_action_type"] == "request_gate_specificity"
     assert payload["quality_constraint"]["gate_relaxation_allowed"] is False
+
+
+def test_autonomy_slo_consumes_mds_failure_taxonomy_before_auto_recovery() -> None:
+    module = importlib.import_module("med_autoscience.controllers.autonomy_slo")
+
+    payload = module.build_autonomy_slo_signals(
+        {
+            "study_id": "003-dpcc",
+            "quest_id": "quest-003",
+            "sli_summary": {
+                "runtime_live_ratio": 0.5,
+                "runtime_recovery_observations": 2,
+                "runtime_flapping_transitions": 1,
+                "next_work_unit_id": "analysis_claim_evidence_repair",
+            },
+            "mds_failure_diagnosis": {
+                "diagnosis_code": "codex_upstream_quota_error",
+                "retriable": False,
+                "problem": "The configured Codex upstream provider account has a quota or billing blocker.",
+            },
+            "gate_blocker_summary": {
+                "current_blockers": ["claim_evidence_consistency_failed"],
+                "actionability_status": "actionable",
+                "next_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
+            },
+            "autonomy_incident_candidates": [
+                {
+                    "incident_id": "incident-runtime",
+                    "incident_type": "runtime_recovery_churn",
+                    "severity": "high",
+                    "next_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
+                }
+            ],
+        }
+    )
+
+    classification = payload["runtime_failure_classification"]
+    assert classification["diagnosis_code"] == "codex_upstream_quota_error"
+    assert classification["blocker_class"] == "external_provider_account_blocker"
+    assert classification["auto_recovery_allowed"] is False
+    assert classification["action_mode"] == "external_fix_required"
+    assert payload["incident_loop"]["top_action_type"] == "external_runtime_blocker"
+    assert payload["slo_execution_plan"]["state"] == "blocked_by_external_runtime"
+    assert payload["slo_execution_plan"]["gate_relaxation_allowed"] is False
+
+
+def test_autonomy_slo_execution_plan_prioritizes_controller_actions_without_quality_relaxation() -> None:
+    module = importlib.import_module("med_autoscience.controllers.autonomy_slo")
+
+    payload = module.build_autonomy_slo_signals(
+        {
+            "study_id": "004-pituitary",
+            "sli_summary": {
+                "runtime_live_ratio": 0.98,
+                "runtime_recovery_observations": 0,
+                "runtime_flapping_transitions": 0,
+                "next_work_unit_id": "repair_paper_live_paths",
+            },
+            "gate_blocker_summary": {
+                "current_blockers": ["medical_publication_surface_blocked"],
+                "actionability_status": "actionable",
+                "next_work_unit": {"unit_id": "repair_paper_live_paths", "lane": "paper-surface"},
+            },
+            "autonomy_incident_candidates": [
+                {
+                    "incident_id": "incident-publication",
+                    "incident_type": "publication_gate_blocked",
+                    "severity": "high",
+                    "next_work_unit": {"unit_id": "repair_paper_live_paths", "lane": "paper-surface"},
+                },
+                {
+                    "incident_id": "incident-package",
+                    "incident_type": "stale_current_package",
+                    "severity": "medium",
+                    "next_work_unit": {"unit_id": "refresh_current_package", "lane": "delivery"},
+                },
+            ],
+        }
+    )
+
+    plan = payload["slo_execution_plan"]
+    assert plan["state"] == "ready_for_controller_execution"
+    assert plan["gate_relaxation_allowed"] is False
+    assert [step["action_type"] for step in plan["steps"]] == [
+        "run_publication_work_unit",
+        "refresh_current_package_after_settle",
+    ]
+    assert plan["quality_authority_surfaces"] == [
+        "study_charter",
+        "evidence_ledger",
+        "review_ledger",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+    ]
+
+
+def test_study_soak_replay_case_captures_recent_003_and_004_failure_patterns() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_soak_replay")
+
+    diabetes_case = module.build_study_soak_replay_case(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "bottlenecks": [{"bottleneck_id": "runtime_recovery_churn"}],
+            "runtime_failure_classification": {
+                "blocker_class": "external_provider_account_blocker",
+                "action_mode": "external_fix_required",
+            },
+        }
+    )
+    pituitary_case = module.build_study_soak_replay_case(
+        {
+            "study_id": "004-invasive-architecture",
+            "bottlenecks": [{"bottleneck_id": "publication_gate_blocked"}],
+            "gate_blocker_summary": {
+                "current_blockers": ["submission_surface_qc_failure_present"],
+                "next_work_unit": {"unit_id": "create_submission_minimal_package"},
+            },
+        }
+    )
+
+    assert diabetes_case["case_family"] == "runtime_recovery_taxonomy"
+    assert diabetes_case["must_assert"] == [
+        "external_runtime_blocker_is_not_retried_as_mas_work",
+        "quality_gate_relaxation_allowed_false",
+        "same_study_progress_truth_surfaces_present",
+    ]
+    assert pituitary_case["case_family"] == "same_line_quality_gate_fast_lane"
+    assert "artifacts/controller/gate_clearing_batch/latest.json" in pituitary_case["required_truth_surfaces"]
