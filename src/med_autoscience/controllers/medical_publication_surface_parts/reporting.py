@@ -213,6 +213,43 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
             patterns=analysis_plane_patterns,
         )
     )
+    publication_surface_residue_patterns = medical_surface_policy.get_publication_surface_residue_patterns()
+    publication_surface_residue_hits: list[dict[str, Any]] = []
+    publication_surface_residue_hits.extend(
+        scan_text_file_for_patterns(state.draft_path, patterns=publication_surface_residue_patterns)
+    )
+    publication_surface_residue_hits.extend(
+        scan_text_file_for_patterns(state.review_manuscript_path, patterns=publication_surface_residue_patterns)
+    )
+    publication_surface_residue_hits.extend(
+        scan_catalog_strings_for_patterns(
+            state.figure_catalog_path,
+            collection_key="figures",
+            patterns=publication_surface_residue_patterns,
+        )
+    )
+    publication_surface_residue_hits.extend(
+        scan_catalog_strings_for_patterns(
+            state.table_catalog_path,
+            collection_key="tables",
+            patterns=publication_surface_residue_patterns,
+        )
+    )
+    for path in (
+        state.methods_implementation_manifest_path,
+        state.review_ledger_path,
+        state.results_narrative_map_path,
+        state.figure_semantics_manifest_path,
+        state.claim_evidence_map_path,
+        state.evidence_ledger_path,
+        state.derived_analysis_manifest_path,
+        state.reproducibility_supplement_path,
+        state.endpoint_provenance_note_path,
+    ):
+        publication_surface_residue_hits.extend(
+            scan_text_file_for_patterns(path, patterns=publication_surface_residue_patterns)
+        )
+    publication_surface_residue_hits = unique_hits(publication_surface_residue_hits)
     results_narration_hits: list[dict[str, Any]] = []
     results_narration_hits.extend(scan_results_narration_text_file(state.draft_path))
     results_narration_hits.extend(scan_results_narration_text_file(state.review_manuscript_path))
@@ -320,6 +357,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(undefined_methodology_label_hits)
     hits.extend(results_narration_hits)
     hits.extend(analysis_plane_jargon_hits)
+    hits.extend(publication_surface_residue_hits)
     hits.extend(forbidden_hits)
     hits.extend(public_data_surface_hits)
     hits.extend(public_evidence_decision_hits)
@@ -327,7 +365,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits = unique_hits(hits)
 
     blockers: list[str] = []
-    if forbidden_hits:
+    if forbidden_hits or publication_surface_residue_hits:
         blockers.append("forbidden_manuscript_terms_present")
     if not medical_story_contract_structural_valid:
         blockers.append("missing_medical_story_contract")
