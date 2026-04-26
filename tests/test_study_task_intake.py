@@ -119,6 +119,53 @@ def test_reviewer_revision_intake_does_not_yield_to_fresh_bundle_only_closeout()
     assert "revision checklist" in override["next_system_action"]
 
 
+def test_reviewer_revision_intake_yields_to_reviewer_first_bundle_stage_closeout() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "emitted_at": "2026-04-25T04:10:49+00:00",
+        "task_intent": "根据审稿意见和用户反馈执行 manuscript revision，清理 Figure/Table feedback 与 Methods 缺口。",
+        "constraints": ["不得按旧 submission-ready/finalize 判断直接收口。"],
+        "first_cycle_outputs": ["revision checklist mapping each reviewer concern to manuscript deltas"],
+    }
+    gate_report = {
+        "generated_at": "2026-04-26T04:42:25+00:00",
+        "status": "clear",
+        "blockers": [],
+        "current_required_action": "continue_bundle_stage",
+        "bundle_tasks_downstream_only": False,
+    }
+    evaluation_summary = {
+        "emitted_at": "2026-04-26T04:49:24+00:00",
+        "quality_closure_truth": {
+            "state": "bundle_only_remaining",
+            "current_required_action": "continue_bundle_stage",
+        },
+        "study_quality_truth": {
+            "reviewer_first": {
+                "ready": True,
+                "status": "ready",
+                "summary": "review ledger 已把 reviewer concerns 全部收口。",
+            },
+        },
+        "quality_review_loop": {
+            "closure_state": "bundle_only_remaining",
+        },
+        "quality_assessment": {
+            "human_review_readiness": {
+                "status": "ready",
+            }
+        },
+    }
+
+    assert module.task_intake_is_reviewer_revision(payload) is True
+    assert module.build_task_intake_progress_override(
+        payload,
+        publishability_gate_report=gate_report,
+        evaluation_summary=evaluation_summary,
+    ) is None
+
+
 def test_reviewer_revision_intake_yields_to_blocked_deterministic_submission_closeout() -> None:
     module = importlib.import_module("med_autoscience.study_task_intake")
 

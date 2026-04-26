@@ -364,6 +364,35 @@ def _evaluation_summary_reports_bundle_only_remaining(
     return closure_state == "bundle_only_remaining"
 
 
+def _evaluation_summary_confirms_reviewer_first_ready(
+    evaluation_summary: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(evaluation_summary, dict):
+        return False
+    study_quality_truth = _mapping_value(evaluation_summary.get("study_quality_truth"))
+    reviewer_first = _mapping_value(study_quality_truth.get("reviewer_first"))
+    if reviewer_first.get("ready") is True:
+        return True
+    return _non_empty_text(reviewer_first.get("status")) == "ready"
+
+
+def _task_intake_yields_to_reviewer_bundle_stage_closeout(
+    *,
+    payload: dict[str, Any] | None,
+    publishability_gate_report: dict[str, Any] | None,
+    evaluation_summary: dict[str, Any] | None,
+) -> bool:
+    if not _evaluation_summary_confirms_reviewer_first_ready(evaluation_summary):
+        return False
+    if not isinstance(publishability_gate_report, dict):
+        return False
+    return _task_intake_yields_to_bundle_only_submission_closeout(
+        payload=payload,
+        publishability_gate_report=publishability_gate_report,
+        evaluation_summary=evaluation_summary,
+    )
+
+
 def task_intake_yields_to_deterministic_submission_closeout(
     payload: dict[str, Any] | None,
     *,
@@ -374,7 +403,7 @@ def task_intake_yields_to_deterministic_submission_closeout(
         return False
     blocked_submission_closeout = _task_intake_yields_to_blocked_submission_closeout(publishability_gate_report)
     if task_intake_is_reviewer_revision(payload):
-        return (
+        if (
             blocked_submission_closeout
             and _evaluation_summary_reports_bundle_only_remaining(evaluation_summary)
             and _closeout_surface_is_fresher_than_task_intake(
@@ -382,6 +411,12 @@ def task_intake_yields_to_deterministic_submission_closeout(
                 publishability_gate_report,
                 evaluation_summary,
             )
+        ):
+            return True
+        return _task_intake_yields_to_reviewer_bundle_stage_closeout(
+            payload=payload,
+            publishability_gate_report=publishability_gate_report,
+            evaluation_summary=evaluation_summary,
         )
     if blocked_submission_closeout:
         return True
