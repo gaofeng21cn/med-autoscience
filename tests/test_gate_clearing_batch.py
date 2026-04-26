@@ -11,3 +11,4 @@ globals().update({
 from .test_gate_clearing_batch_cases.planning_and_replay import *  # noqa: F403,F401
 from .test_gate_clearing_batch_cases.live_path_and_summary import *  # noqa: F403,F401
 from .test_gate_clearing_batch_cases.publication_work_unit_routing import *  # noqa: F403,F401
+from .test_gate_clearing_batch_cases.module_boundaries import *  # noqa: F403,F401
