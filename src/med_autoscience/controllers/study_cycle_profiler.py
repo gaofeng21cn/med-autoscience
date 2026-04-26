@@ -11,6 +11,7 @@ from typing import Any, Callable, Iterable, Mapping
 import yaml
 
 from med_autoscience.controllers import autonomy_incidents
+from med_autoscience.controllers import autonomy_observability
 from med_autoscience.controllers import autonomy_slo
 from med_autoscience.controllers import profile_sli
 from med_autoscience.controllers import publication_work_units
@@ -858,6 +859,24 @@ def profile_study_cycle(
             "optimization_recommendations": optimization_recommendations,
         }
     )
+    cycle_observability = autonomy_observability.build_cycle_observability(
+        {
+            "study_id": resolved_study_id,
+            "quest_id": quest_id,
+            "profiling_window": {
+                "since": since,
+                "until": _iso(ordered_events[-1].timestamp) if ordered_events else None,
+                "event_count": len(ordered_events),
+            },
+            "category_windows": category_windows,
+            "runtime_transition_summary": runtime_summary,
+            "controller_decision_fingerprints": decision_fingerprints,
+            "gate_blocker_summary": gate_summary,
+            "step_timings": _step_timings(step_latest_times),
+            "sli_summary": sli_summary,
+            "autonomy_slo": autonomy_slo_signals,
+        }
+    )
     return {
         "study_id": resolved_study_id,
         "study_root": str(resolved_study_root),
@@ -882,6 +901,7 @@ def profile_study_cycle(
         "bottlenecks": bottlenecks,
         "autonomy_incident_candidates": autonomy_incident_candidates,
         "autonomy_slo": autonomy_slo_signals,
+        "cycle_observability": cycle_observability,
         "optimization_recommendations": optimization_recommendations,
     }
 
@@ -905,6 +925,7 @@ def profile_workspace_cycles(*, profile: WorkspaceProfile, since: str | None = N
                 ),
                 "bottlenecks": study_payload["bottlenecks"],
                 "autonomy_slo": study_payload["autonomy_slo"],
+                "cycle_observability": study_payload["cycle_observability"],
                 "optimization_recommendations": study_payload["optimization_recommendations"],
             }
         )

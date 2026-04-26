@@ -131,6 +131,15 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
     assert profile_payload["eta_confidence_band"]["classification"] == "claim_evidence"
     assert profile_payload["sli_summary"]["runtime_live_ratio"] == 0.5
     assert profile_payload["sli_summary"]["next_work_unit_id"] == "analysis_claim_evidence_repair"
+    assert profile_payload["cycle_observability"]["flow_metrics"]["task_intake_to_run_start_seconds"] == 300
+    assert profile_payload["cycle_observability"]["stability_metrics"]["repeated_controller_dispatch_count"] == 1
+    assert profile_payload["cycle_observability"]["quality_preservation"]["gate_relaxation_allowed"] is False
+    assert profile_payload["cycle_observability"]["acceleration_readiness"] == {
+        "state": "restore_before_accelerating",
+        "no_progress_signal": True,
+        "requires_quality_gate_preservation": True,
+        "next_work_unit_id": "analysis_claim_evidence_repair",
+    }
     assert profile_payload["autonomy_incident_candidates"][0]["incident_type"] == "runtime_recovery_churn"
     assert [item["bottleneck_id"] for item in profile_payload["bottlenecks"]] == [
         "runtime_recovery_churn",
