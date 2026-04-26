@@ -239,9 +239,84 @@ def test_workspace_cycle_profiler_renders_markdown() -> None:
                     "bottlenecks": [{"bottleneck_id": "runtime_recovery_churn"}],
                 }
             ],
+            "optimization_action_units": [
+                {
+                    "action_unit_id": "optimization-action::001-risk::runtime_recovery_churn",
+                    "study_id": "001-risk",
+                    "action_type": "probe_runtime_recovery",
+                    "controller_surface": "runtime_watch",
+                    "priority": "now",
+                }
+            ],
+            "workspace_scheduler": {
+                "ready_count": 1,
+                "ready_action_unit_ids": ["optimization-action::001-risk::runtime_recovery_churn"],
+            },
         }
     )
 
     assert "# Workspace Cycle Profile: nfpitnet" in rendered
     assert "001-risk" in rendered
     assert "repeated dispatch: 2" in rendered
+    assert "Optimization Action Queue" in rendered
+    assert "probe_runtime_recovery" in rendered
+
+
+def test_workspace_cycle_profiler_emits_action_units_and_scheduler_queue(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+    study_root = workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "20260425T000000Z.json",
+        {
+            "recorded_at": "2026-04-25T00:00:00+00:00",
+            "health_status": "recovering",
+            "runtime_reason": "quest_marked_running_but_no_live_session",
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "20260425T001000Z.json",
+        {
+            "emitted_at": "2026-04-25T00:10:00+00:00",
+            "decision_type": "bounded_analysis",
+            "route_target": "analysis-campaign",
+            "reason": "same dispatch",
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "20260425T001100Z.json",
+        {
+            "emitted_at": "2026-04-25T00:11:00+00:00",
+            "decision_type": "bounded_analysis",
+            "route_target": "analysis-campaign",
+            "reason": "same dispatch",
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {"emitted_at": "2026-04-25T00:20:00+00:00", "blockers": ["claim_evidence_consistency_failed"]},
+    )
+    _touch(study_root / "paper" / "manuscript.md", 1_777_000_000)
+    _touch(study_root / "manuscript" / "current_package" / "manuscript.docx", 1_776_999_900)
+
+    payload = module.profile_workspace_cycles(profile=profile, since="2026-04-25T00:00:00+00:00")
+
+    action_units = payload["optimization_action_units"]
+    assert [item["action_type"] for item in action_units] == [
+        "probe_runtime_recovery",
+        "dedupe_controller_dispatch",
+        "run_publication_work_unit",
+        "refresh_current_package_after_settle",
+    ]
+    assert all(item["study_id"] == "001-risk" for item in action_units)
+    assert action_units[0]["controller_surface"] == "runtime_watch"
+    assert action_units[2]["controller_surface"] == "gate_clearing_batch"
+    assert payload["workspace_scheduler"]["ready_action_unit_ids"] == [
+        item["action_unit_id"] for item in action_units
+    ]
+    assert payload["workspace_scheduler"]["ready_count"] == 4
