@@ -446,3 +446,35 @@ modes:
   - journal-resolution
   upgrade_triggers:
   - submission bundle or final delivery requested
+- mode_id: manuscript_fast_lane
+  display_name: Manuscript Fast Lane
+  default_runtime_mode: lightweight
+  preconditions:
+  - workspace/profile available
+  - latest task intake explicitly limits work to canonical paper text/structure or
+    evidence repackaging from existing results
+  - study is in manual_finishing or bundle-stage-ready state, or foreground takeover
+    has been explicitly allowed
+  - runtime is inactive, paused, stopped, or supervisor-only takeover rules allow
+    foreground work
+  lightweight_scope: controller-visible canonical manuscript text/structure revision
+    from existing evidence only
+  managed_entry_actions:
+  - doctor
+  - bootstrap
+  - overlay-status
+  - study-progress
+  lightweight_routes:
+  - write
+  - finalize
+  managed_routes:
+  - write
+  - finalize
+  startup_boundary_gated_routes: []
+  governance_routes:
+  - decision
+  auxiliary_routes:
+  - journal-resolution
+  upgrade_triggers:
+  - new analysis, new result claim, new table/figure computation, live runtime ownership,
+    or claim-boundary change is needed

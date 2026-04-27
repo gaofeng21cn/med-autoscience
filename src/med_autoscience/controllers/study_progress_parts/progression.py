@@ -304,6 +304,15 @@ def _paper_stage_summary(
     return " ".join(parts)
 
 
+def _task_intake_override_is_manuscript_fast_lane(
+    task_intake_progress_override: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(task_intake_progress_override, dict):
+        return False
+    fast_lane = _mapping_copy(task_intake_progress_override.get("manuscript_fast_lane"))
+    return bool(fast_lane.get("enabled")) or _non_empty_text(fast_lane.get("status")) == "requested"
+
+
 def _stage_summary(
     *,
     status: dict[str, Any],
@@ -319,6 +328,12 @@ def _stage_summary(
     if current_stage == "study_completed":
         return "研究主线已经进入结题/交付阶段，系统不会继续自动实验。"
     if current_stage == "manual_finishing":
+        if _task_intake_override_is_manuscript_fast_lane(task_intake_progress_override):
+            return (
+                _non_empty_text(task_intake_progress_override.get("current_stage_summary"))
+                or _non_empty_text(task_intake_progress_override.get("blocker_summary"))
+                or "当前 study 已转入人工收尾；最新 task intake 要求走 controller-visible manuscript fast lane。"
+            )
         return (
             _non_empty_text((manual_finish_contract or {}).get("summary"))
             or "当前 study 已转入人工收尾；MAS 只保持兼容性与监督入口，不再把它视为默认自动续跑对象。"
@@ -555,6 +570,11 @@ def _next_system_action(
     evaluation_summary_payload: dict[str, Any] | None,
 ) -> str:
     if bool((manual_finish_contract or {}).get("compatibility_guard_only")):
+        if _task_intake_override_is_manuscript_fast_lane(task_intake_progress_override):
+            return (
+                _non_empty_text(task_intake_progress_override.get("next_system_action"))
+                or "按 controller-visible manuscript fast lane 修订 canonical paper source，并运行 export/sync 与 QC。"
+            )
         return (
             _non_empty_text((manual_finish_contract or {}).get("next_action_summary"))
             or "继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。"
@@ -797,6 +817,28 @@ def _intervention_lane(
     )
 
     if _manual_finish_active(manual_finish_contract):
+        if _task_intake_override_is_manuscript_fast_lane(task_intake_progress_override):
+            same_line_route_truth = _mapping_copy(task_intake_progress_override.get("same_line_route_truth"))
+            return {
+                "lane_id": "manual_finishing_fast_lane",
+                "title": "执行论文快修通道",
+                "severity": "observe",
+                "summary": (
+                    _non_empty_text(task_intake_progress_override.get("next_system_action"))
+                    or _non_empty_text(task_intake_progress_override.get("blocker_summary"))
+                    or current_stage_summary
+                    or next_system_action
+                ),
+                "recommended_action_id": _non_empty_text(
+                    task_intake_progress_override.get("current_required_action")
+                )
+                or "run_manuscript_fast_lane",
+                "repair_mode": _non_empty_text(same_line_route_truth.get("same_line_state")),
+                "route_target": _non_empty_text(same_line_route_truth.get("route_target")),
+                "route_target_label": _non_empty_text(same_line_route_truth.get("route_target_label")),
+                "route_key_question": _non_empty_text(same_line_route_truth.get("current_focus")),
+                "route_summary": _non_empty_text(same_line_route_truth.get("summary")),
+            }
         return {
             "lane_id": "manual_finishing",
             "title": "保持人工收尾兼容保护",

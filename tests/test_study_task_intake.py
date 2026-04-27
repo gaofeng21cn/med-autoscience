@@ -171,6 +171,38 @@ def test_reviewer_first_user_feedback_intake_detects_revision_reactivation() -> 
     assert summary["revision_intake"]["reactivation_required"] is True
 
 
+def test_manuscript_fast_lane_intake_exposes_controller_visible_contract() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "entry_mode": "manuscript_fast_lane",
+        "task_intent": (
+            "Reviewer feedback asks for text-only manuscript revision during manual finishing. "
+            "Use existing evidence only and revise controller-authorized canonical paper sources."
+        ),
+        "constraints": [
+            "runtime must be inactive or foreground takeover must be allowed before editing",
+            "edit only canonical paper/ manuscript text and structure",
+            "all claims must come from existing evidence; do not run new analysis",
+        ],
+        "first_cycle_outputs": [
+            "controller-visible intake and handoff, canonical paper patch, export/sync, QC and package consistency checks"
+        ],
+    }
+
+    summary = module.summarize_task_intake(payload)
+    override = module.build_task_intake_progress_override(payload)
+
+    assert module.task_intake_requests_manuscript_fast_lane(payload) is True
+    assert summary["manuscript_fast_lane"]["status"] == "requested"
+    assert summary["manuscript_fast_lane"]["execution_owner"] == "codex_foreground_under_mas_controller"
+    assert "runtime_inactive_or_takeover_allowed" in summary["manuscript_fast_lane"]["required_conditions"]
+    assert summary["revision_intake"]["manuscript_fast_lane"]["status"] == "requested"
+    assert override["current_required_action"] == "run_manuscript_fast_lane"
+    assert override["quality_execution_lane"]["lane_id"] == "manuscript_fast_lane"
+    assert override["manuscript_fast_lane"]["canonical_write_surface"] == "paper/"
+
+
 def test_reviewer_revision_intake_yields_to_reviewer_first_bundle_stage_closeout() -> None:
     module = importlib.import_module("med_autoscience.study_task_intake")
 

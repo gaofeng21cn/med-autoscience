@@ -6,6 +6,13 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.study_task_intake_fast_lane import (
+    build_manuscript_fast_lane_contract,
+    build_manuscript_fast_lane_progress_override,
+    render_manuscript_fast_lane_markdown_lines,
+    render_manuscript_fast_lane_runtime_context_lines,
+    task_intake_requests_manuscript_fast_lane,
+)
 
 SCHEMA_VERSION = 1
 TASK_INTAKE_RELATIVE_ROOT = Path("artifacts") / "controller" / "task_intake"
@@ -14,6 +21,7 @@ STARTUP_BRIEF_BLOCK_END = "<!-- MAS_TASK_INTAKE:END -->"
 
 _ENTRY_MODE_LABELS = {
     "full_research": "完整研究（full_research）",
+    "manuscript_fast_lane": "论文快修通道（manuscript_fast_lane）",
 }
 _DIRECT_FINALIZE_DOWNGRADE_MARKERS = (
     "不能按已达投稿包里程碑直接收口",
@@ -188,6 +196,9 @@ def summarize_task_intake(payload: dict[str, Any] | None) -> dict[str, Any] | No
     revision_intake = build_reviewer_revision_intake(payload)
     if revision_intake is not None:
         summary["revision_intake"] = revision_intake
+    manuscript_fast_lane = build_manuscript_fast_lane_contract(payload)
+    if manuscript_fast_lane is not None:
+        summary["manuscript_fast_lane"] = manuscript_fast_lane
     return summary
 
 
@@ -223,7 +234,7 @@ def task_intake_is_reviewer_revision(payload: dict[str, Any] | None) -> bool:
 def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, Any] | None:
     if not task_intake_is_reviewer_revision(payload):
         return None
-    return {
+    revision_payload = {
         "kind": "reviewer_revision",
         "status": "active",
         "checklist": [item_id for item_id, _, _ in _REVISION_INTAKE_CHECKLIST],
@@ -263,13 +274,21 @@ def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, 
             ],
         },
     }
+    manuscript_fast_lane = build_manuscript_fast_lane_contract(payload)
+    if manuscript_fast_lane is not None:
+        revision_payload["manuscript_fast_lane"] = manuscript_fast_lane
+    return revision_payload
 
 
 def task_intake_overrides_auto_manual_finish(payload: dict[str, Any] | None) -> bool:
     # 这里只接受 durable task intake 中明确写出的强语义，不做泛化 NLP 推断。
-    return task_intake_is_reviewer_revision(payload) or _task_intake_contains_any(
-        payload,
-        _DIRECT_FINALIZE_DOWNGRADE_MARKERS,
+    return (
+        task_intake_is_reviewer_revision(payload)
+        or task_intake_requests_manuscript_fast_lane(payload)
+        or _task_intake_contains_any(
+            payload,
+            _DIRECT_FINALIZE_DOWNGRADE_MARKERS,
+        )
     )
 
 
@@ -686,6 +705,8 @@ def build_task_intake_progress_override(
         evaluation_summary=evaluation_summary,
     ):
         return None
+    if task_intake_requests_manuscript_fast_lane(payload):
+        return build_manuscript_fast_lane_progress_override(payload)
     route_target = "analysis-campaign" if _task_intake_contains_any(payload, _ANALYSIS_ROUTE_MARKERS) else "write"
     route_target_label = {
         "analysis-campaign": "补充分析与稳健性验证",
@@ -826,6 +847,7 @@ def render_task_intake_markdown(payload: dict[str, Any]) -> str:
                 "- 紧急 foreground overlay 只能作为 unreconciled handoff 标注，不能作为完成态或 MAS/MDS 已修订完成的证据。",
             ]
         )
+    lines.extend(render_manuscript_fast_lane_markdown_lines(payload))
     lines.append("")
     return "\n".join(lines)
 
@@ -867,6 +889,7 @@ def render_task_intake_runtime_context(payload: dict[str, Any]) -> str:
                 "Regenerate manuscript/current_package from canonical authority after revision.",
             ]
         )
+    lines.extend(render_manuscript_fast_lane_runtime_context_lines(payload))
     return "\n".join(lines)
 
 

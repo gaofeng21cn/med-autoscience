@@ -292,6 +292,106 @@ def test_study_progress_projects_manual_finishing_contract_before_runtime_blocke
     assert "兼容性" in result["next_system_action"]
 
 
+def test_study_progress_projects_manual_finishing_fast_lane_intake(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    study_yaml_path = study_root / "study.yaml"
+    study_yaml_path.write_text(
+        study_yaml_path.read_text(encoding="utf-8")
+        + "\n".join(
+            [
+                "",
+                "manual_finish:",
+                "  status: active",
+                "  summary: 当前 study 已转入人工打磨收尾；MAS 只需保持兼容性与监督入口，不再把它视为默认自动续跑对象。",
+                "  next_action_summary: 继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。",
+                "  compatibility_guard_only: true",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="manuscript_fast_lane",
+        task_intent=(
+            "Reviewer feedback asks for text-only manuscript revision during manual finishing. "
+            "Use existing evidence only and revise controller-authorized canonical paper sources."
+        ),
+        constraints=(
+            "runtime must be inactive or foreground takeover must be allowed before editing",
+            "edit only canonical paper/ manuscript text and structure",
+            "all claims must come from existing evidence; do not run new analysis",
+        ),
+        first_cycle_outputs=(
+            "controller-visible intake and handoff, canonical paper patch, export/sync, QC and package consistency checks",
+        ),
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "manuscript_fast_lane",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+                "auto_resume": True,
+            },
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "stopped",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "blocked",
+            "reason": "quest_waiting_for_submission_metadata",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": False,
+                "current_required_action": "continue_bundle_stage",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MedAutoScience 外环监管心跳新鲜。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["current_stage"] == "manual_finishing"
+    assert result["task_intake"]["manuscript_fast_lane"]["status"] == "requested"
+    assert result["intervention_lane"]["lane_id"] == "manual_finishing_fast_lane"
+    assert result["quality_execution_lane"]["lane_id"] == "manuscript_fast_lane"
+    assert result["operator_verdict"]["decision_mode"] == "compatibility_guard_only"
+    assert result["operator_verdict"]["repair_mode"] == "same_line_route_back"
+    assert "fast lane" in result["next_system_action"]
+    assert "canonical paper" in result["next_system_action"]
+
+
 def test_study_progress_projects_bundle_only_submission_ready_parking_before_runtime_blocker(
     monkeypatch,
     tmp_path: Path,

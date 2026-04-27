@@ -130,7 +130,7 @@ def _recovery_contract(
             ),
         ]
         action_mode = "human_decision_review"
-    elif lane_id == "manual_finishing":
+    elif lane_id in {"manual_finishing", "manual_finishing_fast_lane"}:
         steps = [
             _recovery_step(
                 step_id="inspect_study_progress",
@@ -145,7 +145,11 @@ def _recovery_contract(
                 command=commands["workspace_cockpit"],
             ),
         ]
-        action_mode = "maintain_compatibility_guard"
+        action_mode = (
+            "run_manuscript_fast_lane"
+            if lane_id == "manual_finishing_fast_lane"
+            else "maintain_compatibility_guard"
+        )
     elif lane_id in {"quality_floor_blocker", "study_progress_gap"}:
         steps = [
             _recovery_step(
@@ -502,7 +506,7 @@ def _operator_verdict(
         decision_mode = "intervene_now"
     elif lane_id == "human_decision_gate":
         decision_mode = "human_decision_required"
-    elif lane_id == "manual_finishing":
+    elif lane_id in {"manual_finishing", "manual_finishing_fast_lane"}:
         decision_mode = "compatibility_guard_only"
     else:
         decision_mode = "monitor_only"

@@ -9,16 +9,17 @@ from med_autoscience.agent_entry import load_entry_modes, load_entry_modes_paylo
 from med_autoscience.agent_entry import modes as modes_module
 
 
-def test_load_entry_modes_returns_five_canonical_modes() -> None:
+def test_load_entry_modes_returns_canonical_modes() -> None:
     modes = load_entry_modes()
 
-    assert len(modes) == 5
+    assert len(modes) == 6
     assert tuple(mode.mode_id for mode in modes) == (
         "full_research",
         "literature_scout",
         "idea_exploration",
         "project_optimization",
         "writing_delivery",
+        "manuscript_fast_lane",
     )
     assert all("Claude Code" in mode.compatible_agents for mode in modes)
 
@@ -27,6 +28,7 @@ def test_load_entry_modes_keeps_formal_chain_and_writing_constraints() -> None:
     modes = {mode.mode_id: mode for mode in load_entry_modes()}
     full_research = modes["full_research"]
     writing_delivery = modes["writing_delivery"]
+    manuscript_fast_lane = modes["manuscript_fast_lane"]
 
     assert full_research.default_runtime_mode == "managed"
     assert full_research.preconditions == ("workspace/profile available",)
@@ -47,13 +49,17 @@ def test_load_entry_modes_keeps_formal_chain_and_writing_constraints() -> None:
     assert writing_delivery.startup_boundary_gated_routes == ()
     assert writing_delivery.auxiliary_routes == ("journal-resolution",)
     assert "submission bundle or final delivery requested" in writing_delivery.upgrade_triggers
+    assert manuscript_fast_lane.default_runtime_mode == "lightweight"
+    assert manuscript_fast_lane.lightweight_routes == ("write", "finalize")
+    assert manuscript_fast_lane.startup_boundary_gated_routes == ()
+    assert any("new analysis" in trigger for trigger in manuscript_fast_lane.upgrade_triggers)
 
 
 def test_load_entry_modes_payload_reads_canonical_agents_and_mode_count() -> None:
     payload = load_entry_modes_payload()
 
     assert payload["compatible_agents"] == ["Codex", "Claude Code", "OpenClaw"]
-    assert len(payload["modes"]) == 5
+    assert len(payload["modes"]) == 6
 
 
 def test_load_entry_modes_preserves_mode_level_managed_entry_actions(monkeypatch: pytest.MonkeyPatch) -> None:

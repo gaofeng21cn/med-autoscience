@@ -173,6 +173,7 @@ def build_study_progress_projection(
     )
     latest_task_intake_payload = read_latest_task_intake(study_root=resolved_study_root)
     task_intake = summarize_task_intake(latest_task_intake_payload)
+    manuscript_fast_lane_requested = task_intake_requests_manuscript_fast_lane(latest_task_intake_payload)
     task_intake_progress_override = (
         build_task_intake_progress_override(
             latest_task_intake_payload,
@@ -180,7 +181,7 @@ def build_study_progress_projection(
             publishability_gate_report=_publishability_gate_payload,
             evaluation_summary=evaluation_summary_payload,
         )
-        if manual_finish_contract is None
+        if manual_finish_contract is None or manuscript_fast_lane_requested
         else None
     )
     latest_progress_message = None

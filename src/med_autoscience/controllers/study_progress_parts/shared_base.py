@@ -41,6 +41,7 @@ from med_autoscience.study_task_intake import (
     build_task_intake_progress_override,
     read_latest_task_intake,
     summarize_task_intake,
+    task_intake_requests_manuscript_fast_lane,
 )
 
 
