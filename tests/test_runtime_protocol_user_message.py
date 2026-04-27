@@ -117,3 +117,47 @@ def test_enqueue_user_message_deduplicates_same_key_when_content_changes(tmp_pat
     assert record == existing
     assert len(queue["pending"]) == 1
     assert journal_lines == []
+
+
+def test_enqueue_user_message_compacts_duplicate_pending_content(tmp_path: Path) -> None:
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    runtime_state = {
+        "quest_id": "q001",
+        "active_interaction_id": "progress-1",
+        "pending_user_message_count": 2,
+    }
+    first = {
+        "message_id": "msg-0001",
+        "source": "codex-test",
+        "conversation_id": "local:default",
+        "content": "same controller authorization",
+        "created_at": "2026-03-29T00:00:00+00:00",
+        "reply_to_interaction_id": "progress-1",
+        "attachments": [],
+        "status": "queued",
+    }
+    duplicate = {
+        **first,
+        "message_id": "msg-0002",
+        "created_at": "2026-03-29T00:00:10+00:00",
+    }
+    dump_json(quest_root / ".ds" / "runtime_state.json", runtime_state)
+    dump_json(quest_root / ".ds" / "user_message_queue.json", {"version": 1, "pending": [first, duplicate], "completed": []})
+    (quest_root / ".ds" / "interaction_journal.jsonl").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / ".ds" / "interaction_journal.jsonl").write_text("", encoding="utf-8")
+
+    record = enqueue_user_message(
+        quest_root=quest_root,
+        runtime_state=runtime_state,
+        message="same controller authorization",
+        source="codex-test",
+    )
+
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    updated_runtime = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    journal_lines = (quest_root / ".ds" / "interaction_journal.jsonl").read_text(encoding="utf-8").splitlines()
+
+    assert record == first
+    assert queue["pending"] == [first]
+    assert updated_runtime["pending_user_message_count"] == 1
+    assert journal_lines == []

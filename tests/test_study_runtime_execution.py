@@ -411,6 +411,49 @@ def test_execute_noop_runtime_decision_deduplicates_controller_authorization_for
     assert "controller_decision_authorization_relay" not in status.to_dict()
 
 
+def test_execute_noop_runtime_decision_fallback_tags_controller_authorization_with_dedupe_key(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    _write_controller_decision_authorization(study_root)
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-live-001",
+            "pending_user_message_count": 0,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise TimeoutError("simulated controller authorization timeout")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="runtime_watch",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    relay = status.to_dict()["controller_decision_authorization_relay"]
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert relay["delivery_mode"] == "durable_queue_fallback"
+    assert len(queue["pending"]) == 1
+    assert queue["pending"][0]["dedupe_key"].startswith("controller-decision-authorization:")
+
+
 def test_force_restart_for_live_controller_reroute_supports_write_stage_ready(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")

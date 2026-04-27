@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -117,6 +118,23 @@ def _controller_decision_authorization_already_relayed(
     )
 
 
+def _controller_decision_authorization_dedupe_key(
+    *,
+    authorization_context: dict[str, Any],
+    active_run_id: str | None,
+) -> str:
+    canonical_payload = {
+        "decision_id": str(authorization_context.get("decision_id") or "").strip(),
+        "route_target": str(authorization_context.get("route_target") or "").strip(),
+        "route_key_question": str(authorization_context.get("route_key_question") or "").strip(),
+        "active_run_id": active_run_id,
+    }
+    encoded = json.dumps(canonical_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    return f"controller-decision-authorization:{hashlib.sha256(encoded).hexdigest()}"
+
+
 def _controller_decision_authorization_message(*, authorization_context: dict[str, Any]) -> str:
     route_target = str(authorization_context.get("route_target") or "").strip()
     route_target_label = str(authorization_context.get("route_target_label") or route_target).strip()
@@ -214,6 +232,10 @@ def _relay_controller_decision_authorization_if_required(
         return None
 
     message = _controller_decision_authorization_message(authorization_context=authorization_context)
+    dedupe_key = _controller_decision_authorization_dedupe_key(
+        authorization_context=authorization_context,
+        active_run_id=active_run_id,
+    )
     relay: dict[str, Any] = {
         "decision_id": authorization_context.get("decision_id"),
         "route_target": authorization_context.get("route_target"),
@@ -253,6 +275,7 @@ def _relay_controller_decision_authorization_if_required(
         runtime_state=runtime_state,
         message=message,
         source=context.source,
+        dedupe_key=dedupe_key,
     )
     updated_runtime_state = quest_state.load_runtime_state(context.quest_root)
     relay["delivery_mode"] = "durable_queue_fallback"
