@@ -352,6 +352,57 @@ def test_autonomy_slo_consumes_mds_failure_taxonomy_before_auto_recovery() -> No
     assert payload["slo_execution_plan"]["gate_relaxation_allowed"] is False
 
 
+def test_runtime_failure_taxonomy_generalizes_codex_upstream_account_balance_text() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_failure_taxonomy")
+
+    classification = module.classify_mds_failure_diagnosis(
+        {
+            "diagnosis_code": "codex_upstream_http_403",
+            "retriable": False,
+            "problem": "403 account balance is negative",
+        }
+    )
+
+    assert classification["blocker_class"] == "external_provider_account_blocker"
+    assert classification["action_mode"] == "external_fix_required"
+    assert classification["auto_recovery_allowed"] is False
+    assert classification["external_blocker"] is True
+
+
+def test_runtime_failure_taxonomy_generalizes_codex_upstream_transient_text_without_exact_code() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_failure_taxonomy")
+
+    classification = module.classify_mds_failure_diagnosis(
+        {
+            "retriable": True,
+            "problem": "Codex upstream API returned a transient provider error.",
+        }
+    )
+
+    assert classification["diagnosis_code"] is None
+    assert classification["blocker_class"] == "external_provider_transient"
+    assert classification["action_mode"] == "provider_backoff_and_recheck"
+    assert classification["auto_recovery_allowed"] is True
+    assert classification["external_blocker"] is True
+
+
+def test_runtime_failure_taxonomy_keeps_non_account_codex_upstream_failures_external_provider() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_failure_taxonomy")
+
+    classification = module.classify_mds_failure_diagnosis(
+        {
+            "diagnosis_code": "codex_upstream_http_502",
+            "retriable": False,
+            "problem": "Codex upstream provider returned 502 after retry budget was exhausted.",
+        }
+    )
+
+    assert classification["blocker_class"] == "external_provider_transient"
+    assert classification["action_mode"] == "provider_backoff_and_recheck"
+    assert classification["auto_recovery_allowed"] is False
+    assert classification["external_blocker"] is True
+
+
 def test_autonomy_slo_execution_plan_prioritizes_controller_actions_without_quality_relaxation() -> None:
     module = importlib.import_module("med_autoscience.controllers.autonomy_slo")
 

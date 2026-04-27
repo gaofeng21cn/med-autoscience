@@ -28,6 +28,26 @@ _PLATFORM_BUG_CODES = frozenset(
         "runner_binary_attachment_path_unsupported",
     }
 )
+_EXTERNAL_ACCOUNT_TEXT_MARKERS = (
+    "account balance is negative",
+    "insufficient balance",
+    "insufficient quota",
+    "quota exceeded",
+    "billing",
+    "payment required",
+    "account disabled",
+    "account blocker",
+)
+_EXTERNAL_TRANSIENT_TEXT_MARKERS = (
+    "codex upstream",
+    "upstream api",
+    "upstream provider",
+    "provider unavailable",
+    "provider rate limit",
+    "rate limit exceeded",
+    "openai api",
+    "anthropic api",
+)
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -41,6 +61,18 @@ def _text(value: object) -> str | None:
 
 def _bool(value: object) -> bool | None:
     return value if isinstance(value, bool) else None
+
+
+def _lowered_texts(*values: object) -> tuple[str, ...]:
+    return tuple(text.lower() for value in values if (text := _text(value)) is not None)
+
+
+def _contains_any(texts: tuple[str, ...], markers: tuple[str, ...]) -> bool:
+    return any(marker in text for text in texts for marker in markers)
+
+
+def _looks_like_codex_upstream_code(value: str | None) -> bool:
+    return bool(value and value.startswith("codex_upstream_"))
 
 
 def _diagnosis_from_profile(profile_payload: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -70,7 +102,15 @@ def _diagnosis_from_profile(profile_payload: Mapping[str, Any]) -> Mapping[str, 
 def classify_mds_failure_diagnosis(diagnosis: Mapping[str, Any]) -> dict[str, Any]:
     diagnosis_code = _text(diagnosis.get("diagnosis_code")) or _text(diagnosis.get("code"))
     retriable = _bool(diagnosis.get("retriable"))
-    if diagnosis_code is None:
+    problem = _text(diagnosis.get("problem"))
+    failure_texts = _lowered_texts(diagnosis_code, problem, diagnosis.get("message"), diagnosis.get("raw_error"))
+    account_like_external = _contains_any(failure_texts, _EXTERNAL_ACCOUNT_TEXT_MARKERS)
+    transient_like_external = _contains_any(failure_texts, _EXTERNAL_TRANSIENT_TEXT_MARKERS)
+    codex_upstream_failure = _looks_like_codex_upstream_code(diagnosis_code) or (
+        any("codex" in text for text in failure_texts)
+        and any(marker in text for text in failure_texts for marker in ("upstream", "api", "provider"))
+    )
+    if diagnosis_code is None and not account_like_external and not transient_like_external and not codex_upstream_failure:
         return {
             "diagnosis_code": None,
             "blocker_class": "none",
@@ -78,7 +118,7 @@ def classify_mds_failure_diagnosis(diagnosis: Mapping[str, Any]) -> dict[str, An
             "auto_recovery_allowed": True,
             "external_blocker": False,
             "requires_human_gate": False,
-            "problem": _text(diagnosis.get("problem")),
+            "problem": problem,
         }
     if diagnosis_code in _EXTERNAL_ACCOUNT_CODES:
         blocker_class = "external_provider_account_blocker"
@@ -86,7 +126,13 @@ def classify_mds_failure_diagnosis(diagnosis: Mapping[str, Any]) -> dict[str, An
         auto_recovery_allowed = False
         external_blocker = True
         requires_human_gate = True
-    elif diagnosis_code in _EXTERNAL_TRANSIENT_CODES:
+    elif account_like_external:
+        blocker_class = "external_provider_account_blocker"
+        action_mode = "external_fix_required"
+        auto_recovery_allowed = False
+        external_blocker = True
+        requires_human_gate = True
+    elif diagnosis_code in _EXTERNAL_TRANSIENT_CODES or codex_upstream_failure or transient_like_external:
         blocker_class = "external_provider_transient"
         action_mode = "provider_backoff_and_recheck"
         auto_recovery_allowed = retriable is not False
@@ -123,7 +169,7 @@ def classify_mds_failure_diagnosis(diagnosis: Mapping[str, Any]) -> dict[str, An
         "auto_recovery_allowed": auto_recovery_allowed,
         "external_blocker": external_blocker,
         "requires_human_gate": requires_human_gate,
-        "problem": _text(diagnosis.get("problem")),
+        "problem": problem,
         "retriable": retriable,
     }
 
