@@ -146,6 +146,7 @@ Language redlines under this profile:
 - explicit forbidden examples include `locked vYYYY-MM-DD`, `workspace cohort`, `data freeze`, `follow-up freeze`, `paper-facing`, and `mainline`
 - replace internal labels with externally legible, reviewer-facing terminology
 - for prediction-model papers, replace internal or conceptual phrases such as `horizon contract`, `predictor surface`, `validation surface`, `endpoint-alignment evidence`, `control endpoint`, and `sidecar material` with standard scientific terms such as `5-year prediction horizon`, `candidate predictors`, `validation cohort`, `supportive endpoint analysis`, `supportive secondary endpoint`, and `supplementary analysis`
+- run a formal manuscript-language pass before packaging: remove conversational, tool-facing, meta-manuscript, and overly verbose wording; prefer concise peer-reviewed medical English with explicit subjects, standard statistical terminology, and evidence-bounded claims.
 
 For prediction-model or time-to-event manuscripts, the first complete draft must include a reviewer-facing reporting block before any submission package is described as ready:
 
@@ -153,6 +154,7 @@ For prediction-model or time-to-event manuscripts, the first complete draft must
 - candidate predictor count, variable coding, continuous-variable transformation or standardization, penalization or tuning procedure, internal validation or resampling, event counts, censoring interpretation, and competing-risk interpretation when cause-specific death is modeled
 - performance table fields: endpoint, validation N, event count at the prediction horizon, discrimination with confidence interval, calibration metric, Brier score or prediction error, highest-risk-group predicted versus observed risk, and decision-curve threshold range with clinical rationale
 - Discussion and Conclusion language bounded to internal validation, risk stratification, calibration limitations, and external-validation need unless the accepted evidence explicitly supports clinical deployment
+- standard Methods subsections should be `Study design and cohort`, `Variable measurement and outcome definition`, `Model building`, `Validation, sensitivity, and stratified analyses`, and `Statistical analysis`; do not include a manuscript-internal `Reporting boundary` subsection in the main Methods text.
 
 {{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}
 
@@ -292,8 +294,18 @@ Before validating the JSON/text contracts below, make the reviewer-facing prose 
 - `Introduction` should be a formal three-paragraph medical narrative:
   clinical background and follow-up context; current study landscape with concrete gaps; present-study objective plus design.
 - `Materials and Methods` should expose the reviewer-facing subsections
-  `Study design and cohort`, `Variable definition and measurement`, `Model building`, and `Validation framework`.
+  `Study design and cohort`, `Variable measurement and outcome definition`, `Model building`, `Validation, sensitivity, and stratified analyses`, and `Statistical analysis`.
+- The `Study design and cohort` subsection should describe the study design, data source, previously published cohort context when available, setting, ethics, and consent or waiver statement; cohort inclusion/exclusion counts belong in the first Results subsection unless a flow description is essential for eligibility definition.
+- `Variable measurement and outcome definition` should state how key variables were measured or obtained, how candidate predictors were coded, and how primary and secondary outcomes were ascertained and defined.
+- `Model building` should explain predictor selection or retention, preprocessing, missing-data handling, model families, tuning, and the key rationale for the final model.
+- `Validation, sensitivity, and stratified analyses` should distinguish internal validation from sensitivity, subgroup, stratified, and supportive analyses instead of mixing them under a validation-only heading.
+- `Statistical analysis` should state data types, summary formats, between-group comparisons when relevant, uncertainty intervals, hypothesis-test policy, and software/packages used.
 - `Results` should be broken into explicit subsection headings rather than one undifferentiated block of prose.
+- The first `Results` subsection should report analytic cohort derivation, exclusions, follow-up, deaths/events, and then baseline age, sex, and main clinical/metabolic distributions; move these factual counts out of Methods when possible.
+- Model-result Results subsections should report the main quantitative findings directly, then cite displays parenthetically; avoid prose whose main message is that a figure or table displays something.
+- Risk-stratification, sensitivity-analysis, subgroup-analysis, and supportive-endpoint Results subsections should use standard scientific headings and include concrete numerical results, not only qualitative claims.
+- `Discussion` should normally follow four paragraphs: principal findings and significance; interpretation, clinical meaning, and literature-supported gap filled by this study; three main strengths; three main limitations with how future work will address them.
+- `Conclusion` should briefly state the main finding and significance, without meta-discourse such as how the manuscript should be read.
 - Do not use question-form sentences in manuscript prose; convert them into formal declarative statements.
 
 ### 1. Methods completeness contract
@@ -651,6 +663,7 @@ Before step 1, durably establish the writing-surface contract:
 - `paper/medical_reporting_contract.json` should include `structured_reporting_contract` or equivalent first-draft prevention fields before the first complete manuscript draft
 - for real-world, phenotype, subtype, or cluster papers, set `clinical_actionability_required=true` unless the study charter explicitly says the paper is descriptive only
 - for prediction-model manuscripts, close the structured TRIPOD/TRIPOD+AI fields before prose expansion: data-source years, inclusion/exclusion, endpoint ascertainment, follow-up start, censoring, missingness, variable coding, model tuning, center effects, validation event counts, calibration, DCA threshold actions, Table 1 missingness/SMD, and time-to-event competing-event screen when applicable
+- before submission packaging, perform the medical-prose structure pass: formal language, Methods subsection order, Results cohort-first and question-led narration, four-part Discussion, concise Conclusion, and no main-text `Reporting boundary` heading
 - terminology redline for body text, figure titles, and captions (no internal engineering terms, no internal model names)
 - `paper/claim_evidence_map.json`, `paper/results_narrative_map.json`, and `paper/figure_semantics_manifest.json` must agree on the main-text display obligations before you treat a bundle as closure-capable
 

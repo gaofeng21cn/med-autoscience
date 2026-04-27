@@ -44,6 +44,17 @@ def test_core_medical_stage_templates_reference_stage_packet_block() -> None:
         assert "medical-research-stage-packet.block.md" in text, filename
 
 
+def test_write_template_requires_formal_medical_manuscript_structure_pass() -> None:
+    text = (TEMPLATE_ROOT / "medical-research-write.SKILL.md").read_text(encoding="utf-8")
+
+    assert "formal manuscript-language pass" in text
+    assert "Variable measurement and outcome definition" in text
+    assert "Validation, sensitivity, and stratified analyses" in text
+    assert "cohort inclusion/exclusion counts belong in the first Results subsection" in text
+    assert "four paragraphs: principal findings and significance" in text
+    assert "no main-text `Reporting boundary` heading" in text
+
+
 def test_policy_docs_pin_stage_packet_and_tool_usage_boundaries() -> None:
     route_policy = _read("docs/policies/study_route_contract.md")
     evidence_policy = _read("docs/policies/evidence_review_contract.md")
