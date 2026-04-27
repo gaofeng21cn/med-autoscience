@@ -15,6 +15,7 @@
 - [运行模型 Policy](platform_operating_model.md)
 - [数据资产策略](data_asset_management.md)
 - [Publication Gate Policy](publication_gate_policy.md)
+- [AI-first Quality Boundary Policy](ai_first_quality_boundary.md)
 - [Study Route Contract](study_route_contract.md)
 - [Evidence Review Contract](evidence_review_contract.md)
 - [默认研究场景](study_archetypes.md)

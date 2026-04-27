@@ -107,6 +107,7 @@ Public-facing material should stay mirrored in English and Chinese.
 - [Data asset management](policies/data_asset_management.md)
 - [Research route bias policy](policies/research_route_bias_policy.md)
 - [Publication gate policy](policies/publication_gate_policy.md)
+- [AI-first quality boundary policy](policies/ai_first_quality_boundary.md)
 
 ### Traceability Records
 

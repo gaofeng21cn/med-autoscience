@@ -107,6 +107,7 @@
 - [数据资产管理](policies/data_asset_management.md)
 - [研究路线偏置规则](policies/research_route_bias_policy.md)
 - [发表门控规则](policies/publication_gate_policy.md)
+- [AI-first 质量边界规则](policies/ai_first_quality_boundary.md)
 
 ### 追溯记录
 
