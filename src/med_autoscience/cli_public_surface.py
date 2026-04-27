@@ -57,6 +57,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("publication", "materialize-journal-package"): "materialize-journal-package",
     ("publication", "export-targets"): "export-submission-targets",
     ("publication", "gate"): "publication-gate",
+    ("publication", "materialize-ai-reviewer-eval"): "materialize-ai-reviewer-publication-eval",
     ("publication", "literature-audit"): "medical-literature-audit",
     ("publication", "reporting-audit"): "medical-reporting-audit",
     ("publication", "surface"): "medical-publication-surface",

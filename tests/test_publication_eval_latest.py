@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -215,3 +216,79 @@ def test_read_publication_eval_latest_rejects_non_object_payload(tmp_path: Path)
 
     with pytest.raises(ValueError, match="JSON object"):
         module.read_publication_eval_latest(study_root=study_root)
+
+
+def test_ai_reviewer_publication_eval_controller_materializes_runtime_checked_latest(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    called: dict[str, object] = {}
+
+    def fake_status(*, profile, study_id: str | None, study_root: Path | None, entry_mode: str | None) -> dict:
+        called["profile"] = profile
+        called["study_id"] = study_id
+        called["study_root"] = study_root
+        called["entry_mode"] = entry_mode
+        return {
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+        }
+
+    monkeypatch.setattr(controller.study_runtime_router, "study_runtime_status", fake_status)
+
+    result = controller.materialize_ai_reviewer_publication_eval(
+        profile=SimpleNamespace(name="nfpitnet"),
+        study_id=None,
+        study_root=study_root,
+        entry_mode=None,
+        record=payload,
+        source="pytest",
+    )
+
+    assert called["study_root"] == study_root
+    assert result["status"] == "materialized"
+    assert result["study_id"] == "001-risk"
+    assert result["quest_id"] == "quest-001"
+    assert result["assessment_owner"] == "ai_reviewer"
+    latest = importlib.import_module(MODULE_NAME).read_publication_eval_latest(study_root=study_root)
+    assert latest["eval_id"] == payload["eval_id"]
+
+
+def test_ai_reviewer_publication_eval_controller_rejects_mechanical_projection(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    payload["assessment_provenance"] = {
+        "owner": "mechanical_projection",
+        "source_kind": "publication_gate_report",
+        "policy_id": "publication_gate_projection_v1",
+        "source_refs": [payload["runtime_context_refs"]["runtime_escalation_ref"]],
+        "ai_reviewer_required": True,
+    }
+
+    monkeypatch.setattr(
+        controller.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+        },
+    )
+
+    with pytest.raises(ValueError, match="owner=ai_reviewer"):
+        controller.materialize_ai_reviewer_publication_eval(
+            profile=SimpleNamespace(name="nfpitnet"),
+            study_id=None,
+            study_root=study_root,
+            entry_mode=None,
+            record=payload,
+            source="pytest",
+        )

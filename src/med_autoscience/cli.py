@@ -63,6 +63,7 @@ figure_loop_guard = _LazyModuleProxy(lambda: _load_controller("figure_loop_guard
 journal_package_controller = _LazyModuleProxy(lambda: _load_controller("journal_package"))
 journal_requirements_controller = _LazyModuleProxy(lambda: _load_controller("journal_requirements"))
 journal_shortlist_controller = _LazyModuleProxy(lambda: _load_controller("journal_shortlist"))
+ai_reviewer_publication_eval = _LazyModuleProxy(lambda: _load_controller("ai_reviewer_publication_eval"))
 medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_literature_audit"))
 medical_publication_surface = _LazyModuleProxy(lambda: _load_controller("medical_publication_surface"))
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
@@ -428,6 +429,13 @@ def build_parser() -> argparse.ArgumentParser:
     quality_repair_batch_parser.add_argument("--study-id", type=str)
     quality_repair_batch_parser.add_argument("--study-root", type=str)
     quality_repair_batch_parser.add_argument("--quest-id", type=str)
+    ai_reviewer_eval_parser = subparsers.add_parser("materialize-ai-reviewer-publication-eval")
+    ai_reviewer_eval_parser.add_argument("--profile", required=True)
+    ai_reviewer_eval_parser.add_argument("--study-id", type=str)
+    ai_reviewer_eval_parser.add_argument("--study-root", type=str)
+    ai_reviewer_eval_parser.add_argument("--entry-mode", type=str)
+    ai_reviewer_eval_parser.add_argument("--payload-file", type=str)
+    ai_reviewer_eval_parser.add_argument("--payload-json", type=str)
     workspace_cockpit_parser = subparsers.add_parser("workspace-cockpit")
     workspace_cockpit_parser.add_argument("--profile", required=True)
     workspace_cockpit_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
@@ -688,6 +696,21 @@ def main(argv: list[str] | None = None) -> int:
             study_id=args.study_id or study_root.name,
             study_root=study_root,
             quest_id=quest_id,
+            source="cli",
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "materialize-ai-reviewer-publication-eval":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        result = ai_reviewer_publication_eval.materialize_ai_reviewer_publication_eval(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            entry_mode=args.entry_mode,
+            record=_load_json_payload_from_args(args),
             source="cli",
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))

@@ -318,6 +318,8 @@ def test_quality_repair_batch_command_dispatches_controller(monkeypatch, tmp_pat
     assert called["quest_id"] == "quest-001"
     assert called["source"] == "cli"
     assert json.loads(captured.out)["status"] == "executed"
+
+
 def test_study_profile_cycle_command_dispatches_profiler(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
