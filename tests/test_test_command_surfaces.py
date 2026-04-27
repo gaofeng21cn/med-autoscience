@@ -9,7 +9,7 @@ import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "c9728b71693d58f1772a04e77c235f4bc2876c0c"
+REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "96b19e474d716f1c841202c6adbf227e9f44e6f9"
 
 
 def _read(relative_path: str) -> str:
