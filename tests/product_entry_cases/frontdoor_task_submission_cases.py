@@ -150,6 +150,82 @@ def test_submit_study_task_enqueues_task_context_for_live_runtime(
     assert queue["pending"] == []
     assert runtime_state["pending_user_message_count"] == 0
 
+
+def test_submit_study_task_deduplicates_same_live_runtime_task_for_current_run(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk"
+    write_text(quest_root / "quest.yaml", "id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": "001-risk",
+                "status": "running",
+                "active_run_id": "run-live-001",
+                "active_interaction_id": "progress-1",
+                "pending_user_message_count": 0,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
+    calls: list[str] = []
+
+    class FakeBackend:
+        BACKEND_ID = "fake"
+        ENGINE_ID = "fake-engine"
+
+        def chat_quest(
+            self,
+            *,
+            runtime_root: Path,
+            quest_id: str,
+            text: str,
+            source: str,
+            reply_to_interaction_id: str | None = None,
+            decision_response: dict[str, object] | None = None,
+        ) -> dict[str, object]:
+            calls.append(text)
+            return {"ok": True, "message": {"id": "msg-formal-001"}}
+
+    monkeypatch.setattr(runtime_backend, "resolve_managed_runtime_backend", lambda execution: FakeBackend())
+
+    first = product_entry.submit_study_task(
+        profile=profile,
+        study_id="001-risk",
+        task_intent="根据审稿意见修订 manuscript。",
+        constraints=("补齐 Table 1 和 Table 2",),
+    )
+    second = product_entry.submit_study_task(
+        profile=profile,
+        study_id="001-risk",
+        task_intent="根据审稿意见修订 manuscript。",
+        constraints=("补齐 Table 1 和 Table 2",),
+    )
+
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    first_intervention = first["runtime_intervention"]
+    second_intervention = second["runtime_intervention"]
+
+    assert len(calls) == 1
+    assert first_intervention["delivery_mode"] == "managed_runtime_chat"
+    assert first_intervention["message_id"] == "msg-formal-001"
+    assert second_intervention["delivery_mode"] == "managed_runtime_chat"
+    assert second_intervention["message_id"] == "msg-formal-001"
+    assert second_intervention["reason"] == "live_runtime_task_context_already_delivered"
+    assert second_intervention["idempotent_replay"] is True
+    assert queue["pending"] == []
+    assert runtime_state["pending_user_message_count"] == 0
+
 def test_submit_study_task_uses_managed_quest_id_for_live_runtime_intervention(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

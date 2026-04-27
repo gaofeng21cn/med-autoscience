@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import json
+
 from . import shared as _shared
 from . import program_surfaces as _program_surfaces
 from . import workspace_surfaces as _workspace_surfaces
@@ -230,6 +233,27 @@ def _build_live_task_intake_runtime_message(payload: dict[str, Any]) -> str:
     )
 
 
+def _task_intake_delivery_fingerprint(payload: Mapping[str, Any]) -> str:
+    canonical_payload = {
+        "study_id": _non_empty_text(payload.get("study_id")),
+        "entry_mode": _non_empty_text(payload.get("entry_mode")) or "full_research",
+        "task_intent": _non_empty_text(payload.get("task_intent")) or "",
+        "journal_target": _non_empty_text(payload.get("journal_target")),
+        "constraints": list(_normalized_strings(payload.get("constraints") or [])),
+        "evidence_boundary": list(_normalized_strings(payload.get("evidence_boundary") or [])),
+        "trusted_inputs": list(_normalized_strings(payload.get("trusted_inputs") or [])),
+        "reference_papers": list(_normalized_strings(payload.get("reference_papers") or [])),
+        "first_cycle_outputs": list(_normalized_strings(payload.get("first_cycle_outputs") or [])),
+        "revision_intake_kind": _non_empty_text(dict(payload.get("revision_intake") or {}).get("kind"))
+        if isinstance(payload.get("revision_intake"), Mapping)
+        else None,
+    }
+    encoded = json.dumps(canonical_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    return f"study-task-intake:{hashlib.sha256(encoded).hexdigest()}"
+
+
 def _runtime_message_id(payload: Mapping[str, Any] | None) -> str | None:
     if not isinstance(payload, Mapping):
         return None
@@ -239,6 +263,46 @@ def _runtime_message_id(payload: Mapping[str, Any] | None) -> str | None:
         if message_id is not None:
             return message_id
     return _non_empty_text(payload.get("message_id")) or _non_empty_text(payload.get("id"))
+
+
+def _task_intake_delivery_for_current_run(
+    *,
+    runtime_state: Mapping[str, Any],
+    fingerprint: str,
+) -> Mapping[str, Any] | None:
+    delivery = runtime_state.get("last_task_intake_delivery")
+    if not isinstance(delivery, Mapping):
+        return None
+    if delivery.get("fingerprint") != fingerprint:
+        return None
+    current_active_run_id = _non_empty_text(runtime_state.get("active_run_id"))
+    delivered_active_run_id = _non_empty_text(delivery.get("active_run_id"))
+    if current_active_run_id is not None and delivered_active_run_id != current_active_run_id:
+        return None
+    return delivery
+
+
+def _write_task_intake_delivery_record(
+    *,
+    quest_root: Path,
+    runtime_state: Mapping[str, Any],
+    fingerprint: str,
+    delivery_mode: str,
+    message_id: str | None,
+    source: str,
+) -> None:
+    runtime_state_path = Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
+    latest_runtime_state = quest_state.load_runtime_state(quest_root)
+    merged_state = dict(latest_runtime_state or runtime_state)
+    merged_state["last_task_intake_delivery"] = {
+        "fingerprint": fingerprint,
+        "active_run_id": _non_empty_text(merged_state.get("active_run_id")),
+        "delivery_mode": delivery_mode,
+        "message_id": message_id,
+        "source": source,
+    }
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(json.dumps(merged_state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _study_reactivation_command(
@@ -346,6 +410,19 @@ def _enqueue_task_intake_for_live_runtime(
         return result
 
     runtime_state["quest_id"] = managed_quest_id
+    fingerprint = _task_intake_delivery_fingerprint(payload)
+    existing_delivery = _task_intake_delivery_for_current_run(
+        runtime_state=runtime_state,
+        fingerprint=fingerprint,
+    )
+    if existing_delivery is not None:
+        result["intervention_enqueued"] = True
+        result["delivery_mode"] = _non_empty_text(existing_delivery.get("delivery_mode"))
+        result["message_id"] = _non_empty_text(existing_delivery.get("message_id"))
+        result["reason"] = "live_runtime_task_context_already_delivered"
+        result["idempotent_replay"] = True
+        return result
+
     backend = runtime_backend_contract.resolve_managed_runtime_backend(execution)
     if backend is not None:
         result["runtime_backend_id"] = backend.BACKEND_ID
@@ -363,6 +440,15 @@ def _enqueue_task_intake_for_live_runtime(
             result["delivery_mode"] = "managed_runtime_chat"
             result["message_id"] = _runtime_message_id(response)
             result["reason"] = "live_runtime_task_context_submitted"
+            result["idempotent_replay"] = False
+            _write_task_intake_delivery_record(
+                quest_root=quest_root,
+                runtime_state=runtime_state,
+                fingerprint=fingerprint,
+                delivery_mode="managed_runtime_chat",
+                message_id=result["message_id"],
+                source="codex-study-task-intake",
+            )
             return result
 
     record = user_message.enqueue_user_message(
@@ -370,11 +456,21 @@ def _enqueue_task_intake_for_live_runtime(
         runtime_state=runtime_state,
         message=runtime_message,
         source="codex-study-task-intake",
+        dedupe_key=fingerprint,
     )
     result["intervention_enqueued"] = True
     result["delivery_mode"] = "durable_queue_fallback"
     result["message_id"] = record.get("message_id")
     result["reason"] = "live_runtime_task_context_enqueued_fallback"
+    result["idempotent_replay"] = False
+    _write_task_intake_delivery_record(
+        quest_root=quest_root,
+        runtime_state=runtime_state,
+        fingerprint=fingerprint,
+        delivery_mode="durable_queue_fallback",
+        message_id=_non_empty_text(record.get("message_id")),
+        source="codex-study-task-intake",
+    )
     return result
 
 

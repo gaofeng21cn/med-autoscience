@@ -34,13 +34,17 @@ def enqueue_user_message(
     runtime_state: dict[str, Any],
     message: str,
     source: str = "cli",
+    dedupe_key: str | None = None,
 ) -> dict[str, Any]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     queue_path = resolved_quest_root / ".ds" / "user_message_queue.json"
     queue_payload = load_json(queue_path, default={"version": 1, "pending": [], "completed": []}) or {}
     pending = list(queue_payload.get("pending") or [])
+    normalized_dedupe_key = str(dedupe_key or "").strip()
     for item in pending:
         if item.get("content") == message:
+            return item
+        if normalized_dedupe_key and item.get("dedupe_key") == normalized_dedupe_key:
             return item
 
     created_at = utc_now()
@@ -54,6 +58,8 @@ def enqueue_user_message(
         "attachments": [],
         "status": "queued",
     }
+    if normalized_dedupe_key:
+        record["dedupe_key"] = normalized_dedupe_key
     pending.append(record)
     queue_payload["pending"] = pending
     dump_json(queue_path, queue_payload)
