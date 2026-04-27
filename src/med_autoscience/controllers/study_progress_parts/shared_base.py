@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shlex
 import sys
 from datetime import datetime, timezone
@@ -733,7 +734,11 @@ def _display_text(value: object) -> str | None:
         *_PAPER_STAGE_LABELS.items(),
         *_BLOCKER_LABELS.items(),
     ):
-        text = text.replace(token, label)
+        text = re.sub(
+            rf"(?<![A-Za-z0-9_]){re.escape(token)}(?![A-Za-z0-9_])",
+            label,
+            text,
+        )
     return text
 
 

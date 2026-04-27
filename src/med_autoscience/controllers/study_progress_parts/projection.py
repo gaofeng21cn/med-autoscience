@@ -176,6 +176,7 @@ def build_study_progress_projection(
     task_intake_progress_override = (
         build_task_intake_progress_override(
             latest_task_intake_payload,
+            study_root=resolved_study_root,
             publishability_gate_report=_publishability_gate_payload,
             evaluation_summary=evaluation_summary_payload,
         )
@@ -258,6 +259,7 @@ def build_study_progress_projection(
             progress_freshness=progress_freshness,
             manual_finish_contract=manual_finish_contract,
             task_intake_progress_override=task_intake_progress_override,
+            evaluation_summary_payload=evaluation_summary_payload,
         )
     )
     next_system_action = _display_text(_next_system_action(
@@ -275,6 +277,7 @@ def build_study_progress_projection(
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
         task_intake_progress_override=task_intake_progress_override,
+        evaluation_summary_payload=evaluation_summary_payload,
     )) or ""
     physician_decision_summary = _display_text(_physician_decision_summary(
         status=status,
@@ -300,6 +303,7 @@ def build_study_progress_projection(
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
         task_intake_progress_override=task_intake_progress_override,
+        evaluation_summary_payload=evaluation_summary_payload,
     )
     recommended_command, recommended_commands, recovery_contract = _recovery_contract(
         profile=profile,

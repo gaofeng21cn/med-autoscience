@@ -1,6 +1,13 @@
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
+
+
+def _write_json(path: Path, payload: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def test_task_intake_progress_override_yields_to_deterministic_submission_closeout() -> None:
@@ -206,6 +213,92 @@ def test_reviewer_revision_intake_yields_to_reviewer_first_bundle_stage_closeout
     assert module.task_intake_is_reviewer_revision(payload) is True
     assert module.build_task_intake_progress_override(
         payload,
+        publishability_gate_report=gate_report,
+        evaluation_summary=evaluation_summary,
+    ) is None
+
+
+def test_reviewer_revision_intake_yields_to_ai_reviewer_quality_closure_after_verified_handoff(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+    study_root = tmp_path / "studies" / "003-endocrine-burden-followup"
+    payload = {
+        "task_id": "study-task::003-endocrine-burden-followup::20260426T065318Z",
+        "emitted_at": "2026-04-26T06:53:18+00:00",
+        "task_intent": "Revise the manuscript after reviewer feedback and write manuscript revision outputs back.",
+        "first_cycle_outputs": [
+            "当前最新 task intake 指定的首轮修订产出是否已经补齐并写回 manuscript？"
+        ],
+    }
+    gate_report = {
+        "generated_at": "2026-04-27T02:02:40+00:00",
+        "status": "clear",
+        "allow_write": True,
+        "blockers": [],
+        "current_required_action": "continue_bundle_stage",
+    }
+    evaluation_summary = {
+        "emitted_at": "2026-04-27T02:02:52+00:00",
+        "promotion_gate_status": {
+            "status": "clear",
+            "allow_write": True,
+            "current_required_action": "continue_bundle_stage",
+            "blockers": [],
+        },
+        "quality_closure_truth": {
+            "state": "quality_repair_required",
+            "summary": (
+                "当前 publication_eval 只是机械投影；必须先由 AI reviewer 读取 manuscript、"
+                "evidence ledger、review ledger 与 study charter 后再给出科学质量闭环判断。"
+            ),
+            "current_required_action": "continue_bundle_stage",
+            "route_target": "finalize",
+        },
+        "quality_review_loop": {
+            "closure_state": "quality_repair_required",
+            "lane_id": "submission_hardening",
+            "current_phase": "revision_required",
+            "blocking_issues": ["缺少 assessment_provenance.owner=ai_reviewer 的当前质量判断。"],
+            "next_review_focus": ["AI reviewer-backed publication_eval"],
+            "recommended_next_action": (
+                "先发起 AI reviewer 复评，并把 reviewer-authored assessment 写回 publication_eval。"
+            ),
+        },
+    }
+
+    stale_override = module.build_task_intake_progress_override(
+        payload,
+        study_root=study_root,
+        publishability_gate_report=gate_report,
+        evaluation_summary=evaluation_summary,
+    )
+    assert stale_override is not None
+    assert stale_override["paper_stage"] == "write"
+
+    _write_json(
+        study_root
+        / "artifacts"
+        / "controller"
+        / "task_intake"
+        / "revision_handoff_verification_20260427T0159Z.json",
+        {
+            "schema_version": 1,
+            "verification_id": "revision-handoff-verification::003-endocrine-burden-followup::20260427T0159Z",
+            "created_at": "2026-04-27T01:59:29Z",
+            "source_task_id": "study-task::003-endocrine-burden-followup::20260426T065318Z",
+            "answer": "yes_same_scope_revalidated_after_correcting_stale_auxiliary_balance_note",
+            "boundary": {
+                "not_first_cycle_writeback_blockers": True,
+                "remaining_downstream_items": ["AI-reviewer-backed finalize-quality closure"],
+            },
+            "next_route": "close_write_stage_route_key_question_then_return_to_controller_supervised_finalize_or_bundle_hardening_closeout",
+        },
+    )
+
+    assert module.build_task_intake_progress_override(
+        payload,
+        study_root=study_root,
         publishability_gate_report=gate_report,
         evaluation_summary=evaluation_summary,
     ) is None

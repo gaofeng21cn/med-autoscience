@@ -16,6 +16,7 @@ def recommended_task_intake_action(
     task_intake_payload = study_task_intake.read_latest_task_intake(study_root=study_root)
     task_intake_override = study_task_intake.build_task_intake_progress_override(
         task_intake_payload,
+        study_root=study_root,
         publishability_gate_report=publishability_gate_report,
         evaluation_summary=evaluation_summary,
     )

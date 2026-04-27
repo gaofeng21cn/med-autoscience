@@ -292,7 +292,7 @@ def _mapping_value(value: object) -> dict[str, Any]:
 def _surface_emitted_at(payload: dict[str, Any] | None) -> datetime | None:
     if not isinstance(payload, dict):
         return None
-    return _normalize_timestamp(payload.get("emitted_at") or payload.get("generated_at"))
+    return _normalize_timestamp(payload.get("emitted_at") or payload.get("generated_at") or payload.get("created_at"))
 
 
 def _closeout_surface_is_fresher_than_task_intake(
@@ -311,6 +311,154 @@ def _closeout_surface_is_fresher_than_task_intake(
         default=None,
     )
     return latest_surface_emitted_at is not None and latest_surface_emitted_at >= task_intake_emitted_at
+
+
+def _latest_revision_handoff_verification(*, study_root: Path | None) -> dict[str, Any] | None:
+    if study_root is None:
+        return None
+    root = task_intake_root(study_root=study_root)
+    if not root.exists():
+        return None
+    candidates: list[tuple[datetime, str, dict[str, Any]]] = []
+    for path in root.glob("revision_handoff_verification_*.json"):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(payload, dict):
+            continue
+        timestamp = _surface_emitted_at(payload)
+        if timestamp is None:
+            try:
+                timestamp = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+            except OSError:
+                continue
+        candidates.append((timestamp, path.name, payload))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: (item[0], item[1]))[2]
+
+
+def _revision_handoff_verification_confirms_writeback(
+    *,
+    task_intake_payload: dict[str, Any] | None,
+    verification_payload: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(task_intake_payload, dict) or not isinstance(verification_payload, dict):
+        return False
+    task_id = _non_empty_text(task_intake_payload.get("task_id"))
+    source_task_id = _non_empty_text(verification_payload.get("source_task_id"))
+    if task_id is None or source_task_id != task_id:
+        return False
+    task_emitted_at = _surface_emitted_at(task_intake_payload)
+    verification_emitted_at = _surface_emitted_at(verification_payload)
+    if task_emitted_at is None or verification_emitted_at is None or verification_emitted_at < task_emitted_at:
+        return False
+    if verification_payload.get("task_intake_has_newer_superseding_task") is True:
+        return False
+    evidence = _mapping_value(verification_payload.get("evidence"))
+    evidence_task_intake = _mapping_value(evidence.get("task_intake"))
+    if evidence_task_intake.get("newer_task_intake_found") is True:
+        return False
+    answer = (_non_empty_text(verification_payload.get("answer")) or "").lower()
+    if not answer.startswith("yes"):
+        return False
+    boundary = _mapping_value(verification_payload.get("boundary"))
+    if boundary.get("not_first_cycle_writeback_blockers") is True:
+        return True
+    next_route = (_non_empty_text(verification_payload.get("next_route")) or "").lower()
+    if "close_write_stage" in next_route:
+        return True
+    checklist = verification_payload.get("checklist_status")
+    if isinstance(checklist, list) and checklist:
+        statuses = [
+            (_non_empty_text((item or {}).get("status")) or "")
+            for item in checklist
+            if isinstance(item, dict)
+        ]
+        if statuses and all(status.startswith("complete") for status in statuses):
+            return True
+    publication_eval = _mapping_value(evidence.get("publication_eval"))
+    quality_note = (_non_empty_text(publication_eval.get("quality_closure_note")) or "").lower()
+    return "does not identify" in quality_note and "writeback defect" in quality_note
+
+
+def _gate_report_clear_for_quality_closeout(gate_report: dict[str, Any] | None) -> bool:
+    if not isinstance(gate_report, dict):
+        return False
+    if _non_empty_text(gate_report.get("status")) != "clear":
+        return False
+    blockers = {
+        str(item or "").strip()
+        for item in (gate_report.get("blockers") or [])
+        if str(item or "").strip()
+    }
+    if blockers:
+        return False
+    if gate_report.get("allow_write") is False:
+        return False
+    current_required_action = _non_empty_text(gate_report.get("current_required_action"))
+    return current_required_action in {None, *_BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS}
+
+
+def _evaluation_summary_requests_ai_reviewer_quality_closure(
+    evaluation_summary: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(evaluation_summary, dict):
+        return False
+    quality_closure_truth = _mapping_value(evaluation_summary.get("quality_closure_truth"))
+    quality_review_loop = _mapping_value(evaluation_summary.get("quality_review_loop"))
+    study_quality_truth = _mapping_value(evaluation_summary.get("study_quality_truth"))
+    reviewer_first = _mapping_value(study_quality_truth.get("reviewer_first"))
+    closure_state = (
+        _non_empty_text(quality_closure_truth.get("state"))
+        or _non_empty_text(quality_review_loop.get("closure_state"))
+    )
+    if closure_state != "quality_repair_required":
+        return False
+    corpus = _normalized_strings(
+        [
+            quality_closure_truth.get("summary"),
+            quality_review_loop.get("summary"),
+            quality_review_loop.get("recommended_next_action"),
+            study_quality_truth.get("summary"),
+            reviewer_first.get("summary"),
+            *((quality_review_loop.get("blocking_issues") or []) if isinstance(quality_review_loop.get("blocking_issues"), list) else []),
+            *((quality_review_loop.get("next_review_focus") or []) if isinstance(quality_review_loop.get("next_review_focus"), list) else []),
+        ]
+    )
+    markers = ("ai reviewer", "ai_reviewer", "assessment_provenance.owner=ai_reviewer", "reviewer-authored")
+    return any(marker in text.lower() for text in corpus for marker in markers)
+
+
+def _task_intake_yields_to_verified_reviewer_quality_closeout(
+    *,
+    payload: dict[str, Any] | None,
+    study_root: Path | None,
+    publishability_gate_report: dict[str, Any] | None,
+    evaluation_summary: dict[str, Any] | None,
+) -> bool:
+    if not task_intake_is_reviewer_revision(payload):
+        return False
+    if not _evaluation_summary_requests_ai_reviewer_quality_closure(evaluation_summary):
+        return False
+    gate_report = (
+        publishability_gate_report
+        if isinstance(publishability_gate_report, dict)
+        else _mapping_value((evaluation_summary or {}).get("promotion_gate_status"))
+    )
+    if not _gate_report_clear_for_quality_closeout(gate_report):
+        return False
+    if not _closeout_surface_is_fresher_than_task_intake(
+        payload,
+        gate_report,
+        evaluation_summary,
+    ):
+        return False
+    return _revision_handoff_verification_confirms_writeback(
+        task_intake_payload=payload,
+        verification_payload=_latest_revision_handoff_verification(study_root=study_root),
+    )
 
 
 def _task_intake_yields_to_blocked_submission_closeout(
@@ -434,6 +582,7 @@ def _task_intake_yields_to_reviewer_bundle_stage_closeout(
 def task_intake_yields_to_deterministic_submission_closeout(
     payload: dict[str, Any] | None,
     *,
+    study_root: Path | None = None,
     publishability_gate_report: dict[str, Any] | None,
     evaluation_summary: dict[str, Any] | None = None,
 ) -> bool:
@@ -441,6 +590,13 @@ def task_intake_yields_to_deterministic_submission_closeout(
         return False
     blocked_submission_closeout = _task_intake_yields_to_blocked_submission_closeout(publishability_gate_report)
     if task_intake_is_reviewer_revision(payload):
+        if _task_intake_yields_to_verified_reviewer_quality_closeout(
+            payload=payload,
+            study_root=study_root,
+            publishability_gate_report=publishability_gate_report,
+            evaluation_summary=evaluation_summary,
+        ):
+            return True
         if (
             blocked_submission_closeout
             and _evaluation_summary_reports_bundle_only_remaining(evaluation_summary)
@@ -468,6 +624,7 @@ def task_intake_yields_to_deterministic_submission_closeout(
 def build_task_intake_progress_override(
     payload: dict[str, Any] | None,
     *,
+    study_root: Path | None = None,
     publishability_gate_report: dict[str, Any] | None = None,
     evaluation_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
@@ -475,6 +632,7 @@ def build_task_intake_progress_override(
         return None
     if task_intake_yields_to_deterministic_submission_closeout(
         payload,
+        study_root=study_root,
         publishability_gate_report=publishability_gate_report,
         evaluation_summary=evaluation_summary,
     ):

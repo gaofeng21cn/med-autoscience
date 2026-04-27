@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from . import shared as _shared
 from . import publication_runtime as _publication_runtime
+from .quality_review_loop import quality_review_loop_action_required
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -551,6 +552,7 @@ def _next_system_action(
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
     task_intake_progress_override: dict[str, Any] | None,
+    evaluation_summary_payload: dict[str, Any] | None,
 ) -> str:
     if bool((manual_finish_contract or {}).get("compatibility_guard_only")):
         return (
@@ -613,6 +615,13 @@ def _next_system_action(
         )
     ):
         return "先修正当前质量阻塞，再决定是否继续投稿打包。"
+    quality_review_action = quality_review_loop_action_required(evaluation_summary_payload)
+    if quality_review_action is not None:
+        return (
+            _non_empty_text(quality_review_action.get("recommended_next_action"))
+            or _non_empty_text(quality_review_action.get("summary"))
+            or "先完成当前质量评审闭环，再继续后续投稿包动作。"
+        )
     publication_action = _action_label(publication_action_key)
     if publication_action is not None:
         return publication_action
@@ -639,6 +648,7 @@ def _current_blockers(
     progress_freshness: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
     task_intake_progress_override: dict[str, Any] | None,
+    evaluation_summary_payload: dict[str, Any] | None,
 ) -> list[str]:
     blockers: list[str] = []
     manual_finish_active = _manual_finish_active(manual_finish_contract)
@@ -668,6 +678,17 @@ def _current_blockers(
         )
     if task_intake_progress_override:
         _append_unique(blockers, _non_empty_text(task_intake_progress_override.get("blocker_summary")))
+    else:
+        quality_review_action = quality_review_loop_action_required(evaluation_summary_payload)
+        if quality_review_action is not None:
+            for issue in quality_review_action.get("blocking_issues") or []:
+                _append_unique(blockers, _non_empty_text(issue))
+            if not quality_review_action.get("blocking_issues"):
+                _append_unique(
+                    blockers,
+                    _non_empty_text(quality_review_action.get("summary"))
+                    or _non_empty_text(quality_review_action.get("recommended_next_action")),
+                )
     if (
         _non_empty_text(status.get("decision")) == "blocked"
         and not manual_finish_active
@@ -763,6 +784,7 @@ def _intervention_lane(
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
     task_intake_progress_override: dict[str, Any] | None,
+    evaluation_summary_payload: dict[str, Any] | None,
 ) -> dict[str, Any]:
     blocker_summary = _non_empty_text(current_blockers[0] if current_blockers else None)
     progress_status = _non_empty_text((progress_freshness or {}).get("status"))
@@ -865,6 +887,25 @@ def _intervention_lane(
         if route_repair is not None:
             payload.update(route_repair)
         return payload
+    quality_review_action = quality_review_loop_action_required(evaluation_summary_payload)
+    if quality_review_action is not None:
+        return {
+            "lane_id": "quality_floor_blocker",
+            "title": (
+                "优先完成 AI reviewer 质量闭环"
+                if bool(quality_review_action.get("mentions_ai_reviewer"))
+                else "优先完成质量评审闭环"
+            ),
+            "severity": "critical",
+            "summary": (
+                _non_empty_text(quality_review_action.get("recommended_next_action"))
+                or _non_empty_text(quality_review_action.get("summary"))
+                or blocker_summary
+                or current_stage_summary
+                or next_system_action
+            ),
+            "recommended_action_id": "complete_quality_review_loop",
+        }
     if needs_physician_decision:
         return {
             "lane_id": "human_decision_gate",
