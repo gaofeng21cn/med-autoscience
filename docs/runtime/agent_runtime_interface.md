@@ -20,6 +20,8 @@
 - 旧 `Codex-default host-agent runtime` = 只保留为迁移期对照面与 regression oracle，不再是长期产品方向
 - display / paper-facing asset packaging 独立线 = 明确排除在本 runtime / gateway / architecture tranche 之外
 
+Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Agent` 目标 + repo-side outer-runtime seam + optional hosted target”的 owner 语义；它不是 MAS study truth owner，也不是仓内已经落地的独立 external runtime workspace truth。study truth 继续由 `MedAutoScience` 的 study-owned surfaces、controller decisions 与 publication gate 持有。
+
 当前 formal-entry matrix 继续固定为：
 
 - `default_formal_entry`：`CLI`
@@ -186,6 +188,8 @@
 
 在当前架构里，`MedAutoScience` 是唯一研究入口和 `Research Ops Gateway`，`Hermes` 是默认 outer runtime substrate owner，`MedDeepScientist`（仓库名 `med-deepscientist`）是 controlled research backend；`DeepScientist` 只在上游比较、兼容审计和历史命名里单独出现。
 
+这里的默认 owner 口径只冻结 repo-side substrate contract 与可选 hosted target 方向，不授权 Agent 把 external `Hermes` repo / daemon / workspace surface 当作研究入口或 study truth。
+
 因此：
 
 - Agent 不应直接调用 external `Hermes` daemon / repo / workspace surface 发起研究流程
@@ -268,6 +272,8 @@
 - `MedAutoScience` outer-loop 负责研究治理、journal / reporting / publication judgment
 - `Hermes` 负责 outer runtime substrate、managed runtime handle、control semantics 和 durable runtime contract
 - `MedDeepScientist` 负责当前仍保留在 backend 内的 inner research execution
+
+这条分工不改变 domain truth owner：study framing、数据准备度、publication gate 与 completion sync 仍由 `MedAutoScience` 持有；`Hermes` 只承接 outer runtime substrate contract，不把 repo-side seam 升格成独立 study authority。
 
 因此当前更好的地方，不是“多了一个名字”，而是 outer-loop / inner-loop coordination 被显式拆开：
 
