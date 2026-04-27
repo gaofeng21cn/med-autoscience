@@ -1,35 +1,48 @@
 from __future__ import annotations
 
+import subprocess
 import tomllib
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RELEASE_REPO_SLUG = "gaofeng21cn/med-autoscience"
+MAS_RELEASE_DOWNLOAD_PREFIX = "/".join(
+    ("github.com", "gaofeng21cn", "med-autoscience", "releases", "download")
+)
 
 
-def test_release_version_is_first_macos_prerelease() -> None:
+def _tracked_files() -> list[Path]:
+    completed = subprocess.run(
+        ["git", "ls-files"],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return [REPO_ROOT / line for line in completed.stdout.splitlines() if line.strip()]
+
+
+def test_package_version_matches_python_package_version() -> None:
     pyproject_data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     init_text = (REPO_ROOT / "src" / "med_autoscience" / "__init__.py").read_text(encoding="utf-8")
-
-    assert pyproject_data["project"]["version"] == "0.1.0a4"
-    assert '__version__ = "0.1.0a4"' in init_text
-
-
-def test_release_installer_version_matches_package_version() -> None:
-    pyproject_data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    script = (REPO_ROOT / "scripts" / "install-macos.sh").read_text(encoding="utf-8")
     version = pyproject_data["project"]["version"]
 
-    assert f'readonly RELEASE_VERSION="{version}"' in script
-    assert f'readonly WHEEL_FILENAME="med_autoscience-{version}-py3-none-any.whl"' in script
+    assert f'__version__ = "{version}"' in init_text
 
 
-def test_release_notes_and_installer_reference_the_actual_github_repo_slug() -> None:
-    version = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
-    installer_script = (REPO_ROOT / "scripts" / "install-macos.sh").read_text(encoding="utf-8")
-    release_notes = (REPO_ROOT / ".github" / "release-notes.md").read_text(encoding="utf-8")
-    expected_release_base_url = f"https://github.com/{RELEASE_REPO_SLUG}/releases/download/v{version}"
+def test_legacy_github_release_metadata_files_are_retired() -> None:
+    assert not (REPO_ROOT / ".github" / "workflows" / "release.yml").exists()
+    assert not (REPO_ROOT / ".github" / "release-notes.md").exists()
+    assert not (REPO_ROOT / "scripts" / "install-macos.sh").exists()
 
-    assert expected_release_base_url in installer_script
-    assert expected_release_base_url in release_notes
+
+def test_tracked_files_do_not_point_users_to_mas_github_release_downloads() -> None:
+    offenders: list[str] = []
+    for path in _tracked_files():
+        if not path.exists() or path.is_dir():
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        if MAS_RELEASE_DOWNLOAD_PREFIX in text:
+            offenders.append(str(path.relative_to(REPO_ROOT)))
+
+    assert offenders == []
