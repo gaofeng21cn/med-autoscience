@@ -36,7 +36,11 @@ from med_autoscience.controllers.study_runtime_types import (
     _RESUMABLE_QUEST_STATUSES,
 )
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.publication_eval_latest import materialize_publication_eval_latest
+from med_autoscience.publication_eval_latest import (
+    materialize_publication_eval_latest,
+    read_publication_eval_latest,
+    stable_publication_eval_latest_path,
+)
 from med_autoscience.publication_eval_record import (
     PublicationEvalAssessmentProvenance,
     PublicationEvalCharterContextRef,
@@ -730,6 +734,69 @@ def _study_charter_gate_reason(report: dict[str, object] | None) -> StudyRuntime
     return None
 
 
+def _normalized_path_text(value: object) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return str(Path(text).expanduser().resolve())
+    except (OSError, RuntimeError):
+        return text
+
+
+def _current_ai_reviewer_publication_eval_ref(
+    *,
+    study_root: Path,
+    study_id: str,
+    resolved_quest_id: str,
+    publication_gate_report: dict[str, object],
+) -> dict[str, str] | None:
+    if str(publication_gate_report.get("status") or "").strip() != "clear":
+        return None
+    if publication_gate_report.get("blockers"):
+        return None
+    latest_path = stable_publication_eval_latest_path(study_root=study_root)
+    if not latest_path.exists():
+        return None
+    try:
+        payload = read_publication_eval_latest(study_root=study_root)
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return None
+    if str(payload.get("study_id") or "").strip() != study_id:
+        return None
+    if str(payload.get("quest_id") or "").strip() != resolved_quest_id:
+        return None
+    provenance = payload.get("assessment_provenance")
+    if not isinstance(provenance, dict):
+        return None
+    if str(provenance.get("owner") or "").strip() != "ai_reviewer":
+        return None
+    if provenance.get("ai_reviewer_required") is not False:
+        return None
+    verdict = payload.get("verdict")
+    overall_verdict = (
+        str(verdict.get("overall_verdict") or "").strip()
+        if isinstance(verdict, dict)
+        else ""
+    )
+    if overall_verdict not in {"promising", "clear", "ready", "pass", "approved"}:
+        return None
+    delivery_context_refs = payload.get("delivery_context_refs")
+    if isinstance(delivery_context_refs, dict):
+        eval_paper_root = _normalized_path_text(delivery_context_refs.get("paper_root_ref"))
+        gate_paper_root = _normalized_path_text(publication_gate_report.get("paper_root"))
+        if (
+            eval_paper_root is not None
+            and gate_paper_root is not None
+            and eval_paper_root != gate_paper_root
+        ):
+            return None
+    eval_id = str(payload.get("eval_id") or "").strip()
+    if not eval_id:
+        return None
+    return {"eval_id": eval_id, "artifact_path": str(latest_path)}
+
+
 def _materialize_publication_eval_from_gate_report(
     *,
     study_root: Path,
@@ -755,6 +822,14 @@ def _materialize_publication_eval_from_gate_report(
         or str(quest_id or "").strip()
         or quest_root.name
     )
+    current_ai_reviewer_ref = _current_ai_reviewer_publication_eval_ref(
+        study_root=study_root,
+        study_id=study_id,
+        resolved_quest_id=resolved_quest_id,
+        publication_gate_report=publication_gate_report,
+    )
+    if current_ai_reviewer_ref is not None:
+        return current_ai_reviewer_ref
     latest_gate_path = (
         str(publication_gate_report.get("latest_gate_path") or "").strip()
         or str((quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json").resolve())

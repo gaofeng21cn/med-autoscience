@@ -304,6 +304,111 @@ def test_reviewer_revision_intake_yields_to_ai_reviewer_quality_closure_after_ve
     ) is None
 
 
+def test_reviewer_revision_intake_yields_to_verified_bundle_only_closeout_with_admin_open_items(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+    study_root = tmp_path / "studies" / "003-endocrine-burden-followup"
+    payload = {
+        "task_id": "study-task::003-endocrine-burden-followup::20260426T065318Z",
+        "emitted_at": "2026-04-26T06:53:18+00:00",
+        "task_intent": "Revise the manuscript after reviewer feedback and write manuscript revision outputs back.",
+        "first_cycle_outputs": [
+            "当前最新 task intake 指定的首轮修订产出是否已经补齐并写回 manuscript？"
+        ],
+    }
+    gate_report = {
+        "generated_at": "2026-04-27T21:01:49+00:00",
+        "status": "clear",
+        "allow_write": True,
+        "blockers": [],
+        "current_required_action": "continue_bundle_stage",
+    }
+    evaluation_summary = {
+        "emitted_at": "2026-04-27T21:03:00+00:00",
+        "promotion_gate_status": {
+            "status": "clear",
+            "allow_write": True,
+            "current_required_action": "continue_bundle_stage",
+            "blockers": [],
+        },
+        "quality_closure_truth": {
+            "state": "bundle_only_remaining",
+            "current_required_action": "continue_bundle_stage",
+            "route_target": "finalize",
+        },
+        "study_quality_truth": {
+            "contract_closed": True,
+            "narrowest_scientific_gap": {
+                "state": "closed",
+                "summary": "Open scientific gap is already closed; only finalize closeout remains.",
+            },
+            "reviewer_first": {
+                "ready": False,
+                "status": "blocked",
+                "summary": (
+                    "review ledger 仍有 2 个未关闭 concern，"
+                    "but both are author/declaration metadata and post-metadata package audit."
+                ),
+            },
+        },
+        "quality_review_loop": {
+            "closure_state": "bundle_only_remaining",
+        },
+        "quality_assessment": {
+            "human_review_readiness": {
+                "status": "ready",
+            }
+        },
+    }
+
+    stale_override = module.build_task_intake_progress_override(
+        payload,
+        study_root=study_root,
+        publishability_gate_report=gate_report,
+        evaluation_summary=evaluation_summary,
+    )
+    assert stale_override is not None
+    assert stale_override["paper_stage"] == "write"
+
+    _write_json(
+        study_root
+        / "artifacts"
+        / "controller"
+        / "task_intake"
+        / "revision_handoff_verification_20260427T2054Z.json",
+        {
+            "schema_version": 1,
+            "record_type": "revision_handoff_verification",
+            "created_at": "2026-04-27T20:54:33Z",
+            "source_task_id": "study-task::003-endocrine-burden-followup::20260426T065318Z",
+            "answer": "yes_first_cycle_revision_outputs_complete_and_written_back_to_manuscript",
+            "task_intake_has_newer_superseding_task": False,
+            "evidence": {
+                "task_intake": {"newer_task_intake_found": False},
+            },
+            "boundary": {
+                "not_first_cycle_writeback_blockers": True,
+                "remaining_downstream_items": [
+                    "external author/declaration metadata closeout",
+                    "targeted package audit after metadata insertion",
+                ],
+            },
+            "next_route": (
+                "close_write_stage_route_key_question_then_return_to_controller_supervised_"
+                "finalize_or_bundle_hardening_closeout"
+            ),
+        },
+    )
+
+    assert module.build_task_intake_progress_override(
+        payload,
+        study_root=study_root,
+        publishability_gate_report=gate_report,
+        evaluation_summary=evaluation_summary,
+    ) is None
+
+
 def test_reviewer_revision_intake_yields_to_evaluation_promotion_gate_when_gate_report_not_loaded() -> None:
     module = importlib.import_module("med_autoscience.study_task_intake")
 

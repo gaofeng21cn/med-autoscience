@@ -45,6 +45,7 @@ def render_illustration_shell(
     output_svg_path: Path,
     output_png_path: Path,
     output_layout_path: Path,
+    output_pdf_path: Path | None = None,
     payload_path: Path | None = None,
 ) -> dict[str, str]:
     _, template_short_id = _require_namespaced_registry_id(template_id, label="template_id")
@@ -55,6 +56,7 @@ def render_illustration_shell(
         _render_cohort_flow_figure(
             output_svg_path=output_svg_path,
             output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
             output_layout_path=output_layout_path,
             title=title,
             steps=list(normalized_shell_payload["steps"]),

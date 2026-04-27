@@ -172,7 +172,11 @@ def _build_private_release(*, family_id: str, version_root: Path) -> dict[str, o
     dataset_id = manifest.get("dataset_id") if isinstance(manifest.get("dataset_id"), str) else None
     raw_snapshot = manifest.get("raw_snapshot") if isinstance(manifest.get("raw_snapshot"), str) else None
     generated_by = manifest.get("generated_by") if isinstance(manifest.get("generated_by"), str) else None
+    source_release = _normalize_dict(manifest.get("source_release"))
     declared_release_contract = _normalize_dict(manifest.get("release_contract"))
+    supersedes_versions = _normalize_string_list(manifest.get("supersedes_versions"))
+    if not supersedes_versions:
+        supersedes_versions = _normalize_string_list(declared_release_contract.get("supersedes_versions"))
     inventory_summary = _inventory_summary(version_root=version_root, main_outputs=main_outputs)
     return {
         "family_id": family_id,
@@ -183,8 +187,10 @@ def _build_private_release(*, family_id: str, version_root: Path) -> dict[str, o
         "contract_status": "manifest_backed" if manifest_path.exists() else "directory_scan_only",
         "raw_snapshot": raw_snapshot,
         "generated_by": generated_by,
+        "source_release": source_release,
         "main_outputs": main_outputs,
         "notes": notes,
+        "supersedes_versions": supersedes_versions,
         "declared_release_contract": declared_release_contract,
         "standardization_status": _standardization_status(declared_release_contract),
         "inventory_summary": inventory_summary,
@@ -554,11 +560,24 @@ def _extract_family_version(path_text: str | None) -> tuple[str | None, str | No
 
 def _latest_versions_by_family(releases: list[dict[str, object]]) -> dict[str, str]:
     latest: dict[str, str] = {}
+    superseded_by_family: dict[str, set[str]] = {}
+    for release in releases:
+        family_id = str(release["family_id"])
+        superseded_by_family.setdefault(family_id, set()).update(_normalize_string_list(release.get("supersedes_versions")))
     for release in releases:
         family_id = str(release["family_id"])
         version_id = str(release["version_id"])
+        if version_id in superseded_by_family.get(family_id, set()):
+            continue
         if family_id not in latest or version_id > latest[family_id]:
             latest[family_id] = version_id
+    fallback_latest: dict[str, str] = {}
+    for release in releases:
+        family_id = str(release["family_id"])
+        version_id = str(release["version_id"])
+        if family_id not in latest and (family_id not in fallback_latest or version_id > fallback_latest[family_id]):
+            fallback_latest[family_id] = version_id
+    latest.update(fallback_latest)
     return latest
 
 

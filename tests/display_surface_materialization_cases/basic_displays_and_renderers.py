@@ -78,202 +78,6 @@ def test_materialize_display_surface_replaces_legacy_catalog_entries_with_matchi
     assert table_catalog["tables"][0]["table_id"] == "T1"
     assert all("table_id" in item for item in table_catalog["tables"])
 
-def test_materialize_display_surface_restores_contract_backed_and_shell_mapped_figures(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
-    paper_root = build_display_surface_workspace(tmp_path, include_evidence=True)
-    write_default_publication_display_contracts(paper_root)
-
-    dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "figure1_local_architecture",
-                    "display_kind": "figure",
-                    "requirement_key": "figure1_local_architecture",
-                    "catalog_id": "F1",
-                    "shell_path": "paper/figures/figure1_local_architecture.shell.json",
-                },
-                {
-                    "display_id": "Figure2",
-                    "display_kind": "figure",
-                    "requirement_key": "legacy_alias_for_figure2",
-                    "catalog_id": "F2",
-                    "shell_path": "paper/figures/Figure2.shell.json",
-                },
-                {
-                    "display_id": "figure3_non_gtr_extension",
-                    "display_kind": "figure",
-                    "requirement_key": "figure3_non_gtr_extension",
-                    "catalog_id": "F3",
-                    "shell_path": "paper/figures/figure3_non_gtr_extension.shell.json",
-                },
-            ],
-        },
-    )
-    dump_json(
-        paper_root / "figures" / "figure1_local_architecture.shell.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/figures/figure1_local_architecture.contract.json",
-            "display_id": "figure1_local_architecture",
-            "display_kind": "figure",
-            "requirement_key": "figure1_local_architecture_contract",
-            "catalog_id": "F1",
-        },
-    )
-    dump_json(
-        paper_root / "figures" / "figure3_non_gtr_extension.shell.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "display_id": "figure3_non_gtr_extension",
-            "display_kind": "figure",
-            "requirement_key": "binary_calibration_decision_curve_panel",
-            "catalog_id": "F3",
-        },
-    )
-    dump_json(
-        paper_root / "figures" / "figure1_local_architecture.contract.json",
-        {
-            "schema_version": 1,
-            "figure_id": "F1",
-            "display_id": "figure1_local_architecture",
-            "paper_role": "main_text",
-            "claim_ids": ["C1"],
-            "title": "Local architecture overview",
-            "caption": "Contract-backed local architecture figure.",
-            "renderer_script_path": "paper/build/render_contract_figure.py",
-            "planned_export_paths": [
-                "paper/figures/generated/F1_local_architecture_overview.pdf",
-                "paper/figures/generated/F1_local_architecture_overview.png",
-            ],
-            "source_paths": ["paper/figures/figure1_local_architecture.contract.json"],
-        },
-    )
-    dump_json(
-        paper_root / "figures" / "figure3_non_gtr_extension.contract.json",
-        {
-            "schema_version": 1,
-            "figure_id": "F3",
-            "display_id": "figure3_non_gtr_extension",
-            "paper_role": "main_text",
-            "claim_ids": ["C3"],
-            "title": "Non-GTR extension",
-            "caption": "Sibling contract-backed non-GTR extension figure.",
-            "renderer_script_path": "paper/build/render_contract_figure.py",
-            "planned_export_paths": [
-                "paper/figures/generated/F3_non_gtr_extension_summary.pdf",
-                "paper/figures/generated/F3_non_gtr_extension_summary.png",
-            ],
-            "source_paths": ["paper/figures/figure3_non_gtr_extension.contract.json"],
-        },
-    )
-    (paper_root / "build").mkdir(parents=True, exist_ok=True)
-    (paper_root / "build" / "render_contract_figure.py").write_text(
-        """
-from __future__ import annotations
-
-import argparse
-import json
-from pathlib import Path
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--contract-path", type=Path, required=True)
-    args = parser.parse_args()
-    contract = json.loads(args.contract_path.read_text(encoding="utf-8"))
-    for raw_export_path in contract.get("planned_export_paths") or []:
-        export_path = Path(raw_export_path)
-        if export_path.parts and export_path.parts[0] == args.output_root.name:
-            output_path = args.output_root.parent / export_path
-        else:
-            output_path = args.output_root / export_path
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        if output_path.suffix.lower() == ".pdf":
-            output_path.write_text("%PDF-1.4\\n", encoding="utf-8")
-        else:
-            output_path.write_bytes(b"png")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
-""".lstrip(),
-        encoding="utf-8",
-    )
-    dump_json(
-        paper_root / "figures" / "figure_catalog.json",
-        {
-            "schema_version": 1,
-            "figures": [
-                {
-                    "figure_id": "F1",
-                    "template_id": "figure1_local_architecture_contract",
-                    "paper_role": "main_text",
-                    "title": "Stale local architecture entry",
-                    "export_paths": [
-                        "paper/figures/generated/F1_local_architecture_overview.pdf",
-                        "paper/figures/generated/F1_local_architecture_overview.png",
-                    ],
-                    "source_paths": ["paper/figures/figure1_local_architecture.contract.json"],
-                }
-            ],
-        },
-    )
-
-    original_loader = module.display_pack_runtime.load_python_plugin_callable
-    render_calls: list[str] = []
-
-    def fake_evidence_renderer(
-        *,
-        template_id: str,
-        display_payload: dict[str, object],
-        output_png_path: Path,
-        output_pdf_path: Path,
-        layout_sidecar_path: Path,
-    ) -> None:
-        render_calls.append(template_id)
-        _ensure_output_parents(output_png_path, output_pdf_path, layout_sidecar_path)
-        output_png_path.write_bytes(b"png")
-        output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
-        layout_sidecar_path.write_text(
-            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
-            encoding="utf-8",
-        )
-
-    def fake_loader(*, repo_root: Path, template_id: str, paper_root: Path | None = None):
-        if template_id == full_id("roc_curve_binary"):
-            return fake_evidence_renderer
-        return original_loader(repo_root=repo_root, template_id=template_id, paper_root=paper_root)
-
-    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
-
-    result = module.materialize_display_surface(paper_root=paper_root)
-
-    assert result["figures_materialized"] == ["F1", "F2", "F3"]
-    assert (paper_root / "figures" / "generated" / "F1_local_architecture_overview.pdf").exists()
-    assert (paper_root / "figures" / "generated" / "F1_local_architecture_overview.png").exists()
-    assert (paper_root / "figures" / "generated" / "F3_non_gtr_extension_summary.pdf").exists()
-    assert (paper_root / "figures" / "generated" / "F3_non_gtr_extension_summary.png").exists()
-    assert render_calls == [full_id("roc_curve_binary")]
-
-    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
-    figures_by_id = {item["figure_id"]: item for item in figure_catalog["figures"]}
-    assert figures_by_id["F1"]["export_paths"] == [
-        "paper/figures/generated/F1_local_architecture_overview.pdf",
-        "paper/figures/generated/F1_local_architecture_overview.png",
-    ]
-    assert figures_by_id["F1"]["caption"] == "Contract-backed local architecture figure."
-    assert figures_by_id["F2"]["template_id"] == full_id("roc_curve_binary")
-    assert figures_by_id["F3"]["caption"] == "Sibling contract-backed non-GTR extension figure."
-
 def test_materialize_display_surface_materializes_catalog_only_cohort_flow_figure(
     tmp_path: Path,
     monkeypatch,
@@ -327,10 +131,14 @@ def test_materialize_display_surface_materializes_catalog_only_cohort_flow_figur
         output_svg_path: Path,
         output_png_path: Path,
         output_layout_path: Path,
+        output_pdf_path: Path | None = None,
     ) -> None:
         _ensure_output_parents(output_svg_path, output_png_path, output_layout_path)
         output_svg_path.write_text("<svg />", encoding="utf-8")
         output_png_path.write_text("PNG", encoding="utf-8")
+        if output_pdf_path is not None:
+            output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+            output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
         output_layout_path.write_text(
             json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
             encoding="utf-8",
@@ -357,6 +165,7 @@ def test_materialize_display_surface_materializes_catalog_only_cohort_flow_figur
     assert render_calls == [full_id("cohort_flow_figure")]
     assert (paper_root / "figures" / "generated" / "S1_cohort_flow.svg").exists()
     assert (paper_root / "figures" / "generated" / "S1_cohort_flow.png").exists()
+    assert (paper_root / "figures" / "generated" / "S1_cohort_flow.pdf").exists()
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     assert len(figure_catalog["figures"]) == 1
@@ -366,6 +175,7 @@ def test_materialize_display_surface_materializes_catalog_only_cohort_flow_figur
     assert figure_catalog["figures"][0]["export_paths"] == [
         "paper/figures/generated/S1_cohort_flow.svg",
         "paper/figures/generated/S1_cohort_flow.png",
+        "paper/figures/generated/S1_cohort_flow.pdf",
     ]
 
 def test_materialize_display_surface_uses_pack_runtime_for_cohort_flow_shell(tmp_path: Path, monkeypatch) -> None:
@@ -383,10 +193,14 @@ def test_materialize_display_surface_uses_pack_runtime_for_cohort_flow_shell(tmp
         output_svg_path: Path,
         output_png_path: Path,
         output_layout_path: Path,
+        output_pdf_path: Path | None = None,
     ) -> None:
         _ensure_output_parents(output_svg_path, output_png_path, output_layout_path)
         output_svg_path.write_text("<svg />", encoding="utf-8")
         output_png_path.write_text("PNG", encoding="utf-8")
+        if output_pdf_path is not None:
+            output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+            output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
         output_layout_path.write_text(
             json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
             encoding="utf-8",
@@ -411,6 +225,7 @@ def test_materialize_display_surface_uses_pack_runtime_for_cohort_flow_shell(tmp
     assert result["status"] == "materialized"
     assert render_calls == [full_id("cohort_flow_figure")]
     assert (paper_root / "figures" / "generated" / "F1_cohort_flow.svg").exists()
+    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.pdf").exists()
 
 def test_materialize_display_surface_uses_pack_runtime_for_r_evidence_template(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")

@@ -146,6 +146,15 @@ from .quality_closure_truth import (
     build_same_line_route_truth,
 )
 
+_OBJECTIVE_PUNCTUATION = ("，", ",", "；", ";", "。", ".", "：", ":", "、", "？", "?", "！", "!")
+
+
+def _objective_compare_text(value: str) -> str:
+    text = " ".join(value.split())
+    for mark in _OBJECTIVE_PUNCTUATION:
+        text = text.replace(f" {mark}", mark).replace(f"{mark} ", mark)
+    return text
+
 
 
 def _build_evaluation_summary_payload(
@@ -170,11 +179,12 @@ def _build_evaluation_summary_payload(
     )
     if _required_text("publication eval charter context ref", "charter_id", charter_context_ref.get("charter_id")) != charter_id:
         raise ValueError("evaluation summary charter_id mismatch")
-    if _required_text(
+    eval_publication_objective = _required_text(
         "publication eval charter context ref",
         "publication_objective",
         charter_context_ref.get("publication_objective"),
-    ) != publication_objective:
+    )
+    if _objective_compare_text(eval_publication_objective) != _objective_compare_text(publication_objective):
         raise ValueError("evaluation summary publication objective mismatch")
     verdict = _required_mapping("publication eval", "verdict", publication_eval.get("verdict"))
     gaps = list(publication_eval.get("gaps") or [])

@@ -545,6 +545,18 @@ def _evaluation_summary_reports_bundle_only_remaining(
     return closure_state == "bundle_only_remaining"
 
 
+def _evaluation_summary_confirms_scientific_quality_closed(
+    evaluation_summary: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(evaluation_summary, dict):
+        return False
+    study_quality_truth = _mapping_value(evaluation_summary.get("study_quality_truth"))
+    if study_quality_truth.get("contract_closed") is True:
+        return True
+    narrowest_scientific_gap = _mapping_value(study_quality_truth.get("narrowest_scientific_gap"))
+    return _non_empty_text(narrowest_scientific_gap.get("state")) == "closed"
+
+
 def _evaluation_summary_confirms_reviewer_first_ready(
     evaluation_summary: dict[str, Any] | None,
 ) -> bool:
@@ -579,6 +591,36 @@ def _task_intake_yields_to_reviewer_bundle_stage_closeout(
     )
 
 
+def _task_intake_yields_to_verified_bundle_only_closeout(
+    *,
+    payload: dict[str, Any] | None,
+    study_root: Path | None,
+    publishability_gate_report: dict[str, Any] | None,
+    evaluation_summary: dict[str, Any] | None,
+) -> bool:
+    if not _evaluation_summary_reports_bundle_only_remaining(evaluation_summary):
+        return False
+    if not _evaluation_summary_confirms_scientific_quality_closed(evaluation_summary):
+        return False
+    gate_report = (
+        publishability_gate_report
+        if isinstance(publishability_gate_report, dict)
+        else _mapping_value((evaluation_summary or {}).get("promotion_gate_status"))
+    )
+    if not _gate_report_clear_for_quality_closeout(gate_report):
+        return False
+    if not _closeout_surface_is_fresher_than_task_intake(
+        payload,
+        gate_report,
+        evaluation_summary,
+    ):
+        return False
+    return _revision_handoff_verification_confirms_writeback(
+        task_intake_payload=payload,
+        verification_payload=_latest_revision_handoff_verification(study_root=study_root),
+    )
+
+
 def task_intake_yields_to_deterministic_submission_closeout(
     payload: dict[str, Any] | None,
     *,
@@ -605,6 +647,13 @@ def task_intake_yields_to_deterministic_submission_closeout(
                 publishability_gate_report,
                 evaluation_summary,
             )
+        ):
+            return True
+        if _task_intake_yields_to_verified_bundle_only_closeout(
+            payload=payload,
+            study_root=study_root,
+            publishability_gate_report=publishability_gate_report,
+            evaluation_summary=evaluation_summary,
         ):
             return True
         return _task_intake_yields_to_reviewer_bundle_stage_closeout(

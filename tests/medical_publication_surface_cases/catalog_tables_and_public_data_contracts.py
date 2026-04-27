@@ -466,7 +466,7 @@ def test_validate_figure_semantics_manifest_blocks_story_role_drift_for_setup_sh
             "template_id": full_id("cohort_flow_figure"),
             "selection_rationale": "The registered cohort-flow shell preserves the audited study-setup surface.",
             "layout_qc_profile": "publication_illustration_flow",
-            "required_exports": ["png", "svg"],
+            "required_exports": ["png", "svg", "pdf"],
             "fallback_on_failure": False,
             "failure_action": "block_and_fix_environment",
         },
@@ -515,7 +515,7 @@ def test_validate_figure_semantics_manifest_accepts_setup_story_role_alias() -> 
             "template_id": full_id("cohort_flow_figure"),
             "selection_rationale": "The registered cohort-flow shell preserves the audited study-setup surface.",
             "layout_qc_profile": "publication_illustration_flow",
-            "required_exports": ["png", "svg"],
+            "required_exports": ["png", "svg", "pdf"],
             "fallback_on_failure": False,
             "failure_action": "block_and_fix_environment",
         },
@@ -544,7 +544,11 @@ def test_validate_figure_catalog_allows_supplementary_cohort_flow_shell() -> Non
             "readability_findings": [],
             "revision_note": "",
         },
-        "export_paths": ["paper/figures/generated/S1.svg", "paper/figures/generated/S1.png"],
+        "export_paths": [
+            "paper/figures/generated/S1.svg",
+            "paper/figures/generated/S1.png",
+            "paper/figures/generated/S1.pdf",
+        ],
     }
 
     supplementary_errors = module.validate_figure_catalog(
@@ -712,4 +716,3 @@ def test_validate_table_catalog_rejects_missing_csv_for_anchor_generic_tables() 
 
     assert "missing required export formats" in errors[0]
     assert "csv" in errors[0]
-

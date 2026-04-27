@@ -30,6 +30,7 @@ def write_private_release_manifest(
     main_outputs: dict[str, str],
     notes: list[str] | None = None,
     release_contract: dict[str, object] | None = None,
+    supersedes_versions: list[str] | None = None,
 ) -> None:
     payload: dict[str, object] = {
         "dataset_id": dataset_id,
@@ -41,6 +42,8 @@ def write_private_release_manifest(
     }
     if release_contract is not None:
         payload["release_contract"] = release_contract
+    if supersedes_versions is not None:
+        payload["supersedes_versions"] = supersedes_versions
     import yaml
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -469,6 +472,45 @@ def test_assess_data_asset_impact_marks_locked_older_wave_as_historical_comparat
     assert datasets["v2026-03-28"]["latest_private_version"] == "v2026-04-10"
     assert datasets["v2026-03-28"]["upgrade_diff_report_path"] is None
     assert datasets["v2026-04-10"]["private_version_status"] == "up_to_date"
+
+
+def test_assess_data_asset_impact_respects_declared_superseded_private_release(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    row_release_root = workspace_root / "datasets" / "deidentified_longitudinal" / "v2026-04-27-visits-site-corrected"
+    episode_release_root = workspace_root / "datasets" / "deidentified_longitudinal" / "v2026-04-27-visit-episodes-7d-site-corrected"
+    row_release_root.mkdir(parents=True, exist_ok=True)
+    episode_release_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        row_release_root / "dataset_manifest.yaml",
+        dataset_id="dpcc_primary_care_visits_deidentified",
+        version="v2026-04-27-visits-site-corrected",
+        raw_snapshot="restricted_raw_refresh",
+        generated_by="ingest.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    write_private_release_manifest(
+        episode_release_root / "dataset_manifest.yaml",
+        dataset_id="dpcc_primary_care_visit_episodes_deidentified",
+        version="v2026-04-27-visit-episodes-7d-site-corrected",
+        raw_snapshot="derived_from_v2026-04-27-visits-site-corrected",
+        generated_by="collapse.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+        supersedes_versions=["v2026-04-27-visits-site-corrected"],
+    )
+    (row_release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (episode_release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_dataset_manifest(
+        workspace_root / "studies" / "003-dpcc" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="dpcc_primary_care_visit_episodes_deidentified",
+        relative_path="../../../datasets/deidentified_longitudinal/v2026-04-27-visit-episodes-7d-site-corrected/analysis.csv",
+    )
+
+    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+
+    dataset = result["studies"][0]["dataset_inputs"][0]
+    assert dataset["latest_private_version"] == "v2026-04-27-visit-episodes-7d-site-corrected"
+    assert dataset["private_version_status"] == "up_to_date"
 
 
 def test_init_data_assets_upgrades_public_registry_to_schema_v2(tmp_path: Path) -> None:

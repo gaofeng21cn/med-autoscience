@@ -4,6 +4,7 @@ import subprocess
 import sys
 
 from .shared import Any, Path, _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID, _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID, _REPO_ROOT, _build_paper_surface_readmes, _build_render_context, _illustration_payload_path, _paper_relative_path, _prune_unreferenced_generated_surface_outputs, _replace_catalog_entry, _require_namespaced_registry_id, _resolve_figure_catalog_id, _resolve_illustration_shell_paper_role, _resolve_table_catalog_id, _table_payload_path, display_layout_qc, display_pack_lock, display_pack_runtime, display_registry, dump_json, get_template_short_id, load_json, publication_display_contract, utc_now, write_text
+from .contract_backed_registry import resolve_contract_backed_figure_registry_fields, resolve_contract_backed_layout_sidecar_path
 from .payload_loader import _load_evidence_display_payload
 from .renderers import _load_layout_sidecar_or_raise, _prepare_python_illustration_output_paths, _prepare_python_render_output_paths, _prepare_table_shell_output_paths
 
@@ -181,24 +182,65 @@ def _materialize_contract_backed_figure(
             or ""
         ).strip(),
     )
+    registry_fields = resolve_contract_backed_figure_registry_fields(
+        paper_root=paper_root,
+        item=item,
+        shell_payload=shell_payload,
+        contract_payload=contract_payload,
+        display_id=display_id,
+        figure_id=figure_id,
+    )
+    paper_role = str(contract_payload.get("paper_role") or shell_payload.get("paper_role") or "main_text").strip()
+    if paper_role not in registry_fields["allowed_paper_roles"]:
+        allowed_roles = ", ".join(registry_fields["allowed_paper_roles"])
+        raise ValueError(
+            f"contract-backed figure `{figure_id}` paper_role `{paper_role}` is not allowed for "
+            f"`{registry_fields['template_id']}`; allowed: {allowed_roles}"
+        )
+    layout_sidecar_path = resolve_contract_backed_layout_sidecar_path(
+        workspace_path_resolver=lambda value: _resolve_workspace_path(value, paper_root=paper_root),
+        contract_payload=contract_payload,
+        export_paths=export_paths,
+    )
+    if layout_sidecar_path is None:
+        raise ValueError(f"contract-backed figure `{figure_id}` did not produce a layout sidecar")
+    layout_sidecar = _load_layout_sidecar_or_raise(path=layout_sidecar_path, template_id=registry_fields["template_id"])
+    try:
+        qc_result = display_layout_qc.run_display_layout_qc(
+            qc_profile=registry_fields["qc_profile"],
+            layout_sidecar=layout_sidecar,
+        )
+    except ValueError as exc:
+        raise ValueError(
+            f"contract-backed figure `{figure_id}` layout QC failed for "
+            f"`{registry_fields['qc_profile']}`: {exc}"
+        ) from exc
+    qc_result["layout_sidecar_path"] = _paper_relative_path(layout_sidecar_path, paper_root=paper_root)
+    if qc_result["status"] != "pass":
+        failure_reason = str(qc_result.get("failure_reason") or "").strip()
+        issues = qc_result.get("issues")
+        if not failure_reason and isinstance(issues, list) and issues:
+            first_issue = issues[0]
+            if isinstance(first_issue, dict):
+                failure_reason = str(first_issue.get("rule_id") or first_issue.get("message") or "").strip()
+        if not failure_reason:
+            failure_reason = "unknown"
+        raise ValueError(
+            f"contract-backed figure `{figure_id}` layout QC failed for "
+            f"`{registry_fields['qc_profile']}`: {failure_reason}"
+        )
     source_paths = _as_string_list(contract_payload.get("source_paths"))
     if not source_paths:
         source_paths = [_paper_relative_path(contract_path, paper_root=paper_root)]
     entry = {
         "figure_id": figure_id,
-        "template_id": str(
-            contract_payload.get("template_id")
-            or shell_payload.get("requirement_key")
-            or item.get("requirement_key")
-            or display_id
-        ).strip(),
-        "renderer_family": "contract_renderer",
-        "paper_role": str(contract_payload.get("paper_role") or shell_payload.get("paper_role") or "main_text").strip(),
-        "qc_result": {
-            "status": "not_applicable",
-            "issues": [],
-            "checked_at": utc_now(),
-        },
+        "template_id": registry_fields["template_id"],
+        "pack_id": registry_fields["pack_id"],
+        "renderer_family": registry_fields["renderer_family"],
+        "paper_role": paper_role,
+        "input_schema_id": registry_fields["input_schema_id"],
+        "qc_profile": registry_fields["qc_profile"],
+        "qc_result": qc_result,
         "title": str(
             contract_payload.get("title")
             or shell_payload.get("title")
@@ -225,6 +267,8 @@ def _materialize_contract_backed_figure(
         entry=entry,
     )
     written_files = [str(_resolve_workspace_path(export_path, paper_root=paper_root)) for export_path in export_paths]
+    if layout_sidecar_path is not None:
+        written_files.append(str(layout_sidecar_path))
     return figure_id, written_files
 
 
@@ -406,27 +450,37 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             figure_id = _resolve_figure_catalog_id(display_id=display_id, catalog_id=catalog_id)
             output_svg_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.svg"
             output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.png"
+            output_pdf_path = (
+                resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.pdf"
+                if "pdf" in spec.required_exports
+                else None
+            )
             output_layout_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.layout.json"
             _prepare_python_illustration_output_paths(
                 output_png_path=output_png_path,
                 output_svg_path=output_svg_path,
                 layout_sidecar_path=output_layout_path,
             )
+            if output_pdf_path is not None:
+                output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
             render_callable = display_pack_runtime.load_python_plugin_callable(
                 repo_root=_REPO_ROOT,
                 template_id=spec.shell_id,
                 paper_root=resolved_paper_root,
             )
+            render_kwargs = {
+                "template_id": spec.shell_id,
+                "shell_payload": shell_payload,
+                "payload_path": payload_path,
+                "render_context": render_context,
+                "output_svg_path": output_svg_path,
+                "output_png_path": output_png_path,
+                "output_layout_path": output_layout_path,
+            }
+            if output_pdf_path is not None:
+                render_kwargs["output_pdf_path"] = output_pdf_path
             render_result = dict(
-                render_callable(
-                    template_id=spec.shell_id,
-                    shell_payload=shell_payload,
-                    payload_path=payload_path,
-                    render_context=render_context,
-                    output_svg_path=output_svg_path,
-                    output_png_path=output_png_path,
-                    output_layout_path=output_layout_path,
-                )
+                render_callable(**render_kwargs)
                 or {}
             )
             layout_sidecar = _load_layout_sidecar_or_raise(path=output_layout_path, template_id=spec.shell_id)
@@ -437,7 +491,15 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 layout_sidecar=layout_sidecar,
             )
             qc_result["layout_sidecar_path"] = _paper_relative_path(output_layout_path, paper_root=resolved_paper_root)
-            written_files.extend([str(output_svg_path), str(output_png_path), str(output_layout_path)])
+            export_paths = [
+                _paper_relative_path(output_svg_path, paper_root=resolved_paper_root),
+                _paper_relative_path(output_png_path, paper_root=resolved_paper_root),
+            ]
+            written_output_paths = [str(output_svg_path), str(output_png_path), str(output_layout_path)]
+            if output_pdf_path is not None:
+                export_paths.append(_paper_relative_path(output_pdf_path, paper_root=resolved_paper_root))
+                written_output_paths.append(str(output_pdf_path))
+            written_files.extend(written_output_paths)
             entry = {
                 "figure_id": figure_id,
                 "template_id": spec.shell_id,
@@ -450,10 +512,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "title": str(render_result.get("title") or shell_payload.get("title") or default_title).strip()
                 or default_title,
                 "caption": str(render_result.get("caption") or shell_payload.get("caption") or default_caption).strip(),
-                "export_paths": [
-                    _paper_relative_path(output_svg_path, paper_root=resolved_paper_root),
-                    _paper_relative_path(output_png_path, paper_root=resolved_paper_root),
-                ],
+                "export_paths": export_paths,
                 "source_paths": [
                     _paper_relative_path(payload_path, paper_root=resolved_paper_root),
                 ],

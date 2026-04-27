@@ -14,6 +14,7 @@ def _write_multi_panel_outputs(
     output_svg_path: Path,
     output_png_path: Path,
     output_layout_path: Path,
+    output_pdf_path: Path | None = None,
     step_specs: list[_FlowNodeSpec],
     exclusion_specs: dict[str, _FlowNodeSpec],
     step_boxes_by_id: dict[str, dict[str, float]],
@@ -80,6 +81,12 @@ def _write_multi_panel_outputs(
         },
     )
 
-    fig.savefig(output_svg_path, format="svg")
+    fig.savefig(
+        output_svg_path,
+        format="svg",
+        metadata={"Creator": "FenggaoLab medical display core"},
+    )
     fig.savefig(output_png_path, format="png", dpi=220)
+    if output_pdf_path is not None:
+        fig.savefig(output_pdf_path, format="pdf")
     plt.close(fig)

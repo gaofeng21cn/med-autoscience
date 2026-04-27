@@ -372,6 +372,31 @@ def test_materialize_evaluation_summary_artifacts_rejects_charter_context_drift(
             runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
             publishability_gate_report_ref=gate_report_path,
         )
+
+
+def test_materialize_evaluation_summary_artifacts_allows_punctuation_adjacent_objective_spacing(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    gate_report_path = inputs["gate_report_path"]
+    publication_eval_path = inputs["publication_eval_path"]
+    charter_path = inputs["charter_path"]
+    charter_payload = json.loads(charter_path.read_text(encoding="utf-8"))
+    charter_payload["publication_objective"] = "risk stratification, external validation"
+    _write_json(charter_path, charter_payload)
+    publication_eval_payload = dict(inputs["publication_eval_payload"])
+    publication_eval_payload["charter_context_ref"] = {
+        "ref": str(inputs["charter_path"]),
+        "charter_id": "charter::001-risk::v1",
+        "publication_objective": "risk stratification,external validation",
+    }
+    _write_json(publication_eval_path, publication_eval_payload)
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
 def test_read_evaluation_summary_rejects_non_object_payload(tmp_path: Path) -> None:
     module = importlib.import_module(MODULE_NAME)
     study_root = tmp_path / "workspace" / "studies" / "001-risk"

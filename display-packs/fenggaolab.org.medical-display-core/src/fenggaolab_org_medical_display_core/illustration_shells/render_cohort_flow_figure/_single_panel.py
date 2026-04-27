@@ -14,6 +14,7 @@ def _render_single_panel_cards(
     output_svg_path: Path,
     output_png_path: Path,
     output_layout_path: Path,
+    output_pdf_path: Path | None = None,
     steps: list[dict[str, Any]],
     exclusions: list[dict[str, Any]],
     endpoint_inventory: list[dict[str, Any]],
@@ -332,7 +333,13 @@ def _render_single_panel_cards(
             "render_context": render_context_payload,
         },
     )
-    fig.savefig(output_svg_path, format="svg")
+    fig.savefig(
+        output_svg_path,
+        format="svg",
+        metadata={"Creator": "FenggaoLab medical display core"},
+    )
     fig.savefig(output_png_path, format="png", dpi=220)
+    if output_pdf_path is not None:
+        fig.savefig(output_pdf_path, format="pdf")
     plt.close(fig)
     return

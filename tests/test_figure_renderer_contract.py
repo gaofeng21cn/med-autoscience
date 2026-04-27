@@ -9,7 +9,7 @@ def valid_contract(*, figure_semantics: str = "evidence", renderer_family: str =
     if figure_semantics == "illustration":
         template_id = "cohort_flow_figure"
         layout_qc_profile = "publication_illustration_flow"
-        required_exports = ["png", "svg"]
+        required_exports = ["png", "svg", "pdf"]
         renderer_family = "python"
     elif figure_semantics == "submission_companion":
         template_id = "submission_graphical_abstract"

@@ -232,6 +232,11 @@ def _upsert_private_release_manifest(*, workspace_root: Path, payload: dict[str,
         "notes": manifest.get("notes") if isinstance(manifest.get("notes"), list) else [],
         "release_contract": manifest.get("release_contract") if isinstance(manifest.get("release_contract"), dict) else {},
     }
+    if isinstance(manifest.get("source_release"), dict):
+        manifest_payload["source_release"] = manifest["source_release"]
+    supersedes_versions = data_assets._normalize_string_list(manifest.get("supersedes_versions"))
+    if supersedes_versions:
+        manifest_payload["supersedes_versions"] = supersedes_versions
     manifest_path = version_root / "dataset_manifest.yaml"
     manifest_path.write_text(yaml.safe_dump(manifest_payload, sort_keys=False, allow_unicode=True), encoding="utf-8")
     return {

@@ -231,6 +231,12 @@ def create_submission_minimal_package(
             )
             table_entries.append(table_entry)
 
+        references_manifest = materialize_submission_references(
+            paper_root=paper_root,
+            submission_root=staging_submission_root,
+            workspace_root=workspace_root,
+        )
+
         export_docx(
             compiled_markdown_path=source_markdown_path,
             paper_root=paper_root,
@@ -252,12 +258,6 @@ def create_submission_minimal_package(
                 csl_path=profile_config.csl_path,
                 reference_doc_path=profile_config.supplementary_reference_doc_path,
             )
-        references_manifest = materialize_submission_references(
-            paper_root=paper_root,
-            submission_root=staging_submission_root,
-            workspace_root=workspace_root,
-        )
-
         pruned_legacy_paths = prune_legacy_paper_surface_exports(
             paper_root=paper_root,
             figure_catalog=figure_catalog,

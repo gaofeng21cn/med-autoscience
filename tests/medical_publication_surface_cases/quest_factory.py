@@ -685,7 +685,11 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
             "title": "Cohort derivation and endpoint inventory",
             "caption": "Cohort flow and endpoint inventory for the formal analysis cohort.",
             "paper_role": "main_text",
-            "export_paths": ["paper/figures/F1_cohort_flow.png", "paper/figures/F1_cohort_flow.svg"],
+            "export_paths": [
+                "paper/figures/F1_cohort_flow.png",
+                "paper/figures/F1_cohort_flow.svg",
+                "paper/figures/F1_cohort_flow.pdf",
+            ],
         },
         {
             "figure_id": "F2",
@@ -823,7 +827,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
                 "template_id": "cohort_flow_figure",
                 "selection_rationale": "The cohort flow shell is rendered from the audited illustration pipeline.",
                 "layout_qc_profile": "publication_illustration_flow",
-                "required_exports": ["png", "svg"],
+                "required_exports": ["png", "svg", "pdf"],
                 "fallback_on_failure": False,
                 "failure_action": "block_and_fix_environment",
             },

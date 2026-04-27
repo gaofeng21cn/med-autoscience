@@ -305,6 +305,7 @@ def test_build_report_accepts_required_display_catalog_coverage_for_supplementar
             "export_paths": [
                 "paper/figures/generated/S1.svg",
                 "paper/figures/generated/S1.png",
+                "paper/figures/generated/S1.pdf",
             ],
             "source_paths": [
                 "paper/figures/generated/S1.layout.json",

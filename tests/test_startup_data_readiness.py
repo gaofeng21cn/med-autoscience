@@ -44,6 +44,7 @@ def write_private_release_manifest(
     generated_by: str,
     main_outputs: dict[str, str],
     release_contract: dict[str, object] | None = None,
+    supersedes_versions: list[str] | None = None,
 ) -> None:
     payload = {
         "dataset_id": dataset_id,
@@ -54,6 +55,8 @@ def write_private_release_manifest(
     }
     if release_contract is not None:
         payload["release_contract"] = release_contract
+    if supersedes_versions is not None:
+        payload["supersedes_versions"] = supersedes_versions
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(payload, sort_keys=False, allow_unicode=True), encoding="utf-8")
 
@@ -232,6 +235,53 @@ def test_startup_data_readiness_treats_locked_older_wave_as_clear_historical_com
     assert result["study_summary"]["clear_study_ids"] == ["002-trend-study"]
     assert result["study_summary"]["outdated_private_release_study_ids"] == []
     assert result["recommendations"] == ["startup_data_ready"]
+
+
+def test_startup_data_readiness_reports_declared_successor_as_latest(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
+    workspace_root = tmp_path / "workspace"
+    row_release_root = workspace_root / "datasets" / "standardized_longitudinal" / "v2026-04-27-visits-site-corrected-standardized"
+    episode_release_root = workspace_root / "datasets" / "standardized_longitudinal" / "v2026-04-27-visit-episodes-7d-site-corrected-standardized"
+    row_release_root.mkdir(parents=True, exist_ok=True)
+    episode_release_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        row_release_root / "dataset_manifest.yaml",
+        dataset_id="dpcc_primary_care_visits_standardized",
+        version="v2026-04-27-visits-site-corrected-standardized",
+        raw_snapshot="row_level",
+        generated_by="standardize.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    write_private_release_manifest(
+        episode_release_root / "dataset_manifest.yaml",
+        dataset_id="dpcc_primary_care_visit_episodes_standardized",
+        version="v2026-04-27-visit-episodes-7d-site-corrected-standardized",
+        raw_snapshot="episode_level",
+        generated_by="standardize.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+        supersedes_versions=["v2026-04-27-visits-site-corrected-standardized"],
+    )
+    (row_release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (episode_release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_study_manifest(
+        workspace_root / "studies" / "003-dpcc" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="dpcc_primary_care_visit_episodes_standardized",
+        relative_path="../../../datasets/standardized_longitudinal/v2026-04-27-visit-episodes-7d-site-corrected-standardized/analysis.csv",
+    )
+
+    result = module.startup_data_readiness(workspace_root=workspace_root)
+
+    assert result["status"] == "clear"
+    assert result["latest_private_releases_by_family"] == [
+        {
+            "family_id": "standardized_longitudinal",
+            "version_id": "v2026-04-27-visit-episodes-7d-site-corrected-standardized",
+            "dataset_id": "dpcc_primary_care_visit_episodes_standardized",
+            "raw_snapshot": "episode_level",
+            "generated_by": "standardize.py",
+            "contract_status": "manifest_backed",
+        }
+    ]
 
 
 def test_startup_data_readiness_excludes_rejected_public_datasets_from_opportunities(tmp_path: Path) -> None:

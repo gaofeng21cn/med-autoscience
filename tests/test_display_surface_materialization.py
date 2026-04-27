@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from tests.display_surface_materialization_cases.shared import *
 from tests.display_surface_materialization_cases.basic_displays_and_renderers import *
+from tests.display_surface_materialization_cases.contract_backed_registry_materialization import *
 from tests.display_surface_materialization_cases.clinical_omics_and_golden_basics import *
 from tests.display_surface_materialization_cases.registry_contract_and_materialization_basics import *
 from tests.display_surface_materialization_cases.genomic_and_atlas_materialization import *

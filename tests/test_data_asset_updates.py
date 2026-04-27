@@ -217,6 +217,8 @@ def test_apply_data_asset_update_upserts_private_release_manifest(tmp_path: Path
                 "dataset_id": "nfpitnet_master",
                 "raw_snapshot": "followup_refresh",
                 "generated_by": "pipeline/v2.py",
+                "source_release": {"family_id": "master", "version": "v2026-03-28"},
+                "supersedes_versions": ["v2026-03-28"],
                 "main_outputs": {"analysis_csv": "analysis.csv"},
                 "notes": ["followup release"],
                 "release_contract": {"update_type": ["followup_refresh"], "qc_status": "locked"},
@@ -226,6 +228,8 @@ def test_apply_data_asset_update_upserts_private_release_manifest(tmp_path: Path
 
     manifest = yaml.safe_load((release_root / "dataset_manifest.yaml").read_text(encoding="utf-8"))
     assert manifest["dataset_id"] == "nfpitnet_master"
+    assert manifest["source_release"] == {"family_id": "master", "version": "v2026-03-28"}
+    assert manifest["supersedes_versions"] == ["v2026-03-28"]
     assert manifest["main_outputs"] == {"analysis_csv": "analysis.csv"}
     assert result["refresh"]["status"]["private"]["release_count"] == 1
     assert result["mutation"]["family_id"] == "master"

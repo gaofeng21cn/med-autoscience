@@ -127,7 +127,7 @@ def test_create_submission_minimal_package_supports_manuscript_shaped_draft_with
     assert "bibliography: ../references.bib" in submission_markdown
     assert "bibliography: ../../references.bib" not in submission_markdown
     assert "title: \"Article Title\"" not in submission_markdown
-    assert "\n# Methods\n\nStudy methods paragraph.\n" in submission_markdown
+    assert "\n# Materials and Methods\n\nStudy methods paragraph.\n" in submission_markdown
     assert "Draft abstract methods." in submission_markdown
     assert manifest["manuscript"]["source_markdown_path"] == "paper/submission_minimal/manuscript_submission.md"
 
@@ -181,7 +181,7 @@ Frontmatter discussion paragraph.
         encoding="utf-8"
     )
     assert 'title: "Front Matter Manuscript-Shaped Draft"' in submission_markdown
-    for heading in ["# Abstract", "# Introduction", "# Methods", "# Results", "# Discussion"]:
+    for heading in ["# Abstract", "# Introduction", "# Materials and Methods", "# Results", "# Discussion"]:
         assert submission_markdown.splitlines().count(heading) == 1
     for paragraph in [
         "Structured abstract paragraph.",

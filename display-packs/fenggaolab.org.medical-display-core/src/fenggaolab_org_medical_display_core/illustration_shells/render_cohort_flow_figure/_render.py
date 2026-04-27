@@ -46,6 +46,7 @@ def _render_cohort_flow_figure(
     output_svg_path: Path,
     output_png_path: Path,
     output_layout_path: Path,
+    output_pdf_path: Path | None = None,
     title: str,
     steps: list[dict[str, Any]],
     exclusions: list[dict[str, Any]],
@@ -148,6 +149,7 @@ def _render_cohort_flow_figure(
         _render_single_panel_cards(
             output_svg_path=output_svg_path,
             output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
             output_layout_path=output_layout_path,
             steps=steps,
             exclusions=exclusions,
@@ -961,6 +963,7 @@ def _render_cohort_flow_figure(
     _write_multi_panel_outputs(
         output_svg_path=output_svg_path,
         output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
         output_layout_path=output_layout_path,
         step_specs=step_specs,
         exclusion_specs=exclusion_specs,
