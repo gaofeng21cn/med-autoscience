@@ -85,3 +85,25 @@ def test_2026_04_25_intake_records_decisions_and_owner_surfaces() -> None:
     assert "finalize submission truth" in intake
     assert "decision route outcome" in intake
     assert "本轮不追随 upstream UI 大包" in intake
+
+
+def test_2026_04_28_intake_records_latest_update_landing_decisions() -> None:
+    intake = _read("docs/program/deepscientist_learning_intake_2026_04_28.md")
+
+    assert "bfc8675..d22165e" in intake
+    for decision in ("adopt_code_slice", "adopt_contract", "adopt_template", "watch_only", "reject"):
+        assert decision in intake
+    for upstream_lesson in (
+        "path-aware workspace search",
+        "start setup planning session",
+        "manuscript coverage gate",
+        "bounded await discipline",
+        "provider / UI product surface",
+    ):
+        assert upstream_lesson in intake
+    for owner in ("runtime", "workspace_projection", "eval_hygiene", "controller_charter"):
+        assert owner in intake
+    assert "artifact.validate_manuscript_coverage" in intake
+    assert "submission_ready" in intake
+    assert "本轮不把 Claude / Kimi runner 扩面升级成 MAS 主线" in intake
+    assert "本轮不追随 upstream UI / Settings / Lab canvas 大包" in intake
