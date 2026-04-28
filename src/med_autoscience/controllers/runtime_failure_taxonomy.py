@@ -8,9 +8,18 @@ _EXTERNAL_ACCOUNT_CODES = frozenset(
         "codex_upstream_quota_error",
         "provider_env_missing",
         "runner_model_unavailable",
+        "upstream_plugin_auth_403",
+        "plugin_auth_403",
     }
 )
-_EXTERNAL_TRANSIENT_CODES = frozenset({"codex_upstream_provider_error"})
+_EXTERNAL_TRANSIENT_CODES = frozenset({"codex_upstream_provider_error", "codex_external_startup_noise"})
+_PLATFORM_STARTUP_NOISE_CODES = frozenset(
+    {
+        "mds_external_startup_noise",
+        "external_startup_noise",
+        "runtime_startup_noise",
+    }
+)
 _RUNTIME_RECONCILIATION_CODES = frozenset(
     {
         "daemon_no_live_worker",
@@ -37,6 +46,9 @@ _EXTERNAL_ACCOUNT_TEXT_MARKERS = (
     "payment required",
     "account disabled",
     "account blocker",
+    "auth returned http 403",
+    "plugin auth returned http 403",
+    "authentication returned http 403",
 )
 _EXTERNAL_TRANSIENT_TEXT_MARKERS = (
     "codex upstream",
@@ -47,6 +59,12 @@ _EXTERNAL_TRANSIENT_TEXT_MARKERS = (
     "rate limit exceeded",
     "openai api",
     "anthropic api",
+)
+_STARTUP_NOISE_TEXT_MARKERS = (
+    "external startup noise",
+    "startup noise",
+    "worker startup noise",
+    "startup transient noise",
 )
 
 
@@ -106,6 +124,10 @@ def classify_mds_failure_diagnosis(diagnosis: Mapping[str, Any]) -> dict[str, An
     failure_texts = _lowered_texts(diagnosis_code, problem, diagnosis.get("message"), diagnosis.get("raw_error"))
     account_like_external = _contains_any(failure_texts, _EXTERNAL_ACCOUNT_TEXT_MARKERS)
     transient_like_external = _contains_any(failure_texts, _EXTERNAL_TRANSIENT_TEXT_MARKERS)
+    startup_noise = diagnosis_code in _PLATFORM_STARTUP_NOISE_CODES or _contains_any(
+        failure_texts,
+        _STARTUP_NOISE_TEXT_MARKERS,
+    )
     codex_upstream_failure = _looks_like_codex_upstream_code(diagnosis_code) or (
         any("codex" in text for text in failure_texts)
         and any(marker in text for text in failure_texts for marker in ("upstream", "api", "provider"))
@@ -118,9 +140,16 @@ def classify_mds_failure_diagnosis(diagnosis: Mapping[str, Any]) -> dict[str, An
             "auto_recovery_allowed": True,
             "external_blocker": False,
             "requires_human_gate": False,
+            "paper_quality_blocker": False,
             "problem": problem,
         }
-    if diagnosis_code in _EXTERNAL_ACCOUNT_CODES:
+    if startup_noise:
+        blocker_class = "platform_runtime_startup_noise"
+        action_mode = "platform_startup_backoff_and_recheck"
+        auto_recovery_allowed = retriable is not False
+        external_blocker = False
+        requires_human_gate = False
+    elif diagnosis_code in _EXTERNAL_ACCOUNT_CODES:
         blocker_class = "external_provider_account_blocker"
         action_mode = "external_fix_required"
         auto_recovery_allowed = False
@@ -169,6 +198,7 @@ def classify_mds_failure_diagnosis(diagnosis: Mapping[str, Any]) -> dict[str, An
         "auto_recovery_allowed": auto_recovery_allowed,
         "external_blocker": external_blocker,
         "requires_human_gate": requires_human_gate,
+        "paper_quality_blocker": False,
         "problem": problem,
         "retriable": retriable,
     }

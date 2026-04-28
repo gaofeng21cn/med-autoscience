@@ -43,6 +43,8 @@ _DISPLAY_REGISTRY_BLOCKERS = frozenset(
     {
         "display_registry_contract_missing",
         "display_registry_missing",
+        "missing_display_registry",
+        "invalid_display_registry",
         "medical_display_registry_missing",
         "display_reporting_contract_missing",
         "registry_contract_mismatch",
@@ -160,12 +162,14 @@ def fingerprint_blockers_for_work_unit(*, blockers: tuple[str, ...], next_work_u
     return filtered or blockers
 
 
-def _unit(unit_id: str, lane: str, summary: str) -> dict[str, str]:
-    return {
+def _unit(unit_id: str, lane: str, summary: str, **extra: str) -> dict[str, str]:
+    payload = {
         "unit_id": unit_id,
         "lane": lane,
         "summary": summary,
     }
+    payload.update({key: value for key, value in extra.items() if str(value).strip()})
+    return payload
 
 
 def _mapping_has_actionable_object_ref(payload: Mapping[str, Any]) -> bool:
@@ -193,8 +197,29 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
     blockers = _normalized_blockers(report)
     blocker_set = set(blockers)
     units: list[dict[str, str]] = []
+    mixed_controller_repair = (
+        bool(blocker_set & _SUBMISSION_REFRESH_BLOCKERS)
+        and bool(blocker_set & _DISPLAY_REGISTRY_BLOCKERS)
+        and bool(blocker_set & _STORY_BLOCKERS)
+        and bool(blocker_set & _FIGURE_RESULTS_BLOCKERS)
+        and not bool(blocker_set & (_CLAIM_EVIDENCE_BLOCKERS | _TREATMENT_GAP_BLOCKERS))
+    )
 
-    if blocker_set & _CLAIM_EVIDENCE_BLOCKERS:
+    if mixed_controller_repair:
+        units.append(
+            _unit(
+                "controller_owned_publication_repair",
+                "controller",
+                (
+                    "Run one controller-owned deterministic repair unit for submission authority, display registry, "
+                    "medical story contract, and figure semantics manifest blockers."
+                ),
+                user_feedback_priority="highest",
+                control_surface="gate_clearing_batch",
+            )
+        )
+
+    if blocker_set & _CLAIM_EVIDENCE_BLOCKERS and not mixed_controller_repair:
         units.append(
             _unit(
                 "analysis_claim_evidence_repair",
@@ -202,7 +227,7 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
                 "Repair claim-evidence, story, figure, and results traceability blockers.",
             )
         )
-    if blocker_set & _STORY_BLOCKERS:
+    if blocker_set & _STORY_BLOCKERS and not mixed_controller_repair:
         units.append(
             _unit(
                 "manuscript_story_repair",
@@ -210,7 +235,7 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
                 "Repair the paper story around the current evidence and claim boundary.",
             )
         )
-    if blocker_set & _FIGURE_RESULTS_BLOCKERS:
+    if blocker_set & _FIGURE_RESULTS_BLOCKERS and not mixed_controller_repair:
         units.append(
             _unit(
                 "figure_results_trace_repair",
@@ -226,7 +251,7 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
                 "Repair treatment-gap reporting so the clinical narrative is publication-ready.",
             )
         )
-    if blocker_set & _SUBMISSION_REFRESH_BLOCKERS or "stale" in str(report.get("study_delivery_status") or ""):
+    if (blocker_set & _SUBMISSION_REFRESH_BLOCKERS or "stale" in str(report.get("study_delivery_status") or "")) and not mixed_controller_repair:
         units.append(
             _unit(
                 "submission_minimal_refresh",
@@ -234,7 +259,7 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
                 "Refresh the stale submission_minimal package and current delivery bundle.",
             )
         )
-    if blocker_set & _DISPLAY_REGISTRY_BLOCKERS:
+    if blocker_set & _DISPLAY_REGISTRY_BLOCKERS and not mixed_controller_repair:
         units.append(
             _unit(
                 "display_reporting_contract_repair",

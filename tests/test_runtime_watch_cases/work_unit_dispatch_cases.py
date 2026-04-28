@@ -102,10 +102,29 @@ def test_watch_runtime_suppresses_repeated_work_unit_dispatch(
     assert calls == ["runtime_watch_outer_loop_wakeup"]
     assert len(first["managed_study_outer_loop_dispatches"]) == 1
     assert second["managed_study_outer_loop_dispatches"] == []
+    assert second["managed_study_no_op_suppressions"] == [
+        {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "outcome": "skipped_matching_work_unit",
+            "reason": "outer-loop work unit already dispatched for the same blocker fingerprint",
+            "dedupe_scope": "controller_decision_blocker_authority",
+            "work_unit_fingerprint": "publication-blockers::same",
+            "next_work_unit": {
+                "unit_id": "analysis_claim_evidence_repair",
+                "lane": "analysis-campaign",
+                "summary": "Repair claim-evidence blockers.",
+            },
+            "operator_summary": "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。",
+        }
+    ]
     assert [event["event_type"] for event in ledger_events] == ["dispatched", "skipped_duplicate"]
     assert wakeup_latest["outcome"] == "skipped_matching_work_unit"
     assert wakeup_latest["no_op_acknowledged"] is True
     assert wakeup_latest["dedupe_scope"] == "controller_decision_blocker_authority"
+    assert wakeup_latest["operator_summary"] == (
+        "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。"
+    )
     assert wakeup_latest["work_unit_dispatch_key"] == (
         "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
     )

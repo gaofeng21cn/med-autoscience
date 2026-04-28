@@ -119,6 +119,46 @@ def test_auto_runtime_parking_maps_explicit_resume_and_preflight_contracts() -> 
     assert preflight["parked_owner"] == "controller"
 
 
+def test_auto_runtime_parking_maps_repeated_stop_hold_and_same_blocker_pause_as_resource_release() -> None:
+    repeated_decision_stop = _projection(
+        {
+            "decision": "stop",
+            "reason": "decision_stop_repeated_same_blocker",
+            "quest_status": "stopped",
+            "blocker_fingerprint": "publication-blockers::same",
+        }
+    )
+    branch_hold = _projection(
+        {
+            "decision": "stop",
+            "reason": "stop_branch_hold_same_blocker",
+            "quest_status": "stopped",
+        }
+    )
+    paused_resume_loop = _projection(
+        {
+            "decision": "resume",
+            "reason": "paused_same_blocker_resume_loop",
+            "quest_status": "paused",
+            "blocker_fingerprint": "publication-blockers::same",
+        }
+    )
+    unchanged_handoff = _projection(
+        {
+            "decision": "noop",
+            "reason": "unchanged_finalized_submission_handoff",
+            "quest_status": "stopped",
+        }
+    )
+
+    for projection in (repeated_decision_stop, branch_hold, paused_resume_loop, unchanged_handoff):
+        assert projection["parked"] is True
+        assert projection["parked_state"] == "explicit_resume_pending"
+        assert projection["resource_release_expected"] is True
+        assert projection["awaiting_explicit_wakeup"] is True
+        assert projection["reopen_policy"] == "user_feedback_first"
+
+
 def test_auto_runtime_parking_does_not_hide_controller_owned_recovery_states() -> None:
     non_parked_reasons = [
         "quest_marked_running_but_no_live_session",
@@ -143,6 +183,43 @@ def test_auto_runtime_parking_does_not_hide_controller_owned_recovery_states() -
         )
         assert projection["parked"] is False, reason
         assert projection["parked_state"] is None, reason
+
+
+def test_runtime_failure_taxonomy_maps_plugin_auth_403_and_startup_noise_without_quality_blame() -> None:
+    taxonomy = importlib.import_module("med_autoscience.controllers.runtime_failure_taxonomy")
+
+    plugin_auth = taxonomy.classify_mds_failure_diagnosis(
+        {
+            "diagnosis_code": "upstream_plugin_auth_403",
+            "retriable": False,
+            "problem": "Upstream plugin auth returned HTTP 403 while starting the worker.",
+        }
+    )
+    startup_noise = taxonomy.classify_mds_failure_diagnosis(
+        {
+            "diagnosis_code": "mds_external_startup_noise",
+            "retriable": True,
+            "problem": "MDS worker produced external startup noise before the first paper action.",
+        }
+    )
+    codex_external_startup_noise = taxonomy.classify_mds_failure_diagnosis(
+        {
+            "diagnosis_code": "codex_external_startup_noise",
+            "retriable": True,
+            "problem": "Codex plugin startup produced external sync/auth noise.",
+        }
+    )
+
+    assert plugin_auth["blocker_class"] == "external_provider_account_blocker"
+    assert plugin_auth["action_mode"] == "external_fix_required"
+    assert plugin_auth["external_blocker"] is True
+    assert codex_external_startup_noise["blocker_class"] == "external_provider_transient"
+    assert codex_external_startup_noise["action_mode"] == "provider_backoff_and_recheck"
+    assert codex_external_startup_noise["external_blocker"] is True
+    assert startup_noise["blocker_class"] == "platform_runtime_startup_noise"
+    assert startup_noise["action_mode"] == "platform_startup_backoff_and_recheck"
+    assert startup_noise["external_blocker"] is False
+    assert startup_noise["paper_quality_blocker"] is False
 
 
 def test_study_progress_task_intake_supersedes_prior_parked_projection(

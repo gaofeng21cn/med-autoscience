@@ -16,6 +16,7 @@ PARKED_STATES = (
     "waiting_user_decision",
     "external_input_pending",
     "external_upstream_pending",
+    "platform_startup_noise",
     "explicit_resume_pending",
     "platform_repair_pending",
     "preflight_contract_pending",
@@ -86,6 +87,7 @@ _STATE_LABELS = {
     "waiting_user_decision": "等待用户判断",
     "external_input_pending": "等待外部输入",
     "external_upstream_pending": "等待上游服务恢复",
+    "platform_startup_noise": "平台启动噪声退避",
     "explicit_resume_pending": "等待显式恢复",
     "platform_repair_pending": "等待 MAS/MDS 平台修复",
     "preflight_contract_pending": "等待运行前置合同满足",
@@ -110,6 +112,10 @@ _STATE_SUMMARIES = {
         "当前阻塞来自 Codex/API/provider/account/quota/rate-limit/5xx 等上游问题；"
         "MAS/MDS 本机不会把它当作可本地修复问题继续空转。"
     ),
+    "platform_startup_noise": (
+        "当前阻塞来自 MDS worker 启动阶段的外部噪声或短暂启动抖动；"
+        "MAS/MDS 不会把它归因成论文质量问题。"
+    ),
     "explicit_resume_pending": "当前运行已停驻，等待用户显式 rerun、relaunch 或 resume。",
     "platform_repair_pending": "当前阻塞属于 MAS/MDS 协议、runner、tool-call 或 wire-format 平台问题，需先工程修复。",
     "preflight_contract_pending": "当前 workspace/data/startup/reentry 前置合同仍未满足，自动运行应先停驻等待合同修复。",
@@ -121,6 +127,7 @@ _NEXT_ACTIONS = {
     "waiting_user_decision": "等待用户给出明确判断；收到新意见后按用户反馈优先重新进入修订线。",
     "external_input_pending": "等待外部输入可用后再恢复运行。",
     "external_upstream_pending": "等待上游服务或账户状态恢复；退避重试耗尽后保持停驻。",
+    "platform_startup_noise": "等待下一次启动退避检查；如噪声持续，再进入平台修复而不是论文质量修复。",
     "explicit_resume_pending": "等待显式 resume、rerun 或 relaunch。",
     "platform_repair_pending": "先修复 MAS/MDS 平台问题并验证，再恢复运行。",
     "preflight_contract_pending": "先补齐运行前置合同，再由 controller 重新判断是否恢复。",
@@ -132,6 +139,7 @@ _OWNER_BY_STATE = {
     "waiting_user_decision": "user",
     "external_input_pending": "user",
     "external_upstream_pending": "external_provider",
+    "platform_startup_noise": "mas_platform",
     "explicit_resume_pending": "user",
     "platform_repair_pending": "mas_platform",
     "preflight_contract_pending": "controller",
@@ -170,6 +178,8 @@ def _state_from_runtime_failure(classification: Mapping[str, Any]) -> str | None
     blocker_class = _text(classification.get("blocker_class"))
     if action_mode in {"external_fix_required", "provider_backoff_and_recheck"}:
         return "external_upstream_pending"
+    if action_mode == "platform_startup_backoff_and_recheck":
+        return "platform_startup_noise"
     if action_mode == "platform_repair_required" or blocker_class == "platform_protocol_or_runner_bug":
         return "platform_repair_pending"
     if action_mode == "wait_for_user_or_explicit_resume":
@@ -218,6 +228,16 @@ def _state_from_reason(
         current_required_action = _text(publication_supervisor_state.get("current_required_action"))
         if supervisor_phase == "bundle_stage_ready" and current_required_action == "continue_bundle_stage":
             return "package_ready_handoff"
+    if reason in {
+        "decision_stop_repeated_same_blocker",
+        "stop_branch_hold_same_blocker",
+        "paused_same_blocker_resume_loop",
+        "unchanged_finalized_submission_handoff",
+        "unchanged_submission_handoff",
+        "repeated_decision_stop",
+        "repeated_stop_branch_hold",
+    }:
+        return "explicit_resume_pending"
     if reason in _EXPLICIT_RESUME_REASONS and decision not in {"resume", "continue", "relaunch"}:
         return "explicit_resume_pending"
     if reason in _PREFLIGHT_CONTRACT_REASONS and decision in {"blocked", "pause"}:

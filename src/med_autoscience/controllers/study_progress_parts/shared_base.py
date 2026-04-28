@@ -237,6 +237,7 @@ _OPERATOR_STATUS_HANDLING_LABELS = {
     "external_metadata_pending": "外部投稿元数据待补",
     "external_input_pending": "等待外部输入",
     "external_upstream_pending": "等待上游服务恢复",
+    "platform_startup_noise": "平台启动噪声退避",
     "explicit_resume_pending": "等待显式恢复",
     "platform_repair_pending": "等待 MAS/MDS 平台修复",
     "preflight_contract_pending": "等待运行前置合同满足",

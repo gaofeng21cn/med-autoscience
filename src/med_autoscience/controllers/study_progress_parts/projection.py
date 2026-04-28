@@ -383,6 +383,7 @@ def build_study_progress_projection(
         publication_supervisor_state=publication_supervisor_state,
         task_intake_progress_override=task_intake_progress_override,
     )
+    runtime_efficiency = _latest_run_telemetry_surface(quest_root=quest_root, status=status)
     operator_status_card = _operator_status_card(
         study_id=resolved_study_id,
         current_stage=current_stage,
@@ -400,6 +401,7 @@ def build_study_progress_projection(
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
         auto_runtime_parked=auto_runtime_parked,
+        runtime_efficiency=runtime_efficiency,
     )
     status_narration_contract = build_status_narration_contract(
         contract_id=f"study-progress::{resolved_study_id}",
@@ -553,7 +555,6 @@ def build_study_progress_projection(
         runtime_watch_path=runtime_watch_path,
         controller_decision_path=controller_decision_path,
     )
-    runtime_efficiency = _latest_run_telemetry_surface(quest_root=quest_root, status=status)
     research_runtime_control_projection = _research_runtime_control_projection(
         study_commands=study_commands,
         autonomy_contract=autonomy_contract,

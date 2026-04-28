@@ -58,6 +58,7 @@ DEFAULT_CONTROLLER_ORDER: tuple[str, ...] = (
 _MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "runtime_watch_auto_recovery"
 _MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE = "runtime_watch_controller_reroute"
 _MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE = "runtime_watch_outer_loop_wakeup"
+_NO_OP_SUPPRESSION_SUMMARY = "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。"
 _HARD_AUTO_RECOVERY_QUEST_STATUSES = frozenset({"active", "running", "waiting_for_user", "stopped"})
 _HARD_AUTO_RECOVERY_REASONS = frozenset(
     {
@@ -430,6 +431,56 @@ def _write_outer_loop_wakeup_audit(*, study_root: Path, audit: Mapping[str, Any]
     _write_json_object(_runtime_watch_wakeup_latest_path(Path(study_root).expanduser().resolve()), audit)
 
 
+def _serialize_no_op_suppression(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+    wakeup_audit: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    outcome = _non_empty_text(wakeup_audit.get("outcome"))
+    if outcome not in {"skipped_matching_work_unit", "skipped_matching_decision", "skipped_unchanged_inputs"}:
+        return None
+    payload = {
+        "study_id": _non_empty_text(status_payload.get("study_id")) or Path(study_root).name,
+        "quest_id": _non_empty_text(status_payload.get("quest_id")),
+        "outcome": outcome,
+        "reason": _non_empty_text(wakeup_audit.get("reason")),
+        "dedupe_scope": _non_empty_text(wakeup_audit.get("dedupe_scope")),
+    }
+    for key in ("work_unit_fingerprint", "next_work_unit"):
+        value = wakeup_audit.get(key)
+        if value is not None:
+            payload[key] = dict(value) if isinstance(value, Mapping) else value
+    if outcome == "skipped_matching_work_unit":
+        payload["operator_summary"] = _NO_OP_SUPPRESSION_SUMMARY
+    else:
+        payload["operator_summary"] = "外环输入或 controller decision 未变化；保持 no-op，等待新证据、新用户反馈或 blocker fingerprint 改变。"
+    return payload
+
+
+def _attach_no_op_suppression_to_quest_report(
+    *,
+    quest_report: dict[str, Any] | None,
+    suppression: Mapping[str, Any] | None,
+) -> None:
+    if quest_report is None or suppression is None:
+        return
+    existing = [
+        dict(item)
+        for item in (quest_report.get("managed_study_no_op_suppressions") or [])
+        if isinstance(item, Mapping)
+    ]
+    existing.append(dict(suppression))
+    quest_report["managed_study_no_op_suppressions"] = existing
+    quest_root = _candidate_path(quest_report.get("quest_root"))
+    if quest_root is not None:
+        json_path, md_path, latest_json, latest_markdown = write_watch_report(quest_root, quest_report)
+        quest_report["report_json"] = str(json_path)
+        quest_report["report_markdown"] = str(md_path)
+        quest_report["latest_report_json"] = str(latest_json)
+        quest_report["latest_report_markdown"] = str(latest_markdown)
+
+
 def _should_hard_auto_recover_managed_study(action_payload: dict[str, Any] | StudyRuntimeStatus) -> bool:
     payload = _managed_study_status_payload(action_payload)
     decision = _non_empty_text(payload.get("decision"))
@@ -757,6 +808,25 @@ def render_watch_markdown(report: dict[str, Any]) -> str:
                 "",
             ]
         )
+    no_op_suppressions = [
+        dict(item)
+        for item in (report.get("managed_study_no_op_suppressions") or [])
+        if isinstance(item, Mapping)
+    ]
+    if no_op_suppressions:
+        lines.extend(["## Managed Study No-Op Suppression", ""])
+        for item in no_op_suppressions[:5]:
+            next_work_unit = item.get("next_work_unit") if isinstance(item.get("next_work_unit"), Mapping) else {}
+            lines.extend(
+                [
+                    f"- study_id: `{item.get('study_id') or 'none'}`",
+                    f"  outcome: `{item.get('outcome') or 'none'}`",
+                    f"  blocker_fingerprint: `{item.get('work_unit_fingerprint') or 'none'}`",
+                    f"  next_work_unit: `{next_work_unit.get('unit_id') or 'none'}`",
+                    f"  operator_summary: `{item.get('operator_summary') or 'none'}`",
+                ]
+            )
+        lines.append("")
     return "\n".join(lines)
 
 
@@ -926,6 +996,7 @@ def run_watch_for_runtime(
     managed_study_recovery_holds: list[dict[str, Any]] = []
     managed_study_outer_loop_dispatches: list[dict[str, Any]] = []
     managed_study_outer_loop_wakeup_audits: list[dict[str, Any]] = []
+    managed_study_no_op_suppressions: list[dict[str, Any]] = []
     managed_study_alert_deliveries: list[dict[str, Any]] = []
     if ensure_study_runtimes:
         if profile is None:
@@ -1030,9 +1101,18 @@ def run_watch_for_runtime(
                     **wakeup_audit,
                     "outcome": "skipped_unchanged_inputs",
                     "reason": "outer-loop wakeup inputs match a prior terminal no-op state",
+                    "no_op_acknowledged": True,
                 }
                 _write_outer_loop_wakeup_audit(study_root=study_root, audit=wakeup_audit)
                 managed_study_outer_loop_wakeup_audits.append(wakeup_audit)
+                suppression = _serialize_no_op_suppression(
+                    study_root=study_root,
+                    status_payload=status_payload,
+                    wakeup_audit=wakeup_audit,
+                )
+                if suppression is not None:
+                    managed_study_no_op_suppressions.append(suppression)
+                    _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
             else:
                 tick_request = study_outer_loop.build_runtime_watch_outer_loop_tick_request(
                     study_root=study_root,
@@ -1060,8 +1140,17 @@ def run_watch_for_runtime(
                         "reason": "outer-loop work unit already dispatched for the same blocker fingerprint",
                         "no_op_acknowledged": True,
                         "dedupe_scope": "controller_decision_blocker_authority",
+                        "operator_summary": _NO_OP_SUPPRESSION_SUMMARY,
                         **work_unit_context,
                     }
+                    suppression = _serialize_no_op_suppression(
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        wakeup_audit=wakeup_audit,
+                    )
+                    if suppression is not None:
+                        managed_study_no_op_suppressions.append(suppression)
+                        _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
                     runtime_watch_work_units.append_ledger_event(
                         study_root=study_root,
                         status_payload=status_payload,
@@ -1082,6 +1171,14 @@ def run_watch_for_runtime(
                         "no_op_acknowledged": True,
                         "dedupe_scope": "controller_decision",
                     }
+                    suppression = _serialize_no_op_suppression(
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        wakeup_audit=wakeup_audit,
+                    )
+                    if suppression is not None:
+                        managed_study_no_op_suppressions.append(suppression)
+                        _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
                 else:
                     work_unit_dispatch_key = runtime_watch_work_units.dispatch_key(tick_request)
                     outer_loop_result = study_runtime_router.study_outer_loop_tick(
@@ -1175,6 +1272,7 @@ def run_watch_for_runtime(
         "managed_study_recovery_holds": managed_study_recovery_holds,
         "managed_study_outer_loop_dispatches": managed_study_outer_loop_dispatches,
         "managed_study_outer_loop_wakeup_audits": managed_study_outer_loop_wakeup_audits,
+        "managed_study_no_op_suppressions": managed_study_no_op_suppressions,
         "managed_study_supervision": managed_study_supervision,
         "managed_study_alert_deliveries": managed_study_alert_deliveries,
         "reports": reports,

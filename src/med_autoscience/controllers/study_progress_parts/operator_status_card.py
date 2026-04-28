@@ -181,7 +181,13 @@ def _operator_status_focus_summary(
     intervention_lane: dict[str, Any],
     next_system_action: str,
     current_stage_summary: str,
+    no_op_suppression: dict[str, Any] | None,
 ) -> str:
+    if no_op_suppression is not None:
+        return (
+            _non_empty_text(no_op_suppression.get("operator_summary"))
+            or "同一 blocker fingerprint 未变化；当前不建议继续空转。"
+        )
     parked_summary = parked_focus_summary(
         handling_state,
         intervention_lane=intervention_lane,
@@ -228,6 +234,51 @@ def _operator_status_next_confirmation_signal(handling_state: str, intervention_
     return "看下一条 runtime progress / publication_eval 更新。"
 
 
+def _latest_no_op_suppression(
+    *,
+    study_id: str,
+    runtime_watch_payload: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    candidates = [
+        dict(item)
+        for item in ((runtime_watch_payload or {}).get("managed_study_no_op_suppressions") or [])
+        if isinstance(item, dict)
+    ]
+    for item in reversed(candidates):
+        item_study_id = _non_empty_text(item.get("study_id"))
+        if item_study_id is None or item_study_id == study_id:
+            return item
+    return None
+
+
+def _runtime_efficiency_summary(runtime_efficiency: dict[str, Any] | None) -> tuple[str | None, dict[str, Any] | None]:
+    if not runtime_efficiency:
+        return None, None
+    evidence_packet_count = int(runtime_efficiency.get("evidence_packet_count") or 0)
+    gate_cache_surfaces = [
+        dict(item)
+        for item in (runtime_efficiency.get("gate_cache_surfaces") or [])
+        if isinstance(item, dict)
+    ]
+    summary = (
+        f"runtime efficiency: {evidence_packet_count} evidence packet sidecar item(s); "
+        f"{len(gate_cache_surfaces)} gate cache surface(s)."
+    )
+    refs = {
+        "telemetry_path": _non_empty_text(runtime_efficiency.get("telemetry_path")),
+        "evidence_packet_index_path": _non_empty_text(runtime_efficiency.get("evidence_packet_index_path")),
+        "gate_cache_surfaces": [
+            {
+                "surface_id": _non_empty_text(item.get("surface_id")),
+                "path": _non_empty_text(item.get("path")),
+                "input_fingerprint": _non_empty_text(item.get("input_fingerprint")),
+            }
+            for item in gate_cache_surfaces[:8]
+        ],
+    }
+    return summary, refs
+
+
 def _operator_status_card(
     *,
     study_id: str,
@@ -246,6 +297,7 @@ def _operator_status_card(
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
     auto_runtime_parked: dict[str, Any] | None,
+    runtime_efficiency: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     handling_state = _operator_status_handling_state(
         current_stage=current_stage,
@@ -266,6 +318,11 @@ def _operator_status_card(
         supervisor_tick_audit=supervisor_tick_audit,
     )
     human_surface_freshness, human_surface_summary = _operator_status_human_surface_summary(handling_state)
+    no_op_suppression = _latest_no_op_suppression(
+        study_id=study_id,
+        runtime_watch_payload=runtime_watch_payload,
+    )
+    runtime_efficiency_summary, runtime_efficiency_refs = _runtime_efficiency_summary(runtime_efficiency)
     payload = {
         "surface_kind": "study_operator_status_card",
         "study_id": study_id,
@@ -277,6 +334,7 @@ def _operator_status_card(
             intervention_lane=intervention_lane,
             next_system_action=next_system_action,
             current_stage_summary=current_stage_summary,
+            no_op_suppression=no_op_suppression,
         ),
         "latest_truth_time": latest_truth_time,
         "latest_truth_source": latest_truth_source,
@@ -290,6 +348,11 @@ def _operator_status_card(
         "next_confirmation_signal": _operator_status_next_confirmation_signal(handling_state, intervention_lane),
         "user_visible_verdict": _operator_status_verdict(handling_state),
     }
+    if no_op_suppression is not None:
+        payload["no_op_suppression"] = no_op_suppression
+    if runtime_efficiency_summary is not None:
+        payload["runtime_efficiency_summary"] = runtime_efficiency_summary
+        payload["runtime_efficiency_refs"] = runtime_efficiency_refs
     if bool((auto_runtime_parked or {}).get("parked")):
         payload["auto_runtime_parked"] = dict(auto_runtime_parked or {})
         payload["parked_state"] = _non_empty_text((auto_runtime_parked or {}).get("parked_state"))

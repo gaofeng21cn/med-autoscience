@@ -47,6 +47,15 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
             "materialize_display_surface",
         }
     ),
+    "controller_owned_publication_repair": frozenset(
+        {
+            "repair_paper_live_paths",
+            "workspace_display_repair_script",
+            "materialize_display_surface",
+            "create_submission_minimal_package",
+            "sync_submission_minimal_delivery",
+        }
+    ),
     "local_architecture_overview_repair": frozenset(
         {
             "workspace_display_repair_script",
@@ -76,6 +85,10 @@ def _compact_work_unit_payload(value: object) -> dict[str, str] | None:
         payload["lane"] = lane
     if summary is not None:
         payload["summary"] = summary
+    for key in ("user_feedback_priority", "control_surface"):
+        extra_value = _non_empty_text(value.get(key))
+        if extra_value is not None:
+            payload[key] = extra_value
     return payload
 
 

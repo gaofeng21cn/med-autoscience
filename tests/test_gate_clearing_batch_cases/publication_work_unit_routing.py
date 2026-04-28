@@ -135,6 +135,78 @@ def test_next_work_unit_filter_preserves_submission_refresh_dependency_closure(t
     assert [item["status"] for item in unit_results] == ["updated", "updated", "ready", "synced"]
 
 
+def test_publication_work_units_compose_controller_owned_quality_repair_unit_for_mixed_surface_blockers() -> None:
+    publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
+    work_units = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_work_units")
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+
+    payload = publication_work_units.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "blockers": [
+                "stale_submission_minimal_authority",
+                "missing_display_registry",
+                "missing_medical_story_contract",
+                "figure_semantics_manifest_missing_or_incomplete",
+            ],
+            "medical_publication_surface_named_blockers": [
+                "missing_medical_story_contract",
+                "figure_semantics_manifest_missing_or_incomplete",
+            ],
+        }
+    )
+    repair_units = [
+        module.GateClearingRepairUnit(
+            unit_id="repair_paper_live_paths",
+            label="repair paper live paths",
+            parallel_safe=True,
+            run=lambda: {"status": "updated"},
+        ),
+        module.GateClearingRepairUnit(
+            unit_id="materialize_display_surface",
+            label="materialize display surface",
+            parallel_safe=True,
+            depends_on=("repair_paper_live_paths",),
+            run=lambda: {"status": "materialized"},
+        ),
+        module.GateClearingRepairUnit(
+            unit_id="create_submission_minimal_package",
+            label="create submission minimal package",
+            parallel_safe=False,
+            depends_on=("materialize_display_surface",),
+            run=lambda: {"status": "ready"},
+        ),
+        module.GateClearingRepairUnit(
+            unit_id="sync_submission_minimal_delivery",
+            label="sync submission minimal delivery",
+            parallel_safe=False,
+            depends_on=("create_submission_minimal_package",),
+            run=lambda: {"status": "synced"},
+        ),
+    ]
+
+    assert payload["next_work_unit"] == {
+        "unit_id": "controller_owned_publication_repair",
+        "lane": "controller",
+        "summary": (
+            "Run one controller-owned deterministic repair unit for submission authority, display registry, "
+            "medical story contract, and figure semantics manifest blockers."
+        ),
+        "user_feedback_priority": "highest",
+        "control_surface": "gate_clearing_batch",
+    }
+    filtered_units = work_units.filter_repair_units_for_publication_work_unit(
+        repair_units,
+        next_work_unit=payload["next_work_unit"],
+    )
+    assert [unit.unit_id for unit in filtered_units] == [
+        "repair_paper_live_paths",
+        "materialize_display_surface",
+        "create_submission_minimal_package",
+        "sync_submission_minimal_delivery",
+    ]
+
+
 def test_next_work_unit_limits_gate_clearing_batch_to_analysis_repair_without_submission_refresh(
     monkeypatch,
     tmp_path: Path,
