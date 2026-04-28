@@ -61,6 +61,56 @@ def test_latest_events_prefers_runtime_progress_over_newer_launch_report_summary
     assert "完成外部验证数据清点" in events[0]["summary"]
 
 
+def _write_runtime_efficiency_fixture(quest_root: Path) -> tuple[Path, Path]:
+    telemetry_path = quest_root / ".ds" / "runs" / "run-001" / "telemetry.json"
+    evidence_index_path = quest_root / ".ds" / "evidence_packets" / "run-001" / "index.json"
+    evidence_sidecar_path = quest_root / ".ds" / "evidence_packets" / "run-001" / "bash_exec-large-log.json"
+    gate_cache_path = quest_root / ".ds" / "gate_cache" / "paper_contract_health.json"
+    _write_json(
+        telemetry_path,
+        {
+            "run_id": "run-001",
+            "prompt_bytes": 123456,
+            "stdout_bytes": 2345,
+            "tool_result_bytes_total": 98765,
+            "compacted_tool_result_count": 4,
+            "full_detail_tool_call_count": 1,
+            "mcp_tool_call_count": 9,
+            "model_inherited": True,
+            "runner_profile": None,
+            "token_usage": {
+                "input_tokens": 1000,
+                "cached_input_tokens": 400,
+                "output_tokens": 120,
+            },
+        },
+    )
+    _write_json(
+        evidence_index_path,
+        {
+            "items": [
+                {
+                    "tool_name": "bash_exec",
+                    "detail": "compact",
+                    "summary": "bash_exec: log_line_count=1200; key_blockers=1",
+                    "payload_bytes": 64000,
+                    "sidecar_path": str(evidence_sidecar_path),
+                    "payload_sha256": "abc123",
+                    "key_blockers": ["submission_minimal missing"],
+                }
+            ],
+        },
+    )
+    _write_json(
+        gate_cache_path,
+        {
+            "input_fingerprint": "gate-fingerprint-001",
+            "generated_at": "2026-04-10T09:30:00+00:00",
+        },
+    )
+    return telemetry_path, evidence_index_path
+
+
 def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
@@ -86,6 +136,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     runtime_watch_path = _write_runtime_watch(quest_root)
     bash_summary_path = _write_bash_summary(quest_root)
     details_projection_path = _write_details_projection(quest_root)
+    telemetry_path, evidence_index_path = _write_runtime_efficiency_fixture(quest_root)
     task_intake_module.write_task_intake(
         profile=profile,
         study_id="001-risk",
@@ -230,6 +281,16 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert result["module_surfaces"]["eval_hygiene"]["summary_ref"] == result["refs"]["evaluation_summary_path"]
     assert result["refs"]["bash_summary_path"] == str(bash_summary_path)
     assert result["refs"]["details_projection_path"] == str(details_projection_path)
+    assert result["refs"]["runtime_telemetry_path"] == str(telemetry_path)
+    assert result["refs"]["evidence_packet_index_path"] == str(evidence_index_path)
+    assert result["runtime_efficiency"]["run_id"] == "run-001"
+    assert result["runtime_efficiency"]["prompt_bytes"] == 123456
+    assert result["runtime_efficiency"]["tool_result_bytes_total"] == 98765
+    assert result["runtime_efficiency"]["compacted_tool_result_count"] == 4
+    assert result["runtime_efficiency"]["full_detail_tool_call_count"] == 1
+    assert result["runtime_efficiency"]["token_usage"]["cached_input_tokens"] == 400
+    assert result["runtime_efficiency"]["latest_evidence_packets"][0]["summary"].startswith("bash_exec:")
+    assert result["runtime_efficiency"]["gate_cache"]["input_fingerprint"] == "gate-fingerprint-001"
     assert publishability_gate_report_path.exists()
 
 
@@ -345,6 +406,7 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
     _write_runtime_watch(quest_root)
     _write_bash_summary(quest_root)
     _write_details_projection(quest_root)
+    _write_runtime_efficiency_fixture(quest_root)
     task_intake_module.write_task_intake(
         profile=profile,
         study_id="001-risk",
@@ -444,6 +506,9 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
     assert "监督入口" in markdown
     assert "JAMA Network Open" in markdown
     assert "研究进度信号" in markdown
+    assert "上下文效率" in markdown
+    assert "紧凑证据包" in markdown
+    assert "Gate cache fingerprint" in markdown
     assert "主线模块" in markdown
     assert "controller_charter:" in markdown
     assert "eval_hygiene:" in markdown

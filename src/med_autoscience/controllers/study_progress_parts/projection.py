@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-from . import shared as _shared
-from . import publication_runtime as _publication_runtime
-from . import progression as _progression
-from . import operator_view as _operator_view
+from . import operator_view as _operator_view, publication_runtime as _publication_runtime
+from . import progression as _progression, runtime_efficiency as _runtime_efficiency, shared as _shared
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
         if not name.startswith("__") and name != "_module_reexport":
             globals()[name] = value
 
-_module_reexport(_shared)
-_module_reexport(_publication_runtime)
-_module_reexport(_progression)
-_module_reexport(_operator_view)
+for _module in (_shared, _publication_runtime, _progression, _operator_view, _runtime_efficiency):
+    _module_reexport(_module)
 
 def build_study_progress_projection(
     *,
@@ -525,6 +521,7 @@ def build_study_progress_projection(
         runtime_watch_path=runtime_watch_path,
         controller_decision_path=controller_decision_path,
     )
+    runtime_efficiency = _latest_run_telemetry_surface(quest_root=quest_root, status=status)
     research_runtime_control_projection = _research_runtime_control_projection(
         study_commands=study_commands,
         autonomy_contract=autonomy_contract,
@@ -587,6 +584,7 @@ def build_study_progress_projection(
         "quality_review_followthrough": quality_review_followthrough or None,
         "research_runtime_control_projection": research_runtime_control_projection,
         "module_surfaces": module_surfaces,
+        "runtime_efficiency": runtime_efficiency,
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
             "quest_session_api_url": _non_empty_text(autonomous_runtime_notice.get("quest_session_api_url")),
@@ -613,6 +611,7 @@ def build_study_progress_projection(
             "runtime_escalation_path": str(runtime_escalation_path) if runtime_escalation_path is not None else None,
             "runtime_watch_report_path": str(runtime_watch_path) if runtime_watch_path is not None else None,
             "runtime_status_summary_path": runtime_module_surface["summary_ref"],
+            **_runtime_efficiency_refs(runtime_efficiency),
             "evaluation_summary_path": (
                 evaluation_module_surface["summary_ref"] if evaluation_module_surface is not None else None
             ),
@@ -732,6 +731,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     quality_review_followthrough = _mapping_copy(normalized_payload.get("quality_review_followthrough"))
     recovery_contract = _mapping_copy(normalized_payload.get("recovery_contract"))
     module_surfaces = _mapping_copy(normalized_payload.get("module_surfaces"))
+    runtime_efficiency = _mapping_copy(normalized_payload.get("runtime_efficiency"))
     if bool(quality_review_followthrough.get("waiting_auto_re_review")):
         current_judgment = _non_empty_text(quality_review_followthrough.get("summary")) or current_judgment
         next_step_summary = (
@@ -818,6 +818,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         lines.append(f"- 决策原因: {runtime_reason}")
     if continuation_reason:
         lines.append(f"- continuation_reason: {continuation_reason}")
+    lines.extend(_runtime_efficiency_markdown_lines(runtime_efficiency))
     if operator_status_card:
         lines.extend(
             [
