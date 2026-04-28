@@ -687,6 +687,7 @@ def build_current_package_readme(
         f"- Controller-authorized source: `{source_relative_root}`",
         "- Canonical authority surface: `paper/`",
         "- This directory is the stable, stage-agnostic entry point for the latest human-facing package.",
+        "- Target-journal exports under `submission_packages/<journal_slug>/` are derived projections and require explicit target confirmation before they are treated as final journal-ready formatting.",
     ]
     linkage = charter_contract_linkage or {}
     study_charter_ref = linkage.get("study_charter_ref") or {}

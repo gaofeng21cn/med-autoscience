@@ -114,18 +114,25 @@ def test_run_controller_refreshes_stale_journal_package_when_source_submission_m
     assert result["status"] == "clear"
     assert result["allow_write"] is True
     assert result["current_required_action"] == "continue_bundle_stage"
-    assert result["journal_package_sync"] == {
-        "status": "materialized",
-        "study_root": str(study_root.resolve()),
-        "paper_root": str(paper_root.resolve()),
-        "journal_slug": journal_slug,
-        "journal_name": "Rheumatology International",
-        "publication_profile": "general_medical_journal",
-        "package_root": str((study_root / "submission_packages" / journal_slug).resolve()),
-        "submission_manifest_path": str((study_root / "submission_packages" / journal_slug / "submission_manifest.json").resolve()),
-        "zip_path": str((study_root / "submission_packages" / journal_slug / f"{journal_slug}_submission_package.zip").resolve()),
-        "package_status": "current",
-    }
+    journal_package_sync = result["journal_package_sync"]
+    assert journal_package_sync["status"] == "materialized"
+    assert journal_package_sync["study_root"] == str(study_root.resolve())
+    assert journal_package_sync["paper_root"] == str(paper_root.resolve())
+    assert journal_package_sync["journal_slug"] == journal_slug
+    assert journal_package_sync["journal_name"] == "Rheumatology International"
+    assert journal_package_sync["publication_profile"] == "general_medical_journal"
+    assert journal_package_sync["package_root"] == str((study_root / "submission_packages" / journal_slug).resolve())
+    assert journal_package_sync["submission_manifest_path"] == str(
+        (study_root / "submission_packages" / journal_slug / "submission_manifest.json").resolve()
+    )
+    assert journal_package_sync["zip_path"] == str(
+        (study_root / "submission_packages" / journal_slug / f"{journal_slug}_submission_package.zip").resolve()
+    )
+    assert journal_package_sync["package_status"] == "current"
+    assert journal_package_sync["package_role"] == "journal_targeted_projection"
+    assert journal_package_sync["target_confirmation_status"] == "unconfirmed"
+    assert journal_package_sync["source_authority_kind"] == "runtime_worktree_paper"
+    assert journal_package_sync["is_study_canonical_paper_root"] is False
 def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(

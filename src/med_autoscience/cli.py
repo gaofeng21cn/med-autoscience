@@ -313,6 +313,7 @@ def build_parser() -> argparse.ArgumentParser:
     materialize_journal_package_parser.add_argument("--study-root", required=True, type=str)
     materialize_journal_package_parser.add_argument("--journal-slug", required=True, type=str)
     materialize_journal_package_parser.add_argument("--publication-profile", type=str)
+    materialize_journal_package_parser.add_argument("--confirmed-target", action="store_true")
 
     resolve_reference_papers_parser = subparsers.add_parser("resolve-reference-papers")
     resolve_reference_papers_parser.add_argument("--quest-root", required=True)
@@ -1162,6 +1163,7 @@ def main(argv: list[str] | None = None) -> int:
             study_root=Path(args.study_root),
             journal_slug=args.journal_slug,
             publication_profile=args.publication_profile,
+            confirmed_target=bool(args.confirmed_target),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

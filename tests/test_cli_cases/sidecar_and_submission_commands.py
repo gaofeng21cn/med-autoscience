@@ -397,11 +397,13 @@ def test_materialize_journal_package_command_dispatches_controller(monkeypatch, 
         study_root: Path,
         journal_slug: str,
         publication_profile: str | None = None,
+        confirmed_target: bool = False,
     ) -> dict[str, object]:
         called["paper_root"] = paper_root
         called["study_root"] = study_root
         called["journal_slug"] = journal_slug
         called["publication_profile"] = publication_profile
+        called["confirmed_target"] = confirmed_target
         return {"status": "materialized", "journal_slug": journal_slug}
 
     monkeypatch.setattr(cli.journal_package_controller, "materialize_journal_package", fake_materialize)
@@ -427,7 +429,49 @@ def test_materialize_journal_package_command_dispatches_controller(monkeypatch, 
     assert called["study_root"] == tmp_path / "study"
     assert called["journal_slug"] == "rheumatology-international"
     assert called["publication_profile"] == "general_medical_journal"
+    assert called["confirmed_target"] is False
     assert '"status": "materialized"' in captured.out
+
+
+def test_materialize_journal_package_command_accepts_confirmed_target_flag(
+    monkeypatch, tmp_path: Path, capsys
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_materialize(
+        *,
+        paper_root: Path,
+        study_root: Path,
+        journal_slug: str,
+        publication_profile: str | None = None,
+        confirmed_target: bool = False,
+    ) -> dict[str, object]:
+        called["confirmed_target"] = confirmed_target
+        return {"status": "materialized", "journal_slug": journal_slug}
+
+    monkeypatch.setattr(cli.journal_package_controller, "materialize_journal_package", fake_materialize)
+
+    exit_code = cli.main(
+        [
+            "publication",
+            "materialize-journal-package",
+            "--paper-root",
+            str(tmp_path / "paper"),
+            "--study-root",
+            str(tmp_path / "study"),
+            "--journal-slug",
+            "rheumatology-international",
+            "--confirmed-target",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["confirmed_target"] is True
+    assert '"status": "materialized"' in captured.out
+
+
 def test_medical_publication_surface_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

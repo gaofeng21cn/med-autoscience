@@ -43,6 +43,8 @@
 
 `journal package` 作为 target-specific projection，建立在 generic / manuscript artifact 之上，但拥有独立 manifest、输出目录和验证规则。
 
+当目标期刊只来自 shortlist、study 配置或 controller 候选，而没有用户/作者显式确认时，`journal package` 必须标注为 journal-targeted projection，不得表述成最终 journal-ready formatting。默认人读入口仍然是 `manuscript/current_package/`。
+
 ### 4. stable shallow handoff
 
 用户侧正式投稿包输出到：
@@ -50,6 +52,8 @@
 `studies/<study-id>/submission_packages/<journal_slug>/`
 
 这条路径属于稳定浅层交付面，不再落到容易被 controller 刷新的 `manuscript/` 子树中。
+
+该路径不是第二个真相源。它必须在 manifest 中记录 source authority、target confirmation 和 formatting boundary；未确认期刊时只能作为 derived preview / review surface。
 
 ## 方案比较
 
