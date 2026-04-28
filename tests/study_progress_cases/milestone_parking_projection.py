@@ -108,6 +108,8 @@ def test_study_progress_keeps_human_review_milestone_parking_out_of_runtime_reco
 
     assert result["current_stage"] == "manual_finishing"
     assert result["intervention_lane"]["lane_id"] == "manual_finishing"
+    assert "投稿包/人审里程碑已停驻" in result["intervention_lane"]["summary"]
+    assert all("恢复失败" not in item for item in result["current_blockers"])
     assert result["operator_status_card"]["handling_state"] == "manual_finishing"
     assert result["operator_status_card"]["user_visible_verdict"] == "MAS 当前保持人工收尾兼容保护，并继续提供监督入口。"
     assert "投稿包/人审里程碑已停驻" in result["next_system_action"]

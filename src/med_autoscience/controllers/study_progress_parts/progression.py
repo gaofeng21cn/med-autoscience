@@ -676,7 +676,7 @@ def _current_blockers(
 ) -> list[str]:
     blockers: list[str] = []
     manual_finish_active = _manual_finish_active(manual_finish_contract)
-    if manual_finish_active:
+    if manual_finish_active or finalize_milestone_parking_active(status):
         return blockers
     metadata_wait = _resume_arbitration_external_metadata_wait(
         status=status,
@@ -902,7 +902,7 @@ def _intervention_lane(
             "lane_id": "manual_finishing",
             "title": "保持投稿包里程碑停驻",
             "severity": "observe",
-            "summary": blocker_summary or current_stage_summary or next_system_action,
+            "summary": finalize_milestone_parking_summary(status),
             "recommended_action_id": "inspect_progress",
         }
     if runtime_health_status in {"recovering", "degraded", "escalated"} and not live_managed_runtime:
