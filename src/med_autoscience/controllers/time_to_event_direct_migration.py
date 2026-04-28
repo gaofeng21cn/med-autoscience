@@ -1,43 +1,30 @@
 from __future__ import annotations
 
-import csv
-from datetime import datetime, timezone
-import json
-import re
-import shutil
 from pathlib import Path
 from typing import Any
 
 from med_autoscience import display_registry
 from med_autoscience.policies import medical_reporting_contract as medical_reporting_contract_policy
 
-
-_REQUIRED_DISPLAY_KEYS = {
-    "time_to_event_discrimination_calibration_panel": ("time_to_event_discrimination_calibration_inputs.json", "time_to_event_discrimination_calibration_inputs_v1"),
-    "time_to_event_risk_group_summary": ("time_to_event_grouped_inputs.json", "time_to_event_grouped_inputs_v1"),
-    "time_to_event_decision_curve": ("time_to_event_decision_curve_inputs.json", "time_to_event_decision_curve_inputs_v1"),
-    "multicenter_generalizability_overview": ("multicenter_generalizability_inputs.json", "multicenter_generalizability_inputs_v1"),
-    "table2_time_to_event_performance_summary": ("time_to_event_performance_summary.json", "time_to_event_performance_summary_v1"),
-}
-_LEGACY_REQUIREMENT_KEY_ALIASES = {
-    "time_to_event_risk_group_summary": ("kaplan_meier_grouped",),
-}
-_AUTHORITY_PAPER_SYNC_RELATIVE_PATHS = (
-    "publication_style_profile.json",
-    "display_overrides.json",
-    "display_registry.json",
-    "medical_reporting_contract.json",
-    "methods_implementation_manifest.json",
-    "results_narrative_map.json",
-    "figure_semantics_manifest.json",
-    "derived_analysis_manifest.json",
-    "manuscript_safe_reproducibility_supplement.json",
-    "endpoint_provenance_note.md",
-    "draft.md",
-    "cohort_flow.json",
-    "submission_graphical_abstract.json",
-    "tables/table2_performance_summary.md",
+from .time_to_event_direct_migration_parts.file_sync import (
+    _REQUIRED_DISPLAY_KEYS,
+    _normalize_required_display_registry,
+    _require_binding,
+    _sync_authority_paper_truth,
 )
+from .time_to_event_direct_migration_parts.shared import (
+    _extract_regex_group,
+    _load_csv_rows,
+    _load_json,
+    _load_markdown_table,
+    _parse_float,
+    _parse_int,
+    _row_map_from_markdown_table,
+    _slugify,
+    _utc_now,
+    _write_json,
+)
+
 _CENTER_SPLIT_BUCKET_ORDER = {"train": 0, "validation": 1}
 _REGION_LABEL_TRANSLATIONS = {
     "华东": "East China",
@@ -49,161 +36,11 @@ _REGION_LABEL_TRANSLATIONS = {
     "东北": "Northeast China",
 }
 
-
-def _utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def _load_json(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError(f"expected JSON object at {path}")
-    return payload
-
-
-def _load_csv_rows(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(f"missing required CSV file: {path}")
-    with path.open(encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle)
-        if reader.fieldnames is None:
-            raise ValueError(f"missing CSV headers: {path}")
-        return [dict(row) for row in reader]
-
-
-def _resolve_authority_paper_root(*, study_root: Path) -> Path | None:
-    candidate = study_root / "paper"
-    if not candidate.exists():
-        return None
-    return candidate
-
-
-def _same_file_contents(*, source_path: Path, target_path: Path) -> bool:
-    if not target_path.exists():
-        return False
-    return source_path.read_bytes() == target_path.read_bytes()
-
-
-def _sync_authority_paper_truth(
-    *,
-    study_root: Path,
-    paper_root: Path,
-) -> dict[str, Any]:
-    authority_paper_root = _resolve_authority_paper_root(study_root=study_root)
-    summary: dict[str, Any] = {
-        "status": "not_available",
-        "source_paper_root": str(authority_paper_root) if authority_paper_root is not None else None,
-        "target_paper_root": str(paper_root),
-        "synced_files": [],
-        "already_aligned": [],
-        "missing_authority_files": [],
-    }
-    if authority_paper_root is None:
-        return summary
-    if authority_paper_root == paper_root:
-        summary["status"] = "same_root"
-        return summary
-
-    synced_files: list[str] = []
-    already_aligned: list[str] = []
-    missing_authority_files: list[str] = []
-    for relative_path in _AUTHORITY_PAPER_SYNC_RELATIVE_PATHS:
-        source_path = authority_paper_root / relative_path
-        if not source_path.exists():
-            missing_authority_files.append(relative_path)
-            continue
-        target_path = paper_root / relative_path
-        if _same_file_contents(source_path=source_path, target_path=target_path):
-            already_aligned.append(relative_path)
-            continue
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source_path, target_path)
-        synced_files.append(str(target_path))
-
-    summary["status"] = "synced" if synced_files else "already_aligned"
-    summary["synced_files"] = synced_files
-    summary["already_aligned"] = already_aligned
-    summary["missing_authority_files"] = missing_authority_files
-    return summary
-
-
-def _normalize_required_display_registry(*, registry_payload: dict[str, Any]) -> bool:
-    displays = registry_payload.get("displays")
-    if not isinstance(displays, list):
-        raise ValueError("display_registry.json missing displays list")
-    updated = False
-    for item in displays:
-        if not isinstance(item, dict):
-            continue
-        raw_requirement_key = str(item.get("requirement_key") or "").strip()
-        if not raw_requirement_key:
-            continue
-        for canonical_key, aliases in _LEGACY_REQUIREMENT_KEY_ALIASES.items():
-            if raw_requirement_key not in aliases:
-                continue
-            item["requirement_key"] = canonical_key
-            updated = True
-            break
-    return updated
-
-
-def _require_binding(
-    *,
-    registry_payload: dict[str, Any],
-    requirement_key: str,
-) -> dict[str, str]:
-    displays = registry_payload.get("displays")
-    if not isinstance(displays, list):
-        raise ValueError("display_registry.json missing displays list")
-    for item in displays:
-        if not isinstance(item, dict):
-            continue
-        if str(item.get("requirement_key") or "").strip() != requirement_key:
-            continue
-        display_id = str(item.get("display_id") or "").strip()
-        catalog_id = str(item.get("catalog_id") or "").strip()
-        display_kind = str(item.get("display_kind") or "").strip()
-        if not display_id or not catalog_id or not display_kind:
-            raise ValueError(f"display binding for {requirement_key} is incomplete")
-        return {
-            "display_id": display_id,
-            "catalog_id": catalog_id,
-            "display_kind": display_kind,
-        }
-    raise ValueError(f"missing required display binding: {requirement_key}")
-
-
-def _parse_float(raw_value: object, *, label: str) -> float:
-    try:
-        return float(str(raw_value))
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"invalid numeric value for {label}: {raw_value!r}") from exc
-
-
-def _parse_int(raw_value: object, *, label: str) -> int:
-    try:
-        return int(str(raw_value))
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"invalid integer value for {label}: {raw_value!r}") from exc
-
-
-def _slugify(value: str) -> str:
-    normalized = re.sub(r"[^a-z0-9]+", "_", value.strip().lower())
-    normalized = normalized.strip("_")
-    return normalized or "item"
-
-
 def _format_center_label(raw_value: object) -> str:
     center_id = _parse_int(raw_value, label="center")
     if center_id < 0:
         raise ValueError(f"center must be non-negative: {raw_value!r}")
     return f"Center {center_id:02d}"
-
 
 def _count_labels_preserving_first_seen_order(labels: list[str]) -> list[dict[str, Any]]:
     counts: dict[str, int] = {}
@@ -218,7 +55,6 @@ def _count_labels_preserving_first_seen_order(labels: list[str]) -> list[dict[st
         for label, count in sorted(counts.items(), key=lambda item: (-item[1], first_seen_index[item[0]]))
     ]
 
-
 def _count_labels_in_fixed_order(labels: list[str], *, order: tuple[str, ...]) -> list[dict[str, Any]]:
     counts = {label: 0 for label in order}
     extras: dict[str, int] = {}
@@ -231,13 +67,11 @@ def _count_labels_in_fixed_order(labels: list[str], *, order: tuple[str, ...]) -
     ordered.extend({"label": label, "count": extras[label]} for label in extras)
     return ordered
 
-
 def _normalized_region_label(raw_value: object) -> str:
     raw_label = str(raw_value or "").strip()
     if not raw_label:
         return "Missing"
     return _REGION_LABEL_TRANSLATIONS.get(raw_label, raw_label)
-
 
 def _normalized_north_south_label(raw_value: object) -> str:
     normalized = str(raw_value or "").strip()
@@ -246,7 +80,6 @@ def _normalized_north_south_label(raw_value: object) -> str:
     if normalized == "0":
         return "North"
     raise ValueError(f"patient_south_flag_raw must be `0` or `1`, got {raw_value!r}")
-
 
 def _normalized_urban_rural_label(raw_value: object) -> str:
     normalized = str(raw_value or "").strip()
@@ -257,23 +90,6 @@ def _normalized_urban_rural_label(raw_value: object) -> str:
     if normalized == "":
         return "Missing"
     raise ValueError(f"patient_rural_flag_raw must be `0`, `1`, or empty, got {raw_value!r}")
-
-
-def _load_markdown_table(path: Path) -> tuple[list[str], list[list[str]]]:
-    if not path.exists():
-        raise FileNotFoundError(f"missing required markdown table: {path}")
-    lines = [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    table_lines = [line for line in lines if line.startswith("|") and line.endswith("|")]
-    if len(table_lines) < 3:
-        raise ValueError(f"markdown table not found in {path}")
-
-    def parse_row(line: str) -> list[str]:
-        return [cell.strip() for cell in line.strip("|").split("|")]
-
-    header = parse_row(table_lines[0])
-    rows = [parse_row(line) for line in table_lines[2:]]
-    return header, rows
-
 
 def _load_validation_discrimination_points(path: Path) -> list[dict[str, Any]]:
     header, rows = _load_markdown_table(path)
@@ -308,18 +124,15 @@ def _load_validation_discrimination_points(path: Path) -> list[dict[str, Any]]:
         raise ValueError(f"no validation discrimination rows found in {path}")
     return points
 
-
 def _event_by_horizon(row: dict[str, str], *, horizon_years: float) -> bool:
     return _parse_int(row.get("cvd_death"), label="cvd_death") == 1 and _parse_float(
         row.get("os_time"), label="os_time"
     ) <= horizon_years
 
-
 def _is_evaluable_fixed_horizon(row: dict[str, str], *, horizon_years: float) -> bool:
     time_value = _parse_float(row.get("os_time"), label="os_time")
     event_value = _parse_int(row.get("cvd_death"), label="cvd_death")
     return time_value >= horizon_years or (event_value == 1 and time_value <= horizon_years)
-
 
 def _build_roc_curve(scores: list[float], labels: list[int]) -> tuple[list[float], list[float], float]:
     positive_count = sum(labels)
@@ -350,7 +163,6 @@ def _build_roc_curve(scores: list[float], labels: list[int]) -> tuple[list[float
         x1, y1 = right
         area += (x1 - x0) * (y0 + y1) / 2.0
     return [point[0] for point in deduped_points], [point[1] for point in deduped_points], area
-
 
 def _build_kaplan_meier_curve(
     rows: list[dict[str, str]],
@@ -397,7 +209,6 @@ def _build_kaplan_meier_curve(
         times.append(horizon_years)
         values.append(survival)
     return times, values
-
 
 def _build_discrimination_payload(
     *,
@@ -464,7 +275,6 @@ def _build_discrimination_payload(
         ],
     }
 
-
 def _build_risk_group_summary_payload(
     *,
     risk_group_rows: list[dict[str, str]],
@@ -522,30 +332,6 @@ def _build_risk_group_summary_payload(
             }
         ],
     }
-
-
-def _row_map_from_markdown_table(*, header: list[str], rows: list[list[str]], label_column: str) -> dict[str, dict[str, str]]:
-    normalized_header = {value.strip().casefold(): index for index, value in enumerate(header)}
-    if label_column.casefold() not in normalized_header:
-        raise ValueError(f"missing required markdown table column `{label_column}`")
-    label_index = normalized_header[label_column.casefold()]
-    row_map: dict[str, dict[str, str]] = {}
-    for row_index, row in enumerate(rows):
-        if len(row) != len(header):
-            raise ValueError(f"markdown table row length mismatch at row {row_index + 1}")
-        key = row[label_index].strip()
-        if not key:
-            raise ValueError(f"markdown table row {row_index + 1} missing `{label_column}` value")
-        row_map[key] = {header[column_index].strip(): value.strip() for column_index, value in enumerate(row)}
-    return row_map
-
-
-def _extract_regex_group(*, text: str, pattern: str, label: str) -> tuple[str, ...]:
-    match = re.search(pattern, text, flags=re.IGNORECASE)
-    if match is None:
-        raise ValueError(f"unable to parse `{label}` from markdown row: {text}")
-    return tuple(group.strip() for group in match.groups())
-
 
 def _build_submission_graphical_abstract_payload(
     *,
@@ -795,7 +581,6 @@ def _build_submission_graphical_abstract_payload(
         ],
     }
 
-
 def _build_decision_curve_payload(
     *,
     dca_rows: list[dict[str, str]],
@@ -846,7 +631,6 @@ def _build_decision_curve_payload(
             }
         ],
     }
-
 
 def _build_multicenter_generalizability_payload(
     *,
@@ -926,7 +710,6 @@ def _build_multicenter_generalizability_payload(
         ],
     }
 
-
 def _build_table2_payload(
     *,
     table_markdown_path: Path,
@@ -961,7 +744,6 @@ def _build_table2_payload(
         "columns": columns,
         "rows": normalized_rows,
     }
-
 
 def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
