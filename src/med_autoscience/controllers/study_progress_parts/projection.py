@@ -667,6 +667,7 @@ def read_study_progress(
     study_id: str | None = None,
     study_root: Path | None = None,
     entry_mode: str | None = None,
+    sync_runtime_summary: bool = True,
 ) -> dict[str, Any]:
     resolved_study_id, resolved_study_root, _study_payload = _resolve_study(
         profile=profile,
@@ -678,6 +679,7 @@ def read_study_progress(
         study_id=resolved_study_id,
         study_root=resolved_study_root,
         entry_mode=entry_mode,
+        sync_runtime_summary=sync_runtime_summary,
         include_progress_projection=False,
     )
     return build_study_progress_projection(

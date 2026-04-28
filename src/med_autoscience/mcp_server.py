@@ -26,6 +26,11 @@ from med_autoscience.doctor import build_doctor_report, overlay_request_from_pro
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile
 from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
+from med_autoscience.mcp_server_parts.study_progress_projection import (
+    compact_study_progress_projection,
+    compact_study_runtime_result_for_mcp,
+    render_mcp_study_progress_markdown,
+)
 
 
 PROTOCOL_VERSION = "2025-03-26"
@@ -345,13 +350,14 @@ def _call_study_runtime_status(arguments: dict[str, Any]) -> dict[str, Any]:
         study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
         study_root=_optional_path(arguments, "study_root"),
         entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
+        sync_runtime_summary=False,
     )
     serialized = _serialize_study_runtime_result(result)
     progress_projection = serialized.get("progress_projection")
     if isinstance(progress_projection, dict):
         return _tool_text_result(
-            study_progress.render_study_progress_markdown(progress_projection),
-            structured=serialized,
+            render_mcp_study_progress_markdown(progress_projection),
+            structured=compact_study_runtime_result_for_mcp(serialized),
         )
     return _tool_text_result(_json_text(serialized), structured=serialized)
 
@@ -363,8 +369,12 @@ def _call_study_progress(arguments: dict[str, Any]) -> dict[str, Any]:
         study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
         study_root=_optional_path(arguments, "study_root"),
         entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
+        sync_runtime_summary=False,
     )
-    return _tool_text_result(study_progress.render_study_progress_markdown(result), structured=result)
+    return _tool_text_result(
+        render_mcp_study_progress_markdown(result),
+        structured=compact_study_progress_projection(result),
+    )
 
 
 def _call_ensure_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:

@@ -238,7 +238,22 @@ def test_mcp_server_study_runtime_status_prefers_progress_projection_markdown_wh
                 "current_blockers": ["缺少最小投稿包导出。"],
                 "latest_events": [],
                 "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
+                "auto_runtime_parked": {
+                    "surface_kind": "auto_runtime_parked",
+                    "parked": False,
+                    "source_reason": "quest_already_running",
+                },
                 "needs_physician_decision": False,
+                "task_intake": {
+                    "study_id": "001-risk",
+                    "task_intent": "reviewer revision",
+                    "submission_revision_operating_contract": {"large": "detail"},
+                },
+                "runtime_efficiency": {
+                    "run_id": "run-001",
+                    "latest_evidence_packets": [{"payload": "large"}],
+                    "evidence_packet_count": 1,
+                },
                 "supervision": {
                     "browser_url": "http://127.0.0.1:21001",
                     "quest_session_api_url": "http://127.0.0.1:21001/api/session",
@@ -259,25 +274,45 @@ def test_mcp_server_study_runtime_status_prefers_progress_projection_markdown_wh
     )
 
     assert result["isError"] is False
-    assert result["structuredContent"]["progress_projection"]["study_id"] == "001-risk"
+    projection = result["structuredContent"]["progress_projection"]
+    assert projection["study_id"] == "001-risk"
+    assert projection["mcp_projection"]["compacted"] is True
+    assert projection["task_intake"]["task_intent"] == "reviewer revision"
+    assert "submission_revision_operating_contract" not in projection["task_intake"]
+    assert "latest_evidence_packets" not in projection["runtime_efficiency"]
     assert "# 研究进度" in result["content"][0]["text"]
     assert "论文可发表性面" in result["content"][0]["text"]
+    assert "parked: `False`" in result["content"][0]["text"]
+    assert "auto_runtime_parked" not in result["content"][0]["text"]
 
 
 def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
+    captured: dict[str, object] = {}
 
-    monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
-        lambda **kwargs: {
+    def fake_read_study_progress(**kwargs):
+        captured.update(kwargs)
+        return {
             "study_id": "001-risk",
             "current_stage": "managed_runtime_active",
             "current_stage_summary": "托管运行时正在自动推进研究。",
-        },
-    )
+            "current_blockers": [f"blocker-{index}" for index in range(20)],
+            "task_intake": {
+                "study_id": "001-risk",
+                "task_intent": "reviewer revision",
+                "constraints": [f"constraint-{index}" for index in range(20)],
+                "submission_revision_operating_contract": {"large": "detail"},
+            },
+            "runtime_efficiency": {
+                "run_id": "run-001",
+                "evidence_packet_count": 22,
+                "latest_evidence_packets": [{"payload": "large"}],
+            },
+        }
+
+    monkeypatch.setattr(module.study_progress, "read_study_progress", fake_read_study_progress)
     monkeypatch.setattr(
         module.study_progress,
         "render_study_progress_markdown",
@@ -293,8 +328,14 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
     )
 
     assert result["isError"] is False
+    assert captured["sync_runtime_summary"] is False
     assert result["structuredContent"]["study_id"] == "001-risk"
     assert result["structuredContent"]["current_stage"] == "managed_runtime_active"
+    assert result["structuredContent"]["mcp_projection"]["compacted"] is True
+    assert result["structuredContent"]["current_blockers"][-1] == "blocker-11"
+    assert len(result["structuredContent"]["task_intake"]["constraints"]) == 8
+    assert "submission_revision_operating_contract" not in result["structuredContent"]["task_intake"]
+    assert "latest_evidence_packets" not in result["structuredContent"]["runtime_efficiency"]
     assert "自动推进研究" in result["content"][0]["text"]
 
 
