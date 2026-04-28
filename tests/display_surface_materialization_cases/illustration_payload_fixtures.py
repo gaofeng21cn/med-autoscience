@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from . import shared_base as _shared_base
-from . import helper_03 as _helper_prev
+from . import layout_sidecar_fixtures as _layout_sidecar_fixtures
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -9,7 +9,7 @@ def _module_reexport(module) -> None:
             globals()[name] = value
 
 _module_reexport(_shared_base)
-_module_reexport(_helper_prev)
+_module_reexport(_layout_sidecar_fixtures)
 
 def _make_workflow_fact_sheet_panel_payload() -> dict[str, object]:
     return {

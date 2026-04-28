@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from . import shared_base as _shared_base
-from . import helper_01 as _helper_prev
+from . import registry_id_helpers as _registry_id_helpers
 from .registry_builders import _build_workspace_registry_displays, _workspace_template_bindings
 
 def _module_reexport(module) -> None:
@@ -10,7 +10,7 @@ def _module_reexport(module) -> None:
             globals()[name] = value
 
 _module_reexport(_shared_base)
-_module_reexport(_helper_prev)
+_module_reexport(_registry_id_helpers)
 
 def build_display_surface_workspace(
     tmp_path: Path,

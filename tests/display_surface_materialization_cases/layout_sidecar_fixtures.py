@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from . import shared_base as _shared_base
-from . import helper_02 as _helper_prev
+from . import workspace_surface_fixtures as _workspace_surface_fixtures
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -9,7 +9,7 @@ def _module_reexport(module) -> None:
             globals()[name] = value
 
 _module_reexport(_shared_base)
-_module_reexport(_helper_prev)
+_module_reexport(_workspace_surface_fixtures)
 
 def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
     template_short_id = get_template_short_id(template_id) if "::" in template_id else template_id

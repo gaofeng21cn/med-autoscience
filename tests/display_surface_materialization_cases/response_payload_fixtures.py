@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from . import shared_base as _shared_base
-from . import helper_06 as _helper_prev
+from . import genomic_payload_fixtures as _genomic_payload_fixtures
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -9,7 +9,7 @@ def _module_reexport(module) -> None:
             globals()[name] = value
 
 _module_reexport(_shared_base)
-_module_reexport(_helper_prev)
+_module_reexport(_genomic_payload_fixtures)
 
 def _make_partial_dependence_interaction_slice_panel_display(
     display_id: str = "Figure43",
