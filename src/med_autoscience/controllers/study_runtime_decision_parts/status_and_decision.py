@@ -309,6 +309,18 @@ def _status_state(
                     daemon_result=None,
                     recorded_at=router._utc_now(),
                 )
+        _record_runtime_event(
+            status=result,
+            runtime_context=runtime_context,
+            runtime_backend=managed_runtime_backend,
+        )
+        _record_family_orchestration_companion(
+            status=result,
+            study_root=study_root,
+            runtime_context=runtime_context,
+        )
+        _record_mds_worker_activity(result)
+        _record_auto_runtime_parked_projection(result)
         if include_progress_projection:
             from med_autoscience.controllers import study_progress as study_progress_controller
 
@@ -321,17 +333,6 @@ def _status_state(
                     entry_mode=entry_mode,
                 )
             )
-        _record_runtime_event(
-            status=result,
-            runtime_context=runtime_context,
-            runtime_backend=managed_runtime_backend,
-        )
-        _record_family_orchestration_companion(
-            status=result,
-            study_root=study_root,
-            runtime_context=runtime_context,
-        )
-        _record_mds_worker_activity(result)
         return result
 
     if explicit_runtime_backend_id is not None and managed_runtime_backend is None:

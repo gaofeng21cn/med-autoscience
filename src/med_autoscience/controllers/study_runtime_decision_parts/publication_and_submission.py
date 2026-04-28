@@ -12,6 +12,7 @@ from med_autoscience.controller_confirmation_summary import (
     stable_controller_confirmation_summary_path,
 )
 from med_autoscience.controllers import (
+    auto_runtime_parking,
     mds_worker_activity,
     publication_work_units,
     publication_gate as publication_gate_controller,
@@ -902,6 +903,21 @@ def _record_quest_runtime_audits(
 
 def _record_mds_worker_activity(status: StudyRuntimeStatus) -> None:
     status["mds_worker_activity"] = mds_worker_activity.normalize_activity(status.to_dict())
+
+
+def _record_auto_runtime_parked_projection(status: StudyRuntimeStatus) -> None:
+    projection = auto_runtime_parking.build_auto_runtime_parked_projection(status.to_dict())
+    status["auto_runtime_parked"] = projection
+    for field_name in (
+        "parked_state",
+        "parked_owner",
+        "resource_release_expected",
+        "awaiting_explicit_wakeup",
+        "auto_execution_complete",
+        "reopen_policy",
+        "legacy_current_stage",
+    ):
+        status[field_name] = projection.get(field_name)
 
 
 def _publication_gate_allows_direct_write(status: StudyRuntimeStatus) -> bool:

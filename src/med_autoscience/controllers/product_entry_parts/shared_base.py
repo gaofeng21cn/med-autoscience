@@ -106,12 +106,12 @@ _LIVE_TASK_INTAKE_RUNTIME_STATUSES = frozenset({"running", "active", "waiting_fo
 _ATTENTION_PRIORITIES = {
     "workspace_supervisor_service_not_loaded": 0,
     "study_runtime_recovery_required": 1,
-    "study_needs_physician_decision": 2,
+    "study_waiting_user_decision": 2, "study_needs_physician_decision": 2,
     "study_supervision_gap": 3,
     "study_quality_floor_blocker": 4,
     "study_progress_stale": 5,
     "study_progress_missing": 6,
-    "study_manual_finishing": 7,
+    "study_auto_runtime_parked": 7, "study_manual_finishing": 7,
     "study_blocked": 7,
 }
 
@@ -561,7 +561,7 @@ _OPERATOR_VERDICT_LABELS = {
     "attention_required": "需要处理",
     "preflight_blocked": "前置检查未通过",
     "ready_for_task": "可直接开始",
-    "monitor_only": "持续观察",
+    "auto_runtime_parked": "自动运行已停驻", "monitor_only": "持续观察",
 }
 
 _WORKSPACE_STATUS_LABELS = {
@@ -977,9 +977,9 @@ def _build_product_entry_guardrails(
                 recommended_command=progress_command,
             ),
             _build_shared_guardrail_class(
-                guardrail_id="human_decision_gate",
-                trigger="study-progress needs_physician_decision / controller decision gate",
-                symptom="当前已前移到医生、PI 或 publication release 的人工判断节点。",
+                guardrail_id="user_decision_gate",
+                trigger="study-progress needs_user_decision / controller decision gate",
+                symptom="当前已前移到用户或 publication release 的人工判断节点。",
                 recommended_command=progress_command,
             ),
             _build_shared_guardrail_class(

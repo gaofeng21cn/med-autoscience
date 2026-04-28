@@ -500,7 +500,10 @@ def _bottlenecks(
     package_currentness: Mapping[str, Any],
     current_state_summary: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    if isinstance(current_state_summary, Mapping) and current_state_summary.get("state") == "manual_finishing":
+    if isinstance(current_state_summary, Mapping) and current_state_summary.get("state") in {
+        "manual_finishing",
+        "auto_runtime_parked",
+    }:
         return []
     bottlenecks: list[dict[str, Any]] = []
     health_counts = runtime_transition_summary.get("health_status_counts")

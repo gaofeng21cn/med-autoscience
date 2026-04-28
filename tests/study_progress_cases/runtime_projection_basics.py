@@ -311,10 +311,12 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
 
     assert result["study_id"] == "001-risk"
     assert result["quest_id"] == "quest-001"
-    assert result["current_stage"] == "waiting_physician_decision"
+    assert result["current_stage"] == "auto_runtime_parked"
+    assert result["parked_state"] == "waiting_user_decision"
     assert result["paper_stage"] == "write"
     assert result["needs_physician_decision"] is True
-    assert "医生" in result["current_stage_summary"]
+    assert result["needs_user_decision"] is True
+    assert "用户" in result["current_stage_summary"]
     assert result["status_narration_contract"]["contract_kind"] == "ai_status_narration"
     assert (
         result["status_narration_contract"]["narration_policy"]["answer_checklist"]
@@ -323,7 +325,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert "写作" in result["paper_stage_summary"]
     assert any("外部验证" in item for item in result["current_blockers"])
     assert any("发表" in item for item in result["current_blockers"])
-    assert "确认" in result["next_system_action"]
+    assert "判断" in result["next_system_action"]
     assert result["supervision"]["browser_url"] == "http://127.0.0.1:21999/quests/quest-001"
     assert result["supervision"]["quest_session_api_url"] == "http://127.0.0.1:21999/api/sessions/run-001"
     assert result["supervision"]["active_run_id"] == "run-001"
@@ -868,7 +870,8 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
     assert str(study_root / "artifacts" / "controller_decisions" / "latest.json") in projection["artifact_pickup_surface"][
         "pickup_refs"
     ]
-    assert projection["research_gate_surface"]["approval_gate_field"] == "needs_physician_decision"
+    assert projection["research_gate_surface"]["approval_gate_field"] == "needs_user_decision"
+    assert projection["research_gate_surface"]["legacy_approval_gate_field"] == "needs_physician_decision"
     assert projection["research_gate_surface"]["approval_gate_required"] is False
     assert projection["research_gate_surface"]["interrupt_policy"] == "continue_or_relaunch"
     assert result["latest_events"][0]["category"] == "runtime_supervision"

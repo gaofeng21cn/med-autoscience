@@ -192,6 +192,6 @@ def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestra
         "step:inspect_progress",
     ]
     assert [gate["gate_id"] for gate in captured["human_gate_previews"]] == [
-        "study_physician_decision_gate",
+        "study_user_decision_gate",
         "publication_release_gate",
     ]

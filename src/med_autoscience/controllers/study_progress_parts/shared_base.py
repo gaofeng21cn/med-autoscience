@@ -67,12 +67,14 @@ _PAPER_STAGE_LABELS = {
 }
 _CURRENT_STAGE_LABELS = {
     "study_completed": "研究已进入收尾/交付",
+    "auto_runtime_parked": "自动运行已停驻",
     "manual_finishing": "人工收尾与兼容保护",
     "managed_runtime_recovering": "托管运行恢复中",
     "managed_runtime_degraded": "托管运行健康降级",
     "managed_runtime_escalated": "托管运行已升级告警",
     "managed_runtime_supervision_gap": "Hermes-hosted 托管监管存在缺口",
-    "waiting_physician_decision": "等待医生或 PI 判断",
+    "waiting_physician_decision": "等待用户判断",
+    "waiting_user_decision": "等待用户判断",
     "publication_supervision": "论文可发表性监管",
     "managed_runtime_active": "托管运行正在推进",
     "runtime_blocked": "自动推进被阻断",
@@ -95,7 +97,7 @@ _CONTROLLER_ACTION_LABELS = {
 _REASON_LABELS = {
     "publishability_gate_blocked": "论文可发表性门控尚未放行。",
     "quest_completion_requested_before_publication_gate_clear": "运行时过早申请结题，论文门控仍要求继续自修。",
-    "quest_parked_on_unchanged_finalize_state": "投稿包/人审里程碑已停驻；MAS 保持监督入口，等待显式 resume、外部投稿元数据或人工审阅输入。",
+    "quest_parked_on_unchanged_finalize_state": "投稿包/人审包已到可交付节点；MAS/MDS 已释放自动运行资源，等待用户审阅、显式 resume 或新的修订输入。",
     "quest_waiting_for_submission_metadata": "浅层投稿包已经交付，当前只差作者、单位、伦理、基金和声明等人工前置信息；系统已停车，等待显式唤醒。",
     "quest_drifting_into_write_without_gate_approval": "运行时已经漂进写作/定稿，但发表门控尚未放行，MAS 正在把它拉回论文门控主线。",
     "quest_stale_decision_after_write_stage_ready": "论文写作阶段已经放行，但运行时仍停在旧 decision，MAS 正在把它切回写作主线。",
@@ -170,7 +172,7 @@ _ACTION_LABELS = {
     "complete_bundle_stage": "完成当前投稿打包阶段。",
     "controller_review_required": "需要控制面重新判断下一步。",
     "refresh_startup_hydration": "需要刷新运行前置上下文后再继续。",
-    "human_confirmation_required": "等待医生或 PI 明确确认下一步。",
+    "human_confirmation_required": "等待用户明确确认下一步。",
     "supervise_runtime_only": "当前以监督托管运行时为主，不直接接管执行。",
 }
 _ROUTE_REPAIR_ACTION_TYPES = {"continue_same_line", "route_back_same_line", "bounded_analysis"}
@@ -219,7 +221,8 @@ _RECOVERY_ACTION_MODE_LABELS = {
     "refresh_supervision": "优先恢复 Hermes-hosted 托管监管",
     "continue_or_relaunch": "继续或重新拉起当前 study",
     "inspect_progress": "先读取当前进度与阻塞",
-    "human_decision_review": "等待医生或 PI 判断",
+    "human_decision_review": "等待用户判断",
+    "auto_runtime_parked": "自动运行停驻",
     "maintain_compatibility_guard": "保持人工收尾兼容保护",
     "monitor_only": "继续监督当前 study",
 }
@@ -228,7 +231,16 @@ _OPERATOR_STATUS_HANDLING_LABELS = {
     "runtime_recovering": "运行恢复中",
     "paper_surface_refresh_in_progress": "人类查看面刷新中",
     "scientific_or_quality_repair_in_progress": "论文硬阻塞处理中",
-    "waiting_human_decision": "等待医生或 PI 判断",
+    "waiting_human_decision": "等待用户判断",
+    "waiting_user_decision": "等待用户判断",
+    "package_ready_handoff": "投稿包/人审包交付停驻",
+    "external_metadata_pending": "外部投稿元数据待补",
+    "external_input_pending": "等待外部输入",
+    "external_upstream_pending": "等待上游服务恢复",
+    "explicit_resume_pending": "等待显式恢复",
+    "platform_repair_pending": "等待 MAS/MDS 平台修复",
+    "preflight_contract_pending": "等待运行前置合同满足",
+    "auto_runtime_parked": "自动运行已停驻",
     "manual_finishing": "人工收尾兼容保护",
     "monitor_only": "持续监督中",
 }
@@ -263,7 +275,10 @@ _TEXT_REPLACEMENTS = (
     ("publishability gate blocked", "论文可发表性门控未放行"),
     ("missing submission minimal", "缺少最小投稿包导出"),
     ("forbidden manuscript terminology", "当前稿件仍含不允许的术语表达，需要清理"),
-    ("live 状态", "在线状态"),
+    ("physician decision", "user decision"),
+    ("医生或 PI", "用户"), ("医生/PI", "用户"),
+    ("医生追加确认", "用户追加确认"), ("医生确认", "用户确认"),
+    ("需要医生", "需要用户"), ("live 状态", "在线状态"),
     (", but ", "，但"),
     ("; ", "；"),
 )
@@ -430,7 +445,11 @@ def _normalized_research_runtime_control_projection_payload(payload: Mapping[str
     intervention_lane = _mapping_copy(payload.get("intervention_lane"))
     interrupt_policy = _non_empty_text(intervention_lane.get("recommended_action_id"))
     gate_lane = _non_empty_text(intervention_lane.get("lane_id"))
-    gate_summary = _non_empty_text(intervention_lane.get("summary"))
+    if gate_lane == "human_decision_gate":
+        gate_lane = "user_decision_gate"
+    gate_summary = _display_text(intervention_lane.get("summary")) or _non_empty_text(
+        intervention_lane.get("summary")
+    )
     operator_status_card = _mapping_copy(payload.get("operator_status_card"))
     autonomy_contract = _mapping_copy(payload.get("autonomy_contract"))
     restore_point = _mapping_copy(autonomy_contract.get("restore_point"))
@@ -488,9 +507,11 @@ def _normalized_research_runtime_control_projection_payload(payload: Mapping[str
         },
         "research_gate_surface": {
             "surface_kind": "study_progress",
-            "approval_gate_field": "needs_physician_decision",
+            "approval_gate_field": "needs_user_decision",
+            "legacy_approval_gate_field": "needs_physician_decision",
             "approval_gate_owner": "mas_controller",
-            "approval_gate_required": bool(payload.get("needs_physician_decision")),
+            "approval_gate_required": bool(payload.get("needs_user_decision"))
+            or bool(payload.get("needs_physician_decision")),
             "interrupt_policy_field": "intervention_lane.recommended_action_id",
             "interrupt_policy": interrupt_policy,
             "gate_lane_field": "intervention_lane.lane_id",
@@ -542,13 +563,23 @@ def _normalized_research_runtime_control_projection_payload(payload: Mapping[str
 
     research_gate_surface = _mapping_copy(normalized.get("research_gate_surface"))
     if not isinstance(research_gate_surface.get("approval_gate_required"), bool):
-        research_gate_surface["approval_gate_required"] = bool(payload.get("needs_physician_decision"))
+        research_gate_surface["approval_gate_required"] = bool(payload.get("needs_user_decision")) or bool(
+            payload.get("needs_physician_decision")
+        )
     if _non_empty_text(research_gate_surface.get("interrupt_policy")) is None:
         research_gate_surface["interrupt_policy"] = interrupt_policy
     if _non_empty_text(research_gate_surface.get("gate_lane")) is None:
         research_gate_surface["gate_lane"] = gate_lane
+    elif _non_empty_text(research_gate_surface.get("gate_lane")) == "human_decision_gate":
+        research_gate_surface["gate_lane"] = "user_decision_gate"
     if _non_empty_text(research_gate_surface.get("gate_summary")) is None:
         research_gate_surface["gate_summary"] = gate_summary
+    else:
+        research_gate_surface["gate_summary"] = _display_text(
+            research_gate_surface.get("gate_summary")
+        ) or _non_empty_text(
+            research_gate_surface.get("gate_summary")
+        )
     research_gate_surface.setdefault("gate_summary_field", "intervention_lane.summary")
     normalized["research_gate_surface"] = research_gate_surface
 

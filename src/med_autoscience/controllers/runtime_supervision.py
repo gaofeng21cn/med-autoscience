@@ -373,7 +373,7 @@ def materialize_runtime_supervision(
         needs_human_intervention = health_status == "escalated"
         if health_status == "escalated":
             summary = "托管运行时已连续恢复失败，必须人工介入。"
-            clinician_update = "系统确认研究运行已经掉线，自动恢复连续失败，需要医生/PI 看到明确告警。"
+            clinician_update = "系统确认研究运行已经掉线，自动恢复连续失败，需要用户看到明确告警。"
             next_action = "manual_intervention_required"
             next_action_summary = "请回到 MAS 控制面确认当前托管运行策略，并决定是否暂停、重启或接管。"
         else:

@@ -202,7 +202,7 @@ def build_product_entry_manifest(
         exit_nodes=["step:continue_study", "step:inspect_progress"],
         human_gates=[
             {
-                "gate_id": "study_physician_decision_gate",
+                "gate_id": "study_user_decision_gate", "legacy_gate_id": "study_physician_decision_gate",
                 "trigger_nodes": ["step:continue_study"],
                 "blocking": True,
             },
@@ -219,8 +219,8 @@ def build_product_entry_manifest(
         ],
         human_gate_previews=[
             {
-                "gate_id": "study_physician_decision_gate",
-                "title": "Study physician decision gate",
+                "gate_id": "study_user_decision_gate",
+                "title": "Study user decision gate",
             },
             {
                 "gate_id": "publication_release_gate",

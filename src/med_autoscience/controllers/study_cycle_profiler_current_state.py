@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.controllers import auto_runtime_parking
+
 
 def _text_list(value: object) -> list[str]:
     if not isinstance(value, list):
@@ -71,14 +73,25 @@ def current_state_summary(
         and supervisor_phase == "bundle_stage_ready"
         and current_required_action in {"continue_bundle_stage", "complete_bundle_stage"}
     ):
+        parked = auto_runtime_parking.build_auto_runtime_parked_projection(
+            {
+                "reason": runtime_reason,
+                "decision": runtime_decision,
+                "runtime_reason": runtime_reason,
+                "runtime_decision": runtime_decision,
+            }
+        )
         return {
-            "state": "manual_finishing",
+            "state": "auto_runtime_parked",
+            "legacy_current_stage": "manual_finishing",
+            "auto_runtime_parked": parked,
+            "parked_state": parked.get("parked_state"),
             "runtime_health_status": runtime_health_status or None,
             "runtime_reason": runtime_reason,
             "runtime_decision": runtime_decision or None,
             "supervisor_phase": supervisor_phase,
             "current_required_action": current_required_action,
-            "summary": "Current status is parked at a milestone package/manual-finishing state.",
+            "summary": parked.get("summary") or "Current status is parked at a submission handoff state.",
         }
     return {
         "state": "active_or_unresolved",

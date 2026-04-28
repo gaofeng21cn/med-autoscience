@@ -219,9 +219,11 @@ def test_study_cycle_profiler_uses_current_manual_finishing_state_over_window_ch
         since="2026-04-24T23:50:00+00:00",
     )
 
-    assert profile_payload["current_state_summary"]["state"] == "manual_finishing"
+    assert profile_payload["current_state_summary"]["state"] == "auto_runtime_parked"
+    assert profile_payload["current_state_summary"]["legacy_current_stage"] == "manual_finishing"
+    assert profile_payload["current_state_summary"]["parked_state"] == "external_metadata_pending"
     assert profile_payload["gate_blocker_summary"]["current_blockers"] == []
-    assert profile_payload["eta_confidence_band"]["classification"] == "manual_finishing"
+    assert profile_payload["eta_confidence_band"]["classification"] == "external_metadata_pending"
     assert profile_payload["bottlenecks"] == []
 
 

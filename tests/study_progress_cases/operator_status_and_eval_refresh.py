@@ -99,7 +99,7 @@ def test_study_progress_surfaces_bounded_analysis_quality_focus_without_human_ga
     assert result["needs_physician_decision"] is False
 
 
-def test_study_progress_projects_finalize_metadata_wait_as_physician_decision(
+def test_study_progress_does_not_treat_invalid_finalize_metadata_wait_as_user_decision(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -226,15 +226,16 @@ def test_study_progress_projects_finalize_metadata_wait_as_physician_decision(
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
-    assert result["current_stage"] == "waiting_physician_decision"
-    assert result["needs_physician_decision"] is True
-    assert result["physician_decision_summary"] == "请确认最终作者顺序、单位映射与声明文案。"
-    assert "等待医生/PI 明确确认" in result["next_system_action"]
-    assert any("作者顺序" in item for item in result["current_blockers"])
+    assert result["current_stage"] == "publication_supervision"
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["needs_physician_decision"] is False
+    assert result["needs_user_decision"] is False
+    assert result["physician_decision_summary"] is None
+    assert not any("作者顺序" in item for item in result["current_blockers"])
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
 
 
-def test_study_progress_projects_auditable_submission_metadata_wait_as_manual_finishing(
+def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runtime_parked(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -349,11 +350,14 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_manual_fi
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
-    assert result["current_stage"] == "manual_finishing"
+    assert result["current_stage"] == "auto_runtime_parked"
+    assert result["parked_state"] == "external_metadata_pending"
+    assert result["legacy_current_stage"] == "manual_finishing"
     assert result["needs_physician_decision"] is False
+    assert result["needs_user_decision"] is False
     assert result["physician_decision_summary"] is None
-    assert "系统已停车" in result["current_stage_summary"]
-    assert "显式" in result["next_system_action"]
+    assert "外部投稿元数据" in result["current_stage_summary"]
+    assert "补齐外部投稿元数据" in result["next_system_action"]
     assert not any("作者顺序" in item for item in result["current_blockers"])
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
 

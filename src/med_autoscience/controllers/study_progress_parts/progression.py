@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .milestone_parking import finalize_milestone_parking_active, finalize_milestone_parking_summary
+from .parked_progression import parked_intervention_lane, publication_supervisor_blocks_handoff, task_intake_quality_lane
 from . import shared as _shared
 from . import publication_runtime as _publication_runtime
 from .quality_review_loop import quality_review_loop_action_required
@@ -55,6 +56,8 @@ def _progress_freshness_required(current_stage: str) -> bool:
         "study_completed",
         "manual_finishing",
         "waiting_physician_decision",
+        "waiting_user_decision",
+        "auto_runtime_parked",
     }
 
 
@@ -220,15 +223,16 @@ def _current_stage(
         execution_owner_guard=execution_owner_guard,
         continuation_state=continuation_state,
     )
+    handoff_blocked_by_supervisor = publication_supervisor_blocks_handoff(_mapping_copy(status.get("publication_supervisor_state")))
     if decision == "completed" or (quest_status == "completed" and decision != "blocked"):
         return "study_completed"
-    if bool((manual_finish_contract or {}).get("compatibility_guard_only")):
-        return "manual_finishing"
     if task_intake_progress_override:
         return "publication_supervision"
+    if bool((manual_finish_contract or {}).get("compatibility_guard_only")) and not publication_supervisor_blocks_handoff(publication_supervisor_state):
+        return "manual_finishing"
     if needs_physician_decision:
-        return "waiting_physician_decision"
-    if finalize_milestone_parking_active(status):
+        return "waiting_user_decision"
+    if finalize_milestone_parking_active(status) and not publication_supervisor_blocks_handoff(publication_supervisor_state):
         return "manual_finishing"
     if runtime_health_status == "recovering" and not live_managed_runtime:
         return "managed_runtime_recovering"
@@ -371,8 +375,8 @@ def _stage_summary(
         if next_action_summary is not None:
             return f"{summary} {next_action_summary}"
         return summary
-    if current_stage == "waiting_physician_decision":
-        summary = "系统已经把研究推进到需要医生/PI 明确确认的节点，目前不会越权自动继续。"
+    if current_stage in {"waiting_physician_decision", "waiting_user_decision"}:
+        summary = "系统已经把研究推进到需要用户明确确认的节点，目前不会越权自动继续。"
         if latest_progress_message:
             summary += f" 最近一次可见推进是：{latest_progress_message}"
         return summary
@@ -407,6 +411,8 @@ def _resume_arbitration_external_metadata_wait(
     interaction_arbitration: dict[str, Any] | None,
 ) -> bool:
     if _interaction_arbitration_action(interaction_arbitration) != "resume":
+        return False
+    if _non_empty_text((interaction_arbitration or {}).get("classification")) != "submission_metadata_only":
         return False
     if _non_empty_text(status.get("reason")) != "quest_parked_on_unchanged_finalize_state":
         return False
@@ -532,7 +538,7 @@ def _physician_decision_summary(
     ):
         return (
             _controller_confirmation_summary_text(controller_confirmation_summary)
-            or "控制面已经形成正式下一步建议，但该动作需要医生/PI 先确认，系统会停在监管态等待。"
+            or "控制面已经形成正式下一步建议，但该动作需要用户先确认，系统会停在监管态等待。"
         )
     if _resume_arbitration_external_metadata_wait(
         status=status,
@@ -592,8 +598,8 @@ def _next_system_action(
         first_action = controller_actions[0] if controller_actions else {}
         action_type = _controller_action_label(first_action.get("action_type"))
         if action_type is not None:
-            return f"等待医生/PI 确认后，再{action_type}。"
-        return "等待医生/PI 明确确认后，再继续下一步托管推进。"
+            return f"等待用户确认后，再{action_type}。"
+        return "等待用户明确确认后，再继续下一步托管推进。"
     supervisor_tick_next_action = _non_empty_text((supervisor_tick_audit or {}).get("next_action_summary"))
     if _supervisor_tick_gap_present(supervisor_tick_audit) and supervisor_tick_next_action is not None:
         return supervisor_tick_next_action
@@ -729,7 +735,7 @@ def _current_blockers(
         _append_unique(
             blockers,
             _controller_confirmation_summary_text(controller_confirmation_summary)
-            or "当前控制面决策需要医生/PI 确认，系统不会自动越权继续。",
+            or "当前控制面决策需要用户确认，系统不会自动越权继续。",
         )
     if metadata_wait and not task_intake_progress_override:
         _append_unique(
@@ -809,6 +815,7 @@ def _intervention_lane(
     manual_finish_contract: dict[str, Any] | None,
     task_intake_progress_override: dict[str, Any] | None,
     evaluation_summary_payload: dict[str, Any] | None,
+    auto_runtime_parked: dict[str, Any] | None,
 ) -> dict[str, Any]:
     blocker_summary = _non_empty_text(current_blockers[0] if current_blockers else None)
     progress_status = _non_empty_text((progress_freshness or {}).get("status"))
@@ -819,8 +826,24 @@ def _intervention_lane(
         execution_owner_guard=execution_owner_guard,
         continuation_state=continuation_state,
     )
+    handoff_blocked_by_supervisor = publication_supervisor_blocks_handoff(_mapping_copy(status.get("publication_supervisor_state")))
 
-    if _manual_finish_active(manual_finish_contract):
+    lane = parked_intervention_lane(
+        auto_runtime_parked,
+        current_stage_summary=current_stage_summary,
+        next_system_action=next_system_action,
+    )
+    if lane is not None:
+        return lane
+    if task_intake_progress_override and not _task_intake_override_is_manuscript_fast_lane(task_intake_progress_override):
+        lane = task_intake_quality_lane(
+            task_intake_progress_override,
+            current_stage_summary=current_stage_summary,
+            next_system_action=next_system_action,
+        )
+        if lane is not None:
+            return lane
+    if _manual_finish_active(manual_finish_contract) and not handoff_blocked_by_supervisor:
         if _task_intake_override_is_manuscript_fast_lane(task_intake_progress_override):
             same_line_route_truth = _mapping_copy(task_intake_progress_override.get("same_line_route_truth"))
             return {
@@ -854,36 +877,13 @@ def _intervention_lane(
             ),
             "recommended_action_id": "maintain_compatibility_guard",
         }
-    if task_intake_progress_override:
-        same_line_route_truth = _mapping_copy(task_intake_progress_override.get("same_line_route_truth"))
-        payload = {
-            "lane_id": "quality_floor_blocker",
-            "title": (
-                "优先完成有限补充分析"
-                if _non_empty_text(same_line_route_truth.get("same_line_state")) == "bounded_analysis"
-                else "优先收口同线质量硬阻塞"
-            ),
-            "severity": "critical",
-            "summary": (
-                _non_empty_text(task_intake_progress_override.get("next_system_action"))
-                or _non_empty_text(task_intake_progress_override.get("blocker_summary"))
-                or current_stage_summary
-                or next_system_action
-            ),
-            "recommended_action_id": _non_empty_text(task_intake_progress_override.get("current_required_action"))
-            or "inspect_progress",
-        }
-        if same_line_route_truth:
-            payload.update(
-                {
-                    "repair_mode": _non_empty_text(same_line_route_truth.get("same_line_state")),
-                    "route_target": _non_empty_text(same_line_route_truth.get("route_target")),
-                    "route_target_label": _non_empty_text(same_line_route_truth.get("route_target_label")),
-                    "route_key_question": _non_empty_text(same_line_route_truth.get("current_focus")),
-                    "route_summary": _non_empty_text(same_line_route_truth.get("summary")),
-                }
-            )
-        return payload
+    lane = task_intake_quality_lane(
+        task_intake_progress_override,
+        current_stage_summary=current_stage_summary,
+        next_system_action=next_system_action,
+    )
+    if lane is not None:
+        return lane
     if _supervisor_tick_gap_present(supervisor_tick_audit):
         return {
             "lane_id": "workspace_supervision_gap",
@@ -897,7 +897,7 @@ def _intervention_lane(
             ),
             "recommended_action_id": "refresh_supervision",
         }
-    if finalize_milestone_parking_active(status):
+    if finalize_milestone_parking_active(status) and not handoff_blocked_by_supervisor:
         return {
             "lane_id": "manual_finishing",
             "title": "保持投稿包里程碑停驻",
@@ -962,8 +962,8 @@ def _intervention_lane(
         }
     if needs_physician_decision:
         return {
-            "lane_id": "human_decision_gate",
-            "title": "等待医生或 PI 判断",
+            "lane_id": "user_decision_gate",
+            "title": "等待用户判断",
             "severity": "handoff",
             "summary": current_stage_summary or blocker_summary or next_system_action,
             "recommended_action_id": "inspect_progress",

@@ -369,7 +369,7 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
     assert payload["product_entry_start"]["modes"][1]["requires"] == ["study_id", "task_intent"]
     assert payload["product_entry_start"]["resume_surface"]["surface_kind"] == "launch_study"
     assert payload["product_entry_start"]["human_gate_ids"] == [
-        "study_physician_decision_gate",
+        "study_user_decision_gate",
         "publication_release_gate",
     ]
     assert payload["family_orchestration"]["action_graph_ref"]["ref"] == "/family_orchestration/action_graph"
@@ -379,7 +379,10 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
     assert len(payload["family_orchestration"]["action_graph"]["nodes"]) == 4
     assert len(payload["family_orchestration"]["action_graph"]["edges"]) == 5
     assert payload["family_orchestration"]["resume_contract"]["surface_kind"] == "launch_study"
-    assert payload["family_orchestration"]["human_gates"][0]["gate_id"] == "study_physician_decision_gate"
+    assert payload["family_orchestration"]["human_gates"][0]["gate_id"] == "study_user_decision_gate"
+    assert payload["family_orchestration"]["action_graph"]["human_gates"][0]["legacy_gate_id"] == (
+        "study_physician_decision_gate"
+    )
     assert payload["product_entry_manifest"]["frontdesk_surface"]["shell_key"] == "product_frontdesk"
     assert payload["product_entry_manifest"]["manifest_version"] == 2
     assert payload["product_entry_manifest"]["product_entry_readiness"] == payload["product_entry_readiness"]

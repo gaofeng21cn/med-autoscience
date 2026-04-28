@@ -588,8 +588,9 @@ def _build_research_runtime_control_projection(
         },
         "research_gate_surface": {
             "surface_kind": "study_progress",
-            "approval_gate_field": "needs_physician_decision",
-            "approval_gate_required_field": "needs_physician_decision",
+            "approval_gate_field": "needs_user_decision",
+            "approval_gate_required_field": "needs_user_decision",
+            "legacy_approval_gate_field": "needs_physician_decision",
             "approval_gate_owner": "mas_controller",
             "interrupt_policy_field": "intervention_lane.recommended_action_id",
             "interrupt_policy_value_field": "intervention_lane.recommended_action_id",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from med_autoscience.controllers import runtime_failure_taxonomy
+from med_autoscience.controllers import auto_runtime_parking, runtime_failure_taxonomy
 
 
 AUTONOMY_STATES: tuple[str, ...] = (
@@ -130,6 +130,20 @@ def _state_from_runtime_failure(classification: Mapping[str, Any]) -> str | None
     return None
 
 
+def _state_from_auto_runtime_parked(profile_payload: Mapping[str, Any]) -> str | None:
+    projection = _mapping(profile_payload.get("auto_runtime_parked"))
+    if not projection:
+        projection = auto_runtime_parking.build_auto_runtime_parked_projection(profile_payload)
+    if not bool(projection.get("parked")):
+        return None
+    owner = _text(projection.get("parked_owner"))
+    if owner == "external_provider":
+        return "blocked_external"
+    if owner == "mas_platform":
+        return "blocked_platform"
+    return "blocked_human"
+
+
 def _state_from_worker_activity(activity: Mapping[str, Any]) -> str | None:
     activity_state = _text(activity.get("activity_state"))
     heartbeat_state = _text(activity.get("heartbeat_state"))
@@ -157,7 +171,10 @@ def _state_from_current_summary(current_state: Mapping[str, Any]) -> str | None:
     runtime_reason = _text(current_state.get("runtime_reason"))
     runtime_decision = _text(current_state.get("runtime_decision"))
     state = _text(current_state.get("state"))
-    if runtime_reason == "quest_waiting_for_submission_metadata" or state == "manual_finishing":
+    parked_state = _state_from_auto_runtime_parked(current_state)
+    if parked_state is not None:
+        return parked_state
+    if runtime_reason == "quest_waiting_for_submission_metadata" or state in {"manual_finishing", "auto_runtime_parked"}:
         return "blocked_human"
     if runtime_reason == "quest_marked_running_but_no_live_session":
         return "no_live"
@@ -190,6 +207,9 @@ def _state_from_sli(sli_summary: Mapping[str, Any]) -> str | None:
 
 
 def resolve_autonomy_state(profile_payload: Mapping[str, Any]) -> str:
+    parked_state = _state_from_auto_runtime_parked(profile_payload)
+    if parked_state is not None:
+        return parked_state
     runtime_state = _state_from_runtime_failure(_runtime_failure(profile_payload))
     if runtime_state is not None:
         return runtime_state
@@ -208,6 +228,7 @@ def resolve_autonomy_state(profile_payload: Mapping[str, Any]) -> str:
 def build_autonomy_state_machine_surface(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
     current_state = resolve_autonomy_state(profile_payload)
     current_state_spec = state_spec(current_state)
+    auto_runtime_parked = auto_runtime_parking.build_auto_runtime_parked_projection(profile_payload)
     return {
         "surface": "autonomy_state_machine",
         "schema_version": 1,
@@ -215,6 +236,7 @@ def build_autonomy_state_machine_surface(profile_payload: Mapping[str, Any]) -> 
         "quest_id": _text(profile_payload.get("quest_id")),
         "current_state": current_state,
         "current_state_spec": current_state_spec,
+        "auto_runtime_parked": auto_runtime_parked,
         "states": autonomy_state_catalog(),
         "transition_policy": {
             "allowed_states": list(AUTONOMY_STATES),

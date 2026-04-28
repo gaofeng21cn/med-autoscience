@@ -439,14 +439,14 @@ def test_study_progress_normalizes_legacy_runtime_control_projection_from_existi
                 "schema_version": 1,
                 "study_id": "001-risk",
                 "current_stage": "waiting_physician_decision",
-                "current_stage_summary": "当前需要医生确认恢复策略。",
+                "current_stage_summary": "当前需要用户确认恢复策略。",
                 "paper_stage": "publishability_gate_blocked",
                 "paper_stage_summary": "发表门控仍未放行。",
                 "next_system_action": "先确认是否继续当前恢复动作。",
                 "needs_physician_decision": True,
                 "intervention_lane": {
                     "lane_id": "human_decision_gate",
-                    "summary": "等待医生或 PI 确认下一步。",
+                    "summary": "等待用户确认下一步。",
                     "recommended_action_id": "human_decision_review",
                 },
                 "operator_status_card": {
@@ -484,11 +484,12 @@ def test_study_progress_normalizes_legacy_runtime_control_projection_from_existi
     )
     assert projection["command_templates"]["check_progress"] is None
     assert projection["command_templates"]["check_runtime_status"] is None
-    assert projection["research_gate_surface"]["approval_gate_field"] == "needs_physician_decision"
+    assert projection["research_gate_surface"]["approval_gate_field"] == "needs_user_decision"
+    assert projection["research_gate_surface"]["legacy_approval_gate_field"] == "needs_physician_decision"
     assert projection["research_gate_surface"]["approval_gate_required"] is True
     assert projection["research_gate_surface"]["interrupt_policy"] == "human_decision_review"
-    assert projection["research_gate_surface"]["gate_lane"] == "human_decision_gate"
-    assert projection["research_gate_surface"]["gate_summary"] == "等待医生或 PI 确认下一步。"
+    assert projection["research_gate_surface"]["gate_lane"] == "user_decision_gate"
+    assert projection["research_gate_surface"]["gate_summary"] == "等待用户确认下一步。"
     assert projection["artifact_pickup_surface"]["pickup_refs"] == [
         "/tmp/evaluation/latest.json",
         "/tmp/publication_eval/latest.json",
@@ -713,7 +714,7 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
     assert result["current_stage"] == "publication_supervision"
     assert result["needs_physician_decision"] is False
     assert result["physician_decision_summary"] is None
-    assert "等待医生/PI" not in result["next_system_action"]
+    assert "等待用户" not in result["next_system_action"]
     assert all("finalize 本地总结" not in item for item in result["current_blockers"])
     assert result["paper_stage"] == "scientific_anchor_missing"
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)

@@ -8,7 +8,7 @@ globals().update({
     if not name.startswith('__')
 })
 
-def test_watch_runtime_hard_recovers_active_no_live_resume_even_without_apply(
+def test_watch_runtime_does_not_auto_recover_package_ready_handoff(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -74,29 +74,6 @@ def test_watch_runtime_hard_recovers_active_no_live_resume_even_without_apply(
             },
         }
 
-    def recovered_status(*, source: str) -> dict[str, object]:
-        return {
-            **parked_status(),
-            "decision": "resume",
-            "reason": "quest_parked_on_unchanged_finalize_state",
-            "quest_status": "running",
-            "runtime_liveness_audit": {
-                "status": "live",
-                "active_run_id": "run-resumed",
-                "runtime_audit": {
-                    "status": "live",
-                    "active_run_id": "run-resumed",
-                    "worker_running": True,
-                    "worker_pending": False,
-                    "stop_requested": False,
-                },
-            },
-            "autonomous_runtime_notice": {
-                "active_run_id": "run-resumed",
-            },
-            "source": source,
-        }
-
     monkeypatch.setattr(
         module.study_runtime_router,
         "study_runtime_status",
@@ -105,8 +82,7 @@ def test_watch_runtime_hard_recovers_active_no_live_resume_even_without_apply(
     monkeypatch.setattr(
         module.study_runtime_router,
         "ensure_study_runtime",
-        lambda *, profile, study_root, source: calls.append(("ensure", source))
-        or recovered_status(source=source),
+        lambda **kwargs: pytest.fail("package-ready parked handoff must not auto-recover"),
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -118,10 +94,7 @@ def test_watch_runtime_hard_recovers_active_no_live_resume_even_without_apply(
         ensure_study_runtimes=True,
     )
 
-    assert calls == [
-        ("status", "001-risk"),
-        ("ensure", "runtime_watch_auto_recovery"),
-    ]
+    assert calls == [("status", "001-risk"), ("status", "001-risk")]
     assert result["managed_study_actions"] == [
         {
             "study_id": "001-risk",
@@ -129,17 +102,7 @@ def test_watch_runtime_hard_recovers_active_no_live_resume_even_without_apply(
             "reason": "quest_parked_on_unchanged_finalize_state",
         }
     ]
-    assert result["managed_study_auto_recoveries"] == [
-        {
-            "study_id": "001-risk",
-            "preflight_decision": "resume",
-            "preflight_reason": "quest_parked_on_unchanged_finalize_state",
-            "applied_decision": "resume",
-            "applied_reason": "quest_parked_on_unchanged_finalize_state",
-            "source": "runtime_watch_auto_recovery",
-        }
-    ]
-    assert result["managed_study_supervision"][0]["health_status"] == "live"
+    assert result["managed_study_auto_recoveries"] == []
 
 
 def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_active(

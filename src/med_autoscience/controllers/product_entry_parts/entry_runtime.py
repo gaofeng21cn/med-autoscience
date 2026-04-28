@@ -116,7 +116,8 @@ def build_product_entry(
             "study_progress_projection_contract": {
                 "surface_kind": "study_progress_projection_contract",
                 "command": commands["study_progress"],
-                "needs_physician_decision_field": "needs_physician_decision",
+                "needs_user_decision_field": "needs_user_decision",
+                "legacy_needs_physician_decision_field": "needs_physician_decision",
                 "intervention_lane_field": "intervention_lane",
                 "operator_status_card_field": "operator_status_card",
                 "autonomy_contract_field": "autonomy_contract",

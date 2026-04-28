@@ -422,7 +422,7 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
                 },
                 "research_gate_surface": {
                     "surface_kind": "study_progress",
-                    "approval_gate_field": "needs_physician_decision",
+                    "approval_gate_field": "needs_user_decision",
                     "interrupt_policy_field": "intervention_lane.recommended_action_id",
                 },
             },
@@ -465,9 +465,9 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
     assert payload["operator_brief"]["recommended_step_id"] == "inspect_study_progress"
     assert payload["attention_queue"][0]["quality_execution_lane"]["route_key_question"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
     assert payload["attention_queue"][0]["same_line_route_truth"]["route_target"] == "analysis-campaign"
-    assert payload["studies"][0]["research_runtime_control_projection"]["research_gate_surface"]["approval_gate_field"] == (
-        "needs_physician_decision"
-    )
+    gate_surface = payload["studies"][0]["research_runtime_control_projection"]["research_gate_surface"]
+    assert gate_surface["approval_gate_field"] == "needs_user_decision"
+    assert gate_surface["legacy_approval_gate_field"] == "needs_physician_decision"
     assert payload["operator_brief"]["current_focus"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
 
 
@@ -585,7 +585,7 @@ def test_workspace_cockpit_attention_queue_carries_runtime_control_pickup_and_ga
                     },
                     "research_gate_surface": {
                         "surface_kind": "study_progress",
-                        "approval_gate_field": "needs_physician_decision",
+                        "approval_gate_field": "needs_user_decision",
                         "approval_gate_required": True,
                         "approval_gate_owner": "mas_controller",
                         "interrupt_policy_field": "intervention_lane.recommended_action_id",

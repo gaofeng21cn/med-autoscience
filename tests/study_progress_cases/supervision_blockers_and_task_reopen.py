@@ -192,9 +192,11 @@ def test_study_progress_projects_explicit_runtime_blocker_before_publication_sup
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
-    assert result["current_stage"] == "runtime_blocked"
+    assert result["current_stage"] == "auto_runtime_parked"
+    assert result["parked_state"] == "explicit_resume_pending"
+    assert result["resource_release_expected"] is True
     assert "显式" in result["current_stage_summary"]
-    assert any("显式" in item for item in result["current_blockers"])
+    assert not any("发表门控" in item for item in result["current_blockers"])
     assert "显式" in result["next_system_action"]
 
 
@@ -286,10 +288,11 @@ def test_study_progress_projects_manual_finishing_contract_before_runtime_blocke
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
-    assert result["current_stage"] == "manual_finishing"
-    assert "人工打磨收尾" in result["current_stage_summary"]
-    assert not any("显式" in item for item in result["current_blockers"])
-    assert "兼容性" in result["next_system_action"]
+    assert result["current_stage"] == "auto_runtime_parked"
+    assert result["parked_state"] == "explicit_resume_pending"
+    assert result["legacy_current_stage"] is None
+    assert not any("发表门控" in item for item in result["current_blockers"])
+    assert "显式" in result["next_system_action"]
 
 
 def test_study_progress_projects_manual_finishing_fast_lane_intake(
@@ -382,7 +385,7 @@ def test_study_progress_projects_manual_finishing_fast_lane_intake(
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
-    assert result["current_stage"] == "manual_finishing"
+    assert result["current_stage"] == "publication_supervision"
     assert result["task_intake"]["manuscript_fast_lane"]["status"] == "requested"
     assert result["intervention_lane"]["lane_id"] == "manual_finishing_fast_lane"
     assert result["quality_execution_lane"]["lane_id"] == "manuscript_fast_lane"
@@ -526,9 +529,10 @@ def test_study_progress_projects_bundle_only_submission_ready_parking_before_run
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
-    assert result["current_stage"] == "manual_finishing"
-    assert "投稿包里程碑" in result["current_stage_summary"]
-    assert "显式 rerun 或 relaunch" not in result["current_stage_summary"]
+    assert result["current_stage"] == "auto_runtime_parked"
+    assert result["parked_state"] == "package_ready_handoff"
+    assert result["legacy_current_stage"] == "manual_finishing"
+    assert "投稿包/人审包" in result["current_stage_summary"]
     assert "当前 quest 已停止；如需继续，必须显式 rerun 或 relaunch。" not in result["current_blockers"]
 
 
@@ -900,13 +904,15 @@ def test_study_progress_reopened_task_intake_yields_to_fresh_bundle_only_closeou
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
     assert result["manual_finish_contract"] is not None
-    assert result["current_stage"] == "manual_finishing"
+    assert result["current_stage"] == "auto_runtime_parked"
+    assert result["parked_state"] == "package_ready_handoff"
+    assert result["legacy_current_stage"] == "manual_finishing"
     assert result["quality_closure_truth"]["state"] == "bundle_only_remaining"
     assert result["same_line_route_truth"]["route_target"] == "finalize"
     assert not any("待修订状态" in item for item in result["current_blockers"])
-    assert result["module_surfaces"]["runtime"]["status_summary"].startswith("当前论文线已到投稿包里程碑")
+    assert result["module_surfaces"]["runtime"]["status_summary"].startswith("投稿包/人审包已到可交付节点")
     assert "自动推进" not in result["module_surfaces"]["runtime"]["status_summary"]
-    assert result["module_surfaces"]["runtime"]["next_action_summary"].startswith("当前包已经可直接交给用户审阅")
+    assert result["module_surfaces"]["runtime"]["next_action_summary"].startswith("等待用户审阅或显式恢复")
 
 
 def test_study_progress_does_not_project_study_completed_when_completion_contract_is_not_ready(

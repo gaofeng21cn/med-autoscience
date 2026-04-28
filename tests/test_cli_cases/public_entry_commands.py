@@ -360,15 +360,15 @@ def test_study_progress_command_dispatches_controller_and_renders_markdown(
         called["entry_mode"] = entry_mode
         return {
             "study_id": "001-risk",
-            "current_stage": "waiting_physician_decision",
-            "current_stage_summary": "系统已经推进到需要医生确认的节点。",
+            "current_stage": "waiting_user_decision",
+            "current_stage_summary": "系统已经推进到需要用户确认的节点。",
         }
 
     monkeypatch.setattr(cli.study_progress, "read_study_progress", fake_read_study_progress)
     monkeypatch.setattr(
         cli.study_progress,
         "render_study_progress_markdown",
-        lambda payload: "# 研究进度\n\n系统已经推进到需要医生确认的节点。\n",
+        lambda payload: "# 研究进度\n\n系统已经推进到需要用户确认的节点。\n",
     )
 
     exit_code = cli.main(
@@ -390,7 +390,7 @@ def test_study_progress_command_dispatches_controller_and_renders_markdown(
     assert called["study_root"] is None
     assert called["entry_mode"] is None
     assert "# 研究进度" in captured.out
-    assert "医生确认" in captured.out
+    assert "用户确认" in captured.out
 def test_medical_reporting_audit_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

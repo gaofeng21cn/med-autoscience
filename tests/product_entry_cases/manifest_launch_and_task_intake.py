@@ -670,7 +670,8 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
             + str(profile_ref.resolve())
             + " --study-id 001-risk --format json"
         ),
-        "needs_physician_decision_field": "needs_physician_decision",
+        "needs_user_decision_field": "needs_user_decision",
+        "legacy_needs_physician_decision_field": "needs_physician_decision",
         "intervention_lane_field": "intervention_lane",
         "operator_status_card_field": "operator_status_card",
         "autonomy_contract_field": "autonomy_contract",
@@ -755,8 +756,9 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         },
         "research_gate_surface": {
             "surface_kind": "study_progress",
-            "approval_gate_field": "needs_physician_decision",
-            "approval_gate_required_field": "needs_physician_decision",
+            "approval_gate_field": "needs_user_decision",
+            "approval_gate_required_field": "needs_user_decision",
+            "legacy_approval_gate_field": "needs_physician_decision",
             "approval_gate_owner": "mas_controller",
             "interrupt_policy_field": "intervention_lane.recommended_action_id",
             "interrupt_policy_value_field": "intervention_lane.recommended_action_id",

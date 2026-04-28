@@ -51,7 +51,7 @@ def _write_controller_decision(
                     "payload_ref": str(decision_path),
                 }
             ],
-            "reason": "当前控制面建议需要医生或 PI 明确确认。",
+            "reason": "当前控制面建议需要用户明确确认。",
         },
     )
     return decision_path

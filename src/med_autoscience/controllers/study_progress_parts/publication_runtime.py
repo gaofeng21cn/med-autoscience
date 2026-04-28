@@ -249,16 +249,18 @@ def _runtime_module_surface(
     status: dict[str, Any],
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
+    auto_runtime_parked: dict[str, Any] | None,
 ) -> dict[str, Any]:
     manual_finish_active = _manual_finish_active(manual_finish_contract)
+    runtime_parked = bool((auto_runtime_parked or {}).get("parked"))
     runtime_health_status = (
         _non_empty_text(status.get("runtime_liveness_status")) or "none"
-        if manual_finish_active
+        if manual_finish_active or runtime_parked
         else _non_empty_text((runtime_supervision_payload or {}).get("health_status")) or "unknown"
     )
     current_required_action = (
         _non_empty_text(publication_supervisor_state.get("current_required_action"))
-        if manual_finish_active
+        if manual_finish_active or runtime_parked
         else (
             _non_empty_text(execution_owner_guard.get("current_required_action"))
             or _non_empty_text((runtime_supervision_payload or {}).get("next_action"))
@@ -266,7 +268,7 @@ def _runtime_module_surface(
     )
     status_summary = (
         current_stage_summary
-        if manual_finish_active
+        if manual_finish_active or runtime_parked
         else (
             _display_text((runtime_supervision_payload or {}).get("summary"))
             or current_stage_summary
@@ -275,7 +277,7 @@ def _runtime_module_surface(
     )
     next_action_summary = (
         next_system_action
-        if manual_finish_active
+        if manual_finish_active or runtime_parked
         else (
             _display_text((runtime_supervision_payload or {}).get("next_action_summary"))
             or next_system_action
@@ -329,6 +331,7 @@ def _runtime_module_surface(
         "status_summary": summary["status_summary"],
         "next_action_summary": summary["next_action_summary"],
         "needs_human_intervention": summary["needs_human_intervention"],
+        "auto_runtime_parked": dict(auto_runtime_parked or {}) or None,
     }
 
 
@@ -467,7 +470,7 @@ def _controller_module_surface(*, study_root: Path) -> dict[str, Any] | None:
         else None
     )
     status_summary = (
-        "研究合同已冻结；当前控制面决策等待医生/PI 确认。"
+        "研究合同已冻结；当前控制面决策等待用户确认。"
         if human_confirmation_surface is not None
         else f"研究合同已冻结；决策策略 {decision_policy}，启动入口 {launch_profile}。"
     )
@@ -630,7 +633,7 @@ def _quality_review_followthrough_projection(
         }
 
     if requires_user_input:
-        blocking_reason = "当前需要医生或 PI 先确认下一步，系统不会直接自动复评。"
+        blocking_reason = "当前需要用户先确认下一步，系统不会直接自动复评。"
     elif runtime_decision == "blocked":
         blocking_reason = "当前运行被控制面阻断，需先解除阻断后才会继续复评。"
     elif quest_status in {"stopped", "failed", "completed"}:

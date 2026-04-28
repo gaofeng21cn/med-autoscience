@@ -22,14 +22,18 @@ def eta_confidence_band(
     package_currentness: Mapping[str, Any],
     current_state_summary: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    if isinstance(current_state_summary, Mapping) and current_state_summary.get("state") == "manual_finishing":
+    if isinstance(current_state_summary, Mapping) and current_state_summary.get("state") in {
+        "manual_finishing",
+        "auto_runtime_parked",
+    }:
+        parked_state = str(current_state_summary.get("parked_state") or "auto_runtime_parked")
         return {
-            "classification": "manual_finishing",
-            "label": "manual finishing",
+            "classification": parked_state,
+            "label": parked_state.replace("_", " "),
             "confidence": "blocked",
             "min_seconds": None,
             "max_seconds": None,
-            "reason": "The study is parked at a milestone package/manual-finishing state; historical runtime churn in the window should not drive an autonomous completion ETA.",
+            "reason": "The study is parked at an auto-runtime handoff state; historical runtime churn in the window should not drive an autonomous completion ETA.",
         }
     current_runtime_health_status = (
         str(current_state_summary.get("runtime_health_status") or "").strip()

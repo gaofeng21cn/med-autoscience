@@ -227,7 +227,7 @@ def _write_controller_decision(
     decision_type: str = "stop_loss",
     requires_human_confirmation: bool = True,
     action_type: str = "stop_runtime",
-    reason: str = "当前研究线触发止损边界，需要医生/PI确认。",
+    reason: str = "当前研究线触发止损边界，需要用户确认。",
 ) -> Path:
     payload = {
         "schema_version": 1,
@@ -390,7 +390,7 @@ def _write_runtime_supervision(study_root: Path, quest_root: Path) -> Path:
         "last_transition": "recovery_failed",
         "needs_human_intervention": True,
         "summary": "托管运行时已连续两次恢复失败，必须人工介入。",
-        "clinician_update": "09:13 系统确认研究运行已经掉线，自动恢复连续失败，需要医生/PI看到明确告警。",
+        "clinician_update": "09:13 系统确认研究运行已经掉线，自动恢复连续失败，需要用户看到明确告警。",
         "next_action": "manual_intervention_required",
         "next_action_summary": "请回到 MAS 控制面确认当前托管运行策略，并决定是否暂停、重启或接管。",
         "refs": {

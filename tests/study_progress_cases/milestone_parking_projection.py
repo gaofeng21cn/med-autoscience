@@ -106,14 +106,19 @@ def test_study_progress_keeps_human_review_milestone_parking_out_of_runtime_reco
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
-    assert result["current_stage"] == "manual_finishing"
-    assert result["intervention_lane"]["lane_id"] == "manual_finishing"
-    assert "投稿包/人审里程碑已停驻" in result["intervention_lane"]["summary"]
+    assert result["current_stage"] == "auto_runtime_parked"
+    assert result["parked_state"] == "package_ready_handoff"
+    assert result["legacy_current_stage"] == "manual_finishing"
+    assert result["intervention_lane"]["lane_id"] == "auto_runtime_parked"
+    assert result["intervention_lane"]["parked_state"] == "package_ready_handoff"
     assert all("恢复失败" not in item for item in result["current_blockers"])
-    assert result["operator_status_card"]["handling_state"] == "manual_finishing"
-    assert result["operator_status_card"]["user_visible_verdict"] == "MAS 当前保持人工收尾兼容保护，并继续提供监督入口。"
-    assert "投稿包/人审里程碑已停驻" in result["next_system_action"]
-    assert "显式 resume" in result["next_system_action"]
+    assert result["operator_status_card"]["handling_state"] == "package_ready_handoff"
+    assert result["operator_status_card"]["resource_release_expected"] is True
+    assert result["operator_status_card"]["user_visible_verdict"] == (
+        "MAS/MDS 已到投稿包/人审包交付节点，当前停驻等待用户审阅或显式恢复。"
+    )
+    assert "等待用户审阅" in result["next_system_action"]
+    assert "显式恢复" in result["next_system_action"]
     assert "worker" not in result["next_system_action"]
     assert "恢复 live" not in result["operator_status_card"]["current_focus"]
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)

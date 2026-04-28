@@ -189,8 +189,9 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         },
         "research_gate_surface": {
             "surface_kind": "study_progress",
-            "approval_gate_field": "needs_physician_decision",
-            "approval_gate_required_field": "needs_physician_decision",
+            "approval_gate_field": "needs_user_decision",
+            "approval_gate_required_field": "needs_user_decision",
+            "legacy_approval_gate_field": "needs_physician_decision",
             "approval_gate_owner": "mas_controller",
             "interrupt_policy_field": "intervention_lane.recommended_action_id",
             "interrupt_policy_value_field": "intervention_lane.recommended_action_id",
@@ -340,7 +341,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "label": "runtime watch event companion",
     }
     assert payload["task_lifecycle"]["human_gate_ids"] == [
-        "study_physician_decision_gate",
+        "study_user_decision_gate",
         "publication_release_gate",
     ]
     assert payload["task_lifecycle"]["domain_projection"]["current_program_phase_id"] == "phase_2_user_product_loop"
@@ -468,7 +469,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     ]
     assert payload["product_entry_overview"]["remaining_gaps_count"] == 1
     assert payload["product_entry_overview"]["human_gate_ids"] == [
-        "study_physician_decision_gate",
+        "study_user_decision_gate",
         "publication_release_gate",
     ]
     markdown = module.render_product_entry_manifest_markdown(payload)
@@ -774,9 +775,9 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
                 ),
             },
             {
-                "guardrail_id": "human_decision_gate",
-                "trigger": "study-progress needs_physician_decision / controller decision gate",
-                "symptom": "当前已前移到医生、PI 或 publication release 的人工判断节点。",
+                "guardrail_id": "user_decision_gate",
+                "trigger": "study-progress needs_user_decision / controller decision gate",
+                "symptom": "当前已前移到用户或 publication release 的人工判断节点。",
                 "recommended_command": (
                     "uv run python -m med_autoscience.cli study-progress --profile "
                     + str(profile_ref.resolve())
@@ -1139,14 +1140,8 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode opl-handoff"
     )
     assert payload["family_orchestration"]["human_gates"] == [
-        {
-            "gate_id": "study_physician_decision_gate",
-            "title": "Study physician decision gate",
-        },
-        {
-            "gate_id": "publication_release_gate",
-            "title": "Publication release gate",
-        },
+        {"gate_id": "study_user_decision_gate", "title": "Study user decision gate"},
+        {"gate_id": "publication_release_gate", "title": "Publication release gate"},
     ]
     assert payload["family_orchestration"]["action_graph_ref"] == {
         "ref_kind": "json_pointer",
@@ -1199,7 +1194,8 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     ]
     assert payload["family_orchestration"]["action_graph"]["human_gates"] == [
         {
-            "gate_id": "study_physician_decision_gate",
+            "gate_id": "study_user_decision_gate",
+            "legacy_gate_id": "study_physician_decision_gate",
             "trigger_nodes": ["step:continue_study"],
             "blocking": True,
         },
@@ -1234,7 +1230,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     }
     assert payload["product_entry_quickstart"]["resume_contract"] == payload["family_orchestration"]["resume_contract"]
     assert payload["product_entry_quickstart"]["human_gate_ids"] == [
-        "study_physician_decision_gate",
+        "study_user_decision_gate",
         "publication_release_gate",
     ]
     assert payload["product_entry_start"]["surface_kind"] == "product_entry_start"
@@ -1251,7 +1247,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["product_entry_start"]["modes"][2]["surface_kind"] == "launch_study"
     assert payload["product_entry_start"]["resume_surface"] == payload["family_orchestration"]["resume_contract"]
     assert payload["product_entry_start"]["human_gate_ids"] == [
-        "study_physician_decision_gate",
+        "study_user_decision_gate",
         "publication_release_gate",
     ]
     assert "standalone medical product entry" in payload["remaining_gaps"][0]

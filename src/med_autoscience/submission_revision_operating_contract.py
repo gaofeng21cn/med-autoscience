@@ -16,7 +16,7 @@ SUPPORTED_STATES = (
 
 _STATE_LABELS = {
     "reviewer_revision": "Reviewer/user manuscript revision",
-    "manual_finishing": "Manual finishing under MAS supervision",
+    "manual_finishing": "Legacy parked handoff compatibility guard",
     "manuscript_fast_lane": "Controller-visible manuscript fast lane",
     "bundle_only_closeout": "Bundle-only closeout",
     "submission_package_refresh": "Submission package refresh",
@@ -36,7 +36,8 @@ _STATE_PRECONDITION_EXTRAS = {
         "same study line reactivation has not been superseded by newer closeout proof",
     ),
     "manual_finishing": (
-        "manual finishing state is explicit and current",
+        "legacy manual_finishing state is explicit and current",
+        "user-visible parked state is projected by auto_runtime_parked",
         "foreground action stays under MAS controller supervision",
     ),
     "manuscript_fast_lane": (
