@@ -9,6 +9,7 @@ globals().update({
 })
 
 from .test_study_outer_loop_cases.controller_and_manifest_cases import *  # noqa: F403,F401
+from .test_study_outer_loop_cases.fast_lane_closeout_cases import *  # noqa: F403,F401
 from .test_study_outer_loop_cases.runtime_resume_cases import *  # noqa: F403,F401
 from .test_study_outer_loop_cases.publication_gate_cases import *  # noqa: F403,F401
 from .test_study_outer_loop_cases.user_gate_cases import *  # noqa: F403,F401

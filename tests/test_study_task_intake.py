@@ -376,6 +376,67 @@ def test_reviewer_revision_intake_yields_to_ai_reviewer_quality_closure_after_ve
     ) is None
 
 
+def test_reviewer_revision_intake_yields_to_fresh_manuscript_fast_lane_closeout(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+    study_root = tmp_path / "studies" / "001-dm-cvd-mortality-risk"
+    payload = {
+        "task_id": "study-task::001-dm-cvd-mortality-risk::20260426T072323Z",
+        "emitted_at": "2026-04-26T07:23:23+00:00",
+        "task_intent": (
+            "用户已对当前 CVD 风险预测投稿包给出新的审稿式反馈；这是显式重新激活同一论文线的 "
+            "reviewer revision / manuscript revision。"
+        ),
+        "constraints": ["不得手工 patch manuscript/current_package 投影作为最终修复。"],
+        "first_cycle_outputs": [
+            "review_matrix/action_plan mapping all user concerns to manuscript revisions"
+        ],
+    }
+
+    stale_override = module.build_task_intake_progress_override(payload, study_root=study_root)
+    assert stale_override is not None
+    assert stale_override["current_required_action"] == "continue_write_stage"
+
+    _write_json(
+        study_root
+        / "artifacts"
+        / "controller"
+        / "task_intake"
+        / "manuscript_fast_lane_closeout_20260428T001900Z.json",
+        {
+            "schema_version": 1,
+            "record_type": "manuscript_fast_lane_closeout",
+            "surface_kind": "manuscript_fast_lane_closeout",
+            "created_at": "2026-04-28T00:19:00Z",
+            "source_task_id": "study-task::001-dm-cvd-mortality-risk::20260426T072323Z",
+            "status": "completed",
+            "completion_state": "foreground_fast_lane_completed",
+            "execution_owner": "codex_foreground_under_mas_controller",
+            "canonical_write_surface": "paper/",
+            "projection_surface": "manuscript/current_package/",
+            "auto_resume_policy": "do_not_resume_superseded_task_intake",
+            "scope": {
+                "existing_evidence_only": True,
+                "canonical_paper_text_or_structure_only": True,
+                "new_analysis_performed": False,
+            },
+            "validation": {
+                "canonical_paper_writeback_complete": True,
+                "export_sync_complete": True,
+                "qc_complete": True,
+                "package_consistency_checked": True,
+            },
+        },
+    )
+
+    assert module.task_intake_yields_to_manuscript_fast_lane_closeout(
+        payload,
+        study_root=study_root,
+    ) is True
+    assert module.build_task_intake_progress_override(payload, study_root=study_root) is None
+
+
 def test_reviewer_revision_intake_yields_to_verified_bundle_only_closeout_with_admin_open_items(
     tmp_path: Path,
 ) -> None:

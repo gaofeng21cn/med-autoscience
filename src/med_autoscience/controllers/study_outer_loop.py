@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import runtime_backend as runtime_backend_contract
+from med_autoscience import study_task_intake
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers import gate_clearing_batch
@@ -690,6 +691,32 @@ def _recommended_submission_milestone_autopark_action(
     }
 
 
+def _recommended_manuscript_fast_lane_closeout_autopark_action(
+    *,
+    study_root: Path,
+    status_payload: dict[str, Any],
+) -> dict[str, Any] | None:
+    if not _runtime_status_is_live(status_payload):
+        return None
+    return {
+        "action_id": f"manuscript-fast-lane-closeout::{study_root.name}::autopark",
+        "action_type": StudyDecisionType.CONTINUE_SAME_LINE.value,
+        "priority": "now",
+        "reason": (
+            "Manuscript fast lane closeout supersedes the latest task intake; "
+            "stop the live runtime and wait for explicit resume."
+        ),
+        "route_target": "write",
+        "route_key_question": "Should MAS/MDS resume this paper line after foreground fast lane closeout?",
+        "route_rationale": (
+            "A controller-visible manuscript fast lane closeout is newer than the latest task intake and "
+            "declares that the superseded task intake must not auto-resume."
+        ),
+        "requires_controller_decision": True,
+        "controller_action_type": StudyDecisionActionType.STOP_RUNTIME.value,
+    }
+
+
 def _recommended_quality_review_loop_action(*, study_root: Path) -> dict[str, Any] | None:
     summary_payload = _read_evaluation_summary_payload(study_root=study_root)
     if summary_payload is None:
@@ -773,38 +800,49 @@ def build_runtime_watch_outer_loop_tick_request(
             publication_gate_controller.build_gate_state(quest_root)
         )
     evaluation_summary = _read_evaluation_summary_payload(study_root=resolved_study_root)
-    task_intake_action = recommended_task_intake_action(
-        study_root=resolved_study_root,
-        publishability_gate_report=gate_report,
-        evaluation_summary=evaluation_summary,
-    )
-    recommended_action = task_intake_action or _recommended_submission_milestone_autopark_action(
-        study_root=resolved_study_root,
-        status_payload=status_payload,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if recommended_action is None:
-        recommended_action = _recommended_quality_review_loop_action(study_root=resolved_study_root)
-    if recommended_action is None:
-        recommended_action = _recommended_publication_eval_action(publication_eval_payload)
-    if profile is not None and task_intake_action is None:
-        batch_action = quality_repair_batch.build_quality_repair_batch_recommended_action(
-            profile=profile,
+    task_intake_yields_to_fast_lane_closeout = (
+        study_task_intake.latest_task_intake_yields_to_manuscript_fast_lane_closeout(
             study_root=resolved_study_root,
-            quest_id=quest_id,
-            publication_eval_payload=publication_eval_payload,
-            gate_report=gate_report,
         )
-        if batch_action is None:
-            batch_action = gate_clearing_batch.build_gate_clearing_batch_recommended_action(
+    )
+    if task_intake_yields_to_fast_lane_closeout:
+        recommended_action = _recommended_manuscript_fast_lane_closeout_autopark_action(
+            study_root=resolved_study_root,
+            status_payload=status_payload,
+        )
+    else:
+        task_intake_action = recommended_task_intake_action(
+            study_root=resolved_study_root,
+            publishability_gate_report=gate_report,
+            evaluation_summary=evaluation_summary,
+        )
+        recommended_action = task_intake_action or _recommended_submission_milestone_autopark_action(
+            study_root=resolved_study_root,
+            status_payload=status_payload,
+            publication_eval_payload=publication_eval_payload,
+        )
+        if recommended_action is None:
+            recommended_action = _recommended_quality_review_loop_action(study_root=resolved_study_root)
+        if recommended_action is None:
+            recommended_action = _recommended_publication_eval_action(publication_eval_payload)
+        if profile is not None and task_intake_action is None:
+            batch_action = quality_repair_batch.build_quality_repair_batch_recommended_action(
                 profile=profile,
                 study_root=resolved_study_root,
                 quest_id=quest_id,
                 publication_eval_payload=publication_eval_payload,
                 gate_report=gate_report,
             )
-        if batch_action is not None:
-            recommended_action = batch_action
+            if batch_action is None:
+                batch_action = gate_clearing_batch.build_gate_clearing_batch_recommended_action(
+                    profile=profile,
+                    study_root=resolved_study_root,
+                    quest_id=quest_id,
+                    publication_eval_payload=publication_eval_payload,
+                    gate_report=gate_report,
+                )
+            if batch_action is not None:
+                recommended_action = batch_action
     if recommended_action is None:
         return None
     decision_type = _autonomous_decision_type_for_publication_eval_action(recommended_action)
