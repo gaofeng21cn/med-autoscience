@@ -49,6 +49,20 @@ uv run medautosci preflight-changes --base-ref origin/main
 uv run medautosci preflight-changes --staged --format json
 ```
 
+## Sentrux git history 审计
+
+本仓库和 MAS/MDS 工作区默认保留 `worktree.useRelativePaths=true`。该配置会让 Git 在需要时写入 `extensions.relativeWorktrees`，方便重度 worktree 开发和目录整体迁移。部分外部审计工具尚未支持这个 Git extension；遇到 Sentrux MCP `git_stats` 因该 extension 失败时，不要修改主仓库配置。
+
+使用仓库内 helper 准备一个只供审计使用的 shared clone：
+
+```bash
+scripts/prepare-sentrux-gitstats-clone.sh
+```
+
+输出中的 `sentrux_git_stats_clone` 是兼容 clone 路径。把这个路径传给 Sentrux MCP `scan`，再运行 `git_stats`。审计结束后执行输出中的 `cleanup_command` 删除临时 clone。
+
+这个入口只创建临时 clone，不会 unset 或改写源仓库的 `worktree.useRelativePaths` / `extensions.relativeWorktrees` 配置。
+
 ## 规则边界
 
 preflight 不是启发式脚本。
