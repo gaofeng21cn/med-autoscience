@@ -8,6 +8,35 @@ def should_build_general_medical_submission_markdown(*, compiled_text: str) -> b
     return not metadata.get("title") or not metadata.get("bibliography")
 
 
+def _extract_canonical_manuscript_section(markdown_text: str, section_key: str) -> tuple[str, str]:
+    heading_pattern = re.compile(r"(?m)^(#{1,2})\s+([^\n]+?)\s*$")
+    matches = list(heading_pattern.finditer(markdown_text))
+    for index, match in enumerate(matches):
+        if canonicalize_manuscript_major_heading(match.group(2)) != section_key:
+            continue
+        heading_level = len(match.group(1))
+        content_start = match.end()
+        content_end = len(markdown_text)
+        for next_match in matches[index + 1:]:
+            if len(next_match.group(1)) <= heading_level:
+                content_end = next_match.start()
+                break
+        content = markdown_text[content_start:content_end].strip()
+        if content:
+            return f"# {match.group(2).strip()}", content
+    return "", ""
+
+
+def _remove_canonical_manuscript_section(markdown_text: str, section_key: str) -> str:
+    if not markdown_text.strip():
+        return markdown_text
+    heading_pattern = re.compile(r"(?m)^(#{1,2})\s+([^\n]+?)\s*$")
+    for match in heading_pattern.finditer(markdown_text):
+        if canonicalize_manuscript_major_heading(match.group(2)) == section_key:
+            return markdown_text[: match.start()].strip()
+    return markdown_text
+
+
 def build_general_medical_submission_markdown(
     *,
     compiled_markdown_path: Path,
@@ -19,6 +48,8 @@ def build_general_medical_submission_markdown(
     metadata, body = split_front_matter(compiled_text)
     main_tables = ""
     main_figures = ""
+    appendix_heading = ""
+    appendix = ""
     figure_semantics_map: dict[str, dict[str, Any]] = {}
     manuscript_title, manuscript_sections, manuscript_auxiliary_blocks = parse_manuscript_shaped_draft(compiled_text)
 
@@ -62,9 +93,10 @@ def build_general_medical_submission_markdown(
         conclusion = extract_optional_block_between_markers(
             compiled_text,
             start_marker="\n## Conclusion\n\n",
-            end_markers=[],
+            end_markers=["\n# Appendix", "\n## Appendix\n"],
             label="Conclusion",
         )
+        appendix_heading, appendix = _extract_canonical_manuscript_section(compiled_text, "appendix")
         bibliography_path = (paper_root / "references.bib").resolve()
     elif manuscript_title and (manuscript_sections or manuscript_auxiliary_blocks):
         title = manuscript_title
@@ -86,6 +118,7 @@ def build_general_medical_submission_markdown(
                 "Main-text figures",
             )
         figure_semantics_map = load_figure_semantics_map(paper_root)
+        appendix_heading, appendix = _extract_canonical_manuscript_section(compiled_text, "appendix")
         bibliography_path = (paper_root / "references.bib").resolve()
     else:
         title = metadata.get("title", "Article Title")
@@ -126,6 +159,17 @@ def build_general_medical_submission_markdown(
         if not main_figures.strip():
             main_figures = extract_optional_markdown_block(body, "Figures", ["Figure Legends", "Tables", "Appendix"])
         figure_semantics_map = load_figure_semantics_map(paper_root)
+        appendix_heading, appendix = _extract_canonical_manuscript_section(compiled_text, "appendix")
+
+    if appendix:
+        abstract = _remove_canonical_manuscript_section(abstract, "appendix")
+        introduction = _remove_canonical_manuscript_section(introduction, "appendix")
+        methods = _remove_canonical_manuscript_section(methods, "appendix")
+        results = _remove_canonical_manuscript_section(results, "appendix")
+        discussion = _remove_canonical_manuscript_section(discussion, "appendix")
+        conclusion = _remove_canonical_manuscript_section(conclusion, "appendix")
+        main_tables = _remove_canonical_manuscript_section(main_tables, "appendix")
+        main_figures = _remove_canonical_manuscript_section(main_figures, "appendix")
 
     if not main_figures.strip():
         main_figures = build_catalog_backed_main_figures(
@@ -158,6 +202,7 @@ def build_general_medical_submission_markdown(
         ("# Results", results),
         ("# Discussion", discussion),
         ("# Conclusion", conclusion),
+        (appendix_heading or "# Appendix", appendix),
     ]
     markdown_parts = [
         "---\n"

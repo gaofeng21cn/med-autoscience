@@ -67,6 +67,58 @@ def test_create_submission_minimal_package_writes_manifest_and_docx_path(tmp_pat
     assert manifest_payload == manifest
 
 
+def test_general_medical_submission_source_alias_is_authority_note_and_appendix_stays_in_projection(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    review_manuscript_path = paper_root / "build" / "review_manuscript.md"
+    write_text(
+        review_manuscript_path,
+        review_manuscript_path.read_text(encoding="utf-8")
+        + """
+
+# Appendix: Retained Public Evidence After Screening
+
+The retained MRI dataset is the mapping-pituitary MRI cohort, which contributes 136 total cases.
+The retained omics dataset is the GSE169498 transcriptomic series, which preserves a clean invasiveness-labeled biology surface.
+""",
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    source_note = (submission_root / "manuscript_source.md").read_text(encoding="utf-8")
+    submission_text = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
+
+    assert manifest["manuscript"]["source_markdown_alias_role"] == "authority_note"
+    assert not any(line.lstrip().startswith("#") for line in source_note.splitlines())
+    for phrase in (
+        "authority note",
+        "not the full manuscript",
+        "Canonical full manuscript surface",
+        "Export-ready submission projection",
+        "source signature",
+    ):
+        assert phrase in source_note
+    for study_specific_phrase in (
+        "mapping-pituitary",
+        "GSE169498",
+        "transcriptomic series",
+        "invasiveness-labeled biology surface",
+    ):
+        assert study_specific_phrase not in source_note
+        assert study_specific_phrase in submission_text
+    assert "# Appendix: Retained Public Evidence After Screening" in submission_text
+    surface_qc = manifest["manuscript"]["surface_qc"]
+    assert surface_qc["status"] == "pass"
+    assert surface_qc["authority_note"]["role_clarity_pass"] is True
+    assert surface_qc["authority_note"]["forbidden_study_anchor_hits"] == []
+
+
 def test_create_submission_minimal_package_preserves_existing_package_when_materialization_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

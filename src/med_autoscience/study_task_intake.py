@@ -13,6 +13,13 @@ from med_autoscience.study_task_intake_fast_lane import (
     render_manuscript_fast_lane_runtime_context_lines,
     task_intake_requests_manuscript_fast_lane,
 )
+from med_autoscience.study_task_intake_revision import (
+    REVISION_INTAKE_CHECKLIST,
+    submission_revision_operating_state,
+    task_intake_is_reviewer_revision,
+    task_intake_requests_submission_package_refresh,
+)
+from med_autoscience.submission_revision_operating_contract import build_submission_revision_operating_contract
 
 SCHEMA_VERSION = 1
 TASK_INTAKE_RELATIVE_ROOT = Path("artifacts") / "controller" / "task_intake"
@@ -23,13 +30,6 @@ _ENTRY_MODE_LABELS = {
     "full_research": "完整研究（full_research）",
     "manuscript_fast_lane": "论文快修通道（manuscript_fast_lane）",
 }
-_DIRECT_FINALIZE_DOWNGRADE_MARKERS = (
-    "不能按已达投稿包里程碑直接收口",
-    "不得直接按外投收口",
-    "submission-ready/finalize 判断降回",
-    "降回待修订后再评估",
-    "downgrade the current submission-ready/finalize judgment",
-)
 _ANALYSIS_ROUTE_MARKERS = (
     "统计分析",
     "subgroup",
@@ -38,57 +38,6 @@ _ANALYSIS_ROUTE_MARKERS = (
     "分层",
     "卡方",
     "analysis-campaign",
-)
-_REVIEWER_REVISION_MARKERS = (
-    "reviewer feedback",
-    "reviewer comment",
-    "review comments",
-    "reviewer revision",
-    "reviewer-first revision",
-    "reviewer first revision",
-    "manuscript revision",
-    "manuscript-change",
-    "paper revision",
-    "revise manuscript",
-    "revision checklist",
-    "explicit user feedback",
-    "user feedback",
-    "review matrix",
-    "action matrix",
-    "导师反馈",
-    "专家反馈",
-    "审稿意见",
-    "审稿人意见",
-    "审稿式反馈",
-    "论文修改",
-    "稿件修改",
-    "修改意见",
-    "显式重新激活同一论文线",
-    "重新激活同一论文线",
-    "结构性返修",
-    "revision/rebuttal",
-    "投稿前必须修正",
-    "补分析",
-    "改表",
-    "改图",
-    "introduction feedback",
-    "methods feedback",
-    "results feedback",
-    "figure feedback",
-    "table feedback",
-    "scientific revision feedback",
-    "table/figure legends",
-    "tripod",
-    "probast",
-)
-_REVISION_INTAKE_CHECKLIST: tuple[tuple[str, str, str], ...] = (
-    ("text_revisions", "text revisions", "Introduction/Methods/Results/Discussion 等文字修订点已逐条定位。"),
-    ("methods_completeness", "methods completeness", "方法学补充、数据来源、纳排、变量和流程说明已补齐或记录为缺口。"),
-    ("statistical_analysis", "statistical analysis", "新增或修订统计分析、敏感性/亚组/稳健性需求已绑定证据来源。"),
-    ("tables_figures", "tables/figures", "表格、图片、图注和补充材料改动范围已列明。"),
-    ("follow_up_evidence", "follow-up evidence", "后续证据、补充结果和不可完成项有明确状态。"),
-    ("discussion_claim_guardrails", "discussion/claim guardrails", "讨论、结论和 claim 边界没有越过当前证据包。"),
-    ("handoff_evidence_surface", "handoff/evidence surface", "durable handoff 写明数据源、脚本入口、输出表图、改动范围、claim guardrails 与 canonical source 回灌状态。"),
 )
 _BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
 _DETERMINISTIC_SUBMISSION_CLOSEOUT_BLOCKERS = frozenset(
@@ -199,6 +148,11 @@ def summarize_task_intake(payload: dict[str, Any] | None) -> dict[str, Any] | No
     manuscript_fast_lane = build_manuscript_fast_lane_contract(payload)
     if manuscript_fast_lane is not None:
         summary["manuscript_fast_lane"] = manuscript_fast_lane
+    operating_state = submission_revision_operating_state(payload)
+    if operating_state is not None:
+        summary["submission_revision_operating_contract"] = build_submission_revision_operating_contract(
+            operating_state, trigger="task_intake", evidence={"task_id": summary["task_id"], "entry_mode": entry_mode}
+        )
     return summary
 
 
@@ -227,20 +181,16 @@ def _task_intake_contains_any(payload: dict[str, Any] | None, markers: tuple[str
     return False
 
 
-def task_intake_is_reviewer_revision(payload: dict[str, Any] | None) -> bool:
-    return _task_intake_contains_any(payload, _REVIEWER_REVISION_MARKERS)
-
-
 def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, Any] | None:
     if not task_intake_is_reviewer_revision(payload):
         return None
     revision_payload = {
         "kind": "reviewer_revision",
         "status": "active",
-        "checklist": [item_id for item_id, _, _ in _REVISION_INTAKE_CHECKLIST],
+        "checklist": [item_id for item_id, _, _ in REVISION_INTAKE_CHECKLIST],
         "checklist_items": [
             {"id": item_id, "label": label, "status": "pending", "requirement": requirement}
-            for item_id, label, requirement in _REVISION_INTAKE_CHECKLIST
+            for item_id, label, requirement in REVISION_INTAKE_CHECKLIST
         ],
         "handoff_required": True,
         "reactivation_required": True,
@@ -260,6 +210,9 @@ def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, 
             "emergency_overlay_only": True,
             "completion_claim_allowed": False,
         },
+        "submission_revision_operating_contract": build_submission_revision_operating_contract(
+            "reviewer_revision", trigger="reviewer_revision_task_intake"
+        ),
         "handoff_evidence_surface": {
             "required": True,
             "read_before_mds_resume": True,
@@ -285,10 +238,7 @@ def task_intake_overrides_auto_manual_finish(payload: dict[str, Any] | None) -> 
     return (
         task_intake_is_reviewer_revision(payload)
         or task_intake_requests_manuscript_fast_lane(payload)
-        or _task_intake_contains_any(
-            payload,
-            _DIRECT_FINALIZE_DOWNGRADE_MARKERS,
-        )
+        or task_intake_requests_submission_package_refresh(payload)
     )
 
 
@@ -740,6 +690,10 @@ def build_task_intake_progress_override(
     quality_closure_summary = (
         f"{blocker_summary} 当前应先完成“{current_focus}”，再进入下一轮论文质量复评。"
     )
+    operating_state = "reviewer_revision" if task_intake_is_reviewer_revision(payload) else "submission_package_refresh"
+    submission_revision_operating_contract = build_submission_revision_operating_contract(
+        operating_state, trigger="task_intake_progress_override", evidence={"route_target": route_target, "current_focus": current_focus}
+    )
     return {
         "blocker_summary": blocker_summary,
         "current_stage_summary": blocker_summary,
@@ -753,6 +707,7 @@ def build_task_intake_progress_override(
             "current_required_action": current_required_action,
             "route_target": route_target,
         },
+        "submission_revision_operating_contract": submission_revision_operating_contract,
         "quality_execution_lane": {
             "lane_id": "general_quality_repair",
             "lane_label": "质量修复",

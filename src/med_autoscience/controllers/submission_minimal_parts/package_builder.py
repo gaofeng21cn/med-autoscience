@@ -1,5 +1,9 @@
 from .shared import *
 from .authority import *
+from .authority_note import (
+    attach_submission_source_authority_note_qc,
+    write_submission_source_authority_note,
+)
 from .markdown_surface import *
 from .post_materialization_sync import replay_post_submission_minimal_sync
 from .profile_builders import *
@@ -125,11 +129,24 @@ def create_submission_minimal_package(
             supplementary_output_docx_path = staging_submission_root / str(profile_config.supplementary_docx_name)
         if source_markdown_path.name != "manuscript_source.md":
             source_markdown_alias_path = staging_submission_root / "manuscript_source.md"
-            if (
-                not source_markdown_alias_path.exists()
-                and source_markdown_alias_path.resolve() != source_markdown_path.resolve()
-            ):
-                shutil.copy2(source_markdown_path, source_markdown_alias_path)
+            if source_markdown_alias_path.resolve() != source_markdown_path.resolve():
+                write_submission_source_authority_note(
+                    output_path=source_markdown_alias_path,
+                    source_markdown_path=source_markdown_path,
+                    compiled_markdown_path=compiled_markdown_path,
+                    staging_root=staging_submission_root,
+                    target_root=target_submission_root,
+                    workspace_root=workspace_root,
+                )
+        source_contract_markdown_path = compiled_markdown_path
+        if source_markdown_alias_path is not None:
+            source_markdown_alias_target_path = remap_staging_path_to_target(
+                path=source_markdown_alias_path,
+                staging_root=staging_submission_root,
+                target_root=target_submission_root,
+            )
+            if compiled_markdown_path.resolve() == source_markdown_alias_target_path.resolve():
+                source_contract_markdown_path = source_markdown_path
 
         figure_entries: list[dict[str, Any]] = []
         figure_naming_map: dict[str, str] = {}
@@ -270,11 +287,15 @@ def create_submission_minimal_package(
             pdf_path=output_pdf_path,
             expected_main_figure_count=count_main_text_figures_in_catalog(figure_catalog),
         )
+        manuscript_surface_qc = attach_submission_source_authority_note_qc(
+            manuscript_surface_qc,
+            authority_note_path=source_markdown_alias_path,
+        )
         source_contract = build_submission_minimal_source_contract(
             paper_root=paper_root,
             workspace_root=workspace_root,
             compile_report_path=compile_report_path,
-            compiled_markdown_path=compiled_markdown_path,
+            compiled_markdown_path=source_contract_markdown_path,
             figure_catalog_path=figure_catalog_path,
             table_catalog_path=table_catalog_path,
             figure_catalog=figure_catalog,
@@ -361,6 +382,7 @@ def create_submission_minimal_package(
                 ),
                 workspace_root,
             )
+            manifest["manuscript"]["source_markdown_alias_role"] = "authority_note"
         if pack_lock_path is not None:
             manifest["display_pack_lock_path"] = relpath_from_workspace(pack_lock_path, workspace_root)
             manifest["enabled_display_packs"] = list(pack_summary_by_id.values())
@@ -416,6 +438,25 @@ def create_submission_minimal_package(
         raise
 
     submission_manifest_path = target_submission_root / "submission_manifest.json"
+    post_replace_contract_markdown_path = remap_staging_path_to_target(
+        path=source_contract_markdown_path,
+        staging_root=staging_submission_root,
+        target_root=target_submission_root,
+    )
+    refreshed_source_contract = build_submission_minimal_source_contract(
+        paper_root=paper_root,
+        workspace_root=workspace_root,
+        compile_report_path=compile_report_path,
+        compiled_markdown_path=post_replace_contract_markdown_path,
+        figure_catalog_path=figure_catalog_path,
+        table_catalog_path=table_catalog_path,
+        figure_catalog=figure_catalog,
+        table_catalog=table_catalog,
+        pack_lock_path=pack_lock_path,
+    )
+    manifest["source_signature"] = refreshed_source_contract["source_signature"]
+    manifest["source_contract"] = refreshed_source_contract
+    dump_json(submission_manifest_path, manifest)
     archived_surface_roots = materialize_archived_reference_only_submission_surface_manifests(
         paper_root,
         active_manifest_path=submission_manifest_path,
@@ -438,7 +479,7 @@ def create_submission_minimal_package(
             paper_root=paper_root,
             workspace_root=workspace_root,
             compile_report_path=compile_report_path,
-            compiled_markdown_path=compiled_markdown_path,
+            compiled_markdown_path=post_replace_contract_markdown_path,
             figure_catalog_path=figure_catalog_path,
             table_catalog_path=table_catalog_path,
             figure_catalog=figure_catalog,

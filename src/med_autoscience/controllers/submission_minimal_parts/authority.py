@@ -1,6 +1,25 @@
 from .shared import *
 from .source_contract import build_submission_minimal_source_contract
 
+def _resolve_authority_contract_markdown_path(
+    *,
+    compiled_markdown_path: Path,
+    submission_manifest: dict[str, Any],
+    workspace_root: Path,
+) -> Path:
+    manuscript = submission_manifest.get("manuscript")
+    if not isinstance(manuscript, dict) or manuscript.get("source_markdown_alias_role") != "authority_note":
+        return compiled_markdown_path
+    alias_path = _first_nonempty_string(manuscript.get("source_markdown_alias_path"))
+    source_path = _first_nonempty_string(manuscript.get("source_markdown_path"))
+    if not alias_path or not source_path:
+        return compiled_markdown_path
+    alias_resolved = resolve_relpath(workspace_root, alias_path)
+    if compiled_markdown_path.resolve() != alias_resolved.resolve():
+        return compiled_markdown_path
+    return resolve_relpath(workspace_root, source_path)
+
+
 def describe_submission_minimal_authority(
     *,
     paper_root: Path,
@@ -110,7 +129,11 @@ def describe_submission_minimal_authority(
         paper_root=resolved_paper_root,
         workspace_root=workspace_root,
         compile_report_path=compile_report_path,
-        compiled_markdown_path=compiled_markdown_path,
+        compiled_markdown_path=_resolve_authority_contract_markdown_path(
+            compiled_markdown_path=compiled_markdown_path,
+            submission_manifest=submission_manifest,
+            workspace_root=workspace_root,
+        ),
         figure_catalog_path=figure_catalog_path,
         table_catalog_path=table_catalog_path,
         figure_catalog=figure_catalog if isinstance(figure_catalog, dict) else {},
@@ -151,4 +174,3 @@ def describe_submission_minimal_authority(
         "missing_source_paths": list(source_contract["missing_source_paths"]),
         "latest_source_mtime_ns": int(source_contract["latest_source_mtime_ns"]),
     }
-

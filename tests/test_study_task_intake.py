@@ -169,6 +169,46 @@ def test_reviewer_first_user_feedback_intake_detects_revision_reactivation() -> 
     summary = module.summarize_task_intake(payload)
     assert summary["revision_intake"]["kind"] == "reviewer_revision"
     assert summary["revision_intake"]["reactivation_required"] is True
+    contract = summary["submission_revision_operating_contract"]
+    assert contract["surface_kind"] == "submission_revision_operating_contract"
+    assert contract["state"] == "reviewer_revision"
+    assert contract["canonical_write_surface"] == "paper/"
+    assert contract["projection_surface"] == "manuscript/current_package/"
+    assert contract["completion_claim_policy"] == {
+        "projection_exists_equals_submission_ready": False,
+        "current_package_direct_edit_completes_task": False,
+        "authority_note_is_manuscript_surface": False,
+        "requires_ai_reviewer_backed_quality_record": True,
+        "requires_publication_gate_clear": True,
+        "requires_source_signature_current": True,
+        "requires_package_freshness": True,
+    }
+
+
+def test_submission_revision_operating_catalog_covers_platform_incident_guards() -> None:
+    contract_module = importlib.import_module("med_autoscience.submission_revision_operating_contract")
+
+    catalog = contract_module.build_submission_revision_operating_catalog()
+    states = {item["state"] for item in catalog["supported_states"]}
+
+    assert states == {
+        "reviewer_revision",
+        "manual_finishing",
+        "manuscript_fast_lane",
+        "bundle_only_closeout",
+        "submission_package_refresh",
+    }
+    assert set(catalog["incident_guard_types"]) == {
+        "duplicate_figure_legends",
+        "study_specific_hardcoding_in_platform_code",
+        "projection_as_authority",
+        "stale_submission_source",
+        "wrong_milestone_claim",
+    }
+    for item in catalog["supported_states"]:
+        assert item["owner"] == "MedAutoScience controller"
+        assert item["completion_claim_policy"]["projection_exists_equals_submission_ready"] is False
+        assert item["completion_claim_policy"]["requires_ai_reviewer_backed_quality_record"] is True
 
 
 def test_manuscript_fast_lane_intake_exposes_controller_visible_contract() -> None:
