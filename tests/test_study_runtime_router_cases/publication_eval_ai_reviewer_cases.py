@@ -65,7 +65,7 @@ def test_study_runtime_status_preserves_current_ai_reviewer_publication_eval(
                     "ai_reviewer_required": False,
                 },
                 "verdict": {
-                    "overall_verdict": "promising",
+                    "overall_verdict": "mixed",
                     "primary_claim_status": "supported",
                     "summary": "AI reviewer closed the scientific quality loop.",
                     "stop_loss_pressure": "none",
@@ -124,8 +124,8 @@ def test_study_runtime_status_preserves_current_ai_reviewer_publication_eval(
             "quest_id": "001-risk",
             "paper_root": str(runtime_paper_root),
             "latest_gate_path": str(gate_report_path),
-            "status": "clear",
-            "blockers": [],
+            "status": "blocked",
+            "blockers": ["submission_surface_qc_failure_present"],
             "supervisor_phase": "bundle_stage_ready",
             "phase_owner": "publication_gate",
             "upstream_scientific_anchor_ready": True,
@@ -141,6 +141,7 @@ def test_study_runtime_status_preserves_current_ai_reviewer_publication_eval(
     payload = json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
     assert payload["assessment_provenance"]["owner"] == "ai_reviewer"
     assert payload["assessment_provenance"]["ai_reviewer_required"] is False
+    assert payload["verdict"]["overall_verdict"] == "mixed"
     assert payload["emitted_at"] == "2026-04-17T02:10:00+00:00"
     assert payload["recommended_actions"][0]["reason"] == "Continue finalize handoff without reopening science."
 

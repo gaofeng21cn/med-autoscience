@@ -751,10 +751,6 @@ def _current_ai_reviewer_publication_eval_ref(
     resolved_quest_id: str,
     publication_gate_report: dict[str, object],
 ) -> dict[str, str] | None:
-    if str(publication_gate_report.get("status") or "").strip() != "clear":
-        return None
-    if publication_gate_report.get("blockers"):
-        return None
     latest_path = stable_publication_eval_latest_path(study_root=study_root)
     if not latest_path.exists():
         return None
@@ -772,14 +768,6 @@ def _current_ai_reviewer_publication_eval_ref(
     if str(provenance.get("owner") or "").strip() != "ai_reviewer":
         return None
     if provenance.get("ai_reviewer_required") is not False:
-        return None
-    verdict = payload.get("verdict")
-    overall_verdict = (
-        str(verdict.get("overall_verdict") or "").strip()
-        if isinstance(verdict, dict)
-        else ""
-    )
-    if overall_verdict not in {"promising", "clear", "ready", "pass", "approved"}:
         return None
     delivery_context_refs = payload.get("delivery_context_refs")
     if isinstance(delivery_context_refs, dict):
