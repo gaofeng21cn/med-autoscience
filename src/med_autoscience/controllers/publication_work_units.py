@@ -107,6 +107,52 @@ _SPECIFICITY_QUESTIONS = (
     "Which exact claim, figure, table, metric, citation, evidence row, or package artifact is blocking the gate?",
     "Which durable source path proves the blocker and which controller surface should own the repair?",
 )
+_PRIMARY_WORK_UNIT_RULES = (
+    (
+        _CLAIM_EVIDENCE_BLOCKERS,
+        True,
+        "analysis_claim_evidence_repair",
+        "analysis-campaign",
+        "Repair claim-evidence, story, figure, and results traceability blockers.",
+    ),
+    (
+        _STORY_BLOCKERS,
+        True,
+        "manuscript_story_repair",
+        "write",
+        "Repair the paper story around the current evidence and claim boundary.",
+    ),
+    (
+        _FIGURE_RESULTS_BLOCKERS,
+        True,
+        "figure_results_trace_repair",
+        "write",
+        "Repair figure and results traceability against the publication evidence surface.",
+    ),
+    (
+        _TREATMENT_GAP_BLOCKERS,
+        False,
+        "treatment_gap_reporting_repair",
+        "write",
+        "Repair treatment-gap reporting so the clinical narrative is publication-ready.",
+    ),
+)
+_FINALIZATION_WORK_UNIT_RULES = (
+    (
+        _DISPLAY_REGISTRY_BLOCKERS,
+        True,
+        "display_reporting_contract_repair",
+        "finalize",
+        "Repair display registry and local architecture reporting contracts.",
+    ),
+    (
+        _LOCAL_ARCHITECTURE_BLOCKERS,
+        False,
+        "local_architecture_overview_repair",
+        "finalize",
+        "Repair the local architecture overview shell and input reporting surface.",
+    ),
+)
 
 
 def _text_sequence(payload: Mapping[str, Any], key: str) -> tuple[str, ...]:
@@ -193,11 +239,8 @@ def _has_actionable_object_ref(report: Mapping[str, Any]) -> bool:
     return False
 
 
-def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
-    blockers = _normalized_blockers(report)
-    blocker_set = set(blockers)
-    units: list[dict[str, str]] = []
-    mixed_controller_repair = (
+def _is_mixed_controller_repair(blocker_set: set[str]) -> bool:
+    return (
         bool(blocker_set & _SUBMISSION_REFRESH_BLOCKERS)
         and bool(blocker_set & _DISPLAY_REGISTRY_BLOCKERS)
         and bool(blocker_set & _STORY_BLOCKERS)
@@ -205,53 +248,46 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
         and not bool(blocker_set & (_CLAIM_EVIDENCE_BLOCKERS | _TREATMENT_GAP_BLOCKERS))
     )
 
-    if mixed_controller_repair:
-        units.append(
-            _unit(
-                "controller_owned_publication_repair",
-                "controller",
-                (
-                    "Run one controller-owned deterministic repair unit for submission authority, display registry, "
-                    "medical story contract, and figure semantics manifest blockers."
-                ),
-                user_feedback_priority="highest",
-                control_surface="gate_clearing_batch",
-            )
-        )
 
-    if blocker_set & _CLAIM_EVIDENCE_BLOCKERS and not mixed_controller_repair:
-        units.append(
-            _unit(
-                "analysis_claim_evidence_repair",
-                "analysis-campaign",
-                "Repair claim-evidence, story, figure, and results traceability blockers.",
-            )
+def _append_mixed_controller_unit(units: list[dict[str, str]]) -> None:
+    units.append(
+        _unit(
+            "controller_owned_publication_repair",
+            "controller",
+            (
+                "Run one controller-owned deterministic repair unit for submission authority, display registry, "
+                "medical story contract, and figure semantics manifest blockers."
+            ),
+            user_feedback_priority="highest",
+            control_surface="gate_clearing_batch",
         )
-    if blocker_set & _STORY_BLOCKERS and not mixed_controller_repair:
-        units.append(
-            _unit(
-                "manuscript_story_repair",
-                "write",
-                "Repair the paper story around the current evidence and claim boundary.",
-            )
-        )
-    if blocker_set & _FIGURE_RESULTS_BLOCKERS and not mixed_controller_repair:
-        units.append(
-            _unit(
-                "figure_results_trace_repair",
-                "write",
-                "Repair figure and results traceability against the publication evidence surface.",
-            )
-        )
-    if blocker_set & _TREATMENT_GAP_BLOCKERS:
-        units.append(
-            _unit(
-                "treatment_gap_reporting_repair",
-                "write",
-                "Repair treatment-gap reporting so the clinical narrative is publication-ready.",
-            )
-        )
-    if (blocker_set & _SUBMISSION_REFRESH_BLOCKERS or "stale" in str(report.get("study_delivery_status") or "")) and not mixed_controller_repair:
+    )
+
+
+def _append_blocker_rule_units(
+    units: list[dict[str, str]],
+    *,
+    blocker_set: set[str],
+    mixed_controller_repair: bool,
+    rules: tuple[tuple[frozenset[str], bool, str, str, str], ...],
+) -> None:
+    for blocker_group, skip_when_mixed, unit_id, lane, summary in rules:
+        if skip_when_mixed and mixed_controller_repair:
+            continue
+        if blocker_set & blocker_group:
+            units.append(_unit(unit_id, lane, summary))
+
+
+def _append_submission_refresh_unit(
+    units: list[dict[str, str]],
+    *,
+    report: Mapping[str, Any],
+    blocker_set: set[str],
+    mixed_controller_repair: bool,
+) -> None:
+    delivery_status = str(report.get("study_delivery_status") or "")
+    refresh_needed = bool(blocker_set & _SUBMISSION_REFRESH_BLOCKERS) or "stale" in delivery_status
+    if refresh_needed and not mixed_controller_repair:
         units.append(
             _unit(
                 "submission_minimal_refresh",
@@ -259,29 +295,17 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
                 "Refresh the stale submission_minimal package and current delivery bundle.",
             )
         )
-    if blocker_set & _DISPLAY_REGISTRY_BLOCKERS and not mixed_controller_repair:
-        units.append(
-            _unit(
-                "display_reporting_contract_repair",
-                "finalize",
-                "Repair display registry and local architecture reporting contracts.",
-            )
-        )
-    if blocker_set & _LOCAL_ARCHITECTURE_BLOCKERS:
-        units.append(
-            _unit(
-                "local_architecture_overview_repair",
-                "finalize",
-                "Repair the local architecture overview shell and input reporting surface.",
-            )
-        )
 
-    actionability_status = "actionable"
-    specificity_questions: tuple[str, ...] = ()
 
-    if not units and blockers and not _has_actionable_object_ref(report):
-        actionability_status = "blocked_by_non_actionable_gate"
-        specificity_questions = _SPECIFICITY_QUESTIONS
+def _complete_actionability_units(
+    report: Mapping[str, Any],
+    *,
+    blockers: tuple[str, ...],
+    units: list[dict[str, str]],
+) -> tuple[str, tuple[str, ...]]:
+    if units:
+        return "actionable", ()
+    if blockers and not _has_actionable_object_ref(report):
         units.append(
             _unit(
                 "gate_needs_specificity",
@@ -289,16 +313,52 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
                 "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets.",
             )
         )
-    elif not units:
-        actionability_status = "actionable_review_required" if blockers else "clear_or_unspecified"
-        units.append(
-            _unit(
-                "publication_gate_blocker_review",
-                "review",
-                "Review the current publication gate blockers and select the narrowest repair unit.",
-            )
+        return "blocked_by_non_actionable_gate", _SPECIFICITY_QUESTIONS
+    units.append(
+        _unit(
+            "publication_gate_blocker_review",
+            "review",
+            "Review the current publication gate blockers and select the narrowest repair unit.",
         )
+    )
+    return ("actionable_review_required" if blockers else "clear_or_unspecified"), ()
 
+
+def _derive_blocking_work_units(
+    report: Mapping[str, Any],
+    *,
+    blockers: tuple[str, ...],
+) -> tuple[list[dict[str, str]], str, tuple[str, ...]]:
+    blocker_set = set(blockers)
+    units: list[dict[str, str]] = []
+    mixed_controller_repair = _is_mixed_controller_repair(blocker_set)
+    if mixed_controller_repair:
+        _append_mixed_controller_unit(units)
+    _append_blocker_rule_units(
+        units,
+        blocker_set=blocker_set,
+        mixed_controller_repair=mixed_controller_repair,
+        rules=_PRIMARY_WORK_UNIT_RULES,
+    )
+    _append_submission_refresh_unit(
+        units,
+        report=report,
+        blocker_set=blocker_set,
+        mixed_controller_repair=mixed_controller_repair,
+    )
+    _append_blocker_rule_units(
+        units,
+        blocker_set=blocker_set,
+        mixed_controller_repair=mixed_controller_repair,
+        rules=_FINALIZATION_WORK_UNIT_RULES,
+    )
+    actionability_status, specificity_questions = _complete_actionability_units(report, blockers=blockers, units=units)
+    return units, actionability_status, specificity_questions
+
+
+def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
+    blockers = _normalized_blockers(report)
+    units, actionability_status, specificity_questions = _derive_blocking_work_units(report, blockers=blockers)
     fingerprint_blockers = fingerprint_blockers_for_work_unit(blockers=blockers, next_work_unit=units[0])
     return {
         "fingerprint": _fingerprint(fingerprint_blockers),

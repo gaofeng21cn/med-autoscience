@@ -1,4 +1,4 @@
-.PHONY: test test-fast test-meta test-display test-submission test-full test-family
+.PHONY: test test-fast test-meta test-display test-submission test-full test-family test-structure
 
 test: test-fast
 
@@ -16,6 +16,11 @@ test-submission:
 
 test-family:
 	uv run pytest tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q
+
+test-structure:
+	python scripts/line_budget.py
+	sentrux gate
+	if [ -f .sentrux/rules.toml ]; then sentrux check; fi
 
 test-full:
 	./scripts/run-parallel-test-lanes.sh full

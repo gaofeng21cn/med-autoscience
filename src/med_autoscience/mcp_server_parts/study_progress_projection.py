@@ -299,8 +299,7 @@ def compact_study_runtime_result_for_mcp(payload: dict[str, Any]) -> dict[str, A
     return compact
 
 
-def render_mcp_study_progress_markdown(payload: dict[str, Any]) -> str:
-    compact = compact_study_progress_projection(payload)
+def _render_mcp_progress_identity(compact: dict[str, Any]) -> list[str]:
     lines = [
         "# 研究进度",
         "",
@@ -310,29 +309,37 @@ def render_mcp_study_progress_markdown(payload: dict[str, Any]) -> str:
     quest_root = compact.get("quest_root")
     if quest_root:
         lines.append(f"- quest_root: `{quest_root}`")
+    return lines
+
+
+def _render_mcp_progress_stage(compact: dict[str, Any]) -> list[str]:
     current_stage = compact.get("current_stage") or "unknown"
     paper_stage = compact.get("paper_stage") or "unknown"
-    lines.extend(
-        [
-            f"- 当前阶段: `{current_stage}`",
-            f"- 论文阶段: `{paper_stage}`",
-        ]
-    )
+    lines = [
+        f"- 当前阶段: `{current_stage}`",
+        f"- 论文阶段: `{paper_stage}`",
+    ]
     stage_summary = str(compact.get("current_stage_summary") or "").strip()
     if stage_summary:
         lines.append(f"- 阶段摘要: {stage_summary}")
     paper_summary = str(compact.get("paper_stage_summary") or "").strip()
     if paper_summary:
         lines.append(f"- 论文摘要: {paper_summary}")
+    return lines
 
+
+def _render_mcp_progress_supervision(compact: dict[str, Any]) -> list[str]:
     supervision = compact.get("supervision") if isinstance(compact.get("supervision"), dict) else {}
     active_run_id = str((supervision or {}).get("active_run_id") or "").strip()
     health_status = str((supervision or {}).get("health_status") or "").strip()
-    if active_run_id or health_status:
-        run_text = active_run_id or "none"
-        health_text = health_status or "unknown"
-        lines.append(f"- run/health: `{run_text}` / `{health_text}`")
+    if not active_run_id and not health_status:
+        return []
+    run_text = active_run_id or "none"
+    health_text = health_status or "unknown"
+    return [f"- run/health: `{run_text}` / `{health_text}`"]
 
+
+def _render_mcp_progress_runtime_state(compact: dict[str, Any]) -> list[str]:
     parked_projection = compact.get("auto_runtime_parked")
     parked = (
         parked_projection.get("parked")
@@ -341,8 +348,11 @@ def render_mcp_study_progress_markdown(payload: dict[str, Any]) -> str:
     )
     parked_state = compact.get("parked_state")
     awaiting_wakeup = compact.get("awaiting_explicit_wakeup")
-    lines.append(f"- parked: `{parked}`；state: `{parked_state or 'none'}`；awaiting_wakeup: `{awaiting_wakeup}`")
+    return [f"- parked: `{parked}`；state: `{parked_state or 'none'}`；awaiting_wakeup: `{awaiting_wakeup}`"]
 
+
+def _render_mcp_progress_operator_and_action(compact: dict[str, Any]) -> list[str]:
+    lines: list[str] = []
     operator_status = (
         compact.get("operator_status_card")
         if isinstance(compact.get("operator_status_card"), dict)
@@ -355,25 +365,43 @@ def render_mcp_study_progress_markdown(payload: dict[str, Any]) -> str:
     next_action = str(compact.get("next_system_action") or "").strip()
     if next_action:
         lines.append(f"- 下一步: {next_action}")
+    return lines
 
+
+def _render_mcp_progress_blockers(compact: dict[str, Any]) -> list[str]:
     blockers = _compact_string_list(compact.get("current_blockers"), limit=8)
-    if blockers:
-        lines.extend(["", "## 当前阻塞"])
-        lines.extend(f"- {item}" for item in blockers)
+    if not blockers:
+        return []
+    return ["", "## 当前阻塞", *[f"- {item}" for item in blockers]]
 
+
+def _render_mcp_progress_refs(compact: dict[str, Any]) -> list[str]:
     refs = compact.get("refs") if isinstance(compact.get("refs"), dict) else {}
-    if refs:
-        lines.extend(["", "## 关键引用"])
-        for key in (
-            "launch_report_path",
-            "publication_eval_path",
-            "controller_decision_path",
-            "runtime_supervision_path",
-            "runtime_watch_report_path",
-            "evaluation_summary_path",
-        ):
-            value = str((refs or {}).get(key) or "").strip()
-            if value:
-                lines.append(f"- {key}: `{value}`")
+    if not refs:
+        return []
+    lines = ["", "## 关键引用"]
+    for key in (
+        "launch_report_path",
+        "publication_eval_path",
+        "controller_decision_path",
+        "runtime_supervision_path",
+        "runtime_watch_report_path",
+        "evaluation_summary_path",
+    ):
+        value = str((refs or {}).get(key) or "").strip()
+        if value:
+            lines.append(f"- {key}: `{value}`")
+    return lines
 
+
+def render_mcp_study_progress_markdown(payload: dict[str, Any]) -> str:
+    compact = compact_study_progress_projection(payload)
+    lines: list[str] = []
+    lines.extend(_render_mcp_progress_identity(compact))
+    lines.extend(_render_mcp_progress_stage(compact))
+    lines.extend(_render_mcp_progress_supervision(compact))
+    lines.extend(_render_mcp_progress_runtime_state(compact))
+    lines.extend(_render_mcp_progress_operator_and_action(compact))
+    lines.extend(_render_mcp_progress_blockers(compact))
+    lines.extend(_render_mcp_progress_refs(compact))
     return "\n".join(lines) + "\n"

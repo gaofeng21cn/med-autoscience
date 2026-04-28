@@ -1,16 +1,24 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience import study_task_intake
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers import gate_clearing_batch
 from med_autoscience.controllers import publication_gate as publication_gate_controller
 from med_autoscience.controllers import quality_repair_batch
+from med_autoscience.controllers.study_outer_loop_parts.decision_refs import (
+    _build_study_decision_charter_ref,
+    _latest_task_intake_yields_to_fast_lane_closeout,
+    _read_evaluation_summary_payload,
+    _read_latest_publication_eval_payload,
+    _read_publication_eval_payload,
+    _resolve_charter_ref,
+    _resolve_publication_eval_ref,
+    read_publication_eval_latest,
+)
 from med_autoscience.controllers.study_outer_loop_parts.human_confirmation import (
     _build_family_human_gates_for_decision_record,
     _build_human_confirmation_request,
@@ -31,22 +39,12 @@ from med_autoscience.controllers.study_outer_loop_task_intake import recommended
 from med_autoscience.controller_confirmation_summary import (
     materialize_controller_confirmation_summary,
 )
-from med_autoscience.evaluation_summary import (
-    read_evaluation_summary,
-    resolve_evaluation_summary_ref,
-)
 from med_autoscience.human_gate_policy import require_controller_human_gate_allowed
 from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.publication_eval_latest import (
-    read_publication_eval_latest,
-    resolve_publication_eval_latest_ref,
-)
 from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef
-from med_autoscience.runtime_escalation_record import RuntimeEscalationRecordRef
 from med_autoscience.runtime.autonomy_governance import build_autonomy_governance_contract
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
-from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 from med_autoscience.study_decision_record import (
     StudyDecisionActionType,
     StudyDecisionCharterRef,
@@ -62,43 +60,6 @@ def _utc_now() -> str:
 
 def _decision_id(*, study_id: str, quest_id: str, decision_type: str, recorded_at: str) -> str:
     return f"study-decision::{study_id}::{quest_id}::{decision_type}::{recorded_at}"
-
-
-def _resolve_charter_ref(
-    *,
-    study_root: Path,
-    charter_ref: StudyDecisionCharterRef | dict[str, Any],
-) -> StudyDecisionCharterRef:
-    normalized_ref = (
-        charter_ref
-        if isinstance(charter_ref, StudyDecisionCharterRef)
-        else StudyDecisionCharterRef.from_payload(charter_ref)
-    )
-    charter_path = resolve_study_charter_ref(study_root=study_root, ref=normalized_ref.artifact_path)
-    charter_payload = read_study_charter(study_root=study_root, ref=charter_path)
-    charter_id = str(charter_payload.get("charter_id") or "").strip()
-    if charter_id != normalized_ref.charter_id:
-        raise ValueError("study_outer_loop_tick charter_id mismatch against stable study charter artifact")
-    return StudyDecisionCharterRef(charter_id=charter_id, artifact_path=str(charter_path))
-
-
-def _resolve_publication_eval_ref(
-    *,
-    study_root: Path,
-    publication_eval_ref: StudyDecisionPublicationEvalRef | dict[str, Any],
-) -> StudyDecisionPublicationEvalRef:
-    normalized_ref = (
-        publication_eval_ref
-        if isinstance(publication_eval_ref, StudyDecisionPublicationEvalRef)
-        else StudyDecisionPublicationEvalRef.from_payload(publication_eval_ref)
-    )
-    publication_eval_path = resolve_publication_eval_latest_ref(
-        study_root=study_root,
-        ref=normalized_ref.artifact_path,
-    )
-    publication_eval_payload = read_publication_eval_latest(study_root=study_root, ref=publication_eval_path)
-    eval_id = str(publication_eval_payload.get("eval_id") or "").strip()
-    return StudyDecisionPublicationEvalRef(eval_id=eval_id, artifact_path=str(publication_eval_path))
 
 
 def _publication_supervisor_human_gate_requested(status_payload: dict[str, Any]) -> bool:
@@ -121,20 +82,6 @@ def _recommended_publication_eval_action(publication_eval_payload: dict[str, Any
             continue
         return dict(action)
     return None
-
-
-def _read_evaluation_summary_payload(*, study_root: Path) -> dict[str, Any] | None:
-    summary_path = resolve_evaluation_summary_ref(study_root=study_root)
-    if not summary_path.exists():
-        return None
-    try:
-        summary_payload = read_evaluation_summary(study_root=study_root, ref=summary_path)
-    except (OSError, TypeError, ValueError, json.JSONDecodeError):
-        raw_payload = json.loads(summary_path.read_text(encoding="utf-8")) or {}
-        if not isinstance(raw_payload, dict):
-            return None
-        summary_payload = raw_payload
-    return summary_payload
 
 
 def _quality_dimension_status(*, payload: dict[str, Any], dimension: str) -> str | None:
@@ -361,13 +308,10 @@ def build_runtime_watch_outer_loop_tick_request(
     if _latest_controller_decision_requires_human_confirmation(study_root=resolved_study_root):
         return None
 
-    publication_eval_path = resolve_publication_eval_latest_ref(study_root=resolved_study_root)
-    if not publication_eval_path.exists():
+    publication_eval_entry = _read_latest_publication_eval_payload(study_root=resolved_study_root)
+    if publication_eval_entry is None:
         return None
-    publication_eval_payload = read_publication_eval_latest(
-        study_root=resolved_study_root,
-        ref=publication_eval_path,
-    )
+    publication_eval_path, publication_eval_payload = publication_eval_entry
     profile = gate_clearing_batch.resolve_profile_for_study_root(resolved_study_root)
     quest_id = str(status_payload.get("quest_id") or "").strip()
     gate_report: dict[str, Any] = {}
@@ -377,10 +321,8 @@ def build_runtime_watch_outer_loop_tick_request(
             publication_gate_controller.build_gate_state(quest_root)
         )
     evaluation_summary = _read_evaluation_summary_payload(study_root=resolved_study_root)
-    task_intake_yields_to_fast_lane_closeout = (
-        study_task_intake.latest_task_intake_yields_to_manuscript_fast_lane_closeout(
-            study_root=resolved_study_root,
-        )
+    task_intake_yields_to_fast_lane_closeout = _latest_task_intake_yields_to_fast_lane_closeout(
+        study_root=resolved_study_root,
     )
     if task_intake_yields_to_fast_lane_closeout:
         recommended_action = _recommended_manuscript_fast_lane_closeout_autopark_action(
@@ -426,16 +368,9 @@ def build_runtime_watch_outer_loop_tick_request(
     if decision_type is None:
         return None
 
-    charter_path = resolve_study_charter_ref(study_root=resolved_study_root)
-    if not charter_path.exists():
-        raise ValueError("runtime watch outer-loop wakeup requires stable study charter artifact")
-    charter_payload = read_study_charter(
+    charter_ref = _build_study_decision_charter_ref(
         study_root=resolved_study_root,
-        ref=charter_path,
-    )
-    charter_ref = StudyDecisionCharterRef(
-        charter_id=str(charter_payload.get("charter_id") or "").strip(),
-        artifact_path=str(charter_path),
+        missing_message="runtime watch outer-loop wakeup requires stable study charter artifact",
     ).to_dict()
 
     runtime_escalation_payload = status_payload.get("runtime_escalation_ref")
@@ -583,7 +518,7 @@ def _materialize_study_decision_record(
         publication_eval_ref=publication_eval_ref,
     )
     emitted_at = recorded_at or _utc_now()
-    publication_eval_payload = read_publication_eval_latest(
+    publication_eval_payload = _read_publication_eval_payload(
         study_root=resolved_study_root,
         ref=normalized_publication_eval_ref.artifact_path,
     )
@@ -855,13 +790,10 @@ def refresh_parked_submission_milestone_controller_decision(
     if _runtime_status_is_live(status):
         return None
 
-    publication_eval_path = resolve_publication_eval_latest_ref(study_root=resolved_study_root)
-    if not publication_eval_path.exists():
+    publication_eval_entry = _read_latest_publication_eval_payload(study_root=resolved_study_root)
+    if publication_eval_entry is None:
         return None
-    publication_eval_payload = read_publication_eval_latest(
-        study_root=resolved_study_root,
-        ref=publication_eval_path,
-    )
+    publication_eval_path, publication_eval_payload = publication_eval_entry
     route_context = _submission_milestone_route_context(
         study_root=resolved_study_root,
         publication_eval_payload=publication_eval_payload,
@@ -869,12 +801,9 @@ def refresh_parked_submission_milestone_controller_decision(
     if route_context is None:
         return None
 
-    charter_path = resolve_study_charter_ref(study_root=resolved_study_root)
-    if not charter_path.exists():
-        raise ValueError("parked submission milestone refresh requires stable study charter artifact")
-    charter_payload = read_study_charter(
+    charter_ref = _build_study_decision_charter_ref(
         study_root=resolved_study_root,
-        ref=charter_path,
+        missing_message="parked submission milestone refresh requires stable study charter artifact",
     )
     quest_id = (
         str(status.get("quest_id") or "").strip()
@@ -889,10 +818,6 @@ def refresh_parked_submission_milestone_controller_decision(
             action_type=StudyDecisionActionType.STOP_RUNTIME,
             payload_ref=str((resolved_study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         ),
-    )
-    charter_ref = StudyDecisionCharterRef(
-        charter_id=str(charter_payload.get("charter_id") or "").strip(),
-        artifact_path=str(charter_path),
     )
     publication_eval_ref = StudyDecisionPublicationEvalRef(
         eval_id=str(publication_eval_payload.get("eval_id") or "").strip(),

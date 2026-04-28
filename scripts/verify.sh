@@ -56,10 +56,15 @@ if [[ "${lane}" == "family" ]]; then
   exit 0
 fi
 
+if [[ "${lane}" == "structure" ]]; then
+  make test-structure
+  exit 0
+fi
+
 if [[ "${lane}" == "full" ]]; then
   make test-full
   exit 0
 fi
 
-echo "Usage: scripts/verify.sh [fast|meta|display|submission|family|full]" >&2
+echo "Usage: scripts/verify.sh [fast|meta|display|submission|family|structure|full]" >&2
 exit 1

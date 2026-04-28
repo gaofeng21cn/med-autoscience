@@ -183,8 +183,8 @@ def _attach_family_companion_to_runtime_report(report: dict[str, Any], *, runtim
     report["family_human_gates"] = companion["family_human_gates"]
 
 
-def render_watch_markdown(report: dict[str, Any]) -> str:
-    lines = [
+def _render_runtime_watch_header(report: Mapping[str, Any]) -> list[str]:
+    return [
         "# Runtime Watch Report",
         "",
         f"- scanned_at: `{report['scanned_at']}`",
@@ -192,88 +192,116 @@ def render_watch_markdown(report: dict[str, Any]) -> str:
         f"- quest_status: `{report['quest_status']}`",
         "",
     ]
+
+
+def _render_runtime_efficiency_section(report: Mapping[str, Any]) -> list[str]:
     runtime_efficiency = report.get("runtime_efficiency")
-    if isinstance(runtime_efficiency, dict) and runtime_efficiency:
-        lines.extend(
-            [
-                "## Runtime Efficiency",
-                "",
-                *_runtime_efficiency_markdown_lines(runtime_efficiency),
-                "",
-            ]
-        )
-    lines.extend(
-        [
-            "## Controllers",
-            "",
-        ]
-    )
+    if not isinstance(runtime_efficiency, dict) or not runtime_efficiency:
+        return []
+    return [
+        "## Runtime Efficiency",
+        "",
+        *_runtime_efficiency_markdown_lines(runtime_efficiency),
+        "",
+    ]
+
+
+def _render_controller_markdown(name: str, item: Mapping[str, Any]) -> list[str]:
+    lines = [
+        f"### {name}",
+        "",
+        f"- status: `{item.get('status')}`",
+        f"- action: `{item.get('action')}`",
+        f"- blockers: `{', '.join(item.get('blockers') or ['none'])}`",
+        f"- advisories: `{', '.join(item.get('advisories') or ['none'])}`",
+        f"- report_json: `{item.get('report_json')}`",
+        f"- report_markdown: `{item.get('report_markdown')}`",
+        f"- suppression_reason: `{item.get('suppression_reason') or 'none'}`",
+        "",
+    ]
+    if name == "publication_gate" and item.get("supervisor_phase"):
+        lines.extend(_render_publication_supervisor_markdown(item))
+    return lines
+
+
+def _render_publication_supervisor_markdown(item: Mapping[str, Any]) -> list[str]:
+    return [
+        "#### Publication Supervisor",
+        "",
+        f"- supervisor_phase: `{item.get('supervisor_phase')}`",
+        f"- phase_owner: `{item.get('phase_owner')}`",
+        f"- upstream_scientific_anchor_ready: `{str(item.get('upstream_scientific_anchor_ready')).lower()}`",
+        f"- bundle_tasks_downstream_only: `{str(item.get('bundle_tasks_downstream_only')).lower()}`",
+        f"- current_required_action: `{item.get('current_required_action')}`",
+        f"- deferred_downstream_actions: `{', '.join(item.get('deferred_downstream_actions') or ['none'])}`",
+        f"- controller_stage_note: `{item.get('controller_stage_note')}`",
+        "",
+    ]
+
+
+def _render_controllers_section(report: Mapping[str, Any]) -> list[str]:
+    lines = [
+        "## Controllers",
+        "",
+    ]
     for name, item in (report.get("controllers") or {}).items():
-        lines.extend(
-            [
-                f"### {name}",
-                "",
-                f"- status: `{item.get('status')}`",
-                f"- action: `{item.get('action')}`",
-                f"- blockers: `{', '.join(item.get('blockers') or ['none'])}`",
-                f"- advisories: `{', '.join(item.get('advisories') or ['none'])}`",
-                f"- report_json: `{item.get('report_json')}`",
-                f"- report_markdown: `{item.get('report_markdown')}`",
-                f"- suppression_reason: `{item.get('suppression_reason') or 'none'}`",
-                "",
-            ]
-        )
-        if name == "publication_gate" and item.get("supervisor_phase"):
-            lines.extend(
-                [
-                    "#### Publication Supervisor",
-                    "",
-                    f"- supervisor_phase: `{item.get('supervisor_phase')}`",
-                    f"- phase_owner: `{item.get('phase_owner')}`",
-                    f"- upstream_scientific_anchor_ready: `{str(item.get('upstream_scientific_anchor_ready')).lower()}`",
-                    f"- bundle_tasks_downstream_only: `{str(item.get('bundle_tasks_downstream_only')).lower()}`",
-                    f"- current_required_action: `{item.get('current_required_action')}`",
-                    f"- deferred_downstream_actions: `{', '.join(item.get('deferred_downstream_actions') or ['none'])}`",
-                    f"- controller_stage_note: `{item.get('controller_stage_note')}`",
-                    "",
-                ]
-            )
+        if isinstance(item, Mapping):
+            lines.extend(_render_controller_markdown(str(name), item))
+    return lines
+
+
+def _render_outer_loop_dispatch_section(report: Mapping[str, Any]) -> list[str]:
     outer_loop_dispatch = dict(report.get("managed_study_outer_loop_dispatch") or {})
-    if outer_loop_dispatch:
-        lines.extend(
-            [
-                "## Managed Study Outer-Loop Dispatch",
-                "",
-                f"- study_id: `{outer_loop_dispatch.get('study_id') or 'none'}`",
-                f"- decision_type: `{outer_loop_dispatch.get('decision_type') or 'none'}`",
-                f"- route_target: `{outer_loop_dispatch.get('route_target') or 'none'}`",
-                f"- route_key_question: `{outer_loop_dispatch.get('route_key_question') or 'none'}`",
-                f"- controller_action_type: `{outer_loop_dispatch.get('controller_action_type') or 'none'}`",
-                f"- study_decision_ref: `{outer_loop_dispatch.get('study_decision_ref') or 'none'}`",
-                f"- dispatch_status: `{outer_loop_dispatch.get('dispatch_status') or 'none'}`",
-                f"- source: `{outer_loop_dispatch.get('source') or 'none'}`",
-                "",
-            ]
-        )
+    if not outer_loop_dispatch:
+        return []
+    return [
+        "## Managed Study Outer-Loop Dispatch",
+        "",
+        f"- study_id: `{outer_loop_dispatch.get('study_id') or 'none'}`",
+        f"- decision_type: `{outer_loop_dispatch.get('decision_type') or 'none'}`",
+        f"- route_target: `{outer_loop_dispatch.get('route_target') or 'none'}`",
+        f"- route_key_question: `{outer_loop_dispatch.get('route_key_question') or 'none'}`",
+        f"- controller_action_type: `{outer_loop_dispatch.get('controller_action_type') or 'none'}`",
+        f"- study_decision_ref: `{outer_loop_dispatch.get('study_decision_ref') or 'none'}`",
+        f"- dispatch_status: `{outer_loop_dispatch.get('dispatch_status') or 'none'}`",
+        f"- source: `{outer_loop_dispatch.get('source') or 'none'}`",
+        "",
+    ]
+
+
+def _render_no_op_suppression_item(item: Mapping[str, Any]) -> list[str]:
+    next_work_unit = item.get("next_work_unit") if isinstance(item.get("next_work_unit"), Mapping) else {}
+    return [
+        f"- study_id: `{item.get('study_id') or 'none'}`",
+        f"  outcome: `{item.get('outcome') or 'none'}`",
+        f"  blocker_fingerprint: `{item.get('work_unit_fingerprint') or 'none'}`",
+        f"  next_work_unit: `{next_work_unit.get('unit_id') or 'none'}`",
+        f"  operator_summary: `{item.get('operator_summary') or 'none'}`",
+    ]
+
+
+def _render_no_op_suppression_section(report: Mapping[str, Any]) -> list[str]:
     no_op_suppressions = [
         dict(item)
         for item in (report.get("managed_study_no_op_suppressions") or [])
         if isinstance(item, Mapping)
     ]
-    if no_op_suppressions:
-        lines.extend(["## Managed Study No-Op Suppression", ""])
-        for item in no_op_suppressions[:5]:
-            next_work_unit = item.get("next_work_unit") if isinstance(item.get("next_work_unit"), Mapping) else {}
-            lines.extend(
-                [
-                    f"- study_id: `{item.get('study_id') or 'none'}`",
-                    f"  outcome: `{item.get('outcome') or 'none'}`",
-                    f"  blocker_fingerprint: `{item.get('work_unit_fingerprint') or 'none'}`",
-                    f"  next_work_unit: `{next_work_unit.get('unit_id') or 'none'}`",
-                    f"  operator_summary: `{item.get('operator_summary') or 'none'}`",
-                ]
-            )
-        lines.append("")
+    if not no_op_suppressions:
+        return []
+    lines = ["## Managed Study No-Op Suppression", ""]
+    for item in no_op_suppressions[:5]:
+        lines.extend(_render_no_op_suppression_item(item))
+    lines.append("")
+    return lines
+
+
+def render_watch_markdown(report: dict[str, Any]) -> str:
+    lines = []
+    lines.extend(_render_runtime_watch_header(report))
+    lines.extend(_render_runtime_efficiency_section(report))
+    lines.extend(_render_controllers_section(report))
+    lines.extend(_render_outer_loop_dispatch_section(report))
+    lines.extend(_render_no_op_suppression_section(report))
     return "\n".join(lines)
 
 
