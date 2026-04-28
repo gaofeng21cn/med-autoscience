@@ -606,6 +606,11 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "storage-audit",
+            content=_render_forward_script("runtime storage-audit", with_profile=True),
+            executable=True,
+        ),
+        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner",
             content=_render_watch_runtime_service_runner(),
             executable=True,
