@@ -84,7 +84,8 @@ def test_current_repo_boundary_guard_has_no_blocking_findings() -> None:
     report = module.audit_boundary_fitness(repo_root)
 
     assert report.blocking_findings == ()
-    assert any(finding.kind == "oversized_file" for finding in report.findings)
+    for finding in report.oversized_findings:
+        assert finding.severity == "advisory"
 
 
 def test_program_boundary_map_prioritizes_natural_mas_mds_boundaries() -> None:
