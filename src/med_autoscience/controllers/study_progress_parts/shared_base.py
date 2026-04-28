@@ -95,7 +95,7 @@ _CONTROLLER_ACTION_LABELS = {
 _REASON_LABELS = {
     "publishability_gate_blocked": "论文可发表性门控尚未放行。",
     "quest_completion_requested_before_publication_gate_clear": "运行时过早申请结题，论文门控仍要求继续自修。",
-    "quest_parked_on_unchanged_finalize_state": "运行时停在本地 finalize 总结空转保护，MAS 将按控制面路由自动接管。",
+    "quest_parked_on_unchanged_finalize_state": "投稿包/人审里程碑已停驻；MAS 保持监督入口，等待显式 resume、外部投稿元数据或人工审阅输入。",
     "quest_waiting_for_submission_metadata": "浅层投稿包已经交付，当前只差作者、单位、伦理、基金和声明等人工前置信息；系统已停车，等待显式唤醒。",
     "quest_drifting_into_write_without_gate_approval": "运行时已经漂进写作/定稿，但发表门控尚未放行，MAS 正在把它拉回论文门控主线。",
     "quest_stale_decision_after_write_stage_ready": "论文写作阶段已经放行，但运行时仍停在旧 decision，MAS 正在把它切回写作主线。",

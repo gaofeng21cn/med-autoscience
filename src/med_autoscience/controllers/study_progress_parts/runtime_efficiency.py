@@ -73,6 +73,25 @@ def _gate_cache_surfaces(quest_root: Path) -> list[dict[str, Any]]:
     return surfaces
 
 
+def _latest_evidence_index_path(
+    *,
+    quest_root: Path,
+    run_id: str | None,
+) -> Path | None:
+    evidence_root = quest_root / ".ds" / "evidence_packets"
+    if run_id is not None:
+        candidate = evidence_root / run_id / "index.json"
+        if candidate.exists():
+            return candidate
+    if not evidence_root.exists():
+        return None
+    candidates = sorted(
+        evidence_root.glob("*/index.json"),
+        key=lambda item: item.stat().st_mtime if item.exists() else 0,
+    )
+    return candidates[-1] if candidates else None
+
+
 def _latest_run_telemetry_surface(
     *,
     quest_root: Path | None,
@@ -81,33 +100,37 @@ def _latest_run_telemetry_surface(
     if quest_root is None:
         return None
     runs_root = quest_root / ".ds" / "runs"
-    if not runs_root.exists():
-        return None
     active_run_id = _status_active_run_id(status)
     telemetry_path: Path | None = None
-    if active_run_id:
+    if active_run_id and runs_root.exists():
         candidate = runs_root / active_run_id / "telemetry.json"
         if candidate.exists():
             telemetry_path = candidate
-    if telemetry_path is None:
+    if telemetry_path is None and runs_root.exists():
         candidates = sorted(
             runs_root.glob("*/telemetry.json"),
             key=lambda item: item.stat().st_mtime if item.exists() else 0,
         )
         telemetry_path = candidates[-1] if candidates else None
-    if telemetry_path is None:
-        return None
-    telemetry = _read_json_object(telemetry_path)
-    if telemetry is None:
-        return None
-    run_id = _non_empty_text(telemetry.get("run_id")) or telemetry_path.parent.name
-    evidence_index_path = quest_root / ".ds" / "evidence_packets" / run_id / "index.json"
-    evidence_index = _read_json_object(evidence_index_path) if evidence_index_path.exists() else None
-    token_usage = telemetry.get("token_usage") if isinstance(telemetry.get("token_usage"), dict) else {}
-    compacted_count = int(telemetry.get("compacted_tool_result_count") or 0)
-    full_detail_count = int(telemetry.get("full_detail_tool_call_count") or 0)
-    tool_result_bytes = int(telemetry.get("tool_result_bytes_total") or 0)
-    prompt_bytes = int(telemetry.get("prompt_bytes") or 0)
+    telemetry = _read_json_object(telemetry_path) if telemetry_path is not None else None
+    run_id = (
+        _non_empty_text((telemetry or {}).get("run_id"))
+        or (telemetry_path.parent.name if telemetry_path is not None else None)
+        or active_run_id
+    )
+    evidence_index_path = _latest_evidence_index_path(quest_root=quest_root, run_id=run_id)
+    if telemetry is None and evidence_index_path is not None:
+        run_id = evidence_index_path.parent.name
+    evidence_index = (
+        _read_json_object(evidence_index_path)
+        if evidence_index_path is not None and evidence_index_path.exists()
+        else None
+    )
+    token_usage = (telemetry or {}).get("token_usage") if isinstance((telemetry or {}).get("token_usage"), dict) else {}
+    compacted_count = int((telemetry or {}).get("compacted_tool_result_count") or 0)
+    full_detail_count = int((telemetry or {}).get("full_detail_tool_call_count") or 0)
+    tool_result_bytes = int((telemetry or {}).get("tool_result_bytes_total") or 0)
+    prompt_bytes = int((telemetry or {}).get("prompt_bytes") or 0)
     gate_cache_path = quest_root / ".ds" / "gate_cache" / "paper_contract_health.json"
     gate_cache = _read_json_object(gate_cache_path) if gate_cache_path.exists() else None
     gate_cache_surface = None
@@ -118,19 +141,23 @@ def _latest_run_telemetry_surface(
             "generated_at": _non_empty_text(gate_cache.get("generated_at")),
         }
     gate_cache_surfaces = _gate_cache_surfaces(quest_root)
+    if telemetry is None and evidence_index is None and gate_cache_surface is None and not gate_cache_surfaces:
+        return None
     return {
-        "run_id": run_id,
-        "telemetry_path": str(telemetry_path),
+        "run_id": run_id or "unknown",
+        "telemetry_path": str(telemetry_path) if telemetry_path is not None else None,
         "prompt_bytes": prompt_bytes,
-        "stdout_bytes": int(telemetry.get("stdout_bytes") or 0),
+        "stdout_bytes": int((telemetry or {}).get("stdout_bytes") or 0),
         "tool_result_bytes_total": tool_result_bytes,
         "compacted_tool_result_count": compacted_count,
         "full_detail_tool_call_count": full_detail_count,
-        "mcp_tool_call_count": int(telemetry.get("mcp_tool_call_count") or 0),
-        "model_inherited": bool(telemetry.get("model_inherited")),
-        "runner_profile": _non_empty_text(telemetry.get("runner_profile")),
+        "mcp_tool_call_count": int((telemetry or {}).get("mcp_tool_call_count") or 0),
+        "model_inherited": bool((telemetry or {}).get("model_inherited")),
+        "runner_profile": _non_empty_text((telemetry or {}).get("runner_profile")),
         "token_usage": dict(token_usage),
-        "evidence_packet_index_path": str(evidence_index_path) if evidence_index_path.exists() else None,
+        "evidence_packet_index_path": (
+            str(evidence_index_path) if evidence_index_path is not None and evidence_index_path.exists() else None
+        ),
         "evidence_packet_count": len((evidence_index or {}).get("items") or []) if isinstance(evidence_index, dict) else 0,
         "latest_evidence_packets": _compact_evidence_items(evidence_index),
         "gate_cache": gate_cache_surface,

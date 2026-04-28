@@ -552,6 +552,8 @@ def _operator_status_handling_state(
     lane_id = _non_empty_text((intervention_lane or {}).get("lane_id")) or "monitor_only"
     if _manual_finish_active(manual_finish_contract):
         return "manual_finishing"
+    if lane_id == "manual_finishing":
+        return "manual_finishing"
     if lane_id == "workspace_supervision_gap":
         return "runtime_supervision_recovering"
     if lane_id in {"runtime_recovery_required", "runtime_blocker"} or current_stage in {

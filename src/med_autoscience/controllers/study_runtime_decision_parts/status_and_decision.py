@@ -494,6 +494,16 @@ def _status_state(
     if quest_status in _LIVE_QUEST_STATUSES:
         audit_status = router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
         controller_owned_finalize_parking = _is_controller_owned_finalize_parking(result)
+        human_review_milestone_parking = _is_human_review_milestone_parking(
+            result,
+            study_root=study_root,
+        )
+        if human_review_milestone_parking and audit_status is not quest_state.QuestRuntimeLivenessStatus.LIVE:
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_PARKED_ON_UNCHANGED_FINALIZE_STATE,
+            )
+            return _finalize_result()
         if audit_status is quest_state.QuestRuntimeLivenessStatus.UNKNOWN:
             if manual_finish_compatibility_guard and (
                 not task_intake_overrides_auto_manual_finish or task_intake_yields_to_submission_closeout

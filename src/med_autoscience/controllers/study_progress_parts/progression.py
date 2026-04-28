@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .milestone_parking import finalize_milestone_parking_active, finalize_milestone_parking_summary
 from . import shared as _shared
 from . import publication_runtime as _publication_runtime
 from .quality_review_loop import quality_review_loop_action_required
@@ -212,7 +213,6 @@ def _current_stage(
 ) -> str:
     quest_status = _non_empty_text(status.get("quest_status"))
     decision = _non_empty_text(status.get("decision"))
-    runtime_reason = _non_empty_text(status.get("reason"))
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
     live_managed_runtime = _live_managed_runtime_present(
         status=status,
@@ -228,6 +228,8 @@ def _current_stage(
         return "publication_supervision"
     if needs_physician_decision:
         return "waiting_physician_decision"
+    if finalize_milestone_parking_active(status):
+        return "manual_finishing"
     if runtime_health_status == "recovering" and not live_managed_runtime:
         return "managed_runtime_recovering"
     if runtime_health_status == "degraded" and not live_managed_runtime:
@@ -595,6 +597,9 @@ def _next_system_action(
     supervisor_tick_next_action = _non_empty_text((supervisor_tick_audit or {}).get("next_action_summary"))
     if _supervisor_tick_gap_present(supervisor_tick_audit) and supervisor_tick_next_action is not None:
         return supervisor_tick_next_action
+    decision = _non_empty_text(status.get("decision"))
+    if finalize_milestone_parking_active(status):
+        return finalize_milestone_parking_summary(status)
     runtime_next_action = _non_empty_text((runtime_supervision_payload or {}).get("next_action_summary"))
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
     live_managed_runtime = _live_managed_runtime_present(
@@ -609,7 +614,6 @@ def _next_system_action(
         and not live_managed_runtime
     ):
         return runtime_next_action
-    decision = _non_empty_text(status.get("decision"))
     if decision == "blocked":
         reason = _reason_label(status.get("reason"))
         if reason is not None:
@@ -892,6 +896,14 @@ def _intervention_lane(
                 or next_system_action
             ),
             "recommended_action_id": "refresh_supervision",
+        }
+    if finalize_milestone_parking_active(status):
+        return {
+            "lane_id": "manual_finishing",
+            "title": "保持投稿包里程碑停驻",
+            "severity": "observe",
+            "summary": blocker_summary or current_stage_summary or next_system_action,
+            "recommended_action_id": "inspect_progress",
         }
     if runtime_health_status in {"recovering", "degraded", "escalated"} and not live_managed_runtime:
         return {

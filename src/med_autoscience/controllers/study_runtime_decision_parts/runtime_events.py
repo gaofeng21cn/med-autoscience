@@ -152,6 +152,65 @@ def _is_controller_owned_finalize_parking(status: StudyRuntimeStatus) -> bool:
     )
 
 
+def _controller_decision_requests_human_review_milestone_stop(*, study_root: Path) -> bool:
+    payload = _load_json_dict(study_root / "artifacts" / "controller_decisions" / "latest.json")
+    if not payload:
+        return False
+    route_target = str(payload.get("route_target") or "").strip()
+    if route_target and route_target != "finalize":
+        return False
+    action_types = {
+        str(action.get("action_type") or "").strip()
+        for action in (payload.get("controller_actions") or [])
+        if isinstance(action, dict)
+    }
+    if "stop_runtime" not in action_types:
+        return False
+    reason = str(payload.get("reason") or "").strip().lower()
+    return "human-review milestone reached" in reason
+
+
+def _evaluation_summary_reports_bundle_only_remaining(*, study_root: Path) -> bool:
+    payload = _load_json_dict(study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json")
+    quality_closure_truth = payload.get("quality_closure_truth")
+    if isinstance(quality_closure_truth, dict):
+        state = str(quality_closure_truth.get("state") or "").strip()
+        route_target = str(quality_closure_truth.get("route_target") or "").strip()
+        if state == "bundle_only_remaining" and (not route_target or route_target == "finalize"):
+            return True
+    quality_review_loop = payload.get("quality_review_loop")
+    if isinstance(quality_review_loop, dict):
+        return str(quality_review_loop.get("closure_state") or "").strip() == "bundle_only_remaining"
+    return False
+
+
+def _is_human_review_milestone_parking(
+    status: StudyRuntimeStatus,
+    *,
+    study_root: Path,
+) -> bool:
+    if status.quest_status not in _LIVE_QUEST_STATUSES:
+        return False
+    try:
+        continuation_state = status.continuation_state
+    except KeyError:
+        return False
+    if continuation_state.active_run_id is not None:
+        return False
+    if continuation_state.continuation_policy != _FINALIZE_PARKING_CONTINUATION_POLICY:
+        return False
+    if continuation_state.continuation_anchor not in {None, "decision"}:
+        return False
+    if continuation_state.continuation_reason not in {
+        _FINALIZE_PARKING_CONTINUATION_REASON,
+        "unchanged_publication_gate_state",
+    }:
+        return False
+    return _controller_decision_requests_human_review_milestone_stop(
+        study_root=study_root,
+    ) and _evaluation_summary_reports_bundle_only_remaining(study_root=study_root)
+
+
 def _controller_decision_requires_human_confirmation(*, study_root: Path) -> bool:
     decision_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
     summary_path = stable_controller_confirmation_summary_path(study_root=study_root)

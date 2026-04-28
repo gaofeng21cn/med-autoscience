@@ -111,6 +111,87 @@ def _write_runtime_efficiency_fixture(quest_root: Path) -> tuple[Path, Path]:
     return telemetry_path, evidence_index_path
 
 
+def test_study_progress_surfaces_evidence_packet_and_gate_cache_without_telemetry(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    evidence_index_path = quest_root / ".ds" / "evidence_packets" / "run-live" / "index.json"
+    gate_cache_path = quest_root / ".ds" / "gate_cache" / "paper_contract_health.json"
+    _write_publication_eval(study_root, quest_root)
+    _write_json(
+        evidence_index_path,
+        {
+            "items": [
+                {
+                    "tool_name": "artifact.get_quest_state",
+                    "detail": "full",
+                    "summary": "artifact.get_quest_state: compact evidence packet available",
+                    "payload_bytes": 120000,
+                    "sidecar_path": str(evidence_index_path.parent / "artifact.get_quest_state.json"),
+                    "payload_sha256": "packet-sha",
+                    "key_blockers": ["stale_submission_minimal_authority"],
+                }
+            ],
+        },
+    )
+    _write_json(
+        gate_cache_path,
+        {
+            "surface_id": "paper_contract_health",
+            "input_fingerprint": "gate-fingerprint-live",
+            "generated_at": "2026-04-10T09:30:00+00:00",
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "active_run_id": "run-current",
+            "publication_supervisor_state": {
+                "supervisor_phase": "write",
+                "phase_owner": "publication_gate",
+                "current_required_action": "continue_write_stage",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["refs"]["runtime_telemetry_path"] is None
+    assert result["refs"]["evidence_packet_index_path"] == str(evidence_index_path)
+    assert result["runtime_efficiency"]["run_id"] == "run-live"
+    assert result["runtime_efficiency"]["evidence_packet_count"] == 1
+    assert result["runtime_efficiency"]["latest_evidence_packets"][0]["payload_bytes"] == 120000
+    assert result["runtime_efficiency"]["gate_cache"]["input_fingerprint"] == "gate-fingerprint-live"
+
+
 def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
