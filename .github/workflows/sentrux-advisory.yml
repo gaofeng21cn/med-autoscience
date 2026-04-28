@@ -1,0 +1,45 @@
+name: Sentrux Advisory
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - development
+
+permissions:
+  contents: read
+
+jobs:
+  structural-gate:
+    name: Structural quality advisory
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Sentrux
+        run: curl -fsSL https://sentrux.dev/install.sh | sh
+
+      - name: Run structural gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          sentrux --version
+          sentrux analytics off || true
+
+          if [ -f .sentrux/baseline.json ]; then
+            sentrux gate .
+          else
+            echo "::notice::No .sentrux/baseline.json found; saving advisory baseline for this CI run."
+            sentrux gate --save .
+          fi
+
+          if [ -f .sentrux/rules.toml ]; then
+            sentrux check .
+          else
+            echo "::notice::No .sentrux/rules.toml found; skipping rules check."
+          fi
