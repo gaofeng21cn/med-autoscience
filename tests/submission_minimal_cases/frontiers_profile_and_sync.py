@@ -95,8 +95,9 @@ def test_create_submission_minimal_package_replays_post_materialization_sync_whe
         lambda **_: {"stage": "submission_minimal"},
     )
 
-    def fake_replay(*, paper_root: Path) -> dict[str, object]:
+    def fake_replay(*, paper_root: Path, publication_profile: str) -> dict[str, object]:
         called["paper_root"] = paper_root
+        called["publication_profile"] = publication_profile
         return {
             "status": "synced",
             "quest_root": "/tmp/runtime/quests/quest-001",
@@ -110,6 +111,7 @@ def test_create_submission_minimal_package_replays_post_materialization_sync_whe
     )
 
     assert called["paper_root"] == paper_root
+    assert called["publication_profile"] == "general_medical_journal"
     assert manifest["delivery_sync"] == {"stage": "submission_minimal"}
     assert manifest["post_materialization_sync"] == {
         "status": "synced",
@@ -446,7 +448,7 @@ def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_b
 
     submission_root = paper_root / "submission_minimal"
     submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
-    assert "\n# Figures\n" in submission_markdown
+    assert "\n# Main Figures\n" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
     assert "![](../figures/F1_main.png)" in submission_markdown
     assert "Catalog-backed fallback keeps the main manuscript figure visible." in submission_markdown
@@ -506,7 +508,7 @@ Caption only. The inline image line was dropped from the reviewer manuscript.
 
     submission_root = paper_root / "submission_minimal"
     submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
-    assert "\n# Figures\n" in submission_markdown
+    assert "\n# Main Figures\n" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
     assert "![](../figures/F1_main.png)" in submission_markdown
     assert "Caption only. The inline image line was dropped from the reviewer manuscript." in submission_markdown
@@ -561,7 +563,7 @@ Caption retained under the short F heading.
 
     submission_root = paper_root / "submission_minimal"
     submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
-    assert "\n# Figures\n" in submission_markdown
+    assert "\n# Main Figures\n" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
     assert "![](../figures/F1_main.png)" in submission_markdown
     assert "Caption retained under the short F heading." in submission_markdown

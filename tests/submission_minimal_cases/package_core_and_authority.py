@@ -370,7 +370,7 @@ def test_create_submission_minimal_package_authority_ignores_post_gate_evidence_
     monkeypatch.setattr(
         package_builder,
         "replay_post_submission_minimal_sync",
-        lambda *, paper_root: {"status": "synced"},
+        lambda *, paper_root, publication_profile: {"status": "synced"},
     )
 
     manifest = module.create_submission_minimal_package(
@@ -443,7 +443,7 @@ def test_create_submission_minimal_package_general_profile_writes_figure_legends
         "Abbreviations: treat all, Assumes every patient is managed as high risk at the chosen threshold."
         in submission_markdown
     )
-    assert "# Tables" in submission_markdown
+    assert "# Main Tables" in submission_markdown
     assert "## Table 1" in submission_markdown
     assert "| Characteristic | Value |" in submission_markdown
 
@@ -459,7 +459,7 @@ def test_create_submission_minimal_package_general_profile_embeds_figures_into_d
 
     submission_root = paper_root / "submission_minimal"
     submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
-    assert "# Figures" in submission_markdown
+    assert "# Main Figures" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
     assert "![](../figures/F1_main.png)" in submission_markdown
     assert "Caption." in submission_markdown

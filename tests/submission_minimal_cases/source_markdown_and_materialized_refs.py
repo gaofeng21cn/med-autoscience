@@ -265,7 +265,7 @@ Preserved legend for the manuscript-shaped top-level figures block.
     submission_root = paper_root / "submission_minimal"
     submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
 
-    assert submission_markdown.splitlines().count("# Figures") == 1
+    assert submission_markdown.splitlines().count("# Main Figures") == 1
     assert "## Figure 1. Preserved top-level figure" in submission_markdown
     assert "![](figures/Figure1.png)" in submission_markdown
     assert "Preserved legend for the manuscript-shaped top-level figures block." in submission_markdown
@@ -291,7 +291,7 @@ def test_create_submission_minimal_package_accepts_materialized_submission_sourc
     assert (submission_root / "manuscript_source.md").exists()
     submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
     assert 'title: "Materialized Submission Title"' in submission_markdown
-    assert "# Figures" in submission_markdown
+    assert "# Main Figures" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
     assert "![F1](figures/Figure1.png)" in submission_markdown
     assert "Materialized figure caption." in submission_markdown
