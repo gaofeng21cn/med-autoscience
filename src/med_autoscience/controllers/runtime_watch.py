@@ -32,6 +32,10 @@ from med_autoscience.runtime_escalation_record import RuntimeEscalationRecordRef
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import runtime_watch as runtime_watch_protocol
 from med_autoscience.controllers.runtime_watch_outer_loop_policy import outer_loop_request_requires_fresh_controller_execution
+from med_autoscience.controllers.study_progress_parts.runtime_efficiency import (
+    _latest_run_telemetry_surface,
+    _runtime_efficiency_markdown_lines,
+)
 from med_autoscience.study_decision_record import (
     StudyDecisionCharterRef,
     StudyDecisionControllerAction,
@@ -690,9 +694,23 @@ def render_watch_markdown(report: dict[str, Any]) -> str:
         f"- quest_root: `{report['quest_root']}`",
         f"- quest_status: `{report['quest_status']}`",
         "",
-        "## Controllers",
-        "",
     ]
+    runtime_efficiency = report.get("runtime_efficiency")
+    if isinstance(runtime_efficiency, dict) and runtime_efficiency:
+        lines.extend(
+            [
+                "## Runtime Efficiency",
+                "",
+                *_runtime_efficiency_markdown_lines(runtime_efficiency),
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Controllers",
+            "",
+        ]
+    )
     for name, item in (report.get("controllers") or {}).items():
         lines.extend(
             [
@@ -769,6 +787,12 @@ def _materialize_placeholder_quest_watch_report(status_payload: Mapping[str, Any
         "quest_status": _non_empty_text(status_payload.get("quest_status")) or quest_state.quest_status(quest_root),
         "controllers": {},
     }
+    runtime_efficiency = _latest_run_telemetry_surface(
+        quest_root=quest_root,
+        status=quest_state.load_runtime_state(quest_root),
+    )
+    if runtime_efficiency is not None:
+        report["runtime_efficiency"] = runtime_efficiency
     _attach_family_companion_to_quest_report(report, quest_root=quest_root)
     json_path, md_path, latest_json, latest_markdown = write_watch_report(quest_root, report)
     report["report_json"] = str(json_path)
@@ -794,6 +818,12 @@ def run_watch_for_quest(
         "quest_status": quest_state.quest_status(quest_root),
         "controllers": {},
     }
+    runtime_efficiency = _latest_run_telemetry_surface(
+        quest_root=quest_root,
+        status=quest_state.load_runtime_state(quest_root),
+    )
+    if runtime_efficiency is not None:
+        report["runtime_efficiency"] = runtime_efficiency
 
     for name, runner in iter_ordered_controller_runners(controller_runners):
         dry_run_result = _invoke_controller_runner(runner, quest_root=quest_root, apply=False)

@@ -81,6 +81,81 @@ def test_runtime_watch_uses_runtime_watch_protocol_helpers(monkeypatch, tmp_path
     saved_state = seen["saved"][0][1]
     assert saved_state.controllers["publication_gate"].last_applied_fingerprint is not None
     assert result["controllers"]["publication_gate"]["action"] == "applied"
+
+
+def test_runtime_watch_surfaces_runtime_efficiency_packet_and_gate_cache(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+    evidence_sidecar = quest_root / ".ds" / "evidence_packets" / "run-1" / "bash_exec-large-log.json"
+    dump_json(
+        quest_root / ".ds" / "runs" / "run-1" / "telemetry.json",
+        {
+            "run_id": "run-1",
+            "prompt_bytes": 32000,
+            "tool_result_bytes_total": 90000,
+            "compacted_tool_result_count": 3,
+            "full_detail_tool_call_count": 1,
+            "mcp_tool_call_count": 7,
+            "model_inherited": True,
+            "token_usage": {
+                "input_tokens": 1000,
+                "cached_input_tokens": 250,
+                "output_tokens": 120,
+            },
+        },
+    )
+    dump_json(
+        quest_root / ".ds" / "evidence_packets" / "run-1" / "index.json",
+        {
+            "items": [
+                {
+                    "tool_name": "bash_exec",
+                    "detail": "compact",
+                    "summary": "bash_exec: log_line_count=1200; key_blockers=1",
+                    "payload_bytes": 64000,
+                    "sidecar_path": str(evidence_sidecar),
+                    "payload_sha256": "abc123",
+                    "key_blockers": ["submission_minimal missing"],
+                }
+            ],
+        },
+    )
+    dump_json(
+        quest_root / ".ds" / "gate_cache" / "publication_gate.json",
+        {
+            "surface_id": "publication_gate",
+            "input_fingerprint": "publication-gate-fp-1",
+            "generated_at": "2026-04-28T10:00:00+00:00",
+        },
+    )
+
+    result = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={
+            "publication_gate": lambda *, quest_root, apply: {
+                "status": "clear",
+                "blockers": [],
+                "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+                "report_markdown": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.md"),
+            }
+        },
+        apply=False,
+    )
+
+    runtime_efficiency = result["runtime_efficiency"]
+    assert runtime_efficiency["run_id"] == "run-1"
+    assert runtime_efficiency["compacted_tool_result_count"] == 3
+    assert runtime_efficiency["full_detail_tool_call_count"] == 1
+    assert runtime_efficiency["latest_evidence_packets"][0]["summary"].startswith("bash_exec:")
+    assert runtime_efficiency["gate_cache_surfaces"][0]["surface_id"] == "publication_gate"
+    latest_markdown = (quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.md").read_text(
+        encoding="utf-8"
+    )
+    assert "## Runtime Efficiency" in latest_markdown
+    assert "上下文效率" in latest_markdown
+    assert "publication_gate" in latest_markdown
+
+
 def test_runtime_watch_preserves_publication_supervisor_summary(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     quest_root = make_quest(tmp_path, "q001", status="running")

@@ -24,7 +24,8 @@ def _status_active_run_id(status: dict[str, Any]) -> str | None:
     )
     execution = dict(status.get("execution") or {}) if isinstance(status.get("execution"), dict) else {}
     return (
-        _non_empty_text(execution_owner_guard.get("active_run_id"))
+        _non_empty_text(status.get("active_run_id"))
+        or _non_empty_text(execution_owner_guard.get("active_run_id"))
         or _non_empty_text(autonomous_runtime_notice.get("active_run_id"))
         or _non_empty_text(continuation_state.get("active_run_id"))
         or _non_empty_text(execution.get("active_run_id"))
@@ -49,6 +50,27 @@ def _compact_evidence_items(evidence_index: dict[str, Any] | None) -> list[dict[
             }
         )
     return compact_items
+
+
+def _gate_cache_surfaces(quest_root: Path) -> list[dict[str, Any]]:
+    cache_root = quest_root / ".ds" / "gate_cache"
+    if not cache_root.exists():
+        return []
+    surfaces: list[dict[str, Any]] = []
+    for path in sorted(cache_root.glob("*.json")):
+        payload = _read_json_object(path)
+        if payload is None:
+            continue
+        surface_id = _non_empty_text(payload.get("surface_id")) or path.stem
+        surfaces.append(
+            {
+                "surface_id": surface_id,
+                "path": str(path),
+                "input_fingerprint": _non_empty_text(payload.get("input_fingerprint")),
+                "generated_at": _non_empty_text(payload.get("generated_at")),
+            }
+        )
+    return surfaces
 
 
 def _latest_run_telemetry_surface(
@@ -95,6 +117,7 @@ def _latest_run_telemetry_surface(
             "input_fingerprint": _non_empty_text(gate_cache.get("input_fingerprint")),
             "generated_at": _non_empty_text(gate_cache.get("generated_at")),
         }
+    gate_cache_surfaces = _gate_cache_surfaces(quest_root)
     return {
         "run_id": run_id,
         "telemetry_path": str(telemetry_path),
@@ -111,6 +134,7 @@ def _latest_run_telemetry_surface(
         "evidence_packet_count": len((evidence_index or {}).get("items") or []) if isinstance(evidence_index, dict) else 0,
         "latest_evidence_packets": _compact_evidence_items(evidence_index),
         "gate_cache": gate_cache_surface,
+        "gate_cache_surfaces": gate_cache_surfaces,
         "summary": (
             f"run `{run_id}` prompt {prompt_bytes} bytes; compacted tool results {compacted_count}; "
             f"full-detail calls {full_detail_count}; direct tool-result bytes {tool_result_bytes}."
@@ -146,6 +170,18 @@ def _runtime_efficiency_markdown_lines(runtime_efficiency: dict[str, Any]) -> li
     if gate_cache:
         fingerprint = _non_empty_text(gate_cache.get("input_fingerprint")) or "unknown"
         lines.append(f"- Gate cache fingerprint: `{fingerprint}`")
+    gate_cache_surfaces = [
+        dict(item)
+        for item in (runtime_efficiency.get("gate_cache_surfaces") or [])
+        if isinstance(item, dict)
+    ]
+    if gate_cache_surfaces:
+        surface_ids = [
+            _non_empty_text(item.get("surface_id"))
+            for item in gate_cache_surfaces[:8]
+            if _non_empty_text(item.get("surface_id"))
+        ]
+        lines.append(f"- Gate cache surfaces: `{', '.join(surface_ids)}`")
     return lines
 
 
