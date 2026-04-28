@@ -214,6 +214,89 @@ def test_create_submission_minimal_package_preserves_display_surface_metadata(tm
     assert manifest["enabled_display_packs"][0]["source_kind"] == "git_repo"
 
 
+def test_create_submission_minimal_package_preserves_canonical_main_display_headings(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_workspace(tmp_path)
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_text = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "# Main Figures" in submission_text
+    assert "# Main Tables" in submission_text
+    assert "# Figures" not in submission_text
+    assert "# Tables" not in submission_text
+
+
+def test_create_submission_minimal_package_preserves_main_tables_with_peer_table_headings(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_workspace(tmp_path)
+    write_text(
+        paper_root / "build" / "review_manuscript.md",
+        """---
+title: "Display Surface Manuscript"
+bibliography: ../references.bib
+link-citations: true
+---
+
+## Abstract
+
+Structured abstract.
+
+## Introduction
+
+Clinical setup.
+
+## Materials and Methods
+
+Study design.
+
+## Results
+
+Main result.
+
+## Discussion
+
+Interpretation.
+
+# Main Tables
+
+# Baseline cohort and burden characteristics by Knosp strata
+
+| Characteristic | Value |
+| --- | --- |
+| Age | 52 |
+
+# Comparative performance for the bounded non-GTR extension
+
+| Model | AUROC |
+| --- | --- |
+| Knosp + diameter | 0.80 |
+
+# Main Figures
+
+## Figure 1. Main figure
+
+Caption.
+
+![](../figures/F1_main.png)
+""",
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_text = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "# Main Tables" in submission_text
+    assert "## Baseline cohort and burden characteristics by Knosp strata" in submission_text
+    assert "## Comparative performance for the bounded non-GTR extension" in submission_text
+    assert "| Knosp + diameter | 0.80 |" in submission_text
+
+
 def test_create_submission_minimal_package_prunes_legacy_top_level_figure_and_table_exports(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)

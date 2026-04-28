@@ -109,6 +109,8 @@ def build_general_medical_submission_markdown(
         main_tables = first_nonempty_block(manuscript_sections, "Main Tables", "Tables")
         if not main_tables:
             main_tables = first_nonempty_named_block(manuscript_auxiliary_blocks, "Main Tables", "Tables")
+        if not main_tables.strip():
+            main_tables = extract_optional_markdown_block(body, "Main Tables", ["Main Figures", "Appendix"])
         main_figures = first_nonempty_block(manuscript_sections, "Main Figures", "Figures", "Main-text figures")
         if not main_figures:
             main_figures = first_nonempty_named_block(
@@ -215,11 +217,11 @@ def build_general_medical_submission_markdown(
         if content.strip():
             markdown_parts.append(f"{heading}\n\n{content.strip()}")
     if submission_figure_blocks:
-        markdown_parts.append(f"# Figures\n\n{'\n\n'.join(submission_figure_blocks).strip()}")
+        markdown_parts.append(f"# Main Figures\n\n{'\n\n'.join(submission_figure_blocks).strip()}")
     if figure_legend_blocks:
         markdown_parts.append(f"# Figure Legends\n\n{'\n\n'.join(figure_legend_blocks).strip()}")
     if table_blocks:
-        markdown_parts.append(f"# Tables\n\n{'\n\n'.join(table_blocks).strip()}")
+        markdown_parts.append(f"# Main Tables\n\n{'\n\n'.join(table_blocks).strip()}")
     output_path = submission_root / "manuscript_submission.md"
     write_text(output_path, "\n\n".join(markdown_parts).strip() + "\n")
     return output_path

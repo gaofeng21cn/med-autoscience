@@ -474,7 +474,10 @@ def create_submission_minimal_package(
             stage="submission_minimal",
             publication_profile=resolved_publication_profile,
         )
-        post_materialization_sync_result = replay_post_submission_minimal_sync(paper_root=paper_root)
+        post_materialization_sync_result = replay_post_submission_minimal_sync(
+            paper_root=paper_root,
+            publication_profile=resolved_publication_profile,
+        )
         refreshed_source_contract = build_submission_minimal_source_contract(
             paper_root=paper_root,
             workspace_root=workspace_root,

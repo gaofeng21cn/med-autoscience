@@ -35,6 +35,7 @@ class _LazyModuleProxy:
 
 
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
+study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
 study_outer_loop = _LazyModuleProxy(lambda: _load_controller("study_outer_loop"))
 
@@ -82,7 +83,11 @@ def _resolve_profile_for_study_root(study_root: Path) -> tuple[Path | None, Work
     return profile_path, load_profile(profile_path)
 
 
-def replay_post_submission_minimal_sync(*, paper_root: Path) -> dict[str, Any] | None:
+def replay_post_submission_minimal_sync(
+    *,
+    paper_root: Path,
+    publication_profile: str = "general_medical_journal",
+) -> dict[str, Any] | None:
     try:
         context = resolve_paper_root_context(Path(paper_root).expanduser().resolve())
     except (FileNotFoundError, ValueError):
@@ -101,6 +106,13 @@ def replay_post_submission_minimal_sync(*, paper_root: Path) -> dict[str, Any] |
         "report_json": str(gate_replay.get("report_json") or "").strip() or None,
         "journal_package_sync": gate_replay.get("journal_package_sync"),
     }
+    post_gate_delivery_sync = None
+    if study_delivery_sync.can_sync_study_delivery(paper_root=context.paper_root):
+        post_gate_delivery_sync = study_delivery_sync.sync_study_delivery(
+            paper_root=context.paper_root,
+            stage="submission_minimal",
+            publication_profile=publication_profile,
+        )
 
     profile_path, profile = _resolve_profile_for_study_root(context.study_root)
     if profile is None:
@@ -109,6 +121,7 @@ def replay_post_submission_minimal_sync(*, paper_root: Path) -> dict[str, Any] |
             "quest_root": str(context.quest_root),
             "study_root": str(context.study_root),
             "gate_replay": gate_refresh,
+            "post_gate_delivery_sync": post_gate_delivery_sync,
             "progress_refresh": {
                 "status": "skipped_profile_unresolved",
             },
@@ -132,6 +145,7 @@ def replay_post_submission_minimal_sync(*, paper_root: Path) -> dict[str, Any] |
         "quest_root": str(context.quest_root),
         "study_root": str(context.study_root),
         "gate_replay": gate_refresh,
+        "post_gate_delivery_sync": post_gate_delivery_sync,
         "progress_refresh": {
             "current_stage": str(progress_payload.get("current_stage") or "").strip() or None,
             "current_stage_summary": str(progress_payload.get("current_stage_summary") or "").strip() or None,
