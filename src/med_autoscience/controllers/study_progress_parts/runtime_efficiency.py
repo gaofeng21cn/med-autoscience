@@ -130,6 +130,8 @@ def _latest_run_telemetry_surface(
     compacted_count = int((telemetry or {}).get("compacted_tool_result_count") or 0)
     full_detail_count = int((telemetry or {}).get("full_detail_tool_call_count") or 0)
     tool_result_bytes = int((telemetry or {}).get("tool_result_bytes_total") or 0)
+    tool_result_bytes_after_compaction = int((telemetry or {}).get("tool_result_bytes_after_compaction_total") or 0)
+    tool_result_bytes_saved = int((telemetry or {}).get("tool_result_bytes_saved_total") or 0)
     prompt_bytes = int((telemetry or {}).get("prompt_bytes") or 0)
     gate_cache_path = quest_root / ".ds" / "gate_cache" / "paper_contract_health.json"
     gate_cache = _read_json_object(gate_cache_path) if gate_cache_path.exists() else None
@@ -149,6 +151,8 @@ def _latest_run_telemetry_surface(
         "prompt_bytes": prompt_bytes,
         "stdout_bytes": int((telemetry or {}).get("stdout_bytes") or 0),
         "tool_result_bytes_total": tool_result_bytes,
+        "tool_result_bytes_after_compaction_total": tool_result_bytes_after_compaction,
+        "tool_result_bytes_saved_total": tool_result_bytes_saved,
         "compacted_tool_result_count": compacted_count,
         "full_detail_tool_call_count": full_detail_count,
         "mcp_tool_call_count": int((telemetry or {}).get("mcp_tool_call_count") or 0),
@@ -164,7 +168,8 @@ def _latest_run_telemetry_surface(
         "gate_cache_surfaces": gate_cache_surfaces,
         "summary": (
             f"run `{run_id}` prompt {prompt_bytes} bytes; compacted tool results {compacted_count}; "
-            f"full-detail calls {full_detail_count}; direct tool-result bytes {tool_result_bytes}."
+            f"full-detail calls {full_detail_count}; direct tool-result bytes {tool_result_bytes}; "
+            f"saved tool-result bytes {tool_result_bytes_saved}."
         ),
     }
 
@@ -177,7 +182,8 @@ def _runtime_efficiency_markdown_lines(runtime_efficiency: dict[str, Any]) -> li
         f"compacted tool results {runtime_efficiency.get('compacted_tool_result_count') or 0}; "
         f"full-detail calls {runtime_efficiency.get('full_detail_tool_call_count') or 0}; "
         f"prompt bytes {runtime_efficiency.get('prompt_bytes') or 0}; "
-        f"direct tool-result bytes {runtime_efficiency.get('tool_result_bytes_total') or 0}"
+        f"direct tool-result bytes {runtime_efficiency.get('tool_result_bytes_total') or 0}; "
+        f"saved bytes {runtime_efficiency.get('tool_result_bytes_saved_total') or 0}"
     ]
     if runtime_efficiency.get("evidence_packet_count"):
         evidence_index_ref = _non_empty_text(runtime_efficiency.get("evidence_packet_index_path")) or "none"

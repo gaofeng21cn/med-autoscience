@@ -81,6 +81,8 @@ def _compact_runtime_efficiency(value: Any) -> dict[str, Any] | None:
             "prompt_bytes",
             "stdout_bytes",
             "tool_result_bytes_total",
+            "tool_result_bytes_after_compaction_total",
+            "tool_result_bytes_saved_total",
             "compacted_tool_result_count",
             "full_detail_tool_call_count",
             "mcp_tool_call_count",

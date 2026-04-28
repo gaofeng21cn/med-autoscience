@@ -198,6 +198,116 @@ def test_work_unit_dedupe_reuses_prior_upstream_unit_when_blocker_fingerprint_ch
     assert dispatch_key == "publication-blockers::new::analysis_claim_evidence_repair::run_gate_clearing_batch"
 
 
+def test_work_unit_dedupe_uses_ledger_when_latest_wakeup_was_overwritten_by_noop(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
+    ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    study_root = tmp_path / "studies" / "001-risk"
+    latest_path = study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json"
+    latest_path.parent.mkdir(parents=True)
+    latest_path.write_text(
+        json.dumps({"outcome": "no_request"}),
+        encoding="utf-8",
+    )
+    tick_request = {
+        "work_unit_fingerprint": "publication-blockers::same",
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+    }
+    identity = module.identity_from_tick_request(
+        study_id="001-risk",
+        quest_id="quest-001",
+        tick_request=tick_request,
+    )
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="dispatched",
+        payload={"source": "runtime_watch"},
+        recorded_at="2026-04-28T00:00:00+00:00",
+    )
+
+    already_executed, dispatch_key = module.dispatch_already_executed(
+        study_root=study_root,
+        tick_request=tick_request,
+    )
+
+    assert already_executed is True
+    assert dispatch_key == "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
+
+
+def test_work_unit_dedupe_does_not_use_ledger_when_latest_inputs_changed(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
+    ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    study_root = tmp_path / "studies" / "001-risk"
+    latest_path = study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json"
+    latest_path.parent.mkdir(parents=True)
+    latest_path.write_text(
+        json.dumps({"outcome": "no_request", "dispatch_cause": "input_changed"}),
+        encoding="utf-8",
+    )
+    tick_request = {
+        "work_unit_fingerprint": "publication-blockers::same",
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+    }
+    identity = module.identity_from_tick_request(
+        study_id="001-risk",
+        quest_id="quest-001",
+        tick_request=tick_request,
+    )
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="dispatched",
+        payload={"source": "runtime_watch"},
+        recorded_at="2026-04-28T00:00:00+00:00",
+    )
+
+    already_executed, dispatch_key = module.dispatch_already_executed(
+        study_root=study_root,
+        tick_request=tick_request,
+    )
+
+    assert already_executed is False
+    assert dispatch_key == "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
+
+
+def test_work_unit_dedupe_uses_ledger_for_prior_upstream_unit_when_fingerprint_churns(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
+    ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    study_root = tmp_path / "studies" / "001-risk"
+    previous_request = {
+        "work_unit_fingerprint": "publication-blockers::old",
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+    }
+    previous_identity = module.identity_from_tick_request(
+        study_id="001-risk",
+        quest_id="quest-001",
+        tick_request=previous_request,
+    )
+    ledger.append_event(
+        study_root=study_root,
+        identity=previous_identity,
+        event_type="dispatched",
+        payload={"source": "runtime_watch"},
+        recorded_at="2026-04-28T00:00:00+00:00",
+    )
+    tick_request = {
+        "work_unit_fingerprint": "publication-blockers::new",
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+    }
+
+    already_executed, dispatch_key = module.dispatch_already_executed(
+        study_root=study_root,
+        tick_request=tick_request,
+    )
+
+    assert already_executed is True
+    assert dispatch_key == "publication-blockers::new::analysis_claim_evidence_repair::run_gate_clearing_batch"
+
+
 def test_work_unit_dedupe_does_not_reuse_prior_delivery_unit_when_fingerprint_changes(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
     study_root = tmp_path / "studies" / "001-risk"

@@ -116,6 +116,7 @@ def test_study_progress_operator_view_surfaces_noop_suppression_and_runtime_effi
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
     assert result["runtime_efficiency"]["telemetry_path"] == str(telemetry_path)
+    assert result["runtime_efficiency"]["tool_result_bytes_saved_total"] == 86420
     assert result["operator_status_card"]["no_op_suppression"]["outcome"] == "skipped_matching_work_unit"
     assert "继续空转不会增加论文证据" in result["operator_status_card"]["current_focus"]
     assert "evidence packet" in result["operator_status_card"]["runtime_efficiency_summary"]

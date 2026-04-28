@@ -18,6 +18,7 @@ _UPSTREAM_REPAIR_UNITS = frozenset(
     }
 )
 _OUTER_LOOP_WAKEUP_SOURCE = "runtime_watch_outer_loop_wakeup"
+_LEDGER_EXECUTED_EVENT_TYPES = frozenset({"dispatched", "skipped_duplicate"})
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -156,6 +157,30 @@ def _unit_dispatch_suffix(tick_request: Mapping[str, Any]) -> tuple[str | None, 
     return unit_id, f"::{unit_id}::{action_type}"
 
 
+def _ledger_has_executed_dispatch(
+    *,
+    study_root: Path,
+    dispatch_key_value: str,
+    unit_id: str | None,
+    suffix: str | None,
+) -> bool:
+    exact_event = work_unit_ledger.latest_event(study_root=study_root, dispatch_key=dispatch_key_value)
+    if isinstance(exact_event, Mapping) and _non_empty_text(exact_event.get("event_type")) in _LEDGER_EXECUTED_EVENT_TYPES:
+        return True
+    if unit_id not in _UPSTREAM_REPAIR_UNITS or suffix is None:
+        return False
+    for event in reversed(work_unit_ledger.read_events(study_root=study_root)):
+        if _non_empty_text(event.get("event_type")) not in _LEDGER_EXECUTED_EVENT_TYPES:
+            continue
+        identity = event.get("identity")
+        if not isinstance(identity, Mapping):
+            continue
+        historical_key = _non_empty_text(identity.get("dispatch_key"))
+        if historical_key is not None and historical_key.endswith(suffix):
+            return True
+    return False
+
+
 def dispatch_already_executed(
     *,
     study_root: Path,
@@ -167,8 +192,16 @@ def dispatch_already_executed(
     previous = _read_json_object(_wakeup_latest_path(study_root)) or {}
     previous_dispatch_key = _non_empty_text(previous.get("work_unit_dispatch_key"))
     previous_outcome = _non_empty_text(previous.get("outcome"))
+    unit_id, suffix = _unit_dispatch_suffix(tick_request)
+    ledger_replay_allowed = _non_empty_text(previous.get("dispatch_cause")) != "input_changed"
+    if ledger_replay_allowed and _ledger_has_executed_dispatch(
+        study_root=study_root,
+        dispatch_key_value=work_unit_dispatch_key,
+        unit_id=unit_id,
+        suffix=suffix,
+    ):
+        return True, work_unit_dispatch_key
     if previous_dispatch_key != work_unit_dispatch_key:
-        unit_id, suffix = _unit_dispatch_suffix(tick_request)
         if (
             unit_id in _UPSTREAM_REPAIR_UNITS
             and suffix is not None

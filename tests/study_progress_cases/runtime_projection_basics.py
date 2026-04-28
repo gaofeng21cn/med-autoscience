@@ -73,6 +73,8 @@ def _write_runtime_efficiency_fixture(quest_root: Path) -> tuple[Path, Path]:
             "prompt_bytes": 123456,
             "stdout_bytes": 2345,
             "tool_result_bytes_total": 98765,
+            "tool_result_bytes_after_compaction_total": 12345,
+            "tool_result_bytes_saved_total": 86420,
             "compacted_tool_result_count": 4,
             "full_detail_tool_call_count": 1,
             "mcp_tool_call_count": 9,
