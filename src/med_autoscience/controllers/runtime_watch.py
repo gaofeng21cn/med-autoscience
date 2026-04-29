@@ -197,7 +197,7 @@ def _serialize_no_op_suppression(
     wakeup_audit: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     outcome = _non_empty_text(wakeup_audit.get("outcome"))
-    if outcome not in {"skipped_matching_work_unit", "skipped_matching_decision", "skipped_unchanged_inputs"}:
+    if outcome not in {"skipped_matching_work_unit", "skipped_matching_decision", "skipped_unchanged_inputs", "needs_specificity"}:
         return None
     payload: dict[str, Any] = {
         "study_id": _non_empty_text(status_payload.get("study_id")) or Path(study_root).name,
@@ -206,11 +206,13 @@ def _serialize_no_op_suppression(
         "reason": _non_empty_text(wakeup_audit.get("reason")),
         "dedupe_scope": _non_empty_text(wakeup_audit.get("dedupe_scope")),
     }
-    for key in ("work_unit_fingerprint", "next_work_unit"):
+    for key in ("work_unit_fingerprint", "next_work_unit", "specificity_questions"):
         value = wakeup_audit.get(key)
         if value is not None:
             payload[key] = dict(value) if isinstance(value, Mapping) else value
-    if outcome == "skipped_matching_work_unit":
+    if outcome == "needs_specificity":
+        payload["operator_summary"] = "Publication gate 只给出标签级 blocker；需先明确具体 claim、证据、图表、指标、引用或包件目标。"
+    elif outcome == "skipped_matching_work_unit":
         payload["operator_summary"] = _NO_OP_SUPPRESSION_SUMMARY
     else:
         payload["operator_summary"] = "外环输入或 controller decision 未变化；保持 no-op，等待新证据、新用户反馈或 blocker fingerprint 改变。"
@@ -519,6 +521,34 @@ def run_watch_for_runtime(
                         "outcome": "no_request",
                         "reason": "outer-loop wakeup did not produce an autonomous request",
                     }
+                elif runtime_watch_work_units.needs_specificity_request(tick_request):
+                    wakeup_audit = {
+                        **wakeup_audit,
+                        "outcome": "needs_specificity",
+                        "reason": "publication gate blocker is not actionable without concrete repair targets",
+                        "no_op_acknowledged": True,
+                        "dedupe_scope": "publication_gate_specificity",
+                        **runtime_watch_work_units.context_payload(
+                            tick_request,
+                            work_unit_dispatch_key=runtime_watch_work_units.dispatch_key(tick_request),
+                        ),
+                    }
+                    suppression = _serialize_no_op_suppression(
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        wakeup_audit=wakeup_audit,
+                    )
+                    if suppression is not None:
+                        managed_study_no_op_suppressions.append(suppression)
+                        _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+                    runtime_watch_work_units.append_ledger_event(
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        tick_request=tick_request,
+                        event_type="needs_specificity",
+                        wakeup_audit=wakeup_audit,
+                        default_recorded_at=utc_now(),
+                    )
                 elif (
                     work_unit_duplicate := runtime_watch_work_units.dispatch_already_executed(
                         study_root=study_root,

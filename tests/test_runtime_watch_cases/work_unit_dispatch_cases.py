@@ -130,6 +130,87 @@ def test_watch_runtime_suppresses_repeated_work_unit_dispatch(
     )
 
 
+def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "quest-001"
+    _write_charter(study_root)
+    status_payload = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="blocked",
+            reason="study_completion_publishability_gate_blocked",
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+    }
+    tick_request = {
+        "study_root": study_root,
+        "charter_ref": _write_charter(study_root),
+        "publication_eval_ref": _write_publication_eval(study_root, quest_root, action_type="return_to_controller"),
+        "decision_type": "return_to_controller",
+        "route_target": None,
+        "route_key_question": None,
+        "route_rationale": "Publication gate needs concrete blocker targets before dispatch.",
+        "requires_human_confirmation": False,
+        "controller_actions": [],
+        "reason": "Publication gate needs concrete blocker targets before dispatch.",
+        "work_unit_fingerprint": "publication-blockers::vague",
+        "next_work_unit": {
+            "unit_id": "gate_needs_specificity",
+            "lane": "controller",
+            "summary": "Ask the publication gate to identify concrete blocker targets.",
+        },
+        "specificity_questions": [
+            "Which exact claim, figure, table, metric, citation, evidence row, or package artifact is blocking the gate?",
+        ],
+    }
+    calls: list[str] = []
+
+    def fake_outer_loop_tick(**kwargs):
+        calls.append(str(kwargs.get("source") or ""))
+        return {"dispatch_status": "executed"}
+
+    monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+    wakeup_latest = json.loads(
+        (study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json").read_text(encoding="utf-8")
+    )
+    ledger_events = [
+        json.loads(line)
+        for line in (
+            study_root / "artifacts" / "runtime" / "work_unit_ledger" / "events.jsonl"
+        ).read_text(encoding="utf-8").splitlines()
+    ]
+
+    assert calls == []
+    assert result["managed_study_outer_loop_dispatches"] == []
+    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "needs_specificity"
+    assert wakeup_latest["outcome"] == "needs_specificity"
+    assert wakeup_latest["no_op_acknowledged"] is True
+    assert wakeup_latest["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert wakeup_latest["specificity_questions"] == tick_request["specificity_questions"]
+    assert [event["event_type"] for event in ledger_events] == ["needs_specificity"]
+
+
 def test_outer_loop_tick_request_carries_publication_work_unit_context(tmp_path: Path) -> None:
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
