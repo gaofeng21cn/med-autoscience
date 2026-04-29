@@ -90,6 +90,30 @@ def test_auto_runtime_parking_maps_runtime_failure_classes() -> None:
     assert platform["parked_owner"] == "mas_platform"
 
 
+def test_auto_runtime_parking_releases_runtime_after_upstream_retry_budget_exhausted() -> None:
+    projection = _projection(
+        {
+            "decision": "blocked",
+            "quest_status": "retrying",
+            "mds_failure_diagnosis": {
+                "retriable": True,
+                "retry_budget_exhausted": True,
+                "retry_attempts": 4,
+                "retry_after_seconds": 240,
+                "problem": "Codex upstream API HTTP 429 too many requests after retries exhausted.",
+            },
+        }
+    )
+
+    assert projection["parked"] is True
+    assert projection["parked_state"] == "external_upstream_pending"
+    assert projection["parked_owner"] == "external_provider"
+    assert projection["resource_release_expected"] is True
+    assert projection["awaiting_explicit_wakeup"] is False
+    assert projection["runtime_failure_classification"]["retry_budget_exhausted"] is True
+    assert projection["runtime_failure_classification"]["auto_recovery_allowed"] is False
+
+
 def test_auto_runtime_parking_maps_explicit_resume_and_preflight_contracts() -> None:
     explicit = _projection(
         {
