@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 
+from med_autoscience.controllers import control_intent
 from . import shared as _shared
 from . import program_surfaces as _program_surfaces
 from . import workspace_surfaces as _workspace_surfaces
@@ -255,6 +256,18 @@ def _task_intake_delivery_fingerprint(payload: Mapping[str, Any]) -> str:
     return f"study-task-intake:{hashlib.sha256(encoded).hexdigest()}"
 
 
+def _task_intake_control_intent_identity(payload: Mapping[str, Any]) -> control_intent.ControlIntentIdentity:
+    return control_intent.build_control_intent_identity(
+        study_id=_non_empty_text(payload.get("study_id")) or "unknown-study",
+        quest_id=_non_empty_text(payload.get("quest_id")),
+        route_target=_non_empty_text(payload.get("entry_mode")) or "full_research",
+        work_unit_id=_non_empty_text(payload.get("task_intent")) or "study_task_intake",
+        blocker_authority_fingerprint=_task_intake_delivery_fingerprint(payload),
+        controller_actions=("submit_study_task",),
+        source_kind="study_task_intake",
+    )
+
+
 def _runtime_message_id(payload: Mapping[str, Any] | None) -> str | None:
     if not isinstance(payload, Mapping):
         return None
@@ -270,15 +283,17 @@ def _task_intake_delivery_for_current_run(
     *,
     runtime_state: Mapping[str, Any],
     fingerprint: str,
+    control_intent_key: str,
 ) -> Mapping[str, Any] | None:
     delivery = runtime_state.get("last_task_intake_delivery")
     if not isinstance(delivery, Mapping):
         return None
+    delivered_intent_key = _non_empty_text(delivery.get("control_intent_key"))
+    if delivered_intent_key is not None:
+        if delivered_intent_key != control_intent_key:
+            return None
+        return delivery
     if delivery.get("fingerprint") != fingerprint:
-        return None
-    current_active_run_id = _non_empty_text(runtime_state.get("active_run_id"))
-    delivered_active_run_id = _non_empty_text(delivery.get("active_run_id"))
-    if current_active_run_id is not None and delivered_active_run_id != current_active_run_id:
         return None
     return delivery
 
@@ -288,6 +303,7 @@ def _write_task_intake_delivery_record(
     quest_root: Path,
     runtime_state: Mapping[str, Any],
     fingerprint: str,
+    identity: control_intent.ControlIntentIdentity,
     delivery_mode: str,
     message_id: str | None,
     source: str,
@@ -297,6 +313,8 @@ def _write_task_intake_delivery_record(
     merged_state = dict(latest_runtime_state or runtime_state)
     merged_state["last_task_intake_delivery"] = {
         "fingerprint": fingerprint,
+        "control_intent_key": identity.business_key,
+        "control_intent_identity": identity.to_dict(),
         "active_run_id": _non_empty_text(merged_state.get("active_run_id")),
         "delivery_mode": delivery_mode,
         "message_id": message_id,
@@ -365,6 +383,7 @@ def _enqueue_task_intake_for_live_runtime(
     profile: WorkspaceProfile,
     profile_ref: str | Path | None = None,
     study_id: str,
+    study_root: Path,
     execution: Mapping[str, Any] | None,
     payload: dict[str, Any],
 ) -> dict[str, Any]:
@@ -412,9 +431,11 @@ def _enqueue_task_intake_for_live_runtime(
 
     runtime_state["quest_id"] = managed_quest_id
     fingerprint = _task_intake_delivery_fingerprint(payload)
+    intent_identity = _task_intake_control_intent_identity(payload)
     existing_delivery = _task_intake_delivery_for_current_run(
         runtime_state=runtime_state,
         fingerprint=fingerprint,
+        control_intent_key=intent_identity.business_key,
     )
     if existing_delivery is not None:
         result["intervention_enqueued"] = True
@@ -422,6 +443,7 @@ def _enqueue_task_intake_for_live_runtime(
         result["message_id"] = _non_empty_text(existing_delivery.get("message_id"))
         result["reason"] = "live_runtime_task_context_already_delivered"
         result["idempotent_replay"] = True
+        result["control_intent_key"] = intent_identity.business_key
         return result
 
     backend = runtime_backend_contract.resolve_managed_runtime_backend(execution)
@@ -442,13 +464,26 @@ def _enqueue_task_intake_for_live_runtime(
             result["message_id"] = _runtime_message_id(response)
             result["reason"] = "live_runtime_task_context_submitted"
             result["idempotent_replay"] = False
+            result["control_intent_key"] = intent_identity.business_key
             _write_task_intake_delivery_record(
                 quest_root=quest_root,
                 runtime_state=runtime_state,
                 fingerprint=fingerprint,
+                identity=intent_identity,
                 delivery_mode="managed_runtime_chat",
                 message_id=result["message_id"],
                 source="codex-study-task-intake",
+            )
+            control_intent.append_event(
+                study_root=study_root,
+                identity=intent_identity,
+                event_type="delivered",
+                payload={
+                    "delivery_mode": "managed_runtime_chat",
+                    "message_id": result["message_id"],
+                    "active_run_id": _non_empty_text(runtime_state.get("active_run_id")),
+                    "source": "codex-study-task-intake",
+                },
             )
             return result
 
@@ -457,20 +492,33 @@ def _enqueue_task_intake_for_live_runtime(
         runtime_state=runtime_state,
         message=runtime_message,
         source="codex-study-task-intake",
-        dedupe_key=fingerprint,
+        dedupe_key=intent_identity.dedupe_key,
     )
     result["intervention_enqueued"] = True
     result["delivery_mode"] = "durable_queue_fallback"
     result["message_id"] = record.get("message_id")
     result["reason"] = "live_runtime_task_context_enqueued_fallback"
     result["idempotent_replay"] = False
+    result["control_intent_key"] = intent_identity.business_key
     _write_task_intake_delivery_record(
         quest_root=quest_root,
         runtime_state=runtime_state,
         fingerprint=fingerprint,
+        identity=intent_identity,
         delivery_mode="durable_queue_fallback",
         message_id=_non_empty_text(record.get("message_id")),
         source="codex-study-task-intake",
+    )
+    control_intent.append_event(
+        study_root=study_root,
+        identity=intent_identity,
+        event_type="delivered",
+        payload={
+            "delivery_mode": "durable_queue_fallback",
+            "message_id": result["message_id"],
+            "active_run_id": _non_empty_text(runtime_state.get("active_run_id")),
+            "source": "codex-study-task-intake",
+        },
     )
     return result
 
@@ -529,6 +577,7 @@ def submit_study_task(
         profile=profile,
         profile_ref=profile_ref,
         study_id=resolved_study_id,
+        study_root=resolved_study_root,
         execution=execution,
         payload=latest_payload,
     )
