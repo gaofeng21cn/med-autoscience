@@ -25,16 +25,14 @@ def build_submission_source_authority_note(
     manifest_surface: str,
 ) -> str:
     return (
-        "This file is a controller-generated authority note for the minimal submission package. "
-        "It is not the full manuscript and must not be treated as a second manuscript surface.\n\n"
+        "Package authority note for the minimal submission bundle; not the full manuscript surface.\n\n"
         f"Canonical full manuscript surface: {canonical_full_surface}.\n"
         f"Export-ready submission projection: {submission_projection}.\n"
         f"Manifest and source signature surface: {manifest_surface}.\n\n"
         "Projection role: human-facing delivery metadata only. Scientific quality closure and submission readiness "
         "still require an AI reviewer-backed quality record, a clear publication gate, a current source signature, "
         "and a fresh package projection.\n\n"
-        "To revise paper content, edit controller-authorized canonical paper sources and rerun MAS export/sync/QC. "
-        "Do not edit this note as manuscript content.\n"
+        "Paper content revisions belong in controller-authorized canonical paper sources followed by MAS export/sync/QC.\n"
     )
 
 

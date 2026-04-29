@@ -200,7 +200,7 @@ def build_general_medical_submission_markdown(
     section_blocks = [
         ("# Abstract", abstract),
         ("# Introduction", introduction),
-        ("# Materials and Methods", methods),
+        ("# Methods", methods),
         ("# Results", results),
         ("# Discussion", discussion),
         ("# Conclusion", conclusion),
