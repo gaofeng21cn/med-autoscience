@@ -57,11 +57,13 @@ def build_study_progress_projection(
         )
     runtime_watch_path = _latest_runtime_watch_report(quest_root)
     runtime_supervision_path = resolved_study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
+    gate_clearing_batch_path = resolved_study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
     bash_summary_path = quest_root / ".ds" / "bash_exec" / "summary.json" if quest_root is not None else None
     details_projection_path = quest_root / ".ds" / "projections" / "details.v1.json" if quest_root is not None else None
 
     launch_report_payload = _read_json_object(launch_report_path)
     controller_decision_payload = _read_json_object(controller_decision_path)
+    gate_clearing_batch_payload = _read_json_object(gate_clearing_batch_path)
     if controller_decision_payload is not None:
         try:
             materialize_controller_confirmation_summary(
@@ -232,6 +234,8 @@ def build_study_progress_projection(
         details_projection_payload=details_projection_payload,
         controller_decision_payload=controller_decision_payload,
         publication_eval_payload=publication_eval_payload,
+        gate_clearing_batch_payload=gate_clearing_batch_payload,
+        gate_clearing_batch_path=gate_clearing_batch_path,
     )
     current_stage_summary = _display_text(_stage_summary(
         status=status,
@@ -383,7 +387,11 @@ def build_study_progress_projection(
         publication_supervisor_state=publication_supervisor_state,
         task_intake_progress_override=task_intake_progress_override,
     )
-    runtime_efficiency = _latest_run_telemetry_surface(quest_root=quest_root, status=status)
+    runtime_efficiency = _latest_run_telemetry_surface(
+        quest_root=quest_root,
+        status=status,
+        study_root=resolved_study_root,
+    )
     operator_status_card = _operator_status_card(
         study_id=resolved_study_id,
         current_stage=current_stage,

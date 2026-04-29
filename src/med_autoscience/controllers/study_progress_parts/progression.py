@@ -82,12 +82,60 @@ def _append_progress_signal(
     )
 
 
+def _append_gate_clearing_batch_progress_signal(
+    *,
+    signals: list[dict[str, Any]],
+    gate_clearing_batch_payload: dict[str, Any] | None,
+    gate_clearing_batch_path: Path | None,
+    publication_eval_payload: dict[str, Any] | None,
+) -> None:
+    if not isinstance(gate_clearing_batch_payload, dict):
+        return
+    current_eval_id = _non_empty_text((publication_eval_payload or {}).get("eval_id"))
+    source_eval_id = _non_empty_text(gate_clearing_batch_payload.get("source_eval_id"))
+    if current_eval_id is not None and source_eval_id is not None and current_eval_id != source_eval_id:
+        return
+    gate_replay = _mapping_copy(gate_clearing_batch_payload.get("gate_replay"))
+    gate_replay_step = _mapping_copy(gate_clearing_batch_payload.get("gate_replay_step"))
+    gate_replay_status = _non_empty_text(gate_replay_step.get("status")) or _non_empty_text(gate_replay.get("status"))
+    if _non_empty_text(gate_clearing_batch_payload.get("status")) != "executed" and gate_replay_status is None:
+        return
+    blockers = [
+        _non_empty_text(item)
+        for item in (gate_replay.get("blockers") or [])
+        if _non_empty_text(item) is not None
+    ]
+    if gate_replay_status == "clear":
+        summary = "gate-clearing batch closed with publication gate replay clear."
+    elif blockers:
+        summary = f"gate-clearing batch closed; gate replay still has {len(blockers)} blocker(s)."
+    else:
+        summary = "gate-clearing batch closed and wrote a gate replay result."
+    signal_count = len(signals)
+    _append_progress_signal(
+        signals=signals,
+        timestamp=(
+            _non_empty_text(gate_replay_step.get("finished_at"))
+            or _non_empty_text(gate_clearing_batch_payload.get("finished_at"))
+            or _non_empty_text(gate_clearing_batch_payload.get("generated_at"))
+            or _non_empty_text(gate_clearing_batch_payload.get("emitted_at"))
+            or _non_empty_text(gate_clearing_batch_payload.get("recorded_at"))
+        ),
+        source="gate_clearing_batch",
+        summary=summary,
+    )
+    if len(signals) > signal_count:
+        signals[-1]["artifact_path"] = str(gate_clearing_batch_path) if gate_clearing_batch_path is not None else None
+
+
 def _latest_progress_signal(
     *,
     bash_summary_payload: dict[str, Any] | None,
     details_projection_payload: dict[str, Any] | None,
     controller_decision_payload: dict[str, Any] | None,
     publication_eval_payload: dict[str, Any] | None,
+    gate_clearing_batch_payload: dict[str, Any] | None,
+    gate_clearing_batch_path: Path | None,
 ) -> dict[str, Any] | None:
     signals: list[dict[str, Any]] = []
     latest_session = (bash_summary_payload or {}).get("latest_session")
@@ -128,6 +176,12 @@ def _latest_progress_signal(
             source="publication_eval",
             summary=_non_empty_text(verdict.get("summary")) or "发表评估已更新。",
         )
+    _append_gate_clearing_batch_progress_signal(
+        signals=signals,
+        gate_clearing_batch_payload=gate_clearing_batch_payload,
+        gate_clearing_batch_path=gate_clearing_batch_path,
+        publication_eval_payload=publication_eval_payload,
+    )
     if not signals:
         return None
     return max(signals, key=lambda item: item["timestamp"])
@@ -140,6 +194,8 @@ def _progress_freshness(
     details_projection_payload: dict[str, Any] | None,
     controller_decision_payload: dict[str, Any] | None,
     publication_eval_payload: dict[str, Any] | None,
+    gate_clearing_batch_payload: dict[str, Any] | None,
+    gate_clearing_batch_path: Path | None,
 ) -> dict[str, Any]:
     required = _progress_freshness_required(current_stage)
     latest_signal = _latest_progress_signal(
@@ -147,6 +203,8 @@ def _progress_freshness(
         details_projection_payload=details_projection_payload,
         controller_decision_payload=controller_decision_payload,
         publication_eval_payload=publication_eval_payload,
+        gate_clearing_batch_payload=gate_clearing_batch_payload,
+        gate_clearing_batch_path=gate_clearing_batch_path,
     )
     if not required:
         summary = "当前阶段以人工判断或收尾为主，不要求系统继续产出新的自动推进信号。"

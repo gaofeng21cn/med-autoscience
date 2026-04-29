@@ -29,6 +29,21 @@ def test_study_progress_operator_view_surfaces_noop_suppression_and_runtime_effi
     quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     telemetry_path, evidence_index_path = _write_runtime_efficiency_fixture(quest_root)
+    gate_batch_path = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+    _write_json(
+        gate_batch_path,
+        {
+            "schema_version": 1,
+            "source_eval_id": "publication-eval::001-risk::quest-001::2026-04-10T09:00:00+00:00",
+            "status": "executed",
+            "gate_replay": {"status": "clear", "allow_write": True, "blockers": []},
+            "gate_replay_step": {
+                "step_id": "publication_gate_replay",
+                "status": "clear",
+                "finished_at": "2026-04-28T10:01:00+00:00",
+            },
+        },
+    )
     runtime_watch_path = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
     _write_json(
         runtime_watch_path,
@@ -117,7 +132,102 @@ def test_study_progress_operator_view_surfaces_noop_suppression_and_runtime_effi
 
     assert result["runtime_efficiency"]["telemetry_path"] == str(telemetry_path)
     assert result["runtime_efficiency"]["tool_result_bytes_saved_total"] == 86420
+    assert result["runtime_efficiency"]["unique_command_count"] == 3
+    assert result["runtime_efficiency"]["repeated_read_result_count"] == 2
+    assert result["runtime_efficiency"]["repeated_read_ratio"] == 0.5
+    assert result["runtime_efficiency"]["gate_replay_hit_count"] == 1
     assert result["operator_status_card"]["no_op_suppression"]["outcome"] == "skipped_matching_work_unit"
     assert "继续空转不会增加论文证据" in result["operator_status_card"]["current_focus"]
     assert "evidence packet" in result["operator_status_card"]["runtime_efficiency_summary"]
+    assert "repeated reads 2/4" in result["operator_status_card"]["runtime_efficiency_summary"]
+    assert "saved bytes 86420" in result["operator_status_card"]["runtime_efficiency_summary"]
+    assert "gate replay hits 1" in result["operator_status_card"]["runtime_efficiency_summary"]
+    assert result["operator_status_card"]["runtime_efficiency_metrics"]["unique_command_count"] == 3
+    assert result["operator_status_card"]["runtime_efficiency_metrics"]["gate_replay_hit_count"] == 1
     assert result["operator_status_card"]["runtime_efficiency_refs"]["evidence_packet_index_path"] == str(evidence_index_path)
+
+
+def test_study_progress_freshness_uses_gate_clearing_batch_closure_as_progress_signal(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    eval_id = "publication-eval::001-risk::quest-001::2026-04-10T09:00:00+00:00"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": eval_id,
+            "emitted_at": "2026-04-09T09:00:00+00:00",
+            "verdict": {"status": "blocked", "summary": "旧发表评估仍有阻塞。"},
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "source_eval_id": eval_id,
+            "status": "executed",
+            "gate_replay": {"status": "clear", "allow_write": True, "blockers": []},
+            "gate_replay_step": {
+                "step_id": "publication_gate_replay",
+                "status": "clear",
+                "finished_at": "2026-04-10T09:58:00+00:00",
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {
+            "recorded_at": "2026-04-10T09:59:00+00:00",
+            "health_status": "live",
+            "summary": "runtime heartbeat only",
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "current_required_action": "return_to_publishability_gate",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: datetime(2026, 4, 10, 10, 0, tzinfo=timezone.utc),
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["progress_freshness"]["status"] == "fresh"
+    assert result["progress_freshness"]["latest_progress_source"] == "gate_clearing_batch"
+    assert "gate-clearing batch" in result["progress_freshness"]["latest_progress_summary"]
