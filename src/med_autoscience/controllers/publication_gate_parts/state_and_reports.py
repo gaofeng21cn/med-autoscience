@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 from importlib import import_module
 import json
 import re
@@ -213,6 +214,118 @@ def _resolve_current_journal_source_manifest_path(
         return None
     manifest_path = source_root / "submission_manifest.json"
     return manifest_path.resolve() if manifest_path.exists() else None
+
+
+def _publication_gate_fingerprint(
+    *,
+    blockers: list[str],
+    authority_source_signature: str | None,
+    evaluated_source_signature: str | None,
+    study_delivery_source_signature: str | None,
+) -> str:
+    payload = {
+        "blockers": sorted(str(item or "").strip() for item in blockers if str(item or "").strip()),
+        "authority_source_signature": authority_source_signature,
+        "evaluated_source_signature": evaluated_source_signature,
+        "study_delivery_source_signature": study_delivery_source_signature,
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()[:16]
+    return f"publication-gate::{digest}"
+
+
+def _append_blocking_artifact_ref(
+    refs: list[dict[str, Any]],
+    *,
+    blocker: str,
+    artifact_path: str | None,
+    artifact_role: str,
+    stale_reason: str | None = None,
+) -> None:
+    if artifact_path is None:
+        return
+    payload = {
+        "blocker": blocker,
+        "artifact_path": artifact_path,
+        "artifact_role": artifact_role,
+    }
+    if stale_reason is not None:
+        payload["stale_reason"] = stale_reason
+    if payload not in refs:
+        refs.append(payload)
+
+
+def _blocking_artifact_refs(
+    *,
+    blockers: list[str],
+    paper_root: Path | None,
+    submission_minimal_manifest_path: Path | None,
+    submission_minimal_authority_stale_reason: str | None,
+    study_delivery: dict[str, Any],
+    medical_publication_surface_named_blockers: list[str],
+    submission_surface_qc_failures: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    refs: list[dict[str, Any]] = []
+    blocker_set = {str(item or "").strip() for item in blockers if str(item or "").strip()}
+    if "stale_submission_minimal_authority" in blocker_set:
+        _append_blocking_artifact_ref(
+            refs,
+            blocker="stale_submission_minimal_authority",
+            artifact_path=str(submission_minimal_manifest_path) if submission_minimal_manifest_path else None,
+            artifact_role="submission_minimal_authority",
+            stale_reason=submission_minimal_authority_stale_reason,
+        )
+    if "stale_study_delivery_mirror" in blocker_set:
+        _append_blocking_artifact_ref(
+            refs,
+            blocker="stale_study_delivery_mirror",
+            artifact_path=_non_empty_text(study_delivery.get("delivery_manifest_path")),
+            artifact_role="study_delivery_mirror",
+            stale_reason=_non_empty_text(study_delivery.get("stale_reason")),
+        )
+    if paper_root is not None:
+        named_blocker_set = {
+            str(item or "").strip()
+            for item in medical_publication_surface_named_blockers
+            if str(item or "").strip()
+        }
+        if "figure_catalog_missing_or_incomplete" in named_blocker_set:
+            _append_blocking_artifact_ref(
+                refs,
+                blocker="figure_catalog_missing_or_incomplete",
+                artifact_path=str(paper_root / "figures" / "figure_catalog.json"),
+                artifact_role="figure_catalog",
+            )
+        if named_blocker_set & {
+            "display_registry_contract_missing",
+            "display_registry_missing",
+            "missing_display_registry",
+            "invalid_display_registry",
+            "medical_display_registry_missing",
+            "display_reporting_contract_missing",
+            "registry_contract_mismatch",
+        }:
+            _append_blocking_artifact_ref(
+                refs,
+                blocker="display_registry_contract_missing",
+                artifact_path=str(paper_root / "display_registry.json"),
+                artifact_role="display_registry",
+            )
+    for failure in submission_surface_qc_failures:
+        if not isinstance(failure, dict):
+            continue
+        artifact_path = _non_empty_text(failure.get("source_markdown_path")) or _non_empty_text(
+            failure.get("artifact_path")
+        )
+        _append_blocking_artifact_ref(
+            refs,
+            blocker="submission_surface_qc_failure_present",
+            artifact_path=artifact_path,
+            artifact_role="submission_surface_qc",
+            stale_reason=_non_empty_text(failure.get("failure_reason")),
+        )
+    return refs
 
 
 def resolve_journal_requirement_state(*, paper_root: Path | None) -> dict[str, Any]:
@@ -720,11 +833,36 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         named_blockers=medical_publication_surface_named_blockers,
         route_back_recommendation=medical_publication_surface_route_back_recommendation,
     )
+    submission_minimal_evaluated_source_signature = _non_empty_text(
+        submission_minimal_authority.get("source_signature")
+    )
+    submission_minimal_authority_source_signature = _non_empty_text(
+        submission_minimal_authority.get("recorded_source_signature")
+    )
+    study_delivery_source_signature = _non_empty_text(study_delivery.get("source_signature")) or _non_empty_text(
+        study_delivery.get("delivery_source_signature")
+    )
+    blocking_artifact_refs = _blocking_artifact_refs(
+        blockers=blockers,
+        paper_root=state.paper_root,
+        submission_minimal_manifest_path=state.submission_minimal_manifest_path,
+        submission_minimal_authority_stale_reason=submission_minimal_authority_stale_reason,
+        study_delivery=study_delivery,
+        medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
+        submission_surface_qc_failures=list(state.submission_surface_qc_failures),
+    )
+    gate_fingerprint = _publication_gate_fingerprint(
+        blockers=blockers,
+        authority_source_signature=submission_minimal_authority_source_signature,
+        evaluated_source_signature=submission_minimal_evaluated_source_signature,
+        study_delivery_source_signature=study_delivery_source_signature,
+    )
 
     return {
         "schema_version": 1,
         "gate_kind": "publishability_control",
         "generated_at": utc_now(),
+        "gate_fingerprint": gate_fingerprint,
         "anchor_kind": state.anchor_kind,
         "anchor_path": str(state.anchor_path),
         "quest_id": (state.main_result or {}).get("quest_id") or state.quest_root.name,
@@ -777,8 +915,14 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "submission_minimal_pdf_present": state.submission_minimal_pdf_present,
         "submission_minimal_authority_status": submission_minimal_authority_status,
         "submission_minimal_authority_stale_reason": submission_minimal_authority_stale_reason,
+        "submission_minimal_evaluated_source_signature": submission_minimal_evaluated_source_signature,
+        "submission_minimal_authority_source_signature": submission_minimal_authority_source_signature,
+        "authority_source_signature": submission_minimal_authority_source_signature,
         "study_delivery_status": study_delivery_status,
         "study_delivery_stale_reason": _non_empty_text(study_delivery.get("stale_reason")),
+        "study_delivery_source_signature": study_delivery_source_signature,
+        "study_delivery_evaluated_source_signature": _non_empty_text(study_delivery.get("evaluated_source_signature")),
+        "study_delivery_authority_source_signature": _non_empty_text(study_delivery.get("authority_source_signature")),
         "study_delivery_manifest_path": _non_empty_text(study_delivery.get("delivery_manifest_path")),
         "study_delivery_current_package_root": _non_empty_text(study_delivery.get("current_package_root")),
         "study_delivery_current_package_zip": _non_empty_text(study_delivery.get("current_package_zip")),
@@ -815,6 +959,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "medical_publication_surface_named_blockers": medical_publication_surface_named_blockers,
         "medical_publication_surface_route_back_recommendation": medical_publication_surface_route_back_recommendation,
         "submission_surface_qc_failures": list(state.submission_surface_qc_failures),
+        "blocking_artifact_refs": blocking_artifact_refs,
         "archived_submission_surface_roots": list(state.archived_submission_surface_roots),
         "unmanaged_submission_surface_roots": list(state.unmanaged_submission_surface_roots),
         "manuscript_terminology_violations": list(state.manuscript_terminology_violations),

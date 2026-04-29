@@ -23,6 +23,66 @@ def test_build_gate_report_exposes_submission_minimal_status_when_present(tmp_pa
     assert report["submission_minimal_present"] is True
     assert report["submission_minimal_docx_present"] is True
     assert report["submission_minimal_pdf_present"] is True
+
+
+def test_build_gate_report_exposes_authority_handshake_signatures_and_gate_fingerprint(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        include_current_medical_publication_surface_report=True,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    authority = module.submission_minimal.describe_submission_minimal_authority(paper_root=paper_root)
+    manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source_signature"] = authority["source_signature"]
+    manifest["source_contract"] = {"source_signature": authority["source_signature"]}
+    dump_json(manifest_path, manifest)
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["submission_minimal_authority_status"] == "current"
+    assert report["submission_minimal_evaluated_source_signature"] == authority["source_signature"]
+    assert report["submission_minimal_authority_source_signature"] == authority["source_signature"]
+    assert report["authority_source_signature"] == authority["source_signature"]
+    assert report["gate_fingerprint"].startswith("publication-gate::")
+    assert report["blocking_artifact_refs"] == []
+
+
+def test_build_gate_report_includes_blocking_artifact_refs_for_stale_authority(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        include_current_medical_publication_surface_report=True,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source_signature"] = "stale-source-signature"
+    manifest["source_contract"] = {"source_signature": "stale-source-signature"}
+    dump_json(manifest_path, manifest)
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert "stale_submission_minimal_authority" in report["blockers"]
+    assert report["submission_minimal_authority_source_signature"] == "stale-source-signature"
+    assert report["submission_minimal_evaluated_source_signature"] != "stale-source-signature"
+    assert {
+        "blocker": "stale_submission_minimal_authority",
+        "artifact_path": str(manifest_path),
+        "artifact_role": "submission_minimal_authority",
+        "stale_reason": "submission_source_signature_mismatch",
+    } in report["blocking_artifact_refs"]
 def test_build_gate_report_uses_authoritative_source_markdown_path_for_submission_surface_qc(
     tmp_path: Path,
     monkeypatch,

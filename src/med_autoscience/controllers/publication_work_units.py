@@ -185,6 +185,12 @@ def _fingerprint(blockers: tuple[str, ...]) -> str:
     return f"publication-blockers::{digest}"
 
 
+def _matching_submission_authority_signatures(report: Mapping[str, Any]) -> bool:
+    evaluated = str(report.get("submission_minimal_evaluated_source_signature") or "").strip()
+    authority = str(report.get("submission_minimal_authority_source_signature") or "").strip()
+    return bool(evaluated and authority and evaluated == authority)
+
+
 def fingerprint_blockers_for_work_unit(*, blockers: tuple[str, ...], next_work_unit: Mapping[str, Any]) -> tuple[str, ...]:
     unit_id = str(next_work_unit.get("unit_id") or "").strip()
     blocker_set_by_unit = {
@@ -264,6 +270,17 @@ def _append_mixed_controller_unit(units: list[dict[str, str]]) -> None:
     )
 
 
+def _append_publication_gate_replay_unit(units: list[dict[str, str]]) -> None:
+    units.append(
+        _unit(
+            "publication_gate_replay",
+            "controller",
+            "Replay the publication gate against current authority signatures before dispatching new work.",
+            control_surface="publication_gate",
+        )
+    )
+
+
 def _append_blocker_rule_units(
     units: list[dict[str, str]],
     *,
@@ -331,6 +348,20 @@ def _derive_blocking_work_units(
 ) -> tuple[list[dict[str, str]], str, tuple[str, ...]]:
     blocker_set = set(blockers)
     units: list[dict[str, str]] = []
+    replay_only_blockers = {
+        "stale_submission_minimal_authority",
+        "continue_bundle_stage",
+        "complete_bundle_stage",
+        "current",
+        "not_applicable",
+    }
+    if (
+        "stale_submission_minimal_authority" in blocker_set
+        and blocker_set.issubset(replay_only_blockers)
+        and _matching_submission_authority_signatures(report)
+    ):
+        _append_publication_gate_replay_unit(units)
+        return units, "controller_gate_replay_required", ()
     mixed_controller_repair = _is_mixed_controller_repair(blocker_set)
     if mixed_controller_repair:
         _append_mixed_controller_unit(units)
@@ -362,8 +393,10 @@ def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
     fingerprint_blockers = fingerprint_blockers_for_work_unit(blockers=blockers, next_work_unit=units[0])
     return {
         "fingerprint": _fingerprint(fingerprint_blockers),
+        "gate_fingerprint": str(report.get("gate_fingerprint") or "").strip() or None,
         "fingerprint_blockers": list(fingerprint_blockers),
         "blockers": list(blockers),
+        "blocking_artifact_refs": list(report.get("blocking_artifact_refs") or []),
         "actionability_status": actionability_status,
         "specificity_questions": list(specificity_questions),
         "blocking_work_units": units,

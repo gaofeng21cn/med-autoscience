@@ -20,6 +20,91 @@ def _resolve_authority_contract_markdown_path(
     return resolve_relpath(workspace_root, source_path)
 
 
+def _authority_gate_fingerprint(
+    *,
+    status: str,
+    stale_reason: str | None,
+    evaluated_source_signature: str | None,
+    authority_source_signature: str | None,
+) -> str:
+    payload = {
+        "status": status,
+        "stale_reason": stale_reason,
+        "evaluated_source_signature": evaluated_source_signature,
+        "authority_source_signature": authority_source_signature,
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()[:16]
+    return f"submission-minimal-authority::{digest}"
+
+
+def _authority_blocking_artifact_refs(
+    *,
+    status: str,
+    stale_reason: str | None,
+    submission_manifest_path: Path | None,
+    missing_source_paths: list[str],
+) -> list[dict[str, Any]]:
+    if status == "current":
+        return []
+    refs: list[dict[str, Any]] = []
+    if submission_manifest_path is not None:
+        refs.append(
+            {
+                "blocker": "stale_submission_minimal_authority",
+                "artifact_path": str(submission_manifest_path),
+                "artifact_role": "submission_minimal_authority",
+                "stale_reason": stale_reason,
+            }
+        )
+    for path in missing_source_paths:
+        refs.append(
+            {
+                "blocker": "stale_submission_minimal_authority",
+                "artifact_path": path,
+                "artifact_role": "missing_submission_source",
+                "stale_reason": stale_reason,
+            }
+        )
+    return refs
+
+
+def _authority_handshake_fields(
+    *,
+    status: str,
+    stale_reason: str | None,
+    evaluated_source_signature: str | None,
+    authority_source_signature: str | None,
+    submission_manifest_path: Path | None,
+    missing_source_paths: list[str],
+) -> dict[str, Any]:
+    blocking_artifact_refs = _authority_blocking_artifact_refs(
+        status=status,
+        stale_reason=stale_reason,
+        submission_manifest_path=submission_manifest_path,
+        missing_source_paths=missing_source_paths,
+    )
+    return {
+        "evaluated_source_signature": evaluated_source_signature,
+        "authority_source_signature": authority_source_signature,
+        "gate_fingerprint": _authority_gate_fingerprint(
+            status=status,
+            stale_reason=stale_reason,
+            evaluated_source_signature=evaluated_source_signature,
+            authority_source_signature=authority_source_signature,
+        ),
+        "blocking_artifact_refs": blocking_artifact_refs,
+        "gate_freshness_handshake": {
+            "status": status,
+            "evaluated_source_signature": evaluated_source_signature,
+            "authority_source_signature": authority_source_signature,
+            "blocking_artifact_refs": blocking_artifact_refs,
+            "replay_after_repair": status != "current",
+        },
+    }
+
+
 def describe_submission_minimal_authority(
     *,
     paper_root: Path,
@@ -43,6 +128,14 @@ def describe_submission_minimal_authority(
             "source_signature": None,
             "recorded_source_signature": None,
             "missing_source_paths": [],
+            **_authority_handshake_fields(
+                status="missing",
+                stale_reason="submission_manifest_missing",
+                evaluated_source_signature=None,
+                authority_source_signature=None,
+                submission_manifest_path=None,
+                missing_source_paths=[],
+            ),
         }
 
     try:
@@ -57,6 +150,14 @@ def describe_submission_minimal_authority(
             "source_signature": None,
             "recorded_source_signature": None,
             "missing_source_paths": [],
+            **_authority_handshake_fields(
+                status="invalid",
+                stale_reason="submission_manifest_invalid",
+                evaluated_source_signature=None,
+                authority_source_signature=None,
+                submission_manifest_path=submission_manifest_path,
+                missing_source_paths=[],
+            ),
         }
     if not isinstance(submission_manifest, dict):
         return {
@@ -68,6 +169,14 @@ def describe_submission_minimal_authority(
             "source_signature": None,
             "recorded_source_signature": None,
             "missing_source_paths": [],
+            **_authority_handshake_fields(
+                status="invalid",
+                stale_reason="submission_manifest_invalid",
+                evaluated_source_signature=None,
+                authority_source_signature=None,
+                submission_manifest_path=submission_manifest_path,
+                missing_source_paths=[],
+            ),
         }
 
     bundle_manifest_path = resolved_paper_root / "paper_bundle_manifest.json"
@@ -123,6 +232,14 @@ def describe_submission_minimal_authority(
             "source_signature": None,
             "recorded_source_signature": None,
             "missing_source_paths": [],
+            **_authority_handshake_fields(
+                status="stale_source_missing",
+                stale_reason="submission_source_inputs_missing",
+                evaluated_source_signature=None,
+                authority_source_signature=None,
+                submission_manifest_path=submission_manifest_path,
+                missing_source_paths=[],
+            ),
         }
 
     source_contract = build_submission_minimal_source_contract(
@@ -173,4 +290,12 @@ def describe_submission_minimal_authority(
         "recorded_source_signature": recorded_source_signature,
         "missing_source_paths": list(source_contract["missing_source_paths"]),
         "latest_source_mtime_ns": int(source_contract["latest_source_mtime_ns"]),
+        **_authority_handshake_fields(
+            status=status,
+            stale_reason=stale_reason,
+            evaluated_source_signature=source_contract["source_signature"],
+            authority_source_signature=recorded_source_signature,
+            submission_manifest_path=submission_manifest_path,
+            missing_source_paths=list(source_contract["missing_source_paths"]),
+        ),
     }

@@ -371,6 +371,55 @@ def _submission_projection_matches_source(
     return True
 
 
+def _submission_delivery_blocking_artifact_refs(
+    *,
+    status: str,
+    stale_reason: str | None,
+    delivery_manifest_path: Path,
+    missing_source_paths: list[str],
+) -> list[dict[str, Any]]:
+    if status == "current":
+        return []
+    refs: list[dict[str, Any]] = []
+    if delivery_manifest_path.exists():
+        refs.append(
+            {
+                "blocker": "stale_study_delivery_mirror",
+                "artifact_path": str(delivery_manifest_path),
+                "artifact_role": "study_delivery_mirror",
+                "stale_reason": stale_reason,
+            }
+        )
+    for path in missing_source_paths:
+        refs.append(
+            {
+                "blocker": "stale_study_delivery_mirror",
+                "artifact_path": path,
+                "artifact_role": "missing_delivery_source",
+                "stale_reason": stale_reason,
+            }
+        )
+    return refs
+
+
+def _submission_delivery_handshake(
+    *,
+    status: str,
+    evaluated_source_signature: str | None,
+    authority_source_signature: str | None,
+    delivery_source_signature: str | None,
+    blocking_artifact_refs: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "evaluated_source_signature": evaluated_source_signature,
+        "authority_source_signature": authority_source_signature,
+        "delivery_source_signature": delivery_source_signature,
+        "blocking_artifact_refs": blocking_artifact_refs,
+        "replay_after_repair": status != "current",
+    }
+
+
 def build_draft_handoff_readme(*, study_id: str) -> str:
     return (
         "# Draft Handoff Delivery\n\n"
@@ -479,6 +528,18 @@ def describe_submission_delivery(
             "current_package_root": None,
             "current_package_zip": None,
             "missing_source_paths": [],
+            "evaluated_source_signature": None,
+            "authority_source_signature": None,
+            "delivery_source_signature": None,
+            "source_signature": None,
+            "blocking_artifact_refs": [],
+            "gate_freshness_handshake": _submission_delivery_handshake(
+                status="not_applicable",
+                evaluated_source_signature=None,
+                authority_source_signature=None,
+                delivery_source_signature=None,
+                blocking_artifact_refs=[],
+            ),
         }
 
     context = _resolve_delivery_context(Path(paper_root).expanduser().resolve())
@@ -498,6 +559,18 @@ def describe_submission_delivery(
             "current_package_root": str(current_package_root),
             "current_package_zip": str(current_package_zip),
             "missing_source_paths": [],
+            "evaluated_source_signature": None,
+            "authority_source_signature": None,
+            "delivery_source_signature": None,
+            "source_signature": None,
+            "blocking_artifact_refs": [],
+            "gate_freshness_handshake": _submission_delivery_handshake(
+                status="missing",
+                evaluated_source_signature=None,
+                authority_source_signature=None,
+                delivery_source_signature=None,
+                blocking_artifact_refs=[],
+            ),
         }
     try:
         manifest = json.loads(delivery_manifest_path.read_text(encoding="utf-8"))
@@ -510,6 +583,18 @@ def describe_submission_delivery(
             "current_package_root": str(current_package_root),
             "current_package_zip": str(current_package_zip),
             "missing_source_paths": [],
+            "evaluated_source_signature": None,
+            "authority_source_signature": None,
+            "delivery_source_signature": None,
+            "source_signature": None,
+            "blocking_artifact_refs": [],
+            "gate_freshness_handshake": _submission_delivery_handshake(
+                status="invalid",
+                evaluated_source_signature=None,
+                authority_source_signature=None,
+                delivery_source_signature=None,
+                blocking_artifact_refs=[],
+            ),
         }
     if not isinstance(manifest, dict):
         return {
@@ -520,6 +605,18 @@ def describe_submission_delivery(
             "current_package_root": str(current_package_root),
             "current_package_zip": str(current_package_zip),
             "missing_source_paths": [],
+            "evaluated_source_signature": None,
+            "authority_source_signature": None,
+            "delivery_source_signature": None,
+            "source_signature": None,
+            "blocking_artifact_refs": [],
+            "gate_freshness_handshake": _submission_delivery_handshake(
+                status="invalid",
+                evaluated_source_signature=None,
+                authority_source_signature=None,
+                delivery_source_signature=None,
+                blocking_artifact_refs=[],
+            ),
         }
 
     expected_source_root = build_submission_source_root(
@@ -535,6 +632,12 @@ def describe_submission_delivery(
                 if isinstance(item, dict) and str(item.get("source_path") or "").strip()
             }
         )
+        blocking_artifact_refs = _submission_delivery_blocking_artifact_refs(
+            status="stale_source_missing",
+            stale_reason="current_submission_source_missing",
+            delivery_manifest_path=delivery_manifest_path,
+            missing_source_paths=missing_source_paths,
+        )
         return {
             "applicable": True,
             "status": "stale_source_missing",
@@ -543,6 +646,18 @@ def describe_submission_delivery(
             "current_package_root": str(current_package_root),
             "current_package_zip": str(current_package_zip),
             "missing_source_paths": missing_source_paths,
+            "evaluated_source_signature": None,
+            "authority_source_signature": str(manifest.get("authority_source_signature") or "").strip() or None,
+            "delivery_source_signature": str(manifest.get("source_signature") or "").strip() or None,
+            "source_signature": None,
+            "blocking_artifact_refs": blocking_artifact_refs,
+            "gate_freshness_handshake": _submission_delivery_handshake(
+                status="stale_source_missing",
+                evaluated_source_signature=None,
+                authority_source_signature=str(manifest.get("authority_source_signature") or "").strip() or None,
+                delivery_source_signature=str(manifest.get("source_signature") or "").strip() or None,
+                blocking_artifact_refs=blocking_artifact_refs,
+            ),
         }
 
     recorded_surface_roles = manifest.get("surface_roles") or {}
@@ -553,6 +668,16 @@ def describe_submission_delivery(
     source_relative_paths = _submission_source_relative_paths(
         paper_root=resolved_paper_root,
         source_root=expected_source_root,
+    )
+    source_signature = _submission_source_signature(
+        paper_root=resolved_paper_root,
+        source_root=expected_source_root,
+        relative_paths=source_relative_paths,
+    )
+    recorded_source_signature = str(manifest.get("source_signature") or "").strip() or None
+    recorded_authority_source_signature = (
+        str(manifest.get("authority_source_signature") or "").strip()
+        or recorded_source_signature
     )
     missing_source_paths = sorted(
         {
@@ -583,6 +708,12 @@ def describe_submission_delivery(
     else:
         status = "current"
         stale_reason = None
+    blocking_artifact_refs = _submission_delivery_blocking_artifact_refs(
+        status=status,
+        stale_reason=stale_reason,
+        delivery_manifest_path=delivery_manifest_path,
+        missing_source_paths=missing_source_paths,
+    )
     return {
         "applicable": True,
         "status": status,
@@ -591,6 +722,18 @@ def describe_submission_delivery(
         "current_package_root": str(current_package_root),
         "current_package_zip": str(current_package_zip),
         "missing_source_paths": missing_source_paths,
+        "evaluated_source_signature": source_signature,
+        "authority_source_signature": recorded_authority_source_signature,
+        "delivery_source_signature": recorded_source_signature,
+        "source_signature": source_signature,
+        "blocking_artifact_refs": blocking_artifact_refs,
+        "gate_freshness_handshake": _submission_delivery_handshake(
+            status=status,
+            evaluated_source_signature=source_signature,
+            authority_source_signature=recorded_authority_source_signature,
+            delivery_source_signature=recorded_source_signature,
+            blocking_artifact_refs=blocking_artifact_refs,
+        ),
     }
 
 

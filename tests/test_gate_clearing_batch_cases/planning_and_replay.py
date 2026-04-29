@@ -630,6 +630,78 @@ def test_run_gate_clearing_batch_refreshes_stale_submission_minimal_authority_wi
     assert [item["unit_id"] for item in result["unit_results"]] == ["create_submission_minimal_package"]
     assert result["gate_replay"]["status"] == "clear"
     assert result["gate_blockers"] == ["stale_submission_minimal_authority"]
+
+
+def test_run_gate_clearing_batch_replays_gate_when_stale_authority_signature_is_current(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
+
+    gate_report = {
+        "status": "blocked",
+        "blockers": ["stale_submission_minimal_authority"],
+        "current_required_action": "continue_bundle_stage",
+        "medical_publication_surface_status": "clear",
+        "study_delivery_status": "current",
+        "submission_minimal_authority_status": "current",
+        "submission_minimal_evaluated_source_signature": "source::abc",
+        "submission_minimal_authority_source_signature": "source::abc",
+        "gate_fingerprint": "publication-gate::stale-authority",
+    }
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(
+        module,
+        "_create_submission_minimal_package",
+        lambda **_: (_ for _ in ()).throw(AssertionError("current authority signature must not regenerate package")),
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id="quest-004",
+        source="test-source",
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "executed"
+    assert result["unit_results"] == []
+    assert result["selected_publication_work_unit"]["unit_id"] == "publication_gate_replay"
+    assert result["selected_publication_work_unit"]["lane"] == "controller"
+    assert result["gate_fingerprint"] == "publication-gate::stale-authority"
+    assert result["evaluated_source_signature"] == "source::abc"
+    assert result["authority_source_signature"] == "source::abc"
+    assert result["gate_replay"]["status"] == "clear"
+    assert result["gate_blockers"] == ["stale_submission_minimal_authority"]
 def test_run_gate_clearing_batch_executes_bundle_stage_workspace_refresh_before_submission_replay(
     monkeypatch,
     tmp_path: Path,

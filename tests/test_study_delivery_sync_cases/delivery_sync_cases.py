@@ -53,6 +53,37 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
         "journal_submission_mirror_root": None,
     }
     assert "evidence_ledger.json" in delivery_manifest["source_relative_paths"]
+
+
+def test_submission_delivery_manifest_and_status_expose_authority_handshake_signatures(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    manifest = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+    status = module.describe_submission_delivery(paper_root=paper_root)
+
+    assert manifest["evaluated_source_signature"] == manifest["source_signature"]
+    assert manifest["authority_source_signature"] == manifest["source_signature"]
+    assert status["evaluated_source_signature"] == manifest["source_signature"]
+    assert status["authority_source_signature"] == manifest["source_signature"]
+    assert status["delivery_source_signature"] == manifest["source_signature"]
+    assert status["blocking_artifact_refs"] == []
+    assert status["gate_freshness_handshake"] == {
+        "status": "current",
+        "evaluated_source_signature": manifest["source_signature"],
+        "authority_source_signature": manifest["source_signature"],
+        "delivery_source_signature": manifest["source_signature"],
+        "blocking_artifact_refs": [],
+        "replay_after_repair": False,
+    }
+
+    delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
+    assert delivery_manifest["authority_source_signature"] == manifest["source_signature"]
 def test_sync_study_delivery_for_submission_minimal_mirrors_review_ledger(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
