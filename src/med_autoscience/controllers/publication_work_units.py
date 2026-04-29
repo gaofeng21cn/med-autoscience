@@ -203,6 +203,13 @@ def fingerprint_blockers_for_work_unit(*, blockers: tuple[str, ...], next_work_u
         "manuscript_story_repair": _STORY_BLOCKERS,
         "figure_results_trace_repair": _FIGURE_RESULTS_BLOCKERS,
         "treatment_gap_reporting_repair": _TREATMENT_GAP_BLOCKERS,
+        "controller_owned_publication_repair": (
+            _CLAIM_EVIDENCE_BLOCKERS
+            | _STORY_BLOCKERS
+            | _FIGURE_RESULTS_BLOCKERS
+            | _DISPLAY_REGISTRY_BLOCKERS
+            | _SUBMISSION_REFRESH_BLOCKERS
+        ),
         "submission_minimal_refresh": _SUBMISSION_REFRESH_BLOCKERS,
         "display_reporting_contract_repair": _DISPLAY_REGISTRY_BLOCKERS,
         "local_architecture_overview_repair": _LOCAL_ARCHITECTURE_BLOCKERS,
@@ -246,12 +253,21 @@ def _has_actionable_object_ref(report: Mapping[str, Any]) -> bool:
 
 
 def _is_mixed_controller_repair(blocker_set: set[str]) -> bool:
-    return (
+    legacy_display_story_figure_bundle = (
         bool(blocker_set & _SUBMISSION_REFRESH_BLOCKERS)
         and bool(blocker_set & _DISPLAY_REGISTRY_BLOCKERS)
         and bool(blocker_set & _STORY_BLOCKERS)
         and bool(blocker_set & _FIGURE_RESULTS_BLOCKERS)
-        and not bool(blocker_set & (_CLAIM_EVIDENCE_BLOCKERS | _TREATMENT_GAP_BLOCKERS))
+    )
+    claim_story_figure_submission_bundle = (
+        bool(blocker_set & _SUBMISSION_REFRESH_BLOCKERS)
+        and bool(blocker_set & _CLAIM_EVIDENCE_BLOCKERS)
+        and bool(blocker_set & _STORY_BLOCKERS)
+        and bool(blocker_set & _FIGURE_RESULTS_BLOCKERS)
+    )
+    return (
+        (legacy_display_story_figure_bundle or claim_story_figure_submission_bundle)
+        and not bool(blocker_set & _TREATMENT_GAP_BLOCKERS)
     )
 
 
@@ -261,8 +277,8 @@ def _append_mixed_controller_unit(units: list[dict[str, str]]) -> None:
             "controller_owned_publication_repair",
             "controller",
             (
-                "Run one controller-owned deterministic repair unit for submission authority, display registry, "
-                "medical story contract, and figure semantics manifest blockers."
+                "Run one controller-owned deterministic repair unit for claim-evidence, medical story, "
+                "figure semantics, display registry, and submission authority/hardening blockers."
             ),
             user_feedback_priority="highest",
             control_surface="gate_clearing_batch",
