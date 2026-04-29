@@ -22,6 +22,8 @@ from .study_runtime_execution_parts.decision_relay import (
     _LIVE_CONTROLLER_REROUTE_FORCE_RESTART_AUTO_TURN_THRESHOLD,
     _append_route_context_to_message,
     _controller_owned_interaction_reply_message,
+    _live_controller_reroute_fingerprint,
+    _mark_live_controller_reroute_restart,
     _relay_controller_owned_runtime_reply_if_required,
     _should_force_restart_for_live_controller_reroute,
     _should_skip_redundant_resume_for_live_controller_reroute,
@@ -592,6 +594,9 @@ def _execute_resume_runtime_decision(
         context=context,
     )
     if force_live_controller_reroute_restart:
+        same_fingerprint_auto_turn_count = int(
+            quest_state.load_runtime_state(context.quest_root).get("same_fingerprint_auto_turn_count") or 0
+        )
         pause_result = router._pause_quest(
             runtime_root=context.runtime_root,
             quest_id=status.quest_id,
@@ -605,10 +610,14 @@ def _execute_resume_runtime_decision(
         status.extras["controller_reroute_restart"] = {
             "forced": True,
             "threshold": _LIVE_CONTROLLER_REROUTE_FORCE_RESTART_AUTO_TURN_THRESHOLD,
-            "same_fingerprint_auto_turn_count": int(
-                quest_state.load_runtime_state(context.quest_root).get("same_fingerprint_auto_turn_count") or 0
-            ),
+            "fingerprint": _live_controller_reroute_fingerprint(status=status),
+            "same_fingerprint_auto_turn_count": same_fingerprint_auto_turn_count,
         }
+        _mark_live_controller_reroute_restart(
+            status=status,
+            context=context,
+            same_fingerprint_auto_turn_count=same_fingerprint_auto_turn_count,
+        )
     _relay_controller_decision_authorization_if_required(status=status, context=context)
     _relay_controller_owned_runtime_reply_if_required(status=status, context=context)
     if _should_skip_redundant_resume_for_live_controller_reroute(status=status) and not force_live_controller_reroute_restart:

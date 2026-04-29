@@ -48,6 +48,8 @@ def _write_controller_decision_authorization(
     study_root: Path,
     *,
     action_type: str = "ensure_study_runtime",
+    runtime_escalation_record_id: str = "runtime-escalation::001-risk::quest-001::controller-gap",
+    publication_eval_id: str = "publication-eval::001-risk::quest-001::latest",
 ) -> Path:
     decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     decision_path.parent.mkdir(parents=True, exist_ok=True)
@@ -65,12 +67,12 @@ def _write_controller_decision_authorization(
                     "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
                 },
                 "runtime_escalation_ref": {
-                    "record_id": "runtime-escalation::001-risk::quest-001::controller-gap",
+                    "record_id": runtime_escalation_record_id,
                     "artifact_path": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
                     "summary_ref": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
                 },
                 "publication_eval_ref": {
-                    "eval_id": "publication-eval::001-risk::quest-001::latest",
+                    "eval_id": publication_eval_id,
                     "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
                 },
                 "requires_human_confirmation": False,
@@ -94,6 +96,36 @@ def _write_controller_decision_authorization(
         encoding="utf-8",
     )
     return decision_path
+
+
+def _write_publication_eval_authority(
+    study_root: Path,
+    *,
+    eval_id: str = "publication-eval::001-risk::quest-001::latest",
+    gate_fingerprint: str = "publication-gate::stable",
+    evaluated_signature: str = "source::evaluated",
+    authority_signature: str = "source::authority",
+) -> None:
+    path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "eval_id": eval_id,
+                "emitted_at": "2026-04-25T06:21:00+00:00",
+                "gate_fingerprint": gate_fingerprint,
+                "blockers": ["claim_evidence_consistency_failed"],
+                "current_required_action": "return_to_publishability_gate",
+                "submission_minimal_evaluated_source_signature": evaluated_signature,
+                "submission_minimal_authority_source_signature": authority_signature,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def _write_runtime_state(quest_root: Path, payload: dict[str, object]) -> None:
@@ -461,6 +493,100 @@ def test_execute_noop_runtime_decision_deduplicates_controller_authorization_acr
     assert "controller_decision_authorization_relay" not in status.to_dict()
 
 
+def test_controller_authorization_identity_ignores_volatile_eval_and_escalation_ids(tmp_path: Path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_controller_decision_authorization(
+        study_root,
+        runtime_escalation_record_id="runtime-escalation::001-risk::quest-001::2026-04-25T06:20:00+00:00",
+        publication_eval_id="publication-eval::001-risk::quest-001::2026-04-25T06:20:00+00:00",
+    )
+    _write_publication_eval_authority(
+        study_root,
+        eval_id="publication-eval::001-risk::quest-001::2026-04-25T06:20:00+00:00",
+    )
+    first = module._load_controller_decision_authorization_context(study_root=study_root)
+
+    _write_controller_decision_authorization(
+        study_root,
+        runtime_escalation_record_id="runtime-escalation::001-risk::quest-001::2026-04-25T06:25:00+00:00",
+        publication_eval_id="publication-eval::001-risk::quest-001::2026-04-25T06:25:00+00:00",
+    )
+    _write_publication_eval_authority(
+        study_root,
+        eval_id="publication-eval::001-risk::quest-001::2026-04-25T06:25:00+00:00",
+    )
+    second = module._load_controller_decision_authorization_context(study_root=study_root)
+
+    assert first is not None
+    assert second is not None
+    assert "2026-04-25T06" not in first["blocker_authority_fingerprint"]
+    assert first["blocker_authority_fingerprint"] == second["blocker_authority_fingerprint"]
+    assert first["control_intent_key"] == second["control_intent_key"]
+
+
+def test_execute_noop_runtime_decision_deduplicates_controller_authorization_from_intent_ledger(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    intent_module = importlib.import_module("med_autoscience.controllers.control_intent")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    _write_controller_decision_authorization(study_root)
+    _write_publication_eval_authority(study_root)
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    intent_module.append_event(
+        study_root=study_root,
+        identity=intent_module.build_control_intent_identity(
+            study_id=str(authorization_context["study_id"]),
+            quest_id=str(authorization_context["quest_id"]),
+            route_target=str(authorization_context["route_target"]),
+            work_unit_id=str(authorization_context["route_key_question"]),
+            blocker_authority_fingerprint=str(authorization_context["blocker_authority_fingerprint"]),
+            controller_actions=authorization_context["controller_actions"],
+            source_kind="controller_decision_authorization",
+        ),
+        event_type="delivered",
+        payload={"active_run_id": "run-live-001", "message_id": "msg-auth-001"},
+        recorded_at="2026-04-25T06:22:00+00:00",
+    )
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-live-002",
+            "pending_user_message_count": 0,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("ledger-delivered control intent must not be delivered again")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert "controller_decision_authorization_relay" not in status.to_dict()
+
+
 def test_execute_noop_runtime_decision_fallback_tags_controller_authorization_with_dedupe_key(
     tmp_path: Path,
 ) -> None:
@@ -626,6 +752,73 @@ def test_force_restart_for_live_controller_reroute_supports_write_drift_even_whe
             context=SimpleNamespace(quest_root=quest_root),
         )
         is True
+    )
+
+
+def test_force_restart_for_live_write_drift_is_once_per_unchanged_gate_fingerprint(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    _patch_router(monkeypatch, module)
+    quest_root = tmp_path / "runtime" / "quest-001"
+    payload = _base_status_payload()
+    payload["reason"] = "quest_drifting_into_write_without_gate_approval"
+    payload["quest_root"] = str(quest_root)
+    status = typed_surface.StudyRuntimeStatus.from_payload(payload)
+    status.record_runtime_liveness_audit(
+        {
+            "status": "live",
+            "active_run_id": "run-live-001",
+            "runtime_audit": {
+                "status": "live",
+                "active_run_id": "run-live-001",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        }
+    )
+    status.record_publication_supervisor_state(
+        {
+            "status": "blocked",
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "gate_fingerprint": "publication-gate::unchanged",
+            "blockers": ["claim_evidence_consistency_failed"],
+            "upstream_scientific_anchor_ready": True,
+            "current_required_action": "return_to_publishability_gate",
+            "bundle_tasks_downstream_only": True,
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "write stage must yield back to the publication gate",
+        }
+    )
+    fingerprint = module._live_controller_reroute_fingerprint(status=status)
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-live-001",
+            "continuation_anchor": "write",
+            "continuation_reason": "write:finish_proofing_and_submission_checks",
+            "same_fingerprint_auto_turn_count": 9,
+            "pending_user_message_count": 0,
+            "last_live_controller_reroute_restart": {
+                "reason": "quest_drifting_into_write_without_gate_approval",
+                "fingerprint": fingerprint,
+                "restart_count": 1,
+            },
+        },
+    )
+
+    assert module._should_skip_redundant_resume_for_live_controller_reroute(status=status) is True
+    assert (
+        module._should_force_restart_for_live_controller_reroute(
+            status=status,
+            context=SimpleNamespace(quest_root=quest_root),
+        )
+        is False
     )
 
 
