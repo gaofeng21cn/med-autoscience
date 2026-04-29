@@ -251,22 +251,38 @@ def _latest_no_op_suppression(
     return None
 
 
-def _runtime_efficiency_summary(runtime_efficiency: dict[str, Any] | None) -> tuple[str | None, dict[str, Any] | None]:
+def _runtime_efficiency_summary(
+    runtime_efficiency: dict[str, Any] | None,
+) -> tuple[str | None, dict[str, Any] | None, dict[str, Any] | None]:
     if not runtime_efficiency:
-        return None, None
+        return None, None, None
     evidence_packet_count = int(runtime_efficiency.get("evidence_packet_count") or 0)
     gate_cache_surfaces = [
         dict(item)
         for item in (runtime_efficiency.get("gate_cache_surfaces") or [])
         if isinstance(item, dict)
     ]
+    metrics = {
+        "tool_result_bytes_saved_total": int(runtime_efficiency.get("tool_result_bytes_saved_total") or 0),
+        "unique_command_count": int(runtime_efficiency.get("unique_command_count") or 0),
+        "read_tool_call_count": int(runtime_efficiency.get("read_tool_call_count") or 0),
+        "repeated_read_result_count": int(runtime_efficiency.get("repeated_read_result_count") or 0),
+        "repeated_read_ratio": float(runtime_efficiency.get("repeated_read_ratio") or 0.0),
+        "gate_replay_hit_count": int(runtime_efficiency.get("gate_replay_hit_count") or 0),
+        "latest_gate_replay_at": _non_empty_text(runtime_efficiency.get("latest_gate_replay_at")),
+    }
     summary = (
         f"runtime efficiency: {evidence_packet_count} evidence packet sidecar item(s); "
-        f"{len(gate_cache_surfaces)} gate cache surface(s)."
+        f"{len(gate_cache_surfaces)} gate cache surface(s); "
+        f"unique commands {metrics['unique_command_count']}; "
+        f"repeated reads {metrics['repeated_read_result_count']}/{metrics['read_tool_call_count']}; "
+        f"saved bytes {metrics['tool_result_bytes_saved_total']}; "
+        f"gate replay hits {metrics['gate_replay_hit_count']}."
     )
     refs = {
         "telemetry_path": _non_empty_text(runtime_efficiency.get("telemetry_path")),
         "evidence_packet_index_path": _non_empty_text(runtime_efficiency.get("evidence_packet_index_path")),
+        "gate_replay_ref": _non_empty_text(runtime_efficiency.get("gate_replay_ref")),
         "gate_cache_surfaces": [
             {
                 "surface_id": _non_empty_text(item.get("surface_id")),
@@ -276,7 +292,7 @@ def _runtime_efficiency_summary(runtime_efficiency: dict[str, Any] | None) -> tu
             for item in gate_cache_surfaces[:8]
         ],
     }
-    return summary, refs
+    return summary, refs, metrics
 
 
 def _operator_status_card(
@@ -322,7 +338,9 @@ def _operator_status_card(
         study_id=study_id,
         runtime_watch_payload=runtime_watch_payload,
     )
-    runtime_efficiency_summary, runtime_efficiency_refs = _runtime_efficiency_summary(runtime_efficiency)
+    runtime_efficiency_summary, runtime_efficiency_refs, runtime_efficiency_metrics = _runtime_efficiency_summary(
+        runtime_efficiency
+    )
     payload = {
         "surface_kind": "study_operator_status_card",
         "study_id": study_id,
@@ -353,6 +371,7 @@ def _operator_status_card(
     if runtime_efficiency_summary is not None:
         payload["runtime_efficiency_summary"] = runtime_efficiency_summary
         payload["runtime_efficiency_refs"] = runtime_efficiency_refs
+        payload["runtime_efficiency_metrics"] = runtime_efficiency_metrics
     if bool((auto_runtime_parked or {}).get("parked")):
         payload["auto_runtime_parked"] = dict(auto_runtime_parked or {})
         payload["parked_state"] = _non_empty_text((auto_runtime_parked or {}).get("parked_state"))
