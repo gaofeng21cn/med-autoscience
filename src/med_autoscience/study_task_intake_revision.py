@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
+from med_autoscience.study_task_intake_stop_loss import (
+    build_publishability_stop_loss_intake,
+    task_intake_requests_publishability_stop_loss,
+)
+
 DIRECT_FINALIZE_DOWNGRADE_MARKERS = (
     "不能按已达投稿包里程碑直接收口",
     "不得直接按外投收口",
@@ -102,6 +107,8 @@ def _task_intake_contains_any(payload: dict[str, Any] | None, markers: tuple[str
 
 
 def task_intake_is_reviewer_revision(payload: dict[str, Any] | None) -> bool:
+    if task_intake_requests_publishability_stop_loss(payload):
+        return False
     return _task_intake_contains_any(payload, REVIEWER_REVISION_MARKERS)
 
 
@@ -110,6 +117,8 @@ def task_intake_requests_submission_package_refresh(payload: dict[str, Any] | No
 
 
 def submission_revision_operating_state(payload: dict[str, Any] | None) -> str | None:
+    if task_intake_requests_publishability_stop_loss(payload):
+        return None
     if task_intake_is_reviewer_revision(payload):
         return "reviewer_revision"
     if task_intake_requests_submission_package_refresh(payload):

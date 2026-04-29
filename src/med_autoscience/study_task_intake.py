@@ -16,6 +16,13 @@ from med_autoscience.study_task_intake_fast_lane import (
 from med_autoscience.study_task_intake_fast_lane_closeout import (
     task_intake_yields_to_manuscript_fast_lane_closeout as _fast_lane_closeout_yields_task_intake,
 )
+from med_autoscience.study_task_intake_stop_loss import (
+    build_publishability_stop_loss_intake,
+    build_publishability_stop_loss_progress_override,
+    render_publishability_stop_loss_markdown_lines,
+    render_publishability_stop_loss_runtime_context_lines,
+    task_intake_requests_publishability_stop_loss,
+)
 from med_autoscience.study_task_intake_revision import (
     REVISION_INTAKE_CHECKLIST,
     submission_revision_operating_state,
@@ -143,6 +150,9 @@ def summarize_task_intake(payload: dict[str, Any] | None) -> dict[str, Any] | No
         "reference_papers": _normalized_strings(payload.get("reference_papers") or []),
         "first_cycle_outputs": _normalized_strings(payload.get("first_cycle_outputs") or []),
     }
+    stop_loss_intake = build_publishability_stop_loss_intake(payload)
+    if stop_loss_intake is not None:
+        summary["stop_loss_intake"] = stop_loss_intake
     revision_intake = build_reviewer_revision_intake(payload)
     if revision_intake is not None:
         summary["revision_intake"] = revision_intake
@@ -237,7 +247,8 @@ def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, 
 def task_intake_overrides_auto_manual_finish(payload: dict[str, Any] | None) -> bool:
     # 这里只接受 durable task intake 中明确写出的强语义，不做泛化 NLP 推断。
     return (
-        task_intake_is_reviewer_revision(payload)
+        task_intake_requests_publishability_stop_loss(payload)
+        or task_intake_is_reviewer_revision(payload)
         or task_intake_requests_manuscript_fast_lane(payload)
         or task_intake_requests_submission_package_refresh(payload)
     )
@@ -669,6 +680,9 @@ def build_task_intake_progress_override(
 ) -> dict[str, Any] | None:
     if not task_intake_overrides_auto_manual_finish(payload):
         return None
+    stop_loss_override = build_publishability_stop_loss_progress_override(payload)
+    if stop_loss_override is not None:
+        return stop_loss_override
     if task_intake_yields_to_deterministic_submission_closeout(
         payload,
         study_root=study_root,
@@ -809,6 +823,7 @@ def render_task_intake_markdown(payload: dict[str, Any]) -> str:
     else:
         lines.append("- None")
     revision_intake = build_reviewer_revision_intake(payload)
+    lines.extend(render_publishability_stop_loss_markdown_lines(payload))
     if revision_intake is not None:
         lines.extend(["", "## Revision Intake Checklist", ""])
         for item in revision_intake["checklist_items"]:
@@ -865,6 +880,7 @@ def render_task_intake_runtime_context(payload: dict[str, Any]) -> str:
                 "Regenerate manuscript/current_package from canonical authority after revision.",
             ]
         )
+    lines.extend(render_publishability_stop_loss_runtime_context_lines(payload))
     lines.extend(render_manuscript_fast_lane_runtime_context_lines(payload))
     return "\n".join(lines)
 
@@ -948,6 +964,9 @@ def write_task_intake(
             ),
         },
     }
+    stop_loss_intake = build_publishability_stop_loss_intake(payload)
+    if stop_loss_intake is not None:
+        payload["stop_loss_intake"] = stop_loss_intake
     revision_intake = build_reviewer_revision_intake(payload)
     if revision_intake is not None:
         payload["revision_intake"] = revision_intake

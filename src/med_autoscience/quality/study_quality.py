@@ -171,7 +171,7 @@ def _bounded_analysis_truth(
     completion_boundary = dict(raw_contract.get("completion_boundary") or {})
     required_now = str((route_repair_plan or {}).get("action_type") or "").strip() == "bounded_analysis"
     closure_state = str(quality_closure_truth.get("state") or "").strip()
-    if closure_state in {"write_line_ready", "bundle_only_remaining"}:
+    if closure_state in {"write_line_ready", "bundle_only_remaining", "stop_loss_recommended"}:
         entry_state = "not_required"
         completion_state = "satisfied"
     elif required_now:
@@ -211,6 +211,16 @@ def _narrowest_scientific_gap(
     why_now = _optional_text((route_repair_plan or {}).get("route_rationale")) or _optional_text(
         quality_execution_lane.get("why_now")
     )
+    if closure_state == "stop_loss_recommended":
+        return {
+            "state": "stop_loss",
+            "gap_id": None,
+            "severity": "must_fix",
+            "summary": str(quality_closure_truth.get("summary") or "").strip(),
+            "route_target": "stop",
+            "route_key_question": route_key_question,
+            "why_now": why_now,
+        }
     if closure_state == "bundle_only_remaining":
         return {
             "state": "closed",

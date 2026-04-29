@@ -72,12 +72,15 @@ _ALLOWED_ACTION_TYPES = frozenset(
         "continue_same_line",
         "route_back_same_line",
         "bounded_analysis",
+        "stop_loss",
         "return_to_controller",
         "prepare_promotion_review",
     }
 )
 _ALLOWED_ACTION_PRIORITIES = frozenset({"now", "next"})
-_ROUTE_CONTRACT_ACTION_TYPES = frozenset({"continue_same_line", "route_back_same_line", "bounded_analysis"})
+_ROUTE_CONTRACT_ACTION_TYPES = frozenset(
+    {"continue_same_line", "route_back_same_line", "bounded_analysis", "stop_loss"}
+)
 _ALLOWED_ROUTE_TARGETS = frozenset(
     {
         "intake-audit",
@@ -90,6 +93,7 @@ _ALLOWED_ROUTE_TARGETS = frozenset(
         "write",
         "review",
         "finalize",
+        "stop",
     }
 )
 _REQUIRED_RUNTIME_CONTEXT_REF_KEYS = frozenset({"runtime_escalation_ref", "main_result_ref"})

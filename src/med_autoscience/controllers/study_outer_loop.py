@@ -283,6 +283,8 @@ def _autonomous_decision_type_for_publication_eval_action(action_payload: dict[s
         return StudyDecisionType.ROUTE_BACK_SAME_LINE.value
     if action_type == StudyDecisionType.BOUNDED_ANALYSIS.value:
         return StudyDecisionType.BOUNDED_ANALYSIS.value
+    if action_type == StudyDecisionType.STOP_LOSS.value:
+        return StudyDecisionType.STOP_LOSS.value
     return None
 
 
@@ -385,7 +387,10 @@ def build_runtime_watch_outer_loop_tick_request(
     ).to_dict()
     controller_action_type = str(recommended_action.get("controller_action_type") or "").strip()
     if not controller_action_type:
-        controller_action_type = _autonomous_controller_action_type_for_runtime_status(status_payload)
+        if decision_type == StudyDecisionType.STOP_LOSS.value:
+            controller_action_type = StudyDecisionActionType.STOP_RUNTIME.value
+        else:
+            controller_action_type = _autonomous_controller_action_type_for_runtime_status(status_payload)
     controller_action = StudyDecisionControllerAction(
         action_type=controller_action_type,
         payload_ref=str((resolved_study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),

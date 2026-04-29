@@ -665,7 +665,12 @@ def build_same_line_route_truth(
     route_key_question = _optional_text(execution_lane.get("route_key_question"))
     lane_summary = _optional_text(execution_lane.get("summary"))
 
-    if lane_id == "submission_hardening" or closure_state == "bundle_only_remaining":
+    if lane_id == "stop_loss" or closure_state == "stop_loss_recommended" or route_target == "stop":
+        same_line_state = "stop_loss"
+        route_mode = "return"
+        route_target = "stop"
+        summary = "当前论文线已触发主动止损；停止当前 manuscript line，除非未来重新定义独立研究问题。"
+    elif lane_id == "submission_hardening" or closure_state == "bundle_only_remaining":
         same_line_state = "finalize_only_remaining"
         route_mode = "return"
         route_target = "finalize"

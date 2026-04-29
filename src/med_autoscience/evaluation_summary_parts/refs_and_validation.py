@@ -43,9 +43,11 @@ _GAP_SEVERITY_LABELS = {
     "optional": "可选优化项",
 }
 _ACTION_PRIORITY_RANK = {"now": 0, "next": 1}
-_ROUTE_REPAIR_ACTION_TYPES = {"continue_same_line", "route_back_same_line", "bounded_analysis"}
+_ROUTE_REPAIR_ACTION_TYPES = {"continue_same_line", "route_back_same_line", "bounded_analysis", "stop_loss"}
 _QUALITY_DIMENSION_STATUSES = frozenset({"ready", "partial", "blocked", "underdefined"})
-_QUALITY_CLOSURE_STATES = frozenset({"quality_repair_required", "write_line_ready", "bundle_only_remaining"})
+_QUALITY_CLOSURE_STATES = frozenset(
+    {"quality_repair_required", "write_line_ready", "bundle_only_remaining", "stop_loss_recommended"}
+)
 _QUALITY_CLOSURE_BASIS_KEYS = (
     "clinical_significance",
     "evidence_strength",
@@ -65,6 +67,7 @@ _QUALITY_EXECUTION_LANE_LABELS = {
     "claim_evidence": "claim-evidence 修复",
     "submission_hardening": "投稿包硬化收口",
     "write_ready": "同线写作推进",
+    "stop_loss": "主动止损",
     "general_quality_repair": "质量修复",
 }
 _SAME_LINE_ROUTE_STATES = frozenset(
@@ -74,6 +77,7 @@ _SAME_LINE_ROUTE_STATES = frozenset(
         "bounded_analysis",
         "write_continuation",
         "finalize_only_remaining",
+        "stop_loss",
     }
 )
 _SAME_LINE_ROUTE_STATE_LABELS = {
@@ -82,6 +86,7 @@ _SAME_LINE_ROUTE_STATE_LABELS = {
     "bounded_analysis": "有限补充分析",
     "write_continuation": "同线写作推进",
     "finalize_only_remaining": "同线定稿与投稿包收尾",
+    "stop_loss": "主动止损停题",
 }
 _SAME_LINE_ROUTE_MODES = frozenset({"return", "enter", "continue"})
 _SAME_LINE_ROUTE_TARGET_LABELS = {

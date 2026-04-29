@@ -885,6 +885,26 @@ def test_publication_eval_action_does_not_dispatch_bounded_analysis_for_non_acti
     assert action.to_dict()["blocking_work_units"][0]["unit_id"] == "gate_needs_specificity"
 
 
+def test_publication_eval_action_keeps_stop_loss_even_when_gate_is_non_actionable() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+
+    action = module._publication_eval_action(
+        report={
+            "status": "blocked",
+            "current_required_action": "stop_runtime",
+            "controller_stage_note": "Knosp already answers the invasion question; stop this paper line.",
+            "blockers": ["publication_gate_blocked", "submission_hardening_needed"],
+        },
+        generated_at="2026-04-29T02:00:00+00:00",
+        evidence_refs=("/tmp/publishability_gate.json",),
+    )
+
+    assert action.action_type == "stop_loss"
+    assert action.route_target == "stop"
+    assert action.route_key_question == "当前论文线是否还有独立临床意义和强论文路径？"
+    assert action.route_rationale == "Knosp already answers the invasion question; stop this paper line."
+
+
 def test_publication_eval_action_routes_blocked_bundle_stage_back_to_same_line_finalize() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
 

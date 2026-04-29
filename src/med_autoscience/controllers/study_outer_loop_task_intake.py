@@ -23,6 +23,35 @@ def recommended_task_intake_action(
     if not isinstance(task_intake_override, dict):
         return None
     current_required_action = str(task_intake_override.get("current_required_action") or "").strip()
+    if current_required_action == "stop_runtime":
+        quality_closure_truth = (
+            dict(task_intake_override.get("quality_closure_truth") or {})
+            if isinstance(task_intake_override.get("quality_closure_truth"), dict)
+            else {}
+        )
+        quality_execution_lane = (
+            dict(task_intake_override.get("quality_execution_lane") or {})
+            if isinstance(task_intake_override.get("quality_execution_lane"), dict)
+            else {}
+        )
+        reason = (
+            str(quality_execution_lane.get("why_now") or "").strip()
+            or str(quality_closure_truth.get("summary") or "").strip()
+            or str(task_intake_override.get("next_system_action") or "").strip()
+            or "Latest task intake requests publishability stop-loss for the current paper line."
+        )
+        return {
+            "action_id": f"task-intake::{Path(study_root).expanduser().resolve().name}::stop_loss",
+            "action_type": StudyDecisionType.STOP_LOSS.value,
+            "priority": "now",
+            "reason": reason,
+            "route_target": "stop",
+            "route_key_question": str(quality_execution_lane.get("route_key_question") or "").strip()
+            or "当前论文线是否还有独立临床意义和强论文路径？",
+            "route_rationale": reason,
+            "requires_controller_decision": True,
+            "controller_action_type": StudyDecisionActionType.STOP_RUNTIME.value,
+        }
     if current_required_action not in {"return_to_analysis_campaign", "continue_write_stage"}:
         return None
     quality_closure_truth = (

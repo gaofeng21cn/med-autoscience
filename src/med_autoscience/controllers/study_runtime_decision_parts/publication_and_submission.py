@@ -23,6 +23,7 @@ from med_autoscience.controllers import (
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
 )
+from med_autoscience.controllers.study_runtime_decision_parts import publication_stop_loss
 from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeAuditRecord,
     StudyRuntimeAuditStatus,
@@ -604,6 +605,8 @@ def _publication_eval_action(
                     or "The current line is clear enough to continue after one bounded supplementary analysis pass."
                 ),
             }
+        if action_type == "stop_loss":
+            return publication_stop_loss.stop_loss_route_contract(controller_stage_note=controller_stage_note)
         if action_type not in {"continue_same_line", "route_back_same_line"}:
             return None
         if current_required_action in {"continue_bundle_stage", "complete_bundle_stage"}:
@@ -627,6 +630,8 @@ def _publication_eval_action(
     def _blocked_route_action() -> tuple[str, dict[str, str]] | None:
         route_back_recommendation = str(report.get("medical_publication_surface_route_back_recommendation") or "").strip()
         controller_stage_note = str(report.get("controller_stage_note") or "").strip()
+        if publication_stop_loss.report_requests_stop_loss(report):
+            return ("stop_loss", _route_contract_for_action("stop_loss") or {})
         if route_back_recommendation == "return_to_analysis_campaign":
             return (
                 "bounded_analysis",
@@ -685,7 +690,9 @@ def _publication_eval_action(
             action_type, route_contract = blocked_route_action
         else:
             current_required_action = str(report.get("current_required_action") or "").strip()
-            if current_required_action in {"continue_bundle_stage", "complete_bundle_stage"}:
+            if publication_stop_loss.report_requests_stop_loss(report):
+                action_type, route_contract = "stop_loss", _route_contract_for_action("stop_loss") or {}
+            elif current_required_action in {"continue_bundle_stage", "complete_bundle_stage"}:
                 action_type = "route_back_same_line"
                 route_contract = _route_contract_for_action(action_type) or {}
             else:
@@ -696,10 +703,7 @@ def _publication_eval_action(
             or "Publication gate is blocked and requires controller review."
         )
     work_unit_payload = publication_work_units.derive_publication_work_units(report)
-    if (
-        status != "clear"
-        and str(work_unit_payload.get("actionability_status") or "").strip() == "blocked_by_non_actionable_gate"
-    ):
+    if publication_stop_loss.non_actionable_gate_overrides(status=status, action_type=action_type, work_unit_payload=work_unit_payload):
         action_type = "return_to_controller"
         route_contract = {}
     work_unit_fingerprint = str(work_unit_payload.get("fingerprint") or "").strip()
