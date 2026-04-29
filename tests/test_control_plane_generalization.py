@@ -87,6 +87,76 @@ def test_work_unit_ledger_appends_replayable_events(tmp_path: Path) -> None:
     assert ledger.latest_event(study_root=study_root, dispatch_key=identity.dispatch_key)["event_type"] == "dispatched"
 
 
+def test_control_intent_identity_excludes_delivery_attempt_metadata() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_intent")
+    first = module.build_control_intent_identity(
+        study_id="001-risk",
+        quest_id="quest-001",
+        route_target="analysis-campaign",
+        work_unit_id="revision checklist mapping",
+        blocker_authority_fingerprint="runtime_escalation:fp-1",
+        controller_actions=("ensure_study_runtime",),
+        source_kind="controller_decision_authorization",
+    )
+    replay = module.build_control_intent_identity(
+        study_id="001-risk",
+        quest_id="quest-001",
+        route_target="analysis-campaign",
+        work_unit_id="revision checklist mapping",
+        blocker_authority_fingerprint="runtime_escalation:fp-1",
+        controller_actions=("ensure_study_runtime",),
+        source_kind="controller_decision_authorization",
+    )
+    superseding_feedback = module.build_control_intent_identity(
+        study_id="001-risk",
+        quest_id="quest-001",
+        route_target="analysis-campaign",
+        work_unit_id="new reviewer feedback mapping",
+        blocker_authority_fingerprint="runtime_escalation:fp-2",
+        controller_actions=("ensure_study_runtime",),
+        source_kind="controller_decision_authorization",
+    )
+
+    assert first.business_key == replay.business_key
+    assert first.business_key != superseding_feedback.business_key
+    assert "active_run_id" not in first.to_dict()
+
+
+def test_control_intent_ledger_records_latest_business_key_event(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_root = tmp_path / "studies" / "001-risk"
+    identity = module.build_control_intent_identity(
+        study_id="001-risk",
+        quest_id="quest-001",
+        route_target="write",
+        work_unit_id="manuscript repair",
+        blocker_authority_fingerprint="task-intake:fp-1",
+        controller_actions=("submit_study_task",),
+        source_kind="study_task_intake",
+    )
+
+    module.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="delivered",
+        payload={"active_run_id": "run-001"},
+        recorded_at="2026-04-29T00:00:00+00:00",
+    )
+    module.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="replayed",
+        payload={"active_run_id": "run-002"},
+        recorded_at="2026-04-29T00:01:00+00:00",
+    )
+
+    latest = module.latest_event(study_root=study_root, business_key=identity.business_key)
+
+    assert latest["event_type"] == "replayed"
+    assert latest["identity"]["business_key"] == identity.business_key
+    assert latest["payload"]["active_run_id"] == "run-002"
+
+
 def test_profile_sli_summary_separates_active_duplicate_dispatch_from_history() -> None:
     module = importlib.import_module("med_autoscience.controllers.profile_sli")
 

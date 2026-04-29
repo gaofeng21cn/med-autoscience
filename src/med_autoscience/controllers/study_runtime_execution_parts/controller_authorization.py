@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import control_intent
 from med_autoscience.runtime_protocol import quest_state, user_message
 from med_autoscience.study_decision_record import StudyDecisionRecord
 
@@ -46,8 +47,27 @@ def _load_controller_decision_authorization_context(*, study_root: Path) -> dict
     ):
         return None
     controller_actions = tuple(action.action_type.value for action in record.controller_actions)
+    blocker_authority_fingerprint = "::".join(
+        value
+        for value in (
+            f"runtime_escalation:{record.runtime_escalation_ref.record_id}",
+            f"publication_eval:{record.publication_eval_ref.eval_id}",
+        )
+        if value.strip()
+    )
+    intent_identity = control_intent.build_control_intent_identity(
+        study_id=record.study_id,
+        quest_id=record.quest_id,
+        route_target=record.route_target,
+        work_unit_id=record.route_key_question,
+        blocker_authority_fingerprint=blocker_authority_fingerprint,
+        controller_actions=controller_actions,
+        source_kind="controller_decision_authorization",
+    )
     return {
         "decision_id": record.decision_id,
+        "study_id": record.study_id,
+        "quest_id": record.quest_id,
         "decision_type": record.decision_type.value,
         "requires_human_confirmation": record.requires_human_confirmation,
         "controller_actions": controller_actions,
@@ -56,6 +76,9 @@ def _load_controller_decision_authorization_context(*, study_root: Path) -> dict
         "route_target_label": _ROUTE_TARGET_LABELS.get(record.route_target, record.route_target),
         "route_key_question": record.route_key_question,
         "route_rationale": record.route_rationale,
+        "blocker_authority_fingerprint": blocker_authority_fingerprint,
+        "control_intent_identity": intent_identity.to_dict(),
+        "control_intent_key": intent_identity.business_key,
     }
 
 
@@ -111,10 +134,15 @@ def _controller_decision_authorization_already_relayed(
     marker = runtime_state.get(_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
     if not isinstance(marker, dict):
         return False
+    expected_intent_key = str(authorization_context.get("control_intent_key") or "").strip()
+    marker_intent_key = str(marker.get("control_intent_key") or "").strip()
+    if expected_intent_key and marker_intent_key:
+        return marker_intent_key == expected_intent_key
     return (
         str(marker.get("decision_id") or "").strip() == str(authorization_context.get("decision_id") or "").strip()
         and str(marker.get("route_target") or "").strip() == str(authorization_context.get("route_target") or "").strip()
-        and (str(marker.get("active_run_id") or "").strip() or None) == active_run_id
+        and str(marker.get("route_key_question") or "").strip()
+        == str(authorization_context.get("route_key_question") or "").strip()
     )
 
 
@@ -123,11 +151,13 @@ def _controller_decision_authorization_dedupe_key(
     authorization_context: dict[str, Any],
     active_run_id: str | None,
 ) -> str:
+    intent_key = str(authorization_context.get("control_intent_key") or "").strip()
+    if intent_key:
+        return intent_key
     canonical_payload = {
         "decision_id": str(authorization_context.get("decision_id") or "").strip(),
         "route_target": str(authorization_context.get("route_target") or "").strip(),
         "route_key_question": str(authorization_context.get("route_key_question") or "").strip(),
-        "active_run_id": active_run_id,
     }
     encoded = json.dumps(canonical_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
         "utf-8"
@@ -198,6 +228,8 @@ def _mark_controller_decision_authorization_relayed(
         "decision_id": str(authorization_context.get("decision_id") or "").strip(),
         "route_target": str(authorization_context.get("route_target") or "").strip(),
         "route_key_question": str(authorization_context.get("route_key_question") or "").strip(),
+        "control_intent_key": str(authorization_context.get("control_intent_key") or "").strip() or None,
+        "control_intent_identity": dict(authorization_context.get("control_intent_identity") or {}),
         "active_run_id": active_run_id,
         "delivery_mode": delivery_mode,
         "message_id": message_id,
@@ -241,6 +273,7 @@ def _relay_controller_decision_authorization_if_required(
         "route_target": authorization_context.get("route_target"),
         "route_key_question": authorization_context.get("route_key_question"),
         "decision_path": authorization_context.get("decision_path"),
+        "control_intent_key": authorization_context.get("control_intent_key"),
         "active_run_id": active_run_id,
         "delivery_mode": None,
         "message_id": None,
@@ -267,6 +300,25 @@ def _relay_controller_decision_authorization_if_required(
             message_id=relay["message_id"],
             source=context.source,
         )
+        control_intent.append_event(
+            study_root=context.study_root,
+            identity=control_intent.build_control_intent_identity(
+                study_id=str(authorization_context.get("study_id") or ""),
+                quest_id=str(authorization_context.get("quest_id") or "") or None,
+                route_target=str(authorization_context.get("route_target") or ""),
+                work_unit_id=str(authorization_context.get("route_key_question") or ""),
+                blocker_authority_fingerprint=str(authorization_context.get("blocker_authority_fingerprint") or ""),
+                controller_actions=authorization_context.get("controller_actions") or (),
+                source_kind="controller_decision_authorization",
+            ),
+            event_type="delivered",
+            payload={
+                "delivery_mode": "managed_runtime_chat",
+                "message_id": relay["message_id"],
+                "active_run_id": active_run_id,
+                "source": context.source,
+            },
+        )
         status.extras["controller_decision_authorization_relay"] = relay
         return relay
 
@@ -289,6 +341,25 @@ def _relay_controller_decision_authorization_if_required(
         delivery_mode="durable_queue_fallback",
         message_id=str(record.get("message_id") or "").strip() or None,
         source=context.source,
+    )
+    control_intent.append_event(
+        study_root=context.study_root,
+        identity=control_intent.build_control_intent_identity(
+            study_id=str(authorization_context.get("study_id") or ""),
+            quest_id=str(authorization_context.get("quest_id") or "") or None,
+            route_target=str(authorization_context.get("route_target") or ""),
+            work_unit_id=str(authorization_context.get("route_key_question") or ""),
+            blocker_authority_fingerprint=str(authorization_context.get("blocker_authority_fingerprint") or ""),
+            controller_actions=authorization_context.get("controller_actions") or (),
+            source_kind="controller_decision_authorization",
+        ),
+        event_type="delivered",
+        payload={
+            "delivery_mode": "durable_queue_fallback",
+            "message_id": relay["message_id"],
+            "active_run_id": active_run_id,
+            "source": context.source,
+        },
     )
     status.extras["controller_decision_authorization_relay"] = relay
     return relay

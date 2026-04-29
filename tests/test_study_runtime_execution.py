@@ -295,17 +295,18 @@ def test_execute_noop_runtime_decision_relays_controller_authorization_to_live_r
     assert relay["delivery_mode"] == "managed_runtime_chat"
     assert relay["message_id"] == "msg-auth-001"
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-    assert runtime_state["last_controller_decision_authorization"] == {
-        "decision_id": "decision-analysis-001",
-        "route_target": "analysis-campaign",
-        "route_key_question": (
-            "revision checklist mapping each user comment to manuscript/table/figure/reference changes"
-        ),
-        "active_run_id": "run-live-001",
-        "delivery_mode": "managed_runtime_chat",
-        "message_id": "msg-auth-001",
-        "source": "medautosci-test",
-    }
+    marker = runtime_state["last_controller_decision_authorization"]
+    assert marker["decision_id"] == "decision-analysis-001"
+    assert marker["route_target"] == "analysis-campaign"
+    assert marker["route_key_question"] == (
+        "revision checklist mapping each user comment to manuscript/table/figure/reference changes"
+    )
+    assert marker["control_intent_key"].startswith("control-intent::")
+    assert marker["control_intent_identity"]["business_key"] == marker["control_intent_key"]
+    assert marker["active_run_id"] == "run-live-001"
+    assert marker["delivery_mode"] == "managed_runtime_chat"
+    assert marker["message_id"] == "msg-auth-001"
+    assert marker["source"] == "medautosci-test"
 
 
 def test_execute_noop_runtime_decision_relays_gate_clearing_controller_authorization_to_live_runtime(
@@ -411,6 +412,55 @@ def test_execute_noop_runtime_decision_deduplicates_controller_authorization_for
     assert "controller_decision_authorization_relay" not in status.to_dict()
 
 
+def test_execute_noop_runtime_decision_deduplicates_controller_authorization_across_run_attempts(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    _write_controller_decision_authorization(study_root)
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-live-002",
+            "pending_user_message_count": 0,
+            "last_controller_decision_authorization": {
+                "decision_id": "decision-analysis-001",
+                "route_target": "analysis-campaign",
+                "route_key_question": (
+                    "revision checklist mapping each user comment to manuscript/table/figure/reference changes"
+                ),
+                "active_run_id": "run-live-001",
+                "delivery_mode": "managed_runtime_chat",
+                "message_id": "msg-auth-001",
+                "source": "medautosci-test",
+            },
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("same business controller intent must not be delivered again for a new active_run_id")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert "controller_decision_authorization_relay" not in status.to_dict()
+
+
 def test_execute_noop_runtime_decision_fallback_tags_controller_authorization_with_dedupe_key(
     tmp_path: Path,
 ) -> None:
@@ -451,7 +501,7 @@ def test_execute_noop_runtime_decision_fallback_tags_controller_authorization_wi
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
     assert relay["delivery_mode"] == "durable_queue_fallback"
     assert len(queue["pending"]) == 1
-    assert queue["pending"][0]["dedupe_key"].startswith("controller-decision-authorization:")
+    assert queue["pending"][0]["dedupe_key"].startswith("control-intent::")
 
 
 def test_force_restart_for_live_controller_reroute_supports_write_stage_ready(monkeypatch, tmp_path: Path) -> None:
