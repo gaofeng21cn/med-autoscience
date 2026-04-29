@@ -20,6 +20,7 @@ from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile, profile_to_dict
 from med_autoscience.cli_parts.parser import build_parser as _build_cli_parser
 from med_autoscience.cli_parts.payloads import _parse_key_value_pairs
+from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
 
 @lru_cache(maxsize=None)
 def _load_module(module_name: str) -> Any:
@@ -556,59 +557,14 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "runtime-maintain-storage":
-        if bool(args.study_id) == bool(args.study_root):
-            parser.error("Specify exactly one of --study-id or --study-root")
-        profile = load_profile(args.profile)
-        result = runtime_storage_maintenance.maintain_runtime_storage(
-            profile=profile,
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            include_worktrees=not bool(args.no_worktrees),
-            older_than_seconds=max(1, int(args.older_than_hours)) * 3600,
-            jsonl_max_mb=max(1, int(args.jsonl_max_mb)),
-            text_max_mb=max(1, int(args.text_max_mb)),
-            event_segment_max_mb=max(1, int(args.event_segment_max_mb)),
-            slim_jsonl_threshold_mb=(
-                None if bool(args.no_slim_oversized_jsonl) else max(1, int(args.slim_jsonl_threshold_mb))
-            ),
-            dedupe_worktree_min_mb=(
-                None if bool(args.no_dedupe_worktrees) else max(1, int(args.dedupe_worktree_min_mb))
-            ),
-            head_lines=max(1, int(args.head_lines)),
-            tail_lines=max(1, int(args.tail_lines)),
-            allow_live_runtime=bool(args.allow_live_runtime),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "workspace-storage-audit":
-        if bool(args.study_id) and bool(args.all_studies):
-            parser.error("Specify at most one of --study-id or --all-studies")
-        profile = load_profile(args.profile)
-        result = runtime_storage_maintenance.audit_workspace_storage(
-            profile=profile,
-            study_id=args.study_id,
-            all_studies=bool(args.all_studies) or not bool(args.study_id),
-            stopped_only=bool(args.stopped_only),
-            apply=bool(args.apply),
-            include_worktrees=not bool(args.no_worktrees),
-            older_than_seconds=max(1, int(args.older_than_hours)) * 3600,
-            jsonl_max_mb=max(1, int(args.jsonl_max_mb)),
-            text_max_mb=max(1, int(args.text_max_mb)),
-            event_segment_max_mb=max(1, int(args.event_segment_max_mb)),
-            slim_jsonl_threshold_mb=(
-                None if bool(args.no_slim_oversized_jsonl) else max(1, int(args.slim_jsonl_threshold_mb))
-            ),
-            dedupe_worktree_min_mb=(
-                None if bool(args.no_dedupe_worktrees) else max(1, int(args.dedupe_worktree_min_mb))
-            ),
-            head_lines=max(1, int(args.head_lines)),
-            tail_lines=max(1, int(args.tail_lines)),
-            allow_live_runtime=bool(args.allow_live_runtime),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
+    storage_exit_code = handle_runtime_storage_command(
+        args,
+        parser=parser,
+        load_profile=load_profile,
+        runtime_storage_maintenance=runtime_storage_maintenance,
+    )
+    if storage_exit_code is not None:
+        return storage_exit_code
 
     if args.command == "init-data-assets":
         result = data_assets.init_data_assets(workspace_root=Path(args.workspace_root))

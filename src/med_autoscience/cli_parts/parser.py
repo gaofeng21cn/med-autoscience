@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 from med_autoscience.cli_public_surface import GROUPED_COMMAND_PROGS
+from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_storage_parsers
 from med_autoscience.figure_routes import supported_required_route_help
 
 
@@ -59,41 +60,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_remove_supervision_parser.add_argument("--profile", required=True)
     runtime_remove_supervision_parser.add_argument("--interval-seconds", type=int, default=300)
 
-    runtime_maintain_storage_parser = subparsers.add_parser("runtime-maintain-storage")
-    runtime_maintain_storage_parser.add_argument("--profile", required=True)
-    runtime_maintain_storage_parser.add_argument("--study-id", type=str)
-    runtime_maintain_storage_parser.add_argument("--study-root", type=str)
-    runtime_maintain_storage_parser.add_argument("--no-worktrees", action="store_true")
-    runtime_maintain_storage_parser.add_argument("--older-than-hours", type=int, default=6)
-    runtime_maintain_storage_parser.add_argument("--jsonl-max-mb", type=int, default=64)
-    runtime_maintain_storage_parser.add_argument("--text-max-mb", type=int, default=16)
-    runtime_maintain_storage_parser.add_argument("--event-segment-max-mb", type=int, default=64)
-    runtime_maintain_storage_parser.add_argument("--no-slim-oversized-jsonl", action="store_true")
-    runtime_maintain_storage_parser.add_argument("--slim-jsonl-threshold-mb", type=int, default=8)
-    runtime_maintain_storage_parser.add_argument("--no-dedupe-worktrees", action="store_true")
-    runtime_maintain_storage_parser.add_argument("--dedupe-worktree-min-mb", type=int, default=16)
-    runtime_maintain_storage_parser.add_argument("--head-lines", type=int, default=200)
-    runtime_maintain_storage_parser.add_argument("--tail-lines", type=int, default=200)
-    runtime_maintain_storage_parser.add_argument("--allow-live-runtime", action="store_true")
-
-    workspace_storage_audit_parser = subparsers.add_parser("workspace-storage-audit")
-    workspace_storage_audit_parser.add_argument("--profile", required=True)
-    workspace_storage_audit_parser.add_argument("--study-id", type=str)
-    workspace_storage_audit_parser.add_argument("--all-studies", action="store_true")
-    workspace_storage_audit_parser.add_argument("--stopped-only", action="store_true")
-    workspace_storage_audit_parser.add_argument("--apply", action="store_true")
-    workspace_storage_audit_parser.add_argument("--no-worktrees", action="store_true")
-    workspace_storage_audit_parser.add_argument("--older-than-hours", type=int, default=6)
-    workspace_storage_audit_parser.add_argument("--jsonl-max-mb", type=int, default=64)
-    workspace_storage_audit_parser.add_argument("--text-max-mb", type=int, default=16)
-    workspace_storage_audit_parser.add_argument("--event-segment-max-mb", type=int, default=64)
-    workspace_storage_audit_parser.add_argument("--no-slim-oversized-jsonl", action="store_true")
-    workspace_storage_audit_parser.add_argument("--slim-jsonl-threshold-mb", type=int, default=8)
-    workspace_storage_audit_parser.add_argument("--no-dedupe-worktrees", action="store_true")
-    workspace_storage_audit_parser.add_argument("--dedupe-worktree-min-mb", type=int, default=16)
-    workspace_storage_audit_parser.add_argument("--head-lines", type=int, default=200)
-    workspace_storage_audit_parser.add_argument("--tail-lines", type=int, default=200)
-    workspace_storage_audit_parser.add_argument("--allow-live-runtime", action="store_true")
+    register_runtime_storage_parsers(subparsers)
 
     init_data_assets_parser = subparsers.add_parser("init-data-assets")
     init_data_assets_parser.add_argument("--workspace-root", required=True)
