@@ -175,6 +175,9 @@ def test_describe_submission_minimal_authority_detects_changed_compiled_markdown
 
     current = module.describe_submission_minimal_authority(paper_root=paper_root)
     assert current["status"] == "current"
+    assert current["evaluated_source_signature"] == current["source_signature"]
+    assert current["authority_source_signature"] == current["recorded_source_signature"]
+    assert current["blocking_artifact_refs"] == []
 
     write_text(
         paper_root / "build" / "review_manuscript.md",
@@ -184,6 +187,17 @@ def test_describe_submission_minimal_authority_detects_changed_compiled_markdown
     stale = module.describe_submission_minimal_authority(paper_root=paper_root)
     assert stale["status"] == "stale_source_changed"
     assert stale["stale_reason"] == "submission_source_signature_mismatch"
+    assert stale["evaluated_source_signature"] == stale["source_signature"]
+    assert stale["authority_source_signature"] == stale["recorded_source_signature"]
+    assert stale["gate_fingerprint"].startswith("submission-minimal-authority::")
+    assert stale["blocking_artifact_refs"] == [
+        {
+            "blocker": "stale_submission_minimal_authority",
+            "artifact_path": str(paper_root / "submission_minimal" / "submission_manifest.json"),
+            "artifact_role": "submission_minimal_authority",
+            "stale_reason": "submission_source_signature_mismatch",
+        }
+    ]
 
 
 def test_describe_submission_minimal_authority_flags_legacy_manifest_when_source_is_newer(tmp_path: Path) -> None:

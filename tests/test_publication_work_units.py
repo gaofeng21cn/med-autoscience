@@ -51,6 +51,42 @@ def test_bundle_stage_stale_submission_package_produces_finalize_refresh_work_un
     }
 
 
+def test_stale_submission_authority_with_matching_signatures_routes_to_gate_replay() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "blockers": ["stale_submission_minimal_authority"],
+            "submission_minimal_authority_status": "current",
+            "submission_minimal_evaluated_source_signature": "source::abc",
+            "submission_minimal_authority_source_signature": "source::abc",
+            "gate_fingerprint": "publication-gate::stale-authority",
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "stale_submission_minimal_authority",
+                    "artifact_path": "/tmp/study/paper/submission_minimal/submission_manifest.json",
+                }
+            ],
+        }
+    )
+
+    assert result["next_work_unit"] == {
+        "unit_id": "publication_gate_replay",
+        "lane": "controller",
+        "summary": "Replay the publication gate against current authority signatures before dispatching new work.",
+        "control_surface": "publication_gate",
+    }
+    assert result["actionability_status"] == "controller_gate_replay_required"
+    assert result["gate_fingerprint"] == "publication-gate::stale-authority"
+    assert result["blocking_artifact_refs"] == [
+        {
+            "blocker": "stale_submission_minimal_authority",
+            "artifact_path": "/tmp/study/paper/submission_minimal/submission_manifest.json",
+        }
+    ]
+
+
 def test_registry_and_local_architecture_blockers_produce_display_reporting_contract_work_unit() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 
