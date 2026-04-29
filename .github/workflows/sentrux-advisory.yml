@@ -32,14 +32,18 @@ jobs:
           sentrux analytics off || true
 
           if [ -f .sentrux/baseline.json ]; then
-            sentrux gate .
+            if ! sentrux gate .; then
+              echo "::warning::Sentrux reported structural regression. Treat this as advisory: review semantic intent and structural side effects; block only large unexplained drops or repo-approved rule violations."
+            fi
           else
             echo "::notice::No .sentrux/baseline.json found; saving advisory baseline for this CI run."
             sentrux gate --save .
           fi
 
           if [ -f .sentrux/rules.toml ]; then
-            sentrux check .
+            if ! sentrux check .; then
+              echo "::warning::Sentrux rules reported violations. This advisory job does not block by itself; apply the repo's merge policy and product semantics first."
+            fi
           else
             echo "::notice::No .sentrux/rules.toml found; skipping rules check."
           fi
