@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import json
+from pathlib import Path
 from typing import Any
 
 from med_autoscience.runtime_protocol import quest_state, user_message
@@ -18,6 +21,92 @@ _LIVE_CONTROLLER_REROUTE_REQUIRED_ACTION_BY_REASON = {
     StudyRuntimeReason.QUEST_DRIFTING_INTO_WRITE_WITHOUT_GATE_APPROVAL: "return_to_publishability_gate",
     StudyRuntimeReason.QUEST_STALE_DECISION_AFTER_WRITE_STAGE_READY: "continue_write_stage",
 }
+_LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY = "last_live_controller_reroute_restart"
+
+
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _texts(value: object) -> tuple[str, ...]:
+    if isinstance(value, (list, tuple, set)):
+        return tuple(sorted({text for item in value if (text := _text(item))}))
+    text = _text(value)
+    return (text,) if text is not None else ()
+
+
+def _runtime_state_path(quest_root: Path) -> Path:
+    return Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
+
+
+def _write_runtime_state(*, quest_root: Path, runtime_state: dict[str, Any]) -> None:
+    path = _runtime_state_path(quest_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(runtime_state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _live_controller_reroute_fingerprint(*, status: StudyRuntimeStatus) -> str:
+    publication_supervisor_state = status.extras.get("publication_supervisor_state")
+    supervisor_payload = publication_supervisor_state if isinstance(publication_supervisor_state, dict) else {}
+    canonical_payload = {
+        "reason": status.reason.value if status.reason is not None else None,
+        "supervisor_phase": _text(supervisor_payload.get("supervisor_phase")),
+        "phase_owner": _text(supervisor_payload.get("phase_owner")),
+        "current_required_action": _text(supervisor_payload.get("current_required_action")),
+        "gate_fingerprint": _text(supervisor_payload.get("gate_fingerprint")),
+        "evaluated_source_signature": _text(
+            supervisor_payload.get("evaluated_source_signature")
+            or supervisor_payload.get("submission_minimal_evaluated_source_signature")
+        ),
+        "authority_source_signature": _text(
+            supervisor_payload.get("authority_source_signature")
+            or supervisor_payload.get("submission_minimal_authority_source_signature")
+        ),
+        "blockers": list(_texts(supervisor_payload.get("blockers"))),
+    }
+    encoded = json.dumps(canonical_payload, ensure_ascii=True, separators=(",", ":"), sort_keys=True).encode(
+        "utf-8"
+    )
+    return f"live-controller-reroute:{hashlib.sha256(encoded).hexdigest()[:24]}"
+
+
+def _live_controller_reroute_restart_already_recorded(
+    *,
+    status: StudyRuntimeStatus,
+    runtime_state: dict[str, Any],
+) -> bool:
+    marker = runtime_state.get(_LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY)
+    if not isinstance(marker, dict):
+        return False
+    reason = status.reason.value if status.reason is not None else ""
+    restart_count = int(marker.get("restart_count") or 0)
+    return (
+        restart_count > 0
+        and str(marker.get("reason") or "").strip() == reason
+        and str(marker.get("fingerprint") or "").strip() == _live_controller_reroute_fingerprint(status=status)
+    )
+
+
+def _mark_live_controller_reroute_restart(
+    *,
+    status: StudyRuntimeStatus,
+    context: Any,
+    same_fingerprint_auto_turn_count: int,
+) -> None:
+    runtime_state = quest_state.load_runtime_state(context.quest_root)
+    previous = runtime_state.get(_LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY)
+    fingerprint = _live_controller_reroute_fingerprint(status=status)
+    restart_count = 1
+    if isinstance(previous, dict) and str(previous.get("fingerprint") or "").strip() == fingerprint:
+        restart_count = int(previous.get("restart_count") or 0) + 1
+    runtime_state[_LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY] = {
+        "reason": status.reason.value if status.reason is not None else None,
+        "fingerprint": fingerprint,
+        "restart_count": restart_count,
+        "same_fingerprint_auto_turn_count": same_fingerprint_auto_turn_count,
+    }
+    _write_runtime_state(quest_root=context.quest_root, runtime_state=runtime_state)
 
 
 def _append_route_context_to_message(*, message: str, route_context: dict[str, str] | None) -> str:
@@ -158,6 +247,7 @@ def _should_force_restart_for_live_controller_reroute(
         and (continuation_anchor != "decision" or not continuation_reason.startswith("decision:"))
     ):
         return False
+    if _live_controller_reroute_restart_already_recorded(status=status, runtime_state=runtime_state):
+        return False
     same_fingerprint_auto_turn_count = int(runtime_state.get("same_fingerprint_auto_turn_count") or 0)
     return same_fingerprint_auto_turn_count >= _LIVE_CONTROLLER_REROUTE_FORCE_RESTART_AUTO_TURN_THRESHOLD
-

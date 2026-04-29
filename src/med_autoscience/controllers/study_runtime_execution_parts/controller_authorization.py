@@ -23,12 +23,112 @@ _CONTROLLER_DECISION_RUNTIME_AUTHORIZATION_ACTIONS = {
     "run_quality_repair_batch",
 }
 _CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authorization"
+_CONTROLLER_DECISION_AUTHORIZATION_LEDGER_ACTIVE_EVENTS = {
+    "accepted",
+    "artifact_written",
+    "closed",
+    "delivered",
+    "dispatched",
+    "gate_replayed",
+    "needs_specificity",
+    "planned",
+    "skipped_duplicate",
+}
 _ROUTE_TARGET_LABELS = {
     "analysis-campaign": "有限补充分析",
     "write": "当前论文主线写作",
     "review": "质量复评",
     "finalize": "finalize / 投稿包收口",
 }
+
+
+def _read_json_mapping(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(Path(path).expanduser().read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError):
+        return {}
+    return dict(payload) if isinstance(payload, dict) else {}
+
+
+def _artifact_payload_from_ref(*, study_root: Path, artifact_path: str) -> dict[str, Any]:
+    path = Path(str(artifact_path or "").strip()).expanduser()
+    if not path.is_absolute():
+        path = Path(study_root).expanduser().resolve() / path
+    return _read_json_mapping(path)
+
+
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _text_sequence(value: object) -> tuple[str, ...]:
+    if isinstance(value, (list, tuple, set)):
+        return tuple(sorted({text for item in value if (text := _text(item))}))
+    text = _text(value)
+    return (text,) if text is not None else ()
+
+
+def _stable_blocking_artifact_refs(value: object) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        return ()
+    refs: list[str] = []
+    for item in value:
+        if isinstance(item, dict):
+            refs.append(json.dumps(item, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
+            continue
+        text = _text(item)
+        if text is not None:
+            refs.append(text)
+    return tuple(sorted(set(refs)))
+
+
+def _stable_publication_authority_fingerprint(
+    *,
+    study_root: Path,
+    record: StudyDecisionRecord,
+) -> str:
+    publication_eval_payload = _artifact_payload_from_ref(
+        study_root=study_root,
+        artifact_path=record.publication_eval_ref.artifact_path,
+    )
+    canonical_payload: dict[str, Any] = {
+        "gate_fingerprint": _text(publication_eval_payload.get("gate_fingerprint")),
+        "evaluated_source_signature": _text(
+            publication_eval_payload.get("evaluated_source_signature")
+            or publication_eval_payload.get("submission_minimal_evaluated_source_signature")
+        ),
+        "authority_source_signature": _text(
+            publication_eval_payload.get("authority_source_signature")
+            or publication_eval_payload.get("submission_minimal_authority_source_signature")
+        ),
+        "current_required_action": _text(publication_eval_payload.get("current_required_action")),
+        "blockers": list(_text_sequence(publication_eval_payload.get("blockers"))),
+        "blocking_artifact_refs": list(_stable_blocking_artifact_refs(publication_eval_payload.get("blocking_artifact_refs"))),
+    }
+    if not any(canonical_payload.values()):
+        canonical_payload = {
+            "publication_eval_artifact_path": _text(record.publication_eval_ref.artifact_path),
+            "runtime_escalation_artifact_path": _text(record.runtime_escalation_ref.artifact_path),
+        }
+    encoded = json.dumps(canonical_payload, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    return f"authority:{hashlib.sha256(encoded).hexdigest()[:24]}"
+
+
+def _controller_decision_authorization_identity(
+    authorization_context: dict[str, Any],
+) -> control_intent.ControlIntentIdentity:
+    return control_intent.build_control_intent_identity(
+        study_id=str(authorization_context.get("study_id") or ""),
+        quest_id=str(authorization_context.get("quest_id") or "") or None,
+        route_target=str(authorization_context.get("route_target") or ""),
+        work_unit_id=str(authorization_context.get("route_key_question") or ""),
+        blocker_authority_fingerprint=str(authorization_context.get("blocker_authority_fingerprint") or ""),
+        controller_actions=authorization_context.get("controller_actions") or (),
+        source_kind="controller_decision_authorization",
+    )
 
 
 def _load_controller_decision_authorization_context(*, study_root: Path) -> dict[str, Any] | None:
@@ -47,13 +147,9 @@ def _load_controller_decision_authorization_context(*, study_root: Path) -> dict
     ):
         return None
     controller_actions = tuple(action.action_type.value for action in record.controller_actions)
-    blocker_authority_fingerprint = "::".join(
-        value
-        for value in (
-            f"runtime_escalation:{record.runtime_escalation_ref.record_id}",
-            f"publication_eval:{record.publication_eval_ref.eval_id}",
-        )
-        if value.strip()
+    blocker_authority_fingerprint = _stable_publication_authority_fingerprint(
+        study_root=Path(study_root).expanduser().resolve(),
+        record=record,
     )
     intent_identity = control_intent.build_control_intent_identity(
         study_id=record.study_id,
@@ -144,6 +240,21 @@ def _controller_decision_authorization_already_relayed(
         and str(marker.get("route_key_question") or "").strip()
         == str(authorization_context.get("route_key_question") or "").strip()
     )
+
+
+def _controller_decision_authorization_ledger_has_active_dispatch(
+    *,
+    study_root: Path,
+    authorization_context: dict[str, Any],
+) -> bool:
+    intent_key = str(authorization_context.get("control_intent_key") or "").strip()
+    if not intent_key:
+        return False
+    latest = control_intent.latest_event(study_root=study_root, business_key=intent_key)
+    if not isinstance(latest, dict):
+        return False
+    event_type = str(latest.get("event_type") or "").strip()
+    return event_type in _CONTROLLER_DECISION_AUTHORIZATION_LEDGER_ACTIVE_EVENTS
 
 
 def _controller_decision_authorization_dedupe_key(
@@ -262,6 +373,15 @@ def _relay_controller_decision_authorization_if_required(
         active_run_id=active_run_id,
     ):
         return None
+    if _controller_decision_authorization_ledger_has_active_dispatch(
+        study_root=context.study_root,
+        authorization_context=authorization_context,
+    ):
+        status.extras["controller_decision_authorization_deduped"] = {
+            "control_intent_key": authorization_context.get("control_intent_key"),
+            "source": "control_intent_ledger",
+        }
+        return None
 
     message = _controller_decision_authorization_message(authorization_context=authorization_context)
     dedupe_key = _controller_decision_authorization_dedupe_key(
@@ -302,15 +422,7 @@ def _relay_controller_decision_authorization_if_required(
         )
         control_intent.append_event(
             study_root=context.study_root,
-            identity=control_intent.build_control_intent_identity(
-                study_id=str(authorization_context.get("study_id") or ""),
-                quest_id=str(authorization_context.get("quest_id") or "") or None,
-                route_target=str(authorization_context.get("route_target") or ""),
-                work_unit_id=str(authorization_context.get("route_key_question") or ""),
-                blocker_authority_fingerprint=str(authorization_context.get("blocker_authority_fingerprint") or ""),
-                controller_actions=authorization_context.get("controller_actions") or (),
-                source_kind="controller_decision_authorization",
-            ),
+            identity=_controller_decision_authorization_identity(authorization_context),
             event_type="delivered",
             payload={
                 "delivery_mode": "managed_runtime_chat",
@@ -344,15 +456,7 @@ def _relay_controller_decision_authorization_if_required(
     )
     control_intent.append_event(
         study_root=context.study_root,
-        identity=control_intent.build_control_intent_identity(
-            study_id=str(authorization_context.get("study_id") or ""),
-            quest_id=str(authorization_context.get("quest_id") or "") or None,
-            route_target=str(authorization_context.get("route_target") or ""),
-            work_unit_id=str(authorization_context.get("route_key_question") or ""),
-            blocker_authority_fingerprint=str(authorization_context.get("blocker_authority_fingerprint") or ""),
-            controller_actions=authorization_context.get("controller_actions") or (),
-            source_kind="controller_decision_authorization",
-        ),
+        identity=_controller_decision_authorization_identity(authorization_context),
         event_type="delivered",
         payload={
             "delivery_mode": "durable_queue_fallback",
