@@ -73,6 +73,37 @@ def _record_runtime_recovery_lifecycle_if_required(status: StudyRuntimeStatus) -
     }
 
 
+def _task_intake_publication_supervisor_state(task_intake_progress_override: dict[str, object] | None) -> dict[str, object] | None:
+    if not isinstance(task_intake_progress_override, dict):
+        return None
+    quality_closure_truth = (
+        dict(task_intake_progress_override.get("quality_closure_truth") or {})
+        if isinstance(task_intake_progress_override.get("quality_closure_truth"), dict)
+        else {}
+    )
+    if str(quality_closure_truth.get("state") or "").strip() != "stop_loss_recommended":
+        return None
+    lane = (
+        dict(task_intake_progress_override.get("quality_execution_lane") or {})
+        if isinstance(task_intake_progress_override.get("quality_execution_lane"), dict)
+        else {}
+    )
+    summary = (
+        str(lane.get("why_now") or "").strip()
+        or str(quality_closure_truth.get("summary") or "").strip()
+        or "latest task intake requires publishability stop-loss"
+    )
+    return {
+        "supervisor_phase": "stop_loss",
+        "phase_owner": "task_intake",
+        "upstream_scientific_anchor_ready": False,
+        "bundle_tasks_downstream_only": False,
+        "current_required_action": "stop_runtime",
+        "deferred_downstream_actions": [],
+        "controller_stage_note": summary,
+    }
+
+
 def _status_state(
     *,
     profile: WorkspaceProfile,
@@ -207,11 +238,19 @@ def _status_state(
     )
 
     if quest_exists:
+        from med_autoscience.study_task_intake import build_task_intake_progress_override
+
         publication_gate_report = publication_gate_controller.build_gate_report(
             publication_gate_controller.build_gate_state(quest_root)
         )
+        task_intake_progress_override = build_task_intake_progress_override(
+            read_latest_task_intake(study_root=study_root),
+            study_root=study_root,
+            publishability_gate_report=publication_gate_report,
+        )
         result.record_publication_supervisor_state(
-            publication_gate_controller.extract_publication_supervisor_state(publication_gate_report)
+            _task_intake_publication_supervisor_state(task_intake_progress_override)
+            or publication_gate_controller.extract_publication_supervisor_state(publication_gate_report)
         )
         _materialize_publication_eval_from_gate_report(
             study_root=study_root,
