@@ -189,8 +189,8 @@ def test_publication_work_units_compose_controller_owned_quality_repair_unit_for
         "unit_id": "controller_owned_publication_repair",
         "lane": "controller",
         "summary": (
-            "Run one controller-owned deterministic repair unit for submission authority, display registry, "
-            "medical story contract, and figure semantics manifest blockers."
+            "Run one controller-owned deterministic repair unit for claim-evidence, medical story, "
+            "figure semantics, display registry, and submission authority/hardening blockers."
         ),
         "user_feedback_priority": "highest",
         "control_surface": "gate_clearing_batch",

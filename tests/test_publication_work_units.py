@@ -87,6 +87,37 @@ def test_stale_submission_authority_with_matching_signatures_routes_to_gate_repl
     ]
 
 
+def test_claim_story_figure_submission_hardening_cluster_is_controller_owned_repair() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "blockers": [
+                "stale_submission_minimal_authority",
+                "submission_hardening_incomplete",
+                "claim_evidence_consistency_failed",
+                "missing_medical_story_contract",
+                "figure_semantics_manifest_missing_or_incomplete",
+            ],
+        }
+    )
+
+    assert result["next_work_unit"] == {
+        "unit_id": "controller_owned_publication_repair",
+        "lane": "controller",
+        "summary": (
+            "Run one controller-owned deterministic repair unit for claim-evidence, medical story, "
+            "figure semantics, display registry, and submission authority/hardening blockers."
+        ),
+        "user_feedback_priority": "highest",
+        "control_surface": "gate_clearing_batch",
+    }
+    assert [unit["unit_id"] for unit in result["blocking_work_units"]] == [
+        "controller_owned_publication_repair",
+    ]
+
+
 def test_registry_and_local_architecture_blockers_produce_display_reporting_contract_work_unit() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 

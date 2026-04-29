@@ -702,6 +702,39 @@ def test_run_gate_clearing_batch_replays_gate_when_stale_authority_signature_is_
     assert result["authority_source_signature"] == "source::abc"
     assert result["gate_replay"]["status"] == "clear"
     assert result["gate_blockers"] == ["stale_submission_minimal_authority"]
+
+    marker = result["stale_gate_replay_closure"]
+    assert marker["status"] == "closed"
+    assert marker["handshake"] == {
+        "gate_fingerprint": "publication-gate::stale-authority",
+        "evaluated_source_signature": "source::abc",
+        "authority_source_signature": "source::abc",
+        "blocking_artifact_refs": [],
+    }
+
+    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
+    publication_eval_payload["eval_id"] = "publication-eval::004-invasive-architecture::quest-004::followup"
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: (_ for _ in ()).throw(AssertionError("closed stale gate replay must not run again")),
+    )
+
+    skipped = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id="quest-004",
+        source="test-source",
+    )
+
+    assert skipped["ok"] is True
+    assert skipped["status"] == "skipped_stale_gate_replay_closed"
+    assert skipped["selected_publication_work_unit"]["unit_id"] == "publication_gate_replay"
+    assert skipped["stale_gate_replay_closure"] == marker
+
+
 def test_run_gate_clearing_batch_executes_bundle_stage_workspace_refresh_before_submission_replay(
     monkeypatch,
     tmp_path: Path,

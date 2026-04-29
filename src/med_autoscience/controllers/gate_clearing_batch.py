@@ -28,6 +28,7 @@ from med_autoscience.controllers import gate_clearing_batch_submission
 from med_autoscience.controllers import gate_clearing_batch_scheduler
 from med_autoscience.controllers import gate_clearing_batch_execution
 from med_autoscience.controllers import gate_clearing_batch_repair_fingerprints
+from med_autoscience.controllers import gate_clearing_batch_replay_closure
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers.gate_clearing_batch_execution import GateClearingRepairUnit
@@ -655,6 +656,23 @@ def run_gate_clearing_batch(
 
     explicit_next_work_unit = explicit_next_publication_work_unit(publication_eval_payload)
     selected_publication_work_unit = explicit_next_work_unit or derived_next_publication_work_unit(gate_report)
+    if (
+        isinstance(selected_publication_work_unit, dict)
+        and _non_empty_text(selected_publication_work_unit.get("unit_id")) == "publication_gate_replay"
+        and gate_clearing_batch_replay_closure.stale_gate_replay_closed(latest_batch, gate_report=gate_report)
+    ):
+        return {
+            "ok": True,
+            "status": "skipped_stale_gate_replay_closed",
+            "source_eval_id": current_eval_id,
+            "latest_record_path": str(stable_gate_clearing_batch_path(study_root=resolved_study_root)),
+            "gate_fingerprint": gate_report.get("gate_fingerprint"),
+            "evaluated_source_signature": gate_report.get("submission_minimal_evaluated_source_signature"),
+            "authority_source_signature": gate_report.get("submission_minimal_authority_source_signature"),
+            "blocking_artifact_refs": gate_report.get("blocking_artifact_refs") or [],
+            "selected_publication_work_unit": selected_publication_work_unit,
+            "stale_gate_replay_closure": latest_batch.get("stale_gate_replay_closure"),
+        }
     current_workspace_root = _current_workspace_root(
         quest_root=quest_root,
         default=paper_root.parent,
@@ -920,6 +938,12 @@ def run_gate_clearing_batch(
         clock=_clock_snapshot,
         schema_version=SCHEMA_VERSION,
     )
+    stale_gate_replay_closure = gate_clearing_batch_replay_closure.stale_gate_replay_closure_marker(
+        gate_report=gate_report,
+        gate_replay=gate_replay,
+        gate_replay_timing=gate_replay_timing,
+        schema_version=SCHEMA_VERSION,
+    )
     record = {
         "schema_version": SCHEMA_VERSION,
         "source_eval_id": current_eval_id,
@@ -949,6 +973,8 @@ def run_gate_clearing_batch(
     }
     if current_package_freshness_proof is not None:
         record["current_package_freshness_proof"] = current_package_freshness_proof
+    if stale_gate_replay_closure is not None:
+        record["stale_gate_replay_closure"] = stale_gate_replay_closure
     record_path = stable_gate_clearing_batch_path(study_root=resolved_study_root)
     _write_json(record_path, record)
     _write_json(
