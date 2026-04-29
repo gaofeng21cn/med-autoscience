@@ -8,6 +8,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_ROOT = REPO_ROOT / "plugins" / "mas"
 PLUGIN_MANIFEST_PATH = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
+PLUGIN_ICON_PATH = PLUGIN_ROOT / "assets" / "icon.png"
+PLUGIN_ICON_SOURCE_PATH = PLUGIN_ROOT / "assets" / "icon.svg"
 PLUGIN_SKILL_PATH = PLUGIN_ROOT / "skills" / "mas" / "SKILL.md"
 PLUGIN_SKILL_UI_METADATA_PATH = PLUGIN_ROOT / "skills" / "mas" / "agents" / "openai.yaml"
 MARKETPLACE_PATH = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
@@ -29,7 +31,11 @@ def test_codex_plugin_manifest_tracks_repo_metadata_and_skill_layout() -> None:
     assert manifest["mcpServers"] == "./.mcp.json"
     assert manifest["interface"]["displayName"] == "Med Auto Science"
     assert manifest["interface"]["category"] == "Research"
+    assert manifest["interface"]["composerIcon"] == "./assets/icon.png"
+    assert manifest["interface"]["logo"] == "./assets/icon.png"
     assert "runtime" in manifest["description"].lower()
+    assert PLUGIN_ICON_PATH.is_file()
+    assert PLUGIN_ICON_SOURCE_PATH.is_file()
     assert PLUGIN_SKILL_PATH.is_file()
     assert PLUGIN_SKILL_UI_METADATA_PATH.is_file()
 

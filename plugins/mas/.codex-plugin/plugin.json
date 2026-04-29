@@ -28,6 +28,8 @@
       "Write"
     ],
     "websiteURL": "https://github.com/gaofeng21cn/med-autoscience",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
     "defaultPrompt": [
       "Bootstrap a MedAutoScience workspace profile for this study.",
       "Run MedAutoScience doctor and tell me what is missing.",

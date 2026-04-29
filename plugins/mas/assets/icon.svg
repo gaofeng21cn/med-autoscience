@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Med Auto Science plugin icon">
+  <rect x="32" y="32" width="448" height="448" rx="116" fill="#1F7A8C"/>
+  <path d="M132 274C164 274 164 204 198 204C232 204 232 332 266 332C300 332 300 248 336 248C362 248 372 220 392 196" fill="none" stroke="#FFFFFF" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="132" cy="274" r="20" fill="#FFFFFF"/>
+  <circle cx="198" cy="204" r="20" fill="#FFFFFF"/>
+  <circle cx="266" cy="332" r="20" fill="#FFFFFF"/>
+  <circle cx="336" cy="248" r="20" fill="#FFFFFF"/>
+  <path d="M130 382H382" stroke="#BDEFEA" stroke-width="28" stroke-linecap="round" opacity="0.82"/>
+</svg>
