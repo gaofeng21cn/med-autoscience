@@ -87,6 +87,87 @@ def test_work_unit_ledger_appends_replayable_events(tmp_path: Path) -> None:
     assert ledger.latest_event(study_root=study_root, dispatch_key=identity.dispatch_key)["event_type"] == "dispatched"
 
 
+def test_work_unit_ledger_coalesces_lifecycle_and_enforces_single_writer(tmp_path: Path) -> None:
+    identity_module = importlib.import_module("med_autoscience.controllers.control_identity")
+    ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    identity = identity_module.publication_work_unit_identity(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        blockers=["claim_evidence_consistency_failed"],
+        next_work_unit={"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        action_type="run_gate_clearing_batch",
+    )
+    study_root = tmp_path / "studies" / "003-dpcc"
+
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="planned",
+        payload={"source": "publication_gate"},
+        recorded_at="2026-04-26T00:00:00+00:00",
+    )
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="dispatched",
+        payload={"source": "runtime_watch"},
+        recorded_at="2026-04-26T00:01:00+00:00",
+    )
+    accepted = ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="accepted",
+        payload={"writer_id": "run-1"},
+        recorded_at="2026-04-26T00:02:00+00:00",
+    )
+    superseded = ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="accepted",
+        payload={"writer_id": "run-2"},
+        recorded_at="2026-04-26T00:03:00+00:00",
+    )
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="artifact_written",
+        payload={"writer_id": "run-1", "artifact_ref": "paper/analysis.md"},
+        recorded_at="2026-04-26T00:04:00+00:00",
+    )
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="gate_replayed",
+        payload={"writer_id": "run-1", "publication_eval_ref": "artifacts/publication_eval/latest.json"},
+        recorded_at="2026-04-26T00:05:00+00:00",
+    )
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="closed",
+        payload={"writer_id": "run-1"},
+        recorded_at="2026-04-26T00:06:00+00:00",
+    )
+
+    summary = ledger.lifecycle_summary(study_root=study_root)
+
+    assert accepted["event_type"] == "accepted"
+    assert superseded["event_type"] == "superseded"
+    assert superseded["payload"]["superseded_writer_id"] == "run-2"
+    assert summary["units"][0]["lifecycle_state"] == "closed"
+    assert summary["units"][0]["accepted_writer_id"] == "run-1"
+    assert summary["units"][0]["event_types"] == [
+        "planned",
+        "dispatched",
+        "accepted",
+        "superseded",
+        "artifact_written",
+        "gate_replayed",
+        "closed",
+    ]
+    assert summary["totals"]["replay_count"] == 1
+
+
 def test_profile_sli_summary_separates_active_duplicate_dispatch_from_history() -> None:
     module = importlib.import_module("med_autoscience.controllers.profile_sli")
 

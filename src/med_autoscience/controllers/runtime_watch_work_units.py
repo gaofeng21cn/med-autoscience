@@ -19,6 +19,8 @@ _UPSTREAM_REPAIR_UNITS = frozenset(
 )
 _OUTER_LOOP_WAKEUP_SOURCE = "runtime_watch_outer_loop_wakeup"
 _LEDGER_EXECUTED_EVENT_TYPES = frozenset({"dispatched", "skipped_duplicate"})
+_SPECIFICITY_UNIT_ID = "gate_needs_specificity"
+_SPECIFICITY_ACTION_TYPE = "request_gate_specificity"
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -54,6 +56,8 @@ def dispatch_key(tick_request: Mapping[str, Any]) -> str | None:
         else {}
     )
     action_type = _non_empty_text(first_controller_action.get("action_type"))
+    if action_type is None and unit_id == _SPECIFICITY_UNIT_ID:
+        action_type = _SPECIFICITY_ACTION_TYPE
     if work_unit_fingerprint is None or unit_id is None or action_type is None:
         return None
     return f"{work_unit_fingerprint}::{unit_id}::{action_type}"
@@ -84,6 +88,8 @@ def identity_from_tick_request(
         else {}
     )
     action_type = _non_empty_text(first_controller_action.get("action_type"))
+    if action_type is None and unit_id == _SPECIFICITY_UNIT_ID:
+        action_type = _SPECIFICITY_ACTION_TYPE
     if work_unit_fingerprint is None or unit_id is None or lane is None or action_type is None:
         return None
     return ControlWorkUnitIdentity(
@@ -133,6 +139,11 @@ def append_ledger_event(
             "source": _OUTER_LOOP_WAKEUP_SOURCE,
             "wakeup_outcome": _non_empty_text(wakeup_audit.get("outcome")),
             "wakeup_reason": _non_empty_text(wakeup_audit.get("reason")),
+            **(
+                {"specificity_questions": list(wakeup_audit.get("specificity_questions") or [])}
+                if isinstance(wakeup_audit.get("specificity_questions"), list)
+                else {}
+            ),
         },
         recorded_at=recorded_at,
     )
@@ -152,9 +163,18 @@ def _unit_dispatch_suffix(tick_request: Mapping[str, Any]) -> tuple[str | None, 
         else {}
     )
     action_type = _non_empty_text(first_controller_action.get("action_type"))
+    if action_type is None and unit_id == _SPECIFICITY_UNIT_ID:
+        action_type = _SPECIFICITY_ACTION_TYPE
     if unit_id is None or action_type is None:
         return None, None
     return unit_id, f"::{unit_id}::{action_type}"
+
+
+def needs_specificity_request(tick_request: Mapping[str, Any]) -> bool:
+    next_work_unit = tick_request.get("next_work_unit")
+    if not isinstance(next_work_unit, Mapping):
+        return False
+    return _non_empty_text(next_work_unit.get("unit_id")) == _SPECIFICITY_UNIT_ID
 
 
 def _ledger_has_executed_dispatch(
@@ -223,6 +243,9 @@ def context_payload(tick_request: Mapping[str, Any], *, work_unit_dispatch_key: 
     if work_unit_fingerprint is not None and isinstance(next_work_unit, Mapping):
         payload["work_unit_fingerprint"] = work_unit_fingerprint
         payload["next_work_unit"] = dict(next_work_unit)
+    specificity_questions = tick_request.get("specificity_questions")
+    if isinstance(specificity_questions, list):
+        payload["specificity_questions"] = [str(item) for item in specificity_questions if str(item).strip()]
     return payload
 
 

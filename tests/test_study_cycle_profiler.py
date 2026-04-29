@@ -379,6 +379,83 @@ def test_study_cycle_profiler_treats_concrete_work_unit_dispatch_as_not_controll
     }
 
 
+def test_study_cycle_profiler_exposes_work_unit_lifecycle_replay_and_eval_lag(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    identity_module = importlib.import_module("med_autoscience.controllers.control_identity")
+    ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+    study_root = workspace_root / "studies" / "003-dpcc"
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-003"
+    study_root.mkdir(parents=True)
+    quest_root.mkdir(parents=True)
+    (study_root / "runtime_binding.yaml").write_text(
+        "\n".join(
+            [
+                "study_id: 003-dpcc",
+                "quest_id: quest-003",
+                f"runtime_root: {workspace_root / 'ops' / 'med-deepscientist' / 'runtime' / 'quests'}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "emitted_at": "2026-04-25T00:10:00+00:00",
+            "status": "blocked",
+            "blockers": ["claim_evidence_consistency_failed"],
+        },
+    )
+    _write_json(
+        quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json",
+        {
+            "generated_at": "2026-04-25T00:20:00+00:00",
+            "status": "blocked",
+            "blockers": ["claim_evidence_consistency_failed"],
+        },
+    )
+    identity = identity_module.publication_work_unit_identity(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        blockers=["claim_evidence_consistency_failed"],
+        next_work_unit={"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        action_type="run_gate_clearing_batch",
+    )
+    for event_type, recorded_at in (
+        ("planned", "2026-04-25T00:11:00+00:00"),
+        ("dispatched", "2026-04-25T00:12:00+00:00"),
+        ("accepted", "2026-04-25T00:13:00+00:00"),
+        ("artifact_written", "2026-04-25T00:14:00+00:00"),
+        ("gate_replayed", "2026-04-25T00:15:00+00:00"),
+    ):
+        ledger.append_event(
+            study_root=study_root,
+            identity=identity,
+            event_type=event_type,
+            payload={"writer_id": "run-1"},
+            recorded_at=recorded_at,
+        )
+
+    profile_payload = module.profile_study_cycle(profile=profile, study_id="003-dpcc", study_root=None)
+
+    lifecycle = profile_payload["work_unit_lifecycle_summary"]
+    assert lifecycle["totals"]["unit_count"] == 1
+    assert lifecycle["totals"]["replay_count"] == 1
+    assert lifecycle["units"][0]["lifecycle_state"] == "gate_replayed"
+    assert lifecycle["units"][0]["accepted_writer_id"] == "run-1"
+    assert profile_payload["publication_eval_replay_lag"] == {
+        "status": "stale_after_gate_replay",
+        "lag_seconds": 300,
+        "publication_eval_latest_at": "2026-04-25T00:10:00+00:00",
+        "latest_gate_replayed_at": "2026-04-25T00:15:00+00:00",
+        "publishability_gate_latest_at": "2026-04-25T00:20:00+00:00",
+    }
+
+
 def test_study_cycle_profiler_renders_markdown(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
 

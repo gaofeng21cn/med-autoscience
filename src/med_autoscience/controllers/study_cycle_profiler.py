@@ -29,6 +29,7 @@ from med_autoscience.controllers.study_cycle_profiler_rendering import (
     render_study_cycle_profile_markdown,
     render_workspace_cycle_profile_markdown,
 )
+from med_autoscience.controllers.study_cycle_profiler_work_units import publication_eval_replay_lag, work_unit_lifecycle_summary
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -809,6 +810,12 @@ def profile_study_cycle(
         study_root=resolved_study_root,
         controller_decision_fingerprints=decision_fingerprints,
     )
+    work_unit_lifecycle = work_unit_lifecycle_summary(study_root=resolved_study_root)
+    publication_eval_lag = publication_eval_replay_lag(
+        publication_eval_latest=publication_eval_latest,
+        publishability_gate_latest=publishability_gate_latest,
+        lifecycle_summary=work_unit_lifecycle,
+    )
     package_currentness = resolve_package_currentness(
         study_root=resolved_study_root,
         publication_eval_latest=publication_eval_latest,
@@ -929,6 +936,8 @@ def profile_study_cycle(
         "runtime_transition_summary": runtime_summary,
         "controller_decision_fingerprints": decision_fingerprints,
         "runtime_watch_wakeup_dedupe_summary": runtime_watch_wakeup_dedupe,
+        "work_unit_lifecycle_summary": work_unit_lifecycle,
+        "publication_eval_replay_lag": publication_eval_lag,
         "current_state_summary": current_state,
         "gate_blocker_summary": gate_summary,
         "package_currentness": package_currentness,
