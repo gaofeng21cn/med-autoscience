@@ -320,7 +320,7 @@ def build_product_entry_manifest(
             mainline_snapshot.get("current_stage_summary")
             or mainline_snapshot.get("current_program_phase_summary")
         ),
-        frontdesk_command=product_entry_shell["product_frontdesk"]["command"],
+        frontdoor_command=product_entry_shell["product_frontdesk"]["command"],
         recommended_command=product_entry_shell["workspace_cockpit"]["command"],
         operator_loop_command=product_entry_shell["workspace_cockpit"]["command"],
         progress_surface={
@@ -337,6 +337,7 @@ def build_product_entry_manifest(
         remaining_gaps_count=len(list(mainline_payload.get("remaining_gaps") or [])),
         human_gate_ids=list(product_entry_quickstart["human_gate_ids"]),
     )
+    product_entry_overview["frontdesk_command"] = product_entry_overview["frontdoor_command"]
     product_entry_readiness = _build_shared_product_entry_readiness(
         verdict="runtime_ready_not_standalone_product",
         usable_now=True,
@@ -473,7 +474,7 @@ def build_product_entry_manifest(
         managed_runtime_contract=managed_runtime_contract,
         repo_mainline=repo_mainline,
         product_entry_status=product_entry_status,
-        frontdesk_surface=frontdesk_surface,
+        frontdoor_surface=frontdesk_surface,
         operator_loop_surface=operator_loop_surface,
         operator_loop_actions=operator_loop_actions,
         recommended_shell="workspace_cockpit",
@@ -542,6 +543,13 @@ def build_product_entry_manifest(
             "phase5_platform_target": phase5_platform_target,
         },
     )
+    if isinstance(payload.get("frontdoor_surface"), dict):
+        payload["frontdesk_surface"] = dict(payload["frontdoor_surface"])
+    if isinstance(payload.get("product_entry_overview"), dict):
+        product_entry_overview_payload = dict(payload["product_entry_overview"])
+        if product_entry_overview_payload.get("frontdoor_command") is not None:
+            product_entry_overview_payload["frontdesk_command"] = product_entry_overview_payload["frontdoor_command"]
+        payload["product_entry_overview"] = product_entry_overview_payload
     validate_product_entry_manifest_contract(payload)
     return payload
 
@@ -582,9 +590,11 @@ def build_product_frontdesk(
         "_validate_product_frontdesk_contract",
         _validate_product_frontdesk_contract,
     )
-    manifest = build_product_entry_manifest_fn(
-        profile=profile,
-        profile_ref=profile_ref,
+    manifest = _with_shared_frontdoor_aliases(
+        build_product_entry_manifest_fn(
+            profile=profile,
+            profile_ref=profile_ref,
+        )
     )
     workspace_cockpit = read_workspace_cockpit_fn(
         profile=profile,
@@ -716,6 +726,14 @@ def build_product_frontdesk(
             "phase5_platform_target": dict(manifest.get("phase5_platform_target") or {}),
         },
     )
+    payload["surface_kind"] = PRODUCT_FRONTDESK_KIND
+    if isinstance(payload.get("frontdoor_surface"), dict):
+        payload["frontdesk_surface"] = dict(payload["frontdoor_surface"])
+    if isinstance(payload.get("summary"), dict):
+        summary = dict(payload["summary"])
+        if summary.get("frontdoor_command") is not None:
+            summary["frontdesk_command"] = summary["frontdoor_command"]
+        payload["summary"] = summary
     validate_product_frontdesk_contract(payload)
     return payload
 

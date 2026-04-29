@@ -44,7 +44,7 @@ from opl_harness_shared.family_entry_contracts import (
     validate_gateway_interaction_contract as _validate_shared_gateway_interaction_contract,
 )
 from opl_harness_shared.product_entry_companions import (
-    build_family_product_frontdesk_from_manifest as _build_shared_family_product_frontdesk_from_manifest,
+    build_family_product_frontdoor_from_manifest as _build_shared_family_product_frontdesk_from_manifest,
     build_family_product_entry_manifest as _build_shared_family_product_entry_manifest,
     build_operator_loop_action_catalog as _build_shared_operator_loop_action_catalog,
     build_product_entry_start as _build_shared_product_entry_start,
@@ -55,7 +55,7 @@ from opl_harness_shared.product_entry_companions import (
     build_product_entry_shell_catalog as _build_shared_product_entry_shell_catalog,
     build_product_entry_shell_linked_surface as _build_shared_product_entry_shell_linked_surface,
     collect_family_human_gate_ids as _collect_family_human_gate_ids,
-    validate_family_product_frontdesk as _validate_shared_family_product_frontdesk,
+    validate_family_product_frontdoor as _validate_shared_family_product_frontdesk,
     validate_family_product_entry_manifest as _validate_shared_family_product_entry_manifest,
 )
 from opl_harness_shared.product_entry_program_companions import (
@@ -169,9 +169,29 @@ def _validate_surface_kind_mapping(
         )
 
 
+def _with_shared_frontdoor_aliases(payload: Mapping[str, Any]) -> dict[str, Any]:
+    normalized = dict(payload)
+    if "frontdoor_surface" not in normalized and isinstance(
+        normalized.get("frontdesk_surface"),
+        Mapping,
+    ):
+        normalized["frontdoor_surface"] = dict(normalized["frontdesk_surface"])
+
+    overview = normalized.get("product_entry_overview")
+    if isinstance(overview, Mapping):
+        normalized_overview = dict(overview)
+        if (
+            "frontdoor_command" not in normalized_overview
+            and normalized_overview.get("frontdesk_command") is not None
+        ):
+            normalized_overview["frontdoor_command"] = normalized_overview["frontdesk_command"]
+        normalized["product_entry_overview"] = normalized_overview
+    return normalized
+
+
 def _validate_product_entry_manifest_contract(payload: Mapping[str, Any]) -> None:
     _validate_shared_family_product_entry_manifest(
-        payload,
+        _with_shared_frontdoor_aliases(payload),
         require_contract_bundle=True,
         require_runtime_companions=True,
     )
@@ -186,8 +206,10 @@ def _validate_product_entry_manifest_contract(payload: Mapping[str, Any]) -> Non
 
 
 def _validate_product_frontdesk_contract(payload: Mapping[str, Any]) -> None:
+    shared_payload = _with_shared_frontdoor_aliases(payload)
+    shared_payload["surface_kind"] = "product_frontdoor"
     _validate_shared_family_product_frontdesk(
-        payload,
+        shared_payload,
         require_contract_bundle=True,
     )
     _validate_single_project_boundary(
