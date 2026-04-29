@@ -41,6 +41,23 @@ def test_auto_runtime_parking_maps_submission_metadata_gap() -> None:
     assert projection["auto_execution_complete"] is True
 
 
+def test_auto_runtime_parking_maps_publishability_stop_loss() -> None:
+    projection = _projection(
+        {
+            "decision": "blocked",
+            "reason": "publishability_stop_loss_recommended",
+            "quest_status": "stopped",
+        }
+    )
+
+    assert projection["parked"] is True
+    assert projection["parked_state"] == "publishability_stop_loss"
+    assert projection["parked_owner"] == "user"
+    assert projection["resource_release_expected"] is True
+    assert projection["awaiting_explicit_wakeup"] is True
+    assert projection["auto_execution_complete"] is True
+
+
 def test_auto_runtime_parking_maps_external_input_and_user_decision() -> None:
     external_input = _projection(
         {

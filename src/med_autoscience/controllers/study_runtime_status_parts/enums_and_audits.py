@@ -81,6 +81,7 @@ class StudyRuntimeReason(StrEnum):
     STUDY_COMPLETION_LIVE_RUNTIME_AUDIT_FAILED = "study_completion_live_runtime_audit_failed"
     STUDY_COMPLETION_READY = "study_completion_ready"
     STUDY_COMPLETION_PUBLISHABILITY_GATE_BLOCKED = "study_completion_publishability_gate_blocked"
+    PUBLISHABILITY_STOP_LOSS_RECOMMENDED = "publishability_stop_loss_recommended"
     STUDY_COMPLETION_REQUIRES_PROGRAM_HUMAN_CONFIRMATION = (
         "study_completion_requires_program_human_confirmation"
     )

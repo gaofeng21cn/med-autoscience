@@ -104,6 +104,15 @@ def _task_intake_publication_supervisor_state(task_intake_progress_override: dic
     }
 
 
+def _publication_supervisor_requests_stop_loss(status: StudyRuntimeStatus) -> bool:
+    payload = status.extras.get("publication_supervisor_state")
+    if not isinstance(payload, dict):
+        return False
+    supervisor_phase = str(payload.get("supervisor_phase") or "").strip()
+    current_required_action = str(payload.get("current_required_action") or "").strip()
+    return supervisor_phase == "stop_loss" or current_required_action in {"stop_loss", "stop_runtime"}
+
+
 def _status_state(
     *,
     profile: WorkspaceProfile,
@@ -400,6 +409,12 @@ def _status_state(
         result.set_decision(
             StudyRuntimeDecision.LIGHTWEIGHT,
             StudyRuntimeReason.ENTRY_MODE_NOT_MANAGED,
+        )
+        return _finalize_result()
+    if _publication_supervisor_requests_stop_loss(result):
+        result.set_decision(
+            StudyRuntimeDecision.PAUSE if quest_status in _LIVE_QUEST_STATUSES else StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.PUBLISHABILITY_STOP_LOSS_RECOMMENDED,
         )
         return _finalize_result()
     study_charter_gate_reason = _study_charter_gate_reason(publication_gate_report)

@@ -1,7 +1,9 @@
-def test_task_intake_stop_loss_overrides_publication_supervisor_state(
+def _write_stop_loss_status_fixture(
     monkeypatch,
     tmp_path: Path,
-) -> None:
+    *,
+    quest_status: str,
+):
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
@@ -15,7 +17,7 @@ def test_task_intake_stop_loss_overrides_publication_supervisor_state(
     )
     quest_root = profile.runtime_root / "004-invasive-architecture"
     write_text(quest_root / "quest.yaml", "quest_id: 004-invasive-architecture\n")
-    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running"}\n')
+    write_text(quest_root / ".ds" / "runtime_state.json", f'{{"status":"{quest_status}"}}\n')
     task_intake_module.write_task_intake(
         profile=profile,
         study_id="004-invasive-architecture",
@@ -62,6 +64,18 @@ def test_task_intake_stop_loss_overrides_publication_supervisor_state(
             "medical_publication_surface_named_blockers": ["submission_hardening_incomplete"],
         },
     )
+    return module, profile
+
+
+def test_task_intake_stop_loss_overrides_publication_supervisor_state(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module, profile = _write_stop_loss_status_fixture(
+        monkeypatch,
+        tmp_path,
+        quest_status="running",
+    )
 
     result = module.study_runtime_status(profile=profile, study_id="004-invasive-architecture")
 
@@ -69,3 +83,22 @@ def test_task_intake_stop_loss_overrides_publication_supervisor_state(
     assert result["publication_supervisor_state"]["phase_owner"] == "task_intake"
     assert result["publication_supervisor_state"]["current_required_action"] == "stop_runtime"
     assert "publishability stop-loss" in result["publication_supervisor_state"]["controller_stage_note"]
+
+
+def test_task_intake_stop_loss_blocks_stopped_auto_resume(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module, profile = _write_stop_loss_status_fixture(
+        monkeypatch,
+        tmp_path,
+        quest_status="stopped",
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="004-invasive-architecture")
+
+    assert result["publication_supervisor_state"]["supervisor_phase"] == "stop_loss"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "publishability_stop_loss_recommended"
+    assert result["auto_runtime_parked"]["parked"] is True
+    assert result["auto_runtime_parked"]["parked_state"] == "publishability_stop_loss"
