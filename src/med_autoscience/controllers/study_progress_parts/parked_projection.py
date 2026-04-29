@@ -22,6 +22,13 @@ def build_progress_parked_projection(
         manual_finish_contract=manual_finish_contract,
     )
     if task_intake_progress_override and is_auto_runtime_parked(projection):
+        quality_closure_truth = (
+            dict(task_intake_progress_override.get("quality_closure_truth") or {})
+            if isinstance(task_intake_progress_override.get("quality_closure_truth"), Mapping)
+            else {}
+        )
+        if str(quality_closure_truth.get("state") or "").strip() == "stop_loss_recommended":
+            return projection
         return {
             **projection,
             "parked": False,

@@ -102,3 +102,5 @@ def test_task_intake_stop_loss_blocks_stopped_auto_resume(
     assert result["reason"] == "publishability_stop_loss_recommended"
     assert result["auto_runtime_parked"]["parked"] is True
     assert result["auto_runtime_parked"]["parked_state"] == "publishability_stop_loss"
+    assert result["progress_projection"]["auto_runtime_parked"]["parked"] is True
+    assert result["progress_projection"]["auto_runtime_parked"]["parked_state"] == "publishability_stop_loss"
