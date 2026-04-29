@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .milestone_parking import finalize_milestone_parking_active, finalize_milestone_parking_summary
 from .parked_progression import parked_intervention_lane, publication_supervisor_blocks_handoff, task_intake_quality_lane
+from .gate_clearing_progress import append_gate_clearing_batch_progress_signal, append_progress_signal
 from . import shared as _shared
 from . import publication_runtime as _publication_runtime
 from .quality_review_loop import quality_review_loop_action_required
@@ -61,73 +62,6 @@ def _progress_freshness_required(current_stage: str) -> bool:
     }
 
 
-def _append_progress_signal(
-    *,
-    signals: list[dict[str, Any]],
-    timestamp: object,
-    source: str,
-    summary: object,
-) -> None:
-    normalized_timestamp = _normalize_timestamp(timestamp)
-    rendered_summary = _display_text(summary)
-    if normalized_timestamp is None or rendered_summary is None:
-        return
-    signals.append(
-        {
-            "timestamp": normalized_timestamp,
-            "time_label": _time_label(normalized_timestamp),
-            "source": source,
-            "summary": rendered_summary,
-        }
-    )
-
-
-def _append_gate_clearing_batch_progress_signal(
-    *,
-    signals: list[dict[str, Any]],
-    gate_clearing_batch_payload: dict[str, Any] | None,
-    gate_clearing_batch_path: Path | None,
-    publication_eval_payload: dict[str, Any] | None,
-) -> None:
-    if not isinstance(gate_clearing_batch_payload, dict):
-        return
-    current_eval_id = _non_empty_text((publication_eval_payload or {}).get("eval_id"))
-    source_eval_id = _non_empty_text(gate_clearing_batch_payload.get("source_eval_id"))
-    if current_eval_id is not None and source_eval_id is not None and current_eval_id != source_eval_id:
-        return
-    gate_replay = _mapping_copy(gate_clearing_batch_payload.get("gate_replay"))
-    gate_replay_step = _mapping_copy(gate_clearing_batch_payload.get("gate_replay_step"))
-    gate_replay_status = _non_empty_text(gate_replay_step.get("status")) or _non_empty_text(gate_replay.get("status"))
-    if _non_empty_text(gate_clearing_batch_payload.get("status")) != "executed" and gate_replay_status is None:
-        return
-    blockers = [
-        _non_empty_text(item)
-        for item in (gate_replay.get("blockers") or [])
-        if _non_empty_text(item) is not None
-    ]
-    if gate_replay_status == "clear":
-        summary = "gate-clearing batch closed with publication gate replay clear."
-    elif blockers:
-        summary = f"gate-clearing batch closed; gate replay still has {len(blockers)} blocker(s)."
-    else:
-        summary = "gate-clearing batch closed and wrote a gate replay result."
-    signal_count = len(signals)
-    _append_progress_signal(
-        signals=signals,
-        timestamp=(
-            _non_empty_text(gate_replay_step.get("finished_at"))
-            or _non_empty_text(gate_clearing_batch_payload.get("finished_at"))
-            or _non_empty_text(gate_clearing_batch_payload.get("generated_at"))
-            or _non_empty_text(gate_clearing_batch_payload.get("emitted_at"))
-            or _non_empty_text(gate_clearing_batch_payload.get("recorded_at"))
-        ),
-        source="gate_clearing_batch",
-        summary=summary,
-    )
-    if len(signals) > signal_count:
-        signals[-1]["artifact_path"] = str(gate_clearing_batch_path) if gate_clearing_batch_path is not None else None
-
-
 def _latest_progress_signal(
     *,
     bash_summary_payload: dict[str, Any] | None,
@@ -142,14 +76,14 @@ def _latest_progress_signal(
     if isinstance(latest_session, dict):
         last_progress = latest_session.get("last_progress")
         if isinstance(last_progress, dict):
-            _append_progress_signal(
+            append_progress_signal(
                 signals=signals,
                 timestamp=_non_empty_text(last_progress.get("ts")) or _non_empty_text(latest_session.get("updated_at")),
                 source="bash_summary",
                 summary=_non_empty_text(last_progress.get("message")) or _non_empty_text(last_progress.get("step")),
             )
     if details_projection_payload is not None:
-        _append_progress_signal(
+        append_progress_signal(
             signals=signals,
             timestamp=_non_empty_text(((details_projection_payload.get("summary") or {}).get("updated_at")))
             or _non_empty_text((details_projection_payload or {}).get("generated_at")),
@@ -162,7 +96,7 @@ def _latest_progress_signal(
         summary = f"控制面正式决定：{decision_type}。"
         if reason:
             summary += f" 原因：{reason}"
-        _append_progress_signal(
+        append_progress_signal(
             signals=signals,
             timestamp=controller_decision_payload.get("emitted_at"),
             source="controller_decision",
@@ -170,13 +104,13 @@ def _latest_progress_signal(
         )
     if publication_eval_payload is not None:
         verdict = (publication_eval_payload.get("verdict") or {}) if isinstance(publication_eval_payload, dict) else {}
-        _append_progress_signal(
+        append_progress_signal(
             signals=signals,
             timestamp=publication_eval_payload.get("emitted_at"),
             source="publication_eval",
             summary=_non_empty_text(verdict.get("summary")) or "发表评估已更新。",
         )
-    _append_gate_clearing_batch_progress_signal(
+    append_gate_clearing_batch_progress_signal(
         signals=signals,
         gate_clearing_batch_payload=gate_clearing_batch_payload,
         gate_clearing_batch_path=gate_clearing_batch_path,
