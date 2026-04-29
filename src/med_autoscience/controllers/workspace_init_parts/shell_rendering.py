@@ -182,7 +182,7 @@ def _render_med_deepscientist_shared() -> str:
         "load_med_deepscientist_contract() {\n"
         "  local payload_json\n"
         '  payload_json="$(\n'
-        '    uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - "${PROFILE_PATH}" <<'"'"'PY'"'"'\n'
+        '    "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - "${PROFILE_PATH}" <<'"'"'PY'"'"'\n'
         "import json\n"
         "import sys\n\n"
         "from med_autoscience.profiles import load_profile, profile_to_dict\n"
@@ -202,7 +202,7 @@ def _render_med_deepscientist_shared() -> str:
         '  export MEDAUTOSCI_MED_DEEPSCIENTIST_CONTRACT_JSON="${payload_json}"\n\n'
         "  local contract_lines\n"
         '  contract_lines="$(\n'
-        '    CONTRACT_JSON="${payload_json}" uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - <<'"'"'PY'"'"'\n'
+        '    CONTRACT_JSON="${payload_json}" "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - <<'"'"'PY'"'"'\n'
         "import json\n"
         "import os\n\n"
         'payload = json.loads(os.environ["CONTRACT_JSON"])\n'

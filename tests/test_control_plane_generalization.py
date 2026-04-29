@@ -554,6 +554,36 @@ def test_runtime_failure_taxonomy_keeps_non_account_codex_upstream_failures_exte
     assert classification["external_blocker"] is True
 
 
+def test_runtime_failure_taxonomy_generalizes_http_retry_budget_exhaustion() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_failure_taxonomy")
+
+    rate_limited = module.classify_mds_failure_diagnosis(
+        {
+            "retriable": True,
+            "retry_budget_exhausted": True,
+            "retry_attempts": 5,
+            "retry_after_seconds": 300,
+            "problem": "OpenAI API HTTP 429 too many requests after retries exhausted.",
+        }
+    )
+    server_error = module.classify_mds_failure_diagnosis(
+        {
+            "retriable": False,
+            "problem": "Anthropic API HTTP 503 provider unavailable after retry budget was exhausted.",
+        }
+    )
+
+    assert rate_limited["blocker_class"] == "external_provider_transient"
+    assert rate_limited["action_mode"] == "provider_backoff_and_recheck"
+    assert rate_limited["auto_recovery_allowed"] is False
+    assert rate_limited["retry_budget_exhausted"] is True
+    assert rate_limited["retry_attempts"] == 5
+    assert rate_limited["retry_after_seconds"] == 300
+    assert server_error["blocker_class"] == "external_provider_transient"
+    assert server_error["action_mode"] == "provider_backoff_and_recheck"
+    assert server_error["auto_recovery_allowed"] is False
+
+
 def test_autonomy_slo_execution_plan_prioritizes_controller_actions_without_quality_relaxation() -> None:
     module = importlib.import_module("med_autoscience.controllers.autonomy_slo")
 

@@ -42,8 +42,14 @@ _EXTERNAL_ACCOUNT_TEXT_MARKERS = (
     "insufficient balance",
     "insufficient quota",
     "quota exceeded",
+    "quota/balance",
     "billing",
     "payment required",
+    "http 401",
+    "401 unauthorized",
+    "unauthorized",
+    "http 403",
+    "403 forbidden",
     "account disabled",
     "account blocker",
     "auth returned http 403",
@@ -57,6 +63,16 @@ _EXTERNAL_TRANSIENT_TEXT_MARKERS = (
     "provider unavailable",
     "provider rate limit",
     "rate limit exceeded",
+    "http 429",
+    "429 too many requests",
+    "too many requests",
+    "http 500",
+    "http 502",
+    "http 503",
+    "http 504",
+    "5xx",
+    "retry budget was exhausted",
+    "retries exhausted",
     "openai api",
     "anthropic api",
 )
@@ -121,6 +137,11 @@ def classify_mds_failure_diagnosis(diagnosis: Mapping[str, Any]) -> dict[str, An
     diagnosis_code = _text(diagnosis.get("diagnosis_code")) or _text(diagnosis.get("code"))
     retriable = _bool(diagnosis.get("retriable"))
     problem = _text(diagnosis.get("problem"))
+    retry_budget_exhausted = _bool(diagnosis.get("retry_budget_exhausted")) is True or _bool(
+        diagnosis.get("retry_exhausted")
+    ) is True
+    retry_after_seconds = diagnosis.get("retry_after_seconds")
+    retry_attempts = diagnosis.get("retry_attempts")
     failure_texts = _lowered_texts(diagnosis_code, problem, diagnosis.get("message"), diagnosis.get("raw_error"))
     account_like_external = _contains_any(failure_texts, _EXTERNAL_ACCOUNT_TEXT_MARKERS)
     transient_like_external = _contains_any(failure_texts, _EXTERNAL_TRANSIENT_TEXT_MARKERS)
@@ -164,7 +185,7 @@ def classify_mds_failure_diagnosis(diagnosis: Mapping[str, Any]) -> dict[str, An
     elif diagnosis_code in _EXTERNAL_TRANSIENT_CODES or codex_upstream_failure or transient_like_external:
         blocker_class = "external_provider_transient"
         action_mode = "provider_backoff_and_recheck"
-        auto_recovery_allowed = retriable is not False
+        auto_recovery_allowed = retriable is not False and not retry_budget_exhausted
         external_blocker = True
         requires_human_gate = False
     elif diagnosis_code in _RUNTIME_RECONCILIATION_CODES:
@@ -201,6 +222,9 @@ def classify_mds_failure_diagnosis(diagnosis: Mapping[str, Any]) -> dict[str, An
         "paper_quality_blocker": False,
         "problem": problem,
         "retriable": retriable,
+        "retry_budget_exhausted": retry_budget_exhausted,
+        "retry_after_seconds": retry_after_seconds if isinstance(retry_after_seconds, int) else None,
+        "retry_attempts": retry_attempts if isinstance(retry_attempts, int) else None,
     }
 
 
