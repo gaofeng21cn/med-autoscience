@@ -1,0 +1,59 @@
+{
+  "contract_kind": "mas_opl_family_contract_adoption.v1",
+  "domain_id": "med-autoscience",
+  "domain_owner": "Med Auto Science",
+  "opl_role": "family-level projection consumer only",
+  "attempt_projection": {
+    "source_surfaces": [
+      "study_runtime_status",
+      "runtime_watch",
+      "controller_decisions/latest.json"
+    ],
+    "maps_to_opl_contract": "opl_family_runtime_attempt_contract.v1",
+    "owner_boundary": "MAS owns study runtime truth and controller decisions"
+  },
+  "quality_projection": {
+    "source_surfaces": [
+      "study_charter",
+      "evidence_ledger",
+      "review_ledger",
+      "publication_eval/latest.json"
+    ],
+    "maps_to_opl_contract": "opl_family_domain_quality_projection_contract.v1",
+    "quality_gate_owner": "MAS medical publication gate",
+    "claim_only_ready_forbidden": true
+  },
+  "incident_projection": {
+    "source_surfaces": [
+      "runtime_watch",
+      "autonomy incident records",
+      "controller_decisions/latest.json"
+    ],
+    "maps_to_opl_contract": "opl_family_incident_learning_loop.v1",
+    "closure_rule": "domain-specific failure requires MAS-owned closure ref"
+  },
+  "operator_projection": {
+    "source_surfaces": [
+      "product-frontdesk",
+      "workspace-cockpit",
+      "study-progress",
+      "build-product-entry.return_surface_contract"
+    ],
+    "maps_to_opl_contract": "opl_family_product_operator_projection.v1",
+    "required_fields": [
+      "source_refs",
+      "freshness",
+      "owner_split",
+      "next_surface_ref",
+      "human_gate_reason"
+    ]
+  },
+  "non_goals": [
+    "OPL owns study truth",
+    "OPL owns publication judgment",
+    "OPL closes publication_eval",
+    "generic persona QA",
+    "claim-only ready"
+  ]
+}
+

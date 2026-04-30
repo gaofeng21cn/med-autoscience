@@ -74,6 +74,7 @@
 - 研究者与课题负责人继续负责方向设定、重大边界变化和投稿前审计。
 - 期刊投稿和外部系统交互继续由人工监督。
 - `OPL` 集成、`product-entry manifest`、`handoff envelope` 和其他机器可读桥接继续留在集成层与参考层阅读。
+- `MAS` 已声明 `OPL` family contract adoption：`contracts/opl-gateway/family-contract-adoption.json` 与 `docs/references/opl_family_contract_adoption.md` 把 runtime attempt、medical quality projection、incident learning 与 product operator projection 映射回 MAS-owned durable surfaces；`OPL` 只消费投影，不持有 study truth 或 publication judgment。
 - `physical monorepo absorb`、`runtime core ingest` 与更大的平台化结构调整继续是 post-gate 长线，不属于当前 tranche 的 repo-side 验收面。
 - 自有长期常驻 OPL sidecar 不是当前 MAS 侧目标；只有当外部 `Hermes-Agent` substrate 无法表达 task/wakeup/approval/audit/product isolation contract 时，才通过 OPL Runtime Manager 的已冻结 adapter/projection 边界进入 promotion 评估。
 
