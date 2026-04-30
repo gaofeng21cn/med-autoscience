@@ -82,3 +82,5 @@ Candidate gaps cluster into six repeatable intake lanes:
 - tradeoff scatter/Pareto views, with broken-axis handling requiring strict review before any promotion.
 
 This intake does not promote any item into the active display board. Promotion would require a real MAS paper demand, an explicit input schema, deterministic QC boundaries, and a renderer path that does not depend on post-hoc layout repair.
+
+Second-pass learning status is recorded in [paperplothub_exemplar_exhaustion_ledger.md](./paperplothub_exemplar_exhaustion_ledger.md). Current public PaperPlotHub learning is exhausted until a new public gallery item, a material metadata change, or a real MAS paper demand reopens one of the candidate-gap clusters through the promotion gate.

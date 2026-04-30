@@ -8,7 +8,7 @@
 
 当前 active round 与当前 phase 一律以 [medical_display_active_board.md](./medical_display_active_board.md) 为准。
 
-外部 exemplar intake 只作为只读候选证据保留，不自动进入 active backlog。当前 PaperPlotHub gallery 全量枚举见 [paperplothub_exemplar_intake.md](./paperplothub_exemplar_intake.md)。
+外部 exemplar intake 只作为只读候选证据保留，不自动进入 active backlog。当前 PaperPlotHub gallery 全量枚举见 [paperplothub_exemplar_intake.md](./paperplothub_exemplar_intake.md)，第二轮学习穷尽账本见 [paperplothub_exemplar_exhaustion_ledger.md](./paperplothub_exemplar_exhaustion_ledger.md)。
 
 当前完成态真相优先看：
 
