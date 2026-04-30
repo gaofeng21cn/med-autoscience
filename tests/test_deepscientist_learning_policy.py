@@ -107,3 +107,34 @@ def test_2026_04_28_intake_records_latest_update_landing_decisions() -> None:
     assert "submission_ready" in intake
     assert "本轮不把 Claude / Kimi runner 扩面升级成 MAS 主线" in intake
     assert "本轮不追随 upstream UI / Settings / Lab canvas 大包" in intake
+
+
+def test_2026_04_30_intake_records_paper_outline_quality_lessons() -> None:
+    intake = _read("docs/program/deepscientist_learning_intake_2026_04_30.md")
+
+    assert "d22165e..1f042ef" in intake
+    for decision in ("adopt_contract", "adopt_template", "watch_only", "reject"):
+        assert decision in intake
+    for upstream_lesson in (
+        "academic outline artifact gates",
+        "paper-outline workflow",
+        "paper quality review prompts",
+        "runner evidence packet sidecars",
+        "runtime log hygiene and runner diagnostics",
+        "provider docs and setup guidance",
+        "UI paper tool cards",
+    ):
+        assert upstream_lesson in intake
+    for learned_contract in (
+        "paper_view",
+        "evidence_view",
+        "reviewer risk",
+        "language firewall",
+        "outline readiness",
+    ):
+        assert learned_contract in intake
+    for owner in ("eval_hygiene", "controller_charter", "workspace_projection", "runtime"):
+        assert owner in intake
+    assert "no MDS code slice was absorbed" in intake
+    assert "Provider runner / setup breadth" in intake
+    assert "UI product shell" in intake
