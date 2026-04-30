@@ -265,6 +265,14 @@ dashboard / API / logs / status 都是 observability-only surface：只能读取
 
 这些 surface 不得成为 study truth、publication authority 或 paper write authority。用户界面、API 聚合、日志搜索和状态卡只能投影已经存在的 controller/orchestrator truth；它们不得把可见状态回写成 `study_charter`、`evidence_ledger`、`review_ledger`、`publication_eval/latest.json` 或 `controller_decisions/latest.json` 的替代来源。
 
+observability-only surface 的稳定输出边界如下：
+
+- `runtime_watch` / status API / dashboard 可以显示 `generated_at`、running/retrying/released counts、`active_run_id`、`session_id`、`worker_host`、`workspace_root`、`run_attempt_phase`、`attempt_count`、last event、last heartbeat、`failure_reason`、`backoff_until`、accepted absolute token totals、runtime seconds 和 rate-limit snapshot。
+- token totals 必须来自 accepted absolute cumulative totals；`last_token_usage`、`tokenUsage.last`、turn-level `usage` 或任意泛名 `usage` 不得被无条件累加到 dashboard totals。
+- context window / model context capacity 必须和 spend 分开投影。
+- snapshot timeout、snapshot unavailable、missing heartbeat、missing session、missing workspace 或 stale event 只能产生 read-only blocker / recovery signal；不得直接写入 research result、paper package 或 publication eval。
+- dashboard snapshot、API response 和 terminal status 可以作为 regression evidence；不能成为医学研究 authority。
+
 ### 7.2 正式入口保持不变
 
 future work-unit / route-unit control 必须继续挂在现有 `MAS` durable surface 下。正式入口仍是：

@@ -311,6 +311,64 @@ future orchestrator 可以使用 retry/backoff/reconciliation 恢复 runtime 可
 
 retry/backoff 是恢复策略，不是研究裁决策略。它只能帮助同一 controller-approved work-unit 回到可执行状态；不能创建新的 study truth、不能覆盖 `study_charter`、不能绕过 `publication_eval/latest.json` 或 `controller_decisions/latest.json`。
 
+### Runtime telemetry and accounting
+
+future external worker / hosted runtime 的 telemetry 必须服务恢复、审计和 operator projection，不承担医学质量裁决。
+
+每条 runtime lifecycle event 至少应保留稳定键：
+
+- `program_id`
+- `study_id`
+- `quest_id`
+- `active_run_id`
+- `work_unit_id`
+- `route_id`
+- `attempt_count`
+- `run_attempt_phase`
+- `session_id`
+- `event_type`
+- `outcome`
+- `failure_reason`
+- `worker_host`
+- `workspace_root`
+- `cwd`
+- `timestamp`
+
+稳定日志优先使用确定性 `event_type` 和短 `failure_reason`，例如 `attempt_claimed`、`attempt_started`、`agent_message`、`token_usage_updated`、`rate_limit_updated`、`attempt_completed`、`retry_queued`、`terminal_non_active`、`workspace_cleanup_started`、`workspace_cleanup_completed`。日志不得把大 payload、整稿、raw data、完整 ledger 或投稿包内容直接塞进 event；需要定位时只写 artifact/ref/path/fingerprint。
+
+token/runtime accounting 采用绝对值优先：
+
+- `thread/tokenUsage/updated.tokenUsage.total` 或同等 thread-scoped cumulative total 是 live total 的首选来源。
+- `total_token_usage` / `tokenUsage.total` 表示累计快照；`last_token_usage` / `tokenUsage.last` 表示最新增量。
+- dashboard、API、status 或 `runtime_efficiency` 不得把 delta 再累加到已经接受的 absolute total 上。
+- `turn/completed.usage` 和泛名 `usage` 必须按 event type / payload path 解释，不能仅凭字段名当成 cumulative total。
+- `model_context_window` / context-window normalization 必须和 token spend 分开显示；它不是消费，也不能被解释为医学产出强度。
+- rate-limit snapshot 可以投影 `provider`、`primary_remaining`、`secondary_remaining`、`reset_after_seconds`、`retry_after_seconds`，但只能作为 runtime throttling / backoff 依据，不能推动 paper route 或 publication readiness。
+
+### Snapshot observability evidence
+
+operator-facing snapshot 应固定为 read-only projection，并至少能回答：
+
+- 当前 `running` / `retrying` / `released` unit 数量。
+- 每个 running unit 的 `study_id`、`quest_id`、`active_run_id`、`session_id`、`worker_host`、`workspace_root`、`run_attempt_phase`、`attempt_count`、runtime age、last event 和 last heartbeat。
+- 每个 retry queued unit 的 `attempt_count`、`failure_reason`、`backoff_until`、remaining retry budget、worker/workspace ref。
+- 全局 runtime totals：runtime seconds、accepted absolute token totals、latest rate-limit snapshot、snapshot `generated_at`。
+- snapshot read timeout 或 source unavailable 时，返回 `snapshot_timeout` / `snapshot_unavailable`，不得把缺失 snapshot 写回成 study truth。
+
+snapshot fixtures / regression evidence 应覆盖至少三类状态：idle、running with session/token usage、retry/backoff queue。它们是 operator projection regression oracle，不是 `study_charter`、`evidence_ledger`、`review_ledger`、`publication_eval/latest.json` 或 `controller_decisions/latest.json` 的替代来源。
+
+### Workspace lifecycle and teardown hygiene
+
+future external worker / hosted runtime 可以有 `after_create`、`before_run`、`after_run`、`before_remove` 等 workspace lifecycle hook，但 hook 只用于准备、校验、打包或清理 runtime workspace，不得直接改变 paper truth 或 publication authority。
+
+workspace teardown 必须满足：
+
+- cleanup 前先持久化 cleanup evidence，包括 `study_id`、`quest_id`、`active_run_id`、`work_unit_id`、`workspace_root`、`cleanup_reason`、preserved artifact refs、started/completed timestamps。
+- cleanup 只允许删除受控 workspace 内的 runtime scratch；不得删除 study charter、evidence/review ledger、publication eval、controller decisions、manuscript/package refs 或 runtime escalation records。
+- terminal/released cleanup 与 non-active stop 语义分开：terminal cleanup 可以在 controller 确认后释放 runtime workspace；non-active stop 只能停止 writer 并保留恢复/审计所需材料。
+- path canonicalization 必须解析 symlink，任何 root escape、relative path escape、跨 study root 写入或 cleanup target 越界都必须 fail-closed，`failure_reason=workspace_boundary_violation`。
+- external issue tracker 或 PR cleanup 不属于 MAS 默认 teardown。若未来需要关闭外部 PR、issue 或 hosted runtime ticket，必须另有 repo-tracked integration contract；不得把 Linear/GitHub/Symphony teardown hook 写成 MAS 必需流程。
+
 ## 决策分层
 
 当前 decision 分三类：
