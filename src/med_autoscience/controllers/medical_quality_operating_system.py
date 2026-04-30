@@ -201,6 +201,63 @@ def _completion_claim_policy() -> dict[str, Any]:
     }
 
 
+def _evidence_over_claims_gate() -> dict[str, Any]:
+    return {
+        "policy_id": "mas_evidence_over_claims_v1",
+        "claim_only_ready_allowed": False,
+        "ready_verbs_require_authority_refs": True,
+        "required_refs": [
+            "study_charter.paper_quality_contract",
+            "paper/evidence_ledger.json",
+            "paper/review_ledger.json",
+            "artifacts/publication_eval/latest.json",
+            "artifacts/controller_decisions/latest.json",
+        ],
+        "ai_reviewer_publication_eval": {
+            "required_for": [
+                "reviewer_first_ready",
+                "finalize_ready",
+                "submission_facing_quality_closure",
+            ],
+            "mechanical_projection_allowed_verdicts": ["review_required", "projection_only"],
+            "mechanical_projection_can_authorize_quality": False,
+        },
+        "forbidden_authority_sources": [
+            "chat_summary",
+            "terminal_prose",
+            "memory_only",
+            "generic_persona_approval",
+            "non_medical_qa_label",
+            "screenshot_style_qa",
+        ],
+    }
+
+
+def _quality_preserving_fast_lane_policy() -> dict[str, Any]:
+    return {
+        "policy_id": "mas_quality_preserving_fast_lane_v1",
+        "gate_relaxation_allowed": False,
+        "allowed_parallelism": [
+            "independent_read_projection",
+            "bounded_analysis_unit",
+            "replayable_repair_unit",
+            "artifact_inventory_refresh",
+        ],
+        "forbidden_shortcuts": [
+            "skip_publication_eval",
+            "skip_evidence_ledger",
+            "skip_review_ledger",
+            "claim_only_ready",
+            "mechanical_projection_as_ai_reviewer",
+        ],
+        "must_replay_after": [
+            "publication_gate",
+            "quality_closure_truth",
+            "study_progress_projection",
+        ],
+    }
+
+
 def build_medical_quality_operating_system_contract(
     *,
     study_archetype: str | None,
@@ -251,8 +308,11 @@ def build_medical_quality_operating_system_contract(
             "publication_eval": {
                 "surface": "artifacts/publication_eval/latest.json",
                 "required_verdict": "not_blocked",
+                "must_be_ai_reviewer_backed_for_quality_closure": True,
                 "must_be_replayed_after_fast_lane": True,
             },
+            "evidence_over_claims_gate": _evidence_over_claims_gate(),
+            "quality_preserving_fast_lane_policy": _quality_preserving_fast_lane_policy(),
             "first_draft_quality_floor": _first_draft_quality_floor(),
             "stronger_paper_shape_scan": _stronger_paper_shape_scan(),
             "completion_claim_policy": _completion_claim_policy(),

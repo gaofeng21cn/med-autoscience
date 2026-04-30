@@ -33,6 +33,9 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
     assert contract["quality_contract"]["completion_claim_policy"][
         "mechanical_repair_complete_equals_scientific_quality_complete"
     ] is False
+    assert contract["quality_contract"]["publication_eval"][
+        "must_be_ai_reviewer_backed_for_quality_closure"
+    ] is True
 
 
 def test_quality_os_selects_ai_guidelines_without_record_overlay_when_not_rwd() -> None:
@@ -75,3 +78,36 @@ def test_quality_os_selects_expected_non_ai_guideline_families() -> None:
         study_archetype="systematic_review",
         manuscript_family="systematic_review",
     )["primary_guideline_family"] == "PRISMA"
+
+
+def test_quality_os_blocks_claim_only_ready_and_fast_lane_gate_relaxation() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.medical_quality_operating_system"
+    )
+
+    contract = module.build_medical_quality_operating_system_contract(
+        study_archetype="clinical_classifier",
+        manuscript_family="prediction_model",
+    )
+    evidence_gate = contract["quality_contract"]["evidence_over_claims_gate"]
+    fast_lane = contract["quality_contract"]["quality_preserving_fast_lane_policy"]
+
+    assert evidence_gate["policy_id"] == "mas_evidence_over_claims_v1"
+    assert evidence_gate["claim_only_ready_allowed"] is False
+    assert evidence_gate["ready_verbs_require_authority_refs"] is True
+    assert "paper/evidence_ledger.json" in evidence_gate["required_refs"]
+    assert "paper/review_ledger.json" in evidence_gate["required_refs"]
+    assert "artifacts/publication_eval/latest.json" in evidence_gate["required_refs"]
+    assert evidence_gate["ai_reviewer_publication_eval"]["required_for"] == [
+        "reviewer_first_ready",
+        "finalize_ready",
+        "submission_facing_quality_closure",
+    ]
+    assert evidence_gate["ai_reviewer_publication_eval"][
+        "mechanical_projection_can_authorize_quality"
+    ] is False
+    assert "generic_persona_approval" in evidence_gate["forbidden_authority_sources"]
+    assert fast_lane["gate_relaxation_allowed"] is False
+    assert "bounded_analysis_unit" in fast_lane["allowed_parallelism"]
+    assert "skip_publication_eval" in fast_lane["forbidden_shortcuts"]
+    assert "claim_only_ready" in fast_lane["forbidden_shortcuts"]
