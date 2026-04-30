@@ -71,6 +71,14 @@ The audited source files are:
   - `artifacts/` = auxiliary runtime/finalization evidence only, not duplicated figure/table lookup.
   - legacy top-level exports such as `paper/figures/Figure*.png|pdf|svg` and `paper/tables/Table*.csv|md` should be pruned once the catalog points to `generated/`.
 
+## External Exemplar Intake Policy
+
+- External galleries such as PaperPlotHub are read-only exemplar sources, not display-pack sources.
+- PaperPlotHub scripts, screenshots, rendered PNGs, and paper figures must not be copied into the MAS repository by default.
+- Link-only exemplar metadata may be recorded in intake documents or `template.toml` `exemplar_refs` when it maps to an existing audited template.
+- A PaperPlotHub item does not become a formal display capability until a real MAS paper demand proves the gap and the change lands through explicit schema, renderer, QC, catalog, and submission-surface validation.
+- External exemplar refs must not introduce a runtime dependency, bypass the audited renderer path, or replace AI-first visual review.
+
 ## Current Paper-Proven Baseline (001/003)
 
 The audited inventory is intentionally broader than the subset already proven against real papers.

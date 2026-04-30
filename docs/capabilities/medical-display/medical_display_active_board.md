@@ -20,12 +20,14 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`81`
+  - 证据型模板：`84`
   - 插图壳层：`7`
-  - 表格壳层：`5`
-  - 总模板数：`93`
+  - 表格壳层：`7`
+  - 总模板数：`98`
 - 最近一次已吸收完成的 capability cluster：
   - `A/E / confusion_matrix_heatmap_binary`
+- 最近一次已完成的外部 exemplar intake：
+  - `PaperPlotHub public gallery 2026-04-30`，只作为只读 exemplar/provenance surface，不开启 formal owner template round。
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -46,9 +48,12 @@
 - strict audited inventory 已更新到：
   - `Data Geometry`：`15`
   - `Matrix Pattern`：`15`
-  - evidence figures：`81`
-  - total templates：`93`
+  - evidence figures：`84`
+  - illustration shells：`7`
+  - table shells：`7`
+  - total templates：`98`
 - `confusion_matrix_heatmap_binary` 已把 `A/E` 的高频二分类诊断矩阵表达从“通用 heatmap 可勉强承接”推进到正式的 binary confusion-matrix lower bound，并把显式 `2x2` 网格、`row/column/overall` normalization 语义、`metric_name`、行列顺序和数值边界固化进单一契约；
+- PaperPlotHub intake 已枚举当前公开 `27` 条 gallery metadata，并将高价值样例作为 link-only `exemplar_refs` 绑定到既有核心模板；它不复制外部脚本/图片，也不改变 strict audited inventory。
 - 下一步是按 reroute 规则固定下一个 capability cluster，再新开唯一 owner worktree。
 
 ### 当前轮次目标
@@ -62,9 +67,10 @@
 当前 baton 已明确：
 
 1. 最新的 `D/E/G / celltype_marker_dotplot_panel` owner round 已经 absorb 完成。
-2. 最新的 `A/E / confusion_matrix_heatmap_binary` owner round 已完成 closeout，strict audited inventory 已推进到 `81 / 7 / 5 / 93`。
-3. 当前没有打开中的 owner worktree，下一轮要先 reroute，再开唯一 owner round。
-4. 下一轮优先继续比较 `A/H`、`F`、`D/E/G` 与 `C/H` 的真实论文 demand 与 capability-cluster 价值。
+2. 最新的 `A/E / confusion_matrix_heatmap_binary` owner round 已完成 closeout，strict audited inventory 已推进到 `84 / 7 / 7 / 98`。
+3. `PaperPlotHub public gallery 2026-04-30` 已完成只读 exemplar intake，并把部分高价值 link-only exemplar refs 绑定到既有模板。
+4. 当前没有打开中的 owner worktree，下一轮要先 reroute，再开唯一 owner round。
+5. 下一轮优先继续比较 `A/H`、`F`、`D/E/G` 与 `C/H` 的真实论文 demand 与 capability-cluster 价值。
 
 ### 下一轮边界
 

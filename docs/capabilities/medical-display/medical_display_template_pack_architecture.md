@@ -69,6 +69,11 @@
   - 外部 source 的安装/获取机制仍未独立成完整分发链；
   - pack 内 `examples / goldens / exemplars / audit` 资产仍需继续真实充实，而不只是 contract 已落地；
   - 更广的 submission/manuscript-facing pack provenance 对账还可以继续扩展。
+- PaperPlotHub 这类公开绘图库已进入 link-only exemplar intake 口径：
+  - 它可以作为模板包 `exemplar_refs` 和军火库学习证据；
+  - 它不是 `display_pack` source kind；
+  - 不复制外部脚本、截图、PNG 或论文图；
+  - 不作为 runtime dependency，也不绕过 schema / renderer / QC / submission surface。
 
 因此，这条线当前所处的位置，不是 `Phase 1`，也不是“还在讨论是否要做模板包”。
 
@@ -192,6 +197,13 @@
 - 提供 exemplar / golden case / examples；
 - 提供版本和兼容性信息；
 - 提供包级 README、变更记录和维护责任。
+
+外部 exemplar 的吸收边界：
+
+- 可以保存 PaperPlotHub 等外部页面的 link-only metadata 和 slug；
+- 可以把已审计、语义匹配的外部样例写入模板级 `exemplar_refs`；
+- 不把外部上传脚本或论文图作为模板包资产提交；
+- 不把外部 gallery 条目直接提升为新模板，除非后续真实论文需求证明现有 contract 不足。
 
 ### 三、军火库治理层
 
