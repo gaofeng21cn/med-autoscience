@@ -56,6 +56,10 @@ def stale_submission_authority_signature_current(*, gate_report: dict[str, Any])
     blockers = _gate_blockers(gate_report)
     if "stale_submission_minimal_authority" not in blockers:
         return False
+    return submission_minimal_authority_signature_current(gate_report=gate_report)
+
+
+def submission_minimal_authority_signature_current(*, gate_report: dict[str, Any]) -> bool:
     authority_status = str(gate_report.get("submission_minimal_authority_status") or "").strip()
     evaluated_signature = str(gate_report.get("submission_minimal_evaluated_source_signature") or "").strip()
     authority_signature = str(gate_report.get("submission_minimal_authority_source_signature") or "").strip()
@@ -127,6 +131,12 @@ def submission_minimal_core_outputs_missing(gate_report: dict[str, Any]) -> bool
 
 def submission_minimal_refresh_requested(*, gate_report: dict[str, Any]) -> bool:
     if stale_submission_authority_signature_current(gate_report=gate_report):
+        return False
+    if (
+        direct_submission_delivery_sync_requested(gate_report=gate_report)
+        and submission_minimal_authority_signature_current(gate_report=gate_report)
+        and not submission_minimal_core_outputs_missing(gate_report)
+    ):
         return False
     current_required_action = str(gate_report.get("current_required_action") or "").strip()
     if current_required_action == "complete_bundle_stage":

@@ -76,6 +76,20 @@ _SUBMISSION_REFRESH_BLOCKERS = frozenset(
         "continue_bundle_stage",
     }
 )
+_DIRECT_DELIVERY_REPLAY_STATUSES = frozenset(
+    {
+        "stale_projection_missing",
+        "stale_source_changed",
+        "stale_source_mismatch",
+    }
+)
+_DIRECT_DELIVERY_REPLAY_REASONS = frozenset(
+    {
+        "delivery_projection_missing",
+        "delivery_manifest_source_changed",
+        "delivery_manifest_source_mismatch",
+    }
+)
 _TREATMENT_GAP_BLOCKERS = frozenset(
     {
         "treatment_gap_reporting_missing",
@@ -189,6 +203,29 @@ def _matching_submission_authority_signatures(report: Mapping[str, Any]) -> bool
     evaluated = str(report.get("submission_minimal_evaluated_source_signature") or "").strip()
     authority = str(report.get("submission_minimal_authority_source_signature") or "").strip()
     return bool(evaluated and authority and evaluated == authority)
+
+
+def _current_submission_authority(report: Mapping[str, Any]) -> bool:
+    authority_status = str(report.get("submission_minimal_authority_status") or "").strip()
+    return authority_status == "current" and _matching_submission_authority_signatures(report)
+
+
+def _current_authority_delivery_replay_candidate(report: Mapping[str, Any], blocker_set: set[str]) -> bool:
+    if "stale_study_delivery_mirror" not in blocker_set or not _current_submission_authority(report):
+        return False
+    delivery_status = str(report.get("study_delivery_status") or "").strip()
+    stale_reason = str(report.get("study_delivery_stale_reason") or "").strip()
+    replay_only_blockers = {
+        "stale_study_delivery_mirror",
+        "continue_bundle_stage",
+        "complete_bundle_stage",
+        *_DIRECT_DELIVERY_REPLAY_STATUSES,
+    }
+    return (
+        blocker_set.issubset(replay_only_blockers)
+        and delivery_status in _DIRECT_DELIVERY_REPLAY_STATUSES
+        and stale_reason in _DIRECT_DELIVERY_REPLAY_REASONS
+    )
 
 
 def fingerprint_blockers_for_work_unit(*, blockers: tuple[str, ...], next_work_unit: Mapping[str, Any]) -> tuple[str, ...]:
@@ -376,6 +413,9 @@ def _derive_blocking_work_units(
         and blocker_set.issubset(replay_only_blockers)
         and _matching_submission_authority_signatures(report)
     ):
+        _append_publication_gate_replay_unit(units)
+        return units, "controller_gate_replay_required", ()
+    if _current_authority_delivery_replay_candidate(report, blocker_set):
         _append_publication_gate_replay_unit(units)
         return units, "controller_gate_replay_required", ()
     mixed_controller_repair = _is_mixed_controller_repair(blocker_set)

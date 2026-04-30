@@ -87,6 +87,32 @@ def test_stale_submission_authority_with_matching_signatures_routes_to_gate_repl
     ]
 
 
+def test_stale_delivery_mirror_with_current_authority_routes_to_gate_replay() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "current_required_action": "complete_bundle_stage",
+            "blockers": ["stale_study_delivery_mirror"],
+            "study_delivery_status": "stale_source_changed",
+            "study_delivery_stale_reason": "delivery_manifest_source_changed",
+            "submission_minimal_authority_status": "current",
+            "submission_minimal_evaluated_source_signature": "source::abc",
+            "submission_minimal_authority_source_signature": "source::abc",
+            "gate_fingerprint": "publication-gate::stale-delivery",
+        }
+    )
+
+    assert result["next_work_unit"] == {
+        "unit_id": "publication_gate_replay",
+        "lane": "controller",
+        "summary": "Replay the publication gate against current authority signatures before dispatching new work.",
+        "control_surface": "publication_gate",
+    }
+    assert result["actionability_status"] == "controller_gate_replay_required"
+
+
 def test_claim_story_figure_submission_hardening_cluster_is_controller_owned_repair() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 

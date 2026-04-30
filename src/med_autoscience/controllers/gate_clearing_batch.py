@@ -934,6 +934,7 @@ def run_gate_clearing_batch(
     current_package_freshness_proof = gate_clearing_batch_package_freshness.write_current_package_freshness_proof(
         study_root=resolved_study_root,
         source_eval_id=current_eval_id,
+        gate_report=gate_report,
         unit_results=unit_results,
         clock=_clock_snapshot,
         schema_version=SCHEMA_VERSION,
@@ -942,6 +943,7 @@ def run_gate_clearing_batch(
         gate_report=gate_report,
         gate_replay=gate_replay,
         gate_replay_timing=gate_replay_timing,
+        unit_results=unit_results,
         schema_version=SCHEMA_VERSION,
     )
     record = {
