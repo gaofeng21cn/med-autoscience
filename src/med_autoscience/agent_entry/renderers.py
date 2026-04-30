@@ -88,6 +88,7 @@ def render_entry_modes_guide() -> str:
         )
     )
     lines.extend(_render_medical_handoff_evidence_gate(evidence_review_contract))
+    lines.extend(_render_medical_route_quality_loop(evidence_review_contract))
 
     lines.extend(
         (
@@ -259,6 +260,7 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
         )
     )
     lines.extend(_render_medical_handoff_evidence_gate(evidence_review_contract))
+    lines.extend(_render_medical_route_quality_loop(evidence_review_contract))
 
     lines.extend(
         (
@@ -344,6 +346,26 @@ def _render_medical_handoff_evidence_gate(evidence_review_contract: dict[str, An
     lines = [
         "",
         "## Medical Handoff And Evidence Gate",
+    ]
+    for field, label in fields.items():
+        if field in evidence_review_contract:
+            lines.append(_render_list_line(label, evidence_review_contract[field]))
+    return lines
+
+
+def _render_medical_route_quality_loop(evidence_review_contract: dict[str, Any]) -> list[str]:
+    fields = {
+        "bounded_medical_repair_loop": "bounded medical repair loop",
+        "default_needs_review_gate": "default needs review gate",
+        "phase_gate_handoff": "phase gate handoff",
+        "analysis_campaign_statistical_discipline": "analysis-campaign statistical discipline",
+        "incident_postmortem_feedback_loop": "incident postmortem feedback loop",
+    }
+    if not any(field in evidence_review_contract for field in fields):
+        return []
+    lines = [
+        "",
+        "## Medical Route Quality Loop",
     ]
     for field, label in fields.items():
         if field in evidence_review_contract:
