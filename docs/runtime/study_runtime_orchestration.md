@@ -274,6 +274,43 @@ summary truth 约束：
 
 也就是说，`study_runtime_status(...)` 不是“把若干 dict 拼起来”，而是一个确定性的状态机读面。
 
+## Future work-unit / route-unit attempt contract
+
+本节把可复用的 runtime 编排经验医学化为 `MAS` 后续 external worker / hosted runtime 的 contract；它不改变当前 `Codex-default host-agent runtime` 的执行语义，也不要求当前 host-agent path 立即引入外部 scheduler。
+
+### Attempt 状态机
+
+未来每个 `work-unit / route-unit attempt` 至少要有单义状态机：
+
+| 状态 | MAS 语义 |
+| --- | --- |
+| `unclaimed` | work-unit / route-unit 已由 controller 或 orchestrator 生成，但尚未分配给具体 worker；不得产生研究写入。 |
+| `claimed` | 受控 worker 已领取该 unit，并记录 `claim_owner`、`workspace_root`、`root`、`cwd` 与 `attempt_count`；此时仍未进入 compute。 |
+| `running` | 当前 `run_attempt_phase` 已进入 live compute / analysis / writeback / gate-repair 等具体阶段；每次进入新的 run attempt 必须递增或固定记录 `attempt_count`。 |
+| `retry_queued` | MAS 对 retry queued 的等价命名；上一次 attempt 因可恢复失败、stalled detection 或外部 runtime 中断进入 bounded retry；必须记录 `failure_reason`、`backoff_until`、剩余 retry budget 与上一次 `run_attempt_phase`。 |
+| `released` | 当前 owner 已释放 unit；可以是完成后的非活跃状态、terminal 状态后的审计保留，或 retry budget 用尽后的 controller 重新裁决入口。 |
+
+`run_attempt_phase` 是 run attempt phase 的机器字段；`attempt_count` 是 attempt 计数；`failure_reason` 是 failure reason。三者都是 attempt-level machine field，不得由 dashboard、logs 或 issue tracker 反推生成。`attempt_count` 表示受控 runtime 尝试次数，不等同于 study revision 次数、paper route 次数或 publication gate 重放次数。`failure_reason` 必须保留可审计的失败类别，例如 `workspace_boundary_violation`、`runtime_stalled`、`terminal_non_active`、`transport_failure`、`controller_gate_blocked`；不得用自由文本替代结构化 reason。
+
+### Workspace isolation
+
+future external worker / hosted runtime 执行每个 study/work-unit 时，必须绑定受控 `workspace_root` / `root` / `cwd`，并在 attempt record 中持久化。所有可写路径必须位于该受控 root 下，任何路径越界、symlink 越界、相对路径逃逸或跨 study root 写入都必须 fail-closed，并把 `failure_reason` 写成 `workspace_boundary_violation`。
+
+这条 workspace isolation 规则只约束未来 external worker / hosted runtime。当前 `Codex-default host-agent runtime` 仍按现有 controller + host-agent 工作方式运行，不因为本节新增 work-unit contract 而改变 CLI、MCP、product-entry 或当前 Codex path 的默认执行模型。
+
+### Retry / backoff / reconciliation
+
+future orchestrator 可以使用 retry/backoff/reconciliation 恢复 runtime 可用性，但不能改变 study authority。
+
+稳定语义如下：
+
+- `running state refresh`：active attempt 必须周期性刷新 runner 状态、last heartbeat、active process / session evidence 与当前 `run_attempt_phase`。
+- `terminal/non-active handling`：一旦 worker 返回 completed、failed、cancelled、stopped 或 non-active，orchestrator 必须停止把它视为 live writer，并进入 `released`、`retry_queued` 或 controller gate，而不是继续投影为 running。
+- `stalled detection`：heartbeat 过期、active_run_id 无刷新、进程证据缺失或工作区长期无可解释变更时，只能触发受控 reconciliation；不得直接写 paper truth 或 publication authority。
+- `bounded retry`：每个 work-unit / route-unit 必须有显式 retry budget、backoff policy 与最后一次 `failure_reason`；超过预算后进入 controller-owned review / gate，而不是无限重启。
+
+retry/backoff 是恢复策略，不是研究裁决策略。它只能帮助同一 controller-approved work-unit 回到可执行状态；不能创建新的 study truth、不能覆盖 `study_charter`、不能绕过 `publication_eval/latest.json` 或 `controller_decisions/latest.json`。
+
 ## 决策分层
 
 当前 decision 分三类：

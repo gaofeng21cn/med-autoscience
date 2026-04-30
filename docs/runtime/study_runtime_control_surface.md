@@ -255,7 +255,37 @@
 
 `memory` 不得替代 baseline、analysis、paper state 或 publication gate 的主记录。
 
-## 7. 当前正式支持的 outer-loop controller actions
+## 7. work-unit control boundaries
+
+本节把 future work-unit / route-unit runtime control 的边界收口到 `MAS` 现有正式入口，避免 external worker / hosted runtime 把调度面误升级为研究 authority。
+
+### 7.1 observability-only surface
+
+dashboard / API / logs / status 都是 observability-only surface：只能读取 orchestrator/controller state，例如 `study_runtime_status`、`runtime_watch`、attempt record、runtime event、controller decision artifact 和 publication gate projection。
+
+这些 surface 不得成为 study truth、publication authority 或 paper write authority。用户界面、API 聚合、日志搜索和状态卡只能投影已经存在的 controller/orchestrator truth；它们不得把可见状态回写成 `study_charter`、`evidence_ledger`、`review_ledger`、`publication_eval/latest.json` 或 `controller_decisions/latest.json` 的替代来源。
+
+### 7.2 正式入口保持不变
+
+future work-unit / route-unit control 必须继续挂在现有 `MAS` durable surface 下。正式入口仍是：
+
+- `study_runtime_status(...)`
+- `ensure_study_runtime(...)`
+- `study_outer_loop_tick(...)`
+- `study_decision_record`
+- 现有 CLI / MCP / product-entry surface
+
+attempt record、worker queue、dashboard API 和 hosted runtime log 只能作为这些入口的可审计支撑材料；不得绕过 controller 直接发布新的 study action。
+
+### 7.3 unsupported external scheduler boundaries
+
+Linear、Symphony scheduler 或任何外部 issue tracker 都不是 MAS 必需入口，也不得被文档或实现写成启动、恢复、重试、暂停、停止、投稿 gate 或 publication repair 的必要前置条件。
+
+允许的边界是：外部系统可以作为人工可见的 mirror、通知源、排队器或审计引用，但它不能替代 `study_runtime_status` / `ensure_study_runtime` / `study_outer_loop_tick` / `study_decision_record`，也不能成为 study truth 或 publication authority。
+
+如果未来 external worker / hosted runtime 需要接入某个 scheduler，必须先通过新的 repo-tracked contract 明确 owner、write boundary、fail-closed 语义和 observability-only 限制；在该 contract 出现前，所有外部 scheduler integration 都属于 unsupported。
+
+## 8. 当前正式支持的 outer-loop controller actions
 
 当前只冻结四类 action：
 
@@ -270,7 +300,7 @@
 - `stop-after-current-step` 的正式状态是 unsupported
 - future rerun action 需要新的 canonical spec 才能加入
 
-## 8. bridge 到现有文档
+## 9. bridge 到现有文档
 
 - `./outer_loop_wakeup_and_decision_loop.md`
   - 负责 outer-loop wakeup、artifact loop、decision write-back 主链路
@@ -279,7 +309,7 @@
 - `./study_runtime_control_surface.md`（本文）
   - 负责 stop / rerun / human-confirmation / outer-loop action surface 的单义收口
 
-## 9. runtime truth priority
+## 10. runtime truth priority
 
 workspace 层 runtime 真相优先级当前固定为：
 
