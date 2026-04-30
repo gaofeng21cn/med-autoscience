@@ -257,6 +257,70 @@ def test_runtime_watch_does_not_reapply_after_draft_handoff_sync_stabilizes(tmp_
     assert first["controllers"]["publication_gate"]["action"] == "applied"
     assert second["controllers"]["publication_gate"]["action"] == "suppressed"
     assert calls == [False, True, False]
+
+
+def test_runtime_watch_reapplies_publication_gate_when_ai_reviewer_eval_masks_return_to_gate(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+    calls: list[bool] = []
+    result_payload = {
+        "status": "blocked",
+        "blockers": ["medical_publication_surface_blocked"],
+        "allow_write": False,
+        "missing_non_scalar_deliverables": [],
+        "submission_minimal_present": True,
+        "supervisor_phase": "publishability_gate_blocked",
+        "phase_owner": "publication_gate",
+        "upstream_scientific_anchor_ready": True,
+        "bundle_tasks_downstream_only": True,
+        "current_required_action": "return_to_publishability_gate",
+        "deferred_downstream_actions": [],
+        "controller_stage_note": "return to publication gate",
+        "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        "report_markdown": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.md"),
+    }
+    stable_fingerprint = module.build_fingerprint("publication_gate", result_payload)
+
+    def fake_runner(*, quest_root: Path, apply: bool) -> dict:
+        calls.append(apply)
+        return dict(result_payload)
+
+    monkeypatch.setattr(
+        module.runtime_watch_protocol,
+        "load_watch_state",
+        lambda quest_root: module.runtime_watch_protocol.RuntimeWatchState(
+            schema_version=1,
+            updated_at="2026-04-30T12:00:00+00:00",
+            controllers={
+                "publication_gate": module.runtime_watch_protocol.RuntimeWatchControllerState(
+                    last_seen_fingerprint=stable_fingerprint,
+                    last_applied_fingerprint=stable_fingerprint,
+                    last_applied_at="2026-04-30T12:00:00+00:00",
+                    last_status="blocked",
+                    last_suppression_reason=None,
+                )
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_publication_gate_ai_reviewer_eval_masks_return_to_gate",
+        lambda *, dry_run_result: True,
+    )
+
+    result = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"publication_gate": fake_runner},
+        apply=True,
+    )
+
+    assert calls == [False, True]
+    assert result["controllers"]["publication_gate"]["action"] == "applied"
+
+
 def test_build_default_controller_runners_includes_figure_loop_guard() -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     runners = module.build_default_controller_runners()

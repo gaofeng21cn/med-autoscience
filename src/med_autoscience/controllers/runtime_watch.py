@@ -50,6 +50,8 @@ from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import runtime_watch as runtime_watch_protocol
+from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
+from med_autoscience.publication_eval_latest import read_publication_eval_latest
 from med_autoscience.controllers.runtime_watch_outer_loop_policy import outer_loop_request_requires_fresh_controller_execution
 from med_autoscience.controllers.study_progress_parts.runtime_efficiency import (
     _latest_run_telemetry_surface,
@@ -169,6 +171,40 @@ def build_fingerprint(controller_name: str, result: dict[str, Any]) -> str:
         payload = result
     canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _publication_gate_ai_reviewer_eval_masks_return_to_gate(*, dry_run_result: dict[str, Any]) -> bool:
+    if str(dry_run_result.get("status") or "").strip() != "blocked":
+        return False
+    if str(dry_run_result.get("current_required_action") or "").strip() != "return_to_publishability_gate":
+        return False
+    report_path_text = _non_empty_text(dry_run_result.get("report_json"))
+    if report_path_text is None:
+        return False
+    report_path = Path(report_path_text)
+    if not report_path.exists():
+        return False
+    try:
+        report_payload = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if str(report_payload.get("gate_kind") or "").strip() != "publishability_control":
+        return False
+    paper_root_text = _non_empty_text(report_payload.get("paper_root"))
+    if paper_root_text is None:
+        return False
+    try:
+        paper_context = resolve_paper_root_context(Path(paper_root_text))
+        publication_eval = read_publication_eval_latest(study_root=paper_context.study_root)
+    except (FileNotFoundError, ValueError, OSError, json.JSONDecodeError, TypeError):
+        return False
+    provenance = publication_eval.get("assessment_provenance")
+    if not isinstance(provenance, Mapping):
+        return False
+    return (
+        str(provenance.get("owner") or "").strip() == "ai_reviewer"
+        and provenance.get("ai_reviewer_required") is False
+    )
 
 
 def _invoke_controller_runner(
@@ -294,6 +330,10 @@ def run_watch_for_quest(
     for name, runner in iter_ordered_controller_runners(controller_runners):
         dry_run_result = _invoke_controller_runner(runner, quest_root=quest_root, apply=False)
         fingerprint = build_fingerprint(name, dry_run_result)
+        if name == "publication_gate" and _publication_gate_ai_reviewer_eval_masks_return_to_gate(
+            dry_run_result=dry_run_result
+        ):
+            fingerprint = f"{fingerprint}:refresh-publication-eval-from-return-to-gate"
         previous = controller_state.get(name) or runtime_watch_protocol.RuntimeWatchControllerState()
         intervention_statuses = {"blocked"}
         if name == "data_asset_gate":

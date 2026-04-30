@@ -120,6 +120,45 @@ def test_inspect_quest_live_execution_combines_runtime_and_bash_audits(monkeypat
             "live_session_ids": [],
         },
     }
+
+
+def test_inspect_quest_live_execution_rejects_live_runtime_without_active_run(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_runtime",
+        lambda **kwargs: {
+            "ok": True,
+            "status": "live",
+            "source": "daemon_turn_worker",
+            "active_run_id": None,
+            "worker_running": True,
+            "worker_pending": False,
+            "stop_requested": False,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_bash_sessions",
+        lambda **kwargs: {
+            "ok": True,
+            "status": "none",
+            "session_count": 0,
+            "live_session_count": 0,
+            "live_session_ids": [],
+        },
+    )
+
+    result = module.inspect_quest_live_execution(runtime_root=Path("/tmp/runtime"), quest_id="001-risk")
+
+    assert result["ok"] is False
+    assert result["status"] == "unknown"
+    assert result["runner_live"] is False
+    assert result["active_run_id"] is None
+    assert result["liveness_guard_reason"] == "live_runtime_missing_active_run_id"
+
+
 def test_inspect_quest_live_execution_degrades_stale_live_runtime_to_unknown(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
 

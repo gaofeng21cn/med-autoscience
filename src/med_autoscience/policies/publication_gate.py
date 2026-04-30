@@ -78,6 +78,53 @@ def _format_metric(metrics: dict[str, object], key: str) -> str:
     return "n/a"
 
 
+def _bounded_publication_gate_repair_message(report: dict[str, object], blockers: set[str]) -> str | None:
+    missing = [str(item).strip() for item in (report.get("missing_non_scalar_deliverables") or []) if str(item).strip()]
+    if missing:
+        return None
+    scientific_anchor_blockers = {
+        "missing_publication_anchor",
+        "missing_post_main_publishability_gate",
+        "active_run_drifting_into_write_without_gate_approval",
+        "quest_drifting_into_write_without_gate_approval",
+    }
+    if blockers & scientific_anchor_blockers:
+        return None
+    repair_blockers = {
+        "stale_submission_minimal_authority",
+        "stale_study_delivery_mirror",
+        "medical_publication_surface_blocked",
+        "missing_current_medical_publication_surface_report",
+        "claim_evidence_consistency_failed",
+        "submission_hardening_incomplete",
+        "submission_surface_qc_failure_present",
+        "missing_medical_story_contract",
+        "figure_catalog_missing_or_incomplete",
+        "figure_semantics_manifest_missing_or_incomplete",
+        "claim_evidence_map_missing_or_incomplete",
+        "evidence_ledger_missing_or_incomplete",
+    }
+    if not blockers or not blockers.issubset(repair_blockers):
+        return None
+    if report.get("upstream_scientific_anchor_ready") is False:
+        return None
+    current_required_action = str(report.get("current_required_action") or "").strip()
+    if current_required_action not in {"return_to_publishability_gate", "continue_bundle_stage", "complete_bundle_stage"}:
+        return None
+    blocker_text = ", ".join(sorted(blockers)) or "none"
+    return (
+        "Hard control message from Codex orchestration layer: stop uncontrolled expansion now. "
+        "The latest publication gate blockers are bounded same-line publication-surface, claim-evidence, "
+        "submission-authority, or package-freshness repair items. "
+        f"The active controller blockers are: {blocker_text}. "
+        "Do not launch new model search, broad exploratory analysis, or unrelated outline expansion. "
+        "Continue only a bounded publication gate repair: refresh the medical story, figure/catalog semantics, "
+        "claim-evidence/source-authority, submission hardening, and package authority surfaces as applicable, "
+        "then run publication_gate replay. "
+        "Do not record a model-search or stop/branch route unless a new scientific-anchor blocker is present."
+    )
+
+
 def build_intervention_message(report: dict[str, object]) -> str:
     missing = ", ".join(report.get("missing_non_scalar_deliverables") or []) or "none"
     metrics = report.get("headline_metrics") or {}
@@ -103,6 +150,9 @@ def build_intervention_message(report: dict[str, object]) -> str:
             "repair manuscript Methods, statistical reporting, claim-to-table/figure mapping, and clinical actionability, "
             "then rebuild submission_minimal and rerun the publication gate."
         )
+    bounded_repair_message = _bounded_publication_gate_repair_message(report, blockers)
+    if bounded_repair_message is not None:
+        return bounded_repair_message
     return (
         "Hard control message from Codex orchestration layer: immediately stop the current "
         "transition into `write` / outline generation. Outline creation counts as `write` and "

@@ -71,7 +71,6 @@ from med_autoscience.study_task_intake import (
     task_intake_yields_to_deterministic_submission_closeout,
 )
 
-
 _SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS = paper_artifacts.SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS
 
 _SUPERVISOR_ONLY_ALLOWED_ACTIONS = (
@@ -102,14 +101,11 @@ _AUTO_RECOVERY_CONTROLLER_STOP_SOURCES = frozenset(
     }
 )
 
-
 def _router_module():
     return import_module("med_autoscience.controllers.study_runtime_router")
 
-
 def _supervisor_tick_now() -> datetime:
     return datetime.now(timezone.utc).replace(microsecond=0)
-
 
 def _normalize_timestamp(value: object) -> datetime | None:
     text = str(value or "").strip()
@@ -136,7 +132,6 @@ def _read_json_mapping(path: Path) -> dict[str, object] | None:
     if not isinstance(payload, dict):
         return None
     return dict(payload)
-
 
 def _supervisor_tick_required(status: StudyRuntimeStatus) -> bool:
     execution = status.execution
@@ -756,6 +751,10 @@ def _current_ai_reviewer_publication_eval_ref(
     resolved_quest_id: str,
     publication_gate_report: dict[str, object],
 ) -> dict[str, str] | None:
+    gate_required_action = str(publication_gate_report.get("current_required_action") or "").strip()
+    gate_supervisor_phase = str(publication_gate_report.get("supervisor_phase") or "").strip()
+    if gate_required_action == "return_to_publishability_gate" or gate_supervisor_phase == "publishability_gate_blocked":
+        return None
     latest_path = stable_publication_eval_latest_path(study_root=study_root)
     if not latest_path.exists():
         return None

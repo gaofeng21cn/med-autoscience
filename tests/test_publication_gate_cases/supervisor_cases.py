@@ -896,3 +896,35 @@ def test_submission_hardening_intervention_allows_bounded_finalize_with_package_
     assert "bounded `finalize` / submission-hardening pass" in message
     assert "Do not continue write" not in message
     assert "rebuild submission_minimal" in message
+
+
+def test_publication_gate_intervention_keeps_mixed_surface_repair_bounded() -> None:
+    module = importlib.import_module("med_autoscience.policies.publication_gate")
+
+    message = module.build_intervention_message(
+        {
+            "run_id": "run-dpcc-transition-site-support-v1",
+            "blockers": [
+                "stale_submission_minimal_authority",
+                "medical_publication_surface_blocked",
+                "claim_evidence_consistency_failed",
+                "submission_hardening_incomplete",
+                "submission_surface_qc_failure_present",
+            ],
+            "missing_non_scalar_deliverables": [],
+            "headline_metrics": {
+                "analysis_index_patients": 692702,
+                "transition_eligible_patients": 291084,
+            },
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "medical_publication_surface_route_back_recommendation": "return_to_analysis_campaign",
+        }
+    )
+
+    assert "bounded publication gate repair" in message
+    assert "publication_gate replay" in message
+    assert "A1 calibration-first" not in message
+    assert "tree-ceiling" not in message
+    assert "Do not continue write" not in message

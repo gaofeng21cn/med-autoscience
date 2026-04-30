@@ -734,15 +734,22 @@ def inspect_quest_live_execution(
         runtime_root=runtime_root,
         timeout=timeout,
     )
-    runtime_live = str(runtime_audit.get("status") or "").strip() == "live"
+    runtime_audit_status = str(runtime_audit.get("status") or "").strip()
+    runtime_active_run_id = str(runtime_audit.get("active_run_id") or "").strip() or None
+    runtime_live_missing_active_run_id = runtime_audit_status == "live" and runtime_active_run_id is None
+    runtime_live = runtime_audit_status == "live" and runtime_active_run_id is not None
     bash_live = str(bash_session_audit.get("status") or "").strip() == "live"
-    runtime_known = str(runtime_audit.get("status") or "").strip() in {"live", "none"}
+    runtime_known = runtime_audit_status in {"live", "none"}
     bash_known = str(bash_session_audit.get("status") or "").strip() in {"live", "none"}
     stale_progress = bool(runtime_audit.get("stale_progress"))
     liveness_guard_reason = str(runtime_audit.get("liveness_guard_reason") or "").strip() or None
     if stale_progress:
         status = "unknown"
         ok = False
+    elif runtime_live_missing_active_run_id and not bash_live:
+        status = "unknown"
+        ok = False
+        liveness_guard_reason = "live_runtime_missing_active_run_id"
     elif runtime_live or bash_live:
         status = "live"
         ok = True
@@ -777,7 +784,7 @@ def inspect_quest_live_execution(
         "ok": ok,
         "status": status,
         "source": "combined_runner_or_bash_session",
-        "active_run_id": runtime_audit.get("active_run_id"),
+        "active_run_id": runtime_active_run_id,
         "runner_live": runtime_live,
         "bash_live": bash_live,
         "runtime_audit": runtime_audit,
@@ -794,6 +801,8 @@ def inspect_quest_live_execution(
     errors: list[str] = []
     if stale_progress:
         errors.append("Live managed runtime exceeded the artifact interaction silence threshold.")
+    if runtime_live_missing_active_run_id:
+        errors.append("Live managed runtime reported worker activity without an active_run_id.")
     errors.extend(str(item) for item in [runtime_audit.get("error"), bash_session_audit.get("error")] if item)
     if errors:
         payload["error"] = " | ".join(errors)
