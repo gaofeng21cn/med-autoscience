@@ -147,6 +147,8 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
     verify_script = (repo_root / "scripts" / "verify.sh").read_text(encoding="utf-8")
 
     assert ".PHONY: test test-fast test-meta test-display test-submission test-full test-family" in makefile
+    assert "test-control-plane:" in makefile
+    assert 'if [[ "${lane}" == "control-plane" ]]; then\n  make test-control-plane\n  exit 0\nfi\n' in verify_script
     assert (
         "test-family:\n"
         "\tuv run pytest tests/test_family_shared_release.py "

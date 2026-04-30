@@ -19,6 +19,11 @@ def _read(relative_path: str) -> str:
 def test_makefile_exposes_layered_test_entrypoints() -> None:
     makefile = _read("Makefile")
 
+    assert "test-control-plane:" in makefile
+    assert (
+        "PYTHONPATH=src uv run pytest -q tests/test_control_plane_regression.py "
+        "tests/test_control_plane_structure.py"
+    ) in makefile
     assert "test-fast:" in makefile
     assert 'uv run pytest -q -m "not meta and not display_heavy and not submission_heavy and not family"' in makefile
     assert "test-meta:" in makefile
@@ -110,11 +115,13 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'if [[ "${lane}" == "meta" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "display" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "submission" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "control-plane" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "full" ]]; then' in verify_script
     assert "make test-fast" in verify_script
     assert "make test-meta" in verify_script
     assert "make test-display" in verify_script
     assert "make test-submission" in verify_script
+    assert "make test-control-plane" in verify_script
     assert "make test-full" in verify_script
 
 

@@ -1,4 +1,4 @@
-.PHONY: test test-fast test-meta test-display test-submission test-full test-family test-structure
+.PHONY: test test-fast test-meta test-display test-submission test-full test-family test-structure test-control-plane
 
 test: test-fast
 
@@ -16,6 +16,9 @@ test-submission:
 
 test-family:
 	uv run pytest tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q
+
+test-control-plane:
+	PYTHONPATH=src uv run pytest -q tests/test_control_plane_regression.py tests/test_control_plane_structure.py
 
 test-structure:
 	python scripts/line_budget.py

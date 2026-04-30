@@ -66,5 +66,10 @@ if [[ "${lane}" == "full" ]]; then
   exit 0
 fi
 
-echo "Usage: scripts/verify.sh [fast|meta|display|submission|family|structure|full]" >&2
+if [[ "${lane}" == "control-plane" ]]; then
+  make test-control-plane
+  exit 0
+fi
+
+echo "Usage: scripts/verify.sh [fast|meta|display|submission|family|structure|control-plane|full]" >&2
 exit 1
