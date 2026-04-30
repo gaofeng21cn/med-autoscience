@@ -55,8 +55,10 @@ PROGRAM_LANES = (
             "cycle_observability",
             "study_cycle_profile",
             "paper_line_delivery_metrics",
+            "study_progress",
+            "product_entry_projection",
         ),
-        "acceptance_gate": "paper progress and ETA derive from durable timing and blocker evidence",
+        "acceptance_gate": "operator-facing progress answers current work, blocker, auto-continuation, next confirmation, and human gate from durable evidence",
     },
     {
         "lane_id": "P3_medical_quality_os",
@@ -105,20 +107,8 @@ PROGRAM_LANES = (
         "acceptance_gate": "new logic enters natural modules and does not grow oversized entrypoints",
     },
     {
-        "lane_id": "P7_delivery_metrics_and_forecasting",
-        "title": "Delivery metrics and forecasting",
-        "owner": "MedAutoScience operator truth",
-        "stage": "active",
-        "primary_surfaces": (
-            "paper_line_delivery_metrics",
-            "eta_confidence_band",
-            "study-progress",
-        ),
-        "acceptance_gate": "paper-line status includes evidence-based timing, blocker and ETA bands",
-    },
-    {
-        "lane_id": "P8_autonomy_incident_learning_loop",
-        "title": "Autonomy incident learning loop",
+        "lane_id": "P7_incident_learning_loop",
+        "title": "Incident learning loop",
         "owner": "MedAutoScience reliability",
         "stage": "active",
         "primary_surfaces": (
@@ -126,7 +116,103 @@ PROGRAM_LANES = (
             "runtime_taxonomy",
             "strangler_rule",
         ),
-        "acceptance_gate": "repeat incidents produce prevention actions rather than prose-only notes",
+        "acceptance_gate": "no-live, stalled, status drift, quality reopen, and publication gate failures produce guard/test/contract/runbook/taxonomy prevention actions",
+    },
+)
+
+LEARNING_SOURCE_TAXONOMY = (
+    {
+        "source_family": "orchestration_systems",
+        "absorbs": (
+            "work_unit_state",
+            "retry_backoff",
+            "workspace_isolation",
+            "observability",
+        ),
+        "landing_surfaces": ("runtime", "controller", "operator_projection", "tests"),
+    },
+    {
+        "source_family": "research_agent_systems",
+        "absorbs": (
+            "hypothesis",
+            "baseline",
+            "analysis_campaign",
+            "failed_path_learning",
+        ),
+        "landing_surfaces": ("controller_charter", "eval_hygiene", "tests"),
+    },
+    {
+        "source_family": "evaluation_systems",
+        "absorbs": (
+            "evidence_ledger",
+            "review_ledger",
+            "claim_evidence_consistency",
+            "ai_reviewer_gate",
+        ),
+        "landing_surfaces": ("eval_hygiene", "publication_eval", "tests"),
+    },
+    {
+        "source_family": "safety_runtime_systems",
+        "absorbs": (
+            "trust_boundary",
+            "secret_handling",
+            "authorization_scope",
+            "fail_closed_worker",
+        ),
+        "landing_surfaces": ("runtime", "controller", "tests"),
+    },
+    {
+        "source_family": "product_ops_systems",
+        "absorbs": (
+            "operator_projection",
+            "incident_learning",
+            "handoff",
+            "soak_proof",
+        ),
+        "landing_surfaces": ("operator_projection", "runtime_watch", "study_progress", "tests"),
+    },
+)
+
+LEARNING_DECISION_TYPES = ("adopt_contract", "adopt_template", "watch_only", "reject")
+
+LEARNING_STOP_RULES = (
+    "mark_saturated_when_mas_equivalent_contract_exists",
+    "stop_when_only_external_owner_or_tracker_mechanics_remain",
+    "stop_when_only_persona_routing_or_marketing_lifecycle_remain",
+    "stop_when_only_generic_qa_label_remains",
+    "new_source_must_change_runtime_controller_eval_hygiene_operator_projection_or_tests",
+)
+
+PARALLEL_LANDING_LANES = (
+    {
+        "branch": "codex/mas-program-board-one-shot",
+        "absorbs_into": "P0_baseline_freeze",
+        "purpose": "program board, learning stop rules, source taxonomy, lane ownership",
+        "absorb_order": 1,
+    },
+    {
+        "branch": "codex/mas-work-unit-runtime-registry",
+        "absorbs_into": "P1_autonomy_reliability_core",
+        "purpose": "attempt registry, retry/backoff, workspace boundary",
+        "absorb_order": 2,
+    },
+    {
+        "branch": "codex/mas-medical-quality-os",
+        "absorbs_into": "P3_medical_quality_os",
+        "purpose": "evidence/review/publication_eval quality gate hardening",
+        "absorb_order": 3,
+    },
+    {
+        "branch": "codex/mas-learning-incident-loop",
+        "absorbs_into": "P7_incident_learning_loop",
+        "purpose": "incident taxonomy and prevention action loop",
+        "absorb_order": 4,
+    },
+    {
+        "branch": "codex/mas-product-truth-projection",
+        "absorbs_into": "P2_observability_and_profiling",
+        "purpose": "frontdesk/status projection of autonomy, quality, next route, and human gate",
+        "absorb_order": 5,
     },
 )
 
@@ -207,6 +293,16 @@ def build_program_board(progress_payload: Mapping[str, Any] | None = None) -> di
         "quality_authority_surfaces": list(QUALITY_AUTHORITY_SURFACES),
         "runtime_truth_surfaces": list(RUNTIME_TRUTH_SURFACES),
         "maturity_gates": [dict(gate) for gate in MATURITY_GATES],
+        "learning_program": {
+            "mode": "one_shot_long_line_learning_and_landing",
+            "decision_types": list(LEARNING_DECISION_TYPES),
+            "source_taxonomy": [dict(item) for item in LEARNING_SOURCE_TAXONOMY],
+            "stop_rules": list(LEARNING_STOP_RULES),
+            "parallel_landing_lanes": [dict(item) for item in PARALLEL_LANDING_LANES],
+            "external_scheduler_owner_allowed": False,
+            "generic_persona_library_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+        },
         "lanes": lanes,
         "status_summary": {
             "lane_count": len(lanes),
