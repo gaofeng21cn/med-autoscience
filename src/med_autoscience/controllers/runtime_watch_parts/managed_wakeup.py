@@ -289,9 +289,7 @@ def _should_hard_auto_recover_managed_study(action_payload: dict[str, Any] | Stu
             return False
         if _non_empty_text(payload.get("reason")) not in _HARD_AUTO_RECOVERY_REASONS:
             return False
-        if _payload_active_run_id(payload) is not None:
-            return False
-        return _payload_runtime_liveness_status(payload) != "live"
+        return not _payload_strict_live(payload)
     return runtime_supervision.is_auto_continuation_recovery_pending(payload)
 
 
@@ -368,4 +366,3 @@ def _quest_report_requests_managed_study_reroute(report: Mapping[str, Any] | Non
     if _non_empty_text(figure_loop_guard_report.get("action")) != "applied":
         return False
     return bool(figure_loop_guard_report.get("quest_stop_applied"))
-

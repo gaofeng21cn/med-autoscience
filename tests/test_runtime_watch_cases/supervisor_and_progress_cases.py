@@ -214,6 +214,37 @@ def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_acti
     assert persisted_probe == result["managed_study_recovery_holds"][0]["recovery_probe"]
 
 
+def test_hard_auto_recovery_ignores_stale_continuation_run_id() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch_parts.managed_wakeup")
+
+    assert module._should_hard_auto_recover_managed_study(
+        {
+            **make_study_runtime_status_payload(
+                study_id="001-risk",
+                decision="resume",
+                reason="quest_marked_running_but_no_live_session",
+            ),
+            "quest_status": "running",
+            "continuation_state": {
+                "quest_status": "running",
+                "active_run_id": "run-stale",
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "decision:previous",
+            },
+            "runtime_liveness_audit": {
+                "status": "none",
+                "active_run_id": None,
+                "runtime_audit": {
+                    "status": "none",
+                    "active_run_id": None,
+                    "worker_running": False,
+                },
+            },
+        }
+    )
+
+
 def test_flapping_recovery_probe_clears_hold_when_current_status_is_live(
     tmp_path: Path,
 ) -> None:
