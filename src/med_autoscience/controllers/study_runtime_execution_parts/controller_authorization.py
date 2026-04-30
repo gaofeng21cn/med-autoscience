@@ -23,17 +23,14 @@ _CONTROLLER_DECISION_RUNTIME_AUTHORIZATION_ACTIONS = {
     "run_quality_repair_batch",
 }
 _CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authorization"
-_CONTROLLER_DECISION_AUTHORIZATION_LEDGER_ACTIVE_EVENTS = {
-    "accepted",
-    "artifact_written",
-    "closed",
-    "delivered",
-    "dispatched",
-    "gate_replayed",
-    "needs_specificity",
-    "planned",
-    "skipped_duplicate",
+_CONTROLLER_DECISION_AUTHORIZATION_WAIT_ALLOWED_ACTIONS = {
+    "run_gate_clearing_batch",
 }
+_CONTROLLER_DECISION_AUTHORIZATION_WAIT_RECOVERY_ACTIONS = {
+    "ensure_study_runtime_relaunch_stopped",
+}
+_CONTROL_INTENT_LIFECYCLE_STATE_KEY = "control_intent_lifecycle"
+_LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY = "last_live_controller_reroute_restart"
 _ROUTE_TARGET_LABELS = {
     "analysis-campaign": "有限补充分析",
     "write": "当前论文主线写作",
@@ -242,19 +239,15 @@ def _controller_decision_authorization_already_relayed(
     )
 
 
-def _controller_decision_authorization_ledger_has_active_dispatch(
+def _controller_decision_authorization_lifecycle(
     *,
     study_root: Path,
     authorization_context: dict[str, Any],
-) -> bool:
-    intent_key = str(authorization_context.get("control_intent_key") or "").strip()
-    if not intent_key:
-        return False
-    latest = control_intent.latest_event(study_root=study_root, business_key=intent_key)
-    if not isinstance(latest, dict):
-        return False
-    event_type = str(latest.get("event_type") or "").strip()
-    return event_type in _CONTROLLER_DECISION_AUTHORIZATION_LEDGER_ACTIVE_EVENTS
+) -> dict[str, Any]:
+    return control_intent.lifecycle_state(
+        study_root=study_root,
+        identity=_controller_decision_authorization_identity(authorization_context),
+    )
 
 
 def _controller_decision_authorization_dedupe_key(
@@ -325,6 +318,29 @@ def _write_runtime_state(*, quest_root: Path, runtime_state: dict[str, Any]) -> 
     )
 
 
+def _reset_same_fingerprint_count_for_new_control_intent(
+    *,
+    runtime_state: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    current_key = str(authorization_context.get("control_intent_key") or "").strip()
+    if not current_key:
+        return False
+    previous_keys: list[str] = []
+    marker = runtime_state.get(_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
+    if isinstance(marker, dict):
+        previous_keys.append(str(marker.get("control_intent_key") or "").strip())
+    lifecycle = runtime_state.get(_CONTROL_INTENT_LIFECYCLE_STATE_KEY)
+    if isinstance(lifecycle, dict):
+        previous_keys.append(str(lifecycle.get("control_intent_key") or "").strip())
+    if not any(previous_key and previous_key != current_key for previous_key in previous_keys):
+        return False
+    runtime_state["same_fingerprint_auto_turn_count"] = 0
+    runtime_state.pop(_CONTROL_INTENT_LIFECYCLE_STATE_KEY, None)
+    runtime_state.pop(_LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY, None)
+    return True
+
+
 def _mark_controller_decision_authorization_relayed(
     *,
     quest_root: Path,
@@ -335,6 +351,10 @@ def _mark_controller_decision_authorization_relayed(
     message_id: str | None,
     source: str,
 ) -> None:
+    _reset_same_fingerprint_count_for_new_control_intent(
+        runtime_state=runtime_state,
+        authorization_context=authorization_context,
+    )
     runtime_state[_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY] = {
         "decision_id": str(authorization_context.get("decision_id") or "").strip(),
         "route_target": str(authorization_context.get("route_target") or "").strip(),
@@ -347,6 +367,41 @@ def _mark_controller_decision_authorization_relayed(
         "source": source,
     }
     _write_runtime_state(quest_root=quest_root, runtime_state=runtime_state)
+
+
+def _runtime_state_awaits_artifact_delta_or_gate_replay(
+    *,
+    runtime_state: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    lifecycle = runtime_state.get(_CONTROL_INTENT_LIFECYCLE_STATE_KEY)
+    if not isinstance(lifecycle, dict):
+        return False
+    if str(lifecycle.get("state") or "").strip() != control_intent.AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY:
+        return False
+    lifecycle_key = str(lifecycle.get("control_intent_key") or "").strip()
+    current_key = str(authorization_context.get("control_intent_key") or "").strip()
+    return bool(lifecycle_key and current_key and lifecycle_key == current_key)
+
+
+def _controller_decision_authorization_allowed_while_waiting(
+    *,
+    status: StudyRuntimeStatus,
+    authorization_context: dict[str, Any],
+) -> bool:
+    controller_actions = {
+        str(action).strip()
+        for action in authorization_context.get("controller_actions") or ()
+        if str(action).strip()
+    }
+    if controller_actions & _CONTROLLER_DECISION_AUTHORIZATION_WAIT_ALLOWED_ACTIONS:
+        return True
+    if (
+        status.decision is StudyRuntimeDecision.RELAUNCH_STOPPED
+        and controller_actions & _CONTROLLER_DECISION_AUTHORIZATION_WAIT_RECOVERY_ACTIONS
+    ):
+        return True
+    return False
 
 
 def _relay_controller_decision_authorization_if_required(
@@ -366,20 +421,63 @@ def _relay_controller_decision_authorization_if_required(
     if int(runtime_state.get("pending_user_message_count") or 0) > 0:
         return None
     runtime_state["quest_id"] = status.quest_id
+    if _reset_same_fingerprint_count_for_new_control_intent(
+        runtime_state=runtime_state,
+        authorization_context=authorization_context,
+    ):
+        _write_runtime_state(quest_root=context.quest_root, runtime_state=runtime_state)
     active_run_id = _active_run_id_from_status_or_state(status=status, runtime_state=runtime_state)
+    if _runtime_state_awaits_artifact_delta_or_gate_replay(
+        runtime_state=runtime_state,
+        authorization_context=authorization_context,
+    ) and not _controller_decision_authorization_allowed_while_waiting(
+        status=status,
+        authorization_context=authorization_context,
+    ):
+        identity = _controller_decision_authorization_identity(authorization_context)
+        control_intent.append_skipped_duplicate_if_needed(
+            study_root=context.study_root,
+            identity=identity,
+            payload={
+                "reason": control_intent.AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,
+                "active_run_id": active_run_id,
+                "source": context.source,
+            },
+        )
+        status.extras["controller_decision_authorization_deferred"] = {
+            "control_intent_key": authorization_context.get("control_intent_key"),
+            "reason": control_intent.AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,
+            "allowed_actions": sorted(
+                _CONTROLLER_DECISION_AUTHORIZATION_WAIT_ALLOWED_ACTIONS
+                | _CONTROLLER_DECISION_AUTHORIZATION_WAIT_RECOVERY_ACTIONS
+            ),
+        }
+        return None
     if _controller_decision_authorization_already_relayed(
         runtime_state=runtime_state,
         authorization_context=authorization_context,
         active_run_id=active_run_id,
     ):
         return None
-    if _controller_decision_authorization_ledger_has_active_dispatch(
+    lifecycle = _controller_decision_authorization_lifecycle(
         study_root=context.study_root,
         authorization_context=authorization_context,
-    ):
+    )
+    if bool(lifecycle.get("delivery_blocked")):
+        control_intent.append_skipped_duplicate_if_needed(
+            study_root=context.study_root,
+            identity=_controller_decision_authorization_identity(authorization_context),
+            payload={
+                "reason": lifecycle.get("block_reason"),
+                "latest_event_type": lifecycle.get("latest_event_type"),
+                "active_run_id": active_run_id,
+                "source": context.source,
+            },
+        )
         status.extras["controller_decision_authorization_deduped"] = {
             "control_intent_key": authorization_context.get("control_intent_key"),
             "source": "control_intent_ledger",
+            "lifecycle": lifecycle,
         }
         return None
 

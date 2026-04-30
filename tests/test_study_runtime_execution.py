@@ -630,10 +630,14 @@ def test_execute_noop_runtime_decision_fallback_tags_controller_authorization_wi
     assert queue["pending"][0]["dedupe_key"].startswith("control-intent::")
 
 
-def test_force_restart_for_live_controller_reroute_supports_write_stage_ready(monkeypatch, tmp_path: Path) -> None:
+def test_same_fingerprint_threshold_awaits_artifact_delta_for_live_write_stage_ready(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     _patch_router(monkeypatch, module)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
     quest_root = tmp_path / "runtime" / "quest-001"
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -653,6 +657,7 @@ def test_force_restart_for_live_controller_reroute_supports_write_stage_ready(mo
     )
     payload = _base_status_payload()
     payload["reason"] = "quest_stale_decision_after_write_stage_ready"
+    payload["study_root"] = str(study_root)
     payload["quest_root"] = str(quest_root)
     status = typed_surface.StudyRuntimeStatus.from_payload(payload)
     status.record_runtime_liveness_audit(
@@ -685,19 +690,23 @@ def test_force_restart_for_live_controller_reroute_supports_write_stage_ready(mo
     assert (
         module._should_force_restart_for_live_controller_reroute(
             status=status,
-            context=SimpleNamespace(quest_root=quest_root),
+            context=SimpleNamespace(quest_root=quest_root, study_root=study_root),
         )
-        is True
+        is False
     )
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    assert runtime_state["control_intent_lifecycle"]["state"] == "await_artifact_delta_or_gate_replay"
+    assert runtime_state["control_intent_lifecycle"]["same_fingerprint_auto_turn_count"] == 3
 
 
-def test_force_restart_for_live_controller_reroute_supports_write_drift_even_when_runtime_state_stays_write(
+def test_same_fingerprint_threshold_awaits_artifact_delta_for_live_write_drift_even_when_runtime_state_stays_write(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     _patch_router(monkeypatch, module)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
     quest_root = tmp_path / "runtime" / "quest-001"
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -717,6 +726,7 @@ def test_force_restart_for_live_controller_reroute_supports_write_drift_even_whe
     )
     payload = _base_status_payload()
     payload["reason"] = "quest_drifting_into_write_without_gate_approval"
+    payload["study_root"] = str(study_root)
     payload["quest_root"] = str(quest_root)
     status = typed_surface.StudyRuntimeStatus.from_payload(payload)
     status.record_runtime_liveness_audit(
@@ -749,10 +759,13 @@ def test_force_restart_for_live_controller_reroute_supports_write_drift_even_whe
     assert (
         module._should_force_restart_for_live_controller_reroute(
             status=status,
-            context=SimpleNamespace(quest_root=quest_root),
+            context=SimpleNamespace(quest_root=quest_root, study_root=study_root),
         )
-        is True
+        is False
     )
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    assert runtime_state["control_intent_lifecycle"]["state"] == "await_artifact_delta_or_gate_replay"
+    assert runtime_state["control_intent_lifecycle"]["same_fingerprint_auto_turn_count"] == 3
 
 
 def test_force_restart_for_live_write_drift_is_once_per_unchanged_gate_fingerprint(

@@ -157,6 +157,89 @@ def test_control_intent_ledger_records_latest_business_key_event(tmp_path: Path)
     assert latest["payload"]["active_run_id"] == "run-002"
 
 
+def test_control_intent_lifecycle_blocks_same_fingerprint_without_artifact_delta(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_root = tmp_path / "studies" / "001-risk"
+    identity = module.build_control_intent_identity(
+        study_id="001-risk",
+        quest_id="quest-001",
+        route_target="analysis-campaign",
+        work_unit_id="revision checklist mapping",
+        blocker_authority_fingerprint="publication-gate::fp-1",
+        controller_actions=("ensure_study_runtime",),
+        source_kind="controller_decision_authorization",
+    )
+
+    module.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="delivered",
+        payload={"active_run_id": "run-001"},
+        recorded_at="2026-04-29T00:00:00+00:00",
+    )
+
+    lifecycle = module.lifecycle_state(study_root=study_root, identity=identity)
+    skipped = module.append_skipped_duplicate_if_needed(
+        study_root=study_root,
+        identity=identity,
+        payload={"reason": lifecycle["block_reason"]},
+        recorded_at="2026-04-29T00:01:00+00:00",
+    )
+
+    assert lifecycle["delivery_blocked"] is True
+    assert lifecycle["artifact_delta_observed"] is False
+    assert lifecycle["block_reason"] == "same_fingerprint_no_artifact_delta"
+    assert skipped["event_type"] == "skipped_duplicate"
+    assert module.lifecycle_state(study_root=study_root, identity=identity)["delivery_blocked"] is True
+
+
+def test_control_intent_lifecycle_supersedes_prior_fingerprint_and_resets_series(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_root = tmp_path / "studies" / "001-risk"
+    first = module.build_control_intent_identity(
+        study_id="001-risk",
+        quest_id="quest-001",
+        route_target="analysis-campaign",
+        work_unit_id="revision checklist mapping",
+        blocker_authority_fingerprint="publication-gate::source-a",
+        controller_actions=("ensure_study_runtime",),
+        source_kind="controller_decision_authorization",
+    )
+    source_signature_changed = module.build_control_intent_identity(
+        study_id="001-risk",
+        quest_id="quest-001",
+        route_target="analysis-campaign",
+        work_unit_id="revision checklist mapping",
+        blocker_authority_fingerprint="publication-gate::source-b",
+        controller_actions=("ensure_study_runtime",),
+        source_kind="controller_decision_authorization",
+    )
+
+    module.append_event(
+        study_root=study_root,
+        identity=first,
+        event_type="delivered",
+        payload={"active_run_id": "run-001"},
+        recorded_at="2026-04-29T00:00:00+00:00",
+    )
+    module.append_event(
+        study_root=study_root,
+        identity=source_signature_changed,
+        event_type="delivered",
+        payload={"active_run_id": "run-002"},
+        recorded_at="2026-04-29T00:02:00+00:00",
+    )
+
+    events = module.read_events(study_root=study_root)
+    first_latest = module.latest_event(study_root=study_root, business_key=first.business_key)
+
+    assert first.supersession_key == source_signature_changed.supersession_key
+    assert first.business_key != source_signature_changed.business_key
+    assert [event["event_type"] for event in events] == ["delivered", "superseded", "delivered"]
+    assert first_latest["event_type"] == "superseded"
+    assert first_latest["payload"]["superseding_business_key"] == source_signature_changed.business_key
+
+
 def test_work_unit_ledger_coalesces_lifecycle_and_enforces_single_writer(tmp_path: Path) -> None:
     identity_module = importlib.import_module("med_autoscience.controllers.control_identity")
     ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")

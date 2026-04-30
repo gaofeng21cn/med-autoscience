@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import control_intent
 from med_autoscience.runtime_protocol import quest_state, user_message
 
 from .controller_authorization import _load_controller_decision_route_context
@@ -22,6 +23,7 @@ _LIVE_CONTROLLER_REROUTE_REQUIRED_ACTION_BY_REASON = {
     StudyRuntimeReason.QUEST_STALE_DECISION_AFTER_WRITE_STAGE_READY: "continue_write_stage",
 }
 _LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY = "last_live_controller_reroute_restart"
+_CONTROL_INTENT_LIFECYCLE_STATE_KEY = "control_intent_lifecycle"
 
 
 def _text(value: object) -> str | None:
@@ -71,6 +73,30 @@ def _live_controller_reroute_fingerprint(*, status: StudyRuntimeStatus) -> str:
     return f"live-controller-reroute:{hashlib.sha256(encoded).hexdigest()[:24]}"
 
 
+def _live_controller_reroute_identity(*, status: StudyRuntimeStatus) -> control_intent.ControlIntentIdentity:
+    publication_supervisor_state = status.extras.get("publication_supervisor_state")
+    supervisor_payload = publication_supervisor_state if isinstance(publication_supervisor_state, dict) else {}
+    current_required_action = _text(supervisor_payload.get("current_required_action")) or (
+        _LIVE_CONTROLLER_REROUTE_REQUIRED_ACTION_BY_REASON.get(status.reason) or "live_controller_reroute"
+    )
+    route_target = "publication_gate" if current_required_action == "return_to_publishability_gate" else "write"
+    return control_intent.build_control_intent_identity(
+        study_id=status.study_id,
+        quest_id=status.quest_id,
+        route_target=route_target,
+        work_unit_id=current_required_action,
+        blocker_authority_fingerprint=_live_controller_reroute_fingerprint(status=status),
+        controller_actions=("live_controller_reroute",),
+        source_kind="live_controller_reroute",
+    )
+
+
+def _study_root_for_lifecycle(*, status: StudyRuntimeStatus, context: Any) -> Path | None:
+    value = getattr(context, "study_root", None) or status.study_root
+    text = str(value or "").strip()
+    return Path(text).expanduser().resolve() if text else None
+
+
 def _live_controller_reroute_restart_already_recorded(
     *,
     status: StudyRuntimeStatus,
@@ -107,6 +133,57 @@ def _mark_live_controller_reroute_restart(
         "same_fingerprint_auto_turn_count": same_fingerprint_auto_turn_count,
     }
     _write_runtime_state(quest_root=context.quest_root, runtime_state=runtime_state)
+
+
+def _reset_same_fingerprint_count_for_changed_live_controller_intent(
+    *,
+    runtime_state: dict[str, Any],
+    identity: control_intent.ControlIntentIdentity,
+) -> bool:
+    lifecycle = runtime_state.get(_CONTROL_INTENT_LIFECYCLE_STATE_KEY)
+    if not isinstance(lifecycle, dict):
+        return False
+    previous_key = str(lifecycle.get("control_intent_key") or "").strip()
+    if not previous_key or previous_key == identity.business_key:
+        return False
+    runtime_state["same_fingerprint_auto_turn_count"] = 0
+    runtime_state.pop(_CONTROL_INTENT_LIFECYCLE_STATE_KEY, None)
+    runtime_state.pop(_LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY, None)
+    return True
+
+
+def _mark_live_controller_reroute_awaiting_artifact_delta(
+    *,
+    status: StudyRuntimeStatus,
+    context: Any,
+    identity: control_intent.ControlIntentIdentity,
+    same_fingerprint_auto_turn_count: int,
+) -> None:
+    runtime_state = quest_state.load_runtime_state(context.quest_root)
+    runtime_state[_CONTROL_INTENT_LIFECYCLE_STATE_KEY] = {
+        "state": control_intent.AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,
+        "control_intent_key": identity.business_key,
+        "control_intent_identity": identity.to_dict(),
+        "fingerprint": _live_controller_reroute_fingerprint(status=status),
+        "same_fingerprint_auto_turn_count": same_fingerprint_auto_turn_count,
+    }
+    _write_runtime_state(quest_root=context.quest_root, runtime_state=runtime_state)
+    study_root = _study_root_for_lifecycle(status=status, context=context)
+    if study_root is None:
+        return
+    latest = control_intent.latest_event(study_root=study_root, business_key=identity.business_key)
+    if isinstance(latest, dict) and str(latest.get("event_type") or "").strip() == control_intent.AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY:
+        return
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type=control_intent.AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,
+        payload={
+            "reason": status.reason.value if status.reason is not None else None,
+            "fingerprint": _live_controller_reroute_fingerprint(status=status),
+            "same_fingerprint_auto_turn_count": same_fingerprint_auto_turn_count,
+        },
+    )
 
 
 def _append_route_context_to_message(*, message: str, route_context: dict[str, str] | None) -> str:
@@ -249,5 +326,44 @@ def _should_force_restart_for_live_controller_reroute(
         return False
     if _live_controller_reroute_restart_already_recorded(status=status, runtime_state=runtime_state):
         return False
+    identity = _live_controller_reroute_identity(status=status)
+    if _reset_same_fingerprint_count_for_changed_live_controller_intent(
+        runtime_state=runtime_state,
+        identity=identity,
+    ):
+        _write_runtime_state(quest_root=context.quest_root, runtime_state=runtime_state)
+        status.extras["control_intent_lifecycle"] = {
+            "state": "superseded",
+            "control_intent_key": identity.business_key,
+            "same_fingerprint_auto_turn_count": 0,
+        }
+        return False
     same_fingerprint_auto_turn_count = int(runtime_state.get("same_fingerprint_auto_turn_count") or 0)
-    return same_fingerprint_auto_turn_count >= _LIVE_CONTROLLER_REROUTE_FORCE_RESTART_AUTO_TURN_THRESHOLD
+    if same_fingerprint_auto_turn_count < _LIVE_CONTROLLER_REROUTE_FORCE_RESTART_AUTO_TURN_THRESHOLD:
+        return False
+    study_root = _study_root_for_lifecycle(status=status, context=context)
+    lifecycle = (
+        control_intent.lifecycle_state(study_root=study_root, identity=identity)
+        if study_root is not None
+        else {"artifact_delta_observed": False}
+    )
+    if not bool(lifecycle.get("artifact_delta_observed")):
+        _mark_live_controller_reroute_awaiting_artifact_delta(
+            status=status,
+            context=context,
+            identity=identity,
+            same_fingerprint_auto_turn_count=same_fingerprint_auto_turn_count,
+        )
+        status.extras["control_intent_lifecycle"] = {
+            "state": control_intent.AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,
+            "control_intent_key": identity.business_key,
+            "fingerprint": _live_controller_reroute_fingerprint(status=status),
+            "same_fingerprint_auto_turn_count": same_fingerprint_auto_turn_count,
+            "allowed_next_actions": [
+                "publication_gate_replay",
+                "gate_needs_specificity",
+                "explicit_recovery",
+            ],
+        }
+        return False
+    return True

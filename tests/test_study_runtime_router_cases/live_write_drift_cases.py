@@ -503,7 +503,7 @@ def test_ensure_study_runtime_queues_controller_message_for_live_write_drift_wit
     assert updated_runtime_state["pending_user_message_count"] == 1
 
 
-def test_ensure_study_runtime_force_restarts_live_write_drift_after_repeated_same_fingerprint(
+def test_ensure_study_runtime_awaits_artifact_delta_for_live_write_drift_after_repeated_same_fingerprint(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -637,16 +637,17 @@ def test_ensure_study_runtime_force_restarts_live_write_drift_after_repeated_sam
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_drifting_into_write_without_gate_approval"
     queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
-    assert calls == [("pause", "medautosci-test"), ("resume", "medautosci-test")]
+    updated_runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert calls == []
     assert len(queue["pending"]) == 1
     assert "publication gate 尚未放行写作" in queue["pending"][0]["content"]
-    assert result["controller_reroute_restart"]["forced"] is True
-    assert result["controller_reroute_restart"]["same_fingerprint_auto_turn_count"] == 3
-    launch_report = json.loads((profile.workspace_root / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json").read_text(encoding="utf-8"))
-    assert launch_report["daemon_result"]["action"] == "resume"
+    assert "controller_reroute_restart" not in result
+    assert result["control_intent_lifecycle"]["state"] == "await_artifact_delta_or_gate_replay"
+    assert result["control_intent_lifecycle"]["same_fingerprint_auto_turn_count"] == 3
+    assert updated_runtime_state["control_intent_lifecycle"]["state"] == "await_artifact_delta_or_gate_replay"
 
 
-def test_ensure_study_runtime_force_restarts_live_write_drift_without_explicit_gate_blocker(
+def test_ensure_study_runtime_awaits_artifact_delta_for_live_write_drift_without_explicit_gate_blocker(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -780,11 +781,14 @@ def test_ensure_study_runtime_force_restarts_live_write_drift_without_explicit_g
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_drifting_into_write_without_gate_approval"
     queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
-    assert calls == [("pause", "medautosci-test"), ("resume", "medautosci-test")]
+    updated_runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert calls == []
     assert len(queue["pending"]) == 1
     assert "publication gate 尚未放行写作" in queue["pending"][0]["content"]
-    assert result["controller_reroute_restart"]["forced"] is True
-    assert result["controller_reroute_restart"]["same_fingerprint_auto_turn_count"] == 3
+    assert "controller_reroute_restart" not in result
+    assert result["control_intent_lifecycle"]["state"] == "await_artifact_delta_or_gate_replay"
+    assert result["control_intent_lifecycle"]["same_fingerprint_auto_turn_count"] == 3
+    assert updated_runtime_state["control_intent_lifecycle"]["state"] == "await_artifact_delta_or_gate_replay"
 
 
 def test_ensure_study_runtime_queues_controller_message_for_live_write_stage_ready_without_redundant_resume(

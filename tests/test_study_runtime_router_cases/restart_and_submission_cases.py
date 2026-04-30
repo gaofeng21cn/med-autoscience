@@ -1,4 +1,4 @@
-def test_ensure_study_runtime_force_restarts_live_write_stage_ready_after_repeated_same_fingerprint(
+def test_ensure_study_runtime_awaits_artifact_delta_for_live_write_stage_ready_after_repeated_same_fingerprint(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -127,15 +127,16 @@ def test_ensure_study_runtime_force_restarts_live_write_stage_ready_after_repeat
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
     queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    updated_runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_stale_decision_after_write_stage_ready"
-    assert calls == [("pause", "medautosci-test"), ("resume", "medautosci-test")]
+    assert calls == []
     assert len(queue["pending"]) == 1
     assert "publication gate 已放行写作" in queue["pending"][0]["content"]
-    assert result["controller_reroute_restart"]["forced"] is True
-    assert result["controller_reroute_restart"]["same_fingerprint_auto_turn_count"] == 3
-    launch_report = json.loads((profile.workspace_root / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json").read_text(encoding="utf-8"))
-    assert launch_report["daemon_result"]["action"] == "resume"
+    assert "controller_reroute_restart" not in result
+    assert result["control_intent_lifecycle"]["state"] == "await_artifact_delta_or_gate_replay"
+    assert result["control_intent_lifecycle"]["same_fingerprint_auto_turn_count"] == 3
+    assert updated_runtime_state["control_intent_lifecycle"]["state"] == "await_artifact_delta_or_gate_replay"
 
 
 def test_ensure_study_runtime_resumes_submission_metadata_only_waiting_quest(monkeypatch, tmp_path: Path) -> None:
