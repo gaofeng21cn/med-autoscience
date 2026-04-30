@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.control_plane_facts import resolve_control_plane_facts
 from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 
 
@@ -37,15 +38,13 @@ def _bool_value(value: object) -> bool | None:
 
 
 def _liveness_probe_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    runtime_liveness_audit = _mapping_value(payload, "runtime_liveness_audit")
-    runtime_audit = _mapping_value(runtime_liveness_audit, "runtime_audit")
+    facts = resolve_control_plane_facts(payload)
     return {
-        "status": _non_empty_text(runtime_liveness_audit.get("status")) or _non_empty_text(runtime_audit.get("status")),
-        "active_run_id": _non_empty_text(runtime_liveness_audit.get("active_run_id"))
-        or _non_empty_text(runtime_audit.get("active_run_id")),
-        "worker_running": _bool_value(runtime_audit.get("worker_running")),
-        "worker_pending": _bool_value(runtime_audit.get("worker_pending")),
-        "stop_requested": _bool_value(runtime_audit.get("stop_requested")),
+        "status": facts.runtime_liveness_status,
+        "active_run_id": facts.active_run_id,
+        "worker_running": facts.worker_running,
+        "worker_pending": facts.worker_pending,
+        "stop_requested": facts.stop_requested,
     }
 
 

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from med_autoscience.controllers.control_plane_facts import resolve_control_plane_facts
+
 
 def _non_empty_text(value: object) -> str | None:
     text = str(value or "").strip()
@@ -27,19 +29,18 @@ def live_managed_runtime_present(
     execution_owner_guard: dict[str, Any],
     continuation_state: dict[str, Any],
 ) -> bool:
-    runtime_liveness_status = _non_empty_text(status.get("runtime_liveness_status"))
-    active_run_id = (
-        _non_empty_text(status.get("active_run_id"))
-        or _non_empty_text((execution_owner_guard or {}).get("active_run_id"))
-        or _non_empty_text((autonomous_runtime_notice or {}).get("active_run_id"))
-        or _non_empty_text((continuation_state or {}).get("active_run_id"))
-    )
-    if runtime_liveness_status == "live":
-        worker_running = _status_worker_running(status)
-        return active_run_id is not None and worker_running is not False
+    payload = {
+        **dict(status or {}),
+        "autonomous_runtime_notice": dict(autonomous_runtime_notice or {}),
+        "execution_owner_guard": dict(execution_owner_guard or {}),
+        "continuation_state": dict(continuation_state or {}),
+    }
+    facts = resolve_control_plane_facts(payload)
+    if facts.strict_live:
+        return True
     if not bool((execution_owner_guard or {}).get("supervisor_only")):
         return False
-    if active_run_id is None:
+    if facts.active_run_id is None:
         return False
     guard_reason = _non_empty_text((execution_owner_guard or {}).get("guard_reason"))
     notice_reason = _non_empty_text((autonomous_runtime_notice or {}).get("notification_reason"))
@@ -60,27 +61,7 @@ def runtime_recovery_pending_from_status(
 ) -> bool:
     if live_managed_runtime:
         return False
-    quest_status = _non_empty_text(status.get("quest_status"))
-    if quest_status not in {"running", "active"}:
+    facts = resolve_control_plane_facts(status, supervisor_tick_audit=supervisor_tick_audit)
+    if facts.quest_status not in {"running", "active"}:
         return False
-    active_run_id = (
-        _non_empty_text(status.get("active_run_id"))
-        or _non_empty_text(((status.get("execution_owner_guard") or {}) if isinstance(status.get("execution_owner_guard"), dict) else {}).get("active_run_id"))
-        or _non_empty_text(((status.get("autonomous_runtime_notice") or {}) if isinstance(status.get("autonomous_runtime_notice"), dict) else {}).get("active_run_id"))
-        or _non_empty_text(((status.get("continuation_state") or {}) if isinstance(status.get("continuation_state"), dict) else {}).get("active_run_id"))
-    )
-    if active_run_id is None:
-        runtime_liveness_audit = status.get("runtime_liveness_audit")
-        if isinstance(runtime_liveness_audit, dict):
-            runtime_audit = runtime_liveness_audit.get("runtime_audit")
-            active_run_id = _non_empty_text(runtime_liveness_audit.get("active_run_id")) or (
-                _non_empty_text(runtime_audit.get("active_run_id")) if isinstance(runtime_audit, dict) else None
-            )
-    if active_run_id is not None:
-        return False
-    reason = _non_empty_text(status.get("reason"))
-    supervisor_tick_status = _non_empty_text((supervisor_tick_audit or {}).get("status"))
-    return (
-        reason == "quest_marked_running_but_no_live_session"
-        or supervisor_tick_status in {"missing", "stale", "invalid"}
-    )
+    return facts.recovery_pending

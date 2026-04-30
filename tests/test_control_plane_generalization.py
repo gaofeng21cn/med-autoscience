@@ -356,7 +356,11 @@ def test_mds_worker_activity_normalizes_runtime_state() -> None:
     live = module.normalize_activity(
         {
             "quest_status": "running",
-            "runtime_liveness_audit": {"status": "live", "active_run_id": "run-123"},
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": "run-123",
+                "runtime_audit": {"worker_running": True, "active_run_id": "run-123"},
+            },
             "autonomous_runtime_notice": {"browser_url": "http://127.0.0.1:20999"},
         }
     )
@@ -375,6 +379,26 @@ def test_mds_worker_activity_normalizes_runtime_state() -> None:
     assert live["monitoring_url"] == "http://127.0.0.1:20999"
     assert recovering["activity_state"] == "recovering"
     assert recovering["heartbeat_state"] == "missing_live_session"
+
+
+def test_control_plane_facts_do_not_treat_stale_continuation_run_as_strict_live() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_facts")
+
+    facts = module.resolve_control_plane_facts(
+        {
+            "quest_status": "active",
+            "runtime_liveness_status": "unknown",
+            "reason": "quest_marked_running_but_no_live_session",
+            "continuation_state": {"quest_status": "running", "active_run_id": "run-stale"},
+        },
+        supervisor_tick_audit={"status": "stale"},
+    )
+
+    assert facts.active_run_id == "run-stale"
+    assert facts.active_run_id_source == "continuation_state.active_run_id"
+    assert facts.strict_live is False
+    assert facts.missing_live_session is True
+    assert facts.recovery_pending is True
 
 
 def test_study_runtime_status_exposes_mds_worker_activity(monkeypatch, tmp_path: Path) -> None:

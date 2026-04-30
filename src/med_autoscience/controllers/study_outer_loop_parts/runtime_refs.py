@@ -6,6 +6,7 @@ from typing import Any
 
 from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
+from med_autoscience.controllers.control_plane_facts import active_run_id as control_plane_active_run_id
 from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
 from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef
 from med_autoscience.runtime_escalation_record import (
@@ -77,16 +78,7 @@ def _runtime_status_summary_from_runtime_event(
 
 
 def _runtime_status_active_run_id(status: dict[str, Any], runtime_status: dict[str, str]) -> str | None:
-    return family_orchestration.resolve_active_run_id(
-        runtime_status.get("active_run_id"),
-        status.get("active_run_id"),
-        ((status.get("execution_owner_guard") or {}) if isinstance(status.get("execution_owner_guard"), dict) else {}).get(
-            "active_run_id"
-        ),
-        ((status.get("autonomous_runtime_notice") or {}) if isinstance(status.get("autonomous_runtime_notice"), dict) else {}).get(
-            "active_run_id"
-        ),
-    )
+    return control_plane_active_run_id({**dict(status or {}), "active_run_id": runtime_status.get("active_run_id")})
 
 
 def _load_runtime_escalation_record(
@@ -290,4 +282,3 @@ def _resolve_runtime_escalation_record(
         )
         return written_record.ref(), written_record
     raise ValueError("study_outer_loop_tick requires runtime_escalation_ref from managed runtime input")
-

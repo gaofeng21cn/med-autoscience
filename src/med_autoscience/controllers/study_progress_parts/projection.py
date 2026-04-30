@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.controllers import control_plane_facts
+
 from .parked_projection import (
     build_progress_parked_projection,
     parked_progress_fields,
@@ -26,23 +28,13 @@ def _supervision_active_run_id(
     autonomous_runtime_notice: dict[str, Any],
     continuation_state: dict[str, Any],
 ) -> str | None:
-    runtime_liveness_audit = (
-        dict(status.get("runtime_liveness_audit") or {})
-        if isinstance(status.get("runtime_liveness_audit"), dict)
-        else {}
-    )
-    runtime_audit = (
-        dict(runtime_liveness_audit.get("runtime_audit") or {})
-        if isinstance(runtime_liveness_audit.get("runtime_audit"), dict)
-        else {}
-    )
-    return (
-        _non_empty_text(execution_owner_guard.get("active_run_id"))
-        or _non_empty_text(autonomous_runtime_notice.get("active_run_id"))
-        or _non_empty_text(status.get("active_run_id"))
-        or _non_empty_text(runtime_liveness_audit.get("active_run_id"))
-        or _non_empty_text(runtime_audit.get("active_run_id"))
-        or _non_empty_text(continuation_state.get("active_run_id"))
+    return control_plane_facts.active_run_id(
+        {
+            **dict(status or {}),
+            "execution_owner_guard": dict(execution_owner_guard or {}),
+            "autonomous_runtime_notice": dict(autonomous_runtime_notice or {}),
+            "continuation_state": dict(continuation_state or {}),
+        }
     )
 
 

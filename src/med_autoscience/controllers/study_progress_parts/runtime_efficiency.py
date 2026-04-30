@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import work_unit_ledger
+from med_autoscience.controllers import control_plane_facts, work_unit_ledger
 
 from .shared import _display_text, _mapping_copy, _non_empty_text, _read_json_object
 
@@ -24,29 +24,7 @@ def _float_value(value: object) -> float:
 
 
 def _status_active_run_id(status: dict[str, Any]) -> str | None:
-    autonomous_runtime_notice = (
-        dict(status.get("autonomous_runtime_notice") or {})
-        if isinstance(status.get("autonomous_runtime_notice"), dict)
-        else {}
-    )
-    execution_owner_guard = (
-        dict(status.get("execution_owner_guard") or {})
-        if isinstance(status.get("execution_owner_guard"), dict)
-        else {}
-    )
-    continuation_state = (
-        dict(status.get("continuation_state") or {})
-        if isinstance(status.get("continuation_state"), dict)
-        else {}
-    )
-    execution = dict(status.get("execution") or {}) if isinstance(status.get("execution"), dict) else {}
-    return (
-        _non_empty_text(status.get("active_run_id"))
-        or _non_empty_text(execution_owner_guard.get("active_run_id"))
-        or _non_empty_text(autonomous_runtime_notice.get("active_run_id"))
-        or _non_empty_text(continuation_state.get("active_run_id"))
-        or _non_empty_text(execution.get("active_run_id"))
-    )
+    return control_plane_facts.active_run_id(status)
 
 
 def _compact_evidence_items(evidence_index: dict[str, Any] | None) -> list[dict[str, Any]]:

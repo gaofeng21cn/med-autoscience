@@ -1,0 +1,167 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Mapping
+
+
+_ACTIVE_QUEST_STATUSES = frozenset({"active", "running"})
+_NO_LIVE_REASONS = frozenset(
+    {
+        "quest_marked_running_but_no_live_session",
+        "running_quest_live_session_audit_failed",
+    }
+)
+
+
+def _mapping(value: object) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _bool(value: object) -> bool | None:
+    return value if isinstance(value, bool) else None
+
+
+def _first_text_source(*candidates: tuple[str, object]) -> tuple[str | None, str | None]:
+    for source, value in candidates:
+        text = _text(value)
+        if text is not None:
+            return text, source
+    return None, None
+
+
+@dataclass(frozen=True)
+class ControlPlaneFacts:
+    quest_status: str | None
+    decision: str | None
+    reason: str | None
+    runtime_liveness_status: str
+    worker_running: bool | None
+    worker_pending: bool | None
+    stop_requested: bool | None
+    active_run_id: str | None
+    active_run_id_source: str | None
+    strict_live: bool
+    missing_live_session: bool
+    recovery_pending: bool
+    monitoring_url: str | None
+
+    def to_runtime_facts_dict(self) -> dict[str, Any]:
+        return {
+            "runtime_liveness_status": self.runtime_liveness_status,
+            "worker_running": self.worker_running,
+            "worker_pending": self.worker_pending,
+            "stop_requested": self.stop_requested,
+            "active_run_id": self.active_run_id,
+            "active_run_id_source": self.active_run_id_source,
+            "strict_live": self.strict_live,
+            "missing_live_session": self.missing_live_session,
+            "recovery_pending": self.recovery_pending,
+        }
+
+    def to_mds_worker_activity(self) -> dict[str, Any]:
+        if self.strict_live:
+            activity_state = "running"
+            heartbeat_state = "live"
+        elif self.recovery_pending:
+            activity_state = "recovering"
+            heartbeat_state = "missing_live_session" if self.missing_live_session else self.runtime_liveness_status
+        elif self.quest_status in {"stopped", "completed"}:
+            activity_state = "stopped"
+            heartbeat_state = "inactive"
+        else:
+            activity_state = "unknown"
+            heartbeat_state = self.runtime_liveness_status or "unknown"
+        return {
+            "worker": "MDS",
+            "activity_state": activity_state,
+            "heartbeat_state": heartbeat_state,
+            "quest_status": self.quest_status,
+            "active_run_id": self.active_run_id,
+            "monitoring_url": self.monitoring_url,
+            "reason": self.reason,
+        }
+
+
+def resolve_control_plane_facts(
+    status_payload: Mapping[str, Any],
+    *,
+    supervisor_tick_audit: Mapping[str, Any] | None = None,
+) -> ControlPlaneFacts:
+    runtime_liveness_audit = _mapping(status_payload.get("runtime_liveness_audit"))
+    runtime_audit = _mapping(runtime_liveness_audit.get("runtime_audit"))
+    autonomous_runtime_notice = _mapping(status_payload.get("autonomous_runtime_notice"))
+    execution_owner_guard = _mapping(status_payload.get("execution_owner_guard"))
+    continuation_state = _mapping(status_payload.get("continuation_state"))
+    execution = _mapping(status_payload.get("execution"))
+    supervisor_tick = _mapping(supervisor_tick_audit)
+
+    active_run_id, active_run_id_source = _first_text_source(
+        ("status.active_run_id", status_payload.get("active_run_id")),
+        ("execution_owner_guard.active_run_id", execution_owner_guard.get("active_run_id")),
+        ("autonomous_runtime_notice.active_run_id", autonomous_runtime_notice.get("active_run_id")),
+        ("runtime_liveness_audit.active_run_id", runtime_liveness_audit.get("active_run_id")),
+        ("runtime_audit.active_run_id", runtime_audit.get("active_run_id")),
+        ("continuation_state.active_run_id", continuation_state.get("active_run_id")),
+        ("execution.active_run_id", execution.get("active_run_id")),
+    )
+    runtime_liveness_status = (
+        _text(status_payload.get("runtime_liveness_status"))
+        or _text(runtime_liveness_audit.get("status"))
+        or _text(runtime_audit.get("status"))
+        or "unknown"
+    )
+    worker_running = _bool(status_payload.get("worker_running"))
+    if worker_running is None:
+        worker_running = _bool(runtime_audit.get("worker_running"))
+    worker_pending = _bool(runtime_audit.get("worker_pending"))
+    stop_requested = _bool(runtime_audit.get("stop_requested"))
+    quest_status = _text(status_payload.get("quest_status")) or _text(continuation_state.get("quest_status"))
+    decision = _text(status_payload.get("decision"))
+    reason = _text(status_payload.get("reason")) or _text(status_payload.get("runtime_reason"))
+    strict_live = runtime_liveness_status == "live" and active_run_id is not None and worker_running is True
+    supervisor_tick_status = _text(supervisor_tick.get("status"))
+    trusted_active_run_for_recovery = active_run_id_source in {
+        "status.active_run_id",
+        "execution_owner_guard.active_run_id",
+        "autonomous_runtime_notice.active_run_id",
+        "runtime_liveness_audit.active_run_id",
+        "runtime_audit.active_run_id",
+    }
+    missing_live_session = (
+        (reason in _NO_LIVE_REASONS and not trusted_active_run_for_recovery)
+        or (quest_status in _ACTIVE_QUEST_STATUSES and runtime_liveness_status == "none")
+        or (quest_status in _ACTIVE_QUEST_STATUSES and supervisor_tick_status in {"missing", "stale", "invalid"})
+    )
+    recovery_pending = bool(quest_status in _ACTIVE_QUEST_STATUSES and not strict_live and missing_live_session)
+    return ControlPlaneFacts(
+        quest_status=quest_status,
+        decision=decision,
+        reason=reason,
+        runtime_liveness_status=runtime_liveness_status,
+        worker_running=worker_running,
+        worker_pending=worker_pending,
+        stop_requested=stop_requested,
+        active_run_id=active_run_id,
+        active_run_id_source=active_run_id_source,
+        strict_live=strict_live,
+        missing_live_session=missing_live_session,
+        recovery_pending=recovery_pending,
+        monitoring_url=_text(autonomous_runtime_notice.get("browser_url")),
+    )
+
+
+def active_run_id(status_payload: Mapping[str, Any]) -> str | None:
+    return resolve_control_plane_facts(status_payload).active_run_id
+
+
+def runtime_liveness_status(status_payload: Mapping[str, Any]) -> str:
+    return resolve_control_plane_facts(status_payload).runtime_liveness_status
+
+
+def strict_live(status_payload: Mapping[str, Any]) -> bool:
+    return resolve_control_plane_facts(status_payload).strict_live

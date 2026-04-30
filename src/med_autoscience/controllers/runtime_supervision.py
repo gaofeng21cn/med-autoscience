@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience import runtime_backend as runtime_backend_contract
+from med_autoscience.controllers.control_plane_facts import resolve_control_plane_facts
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
 
@@ -134,43 +135,7 @@ def _is_managed_runtime_status(status_payload: Mapping[str, Any]) -> bool:
 
 
 def _runtime_facts(status_payload: Mapping[str, Any]) -> dict[str, Any]:
-    runtime_liveness_audit = (
-        dict(status_payload.get("runtime_liveness_audit") or {})
-        if isinstance(status_payload.get("runtime_liveness_audit"), Mapping)
-        else {}
-    )
-    runtime_audit = (
-        dict(runtime_liveness_audit.get("runtime_audit") or {})
-        if isinstance(runtime_liveness_audit.get("runtime_audit"), Mapping)
-        else {}
-    )
-    active_run_id = (
-        _non_empty_text(status_payload.get("active_run_id"))
-        or _non_empty_text(
-            ((status_payload.get("execution_owner_guard") or {}) if isinstance(status_payload.get("execution_owner_guard"), Mapping) else {}).get(
-                "active_run_id"
-            )
-        )
-        or _non_empty_text(((status_payload.get("autonomous_runtime_notice") or {}) if isinstance(status_payload.get("autonomous_runtime_notice"), Mapping) else {}).get("active_run_id"))
-        or _non_empty_text(runtime_liveness_audit.get("active_run_id"))
-        or _non_empty_text(runtime_audit.get("active_run_id"))
-    )
-    runtime_liveness_status = (
-        _non_empty_text(status_payload.get("runtime_liveness_status"))
-        or _non_empty_text(runtime_liveness_audit.get("status"))
-        or _non_empty_text(runtime_audit.get("status"))
-        or "unknown"
-    )
-    worker_running = _bool_or_none(status_payload.get("worker_running"))
-    if worker_running is None:
-        worker_running = _bool_or_none(runtime_audit.get("worker_running"))
-    strict_live = runtime_liveness_status == "live" and active_run_id is not None and worker_running is not False
-    return {
-        "runtime_liveness_status": runtime_liveness_status,
-        "worker_running": worker_running,
-        "active_run_id": active_run_id,
-        "strict_live": strict_live,
-    }
+    return resolve_control_plane_facts(status_payload).to_runtime_facts_dict()
 
 
 def _needs_drop_detection(status_payload: Mapping[str, Any], *, strict_live: bool) -> bool:

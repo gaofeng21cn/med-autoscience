@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import (
+    control_plane_facts,
     runtime_supervision,
     study_runtime_router,
 )
@@ -93,39 +94,15 @@ def _mapping_value(payload: Mapping[str, Any], key: str) -> Mapping[str, Any]:
 
 
 def _payload_active_run_id(payload: Mapping[str, Any]) -> str | None:
-    continuation_state = _mapping_value(payload, "continuation_state")
-    runtime_liveness_audit = _mapping_value(payload, "runtime_liveness_audit")
-    runtime_audit = _mapping_value(runtime_liveness_audit, "runtime_audit")
-    autonomous_runtime_notice = _mapping_value(payload, "autonomous_runtime_notice")
-    execution_owner_guard = _mapping_value(payload, "execution_owner_guard")
-    for candidate in (
-        payload.get("active_run_id"),
-        continuation_state.get("active_run_id"),
-        runtime_liveness_audit.get("active_run_id"),
-        runtime_audit.get("active_run_id"),
-        autonomous_runtime_notice.get("active_run_id"),
-        execution_owner_guard.get("active_run_id"),
-    ):
-        active_run_id = _non_empty_text(candidate)
-        if active_run_id is not None:
-            return active_run_id
-    return None
+    return control_plane_facts.active_run_id(payload)
 
 
 def _payload_runtime_liveness_status(payload: Mapping[str, Any]) -> str | None:
-    runtime_liveness_audit = _mapping_value(payload, "runtime_liveness_audit")
-    runtime_audit = _mapping_value(runtime_liveness_audit, "runtime_audit")
-    return _non_empty_text(runtime_liveness_audit.get("status")) or _non_empty_text(runtime_audit.get("status"))
+    return control_plane_facts.runtime_liveness_status(payload)
 
 
 def _payload_strict_live(payload: Mapping[str, Any]) -> bool:
-    if _payload_runtime_liveness_status(payload) != "live":
-        return False
-    runtime_liveness_audit = _mapping_value(payload, "runtime_liveness_audit")
-    runtime_audit = _mapping_value(runtime_liveness_audit, "runtime_audit")
-    if runtime_audit.get("worker_running") is not True:
-        return False
-    return _payload_active_run_id(payload) is not None
+    return control_plane_facts.strict_live(payload)
 
 
 def _should_refresh_managed_study_status_after_ensure(payload: Mapping[str, Any]) -> bool:
