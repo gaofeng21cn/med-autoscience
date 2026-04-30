@@ -150,6 +150,13 @@ Runtime modes: lightweight, managed
 - claim_evidence_consistency_requirements: every active claim must map to concrete evidence already present in the current proof package | caveats, limitations, and unsupported edges must stay visible in the same package | a route may only promote forward when claim wording and cited evidence stay aligned
 - route_back_policy: route back immediately when a claim loses direct evidence support | route back immediately when reviewer-first checks expose a material gap in rigor, novelty, or relevance | route back to analysis-campaign when a too-light descriptive draft leaves verified data dimensions unused within the locked claim boundary | route back to the narrowest earlier route that can close the gap while keeping the study boundary honest
 
+## Medical Handoff And Evidence Gate
+- structured medical handoff: every route-to-route or agent-to-agent transfer must carry `from_route`, `to_route`, `study_id`, `quest_id`, `active_claim_boundary`, `changed_artifact_refs`, `evidence_refs`, `review_refs`, `acceptance_criteria`, `next_owner`, and `human_gate_reason` | the handoff must state the active claim boundary, changed artifacts, durable evidence/review surfaces, acceptance criteria, next owner, and human gate reason before another route can treat the work as closed
+- durable evidence refs: `evidence_refs` must point to durable MAS surfaces such as `evidence_ledger`, `review_ledger`, `publication_eval/latest.json`, `controller_decisions/latest.json`, and manuscript/package refs | chat summaries, memory, terminal prose, or screenshot-style QA cannot stand in for evidence authority
+- medical QA feedback loop: `PASS`, `FAIL`, and `NEEDS_REVIEW` outcomes must bind each finding to a specific claim/evidence/rigor/submission hygiene gap | a `FAIL` must route back to the narrowest route that can close the gap without widening the active claim boundary
+- AI reviewer gate: only AI reviewer-backed `publication_eval/latest.json` can drive reviewer-first ready or finalize-ready state | mechanical projection can only require `review_required` or `projection_only`; it cannot authorize publication-quality readiness
+- no claim-only ready: generic persona library approval, non-medical QA gate output, NEXUS role approval, chat/memory summaries, terminal prose, and screenshot-style QA must not be promoted to MAS owner authority or medical paper quality authority
+
 ## Upgrade Rule
 If `upgrade_triggers` is non-empty and any trigger is satisfied, upgrade from lightweight to managed before continuing.
 

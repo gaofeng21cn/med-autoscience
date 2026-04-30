@@ -87,6 +87,7 @@ def render_entry_modes_guide() -> str:
             _render_list_line("route_back_policy", evidence_review_contract["route_back_policy"]),
         )
     )
+    lines.extend(_render_medical_handoff_evidence_gate(evidence_review_contract))
 
     lines.extend(
         (
@@ -257,6 +258,7 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
             _render_list_line("route_back_policy", evidence_review_contract["route_back_policy"]),
         )
     )
+    lines.extend(_render_medical_handoff_evidence_gate(evidence_review_contract))
 
     lines.extend(
         (
@@ -327,6 +329,26 @@ def _evidence_review_contract_payload(payload: dict[str, object]) -> dict[str, A
     if not isinstance(raw_contract, dict):
         raise ValueError("evidence_review_contract must be a mapping")
     return raw_contract
+
+
+def _render_medical_handoff_evidence_gate(evidence_review_contract: dict[str, Any]) -> list[str]:
+    fields = {
+        "structured_medical_handoff": "structured medical handoff",
+        "durable_evidence_refs": "durable evidence refs",
+        "medical_qa_feedback_loop": "medical QA feedback loop",
+        "ai_reviewer_gate": "AI reviewer gate",
+        "claim_only_ready_ban": "no claim-only ready",
+    }
+    if not any(field in evidence_review_contract for field in fields):
+        return []
+    lines = [
+        "",
+        "## Medical Handoff And Evidence Gate",
+    ]
+    for field, label in fields.items():
+        if field in evidence_review_contract:
+            lines.append(_render_list_line(label, evidence_review_contract[field]))
+    return lines
 
 
 def _string_list(value: object, *, field: str) -> list[str]:
