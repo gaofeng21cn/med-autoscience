@@ -52,6 +52,58 @@ canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_m
 
 因此，任何 proof package 都不能只靠 memory 或 terminal prose 证明过线；必须回到 evidence / review / publication surface。
 
+## Medical Handoff / Evidence Gate
+
+`agency-agents` 里的 structured handoff / evidence-over-claims / QA feedback loop 在 `MAS` 中只能以医学论文质量合同的形式落地。
+
+### Structured Medical Handoff
+
+任何跨 route、跨 agent、跨前后台的交接，都必须留下 structured medical handoff。固定字段如下：
+
+- `from_route`
+- `to_route`
+- `study_id`
+- `quest_id`
+- `active_claim_boundary`
+- `changed_artifact_refs`
+- `evidence_refs`
+- `review_refs`
+- `acceptance_criteria`
+- `next_owner`
+- `human_gate_reason`
+
+这些字段必须描述当前 claim 边界、变更过的 artifact、已经引用的 evidence/review surface、接收方验收标准、下一 owner，以及为什么需要或不需要 human gate。缺少这些字段时，只能视为交接未闭环。
+
+### Evidence Refs Authority
+
+`evidence_refs` / `review_refs` 必须指向 durable MAS truth surfaces，包括：
+
+- `evidence_ledger`
+- `review_ledger`
+- `publication_eval/latest.json`
+- `controller_decisions/latest.json`
+- manuscript/package refs
+
+proof package 不能只靠聊天总结、memory 或 terminal prose，也不能把 screenshot-style QA 当成证据面。聊天、memory、terminal prose 和截图式 QA 只能辅助定位上下文，不能替代 evidence ledger、review ledger、publication eval、controller decision 或 manuscript/package 引用。
+
+### Medical QA Feedback Loop
+
+医学版本的 QA feedback loop 只接受三类状态：
+
+- `PASS`
+- `FAIL`
+- `NEEDS_REVIEW`
+
+每条 QA 结论都必须绑定具体 claim/evidence/rigor/submission hygiene gap。`PASS` 需要说明对应 claim 和 evidence refs 已闭环；`NEEDS_REVIEW` 需要说明缺少哪类 AI reviewer、作者或 human gate 判断；`FAIL` 必须 route back 到能够关闭缺口的最窄 route，避免把 baseline、analysis、writing、finalize 或 submission hygiene 问题包装成泛化 prose。
+
+### AI Reviewer Gate
+
+只有 AI reviewer-backed `publication_eval/latest.json` 可以驱动 reviewer-first ready、finalize-ready 或 submission-facing quality closure。`publication_gate`、`medical_reporting_audit`、deterministic controller surface 或其他 mechanical projection 只能输出 `review_required` / `projection_only`，并要求 AI reviewer 复评；它们不能把机械完整性投影升格为医学论文质量结论。
+
+### Claim-only Ready Ban
+
+禁止 claim-only ready。generic persona library、non-medical QA gate、NEXUS role approval、截图式 QA、screenshot-style QA、聊天总结、memory 和 terminal prose 都不能被升格为 `MAS` owner authority 或 medical paper quality authority。任何 ready/finalize-ready 表达都必须回到 active claim boundary、durable evidence refs、review refs、AI reviewer-backed publication eval 与 controller decision 的组合证据。
+
 ## 维护规则
 
 - evidence / review 合同统一维护在 canonical YAML，不在单个 route prose 里重复定义另一套规则。
