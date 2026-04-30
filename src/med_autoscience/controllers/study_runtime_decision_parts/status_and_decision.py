@@ -292,6 +292,8 @@ def _status_state(
     )
 
     def _finalize_result() -> StudyRuntimeStatus:
+        if quest_runtime.runtime_liveness_audit is not None or quest_runtime.bash_session_audit is not None:
+            router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
         _record_runtime_recovery_lifecycle_if_required(result)
         router._record_autonomous_runtime_notice_if_required(
             status=result,

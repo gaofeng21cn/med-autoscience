@@ -18,6 +18,34 @@ def _module_reexport(module) -> None:
 for _module in (_shared, _publication_runtime, _progression, _operator_view, _runtime_efficiency):
     _module_reexport(_module)
 
+
+def _supervision_active_run_id(
+    *,
+    status: dict[str, Any],
+    execution_owner_guard: dict[str, Any],
+    autonomous_runtime_notice: dict[str, Any],
+    continuation_state: dict[str, Any],
+) -> str | None:
+    runtime_liveness_audit = (
+        dict(status.get("runtime_liveness_audit") or {})
+        if isinstance(status.get("runtime_liveness_audit"), dict)
+        else {}
+    )
+    runtime_audit = (
+        dict(runtime_liveness_audit.get("runtime_audit") or {})
+        if isinstance(runtime_liveness_audit.get("runtime_audit"), dict)
+        else {}
+    )
+    return (
+        _non_empty_text(execution_owner_guard.get("active_run_id"))
+        or _non_empty_text(autonomous_runtime_notice.get("active_run_id"))
+        or _non_empty_text(status.get("active_run_id"))
+        or _non_empty_text(runtime_liveness_audit.get("active_run_id"))
+        or _non_empty_text(runtime_audit.get("active_run_id"))
+        or _non_empty_text(continuation_state.get("active_run_id"))
+    )
+
+
 def build_study_progress_projection(
     *,
     profile: WorkspaceProfile,
@@ -632,8 +660,12 @@ def build_study_progress_projection(
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
             "quest_session_api_url": _non_empty_text(autonomous_runtime_notice.get("quest_session_api_url")),
-            "active_run_id": _non_empty_text(execution_owner_guard.get("active_run_id"))
-            or _non_empty_text(autonomous_runtime_notice.get("active_run_id")),
+            "active_run_id": _supervision_active_run_id(
+                status=status,
+                execution_owner_guard=execution_owner_guard,
+                autonomous_runtime_notice=autonomous_runtime_notice,
+                continuation_state=continuation_state,
+            ),
             "health_status": runtime_health_status,
             "supervisor_tick_status": _non_empty_text(supervisor_tick_audit.get("status")),
             "supervisor_tick_required": bool(supervisor_tick_audit.get("required")),

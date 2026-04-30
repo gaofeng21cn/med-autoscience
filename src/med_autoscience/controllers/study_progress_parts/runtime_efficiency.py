@@ -239,6 +239,10 @@ def _latest_run_telemetry_surface(
     return {
         "run_id": run_id or "unknown",
         "telemetry_path": str(telemetry_path) if telemetry_path is not None else None,
+        "telemetry_status": "present" if telemetry is not None else "missing",
+        "telemetry_missing_reason": None
+        if telemetry is not None
+        else "no completed runner telemetry found for the selected or latest run",
         "prompt_bytes": prompt_bytes,
         "stdout_bytes": _int_value((telemetry or {}).get("stdout_bytes")),
         "tool_result_bytes_total": tool_result_bytes,
