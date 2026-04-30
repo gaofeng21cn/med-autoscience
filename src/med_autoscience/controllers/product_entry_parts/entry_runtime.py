@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 
-from med_autoscience.controllers import control_intent
+from med_autoscience.controllers import autonomy_operating_system_program, control_intent
 from . import shared as _shared
 from . import program_surfaces as _program_surfaces
 from . import workspace_surfaces as _workspace_surfaces
@@ -146,6 +146,7 @@ def build_product_entry(
                 check_runtime_status_command=commands["study_runtime_status"],
                 surface_kind="research_runtime_control_projection_contract",
             ),
+            "long_line_learning_projection_contract": _build_long_line_learning_projection_contract(),
             "domain_entry_contract": _build_domain_entry_contract(),
             "gateway_interaction_contract": _build_gateway_interaction_contract(),
             "cockpit_command": commands["workspace_cockpit"],
@@ -180,6 +181,39 @@ def build_product_entry(
         context="build_product_entry.return_surface_contract.gateway_interaction_contract",
     )
     return payload
+
+
+def _build_long_line_learning_projection_contract() -> dict[str, Any]:
+    board = autonomy_operating_system_program.build_program_board()
+    learning = dict(board.get("learning_program") or {})
+    return {
+        "surface_kind": "long_line_learning_projection_contract",
+        "program_id": board.get("program_id"),
+        "source_surface": "autonomy_operating_system_program.learning_program",
+        "program_board_surface": "mas_mds_autonomy_operating_system_program",
+        "visible_answer_contract": {
+            "current_work_field": "operator_status_card.current_focus",
+            "blocker_field": "intervention_lane.summary",
+            "auto_continue_field": "autonomy_soak_status.dispatch_status",
+            "next_confirmation_field": "autonomy_soak_status.next_confirmation_signal",
+            "human_gate_field": "research_runtime_control_projection.research_gate_surface",
+            "quality_closure_field": "quality_closure_truth",
+            "next_route_field": "same_line_route_truth.route_target",
+        },
+        "learning_decision_types": list(learning.get("decision_types") or []),
+        "stop_rules": list(learning.get("stop_rules") or []),
+        "parallel_landing_branches": [
+            item.get("branch")
+            for item in learning.get("parallel_landing_lanes") or []
+            if isinstance(item, dict) and item.get("branch")
+        ],
+        "authority_boundaries": {
+            "external_scheduler_owner_allowed": bool(learning.get("external_scheduler_owner_allowed", False)),
+            "generic_persona_library_allowed": bool(learning.get("generic_persona_library_allowed", False)),
+            "quality_gate_relaxation_allowed": bool(learning.get("quality_gate_relaxation_allowed", False)),
+            "product_projection_is_authority": False,
+        },
+    }
 
 
 def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
@@ -218,6 +252,7 @@ def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
             f"- 质量复评跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('quality_review_followthrough_field') or 'none')}`",
             f"- gate-clearing 跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('gate_clearing_batch_followthrough_field') or 'none')}`",
             f"- runtime control projection 字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('research_runtime_control_projection_field') or 'none')}`",
+            f"- 长线学习投影: `{((return_surface_contract.get('long_line_learning_projection_contract') or {}).get('surface_kind') or 'none')}`",
             f"- 运行监管路径: `{return_surface_contract.get('runtime_supervision_path') or 'none'}`",
             f"- 发表评估路径: `{return_surface_contract.get('publication_eval_path') or 'none'}`",
             f"- 控制器决策路径: `{return_surface_contract.get('controller_decision_path') or 'none'}`",

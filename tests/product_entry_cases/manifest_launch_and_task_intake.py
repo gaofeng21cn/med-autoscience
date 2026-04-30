@@ -767,6 +767,42 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
             "human_gate_required_field": "autonomy_contract.restore_point.human_gate_required",
         },
     }
+    assert payload["return_surface_contract"]["long_line_learning_projection_contract"] == {
+        "surface_kind": "long_line_learning_projection_contract",
+        "program_id": "mas_mds_autonomy_operating_system",
+        "source_surface": "autonomy_operating_system_program.learning_program",
+        "program_board_surface": "mas_mds_autonomy_operating_system_program",
+        "visible_answer_contract": {
+            "current_work_field": "operator_status_card.current_focus",
+            "blocker_field": "intervention_lane.summary",
+            "auto_continue_field": "autonomy_soak_status.dispatch_status",
+            "next_confirmation_field": "autonomy_soak_status.next_confirmation_signal",
+            "human_gate_field": "research_runtime_control_projection.research_gate_surface",
+            "quality_closure_field": "quality_closure_truth",
+            "next_route_field": "same_line_route_truth.route_target",
+        },
+        "learning_decision_types": ["adopt_contract", "adopt_template", "watch_only", "reject"],
+        "stop_rules": [
+            "mark_saturated_when_mas_equivalent_contract_exists",
+            "stop_when_only_external_owner_or_tracker_mechanics_remain",
+            "stop_when_only_persona_routing_or_marketing_lifecycle_remain",
+            "stop_when_only_generic_qa_label_remains",
+            "new_source_must_change_runtime_controller_eval_hygiene_operator_projection_or_tests",
+        ],
+        "parallel_landing_branches": [
+            "codex/mas-program-board-one-shot",
+            "codex/mas-work-unit-runtime-registry",
+            "codex/mas-medical-quality-os",
+            "codex/mas-learning-incident-loop",
+            "codex/mas-product-truth-projection",
+        ],
+        "authority_boundaries": {
+            "external_scheduler_owner_allowed": False,
+            "generic_persona_library_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "product_projection_is_authority": False,
+        },
+    }
     assert payload["return_surface_contract"]["domain_entry_contract"]["service_safe_surface_kind"] == (
         "med_autoscience_service_safe_domain_entry"
     )
