@@ -147,6 +147,73 @@ def test_study_progress_operator_view_surfaces_noop_suppression_and_runtime_effi
     assert result["operator_status_card"]["runtime_efficiency_refs"]["evidence_packet_index_path"] == str(evidence_index_path)
 
 
+def test_study_progress_projects_autonomy_slo_ai_doctor_state(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_publication_eval(study_root, quest_root)
+    _write_json(
+        study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",
+        {
+            "surface": "autonomy_progress_slo_status",
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "state": "breach",
+            "breach_types": ["gate_closure_drift"],
+            "ai_doctor_request_required": True,
+            "ai_doctor_state": "request_ready",
+            "ai_doctor_request": {"request_id": "ai-doctor-request::001", "state": "request_ready"},
+            "repair_recommendation": {
+                "state": "awaiting_ai_doctor",
+                "action_count": 2,
+                "top_action": {"action_type": "ai_doctor_diagnosis"},
+            },
+            "last_meaningful_progress_at": "2026-04-30T12:00:00+00:00",
+            "quality_gate_relaxation_allowed": False,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "blocked",
+            "reason": "study_completion_publishability_gate_blocked",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "current_required_action": "return_to_publishability_gate",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["autonomy_slo"]["state"] == "breach"
+    assert result["ai_doctor_state"] == {"request_id": "ai-doctor-request::001", "state": "request_ready"}
+    assert result["repair_recommendation"]["state"] == "awaiting_ai_doctor"
+    assert result["last_meaningful_progress_at"] == "2026-04-30T12:00:00+00:00"
+    assert result["refs"]["autonomy_slo_status_path"].endswith("artifacts/autonomy/slo_status/latest.json")
+
+
 def test_study_progress_freshness_uses_gate_clearing_batch_closure_as_progress_signal(
     monkeypatch,
     tmp_path: Path,

@@ -27,11 +27,11 @@
 
 ## Incident Projection
 
-`MAS` 通过 `runtime_watch`、autonomy incident records 和 `controller_decisions/latest.json` 映射 `opl_family_incident_learning_loop.v1`。真实 incident 必须回流成 guard、test、contract、runbook、taxonomy update 或 operator projection；domain-specific failure 必须有 MAS-owned closure ref。
+`MAS` 通过 `runtime_watch`、`artifacts/autonomy/slo_status/latest.json`、`artifacts/autonomy/ai_doctor_requests/*.json`、`artifacts/autonomy/ai_doctor_diagnoses/*.json`、`artifacts/autonomy/repair_actions/*.json`、autonomy incident records 和 `controller_decisions/latest.json` 映射 `opl_family_incident_learning_loop.v1`。真实 incident 必须回流成 guard、test、contract、runbook、taxonomy update 或 operator projection；domain-specific failure 必须有 MAS-owned closure ref。`OPL` 可以消费 runtime_slo_observer、ai_doctor_request 与 repair_action 投影，但不持有 MAS 医学 truth 或 repair closure。
 
 ## Product Operator Projection
 
-`MAS` 通过 `product-frontdesk`、`workspace-cockpit`、`study-progress` 与 `build-product-entry.return_surface_contract` 映射 `opl_family_product_operator_projection.v1`。这些投影必须保留 source refs、freshness、owner split、next surface ref 和 human gate reason。
+`MAS` 通过 `product-frontdesk`、`workspace-cockpit`、`study-progress` 与 `build-product-entry.return_surface_contract` 映射 `opl_family_product_operator_projection.v1`。这些投影必须保留 source refs、freshness、owner split、next surface ref、human gate reason、autonomy_slo、ai_doctor_state 和 repair_recommendation。
 
 ## Boundaries
 
@@ -39,4 +39,3 @@
 - `OPL` 不关闭 `publication_eval/latest.json`。
 - `OPL` 不替代 evidence ledger、review ledger 或 medical reviewer judgment。
 - `Hermes-Agent`、Symphony scheduler、Linear 或外部 issue tracker 都不是 MAS 必需入口。
-

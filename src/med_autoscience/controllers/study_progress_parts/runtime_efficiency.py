@@ -237,6 +237,17 @@ def _latest_run_telemetry_surface(
         "read_tool_call_count": _int_value((telemetry or {}).get("read_tool_call_count")),
         "repeated_read_result_count": _int_value((telemetry or {}).get("repeated_read_result_count")),
         "repeated_read_ratio": _float_value((telemetry or {}).get("repeated_read_ratio")),
+        "read_churn_ratio": _float_value((telemetry or {}).get("read_churn_ratio")),
+        "same_result_reinjection_count": _int_value((telemetry or {}).get("same_result_reinjection_count")),
+        "meaningful_artifact_delta_at": _non_empty_text((telemetry or {}).get("meaningful_artifact_delta_at")),
+        "meaningful_artifact_delta_kind": _non_empty_text(
+            (telemetry or {}).get("meaningful_artifact_delta_kind")
+        ),
+        "meaningful_artifact_delta_source_signature": _non_empty_text(
+            (telemetry or {}).get("meaningful_artifact_delta_source_signature")
+        ),
+        "turn_progress_kind": _non_empty_text((telemetry or {}).get("turn_progress_kind")),
+        "stage_intent": _non_empty_text((telemetry or {}).get("stage_intent")),
         "full_detail_count": _int_value((telemetry or {}).get("full_detail_count")),
         "model_inherited": bool((telemetry or {}).get("model_inherited")),
         "runner_profile": _non_empty_text((telemetry or {}).get("runner_profile")),

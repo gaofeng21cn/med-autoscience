@@ -26,11 +26,16 @@
   "incident_projection": {
     "source_surfaces": [
       "runtime_watch",
+      "artifacts/autonomy/slo_status/latest.json",
+      "artifacts/autonomy/ai_doctor_requests/*.json",
+      "artifacts/autonomy/ai_doctor_diagnoses/*.json",
+      "artifacts/autonomy/repair_actions/*.json",
       "autonomy incident records",
       "controller_decisions/latest.json"
     ],
     "maps_to_opl_contract": "opl_family_incident_learning_loop.v1",
-    "closure_rule": "domain-specific failure requires MAS-owned closure ref"
+    "closure_rule": "domain-specific failure requires MAS-owned closure ref",
+    "ai_doctor_boundary": "OPL consumes runtime_slo_observer and ai_doctor_request projections only; MAS owns medical truth and repair closure"
   },
   "operator_projection": {
     "source_surfaces": [
@@ -45,7 +50,10 @@
       "freshness",
       "owner_split",
       "next_surface_ref",
-      "human_gate_reason"
+      "human_gate_reason",
+      "autonomy_slo",
+      "ai_doctor_state",
+      "repair_recommendation"
     ]
   },
   "non_goals": [
@@ -56,4 +64,3 @@
     "claim-only ready"
   ]
 }
-

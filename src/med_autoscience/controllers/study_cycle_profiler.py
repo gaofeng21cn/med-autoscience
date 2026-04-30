@@ -11,6 +11,7 @@ from typing import Any, Callable, Iterable, Mapping
 import yaml
 
 from med_autoscience.controllers import autonomy_incidents
+from med_autoscience.controllers import autonomy_ai_doctor
 from med_autoscience.controllers import autonomy_observability
 from med_autoscience.controllers import autonomy_slo
 from med_autoscience.controllers import paper_line_delivery_metrics
@@ -28,6 +29,10 @@ from med_autoscience.controllers.study_cycle_profiler_package_currentness import
 from med_autoscience.controllers.study_cycle_profiler_rendering import (
     render_study_cycle_profile_markdown,
     render_workspace_cycle_profile_markdown,
+)
+from med_autoscience.controllers.study_cycle_profiler_scheduler import (
+    optimization_action_units_for_study,
+    workspace_scheduler,
 )
 from med_autoscience.controllers.study_cycle_profiler_work_units import publication_eval_replay_lag, work_unit_lifecycle_summary
 from med_autoscience.profiles import WorkspaceProfile
@@ -695,85 +700,6 @@ def _workspace_totals(studies: Iterable[Mapping[str, Any]]) -> dict[str, int]:
     return totals
 
 
-def _optimization_action_units_for_study(study: Mapping[str, Any]) -> list[dict[str, Any]]:
-    action_by_bottleneck = {
-        "runtime_recovery_churn": {
-            "action_type": "probe_runtime_recovery",
-            "controller_surface": "runtime_watch",
-            "priority": "now",
-            "summary": "Run a runtime recovery probe before any blind resume.",
-        },
-        "repeated_controller_decision": {
-            "action_type": "dedupe_controller_dispatch",
-            "controller_surface": "runtime_watch",
-            "priority": "now",
-            "summary": "Suppress repeated controller dispatches for the same blocker fingerprint.",
-        },
-        "publication_gate_blocked": {
-            "action_type": "run_publication_work_unit",
-            "controller_surface": "gate_clearing_batch",
-            "priority": "now",
-            "summary": "Route active publication blockers into the next bounded work unit.",
-        },
-        "stale_current_package": {
-            "action_type": "refresh_current_package_after_settle",
-            "controller_surface": "gate_clearing_batch",
-            "priority": "next",
-            "summary": "Refresh the human-facing current package after authority surfaces settle.",
-        },
-        "non_actionable_gate": {
-            "action_type": "request_gate_specificity",
-            "controller_surface": "publication_gate",
-            "priority": "now",
-            "summary": "Request concrete blocker targets before dispatching another research run.",
-        },
-    }
-    study_id = str(study.get("study_id") or "").strip()
-    action_units: list[dict[str, Any]] = []
-    bottlenecks = study.get("bottlenecks")
-    if not isinstance(bottlenecks, list):
-        return action_units
-    for index, bottleneck in enumerate(bottlenecks, start=1):
-        if not isinstance(bottleneck, Mapping):
-            continue
-        bottleneck_id = str(bottleneck.get("bottleneck_id") or "").strip()
-        action = action_by_bottleneck.get(bottleneck_id)
-        if action is None:
-            continue
-        action_units.append(
-            {
-                "action_unit_id": f"optimization-action::{study_id}::{bottleneck_id}",
-                "study_id": study_id,
-                "study_root": study.get("study_root"),
-                "quest_id": study.get("quest_id"),
-                "source_bottleneck_id": bottleneck_id,
-                "source_bottleneck_severity": str(bottleneck.get("severity") or "").strip() or None,
-                "schedule_rank": index,
-                "apply_mode": "controller_only",
-                **action,
-            }
-        )
-    return action_units
-
-
-def _workspace_scheduler(action_units: list[dict[str, Any]]) -> dict[str, Any]:
-    priority_weight = {"now": 0, "next": 1, "later": 2}
-    ordered = sorted(
-        action_units,
-        key=lambda item: (
-            priority_weight.get(str(item.get("priority") or ""), 9),
-            int(item.get("schedule_rank") or 999),
-            str(item.get("study_id") or ""),
-            str(item.get("action_unit_id") or ""),
-        ),
-    )
-    return {
-        "ready_count": len(ordered),
-        "ready_action_unit_ids": [str(item["action_unit_id"]) for item in ordered],
-        "ready_action_units": ordered,
-    }
-
-
 def profile_study_cycle(
     *,
     profile: WorkspaceProfile,
@@ -922,6 +848,29 @@ def profile_study_cycle(
             "runtime_failure_classification": autonomy_slo_signals.get("runtime_failure_classification"),
         }
     )
+    autonomy_progress_slo_status = autonomy_ai_doctor.materialize_autonomy_control_plane_observer(
+        study_root=resolved_study_root,
+        quest_root=quest_root,
+        profile_payload={
+            "study_id": resolved_study_id,
+            "quest_id": quest_id,
+            "category_windows": category_windows,
+            "runtime_transition_summary": runtime_summary,
+            "runtime_watch_wakeup_dedupe_summary": runtime_watch_wakeup_dedupe,
+            "work_unit_lifecycle_summary": work_unit_lifecycle,
+            "publication_eval_replay_lag": publication_eval_lag,
+            "current_state_summary": current_state,
+            "gate_blocker_summary": gate_summary,
+            "package_currentness": package_currentness,
+            "step_latest_times": step_latest_times,
+            "sli_summary": sli_summary,
+            "paper_line_delivery_metrics": delivery_metrics,
+            "bottlenecks": bottlenecks,
+            "autonomy_incident_candidates": autonomy_incident_candidates,
+            "autonomy_slo": autonomy_slo_signals,
+            "study_soak_replay_case": study_soak_replay_case,
+        },
+    )
     return {
         "study_id": resolved_study_id,
         "study_root": str(resolved_study_root),
@@ -951,6 +900,7 @@ def profile_study_cycle(
         "bottlenecks": bottlenecks,
         "autonomy_incident_candidates": autonomy_incident_candidates,
         "autonomy_slo": autonomy_slo_signals,
+        "autonomy_progress_slo_status": autonomy_progress_slo_status,
         "cycle_observability": cycle_observability,
         "study_soak_replay_case": study_soak_replay_case,
         "optimization_recommendations": optimization_recommendations,
@@ -976,6 +926,7 @@ def profile_workspace_cycles(*, profile: WorkspaceProfile, since: str | None = N
                 ),
                 "bottlenecks": study_payload["bottlenecks"],
                 "autonomy_slo": study_payload["autonomy_slo"],
+                "autonomy_progress_slo_status": study_payload["autonomy_progress_slo_status"],
                 "cycle_observability": study_payload["cycle_observability"],
                 "study_soak_replay_case": study_payload["study_soak_replay_case"],
                 "optimization_recommendations": study_payload["optimization_recommendations"],
@@ -985,9 +936,9 @@ def profile_workspace_cycles(*, profile: WorkspaceProfile, since: str | None = N
     action_units = [
         action_unit
         for study in studies
-        for action_unit in _optimization_action_units_for_study(study)
+        for action_unit in optimization_action_units_for_study(study)
     ]
-    scheduler = _workspace_scheduler(action_units)
+    scheduler = workspace_scheduler(action_units)
     return {
         "profile_name": profile.name,
         "workspace_root": str(profile.workspace_root),

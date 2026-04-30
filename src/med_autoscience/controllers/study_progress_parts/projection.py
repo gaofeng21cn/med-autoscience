@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers import control_plane_facts
+from med_autoscience.controllers import autonomy_ai_doctor, control_plane_facts
 
 from .parked_projection import (
     build_progress_parked_projection,
@@ -412,6 +412,15 @@ def build_study_progress_projection(
         status=status,
         study_root=resolved_study_root,
     )
+    autonomy_slo_status = autonomy_ai_doctor.read_latest_slo_status(study_root=resolved_study_root)
+    ai_doctor_state = (
+        _mapping_copy((autonomy_slo_status or {}).get("ai_doctor_request"))
+        or {
+            "state": (autonomy_slo_status or {}).get("ai_doctor_state") or "not_observed",
+            "request_required": bool((autonomy_slo_status or {}).get("ai_doctor_request_required")),
+        }
+    )
+    repair_recommendation = _mapping_copy((autonomy_slo_status or {}).get("repair_recommendation"))
     operator_status_card = _operator_status_card(
         study_id=resolved_study_id,
         current_stage=current_stage,
@@ -649,6 +658,14 @@ def build_study_progress_projection(
         "research_runtime_control_projection": research_runtime_control_projection,
         "module_surfaces": module_surfaces,
         "runtime_efficiency": runtime_efficiency,
+        "autonomy_slo": autonomy_slo_status,
+        "ai_doctor_state": ai_doctor_state,
+        "repair_recommendation": repair_recommendation or None,
+        "last_meaningful_progress_at": (
+            _non_empty_text((autonomy_slo_status or {}).get("last_meaningful_progress_at"))
+            if autonomy_slo_status is not None
+            else None
+        ),
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
             "quest_session_api_url": _non_empty_text(autonomous_runtime_notice.get("quest_session_api_url")),
@@ -680,6 +697,11 @@ def build_study_progress_projection(
             "runtime_watch_report_path": str(runtime_watch_path) if runtime_watch_path is not None else None,
             "runtime_status_summary_path": runtime_module_surface["summary_ref"],
             **_runtime_efficiency_refs(runtime_efficiency),
+            "autonomy_slo_status_path": (
+                str(autonomy_ai_doctor.stable_slo_status_path(study_root=resolved_study_root))
+                if autonomy_slo_status is not None
+                else None
+            ),
             "evaluation_summary_path": (
                 evaluation_module_surface["summary_ref"] if evaluation_module_surface is not None else None
             ),

@@ -70,9 +70,26 @@ def test_mas_operator_and_incident_projection_require_source_refs_and_mas_closur
 
     assert incident["maps_to_opl_contract"] == "opl_family_incident_learning_loop.v1"
     assert "MAS-owned closure ref" in incident["closure_rule"]
-    for field in ("source_refs", "freshness", "owner_split", "next_surface_ref", "human_gate_reason"):
+    assert "ai_doctor_request" in incident["ai_doctor_boundary"]
+    for surface in (
+        "artifacts/autonomy/slo_status/latest.json",
+        "artifacts/autonomy/ai_doctor_requests/*.json",
+        "artifacts/autonomy/ai_doctor_diagnoses/*.json",
+        "artifacts/autonomy/repair_actions/*.json",
+    ):
+        assert surface in incident["source_surfaces"]
+        assert surface in doc
+    for field in (
+        "source_refs",
+        "freshness",
+        "owner_split",
+        "next_surface_ref",
+        "human_gate_reason",
+        "autonomy_slo",
+        "ai_doctor_state",
+        "repair_recommendation",
+    ):
         assert field in operator["required_fields"]
         assert field.replace("_", " ") in doc or field in doc
     for non_goal in contract["non_goals"]:
         assert non_goal not in ("", None)
-
