@@ -78,6 +78,48 @@ def test_export_core_pack_template_manifests_writes_registry_aligned_payloads(tm
         assert payload["required_exports"] == list(spec.required_exports)
 
 
+def test_export_core_pack_template_manifests_writes_allowlisted_exemplar_refs(tmp_path: Path) -> None:
+    export_core_pack_template_manifests(tmp_path)
+
+    expected_refs_by_template = {
+        "forest_effect_main": [
+            "PaperPlotHub `llmoptim_forest` https://paperplothub.tech/p/llmoptim_forest",
+        ],
+        "multivariable_forest": [
+            "PaperPlotHub `llmoptim_forest` https://paperplothub.tech/p/llmoptim_forest",
+        ],
+        "subgroup_forest": [
+            "PaperPlotHub `llmoptim_forest` https://paperplothub.tech/p/llmoptim_forest",
+        ],
+        "heatmap_group_comparison": [
+            "PaperPlotHub `aiscientist_heatmap` https://paperplothub.tech/p/aiscientist_heatmap",
+        ],
+        "performance_heatmap": [
+            "PaperPlotHub `aiscientist_heatmap` https://paperplothub.tech/p/aiscientist_heatmap",
+        ],
+        "partial_dependence_interaction_contour_panel": [
+            "PaperPlotHub `predictscale_contour` https://paperplothub.tech/p/predictscale_contour",
+        ],
+        "tsne_scatter_grouped": [
+            "PaperPlotHub `scatter_tsne` https://paperplothub.tech/p/scatter_tsne",
+        ],
+        "time_dependent_roc_comparison_panel": [
+            "PaperPlotHub `prerl_passk_qwen4b` https://paperplothub.tech/p/prerl_passk_qwen4b",
+        ],
+    }
+
+    for short_id, expected_refs in expected_refs_by_template.items():
+        payload = tomllib.loads((tmp_path / "templates" / short_id / "template.toml").read_text(encoding="utf-8"))
+        assert payload["exemplar_refs"] == expected_refs
+        assert all("PaperPlotHub `" in item and "https://paperplothub.tech/p/" in item for item in expected_refs)
+        assert all("paperplothub.tech/files/" not in item for item in expected_refs)
+
+    unmapped_payload = tomllib.loads(
+        (tmp_path / "templates" / "roc_curve_binary" / "template.toml").read_text(encoding="utf-8")
+    )
+    assert "exemplar_refs" not in unmapped_payload
+
+
 def _load_entrypoint(entrypoint: str) -> object:
     module_name, function_name = entrypoint.split(":", 1)
     importlib.invalidate_caches()

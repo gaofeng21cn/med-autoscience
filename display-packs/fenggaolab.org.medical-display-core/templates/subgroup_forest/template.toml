@@ -12,3 +12,4 @@ allowed_paper_roles = ["main_text", "supplementary"]
 execution_mode = "python_plugin"
 entrypoint = "fenggaolab_org_medical_display_core.evidence_figures:render_r_evidence_figure"
 paper_proven = false
+exemplar_refs = ["PaperPlotHub `llmoptim_forest` https://paperplothub.tech/p/llmoptim_forest"]

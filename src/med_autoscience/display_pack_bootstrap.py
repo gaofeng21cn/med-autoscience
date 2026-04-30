@@ -24,6 +24,32 @@ _PAPER_PROVEN_TEMPLATE_IDS = frozenset(
         f"{CORE_PACK_ID}::submission_graphical_abstract",
     )
 )
+_PAPERPLOTHUB_EXEMPLAR_REFS_BY_TEMPLATE_ID: dict[str, tuple[str, ...]] = {
+    "forest_effect_main": (
+        "PaperPlotHub `llmoptim_forest` https://paperplothub.tech/p/llmoptim_forest",
+    ),
+    "subgroup_forest": (
+        "PaperPlotHub `llmoptim_forest` https://paperplothub.tech/p/llmoptim_forest",
+    ),
+    "multivariable_forest": (
+        "PaperPlotHub `llmoptim_forest` https://paperplothub.tech/p/llmoptim_forest",
+    ),
+    "heatmap_group_comparison": (
+        "PaperPlotHub `aiscientist_heatmap` https://paperplothub.tech/p/aiscientist_heatmap",
+    ),
+    "performance_heatmap": (
+        "PaperPlotHub `aiscientist_heatmap` https://paperplothub.tech/p/aiscientist_heatmap",
+    ),
+    "partial_dependence_interaction_contour_panel": (
+        "PaperPlotHub `predictscale_contour` https://paperplothub.tech/p/predictscale_contour",
+    ),
+    "tsne_scatter_grouped": (
+        "PaperPlotHub `scatter_tsne` https://paperplothub.tech/p/scatter_tsne",
+    ),
+    "time_dependent_roc_comparison_panel": (
+        "PaperPlotHub `prerl_passk_qwen4b` https://paperplothub.tech/p/prerl_passk_qwen4b",
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -42,6 +68,7 @@ class _TemplateManifestRecord:
     execution_mode: str
     entrypoint: str
     paper_proven: bool
+    exemplar_refs: tuple[str, ...]
 
 
 def _short_template_id(full_template_id: str) -> str:
@@ -85,6 +112,7 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                     else _PYTHON_EVIDENCE_ENTRYPOINT
                 ),
                 paper_proven=spec.template_id in _PAPER_PROVEN_TEMPLATE_IDS,
+                exemplar_refs=_PAPERPLOTHUB_EXEMPLAR_REFS_BY_TEMPLATE_ID.get(short_id, ()),
             )
         )
 
@@ -106,6 +134,7 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 execution_mode=_DEFAULT_EXECUTION_MODE,
                 entrypoint=_ILLUSTRATION_SHELL_ENTRYPOINT,
                 paper_proven=spec.shell_id in _PAPER_PROVEN_TEMPLATE_IDS,
+                exemplar_refs=_PAPERPLOTHUB_EXEMPLAR_REFS_BY_TEMPLATE_ID.get(short_id, ()),
             )
         )
 
@@ -127,6 +156,7 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 execution_mode=_DEFAULT_EXECUTION_MODE,
                 entrypoint=_TABLE_SHELL_ENTRYPOINT,
                 paper_proven=spec.shell_id in _PAPER_PROVEN_TEMPLATE_IDS,
+                exemplar_refs=_PAPERPLOTHUB_EXEMPLAR_REFS_BY_TEMPLATE_ID.get(short_id, ()),
             )
         )
 
@@ -142,7 +172,7 @@ def _quote_list(values: tuple[str, ...]) -> str:
 
 
 def _render_template_manifest(record: _TemplateManifestRecord) -> str:
-    lines = (
+    lines = [
         f"template_id = {_quote(record.template_id)}",
         f"full_template_id = {_quote(record.full_template_id)}",
         f"kind = {_quote(record.kind)}",
@@ -157,7 +187,9 @@ def _render_template_manifest(record: _TemplateManifestRecord) -> str:
         f"execution_mode = {_quote(record.execution_mode)}",
         f"entrypoint = {_quote(record.entrypoint)}",
         f"paper_proven = {'true' if record.paper_proven else 'false'}",
-    )
+    ]
+    if record.exemplar_refs:
+        lines.append(f"exemplar_refs = {_quote_list(record.exemplar_refs)}")
     return "\n".join(lines) + "\n"
 
 
