@@ -5,15 +5,9 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers import gate_clearing_batch_submission
-
-
-_SYNC_BLOCKING_STATUSES = frozenset(
-    {
-        "failed",
-        "missing",
-        "skipped_failed_dependency",
-        "skipped_authority_not_settled",
-    }
+from med_autoscience.controllers.gate_authority_currentness import (
+    resolve_gate_authority_currentness,
+    sync_completed_current_package,
 )
 
 
@@ -62,29 +56,11 @@ def stale_gate_replay_closed(latest_batch: dict[str, Any], *, gate_report: dict[
     return marker.get("handshake") == stale_gate_replay_handshake(gate_report)
 
 
-def _sync_completed_current_package(unit_results: list[dict[str, Any]] | None) -> dict[str, Any] | None:
-    for item in unit_results or []:
-        if not isinstance(item, Mapping) or _non_empty_text(item.get("unit_id")) != "sync_submission_minimal_delivery":
-            continue
-        status = _non_empty_text(item.get("status"))
-        if status is None or status in _SYNC_BLOCKING_STATUSES:
-            continue
-        result = item.get("result") if isinstance(item.get("result"), Mapping) else {}
-        source_signature = _non_empty_text((result or {}).get("source_signature")) or _non_empty_text(
-            (result or {}).get("evaluated_source_signature")
-        )
-        authority_signature = _non_empty_text((result or {}).get("authority_source_signature"))
-        if source_signature is not None and authority_signature is not None and source_signature != authority_signature:
-            continue
-        return {"status": status, "result": dict(result or {})}
-    return None
-
-
 def _stale_delivery_replay_candidate(*, gate_report: dict[str, Any]) -> bool:
     blockers = {str(item or "").strip() for item in (gate_report.get("blockers") or []) if str(item or "").strip()}
     if "stale_study_delivery_mirror" not in blockers:
         return False
-    return gate_clearing_batch_submission.submission_minimal_authority_signature_current(gate_report=gate_report)
+    return resolve_gate_authority_currentness(gate_report).submission_authority_current
 
 
 def _closure_marker_applies_to_gate_report(*, marker: Mapping[str, Any], gate_report: dict[str, Any]) -> bool:
@@ -112,7 +88,7 @@ def stale_gate_replay_closure_marker(
     schema_version: int,
 ) -> dict[str, Any] | None:
     closed_blockers: list[str] = []
-    delivery_sync = _sync_completed_current_package(unit_results)
+    delivery_sync = sync_completed_current_package(unit_results)
     if gate_clearing_batch_submission.stale_submission_authority_signature_current(gate_report=gate_report):
         closed_blockers.append("stale_submission_minimal_authority")
     if delivery_sync is not None and _stale_delivery_replay_candidate(gate_report=gate_report):

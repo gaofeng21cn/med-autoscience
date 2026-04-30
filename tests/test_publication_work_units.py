@@ -100,17 +100,20 @@ def test_stale_delivery_mirror_with_current_authority_routes_to_gate_replay() ->
             "submission_minimal_authority_status": "current",
             "submission_minimal_evaluated_source_signature": "source::abc",
             "submission_minimal_authority_source_signature": "source::abc",
+            "current_package_status": "fresh",
+            "current_package_source_signature": "source::abc",
+            "current_package_authority_source_signature": "source::abc",
             "gate_fingerprint": "publication-gate::stale-delivery",
         }
     )
 
     assert result["next_work_unit"] == {
-        "unit_id": "publication_gate_replay",
+        "unit_id": "submission_delivery_sync_closure",
         "lane": "controller",
-        "summary": "Replay the publication gate against current authority signatures before dispatching new work.",
-        "control_surface": "publication_gate",
+        "summary": "Refresh the study delivery mirror from the current package, then replay the publication gate.",
+        "control_surface": "gate_clearing_batch",
     }
-    assert result["actionability_status"] == "controller_gate_replay_required"
+    assert result["actionability_status"] == "controller_sync_closure_required"
 
 
 def test_claim_story_figure_submission_hardening_cluster_is_controller_owned_repair() -> None:

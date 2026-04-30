@@ -4,6 +4,8 @@ import hashlib
 import json
 from typing import Any, Mapping
 
+from med_autoscience.controllers.gate_authority_currentness import resolve_gate_authority_currentness
+
 
 _CLAIM_EVIDENCE_BLOCKERS = frozenset(
     {
@@ -199,35 +201,6 @@ def _fingerprint(blockers: tuple[str, ...]) -> str:
     return f"publication-blockers::{digest}"
 
 
-def _matching_submission_authority_signatures(report: Mapping[str, Any]) -> bool:
-    evaluated = str(report.get("submission_minimal_evaluated_source_signature") or "").strip()
-    authority = str(report.get("submission_minimal_authority_source_signature") or "").strip()
-    return bool(evaluated and authority and evaluated == authority)
-
-
-def _current_submission_authority(report: Mapping[str, Any]) -> bool:
-    authority_status = str(report.get("submission_minimal_authority_status") or "").strip()
-    return authority_status == "current" and _matching_submission_authority_signatures(report)
-
-
-def _current_authority_delivery_replay_candidate(report: Mapping[str, Any], blocker_set: set[str]) -> bool:
-    if "stale_study_delivery_mirror" not in blocker_set or not _current_submission_authority(report):
-        return False
-    delivery_status = str(report.get("study_delivery_status") or "").strip()
-    stale_reason = str(report.get("study_delivery_stale_reason") or "").strip()
-    replay_only_blockers = {
-        "stale_study_delivery_mirror",
-        "continue_bundle_stage",
-        "complete_bundle_stage",
-        *_DIRECT_DELIVERY_REPLAY_STATUSES,
-    }
-    return (
-        blocker_set.issubset(replay_only_blockers)
-        and delivery_status in _DIRECT_DELIVERY_REPLAY_STATUSES
-        and stale_reason in _DIRECT_DELIVERY_REPLAY_REASONS
-    )
-
-
 def fingerprint_blockers_for_work_unit(*, blockers: tuple[str, ...], next_work_unit: Mapping[str, Any]) -> tuple[str, ...]:
     unit_id = str(next_work_unit.get("unit_id") or "").strip()
     blocker_set_by_unit = {
@@ -248,6 +221,7 @@ def fingerprint_blockers_for_work_unit(*, blockers: tuple[str, ...], next_work_u
             | _SUBMISSION_REFRESH_BLOCKERS
         ),
         "submission_minimal_refresh": _SUBMISSION_REFRESH_BLOCKERS,
+        "submission_delivery_sync_closure": _SUBMISSION_REFRESH_BLOCKERS,
         "display_reporting_contract_repair": _DISPLAY_REGISTRY_BLOCKERS,
         "local_architecture_overview_repair": _LOCAL_ARCHITECTURE_BLOCKERS,
     }
@@ -277,6 +251,8 @@ def _mapping_has_actionable_object_ref(payload: Mapping[str, Any]) -> bool:
 
 def _has_actionable_object_ref(report: Mapping[str, Any]) -> bool:
     if _mapping_has_actionable_object_ref(report):
+        return True
+    if report.get("blocking_artifact_refs"):
         return True
     for key in ("blocker_details", "gate_blocker_details", "gaps"):
         value = report.get(key)
@@ -330,6 +306,37 @@ def _append_publication_gate_replay_unit(units: list[dict[str, str]]) -> None:
             "controller",
             "Replay the publication gate against current authority signatures before dispatching new work.",
             control_surface="publication_gate",
+        )
+    )
+
+
+def _append_submission_delivery_sync_closure_unit(units: list[dict[str, str]]) -> None:
+    units.append(
+        _unit(
+            "submission_delivery_sync_closure",
+            "controller",
+            "Refresh the study delivery mirror from the current package, then replay the publication gate.",
+            control_surface="gate_clearing_batch",
+        )
+    )
+
+
+def _label_only_blocker_needs_specificity(report: Mapping[str, Any], *, blocker_set: set[str]) -> bool:
+    if len(blocker_set) != 1 or _has_actionable_object_ref(report):
+        return False
+    if blocker_set & _SUBMISSION_REFRESH_BLOCKERS:
+        return False
+    if str(report.get("current_required_action") or "").strip():
+        return False
+    return bool(
+        blocker_set
+        & (
+            _CLAIM_EVIDENCE_BLOCKERS
+            | _STORY_BLOCKERS
+            | _FIGURE_RESULTS_BLOCKERS
+            | _DISPLAY_REGISTRY_BLOCKERS
+            | _LOCAL_ARCHITECTURE_BLOCKERS
+            | _TREATMENT_GAP_BLOCKERS
         )
     )
 
@@ -408,16 +415,31 @@ def _derive_blocking_work_units(
         "current",
         "not_applicable",
     }
+    authority_currentness = resolve_gate_authority_currentness(report)
     if (
         "stale_submission_minimal_authority" in blocker_set
         and blocker_set.issubset(replay_only_blockers)
-        and _matching_submission_authority_signatures(report)
+        and authority_currentness.stale_submission_authority_current
     ):
         _append_publication_gate_replay_unit(units)
         return units, "controller_gate_replay_required", ()
-    if _current_authority_delivery_replay_candidate(report, blocker_set):
+    if authority_currentness.delivery_sync_required and blocker_set.issubset(
+        {
+            "stale_study_delivery_mirror",
+            "continue_bundle_stage",
+            "complete_bundle_stage",
+            *_DIRECT_DELIVERY_REPLAY_STATUSES,
+            *_DIRECT_DELIVERY_REPLAY_REASONS,
+        }
+    ):
+        _append_submission_delivery_sync_closure_unit(units)
+        return units, "controller_sync_closure_required", ()
+    if authority_currentness.delivery_current_after_sync and "stale_study_delivery_mirror" in blocker_set:
         _append_publication_gate_replay_unit(units)
         return units, "controller_gate_replay_required", ()
+    if _label_only_blocker_needs_specificity(report, blocker_set=blocker_set):
+        actionability_status, specificity_questions = _complete_actionability_units(report, blockers=blockers, units=units)
+        return units, actionability_status, specificity_questions
     mixed_controller_repair = _is_mixed_controller_repair(blocker_set)
     if mixed_controller_repair:
         _append_mixed_controller_unit(units)

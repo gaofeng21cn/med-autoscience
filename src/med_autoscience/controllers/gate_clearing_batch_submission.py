@@ -5,6 +5,8 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
+from med_autoscience.controllers.gate_authority_currentness import resolve_gate_authority_currentness
+
 
 BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
 BUNDLE_STAGE_GATE_BLOCKERS = frozenset(
@@ -60,10 +62,7 @@ def stale_submission_authority_signature_current(*, gate_report: dict[str, Any])
 
 
 def submission_minimal_authority_signature_current(*, gate_report: dict[str, Any]) -> bool:
-    authority_status = str(gate_report.get("submission_minimal_authority_status") or "").strip()
-    evaluated_signature = str(gate_report.get("submission_minimal_evaluated_source_signature") or "").strip()
-    authority_signature = str(gate_report.get("submission_minimal_authority_source_signature") or "").strip()
-    return bool(authority_status == "current" and evaluated_signature and authority_signature and evaluated_signature == authority_signature)
+    return resolve_gate_authority_currentness(gate_report).submission_authority_current
 
 
 def bundle_stage_repair_requested(*, gate_report: dict[str, Any]) -> bool:

@@ -113,7 +113,7 @@ def test_current_authority_stale_delivery_syncs_then_closes_gate_replay(
 
     assert sync_calls == [paper_root]
     assert [item["unit_id"] for item in result["unit_results"]] == ["sync_submission_minimal_delivery"]
-    assert result["selected_publication_work_unit"]["unit_id"] == "publication_gate_replay"
+    assert result["selected_publication_work_unit"]["unit_id"] == "submission_delivery_sync_closure"
     assert result["stale_gate_replay_closure"]["status"] == "closed"
     assert result["stale_gate_replay_closure"]["closure_reason"] == "stale_study_delivery_mirror_replay_closed"
     proof = result["current_package_freshness_proof"]
@@ -142,4 +142,4 @@ def test_current_authority_stale_delivery_syncs_then_closes_gate_replay(
     )
 
     assert skipped["status"] == "skipped_stale_gate_replay_closed"
-    assert skipped["selected_publication_work_unit"]["unit_id"] == "publication_gate_replay"
+    assert skipped["selected_publication_work_unit"]["unit_id"] == "submission_delivery_sync_closure"

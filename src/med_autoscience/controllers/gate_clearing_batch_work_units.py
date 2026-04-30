@@ -40,6 +40,11 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
             "sync_submission_minimal_delivery",
         }
     ),
+    "submission_delivery_sync_closure": frozenset(
+        {
+            "sync_submission_minimal_delivery",
+        }
+    ),
     "display_reporting_contract_repair": frozenset(
         {
             "repair_paper_live_paths",

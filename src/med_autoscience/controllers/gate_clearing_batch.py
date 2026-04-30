@@ -658,7 +658,8 @@ def run_gate_clearing_batch(
     selected_publication_work_unit = explicit_next_work_unit or derived_next_publication_work_unit(gate_report)
     if (
         isinstance(selected_publication_work_unit, dict)
-        and _non_empty_text(selected_publication_work_unit.get("unit_id")) == "publication_gate_replay"
+        and _non_empty_text(selected_publication_work_unit.get("unit_id"))
+        in {"publication_gate_replay", "submission_delivery_sync_closure"}
         and gate_clearing_batch_replay_closure.stale_gate_replay_closed(latest_batch, gate_report=gate_report)
     ):
         return {
