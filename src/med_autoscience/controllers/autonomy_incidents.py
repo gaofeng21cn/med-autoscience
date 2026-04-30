@@ -12,6 +12,7 @@ PLATFORM_INCIDENT_TYPES: tuple[str, ...] = (
     "status_drift",
     "wrong_milestone_claim",
     "quality_reopen",
+    "publication_gate_failure",
     "runtime_recovery_failure",
     "surface_ownership_drift",
 )
@@ -39,6 +40,7 @@ _PLATFORM_INCIDENT_LABELS = {
     "status_drift": "status drift",
     "wrong_milestone_claim": "wrong milestone claim",
     "quality_reopen": "quality reopen",
+    "publication_gate_failure": "publication gate failure",
     "runtime_recovery_failure": "runtime recovery failure",
     "surface_ownership_drift": "surface ownership drift",
 }
@@ -67,6 +69,11 @@ _PREVENTION_ACTION_BY_INCIDENT = {
         "action_type": "guard",
         "controller_surface": "publication_eval/latest.json",
         "summary": "Require reopened quality gates to route through quality-preserving controller work.",
+    },
+    "publication_gate_failure": {
+        "action_type": "contract",
+        "controller_surface": "publication_eval/latest.json",
+        "summary": "Convert publication gate failures into concrete route-back or repair contracts before any readiness claim.",
     },
     "runtime_recovery_failure": {
         "action_type": "runbook",
@@ -243,6 +250,13 @@ def _derived_platform_incidents(profile_payload: Mapping[str, Any]) -> list[str]
         incidents.append("runtime_recovery_failure")
     if _text(current_state_summary.get("runtime_reason")) == "quest_marked_running_but_no_live_session":
         incidents.append("no_live")
+    publication_eval = _mapping(profile_payload.get("publication_eval"))
+    gate_status = _text(publication_eval.get("gate_status") or publication_eval.get("status"))
+    if gate_status in {"blocked", "failed", "gate_failed"}:
+        incidents.append("publication_gate_failure")
+    publication_gate = _mapping(profile_payload.get("publication_gate"))
+    if _text(publication_gate.get("verdict")) in {"blocked", "failed"}:
+        incidents.append("publication_gate_failure")
     return incidents
 
 
@@ -302,6 +316,19 @@ def build_platform_incident_learning_loop(profile_payload: Mapping[str, Any]) ->
         "incident_scope": "platform_only",
         "allowed_incident_types": list(PLATFORM_INCIDENT_TYPES),
         "allowed_prevention_action_types": list(PREVENTION_ACTION_TYPES),
+        "prevention_action_contract": {
+            "must_be_one_of": list(PREVENTION_ACTION_TYPES),
+            "prose_only_note_allowed": False,
+            "gate_relaxation_allowed": False,
+            "allowed_targets": (
+                "guard",
+                "test",
+                "contract",
+                "runbook",
+                "runtime_taxonomy",
+                "strangler_rule",
+            ),
+        },
         "incident_count": len(incidents),
         "incidents": incidents,
         "gate_relaxation_allowed": False,

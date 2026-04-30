@@ -18,6 +18,7 @@ def test_platform_incident_learning_loop_records_only_allowed_platform_events() 
                 "status drift",
                 "wrong milestone claim",
                 "quality reopen",
+                "publication gate failure",
                 "runtime recovery failure",
                 "surface ownership drift",
             ],
@@ -37,9 +38,30 @@ def test_platform_incident_learning_loop_records_only_allowed_platform_events() 
         "status_drift",
         "wrong_milestone_claim",
         "quality_reopen",
+        "publication_gate_failure",
         "runtime_recovery_failure",
         "surface_ownership_drift",
     ]
+    assert payload["prevention_action_contract"] == {
+        "must_be_one_of": [
+            "guard",
+            "test",
+            "contract",
+            "runbook",
+            "runtime_taxonomy",
+            "strangler_rule",
+        ],
+        "prose_only_note_allowed": False,
+        "gate_relaxation_allowed": False,
+        "allowed_targets": (
+            "guard",
+            "test",
+            "contract",
+            "runbook",
+            "runtime_taxonomy",
+            "strangler_rule",
+        ),
+    }
     for incident in payload["incidents"]:
         assert incident["scope"] == "platform"
         assert incident["gate_relaxation_allowed"] is False
@@ -64,6 +86,28 @@ def test_platform_incident_learning_loop_derives_runtime_events_from_state_surfa
     ]
     assert payload["incidents"][0]["prevention_action"]["action_type"] == "runtime_taxonomy"
     assert payload["incidents"][1]["prevention_action"]["action_type"] == "runbook"
+
+
+def test_platform_incident_learning_loop_derives_publication_gate_failures() -> None:
+    module = importlib.import_module("med_autoscience.controllers.autonomy_incidents")
+
+    payload = module.build_platform_incident_learning_loop(
+        {
+            "study_id": "003-dpcc",
+            "publication_eval": {"gate_status": "blocked"},
+            "publication_gate": {"verdict": "blocked"},
+        }
+    )
+
+    assert [incident["incident_type"] for incident in payload["incidents"]] == [
+        "publication_gate_failure",
+    ]
+    assert payload["incidents"][0]["prevention_action"] == {
+        "action_type": "contract",
+        "controller_surface": "publication_eval/latest.json",
+        "summary": "Convert publication gate failures into concrete route-back or repair contracts before any readiness claim.",
+        "gate_relaxation_allowed": False,
+    }
 
 
 def test_write_incident_record_persists_prevention_action(tmp_path: Path) -> None:
