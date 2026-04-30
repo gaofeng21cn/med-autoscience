@@ -90,6 +90,13 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
             "emitted_at": "2026-04-25T00:30:00+00:00",
             "status": "blocked",
             "blockers": ["claim_evidence_consistency_failed"],
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "claim_evidence_consistency_failed",
+                    "claim_id": "claim-001",
+                    "source_path": str(study_root / "paper" / "manuscript.md"),
+                }
+            ],
             "recommended_actions": [
                 {
                     "action_type": "bounded_analysis",
@@ -519,7 +526,17 @@ def test_workspace_cycle_profiler_profiles_active_studies_and_sorts_bottlenecks(
         )
     _write_json(
         active_root / "artifacts" / "publication_eval" / "latest.json",
-        {"emitted_at": "2026-04-25T00:20:00+00:00", "blockers": ["claim_evidence_consistency_failed"]},
+        {
+            "emitted_at": "2026-04-25T00:20:00+00:00",
+            "blockers": ["claim_evidence_consistency_failed"],
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "claim_evidence_consistency_failed",
+                    "claim_id": "claim-001",
+                    "source_path": str(active_root / "paper" / "manuscript.md"),
+                }
+            ],
+        },
     )
     _touch(active_root / "artifacts" / "publication_eval" / "latest.json", 1_777_000_000)
     _touch(active_root / "paper" / "manuscript.md", 1_777_000_000)
