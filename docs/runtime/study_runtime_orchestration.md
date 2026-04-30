@@ -292,6 +292,8 @@ summary truth 约束：
 
 `run_attempt_phase` 是 run attempt phase 的机器字段；`attempt_count` 是 attempt 计数；`failure_reason` 是 failure reason。三者都是 attempt-level machine field，不得由 dashboard、logs 或 issue tracker 反推生成。`attempt_count` 表示受控 runtime 尝试次数，不等同于 study revision 次数、paper route 次数或 publication gate 重放次数。`failure_reason` 必须保留可审计的失败类别，例如 `workspace_boundary_violation`、`runtime_stalled`、`terminal_non_active`、`transport_failure`、`controller_gate_blocked`；不得用自由文本替代结构化 reason。
 
+当前 repo-side 机器合同由 `work_unit_runtime_attempt_record` 表达。该 record 至少固定 `program_id`、`study_id`、`quest_id`、`active_run_id`、`work_unit_id`、`route_id`、`attempt_state`、`attempt_count`、`run_attempt_phase`、`failure_reason`、`workspace_root`、`cwd`、`backoff_until` 与 `retry_budget_remaining`。它只能作为 runtime registry / observability record；`can_create_study_truth=false`，`can_override_publication_eval=false`，不能替代 `controller_decisions/latest.json`。
+
 ### Workspace isolation
 
 future external worker / hosted runtime 执行每个 study/work-unit 时，必须绑定受控 `workspace_root` / `root` / `cwd`，并在 attempt record 中持久化。所有可写路径必须位于该受控 root 下，任何路径越界、symlink 越界、相对路径逃逸或跨 study root 写入都必须 fail-closed，并把 `failure_reason` 写成 `workspace_boundary_violation`。
