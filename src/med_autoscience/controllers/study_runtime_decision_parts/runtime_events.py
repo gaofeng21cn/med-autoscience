@@ -681,10 +681,6 @@ def _should_refresh_runtime_supervision_from_status(
     status: StudyRuntimeStatus,
     study_root: Path,
 ) -> bool:
-    latest_report_path = study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
-    latest_report = _read_json_mapping(latest_report_path)
-    if latest_report is None:
-        return False
     status_payload = status.to_dict()
     facts = runtime_supervision_controller._runtime_facts(status_payload)
     strict_live = bool(facts["strict_live"])
@@ -699,6 +695,10 @@ def _should_refresh_runtime_supervision_from_status(
         target_health_status = "degraded"
     else:
         return False
+    latest_report_path = study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
+    latest_report = _read_json_mapping(latest_report_path)
+    if latest_report is None:
+        return True
     return any(
         (
             (str(latest_report.get("health_status") or "").strip() or None) != target_health_status,

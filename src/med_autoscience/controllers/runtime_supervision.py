@@ -145,7 +145,8 @@ def _runtime_facts(status_payload: Mapping[str, Any]) -> dict[str, Any]:
         else {}
     )
     active_run_id = (
-        _non_empty_text(
+        _non_empty_text(status_payload.get("active_run_id"))
+        or _non_empty_text(
             ((status_payload.get("execution_owner_guard") or {}) if isinstance(status_payload.get("execution_owner_guard"), Mapping) else {}).get(
                 "active_run_id"
             )
@@ -154,9 +155,16 @@ def _runtime_facts(status_payload: Mapping[str, Any]) -> dict[str, Any]:
         or _non_empty_text(runtime_liveness_audit.get("active_run_id"))
         or _non_empty_text(runtime_audit.get("active_run_id"))
     )
-    runtime_liveness_status = _non_empty_text(runtime_liveness_audit.get("status")) or "unknown"
-    worker_running = _bool_or_none(runtime_audit.get("worker_running"))
-    strict_live = runtime_liveness_status == "live" and worker_running is True and active_run_id is not None
+    runtime_liveness_status = (
+        _non_empty_text(status_payload.get("runtime_liveness_status"))
+        or _non_empty_text(runtime_liveness_audit.get("status"))
+        or _non_empty_text(runtime_audit.get("status"))
+        or "unknown"
+    )
+    worker_running = _bool_or_none(status_payload.get("worker_running"))
+    if worker_running is None:
+        worker_running = _bool_or_none(runtime_audit.get("worker_running"))
+    strict_live = runtime_liveness_status == "live" and active_run_id is not None and worker_running is not False
     return {
         "runtime_liveness_status": runtime_liveness_status,
         "worker_running": worker_running,
@@ -268,9 +276,19 @@ def is_auto_continuation_recovery_pending(
     *,
     strict_live: bool | None = None,
 ) -> bool:
-    del status_payload
-    del strict_live
-    return False
+    resolved_strict_live = bool(_runtime_facts(status_payload)["strict_live"]) if strict_live is None else strict_live
+    if resolved_strict_live:
+        return False
+    if _status_payload_human_gate_required(status_payload):
+        return False
+    quest_status = _non_empty_text(status_payload.get("quest_status"))
+    if quest_status not in _ACTIVE_QUEST_STATUSES:
+        return False
+    supervisor_tick_status = _status_payload_supervisor_tick_status(status_payload)
+    if supervisor_tick_status not in {"missing", "stale", "invalid"}:
+        return False
+    facts = _runtime_facts(status_payload)
+    return facts["active_run_id"] is None
 
 
 def needs_recovery_projection(

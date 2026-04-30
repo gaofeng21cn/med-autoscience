@@ -200,3 +200,78 @@ def test_runtime_supervision_flags_flapping_when_live_drops_back_to_recovery(tmp
     assert payload["stable_live_observation_count"] == 0
     assert payload["flapping_episode_count"] == 1
     assert payload["flapping_circuit_breaker"] is True
+
+
+def test_runtime_supervision_recovers_active_quest_with_stale_tick_and_no_live_worker(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervision")
+
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
+
+    payload = module.materialize_runtime_supervision(
+        study_root=study_root,
+        status_payload={
+            **_managed_status_payload(
+                study_root=study_root,
+                quest_root=quest_root,
+                status="none",
+                worker_running=False,
+                active_run_id=None,
+                decision="noop",
+                reason="quest_already_running",
+                quest_status="active",
+            ),
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "stale",
+                "reason": "supervisor_tick_report_stale",
+            },
+        },
+        recorded_at="2026-04-21T08:20:00+00:00",
+        apply=True,
+    )
+
+    assert payload is not None
+    assert payload["health_status"] == "recovering"
+    assert payload["last_transition"] == "auto_recovery_pending"
+    assert payload["next_action"] == "wait_for_runtime_recovery_confirmation"
+    assert payload["needs_human_intervention"] is False
+
+
+def test_runtime_supervision_requires_active_run_id_for_live_projection(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervision")
+
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
+
+    payload = module.materialize_runtime_supervision(
+        study_root=study_root,
+        status_payload={
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_status": "active",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "execution": {
+                "runtime_backend_id": "hermes",
+                "auto_entry": "on_managed_research_intent",
+            },
+            "runtime_liveness_status": "live",
+            "active_run_id": None,
+            "worker_running": True,
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "stale",
+                "reason": "supervisor_tick_report_stale",
+            },
+        },
+        recorded_at="2026-04-21T08:25:00+00:00",
+        apply=True,
+    )
+
+    assert payload is not None
+    assert payload["health_status"] == "recovering"
+    assert payload["runtime_liveness_status"] == "live"
+    assert payload["active_run_id"] is None

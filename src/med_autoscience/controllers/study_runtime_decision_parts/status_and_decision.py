@@ -311,14 +311,19 @@ def _status_state(
                 status=result,
                 runtime_context=runtime_context,
             )
-        supervisor_tick_is_fresh = str(
+        supervisor_tick_status = str(
             (result.extras.get("supervisor_tick_audit") or {}).get("status")
             if isinstance(result.extras.get("supervisor_tick_audit"), dict)
             else ""
-        ).strip() == "fresh"
+        ).strip()
+        supervisor_tick_is_fresh = supervisor_tick_status == "fresh"
         status_payload_for_supervision = result.to_dict()
         runtime_facts_for_supervision = runtime_supervision_controller._runtime_facts(status_payload_for_supervision)
         quest_status_for_supervision = str(status_payload_for_supervision.get("quest_status") or "").strip()
+        auto_continuation_recovery_pending = runtime_supervision_controller.is_auto_continuation_recovery_pending(
+            status_payload_for_supervision,
+            strict_live=bool(runtime_facts_for_supervision["strict_live"]),
+        )
         refreshable_runtime_supervision = bool(
             runtime_facts_for_supervision["strict_live"]
             or (
@@ -330,7 +335,7 @@ def _status_state(
             )
         )
         if (
-            supervisor_tick_is_fresh
+            (supervisor_tick_is_fresh or auto_continuation_recovery_pending)
             and refreshable_runtime_supervision
             and _should_refresh_runtime_supervision_from_status(status=result, study_root=study_root)
         ):
