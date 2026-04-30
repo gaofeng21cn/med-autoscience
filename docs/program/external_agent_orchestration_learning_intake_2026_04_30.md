@@ -45,9 +45,10 @@
 | Symphony logging and token-accounting guides | `adopt_contract` | MAS runtime observability should use stable event keys, `session_id` / `active_run_id` identity, absolute token totals, context-window separation, and rate-limit projection. | Token/runtime metrics remain telemetry, not quality or publication authority. |
 | Symphony dashboard snapshots and status API presenter | `adopt_template` | Use snapshot-style evidence for operator projections and regression tests around visible runtime state. | Dashboard/API surfaces stay read-only projection. |
 | Symphony workspace lifecycle hooks and path safety | `adopt_contract` | Future hosted/external workers need canonical path boundary checks, symlink-aware containment, and explicit cleanup evidence before teardown. | Do not import PR-closing or Linear-specific teardown automation. |
+| Symphony trust boundary, secret handling, and hook safety | `adopt_contract` | Future hosted/external workers must declare trust posture, approval/sandbox posture, credential scope, secret redaction, hook timeout, and fail-closed authorization before any study write. | Do not treat workspace isolation alone as sufficient safety, and do not log credentials or grant broad external tracker/tool access by default. |
 | NEXUS Dev-QA loop and phase hardening gate | `adopt_contract` | Convert to MAS bounded medical repair/review loops: `PASS` / `FAIL` / `NEEDS_REVIEW`, retry budget, escalation, and AI reviewer-backed publication eval. | Do not import non-medical production-readiness labels as paper quality authority. |
 | NEXUS Experiment Tracker statistical discipline | `adopt_template` | Map hypothesis, data quality, sample size/power/precision, endpoint, subgroup, and early-stop discipline into analysis-campaign planning. | Product A/B testing metrics are not imported into medical evidence decisions. |
-| Agentic identity/trust proof model | `watch_only` | Useful future reference for cross-runtime delegation, identity proof, trust decay, and tamper-evident audit records. | Current MAS uses controller authorization and durable records; no cryptographic identity layer is introduced in this intake. |
+| Agentic identity/trust proof model | `watch_only` | Useful future reference for cross-runtime delegation, identity proof, trust decay, and tamper-evident audit records; current MAS can still borrow the rule that authorization must be evidence-backed and fail-closed. | Current MAS uses controller authorization and durable records; no cryptographic identity layer is introduced in this intake. |
 
 ## Why This Is Valuable To MAS
 
@@ -67,8 +68,9 @@
 - 不引入 generic persona library / NEXUS persona 库：MAS should keep domain roles tied to medical research, review, controller, and publication contracts.
 - 不改变 MAS study truth/publication judgment/controller decision owner：external orchestration lessons must land as MAS-owned contracts/templates only.
 - `watch_only`: NEXUS retry caps, escalation formats, and phase reports are useful references, but MAS should import them only through existing `runtime_escalation_record.json`, `controller_decisions/latest.json`, and publication gate surfaces.
-- `watch_only`: agentic identity/trust, cryptographic delegation, cross-framework identity translation, and tamper-evident audit bundles are valid future concerns for external hosted workers, but this round keeps them outside MAS runtime implementation until a concrete cross-runtime authorization gap appears.
+- `watch_only`: agentic identity/trust, cryptographic delegation, cross-framework identity translation, trust score service, and tamper-evident audit bundles are valid future concerns for external hosted workers, but this round keeps them outside MAS runtime implementation until a concrete cross-runtime authorization gap appears.
 - `reject`: broad NEXUS phase taxonomy, marketing/product/sales launch playbooks, visual website screenshot QA defaults, product A/B testing terminology, and generic role catalogs are no longer MAS-actionable after mapping their reusable structure into medical route gates, evidence refs, runtime telemetry, and bounded repair loops.
+- `adopt_contract`: Symphony trust boundary / secret handling / hook safety is MAS-actionable for future hosted workers because it constrains what must be true before an external process can write. The landing is a safety preflight contract, not a new sandbox engine or identity service.
 
 ## Continued Learning Saturation Protocol
 
@@ -89,11 +91,12 @@
 | Symphony README/SPEC/WORKFLOW | orchestrator state, workspace, retry, observability, workpad | already landed in runtime work-unit and control surface docs | `saturated_by_existing_contract` |
 | Symphony logging/token accounting | stable lifecycle keys, `session_id`, absolute token total, context-window separation, rate-limit snapshot | land as runtime telemetry contract | `new_contract_landed` |
 | Symphony path safety/workspace lifecycle | canonical path, symlink-aware boundary, before/after hooks, cleanup evidence | land as hosted/external worker hygiene rule | `new_contract_landed` |
+| Symphony trust boundary/secret handling/hook safety | explicit trust posture, approval/sandbox posture, secret redaction, hook timeouts, scoped external access | land as hosted worker safety preflight | `new_contract_landed` |
 | Symphony dashboard/status snapshots/API presenter | read-only snapshot, running/retrying counts, token/rate/workspace projection | land as observability-only regression evidence | `new_template_landed` |
 | NEXUS handoff templates | context, acceptance criteria, evidence, owner, next receiver | already landed in structured medical handoff | `saturated_by_existing_contract` |
 | NEXUS Dev-QA loop / Reality Checker | bounded attempts, default not-ready posture, evidence required before readiness | land as bounded medical repair and AI reviewer default-needs-review rule | `new_contract_landed` |
 | NEXUS Experiment Tracker | hypothesis, data quality, statistical confidence, guardrails | land as analysis-campaign planning discipline, not product A/B testing | `new_template_landed` |
-| Agentic identity/trust | identity proof, authorization proof, trust decay, tamper-evident logs | watch for future hosted runtime authorization gap | `watch_only` |
+| Agentic identity/trust | identity proof, authorization proof, trust decay, tamper-evident logs | watch for future hosted runtime authorization gap; borrow fail-closed authorization discipline now | `watch_only` |
 | Generic persona library and broad phase catalog | role catalog, marketing/sales/product lifecycle, non-medical QA persona labels | no further MAS owner value after extraction | `reject_saturated` |
 
 ## MAS Landing Rule

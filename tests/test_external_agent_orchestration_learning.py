@@ -77,6 +77,10 @@ def test_external_agent_orchestration_intake_records_decisions_and_value() -> No
         "AI reviewer gate",
         "absolute token totals",
         "dashboard snapshots",
+        "hosted worker safety preflight",
+        "secret handling",
+        "hook safety",
+        "fail-closed authorization",
         "bounded medical repair",
         "analysis-campaign planning discipline",
     ):
@@ -118,6 +122,9 @@ def test_external_agent_orchestration_intake_records_saturation_protocol() -> No
         "agentic identity/trust",
         "cryptographic delegation",
         "cross-runtime authorization gap",
+        "trust boundary / secret handling / hook safety",
+        "cryptographic identity layer",
+        "trust score service",
     ):
         assert required in intake
 
@@ -129,5 +136,7 @@ def test_status_points_to_external_agent_orchestration_learning_entry() -> None:
     assert INTAKE_PATH.replace("docs/", "./") in status
     assert "长期自治" in status
     assert "AI reviewer gate" in status
+    assert "hosted worker trust boundary" in status
     assert "Continued Learning Saturation Protocol" in status
     assert "MAS-actionable saturated" in status
+    assert "cryptographic identity runtime" in status

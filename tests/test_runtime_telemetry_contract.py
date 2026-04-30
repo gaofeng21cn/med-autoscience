@@ -92,6 +92,41 @@ def test_snapshot_observability_is_read_only_regression_evidence() -> None:
         assert required in combined
 
 
+def test_hosted_worker_trust_boundary_and_secret_handling_are_fail_closed() -> None:
+    doc = _read("docs/runtime/study_runtime_orchestration.md")
+
+    for required in (
+        "Hosted worker trust boundary and secret handling",
+        "hosted worker safety preflight",
+        "trusted-environment",
+        "restricted-environment",
+        "approval / sandbox / network / filesystem controls",
+        "workspace isolation 只是 baseline control",
+        "worker identity",
+        "delegation or authorization ref",
+        "allowed action scope",
+        "credential scope",
+        "credential expired",
+        "fail-closed",
+        "secret handling",
+        "raw API token",
+        "secret env value",
+        "key material",
+        "provider credential",
+        "external tracker/tool access 必须最小化",
+        "scope escalation",
+        "hook safety",
+        "fully trusted configuration",
+        "hook failure 不得写 paper truth 或 publication authority",
+        "evidence write rule",
+        "authorization evidence",
+        "cryptographic identity layer",
+        "trust score service",
+        "tamper-evident audit bundle",
+    ):
+        assert required in doc
+
+
 def test_workspace_lifecycle_teardown_hygiene_is_fail_closed() -> None:
     doc = _read("docs/runtime/study_runtime_orchestration.md")
 
