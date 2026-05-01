@@ -268,6 +268,59 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
             },
             "first_draft_quality_contract": {
                 "status": "required_before_first_full_draft",
+                "imrad_section_contract": {
+                    "article_body": ["Title", "Abstract", "Introduction", "Methods", "Results", "Discussion", "Conclusion"],
+                    "abstract": [
+                        "clinical_context",
+                        "objective",
+                        "design_setting_participants",
+                        "exposures_or_predictors",
+                        "main_outcome",
+                        "results",
+                        "conclusion_and_boundary",
+                    ],
+                    "introduction": ["clinical_problem", "specific_gap", "study_objective_and_contribution"],
+                    "discussion": [
+                        "principal_findings",
+                        "relation_to_prior_work",
+                        "clinical_interpretation",
+                        "limitations",
+                        "conclusion",
+                    ],
+                },
+                "manuscript_native_prose": {
+                    "required": True,
+                    "forbidden_modes": [
+                        "work_report_question_answer_frame",
+                        "figure_table_anchor_section",
+                        "author_confirmation_placeholder",
+                        "figure_self_explanation_paragraph",
+                        "analysis_or_controller_jargon",
+                        "claim_boundary_meta_language_in_body",
+                    ],
+                    "result_section_rule": "answer the clinical finding directly, then cite supporting figures or tables",
+                    "scope_boundary_rule": "state limits as clinical interpretation and limitations, not as controller notes",
+                },
+                "first_draft_generation_model": {
+                    "pre_draft_inputs": [
+                        "clinical_problem",
+                        "study_design",
+                        "target_population",
+                        "prediction_timepoint_or_exposure_window",
+                        "outcome_definition_and_horizon",
+                        "analysis_plan",
+                        "display_to_claim_map",
+                        "reader_facing_contribution",
+                    ],
+                    "writer_obligations": [
+                        "convert research questions into clinical findings rather than question-answer prose",
+                        "separate manuscript body from submission metadata, author confirmations, and operations notes",
+                        "write figure legends as reader interpretation aids rather than reviewer instructions",
+                        "stage Results from cohort and endpoint profile to main finding, validation, clinical utility, and sensitivity or subgroup evidence",
+                        "stage Discussion from principal finding to prior literature, interpretation, limitations, and practical next step",
+                    ],
+                    "route_back_if_missing": "return_to_outline_or_analysis_campaign_before_first_full_draft",
+                },
                 "pre_draft_upgrade_scan": {
                     "status": "required_before_first_full_draft",
                     "required_axes": [
@@ -455,6 +508,59 @@ def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Pa
             },
             "first_draft_quality_contract": {
                 "status": "required_before_first_full_draft",
+                "imrad_section_contract": {
+                    "article_body": ["Title", "Abstract", "Introduction", "Methods", "Results", "Discussion", "Conclusion"],
+                    "abstract": [
+                        "clinical_context",
+                        "objective",
+                        "design_setting_participants",
+                        "exposures_or_predictors",
+                        "main_outcome",
+                        "results",
+                        "conclusion_and_boundary",
+                    ],
+                    "introduction": ["clinical_problem", "specific_gap", "study_objective_and_contribution"],
+                    "discussion": [
+                        "principal_findings",
+                        "relation_to_prior_work",
+                        "clinical_interpretation",
+                        "limitations",
+                        "conclusion",
+                    ],
+                },
+                "manuscript_native_prose": {
+                    "required": True,
+                    "forbidden_modes": [
+                        "work_report_question_answer_frame",
+                        "figure_table_anchor_section",
+                        "author_confirmation_placeholder",
+                        "figure_self_explanation_paragraph",
+                        "analysis_or_controller_jargon",
+                        "claim_boundary_meta_language_in_body",
+                    ],
+                    "result_section_rule": "answer the clinical finding directly, then cite supporting figures or tables",
+                    "scope_boundary_rule": "state limits as clinical interpretation and limitations, not as controller notes",
+                },
+                "first_draft_generation_model": {
+                    "pre_draft_inputs": [
+                        "clinical_problem",
+                        "study_design",
+                        "target_population",
+                        "prediction_timepoint_or_exposure_window",
+                        "outcome_definition_and_horizon",
+                        "analysis_plan",
+                        "display_to_claim_map",
+                        "reader_facing_contribution",
+                    ],
+                    "writer_obligations": [
+                        "convert research questions into clinical findings rather than question-answer prose",
+                        "separate manuscript body from submission metadata, author confirmations, and operations notes",
+                        "write figure legends as reader interpretation aids rather than reviewer instructions",
+                        "stage Results from cohort and endpoint profile to main finding, validation, clinical utility, and sensitivity or subgroup evidence",
+                        "stage Discussion from principal finding to prior literature, interpretation, limitations, and practical next step",
+                    ],
+                    "route_back_if_missing": "return_to_outline_or_analysis_campaign_before_first_full_draft",
+                },
                 "pre_draft_upgrade_scan": {
                     "status": "required_before_first_full_draft",
                     "required_axes": [

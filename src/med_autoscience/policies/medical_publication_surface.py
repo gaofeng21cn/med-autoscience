@@ -6,62 +6,14 @@ from med_autoscience import display_registry
 from med_autoscience import figure_renderer_contract
 from med_autoscience.policies.medical_reporting_contract import display_story_role_for_requirement_key
 
-
-FORBIDDEN_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
-    ("deployment-facing", "deployment-facing", r"\bdeployment-facing\b", re.IGNORECASE),
-    ("baseline-comparable", "baseline-comparable", r"\bbaseline-comparable\b", re.IGNORECASE),
-    ("locked study freeze", "locked study freeze", r"\blocked study freeze\b", re.IGNORECASE),
-    ("locked cohort", "locked cohort", r"\blocked cohort\b", re.IGNORECASE),
-    ("locked comparison", "locked comparison", r"\blocked comparison\b", re.IGNORECASE),
-    ("locked validation", "locked validation", r"\blocked validation\b", re.IGNORECASE),
-    ("locked probability", "locked probability", r"\blocked probability\b", re.IGNORECASE),
-    ("contract", "contract", r"\bcontract\b", re.IGNORECASE),
-    ("analysis surface", "analysis surface", r"\banalysis surface\b", re.IGNORECASE),
-    ("study surface", "study surface", r"\bstudy surface\b", re.IGNORECASE),
-    ("predictor surface", "predictor surface", r"\bpredictor surfaces?\b", re.IGNORECASE),
-    ("validation surface", "validation surface", r"\bvalidation surface\b", re.IGNORECASE),
-    ("paper-facing", "paper-facing", r"\bpaper-facing\b", re.IGNORECASE),
-    ("frontier", "frontier", r"\bfrontier\b", re.IGNORECASE),
-    ("mainline", "mainline", r"\bmainline\b", re.IGNORECASE),
-    ("sidecar", "sidecar", r"\bsidecar\b", re.IGNORECASE),
-    ("endpoint-alignment evidence", "endpoint-alignment evidence", r"\bendpoint[\s-]+alignment evidence\b", re.IGNORECASE),
-    ("control endpoint", "control endpoint", r"\bcontrol endpoint\b", re.IGNORECASE),
-    ("limitation-aware", "limitation-aware", r"\blimitation-aware\b", re.IGNORECASE),
-    ("post-gate", "post-gate", r"\bpost-gate\b", re.IGNORECASE),
-    ("frozen analysis outputs", "frozen analysis outputs", r"\bfrozen analysis outputs?\b", re.IGNORECASE),
-    ("supportive endpoint", "supportive endpoint", r"\bsupportive endpoint\b", re.IGNORECASE),
-    (
-        "manuscript provenance and reporting boundary",
-        "Manuscript provenance and reporting boundary",
-        r"\bmanuscript provenance and reporting boundary\b",
-        re.IGNORECASE,
-    ),
-    (
-        "this manuscript should be read as",
-        "This manuscript should be read as",
-        r"\bthis manuscript should be read as\b",
-        re.IGNORECASE,
-    ),
-    ("Clinical Utility Model", "Clinical Utility Model", r"\bClinical Utility Model\b", 0),
-    ("Preoperative Core Model", "Preoperative Core Model", r"\bPreoperative Core Model\b", 0),
-    ("Pathology-Augmented Model", "Pathology-Augmented Model", r"\bPathology-Augmented Model\b", 0),
-    ("Elastic-Net Benchmark", "Elastic-Net Benchmark", r"\bElastic-Net Benchmark\b", 0),
-    ("Random-Forest Benchmark", "Random-Forest Benchmark", r"\bRandom-Forest Benchmark\b", 0),
-    ("roc_auc", "roc_auc", r"\broc_auc\b", re.IGNORECASE),
-    ("average_precision", "average_precision", r"\baverage_precision\b", re.IGNORECASE),
-    ("brier_score", "brier_score", r"\bbrier_score\b", re.IGNORECASE),
-    ("calibration_intercept", "calibration_intercept", r"\bcalibration_intercept\b", re.IGNORECASE),
-    ("calibration_slope", "calibration_slope", r"\bcalibration_slope\b", re.IGNORECASE),
-    ("open-source disclosure", "open-source:", r"\bopen-source:\s*https?://\S+", re.IGNORECASE),
-    ("online service disclosure", "online service:", r"\bonline service:\s*https?://\S+", re.IGNORECASE),
-    ("deepscientist", "deepscientist", r"\bdeepscientist\b", re.IGNORECASE),
-    ("poster sources label", "Sources:", r"\bSources:", re.IGNORECASE),
-    ("poster why-this-matters label", "Why this matters", r"\bWhy this matters\b", re.IGNORECASE),
-    ("comparison framework", "comparison framework", r"\bcomparison framework\b", re.IGNORECASE),
-    ("model surface", "model surface", r"\bmodel surfaces?\b", re.IGNORECASE),
-    ("version label", "v2026-03-28", r"\bv\d{4}-\d{2}-\d{2}\b", re.IGNORECASE),
-    ("internal model code", "A1", r"\b(?:A\d|B\d|M\d(?:_[A-Za-z0-9]+)?)\b", 0),
-]
+from med_autoscience.policies.medical_manuscript_draft_quality import (
+    ANALYSIS_PLANE_JARGON_PATTERN_SPECS,
+    FORBIDDEN_PATTERN_SPECS,
+    METHOD_LABEL_PATTERN_SPECS,
+    PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS,
+    RESULTS_NARRATION_PATTERN_SPECS,
+    build_work_report_residue_clause,
+)
 
 AMA_CSL_BASENAME = "american-medical-association.csl"
 BLOCKED_RECOMMENDED_ACTION = "stop_current_run_and_rewrite_medical_surface"
@@ -90,63 +42,6 @@ PUBLIC_EVIDENCE_EARNED_DECISIONS = frozenset(
         "appendix_earned",
     }
 )
-RESULTS_NARRATION_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
-    ("figure shows", "Figure 1 shows", r"\bFigure\s+\d+[A-Za-z]?\s+shows\b", re.IGNORECASE),
-    ("figure illustrates", "Figure 1 illustrates", r"\bFigure\s+\d+[A-Za-z]?\s+illustrates\b", re.IGNORECASE),
-    ("figure demonstrates", "Figure 1 demonstrates", r"\bFigure\s+\d+[A-Za-z]?\s+demonstrates\b", re.IGNORECASE),
-    ("table shows", "Table 1 shows", r"\bTable\s+\d+[A-Za-z]?\s+shows\b", re.IGNORECASE),
-    ("table summarizes", "Table 1 summarizes", r"\bTable\s+\d+[A-Za-z]?\s+summarizes\b", re.IGNORECASE),
-    ("table presents", "Table 1 presents", r"\bTable\s+\d+[A-Za-z]?\s+presents\b", re.IGNORECASE),
-]
-ANALYSIS_PLANE_JARGON_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
-    ("support_mismatch", "support mismatch", r"\bsupport mismatch\b", re.IGNORECASE),
-    ("risk_compression", "risk compression", r"\brisk(?:[\s-]+scale)? compression\b", re.IGNORECASE),
-    ("self_quantile", "self-quantile", r"\bself[\s-]+quantile\b", re.IGNORECASE),
-    ("one_bin_collapse", "one-bin collapse", r"\bone[\s-]+bin collapse\b", re.IGNORECASE),
-    ("contextual_layer", "contextual layer", r"\bcontextual layer\b", re.IGNORECASE),
-    ("analysis_slice", "analysis slice", r"\banalysis slice\b", re.IGNORECASE),
-    ("transportability_surface", "transportability surface", r"\btransportability surface\b", re.IGNORECASE),
-    ("residual_ordering_signal", "residual ordering signal", r"\bresidual ordering signal\b", re.IGNORECASE),
-    ("claim_boundary_surface", "claim boundary", r"\bclaim boundary\b", re.IGNORECASE),
-]
-PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
-    (
-        "residual_hypopituitarism_endpoint_label",
-        "later persistent global hypopituitarism",
-        r"\blater persistent global hypopituitarism\b",
-        re.IGNORECASE,
-    ),
-    (
-        "process_instruction_reaudit_methods",
-        "Keep ... re-audit ... methods",
-        r"\bKeep\b.{0,180}\bre-audit\b.{0,120}\bmethods\b",
-        re.IGNORECASE,
-    ),
-    (
-        "confirmed_historical_specification_residue",
-        "confirmed historical specification",
-        r"\bconfirmed historical specification\b",
-        re.IGNORECASE,
-    ),
-    (
-        "manuscript_facing_analyses_residue",
-        "manuscript-facing analyses",
-        r"\bmanuscript-facing analyses\b",
-        re.IGNORECASE,
-    ),
-    (
-        "comparator_drift_residue",
-        "comparator drift",
-        r"\bcomparator drift\b",
-        re.IGNORECASE,
-    ),
-]
-METHOD_LABEL_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
-    ("knowledge-guided", "knowledge-guided", r"\bknowledge-guided\b", re.IGNORECASE),
-    ("causal", "causal", r"\bcausal\b", re.IGNORECASE),
-    ("mechanistic", "mechanistic", r"\bmechanistic\b", re.IGNORECASE),
-    ("calibration-first", "calibration-first", r"\bcalibration-first\b", re.IGNORECASE),
-]
 _SETUP_STORY_ROLE_ALIASES = frozenset(
     {
         "study_setup",
@@ -954,6 +849,7 @@ def build_intervention_message(report: dict[str, object]) -> str:
         formal_tone_clause = (
             " Remove question-form sentences from the manuscript prose; convert them into formal declarative statements."
         )
+    report_residue_clause = build_work_report_residue_clause(report.get("top_hits"))
     return (
         "Hard control message from Codex orchestration layer: stop the current manuscript continuation now. "
         f"The current manuscript-facing surface still violates the `{PUBLICATION_PROFILE}` contract and may not continue "
@@ -968,6 +864,6 @@ def build_intervention_message(report: dict[str, object]) -> str:
         "or tool/service references such as `deepscientist`, service URLs, or editing recommendations. "
         "Do not advertise tooling in figure captions. Do not reopen accepted figures unless in-figure visible text itself still "
         "contains a forbidden manuscript term."
-        f"{ama_clause}{methods_clause}{prose_structure_clause}{results_clause}{figure_semantics_clause}{evidence_ledger_clause}{derived_analysis_clause}{public_evidence_clause}{public_surface_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause}{formal_tone_clause} "
+        f"{ama_clause}{methods_clause}{prose_structure_clause}{results_clause}{figure_semantics_clause}{evidence_ledger_clause}{derived_analysis_clause}{public_evidence_clause}{public_surface_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause}{formal_tone_clause}{report_residue_clause} "
         "After those corrections, resume reviewer-style proofing or finalize."
     )

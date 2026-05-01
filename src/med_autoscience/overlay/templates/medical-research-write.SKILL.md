@@ -997,6 +997,17 @@ Draft the sections that the evidence can currently support, typically:
 - limitations
 - conclusion
 
+Medical manuscript first-draft floor:
+
+- before drafting a medical paper, bind the draft to the active reporting-guideline family and section contract rather than writing from the run log
+- for original clinical research, write manuscript-shaped prose organized around title, abstract, introduction, methods, results, discussion, and conclusion
+- for prediction-model papers, state target population, prediction timepoint, outcome horizon, intended use, predictors, missing-data handling, model specification, validation, calibration, and clinical utility before results prose
+- convert internal research questions into clinical findings; do not preserve the run-log order just because it was useful during analysis
+- stage Results from cohort and endpoint profile to primary finding, validation, clinical utility, and sensitivity or subgroup evidence as supported by the current contract
+- do not leave work-report residue in the article body, including `The first clinical question was ... The answer was ...`, `Figure and Table Anchors`, author-confirmation placeholders, figure self-explanation paragraphs, or controller/claim-boundary meta language
+- write Results as clinical findings first and figure/table references second; figures and tables support the finding, they do not substitute for the finding
+- write limitations as clinical interpretation and generalizability limits, not as internal controller notes
+
 Method fidelity rules:
 
 - do not describe components not present in the code or accepted diffs

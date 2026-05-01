@@ -27,6 +27,13 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
     assert contract["quality_contract"]["first_draft_quality_floor"]["required_before"] == (
         "first_full_draft"
     )
+    draft_contract = contract["quality_contract"]["first_draft_manuscript_quality_contract"]
+    assert draft_contract["guideline_family"] == "STROBE"
+    assert draft_contract["required_before"] == "first_full_draft"
+    assert "Introduction" in draft_contract["core_structure"]["article_body"]
+    assert "author_confirmation_placeholder" in draft_contract["manuscript_native_prose"]["forbidden_modes"]
+    assert "display_to_claim_map" in draft_contract["first_draft_generation_model"]["pre_draft_inputs"]
+    assert "paper/results_narrative_map.json" in draft_contract["must_bind_existing_surfaces"]
     assert contract["quality_contract"]["stronger_paper_shape_scan"]["status"] == (
         "required_before_first_full_draft"
     )
@@ -54,6 +61,12 @@ def test_quality_os_selects_ai_guidelines_without_record_overlay_when_not_rwd() 
 
     assert prediction_contract["guideline_selection"]["primary_guideline_family"] == "TRIPOD+AI"
     assert prediction_contract["guideline_selection"]["overlay_guideline_families"] == []
+    prediction_draft_contract = prediction_contract["quality_contract"]["first_draft_manuscript_quality_contract"]
+    assert prediction_draft_contract["guideline_family"] == "TRIPOD+AI"
+    assert any(
+        "AI preprocessing" in item
+        for item in prediction_draft_contract["guideline_specific_obligations"]
+    )
     assert trial_contract["guideline_selection"]["primary_guideline_family"] == "CONSORT-AI"
     assert trial_contract["guideline_selection"]["overlay_guideline_families"] == []
 

@@ -120,6 +120,54 @@ def test_medical_surface_uses_policy_forbidden_patterns_and_message_builder(tmp_
     assert queue["pending"][0]["content"] == "POLICY_SURFACE_MSG"
 
 
+def test_medical_surface_policy_blocks_work_report_manuscript_residue() -> None:
+    policy = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+    patterns = policy.get_publication_surface_residue_patterns()
+    sample = """
+    ## Results
+    The first clinical question was whether the score worked. The answer was yes.
+
+    ## Figure and Table Anchors
+    Figure 1: cohort derivation
+
+    Reviewers can identify the cohort restriction before reading the results. This figure defines the route.
+
+    Final authorship has not yet been confirmed. Replace this placeholder with author-confirmed text.
+    """
+
+    pattern_ids = {
+        pattern_id
+        for pattern_id, _phrase, pattern in patterns
+        if pattern.search(sample)
+    }
+
+    assert "work_report_question_answer_frame" in pattern_ids
+    assert "figure_table_anchor_section_residue" in pattern_ids
+    assert "figure_legend_work_report_residue" in pattern_ids
+    assert "submission_placeholder_instruction_residue" in pattern_ids
+
+
+def test_medical_surface_policy_message_names_journal_style_rewrite() -> None:
+    policy = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    message = policy.build_intervention_message(
+        {
+            "blockers": ["forbidden_manuscript_terms_present"],
+            "top_hits": [
+                {
+                    "path": "paper/draft.md",
+                    "location": "line 10",
+                    "pattern_id": "work_report_question_answer_frame",
+                    "phrase": "The first clinical question was / the answer was",
+                }
+            ],
+        }
+    )
+
+    assert "work-report residue" in message
+    assert "journal-style medical prose" in message
+
+
 def test_runtime_stage_overlay_texts_expose_medical_contract_paths() -> None:
     installer = importlib.import_module("med_autoscience.overlay.installer")
     required_paths = (

@@ -6,6 +6,9 @@ from med_autoscience.controllers.medical_reporting_guidelines import (
     build_guideline_quality_gate_expectation,
     build_reporting_guideline_expectation,
 )
+from med_autoscience.policies.medical_manuscript_draft_quality import (
+    build_first_draft_manuscript_quality_contract,
+)
 
 
 _OBSERVATIONAL_FAMILIES = frozenset(
@@ -275,6 +278,7 @@ def build_medical_quality_operating_system_contract(
         str(selection["primary_guideline_family"]),
         *[str(item) for item in selection["overlay_guideline_families"]],
     ]
+    primary_guideline_family = str(selection["primary_guideline_family"])
     return {
         "surface": "medical_quality_operating_system_contract",
         "schema_version": 1,
@@ -314,6 +318,10 @@ def build_medical_quality_operating_system_contract(
             "evidence_over_claims_gate": _evidence_over_claims_gate(),
             "quality_preserving_fast_lane_policy": _quality_preserving_fast_lane_policy(),
             "first_draft_quality_floor": _first_draft_quality_floor(),
+            "first_draft_manuscript_quality_contract": build_first_draft_manuscript_quality_contract(
+                guideline_family=primary_guideline_family,
+                manuscript_family=manuscript_family,
+            ),
             "stronger_paper_shape_scan": _stronger_paper_shape_scan(),
             "completion_claim_policy": _completion_claim_policy(),
         },
