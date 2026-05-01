@@ -82,6 +82,7 @@ WORKSPACE_GITIGNORE_ENTRIES = (
     "!studies/*/artifacts/README.md",
     "!studies/*/artifacts/evidence_ledger.json",
     "!studies/*/artifacts/review_ledger.json",
+    "studies/*/runtime_binding.yaml",
     "studies/*/manuscript/current_package/**",
     "studies/*/manuscript/journal_packages/**",
     "studies/*/manuscript/*_submission_*/**",

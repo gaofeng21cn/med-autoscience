@@ -14,6 +14,7 @@ def test_workspace_gitignore_declares_lightweight_study_artifact_boundary() -> N
     assert "!studies/*/artifacts/README.md" in gitignore_text
     assert "!studies/*/artifacts/evidence_ledger.json" in gitignore_text
     assert "!studies/*/artifacts/review_ledger.json" in gitignore_text
+    assert "studies/*/runtime_binding.yaml" in gitignore_text
     assert "studies/*/manuscript/current_package/**" in gitignore_text
     assert "studies/*/manuscript/*.zip" in gitignore_text
     assert "studies/*/manuscript/*.pdf" in gitignore_text
@@ -166,6 +167,18 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
         capture_output=True,
     )
     assert check_generated_artifact.returncode == 0
+
+    runtime_binding = workspace_root / "studies" / "001" / "runtime_binding.yaml"
+    runtime_binding.parent.mkdir(parents=True, exist_ok=True)
+    runtime_binding.write_text("last_action_at: '2026-05-01T00:00:00+00:00'\n", encoding="utf-8")
+    check_runtime_binding = subprocess.run(
+        ["git", "check-ignore", str(runtime_binding.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_runtime_binding.returncode == 0
 
     current_package_docx = workspace_root / "studies" / "001" / "manuscript" / "current_package" / "paper.docx"
     current_package_docx.parent.mkdir(parents=True, exist_ok=True)
