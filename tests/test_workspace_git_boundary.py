@@ -5,6 +5,39 @@ from pathlib import Path
 import subprocess
 
 
+def test_workspace_gitignore_declares_lightweight_study_artifact_boundary() -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_git_boundary")
+
+    gitignore_text = module.render_workspace_gitignore()
+
+    assert "studies/*/artifacts/**" in gitignore_text
+    assert "!studies/*/artifacts/README.md" in gitignore_text
+    assert "!studies/*/artifacts/evidence_ledger.json" in gitignore_text
+    assert "!studies/*/artifacts/review_ledger.json" in gitignore_text
+    assert "studies/*/manuscript/current_package/**" in gitignore_text
+    assert "studies/*/manuscript/*.zip" in gitignore_text
+    assert "studies/*/manuscript/*.pdf" in gitignore_text
+    assert "studies/*/manuscript/*.docx" in gitignore_text
+    assert "studies/*/paper/submission_minimal/**" in gitignore_text
+    assert "studies/*/paper/build/**" in gitignore_text
+    assert "studies/*/paper/latex/**" in gitignore_text
+    assert "studies/*/paper/figures/**" in gitignore_text
+    assert "studies/*/paper/tables/**" in gitignore_text
+
+
+def test_workspace_gitignore_merge_preserves_user_rules_and_is_idempotent() -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_git_boundary")
+    existing = "# local rules\ncustom_local_state/\n"
+
+    merged = module.merge_workspace_gitignore_content(existing)
+    merged_again = module.merge_workspace_gitignore_content(merged)
+
+    assert merged.startswith(existing.rstrip())
+    assert "custom_local_state/" in merged
+    assert "studies/*/artifacts/**" in merged
+    assert merged == merged_again
+
+
 def test_init_workspace_dry_run_reports_workspace_git_plan(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "dry-run-git-workspace"
@@ -28,7 +61,7 @@ def test_init_workspace_dry_run_reports_workspace_git_plan(tmp_path: Path) -> No
     assert not workspace_root.exists()
 
 
-def test_init_workspace_creates_outer_git_boundary_and_ignores_mds_quests(tmp_path: Path) -> None:
+def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_surfaces(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "git-boundary-workspace"
 
@@ -90,6 +123,30 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_mds_quests(tmp_pa
     )
     assert check_large_download.returncode == 0
 
+    generated_artifact = workspace_root / "studies" / "001" / "artifacts" / "runtime" / "event.json"
+    generated_artifact.parent.mkdir(parents=True, exist_ok=True)
+    generated_artifact.write_text("{}\n", encoding="utf-8")
+    check_generated_artifact = subprocess.run(
+        ["git", "check-ignore", str(generated_artifact.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_generated_artifact.returncode == 0
+
+    current_package_docx = workspace_root / "studies" / "001" / "manuscript" / "current_package" / "paper.docx"
+    current_package_docx.parent.mkdir(parents=True, exist_ok=True)
+    current_package_docx.write_text("docx placeholder\n", encoding="utf-8")
+    check_current_package = subprocess.run(
+        ["git", "check-ignore", str(current_package_docx.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_current_package.returncode == 0
+
 
 def test_init_workspace_backfills_gitignore_and_git_config_for_existing_repo(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
@@ -111,6 +168,7 @@ def test_init_workspace_backfills_gitignore_and_git_config_for_existing_repo(tmp
     assert "custom-local-rule/" in workspace_gitignore
     assert "datasets/standardized_longitudinal/" in workspace_gitignore
     assert "storage_audit/" in workspace_gitignore
+    assert "studies/*/artifacts/**" in workspace_gitignore
     assert _git_config(workspace_root, "worktree.useRelativePaths") == "true"
     assert _git_config(workspace_root, "gc.auto") == "0"
     assert _git_config(workspace_root, "gc.autoPackLimit") == "0"

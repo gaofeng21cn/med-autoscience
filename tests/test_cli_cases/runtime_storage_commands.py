@@ -108,6 +108,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
             stopped_only: bool,
             apply: bool,
             git_only: bool,
+            reinitialize_empty_workspace_git: bool,
             include_worktrees: bool,
             older_than_seconds: int,
         jsonl_max_mb: int,
@@ -125,6 +126,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         called["stopped_only"] = stopped_only
         called["apply"] = apply
         called["git_only"] = git_only
+        called["reinitialize_empty_workspace_git"] = reinitialize_empty_workspace_git
         called["include_worktrees"] = include_worktrees
         called["older_than_seconds"] = older_than_seconds
         called["jsonl_max_mb"] = jsonl_max_mb
@@ -145,9 +147,9 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
             "storage-audit",
             "--profile",
             str(profile_path),
-            "--all-studies",
-            "--stopped-only",
+            "--git-only",
             "--apply",
+            "--reinitialize-empty-workspace-git",
             "--no-worktrees",
             "--older-than-hours",
             "12",
@@ -171,10 +173,11 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
     assert exit_code == 0
     assert called["profile"].name == "nfpitnet"
     assert called["study_id"] is None
-    assert called["all_studies"] is True
-    assert called["stopped_only"] is True
+    assert called["all_studies"] is False
+    assert called["stopped_only"] is False
     assert called["apply"] is True
-    assert called["git_only"] is False
+    assert called["git_only"] is True
+    assert called["reinitialize_empty_workspace_git"] is True
     assert called["include_worktrees"] is False
     assert called["older_than_seconds"] == 12 * 3600
     assert called["jsonl_max_mb"] == 32

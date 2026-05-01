@@ -29,6 +29,7 @@ def test_workspace_storage_audit_git_only_passes_fast_path_options(capsys: pytes
             "workspace.toml",
             "--git-only",
             "--apply",
+            "--reinitialize-empty-workspace-git",
             "--older-than-hours",
             "1",
         ]
@@ -46,6 +47,7 @@ def test_workspace_storage_audit_git_only_passes_fast_path_options(capsys: pytes
     assert runtime_storage.audit_kwargs is not None
     assert runtime_storage.audit_kwargs["git_only"] is True
     assert runtime_storage.audit_kwargs["apply"] is True
+    assert runtime_storage.audit_kwargs["reinitialize_empty_workspace_git"] is True
     assert runtime_storage.audit_kwargs["all_studies"] is False
     assert runtime_storage.audit_kwargs["older_than_seconds"] == 3600
     assert '"status": "ok"' in capsys.readouterr().out
@@ -90,6 +92,27 @@ def test_workspace_storage_audit_git_only_rejects_study_selection(conflicting_ar
             "workspace.toml",
             "--git-only",
             *conflicting_args,
+        ]
+    )
+
+    with pytest.raises(SystemExit):
+        handle_runtime_storage_command(
+            args,
+            parser=parser,
+            load_profile=lambda profile: {"profile": profile},
+            runtime_storage_maintenance=_RuntimeStorageMaintenanceStub(),
+        )
+
+
+@pytest.mark.parametrize("args_without_required_gate", [["--reinitialize-empty-workspace-git"], ["--git-only", "--reinitialize-empty-workspace-git"]])
+def test_workspace_storage_audit_reinitialize_requires_git_only_apply(args_without_required_gate: list[str]) -> None:
+    parser = _parser()
+    args = parser.parse_args(
+        [
+            "workspace-storage-audit",
+            "--profile",
+            "workspace.toml",
+            *args_without_required_gate,
         ]
     )
 

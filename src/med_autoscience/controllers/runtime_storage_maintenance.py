@@ -456,11 +456,13 @@ def _git_storage_audit(
     *,
     older_than_seconds: int = git_garbage.GIT_TEMP_GARBAGE_MIN_AGE_SECONDS,
     apply: bool = False,
+    reinitialize_empty_workspace_git: bool = False,
 ) -> dict[str, Any]:
     return git_garbage.audit_git_storage(
         workspace_root,
         older_than_seconds=older_than_seconds,
         apply=apply,
+        reinitialize_empty_workspace_git=reinitialize_empty_workspace_git,
     )
 
 
@@ -669,9 +671,12 @@ def _actual_release_bytes(before: Mapping[str, Any], after: Mapping[str, Any]) -
 
 def _deleted_bytes_from_apply_result(report: Mapping[str, Any]) -> int:
     apply_result = report.get("apply_result")
-    if not isinstance(apply_result, Mapping):
-        return 0
-    return int(apply_result.get("deleted_bytes") or 0)
+    deleted_bytes = int(apply_result.get("deleted_bytes") or 0) if isinstance(apply_result, Mapping) else 0
+    reinitialize_result = report.get("empty_repo_reinitialize_result")
+    reinitialized_bytes = (
+        int(reinitialize_result.get("released_bytes") or 0) if isinstance(reinitialize_result, Mapping) else 0
+    )
+    return deleted_bytes + reinitialized_bytes
 
 
 def audit_workspace_storage(
@@ -692,6 +697,7 @@ def audit_workspace_storage(
     head_lines: int = 200,
     tail_lines: int = 200,
     allow_live_runtime: bool = False,
+    reinitialize_empty_workspace_git: bool = False,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     workspace_root = profile.workspace_root.expanduser().resolve()
@@ -807,6 +813,7 @@ def audit_workspace_storage(
         workspace_root,
         older_than_seconds=older_than_seconds,
         apply=apply,
+        reinitialize_empty_workspace_git=reinitialize_empty_workspace_git,
     )
     git_report["actual_release_bytes"] = _deleted_bytes_from_apply_result(git_report)
     cache_report = (
@@ -839,6 +846,7 @@ def audit_workspace_storage(
             "stopped_only": stopped_only,
             "allow_live_runtime": allow_live_runtime,
             "git_only": git_only,
+            "reinitialize_empty_workspace_git": reinitialize_empty_workspace_git,
         },
         "summary": {
             "study_count": len(study_reports),

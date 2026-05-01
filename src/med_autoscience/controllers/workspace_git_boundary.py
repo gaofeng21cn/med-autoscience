@@ -35,6 +35,23 @@ WORKSPACE_GITIGNORE_ENTRIES = (
     "portfolio/data_assets/public/downloads/",
     "portfolio/data_assets/private/diffs/",
     "portfolio/data_assets/private/pruned_releases/",
+    "studies/*/artifacts/**",
+    "!studies/*/artifacts/README.md",
+    "!studies/*/artifacts/evidence_ledger.json",
+    "!studies/*/artifacts/review_ledger.json",
+    "studies/*/manuscript/current_package/**",
+    "studies/*/manuscript/journal_packages/**",
+    "studies/*/manuscript/*_submission_*/**",
+    "studies/*/manuscript/*.zip",
+    "studies/*/manuscript/*.pdf",
+    "studies/*/manuscript/*.docx",
+    "studies/*/paper/submission_minimal/**",
+    "studies/*/paper/build/**",
+    "studies/*/paper/latex/**",
+    "studies/*/paper/direct_migration/**",
+    "studies/*/paper/figures/**",
+    "studies/*/paper/tables/**",
+    "studies/*/submission_packages/**",
 )
 
 WORKSPACE_GIT_CONFIG_ENTRIES = (

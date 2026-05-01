@@ -82,7 +82,14 @@
 - workspace-scope overlay 与 quest-scope overlay 写入的本地 `.codex/skills/`
 
 workspace 根目录的外层 Git 不接管 `MedDeepScientist` quest 仓库。
-标准 scaffold 会在根级 `.gitignore` 排除 `ops/med-deepscientist/runtime/quests/` 和重运行态目录；进入具体 quest 后，`git` 命令应命中 quest 自己的内层 `.git`。
+标准 scaffold 会在根级 `.gitignore` 排除 `ops/med-deepscientist/runtime/quests/`、study-local `artifacts/`、`manuscript/current_package/`、submission package、paper build/export 目录和重运行态目录；进入具体 quest 后，`git` 命令应命中 quest 自己的内层 `.git`。
+外层 Git 的目标是让 Codex / MAS 快速读取 scaffold、contracts、portfolio registry、study skeleton、analysis/tests/notes 和轻量 paper source truth。
+它不接管 generated artifacts、PDF/DOCX/ZIP、current package projection、runtime ledgers 或投稿导出物；这些 surface 由 MAS/MDS controller、publication gate 和 durable artifact registry 负责。
+
+已有 workspace 如果出现外层 Git object store 膨胀，应通过 `medautosci runtime storage-audit --profile <profile> --git-only` 读取 Git health。
+`--git-only --apply` 只合并新版 `.gitignore`、写入 MAS Git config 并清理 stale temp objects。
+只有无 commits、无 remotes、无 stashes、无 linked worktrees、无 locks 的空外层仓库，才允许在显式传入 `--reinitialize-empty-workspace-git` 时重建 `.git`。
+有 commits 的 workspace 不由 MAS 自动重写 Git 历史。
 
 ### 2. 程序本体与重依赖不进入疾病 workspace
 

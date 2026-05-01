@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import os
 from pathlib import Path
+import shutil
+import subprocess
 import time
 from typing import Any, Mapping
 
@@ -10,6 +12,7 @@ from med_autoscience.controllers import workspace_git_boundary
 
 
 GIT_TEMP_GARBAGE_MIN_AGE_SECONDS = 6 * 3600
+EMPTY_REPO_REINITIALIZE_OBJECT_THRESHOLD_BYTES = 128 * 1024 * 1024
 
 
 def audit_git_storage(
@@ -17,8 +20,10 @@ def audit_git_storage(
     *,
     older_than_seconds: int = GIT_TEMP_GARBAGE_MIN_AGE_SECONDS,
     apply: bool = False,
+    reinitialize_empty_workspace_git: bool = False,
 ) -> dict[str, Any]:
     git_root = workspace_root / ".git"
+    health_before = _git_health(workspace_root=workspace_root)
     now_timestamp = time.time()
     temp_files = _git_temp_garbage_files(
         git_root=git_root,
@@ -36,23 +41,42 @@ def audit_git_storage(
     if apply:
         apply_result = _apply_git_temp_garbage_cleanup(stale_files=stale_files, lock_paths=lock_paths)
         hardening_result = _apply_workspace_git_boundary_hardening(workspace_root=workspace_root)
+    empty_repo_reinitialize_result = None
+    if apply and reinitialize_empty_workspace_git:
+        empty_repo_reinitialize_result = _reinitialize_empty_workspace_git(
+            workspace_root=workspace_root,
+            eligibility=health_before["reinitialize_eligibility"],
+        )
+    health_after = _git_health(workspace_root=workspace_root)
+    health = health_after if empty_repo_reinitialize_result else health_before
     return {
         "category": "git",
         "path": str(git_root),
         "bytes": _directory_size_bytes(git_root),
         "risk": "git_object_store",
-        "candidate_action": "delete-stale-temp-git-garbage" if stale_files else "audit-only",
+        "candidate_action": _git_candidate_action(health=health, stale_files=stale_files),
         "estimated_release_bytes": estimated_release_bytes,
         "older_than_seconds": max(1, int(older_than_seconds)),
+        "health": health,
         "tmp_pack_files": tmp_pack_files,
         "tmp_obj_files": tmp_obj_files,
         "temp_garbage_files": temp_files,
-        "blockers": blockers,
+        "blockers": sorted(set([*blockers, *health["reinitialize_eligibility"]["blockers"]])),
         "lock_paths": [str(path) for path in lock_paths],
         "restore_command": "delete stale .git/objects temp files after confirming no git lock is present",
         "apply_result": apply_result,
         "hardening_result": hardening_result,
+        "empty_repo_reinitialize_result": empty_repo_reinitialize_result,
     }
+
+
+def _git_candidate_action(*, health: Mapping[str, Any], stale_files: list[Mapping[str, Any]]) -> str:
+    recommended_action = str(health.get("recommended_action") or "").strip()
+    if recommended_action == "reinitialize_empty_workspace_git":
+        return recommended_action
+    if stale_files:
+        return "delete-stale-temp-git-garbage"
+    return recommended_action or "audit-only"
 
 
 def _directory_size_bytes(path: Path) -> int:
@@ -73,6 +97,189 @@ def _directory_size_bytes(path: Path) -> int:
             except OSError:
                 continue
     return total
+
+
+def _run_git_command(
+    args: list[str],
+    *,
+    workspace_root: Path,
+    check: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    git_bin = shutil.which("git") or "git"
+    try:
+        result = subprocess.run(
+            [git_bin, *args],
+            cwd=workspace_root,
+            check=False,
+            text=True,
+            capture_output=True,
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError("git executable is required for MedAutoScience workspace Git maintenance.") from exc
+    if check and result.returncode != 0:
+        command = " ".join(["git", *args])
+        message = result.stderr.strip() or result.stdout.strip() or f"{command} failed"
+        raise RuntimeError(message)
+    return result
+
+
+def _git_health(*, workspace_root: Path) -> dict[str, Any]:
+    git_root = workspace_root / ".git"
+    objects_root = git_root / "objects"
+    pack_root = objects_root / "pack"
+    object_store_bytes = _directory_size_bytes(objects_root)
+    lock_paths = _git_lock_paths(git_root)
+    git_exists = git_root.exists()
+    has_commits = _git_has_commits(workspace_root=workspace_root) if git_exists else False
+    remote_count = _git_count_lines(["remote"], workspace_root=workspace_root) if git_exists else 0
+    stash_count = _git_count_lines(["stash", "list"], workspace_root=workspace_root) if git_exists else 0
+    linked_worktree_count = _linked_worktree_count(workspace_root=workspace_root) if git_exists else 0
+    untracked_count = _git_count_lines(["ls-files", "-o", "--exclude-standard"], workspace_root=workspace_root) if git_exists else 0
+    ignored_candidate_count = (
+        _git_count_lines(["ls-files", "-o", "-i", "--exclude-standard"], workspace_root=workspace_root) if git_exists else 0
+    )
+    loose_object_bytes = max(0, object_store_bytes - _directory_size_bytes(pack_root))
+    pack_bytes = _directory_size_bytes(pack_root)
+    eligibility = _empty_repo_reinitialize_eligibility(
+        git_exists=git_exists,
+        has_commits=has_commits,
+        object_store_bytes=object_store_bytes,
+        lock_paths=lock_paths,
+        remote_count=remote_count,
+        stash_count=stash_count,
+        linked_worktree_count=linked_worktree_count,
+    )
+    return {
+        "git_exists": git_exists,
+        "has_commits": has_commits,
+        "bytes": _directory_size_bytes(git_root),
+        "object_store_bytes": object_store_bytes,
+        "loose_object_bytes": loose_object_bytes,
+        "pack_bytes": pack_bytes,
+        "untracked_count": untracked_count,
+        "ignored_candidate_count": ignored_candidate_count,
+        "remote_count": remote_count,
+        "stash_count": stash_count,
+        "linked_worktree_count": linked_worktree_count,
+        "lock_paths": [str(path) for path in lock_paths],
+        "recommended_action": _recommended_git_action(
+            git_exists=git_exists,
+            has_commits=has_commits,
+            object_store_bytes=object_store_bytes,
+            eligibility=eligibility,
+        ),
+        "reinitialize_eligibility": eligibility,
+    }
+
+
+def _git_has_commits(*, workspace_root: Path) -> bool:
+    result = _run_git_command(["rev-parse", "--verify", "HEAD"], workspace_root=workspace_root)
+    return result.returncode == 0
+
+
+def _git_count_lines(args: list[str], *, workspace_root: Path) -> int:
+    result = _run_git_command(args, workspace_root=workspace_root)
+    if result.returncode != 0:
+        return 0
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    return len(lines)
+
+
+def _linked_worktree_count(*, workspace_root: Path) -> int:
+    result = _run_git_command(["worktree", "list", "--porcelain"], workspace_root=workspace_root)
+    if result.returncode != 0:
+        return 0
+    paths = [line for line in result.stdout.splitlines() if line.startswith("worktree ")]
+    return max(0, len(paths) - 1)
+
+
+def _empty_repo_reinitialize_eligibility(
+    *,
+    git_exists: bool,
+    has_commits: bool,
+    object_store_bytes: int,
+    lock_paths: list[Path],
+    remote_count: int,
+    stash_count: int,
+    linked_worktree_count: int,
+) -> dict[str, Any]:
+    blockers: list[str] = []
+    reasons: list[str] = []
+    if not git_exists:
+        blockers.append("missing_git_root")
+    if has_commits:
+        blockers.append("has_commits")
+    if lock_paths:
+        blockers.append("git_lock_present")
+    if remote_count:
+        blockers.append("has_remotes")
+    if stash_count:
+        blockers.append("has_stashes")
+    if linked_worktree_count:
+        blockers.append("has_linked_worktrees")
+    if object_store_bytes <= 0:
+        blockers.append("empty_object_store")
+    elif object_store_bytes >= EMPTY_REPO_REINITIALIZE_OBJECT_THRESHOLD_BYTES:
+        reasons.append("empty_repo_object_store_oversized")
+    else:
+        reasons.append("empty_repo_object_store_present")
+    return {
+        "eligible": not blockers,
+        "blockers": blockers,
+        "reasons": reasons,
+        "object_threshold_bytes": EMPTY_REPO_REINITIALIZE_OBJECT_THRESHOLD_BYTES,
+    }
+
+
+def _recommended_git_action(
+    *,
+    git_exists: bool,
+    has_commits: bool,
+    object_store_bytes: int,
+    eligibility: Mapping[str, Any],
+) -> str:
+    if bool(eligibility.get("eligible")):
+        return "reinitialize_empty_workspace_git"
+    if not git_exists:
+        return "initialize_workspace_git"
+    if has_commits and object_store_bytes >= EMPTY_REPO_REINITIALIZE_OBJECT_THRESHOLD_BYTES:
+        return "manual_git_gc_review"
+    return "audit-only"
+
+
+def _reinitialize_empty_workspace_git(
+    *,
+    workspace_root: Path,
+    eligibility: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not bool(eligibility.get("eligible")):
+        return {
+            "status": "blocked_not_eligible",
+            "blockers": list(eligibility.get("blockers") or []),
+            "reasons": list(eligibility.get("reasons") or []),
+        }
+    git_root = workspace_root / ".git"
+    before_bytes = _directory_size_bytes(git_root)
+    try:
+        shutil.rmtree(git_root)
+        workspace_git_boundary.ensure_workspace_git(workspace_root=workspace_root, initialize_git=True)
+        _apply_workspace_git_boundary_hardening(workspace_root=workspace_root)
+    except (OSError, RuntimeError) as exc:
+        return {
+            "status": "failed",
+            "error": str(exc),
+            "blockers": ["reinitialize_failed"],
+            "before_bytes": before_bytes,
+            "after_bytes": _directory_size_bytes(git_root),
+        }
+    after_bytes = _directory_size_bytes(git_root)
+    return {
+        "status": "reinitialized",
+        "before_bytes": before_bytes,
+        "after_bytes": after_bytes,
+        "released_bytes": max(0, before_bytes - after_bytes),
+        "blockers": [],
+    }
 
 
 def _git_temp_garbage_files(

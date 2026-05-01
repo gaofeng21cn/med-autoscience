@@ -106,8 +106,27 @@ uv run python -m med_autoscience.cli init-workspace \
 
 默认情况下，`init-workspace` 也会在 workspace 根目录初始化一个轻量 Git 仓库，并写入根级 `.gitignore`。
 这个外层 Git 只用于让 Codex / MAS 快速识别 workspace scaffold、contracts、portfolio registry 和轻量 study truth。
-`ops/med-deepscientist/runtime/quests/` 会被外层 `.gitignore` 明确排除；每个 quest 仍由 `MedDeepScientist` 在 quest 根目录维护自己的 Git 仓库和 worktree。
+`ops/med-deepscientist/runtime/quests/`、study-local `artifacts/`、`manuscript/current_package/`、submission packages 和 paper build exports 会被外层 `.gitignore` 明确排除；每个 quest 仍由 `MedDeepScientist` 在 quest 根目录维护自己的 Git 仓库和 worktree。
 如果确实要保持旧行为，可在 CLI 使用 `--no-git`。
+
+这个 Git 仓库不是论文审计仓库，也不应提交 generated artifacts、PDF/DOCX/ZIP 投稿包或 runtime ledgers。
+如果旧 workspace 已经因为误 `git add` 产生很大的 `.git/objects`，先运行：
+
+```bash
+ops/medautoscience/bin/storage-audit --git-only
+```
+
+确认报告里 `categories.git.health.recommended_action` 后，再运行低风险 hardening：
+
+```bash
+ops/medautoscience/bin/storage-audit --git-only --apply
+```
+
+只有当报告显示外层 Git 没有 commits、remotes、stashes、linked worktrees 和 locks，且确实需要释放空仓 object store 时，才显式运行：
+
+```bash
+ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-workspace-git
+```
 
 ## 每个目录大致做什么
 

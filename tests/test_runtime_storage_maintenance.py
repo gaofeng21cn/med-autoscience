@@ -471,6 +471,92 @@ def test_audit_workspace_storage_git_only_apply_blocks_when_git_lock_exists(tmp_
     assert tmp_pack.exists()
 
 
+def test_audit_workspace_storage_git_only_reports_empty_repo_reinitialize_recommendation(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    workspace_root = profile.workspace_root
+    workspace_root.mkdir(parents=True, exist_ok=True)
+    module.git_garbage._run_git_command(["init"], workspace_root=workspace_root, check=True)
+    objects_root = workspace_root / ".git" / "objects"
+    large_object = objects_root / "ab" / "oversized"
+    large_object.parent.mkdir(parents=True, exist_ok=True)
+    large_object.write_bytes(b"x" * 2048)
+    (workspace_root / "README.md").write_text("workspace source\n", encoding="utf-8")
+
+    result = module.audit_workspace_storage(profile=profile, all_studies=False, git_only=True)
+
+    git_report = result["categories"]["git"]
+    health = git_report["health"]
+    assert health["has_commits"] is False
+    assert health["object_store_bytes"] >= 2048
+    assert health["untracked_count"] >= 1
+    assert health["recommended_action"] == "reinitialize_empty_workspace_git"
+    assert "empty_repo_object_store_present" in health["reinitialize_eligibility"]["reasons"]
+
+
+def test_audit_workspace_storage_git_only_reinitializes_only_when_explicitly_allowed(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    workspace_root = profile.workspace_root
+    workspace_root.mkdir(parents=True, exist_ok=True)
+    module.git_garbage._run_git_command(["init"], workspace_root=workspace_root, check=True)
+    large_object = workspace_root / ".git" / "objects" / "ab" / "oversized"
+    large_object.parent.mkdir(parents=True, exist_ok=True)
+    large_object.write_bytes(b"x" * 2048)
+
+    dry_run_result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True, git_only=True)
+    dry_run_git = dry_run_result["categories"]["git"]
+    assert dry_run_git["empty_repo_reinitialize_result"] is None
+    assert large_object.exists()
+
+    apply_result = module.audit_workspace_storage(
+        profile=profile,
+        all_studies=False,
+        apply=True,
+        git_only=True,
+        reinitialize_empty_workspace_git=True,
+    )
+
+    git_report = apply_result["categories"]["git"]
+    assert git_report["empty_repo_reinitialize_result"]["status"] == "reinitialized"
+    assert not large_object.exists()
+    assert (workspace_root / ".git").is_dir()
+    assert (workspace_root / ".gitignore").is_file()
+    assert "studies/*/artifacts/**" in (workspace_root / ".gitignore").read_text(encoding="utf-8")
+
+
+def test_audit_workspace_storage_git_only_refuses_reinitialize_when_commits_exist(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    workspace_root = profile.workspace_root
+    workspace_root.mkdir(parents=True, exist_ok=True)
+    module.git_garbage._run_git_command(["init"], workspace_root=workspace_root, check=True)
+    module.git_garbage._run_git_command(["config", "user.email", "test@example.com"], workspace_root=workspace_root, check=True)
+    module.git_garbage._run_git_command(["config", "user.name", "Test User"], workspace_root=workspace_root, check=True)
+    (workspace_root / "README.md").write_text("tracked\n", encoding="utf-8")
+    module.git_garbage._run_git_command(["add", "README.md"], workspace_root=workspace_root, check=True)
+    module.git_garbage._run_git_command(["commit", "-m", "baseline"], workspace_root=workspace_root, check=True)
+
+    result = module.audit_workspace_storage(
+        profile=profile,
+        all_studies=False,
+        apply=True,
+        git_only=True,
+        reinitialize_empty_workspace_git=True,
+    )
+
+    git_report = result["categories"]["git"]
+    assert git_report["health"]["has_commits"] is True
+    assert git_report["health"]["recommended_action"] != "reinitialize_empty_workspace_git"
+    assert git_report["empty_repo_reinitialize_result"]["status"] == "blocked_not_eligible"
+    assert "has_commits" in git_report["empty_repo_reinitialize_result"]["blockers"]
+    assert module.git_garbage._run_git_command(
+        ["rev-list", "--count", "HEAD"],
+        workspace_root=workspace_root,
+        check=True,
+    ).stdout.strip() == "1"
+
+
 def test_audit_workspace_storage_stopped_only_skips_live_runtime(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
     profile = make_profile(tmp_path)
