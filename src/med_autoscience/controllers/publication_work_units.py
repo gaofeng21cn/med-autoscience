@@ -272,16 +272,7 @@ def _is_mixed_controller_repair(blocker_set: set[str]) -> bool:
         and bool(blocker_set & _STORY_BLOCKERS)
         and bool(blocker_set & _FIGURE_RESULTS_BLOCKERS)
     )
-    claim_story_figure_submission_bundle = (
-        bool(blocker_set & _SUBMISSION_REFRESH_BLOCKERS)
-        and bool(blocker_set & _CLAIM_EVIDENCE_BLOCKERS)
-        and bool(blocker_set & _STORY_BLOCKERS)
-        and bool(blocker_set & _FIGURE_RESULTS_BLOCKERS)
-    )
-    return (
-        (legacy_display_story_figure_bundle or claim_story_figure_submission_bundle)
-        and not bool(blocker_set & _TREATMENT_GAP_BLOCKERS)
-    )
+    return legacy_display_story_figure_bundle and not bool(blocker_set & _TREATMENT_GAP_BLOCKERS)
 
 
 def _append_mixed_controller_unit(units: list[dict[str, str]]) -> None:

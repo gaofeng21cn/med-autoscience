@@ -217,6 +217,8 @@ def _reason_from_parked_continuation(
     *,
     current_reason: str | None,
 ) -> str | None:
+    if current_reason in _NON_PARKED_RUNTIME_REASONS:
+        return current_reason
     continuation_state = _mapping(status_payload.get("continuation_state"))
     continuation_reason = _text(continuation_state.get("continuation_reason"))
     if continuation_reason not in _PARKED_CLOSEOUT_REASONS:

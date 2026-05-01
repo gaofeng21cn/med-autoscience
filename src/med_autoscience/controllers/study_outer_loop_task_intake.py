@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import study_task_intake
+from med_autoscience.controllers import publication_work_units
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionType
 
 
@@ -90,7 +91,7 @@ def recommended_task_intake_action(
         if current_required_action == "return_to_analysis_campaign"
         else StudyDecisionType.CONTINUE_SAME_LINE.value
     )
-    return {
+    action = {
         "action_id": f"task-intake::{Path(study_root).expanduser().resolve().name}::{route_target}",
         "action_type": decision_type,
         "priority": "now",
@@ -101,3 +102,16 @@ def recommended_task_intake_action(
         "requires_controller_decision": True,
         "controller_action_type": StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value,
     }
+    if isinstance(publishability_gate_report, dict):
+        gate_status = str(publishability_gate_report.get("status") or "").strip()
+        if gate_status == "blocked":
+            work_unit_payload = publication_work_units.derive_publication_work_units(publishability_gate_report)
+            next_work_unit = work_unit_payload.get("next_work_unit")
+            if isinstance(next_work_unit, dict):
+                action["work_unit_fingerprint"] = work_unit_payload.get("fingerprint")
+                action["blocking_work_units"] = work_unit_payload.get("blocking_work_units") or []
+                action["next_work_unit"] = dict(next_work_unit)
+                specificity_questions = work_unit_payload.get("specificity_questions")
+                if specificity_questions:
+                    action["specificity_questions"] = list(specificity_questions)
+    return action

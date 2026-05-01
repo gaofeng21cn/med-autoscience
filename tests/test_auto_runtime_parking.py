@@ -209,9 +209,9 @@ def test_auto_runtime_parking_prefers_parked_continuation_over_lightweight_entry
         }
     )
 
-    assert stale_resume_projection["parked"] is True
-    assert stale_resume_projection["parked_state"] == "explicit_resume_pending"
-    assert stale_resume_projection["source_reason"] == "parked_after_checkpoint_no_new_message"
+    assert stale_resume_projection["parked"] is False
+    assert stale_resume_projection["parked_state"] is None
+    assert stale_resume_projection["source_reason"] == "quest_marked_running_but_no_live_session"
 
 
 def test_auto_runtime_parking_maps_repeated_stop_hold_and_same_blocker_pause_as_resource_release() -> None:
@@ -365,3 +365,46 @@ def test_study_progress_task_intake_supersedes_prior_parked_projection(
     assert result["auto_runtime_parked"]["parked"] is False
     assert result["auto_runtime_parked"]["superseded_by_task_intake"] is True
     assert result["reopen_policy"] == "user_feedback_first"
+
+
+def test_study_progress_does_not_show_explicit_resume_when_runtime_recovery_is_required(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "002-dm-china-us-mortality-attribution")
+    quest_root = profile.runtime_root / "002-dm-china-us-mortality-attribution"
+
+    monkeypatch.setattr(
+        progress.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "study_root": str(study_root),
+            "quest_root": str(quest_root),
+            "quest_status": "active",
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "recover_runtime",
+                "attempt_state": "recovering",
+            },
+            "continuation_state": {
+                "quest_status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_reason": "parked_after_checkpoint_no_new_message",
+            },
+            "supervisor_tick_audit": {"required": True, "status": "fresh"},
+        },
+    )
+
+    result = progress.read_study_progress(profile=profile, study_id="002-dm-china-us-mortality-attribution")
+
+    assert result["current_stage"] != "auto_runtime_parked"
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["parked_state"] is None
+    assert "显式恢复" not in result["current_stage_summary"]

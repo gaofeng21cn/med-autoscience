@@ -5,6 +5,7 @@ from typing import Any, Mapping
 from med_autoscience.controllers import (
     auto_runtime_parking,
     control_plane_facts,
+    control_plane_reconciler,
     runtime_failure_taxonomy,
 )
 
@@ -287,6 +288,13 @@ def build_control_plane_state_surface(profile_payload: Mapping[str, Any]) -> dic
         or "queued"
     )
     state_spec = control_plane_state_spec(state)
+    reconciler = control_plane_reconciler.reconcile_next_action(
+        current_state=state,
+        state_spec=state_spec,
+        profile_payload=status_payload,
+        auto_runtime_parked=auto_runtime_parked,
+        runtime_failure_classification=runtime_failure,
+    )
     return {
         "surface": "control_plane_state",
         "schema_version": 1,
@@ -295,6 +303,8 @@ def build_control_plane_state_surface(profile_payload: Mapping[str, Any]) -> dic
         "current_state": state,
         "current_state_spec": state_spec,
         "control_plane_facts": facts.to_runtime_facts_dict(),
+        "control_plane_reconciler": reconciler,
+        "canonical_next_action": reconciler["canonical_next_action"],
         "auto_runtime_parked": auto_runtime_parked,
         "runtime_failure_classification": dict(runtime_failure) or None,
         "states": control_plane_state_catalog(),

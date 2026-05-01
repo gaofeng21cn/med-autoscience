@@ -197,6 +197,51 @@ def test_publishability_stop_loss_task_intake_recommends_stop_runtime_action(tmp
     assert action["requires_controller_decision"] is True
 
 
+def test_reviewer_task_intake_preserves_publication_gate_work_unit_identity(tmp_path: Path) -> None:
+    intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    outer_loop_intake = importlib.import_module("med_autoscience.controllers.study_outer_loop_task_intake")
+    study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
+    _write_json(
+        intake_module.latest_task_intake_json_path(study_root=study_root),
+        {
+            "task_id": "study-task::002-dm-china-us-mortality-attribution::20260427T020548Z",
+            "task_intent": (
+                "用户已对糖尿病002投稿包给出明确审稿式反馈：必须作为 reviewer_revision / "
+                "manuscript revision 重新激活同一论文线。"
+            ),
+            "first_cycle_outputs": ["paper/rebuttal/review_matrix.md and action_plan.md"],
+            "constraints": ["不要直接手工 patch manuscript/current_package 投影作为最终修复。"],
+        },
+    )
+    gate_report = {
+        "status": "blocked",
+        "blockers": [
+            "stale_submission_minimal_authority",
+            "stale_study_delivery_mirror",
+            "medical_publication_surface_blocked",
+            "claim_evidence_consistency_failed",
+            "submission_hardening_incomplete",
+        ],
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_blockers": [
+            "missing_medical_story_contract",
+            "figure_semantics_manifest_missing_or_incomplete",
+        ],
+        "current_required_action": "return_to_publishability_gate",
+    }
+
+    action = outer_loop_intake.recommended_task_intake_action(
+        study_root=study_root,
+        publishability_gate_report=gate_report,
+    )
+
+    assert action is not None
+    assert action["work_unit_fingerprint"].startswith("publication-blockers::")
+    assert action["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert action["next_work_unit"]["lane"] == "analysis-campaign"
+    assert action["blocking_work_units"][0]["unit_id"] == "analysis_claim_evidence_repair"
+
+
 def test_reviewer_first_user_feedback_intake_detects_revision_reactivation() -> None:
     module = importlib.import_module("med_autoscience.study_task_intake")
 

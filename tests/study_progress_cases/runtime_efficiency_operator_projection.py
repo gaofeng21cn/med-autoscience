@@ -366,7 +366,7 @@ def test_study_progress_projects_completed_parked_auto_continue_without_live_run
     assert result["operator_status_card"]["handling_state"] == "explicit_resume_pending"
 
 
-def test_study_progress_projects_closeout_continuation_as_parked_not_recovering(
+def test_study_progress_prioritizes_no_live_recovery_over_closeout_continuation(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -460,14 +460,14 @@ def test_study_progress_projects_closeout_continuation_as_parked_not_recovering(
         },
     )
 
-    assert result["current_stage"] == "auto_runtime_parked"
-    assert result["auto_runtime_parked"]["parked"] is True
-    assert result["auto_runtime_parked"]["parked_state"] == "explicit_resume_pending"
-    assert result["auto_runtime_parked"]["source_reason"] == "parked_after_checkpoint_no_new_message"
+    assert result["current_stage"] == "managed_runtime_recovering"
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["auto_runtime_parked"]["parked_state"] is None
+    assert result["auto_runtime_parked"]["source_reason"] == "quest_marked_running_but_no_live_session"
     assert result["supervision"]["active_run_id"] is None
-    assert result["supervision"]["health_status"] == "parked"
-    assert result["module_surfaces"]["runtime"]["health_status"] == "parked"
-    assert result["operator_status_card"]["handling_state"] == "explicit_resume_pending"
+    assert result["supervision"]["health_status"] == "recovering"
+    assert result["module_surfaces"]["runtime"]["health_status"] == "recovering"
+    assert result["operator_status_card"]["handling_state"] == "runtime_recovering"
 
 
 def test_study_progress_merges_autonomy_slo_refs_into_existing_projection(tmp_path: Path) -> None:

@@ -116,7 +116,7 @@ def test_stale_delivery_mirror_with_current_authority_routes_to_gate_replay() ->
     assert result["actionability_status"] == "controller_sync_closure_required"
 
 
-def test_claim_story_figure_submission_hardening_cluster_is_controller_owned_repair() -> None:
+def test_claim_story_figure_submission_hardening_cluster_starts_with_analysis_repair() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 
     result = module.derive_publication_work_units(
@@ -132,18 +132,12 @@ def test_claim_story_figure_submission_hardening_cluster_is_controller_owned_rep
         }
     )
 
-    assert result["next_work_unit"] == {
-        "unit_id": "controller_owned_publication_repair",
-        "lane": "controller",
-        "summary": (
-            "Run one controller-owned deterministic repair unit for claim-evidence, medical story, "
-            "figure semantics, display registry, and submission authority/hardening blockers."
-        ),
-        "user_feedback_priority": "highest",
-        "control_surface": "gate_clearing_batch",
-    }
+    assert result["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
     assert [unit["unit_id"] for unit in result["blocking_work_units"]] == [
-        "controller_owned_publication_repair",
+        "analysis_claim_evidence_repair",
+        "manuscript_story_repair",
+        "figure_results_trace_repair",
+        "submission_minimal_refresh",
     ]
 
 

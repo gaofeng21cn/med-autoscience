@@ -63,6 +63,41 @@ def test_control_plane_state_uses_facts_for_no_live_projection() -> None:
     assert surface["auto_recovery_allowed"] is True
     assert surface["resource_release_expected"] is False
     assert surface["control_plane_facts"]["missing_live_session"] is True
+    assert surface["canonical_next_action"] == "recover_runtime"
+
+
+def test_control_plane_reconciler_prioritizes_recovery_over_pending_work_unit() -> None:
+    surface = _surface(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_status": "active",
+            "runtime_liveness_status": "none",
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "recover_runtime",
+                "attempt_state": "recovering",
+            },
+            "continuation_state": {
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_reason": "parked_after_checkpoint_no_new_message",
+                "active_run_id": None,
+            },
+            "gate_blocker_summary": {
+                "current_blockers": ["claim_evidence_consistency_failed"],
+                "next_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                },
+            },
+        }
+    )
+
+    assert surface["current_state"] == "no_live"
+    assert surface["canonical_next_action"] == "recover_runtime"
+    assert surface["control_plane_reconciler"]["work_unit_pending"] is True
+    assert surface["control_plane_reconciler"]["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert surface["auto_runtime_parked"]["parked"] is False
 
 
 def test_control_plane_state_maps_user_parked_to_blocked_human() -> None:

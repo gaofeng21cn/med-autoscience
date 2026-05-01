@@ -182,7 +182,7 @@ def resolve_control_plane_facts(
         active_run_id_source = "completed_parked_auto_continue"
         reason = "completed_parked_auto_continue_no_new_message"
     parked_closeout_reason = _parked_closeout_continuation(continuation_state)
-    if parked_closeout_reason is not None:
+    if parked_closeout_reason is not None and reason not in _NO_LIVE_REASONS:
         runtime_liveness_status = "parked"
         worker_running = False
         worker_pending = False

@@ -9,7 +9,7 @@ globals().update({
 })
 
 
-def test_watch_runtime_suppresses_repeated_work_unit_dispatch(
+def test_watch_runtime_redrives_repeated_work_unit_until_attempt_closes(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -99,32 +99,13 @@ def test_watch_runtime_suppresses_repeated_work_unit_dispatch(
         ).read_text(encoding="utf-8").splitlines()
     ]
 
-    assert calls == ["runtime_watch_outer_loop_wakeup"]
+    assert calls == ["runtime_watch_outer_loop_wakeup", "runtime_watch_outer_loop_wakeup"]
     assert len(first["managed_study_outer_loop_dispatches"]) == 1
-    assert second["managed_study_outer_loop_dispatches"] == []
-    assert second["managed_study_no_op_suppressions"] == [
-        {
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "outcome": "skipped_matching_work_unit",
-            "reason": "outer-loop work unit already dispatched for the same blocker fingerprint",
-            "dedupe_scope": "controller_decision_blocker_authority",
-            "work_unit_fingerprint": "publication-blockers::same",
-            "next_work_unit": {
-                "unit_id": "analysis_claim_evidence_repair",
-                "lane": "analysis-campaign",
-                "summary": "Repair claim-evidence blockers.",
-            },
-            "operator_summary": "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。",
-        }
-    ]
-    assert [event["event_type"] for event in ledger_events] == ["dispatched", "skipped_duplicate"]
-    assert wakeup_latest["outcome"] == "skipped_matching_work_unit"
-    assert wakeup_latest["no_op_acknowledged"] is True
-    assert wakeup_latest["dedupe_scope"] == "controller_decision_blocker_authority"
-    assert wakeup_latest["operator_summary"] == (
-        "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。"
-    )
+    assert len(second["managed_study_outer_loop_dispatches"]) == 1
+    assert second["managed_study_no_op_suppressions"] == []
+    assert [event["event_type"] for event in ledger_events] == ["dispatched", "dispatched"]
+    assert wakeup_latest["outcome"] == "dispatched"
+    assert "no_op_acknowledged" not in wakeup_latest
     assert wakeup_latest["work_unit_dispatch_key"] == (
         "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
     )
@@ -250,7 +231,7 @@ def test_outer_loop_tick_request_carries_publication_work_unit_context(tmp_path:
     assert request["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
 
 
-def test_work_unit_dedupe_reuses_prior_upstream_unit_when_blocker_fingerprint_churns(tmp_path: Path) -> None:
+def test_work_unit_dedupe_does_not_reuse_prior_upstream_unit_when_blocker_fingerprint_churns(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
     study_root = tmp_path / "studies" / "001-risk"
     latest_path = study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json"
@@ -275,7 +256,7 @@ def test_work_unit_dedupe_reuses_prior_upstream_unit_when_blocker_fingerprint_ch
         tick_request=tick_request,
     )
 
-    assert already_executed is True
+    assert already_executed is False
     assert dispatch_key == "publication-blockers::new::analysis_claim_evidence_repair::run_gate_clearing_batch"
 
 
@@ -304,6 +285,66 @@ def test_work_unit_dedupe_uses_ledger_when_latest_wakeup_was_overwritten_by_noop
         identity=identity,
         event_type="dispatched",
         payload={"source": "runtime_watch"},
+        recorded_at="2026-04-28T00:00:00+00:00",
+    )
+
+    already_executed, dispatch_key = module.dispatch_already_executed(
+        study_root=study_root,
+        tick_request=tick_request,
+    )
+
+    assert already_executed is False
+    assert dispatch_key == "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
+
+
+def test_work_unit_dedupe_requires_attempt_result_not_bare_dispatch(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
+    study_root = tmp_path / "studies" / "001-risk"
+    latest_path = study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json"
+    latest_path.parent.mkdir(parents=True)
+    latest_path.write_text(
+        json.dumps(
+            {
+                "outcome": "dispatched",
+                "work_unit_dispatch_key": "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch",
+            }
+        ),
+        encoding="utf-8",
+    )
+    tick_request = {
+        "work_unit_fingerprint": "publication-blockers::same",
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+    }
+
+    already_executed, dispatch_key = module.dispatch_already_executed(
+        study_root=study_root,
+        tick_request=tick_request,
+    )
+
+    assert already_executed is False
+    assert dispatch_key == "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
+
+
+def test_work_unit_dedupe_accepts_closed_attempt_result(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
+    ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    study_root = tmp_path / "studies" / "001-risk"
+    tick_request = {
+        "work_unit_fingerprint": "publication-blockers::same",
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+    }
+    identity = module.identity_from_tick_request(
+        study_id="001-risk",
+        quest_id="quest-001",
+        tick_request=tick_request,
+    )
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="closed",
+        payload={"gate_replay_status": "clear"},
         recorded_at="2026-04-28T00:00:00+00:00",
     )
 
@@ -353,7 +394,7 @@ def test_work_unit_dedupe_does_not_use_ledger_when_latest_inputs_changed(tmp_pat
     assert dispatch_key == "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
 
 
-def test_work_unit_dedupe_uses_ledger_for_prior_upstream_unit_when_fingerprint_churns(tmp_path: Path) -> None:
+def test_work_unit_dedupe_does_not_use_ledger_for_prior_upstream_unit_when_fingerprint_churns(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
     ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
     study_root = tmp_path / "studies" / "001-risk"
@@ -385,7 +426,7 @@ def test_work_unit_dedupe_uses_ledger_for_prior_upstream_unit_when_fingerprint_c
         tick_request=tick_request,
     )
 
-    assert already_executed is True
+    assert already_executed is False
     assert dispatch_key == "publication-blockers::new::analysis_claim_evidence_repair::run_gate_clearing_batch"
 
 
