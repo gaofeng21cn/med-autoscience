@@ -137,6 +137,7 @@ def append_truth_event(
     event_type: str,
     payload: Mapping[str, Any] | None = None,
     recorded_at: str,
+    source_signature: str | None = None,
 ) -> dict[str, Any]:
     event_type_text = str(event_type or "").strip()
     if event_type_text not in TRUTH_EVENT_TYPES:
@@ -160,6 +161,9 @@ def append_truth_event(
         "recorded_at": recorded_at,
         "payload": resolved_payload,
     }
+    normalized_source_signature = _text(source_signature)
+    if normalized_source_signature is not None:
+        event["source_signature"] = normalized_source_signature
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
@@ -202,6 +206,41 @@ def _event_summary(event: Mapping[str, Any]) -> str | None:
         or _text(payload.get("controller_stage_note"))
         or _text(payload.get("current_required_action"))
     )
+
+
+def _event_source_signature(event_type: str, payload: Mapping[str, Any]) -> str:
+    digest = hashlib.sha256(
+        _stable_json(
+            {
+                "event_type": event_type,
+                "payload": dict(payload),
+            }
+        ).encode("utf-8")
+    ).hexdigest()[:24]
+    return f"truth-source::{event_type}::{digest}"
+
+
+def _source_signature_for_event(event: Mapping[str, Any]) -> str:
+    event_type = str(event.get("event_type") or "").strip()
+    payload = _mapping(event.get("payload"))
+    return _text(event.get("source_signature")) or _event_source_signature(event_type, payload)
+
+
+def _snapshot_source_signature(events: list[dict[str, Any]]) -> str | None:
+    if not events:
+        return None
+    digest = hashlib.sha256(
+        _stable_json(
+            [
+                {
+                    "event_type": event.get("event_type"),
+                    "source_signature": _source_signature_for_event(event),
+                }
+                for event in events
+            ]
+        ).encode("utf-8")
+    ).hexdigest()[:24]
+    return f"truth-snapshot::{digest}"
 
 
 def _quality_state(events: list[dict[str, Any]], dominant_event: dict[str, Any] | None) -> dict[str, Any]:
@@ -515,6 +554,8 @@ def _snapshot_from_events(*, study_root: Path, study_id: str, events: list[dict[
         "publication_gate_state": _publication_gate_state(events),
         "package_state": _package_state(events, writer_state),
         "delivery_state": _delivery_state(events),
+        "writer_epoch": _text(writer_state.get("writer_epoch")),
+        "source_signature": _snapshot_source_signature(events),
         "canonical_next_action": _canonical_next_action(dominant),
         "blocking_reasons": _blocking_reasons(events),
         "dominant_authority_refs": [_authority_ref(dominant)] if dominant is not None else [],
@@ -552,6 +593,7 @@ def _transient_event(
         "event_type": event_type,
         "recorded_at": recorded_at,
         "payload": dict(payload),
+        "source_signature": _event_source_signature(event_type, payload),
         "transient": True,
     }
 
@@ -588,6 +630,7 @@ def _status_payload_truth_events(
     execution_owner_guard = _mapping(status_payload.get("execution_owner_guard"))
     publication_supervisor_state = _mapping(status_payload.get("publication_supervisor_state"))
     supervisor_tick_audit = _mapping(status_payload.get("supervisor_tick_audit"))
+    active_run_id = active_run_id or _text(execution_owner_guard.get("active_run_id"))
     if execution_owner_guard or publication_supervisor_state or supervisor_tick_audit:
         sequence += 1
         events.append(
@@ -600,6 +643,33 @@ def _status_payload_truth_events(
                     "supervisor_tick_audit": supervisor_tick_audit,
                     "quest_status": quest_status,
                 },
+                recorded_at=recorded_at,
+                sequence=sequence,
+            )
+        )
+    if execution_owner_guard.get("supervisor_only") is True and active_run_id is not None:
+        sequence += 1
+        events.append(
+            _transient_event(
+                study_id=study_id,
+                event_type="writer_lock_acquired",
+                payload={
+                    "writer_epoch": _text(status_payload.get("writer_epoch")) or f"writer::{active_run_id}",
+                    "active_run_id": active_run_id,
+                    "source": "execution_owner_guard",
+                },
+                recorded_at=recorded_at,
+                sequence=sequence,
+            )
+        )
+    package_payload = _package_authority_event_payload(status_payload)
+    if package_payload:
+        sequence += 1
+        events.append(
+            _transient_event(
+                study_id=study_id,
+                event_type="package_authority_eval",
+                payload=package_payload,
                 recorded_at=recorded_at,
                 sequence=sequence,
             )
@@ -636,6 +706,42 @@ def _status_payload_truth_events(
             )
         )
     return events
+
+
+def _package_authority_event_payload(status_payload: Mapping[str, Any]) -> dict[str, Any]:
+    package_state = _mapping(status_payload.get("package_state"))
+    payload = {
+        "submission_minimal_authority_status": _text(
+            status_payload.get("submission_minimal_authority_status")
+            or package_state.get("submission_minimal_authority_status")
+        ),
+        "submission_minimal_evaluated_source_signature": _text(
+            status_payload.get("submission_minimal_evaluated_source_signature")
+            or package_state.get("submission_minimal_evaluated_source_signature")
+        ),
+        "submission_minimal_authority_source_signature": _text(
+            status_payload.get("submission_minimal_authority_source_signature")
+            or package_state.get("submission_minimal_authority_source_signature")
+        ),
+        "current_package_status": _text(status_payload.get("current_package_status") or package_state.get("current_package_status")),
+        "current_package_source_signature": _text(
+            status_payload.get("current_package_source_signature") or package_state.get("current_package_source_signature")
+        ),
+        "current_package_authority_source_signature": _text(
+            status_payload.get("current_package_authority_source_signature")
+            or package_state.get("current_package_authority_source_signature")
+        ),
+        "authority_state": _text(status_payload.get("authority_state") or package_state.get("authority_state")),
+        "source_signature": _text(
+            status_payload.get("source_signature")
+            or status_payload.get("current_package_source_signature")
+            or status_payload.get("submission_minimal_evaluated_source_signature")
+            or package_state.get("source_signature")
+            or package_state.get("current_package_source_signature")
+            or package_state.get("submission_minimal_evaluated_source_signature")
+        ),
+    }
+    return {key: value for key, value in payload.items() if value is not None}
 
 
 def _latest_task_intake_payload(*, study_root: Path) -> dict[str, Any]:
@@ -720,3 +826,57 @@ def materialize_truth_snapshot(*, study_root: Path, study_id: str) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return path
+
+
+def reconcile_truth_snapshot_from_status_payload(
+    *,
+    study_root: Path,
+    study_id: str,
+    status_payload: Mapping[str, Any],
+    recorded_at: str,
+) -> dict[str, Any]:
+    path = truth_events_path(study_root=study_root)
+    persisted_events = _read_jsonl(path)
+    persisted_for_study = [event for event in persisted_events if event.get("study_id") == study_id]
+    seen = {
+        (str(event.get("event_type") or ""), _source_signature_for_event(event))
+        for event in persisted_for_study
+    }
+    transient_events = _status_payload_truth_events(
+        study_id=study_id,
+        status_payload=status_payload,
+        recorded_at=recorded_at,
+        first_sequence=len(persisted_events),
+    )
+    appended: list[dict[str, Any]] = []
+    for event in transient_events:
+        event_type = str(event.get("event_type") or "").strip()
+        payload = _mapping(event.get("payload"))
+        source_signature = _source_signature_for_event(event)
+        key = (event_type, source_signature)
+        if key in seen:
+            continue
+        appended.append(
+            append_truth_event(
+                study_root=study_root,
+                study_id=study_id,
+                event_type=event_type,
+                payload=payload,
+                recorded_at=_text(event.get("recorded_at")) or recorded_at,
+                source_signature=source_signature,
+            )
+        )
+        seen.add(key)
+    snapshot_path = materialize_truth_snapshot(study_root=study_root, study_id=study_id)
+    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    return {
+        "surface": "study_truth_reconcile_result",
+        "study_id": study_id,
+        "snapshot_path": str(snapshot_path),
+        "truth_epoch": _text(snapshot.get("truth_epoch")),
+        "source_signature": _text(snapshot.get("source_signature")),
+        "writer_epoch": _text(snapshot.get("writer_epoch")),
+        "appended_event_count": len(appended),
+        "appended_event_ids": [event["event_id"] for event in appended],
+        "snapshot": snapshot,
+    }

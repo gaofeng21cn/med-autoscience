@@ -251,8 +251,91 @@ def test_status_payload_can_derive_shadow_truth_snapshot_without_writing_latest(
 
     assert snapshot["canonical_next_action"] == "supervise_runtime"
     assert snapshot["truth_epoch"] == snapshot["authority_epoch"]
-    assert snapshot["event_count"] == 2
+    assert snapshot["event_count"] == 3
+    assert snapshot["writer_epoch"] == "writer::run-d80c4a5e"
     assert not (study_root / "artifacts" / "truth" / "latest.json").exists()
+
+
+def test_reconcile_materializes_status_events_once_per_source_signature(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "003-dpcc"
+    status_payload = {
+        "study_id": "003-dpcc",
+        "study_root": str(study_root),
+        "quest_status": "running",
+        "decision": "blocked",
+        "reason": "medical_publication_surface_blocked",
+        "execution_owner_guard": {
+            "supervisor_only": True,
+            "active_run_id": "run-e52f5574",
+        },
+        "publication_supervisor_state": {
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_analysis_campaign",
+        },
+        "submission_minimal_authority_status": "current",
+        "submission_minimal_evaluated_source_signature": "source::abc",
+        "submission_minimal_authority_source_signature": "source::abc",
+        "current_package_status": "fresh",
+        "current_package_source_signature": "source::abc",
+    }
+
+    first = module.reconcile_truth_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="003-dpcc",
+        status_payload=status_payload,
+        recorded_at="2026-05-01T00:00:00+00:00",
+    )
+    second = module.reconcile_truth_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="003-dpcc",
+        status_payload=status_payload,
+        recorded_at="2026-05-01T00:01:00+00:00",
+    )
+
+    events = module.read_truth_events(study_root=study_root)
+    event_types = [event["event_type"] for event in events]
+    assert first["appended_event_count"] == 4
+    assert second["appended_event_count"] == 0
+    assert event_types == [
+        "runtime_native_event",
+        "runtime_supervision_tick",
+        "writer_lock_acquired",
+        "package_authority_eval",
+    ]
+    assert all(event.get("source_signature") for event in events)
+    assert first["snapshot"]["canonical_next_action"] == "supervise_runtime"
+    assert first["snapshot"]["package_state"]["authority_state"] == "provisionally_current_for_epoch"
+    assert first["snapshot"]["writer_epoch"] == "writer::run-e52f5574"
+    assert Path(first["snapshot_path"]).exists()
+    assert json.loads(Path(first["snapshot_path"]).read_text(encoding="utf-8"))["truth_epoch"] == first["truth_epoch"]
+
+
+def test_shadow_status_derives_live_writer_lock_without_materializing(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "as-biologics"
+    snapshot = module.derive_truth_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="as-biologics",
+        status_payload={
+            "study_id": "as-biologics",
+            "study_root": str(study_root),
+            "quest_status": "running",
+            "execution_owner_guard": {
+                "supervisor_only": True,
+                "active_run_id": "run-live",
+            },
+            "submission_minimal_authority_status": "current",
+            "submission_minimal_evaluated_source_signature": "source::live",
+            "submission_minimal_authority_source_signature": "source::live",
+            "current_package_status": "fresh",
+        },
+        recorded_at="2026-05-01T00:00:00+00:00",
+    )
+
+    assert snapshot["package_state"]["authority_state"] == "provisionally_current_for_epoch"
+    assert snapshot["writer_epoch"] == "writer::run-live"
+    assert not module.truth_snapshot_path(study_root=study_root).exists()
 
 
 def test_shadow_snapshot_reads_latest_task_intake_as_reactivation_event(tmp_path: Path) -> None:
