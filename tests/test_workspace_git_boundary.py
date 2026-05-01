@@ -25,6 +25,20 @@ def test_workspace_gitignore_declares_lightweight_study_artifact_boundary() -> N
     assert "studies/*/paper/tables/**" in gitignore_text
 
 
+def test_workspace_gitignore_excludes_local_intake_archives_and_framework_mirrors() -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_git_boundary")
+
+    gitignore_text = module.render_workspace_gitignore()
+
+    assert "inbox/**" in gitignore_text
+    assert "!inbox/README.md" in gitignore_text
+    assert "ops/med-deepscientist/runtime/archives/**" in gitignore_text
+    assert "!ops/med-deepscientist/runtime/archives/README.md" in gitignore_text
+    assert "ops/framework_refs/_repo_compare/**" in gitignore_text
+    assert "!ops/framework_refs/README.md" in gitignore_text
+    assert "refs/**/logs/**" in gitignore_text
+
+
 def test_workspace_gitignore_merge_preserves_user_rules_and_is_idempotent() -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_git_boundary")
     existing = "# local rules\ncustom_local_state/\n"
@@ -146,6 +160,42 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
         capture_output=True,
     )
     assert check_current_package.returncode == 0
+
+    inbox_payload = workspace_root / "inbox" / "raw-upload.zip"
+    inbox_payload.parent.mkdir(parents=True, exist_ok=True)
+    inbox_payload.write_text("binary placeholder\n", encoding="utf-8")
+    check_inbox_payload = subprocess.run(
+        ["git", "check-ignore", str(inbox_payload.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_inbox_payload.returncode == 0
+
+    archived_runtime_payload = workspace_root / "ops" / "med-deepscientist" / "runtime" / "archives" / "quests" / "001" / ".ds" / "log.jsonl"
+    archived_runtime_payload.parent.mkdir(parents=True, exist_ok=True)
+    archived_runtime_payload.write_text("{}\n", encoding="utf-8")
+    check_archived_runtime_payload = subprocess.run(
+        ["git", "check-ignore", str(archived_runtime_payload.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_archived_runtime_payload.returncode == 0
+
+    framework_mirror_payload = workspace_root / "ops" / "framework_refs" / "_repo_compare" / "DeepScientist" / ".git" / "objects" / "pack" / "pack.idx"
+    framework_mirror_payload.parent.mkdir(parents=True, exist_ok=True)
+    framework_mirror_payload.write_text("git object placeholder\n", encoding="utf-8")
+    check_framework_mirror_payload = subprocess.run(
+        ["git", "check-ignore", str(framework_mirror_payload.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_framework_mirror_payload.returncode == 0
 
 
 def test_init_workspace_backfills_gitignore_and_git_config_for_existing_repo(tmp_path: Path) -> None:
