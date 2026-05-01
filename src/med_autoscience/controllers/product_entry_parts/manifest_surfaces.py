@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from . import shared as _shared
 from . import program_surfaces as _program_surfaces
 from . import workspace_surfaces as _workspace_surfaces
@@ -723,6 +725,11 @@ def build_product_frontdesk(
             "operator_brief": operator_brief,
             "workspace_operator_brief": workspace_operator_brief,
             "workspace_attention_queue_preview": list((workspace_cockpit.get("attention_queue") or []))[:3],
+            "workspace_truth_snapshots": [
+                dict(item["study_truth_snapshot"])
+                for item in (workspace_cockpit.get("studies") or [])
+                if isinstance(item, Mapping) and isinstance(item.get("study_truth_snapshot"), Mapping)
+            ],
             "phase5_platform_target": dict(manifest.get("phase5_platform_target") or {}),
         },
     )
