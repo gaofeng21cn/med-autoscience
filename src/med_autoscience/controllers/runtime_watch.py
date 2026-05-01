@@ -15,6 +15,7 @@ from med_autoscience.controllers import (
     figure_loop_guard,
     medical_literature_audit,
     medical_publication_surface,
+    autonomy_ai_doctor,
     medical_reporting_audit,
     publication_gate,
     runtime_supervision,
@@ -22,6 +23,7 @@ from med_autoscience.controllers import (
     runtime_watch_recovery_policy,
     runtime_watch_outer_loop_dispatch,
     runtime_watch_work_units,
+    study_cycle_profiler,
     study_outer_loop,
     study_runtime_family_orchestration as family_orchestration,
     study_runtime_router,
@@ -304,6 +306,29 @@ def _materialize_placeholder_quest_watch_report(status_payload: Mapping[str, Any
     return report
 
 
+def _materialize_managed_study_autonomy_slo(
+    *,
+    profile: WorkspaceProfile,
+    study_root: Path,
+) -> dict[str, Any]:
+    profile_payload = study_cycle_profiler.profile_study_cycle(
+        profile=profile,
+        study_id=None,
+        study_root=study_root,
+    )
+    slo_status = dict(profile_payload.get("autonomy_progress_slo_status") or {})
+    return {
+        "study_id": _non_empty_text(slo_status.get("study_id")) or Path(study_root).name,
+        "quest_id": _non_empty_text(slo_status.get("quest_id")),
+        "state": _non_empty_text(slo_status.get("state")) or "unknown",
+        "breach_types": list(slo_status.get("breach_types") or []),
+        "ai_doctor_request_required": bool(slo_status.get("ai_doctor_request_required")),
+        "ai_doctor_state": _non_empty_text(slo_status.get("ai_doctor_state")) or "not_observed",
+        "quality_gate_relaxation_allowed": False,
+        "status_path": str(autonomy_ai_doctor.stable_slo_status_path(study_root=study_root)),
+    }
+
+
 def run_watch_for_quest(
     *,
     quest_root: Path,
@@ -435,6 +460,7 @@ def run_watch_for_runtime(
     managed_study_outer_loop_wakeup_audits: list[dict[str, Any]] = []
     managed_study_no_op_suppressions: list[dict[str, Any]] = []
     managed_study_alert_deliveries: list[dict[str, Any]] = []
+    managed_study_autonomy_slo_statuses: list[dict[str, Any]] = []
     if ensure_study_runtimes:
         if profile is None:
             raise ValueError("profile is required when ensure_study_runtimes is enabled")
@@ -723,6 +749,13 @@ def run_watch_for_runtime(
             )
             if alert_delivery is not None:
                 managed_study_alert_deliveries.append(alert_delivery)
+        if profile is not None:
+            managed_study_autonomy_slo_statuses.append(
+                _materialize_managed_study_autonomy_slo(
+                    profile=profile,
+                    study_root=study_root,
+                )
+            )
     managed_study_actions = [
         _serialize_managed_study_action(status_payload)
         for _, status_payload in managed_study_statuses
@@ -740,6 +773,7 @@ def run_watch_for_runtime(
         "managed_study_no_op_suppressions": managed_study_no_op_suppressions,
         "managed_study_supervision": managed_study_supervision,
         "managed_study_alert_deliveries": managed_study_alert_deliveries,
+        "managed_study_autonomy_slo_statuses": managed_study_autonomy_slo_statuses,
         "reports": reports,
     }
     _attach_family_companion_to_runtime_report(runtime_report, runtime_root=Path(runtime_root).expanduser().resolve())

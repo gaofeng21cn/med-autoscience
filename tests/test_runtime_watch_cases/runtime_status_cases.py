@@ -724,6 +724,81 @@ def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path
     assert result["managed_study_actions"] == [
         {"study_id": "001-risk", "decision": "create_and_start", "reason": "quest_missing"}
     ]
+
+
+def test_watch_runtime_materializes_managed_study_autonomy_slo_status(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
+    quest_root = profile.runtime_root / "quest-001"
+    dump_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "quest_id": "quest-001",
+            "status": "running",
+            "active_run_id": "run-001",
+        },
+    )
+    dump_json(
+        quest_root / ".ds" / "runs" / "run-001" / "telemetry.json",
+        {
+            "run_id": "run-001",
+            "turn_progress_kind": "read_churn_without_artifact_delta",
+            "read_churn_ratio": 0.8,
+            "same_result_reinjection_count": 5,
+        },
+    )
+    status_payload = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="noop",
+            reason="quest_already_running",
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+        "active_run_id": "run-001",
+        "runtime_liveness_status": "live",
+        "runtime_liveness_audit": {
+            "status": "live",
+            "active_run_id": "run-001",
+            "runtime_audit": {"status": "live", "worker_running": True, "active_run_id": "run-001"},
+        },
+    }
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
+    monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: None)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    latest_path = study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json"
+    latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+    slo_summary = result["managed_study_autonomy_slo_statuses"][0]
+    assert slo_summary["study_id"] == "001-risk"
+    assert slo_summary["quest_id"] == "quest-001"
+    assert slo_summary["state"] == "breach"
+    assert "read_churn_without_artifact_delta" in slo_summary["breach_types"]
+    assert slo_summary["ai_doctor_request_required"] is True
+    assert slo_summary["ai_doctor_state"] == "request_ready"
+    assert slo_summary["quality_gate_relaxation_allowed"] is False
+    assert slo_summary["status_path"] == str(latest_path)
+    assert latest["state"] == "breach"
+    assert "read_churn_without_artifact_delta" in latest["breach_types"]
+    assert latest["mds_progress_markers"]["read_churn_ratio"] == 0.8
+    assert latest["quality_gate_relaxation_allowed"] is False
+    assert (study_root / "artifacts" / "autonomy" / "ai_doctor_requests" / "latest.json").exists()
+
+
 def test_watch_runtime_skips_outer_loop_wakeup_when_inputs_stabilize_after_no_request(
     tmp_path: Path,
     monkeypatch,

@@ -214,6 +214,65 @@ def test_study_progress_projects_autonomy_slo_ai_doctor_state(
     assert result["refs"]["autonomy_slo_status_path"].endswith("artifacts/autonomy/slo_status/latest.json")
 
 
+def test_study_progress_merges_autonomy_slo_refs_into_existing_projection(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    slo_path = study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json"
+    _write_json(
+        slo_path,
+        {
+            "surface": "autonomy_progress_slo_status",
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "state": "breach",
+            "breach_types": ["read_churn_without_artifact_delta"],
+            "ai_doctor_request_required": True,
+            "ai_doctor_state": "request_ready",
+            "ai_doctor_request": {"request_id": "ai-doctor-request::001", "state": "request_ready"},
+            "repair_recommendation": {
+                "state": "awaiting_ai_doctor",
+                "action_count": 1,
+                "top_action": {"action_type": "ai_doctor_diagnosis"},
+            },
+            "last_meaningful_progress_at": "2026-04-30T12:00:00+00:00",
+            "quality_gate_relaxation_allowed": False,
+        },
+    )
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        status_payload={
+            "progress_projection": {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "current_stage": "publication_supervision",
+                "current_stage_summary": "当前主线仍需先回到发表门控。",
+                "paper_stage": "publishability_gate_blocked",
+                "paper_stage_summary": "当前发表门控仍未放行。",
+                "next_system_action": "先回到发表门控。",
+                "needs_physician_decision": False,
+                "refs": {"autonomy_slo_status_path": None},
+            }
+        },
+    )
+
+    assert result["autonomy_slo"]["breach_types"] == ["read_churn_without_artifact_delta"]
+    assert result["ai_doctor_state"] == {"request_id": "ai-doctor-request::001", "state": "request_ready"}
+    assert result["repair_recommendation"]["state"] == "awaiting_ai_doctor"
+    assert result["last_meaningful_progress_at"] == "2026-04-30T12:00:00+00:00"
+    assert result["refs"]["autonomy_slo_status_path"] == str(slo_path)
+
+
 def test_study_progress_freshness_uses_gate_clearing_batch_closure_as_progress_signal(
     monkeypatch,
     tmp_path: Path,
