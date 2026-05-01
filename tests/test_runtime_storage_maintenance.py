@@ -309,6 +309,8 @@ def test_audit_workspace_storage_apply_deletes_rebuildable_cache_candidates(tmp_
     assert cache_report["skipped"] == []
     assert cache_report["errors"] == []
     assert cache_report["apply_result"]["status"] == "deleted"
+    assert result["summary"]["estimated_release_bytes"] == expected_deleted_bytes
+    assert result["summary"]["actual_release_bytes"] == expected_deleted_bytes
     assert not (profile.workspace_root / ".pytest_cache").exists()
     assert not pycache_dir.exists()
     assert not ds_store.exists()
@@ -332,7 +334,7 @@ def test_audit_workspace_storage_git_only_does_not_scan_cache(
     assert result["summary"]["cache_actual_release_bytes"] == 0
 
 
-def test_audit_workspace_storage_apply_separates_runtime_estimated_and_actual_release(tmp_path: Path) -> None:
+def test_audit_workspace_storage_apply_uses_actual_runtime_release_for_estimate(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
     profile = make_profile(tmp_path)
     _write_fake_mds_repo(profile.med_deepscientist_repo_root)
@@ -347,13 +349,44 @@ def test_audit_workspace_storage_apply_separates_runtime_estimated_and_actual_re
 
     runtime_category = result["categories"]["runtime"]
     study_report = runtime_category["studies"][0]
-    assert runtime_category["estimated_release_bytes"] > 0
+    assert runtime_category["estimated_release_bytes"] == 0
     assert runtime_category["actual_release_bytes"] == 0
     assert runtime_category["actual_runtime_release_bytes"] == 0
-    assert result["summary"]["runtime_estimated_release_bytes"] > 0
+    assert result["summary"]["estimated_release_bytes"] == 0
+    assert result["summary"]["actual_release_bytes"] == 0
+    assert result["summary"]["runtime_estimated_release_bytes"] == 0
     assert result["summary"]["runtime_actual_release_bytes"] == 0
-    assert study_report["runtime"]["estimated_release_bytes"] > 0
+    assert study_report["runtime"]["estimated_release_bytes"] == 0
     assert study_report["actual_runtime_release_bytes"] == 0
+
+
+def test_audit_workspace_storage_apply_does_not_count_offline_dataset_candidates_as_release(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    _write_dataset_release(
+        profile.workspace_root,
+        family_id="master",
+        version_id="v1",
+        dataset_id="dm_master",
+        restore_handle="s3://archive/dm_master/v1.tar.gz",
+        checksum="abc123",
+    )
+    _write_dataset_release(
+        profile.workspace_root,
+        family_id="master",
+        version_id="v2",
+        dataset_id="dm_master",
+        supersedes_versions=["v1"],
+    )
+
+    result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True)
+
+    assert result["categories"]["dataset"]["estimated_release_bytes"] > 0
+    assert result["summary"]["dataset_archive_offline_candidate_bytes"] > 0
+    assert result["summary"]["estimated_release_bytes"] == 0
+    assert result["summary"]["actual_release_bytes"] == 0
 
 
 def test_audit_workspace_storage_git_only_apply_removes_stale_git_temp_garbage(tmp_path: Path) -> None:

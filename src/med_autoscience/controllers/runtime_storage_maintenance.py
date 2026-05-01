@@ -725,6 +725,8 @@ def audit_workspace_storage(
             candidate = _runtime_candidate(quest_root=quest_root, snapshot=snapshot, size_summary=size_before)
             if stopped_only and str(snapshot.get("status") or "") not in _TERMINAL_RUNTIME_STATUSES:
                 runtime_report = dict(candidate)
+                if apply:
+                    runtime_report["estimated_release_bytes"] = 0
                 runtime_report["actual_release_bytes"] = 0
                 study_reports.append(
                     {
@@ -759,10 +761,16 @@ def audit_workspace_storage(
             size_after = _size_summary(quest_root)
             actual_runtime_release_bytes = _actual_release_bytes(size_before, size_after) if apply else 0
             runtime_report = dict(candidate)
+            runtime_estimated_release_bytes_for_report = (
+                actual_runtime_release_bytes
+                if apply
+                else int(candidate.get("estimated_release_bytes") or 0)
+            )
+            runtime_report["estimated_release_bytes"] = runtime_estimated_release_bytes_for_report
             runtime_report["actual_release_bytes"] = actual_runtime_release_bytes
             artifact_summary = _study_artifact_size_summary(resolved_study_root)
             runtime_total_bytes += int(size_before.get("total_bytes") or 0)
-            runtime_estimated_release_bytes += int(candidate.get("estimated_release_bytes") or 0)
+            runtime_estimated_release_bytes += runtime_estimated_release_bytes_for_report
             runtime_actual_release_bytes += actual_runtime_release_bytes
             artifact_total_bytes += int(artifact_summary.get("total_bytes") or 0)
             study_reports.append(
@@ -807,9 +815,10 @@ def audit_workspace_storage(
         else _delete_safe_candidates(workspace_root, apply=apply)
     )
     cache_actual_release_bytes = int(cache_report.get("actual_release_bytes") or 0)
+    dataset_estimated_release_bytes = int(dataset_report.get("estimated_release_bytes") or 0)
     estimated_release_bytes = (
         runtime_estimated_release_bytes
-        + int(dataset_report.get("estimated_release_bytes") or 0)
+        + (0 if apply else dataset_estimated_release_bytes)
         + int(git_report.get("estimated_release_bytes") or 0)
         + int(cache_report.get("estimated_release_bytes") or 0)
     )
