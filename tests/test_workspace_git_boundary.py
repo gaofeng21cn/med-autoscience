@@ -34,9 +34,17 @@ def test_workspace_gitignore_excludes_local_intake_archives_and_framework_mirror
     assert "!inbox/README.md" in gitignore_text
     assert "ops/med-deepscientist/runtime/archives/**" in gitignore_text
     assert "!ops/med-deepscientist/runtime/archives/README.md" in gitignore_text
+    assert "ops/med-deepscientist/runtime/recovery/**" in gitignore_text
+    assert "ops/med-deepscientist/runtime/runtime/**" in gitignore_text
+    assert "ops/med-deepscientist/paper/**" in gitignore_text
     assert "ops/framework_refs/_repo_compare/**" in gitignore_text
     assert "!ops/framework_refs/README.md" in gitignore_text
     assert "refs/**/logs/**" in gitignore_text
+    assert "refs/**/data/**" in gitignore_text
+    assert "refs/**/*.pdf" in gitignore_text
+    assert "datasets/**/*.csv" in gitignore_text
+    assert "!datasets/**/dataset_manifest.yaml" in gitignore_text
+    assert "studies/*/analysis/**/*.csv" in gitignore_text
 
 
 def test_workspace_gitignore_merge_preserves_user_rules_and_is_idempotent() -> None:
@@ -196,6 +204,53 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
         capture_output=True,
     )
     assert check_framework_mirror_payload.returncode == 0
+
+    legacy_paper_payload = workspace_root / "ops" / "med-deepscientist" / "paper" / "submission_minimal" / "paper.pdf"
+    legacy_paper_payload.parent.mkdir(parents=True, exist_ok=True)
+    legacy_paper_payload.write_text("pdf placeholder\n", encoding="utf-8")
+    check_legacy_paper_payload = subprocess.run(
+        ["git", "check-ignore", str(legacy_paper_payload.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_legacy_paper_payload.returncode == 0
+
+    dataset_payload = workspace_root / "datasets" / "master" / "v1" / "analysis.csv"
+    dataset_payload.parent.mkdir(parents=True, exist_ok=True)
+    dataset_payload.write_text("id\n1\n", encoding="utf-8")
+    check_dataset_payload = subprocess.run(
+        ["git", "check-ignore", str(dataset_payload.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_dataset_payload.returncode == 0
+
+    dataset_manifest = workspace_root / "datasets" / "master" / "v1" / "dataset_manifest.yaml"
+    dataset_manifest.write_text("dataset_id: master\n", encoding="utf-8")
+    check_dataset_manifest = subprocess.run(
+        ["git", "check-ignore", str(dataset_manifest.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_dataset_manifest.returncode == 1
+
+    analysis_payload = workspace_root / "studies" / "001" / "analysis" / "run1" / "outputs.csv"
+    analysis_payload.parent.mkdir(parents=True, exist_ok=True)
+    analysis_payload.write_text("id\n1\n", encoding="utf-8")
+    check_analysis_payload = subprocess.run(
+        ["git", "check-ignore", str(analysis_payload.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_analysis_payload.returncode == 0
 
 
 def test_init_workspace_backfills_gitignore_and_git_config_for_existing_repo(tmp_path: Path) -> None:
