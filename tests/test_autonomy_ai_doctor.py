@@ -126,6 +126,64 @@ def test_autonomy_progress_slo_uses_mds_read_churn_without_artifact_delta(tmp_pa
     assert payload["ai_doctor_request_required"] is True
 
 
+def test_autonomy_progress_slo_treats_parked_turn_without_artifact_delta_as_gate_closure_drift(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.autonomy_ai_doctor")
+    study_root = tmp_path / "studies" / "002-dpcc"
+    quest_root = tmp_path / "runtime" / "quests" / "quest-002"
+    telemetry_path = quest_root / ".ds" / "runs" / "run-parked" / "telemetry.json"
+    telemetry_path.parent.mkdir(parents=True, exist_ok=True)
+    telemetry_path.write_text(
+        json.dumps(
+            {
+                "run_id": "run-parked",
+                "turn_reason": "auto_continue",
+                "turn_mode": "parked",
+                "turn_progress_kind": "parked_no_artifact_delta",
+                "meaningful_artifact_delta_at": None,
+                "completed_at": "2026-05-01T00:00:00+00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = module.materialize_autonomy_control_plane_observer(
+        study_root=study_root,
+        quest_root=quest_root,
+        generated_at="2026-05-01T00:20:01+00:00",
+        profile_payload={
+            "study_id": "002-dpcc",
+            "quest_id": "quest-002",
+            "sli_summary": {
+                "duplicate_dispatch_active": False,
+                "next_work_unit_id": "publication_gate_replay",
+            },
+            "gate_blocker_summary": {
+                "current_blockers": ["stale_submission_minimal_authority"],
+                "actionability_status": "actionable",
+                "next_work_unit": {"unit_id": "publication_gate_replay"},
+            },
+            "autonomy_slo": {
+                "progress_health": {"state": "blocked_with_actionable_work"},
+                "runtime_failure_classification": {"external_blocker": False},
+            },
+        },
+    )
+    repair = json.loads(
+        (module.repair_actions_root(study_root=study_root) / "latest.json").read_text(encoding="utf-8")
+    )
+    repair_kinds = [action["repair_kind"] for action in repair["actions"]]
+
+    assert payload["state"] == "breach"
+    assert payload["breach_types"] == ["gate_closure_drift", "no_meaningful_progress"]
+    assert payload["ai_doctor_request_required"] is True
+    assert payload["mds_progress_markers"]["turn_progress_kind"] == "parked_no_artifact_delta"
+    assert payload["mds_progress_markers"]["turn_completed_at"] == "2026-05-01T00:00:00+00:00"
+    assert "publication_gate_replay_or_authority_sync" in repair_kinds
+    assert "suppress_repeated_long_turn_until_artifact_delta_or_specificity" in repair_kinds
+
+
 def test_ai_doctor_diagnosis_surface_refuses_gate_relaxation_and_writes_repair_action(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.autonomy_ai_doctor")
     study_root = tmp_path / "studies" / "003-dpcc"

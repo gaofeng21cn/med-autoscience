@@ -48,6 +48,12 @@ _AI_DOCTOR_TRIGGER_BREACHES = frozenset(
         "platform_repair_required",
     }
 )
+_NO_ARTIFACT_DELTA_PROGRESS_KINDS = frozenset(
+    {
+        "parked_no_artifact_delta",
+        "read_churn_without_artifact_delta",
+    }
+)
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -200,6 +206,12 @@ def _mds_progress_markers(quest_root: Path | None) -> dict[str, Any]:
     return {
         "telemetry_path": str(telemetry_path) if telemetry_path is not None else None,
         "artifact_delta_path": str(artifact_delta_path) if artifact_delta_path is not None else None,
+        "turn_completed_at": (
+            _text((telemetry or {}).get("completed_at"))
+            or _text((telemetry or {}).get("finished_at"))
+            or _text((telemetry or {}).get("updated_at"))
+            or _text((telemetry or {}).get("created_at"))
+        ),
         "meaningful_artifact_delta_at": meaningful_at,
         "meaningful_artifact_delta_kind": (
             _text((telemetry or {}).get("meaningful_artifact_delta_kind"))
@@ -270,6 +282,7 @@ def _last_meaningful_progress(
 
 def _breach_types(
     *,
+    generated_at: str,
     expected_minutes: int,
     last_progress: Mapping[str, Any],
     profile_payload: Mapping[str, Any],
@@ -283,10 +296,27 @@ def _breach_types(
         or autonomy_slo.get("runtime_failure_classification")
     )
     replay_lag = _mapping(profile_payload.get("publication_eval_replay_lag"))
+    turn_progress_kind = _text(mds_markers.get("turn_progress_kind"))
+    turn_completed_at = _parse_time(mds_markers.get("turn_completed_at"))
+    generated_time = _parse_time(generated_at)
+    turn_seconds_since_completion = (
+        max(0, int((generated_time - turn_completed_at).total_seconds()))
+        if generated_time is not None and turn_completed_at is not None
+        else None
+    )
+    no_artifact_delta_turn_overdue = bool(
+        turn_progress_kind in _NO_ARTIFACT_DELTA_PROGRESS_KINDS
+        and not _text(mds_markers.get("meaningful_artifact_delta_at"))
+        and turn_seconds_since_completion is not None
+        and turn_seconds_since_completion > expected_minutes * 60
+    )
     breach: list[str] = []
     if (
         last_progress.get("seconds_since_last_meaningful_progress") is not None
         and int(last_progress["seconds_since_last_meaningful_progress"]) > expected_minutes * 60
+        and progress_health.get("state") in {"no_progress_candidate", "incident_candidate", "blocked_with_actionable_work"}
+    ) or (
+        no_artifact_delta_turn_overdue
         and progress_health.get("state") in {"no_progress_candidate", "incident_candidate", "blocked_with_actionable_work"}
     ):
         breach.append("no_meaningful_progress")
@@ -295,6 +325,8 @@ def _breach_types(
     if _text(replay_lag.get("status")) in {"publication_eval_missing_after_gate_replay", "stale_after_gate_replay"}:
         breach.append("stale_truth_surface")
         breach.append("gate_closure_drift")
+    if no_artifact_delta_turn_overdue and expected_minutes == GATE_CLOSURE_EXPECTED_MINUTES:
+        breach.append("gate_closure_drift")
     if _text(runtime_failure.get("diagnosis_code")) in {"resume_late_success_after_timeout", "daemon_late_success"}:
         breach.append("late_success_timeout")
     if _text(runtime_failure.get("action_mode")) == "platform_repair_required":
@@ -302,7 +334,7 @@ def _breach_types(
     if (
         _float(mds_markers.get("read_churn_ratio")) >= 0.5
         and not _text(mds_markers.get("meaningful_artifact_delta_at"))
-    ) or _text(mds_markers.get("turn_progress_kind")) == "read_churn_without_artifact_delta":
+    ) or turn_progress_kind == "read_churn_without_artifact_delta":
         breach.append("read_churn_without_artifact_delta")
     return sorted(set(breach))
 
@@ -537,6 +569,7 @@ def build_autonomy_control_plane_observer(
         mds_markers=mds_markers,
     )
     breach_types = _breach_types(
+        generated_at=generated_at,
         expected_minutes=expected_minutes,
         last_progress=last_progress,
         profile_payload=profile_payload,
