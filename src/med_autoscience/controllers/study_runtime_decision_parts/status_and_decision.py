@@ -322,12 +322,14 @@ def _status_state(
         status_payload_for_supervision = result.to_dict()
         runtime_facts_for_supervision = runtime_supervision_controller._runtime_facts(status_payload_for_supervision)
         quest_status_for_supervision = str(status_payload_for_supervision.get("quest_status") or "").strip()
+        runtime_reason_for_supervision = str(status_payload_for_supervision.get("reason") or "").strip()
         auto_continuation_recovery_pending = runtime_supervision_controller.is_auto_continuation_recovery_pending(
             status_payload_for_supervision,
             strict_live=bool(runtime_facts_for_supervision["strict_live"]),
         )
         refreshable_runtime_supervision = bool(
             runtime_facts_for_supervision["strict_live"]
+            or runtime_reason_for_supervision == "quest_stopped_requires_explicit_rerun"
             or (
                 quest_status_for_supervision in {"running", "active"}
                 and runtime_supervision_controller.needs_recovery_projection(
@@ -376,6 +378,17 @@ def _status_state(
         )
         _record_mds_worker_activity(result)
         _record_auto_runtime_parked_projection(result)
+        from med_autoscience.controllers import runtime_health_kernel
+
+        runtime_health_snapshot = runtime_health_kernel.derive_runtime_health_snapshot_from_status_payload(
+            study_root=study_root,
+            study_id=study_id,
+            quest_id=quest_id,
+            status_payload=result.to_dict(),
+            recorded_at=router._utc_now(),
+        )
+        result.extras["runtime_health_snapshot"] = runtime_health_snapshot
+        result.extras["runtime_health_epoch"] = runtime_health_snapshot.get("runtime_health_epoch")
         result.extras["study_truth_snapshot"] = study_truth_kernel.derive_truth_snapshot_from_status_payload(
             study_root=study_root,
             study_id=study_id,
@@ -566,6 +579,12 @@ def _status_state(
             result,
             study_root=study_root,
         )
+        if _runtime_health_requires_explicit_resume(status=result, study_root=study_root, study_id=study_id, quest_id=quest_id):
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN,
+            )
+            return _finalize_result()
         if human_review_milestone_parking and audit_status is not quest_state.QuestRuntimeLivenessStatus.LIVE:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
@@ -580,7 +599,7 @@ def _status_state(
                     StudyRuntimeDecision.BLOCKED,
                     StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
                 )
-            elif _stale_progress_without_live_bash_sessions(result):
+            elif _stale_progress_without_live_bash_sessions(result) or _live_worker_missing_active_run_id(result):
                 if not result.startup_boundary_allows_compute_stage:
                     result.set_decision(
                         StudyRuntimeDecision.BLOCKED,

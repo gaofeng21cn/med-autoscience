@@ -243,6 +243,8 @@
 - `completion_sync`
 - `bash_session_audit`
 - `runtime_liveness_audit`
+- `runtime_health_snapshot`
+- `runtime_health_epoch`
 - `launch_report_path`
 - `startup_payload_path`
 - `runtime_summary_alignment`
@@ -257,6 +259,7 @@ summary truth 约束：
 
 - `study_runtime_status(...)` 是 runtime 真相读取面
 - `last_launch_report.json` 是 workspace summary，不是 runtime truth source
+- `artifacts/runtime/health/latest.json` 是 reducer-owned runtime health read model；普通 `study_runtime_status` 只内嵌 shadow snapshot，不刷新该文件
 - 当直接 status 查询发现 summary 与当前 quest status 漂移时，允许 controller 用正式 persistence helper 刷新该 summary
 - 这种刷新不触发 transport，也不改变 runtime 本体
 

@@ -18,6 +18,7 @@ from med_autoscience.controllers import (
     autonomy_ai_doctor,
     medical_reporting_audit,
     publication_gate,
+    runtime_health_kernel,
     runtime_supervision,
     runtime_watch_alerts,
     runtime_watch_recovery_policy,
@@ -78,6 +79,24 @@ _NO_OP_SUPPRESSION_SUMMARY = "同一 blocker fingerprint 已执行过同一 cont
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _managed_study_recovery_failure_payload(
+    *,
+    preflight_payload: Mapping[str, Any],
+    error: Exception,
+) -> dict[str, Any]:
+    payload = dict(preflight_payload)
+    preflight_decision = str(payload.get("decision") or "").strip()
+    failure_reason = (
+        "create_request_failed"
+        if preflight_decision == "create_and_start"
+        else "resume_request_failed"
+    )
+    payload["decision"] = "blocked"
+    payload["reason"] = failure_reason
+    payload["runtime_execution_error"] = str(error)
+    return payload
 
 
 def build_default_controller_runners() -> dict[str, ControllerRunner]:
@@ -470,11 +489,30 @@ def run_watch_for_runtime(
             if not (study_root / "study.yaml").exists():
                 continue
             if apply:
-                action_payload = study_runtime_router.ensure_study_runtime(
-                    profile=profile,
-                    study_root=study_root,
-                    source="runtime_watch",
-                )
+                try:
+                    action_payload = study_runtime_router.ensure_study_runtime(
+                        profile=profile,
+                        study_root=study_root,
+                        source="runtime_watch",
+                    )
+                except Exception as exc:
+                    preflight_payload = _managed_study_status_payload(
+                        study_runtime_router.study_runtime_status(
+                            profile=profile,
+                            study_root=study_root,
+                        )
+                    )
+                    action_payload = _managed_study_recovery_failure_payload(
+                        preflight_payload=preflight_payload,
+                        error=exc,
+                    )
+                    managed_study_auto_recoveries.append(
+                        _serialize_managed_study_auto_recovery(
+                            preflight_payload=preflight_payload,
+                            applied_payload=action_payload,
+                            source="runtime_watch",
+                        )
+                    )
             else:
                 action_payload = study_runtime_router.study_runtime_status(
                     profile=profile,
@@ -749,6 +787,17 @@ def run_watch_for_runtime(
             )
             if alert_delivery is not None:
                 managed_study_alert_deliveries.append(alert_delivery)
+        if apply:
+            study_id = str(status_payload.get("study_id") or "").strip()
+            quest_id = str(status_payload.get("quest_id") or "").strip()
+            if study_id and quest_id:
+                runtime_health_kernel.reconcile_runtime_health_snapshot_from_status_payload(
+                    study_root=study_root,
+                    study_id=study_id,
+                    quest_id=quest_id,
+                    status_payload=status_payload,
+                    recorded_at=utc_now(),
+                )
         if profile is not None:
             managed_study_autonomy_slo_statuses.append(
                 _materialize_managed_study_autonomy_slo(

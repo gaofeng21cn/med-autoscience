@@ -193,6 +193,7 @@ def _study_item(
     )
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
+    runtime_health_snapshot = _runtime_health_snapshot_summary(progress_payload.get("runtime_health_snapshot"))
     research_runtime_control_projection = dict(progress_payload.get("research_runtime_control_projection") or {})
     gate_surface = dict(research_runtime_control_projection.get("research_gate_surface") or {})
     if gate_surface.get("approval_gate_field") == "needs_user_decision":
@@ -203,6 +204,9 @@ def _study_item(
         "truth_epoch": _non_empty_text(progress_payload.get("truth_epoch"))
         or _non_empty_text((study_truth_snapshot or {}).get("truth_epoch")),
         "study_truth_snapshot": study_truth_snapshot,
+        "runtime_health_epoch": _non_empty_text(progress_payload.get("runtime_health_epoch"))
+        or _non_empty_text((runtime_health_snapshot or {}).get("runtime_health_epoch")),
+        "runtime_health_snapshot": runtime_health_snapshot,
         "current_stage": progress_payload.get("current_stage"),
         "current_stage_summary": progress_payload.get("current_stage_summary"),
         "current_blockers": list(progress_payload.get("current_blockers") or []),
@@ -253,6 +257,25 @@ def _truth_snapshot_summary(value: object) -> dict[str, Any] | None:
         "allowed_controller_actions",
         "package_state",
         "writer_epoch",
+        "source_signature",
+    )
+    summary = {key: value[key] for key in keys if key in value}
+    return summary or None
+
+
+def _runtime_health_snapshot_summary(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    keys = (
+        "runtime_health_epoch",
+        "canonical_runtime_action",
+        "attempt_state",
+        "retry_budget_remaining",
+        "worker_liveness_state",
+        "supervisor_state",
+        "dominant_runtime_refs",
+        "blocking_reasons",
+        "allowed_controller_actions",
         "source_signature",
     )
     summary = {key: value[key] for key in keys if key in value}

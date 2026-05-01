@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers import autonomy_ai_doctor, control_plane_facts, study_truth_kernel
+from med_autoscience.controllers import autonomy_ai_doctor, control_plane_facts, runtime_health_kernel, study_truth_kernel
 
 from .parked_projection import (
     build_progress_parked_projection,
@@ -198,7 +198,11 @@ def build_study_progress_projection(
     except (OSError, json.JSONDecodeError, TypeError, ValueError):
         controller_confirmation_summary = None
     runtime_supervision_payload = _read_json_object(runtime_supervision_path)
-    runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
+    runtime_health_snapshot = _mapping_copy(status.get("runtime_health_snapshot"))
+    runtime_health_status = (
+        _non_empty_text(runtime_health_snapshot.get("attempt_state"))
+        or _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
+    )
     if runtime_escalation_path is not None and (
         status.get("runtime_escalation_ref") is not None or runtime_health_status in {"degraded", "escalated"}
     ):
@@ -721,6 +725,7 @@ def build_study_progress_projection(
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
         "truth_epoch": _non_empty_text(study_truth_snapshot.get("truth_epoch")),
+        "runtime_health_epoch": _non_empty_text(runtime_health_snapshot.get("runtime_health_epoch")),
         "study_id": resolved_study_id,
         "study_root": str(resolved_study_root),
         "quest_id": quest_id,
@@ -767,6 +772,7 @@ def build_study_progress_projection(
         "quality_review_followthrough": quality_review_followthrough or None,
         "research_runtime_control_projection": research_runtime_control_projection,
         "study_truth_snapshot": study_truth_snapshot or None,
+        "runtime_health_snapshot": runtime_health_snapshot or None,
         "module_surfaces": module_surfaces,
         "runtime_efficiency": runtime_efficiency,
         "autonomy_slo": autonomy_slo_status,
@@ -817,6 +823,9 @@ def build_study_progress_projection(
                 evaluation_module_surface["summary_ref"] if evaluation_module_surface is not None else None
             ),
             "study_truth_snapshot_path": str(study_truth_kernel.truth_snapshot_path(study_root=resolved_study_root)),
+            "runtime_health_snapshot_path": str(
+                runtime_health_kernel.runtime_health_snapshot_path(study_root=resolved_study_root)
+            ),
             "promotion_gate_path": (
                 evaluation_module_surface["promotion_gate_ref"] if evaluation_module_surface is not None else None
             ),

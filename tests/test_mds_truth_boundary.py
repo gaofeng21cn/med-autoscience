@@ -29,9 +29,22 @@ def test_mds_manifest_is_event_source_not_hidden_authority(tmp_path: Path) -> No
         "runtime_supervision_tick",
         "quality_review_eval",
     ]
+    assert manifest["allowed_runtime_health_event_types"] == [
+        "runtime_state_observed",
+        "daemon_probe",
+        "worker_heartbeat",
+        "session_probe",
+        "runtime_event_observed",
+    ]
     assert manifest["forbidden_authority_surfaces"] == [
         "canonical_next_action",
         "publication_gate_state",
         "package_state",
         "delivery_state",
+    ]
+    assert manifest["forbidden_runtime_health_surfaces"] == [
+        "runtime_health_epoch",
+        "canonical_runtime_action",
+        "worker_liveness_state",
+        "allowed_controller_actions",
     ]

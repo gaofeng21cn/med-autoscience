@@ -149,6 +149,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "schema_version",
         "generated_at",
         "truth_epoch",
+        "runtime_health_epoch",
         "study_id",
         "study_root",
         "quest_id",
@@ -293,6 +294,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "runtime_efficiency": _compact_runtime_efficiency,
         "module_surfaces": _compact_module_surfaces,
         "study_truth_snapshot": _compact_study_truth_snapshot,
+        "runtime_health_snapshot": _compact_runtime_health_snapshot,
     }.items():
         item = builder(payload.get(key))
         if item is not None:
@@ -321,6 +323,26 @@ def _compact_study_truth_snapshot(value: object) -> dict[str, Any] | None:
             "allowed_controller_actions",
             "package_state",
             "writer_epoch",
+            "source_signature",
+        ),
+    )
+
+
+def _compact_runtime_health_snapshot(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    return _compact_record(
+        value,
+        (
+            "runtime_health_epoch",
+            "canonical_runtime_action",
+            "attempt_state",
+            "retry_budget_remaining",
+            "worker_liveness_state",
+            "supervisor_state",
+            "dominant_runtime_refs",
+            "blocking_reasons",
+            "allowed_controller_actions",
             "source_signature",
         ),
     )

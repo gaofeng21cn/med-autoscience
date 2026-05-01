@@ -62,6 +62,7 @@ hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime
 hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervision"))
 med_deepscientist_upgrade_check = _LazyModuleProxy(lambda: _load_controller("med_deepscientist_upgrade_check"))
 runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
+runtime_health_kernel = _LazyModuleProxy(lambda: _load_controller("runtime_health_kernel"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
 figure_loop_guard = _LazyModuleProxy(lambda: _load_controller("figure_loop_guard"))
 journal_package_controller = _LazyModuleProxy(lambda: _load_controller("journal_package"))
@@ -325,6 +326,41 @@ def main(argv: list[str] | None = None) -> int:
         result = study_truth_kernel.reconcile_truth_snapshot_from_status_payload(
             study_root=Path(resolved_study_root),
             study_id=resolved_study_id,
+            status_payload=status_payload,
+            recorded_at=recorded_at,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "reconcile-runtime-health":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        status = study_runtime_router.study_runtime_status(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            entry_mode=args.entry_mode,
+        )
+        status_payload = _serialize_study_runtime_result(status)
+        resolved_study_id = str(status_payload.get("study_id") or args.study_id or "").strip()
+        resolved_study_root = str(status_payload.get("study_root") or args.study_root or "").strip()
+        resolved_quest_id = str(status_payload.get("quest_id") or resolved_study_id or "").strip()
+        if not resolved_study_id:
+            parser.error("Unable to resolve study_id for reconcile-runtime-health")
+        if not resolved_study_root:
+            parser.error("Unable to resolve study_root for reconcile-runtime-health")
+        if not resolved_quest_id:
+            parser.error("Unable to resolve quest_id for reconcile-runtime-health")
+        recorded_at = str(
+            status_payload.get("generated_at")
+            or status_payload.get("recorded_at")
+            or datetime.now(timezone.utc).isoformat()
+        )
+        result = runtime_health_kernel.reconcile_runtime_health_snapshot_from_status_payload(
+            study_root=Path(resolved_study_root),
+            study_id=resolved_study_id,
+            quest_id=resolved_quest_id,
             status_payload=status_payload,
             recorded_at=recorded_at,
         )

@@ -730,6 +730,11 @@ def build_product_frontdesk(
                 for item in (workspace_cockpit.get("studies") or [])
                 if isinstance(item, Mapping) and isinstance(item.get("study_truth_snapshot"), Mapping)
             ],
+            "workspace_runtime_health_snapshots": [
+                dict(item["runtime_health_snapshot"])
+                for item in (workspace_cockpit.get("studies") or [])
+                if isinstance(item, Mapping) and isinstance(item.get("runtime_health_snapshot"), Mapping)
+            ],
             "phase5_platform_target": dict(manifest.get("phase5_platform_target") or {}),
         },
     )

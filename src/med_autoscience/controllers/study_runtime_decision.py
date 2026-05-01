@@ -5,6 +5,7 @@ from pathlib import Path as _Path
 _PARTS = (
     "publication_and_submission.py",
     "runtime_events.py",
+    "runtime_health_dominance.py",
     "status_and_decision.py",
 )
 for _part in _PARTS:

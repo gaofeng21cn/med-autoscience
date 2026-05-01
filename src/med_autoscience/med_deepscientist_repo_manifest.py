@@ -12,11 +12,24 @@ MDS_ALLOWED_TRUTH_EVENT_TYPES = (
     "runtime_supervision_tick",
     "quality_review_eval",
 )
+MDS_ALLOWED_RUNTIME_HEALTH_EVENT_TYPES = (
+    "runtime_state_observed",
+    "daemon_probe",
+    "worker_heartbeat",
+    "session_probe",
+    "runtime_event_observed",
+)
 MDS_FORBIDDEN_AUTHORITY_SURFACES = (
     "canonical_next_action",
     "publication_gate_state",
     "package_state",
     "delivery_state",
+)
+MDS_FORBIDDEN_RUNTIME_HEALTH_SURFACES = (
+    "runtime_health_epoch",
+    "canonical_runtime_action",
+    "worker_liveness_state",
+    "allowed_controller_actions",
 )
 
 
@@ -61,7 +74,9 @@ def inspect_med_deepscientist_repo_manifest(repo_root: Path | str | None) -> dic
         "upstream_ref": None,
         "truth_authority_role": "event_source_only",
         "allowed_truth_event_types": list(MDS_ALLOWED_TRUTH_EVENT_TYPES),
+        "allowed_runtime_health_event_types": list(MDS_ALLOWED_RUNTIME_HEALTH_EVENT_TYPES),
         "forbidden_authority_surfaces": list(MDS_FORBIDDEN_AUTHORITY_SURFACES),
+        "forbidden_runtime_health_surfaces": list(MDS_FORBIDDEN_RUNTIME_HEALTH_SURFACES),
         "checks": {
             "manifest_file_exists": False,
             "manifest_payload_is_mapping": False,

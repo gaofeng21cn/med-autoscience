@@ -57,6 +57,10 @@ def _serialize_managed_study_action(
     if truth_snapshot is not None:
         serialized["truth_epoch"] = _non_empty_text(truth_snapshot.get("truth_epoch"))
         serialized["study_truth_snapshot"] = truth_snapshot
+    runtime_health_snapshot = _runtime_health_snapshot_summary(payload.get("runtime_health_snapshot"))
+    if runtime_health_snapshot is not None:
+        serialized["runtime_health_epoch"] = _non_empty_text(runtime_health_snapshot.get("runtime_health_epoch"))
+        serialized["runtime_health_snapshot"] = runtime_health_snapshot
     return serialized
 
 
@@ -85,6 +89,25 @@ def _truth_snapshot_summary(value: object) -> dict[str, Any] | None:
         "allowed_controller_actions",
         "package_state",
         "writer_epoch",
+        "source_signature",
+    )
+    summary = {key: value[key] for key in keys if key in value}
+    return summary or None
+
+
+def _runtime_health_snapshot_summary(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    keys = (
+        "runtime_health_epoch",
+        "canonical_runtime_action",
+        "attempt_state",
+        "retry_budget_remaining",
+        "worker_liveness_state",
+        "supervisor_state",
+        "dominant_runtime_refs",
+        "blocking_reasons",
+        "allowed_controller_actions",
         "source_signature",
     )
     summary = {key: value[key] for key in keys if key in value}

@@ -31,6 +31,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("data", "asset-gate"): "data-asset-gate",
     ("data", "tooluniverse-status"): "tooluniverse-status",
     ("runtime", "watch"): "watch",
+    ("runtime", "reconcile-health"): "reconcile-runtime-health",
     ("runtime", "supervision-status"): "runtime-supervision-status",
     ("runtime", "ensure-supervision"): "runtime-ensure-supervision",
     ("runtime", "remove-supervision"): "runtime-remove-supervision",

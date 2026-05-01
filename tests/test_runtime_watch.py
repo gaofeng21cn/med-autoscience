@@ -10,6 +10,7 @@ globals().update({
 
 from .test_runtime_watch_cases.event_scan_cases import *  # noqa: F403,F401
 from .test_runtime_watch_cases.runtime_status_cases import *  # noqa: F403,F401
+from .test_runtime_watch_cases.managed_recovery_cases import *  # noqa: F403,F401
 from .test_runtime_watch_cases.supervisor_and_progress_cases import *  # noqa: F403,F401
 from .test_runtime_watch_cases.alert_and_summary_cases import *  # noqa: F403,F401
 from .test_runtime_watch_cases.cli_cases import *  # noqa: F403,F401

@@ -262,6 +262,15 @@ def _stale_progress_without_live_bash_sessions(status: StudyRuntimeStatus) -> bo
         return False
 
 
+def _live_worker_missing_active_run_id(status: StudyRuntimeStatus) -> bool:
+    audit = _runtime_liveness_audit_payload(status)
+    if str(audit.get("liveness_guard_reason") or "").strip() != "live_runtime_missing_active_run_id":
+        return False
+    runtime_audit = dict(audit.get("runtime_audit") or {}) if isinstance(audit.get("runtime_audit"), dict) else {}
+    active_run_id = str(audit.get("active_run_id") or runtime_audit.get("active_run_id") or "").strip()
+    return runtime_audit.get("worker_running") is True and not active_run_id
+
+
 def _runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, object]:
     runtime_liveness_audit = _runtime_liveness_audit_payload(status)
     runtime_audit = (

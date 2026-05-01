@@ -160,7 +160,8 @@ medautosci watch \
 其中：
 
 - `runtime_watch/latest.json` 负责 quest controller scan truth
-- `runtime_supervision/latest.json` 负责 outer-loop runtime health truth
+- `artifacts/runtime/health/latest.json` 负责 reducer-owned runtime health truth
+- `runtime_supervision/latest.json` 负责 outer-loop supervision read model，并携带 `runtime_health_epoch`
 - `study_progress` 负责把这些 truth 翻译成医生/PI 能看懂的前台进度
 
 不要把 runtime health truth 硬塞进：
@@ -169,6 +170,8 @@ medautosci watch \
 - `controller_decisions/latest.json`
 
 这两个表面仍然各自承担发表判断与 controller 决策的真相职责。
+
+运行健康的用户可见动作必须来自 `RuntimeHealthKernel.canonical_runtime_action`；`last_launch_report`、`runtime_watch/latest.json` 与 `runtime_supervision/latest.json` 都只能作为 input event 或 read model。
 
 ## 7. 前台可见语义
 

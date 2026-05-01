@@ -121,6 +121,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - `studies/<study_id>/artifacts/controller_decisions/latest.json`
 - `studies/<study_id>/artifacts/controller/gate_clearing_batch/latest.json`
 - `studies/<study_id>/artifacts/runtime/last_launch_report.json`
+- `studies/<study_id>/artifacts/runtime/health/latest.json`
 
 这意味着：
 
@@ -129,6 +130,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - `runtime_escalation_record` 与 `runtime_watch` 继续是 quest-owned runtime artifact
 - `controller_decisions/latest.json` 是 study-owned outer-loop / controller decision surface
 - `artifacts/controller/gate_clearing_batch/latest.json` 是 study-owned same-line continuation execution record：它只记录一次 controller-owned batch repair 与 gate replay，不替代 `controller_decisions/latest.json` 作为 authority decision surface
+- `artifacts/runtime/health/latest.json` 是 study-owned runtime health snapshot：它持有 `canonical_runtime_action`、worker liveness、retry budget 与 escalation 判断，不替代 `StudyTruthKernel.canonical_next_action`
 - 本地未跟踪 handoff scratch 不替代 repo-tracked runtime truth
 
 如果你是医学用户，希望先理解这个项目是什么、适合什么课题、能产出什么，请先看仓库首页 [README.md](../README.md)。

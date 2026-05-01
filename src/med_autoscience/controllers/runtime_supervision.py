@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience import runtime_backend as runtime_backend_contract
+from med_autoscience.controllers import runtime_health_kernel
 from med_autoscience.controllers.control_plane_facts import resolve_control_plane_facts
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
@@ -309,6 +310,7 @@ def materialize_runtime_supervision(
     previous_failure_count = _int_or_zero(previous_report.get("consecutive_failure_count"))
     previous_attempt_count = _int_or_zero(previous_report.get("recovery_attempt_count"))
 
+    study_id = _non_empty_text(status_payload.get("study_id")) or resolved_study_root.name
     quest_id = _non_empty_text(status_payload.get("quest_id"))
     quest_root = _candidate_path(status_payload.get("quest_root"))
     decision = _non_empty_text(status_payload.get("decision"))
@@ -318,6 +320,18 @@ def materialize_runtime_supervision(
     facts = _runtime_facts(status_payload)
     strict_live = bool(facts["strict_live"])
     recovery_pending = needs_recovery_projection(status_payload, strict_live=strict_live)
+    explicit_resume_required = runtime_reason == "quest_stopped_requires_explicit_rerun"
+    runtime_health_snapshot = (
+        runtime_health_kernel.derive_runtime_health_snapshot_from_status_payload(
+            study_root=resolved_study_root,
+            study_id=study_id,
+            quest_id=quest_id,
+            status_payload=status_payload,
+            recorded_at=recorded_at,
+        )
+        if quest_id is not None
+        else None
+    )
 
     if strict_live:
         health_status = "live"
@@ -329,6 +343,16 @@ def materialize_runtime_supervision(
         clinician_update = "系统确认当前研究运行在线，自动推进仍在继续。"
         next_action = "continue_supervising_runtime"
         next_action_summary = "继续监督当前托管运行，并等待新的阶段事件。"
+    elif explicit_resume_required:
+        health_status = "inactive"
+        last_transition = "awaiting_explicit_resume"
+        consecutive_failure_count = 0
+        recovery_attempt_count = 0
+        needs_human_intervention = False
+        summary = "当前论文线等待显式恢复指令，不能按掉线恢复自动重启。"
+        clinician_update = "系统确认当前不是 live worker 掉线，而是等待显式恢复的停驻态。"
+        next_action = "await_explicit_resume"
+        next_action_summary = "等待明确的恢复或后续完善指令，再进入托管运行恢复。"
     elif recovery_pending:
         health_status = "recovering"
         last_transition = "recovery_requested" if decision in _RECOVERY_DECISIONS else "auto_recovery_pending"
@@ -383,7 +407,7 @@ def materialize_runtime_supervision(
     report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "recorded_at": recorded_at,
-        "study_id": _non_empty_text(status_payload.get("study_id")) or resolved_study_root.name,
+        "study_id": study_id,
         "study_root": str(resolved_study_root),
         "quest_id": quest_id,
         "quest_root": str(quest_root) if quest_root is not None else None,
@@ -404,8 +428,14 @@ def materialize_runtime_supervision(
         "clinician_update": clinician_update,
         "next_action": next_action,
         "next_action_summary": next_action_summary,
+        "runtime_health_epoch": _non_empty_text((runtime_health_snapshot or {}).get("runtime_health_epoch")),
+        "canonical_runtime_action": _non_empty_text((runtime_health_snapshot or {}).get("canonical_runtime_action")),
+        "runtime_health_snapshot": runtime_health_snapshot,
         "refs": {
             "launch_report_path": str(launch_report_path) if launch_report_path is not None else None,
+            "runtime_health_snapshot_path": str(
+                runtime_health_kernel.runtime_health_snapshot_path(study_root=resolved_study_root)
+            ),
             "runtime_watch_report_path": (
                 str(runtime_watch_report_path.expanduser().resolve()) if runtime_watch_report_path is not None else None
             ),

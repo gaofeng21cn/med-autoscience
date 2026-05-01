@@ -1,0 +1,50 @@
+# Runtime Health Kernel Contract
+
+## 目标
+
+`RuntimeHealthKernel` 是 MAS 针对 `(study_id, quest_id)` 的唯一运行健康 reducer。它把 runtime state、daemon probe、worker heartbeat、session probe、supervisor tick、launch/recover/relaunch attempt、stale progress 与 escalation 事件归并为一个 `RuntimeHealthSnapshot`，供 `study_runtime_status`、`study_progress`、`runtime_watch`、workspace cockpit、product frontdesk 和 MCP compact projection 消费。
+
+该合同采用四条工程原则：
+
+- Kubernetes controller/reconcile：把 desired runtime state 与 observed runtime state 分开，controller 只做收敛动作。
+- Temporal durable history/replay：runtime health 由事件历史重建，不能依赖 `last_launch_report` 这类最近动作摘要。
+- CQRS/Event Sourcing：append-only event log 是写模型，`latest.json` 和前台字段是可重建 read model。
+- SRE 运行纪律：恢复必须有 retry budget、backoff/升级语义和可解释人工介入信号。
+
+## 稳定表面
+
+- append-only event log：`studies/<study_id>/artifacts/runtime/health/events.jsonl`
+- materialized snapshot：`studies/<study_id>/artifacts/runtime/health/latest.json`
+- read-model embedding：`study_runtime_status.runtime_health_snapshot`
+- user projection embedding：`study_progress.runtime_health_epoch` 与 `study_progress.runtime_health_snapshot`
+
+普通 `study_runtime_status` / `study_progress` read 只生成 shadow snapshot，不写 `artifacts/runtime/health/latest.json`。只有显式 reconcile、`runtime watch --apply` 或 controller tick 可以刷新 materialized snapshot。
+
+显式 reconcile 入口：
+
+```bash
+uv run python -m med_autoscience.cli runtime reconcile-health --profile <profile> --study-id <study_id>
+```
+
+该入口先读取当前 `study_runtime_status`，再把 status payload 归一化为 runtime health events 并刷新 `artifacts/runtime/health/latest.json`。
+
+## Dominance Rules
+
+- live worker 必须同时满足 `runtime_liveness_audit.status=live`、`worker_running=true`、`active_run_id!=null`。
+- fresh supervisor tick 只证明外环监管最近刷新，不能证明 worker live。
+- `last_launch_report` 只保留最近动作摘要；其 `active_run_id` 在新 liveness 观测不成立时只能降为 `last_known_run_id`。
+- `quest_marked_running_but_no_live_session` 必须进入有限状态机：probe / recover / relaunch / escalated，不能无限 recovering。
+- retry budget 耗尽后必须输出 `canonical_runtime_action=escalate_runtime`，并禁止继续伪装成自动恢复中。
+- runtime health 只能影响 runtime action；不得反向覆盖 `StudyTruthKernel.canonical_next_action`、publication gate、package authority 或 delivery state。
+
+## MDS 边界
+
+MDS 只能提供 runtime/native/review/probe 事件，包括 runtime state、daemon probe、worker heartbeat、session probe 与 runtime event observed。MAS 持有 `RuntimeHealthKernel` reducer、`canonical_runtime_action`、worker liveness judgment 与 allowed controller actions。任何 MDS 输出如果要影响用户可见运行动作，必须先进入 runtime health event，再由 reducer 产生 snapshot。
+
+## 事故治理
+
+后续 runtime liveness / recovery 事故不能只补局部判断。每次事故必须同时留下三类可验证资产：
+
+- reducer rule：把新的 dominance、retry 或 invalidation 规则写进 `RuntimeHealthKernel`。
+- fixture test：把真实冲突脱敏成 golden fixture，证明只产出一个 `canonical_runtime_action`。
+- runbook entry：在 runtime/status 文档里记录事故模式、权威来源和禁止旁路。
