@@ -17,6 +17,7 @@ from med_autoscience.controllers import (
     publication_work_units,
     publication_gate as publication_gate_controller,
     runtime_supervision as runtime_supervision_controller,
+    study_truth_kernel,
     study_runtime_interaction_arbitration as interaction_arbitration_controller,
     runtime_reentry_gate as runtime_reentry_gate_controller,
     study_runtime_family_orchestration as family_orchestration,

@@ -376,6 +376,12 @@ def _status_state(
         )
         _record_mds_worker_activity(result)
         _record_auto_runtime_parked_projection(result)
+        result.extras["study_truth_snapshot"] = study_truth_kernel.derive_truth_snapshot_from_status_payload(
+            study_root=study_root,
+            study_id=study_id,
+            status_payload=result.to_dict(),
+            recorded_at=router._utc_now(),
+        )
         if include_progress_projection:
             from med_autoscience.controllers import study_progress as study_progress_controller
 

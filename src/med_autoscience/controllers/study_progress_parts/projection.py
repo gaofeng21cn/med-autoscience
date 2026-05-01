@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers import autonomy_ai_doctor, control_plane_facts
+from med_autoscience.controllers import autonomy_ai_doctor, control_plane_facts, study_truth_kernel
 
 from .parked_projection import (
     build_progress_parked_projection,
@@ -128,6 +128,7 @@ def build_study_progress_projection(
     details_projection_wrapper = _read_json_object(details_projection_path) if details_projection_path is not None else None
     details_projection_payload = _details_projection_payload(details_projection_path)
     evaluation_summary_payload = _read_json_object(stable_evaluation_summary_path(study_root=resolved_study_root))
+    study_truth_snapshot = _mapping_copy(status.get("study_truth_snapshot"))
 
     publication_supervisor_state = (
         dict(status.get("publication_supervisor_state") or {})
@@ -611,6 +612,7 @@ def build_study_progress_projection(
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
+        "truth_epoch": _non_empty_text(study_truth_snapshot.get("truth_epoch")),
         "study_id": resolved_study_id,
         "study_root": str(resolved_study_root),
         "quest_id": quest_id,
@@ -656,6 +658,7 @@ def build_study_progress_projection(
         "gate_clearing_batch_followthrough": gate_clearing_batch_followthrough or None,
         "quality_review_followthrough": quality_review_followthrough or None,
         "research_runtime_control_projection": research_runtime_control_projection,
+        "study_truth_snapshot": study_truth_snapshot or None,
         "module_surfaces": module_surfaces,
         "runtime_efficiency": runtime_efficiency,
         "autonomy_slo": autonomy_slo_status,
@@ -705,6 +708,7 @@ def build_study_progress_projection(
             "evaluation_summary_path": (
                 evaluation_module_surface["summary_ref"] if evaluation_module_surface is not None else None
             ),
+            "study_truth_snapshot_path": str(study_truth_kernel.truth_snapshot_path(study_root=resolved_study_root)),
             "promotion_gate_path": (
                 evaluation_module_surface["promotion_gate_ref"] if evaluation_module_surface is not None else None
             ),
