@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+from pathlib import Path
 from typing import Any, Mapping
 
 
@@ -32,6 +34,34 @@ def _first_text_source(*candidates: tuple[str, object]) -> tuple[str | None, str
         if text is not None:
             return text, source
     return None, None
+
+
+def _read_json_object(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _completed_parked_auto_continue_run(status_payload: Mapping[str, Any], active_run_id: str | None) -> bool:
+    if active_run_id is None:
+        return False
+    quest_root_text = _text(status_payload.get("quest_root"))
+    if quest_root_text is None:
+        return False
+    run_root = Path(quest_root_text).expanduser() / ".ds" / "runs" / active_run_id
+    command_payload = _read_json_object(run_root / "command.json")
+    result_payload = _read_json_object(run_root / "result.json")
+    if command_payload is None or result_payload is None:
+        return False
+    return (
+        _text(command_payload.get("turn_reason")) == "auto_continue"
+        and _text(command_payload.get("turn_mode")) == "parked"
+        and result_payload.get("exit_code") == 0
+    )
 
 
 @dataclass(frozen=True)
@@ -67,6 +97,9 @@ class ControlPlaneFacts:
         if self.strict_live:
             activity_state = "running"
             heartbeat_state = "live"
+        elif self.runtime_liveness_status == "parked":
+            activity_state = "parked"
+            heartbeat_state = "parked"
         elif self.recovery_pending:
             activity_state = "recovering"
             heartbeat_state = "missing_live_session" if self.missing_live_session else self.runtime_liveness_status
@@ -123,6 +156,11 @@ def resolve_control_plane_facts(
     quest_status = _text(status_payload.get("quest_status")) or _text(continuation_state.get("quest_status"))
     decision = _text(status_payload.get("decision"))
     reason = _text(status_payload.get("reason")) or _text(status_payload.get("runtime_reason"))
+    if _completed_parked_auto_continue_run(status_payload, active_run_id):
+        runtime_liveness_status = "parked"
+        worker_running = False
+        worker_pending = False
+        stop_requested = False
     strict_live = runtime_liveness_status == "live" and active_run_id is not None and worker_running is True
     supervisor_tick_status = _text(supervisor_tick.get("status"))
     trusted_active_run_for_recovery = active_run_id_source in {

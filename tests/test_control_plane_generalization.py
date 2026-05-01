@@ -401,6 +401,59 @@ def test_control_plane_facts_do_not_treat_stale_continuation_run_as_strict_live(
     assert facts.recovery_pending is True
 
 
+def test_control_plane_facts_do_not_treat_completed_parked_run_as_strict_live(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_facts")
+    quest_root = tmp_path / "runtime" / "quests" / "quest-001"
+    run_root = quest_root / ".ds" / "runs" / "run-parked-001"
+    run_root.mkdir(parents=True)
+    (run_root / "command.json").write_text(
+        json.dumps(
+            {
+                "turn_reason": "auto_continue",
+                "turn_mode": "parked",
+                "turn_intent": "continue_stage",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_root / "result.json").write_text(
+        json.dumps(
+            {
+                "run_id": "run-parked-001",
+                "exit_code": 0,
+                "output_text": "No new user message or /resume; staying parked.",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    facts = module.resolve_control_plane_facts(
+        {
+            "quest_status": "running",
+            "quest_root": str(quest_root),
+            "runtime_liveness_status": "live",
+            "active_run_id": "run-parked-001",
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": "run-parked-001",
+                "runtime_audit": {
+                    "status": "live",
+                    "active_run_id": "run-parked-001",
+                    "worker_running": True,
+                },
+            },
+        },
+        supervisor_tick_audit={"status": "fresh"},
+    )
+
+    assert facts.strict_live is False
+    assert facts.runtime_liveness_status == "parked"
+    assert facts.worker_running is False
+    assert facts.missing_live_session is False
+    assert facts.recovery_pending is False
+    assert facts.to_mds_worker_activity()["activity_state"] == "parked"
+
+
 def test_study_runtime_status_exposes_mds_worker_activity(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
