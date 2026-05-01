@@ -18,6 +18,8 @@ DIRECT_DELIVERY_SYNC_STATUSES = frozenset(
         "stale_source_mismatch",
     }
 )
+DELIVERY_MISSING_SOURCE_REASONS = frozenset({"delivery_manifest_sources_missing"})
+DELIVERY_MISSING_SOURCE_STATUSES = frozenset({"stale_source_missing"})
 STALE_AUTHORITY_BLOCKERS = frozenset(
     {
         "stale_submission_minimal_authority",
@@ -57,6 +59,31 @@ def _text_set(value: object) -> frozenset[str]:
     if not isinstance(value, list):
         return frozenset()
     return frozenset(str(item or "").strip() for item in value if str(item or "").strip())
+
+
+def _text_list(value: object) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        return ()
+    return tuple(str(item or "").strip() for item in value if str(item or "").strip())
+
+
+def _blocking_refs_have_missing_source_paths(value: object) -> bool:
+    if not isinstance(value, list):
+        return False
+    missing_source_keys = {
+        "missing_source_path",
+        "missing_source_paths",
+        "source_path",
+        "source_paths",
+        "delivery_source_path",
+        "delivery_source_paths",
+    }
+    for item in value:
+        if not isinstance(item, Mapping):
+            continue
+        if any(item.get(key) for key in missing_source_keys):
+            return True
+    return False
 
 
 def _current_package_freshness_payload(
@@ -102,7 +129,9 @@ class GateAuthorityCurrentness:
     current_package_authority_source_signature: str | None
     submission_authority_current: bool
     stale_submission_authority_current: bool
+    submission_authority_sync_required: bool
     delivery_sync_required: bool
+    delivery_missing_sources_need_specificity: bool
     delivery_sync_closed: bool
     current_package_fresh: bool
 
@@ -202,6 +231,23 @@ def resolve_gate_authority_currentness(
     )
     delivery_stale_reason = _non_empty_text(gate_report.get("study_delivery_stale_reason"))
     delivery_status = _non_empty_text(gate_report.get("study_delivery_status"))
+    delivery_missing_source_paths = (
+        _text_list(gate_report.get("study_delivery_missing_source_paths"))
+        or _text_list(gate_report.get("delivery_manifest_missing_source_paths"))
+        or _text_list(gate_report.get("missing_source_paths"))
+    )
+    delivery_missing_sources = (
+        "stale_study_delivery_mirror" in blockers
+        and (
+            delivery_stale_reason in DELIVERY_MISSING_SOURCE_REASONS
+            or delivery_status in DELIVERY_MISSING_SOURCE_STATUSES
+        )
+    )
+    delivery_missing_sources_need_specificity = bool(
+        delivery_missing_sources
+        and not delivery_missing_source_paths
+        and not _blocking_refs_have_missing_source_paths(gate_report.get("blocking_artifact_refs"))
+    )
     current_package_fresh = (
         _status_current_or_fresh(package_freshness.get("status"))
         or _status_current_or_fresh(gate_report.get("current_package_status"))
@@ -218,9 +264,19 @@ def resolve_gate_authority_currentness(
         "stale_study_delivery_mirror" in blockers
         and submission_authority_current
         and current_package_fresh
+        and not delivery_missing_sources_need_specificity
         and (
             delivery_stale_reason in DIRECT_DELIVERY_SYNC_STALE_REASONS
             or delivery_status in DIRECT_DELIVERY_SYNC_STATUSES
+            or delivery_missing_sources
+        )
+    )
+    submission_authority_sync_required = (
+        "stale_submission_minimal_authority" in blockers
+        and evaluated_source_signature is not None
+        and not _signatures_match(
+            evaluated=evaluated_source_signature,
+            authority=authority_source_signature,
         )
     )
     return GateAuthorityCurrentness(
@@ -235,7 +291,9 @@ def resolve_gate_authority_currentness(
         stale_submission_authority_current=(
             "stale_submission_minimal_authority" in blockers and submission_authority_current
         ),
+        submission_authority_sync_required=submission_authority_sync_required,
         delivery_sync_required=delivery_sync_required,
+        delivery_missing_sources_need_specificity=delivery_missing_sources_need_specificity,
         delivery_sync_closed=sync_result is not None,
         current_package_fresh=current_package_fresh,
     )

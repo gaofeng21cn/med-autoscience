@@ -57,6 +57,71 @@ def test_delivery_mirror_stale_but_package_current_routes_to_sync_then_replay() 
     }
 
 
+def test_missing_submission_authority_signature_routes_to_controller_sync_not_long_repair() -> None:
+    publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
+    currentness = importlib.import_module("med_autoscience.controllers.gate_authority_currentness")
+
+    gate_report = {
+        "status": "blocked",
+        "blockers": ["stale_submission_minimal_authority"],
+        "submission_minimal_authority_status": "stale_source_changed",
+        "submission_minimal_evaluated_source_signature": "source::new",
+        "submission_minimal_authority_source_signature": None,
+        "gate_fingerprint": "publication-gate::missing-authority",
+        "blocking_artifact_refs": [
+            {
+                "blocker": "stale_submission_minimal_authority",
+                "artifact_path": "/tmp/quest/paper/submission_minimal/submission_manifest.json",
+            }
+        ],
+    }
+
+    resolution = currentness.resolve_gate_authority_currentness(gate_report)
+    result = publication_work_units.derive_publication_work_units(gate_report)
+
+    assert resolution.submission_authority_sync_required is True
+    assert result["actionability_status"] == "controller_authority_sync_required"
+    assert result["next_work_unit"] == {
+        "unit_id": "submission_authority_sync_closure",
+        "lane": "controller",
+        "summary": "Regenerate submission authority signatures, then replay the publication gate.",
+        "control_surface": "gate_clearing_batch",
+    }
+
+
+def test_delivery_manifest_sources_missing_without_paths_requires_specificity() -> None:
+    publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
+    currentness = importlib.import_module("med_autoscience.controllers.gate_authority_currentness")
+
+    gate_report = {
+        "status": "blocked",
+        "blockers": ["stale_study_delivery_mirror"],
+        "study_delivery_status": "stale_source_missing",
+        "study_delivery_stale_reason": "delivery_manifest_sources_missing",
+        "submission_minimal_authority_status": "current",
+        "submission_minimal_evaluated_source_signature": "source::abc",
+        "submission_minimal_authority_source_signature": "source::abc",
+        "current_package_status": "fresh",
+        "current_package_source_signature": "source::abc",
+        "current_package_authority_source_signature": "source::abc",
+        "gate_fingerprint": "publication-gate::delivery-missing",
+        "blocking_artifact_refs": [
+            {
+                "blocker": "stale_study_delivery_mirror",
+                "artifact_path": "/tmp/study/manuscript/delivery_manifest.json",
+                "stale_reason": "delivery_manifest_sources_missing",
+            }
+        ],
+    }
+
+    resolution = currentness.resolve_gate_authority_currentness(gate_report)
+    result = publication_work_units.derive_publication_work_units(gate_report)
+
+    assert resolution.delivery_missing_sources_need_specificity is True
+    assert result["actionability_status"] == "blocked_by_non_actionable_gate"
+    assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+
+
 def test_label_only_blocker_requires_specificity_before_long_repair() -> None:
     publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
 

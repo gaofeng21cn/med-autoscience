@@ -321,6 +321,27 @@ def _append_submission_delivery_sync_closure_unit(units: list[dict[str, str]]) -
     )
 
 
+def _append_submission_authority_sync_closure_unit(units: list[dict[str, str]]) -> None:
+    units.append(
+        _unit(
+            "submission_authority_sync_closure",
+            "controller",
+            "Regenerate submission authority signatures, then replay the publication gate.",
+            control_surface="gate_clearing_batch",
+        )
+    )
+
+
+def _append_gate_specificity_unit(units: list[dict[str, str]]) -> None:
+    units.append(
+        _unit(
+            "gate_needs_specificity",
+            "controller",
+            "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets.",
+        )
+    )
+
+
 def _label_only_blocker_needs_specificity(report: Mapping[str, Any], *, blocker_set: set[str]) -> bool:
     if len(blocker_set) != 1 or _has_actionable_object_ref(report):
         return False
@@ -383,13 +404,7 @@ def _complete_actionability_units(
     if units:
         return "actionable", ()
     if blockers and not _has_actionable_object_ref(report):
-        units.append(
-            _unit(
-                "gate_needs_specificity",
-                "controller",
-                "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets.",
-            )
-        )
+        _append_gate_specificity_unit(units)
         return "blocked_by_non_actionable_gate", _SPECIFICITY_QUESTIONS
     units.append(
         _unit(
@@ -416,6 +431,16 @@ def _derive_blocking_work_units(
         "not_applicable",
     }
     authority_currentness = resolve_gate_authority_currentness(report)
+    if authority_currentness.delivery_missing_sources_need_specificity:
+        _append_gate_specificity_unit(units)
+        return units, "blocked_by_non_actionable_gate", _SPECIFICITY_QUESTIONS
+    if (
+        "stale_submission_minimal_authority" in blocker_set
+        and blocker_set.issubset(replay_only_blockers)
+        and authority_currentness.submission_authority_sync_required
+    ):
+        _append_submission_authority_sync_closure_unit(units)
+        return units, "controller_authority_sync_required", ()
     if (
         "stale_submission_minimal_authority" in blocker_set
         and blocker_set.issubset(replay_only_blockers)
