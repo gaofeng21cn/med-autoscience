@@ -311,6 +311,49 @@ def test_reconcile_materializes_status_events_once_per_source_signature(tmp_path
     assert json.loads(Path(first["snapshot_path"]).read_text(encoding="utf-8"))["truth_epoch"] == first["truth_epoch"]
 
 
+def test_supervisor_tick_source_signature_ignores_read_time_age(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "004-dpcc"
+    status_payload = {
+        "study_id": "004-dpcc",
+        "study_root": str(study_root),
+        "quest_status": "stopped",
+        "decision": "blocked",
+        "reason": "quest_stopped_requires_explicit_rerun",
+        "publication_supervisor_state": {
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "wait_for_explicit_resume",
+        },
+        "supervisor_tick_audit": {
+            "status": "stale",
+            "required": True,
+            "latest_recorded_at": "2026-05-01T01:31:09+00:00",
+            "seconds_since_latest_recorded_at": 601,
+        },
+    }
+
+    first = module.reconcile_truth_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="004-dpcc",
+        status_payload=status_payload,
+        recorded_at="2026-05-01T01:41:10+00:00",
+    )
+    status_payload["supervisor_tick_audit"]["seconds_since_latest_recorded_at"] = 899
+    second = module.reconcile_truth_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="004-dpcc",
+        status_payload=status_payload,
+        recorded_at="2026-05-01T01:46:08+00:00",
+    )
+
+    assert first["appended_event_count"] == 2
+    assert second["appended_event_count"] == 0
+    assert [event["event_type"] for event in module.read_truth_events(study_root=study_root)] == [
+        "runtime_native_event",
+        "runtime_supervision_tick",
+    ]
+
+
 def test_shadow_status_derives_live_writer_lock_without_materializing(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "as-biologics"
@@ -336,6 +379,59 @@ def test_shadow_status_derives_live_writer_lock_without_materializing(tmp_path: 
     assert snapshot["package_state"]["authority_state"] == "provisionally_current_for_epoch"
     assert snapshot["writer_epoch"] == "writer::run-live"
     assert not module.truth_snapshot_path(study_root=study_root).exists()
+
+
+def test_legacy_reviewer_revision_task_intake_dominates_runtime_tick(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "003-dpcc"
+    task_intake_root = study_root / "artifacts" / "controller" / "task_intake"
+    task_intake_root.mkdir(parents=True)
+    (task_intake_root / "latest.json").write_text(
+        json.dumps(
+            {
+                "emitted_at": "2026-04-25T04:01:37+00:00",
+                "task_intent": (
+                    "Reviewer revision: absorb the explicit user reviewer feedback and revise manuscript, "
+                    "tables, figures, methods, statistics, and claim guardrails under MAS/MDS supervision."
+                ),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    status_payload = {
+        "study_id": "003-dpcc",
+        "study_root": str(study_root),
+        "quest_status": "active",
+        "decision": "resume",
+        "reason": "quest_marked_running_but_no_live_session",
+        "publication_supervisor_state": {
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+        },
+    }
+    result = module.reconcile_truth_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="003-dpcc",
+        status_payload=status_payload,
+        recorded_at="2026-05-01T00:00:00+00:00",
+    )
+    shadow = module.derive_truth_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="003-dpcc",
+        status_payload=status_payload,
+        recorded_at="2026-05-01T00:01:00+00:00",
+    )
+
+    assert [event["event_type"] for event in module.read_truth_events(study_root=study_root)] == [
+        "runtime_native_event",
+        "runtime_supervision_tick",
+        "task_intake",
+    ]
+    assert result["snapshot"]["canonical_next_action"] == "resume_same_study_line"
+    assert result["snapshot"]["dominant_authority_refs"][0]["event_type"] == "task_intake"
+    assert shadow["truth_epoch"] == result["truth_epoch"]
+    assert shadow["event_count"] == result["snapshot"]["event_count"]
 
 
 def test_shadow_snapshot_reads_latest_task_intake_as_reactivation_event(tmp_path: Path) -> None:

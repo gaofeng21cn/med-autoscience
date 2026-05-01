@@ -19,6 +19,14 @@
 
 普通 status/progress read 只生成 shadow snapshot，不写 `latest.json`。只有显式 reconcile、controller tick 或调用 `materialize_truth_snapshot(...)` 才能刷新 materialized snapshot。
 
+显式 reconcile 入口：
+
+```bash
+uv run python -m med_autoscience.cli study reconcile-truth --profile <profile> --study-id <study_id>
+```
+
+该入口先读取当前 `study_runtime_status`，再把 status payload 归一化为 truth events 并刷新 `artifacts/truth/latest.json`。普通 `study progress` 仍保持 pure read 语义。
+
 ## Dominance Rules
 
 - `stop_loss` 强于 publication/package/finalize/readiness projection。

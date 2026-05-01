@@ -10,6 +10,7 @@ globals().update({
 
 from .test_cli_cases.public_entry_commands import *  # noqa: F403,F401
 from .test_cli_cases.runtime_and_quality_commands import *  # noqa: F403,F401
+from .test_cli_cases.truth_reconcile_command import *  # noqa: F403,F401
 from .test_cli_cases.ai_reviewer_publication_eval_command import *  # noqa: F403,F401
 from .test_cli_cases.sidecar_and_submission_commands import *  # noqa: F403,F401
 from .test_cli_cases.bootstrap_and_bundle_commands import *  # noqa: F403,F401

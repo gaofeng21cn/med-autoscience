@@ -4,6 +4,7 @@ import argparse
 import importlib
 import json
 import sys
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -82,6 +83,7 @@ startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("s
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
 study_cycle_profiler = _LazyModuleProxy(lambda: _load_controller("study_cycle_profiler"))
 study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
+study_truth_kernel = _LazyModuleProxy(lambda: _load_controller("study_truth_kernel"))
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
 submission_targets_controller = _LazyModuleProxy(lambda: _load_controller("submission_targets"))
@@ -296,6 +298,37 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(study_progress.render_study_progress_markdown(result), end="")
+        return 0
+
+    if args.command == "reconcile-study-truth":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        status = study_runtime_router.study_runtime_status(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            entry_mode=args.entry_mode,
+        )
+        status_payload = _serialize_study_runtime_result(status)
+        resolved_study_id = str(status_payload.get("study_id") or args.study_id or "").strip()
+        resolved_study_root = str(status_payload.get("study_root") or args.study_root or "").strip()
+        if not resolved_study_id:
+            parser.error("Unable to resolve study_id for reconcile-truth")
+        if not resolved_study_root:
+            parser.error("Unable to resolve study_root for reconcile-truth")
+        recorded_at = str(
+            status_payload.get("generated_at")
+            or status_payload.get("recorded_at")
+            or datetime.now(timezone.utc).isoformat()
+        )
+        result = study_truth_kernel.reconcile_truth_snapshot_from_status_payload(
+            study_root=Path(resolved_study_root),
+            study_id=resolved_study_id,
+            status_payload=status_payload,
+            recorded_at=recorded_at,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "study-profile-cycle":

@@ -60,6 +60,17 @@ _DOWNSTREAM_BUNDLE_FORBIDDEN_ACTIONS = frozenset(
     }
 )
 
+_VOLATILE_SUPERVISOR_TICK_AUDIT_KEYS = frozenset(
+    {
+        "age_seconds",
+        "checked_at",
+        "generated_at",
+        "recorded_at",
+        "seconds_since_latest_recorded_at",
+        "seconds_since_latest_progress",
+    }
+)
+
 
 def truth_events_path(*, study_root: Path) -> Path:
     return Path(study_root).expanduser().resolve() / EVENT_LOG_RELATIVE_PATH
@@ -177,6 +188,14 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _stable_supervisor_tick_audit(value: object) -> dict[str, Any]:
+    return {
+        key: item
+        for key, item in _mapping(value).items()
+        if key not in _VOLATILE_SUPERVISOR_TICK_AUDIT_KEYS
+    }
 
 
 def _authority_ref(event: Mapping[str, Any]) -> dict[str, Any]:
@@ -629,7 +648,7 @@ def _status_payload_truth_events(
         )
     execution_owner_guard = _mapping(status_payload.get("execution_owner_guard"))
     publication_supervisor_state = _mapping(status_payload.get("publication_supervisor_state"))
-    supervisor_tick_audit = _mapping(status_payload.get("supervisor_tick_audit"))
+    supervisor_tick_audit = _stable_supervisor_tick_audit(status_payload.get("supervisor_tick_audit"))
     active_run_id = active_run_id or _text(execution_owner_guard.get("active_run_id"))
     if execution_owner_guard or publication_supervisor_state or supervisor_tick_audit:
         sequence += 1
@@ -772,10 +791,21 @@ def _task_intake_event_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         )
         if item
     ).lower()
+    legacy_reviewer_revision = (
+        "reviewer_revision" in text
+        or "reviewer revision" in text
+        or ("reviewer" in text and "revision" in text)
+        or "审稿" in text
+        or "返修" in text
+    )
     if "stop-loss" in text or "stop loss" in text or "止损" in text:
         current_required_action = "stop_runtime"
         quality_closure_truth = {"state": "stop_loss_recommended", "summary": _text(payload.get("task_intent"))}
-    elif _text(revision_intake.get("kind")) == "reviewer_revision" or reactivation_policy.get("same_study_line") is True:
+    elif (
+        _text(revision_intake.get("kind")) == "reviewer_revision"
+        or reactivation_policy.get("same_study_line") is True
+        or legacy_reviewer_revision
+    ):
         current_required_action = "resume_same_study_line"
         quality_closure_truth = None
     else:
@@ -807,16 +837,27 @@ def derive_truth_snapshot_from_status_payload(
     persisted_events = [
         event for event in read_truth_events(study_root=study_root) if event.get("study_id") == study_id
     ]
+    seen = {
+        (str(event.get("event_type") or ""), _source_signature_for_event(event))
+        for event in persisted_events
+    }
     transient_events = _status_payload_truth_events(
         study_id=study_id,
         status_payload=status_payload,
         recorded_at=recorded_at,
         first_sequence=len(persisted_events),
     )
+    deduped_transient_events: list[dict[str, Any]] = []
+    for event in transient_events:
+        key = (str(event.get("event_type") or "").strip(), _source_signature_for_event(event))
+        if key in seen:
+            continue
+        deduped_transient_events.append(event)
+        seen.add(key)
     return _snapshot_from_events(
         study_root=study_root,
         study_id=study_id,
-        events=[*persisted_events, *transient_events],
+        events=[*persisted_events, *deduped_transient_events],
     )
 
 
