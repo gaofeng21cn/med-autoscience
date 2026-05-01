@@ -53,6 +53,8 @@ _EXPLICIT_RESUME_REASONS = frozenset(
         "quest_stopped_but_auto_resume_disabled",
         "quest_initialized_but_auto_resume_disabled",
         "quest_exists_with_non_resumable_state",
+        "completed_parked_auto_continue_no_new_message",
+        "parked_after_checkpoint_no_new_message",
     }
 )
 

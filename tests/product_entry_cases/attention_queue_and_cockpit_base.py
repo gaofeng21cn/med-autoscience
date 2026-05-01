@@ -110,7 +110,7 @@ def test_attention_queue_uses_quality_execution_lane_for_generic_study_blocked()
     )
 
 
-def test_attention_queue_projects_manual_finishing_without_generic_blocker_wording() -> None:
+def test_attention_queue_projects_manual_finishing_as_package_handoff_without_generic_blocker_wording() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 
     queue = module._attention_queue(
@@ -139,11 +139,11 @@ def test_attention_queue_projects_manual_finishing_without_generic_blocker_wordi
                     "primary_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
                 },
                 "operator_status_card": {
-                    "handling_state": "manual_finishing",
-                    "handling_state_label": "人工收尾兼容保护",
-                    "user_visible_verdict": "MAS 当前保持人工收尾兼容保护，并继续提供监督入口。",
-                    "current_focus": "继续保持人工收尾兼容保护，不把投稿包里程碑 parked 解释为 runtime failure。",
-                    "next_confirmation_signal": "看人工收尾是否写出新的明确结论，或兼容保护是否仍然保持 active。",
+                    "handling_state": "package_ready_handoff",
+                    "handling_state_label": "投稿包/人审包交付停驻",
+                    "user_visible_verdict": "MAS/MDS 已到投稿包/人审包交付节点，当前停驻等待用户审阅或显式恢复。",
+                    "current_focus": "继续保持投稿包/人审包交付停驻，不把投稿包里程碑 parked 解释为 runtime failure。",
+                    "next_confirmation_signal": "看用户是否给出审阅意见、显式恢复或新的修订输入。",
                 },
                 "autonomy_contract": {
                     "autonomy_state": "compatibility_guard",
@@ -155,11 +155,11 @@ def test_attention_queue_projects_manual_finishing_without_generic_blocker_wordi
         commands={},
     )
 
-    assert queue[0]["code"] == "study_manual_finishing"
-    assert queue[0]["title"] == "001-risk 当前保持人工收尾兼容保护"
+    assert queue[0]["code"] == "study_auto_runtime_parked"
+    assert queue[0]["title"] == "001-risk 当前投稿包/人审包交付停驻"
     assert queue[0]["summary"] == "投稿包里程碑已达成；MAS 只保持人工收尾兼容保护和监督入口。"
     assert queue[0]["recommended_step_id"] == "inspect_study_progress"
-    assert queue[0]["operator_status_card"]["handling_state"] == "manual_finishing"
+    assert queue[0]["operator_status_card"]["handling_state"] == "package_ready_handoff"
 
 
 def test_attention_queue_prefers_autonomy_contract_summary_for_runtime_recovery() -> None:

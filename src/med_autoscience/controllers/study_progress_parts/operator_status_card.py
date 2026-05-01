@@ -27,9 +27,9 @@ def _operator_status_handling_state(
     if bool((auto_runtime_parked or {}).get("parked")):
         return _non_empty_text((auto_runtime_parked or {}).get("parked_state")) or "auto_runtime_parked"
     if _manual_finish_active(manual_finish_contract):
-        return "manual_finishing"
+        return "package_ready_handoff"
     if lane_id == "manual_finishing":
-        return "manual_finishing"
+        return "package_ready_handoff"
     if lane_id == "workspace_supervision_gap":
         return "runtime_supervision_recovering"
     if lane_id in {"runtime_recovery_required", "runtime_blocker"} or current_stage in {
@@ -99,10 +99,6 @@ def _operator_status_truth_snapshot(
             ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
             (latest_event_source, latest_event_time),
         ),
-        "manual_finishing": (
-            (latest_event_source, latest_event_time),
-            ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
-        ),
         "monitor_only": (
             (latest_event_source, latest_event_time),
             ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
@@ -151,8 +147,6 @@ def _operator_status_verdict(handling_state: str) -> str:
         return "MAS 正在处理论文可发表性硬阻塞，给人看的稿件还没到放行状态。"
     if handling_state == "waiting_user_decision":
         return "MAS 已经把自动侧能做的部分推进完成，当前在等用户判断。"
-    if handling_state == "manual_finishing":
-        return "MAS 当前保持人工收尾兼容保护，并继续提供监督入口。"
     return "MAS 正在持续监管当前 study。"
 
 
@@ -170,8 +164,6 @@ def _operator_status_owner_summary(handling_state: str) -> str:
         return "MAS 正在收口论文可发表性与质量硬阻塞。"
     if handling_state == "waiting_user_decision":
         return "MAS 已把下一步提升到用户决策面，并继续保持监管。"
-    if handling_state == "manual_finishing":
-        return "MAS 当前只保持人工收尾兼容保护和监督入口。"
     return "MAS 正在持续监管当前 study。"
 
 

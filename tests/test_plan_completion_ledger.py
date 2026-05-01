@@ -15,14 +15,14 @@ def test_plan_completion_ledger_tracks_required_closeout_fields() -> None:
     text = LEDGER_PATH.read_text(encoding="utf-8")
 
     for field in (
-        "planned",
-        "implemented",
-        "verified",
+        "planned_items",
+        "landed_commits",
+        "tests_run",
         "pushed",
-        "cleaned",
-        "live_validated",
-        "superseded",
-        "blocked",
+        "worktrees_cleaned",
+        "live_surface_verified",
+        "skipped_with_user_acceptance",
+        "remaining_gaps",
     ):
         assert f"| {field} |" in text or f"| {field} " in text
 

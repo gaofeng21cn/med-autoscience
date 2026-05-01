@@ -494,14 +494,14 @@ def _attention_queue(
         if lane_id == "manual_finishing" and (blocker_list or workspace_status in {"attention_required", "blocked"}):
             queue.append(
                 _attention_item(
-                    code="study_manual_finishing",
-                    title=f"{study_id} 当前保持人工收尾兼容保护",
+                    code="study_auto_runtime_parked",
+                    title=f"{study_id} 当前投稿包/人审包交付停驻",
                     summary=autonomy_summary
                     or lane_summary
                     or current_stage_summary
                     or next_system_action
-                    or "当前 study 已进入人工收尾兼容保护。",
-                    recommended_step_id=quality_repair_step_id or gate_clearing_step_id or _attention_step_id("study_manual_finishing"),
+                    or "当前 study 已到投稿包/人审包交付节点，自动运行应停驻并释放资源。",
+                    recommended_step_id=quality_repair_step_id or gate_clearing_step_id or _attention_step_id("study_auto_runtime_parked"),
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,

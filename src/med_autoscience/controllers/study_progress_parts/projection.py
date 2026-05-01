@@ -68,6 +68,66 @@ def _attach_existing_autonomy_slo_projection(
     return updated
 
 
+def _autonomy_slo_observer_status(
+    *,
+    study_root: Path,
+    state: str,
+    observer_status: str,
+    error: object | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "surface": "autonomy_progress_slo_status",
+        "schema_version": 1,
+        "study_id": study_root.name,
+        "state": state,
+        "observer_status": observer_status,
+        "breach_types": [],
+        "ai_doctor_request_required": False,
+        "ai_doctor_state": "not_required",
+        "quality_gate_relaxation_allowed": False,
+        "status_path": str(autonomy_ai_doctor.stable_slo_status_path(study_root=study_root)),
+    }
+    if error is not None:
+        payload["observer_error"] = str(error)
+    return payload
+
+
+def _read_or_materialize_autonomy_slo_status(
+    *,
+    profile: WorkspaceProfile,
+    study_root: Path,
+) -> dict[str, Any] | None:
+    autonomy_slo_status = autonomy_ai_doctor.read_latest_slo_status(study_root=study_root)
+    if autonomy_slo_status is not None:
+        return autonomy_slo_status
+    try:
+        from med_autoscience.controllers import study_cycle_profiler
+
+        profile_payload = study_cycle_profiler.profile_study_cycle(
+            profile=profile,
+            study_id=None,
+            study_root=study_root,
+        )
+    except (OSError, json.JSONDecodeError, TypeError, ValueError, RuntimeError) as exc:
+        return _autonomy_slo_observer_status(
+            study_root=study_root,
+            state="observer_failed",
+            observer_status="failed",
+            error=exc,
+        )
+    profile_slo_status = _mapping_copy(profile_payload.get("autonomy_progress_slo_status"))
+    if profile_slo_status:
+        return profile_slo_status
+    autonomy_slo_status = autonomy_ai_doctor.read_latest_slo_status(study_root=study_root)
+    if autonomy_slo_status is not None:
+        return autonomy_slo_status
+    return _autonomy_slo_observer_status(
+        study_root=study_root,
+        state="observer_not_materialized",
+        observer_status="not_materialized",
+    )
+
+
 def build_study_progress_projection(
     *,
     profile: WorkspaceProfile,
@@ -263,8 +323,19 @@ def build_study_progress_projection(
     )
     if _manual_finish_active(manual_finish_contract):
         needs_physician_decision = False
-    auto_runtime_parked = build_progress_parked_projection(
+    runtime_facts = control_plane_facts.resolve_control_plane_facts(
         status,
+        supervisor_tick_audit=supervisor_tick_audit,
+    )
+    parked_status = dict(status)
+    parked_status["runtime_liveness_status"] = runtime_facts.runtime_liveness_status
+    parked_status["active_run_id"] = runtime_facts.active_run_id
+    if runtime_facts.runtime_liveness_status == "parked" and runtime_facts.active_run_id is None:
+        parked_status["reason"] = "completed_parked_auto_continue_no_new_message"
+        parked_status.setdefault("decision", "blocked")
+        parked_status.setdefault("quest_status", runtime_facts.quest_status or "active")
+    auto_runtime_parked = build_progress_parked_projection(
+        parked_status,
         needs_user_decision=needs_physician_decision,
         manual_finish_contract=manual_finish_contract,
         task_intake_progress_override=task_intake_progress_override,
@@ -446,7 +517,10 @@ def build_study_progress_projection(
         status=status,
         study_root=resolved_study_root,
     )
-    autonomy_slo_status = autonomy_ai_doctor.read_latest_slo_status(study_root=resolved_study_root)
+    autonomy_slo_status = _read_or_materialize_autonomy_slo_status(
+        profile=profile,
+        study_root=resolved_study_root,
+    )
     ai_doctor_state = (
         _mapping_copy((autonomy_slo_status or {}).get("ai_doctor_request"))
         or {

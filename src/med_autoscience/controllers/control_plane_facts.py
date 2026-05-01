@@ -161,6 +161,8 @@ def resolve_control_plane_facts(
         worker_running = False
         worker_pending = False
         stop_requested = False
+        active_run_id = None
+        active_run_id_source = "completed_parked_auto_continue"
     strict_live = runtime_liveness_status == "live" and active_run_id is not None and worker_running is True
     supervisor_tick_status = _text(supervisor_tick.get("status"))
     trusted_active_run_for_recovery = active_run_id_source in {

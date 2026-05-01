@@ -448,6 +448,8 @@ def test_control_plane_facts_do_not_treat_completed_parked_run_as_strict_live(tm
 
     assert facts.strict_live is False
     assert facts.runtime_liveness_status == "parked"
+    assert facts.active_run_id is None
+    assert facts.active_run_id_source == "completed_parked_auto_continue"
     assert facts.worker_running is False
     assert facts.missing_live_session is False
     assert facts.recovery_pending is False

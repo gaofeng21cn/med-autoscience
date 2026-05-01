@@ -214,6 +214,158 @@ def test_study_progress_projects_autonomy_slo_ai_doctor_state(
     assert result["refs"]["autonomy_slo_status_path"].endswith("artifacts/autonomy/slo_status/latest.json")
 
 
+def test_study_progress_materializes_autonomy_slo_when_surface_is_missing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_publication_eval(study_root, quest_root)
+    slo_path = study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json"
+
+    def _materialize_slo(**kwargs):
+        assert kwargs["study_root"] == study_root
+        payload = {
+            "surface": "autonomy_progress_slo_status",
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "state": "ok",
+            "breach_types": [],
+            "ai_doctor_request_required": False,
+            "ai_doctor_state": "not_required",
+            "quality_gate_relaxation_allowed": False,
+        }
+        _write_json(slo_path, payload)
+        return {"autonomy_progress_slo_status": payload}
+
+    monkeypatch.setattr(profiler, "profile_study_cycle", _materialize_slo)
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "blocked",
+            "reason": "study_completion_publishability_gate_blocked",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "current_required_action": "return_to_publishability_gate",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["autonomy_slo"]["state"] == "ok"
+    assert result["refs"]["autonomy_slo_status_path"] == str(slo_path)
+    assert slo_path.exists()
+
+
+def test_study_progress_projects_completed_parked_auto_continue_without_live_run(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    run_id = "run-parked-001"
+    run_root = quest_root / ".ds" / "runs" / run_id
+    _write_json(
+        run_root / "command.json",
+        {
+            "turn_reason": "auto_continue",
+            "turn_mode": "parked",
+            "turn_intent": "continue_stage",
+        },
+    )
+    _write_json(
+        run_root / "result.json",
+        {
+            "run_id": run_id,
+            "exit_code": 0,
+            "output_text": "No new user message or /resume; staying parked.",
+        },
+    )
+    _write_publication_eval(study_root, quest_root)
+
+    monkeypatch.setattr(
+        profiler,
+        "profile_study_cycle",
+        lambda **_: {
+            "autonomy_progress_slo_status": {
+                "surface": "autonomy_progress_slo_status",
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "quest_id": "quest-001",
+                "state": "ok",
+                "breach_types": [],
+                "ai_doctor_request_required": False,
+                "ai_doctor_state": "not_required",
+                "quality_gate_relaxation_allowed": False,
+            }
+        },
+    )
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        status_payload={
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "runtime_liveness_status": "live",
+            "active_run_id": run_id,
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": run_id,
+                "runtime_audit": {"worker_running": True, "active_run_id": run_id},
+            },
+            "autonomous_runtime_notice": {
+                "active_run_id": run_id,
+                "browser_url": "http://127.0.0.1:20999",
+            },
+        },
+    )
+
+    assert result["auto_runtime_parked"]["parked"] is True
+    assert result["parked_state"] == "explicit_resume_pending"
+    assert result["supervision"]["active_run_id"] is None
+    assert result["operator_status_card"]["handling_state"] == "explicit_resume_pending"
+
+
 def test_study_progress_merges_autonomy_slo_refs_into_existing_projection(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)

@@ -22,6 +22,12 @@ def build_progress_parked_projection(
         manual_finish_contract=manual_finish_contract,
     )
     if task_intake_progress_override and is_auto_runtime_parked(projection):
+        if (
+            projection.get("parked_state") == "explicit_resume_pending"
+            and projection.get("source_reason")
+            in {"completed_parked_auto_continue_no_new_message", "parked_after_checkpoint_no_new_message"}
+        ):
+            return projection
         quality_closure_truth = (
             dict(task_intake_progress_override.get("quality_closure_truth") or {})
             if isinstance(task_intake_progress_override.get("quality_closure_truth"), Mapping)

@@ -160,6 +160,21 @@ def test_auto_runtime_parking_maps_explicit_resume_and_preflight_contracts() -> 
     assert preflight["parked_owner"] == "controller"
 
 
+def test_auto_runtime_parking_maps_completed_parked_auto_continue_to_explicit_resume() -> None:
+    projection = _projection(
+        {
+            "decision": "noop",
+            "reason": "completed_parked_auto_continue_no_new_message",
+            "quest_status": "active",
+        }
+    )
+
+    assert projection["parked"] is True
+    assert projection["parked_state"] == "explicit_resume_pending"
+    assert projection["resource_release_expected"] is True
+    assert projection["awaiting_explicit_wakeup"] is True
+
+
 def test_auto_runtime_parking_maps_repeated_stop_hold_and_same_blocker_pause_as_resource_release() -> None:
     repeated_decision_stop = _projection(
         {
