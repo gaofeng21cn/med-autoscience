@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from .workspace_attention import (
     _attention_queue,
     _autonomy_soak_focus,
@@ -190,6 +192,7 @@ def _study_item(
         fallback_command=commands["progress"],
     )
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
+    study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
     research_runtime_control_projection = dict(progress_payload.get("research_runtime_control_projection") or {})
     gate_surface = dict(research_runtime_control_projection.get("research_gate_surface") or {})
     if gate_surface.get("approval_gate_field") == "needs_user_decision":
@@ -197,6 +200,9 @@ def _study_item(
         research_runtime_control_projection["research_gate_surface"] = gate_surface
     return {
         "study_id": study_id,
+        "truth_epoch": _non_empty_text(progress_payload.get("truth_epoch"))
+        or _non_empty_text((study_truth_snapshot or {}).get("truth_epoch")),
+        "study_truth_snapshot": study_truth_snapshot,
         "current_stage": progress_payload.get("current_stage"),
         "current_stage_summary": progress_payload.get("current_stage_summary"),
         "current_blockers": list(progress_payload.get("current_blockers") or []),
@@ -233,6 +239,24 @@ def _study_item(
         "progress_freshness": progress_freshness or None,
         "commands": commands,
     }
+
+
+def _truth_snapshot_summary(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    keys = (
+        "truth_epoch",
+        "authority_epoch",
+        "canonical_next_action",
+        "blocking_reasons",
+        "dominant_authority_refs",
+        "allowed_controller_actions",
+        "package_state",
+        "writer_epoch",
+        "source_signature",
+    )
+    summary = {key: value[key] for key in keys if key in value}
+    return summary or None
 
 
 def _study_roots(profile: WorkspaceProfile) -> list[Path]:

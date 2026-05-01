@@ -42,16 +42,22 @@ def utc_now() -> str:
 def _serialize_managed_study_action(
     action_payload: dict[str, Any] | StudyRuntimeStatus,
 ) -> dict[str, Any]:
+    payload = _managed_study_status_payload(action_payload)
     action = (
         action_payload
         if isinstance(action_payload, StudyRuntimeStatus)
         else StudyRuntimeStatus.from_payload(action_payload)
     )
-    return {
+    serialized = {
         "study_id": action.study_id,
         "decision": action.decision.value if action.decision is not None else None,
         "reason": action.reason.value if action.reason is not None else None,
     }
+    truth_snapshot = _truth_snapshot_summary(payload.get("study_truth_snapshot"))
+    if truth_snapshot is not None:
+        serialized["truth_epoch"] = _non_empty_text(truth_snapshot.get("truth_epoch"))
+        serialized["study_truth_snapshot"] = truth_snapshot
+    return serialized
 
 
 def _managed_study_status_payload(
@@ -65,6 +71,24 @@ def _managed_study_status_payload(
 def _non_empty_text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _truth_snapshot_summary(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    keys = (
+        "truth_epoch",
+        "authority_epoch",
+        "canonical_next_action",
+        "blocking_reasons",
+        "dominant_authority_refs",
+        "allowed_controller_actions",
+        "package_state",
+        "writer_epoch",
+        "source_signature",
+    )
+    summary = {key: value[key] for key in keys if key in value}
+    return summary or None
 
 
 def _candidate_path(value: object) -> Path | None:

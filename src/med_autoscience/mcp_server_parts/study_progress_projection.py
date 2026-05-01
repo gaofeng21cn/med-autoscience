@@ -148,6 +148,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
     compact_keys = (
         "schema_version",
         "generated_at",
+        "truth_epoch",
         "study_id",
         "study_root",
         "quest_id",
@@ -291,6 +292,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "task_intake": _compact_task_intake,
         "runtime_efficiency": _compact_runtime_efficiency,
         "module_surfaces": _compact_module_surfaces,
+        "study_truth_snapshot": _compact_study_truth_snapshot,
     }.items():
         item = builder(payload.get(key))
         if item is not None:
@@ -303,6 +305,25 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "full_detail_surface": "CLI study-progress --format json",
     }
     return compact
+
+
+def _compact_study_truth_snapshot(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    return _compact_record(
+        value,
+        (
+            "truth_epoch",
+            "authority_epoch",
+            "canonical_next_action",
+            "blocking_reasons",
+            "dominant_authority_refs",
+            "allowed_controller_actions",
+            "package_state",
+            "writer_epoch",
+            "source_signature",
+        ),
+    )
 
 
 def compact_study_runtime_result_for_mcp(payload: dict[str, Any]) -> dict[str, Any]:

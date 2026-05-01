@@ -24,6 +24,7 @@ def _attention_item(
     gate_clearing_followthrough: dict[str, Any] | None = None,
     autonomy_soak_status: dict[str, Any] | None = None,
     research_runtime_control_projection: dict[str, Any] | None = None,
+    study_truth_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "priority": _ATTENTION_PRIORITIES.get(code, 999),
@@ -45,6 +46,7 @@ def _attention_item(
         "gate_clearing_followthrough": dict(gate_clearing_followthrough or {}) or None,
         "autonomy_soak_status": dict(autonomy_soak_status or {}) or None,
         "research_runtime_control_projection": dict(research_runtime_control_projection or {}) or None,
+        "study_truth_snapshot": dict(study_truth_snapshot or {}) or None,
     }
 
 
@@ -354,6 +356,7 @@ def _attention_queue(
         gate_clearing_followthrough = dict(item.get("gate_clearing_followthrough") or {})
         autonomy_soak_status = dict(item.get("autonomy_soak_status") or {})
         research_runtime_control_projection = dict(item.get("research_runtime_control_projection") or {})
+        study_truth_snapshot = dict(item.get("study_truth_snapshot") or {})
         gate_clearing_summary = _gate_clearing_followthrough_summary(gate_clearing_followthrough)
         quality_repair_step_id = _non_empty_text(quality_repair_followthrough.get("recommended_step_id"))
         quality_repair_command = _non_empty_text(quality_repair_followthrough.get("recommended_command"))
@@ -403,6 +406,7 @@ def _attention_queue(
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                     research_runtime_control_projection=research_runtime_control_projection,
+                    study_truth_snapshot=study_truth_snapshot,
                 )
             )
             continue
@@ -433,6 +437,7 @@ def _attention_queue(
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                     research_runtime_control_projection=research_runtime_control_projection,
+                    study_truth_snapshot=study_truth_snapshot,
                 )
             )
             continue
@@ -457,6 +462,7 @@ def _attention_queue(
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                     research_runtime_control_projection=research_runtime_control_projection,
+                    study_truth_snapshot=study_truth_snapshot,
                 )
             )
             continue
@@ -481,6 +487,7 @@ def _attention_queue(
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                     research_runtime_control_projection=research_runtime_control_projection,
+                    study_truth_snapshot=study_truth_snapshot,
                 )
             )
             continue
@@ -509,6 +516,7 @@ def _attention_queue(
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                     research_runtime_control_projection=research_runtime_control_projection,
+                    study_truth_snapshot=study_truth_snapshot,
                 )
             )
             continue
@@ -547,6 +555,7 @@ def _attention_queue(
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                     research_runtime_control_projection=research_runtime_control_projection,
+                    study_truth_snapshot=study_truth_snapshot,
                 )
             )
             continue
@@ -574,6 +583,7 @@ def _attention_queue(
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                     research_runtime_control_projection=research_runtime_control_projection,
+                    study_truth_snapshot=study_truth_snapshot,
                 )
             )
             continue
@@ -601,6 +611,7 @@ def _attention_queue(
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                     research_runtime_control_projection=research_runtime_control_projection,
+                    study_truth_snapshot=study_truth_snapshot,
                 )
             )
             continue
@@ -634,6 +645,7 @@ def _attention_queue(
                     gate_clearing_followthrough=gate_clearing_followthrough,
                     autonomy_soak_status=autonomy_soak_status,
                     research_runtime_control_projection=research_runtime_control_projection,
+                    study_truth_snapshot=study_truth_snapshot,
                 )
             )
 
