@@ -331,7 +331,7 @@ def build_study_progress_projection(
     parked_status["runtime_liveness_status"] = runtime_facts.runtime_liveness_status
     parked_status["active_run_id"] = runtime_facts.active_run_id
     if runtime_facts.runtime_liveness_status == "parked" and runtime_facts.active_run_id is None:
-        parked_status["reason"] = "completed_parked_auto_continue_no_new_message"
+        parked_status["reason"] = runtime_facts.reason or "completed_parked_auto_continue_no_new_message"
         parked_status.setdefault("decision", "blocked")
         parked_status.setdefault("quest_status", runtime_facts.quest_status or "active")
     auto_runtime_parked = build_progress_parked_projection(
@@ -700,6 +700,7 @@ def build_study_progress_projection(
         runtime_watch_path=runtime_watch_path,
         controller_decision_path=controller_decision_path,
     )
+    supervision_health_status = "parked" if bool(auto_runtime_parked.get("parked")) else runtime_health_status
     research_runtime_control_projection = _research_runtime_control_projection(
         study_commands=study_commands,
         autonomy_contract=autonomy_contract,
@@ -785,7 +786,7 @@ def build_study_progress_projection(
                 autonomous_runtime_notice=autonomous_runtime_notice,
                 continuation_state=continuation_state,
             ),
-            "health_status": runtime_health_status,
+            "health_status": supervision_health_status,
             "supervisor_tick_status": _non_empty_text(supervisor_tick_audit.get("status")),
             "supervisor_tick_required": bool(supervisor_tick_audit.get("required")),
             "supervisor_tick_summary": _non_empty_text(supervisor_tick_audit.get("summary")),

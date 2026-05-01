@@ -456,6 +456,45 @@ def test_control_plane_facts_do_not_treat_completed_parked_run_as_strict_live(tm
     assert facts.to_mds_worker_activity()["activity_state"] == "parked"
 
 
+def test_control_plane_facts_treat_closeout_continuation_as_parked_not_recovery() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_facts")
+
+    facts = module.resolve_control_plane_facts(
+        {
+            "quest_status": "active",
+            "decision": "lightweight",
+            "reason": "entry_mode_not_managed",
+            "runtime_liveness_status": "unknown",
+            "active_run_id": None,
+            "runtime_liveness_audit": {
+                "status": "unknown",
+                "active_run_id": None,
+                "runtime_audit": {
+                    "status": "unknown",
+                    "active_run_id": None,
+                    "worker_running": False,
+                },
+            },
+            "continuation_state": {
+                "quest_status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_reason": "parked_after_checkpoint_no_new_message",
+            },
+        },
+        supervisor_tick_audit={"status": "fresh"},
+    )
+
+    assert facts.runtime_liveness_status == "parked"
+    assert facts.reason == "parked_after_checkpoint_no_new_message"
+    assert facts.active_run_id is None
+    assert facts.active_run_id_source == "continuation_state.parked_closeout"
+    assert facts.strict_live is False
+    assert facts.missing_live_session is False
+    assert facts.recovery_pending is False
+    assert facts.to_mds_worker_activity()["activity_state"] == "parked"
+
+
 def test_study_runtime_status_exposes_mds_worker_activity(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)

@@ -13,6 +13,12 @@ _NO_LIVE_REASONS = frozenset(
         "running_quest_live_session_audit_failed",
     }
 )
+_PARKED_CLOSEOUT_REASONS = frozenset(
+    {
+        "completed_parked_auto_continue_no_new_message",
+        "parked_after_checkpoint_no_new_message",
+    }
+)
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -62,6 +68,17 @@ def _completed_parked_auto_continue_run(status_payload: Mapping[str, Any], activ
         and _text(command_payload.get("turn_mode")) == "parked"
         and result_payload.get("exit_code") == 0
     )
+
+
+def _parked_closeout_continuation(continuation_state: Mapping[str, Any]) -> str | None:
+    continuation_reason = _text(continuation_state.get("continuation_reason"))
+    if continuation_reason not in _PARKED_CLOSEOUT_REASONS:
+        return None
+    if _text(continuation_state.get("continuation_policy")) != "wait_for_user_or_resume":
+        return None
+    if _text(continuation_state.get("active_run_id")) is not None:
+        return None
+    return continuation_reason
 
 
 @dataclass(frozen=True)
@@ -163,6 +180,16 @@ def resolve_control_plane_facts(
         stop_requested = False
         active_run_id = None
         active_run_id_source = "completed_parked_auto_continue"
+        reason = "completed_parked_auto_continue_no_new_message"
+    parked_closeout_reason = _parked_closeout_continuation(continuation_state)
+    if parked_closeout_reason is not None:
+        runtime_liveness_status = "parked"
+        worker_running = False
+        worker_pending = False
+        stop_requested = False
+        active_run_id = None
+        active_run_id_source = "continuation_state.parked_closeout"
+        reason = parked_closeout_reason
     strict_live = runtime_liveness_status == "live" and active_run_id is not None and worker_running is True
     supervisor_tick_status = _text(supervisor_tick.get("status"))
     trusted_active_run_for_recovery = active_run_id_source in {
@@ -172,7 +199,7 @@ def resolve_control_plane_facts(
         "runtime_liveness_audit.active_run_id",
         "runtime_audit.active_run_id",
     }
-    missing_live_session = (
+    missing_live_session = runtime_liveness_status != "parked" and (
         (reason in _NO_LIVE_REASONS and not trusted_active_run_for_recovery)
         or (quest_status in _ACTIVE_QUEST_STATUSES and runtime_liveness_status == "none")
         or (quest_status in _ACTIVE_QUEST_STATUSES and supervisor_tick_status in {"missing", "stale", "invalid"})

@@ -57,6 +57,20 @@ _EXPLICIT_RESUME_REASONS = frozenset(
         "parked_after_checkpoint_no_new_message",
     }
 )
+_PARKED_CLOSEOUT_REASONS = frozenset(
+    {
+        "completed_parked_auto_continue_no_new_message",
+        "parked_after_checkpoint_no_new_message",
+    }
+)
+
+_WEAK_RUNTIME_REASONS = frozenset(
+    {
+        "entry_mode_not_managed",
+        "quest_already_running",
+        "quest_marked_running_but_no_live_session",
+    }
+)
 
 _PREFLIGHT_CONTRACT_REASONS = frozenset(
     {
@@ -198,6 +212,24 @@ def _state_from_runtime_failure(classification: Mapping[str, Any]) -> str | None
     return None
 
 
+def _reason_from_parked_continuation(
+    status_payload: Mapping[str, Any],
+    *,
+    current_reason: str | None,
+) -> str | None:
+    continuation_state = _mapping(status_payload.get("continuation_state"))
+    continuation_reason = _text(continuation_state.get("continuation_reason"))
+    if continuation_reason not in _PARKED_CLOSEOUT_REASONS:
+        return current_reason
+    if _text(continuation_state.get("continuation_policy")) != "wait_for_user_or_resume":
+        return current_reason
+    if _text(continuation_state.get("active_run_id")) is not None:
+        return current_reason
+    if current_reason is not None and current_reason not in _WEAK_RUNTIME_REASONS:
+        return current_reason
+    return continuation_reason
+
+
 def _state_from_reason(
     *,
     reason: str | None,
@@ -318,8 +350,10 @@ def build_auto_runtime_parked_projection(
 ) -> dict[str, Any]:
     status_payload = _mapping(status)
     reason = _text(status_payload.get("reason")) or _text(status_payload.get("runtime_reason"))
+    reason = _reason_from_parked_continuation(status_payload, current_reason=reason)
     decision = _text(status_payload.get("decision")) or _text(status_payload.get("runtime_decision"))
-    quest_status = _text(status_payload.get("quest_status"))
+    continuation_state = _mapping(status_payload.get("continuation_state"))
+    quest_status = _text(status_payload.get("quest_status")) or _text(continuation_state.get("quest_status"))
     interaction_arbitration = _mapping(status_payload.get("interaction_arbitration"))
     publication_supervisor_state = _mapping(status_payload.get("publication_supervisor_state"))
     manual_finish = _mapping(manual_finish_contract)

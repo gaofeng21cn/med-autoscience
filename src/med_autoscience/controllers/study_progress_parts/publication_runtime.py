@@ -254,9 +254,13 @@ def _runtime_module_surface(
     manual_finish_active = _manual_finish_active(manual_finish_contract)
     runtime_parked = bool((auto_runtime_parked or {}).get("parked"))
     runtime_health_status = (
-        _non_empty_text(status.get("runtime_liveness_status")) or "none"
-        if manual_finish_active or runtime_parked
-        else _non_empty_text((runtime_supervision_payload or {}).get("health_status")) or "unknown"
+        "parked"
+        if runtime_parked
+        else (
+            _non_empty_text(status.get("runtime_liveness_status")) or "none"
+            if manual_finish_active
+            else _non_empty_text((runtime_supervision_payload or {}).get("health_status")) or "unknown"
+        )
     )
     current_required_action = (
         _non_empty_text(publication_supervisor_state.get("current_required_action"))

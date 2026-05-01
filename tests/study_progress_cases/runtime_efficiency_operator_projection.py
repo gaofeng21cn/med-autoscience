@@ -366,6 +366,110 @@ def test_study_progress_projects_completed_parked_auto_continue_without_live_run
     assert result["operator_status_card"]["handling_state"] == "explicit_resume_pending"
 
 
+def test_study_progress_projects_closeout_continuation_as_parked_not_recovering(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_publication_eval(study_root, quest_root)
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "recorded_at": "2026-05-01T03:19:43+00:00",
+            "health_status": "recovering",
+            "summary": "系统已检测到运行掉线，正在自动尝试恢复。",
+            "next_action_summary": "等待下一次巡检确认 worker 已重新上线并恢复 live。",
+        },
+    )
+    monkeypatch.setattr(
+        profiler,
+        "profile_study_cycle",
+        lambda **_: {
+            "autonomy_progress_slo_status": {
+                "surface": "autonomy_progress_slo_status",
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "quest_id": "quest-001",
+                "state": "ok",
+                "breach_types": [],
+                "ai_doctor_request_required": False,
+                "ai_doctor_state": "not_required",
+                "quality_gate_relaxation_allowed": False,
+            }
+        },
+    )
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        status_payload={
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "product",
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "active",
+            "decision": "lightweight",
+            "reason": "entry_mode_not_managed",
+            "runtime_liveness_status": "unknown",
+            "active_run_id": None,
+            "runtime_liveness_audit": {
+                "status": "unknown",
+                "active_run_id": None,
+                "runtime_audit": {
+                    "status": "unknown",
+                    "active_run_id": None,
+                    "worker_running": False,
+                },
+            },
+            "continuation_state": {
+                "quest_status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "parked_after_checkpoint_no_new_message",
+            },
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+            },
+        },
+    )
+
+    assert result["current_stage"] == "auto_runtime_parked"
+    assert result["auto_runtime_parked"]["parked"] is True
+    assert result["auto_runtime_parked"]["parked_state"] == "explicit_resume_pending"
+    assert result["auto_runtime_parked"]["source_reason"] == "parked_after_checkpoint_no_new_message"
+    assert result["supervision"]["active_run_id"] is None
+    assert result["supervision"]["health_status"] == "parked"
+    assert result["module_surfaces"]["runtime"]["health_status"] == "parked"
+    assert result["operator_status_card"]["handling_state"] == "explicit_resume_pending"
+
+
 def test_study_progress_merges_autonomy_slo_refs_into_existing_projection(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)

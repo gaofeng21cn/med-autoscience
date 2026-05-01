@@ -175,6 +175,27 @@ def test_auto_runtime_parking_maps_completed_parked_auto_continue_to_explicit_re
     assert projection["awaiting_explicit_wakeup"] is True
 
 
+def test_auto_runtime_parking_prefers_parked_continuation_over_lightweight_entry_reason() -> None:
+    projection = _projection(
+        {
+            "decision": "lightweight",
+            "reason": "entry_mode_not_managed",
+            "quest_status": "active",
+            "continuation_state": {
+                "quest_status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_reason": "parked_after_checkpoint_no_new_message",
+            },
+        }
+    )
+
+    assert projection["parked"] is True
+    assert projection["parked_state"] == "explicit_resume_pending"
+    assert projection["source_reason"] == "parked_after_checkpoint_no_new_message"
+    assert projection["resource_release_expected"] is True
+
+
 def test_auto_runtime_parking_maps_repeated_stop_hold_and_same_blocker_pause_as_resource_release() -> None:
     repeated_decision_stop = _projection(
         {
