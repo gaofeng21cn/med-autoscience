@@ -8,6 +8,7 @@ __pycache__/
 ops/
 dist/
 build/
+tmp/
 *.egg-info/
 profiles/*.local.toml
 !profiles/*.template.toml
