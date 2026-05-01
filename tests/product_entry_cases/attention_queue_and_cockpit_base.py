@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shlex
+
 from . import shared as _shared
 
 def _module_reexport(module) -> None:
@@ -295,7 +297,7 @@ def test_study_item_normalizes_gate_clearing_batch_followthrough_from_progress_p
         "recommended_step_id": "inspect_gate_clearing_followthrough",
         "recommended_command": (
             "uv run python -m med_autoscience.cli study-progress --profile "
-            + str(profile_ref)
+            + shlex.quote(str(profile_ref))
             + " --study-id 001-risk"
         ),
         "gate_replay_status": "blocked",
