@@ -18,11 +18,15 @@ def test_workspace_gitignore_declares_lightweight_study_artifact_boundary() -> N
     assert "studies/*/manuscript/*.zip" in gitignore_text
     assert "studies/*/manuscript/*.pdf" in gitignore_text
     assert "studies/*/manuscript/*.docx" in gitignore_text
+    assert "studies/*/manuscript/*manifest.json" in gitignore_text
     assert "studies/*/paper/submission_minimal/**" in gitignore_text
     assert "studies/*/paper/build/**" in gitignore_text
     assert "studies/*/paper/latex/**" in gitignore_text
     assert "studies/*/paper/figures/**" in gitignore_text
     assert "studies/*/paper/tables/**" in gitignore_text
+    assert "studies/*/paper/derived/**" in gitignore_text
+    assert "studies/*/analysis/**/*.png" in gitignore_text
+    assert "studies/*/analysis/**/*.svg" in gitignore_text
 
 
 def test_workspace_gitignore_excludes_local_intake_archives_and_framework_mirrors() -> None:
@@ -251,6 +255,42 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
         capture_output=True,
     )
     assert check_analysis_payload.returncode == 0
+
+    analysis_figure = workspace_root / "studies" / "001" / "analysis" / "run1" / "figures" / "Figure1.png"
+    analysis_figure.parent.mkdir(parents=True, exist_ok=True)
+    analysis_figure.write_text("png placeholder\n", encoding="utf-8")
+    check_analysis_figure = subprocess.run(
+        ["git", "check-ignore", str(analysis_figure.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_analysis_figure.returncode == 0
+
+    paper_derived_payload = workspace_root / "studies" / "001" / "paper" / "derived" / "run1" / "means.csv"
+    paper_derived_payload.parent.mkdir(parents=True, exist_ok=True)
+    paper_derived_payload.write_text("id\n1\n", encoding="utf-8")
+    check_paper_derived_payload = subprocess.run(
+        ["git", "check-ignore", str(paper_derived_payload.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_paper_derived_payload.returncode == 0
+
+    manuscript_manifest = workspace_root / "studies" / "001" / "manuscript" / "delivery_manifest.json"
+    manuscript_manifest.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_manifest.write_text("{}\n", encoding="utf-8")
+    check_manuscript_manifest = subprocess.run(
+        ["git", "check-ignore", str(manuscript_manifest.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_manuscript_manifest.returncode == 0
 
 
 def test_init_workspace_backfills_gitignore_and_git_config_for_existing_repo(tmp_path: Path) -> None:

@@ -76,12 +76,15 @@ WORKSPACE_GITIGNORE_ENTRIES = (
     "studies/*/manuscript/*.zip",
     "studies/*/manuscript/*.pdf",
     "studies/*/manuscript/*.docx",
+    "studies/*/manuscript/*manifest.json",
+    "studies/*/manuscript/delivery_status.json",
     "studies/*/paper/submission_minimal/**",
     "studies/*/paper/build/**",
     "studies/*/paper/latex/**",
     "studies/*/paper/direct_migration/**",
     "studies/*/paper/figures/**",
     "studies/*/paper/tables/**",
+    "studies/*/paper/derived/**",
     "studies/*/submission_packages/**",
     "studies/*/analysis/**/*.csv",
     "studies/*/analysis/**/*.tsv",
@@ -89,6 +92,12 @@ WORKSPACE_GITIGNORE_ENTRIES = (
     "studies/*/analysis/**/*.xls",
     "studies/*/analysis/**/*.parquet",
     "studies/*/analysis/**/*.pkl",
+    "studies/*/analysis/**/*.png",
+    "studies/*/analysis/**/*.jpg",
+    "studies/*/analysis/**/*.jpeg",
+    "studies/*/analysis/**/*.pdf",
+    "studies/*/analysis/**/*.svg",
+    "studies/*/analysis/**/derived/**",
 )
 
 WORKSPACE_GIT_CONFIG_ENTRIES = (
