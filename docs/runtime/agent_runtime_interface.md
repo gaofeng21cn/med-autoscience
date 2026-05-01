@@ -357,6 +357,12 @@ quest 级 `data-asset-gate` 采用双层信号：
 
 因此，不要把 public-data 扩展机会误当成必须立刻中断主实验的阻断信号。
 
+大型 public data 资产（例如 MRI archive、GEO raw tar、SRA/FASTQ、影像 zip）默认先保持 remote-only：
+
+- 先登记 accession、license、cohort/modality、保留/拒绝理由与目标 study 作用。
+- 只有当 study charter 或 analysis plan 已写明具体用途、预计体积、复用位置与清理/保留策略时，才下载或物化完整数据。
+- 如果当前路线停题、止损或一时没有明确用途，应清理本地镜像，保留 registry 与 mutation log 作为可追溯入口。
+
 ## mutation payload 示例
 
 ### 示例 1：登记 public dataset

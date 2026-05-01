@@ -9,7 +9,7 @@ CONTROLLER_NOTE = (
     "It blocks or flags quest progression when the underlying study is using an outdated private release "
     "that is not paired with the latest release as an explicit historical comparator "
     "and flags newly registered public-data extension opportunities as advisory items whose default follow-through "
-    "is durable triage plus immediate download or materialization for retained datasets."
+    "is durable triage plus explicit planning before any large download or materialization."
 )
 
 
@@ -25,8 +25,9 @@ def build_intervention_message(report: dict[str, object]) -> str:
             f"Current advisory items for study `{report['study_id']}`: {', '.join(report.get('advisories') or ['none'])}. "
             f"Registered public-data extension opportunities: {public_candidates}. "
             "You do not need to stop the current run for this reason alone, but the default action is to triage it "
-            "durably, record retain / reject decisions through `apply-data-asset-update`, and start immediate "
-            "download or materialization follow-through for any retained public dataset. Return to `decision` or the "
+            "durably and record retain / reject decisions through `apply-data-asset-update`. For large public datasets, "
+            "do not download or materialize the asset until the study has an explicit use case, storage budget, "
+            "and reuse/prune plan. Return to `decision` or the "
             "study control surface before the next major experiment branch or manuscript expansion and record one "
             "explicit choice: (1) keep the current freeze and justify why, or (2) branch into an external-validation / "
             "mechanistic-extension route."

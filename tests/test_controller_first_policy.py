@@ -20,7 +20,7 @@ def test_render_controller_first_policy_block_lists_managed_task_domains() -> No
     assert "optional enrichment" in text
     assert "scout-first route selection" in text
     assert "proactive public-data discovery pass" in text
-    assert "immediate download or materialization follow-through" in text
+    assert "storage budget, and reuse/prune plan" in text
     assert "Only when the platform does not already provide a stable controller" in text
     assert "Reuse durable study memory and portfolio research memory before starting fresh external rediscovery" in text
     assert "Choose the lightest honest route that can answer the current stage question" in text

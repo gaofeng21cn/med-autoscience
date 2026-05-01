@@ -261,7 +261,7 @@ def render_boundary_custom_brief(
         )
         if required_first_anchor == "scout":
             sections.append(
-                "Check `portfolio/data_assets/public/registry.json` before route lock. If bounded public-data discovery for the current route-selection scope has not been recorded yet, complete that proactive scouting pass first, record retain / reject decisions through `apply-data-asset-update`, and kick off immediate download or materialization follow-through for retained public anchors unless the study contract explicitly waives public sidecars."
+                "Check `portfolio/data_assets/public/registry.json` before route lock. If bounded public-data discovery for the current route-selection scope has not been recorded yet, complete that proactive scouting pass first and record retain / reject decisions through `apply-data-asset-update`. Keep large retained public anchors remote-only until the study has an explicit use case, storage budget, and reuse/prune plan."
             )
         if missing_requirements:
             sections.append(f"Missing startup requirements: {', '.join(str(item) for item in missing_requirements)}.")

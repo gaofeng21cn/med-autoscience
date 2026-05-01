@@ -22,4 +22,4 @@ def test_render_boundary_custom_brief_requires_public_data_follow_through(tmp_pa
 
     assert "Check `portfolio/data_assets/public/registry.json` before route lock" in brief
     assert "record retain / reject decisions through `apply-data-asset-update`" in brief
-    assert "immediate download or materialization follow-through" in brief
+    assert "explicit use case, storage budget" in brief

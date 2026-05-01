@@ -218,7 +218,7 @@ def test_run_controller_enqueues_advisory_message_when_public_extension_availabl
     assert "public-data extension" in queue["pending"][0]["content"]
     assert "do not need to stop the current run" in queue["pending"][0]["content"]
     assert "default action is to triage it durably" in queue["pending"][0]["content"]
-    assert "start immediate download or materialization follow-through" in queue["pending"][0]["content"]
+    assert "explicit use case, storage budget" in queue["pending"][0]["content"]
 
 
 def test_run_controller_reports_unresolved_dataset_ids_in_hard_block_message(tmp_path: Path) -> None:

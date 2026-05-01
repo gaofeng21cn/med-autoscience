@@ -14,7 +14,7 @@ def render_controller_first_block() -> str:
         "- venue selection and journal shortlist evidence: `resolve-journal-shortlist` before any journal-facing recommendation or tier discussion",
         "- submission targets and journal requirements: only after a primary venue decision, use `resolve-submission-targets`, then `resolve-journal-requirements`; use `journal-resolution` only when the target is still unresolved",
         "- journal-facing delivery surface: after requirements are resolved, use `materialize-journal-package` to build the stable shallow submission package",
-        "- public dataset discovery and registration: for scout-first route selection and every paper-bound route, complete at least one proactive public-data discovery pass unless the study contract explicitly waives public sidecars; check `portfolio/data_assets/public/registry.json`, use `data-assets-status`, `startup-data-readiness`, and `tooluniverse-status` before acquisition, record retain / reject outcomes through `apply-data-asset-update`, and start immediate download or materialization follow-through for retained anchors",
+        "- public dataset discovery and registration: for scout-first route selection and every paper-bound route, complete at least one proactive public-data discovery pass unless the study contract explicitly waives public sidecars; check `portfolio/data_assets/public/registry.json`, use `data-assets-status`, `startup-data-readiness`, and `tooluniverse-status` before acquisition, record retain / reject outcomes through `apply-data-asset-update`, and require an explicit study use case, storage budget, and reuse/prune plan before downloading or materializing large retained anchors",
         "- startup and publication gates: use the existing startup/data/publication gate controllers before inventing ad-hoc route logic",
         "",
         "Fallback rule:",
@@ -43,8 +43,7 @@ def render_controller_first_summary() -> str:
         "fall back to `journal-resolution` only when the target is still unresolved. For scout-first or paper-bound routes, complete "
         "one proactive public-data discovery pass unless the study contract explicitly waives public sidecars: "
         "check `portfolio/data_assets/public/registry.json`, then use `data-assets-status`, `startup-data-readiness`, "
-        "`tooluniverse-status`, and `apply-data-asset-update`, and start immediate download or materialization "
-        "follow-through for retained anchors whenever the task falls inside their covered surface. Reuse durable study memory before fresh rediscovery and prefer the lightest honest route that answers the current stage question. "
+        "`tooluniverse-status`, and `apply-data-asset-update`; for large retained anchors, keep accession/metadata remote-only until a concrete study use case, storage budget, and reuse/prune plan justify download or materialization. Reuse durable study memory before fresh rediscovery and prefer the lightest honest route that answers the current stage question. "
         "Only when the platform does not already provide a stable controller may the agent fall back to browser/web/document tools, and any such fallback must be "
         "written back into durable MedAutoScience state. Before stage expansion, verify that the current stage has a durable result, blocker, or next-route record; when a quality or route gap appears, record it and route back through `decision` or the named `required_first_anchor`."
     )
