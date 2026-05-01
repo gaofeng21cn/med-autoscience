@@ -15,6 +15,7 @@ PLATFORM_INCIDENT_TYPES: tuple[str, ...] = (
     "publication_gate_failure",
     "runtime_recovery_failure",
     "surface_ownership_drift",
+    "truth_authority_drift",
 )
 
 PREVENTION_ACTION_TYPES: tuple[str, ...] = (
@@ -24,6 +25,7 @@ PREVENTION_ACTION_TYPES: tuple[str, ...] = (
     "runbook",
     "runtime_taxonomy",
     "strangler_rule",
+    "truth_kernel_rule",
 )
 
 _INCIDENT_BOTTLENECKS = frozenset(
@@ -43,6 +45,7 @@ _PLATFORM_INCIDENT_LABELS = {
     "publication_gate_failure": "publication gate failure",
     "runtime_recovery_failure": "runtime recovery failure",
     "surface_ownership_drift": "surface ownership drift",
+    "truth_authority_drift": "truth authority drift",
 }
 _PREVENTION_ACTION_BY_INCIDENT = {
     "no_live": {
@@ -84,6 +87,15 @@ _PREVENTION_ACTION_BY_INCIDENT = {
         "action_type": "strangler_rule",
         "controller_surface": "controller_decisions/latest.json",
         "summary": "Keep ownership drift behind a strangler rule instead of spreading ad-hoc writes.",
+    },
+    "truth_authority_drift": {
+        "action_type": "truth_kernel_rule",
+        "controller_surface": "artifacts/truth/latest.json",
+        "summary": (
+            "Convert the drift into a StudyTruthKernel dominance rule, a golden fixture, "
+            "and a runbook entry before retrying."
+        ),
+        "required_artifacts": ["reducer_rule", "fixture_test", "runbook_entry"],
     },
     "runtime_recovery_churn": {
         "action_type": "runtime_taxonomy",
@@ -327,6 +339,7 @@ def build_platform_incident_learning_loop(profile_payload: Mapping[str, Any]) ->
                 "runbook",
                 "runtime_taxonomy",
                 "strangler_rule",
+                "truth_kernel_rule",
             ),
         },
         "incident_count": len(incidents),
