@@ -250,6 +250,22 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
             scan_text_file_for_patterns(path, patterns=publication_surface_residue_patterns)
         )
     publication_surface_residue_hits = unique_hits(publication_surface_residue_hits)
+    medical_journal_prose_patterns = medical_surface_policy.get_medical_journal_prose_patterns()
+    medical_journal_prose_hits: list[dict[str, Any]] = []
+    medical_journal_prose_hits.extend(
+        scan_text_file_for_patterns(state.draft_path, patterns=medical_journal_prose_patterns)
+    )
+    medical_journal_prose_hits.extend(
+        scan_text_file_for_patterns(state.review_manuscript_path, patterns=medical_journal_prose_patterns)
+    )
+    medical_journal_prose_hits.extend(
+        inspect_results_narrative_surface_language(
+            path=state.results_narrative_map_path,
+            payload=results_narrative_payload,
+            patterns=medical_journal_prose_patterns,
+        )
+    )
+    medical_journal_prose_hits = unique_hits(medical_journal_prose_hits)
     results_narration_hits: list[dict[str, Any]] = []
     results_narration_hits.extend(scan_results_narration_text_file(state.draft_path))
     results_narration_hits.extend(scan_results_narration_text_file(state.review_manuscript_path))
@@ -358,6 +374,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(results_narration_hits)
     hits.extend(analysis_plane_jargon_hits)
     hits.extend(publication_surface_residue_hits)
+    hits.extend(medical_journal_prose_hits)
     hits.extend(forbidden_hits)
     hits.extend(public_data_surface_hits)
     hits.extend(public_evidence_decision_hits)
@@ -417,6 +434,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("non_formal_question_sentence_present")
     if analysis_plane_jargon_hits:
         blockers.append("analysis_plane_jargon_present_on_manuscript_surface")
+    if medical_journal_prose_hits:
+        blockers.append("medical_journal_prose_style_not_met")
     if any(hit["pattern_id"] == "public_evidence_decisions_missing_or_incomplete" for hit in public_evidence_decision_hits):
         blockers.append("public_evidence_decisions_missing_or_incomplete")
     if any(
@@ -473,6 +492,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "medical_story_contract_structural_valid": medical_story_contract_structural_valid,
         "medical_story_contract_valid": medical_story_contract_valid,
         "manuscript_rhetoric_medical_publication_native": not analysis_plane_jargon_hits,
+        "medical_journal_prose_style_valid": not medical_journal_prose_hits,
         "results_display_surface_valid": not results_display_surface_hits,
         "figure_semantics_manifest_path": str(state.figure_semantics_manifest_path),
         "figure_semantics_manifest_present": state.figure_semantics_manifest_path.exists(),
@@ -506,6 +526,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "public_evidence_decision_count": int(public_evidence_surface_state.get("decision_count") or 0),
         "public_evidence_earned_count": int(public_evidence_surface_state.get("earned_count") or 0),
         "analysis_plane_jargon_hit_count": len(analysis_plane_jargon_hits),
+        "medical_journal_prose_style_hit_count": len(medical_journal_prose_hits),
         "forbidden_hit_count": len(hits),
         "undefined_methodology_label_hit_count": len(undefined_methodology_label_hits),
         "results_narration_hit_count": len(results_narration_hits),
@@ -552,6 +573,7 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
             f"- manuscript_rhetoric_medical_publication_native: "
             f"`{report.get('manuscript_rhetoric_medical_publication_native', True)}`"
         ),
+        f"- medical_journal_prose_style_valid: `{report.get('medical_journal_prose_style_valid', True)}`",
         f"- figure_semantics_manifest_present: `{report['figure_semantics_manifest_present']}`",
         f"- figure_semantics_manifest_valid: `{report['figure_semantics_manifest_valid']}`",
         f"- claim_evidence_map_present: `{report.get('claim_evidence_map_present', False)}`",
@@ -585,6 +607,7 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- public_evidence_decision_count: `{report.get('public_evidence_decision_count', 0)}`",
         f"- public_evidence_earned_count: `{report.get('public_evidence_earned_count', 0)}`",
         f"- forbidden_hit_count: `{report['forbidden_hit_count']}`",
+        f"- medical_journal_prose_style_hit_count: `{report.get('medical_journal_prose_style_hit_count', 0)}`",
         f"- undefined_methodology_label_hit_count: `{report['undefined_methodology_label_hit_count']}`",
         f"- results_narration_hit_count: `{report['results_narration_hit_count']}`",
         f"- non_formal_question_hit_count: `{report.get('non_formal_question_hit_count', 0)}`",

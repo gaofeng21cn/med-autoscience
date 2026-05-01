@@ -17,7 +17,7 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
         },
         {
             "field": "evidence_strength",
-            "weight": 35,
+            "weight": 30,
             "focus": "judge whether claim-to-evidence support is strong enough for paper-facing statements",
         },
         {
@@ -26,8 +26,13 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
             "focus": "judge whether contribution boundaries and explanation targets are explicit and defensible",
         },
         {
+            "field": "medical_journal_prose_quality",
+            "weight": 15,
+            "focus": "judge whether the draft reads as medical journal prose with clinical framing, restrained claims, and reader-facing result interpretation",
+        },
+        {
             "field": "human_review_readiness",
-            "weight": 20,
+            "weight": 10,
             "focus": "judge whether the human-facing package is stable enough to release for review",
         },
     ],
@@ -39,6 +44,7 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
     "required_outputs": [
         {"field": "overall_diagnosis", "description": "global diagnosis of the current publication-quality state"},
         {"field": "top_priority_issue", "description": "the single issue that should be repaired first"},
+        {"field": "style_diagnosis", "description": "diagnosis of whether the manuscript voice reads as a medical journal article rather than a work report"},
         {"field": "revision_items", "description": "ordered revision items with explicit done criteria"},
         {"field": "next_review_focus", "description": "what the next re-review pass must verify"},
     ],

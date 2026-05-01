@@ -32,7 +32,24 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
     assert draft_contract["required_before"] == "first_full_draft"
     assert "Introduction" in draft_contract["core_structure"]["article_body"]
     assert "author_confirmation_placeholder" in draft_contract["manuscript_native_prose"]["forbidden_modes"]
+    prose_contract = draft_contract["medical_prose_style_contract"]
+    assert prose_contract["style_profile_id"] == "general_medical_journal_prose_v1"
+    assert prose_contract["target_voice"] == "neutral_clinical_original_research"
+    assert "clinician_researcher" in prose_contract["target_readers"]
+    assert "clinical_problem_to_evidence_gap_to_objective" in prose_contract["introduction_rhetoric"]["paragraph_sequence"]
+    assert "old_to_new_information_flow" in prose_contract["sentence_information_flow"]["required_patterns"]
+    assert "clinical_finding_as_sentence_subject" in prose_contract["results_prose"]["required_patterns"]
+    assert "figure_or_table_as_sentence_subject" in prose_contract["results_prose"]["forbidden_patterns"]
+    assert "principal_finding_then_prior_work_then_interpretation_then_limitations" in prose_contract["discussion_prose"]["paragraph_sequence"]
+    assert "unsupported_no_difference_or_no_association" in prose_contract["forbidden_scientific_style"]
+    blueprint_contract = draft_contract["medical_manuscript_blueprint_contract"]
+    assert blueprint_contract["surface"] == "medical_manuscript_blueprint"
+    assert blueprint_contract["required_before"] == "first_full_draft"
+    assert "clinical_problem" in blueprint_contract["required_fields"]
+    assert "paper/claim_evidence_map.json" in blueprint_contract["required_source_surfaces"]
     assert "display_to_claim_map" in draft_contract["first_draft_generation_model"]["pre_draft_inputs"]
+    assert "medical_manuscript_blueprint" in draft_contract["first_draft_generation_model"]["pre_draft_inputs"]
+    assert "medical_prose_style_contract" in draft_contract["first_draft_generation_model"]["pre_draft_inputs"]
     assert "paper/results_narrative_map.json" in draft_contract["must_bind_existing_surfaces"]
     assert contract["quality_contract"]["stronger_paper_shape_scan"]["status"] == (
         "required_before_first_full_draft"

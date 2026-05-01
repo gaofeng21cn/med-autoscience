@@ -96,9 +96,10 @@ def test_read_evaluation_summary_overrides_stale_bundle_only_agenda_with_latest_
         "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
         "weight_contract": {
             "clinical_significance": 25,
-            "evidence_strength": 35,
+            "evidence_strength": 30,
             "novelty_positioning": 20,
-            "human_review_readiness": 20,
+            "medical_journal_prose_quality": 15,
+            "human_review_readiness": 10,
         },
         "items": [
             {
@@ -135,9 +136,10 @@ def test_read_evaluation_summary_overrides_stale_bundle_only_agenda_with_latest_
         "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
         "weight_contract": {
             "clinical_significance": 25,
-            "evidence_strength": 35,
+            "evidence_strength": 30,
             "novelty_positioning": 20,
-            "human_review_readiness": 20,
+            "medical_journal_prose_quality": 15,
+            "human_review_readiness": 10,
         },
         "items": [
             {
@@ -193,9 +195,10 @@ def test_read_evaluation_summary_derives_quality_review_agenda_when_missing(tmp_
         "overall_diagnosis": "核心科学质量还没有闭环；当前应先回到 analysis-campaign 完成最窄补充修复。",
         "weight_contract": {
             "clinical_significance": 25,
-            "evidence_strength": 35,
+            "evidence_strength": 30,
             "novelty_positioning": 20,
-            "human_review_readiness": 20,
+            "medical_journal_prose_quality": 15,
+            "human_review_readiness": 10,
         },
         "items": [
             {

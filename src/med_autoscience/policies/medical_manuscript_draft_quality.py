@@ -133,6 +133,51 @@ METHOD_LABEL_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("calibration-first", "calibration-first", r"\bcalibration-first\b", re.IGNORECASE),
 ]
 
+MEDICAL_JOURNAL_PROSE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
+    (
+        "figure_table_subject_results_sentence",
+        "Figure/Table as Results sentence subject",
+        r"\b(?:Figure|Table)\s+\d+[A-Za-z]?\s+(?:shows|summarizes|presents|demonstrates|illustrates)\b",
+        re.IGNORECASE,
+    ),
+    (
+        "unsupported_no_difference_claim",
+        "unsupported no difference/no association claim",
+        r"\b(?:there\s+was|there\s+were|we\s+found|the\s+analysis\s+found)\s+no\s+(?:statistically\s+significant\s+)?(?:difference|association|relationship)\b",
+        re.IGNORECASE,
+    ),
+    (
+        "overstated_best_or_novelty_claim",
+        "best/novel without explicit support",
+        r"\bbest\s+model\s+for\s+clinical\s+use\b|\b(?:the\s+)?(?:best|first|novel|unique|unprecedented|state-of-the-art)\s+(?:study|model|analysis|method|tool|approach)\b",
+        re.IGNORECASE,
+    ),
+    (
+        "project_status_report_opening",
+        "project/status-report prose",
+        r"\b(?:this project has completed|current package|current bundle|submission tasks|controller-approved|writing route continued|outputs were synchronized)\b",
+        re.IGNORECASE,
+    ),
+    (
+        "controller_artifact_subject",
+        "controller/artifact as manuscript subject",
+        r"\b(?:controller checklist|controller|analysis surface|claim boundary surface|run logs?|packaging metadata|paper bundle)\b",
+        re.IGNORECASE,
+    ),
+    (
+        "tool_runtime_provenance_body",
+        "tool/runtime provenance in manuscript body",
+        r"\b(?:quest|worktree|run logs?|packaging metadata|current package)\b|\b(?:pipeline|artifact)s?\s+(?:completed|generated|synchronized|refreshed)\b",
+        re.IGNORECASE,
+    ),
+    (
+        "weak_success_language",
+        "worked well / ready for review",
+        r"\b(?:worked well|ready for review|good performance|performed well)\b",
+        re.IGNORECASE,
+    ),
+]
+
 SOURCE_BASIS = (
     {
         "authority": "ICMJE Recommendations",
@@ -155,6 +200,106 @@ SOURCE_BASIS = (
         "role": "observational-study manuscript reporting contract",
     },
 )
+
+PROSE_STYLE_SOURCE_BASIS = (
+    "Zeiger biomedical research paper writing",
+    "JAMA editors precision and concrete wording",
+    "Gopen and Swan reader expectation model",
+    "general medical journal original research exemplars",
+)
+
+
+def build_medical_prose_style_contract() -> dict[str, Any]:
+    return {
+        "style_profile_id": "general_medical_journal_prose_v1",
+        "target_voice": "neutral_clinical_original_research",
+        "target_readers": ["clinician_researcher", "statistical_reviewer", "journal_editor"],
+        "introduction_rhetoric": {
+            "paragraph_sequence": [
+                "clinical_problem_to_evidence_gap_to_objective",
+                "why_the_gap_matters_for_patients_or_clinicians",
+                "present_study_objective_and_contribution",
+            ],
+            "forbidden_openings": [
+                "project_status_report",
+                "pipeline_progress_summary",
+                "generic_disease_burden_without_study_gap",
+            ],
+        },
+        "sentence_information_flow": {
+            "required_patterns": [
+                "old_to_new_information_flow",
+                "known_context_before_new_claim",
+                "stress_position_contains_finding_or_boundary",
+            ],
+            "forbidden_patterns": [
+                "controller_term_as_topic",
+                "file_or_artifact_as_topic",
+                "chronological_execution_log_flow",
+            ],
+        },
+        "results_prose": {
+            "required_patterns": [
+                "clinical_finding_as_sentence_subject",
+                "quantitative_result_before_display_citation",
+                "clinical_meaning_after_metric_when_supported",
+            ],
+            "forbidden_patterns": [
+                "figure_or_table_as_sentence_subject",
+                "question_answer_work_report_frame",
+                "metric_name_without_clinical_referent",
+            ],
+        },
+        "discussion_prose": {
+            "paragraph_sequence": [
+                "principal_finding_then_prior_work_then_interpretation_then_limitations",
+                "clinical_implication_with_explicit_boundary",
+                "conservative_conclusion_without_claim_upgrade",
+            ],
+            "forbidden_patterns": [
+                "claim_boundary_meta_language",
+                "submission_or_gate_status_language",
+                "unsupported_practice_recommendation",
+            ],
+        },
+        "forbidden_scientific_style": [
+            "unsupported_no_difference_or_no_association",
+            "overstated_novelty_or_best_language",
+            "administrative_or_author_instruction_in_body",
+            "tool_or_runtime_provenance_in_body",
+        ],
+        "source_basis": list(PROSE_STYLE_SOURCE_BASIS),
+    }
+
+
+def build_medical_manuscript_blueprint_contract() -> dict[str, Any]:
+    return {
+        "surface": "medical_manuscript_blueprint",
+        "required_before": "first_full_draft",
+        "gate_relaxation_allowed": False,
+        "required_fields": [
+            "clinical_problem",
+            "evidence_gap",
+            "target_population",
+            "study_design",
+            "primary_results",
+            "clinical_interpretation",
+            "limitations",
+            "claim_evidence_map",
+            "figure_table_roles",
+        ],
+        "required_source_surfaces": [
+            "study_charter.paper_quality_contract",
+            "paper/results_narrative_map.json",
+            "paper/claim_evidence_map.json",
+            "paper/figure_semantics_manifest.json",
+            "paper/evidence_ledger.json",
+        ],
+        "writer_rule": (
+            "compile this blueprint before prose generation and route back when the manuscript voice "
+            "would otherwise be derived from run logs, controller checklists, or packaging metadata"
+        ),
+    }
 
 
 def build_work_report_residue_clause(top_hits: object) -> str:
@@ -209,6 +354,8 @@ def build_first_draft_manuscript_quality_contract(
             "result_section_rule": "answer the clinical finding directly, then cite supporting figures or tables",
             "scope_boundary_rule": "state limits as clinical interpretation and limitations, not as controller notes",
         },
+        "medical_prose_style_contract": build_medical_prose_style_contract(),
+        "medical_manuscript_blueprint_contract": build_medical_manuscript_blueprint_contract(),
         "first_draft_generation_model": {
             "pre_draft_inputs": [
                 "clinical_problem",
@@ -219,6 +366,8 @@ def build_first_draft_manuscript_quality_contract(
                 "analysis_plan",
                 "display_to_claim_map",
                 "reader_facing_contribution",
+                "medical_manuscript_blueprint",
+                "medical_prose_style_contract",
             ],
             "writer_obligations": [
                 "convert research questions into clinical findings rather than question-answer prose",

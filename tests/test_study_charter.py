@@ -301,6 +301,98 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
                     "result_section_rule": "answer the clinical finding directly, then cite supporting figures or tables",
                     "scope_boundary_rule": "state limits as clinical interpretation and limitations, not as controller notes",
                 },
+                "medical_prose_style_contract": {
+                    "style_profile_id": "general_medical_journal_prose_v1",
+                    "target_voice": "neutral_clinical_original_research",
+                    "target_readers": ["clinician_researcher", "statistical_reviewer", "journal_editor"],
+                    "introduction_rhetoric": {
+                        "paragraph_sequence": [
+                            "clinical_problem_to_evidence_gap_to_objective",
+                            "why_the_gap_matters_for_patients_or_clinicians",
+                            "present_study_objective_and_contribution",
+                        ],
+                        "forbidden_openings": [
+                            "project_status_report",
+                            "pipeline_progress_summary",
+                            "generic_disease_burden_without_study_gap",
+                        ],
+                    },
+                    "sentence_information_flow": {
+                        "required_patterns": [
+                            "old_to_new_information_flow",
+                            "known_context_before_new_claim",
+                            "stress_position_contains_finding_or_boundary",
+                        ],
+                        "forbidden_patterns": [
+                            "controller_term_as_topic",
+                            "file_or_artifact_as_topic",
+                            "chronological_execution_log_flow",
+                        ],
+                    },
+                    "results_prose": {
+                        "required_patterns": [
+                            "clinical_finding_as_sentence_subject",
+                            "quantitative_result_before_display_citation",
+                            "clinical_meaning_after_metric_when_supported",
+                        ],
+                        "forbidden_patterns": [
+                            "figure_or_table_as_sentence_subject",
+                            "question_answer_work_report_frame",
+                            "metric_name_without_clinical_referent",
+                        ],
+                    },
+                    "discussion_prose": {
+                        "paragraph_sequence": [
+                            "principal_finding_then_prior_work_then_interpretation_then_limitations",
+                            "clinical_implication_with_explicit_boundary",
+                            "conservative_conclusion_without_claim_upgrade",
+                        ],
+                        "forbidden_patterns": [
+                            "claim_boundary_meta_language",
+                            "submission_or_gate_status_language",
+                            "unsupported_practice_recommendation",
+                        ],
+                    },
+                    "forbidden_scientific_style": [
+                        "unsupported_no_difference_or_no_association",
+                        "overstated_novelty_or_best_language",
+                        "administrative_or_author_instruction_in_body",
+                        "tool_or_runtime_provenance_in_body",
+                    ],
+                    "source_basis": [
+                        "Zeiger biomedical research paper writing",
+                        "JAMA editors precision and concrete wording",
+                        "Gopen and Swan reader expectation model",
+                        "general medical journal original research exemplars",
+                    ],
+                },
+                "medical_manuscript_blueprint_contract": {
+                    "surface": "medical_manuscript_blueprint",
+                    "required_before": "first_full_draft",
+                    "gate_relaxation_allowed": False,
+                    "required_fields": [
+                        "clinical_problem",
+                        "evidence_gap",
+                        "target_population",
+                        "study_design",
+                        "primary_results",
+                        "clinical_interpretation",
+                        "limitations",
+                        "claim_evidence_map",
+                        "figure_table_roles",
+                    ],
+                    "required_source_surfaces": [
+                        "study_charter.paper_quality_contract",
+                        "paper/results_narrative_map.json",
+                        "paper/claim_evidence_map.json",
+                        "paper/figure_semantics_manifest.json",
+                        "paper/evidence_ledger.json",
+                    ],
+                    "writer_rule": (
+                        "compile this blueprint before prose generation and route back when the manuscript voice "
+                        "would otherwise be derived from run logs, controller checklists, or packaging metadata"
+                    ),
+                },
                 "first_draft_generation_model": {
                     "pre_draft_inputs": [
                         "clinical_problem",
@@ -311,6 +403,8 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
                         "analysis_plan",
                         "display_to_claim_map",
                         "reader_facing_contribution",
+                        "medical_manuscript_blueprint",
+                        "medical_prose_style_contract",
                     ],
                     "writer_obligations": [
                         "convert research questions into clinical findings rather than question-answer prose",
@@ -437,179 +531,105 @@ def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Pa
         "review_ledger",
         "final_audit",
     ]
-    assert payload["paper_quality_contract"] == {
-        "frozen_at_startup": True,
-        "target_journals": [],
-        "reporting_expectations": {
-            "paper_framing_summary": None,
-            "explanation_targets": [],
-        },
-        "evidence_expectations": {
-            "minimum_sci_ready_evidence_package": [],
-        },
-        "review_expectations": {
-            "scientific_followup_questions": [],
-            "manuscript_conclusion_redlines": [],
-        },
-        "bounded_analysis": {
-            "default_owner": "mas",
-            "allowed_scenarios": [
-                "close_predeclared_evidence_gap_within_locked_direction",
-                "close_predeclared_review_gap_within_locked_direction",
-                "close_predeclared_submission_gap_within_locked_direction",
-            ],
-            "allowed_targets": [
-                "minimum_sci_ready_evidence_package",
-                "scientific_followup_questions",
-                "manuscript_conclusion_redlines",
-            ],
-            "budget_boundary": {
-                "max_analysis_rounds_per_gate_window": 2,
-                "max_targets_per_round": 3,
-                "max_new_primary_claims": 0,
-            },
-            "completion_boundary": {
-                "return_to_main_gate": "publication_eval",
-                "return_to_mainline_action": "return_to_controller",
-                "completion_criteria": [
-                    "all_requested_targets_closed",
-                    "budget_boundary_reached",
-                    "major_boundary_signal_detected",
-                ],
-                "required_updates": [
-                    "evidence_ledger",
-                    "review_ledger",
-                    "publication_eval",
-                ],
-            },
-        },
-        "structured_reporting_contract": {
-            "draft_prevention_gates": [
-                "introduction_three_paragraph_medical_narrative",
-                "methods_subsections_complete_before_first_full_draft",
-                "statistical_reporting_plan_before_results_prose",
-                "table_figure_claim_map_before_results_prose",
-                "first_draft_asset_upgrade_scan_before_full_draft",
-                "phenotype_clinical_actionability_before_submission_package",
-                "human_metadata_todo_separated_from_scientific_blockers",
-            ],
-            "methods_completeness": {
-                "study_design": {"status": "required_before_first_full_draft"},
-                "cohort": {"status": "required_before_first_full_draft"},
-                "variables": {"status": "required_before_first_full_draft"},
-                "model": {"status": "required_before_first_full_draft"},
-                "validation": {"status": "required_before_first_full_draft"},
-                "statistical_analysis": {"status": "required_before_first_full_draft"},
-            },
-            "statistical_reporting": {
-                "summary_format": {"status": "required_before_first_full_draft"},
-                "p_values": {"status": "required_before_first_full_draft"},
-                "subgroup_tests": {"status": "required_before_first_full_draft"},
-            },
-            "first_draft_quality_contract": {
-                "status": "required_before_first_full_draft",
-                "imrad_section_contract": {
-                    "article_body": ["Title", "Abstract", "Introduction", "Methods", "Results", "Discussion", "Conclusion"],
-                    "abstract": [
-                        "clinical_context",
-                        "objective",
-                        "design_setting_participants",
-                        "exposures_or_predictors",
-                        "main_outcome",
-                        "results",
-                        "conclusion_and_boundary",
-                    ],
-                    "introduction": ["clinical_problem", "specific_gap", "study_objective_and_contribution"],
-                    "discussion": [
-                        "principal_findings",
-                        "relation_to_prior_work",
-                        "clinical_interpretation",
-                        "limitations",
-                        "conclusion",
-                    ],
-                },
-                "manuscript_native_prose": {
-                    "required": True,
-                    "forbidden_modes": [
-                        "work_report_question_answer_frame",
-                        "figure_table_anchor_section",
-                        "author_confirmation_placeholder",
-                        "figure_self_explanation_paragraph",
-                        "analysis_or_controller_jargon",
-                        "claim_boundary_meta_language_in_body",
-                    ],
-                    "result_section_rule": "answer the clinical finding directly, then cite supporting figures or tables",
-                    "scope_boundary_rule": "state limits as clinical interpretation and limitations, not as controller notes",
-                },
-                "first_draft_generation_model": {
-                    "pre_draft_inputs": [
-                        "clinical_problem",
-                        "study_design",
-                        "target_population",
-                        "prediction_timepoint_or_exposure_window",
-                        "outcome_definition_and_horizon",
-                        "analysis_plan",
-                        "display_to_claim_map",
-                        "reader_facing_contribution",
-                    ],
-                    "writer_obligations": [
-                        "convert research questions into clinical findings rather than question-answer prose",
-                        "separate manuscript body from submission metadata, author confirmations, and operations notes",
-                        "write figure legends as reader interpretation aids rather than reviewer instructions",
-                        "stage Results from cohort and endpoint profile to main finding, validation, clinical utility, and sensitivity or subgroup evidence",
-                        "stage Discussion from principal finding to prior literature, interpretation, limitations, and practical next step",
-                    ],
-                    "route_back_if_missing": "return_to_outline_or_analysis_campaign_before_first_full_draft",
-                },
-                "pre_draft_upgrade_scan": {
-                    "status": "required_before_first_full_draft",
-                    "required_axes": [
-                        "timepoint_or_temporal_depth",
-                        "stakeholder_or_role_contrast",
-                        "center_geography_or_site_coverage",
-                        "guideline_correspondence",
-                        "clinically_legible_subgroup_or_association_plan",
-                        "real_world_adoption_constraints",
-                    ],
-                },
-                "field_verification_policy": {
-                    "multicenter_or_national_claims": (
-                        "verify supporting fields before using multicenter or national framing"
-                    ),
-                    "subgroup_or_association_analyses": (
-                        "predeclare bounded analyses only when verified variables support them"
-                    ),
-                },
-                "too_light_draft_route_back": {
-                    "route": "analysis-campaign",
-                    "trigger": (
-                        "verified data dimensions can support a stronger paper than the current descriptive draft"
-                    ),
-                    "claim_boundary": "no_new_primary_claims_without_human_gate",
-                },
-                "discussion_floor": [
-                    "guideline_logic",
-                    "price_or_cost",
-                    "reimbursement",
-                    "access",
-                    "safety",
-                    "clinician_recommendation",
-                ],
-            },
-            "table_figure_claim_map_required": True,
-            "human_metadata_admin_todos": [
-                "authors",
-                "affiliations",
-                "corresponding_author",
-                "ethics",
-                "funding",
-                "conflict_of_interest",
-                "data_availability",
-            ],
-        },
-        "downstream_contract_roles": {
-            "evidence_ledger": "records evidence against evidence_expectations",
-            "review_ledger": "records review closure against review_expectations",
-            "final_audit": "audits scientific and paper-quality readiness against this charter",
-        },
+    paper_quality_contract = payload["paper_quality_contract"]
+    assert paper_quality_contract["frozen_at_startup"] is True
+    assert paper_quality_contract["target_journals"] == []
+    assert paper_quality_contract["reporting_expectations"] == {
+        "paper_framing_summary": None,
+        "explanation_targets": [],
     }
+    assert paper_quality_contract["evidence_expectations"] == {
+        "minimum_sci_ready_evidence_package": [],
+    }
+    assert paper_quality_contract["review_expectations"] == {
+        "scientific_followup_questions": [],
+        "manuscript_conclusion_redlines": [],
+    }
+    assert paper_quality_contract["bounded_analysis"]["default_owner"] == "mas"
+    assert paper_quality_contract["bounded_analysis"]["budget_boundary"] == {
+        "max_analysis_rounds_per_gate_window": 2,
+        "max_targets_per_round": 3,
+        "max_new_primary_claims": 0,
+    }
+    assert paper_quality_contract["bounded_analysis"]["completion_boundary"]["required_updates"] == [
+        "evidence_ledger",
+        "review_ledger",
+        "publication_eval",
+    ]
+    assert paper_quality_contract["downstream_contract_roles"] == {
+        "evidence_ledger": "records evidence against evidence_expectations",
+        "review_ledger": "records review closure against review_expectations",
+        "final_audit": "audits scientific and paper-quality readiness against this charter",
+    }
+
+    structured_contract = paper_quality_contract["structured_reporting_contract"]
+    assert structured_contract["draft_prevention_gates"] == [
+        "introduction_three_paragraph_medical_narrative",
+        "methods_subsections_complete_before_first_full_draft",
+        "statistical_reporting_plan_before_results_prose",
+        "table_figure_claim_map_before_results_prose",
+        "first_draft_asset_upgrade_scan_before_full_draft",
+        "phenotype_clinical_actionability_before_submission_package",
+        "human_metadata_todo_separated_from_scientific_blockers",
+    ]
+    assert structured_contract["methods_completeness"]["study_design"] == {"status": "required_before_first_full_draft"}
+    assert structured_contract["statistical_reporting"]["p_values"] == {"status": "required_before_first_full_draft"}
+    assert structured_contract["table_figure_claim_map_required"] is True
+    assert structured_contract["human_metadata_admin_todos"] == [
+        "authors",
+        "affiliations",
+        "corresponding_author",
+        "ethics",
+        "funding",
+        "conflict_of_interest",
+        "data_availability",
+    ]
+
+    first_draft_contract = structured_contract["first_draft_quality_contract"]
+    assert first_draft_contract["status"] == "required_before_first_full_draft"
+    assert first_draft_contract["imrad_section_contract"]["article_body"] == [
+        "Title",
+        "Abstract",
+        "Introduction",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Conclusion",
+    ]
+    assert first_draft_contract["manuscript_native_prose"]["required"] is True
+    assert "work_report_question_answer_frame" in first_draft_contract["manuscript_native_prose"]["forbidden_modes"]
+    assert first_draft_contract["medical_prose_style_contract"]["style_profile_id"] == (
+        "general_medical_journal_prose_v1"
+    )
+    assert first_draft_contract["medical_prose_style_contract"]["target_voice"] == (
+        "neutral_clinical_original_research"
+    )
+    assert "clinical_problem_to_evidence_gap_to_objective" in first_draft_contract[
+        "medical_prose_style_contract"
+    ]["introduction_rhetoric"]["paragraph_sequence"]
+    blueprint_contract = first_draft_contract["medical_manuscript_blueprint_contract"]
+    assert blueprint_contract["surface"] == "medical_manuscript_blueprint"
+    assert blueprint_contract["required_before"] == "first_full_draft"
+    assert "clinical_problem" in blueprint_contract["required_fields"]
+    assert "paper/claim_evidence_map.json" in blueprint_contract["required_source_surfaces"]
+    assert first_draft_contract["first_draft_generation_model"]["pre_draft_inputs"] == [
+        "clinical_problem",
+        "study_design",
+        "target_population",
+        "prediction_timepoint_or_exposure_window",
+        "outcome_definition_and_horizon",
+        "analysis_plan",
+        "display_to_claim_map",
+        "reader_facing_contribution",
+        "medical_manuscript_blueprint",
+        "medical_prose_style_contract",
+    ]
+    assert first_draft_contract["first_draft_generation_model"]["route_back_if_missing"] == (
+        "return_to_outline_or_analysis_campaign_before_first_full_draft"
+    )
+    assert first_draft_contract["pre_draft_upgrade_scan"]["status"] == "required_before_first_full_draft"
+    assert first_draft_contract["field_verification_policy"]["multicenter_or_national_claims"] == (
+        "verify supporting fields before using multicenter or national framing"
+    )
+    assert first_draft_contract["too_light_draft_route_back"]["route"] == "analysis-campaign"
+    assert "clinician_recommendation" in first_draft_contract["discussion_floor"]

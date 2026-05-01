@@ -545,6 +545,12 @@ def _quality_closure_basis(
             fallback_summary="当前 publication eval 还没有给出稳定的创新性定位判断。",
             fallback_refs=_fallback_refs(charter_ref),
         ),
+        "medical_journal_prose_quality": _coerce_quality_basis_item(
+            payload=quality_assessment.get("medical_journal_prose_quality"),
+            fallback_status="underdefined",
+            fallback_summary="当前 publication eval 还没有给出稳定的医学论文文体质量判断。",
+            fallback_refs=_fallback_refs(gate_ref),
+        ),
         "human_review_readiness": _coerce_quality_basis_item(
             payload=quality_assessment.get("human_review_readiness"),
             fallback_status="underdefined",

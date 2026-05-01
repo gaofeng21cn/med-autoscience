@@ -305,9 +305,10 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
         "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
         "weight_contract": {
             "clinical_significance": 25,
-            "evidence_strength": 35,
+            "evidence_strength": 30,
             "novelty_positioning": 20,
-            "human_review_readiness": 20,
+            "medical_journal_prose_quality": 15,
+            "human_review_readiness": 10,
         },
         "items": [
             {

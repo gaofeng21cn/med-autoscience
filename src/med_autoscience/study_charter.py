@@ -6,6 +6,10 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.medical_reporting_guidelines import build_guideline_quality_gate_expectation
+from med_autoscience.policies.medical_manuscript_draft_quality import (
+    build_medical_manuscript_blueprint_contract,
+    build_medical_prose_style_contract,
+)
 from med_autoscience.policies.medical_reporting_checklist import build_default_structured_reporting_contract
 from med_autoscience.policies.medical_reporting_contract import SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES
 
@@ -125,6 +129,8 @@ DEFAULT_FIRST_DRAFT_QUALITY_CONTRACT = {
         "result_section_rule": "answer the clinical finding directly, then cite supporting figures or tables",
         "scope_boundary_rule": "state limits as clinical interpretation and limitations, not as controller notes",
     },
+    "medical_prose_style_contract": build_medical_prose_style_contract(),
+    "medical_manuscript_blueprint_contract": build_medical_manuscript_blueprint_contract(),
     "first_draft_generation_model": {
         "pre_draft_inputs": [
             "clinical_problem",
@@ -135,6 +141,8 @@ DEFAULT_FIRST_DRAFT_QUALITY_CONTRACT = {
             "analysis_plan",
             "display_to_claim_map",
             "reader_facing_contribution",
+            "medical_manuscript_blueprint",
+            "medical_prose_style_contract",
         ],
         "writer_obligations": [
             "convert research questions into clinical findings rather than question-answer prose",

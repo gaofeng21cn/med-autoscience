@@ -511,14 +511,17 @@ def _quality_revision_plan(
 
 
 def _normalized_weight_contract(payload: object) -> dict[str, int]:
+    contract = dict(_PUBLICATION_CRITIQUE_WEIGHT_CONTRACT)
     if not isinstance(payload, dict):
-        return dict(_PUBLICATION_CRITIQUE_WEIGHT_CONTRACT)
-    contract: dict[str, int] = {}
+        return contract
     for field, weight in payload.items():
         if not isinstance(field, str) or not field.strip() or not isinstance(weight, int):
             raise ValueError("quality revision plan weight_contract must map non-empty strings to integers")
-        contract[field.strip()] = weight
-    return contract or dict(_PUBLICATION_CRITIQUE_WEIGHT_CONTRACT)
+        normalized_field = field.strip()
+        if normalized_field not in contract:
+            continue
+        contract[normalized_field] = weight
+    return contract
 
 
 def _normalized_text_list(value: object) -> list[str]:

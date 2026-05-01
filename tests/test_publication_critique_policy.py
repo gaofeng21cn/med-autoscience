@@ -20,9 +20,10 @@ def test_default_publication_critique_policy_exposes_weight_and_action_contract(
     assert DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"] == "medical_publication_critique_v1"
     assert build_weight_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY) == {
         "clinical_significance": 25,
-        "evidence_strength": 35,
+        "evidence_strength": 30,
         "novelty_positioning": 20,
-        "human_review_readiness": 20,
+        "medical_journal_prose_quality": 15,
+        "human_review_readiness": 10,
     }
     assert build_revision_action_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY) == (
         "tighten_clinical_framing",
@@ -35,3 +36,13 @@ def test_default_publication_critique_policy_exposes_weight_and_action_contract(
         item["field"]
         for item in DEFAULT_PUBLICATION_CRITIQUE_POLICY["required_outputs"]
     ]
+    assert "style_diagnosis" in [
+        item["field"]
+        for item in DEFAULT_PUBLICATION_CRITIQUE_POLICY["required_outputs"]
+    ]
+    style_dimension = next(
+        item
+        for item in DEFAULT_PUBLICATION_CRITIQUE_POLICY["weighted_dimensions"]
+        if item["field"] == "medical_journal_prose_quality"
+    )
+    assert "medical journal prose" in style_dimension["focus"]

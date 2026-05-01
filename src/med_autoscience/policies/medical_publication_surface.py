@@ -10,6 +10,7 @@ from med_autoscience.policies.medical_manuscript_draft_quality import (
     ANALYSIS_PLANE_JARGON_PATTERN_SPECS,
     FORBIDDEN_PATTERN_SPECS,
     METHOD_LABEL_PATTERN_SPECS,
+    MEDICAL_JOURNAL_PROSE_PATTERN_SPECS,
     PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS,
     RESULTS_NARRATION_PATTERN_SPECS,
     build_work_report_residue_clause,
@@ -87,6 +88,13 @@ def get_methodology_label_patterns() -> list[tuple[str, str, re.Pattern[str]]]:
     return [
         (pattern_id, phrase, re.compile(pattern, flags=flags))
         for pattern_id, phrase, pattern, flags in METHOD_LABEL_PATTERN_SPECS
+    ]
+
+
+def get_medical_journal_prose_patterns() -> list[tuple[str, str, re.Pattern[str]]]:
+    return [
+        (pattern_id, phrase, re.compile(pattern, flags=flags))
+        for pattern_id, phrase, pattern, flags in MEDICAL_JOURNAL_PROSE_PATTERN_SPECS
     ]
 
 
@@ -849,6 +857,14 @@ def build_intervention_message(report: dict[str, object]) -> str:
         formal_tone_clause = (
             " Remove question-form sentences from the manuscript prose; convert them into formal declarative statements."
         )
+    medical_prose_clause = ""
+    if "medical_journal_prose_style_not_met" in (report.get("blockers") or []):
+        medical_prose_clause = (
+            " Rewrite the manuscript voice to neutral general-medical-journal prose: open from the clinical problem, "
+            "move through the evidence gap to the study objective, make clinical findings rather than figures or tables "
+            "the grammatical subject of Results sentences, avoid unsupported no-difference or best/novel claims, and write "
+            "the Discussion as principal finding, relation to prior work, clinical interpretation, limitations, and conservative conclusion."
+        )
     report_residue_clause = build_work_report_residue_clause(report.get("top_hits"))
     return (
         "Hard control message from Codex orchestration layer: stop the current manuscript continuation now. "
@@ -864,6 +880,6 @@ def build_intervention_message(report: dict[str, object]) -> str:
         "or tool/service references such as `deepscientist`, service URLs, or editing recommendations. "
         "Do not advertise tooling in figure captions. Do not reopen accepted figures unless in-figure visible text itself still "
         "contains a forbidden manuscript term."
-        f"{ama_clause}{methods_clause}{prose_structure_clause}{results_clause}{figure_semantics_clause}{evidence_ledger_clause}{derived_analysis_clause}{public_evidence_clause}{public_surface_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause}{formal_tone_clause}{report_residue_clause} "
+        f"{ama_clause}{methods_clause}{prose_structure_clause}{results_clause}{figure_semantics_clause}{evidence_ledger_clause}{derived_analysis_clause}{public_evidence_clause}{public_surface_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause}{formal_tone_clause}{medical_prose_clause}{report_residue_clause} "
         "After those corrections, resume reviewer-style proofing or finalize."
     )

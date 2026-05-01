@@ -52,12 +52,14 @@ _QUALITY_CLOSURE_BASIS_KEYS = (
     "clinical_significance",
     "evidence_strength",
     "novelty_positioning",
+    "medical_journal_prose_quality",
     "human_review_readiness",
     "publication_gate",
 )
 _QUALITY_REVIEW_STATUS_RANK = {"blocked": 0, "underdefined": 1, "partial": 2, "ready": 3}
 _QUALITY_ASSESSMENT_REVIEW_ORDER = (
     "evidence_strength",
+    "medical_journal_prose_quality",
     "human_review_readiness",
     "clinical_significance",
     "novelty_positioning",
@@ -108,6 +110,7 @@ _QUALITY_REVISION_ACTION_BY_DIMENSION = {
     "clinical_significance": "tighten_clinical_framing",
     "evidence_strength": "close_evidence_gap",
     "novelty_positioning": "tighten_novelty_framing",
+    "medical_journal_prose_quality": "refresh_review_surface",
     "human_review_readiness": "refresh_review_surface",
     "publication_gate": "refresh_review_surface",
 }

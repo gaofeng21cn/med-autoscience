@@ -253,6 +253,11 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
                 "summary": "Novelty framing exists, but reviewer-facing contribution boundaries still need tightening.",
                 "evidence_refs": [str((study_root / "artifacts" / "controller" / "study_charter.json").resolve())],
             },
+            "medical_journal_prose_quality": {
+                "status": "underdefined",
+                "summary": "当前 publication eval 还没有给出稳定的医学论文文体质量判断。",
+                "evidence_refs": [str(promotion_gate_path.resolve())],
+            },
             "human_review_readiness": {
                 "status": "blocked",
                 "summary": "The draft is not yet honest enough to release as a human review package.",
@@ -281,9 +286,10 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
             "overall_diagnosis": "核心科学质量还没有闭环；当前应先回到 analysis-campaign 完成最窄补充修复。",
             "weight_contract": {
                 "clinical_significance": 25,
-                "evidence_strength": 35,
+                "evidence_strength": 30,
                 "novelty_positioning": 20,
-                "human_review_readiness": 20,
+                "medical_journal_prose_quality": 15,
+                "human_review_readiness": 10,
             },
             "items": [
                 {
@@ -505,9 +511,10 @@ def test_materialize_evaluation_summary_artifacts_prefers_reviewer_style_agenda_
         "overall_diagnosis": "核心科学质量还没有闭环；当前应先回到 analysis-campaign 完成最窄补充修复。",
         "weight_contract": {
             "clinical_significance": 25,
-            "evidence_strength": 35,
+            "evidence_strength": 30,
             "novelty_positioning": 20,
-            "human_review_readiness": 20,
+            "medical_journal_prose_quality": 15,
+            "human_review_readiness": 10,
         },
         "items": [
             {
@@ -635,9 +642,10 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
         "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
         "weight_contract": {
             "clinical_significance": 25,
-            "evidence_strength": 35,
+            "evidence_strength": 30,
             "novelty_positioning": 20,
-            "human_review_readiness": 20,
+            "medical_journal_prose_quality": 15,
+            "human_review_readiness": 10,
         },
         "items": [
             {
@@ -775,9 +783,10 @@ def test_materialize_evaluation_summary_artifacts_aligns_bundle_only_agenda_with
         "overall_diagnosis": "核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。",
         "weight_contract": {
             "clinical_significance": 25,
-            "evidence_strength": 35,
+            "evidence_strength": 30,
             "novelty_positioning": 20,
-            "human_review_readiness": 20,
+            "medical_journal_prose_quality": 15,
+            "human_review_readiness": 10,
         },
         "items": [
             {
