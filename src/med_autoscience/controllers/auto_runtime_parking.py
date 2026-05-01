@@ -268,6 +268,12 @@ def _state_from_reason(
         ):
             return None
         return "package_ready_handoff"
+    if reason in _PARKED_CLOSEOUT_REASONS:
+        supervisor_phase = _text(publication_supervisor_state.get("supervisor_phase"))
+        current_required_action = _text(publication_supervisor_state.get("current_required_action"))
+        if supervisor_phase == "bundle_stage_ready" and current_required_action == "continue_bundle_stage":
+            return "package_ready_handoff"
+        return "explicit_resume_pending"
     if reason in _EXPLICIT_RESUME_REASONS:
         supervisor_phase = _text(publication_supervisor_state.get("supervisor_phase"))
         current_required_action = _text(publication_supervisor_state.get("current_required_action"))

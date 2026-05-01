@@ -426,8 +426,8 @@ def test_study_progress_projects_closeout_continuation_as_parked_not_recovering(
             "quest_root": str(quest_root),
             "quest_exists": True,
             "quest_status": "active",
-            "decision": "lightweight",
-            "reason": "entry_mode_not_managed",
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
             "runtime_liveness_status": "unknown",
             "active_run_id": None,
             "runtime_liveness_audit": {

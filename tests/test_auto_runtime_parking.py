@@ -195,6 +195,24 @@ def test_auto_runtime_parking_prefers_parked_continuation_over_lightweight_entry
     assert projection["source_reason"] == "parked_after_checkpoint_no_new_message"
     assert projection["resource_release_expected"] is True
 
+    stale_resume_projection = _projection(
+        {
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+            "quest_status": "active",
+            "continuation_state": {
+                "quest_status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_reason": "parked_after_checkpoint_no_new_message",
+            },
+        }
+    )
+
+    assert stale_resume_projection["parked"] is True
+    assert stale_resume_projection["parked_state"] == "explicit_resume_pending"
+    assert stale_resume_projection["source_reason"] == "parked_after_checkpoint_no_new_message"
+
 
 def test_auto_runtime_parking_maps_repeated_stop_hold_and_same_blocker_pause_as_resource_release() -> None:
     repeated_decision_stop = _projection(
