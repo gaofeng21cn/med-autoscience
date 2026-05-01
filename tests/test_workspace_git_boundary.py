@@ -34,6 +34,8 @@ def test_workspace_gitignore_excludes_local_intake_archives_and_framework_mirror
 
     gitignore_text = module.render_workspace_gitignore()
 
+    assert "ops/medautoscience/config.env" in gitignore_text
+    assert "ops/med-deepscientist/config.env" in gitignore_text
     assert "inbox/**" in gitignore_text
     assert "!inbox/README.md" in gitignore_text
     assert "ops/med-deepscientist/runtime/archives/**" in gitignore_text
@@ -46,8 +48,12 @@ def test_workspace_gitignore_excludes_local_intake_archives_and_framework_mirror
     assert "refs/**/logs/**" in gitignore_text
     assert "refs/**/data/**" in gitignore_text
     assert "refs/**/*.pdf" in gitignore_text
+    assert "refs/**/*.html" in gitignore_text
+    assert "refs/**/*.Rhistory" in gitignore_text
+    assert "refs/**/.cursor/**" in gitignore_text
     assert "datasets/**/*.csv" in gitignore_text
     assert "!datasets/**/dataset_manifest.yaml" in gitignore_text
+    assert "portfolio/**/*.csv" in gitignore_text
     assert "studies/*/analysis/**/*.csv" in gitignore_text
 
 
@@ -232,6 +238,54 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
         capture_output=True,
     )
     assert check_dataset_payload.returncode == 0
+
+    local_runtime_config = workspace_root / "ops" / "medautoscience" / "config.env"
+    local_runtime_config.parent.mkdir(parents=True, exist_ok=True)
+    local_runtime_config.write_text("MED_AUTOSCIENCE_REPO=/local/path\n", encoding="utf-8")
+    check_local_runtime_config = subprocess.run(
+        ["git", "check-ignore", str(local_runtime_config.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_local_runtime_config.returncode == 0
+
+    portfolio_evidence_table = workspace_root / "portfolio" / "legacy_audit" / "evidence" / "metrics.csv"
+    portfolio_evidence_table.parent.mkdir(parents=True, exist_ok=True)
+    portfolio_evidence_table.write_text("metric,value\nc_index,0.7\n", encoding="utf-8")
+    check_portfolio_evidence_table = subprocess.run(
+        ["git", "check-ignore", str(portfolio_evidence_table.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_portfolio_evidence_table.returncode == 0
+
+    legacy_html_report = workspace_root / "refs" / "legacy" / "reports" / "final.html"
+    legacy_html_report.parent.mkdir(parents=True, exist_ok=True)
+    legacy_html_report.write_text("<html></html>\n", encoding="utf-8")
+    check_legacy_html_report = subprocess.run(
+        ["git", "check-ignore", str(legacy_html_report.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_legacy_html_report.returncode == 0
+
+    legacy_cursor_rule = workspace_root / "refs" / "legacy" / ".cursor" / "rules" / "local.mdc"
+    legacy_cursor_rule.parent.mkdir(parents=True, exist_ok=True)
+    legacy_cursor_rule.write_text("local editor rule\n", encoding="utf-8")
+    check_legacy_cursor_rule = subprocess.run(
+        ["git", "check-ignore", str(legacy_cursor_rule.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_legacy_cursor_rule.returncode == 0
 
     dataset_manifest = workspace_root / "datasets" / "master" / "v1" / "dataset_manifest.yaml"
     dataset_manifest.write_text("dataset_id: master\n", encoding="utf-8")
