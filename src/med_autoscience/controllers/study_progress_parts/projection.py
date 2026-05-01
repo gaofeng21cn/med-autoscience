@@ -38,6 +38,36 @@ def _supervision_active_run_id(
     )
 
 
+def _attach_existing_autonomy_slo_projection(
+    payload: dict[str, Any],
+    *,
+    study_root: Path,
+) -> dict[str, Any]:
+    autonomy_slo_status = autonomy_ai_doctor.read_latest_slo_status(study_root=study_root)
+    if autonomy_slo_status is None:
+        return payload
+    updated = dict(payload)
+    updated["autonomy_slo"] = autonomy_slo_status
+    updated["ai_doctor_state"] = (
+        _mapping_copy(autonomy_slo_status.get("ai_doctor_request"))
+        or {
+            "state": autonomy_slo_status.get("ai_doctor_state") or "not_observed",
+            "request_required": bool(autonomy_slo_status.get("ai_doctor_request_required")),
+        }
+    )
+    repair_recommendation = _mapping_copy(autonomy_slo_status.get("repair_recommendation"))
+    updated["repair_recommendation"] = repair_recommendation or None
+    updated["last_meaningful_progress_at"] = _non_empty_text(
+        autonomy_slo_status.get("last_meaningful_progress_at")
+    )
+    refs = _mapping_copy(updated.get("refs"))
+    refs["autonomy_slo_status_path"] = str(
+        autonomy_ai_doctor.stable_slo_status_path(study_root=study_root)
+    )
+    updated["refs"] = refs
+    return updated
+
+
 def build_study_progress_projection(
     *,
     profile: WorkspaceProfile,
@@ -58,7 +88,10 @@ def build_study_progress_projection(
             }
         )
         normalized_existing.pop("publication_supervisor_state", None)
-        return normalized_existing
+        return _attach_existing_autonomy_slo_projection(
+            normalized_existing,
+            study_root=study_root,
+        )
 
     resolved_study_id = study_id
     resolved_study_root = study_root
