@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 import time
 
+import pytest
+
 from tests.study_runtime_test_helpers import make_profile
 
 
@@ -280,6 +282,78 @@ def test_audit_workspace_storage_apply_runs_stopped_studies_and_blocks_live_runt
     assert stopped_report["status"] == "applied"
     assert stopped_report["apply_result"]["status"] == "maintained"
     assert (profile.studies_root / stopped_study_id / "artifacts" / "runtime" / "runtime_storage_maintenance" / "latest.json").is_file()
+
+
+def test_audit_workspace_storage_apply_deletes_rebuildable_cache_candidates(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    cache_dir = profile.workspace_root / ".pytest_cache" / "v"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_file = cache_dir / "cache.bin"
+    cache_file.write_text("cache payload\n", encoding="utf-8")
+    pycache_dir = profile.workspace_root / "src" / "pkg" / "__pycache__"
+    pycache_dir.mkdir(parents=True, exist_ok=True)
+    pyc_file = pycache_dir / "module.cpython-312.pyc"
+    pyc_file.write_bytes(b"compiled")
+    ds_store = profile.workspace_root / ".DS_Store"
+    ds_store.write_text("finder\n", encoding="utf-8")
+    expected_deleted_bytes = cache_file.stat().st_size + pyc_file.stat().st_size + ds_store.stat().st_size
+
+    result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True)
+
+    cache_report = result["categories"]["cache"]
+    assert cache_report["estimated_release_bytes"] == expected_deleted_bytes
+    assert cache_report["actual_release_bytes"] == expected_deleted_bytes
+    assert cache_report["deleted_count"] == 3
+    assert cache_report["deleted_bytes"] == expected_deleted_bytes
+    assert cache_report["skipped"] == []
+    assert cache_report["errors"] == []
+    assert cache_report["apply_result"]["status"] == "deleted"
+    assert not (profile.workspace_root / ".pytest_cache").exists()
+    assert not pycache_dir.exists()
+    assert not ds_store.exists()
+
+
+def test_audit_workspace_storage_git_only_does_not_scan_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+
+    def fail_cache_scan(*args: object, **kwargs: object) -> dict[str, object]:
+        raise AssertionError("cache scan should not run for --git-only")
+
+    monkeypatch.setattr(module, "_delete_safe_candidates", fail_cache_scan)
+
+    result = module.audit_workspace_storage(profile=profile, all_studies=False, apply=True, git_only=True)
+
+    assert result["categories"]["cache"]["candidate_action"] == "skipped-git_only"
+    assert result["summary"]["cache_actual_release_bytes"] == 0
+
+
+def test_audit_workspace_storage_apply_separates_runtime_estimated_and_actual_release(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    _write_fake_mds_repo(profile.med_deepscientist_repo_root)
+    study_id = "004-stopped"
+    _write_study(profile.studies_root / study_id, study_id=study_id, quest_id=study_id)
+    _write_quest(profile.runtime_root / study_id, quest_id=study_id, status="stopped")
+    run_log = profile.runtime_root / study_id / ".ds" / "runs" / "run-001" / "stdout.jsonl"
+    run_log.parent.mkdir(parents=True, exist_ok=True)
+    run_log.write_text('{"line":"stdout"}\n', encoding="utf-8")
+
+    result = module.audit_workspace_storage(profile=profile, all_studies=True, apply=True)
+
+    runtime_category = result["categories"]["runtime"]
+    study_report = runtime_category["studies"][0]
+    assert runtime_category["estimated_release_bytes"] > 0
+    assert runtime_category["actual_release_bytes"] == 0
+    assert runtime_category["actual_runtime_release_bytes"] == 0
+    assert result["summary"]["runtime_estimated_release_bytes"] > 0
+    assert result["summary"]["runtime_actual_release_bytes"] == 0
+    assert study_report["runtime"]["estimated_release_bytes"] > 0
+    assert study_report["actual_runtime_release_bytes"] == 0
 
 
 def test_audit_workspace_storage_git_only_apply_removes_stale_git_temp_garbage(tmp_path: Path) -> None:

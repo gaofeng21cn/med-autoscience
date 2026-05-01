@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 from typing import Any, Mapping
@@ -377,6 +378,7 @@ def _dataset_retention_audit(workspace_root: Path) -> dict[str, Any]:
         "total_bytes": totals["total_bytes"],
         "candidate_action": "lineage-aware-retention",
         "estimated_release_bytes": totals["archive_offline_candidate_bytes"],
+        "actual_release_bytes": 0,
         "totals": totals,
         "releases": release_reports,
     }
@@ -462,7 +464,7 @@ def _git_storage_audit(
     )
 
 
-def _delete_safe_candidates(workspace_root: Path) -> dict[str, Any]:
+def _delete_safe_candidates(workspace_root: Path, *, apply: bool = False) -> dict[str, Any]:
     candidates: list[dict[str, Any]] = []
     if not workspace_root.exists():
         return {
@@ -471,7 +473,13 @@ def _delete_safe_candidates(workspace_root: Path) -> dict[str, Any]:
             "candidate_action": "delete-safe",
             "bytes": 0,
             "estimated_release_bytes": 0,
+            "actual_release_bytes": 0,
             "candidates": [],
+            "apply_result": _empty_cache_apply_result("workspace_missing") if apply else None,
+            "deleted_count": 0,
+            "deleted_bytes": 0,
+            "skipped": [],
+            "errors": [],
         }
     for current_root, dirnames, filenames in os.walk(workspace_root):
         current = Path(current_root)
@@ -502,14 +510,99 @@ def _delete_safe_candidates(workspace_root: Path) -> dict[str, Any]:
                     }
                 )
     total_bytes = sum(int(item["bytes"]) for item in candidates)
+    apply_result = _apply_delete_safe_candidates(workspace_root=workspace_root, candidates=candidates) if apply else None
+    deleted_bytes = int((apply_result or {}).get("deleted_bytes") or 0)
+    deleted_count = int((apply_result or {}).get("deleted_count") or 0)
+    skipped = list((apply_result or {}).get("skipped") or [])
+    errors = list((apply_result or {}).get("errors") or [])
     return {
         "category": "cache",
         "workspace_root": str(workspace_root),
         "candidate_action": "delete-safe",
         "bytes": total_bytes,
         "estimated_release_bytes": total_bytes,
+        "actual_release_bytes": deleted_bytes,
         "candidates": candidates,
+        "apply_result": apply_result,
+        "deleted_count": deleted_count,
+        "deleted_bytes": deleted_bytes,
+        "skipped": skipped,
+        "errors": errors,
     }
+
+
+def _empty_cache_apply_result(status: str) -> dict[str, Any]:
+    return {
+        "status": status,
+        "deleted_count": 0,
+        "deleted_bytes": 0,
+        "deleted_paths": [],
+        "skipped": [],
+        "errors": [],
+    }
+
+
+def _apply_delete_safe_candidates(
+    *,
+    workspace_root: Path,
+    candidates: list[Mapping[str, Any]],
+) -> dict[str, Any]:
+    if not candidates:
+        return _empty_cache_apply_result("nothing_to_delete")
+    deleted_paths: list[str] = []
+    skipped: list[dict[str, str]] = []
+    errors: list[dict[str, str]] = []
+    deleted_bytes = 0
+    for item in candidates:
+        candidate = Path(str(item.get("path") or ""))
+        if not _path_is_inside_workspace(candidate, workspace_root):
+            errors.append({"path": str(candidate), "error": "outside_workspace"})
+            continue
+        if not candidate.exists() and not candidate.is_symlink():
+            skipped.append({"path": str(candidate), "reason": "missing"})
+            continue
+        item_bytes = int(item.get("bytes") or _directory_size_bytes(candidate))
+        try:
+            if candidate.is_symlink() or candidate.is_file():
+                candidate.unlink()
+            elif candidate.is_dir():
+                shutil.rmtree(candidate)
+            else:
+                skipped.append({"path": str(candidate), "reason": "unsupported_file_type"})
+                continue
+        except OSError as exc:
+            errors.append({"path": str(candidate), "error": str(exc)})
+            continue
+        deleted_paths.append(str(candidate))
+        deleted_bytes += item_bytes
+    if errors and deleted_paths:
+        status = "partially_deleted"
+    elif errors:
+        status = "delete_failed"
+    elif skipped and deleted_paths:
+        status = "partially_deleted"
+    elif deleted_paths:
+        status = "deleted"
+    elif skipped:
+        status = "nothing_deleted"
+    else:
+        status = "nothing_to_delete"
+    return {
+        "status": status,
+        "deleted_count": len(deleted_paths),
+        "deleted_bytes": deleted_bytes,
+        "deleted_paths": deleted_paths,
+        "skipped": skipped,
+        "errors": errors,
+    }
+
+
+def _path_is_inside_workspace(path: Path, workspace_root: Path) -> bool:
+    try:
+        path.absolute().relative_to(workspace_root.absolute())
+    except ValueError:
+        return False
+    return True
 
 
 def _run_backend_command(*, repo_root: Path, command: list[str]) -> dict[str, Any]:
@@ -565,8 +658,20 @@ def _skipped_storage_category(*, category: str, workspace_root: Path, reason: st
         "total_bytes": 0,
         "candidate_action": f"skipped-{reason}",
         "estimated_release_bytes": 0,
+        "actual_release_bytes": 0,
         "blockers": [reason],
     }
+
+
+def _actual_release_bytes(before: Mapping[str, Any], after: Mapping[str, Any]) -> int:
+    return max(0, int(before.get("total_bytes") or 0) - int(after.get("total_bytes") or 0))
+
+
+def _deleted_bytes_from_apply_result(report: Mapping[str, Any]) -> int:
+    apply_result = report.get("apply_result")
+    if not isinstance(apply_result, Mapping):
+        return 0
+    return int(apply_result.get("deleted_bytes") or 0)
 
 
 def audit_workspace_storage(
@@ -594,6 +699,7 @@ def audit_workspace_storage(
     study_reports: list[dict[str, Any]] = []
     runtime_total_bytes = 0
     runtime_estimated_release_bytes = 0
+    runtime_actual_release_bytes = 0
     artifact_total_bytes = 0
     for selected_study_root in selected_roots:
         try:
@@ -618,6 +724,8 @@ def audit_workspace_storage(
             size_before = _size_summary(quest_root)
             candidate = _runtime_candidate(quest_root=quest_root, snapshot=snapshot, size_summary=size_before)
             if stopped_only and str(snapshot.get("status") or "") not in _TERMINAL_RUNTIME_STATUSES:
+                runtime_report = dict(candidate)
+                runtime_report["actual_release_bytes"] = 0
                 study_reports.append(
                     {
                         "study_id": resolved_study_id,
@@ -626,7 +734,8 @@ def audit_workspace_storage(
                         "quest_root": str(quest_root),
                         "status": "skipped_stopped_only",
                         "quest_runtime": snapshot,
-                        "runtime": candidate,
+                        "runtime": runtime_report,
+                        "actual_runtime_release_bytes": 0,
                     }
                 )
                 continue
@@ -648,9 +757,13 @@ def audit_workspace_storage(
                     allow_live_runtime=allow_live_runtime,
                 )
             size_after = _size_summary(quest_root)
+            actual_runtime_release_bytes = _actual_release_bytes(size_before, size_after) if apply else 0
+            runtime_report = dict(candidate)
+            runtime_report["actual_release_bytes"] = actual_runtime_release_bytes
             artifact_summary = _study_artifact_size_summary(resolved_study_root)
             runtime_total_bytes += int(size_before.get("total_bytes") or 0)
             runtime_estimated_release_bytes += int(candidate.get("estimated_release_bytes") or 0)
+            runtime_actual_release_bytes += actual_runtime_release_bytes
             artifact_total_bytes += int(artifact_summary.get("total_bytes") or 0)
             study_reports.append(
                 {
@@ -660,11 +773,12 @@ def audit_workspace_storage(
                     "quest_root": str(quest_root),
                     "status": "applied" if apply_result and apply_result.get("status") == "maintained" else "audited",
                     "quest_runtime": snapshot,
-                    "runtime": candidate,
+                    "runtime": runtime_report,
                     "size_before": size_before,
                     "size_after": size_after,
                     "study_artifacts": artifact_summary,
                     "apply_result": apply_result,
+                    "actual_runtime_release_bytes": actual_runtime_release_bytes,
                 }
             )
         except Exception as exc:
@@ -686,10 +800,23 @@ def audit_workspace_storage(
         older_than_seconds=older_than_seconds,
         apply=apply,
     )
+    git_report["actual_release_bytes"] = _deleted_bytes_from_apply_result(git_report)
     cache_report = (
         _skipped_storage_category(category="cache", workspace_root=workspace_root, reason="git_only")
         if git_only
-        else _delete_safe_candidates(workspace_root)
+        else _delete_safe_candidates(workspace_root, apply=apply)
+    )
+    cache_actual_release_bytes = int(cache_report.get("actual_release_bytes") or 0)
+    estimated_release_bytes = (
+        runtime_estimated_release_bytes
+        + int(dataset_report.get("estimated_release_bytes") or 0)
+        + int(git_report.get("estimated_release_bytes") or 0)
+        + int(cache_report.get("estimated_release_bytes") or 0)
+    )
+    actual_release_bytes = (
+        runtime_actual_release_bytes
+        + int(git_report.get("actual_release_bytes") or 0)
+        + cache_actual_release_bytes
     )
     report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -706,11 +833,16 @@ def audit_workspace_storage(
         },
         "summary": {
             "study_count": len(study_reports),
+            "estimated_release_bytes": estimated_release_bytes,
+            "actual_release_bytes": actual_release_bytes,
             "runtime_total_bytes": runtime_total_bytes,
             "runtime_estimated_release_bytes": runtime_estimated_release_bytes,
+            "runtime_actual_release_bytes": runtime_actual_release_bytes,
             "dataset_total_bytes": dataset_report["total_bytes"],
             "dataset_archive_offline_candidate_bytes": dataset_report["estimated_release_bytes"],
             "cache_delete_safe_bytes": cache_report["estimated_release_bytes"],
+            "cache_actual_release_bytes": cache_actual_release_bytes,
+            "git_actual_release_bytes": int(git_report.get("actual_release_bytes") or 0),
             "study_artifact_total_bytes": artifact_total_bytes,
         },
         "categories": {
@@ -719,6 +851,8 @@ def audit_workspace_storage(
                 "bytes": runtime_total_bytes,
                 "candidate_action": "skipped-git-only" if git_only else "compress-online",
                 "estimated_release_bytes": runtime_estimated_release_bytes,
+                "actual_release_bytes": runtime_actual_release_bytes,
+                "actual_runtime_release_bytes": runtime_actual_release_bytes,
                 "studies": study_reports,
             },
             "dataset": dataset_report,
