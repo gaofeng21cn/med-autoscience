@@ -105,28 +105,55 @@ def _normalize_display_shell_plan(reporting_contract: dict[str, object]) -> list
 
 
 def _medical_story_contract_is_valid(paper_root: Path) -> bool:
+    return not _medical_story_contract_blockers(paper_root)
+
+
+def _medical_story_contract_blockers(paper_root: Path) -> list[str]:
     required_contracts = (
         (
             paper_root / medical_surface_policy.RESULTS_NARRATIVE_MAP_BASENAME,
             medical_surface_policy.validate_results_narrative_map,
+            "missing_results_narrative_map",
+            "invalid_results_narrative_map",
         ),
         (
             paper_root / medical_surface_policy.FIGURE_SEMANTICS_MANIFEST_BASENAME,
             medical_surface_policy.validate_figure_semantics_manifest,
+            "missing_figure_semantics_manifest",
+            "invalid_figure_semantics_manifest",
         ),
         (
             paper_root / medical_surface_policy.CLAIM_EVIDENCE_MAP_BASENAME,
             medical_surface_policy.validate_claim_evidence_map,
+            "missing_claim_evidence_map",
+            "invalid_claim_evidence_map",
         ),
     )
-    for path, validator in required_contracts:
+    blockers: list[str] = []
+    for path, validator, missing_blocker, invalid_blocker in required_contracts:
         try:
             payload = _load_json_dict(path)
         except (OSError, ValueError, json.JSONDecodeError):
-            return False
-        if payload is None or validator(payload):
-            return False
-    return True
+            blockers.append(invalid_blocker)
+            continue
+        if payload is None:
+            blockers.append(missing_blocker)
+            continue
+        validation_errors = validator(payload)
+        if validation_errors:
+            blockers.append(invalid_blocker)
+            blockers.extend(_medical_story_contract_validation_blockers(path.name, validation_errors))
+    return blockers
+
+
+def _medical_story_contract_validation_blockers(contract_name: str, validation_errors: list[str]) -> list[str]:
+    blockers: list[str] = []
+    if contract_name == medical_surface_policy.FIGURE_SEMANTICS_MANIFEST_BASENAME:
+        for error in validation_errors:
+            normalized = error.lower()
+            if "required_exports missing registered export formats" in normalized and "pdf" in normalized:
+                blockers.append("figure_semantics_manifest_missing_pdf_export")
+    return blockers
 
 
 def render_audit_markdown(report: dict[str, object]) -> str:
@@ -242,9 +269,11 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
             blockers.append("missing_reporting_guideline_checklist")
     structured_reporting_checklist = build_structured_reporting_checklist(reporting_contract)
     blockers.extend(structured_reporting_checklist["blockers"])
-    medical_story_contract_valid = _medical_story_contract_is_valid(paper_root)
-    if not medical_story_contract_valid:
+    medical_story_contract_blockers = _medical_story_contract_blockers(paper_root)
+    medical_story_contract_valid = not medical_story_contract_blockers
+    if medical_story_contract_blockers:
         blockers.append("missing_medical_story_contract")
+        blockers.extend(medical_story_contract_blockers)
     report = {
         "generated_at": utc_now(),
         "status": "blocked" if blockers else ("advisory" if advisories else "clear"),
@@ -253,6 +282,7 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
         "action": "clear",
         "quest_root": str(resolved_quest_root),
         "medical_story_contract_valid": medical_story_contract_valid,
+        "medical_story_contract_blockers": medical_story_contract_blockers,
         "structured_reporting_checklist": structured_reporting_checklist,
         "quality_gate_expectation": quality_gate_expectation,
         "quality_gate_relaxation_allowed": quality_gate_relaxation_allowed,
@@ -266,6 +296,8 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
         "advisories": advisories,
         "action": "clear",
         "quest_root": str(resolved_quest_root),
+        "medical_story_contract_valid": medical_story_contract_valid,
+        "medical_story_contract_blockers": medical_story_contract_blockers,
         "report_json": str(json_path),
         "report_markdown": str(md_path),
     }

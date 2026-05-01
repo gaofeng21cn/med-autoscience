@@ -5,6 +5,88 @@ import json
 from pathlib import Path
 
 
+def _write_valid_medical_story_contracts(paper_root: Path, *, figure_required_exports: list[str] | None = None) -> None:
+    paper_root.mkdir(parents=True, exist_ok=True)
+    (paper_root / "results_narrative_map.json").write_text(
+        json.dumps(
+            {
+                "sections": [
+                    {
+                        "section_id": "study-population",
+                        "section_title": "Study population",
+                        "research_question": "Which cohort was analyzed?",
+                        "direct_answer": "The analytic cohort is fully enumerated.",
+                        "supporting_display_items": ["Figure1"],
+                        "key_quantitative_findings": ["All exclusions are accounted for."],
+                        "clinical_meaning": "Readers can interpret the cohort denominator.",
+                        "boundary": "Descriptive cohort accounting only.",
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "figure_semantics_manifest.json").write_text(
+        json.dumps(
+            {
+                "figures": [
+                    {
+                        "figure_id": "Figure1",
+                        "story_role": "study_setup",
+                        "research_question": "How was the cohort assembled?",
+                        "direct_message": "The flow chart documents cohort assembly and exclusions.",
+                        "clinical_implication": "The denominator is transparent for clinical interpretation.",
+                        "interpretation_boundary": "The figure does not make causal claims.",
+                        "panel_messages": [{"panel_id": "A", "message": "Cohort inclusion and exclusion flow."}],
+                        "legend_glossary": [{"term": "cohort", "explanation": "Eligible analytic population."}],
+                        "threshold_semantics": "No clinical threshold is introduced.",
+                        "stratification_basis": "Study inclusion and exclusion criteria.",
+                        "recommendation_boundary": "No treatment recommendation is made.",
+                        "renderer_contract": {
+                            "figure_semantics": "illustration",
+                            "renderer_family": "python",
+                            "template_id": "cohort_flow_figure",
+                            "selection_rationale": "The cohort-flow illustration shell is the registered Figure 1 contract.",
+                            "layout_qc_profile": "publication_illustration_flow",
+                            "required_exports": figure_required_exports or ["png", "svg", "pdf"],
+                            "fallback_on_failure": False,
+                            "failure_action": "block_and_fix_environment",
+                        },
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "claim_evidence_map.json").write_text(
+        json.dumps(
+            {
+                "claims": [
+                    {
+                        "claim_id": "cohort-accounting",
+                        "statement": "The study cohort was assembled through auditable inclusion and exclusion steps.",
+                        "status": "supported",
+                        "paper_role": "main_text",
+                        "display_bindings": ["Figure1"],
+                        "sections": ["study-population"],
+                        "evidence_items": [
+                            {
+                                "item_id": "cohort-flow",
+                                "support_level": "direct",
+                                "source_paths": ["paper/cohort_flow.json"],
+                            }
+                        ],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+
 def test_medical_reporting_audit_blocks_missing_population_accounting(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"
@@ -299,6 +381,47 @@ def test_medical_reporting_audit_blocks_missing_medical_story_contract(tmp_path:
 
     assert report["status"] == "blocked"
     assert "missing_medical_story_contract" in report["blockers"]
+    assert report["medical_story_contract_blockers"] == [
+        "missing_results_narrative_map",
+        "missing_figure_semantics_manifest",
+        "missing_claim_evidence_map",
+    ]
+
+
+def test_medical_reporting_audit_reports_figure_semantics_missing_pdf_export(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
+    quest_root = tmp_path / "runtime" / "quests" / "002-dm-china-us-mortality-attribution"
+    paper_root = quest_root / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    (paper_root / "medical_reporting_contract.json").write_text(
+        json.dumps(
+            {
+                "reporting_guideline_family": "STROBE",
+                "display_registry_required": False,
+                "cohort_flow_required": False,
+                "baseline_characteristics_required": False,
+                "display_shell_plan": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "reporting_guideline_checklist.json").write_text(
+        json.dumps({"schema_version": 1, "items": []}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    _write_valid_medical_story_contracts(paper_root, figure_required_exports=["png", "svg"])
+
+    report = module.run_controller(quest_root=quest_root, apply=False)
+
+    assert report["status"] == "blocked"
+    assert "missing_medical_story_contract" in report["blockers"]
+    assert "invalid_figure_semantics_manifest" in report["blockers"]
+    assert "figure_semantics_manifest_missing_pdf_export" in report["blockers"]
+    assert report["medical_story_contract_blockers"] == [
+        "invalid_figure_semantics_manifest",
+        "figure_semantics_manifest_missing_pdf_export",
+    ]
 
 
 def test_medical_reporting_audit_downgrades_missing_reporting_guideline_checklist_when_handoff_ready(
@@ -336,7 +459,7 @@ def test_medical_reporting_audit_downgrades_missing_reporting_guideline_checklis
         ),
         encoding="utf-8",
     )
-    monkeypatch.setattr(module, "_medical_story_contract_is_valid", lambda _: True)
+    monkeypatch.setattr(module, "_medical_story_contract_blockers", lambda _: [])
 
     report = module.run_controller(quest_root=quest_root, apply=False)
 
@@ -385,7 +508,7 @@ def test_medical_reporting_audit_keeps_guideline_checklist_blocking_when_quality
         ),
         encoding="utf-8",
     )
-    monkeypatch.setattr(module, "_medical_story_contract_is_valid", lambda _: True)
+    monkeypatch.setattr(module, "_medical_story_contract_blockers", lambda _: [])
 
     report = module.run_controller(quest_root=quest_root, apply=False)
 
