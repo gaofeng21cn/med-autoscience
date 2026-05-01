@@ -7,6 +7,17 @@ from typing import Any
 MANIFEST_FILENAME = "MEDICAL_FORK_MANIFEST.json"
 CONTROLLED_ENGINE_IDS = frozenset({"medicaldeepscientist", "med-deepscientist"})
 CONTROLLED_ENGINE_FAMILIES = frozenset({"MedicalDeepScientist", "MedDeepScientist"})
+MDS_ALLOWED_TRUTH_EVENT_TYPES = (
+    "runtime_native_event",
+    "runtime_supervision_tick",
+    "quality_review_eval",
+)
+MDS_FORBIDDEN_AUTHORITY_SURFACES = (
+    "canonical_next_action",
+    "publication_gate_state",
+    "package_state",
+    "delivery_state",
+)
 
 
 def _normalize_string(value: object) -> str | None:
@@ -48,6 +59,9 @@ def inspect_med_deepscientist_repo_manifest(repo_root: Path | str | None) -> dic
         "upstream_remote_name": None,
         "upstream_branch": None,
         "upstream_ref": None,
+        "truth_authority_role": "event_source_only",
+        "allowed_truth_event_types": list(MDS_ALLOWED_TRUTH_EVENT_TYPES),
+        "forbidden_authority_surfaces": list(MDS_FORBIDDEN_AUTHORITY_SURFACES),
         "checks": {
             "manifest_file_exists": False,
             "manifest_payload_is_mapping": False,

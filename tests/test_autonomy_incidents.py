@@ -47,10 +47,11 @@ def test_platform_incident_learning_loop_records_only_allowed_platform_events() 
             "guard",
             "test",
             "contract",
-            "runbook",
-            "runtime_taxonomy",
-            "strangler_rule",
-        ],
+                "runbook",
+                "runtime_taxonomy",
+                "strangler_rule",
+                "truth_kernel_rule",
+            ],
         "prose_only_note_allowed": False,
         "gate_relaxation_allowed": False,
         "allowed_targets": (
@@ -60,6 +61,7 @@ def test_platform_incident_learning_loop_records_only_allowed_platform_events() 
             "runbook",
             "runtime_taxonomy",
             "strangler_rule",
+            "truth_kernel_rule",
         ),
     }
     for incident in payload["incidents"]:
@@ -129,3 +131,23 @@ def test_write_incident_record_persists_prevention_action(tmp_path: Path) -> Non
     assert payload["incident_type"] == "surface_ownership_drift"
     assert payload["prevention_action"]["action_type"] == "strangler_rule"
     assert payload["gate_relaxation_allowed"] is False
+
+
+def test_truth_authority_incident_requires_reducer_fixture_and_runbook_artifacts() -> None:
+    module = importlib.import_module("med_autoscience.controllers.autonomy_incidents")
+
+    payload = module.build_platform_incident_learning_loop(
+        {
+            "study_id": "003-dpcc",
+            "platform_incident_types": ["truth authority drift"],
+        }
+    )
+
+    assert payload["incidents"][0]["incident_type"] == "truth_authority_drift"
+    assert payload["incidents"][0]["prevention_action"] == {
+        "action_type": "truth_kernel_rule",
+        "controller_surface": "artifacts/truth/latest.json",
+        "summary": "Convert the drift into a StudyTruthKernel dominance rule, a golden fixture, and a runbook entry before retrying.",
+        "required_artifacts": ["reducer_rule", "fixture_test", "runbook_entry"],
+        "gate_relaxation_allowed": False,
+    }

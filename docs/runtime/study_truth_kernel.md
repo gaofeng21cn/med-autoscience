@@ -35,4 +35,8 @@ MDS 只能向 MAS 提供 runtime/native/review 事件或受控后端证据。MAS
 
 ## 事故治理
 
-后续 truth/gate/status 事故不能只补局部判断。每次事故必须至少新增一条 reducer rule 或 fixture test，并在 runbook 或状态文档里记录对应的 authority dominance 规则。
+后续 truth/gate/status 事故不能只补局部判断。每次事故必须同时留下三类可验证资产：
+
+- reducer rule：把新的 dominance/invalidations 规则写进 `StudyTruthKernel`。
+- fixture test：把真实冲突脱敏成 golden fixture，证明只产出一个 `canonical_next_action`。
+- runbook entry：在 runtime/status 文档里记录事故模式、权威来源和禁止旁路。

@@ -23,6 +23,7 @@
 - `MedAutoScience` 的对外稳定 capability surface 固定为本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract，并由单一 MAS app skill 承接。
 - AI-first 质量判断必须由 AI reviewer / author artifact 持有；schema、gate、scorecard、audit 只能持有结构、证据引用、机械完整性与阻塞投影。缺少 `assessment_provenance.owner=ai_reviewer` 的 `publication_eval/latest.json` 不得驱动 reviewer-first ready、bundle-only remaining、finalize-ready 或 submission-facing 质量闭环。
 - 已达投稿包、submission-ready 或 finalize 里程碑后收到用户、导师或审稿稿件反馈时，反馈本身就是同一 study 的重新激活信号；旧 stopped/submission-ready/finalize 状态不得被解释为前台直接修改 `manuscript/current_package/` 的许可，必须先写入 durable revision intake，再通过 MAS/MDS relaunch/resume 接管 canonical paper surface 并重新生成投影包。
+- `MDS` 只能作为 runtime/native/review 事件源、受控后端和行为等价 oracle；MAS 的 `StudyTruthKernel` 持有用户可见 `canonical_next_action`、publication gate 解释、package authority 解释和 delivery state。任何 truth/gate/status 事故必须同时落 reducer rule、fixture test 与 runbook entry。
 
 ## 文档与结构
 
