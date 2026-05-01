@@ -21,6 +21,7 @@ def register_runtime_storage_parsers(subparsers: argparse._SubParsersAction) -> 
     audit_parser.add_argument("--study-id", type=str)
     audit_parser.add_argument("--all-studies", action="store_true")
     audit_parser.add_argument("--stopped-only", action="store_true")
+    audit_parser.add_argument("--git-only", action="store_true")
     audit_parser.add_argument("--apply", action="store_true")
     _add_storage_cleanup_options(audit_parser)
 
@@ -45,14 +46,17 @@ def handle_runtime_storage_command(
         return 0
 
     if args.command == "workspace-storage-audit":
+        if bool(args.git_only) and (bool(args.study_id) or bool(args.all_studies)):
+            parser.error("--git-only cannot be combined with --study-id or --all-studies")
         if bool(args.study_id) and bool(args.all_studies):
             parser.error("Specify at most one of --study-id or --all-studies")
         result = runtime_storage_maintenance.audit_workspace_storage(
             profile=load_profile(args.profile),
             study_id=args.study_id,
-            all_studies=bool(args.all_studies) or not bool(args.study_id),
+            all_studies=False if bool(args.git_only) else bool(args.all_studies) or not bool(args.study_id),
             stopped_only=bool(args.stopped_only),
             apply=bool(args.apply),
+            git_only=bool(args.git_only),
             **_storage_cleanup_options_from_args(args),
         )
         _print_json(result)

@@ -4,6 +4,7 @@ import importlib
 import json
 import os
 from pathlib import Path
+import time
 
 from tests.study_runtime_test_helpers import make_profile
 
@@ -191,7 +192,10 @@ def test_audit_workspace_storage_dry_run_reports_runtime_dataset_cache_and_git(t
     (profile.workspace_root / ".venv" / "bin").mkdir(parents=True, exist_ok=True)
     (profile.workspace_root / ".venv" / "bin" / "python").write_text("python\n", encoding="utf-8")
     (profile.workspace_root / ".git" / "objects" / "pack").mkdir(parents=True, exist_ok=True)
-    (profile.workspace_root / ".git" / "objects" / "pack" / "tmp_pack_001").write_text("pack\n", encoding="utf-8")
+    tmp_pack = profile.workspace_root / ".git" / "objects" / "pack" / "tmp_pack_001"
+    tmp_pack.write_text("pack\n", encoding="utf-8")
+    stale_mtime = time.time() - 7 * 3600
+    os.utime(tmp_pack, (stale_mtime, stale_mtime))
     _write_dataset_release(
         profile.workspace_root,
         family_id="master",
@@ -225,6 +229,7 @@ def test_audit_workspace_storage_dry_run_reports_runtime_dataset_cache_and_git(t
     assert v2_report["candidate_action"] == "keep-online"
     assert result["categories"]["cache"]["estimated_release_bytes"] > 0
     assert result["categories"]["git"]["tmp_pack_files"]
+    assert result["categories"]["git"]["estimated_release_bytes"] > 0
     latest_report_path = profile.workspace_root / "storage_audit" / "latest.json"
     assert latest_report_path.is_file()
     assert json.loads(latest_report_path.read_text(encoding="utf-8"))["mode"] == "dry-run"
@@ -275,6 +280,88 @@ def test_audit_workspace_storage_apply_runs_stopped_studies_and_blocks_live_runt
     assert stopped_report["status"] == "applied"
     assert stopped_report["apply_result"]["status"] == "maintained"
     assert (profile.studies_root / stopped_study_id / "artifacts" / "runtime" / "runtime_storage_maintenance" / "latest.json").is_file()
+
+
+def test_audit_workspace_storage_git_only_apply_removes_stale_git_temp_garbage(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    pack_root = profile.workspace_root / ".git" / "objects" / "pack"
+    object_root = profile.workspace_root / ".git" / "objects" / "6b"
+    pack_root.mkdir(parents=True, exist_ok=True)
+    object_root.mkdir(parents=True, exist_ok=True)
+    tmp_pack = pack_root / "tmp_pack_stale"
+    tmp_obj = object_root / "tmp_obj_stale"
+    tmp_pack.write_text("pack garbage\n", encoding="utf-8")
+    tmp_obj.write_text("object garbage\n", encoding="utf-8")
+    stale_mtime = time.time() - 7200
+    os.utime(tmp_pack, (stale_mtime, stale_mtime))
+    os.utime(tmp_obj, (stale_mtime, stale_mtime))
+
+    result = module.audit_workspace_storage(
+        profile=profile,
+        all_studies=False,
+        apply=True,
+        git_only=True,
+        older_than_seconds=3600,
+    )
+
+    assert result["mode"] == "apply"
+    assert result["summary"]["study_count"] == 0
+    assert result["categories"]["runtime"]["candidate_action"] == "skipped-git-only"
+    git_report = result["categories"]["git"]
+    assert git_report["apply_result"]["status"] == "deleted"
+    assert git_report["apply_result"]["deleted_count"] == 2
+    assert git_report["hardening_result"]["gitignore_status"] == "updated"
+    assert "storage_audit/" in (profile.workspace_root / ".gitignore").read_text(encoding="utf-8")
+    assert not tmp_pack.exists()
+    assert not tmp_obj.exists()
+
+
+def test_audit_workspace_storage_git_only_apply_keeps_fresh_git_temp_garbage(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    pack_root = profile.workspace_root / ".git" / "objects" / "pack"
+    pack_root.mkdir(parents=True, exist_ok=True)
+    tmp_pack = pack_root / "tmp_pack_fresh"
+    tmp_pack.write_text("pack garbage\n", encoding="utf-8")
+
+    result = module.audit_workspace_storage(
+        profile=profile,
+        all_studies=False,
+        apply=True,
+        git_only=True,
+        older_than_seconds=3600,
+    )
+
+    git_report = result["categories"]["git"]
+    assert git_report["estimated_release_bytes"] == 0
+    assert git_report["apply_result"]["status"] == "nothing_to_delete"
+    assert tmp_pack.exists()
+
+
+def test_audit_workspace_storage_git_only_apply_blocks_when_git_lock_exists(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    pack_root = profile.workspace_root / ".git" / "objects" / "pack"
+    pack_root.mkdir(parents=True, exist_ok=True)
+    tmp_pack = pack_root / "tmp_pack_stale"
+    tmp_pack.write_text("pack garbage\n", encoding="utf-8")
+    stale_mtime = time.time() - 7200
+    os.utime(tmp_pack, (stale_mtime, stale_mtime))
+    (profile.workspace_root / ".git" / "index.lock").write_text("locked\n", encoding="utf-8")
+
+    result = module.audit_workspace_storage(
+        profile=profile,
+        all_studies=False,
+        apply=True,
+        git_only=True,
+        older_than_seconds=3600,
+    )
+
+    git_report = result["categories"]["git"]
+    assert git_report["apply_result"]["status"] == "blocked_git_lock"
+    assert "git_lock_present" in git_report["blockers"]
+    assert tmp_pack.exists()
 
 
 def test_audit_workspace_storage_stopped_only_skips_live_runtime(tmp_path: Path) -> None:

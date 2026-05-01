@@ -9,6 +9,7 @@ import sys
 from typing import Any, Mapping
 
 from med_autoscience.controllers import data_assets, study_runtime_resolution
+from med_autoscience.controllers.runtime_storage_maintenance_parts import git_garbage
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol.study_runtime import resolve_study_runtime_paths
@@ -448,30 +449,17 @@ def _dataset_release_blockers(
     return blockers
 
 
-def _git_storage_audit(workspace_root: Path) -> dict[str, Any]:
-    git_root = workspace_root / ".git"
-    tmp_pack_files = []
-    objects_root = git_root / "objects"
-    if objects_root.exists():
-        tmp_pack_files = [
-            {
-                "path": str(path),
-                "bytes": _directory_size_bytes(path),
-                "candidate_action": "delete-safe-via-git-maintenance",
-            }
-            for path in sorted(objects_root.glob("pack/tmp_pack_*"))
-            if path.is_file()
-        ]
-    return {
-        "category": "git",
-        "path": str(git_root),
-        "bytes": _directory_size_bytes(git_root),
-        "risk": "git_object_store",
-        "candidate_action": "git-maintenance-advisory",
-        "estimated_release_bytes": 0,
-        "tmp_pack_files": tmp_pack_files,
-        "restore_command": "git fsck && git gc",
-    }
+def _git_storage_audit(
+    workspace_root: Path,
+    *,
+    older_than_seconds: int = git_garbage.GIT_TEMP_GARBAGE_MIN_AGE_SECONDS,
+    apply: bool = False,
+) -> dict[str, Any]:
+    return git_garbage.audit_git_storage(
+        workspace_root,
+        older_than_seconds=older_than_seconds,
+        apply=apply,
+    )
 
 
 def _delete_safe_candidates(workspace_root: Path) -> dict[str, Any]:
@@ -569,6 +557,18 @@ def _run_backend_command(*, repo_root: Path, command: list[str]) -> dict[str, An
     return payload
 
 
+def _skipped_storage_category(*, category: str, workspace_root: Path, reason: str) -> dict[str, Any]:
+    return {
+        "category": category,
+        "workspace_root": str(workspace_root),
+        "bytes": 0,
+        "total_bytes": 0,
+        "candidate_action": f"skipped-{reason}",
+        "estimated_release_bytes": 0,
+        "blockers": [reason],
+    }
+
+
 def audit_workspace_storage(
     *,
     profile: WorkspaceProfile,
@@ -576,6 +576,7 @@ def audit_workspace_storage(
     all_studies: bool = True,
     stopped_only: bool = False,
     apply: bool = False,
+    git_only: bool = False,
     include_worktrees: bool = True,
     older_than_seconds: int = 6 * 3600,
     jsonl_max_mb: int = 64,
@@ -589,7 +590,7 @@ def audit_workspace_storage(
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     workspace_root = profile.workspace_root.expanduser().resolve()
-    selected_roots = _selected_study_roots(profile=profile, study_id=study_id, all_studies=all_studies)
+    selected_roots = [] if git_only else _selected_study_roots(profile=profile, study_id=study_id, all_studies=all_studies)
     study_reports: list[dict[str, Any]] = []
     runtime_total_bytes = 0
     runtime_estimated_release_bytes = 0
@@ -675,9 +676,21 @@ def audit_workspace_storage(
                 }
             )
 
-    dataset_report = _dataset_retention_audit(workspace_root)
-    git_report = _git_storage_audit(workspace_root)
-    cache_report = _delete_safe_candidates(workspace_root)
+    dataset_report = (
+        _skipped_storage_category(category="dataset", workspace_root=workspace_root, reason="git_only")
+        if git_only
+        else _dataset_retention_audit(workspace_root)
+    )
+    git_report = _git_storage_audit(
+        workspace_root,
+        older_than_seconds=older_than_seconds,
+        apply=apply,
+    )
+    cache_report = (
+        _skipped_storage_category(category="cache", workspace_root=workspace_root, reason="git_only")
+        if git_only
+        else _delete_safe_candidates(workspace_root)
+    )
     report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "recorded_at": recorded_at,
@@ -689,6 +702,7 @@ def audit_workspace_storage(
             "all_studies": all_studies,
             "stopped_only": stopped_only,
             "allow_live_runtime": allow_live_runtime,
+            "git_only": git_only,
         },
         "summary": {
             "study_count": len(study_reports),
@@ -703,7 +717,7 @@ def audit_workspace_storage(
             "runtime": {
                 "category": "runtime",
                 "bytes": runtime_total_bytes,
-                "candidate_action": "compress-online",
+                "candidate_action": "skipped-git-only" if git_only else "compress-online",
                 "estimated_release_bytes": runtime_estimated_release_bytes,
                 "studies": study_reports,
             },

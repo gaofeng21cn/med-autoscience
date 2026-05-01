@@ -105,10 +105,11 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         profile,
         study_id: str | None,
         all_studies: bool,
-        stopped_only: bool,
-        apply: bool,
-        include_worktrees: bool,
-        older_than_seconds: int,
+            stopped_only: bool,
+            apply: bool,
+            git_only: bool,
+            include_worktrees: bool,
+            older_than_seconds: int,
         jsonl_max_mb: int,
         text_max_mb: int,
         event_segment_max_mb: int,
@@ -123,6 +124,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         called["all_studies"] = all_studies
         called["stopped_only"] = stopped_only
         called["apply"] = apply
+        called["git_only"] = git_only
         called["include_worktrees"] = include_worktrees
         called["older_than_seconds"] = older_than_seconds
         called["jsonl_max_mb"] = jsonl_max_mb
@@ -172,6 +174,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
     assert called["all_studies"] is True
     assert called["stopped_only"] is True
     assert called["apply"] is True
+    assert called["git_only"] is False
     assert called["include_worktrees"] is False
     assert called["older_than_seconds"] == 12 * 3600
     assert called["jsonl_max_mb"] == 32

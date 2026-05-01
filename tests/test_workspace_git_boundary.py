@@ -74,6 +74,47 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_mds_quests(tmp_pa
     ).stdout.strip()
     assert branch_name == "main"
     assert relative_paths == "true"
+    assert _git_config(workspace_root, "gc.auto") == "0"
+    assert _git_config(workspace_root, "gc.autoPackLimit") == "0"
+    assert _git_config(workspace_root, "maintenance.auto") == "false"
+
+    large_download = workspace_root / "portfolio" / "data_assets" / "public" / "downloads" / "asset.zip"
+    large_download.parent.mkdir(parents=True, exist_ok=True)
+    large_download.write_text("data\n", encoding="utf-8")
+    check_large_download = subprocess.run(
+        ["git", "check-ignore", str(large_download.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_large_download.returncode == 0
+
+
+def test_init_workspace_backfills_gitignore_and_git_config_for_existing_repo(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "existing-git-workspace"
+    workspace_root.mkdir()
+    subprocess.run(["git", "init"], cwd=workspace_root, check=True, text=True, capture_output=True)
+    (workspace_root / ".gitignore").write_text("custom-local-rule/\n", encoding="utf-8")
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="existing-git",
+        dry_run=False,
+        force=False,
+    )
+
+    assert result["workspace_git"]["initialized"] is False
+    assert result["workspace_git"]["already_initialized"] is True
+    workspace_gitignore = (workspace_root / ".gitignore").read_text(encoding="utf-8")
+    assert "custom-local-rule/" in workspace_gitignore
+    assert "datasets/standardized_longitudinal/" in workspace_gitignore
+    assert "storage_audit/" in workspace_gitignore
+    assert _git_config(workspace_root, "worktree.useRelativePaths") == "true"
+    assert _git_config(workspace_root, "gc.auto") == "0"
+    assert _git_config(workspace_root, "gc.autoPackLimit") == "0"
+    assert _git_config(workspace_root, "maintenance.auto") == "false"
 
 
 def test_init_workspace_can_skip_workspace_git_initialization(tmp_path: Path) -> None:
@@ -98,3 +139,13 @@ def test_init_workspace_can_skip_workspace_git_initialization(tmp_path: Path) ->
     }
     assert not (workspace_root / ".git").exists()
     assert (workspace_root / ".gitignore").is_file()
+
+
+def _git_config(workspace_root: Path, key: str) -> str:
+    return subprocess.run(
+        ["git", "config", "--get", key],
+        cwd=workspace_root,
+        check=True,
+        text=True,
+        capture_output=True,
+    ).stdout.strip()

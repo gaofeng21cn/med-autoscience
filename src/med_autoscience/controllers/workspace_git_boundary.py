@@ -23,8 +23,25 @@ WORKSPACE_GITIGNORE_ENTRIES = (
     "ops/med-deepscientist/runtime/tools/",
     "ops/med-deepscientist/runtime/*.pid",
     "ops/med-deepscientist/runtime/*.sock",
+    "tmp/",
+    ".tmp/",
+    "storage_audit/",
     "datasets/raw/",
     "datasets/**/raw/",
+    "datasets/restricted_raw/",
+    "datasets/deidentified_longitudinal/",
+    "datasets/standardized_longitudinal/",
+    "datasets/external/",
+    "portfolio/data_assets/public/downloads/",
+    "portfolio/data_assets/private/diffs/",
+    "portfolio/data_assets/private/pruned_releases/",
+)
+
+WORKSPACE_GIT_CONFIG_ENTRIES = (
+    ("worktree.useRelativePaths", "true"),
+    ("gc.auto", "0"),
+    ("gc.autoPackLimit", "0"),
+    ("maintenance.auto", "false"),
 )
 
 
@@ -110,6 +127,7 @@ def ensure_workspace_git(*, workspace_root: Path, initialize_git: bool) -> dict[
             would_initialize=False,
         )
     if already_initialized:
+        configure_existing_workspace_git(workspace_root=workspace_root)
         return _workspace_git_payload(
             workspace_root=workspace_root,
             enabled=True,
@@ -120,7 +138,7 @@ def ensure_workspace_git(*, workspace_root: Path, initialize_git: bool) -> dict[
     git_bin = shutil.which("git") or "git"
     _run_git(git_bin, ["init"], workspace_root=workspace_root)
     _run_git(git_bin, ["branch", "-M", "main"], workspace_root=workspace_root)
-    _run_git(git_bin, ["config", "worktree.useRelativePaths", "true"], workspace_root=workspace_root)
+    _configure_workspace_git(git_bin=git_bin, workspace_root=workspace_root)
     return _workspace_git_payload(
         workspace_root=workspace_root,
         enabled=True,
@@ -128,3 +146,16 @@ def ensure_workspace_git(*, workspace_root: Path, initialize_git: bool) -> dict[
         already_initialized=False,
         would_initialize=False,
     )
+
+
+def configure_existing_workspace_git(*, workspace_root: Path) -> bool:
+    if not (workspace_root / ".git").exists():
+        return False
+    git_bin = shutil.which("git") or "git"
+    _configure_workspace_git(git_bin=git_bin, workspace_root=workspace_root)
+    return True
+
+
+def _configure_workspace_git(*, git_bin: str, workspace_root: Path) -> None:
+    for key, value in WORKSPACE_GIT_CONFIG_ENTRIES:
+        _run_git(git_bin, ["config", key, value], workspace_root=workspace_root)
