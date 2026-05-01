@@ -24,6 +24,10 @@ _RECORD_ALLOWED_FIELDS = frozenset(
         "route_target",
         "route_key_question",
         "route_rationale",
+        "source_route_key_question",
+        "work_unit_fingerprint",
+        "next_work_unit",
+        "blocking_work_units",
         "autonomy_governance_contract",
         "family_event_envelope",
         "family_checkpoint_lineage",
@@ -292,6 +296,10 @@ class StudyDecisionRecord:
     route_target: str | None = None
     route_key_question: str | None = None
     route_rationale: str | None = None
+    source_route_key_question: str | None = None
+    work_unit_fingerprint: str | None = None
+    next_work_unit: dict[str, Any] | None = None
+    blocking_work_units: tuple[dict[str, Any], ...] = ()
     autonomy_governance_contract: dict[str, Any] | None = None
     family_event_envelope: dict[str, Any] | None = None
     family_checkpoint_lineage: dict[str, Any] | None = None
@@ -364,6 +372,34 @@ class StudyDecisionRecord:
         object.__setattr__(self, "route_target", normalized_route_target)
         object.__setattr__(self, "route_key_question", normalized_route_key_question)
         object.__setattr__(self, "route_rationale", normalized_route_rationale)
+        normalized_source_route_key_question = (
+            _require_text("study decision record", "source_route_key_question", self.source_route_key_question)
+            if self.source_route_key_question is not None
+            else None
+        )
+        normalized_work_unit_fingerprint = (
+            _require_text("study decision record", "work_unit_fingerprint", self.work_unit_fingerprint)
+            if self.work_unit_fingerprint is not None
+            else None
+        )
+        normalized_next_work_unit = (
+            dict(self.next_work_unit)
+            if isinstance(self.next_work_unit, dict)
+            else None
+        )
+        if self.next_work_unit is not None and normalized_next_work_unit is None:
+            raise TypeError("study decision record next_work_unit must be mapping or None")
+        normalized_blocking_work_units = tuple(
+            dict(unit) if isinstance(unit, dict) else dict(unit)
+            for unit in self.blocking_work_units
+        )
+        for unit in normalized_blocking_work_units:
+            if not isinstance(unit, dict):
+                raise TypeError("study decision record blocking_work_units entries must be mappings")
+        object.__setattr__(self, "source_route_key_question", normalized_source_route_key_question)
+        object.__setattr__(self, "work_unit_fingerprint", normalized_work_unit_fingerprint)
+        object.__setattr__(self, "next_work_unit", normalized_next_work_unit)
+        object.__setattr__(self, "blocking_work_units", normalized_blocking_work_units)
         if self.autonomy_governance_contract is not None and not isinstance(self.autonomy_governance_contract, dict):
             raise TypeError("study decision record autonomy_governance_contract must be mapping or None")
         if self.family_event_envelope is not None and not isinstance(self.family_event_envelope, dict):
@@ -398,6 +434,10 @@ class StudyDecisionRecord:
             route_target=self.route_target,
             route_key_question=self.route_key_question,
             route_rationale=self.route_rationale,
+            source_route_key_question=self.source_route_key_question,
+            work_unit_fingerprint=self.work_unit_fingerprint,
+            next_work_unit=dict(self.next_work_unit) if isinstance(self.next_work_unit, dict) else None,
+            blocking_work_units=tuple(dict(unit) for unit in self.blocking_work_units),
             autonomy_governance_contract=(
                 dict(self.autonomy_governance_contract) if isinstance(self.autonomy_governance_contract, dict) else None
             ),
@@ -436,6 +476,14 @@ class StudyDecisionRecord:
             payload["route_target"] = self.route_target
             payload["route_key_question"] = self.route_key_question
             payload["route_rationale"] = self.route_rationale
+        if self.source_route_key_question is not None:
+            payload["source_route_key_question"] = self.source_route_key_question
+        if self.work_unit_fingerprint is not None:
+            payload["work_unit_fingerprint"] = self.work_unit_fingerprint
+        if self.next_work_unit is not None:
+            payload["next_work_unit"] = dict(self.next_work_unit)
+        if self.blocking_work_units:
+            payload["blocking_work_units"] = [dict(unit) for unit in self.blocking_work_units]
         if self.autonomy_governance_contract is not None:
             payload["autonomy_governance_contract"] = dict(self.autonomy_governance_contract)
         if self.family_event_envelope is not None:
@@ -478,6 +526,14 @@ class StudyDecisionRecord:
             route_target=_optional_payload_text(payload, "route_target"),
             route_key_question=_optional_payload_text(payload, "route_key_question"),
             route_rationale=_optional_payload_text(payload, "route_rationale"),
+            source_route_key_question=_optional_payload_text(payload, "source_route_key_question"),
+            work_unit_fingerprint=_optional_payload_text(payload, "work_unit_fingerprint"),
+            next_work_unit=_optional_payload_mapping(payload, "next_work_unit", "study decision record"),
+            blocking_work_units=_optional_payload_mapping_sequence(
+                payload,
+                "blocking_work_units",
+                "study decision record",
+            ),
             autonomy_governance_contract=_optional_payload_mapping(
                 payload,
                 "autonomy_governance_contract",

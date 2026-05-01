@@ -367,6 +367,30 @@ def _controller_decision_latest_matches_outer_loop_request(
         return False
     if record.reason != (_non_empty_text(tick_request.get("reason")) or ""):
         return False
+    if record.route_target != _non_empty_text(tick_request.get("route_target")):
+        return False
+    if record.route_key_question != _non_empty_text(tick_request.get("route_key_question")):
+        return False
+    if record.route_rationale != _non_empty_text(tick_request.get("route_rationale")):
+        return False
+    if record.source_route_key_question != _non_empty_text(tick_request.get("source_route_key_question")):
+        return False
+    if record.work_unit_fingerprint != _non_empty_text(tick_request.get("work_unit_fingerprint")):
+        return False
+    desired_next_work_unit = (
+        dict(tick_request.get("next_work_unit"))
+        if isinstance(tick_request.get("next_work_unit"), dict)
+        else None
+    )
+    if record.next_work_unit != desired_next_work_unit:
+        return False
+    desired_blocking_work_units = tuple(
+        dict(unit)
+        for unit in (tick_request.get("blocking_work_units") or [])
+        if isinstance(unit, dict)
+    )
+    if tuple(dict(unit) for unit in record.blocking_work_units) != desired_blocking_work_units:
+        return False
     if record.charter_ref.to_dict() != desired_charter_ref:
         return False
     if record.publication_eval_ref.to_dict() != desired_publication_eval_ref:

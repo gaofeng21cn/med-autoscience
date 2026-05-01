@@ -231,7 +231,4 @@ def context_payload(tick_request: Mapping[str, Any], *, work_unit_dispatch_key: 
 
 
 def strip_context(tick_request: Mapping[str, Any]) -> dict[str, Any]:
-    payload = dict(tick_request)
-    payload.pop("work_unit_fingerprint", None)
-    payload.pop("next_work_unit", None)
-    return payload
+    return dict(tick_request)

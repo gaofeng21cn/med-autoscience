@@ -164,6 +164,43 @@ def test_study_decision_record_accepts_route_contract_fields() -> None:
     assert record.to_dict()["route_target"] == "write"
 
 
+def test_study_decision_record_accepts_controller_work_unit_fields() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["route_target"] = "analysis-campaign"
+    payload["route_key_question"] = "analysis_claim_evidence_repair: Repair claim-evidence blockers."
+    payload["source_route_key_question"] = "Broad reviewer revision checklist."
+    payload["route_rationale"] = (
+        "Publication gate selected controller-owned work unit `analysis_claim_evidence_repair`."
+    )
+    payload["work_unit_fingerprint"] = "publication-blockers::claim-story-figure"
+    payload["next_work_unit"] = {
+        "unit_id": "analysis_claim_evidence_repair",
+        "lane": "analysis-campaign",
+        "summary": "Repair claim-evidence blockers.",
+    }
+    payload["blocking_work_units"] = [
+        {
+            "unit_id": "analysis_claim_evidence_repair",
+            "lane": "analysis-campaign",
+            "summary": "Repair claim-evidence blockers.",
+        },
+        {
+            "unit_id": "submission_minimal_refresh",
+            "lane": "finalize",
+            "summary": "Refresh submission surfaces.",
+        },
+    ]
+
+    record = module.StudyDecisionRecord.from_payload(payload)
+
+    assert record.work_unit_fingerprint == "publication-blockers::claim-story-figure"
+    assert record.next_work_unit["unit_id"] == "analysis_claim_evidence_repair"
+    assert record.blocking_work_units[1]["unit_id"] == "submission_minimal_refresh"
+    assert record.to_dict()["source_route_key_question"] == "Broad reviewer revision checklist."
+    assert record.to_dict()["blocking_work_units"] == payload["blocking_work_units"]
+
+
 def test_study_decision_record_rejects_partial_route_contract_fields() -> None:
     module = _load_module()
     payload = _minimal_payload()

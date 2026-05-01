@@ -164,6 +164,8 @@ def test_build_runtime_watch_outer_loop_tick_request_ignores_stale_task_intake_a
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
+
+
 def test_build_runtime_watch_outer_loop_tick_request_autoparks_without_runtime_escalation_ref(
     tmp_path: Path,
 ) -> None:
