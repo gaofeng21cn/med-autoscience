@@ -80,6 +80,58 @@ def _stable_blocking_artifact_refs(value: object) -> tuple[str, ...]:
     return tuple(sorted(set(refs)))
 
 
+def _compact_work_unit_payload(value: object) -> dict[str, str] | None:
+    if not isinstance(value, dict):
+        return None
+    unit_id = _text(value.get("unit_id"))
+    if unit_id is None:
+        return None
+    payload = {"unit_id": unit_id}
+    for key in ("lane", "summary", "control_surface", "user_feedback_priority"):
+        text = _text(value.get(key))
+        if text is not None:
+            payload[key] = text
+    return payload
+
+
+def _publication_eval_work_unit_context(publication_eval_payload: dict[str, Any]) -> dict[str, Any]:
+    recommended_actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(recommended_actions, list):
+        return {}
+    for action in recommended_actions:
+        if not isinstance(action, dict):
+            continue
+        next_work_unit = _compact_work_unit_payload(action.get("next_work_unit"))
+        if next_work_unit is None:
+            continue
+        unit_id = next_work_unit["unit_id"]
+        unit_summary = _text(next_work_unit.get("summary"))
+        route_key_question = f"{unit_id}: {unit_summary}" if unit_summary else unit_id
+        route_rationale = (
+            _text(action.get("route_rationale"))
+            or _text(action.get("reason"))
+            or unit_summary
+            or _text(action.get("route_key_question"))
+            or f"Publication gate selected work unit `{unit_id}` as the next controller-owned action."
+        )
+        blocking_work_units = [
+            compact
+            for item in action.get("blocking_work_units") or []
+            if (compact := _compact_work_unit_payload(item)) is not None
+        ]
+        return {
+            "work_unit_id": unit_id,
+            "work_unit_fingerprint": _text(action.get("work_unit_fingerprint")),
+            "next_work_unit": next_work_unit,
+            "blocking_work_units": blocking_work_units,
+            "route_target": _text(next_work_unit.get("lane")) or _text(action.get("route_target")),
+            "route_key_question": route_key_question,
+            "route_rationale": route_rationale,
+            "source_route_key_question": _text(action.get("route_key_question")),
+        }
+    return {}
+
+
 def _stable_publication_authority_fingerprint(
     *,
     study_root: Path,
@@ -89,8 +141,12 @@ def _stable_publication_authority_fingerprint(
         study_root=study_root,
         artifact_path=record.publication_eval_ref.artifact_path,
     )
+    work_unit_context = _publication_eval_work_unit_context(publication_eval_payload)
     canonical_payload: dict[str, Any] = {
         "gate_fingerprint": _text(publication_eval_payload.get("gate_fingerprint")),
+        "work_unit_fingerprint": _text(work_unit_context.get("work_unit_fingerprint")),
+        "next_work_unit": work_unit_context.get("next_work_unit"),
+        "blocking_work_units": work_unit_context.get("blocking_work_units"),
         "evaluated_source_signature": _text(
             publication_eval_payload.get("evaluated_source_signature")
             or publication_eval_payload.get("submission_minimal_evaluated_source_signature")
@@ -121,7 +177,11 @@ def _controller_decision_authorization_identity(
         study_id=str(authorization_context.get("study_id") or ""),
         quest_id=str(authorization_context.get("quest_id") or "") or None,
         route_target=str(authorization_context.get("route_target") or ""),
-        work_unit_id=str(authorization_context.get("route_key_question") or ""),
+        work_unit_id=str(
+            authorization_context.get("work_unit_id")
+            or authorization_context.get("route_key_question")
+            or ""
+        ),
         blocker_authority_fingerprint=str(authorization_context.get("blocker_authority_fingerprint") or ""),
         controller_actions=authorization_context.get("controller_actions") or (),
         source_kind="controller_decision_authorization",
@@ -143,16 +203,28 @@ def _load_controller_decision_authorization_context(*, study_root: Path) -> dict
         or record.route_rationale is None
     ):
         return None
-    controller_actions = tuple(action.action_type.value for action in record.controller_actions)
-    blocker_authority_fingerprint = _stable_publication_authority_fingerprint(
-        study_root=Path(study_root).expanduser().resolve(),
-        record=record,
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    publication_eval_payload = _artifact_payload_from_ref(
+        study_root=resolved_study_root,
+        artifact_path=record.publication_eval_ref.artifact_path,
     )
+    work_unit_context = _publication_eval_work_unit_context(publication_eval_payload)
+    route_target = str(work_unit_context.get("route_target") or record.route_target or "").strip()
+    route_key_question = str(work_unit_context.get("route_key_question") or record.route_key_question or "").strip()
+    route_rationale = str(work_unit_context.get("route_rationale") or record.route_rationale or "").strip()
+    work_unit_id = str(work_unit_context.get("work_unit_id") or route_key_question).strip()
+    controller_actions = tuple(action.action_type.value for action in record.controller_actions)
+    blocker_authority_fingerprint = str(work_unit_context.get("work_unit_fingerprint") or "").strip()
+    if not blocker_authority_fingerprint:
+        blocker_authority_fingerprint = _stable_publication_authority_fingerprint(
+            study_root=resolved_study_root,
+            record=record,
+        )
     intent_identity = control_intent.build_control_intent_identity(
         study_id=record.study_id,
         quest_id=record.quest_id,
-        route_target=record.route_target,
-        work_unit_id=record.route_key_question,
+        route_target=route_target,
+        work_unit_id=work_unit_id,
         blocker_authority_fingerprint=blocker_authority_fingerprint,
         controller_actions=controller_actions,
         source_kind="controller_decision_authorization",
@@ -165,10 +237,15 @@ def _load_controller_decision_authorization_context(*, study_root: Path) -> dict
         "requires_human_confirmation": record.requires_human_confirmation,
         "controller_actions": controller_actions,
         "decision_path": str(decision_path),
-        "route_target": record.route_target,
-        "route_target_label": _ROUTE_TARGET_LABELS.get(record.route_target, record.route_target),
-        "route_key_question": record.route_key_question,
-        "route_rationale": record.route_rationale,
+        "route_target": route_target,
+        "route_target_label": _ROUTE_TARGET_LABELS.get(route_target, route_target),
+        "route_key_question": route_key_question,
+        "route_rationale": route_rationale,
+        "source_route_key_question": record.route_key_question,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": str(work_unit_context.get("work_unit_fingerprint") or "").strip() or None,
+        "next_work_unit": dict(work_unit_context.get("next_work_unit") or {}),
+        "blocking_work_units": list(work_unit_context.get("blocking_work_units") or []),
         "blocker_authority_fingerprint": blocker_authority_fingerprint,
         "control_intent_identity": intent_identity.to_dict(),
         "control_intent_key": intent_identity.business_key,
@@ -274,6 +351,11 @@ def _controller_decision_authorization_message(*, authorization_context: dict[st
     route_target_label = str(authorization_context.get("route_target_label") or route_target).strip()
     route_key_question = str(authorization_context.get("route_key_question") or "").strip()
     route_rationale = str(authorization_context.get("route_rationale") or "").strip()
+    source_route_key_question = str(authorization_context.get("source_route_key_question") or "").strip()
+    work_unit_id = str(authorization_context.get("work_unit_id") or "").strip()
+    work_unit_fingerprint = str(authorization_context.get("work_unit_fingerprint") or "").strip()
+    next_work_unit = authorization_context.get("next_work_unit")
+    blocking_work_units = authorization_context.get("blocking_work_units")
     decision_id = str(authorization_context.get("decision_id") or "").strip()
     decision_path = str(authorization_context.get("decision_path") or "artifacts/controller_decisions/latest.json").strip()
     controller_actions = ", ".join(
@@ -281,6 +363,17 @@ def _controller_decision_authorization_message(*, authorization_context: dict[st
         for action in authorization_context.get("controller_actions") or ()
         if str(action).strip()
     )
+    work_unit_lines = ""
+    if work_unit_id:
+        work_unit_lines += f"- active_work_unit_id: `{work_unit_id}`\n"
+    if work_unit_fingerprint:
+        work_unit_lines += f"- work_unit_fingerprint: `{work_unit_fingerprint}`\n"
+    if isinstance(next_work_unit, dict) and next_work_unit:
+        work_unit_lines += f"- next_work_unit: {json.dumps(next_work_unit, ensure_ascii=False, sort_keys=True)}\n"
+    if isinstance(blocking_work_units, list) and blocking_work_units:
+        work_unit_lines += f"- blocking_work_units: {json.dumps(blocking_work_units, ensure_ascii=False, sort_keys=True)}\n"
+    if source_route_key_question and source_route_key_question != route_key_question:
+        work_unit_lines += f"- source_route_key_question: {source_route_key_question}\n"
     return (
         "MAS controller authorization. "
         f"`{decision_path}` is the active MAS authorization for this runtime turn.\n\n"
@@ -289,9 +382,10 @@ def _controller_decision_authorization_message(*, authorization_context: dict[st
         f"- route_target: `{route_target}` ({route_target_label})\n"
         f"- route_key_question: {route_key_question}\n"
         f"- route_rationale: {route_rationale}\n"
+        f"{work_unit_lines}"
         "- requires_human_confirmation: false\n"
         "- Runtime instruction: do not park solely because `publication_eval/latest.json` still says "
-        "`requires_controller_decision=true`; execute the authorized route_key_question and write durable "
+        "`requires_controller_decision=true`; execute the authorized route_key_question / active_work_unit_id and write durable "
         "evidence, review, or route outputs. Only stop for a true external credential, human-only choice, "
         "or startup boundary."
     )
@@ -359,6 +453,11 @@ def _mark_controller_decision_authorization_relayed(
         "decision_id": str(authorization_context.get("decision_id") or "").strip(),
         "route_target": str(authorization_context.get("route_target") or "").strip(),
         "route_key_question": str(authorization_context.get("route_key_question") or "").strip(),
+        "source_route_key_question": str(authorization_context.get("source_route_key_question") or "").strip() or None,
+        "work_unit_id": str(authorization_context.get("work_unit_id") or "").strip() or None,
+        "work_unit_fingerprint": str(authorization_context.get("work_unit_fingerprint") or "").strip() or None,
+        "next_work_unit": dict(authorization_context.get("next_work_unit") or {}),
+        "blocking_work_units": list(authorization_context.get("blocking_work_units") or []),
         "control_intent_key": str(authorization_context.get("control_intent_key") or "").strip() or None,
         "control_intent_identity": dict(authorization_context.get("control_intent_identity") or {}),
         "active_run_id": active_run_id,
@@ -490,6 +589,11 @@ def _relay_controller_decision_authorization_if_required(
         "decision_id": authorization_context.get("decision_id"),
         "route_target": authorization_context.get("route_target"),
         "route_key_question": authorization_context.get("route_key_question"),
+        "source_route_key_question": authorization_context.get("source_route_key_question"),
+        "work_unit_id": authorization_context.get("work_unit_id"),
+        "work_unit_fingerprint": authorization_context.get("work_unit_fingerprint"),
+        "next_work_unit": authorization_context.get("next_work_unit"),
+        "blocking_work_units": authorization_context.get("blocking_work_units"),
         "decision_path": authorization_context.get("decision_path"),
         "control_intent_key": authorization_context.get("control_intent_key"),
         "active_run_id": active_run_id,

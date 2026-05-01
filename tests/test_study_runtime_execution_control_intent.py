@@ -103,10 +103,81 @@ def _write_publication_eval_authority(
     )
 
 
+def _write_publication_eval_work_unit_authority(study_root: Path) -> None:
+    path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "eval_id": "publication-eval::001-risk::quest-001::latest",
+                "emitted_at": "2026-04-25T06:21:00+00:00",
+                "recommended_actions": [
+                    {
+                        "action_type": "bounded_analysis",
+                        "route_target": "analysis-campaign",
+                        "route_key_question": "broad reviewer revision checklist",
+                        "route_rationale": "Gate requires controller-owned analysis repair.",
+                        "work_unit_fingerprint": "publication-blockers::claim-story-figure",
+                        "next_work_unit": {
+                            "unit_id": "analysis_claim_evidence_repair",
+                            "lane": "analysis-campaign",
+                            "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
+                        },
+                        "blocking_work_units": [
+                            {
+                                "unit_id": "analysis_claim_evidence_repair",
+                                "lane": "analysis-campaign",
+                                "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
+                            },
+                            {
+                                "unit_id": "submission_minimal_refresh",
+                                "lane": "finalize",
+                                "summary": "Refresh the stale submission package after gate clearance.",
+                            },
+                        ],
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def _write_runtime_state(quest_root: Path, payload: dict[str, object]) -> None:
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
     runtime_state_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def test_controller_authorization_prefers_publication_work_unit_over_stale_route_text(tmp_path: Path) -> None:
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_controller_decision_authorization(study_root)
+    _write_publication_eval_work_unit_authority(study_root)
+
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+
+    assert authorization_context is not None
+    assert authorization_context["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert authorization_context["work_unit_fingerprint"] == "publication-blockers::claim-story-figure"
+    assert authorization_context["route_target"] == "analysis-campaign"
+    assert authorization_context["route_key_question"].startswith("analysis_claim_evidence_repair:")
+    assert authorization_context["source_route_key_question"] == (
+        "revision checklist mapping each user comment to manuscript/table/figure/reference changes"
+    )
+    assert authorization_context["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert authorization_context["blocking_work_units"][1]["unit_id"] == "submission_minimal_refresh"
+    assert authorization_context["control_intent_identity"]["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert (
+        authorization_context["control_intent_identity"]["blocker_authority_fingerprint"]
+        == "publication-blockers::claim-story-figure"
+    )
 
 
 def test_execute_noop_runtime_decision_defers_long_authorization_while_awaiting_artifact_delta(

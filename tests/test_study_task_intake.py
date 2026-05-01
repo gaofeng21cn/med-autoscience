@@ -237,6 +237,8 @@ def test_reviewer_task_intake_preserves_publication_gate_work_unit_identity(tmp_
 
     assert action is not None
     assert action["work_unit_fingerprint"].startswith("publication-blockers::")
+    assert action["route_key_question"].startswith("analysis_claim_evidence_repair:")
+    assert action["source_route_key_question"]
     assert action["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
     assert action["next_work_unit"]["lane"] == "analysis-campaign"
     assert action["blocking_work_units"][0]["unit_id"] == "analysis_claim_evidence_repair"

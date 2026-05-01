@@ -8,6 +8,32 @@ from med_autoscience.controllers import publication_work_units
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionType
 
 
+def _publication_work_unit_route_key(next_work_unit: dict[str, Any]) -> str:
+    unit_id = str(next_work_unit.get("unit_id") or "").strip()
+    summary = str(next_work_unit.get("summary") or "").strip()
+    return f"{unit_id}: {summary}" if unit_id and summary else unit_id
+
+
+def _publication_work_unit_route_rationale(
+    *,
+    next_work_unit: dict[str, Any],
+    route_rationale: str,
+) -> str:
+    unit_id = str(next_work_unit.get("unit_id") or "").strip()
+    summary = str(next_work_unit.get("summary") or "").strip()
+    if unit_id and summary:
+        return f"Publication gate selected controller-owned work unit `{unit_id}`: {summary}"
+    if unit_id:
+        return f"Publication gate selected controller-owned work unit `{unit_id}`."
+    return route_rationale
+
+
+def _publication_work_unit_drives_route(*, next_work_unit: dict[str, Any], route_target: str) -> bool:
+    lane = str(next_work_unit.get("lane") or "").strip()
+    unit_id = str(next_work_unit.get("unit_id") or "").strip()
+    return bool(unit_id and lane and (lane == route_target or lane == "analysis-campaign"))
+
+
 def recommended_task_intake_action(
     *,
     study_root: Path,
@@ -111,6 +137,18 @@ def recommended_task_intake_action(
                 action["work_unit_fingerprint"] = work_unit_payload.get("fingerprint")
                 action["blocking_work_units"] = work_unit_payload.get("blocking_work_units") or []
                 action["next_work_unit"] = dict(next_work_unit)
+                work_unit_route_key = _publication_work_unit_route_key(next_work_unit)
+                if work_unit_route_key and _publication_work_unit_drives_route(
+                    next_work_unit=next_work_unit,
+                    route_target=route_target,
+                ):
+                    action["source_route_key_question"] = action["route_key_question"]
+                    action["route_target"] = str(next_work_unit.get("lane") or "").strip() or route_target
+                    action["route_key_question"] = work_unit_route_key
+                    action["route_rationale"] = _publication_work_unit_route_rationale(
+                        next_work_unit=next_work_unit,
+                        route_rationale=route_rationale,
+                    )
                 specificity_questions = work_unit_payload.get("specificity_questions")
                 if specificity_questions:
                     action["specificity_questions"] = list(specificity_questions)
