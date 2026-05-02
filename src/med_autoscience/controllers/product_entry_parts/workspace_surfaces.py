@@ -217,11 +217,15 @@ def _attach_feedback_projection(
     user_view = dict(feedback_state.get("user_view") or {})
     counts = dict(feedback_state.get("counts") or {})
     primary = dict(feedback_state.get("primary_feedback") or {})
+    primary_action = dict(feedback_state.get("primary_action") or {})
     updated = dict(projection)
     updated["feedback_status"] = feedback_state.get("status")
     updated["feedback_summary"] = feedback_state.get("summary")
     updated["feedback_primary_category"] = primary.get("category")
     updated["feedback_primary_reason"] = user_view.get("primary_feedback_reason")
+    updated["feedback_action_id"] = primary_action.get("action_id")
+    updated["feedback_action_target_surface"] = primary_action.get("target_surface")
+    updated["feedback_action_summary"] = primary_action.get("summary") or user_view.get("next_action")
     updated["feedback_counts"] = counts
     updated["human_review_required"] = bool(
         updated.get("human_review_required") or user_view.get("human_review_required")
@@ -842,6 +846,8 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
                 lines.append(f"  运行反馈: {dashboard.get('feedback_summary')}")
             if dashboard.get("feedback_primary_reason"):
                 lines.append(f"  反馈原因: {dashboard.get('feedback_primary_reason')}")
+            if dashboard.get("feedback_action_summary"):
+                lines.append(f"  建议动作: {dashboard.get('feedback_action_summary')}")
             if dashboard.get("ai_reviewer_trace_complete") is not None:
                 lines.append(
                     "  AI reviewer trace: "

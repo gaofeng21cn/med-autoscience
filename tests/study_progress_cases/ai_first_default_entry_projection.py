@@ -90,7 +90,10 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
     assert feedback["counts"]["ai_reviewer_trace_incomplete_count"] == 1
     assert feedback["counts"]["artifact_rebuild_pending_count"] == 1
     assert feedback["authority_contract"]["feedback_can_authorize_submission"] is False
+    assert feedback["primary_action"]["action_id"] == "return_to_ai_reviewer_workflow"
+    assert feedback["user_view"]["next_action"] == "补齐 AI reviewer workflow、publication eval 与 medical prose review。"
     assert result["refs"]["ai_first_feedback_ledger_path"].endswith(
         "artifacts/runtime/ai_first_feedback_ledger/latest.json"
     )
     assert "AI-first 运行反馈" in markdown
+    assert "建议动作: 补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown

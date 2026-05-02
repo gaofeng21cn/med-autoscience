@@ -431,10 +431,19 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
                     "category": "ai_reviewer_trace_gap",
                     "reason": "当前质量判断仍是机械投影。",
                 },
+                "primary_action": {
+                    "action_id": "return_to_ai_reviewer_workflow",
+                    "target_surface": "ai_reviewer_runtime_workflow",
+                    "summary": "补齐 AI reviewer workflow、publication eval 与 medical prose review。",
+                    "authority": "observability_only",
+                    "can_authorize_quality": False,
+                    "can_authorize_submission": False,
+                },
                 "user_view": {
                     "current_stage": "publication_supervision",
                     "primary_feedback_reason": "当前质量判断仍是机械投影。",
                     "next_step": "先补齐 AI reviewer workflow，再刷新 artifact proof。",
+                    "next_action": "补齐 AI reviewer workflow、publication eval 与 medical prose review。",
                     "human_review_required": True,
                     "prompt": "internal prompt must stay hidden",
                     "token_count": 1234,
@@ -494,6 +503,9 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
     assert state["study_dashboards"][0]["route_back_target"] == "analysis-campaign"
     assert state["study_dashboards"][0]["feedback_primary_category"] == "ai_reviewer_trace_gap"
     assert state["study_dashboards"][0]["feedback_primary_reason"] == "当前质量判断仍是机械投影。"
+    assert state["study_dashboards"][0]["feedback_action_id"] == "return_to_ai_reviewer_workflow"
+    assert state["study_dashboards"][0]["feedback_action_summary"] == "补齐 AI reviewer workflow、publication eval 与 medical prose review。"
+    assert state["study_dashboards"][0]["feedback_action_target_surface"] == "ai_reviewer_runtime_workflow"
     assert state["study_dashboards"][0]["authority"] == "observability_only"
     assert "AI-first Operations" in markdown
     assert "pre-draft: pre-draft 已完成结构化初稿。" in markdown
@@ -508,6 +520,7 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
     assert "运行反馈 3" in markdown
     assert "重复返工 1" in markdown
     assert "反馈原因: 当前质量判断仍是机械投影。" in markdown
+    assert "建议动作: 补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown
     assert "internal prompt" not in markdown
     assert "token_count" not in markdown
     assert "/tmp/internal.log" not in markdown

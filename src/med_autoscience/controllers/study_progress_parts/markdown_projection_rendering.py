@@ -503,6 +503,8 @@ def _append_ai_first_feedback_state(lines: list[str], state: Mapping[str, Any]) 
         lines.append(f"- 主要原因: {user_view.get('primary_feedback_reason')}")
     if user_view.get("next_step"):
         lines.append(f"- 下一步: {user_view.get('next_step')}")
+    if user_view.get("next_action"):
+        lines.append(f"- 建议动作: {user_view.get('next_action')}")
     lines.append(f"- 需要人工判断: {'是' if user_view.get('human_review_required') else '否'}")
     lines.append(
         "- 反馈计数: "

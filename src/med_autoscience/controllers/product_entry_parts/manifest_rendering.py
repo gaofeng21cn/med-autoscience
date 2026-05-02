@@ -254,6 +254,8 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
                 lines.append(f"  运行反馈: {dashboard.get('feedback_summary')}")
             if dashboard.get("feedback_primary_reason"):
                 lines.append(f"  反馈原因: {dashboard.get('feedback_primary_reason')}")
+            if dashboard.get("feedback_action_summary"):
+                lines.append(f"  建议动作: {dashboard.get('feedback_action_summary')}")
     for item in payload.get("workspace_attention_queue_preview") or []:
         if not isinstance(item, dict):
             continue
