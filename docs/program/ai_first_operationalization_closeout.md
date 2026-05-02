@@ -34,7 +34,7 @@
 
 ## 已吸收落地 Lane
 
-以下工作曾被刻意拆到并行 worktree。2026-05-02 post-merge closeout 时，四条 implementation lane 已吸收到 `main` 并推送到 `origin/main`；对应临时 branch/worktree 已清理。当前仍保留的 worktree 属于后续独立 lane 或本 ledger closeout lane，不是这四条 implementation lane 的未吸收状态。
+以下工作曾被刻意拆到并行 worktree。2026-05-02 post-merge closeout 时，四条 implementation lane 已吸收到 `main` 并推送到 `origin/main`；对应临时 branch/worktree 已清理。当前仍保留的 worktree 属于后续独立 lane，不是这四条 implementation lane 的未吸收状态。
 
 | Lane | merged commit | 落地 surface | Ledger 解释 |
 | --- | --- | --- | --- |
