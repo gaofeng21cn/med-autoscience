@@ -75,7 +75,7 @@
 - `Observability OS` 面向维护者暴露 drift、trace、route-back、cache freshness、artifact stale 和 runtime recovery，但不成为 authority。
 - `MDS Deconstruction` 只按 capability + parity proof 吸收 MDS 能力；MDS 在完成 cutover 前只作为 replaceable backend / behavior oracle / upstream intake buffer。
 
-这套目标架构的人工可读 contract 由 `docs/program/ai_first_research_os_architecture.md` 表达；外部工程依据固定为 ISO/IEC/IEEE 42010、NIST AI RMF、EQUATOR、FAIR、durable execution、OpenTelemetry、G-Eval 与 SRE toil elimination。它不授权新增文档 wording gate。
+这套目标架构的人工可读 contract 由 `docs/program/ai_first_research_os_architecture.md` 与 controller surface `ai_first_research_os_architecture_contract` 表达；外部工程依据固定为 ISO/IEC/IEEE 42010、NIST AI RMF、EQUATOR、FAIR、durable execution、OpenTelemetry、G-Eval 与 SRE toil elimination。它不授权新增文档 wording gate。
 
 ## 当前架构明确保留的边界
 

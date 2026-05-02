@@ -38,6 +38,7 @@
 - 2026-05-02 长线目标架构已固定为 `MAS AI-first Research OS`：MAS Core、Quality OS、Runtime OS、Artifact OS、Evaluation OS、Observability OS 与 MDS Deconstruction 共同定义后续 owner、authority、contract 与 parity proof。当前阶段继续按能力逐步落地，不做一次性物理迁移。
 - 质量闭环结构化的 owner 继续落在 `study_charter`、`paper evidence ledger`、`review ledger`：把方向锁定后的普通科研推进、论文质量裁决、`bounded_analysis` 边界、reviewer concern 与 submission hygiene 压成同一套 `MAS` quality contract。
 - AI-first 质量边界的当前目标是把 `publication_gate` / `medical_reporting_audit` 生成的机械投影，与 AI reviewer 读取 manuscript、evidence ledger、review ledger 和 study charter 后形成的质量判断分开。机械投影表达 blocker/projection/replay，AI reviewer workflow 才能承接科学质量、医学写作质量和 submission-facing readiness。
+- 投稿前质量授权口径保持 fail-closed：只有由 AI reviewer 读取 manuscript、evidence ledger、review ledger 与 study charter 后形成的 judgement，才能进入 scientific quality、medical writing quality、publishability 或 submission-facing readiness 判断。
 - 当前 repo-side 可用表面应能表达质量修复路线：当前是同线写作修复、`bounded_analysis` 一类有限补充分析、finalize / bundle 收口，还是 human gate。文档不把这些 route 词汇变成机械 wording gate。
 - `publication_eval/latest.json`、`controller_decisions/latest.json`、`study-progress` 与 `product-entry` 是当前用来投影 quality closure、route-back、controller action 和用户可见下一步的主要表面；具体 route 能否闭合，以真实 study 的 durable surface 和 artifact rebuild proof 为准。
 - 用户可见真相投影的 owner 继续落在 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`：用户与维护者都应能从同一条 `MAS` 主线上读到当前阶段、关键证据、阻塞、下一步、恢复点与 human gate 原因。
