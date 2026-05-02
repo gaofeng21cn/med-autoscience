@@ -610,6 +610,109 @@ def _run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) -
     )
 
 
+def _legacy_time_to_event_grouped_payload_normalization_candidates(
+    *,
+    paper_root: Path,
+) -> tuple[Path, list[str], str | None, str | None]:
+    payload_path = Path(paper_root) / INPUT_FILENAME_BY_SCHEMA_ID["time_to_event_grouped_inputs_v1"]
+    registry_payload = _read_json(Path(paper_root) / "display_registry.json")
+    payload = _read_json(payload_path)
+    displays = payload.get("displays")
+    registry_items = registry_payload.get("displays")
+    if not isinstance(displays, list) or not isinstance(registry_items, list):
+        return payload_path, [], None, None
+
+    risk_summary_display_ids = {
+        str(item.get("display_id") or "").strip()
+        for item in registry_items
+        if isinstance(item, dict)
+        and str(item.get("requirement_key") or "").strip() == "time_to_event_risk_group_summary"
+        and str(item.get("display_id") or "").strip()
+    }
+    if not risk_summary_display_ids:
+        return payload_path, [], None, None
+
+    expected_template_id = display_surface_materialization.display_registry.get_evidence_figure_spec(
+        "time_to_event_risk_group_summary"
+    ).template_id
+    legacy_template_id = display_surface_materialization.display_registry.get_evidence_figure_spec(
+        "cumulative_incidence_grouped"
+    ).template_id
+    candidate_display_ids: list[str] = []
+    for display in displays:
+        if not isinstance(display, dict):
+            continue
+        display_id = str(display.get("display_id") or "").strip()
+        if display_id not in risk_summary_display_ids:
+            continue
+        if str(display.get("template_id") or "").strip() != expected_template_id:
+            continue
+        if isinstance(display.get("risk_group_summaries"), list) and display.get("risk_group_summaries"):
+            continue
+        groups = display.get("groups")
+        if not isinstance(groups, list) or not groups:
+            continue
+        candidate_display_ids.append(display_id)
+
+    return payload_path, candidate_display_ids, expected_template_id, legacy_template_id
+
+
+def _normalize_legacy_time_to_event_grouped_payloads(*, paper_root: Path) -> dict[str, Any]:
+    payload_path, candidate_display_ids, expected_template_id, legacy_template_id = (
+        _legacy_time_to_event_grouped_payload_normalization_candidates(paper_root=paper_root)
+    )
+    if expected_template_id is None or legacy_template_id is None:
+        return {
+            "status": "current",
+            "reason": "time-to-event grouped payload or display registry has no normalization candidates",
+            "payload_path": str(payload_path),
+        }
+
+    if not candidate_display_ids:
+        return {
+            "status": "current",
+            "payload_path": str(payload_path),
+            "checked_display_ids": [],
+        }
+
+    payload = _read_json(payload_path)
+    displays = payload.get("displays")
+    if not isinstance(displays, list):
+        return {
+            "status": "current",
+            "reason": "time-to-event grouped payload is not readable",
+            "payload_path": str(payload_path),
+        }
+    updated_display_ids: list[str] = []
+    candidate_display_id_set = set(candidate_display_ids)
+    for display in displays:
+        if not isinstance(display, dict):
+            continue
+        display_id = str(display.get("display_id") or "").strip()
+        if display_id not in candidate_display_id_set:
+            continue
+        display["legacy_requested_template_id"] = expected_template_id
+        display["template_id"] = legacy_template_id
+        updated_display_ids.append(display_id)
+
+    _write_json(payload_path, payload)
+    return {
+        "status": "updated",
+        "payload_path": str(payload_path),
+        "updated_payload_paths": [str(payload_path)],
+        "updated_display_ids": updated_display_ids,
+        "legacy_requested_template_id": expected_template_id,
+        "normalized_template_id": legacy_template_id,
+    }
+
+
+def _legacy_time_to_event_grouped_payloads_need_normalization(*, paper_root: Path) -> bool:
+    _, candidate_display_ids, _, _ = _legacy_time_to_event_grouped_payload_normalization_candidates(
+        paper_root=paper_root
+    )
+    return bool(candidate_display_ids)
+
+
 def _display_registry_item_for_requirement(
     *,
     paper_root: Path,
@@ -865,6 +968,23 @@ def run_gate_clearing_batch(
                         ),
                     )
                 )
+            if _legacy_time_to_event_grouped_payloads_need_normalization(paper_root=paper_root):
+                repair_units.append(
+                    GateClearingRepairUnit(
+                        unit_id="normalize_legacy_time_to_event_grouped_payloads",
+                        label=(
+                            "Normalize legacy time-to-event grouped display payload templates "
+                            "before surface materialization"
+                        ),
+                        parallel_safe=True,
+                        depends_on=_existing_dependency_ids(
+                            repair_units,
+                            "repair_paper_live_paths",
+                            "time_to_event_direct_migration",
+                        ),
+                        run=lambda: _normalize_legacy_time_to_event_grouped_payloads(paper_root=paper_root),
+                    )
+                )
             repair_units.append(
                 GateClearingRepairUnit(
                     unit_id="materialize_display_surface",
@@ -875,6 +995,7 @@ def run_gate_clearing_batch(
                         "repair_paper_live_paths",
                         "sync_transportability_reporting_surface",
                         "time_to_event_direct_migration",
+                        "normalize_legacy_time_to_event_grouped_payloads",
                     ),
                     run=lambda: _materialize_display_surface(paper_root=paper_root),
                 )
