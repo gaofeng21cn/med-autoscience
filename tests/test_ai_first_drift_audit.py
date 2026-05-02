@@ -42,6 +42,35 @@ def test_ai_first_drift_audit_passes_current_mas_and_mds_surfaces() -> None:
     assert "stale_ai_cache" in result["categories"]
 
 
+def test_ai_first_governance_regression_os_covers_core_drift_defenses() -> None:
+    module = importlib.import_module("med_autoscience.ai_first_drift_audit")
+
+    summary = module.build_ai_first_governance_regression_os_summary()
+
+    assert summary["surface"] == "ai_first_governance_regression_os"
+    assert summary["mechanical_system_role"] == "evidence_only"
+    assert summary["mechanical_projection_can_authorize_quality"] is False
+    defenses = {defense["defense_id"]: defense for defense in summary["drift_defenses"]}
+    assert set(defenses) == {
+        "mechanical_ready_overreach",
+        "coverage_as_quality",
+        "prompt_only_gate",
+        "marker_only_stop_loss",
+        "stale_ai_cache",
+        "mds_quality_owner_drift",
+    }
+    for defense in defenses.values():
+        assert defense["mechanical_inputs_can_only_supply"] == "evidence_only"
+        assert defense["ai_reviewer_or_mas_authority_required"] is True
+        assert defense["regression_surface"]
+        assert defense["failure_action"] == "fail_closed_to_review_required"
+    assert summary["continuous_regression_entrypoints"] == [
+        "tests/test_ai_first_drift_audit.py",
+        "make test-meta",
+        "scripts/verify.sh",
+    ]
+
+
 def test_ai_first_drift_audit_fails_when_ai_reviewer_provenance_guard_drifts(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.ai_first_drift_audit")
     audit_root = tmp_path / "med-autoscience"
