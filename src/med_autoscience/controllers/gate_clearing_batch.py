@@ -38,11 +38,20 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
     filter_repair_units_for_publication_work_unit,
     submission_delivery_sync_closure_work_unit,
 )
+from med_autoscience.display_source_contract import INPUT_FILENAME_BY_SCHEMA_ID
 
 
 SCHEMA_VERSION = 1
 STABLE_GATE_CLEARING_BATCH_RELATIVE_PATH = Path("artifacts/controller/gate_clearing_batch/latest.json")
 CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS = 5_000_000_000
+_LEGACY_DIRECT_MIGRATION_FEATURE_SHIFT_KEYS = frozenset(
+    {
+        "collapse_metrics_path",
+        "feature_shift_csv_path",
+        "risk_distribution_csv_path",
+        "primary_driver",
+    }
+)
 
 
 def _load_controller(module_name: str):
@@ -645,9 +654,44 @@ def _time_to_event_direct_migration_display_inputs_need_refresh(*, paper_root: P
             display_id=display_id,
         )
     except (FileNotFoundError, ValueError, json.JSONDecodeError):
+        if _legacy_direct_migration_feature_shift_payload_present(
+            paper_root=paper_root,
+            input_schema_id=spec.input_schema_id,
+            display_id=display_id,
+        ):
+            return False
         return True
     source_paths = _string_list(payload.get("source_paths"))
     return any("ops/med-the research workflow" in item for item in source_paths)
+
+
+def _legacy_direct_migration_feature_shift_payload_present(
+    *,
+    paper_root: Path,
+    input_schema_id: str,
+    display_id: str,
+) -> bool:
+    filename = INPUT_FILENAME_BY_SCHEMA_ID.get(input_schema_id)
+    if filename is None:
+        return False
+    payload = _read_json(Path(paper_root) / filename)
+    if str(payload.get("input_schema_id") or "").strip() != input_schema_id:
+        return False
+    displays = payload.get("displays")
+    if not isinstance(displays, list):
+        return False
+    for item in displays:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("display_id") or "").strip() != display_id:
+            continue
+        present_feature_shift_keys = {
+            key for key in _LEGACY_DIRECT_MIGRATION_FEATURE_SHIFT_KEYS if _non_empty_text(item.get(key)) is not None
+        }
+        if not present_feature_shift_keys:
+            return False
+        return not item.get("center_event_counts") and not item.get("coverage_panels")
+    return False
 
 
 def _run_workspace_display_repair_script(*, paper_root: Path) -> dict[str, Any]:
