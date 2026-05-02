@@ -14,6 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 def _mds_repo_root() -> Path:
     for candidate in (
+        REPO_ROOT / ".ci" / "med-deepscientist",
         REPO_ROOT.parent / "med-deepscientist",
         REPO_ROOT.parents[1] / "med-deepscientist",
         Path("/Users/gaofeng/workspace/med-deepscientist"),
