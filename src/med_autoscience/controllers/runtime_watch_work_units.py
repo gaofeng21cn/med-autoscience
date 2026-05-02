@@ -185,7 +185,35 @@ def _ledger_has_executed_dispatch(
     suffix: str | None,
 ) -> bool:
     exact_event = work_unit_ledger.latest_event(study_root=study_root, dispatch_key=dispatch_key_value)
-    if isinstance(exact_event, Mapping) and _non_empty_text(exact_event.get("event_type")) in _LEDGER_EXECUTED_EVENT_TYPES:
+    if (
+        isinstance(exact_event, Mapping)
+        and _non_empty_text(exact_event.get("event_type")) in _LEDGER_EXECUTED_EVENT_TYPES
+        and _closed_event_has_result_evidence(exact_event)
+    ):
+        return True
+    return False
+
+
+def _closed_event_has_result_evidence(event: Mapping[str, Any]) -> bool:
+    payload = event.get("payload")
+    if not isinstance(payload, Mapping):
+        return False
+    gate_replay_status = _non_empty_text(payload.get("gate_replay_status"))
+    if gate_replay_status == "clear" or payload.get("gate_clear") is True:
+        return True
+    if _non_empty_text(payload.get("artifact_delta_ref")) is not None:
+        return True
+    if _non_empty_text(payload.get("gate_fingerprint_before")) and _non_empty_text(payload.get("gate_fingerprint_after")):
+        return payload.get("gate_fingerprint_before") != payload.get("gate_fingerprint_after")
+    attempt_record = payload.get("attempt_record")
+    if isinstance(attempt_record, Mapping) and _non_empty_text(attempt_record.get("attempt_state")) in {
+        "released",
+        "running",
+        "retry_queued",
+    }:
+        return True
+    attempt_result = payload.get("attempt_result")
+    if isinstance(attempt_result, Mapping) and _non_empty_text(attempt_result.get("status")) is not None:
         return True
     return False
 

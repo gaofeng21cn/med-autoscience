@@ -447,6 +447,75 @@ def test_work_unit_dedupe_accepts_closed_attempt_result(tmp_path: Path) -> None:
     assert dispatch_key == "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
 
 
+def test_work_unit_dedupe_rejects_closed_event_without_attempt_delta_or_gate_change(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
+    ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    study_root = tmp_path / "studies" / "001-risk"
+    tick_request = {
+        "work_unit_fingerprint": "publication-blockers::same",
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+    }
+    identity = module.identity_from_tick_request(
+        study_id="001-risk",
+        quest_id="quest-001",
+        tick_request=tick_request,
+    )
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="closed",
+        payload={"dispatch_status": "executed"},
+        recorded_at="2026-04-28T00:00:00+00:00",
+    )
+
+    already_executed, dispatch_key = module.dispatch_already_executed(
+        study_root=study_root,
+        tick_request=tick_request,
+    )
+
+    assert already_executed is False
+    assert dispatch_key == "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
+
+
+def test_work_unit_dedupe_accepts_closed_event_with_attempt_record(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
+    ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    study_root = tmp_path / "studies" / "001-risk"
+    tick_request = {
+        "work_unit_fingerprint": "publication-blockers::same",
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+    }
+    identity = module.identity_from_tick_request(
+        study_id="001-risk",
+        quest_id="quest-001",
+        tick_request=tick_request,
+    )
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="closed",
+        payload={
+            "dispatch_status": "executed",
+            "attempt_record": {
+                "attempt_state": "released",
+                "attempt_count": 1,
+                "work_unit_id": "analysis_claim_evidence_repair",
+            },
+        },
+        recorded_at="2026-04-28T00:00:00+00:00",
+    )
+
+    already_executed, dispatch_key = module.dispatch_already_executed(
+        study_root=study_root,
+        tick_request=tick_request,
+    )
+
+    assert already_executed is True
+    assert dispatch_key == "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
+
+
 def test_work_unit_dedupe_does_not_use_ledger_when_latest_inputs_changed(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
     ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")

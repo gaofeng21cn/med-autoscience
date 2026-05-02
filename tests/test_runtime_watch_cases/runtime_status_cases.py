@@ -789,14 +789,17 @@ def test_watch_runtime_materializes_managed_study_autonomy_slo_status(tmp_path: 
     assert slo_summary["state"] == "breach"
     assert "read_churn_without_artifact_delta" in slo_summary["breach_types"]
     assert slo_summary["ai_doctor_request_required"] is True
-    assert slo_summary["ai_doctor_state"] == "request_ready"
+    assert slo_summary["ai_doctor_state"] == "attempt_recorded"
     assert slo_summary["quality_gate_relaxation_allowed"] is False
     assert slo_summary["status_path"] == str(latest_path)
     assert latest["state"] == "breach"
+    assert latest["ai_doctor_state"] == "attempt_recorded"
+    assert latest["ai_doctor_attempt"]["state"] == "repair_plan_recorded"
     assert "read_churn_without_artifact_delta" in latest["breach_types"]
     assert latest["mds_progress_markers"]["read_churn_ratio"] == 0.8
     assert latest["quality_gate_relaxation_allowed"] is False
     assert (study_root / "artifacts" / "autonomy" / "ai_doctor_requests" / "latest.json").exists()
+    assert (study_root / "artifacts" / "autonomy" / "ai_doctor_attempts" / "latest.json").exists()
 
 
 def test_watch_runtime_skips_outer_loop_wakeup_when_inputs_stabilize_after_no_request(

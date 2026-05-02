@@ -9,7 +9,7 @@ from .parked_projection import (
     projected_current_stage,
 )
 from .markdown_projection import render_study_progress_markdown
-from . import operator_view as _operator_view, publication_runtime as _publication_runtime
+from . import operator_view as _operator_view, progress_freshness as _progress_freshness_parts, publication_runtime as _publication_runtime
 from . import progression as _progression, runtime_efficiency as _runtime_efficiency, shared as _shared
 
 def _module_reexport(module) -> None:
@@ -17,7 +17,7 @@ def _module_reexport(module) -> None:
         if not name.startswith("__") and name != "_module_reexport":
             globals()[name] = value
 
-for _module in (_shared, _publication_runtime, _progression, _operator_view, _runtime_efficiency):
+for _module in (_shared, _publication_runtime, _progression, _progress_freshness_parts, _operator_view, _runtime_efficiency):
     _module_reexport(_module)
 
 
@@ -357,7 +357,7 @@ def build_study_progress_projection(
         task_intake_progress_override=task_intake_progress_override,
     )
     current_stage = projected_current_stage(current_stage, auto_runtime_parked)
-    progress_freshness = _progress_freshness(
+    base_progress_freshness = _progress_freshness(
         current_stage=current_stage,
         bash_summary_payload=bash_summary_payload,
         details_projection_payload=details_projection_payload,
@@ -365,6 +365,18 @@ def build_study_progress_projection(
         publication_eval_payload=publication_eval_payload,
         gate_clearing_batch_payload=gate_clearing_batch_payload,
         gate_clearing_batch_path=gate_clearing_batch_path,
+    )
+    autonomy_slo_status = _read_or_materialize_autonomy_slo_status(
+        profile=profile,
+        study_root=resolved_study_root,
+    )
+    progress_freshness = _split_progress_freshness(
+        progress_freshness=base_progress_freshness,
+        status=status,
+        supervisor_tick_audit=supervisor_tick_audit,
+        autonomy_slo_status=autonomy_slo_status,
+        runtime_facts=runtime_facts,
+        runtime_supervision_payload=runtime_supervision_payload,
     )
     current_stage_summary = _display_text(_stage_summary(
         status=status,
@@ -519,10 +531,6 @@ def build_study_progress_projection(
     runtime_efficiency = _latest_run_telemetry_surface(
         quest_root=quest_root,
         status=status,
-        study_root=resolved_study_root,
-    )
-    autonomy_slo_status = _read_or_materialize_autonomy_slo_status(
-        profile=profile,
         study_root=resolved_study_root,
     )
     ai_doctor_state = (
@@ -704,7 +712,14 @@ def build_study_progress_projection(
         runtime_watch_path=runtime_watch_path,
         controller_decision_path=controller_decision_path,
     )
-    supervision_health_status = "parked" if bool(auto_runtime_parked.get("parked")) else runtime_health_status
+    if bool(auto_runtime_parked.get("parked")):
+        supervision_health_status = "parked"
+    elif runtime_facts.recovery_pending or runtime_facts.missing_live_session:
+        supervision_health_status = "recovering"
+    elif runtime_facts.strict_live:
+        supervision_health_status = runtime_health_status or "live"
+    else:
+        supervision_health_status = runtime_health_status
     research_runtime_control_projection = _research_runtime_control_projection(
         study_commands=study_commands,
         autonomy_contract=autonomy_contract,

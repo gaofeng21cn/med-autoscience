@@ -14,6 +14,7 @@ QUALITY_REPAIR_EXPECTED_MINUTES = 60
 
 SLO_STATUS_RELATIVE_PATH = Path("artifacts/autonomy/slo_status/latest.json")
 AI_DOCTOR_REQUESTS_RELATIVE_ROOT = Path("artifacts/autonomy/ai_doctor_requests")
+AI_DOCTOR_ATTEMPTS_RELATIVE_ROOT = Path("artifacts/autonomy/ai_doctor_attempts")
 AI_DOCTOR_DIAGNOSES_RELATIVE_ROOT = Path("artifacts/autonomy/ai_doctor_diagnoses")
 REPAIR_ACTIONS_RELATIVE_ROOT = Path("artifacts/autonomy/repair_actions")
 
@@ -134,6 +135,10 @@ def stable_slo_status_path(*, study_root: Path) -> Path:
 
 def ai_doctor_requests_root(*, study_root: Path) -> Path:
     return Path(study_root).expanduser().resolve() / AI_DOCTOR_REQUESTS_RELATIVE_ROOT
+
+
+def ai_doctor_attempts_root(*, study_root: Path) -> Path:
+    return Path(study_root).expanduser().resolve() / AI_DOCTOR_ATTEMPTS_RELATIVE_ROOT
 
 
 def ai_doctor_diagnoses_root(*, study_root: Path) -> Path:
@@ -411,6 +416,214 @@ def build_ai_doctor_request(slo_status: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _primary_root_cause(breach_types: set[str], evidence_packet: Mapping[str, Any]) -> str:
+    if "read_churn_without_artifact_delta" in breach_types:
+        return "read_churn_without_artifact_delta"
+    if "same_fingerprint_loop" in breach_types:
+        return "same_fingerprint_loop"
+    if "stale_truth_surface" in breach_types or "gate_closure_drift" in breach_types:
+        return "stale_truth_surface"
+    if "platform_repair_required" in breach_types:
+        return "platform_repair_required"
+    markers = _mapping(evidence_packet.get("mds_progress_markers"))
+    marker_kind = _text(markers.get("turn_progress_kind"))
+    if marker_kind is not None:
+        return marker_kind
+    return sorted(breach_types)[0] if breach_types else "unknown"
+
+
+def _attempt_repair_plan(root_cause: str, evidence_packet: Mapping[str, Any]) -> dict[str, Any]:
+    sli_summary = _mapping(evidence_packet.get("sli_summary"))
+    next_work_unit_id = _text(sli_summary.get("next_work_unit_id")) or "analysis_claim_evidence_repair"
+    if root_cause in {"read_churn_without_artifact_delta", "same_fingerprint_loop"}:
+        return {
+            "repair_scope": "controller_repair",
+            "repair_kind": (
+                "analysis_claim_evidence_redrive"
+                if next_work_unit_id == "analysis_claim_evidence_repair"
+                else "bounded_work_unit_redrive"
+            ),
+            "work_unit_id": next_work_unit_id,
+            "max_attempts": 3,
+            "backoff_policy": "exponential",
+            "quality_gate_relaxation_allowed": False,
+        }
+    if root_cause == "stale_truth_surface":
+        return {
+            "repair_scope": "controller_repair",
+            "repair_kind": "publication_gate_replay_or_authority_sync",
+            "work_unit_id": next_work_unit_id,
+            "max_attempts": 1,
+            "backoff_policy": "none",
+            "quality_gate_relaxation_allowed": False,
+        }
+    return {
+        "repair_scope": "platform_repair",
+        "repair_kind": "repo_worktree_repair_proposal",
+        "work_unit_id": next_work_unit_id,
+        "max_attempts": 1,
+        "backoff_policy": "none",
+        "quality_gate_relaxation_allowed": False,
+    }
+
+
+def _attempt_auto_apply(root_cause: str, repair_plan: Mapping[str, Any]) -> dict[str, Any]:
+    eligible = root_cause in {
+        "read_churn_without_artifact_delta",
+        "same_fingerprint_loop",
+        "stale_truth_surface",
+    }
+    return {
+        "eligible": eligible,
+        "mode": "controller_work_unit" if eligible else "proposal_only",
+        "quality_gate_relaxation_allowed": False,
+        "reason": (
+            "bounded_controller_redrive_allowed"
+            if eligible
+            else _text(repair_plan.get("repair_kind")) or "requires_platform_repair"
+        ),
+    }
+
+
+def build_ai_doctor_attempt(
+    *,
+    request_payload: Mapping[str, Any],
+    recorded_at: str,
+) -> dict[str, Any]:
+    evidence_packet = _mapping(request_payload.get("compact_evidence_packet"))
+    breach_types = {str(item) for item in _list(request_payload.get("breach_types")) if str(item).strip()}
+    root_cause = _primary_root_cause(breach_types, evidence_packet)
+    repair_plan = _attempt_repair_plan(root_cause, evidence_packet)
+    diagnosis_seed = {
+        "request_id": _text(request_payload.get("request_id")),
+        "root_cause": root_cause,
+        "repair_kind": repair_plan.get("repair_kind"),
+        "evidence_hash": evidence_packet.get("packet_sha256"),
+    }
+    diagnosis_id = f"ai-doctor-diagnosis::{_payload_hash(diagnosis_seed)[:20]}"
+    attempt_id = f"ai-doctor-attempt::{_payload_hash({**diagnosis_seed, 'recorded_at': recorded_at})[:20]}"
+    return {
+        "surface": "ai_doctor_attempt",
+        "schema_version": SCHEMA_VERSION,
+        "attempt_id": attempt_id,
+        "diagnosis_id": diagnosis_id,
+        "request_id": _text(request_payload.get("request_id")),
+        "recorded_at": recorded_at,
+        "study_id": _text(request_payload.get("study_id")),
+        "quest_id": _text(request_payload.get("quest_id")),
+        "input_evidence_packet": dict(evidence_packet),
+        "root_cause": root_cause,
+        "proposed_repair": repair_plan,
+        "repair_owner": "mas_controller",
+        "risk": "medium" if repair_plan.get("repair_scope") != "platform_repair" else "high",
+        "auto_apply": _attempt_auto_apply(root_cause, repair_plan),
+        "result": {
+            "status": "repair_plan_recorded",
+            "medical_conclusion_written": False,
+            "quality_gate_relaxation_allowed": False,
+        },
+        "quality_gate_relaxation_allowed": False,
+        "medical_conclusion_written": False,
+    }
+
+
+def _attempt_as_diagnosis_payload(attempt_payload: Mapping[str, Any]) -> dict[str, Any]:
+    proposed_repair = _mapping(attempt_payload.get("proposed_repair"))
+    auto_apply = _mapping(attempt_payload.get("auto_apply"))
+    return {
+        "surface": "ai_doctor_diagnosis",
+        "schema_version": SCHEMA_VERSION,
+        "diagnosis_id": _text(attempt_payload.get("diagnosis_id")),
+        "recorded_at": _text(attempt_payload.get("recorded_at")),
+        "study_id": _text(attempt_payload.get("study_id")),
+        "quest_id": _text(attempt_payload.get("quest_id")),
+        "request_id": _text(attempt_payload.get("request_id")),
+        "diagnosis_code": _text(attempt_payload.get("root_cause")),
+        "repair_scope": _text(proposed_repair.get("repair_scope")) or "controller_repair",
+        "recommended_repair_kind": _text(proposed_repair.get("repair_kind")) or "bounded_work_unit_redrive",
+        "repair_owner": _text(attempt_payload.get("repair_owner")) or "mas_controller",
+        "risk": _text(attempt_payload.get("risk")) or "medium",
+        "auto_apply_allowed": bool(auto_apply.get("eligible")),
+        "quality_gate_relaxation_allowed": False,
+        "medical_conclusion_written": False,
+    }
+
+
+def materialize_ai_doctor_attempt(
+    *,
+    study_root: Path,
+    request_payload: Mapping[str, Any],
+    recorded_at: str | None = None,
+) -> dict[str, Any]:
+    recorded_at = recorded_at or _utc_now()
+    attempt_payload = build_ai_doctor_attempt(
+        request_payload=request_payload,
+        recorded_at=recorded_at,
+    )
+    attempt_root = ai_doctor_attempts_root(study_root=study_root)
+    attempt_path = attempt_root / f"{attempt_payload['attempt_id'].split('::')[-1]}.json"
+    _write_json(attempt_path, attempt_payload)
+    _write_json(attempt_root / "latest.json", attempt_payload)
+    return attempt_payload
+
+
+def materialize_ai_doctor_timeout_if_stale(
+    *,
+    study_root: Path,
+    slo_status: Mapping[str, Any],
+    request_payload: Mapping[str, Any],
+    observed_at: str | None = None,
+    timeout_seconds: int = 15 * 60,
+) -> dict[str, Any] | None:
+    observed_at = observed_at or _utc_now()
+    created_at = _parse_time(request_payload.get("created_at"))
+    observed_time = _parse_time(observed_at)
+    if created_at is None or observed_time is None:
+        return None
+    age_seconds = int((observed_time - created_at).total_seconds())
+    if age_seconds <= timeout_seconds:
+        return None
+    request_id = _text(request_payload.get("request_id"))
+    payload = {
+        "surface": "ai_doctor_timeout_escalation",
+        "schema_version": SCHEMA_VERSION,
+        "study_id": _text(slo_status.get("study_id")),
+        "quest_id": _text(slo_status.get("quest_id")),
+        "request_id": request_id,
+        "state": "platform_repair_required",
+        "observed_at": observed_at,
+        "created_at": _iso(created_at),
+        "age_seconds": age_seconds,
+        "timeout_after_seconds": timeout_seconds,
+        "quality_gate_relaxation_allowed": False,
+    }
+    repair_payload = {
+        "surface": "autonomy_repair_orchestration",
+        "schema_version": SCHEMA_VERSION,
+        "state": "ready_for_repair",
+        "study_id": payload["study_id"],
+        "quest_id": payload["quest_id"],
+        "action_count": 1,
+        "actions": [
+            {
+                "action_type": "platform_repair",
+                "repair_kind": "ai_doctor_request_timeout_closure",
+                "owner": "mas_mds_platform_repair",
+                "risk": "high",
+                "auto_apply_allowed": False,
+                "request_id": request_id,
+            }
+        ],
+        "quality_gate_relaxation_allowed": False,
+        "created_at": observed_at,
+    }
+    repair_root = repair_actions_root(study_root=study_root)
+    repair_path = repair_root / f"{_payload_hash({'request_id': request_id, 'timeout': observed_at})[:20]}.json"
+    _write_json(repair_path, repair_payload)
+    _write_json(repair_root / "latest.json", repair_payload)
+    return payload
+
+
 def build_repair_orchestration(
     *,
     slo_status: Mapping[str, Any],
@@ -670,8 +883,29 @@ def materialize_autonomy_control_plane_observer(
         _write_json(request_path, request_payload)
         _write_json(request_root / "latest.json", request_payload)
         payload["ai_doctor_request"]["path"] = str(request_path)
+        attempt_payload = materialize_ai_doctor_attempt(
+            study_root=study_root,
+            request_payload=request_payload,
+            recorded_at=generated_at,
+        )
+        attempt_path = ai_doctor_attempts_root(study_root=study_root) / f"{attempt_payload['attempt_id'].split('::')[-1]}.json"
+        payload["ai_doctor_state"] = "attempt_recorded"
+        payload["ai_doctor_attempt"] = {
+            "attempt_id": attempt_payload["attempt_id"],
+            "diagnosis_id": attempt_payload["diagnosis_id"],
+            "state": attempt_payload["result"]["status"],
+            "path": str(attempt_path),
+        }
         _write_json(stable_slo_status_path(study_root=study_root), payload)
-    repair_payload = build_repair_orchestration(slo_status=payload)
+    attempt_diagnosis = (
+        _attempt_as_diagnosis_payload(attempt_payload)
+        if request_payload is not None and "attempt_payload" in locals()
+        else None
+    )
+    repair_payload = build_repair_orchestration(
+        slo_status=payload,
+        ai_doctor_diagnosis=attempt_diagnosis,
+    )
     repair_root = repair_actions_root(study_root=study_root)
     repair_identity = {
         "study_id": payload.get("study_id"),
@@ -686,16 +920,21 @@ def materialize_autonomy_control_plane_observer(
 
 
 __all__ = [
+    "AI_DOCTOR_ATTEMPTS_RELATIVE_ROOT",
     "AI_DOCTOR_DIAGNOSES_RELATIVE_ROOT",
     "AI_DOCTOR_REQUESTS_RELATIVE_ROOT",
     "REPAIR_ACTIONS_RELATIVE_ROOT",
     "SLO_STATUS_RELATIVE_PATH",
+    "ai_doctor_attempts_root",
     "ai_doctor_diagnoses_root",
     "ai_doctor_requests_root",
+    "build_ai_doctor_attempt",
     "build_ai_doctor_request",
     "build_autonomy_control_plane_observer",
     "build_repair_orchestration",
+    "materialize_ai_doctor_attempt",
     "materialize_ai_doctor_diagnosis",
+    "materialize_ai_doctor_timeout_if_stale",
     "materialize_autonomy_control_plane_observer",
     "read_latest_slo_status",
     "repair_actions_root",

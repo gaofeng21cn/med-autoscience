@@ -53,7 +53,11 @@ def test_autonomy_progress_slo_triggers_ai_doctor_for_stale_gate_closure(tmp_pat
     assert request["default_model_policy"] == "inherit_current_codex_configuration"
     assert request["quality_gate_relaxation_allowed"] is False
     assert "write_medical_conclusion" in request["forbidden_actions"]
-    assert repair["state"] == "awaiting_ai_doctor"
+    assert payload["ai_doctor_state"] == "attempt_recorded"
+    assert payload["ai_doctor_attempt"]["state"] == "repair_plan_recorded"
+    assert repair["state"] == "ready_for_repair"
+    assert repair["actions"][0]["diagnosis_id"] == payload["ai_doctor_attempt"]["diagnosis_id"]
+    assert repair["actions"][0]["repair_kind"] == "publication_gate_replay_or_authority_sync"
     assert repair["actions"][1]["repair_kind"] == "publication_gate_replay_or_authority_sync"
 
 
@@ -124,6 +128,98 @@ def test_autonomy_progress_slo_uses_mds_read_churn_without_artifact_delta(tmp_pa
     assert payload["breach_types"] == ["read_churn_without_artifact_delta"]
     assert payload["mds_progress_markers"]["same_result_reinjection_count"] == 6
     assert payload["ai_doctor_request_required"] is True
+
+
+def test_ai_doctor_request_materialization_creates_attempt_record(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.autonomy_ai_doctor")
+    study_root = tmp_path / "studies" / "002-dm"
+    quest_root = tmp_path / "runtime" / "quests" / "quest-002"
+    telemetry_path = quest_root / ".ds" / "runs" / "run-read-churn" / "telemetry.json"
+    telemetry_path.parent.mkdir(parents=True, exist_ok=True)
+    telemetry_path.write_text(
+        json.dumps(
+            {
+                "run_id": "run-read-churn",
+                "turn_progress_kind": "read_churn_without_artifact_delta",
+                "completed_at": "2026-05-02T01:00:00+00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = module.materialize_autonomy_control_plane_observer(
+        study_root=study_root,
+        quest_root=quest_root,
+        generated_at="2026-05-02T01:05:00+00:00",
+        profile_payload={
+            "study_id": "002-dm",
+            "quest_id": "quest-002",
+            "sli_summary": {
+                "duplicate_dispatch_active": False,
+                "next_work_unit_id": "analysis_claim_evidence_repair",
+            },
+            "gate_blocker_summary": {
+                "current_blockers": ["claim_evidence_consistency_failed"],
+                "actionability_status": "actionable",
+                "next_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
+            },
+            "autonomy_slo": {
+                "progress_health": {"state": "blocked_with_actionable_work"},
+                "runtime_failure_classification": {"external_blocker": False},
+            },
+        },
+    )
+
+    attempts_root = module.ai_doctor_attempts_root(study_root=study_root)
+    attempt = json.loads((attempts_root / "latest.json").read_text(encoding="utf-8"))
+    repair = json.loads((module.repair_actions_root(study_root=study_root) / "latest.json").read_text(encoding="utf-8"))
+
+    assert payload["ai_doctor_state"] == "attempt_recorded"
+    assert payload["ai_doctor_attempt"]["path"] == str(attempts_root / f"{attempt['attempt_id'].split('::')[-1]}.json")
+    assert attempt["surface"] == "ai_doctor_attempt"
+    assert attempt["request_id"] == payload["ai_doctor_request"]["request_id"]
+    assert attempt["root_cause"] == "read_churn_without_artifact_delta"
+    assert attempt["proposed_repair"]["repair_kind"] == "analysis_claim_evidence_redrive"
+    assert attempt["auto_apply"]["eligible"] is True
+    assert attempt["result"]["status"] == "repair_plan_recorded"
+    assert repair["state"] == "ready_for_repair"
+    assert repair["actions"][0]["diagnosis_id"] == attempt["diagnosis_id"]
+
+
+def test_ai_doctor_request_timeout_escalates_to_platform_repair(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.autonomy_ai_doctor")
+    study_root = tmp_path / "studies" / "002-dm"
+
+    slo_status = {
+        "surface": "autonomy_progress_slo_status",
+        "schema_version": 1,
+        "generated_at": "2026-05-02T01:00:00+00:00",
+        "study_id": "002-dm",
+        "quest_id": "quest-002",
+        "state": "breach",
+        "breach_types": ["read_churn_without_artifact_delta"],
+        "ai_doctor_request_required": True,
+        "ai_doctor_state": "request_ready",
+        "compact_evidence_packet": {"packet_sha256": "packet-001"},
+        "quality_gate_relaxation_allowed": False,
+    }
+    request = module.build_ai_doctor_request(slo_status)
+    request["created_at"] = "2026-05-02T01:00:00+00:00"
+
+    escalated = module.materialize_ai_doctor_timeout_if_stale(
+        study_root=study_root,
+        slo_status=slo_status,
+        request_payload=request,
+        observed_at="2026-05-02T01:16:01+00:00",
+    )
+    repair = json.loads((module.repair_actions_root(study_root=study_root) / "latest.json").read_text(encoding="utf-8"))
+
+    assert escalated["state"] == "platform_repair_required"
+    assert escalated["timeout_after_seconds"] == 900
+    assert escalated["quality_gate_relaxation_allowed"] is False
+    assert repair["state"] == "ready_for_repair"
+    assert repair["actions"][0]["action_type"] == "platform_repair"
+    assert repair["actions"][0]["repair_kind"] == "ai_doctor_request_timeout_closure"
 
 
 def test_autonomy_progress_slo_treats_parked_turn_without_artifact_delta_as_gate_closure_drift(
