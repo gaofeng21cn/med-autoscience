@@ -10,6 +10,7 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
             "freeze_scientific_anchor_fields",
             "repair_paper_live_paths",
             "workspace_display_repair_script",
+            "sync_publication_shell_surface",
             "materialize_display_surface",
         }
     ),
@@ -17,6 +18,7 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
         {
             "repair_paper_live_paths",
             "workspace_display_repair_script",
+            "sync_publication_shell_surface",
             "materialize_display_surface",
         }
     ),
@@ -24,6 +26,7 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
         {
             "repair_paper_live_paths",
             "workspace_display_repair_script",
+            "sync_publication_shell_surface",
             "materialize_display_surface",
         }
     ),
@@ -31,6 +34,7 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
         {
             "repair_paper_live_paths",
             "workspace_display_repair_script",
+            "sync_publication_shell_surface",
             "materialize_display_surface",
         }
     ),
@@ -49,6 +53,7 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
         {
             "repair_paper_live_paths",
             "workspace_display_repair_script",
+            "sync_publication_shell_surface",
             "materialize_display_surface",
         }
     ),
@@ -56,6 +61,7 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
         {
             "repair_paper_live_paths",
             "workspace_display_repair_script",
+            "sync_publication_shell_surface",
             "materialize_display_surface",
             "create_submission_minimal_package",
             "sync_submission_minimal_delivery",
@@ -64,6 +70,7 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
     "local_architecture_overview_repair": frozenset(
         {
             "workspace_display_repair_script",
+            "sync_publication_shell_surface",
             "materialize_display_surface",
         }
     ),

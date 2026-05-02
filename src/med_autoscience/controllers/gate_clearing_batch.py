@@ -32,6 +32,7 @@ from med_autoscience.controllers import gate_clearing_batch_replay_closure
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import gate_clearing_batch_transportability
+from med_autoscience.controllers import publication_shell_sync
 from med_autoscience.controllers.gate_clearing_batch_execution import GateClearingRepairUnit
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     derived_next_publication_work_unit,
@@ -603,6 +604,44 @@ def _materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
     return display_surface_materialization.materialize_display_surface(paper_root=paper_root)
 
 
+def _publication_shell_surface_needs_sync(*, study_root: Path, paper_root: Path) -> bool:
+    try:
+        publication_shell_sync._resolve_cohort_flow_source_payload(
+            study_root=study_root,
+            paper_root=paper_root,
+        )
+        publication_shell_sync._resolve_table1_source_path(
+            study_root=study_root,
+            paper_root=paper_root,
+        )
+        registry_payload = _read_json(Path(paper_root) / "display_registry.json")
+        publication_shell_sync._require_binding(
+            registry_payload=registry_payload,
+            requirement_key="cohort_flow_figure",
+        )
+        publication_shell_sync._require_binding(
+            registry_payload=registry_payload,
+            requirement_key="table1_baseline_characteristics",
+        )
+    except (FileNotFoundError, ValueError, json.JSONDecodeError):
+        return False
+    payload = _read_json(Path(paper_root) / "baseline_characteristics_schema.json")
+    groups = payload.get("groups")
+    variables = payload.get("variables")
+    if not isinstance(groups, list) or not groups:
+        return True
+    if not isinstance(variables, list) or not variables:
+        return True
+    return any(not isinstance(item, dict) for item in variables)
+
+
+def _sync_publication_shell_surface(*, study_root: Path, paper_root: Path) -> dict[str, Any]:
+    return publication_shell_sync.run_publication_shell_sync(
+        study_root=study_root,
+        paper_root=paper_root,
+    )
+
+
 def _run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) -> dict[str, Any]:
     return time_to_event_direct_migration.run_time_to_event_direct_migration(
         study_root=study_root,
@@ -986,6 +1025,25 @@ def run_gate_clearing_batch(
                         run=lambda: _normalize_legacy_time_to_event_grouped_payloads(paper_root=paper_root),
                     )
                 )
+            if _publication_shell_surface_needs_sync(
+                study_root=resolved_study_root,
+                paper_root=paper_root,
+            ):
+                repair_units.append(
+                    GateClearingRepairUnit(
+                        unit_id="sync_publication_shell_surface",
+                        label="Sync publication shell table inputs before surface materialization",
+                        parallel_safe=True,
+                        depends_on=_existing_dependency_ids(
+                            repair_units,
+                            "repair_paper_live_paths",
+                        ),
+                        run=lambda: _sync_publication_shell_surface(
+                            study_root=resolved_study_root,
+                            paper_root=paper_root,
+                        ),
+                    )
+                )
             repair_units.append(
                 GateClearingRepairUnit(
                     unit_id="materialize_display_surface",
@@ -997,6 +1055,7 @@ def run_gate_clearing_batch(
                         "sync_transportability_reporting_surface",
                         "time_to_event_direct_migration",
                         "normalize_legacy_time_to_event_grouped_payloads",
+                        "sync_publication_shell_surface",
                     ),
                     run=lambda: _materialize_display_surface(paper_root=paper_root),
                 )

@@ -79,6 +79,19 @@ def _resolve_table1_source_path(*, study_root: Path, paper_root: Path) -> Path:
     )
 
 
+def _resolve_cohort_flow_source_payload(*, study_root: Path, paper_root: Path) -> tuple[Path, dict[str, Any]] | None:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    resolved_paper_root = Path(paper_root).expanduser().resolve()
+    candidates = (
+        resolved_study_root / "paper" / "derived" / "cohort_flow.json",
+        resolved_paper_root / "cohort_flow.json",
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate, _load_json(candidate)
+    return None
+
+
 def _sync_cohort_flow_payload(
     *,
     source_payload: dict[str, Any],
@@ -86,6 +99,15 @@ def _sync_cohort_flow_payload(
     display_id: str,
     catalog_id: str,
 ) -> dict[str, Any]:
+    if "source_total_cases" not in source_payload and isinstance(source_payload.get("steps"), list):
+        payload = dict(source_payload)
+        payload["display_id"] = display_id
+        payload["catalog_id"] = catalog_id
+        payload.setdefault(
+            "source_contract_path",
+            existing_payload.get("source_contract_path") or "paper/medical_reporting_contract.json",
+        )
+        return payload
     steps = [
         {
             "step_id": "source_total_cases",
@@ -179,7 +201,15 @@ def run_publication_shell_sync(*, study_root: Path, paper_root: Path) -> dict[st
     cohort_binding = _require_binding(registry_payload=registry_payload, requirement_key="cohort_flow_figure")
     table_binding = _require_binding(registry_payload=registry_payload, requirement_key="table1_baseline_characteristics")
 
-    cohort_source = _load_json(resolved_study_root / "paper" / "derived" / "cohort_flow.json")
+    cohort_source = _resolve_cohort_flow_source_payload(
+        study_root=resolved_study_root,
+        paper_root=resolved_paper_root,
+    )
+    if cohort_source is None:
+        raise FileNotFoundError(
+            "missing required cohort_flow source in study paper/derived or runtime paper root"
+        )
+    cohort_source_path, cohort_source_payload = cohort_source
     table1_source_path = _resolve_table1_source_path(
         study_root=resolved_study_root,
         paper_root=resolved_paper_root,
@@ -189,7 +219,7 @@ def run_publication_shell_sync(*, study_root: Path, paper_root: Path) -> dict[st
     existing_table_payload = _load_json(resolved_paper_root / "baseline_characteristics_schema.json")
 
     cohort_payload = _sync_cohort_flow_payload(
-        source_payload=cohort_source,
+        source_payload=cohort_source_payload,
         existing_payload=existing_cohort_payload,
         display_id=cohort_binding["display_id"],
         catalog_id=cohort_binding["catalog_id"],
@@ -215,7 +245,7 @@ def run_publication_shell_sync(*, study_root: Path, paper_root: Path) -> dict[st
         "paper_root": str(resolved_paper_root),
         "written_files": [str(cohort_path), str(table_path), str(report_path)],
         "source_paths": {
-            "cohort_flow_source": str(resolved_study_root / "paper" / "derived" / "cohort_flow.json"),
+            "cohort_flow_source": str(cohort_source_path),
             "table1_source": str(table1_source_path),
         },
     }

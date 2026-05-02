@@ -280,6 +280,16 @@ def repair_unit_fingerprint(
                 paper_root / "center_transportability_governance_summary_panel_inputs.json"
             ),
         }
+    elif unit_id == "sync_publication_shell_surface":
+        payload = {
+            "unit_id": unit_id,
+            "display_registry": path_fingerprint(paper_root / "display_registry.json"),
+            "cohort_flow": path_fingerprint(paper_root / "cohort_flow.json"),
+            "baseline_characteristics_schema": path_fingerprint(
+                paper_root / "baseline_characteristics_schema.json"
+            ),
+            "runtime_table1_csv": path_fingerprint(paper_root / "tables" / "T1_baseline_characteristics.csv"),
+        }
     elif unit_id == "sync_submission_minimal_delivery":
         payload = {
             "unit_id": unit_id,
