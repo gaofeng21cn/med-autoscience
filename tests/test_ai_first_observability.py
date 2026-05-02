@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
+import json
 
 import pytest
 
 
 pytestmark = pytest.mark.meta
+
+
+def _write_json(path: Path, payload: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def test_ai_first_observability_summary_exposes_quality_runtime_and_artifact_signals() -> None:
@@ -36,6 +42,80 @@ def test_ai_first_observability_summary_exposes_quality_runtime_and_artifact_sig
             "runtime recovery in progress"
         ),
         "next_action": "return_to_ai_reviewer_or_runtime_recovery",
+    }
+
+
+def test_ai_first_observability_snapshots_read_real_study_runtime_artifacts(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_first_observability")
+    study_root = tmp_path / "studies" / "001-risk"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+            "reviewer_operating_system": {"trace_id": "reviewer-os-001"},
+            "recommended_actions": [
+                {"action_type": "route_back_same_line", "route_target": "medical_prose_review"}
+            ],
+            "gaps": [{"severity": "must_fix", "summary": "Claim-evidence map needs tightening."}],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "health" / "latest.json",
+        {"canonical_runtime_action": "recover_runtime", "retry_budget_remaining": 2},
+    )
+    _write_json(
+        study_root / "manuscript" / "delivery_manifest.json",
+        {
+            "source_signature": "sig-001",
+            "authority_source_signature": "sig-001",
+            "delivery_source_signature": "sig-001",
+            "surface_roles": {
+                "controller_authorized_package_source_root": str(study_root / "paper" / "submission_minimal")
+            },
+            "blocking_artifact_refs": [],
+        },
+    )
+
+    snapshots = module.build_ai_first_observability_snapshots_from_study_root(study_root=study_root)
+
+    assert snapshots["surface"] == "ai_first_runtime_observability_snapshots"
+    assert snapshots["runtime_snapshot"] == {
+        "canonical_runtime_action": "recover_runtime",
+        "retry_budget_remaining": 2,
+    }
+    assert snapshots["quality_snapshot"]["ai_reviewer_trace_complete"] is True
+    assert snapshots["quality_snapshot"]["publication_eval_fresh"] is True
+    assert snapshots["quality_snapshot"]["route_back_count"] == 1
+    assert snapshots["quality_snapshot"]["route_back_target"] == "medical_prose_review"
+    assert snapshots["quality_snapshot"]["quality_toil_items"] == ["Claim-evidence map needs tightening."]
+    assert snapshots["artifact_snapshot"] == {
+        "stale_artifact_count": 0,
+        "current_package_from_canonical_source": True,
+    }
+
+
+def test_ai_first_observability_snapshots_fail_closed_without_ai_reviewer_trace(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_first_observability")
+    study_root = tmp_path / "studies" / "001-risk"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+            "recommended_actions": [],
+            "gaps": [],
+        },
+    )
+
+    snapshots = module.build_ai_first_observability_snapshots_from_study_root(study_root=study_root)
+
+    assert snapshots["quality_snapshot"]["ai_reviewer_trace_complete"] is False
+    assert snapshots["quality_snapshot"]["publication_eval_fresh"] is True
+    assert "ai_reviewer_trace_missing" in snapshots["quality_snapshot"]["quality_toil_items"]
+    assert snapshots["artifact_snapshot"] == {
+        "stale_artifact_count": 1,
+        "current_package_from_canonical_source": False,
     }
 
 
