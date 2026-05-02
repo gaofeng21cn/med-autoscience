@@ -8,6 +8,8 @@ globals().update({
     if not name.startswith('__')
 })
 
+from .work_unit_dispatch_cases_cases.test_platform_repair_delta import *  # noqa: F403,F401
+
 
 def test_watch_runtime_redrives_repeated_work_unit_until_attempt_closes(
     tmp_path: Path,

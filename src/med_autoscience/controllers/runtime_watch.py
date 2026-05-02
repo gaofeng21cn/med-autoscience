@@ -705,6 +705,64 @@ def run_watch_for_runtime(
                         wakeup_audit=wakeup_audit,
                         default_recorded_at=utc_now(),
                     )
+                elif runtime_watch_work_units.close_stale_platform_repair_if_meaningful_delta(
+                    study_root=study_root,
+                    status_payload=status_payload,
+                    tick_request=tick_request,
+                    wakeup_audit=wakeup_audit,
+                    default_recorded_at=utc_now(),
+                ) is not None:
+                    work_unit_dispatch_key = runtime_watch_work_units.dispatch_key(tick_request)
+                    outer_loop_result = study_runtime_router.study_outer_loop_tick(
+                        profile=profile,
+                        source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
+                        **runtime_watch_work_units.strip_context(tick_request),
+                    )
+                    if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
+                        raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
+                    dispatch_payload = runtime_watch_outer_loop_dispatch.serialize_outer_loop_dispatch(
+                        tick_request=tick_request,
+                        outer_loop_result=outer_loop_result,
+                    )
+                    managed_study_outer_loop_dispatches.append(dispatch_payload)
+                    if quest_report is None:
+                        quest_report = _materialize_placeholder_quest_watch_report(status_payload)
+                        if isinstance(quest_report, dict):
+                            reports.append(quest_report)
+                            quest_root = _candidate_path(status_payload.get("quest_root"))
+                            if quest_root is not None:
+                                report_by_quest_root[str(quest_root)] = quest_report
+                    if isinstance(quest_report, dict):
+                        runtime_watch_outer_loop_dispatch.attach_to_quest_report(
+                            quest_report=quest_report,
+                            dispatch_payload=dispatch_payload,
+                            write_latest_watch_alias=_write_latest_watch_alias,
+                            render_watch_markdown=render_watch_markdown,
+                        )
+                    wakeup_audit = {
+                        **wakeup_audit,
+                        "outcome": "dispatched",
+                        "reason": "outer-loop wakeup dispatched after meaningful artifact delta cleared platform repair lock",
+                        "dispatch": dispatch_payload,
+                        **runtime_watch_work_units.context_payload(
+                            tick_request,
+                            work_unit_dispatch_key=work_unit_dispatch_key,
+                        ),
+                    }
+                    runtime_watch_work_units.append_ledger_event(
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        tick_request=tick_request,
+                        event_type="dispatched",
+                        wakeup_audit=wakeup_audit,
+                        default_recorded_at=utc_now(),
+                    )
+                    status_payload = _managed_study_status_payload(
+                        study_runtime_router.study_runtime_status(
+                            profile=profile,
+                            study_root=study_root,
+                        )
+                    )
                 elif (
                     platform_repair := runtime_watch_work_units.active_platform_repair_required(
                         study_root=study_root,
