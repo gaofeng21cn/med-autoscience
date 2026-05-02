@@ -17,6 +17,7 @@ MAS/MDS 的医学论文初稿不能只是研究执行日志、结果汇总或投
 
 - `imrad_section_contract`: title, abstract, introduction, methods, results, discussion, and conclusion section purposes.
 - `manuscript_native_prose`: prose must be journal-style medical writing, not controller notes, figure/table anchors, author-confirmation placeholders, or work-report question/answer narration.
+- `pre_draft_writing_readiness_contract`: first draft writing cannot begin until clinical question, population/design/outcome, display-to-claim map, claim-evidence map, section purpose, reader-flow plan, journal voice, and AI prose-review feedback loop are closed as machine-readable readiness items.
 - `first_draft_generation_model`: the writer must start from clinical problem, study design, population, timepoint, outcome, analysis plan, display-to-claim map, and reader-facing contribution; if those inputs are missing, route back before drafting.
 
 `medical_quality_operating_system_contract.quality_contract.first_draft_manuscript_quality_contract` projects the same rule with guideline-specific obligations selected from STROBE, TRIPOD, TRIPOD+AI, CONSORT, CONSORT-AI, PRISMA, and RECORD.
@@ -40,6 +41,9 @@ Before a first full draft is treated as generated:
 - reporting-guideline family must be resolved;
 - section-level contract must be available to the writer;
 - clinical question, target population, timepoint, outcome horizon, analysis plan, and display-to-claim map must be available before main text generation;
+- claim-evidence mapping and display-to-claim mapping must be closed before Results prose is generated;
+- controller checklists, run logs, progress prose, generic completion checklists, and packaging metadata cannot authorize manuscript-body quality;
+- if verified evidence surfaces support a stronger paper shape, MAS routes back to bounded analysis or an analysis campaign instead of writing a light descriptive first draft;
 - results narrative must answer clinical findings directly, then cite figures/tables as support;
 - limitations must be written as clinical interpretation, not as claim-boundary/controller language;
 - administrative placeholders belong in submission metadata or TODO surfaces, not in the article body;

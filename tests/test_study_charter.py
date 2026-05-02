@@ -405,6 +405,9 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
                         "would otherwise be derived from run logs, controller checklists, or packaging metadata"
                     ),
                 },
+                "pre_draft_writing_readiness_contract": module.DEFAULT_FIRST_DRAFT_QUALITY_CONTRACT[
+                    "pre_draft_writing_readiness_contract"
+                ],
                 "medical_prose_review_contract": {
                     "surface": "medical_prose_review",
                     "stable_path": "artifacts/publication_eval/medical_prose_review.json",
@@ -437,6 +440,16 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
                     ],
                     "mechanical_checks_role": "safety_flags_and_evidence_snippets_only",
                 },
+                "quality_proxy_exclusion_policy": {
+                    "controller_or_progress_surfaces_can_authorize_body_quality": False,
+                    "forbidden_quality_proxies": [
+                        "controller_checklist",
+                        "run_log_or_execution_transcript",
+                        "progress_prose",
+                        "generic_completion_checklist",
+                        "packaging_metadata",
+                    ],
+                },
                 "first_draft_generation_model": {
                     "pre_draft_inputs": [
                         "clinical_problem",
@@ -448,6 +461,7 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
                         "display_to_claim_map",
                         "reader_facing_contribution",
                         "medical_manuscript_blueprint",
+                        "pre_draft_writing_readiness",
                         "medical_prose_style_contract",
                         "medical_prose_review",
                     ],
@@ -632,6 +646,79 @@ def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Pa
 
     first_draft_contract = structured_contract["first_draft_quality_contract"]
     assert first_draft_contract["status"] == "required_before_first_full_draft"
+    readiness_contract = first_draft_contract["pre_draft_writing_readiness_contract"]
+    assert readiness_contract["surface"] == "pre_draft_writing_readiness_contract"
+    assert readiness_contract["stable_path"] == "paper/pre_draft_writing_readiness.json"
+    assert readiness_contract["required_before"] == "first_full_draft"
+    assert readiness_contract["readiness_status_required"] == "closed"
+    assert readiness_contract["gate_relaxation_allowed"] is False
+    assert [item["readiness_id"] for item in readiness_contract["required_readiness_items"]] == [
+        "clinical_question",
+        "population_design_outcome",
+        "display_to_claim_map",
+        "claim_evidence_map",
+        "section_purpose",
+        "reader_flow_plan",
+        "journal_voice",
+        "ai_prose_review_feedback_loop",
+    ]
+    readiness_item_by_id = {
+        str(item["readiness_id"]): item for item in readiness_contract["required_readiness_items"]
+    }
+    assert readiness_item_by_id["clinical_question"]["required_fields"] == [
+        "clinical_problem",
+        "evidence_gap",
+        "study_objective",
+    ]
+    assert readiness_item_by_id["population_design_outcome"]["required_fields"] == [
+        "target_population",
+        "study_design",
+        "exposure_or_predictor_window",
+        "main_outcome",
+        "outcome_horizon",
+    ]
+    assert readiness_item_by_id["display_to_claim_map"]["source_surfaces"] == [
+        "paper/results_narrative_map.json",
+        "paper/figure_semantics_manifest.json",
+    ]
+    assert readiness_item_by_id["claim_evidence_map"]["source_surfaces"] == [
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+    ]
+    assert readiness_item_by_id["ai_prose_review_feedback_loop"]["source_surfaces"] == [
+        "artifacts/publication_eval/medical_prose_review_request.json",
+        "artifacts/publication_eval/medical_prose_review.json",
+    ]
+    assert readiness_contract["quality_proxy_exclusion_policy"] == {
+        "policy_id": "manuscript_quality_proxy_exclusion_v1",
+        "controller_or_progress_surfaces_can_authorize_body_quality": False,
+        "forbidden_quality_proxies": [
+            "controller_checklist",
+            "run_log_or_execution_transcript",
+            "progress_prose",
+            "generic_completion_checklist",
+            "packaging_metadata",
+        ],
+        "required_body_quality_authority": [
+            "paper/medical_manuscript_blueprint.json",
+            "paper/claim_evidence_map.json",
+            "artifacts/publication_eval/medical_prose_review.json",
+            "artifacts/publication_eval/latest.json",
+        ],
+    }
+    assert readiness_contract["stronger_paper_shape_route_back"] == {
+        "default_route": "bounded_analysis_or_analysis_campaign",
+        "trigger": "verified evidence surfaces support a stronger manuscript shape than a descriptive first draft",
+        "preferred_targets": [
+            "minimum_sci_ready_evidence_package",
+            "scientific_followup_questions",
+            "manuscript_conclusion_redlines",
+        ],
+        "bounded_analysis_owner": "mas",
+        "analysis_campaign_allowed": True,
+        "forbidden_action": "write_light_descriptive_first_draft",
+        "claim_boundary": "no_new_primary_claims_without_human_gate",
+    }
     assert first_draft_contract["imrad_section_contract"]["article_body"] == [
         "Title",
         "Abstract",
@@ -693,6 +780,7 @@ def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Pa
         "display_to_claim_map",
         "reader_facing_contribution",
         "medical_manuscript_blueprint",
+        "pre_draft_writing_readiness",
         "medical_prose_style_contract",
         "medical_prose_review",
     ]
@@ -705,3 +793,48 @@ def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Pa
     )
     assert first_draft_contract["too_light_draft_route_back"]["route"] == "analysis-campaign"
     assert "clinician_recommendation" in first_draft_contract["discussion_floor"]
+
+
+def test_materialize_study_charter_preserves_required_readiness_when_first_draft_contract_is_custom(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "003-custom"
+
+    module.materialize_study_charter(
+        study_root=study_root,
+        study_id="003-custom",
+        study_payload={
+            "title": "Custom first draft contract",
+            "first_draft_quality_contract": {
+                "status": "custom_required_before_first_full_draft",
+                "site_specific_axis": {"status": "required_before_first_full_draft"},
+            },
+        },
+        execution={},
+        required_first_anchor=None,
+    )
+
+    payload = json.loads((study_root / "artifacts" / "controller" / "study_charter.json").read_text(encoding="utf-8"))
+    first_draft_contract = payload["paper_quality_contract"]["structured_reporting_contract"][
+        "first_draft_quality_contract"
+    ]
+
+    assert first_draft_contract["status"] == "custom_required_before_first_full_draft"
+    assert first_draft_contract["site_specific_axis"] == {"status": "required_before_first_full_draft"}
+    assert first_draft_contract["pre_draft_writing_readiness_contract"]["required_before"] == (
+        "first_full_draft"
+    )
+    assert "pre_draft_writing_readiness" in first_draft_contract["first_draft_generation_model"][
+        "pre_draft_inputs"
+    ]
+    assert first_draft_contract["quality_proxy_exclusion_policy"] == {
+        "controller_or_progress_surfaces_can_authorize_body_quality": False,
+        "forbidden_quality_proxies": [
+            "controller_checklist",
+            "run_log_or_execution_transcript",
+            "progress_prose",
+            "generic_completion_checklist",
+            "packaging_metadata",
+        ],
+    }

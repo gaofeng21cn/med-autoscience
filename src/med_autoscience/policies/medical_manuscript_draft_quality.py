@@ -314,6 +314,161 @@ def build_medical_manuscript_blueprint_contract() -> dict[str, Any]:
     }
 
 
+def build_pre_draft_writing_readiness_contract() -> dict[str, Any]:
+    return {
+        "surface": "pre_draft_writing_readiness_contract",
+        "stable_path": "paper/pre_draft_writing_readiness.json",
+        "required_before": "first_full_draft",
+        "readiness_status_required": "closed",
+        "gate_relaxation_allowed": False,
+        "required_readiness_items": [
+            {
+                "readiness_id": "clinical_question",
+                "required_fields": [
+                    "clinical_problem",
+                    "evidence_gap",
+                    "study_objective",
+                ],
+                "source_surfaces": [
+                    "study_charter.paper_quality_contract",
+                    "paper/medical_manuscript_blueprint.json",
+                ],
+                "closure_evidence": "specific medical question can be written as article objective",
+            },
+            {
+                "readiness_id": "population_design_outcome",
+                "required_fields": [
+                    "target_population",
+                    "study_design",
+                    "exposure_or_predictor_window",
+                    "main_outcome",
+                    "outcome_horizon",
+                ],
+                "source_surfaces": [
+                    "paper/medical_manuscript_blueprint.json",
+                    "paper/reporting_guideline_checklist.json",
+                ],
+                "closure_evidence": "Methods and abstract can state population, design, exposure or predictors, and outcome without placeholders",
+            },
+            {
+                "readiness_id": "display_to_claim_map",
+                "required_fields": [
+                    "display_id",
+                    "claim_id",
+                    "display_role",
+                    "reader_takeaway",
+                    "claim_boundary",
+                ],
+                "source_surfaces": [
+                    "paper/results_narrative_map.json",
+                    "paper/figure_semantics_manifest.json",
+                ],
+                "closure_evidence": "each main table or figure has a reader-facing claim role before Results prose",
+            },
+            {
+                "readiness_id": "claim_evidence_map",
+                "required_fields": [
+                    "claim_id",
+                    "claim_statement",
+                    "evidence_items",
+                    "limitations",
+                    "paper_role",
+                ],
+                "source_surfaces": [
+                    "paper/claim_evidence_map.json",
+                    "paper/evidence_ledger.json",
+                ],
+                "closure_evidence": "each main-text claim is traceable to evidence and a stated boundary",
+            },
+            {
+                "readiness_id": "section_purpose",
+                "required_fields": [
+                    "introduction_purpose",
+                    "methods_purpose",
+                    "results_purpose",
+                    "discussion_purpose",
+                ],
+                "source_surfaces": [
+                    "paper/medical_manuscript_blueprint.json",
+                ],
+                "closure_evidence": "IMRAD sections have manuscript-native purposes rather than operational checklist roles",
+            },
+            {
+                "readiness_id": "reader_flow_plan",
+                "required_fields": [
+                    "argument_sequence",
+                    "results_sequence",
+                    "discussion_sequence",
+                    "transition_logic",
+                ],
+                "source_surfaces": [
+                    "paper/medical_manuscript_blueprint.json",
+                    "medical_prose_style_contract",
+                ],
+                "closure_evidence": "article flow is planned from clinical context to evidence, interpretation, and limitations",
+            },
+            {
+                "readiness_id": "journal_voice",
+                "required_fields": [
+                    "target_voice",
+                    "target_readers",
+                    "overstatement_boundaries",
+                    "forbidden_body_modes",
+                ],
+                "source_surfaces": [
+                    "medical_prose_style_contract",
+                    "paper/medical_journal_style_corpus.json",
+                ],
+                "closure_evidence": "draft voice is tied to medical-journal prose expectations before generation",
+            },
+            {
+                "readiness_id": "ai_prose_review_feedback_loop",
+                "required_fields": [
+                    "review_request_ref",
+                    "ai_reviewer_owner",
+                    "required_response_contract",
+                    "route_back_target",
+                ],
+                "source_surfaces": [
+                    "artifacts/publication_eval/medical_prose_review_request.json",
+                    "artifacts/publication_eval/medical_prose_review.json",
+                ],
+                "closure_evidence": "AI prose review is a required feedback loop, not a post-hoc mechanical pattern scan",
+            },
+        ],
+        "quality_proxy_exclusion_policy": {
+            "policy_id": "manuscript_quality_proxy_exclusion_v1",
+            "controller_or_progress_surfaces_can_authorize_body_quality": False,
+            "forbidden_quality_proxies": [
+                "controller_checklist",
+                "run_log_or_execution_transcript",
+                "progress_prose",
+                "generic_completion_checklist",
+                "packaging_metadata",
+            ],
+            "required_body_quality_authority": [
+                "paper/medical_manuscript_blueprint.json",
+                "paper/claim_evidence_map.json",
+                "artifacts/publication_eval/medical_prose_review.json",
+                "artifacts/publication_eval/latest.json",
+            ],
+        },
+        "stronger_paper_shape_route_back": {
+            "default_route": "bounded_analysis_or_analysis_campaign",
+            "trigger": "verified evidence surfaces support a stronger manuscript shape than a descriptive first draft",
+            "preferred_targets": [
+                "minimum_sci_ready_evidence_package",
+                "scientific_followup_questions",
+                "manuscript_conclusion_redlines",
+            ],
+            "bounded_analysis_owner": "mas",
+            "analysis_campaign_allowed": True,
+            "forbidden_action": "write_light_descriptive_first_draft",
+            "claim_boundary": "no_new_primary_claims_without_human_gate",
+        },
+    }
+
+
 def build_medical_prose_review_contract() -> dict[str, Any]:
     return {
         "surface": "medical_prose_review",
@@ -403,6 +558,7 @@ def build_first_draft_manuscript_quality_contract(
         },
         "medical_prose_style_contract": build_medical_prose_style_contract(),
         "medical_manuscript_blueprint_contract": build_medical_manuscript_blueprint_contract(),
+        "pre_draft_writing_readiness_contract": build_pre_draft_writing_readiness_contract(),
         "medical_prose_review_contract": build_medical_prose_review_contract(),
         "first_draft_generation_model": {
             "pre_draft_inputs": [
@@ -415,6 +571,7 @@ def build_first_draft_manuscript_quality_contract(
                 "display_to_claim_map",
                 "reader_facing_contribution",
                 "medical_manuscript_blueprint",
+                "pre_draft_writing_readiness",
                 "medical_prose_style_contract",
                 "medical_prose_review",
             ],

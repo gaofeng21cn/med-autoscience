@@ -33,6 +33,33 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
     assert draft_contract["guideline_family"] == "STROBE"
     assert draft_contract["required_before"] == "first_full_draft"
     assert "Introduction" in draft_contract["core_structure"]["article_body"]
+    readiness_contract = draft_contract["pre_draft_writing_readiness_contract"]
+    assert readiness_contract["surface"] == "pre_draft_writing_readiness_contract"
+    assert readiness_contract["required_before"] == "first_full_draft"
+    assert readiness_contract["gate_relaxation_allowed"] is False
+    assert [item["readiness_id"] for item in readiness_contract["required_readiness_items"]] == [
+        "clinical_question",
+        "population_design_outcome",
+        "display_to_claim_map",
+        "claim_evidence_map",
+        "section_purpose",
+        "reader_flow_plan",
+        "journal_voice",
+        "ai_prose_review_feedback_loop",
+    ]
+    assert readiness_contract["quality_proxy_exclusion_policy"]["forbidden_quality_proxies"] == [
+        "controller_checklist",
+        "run_log_or_execution_transcript",
+        "progress_prose",
+        "generic_completion_checklist",
+        "packaging_metadata",
+    ]
+    assert readiness_contract["stronger_paper_shape_route_back"]["default_route"] == (
+        "bounded_analysis_or_analysis_campaign"
+    )
+    assert readiness_contract["stronger_paper_shape_route_back"]["forbidden_action"] == (
+        "write_light_descriptive_first_draft"
+    )
     assert "author_confirmation_placeholder" in draft_contract["manuscript_native_prose"]["forbidden_modes"]
     prose_contract = draft_contract["medical_prose_style_contract"]
     assert prose_contract["style_profile_id"] == "general_medical_journal_prose_v1"
