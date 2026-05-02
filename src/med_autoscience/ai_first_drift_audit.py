@@ -154,6 +154,26 @@ MAS_AI_FIRST_RULES: tuple[DriftRule, ...] = (
         ),
     ),
     DriftRule(
+        check_id="durable_workflow_contract_separates_runtime_from_quality_truth",
+        category="doctor_meta_test_surface",
+        root_key="mas_repo_root",
+        relative_path="src/med_autoscience/controllers/durable_workflow_contract.py",
+        summary="Runtime OS must be durable and must not override AI-first quality truth.",
+        required_markers=(
+            '"surface": "durable_workflow_contract"',
+            '"runtime_health_can_override_quality_truth": False',
+            '"runtime_health_can_override_study_truth": False',
+            '"event_sourced_replay"',
+            '"idempotent_controller_tick"',
+            '"human_gate_as_durable_decision"',
+            '"retry_budget_before_escalation"',
+            '"event_replay"',
+            '"idempotent_tick"',
+            '"human_gate"',
+            '"retry_budget"',
+        ),
+    ),
+    DriftRule(
         check_id="policy_records_external_engineering_basis_and_audit_scope",
         category="doctor_meta_test_surface",
         root_key="mas_repo_root",
@@ -207,7 +227,7 @@ MDS_AI_FIRST_RULES: tuple[DriftRule, ...] = (
         summary="MDS manuscript coverage may only claim mechanical coverage, not quality readiness.",
         required_markers=(
             '"mechanical_coverage_only": True',
-            '"quality_authority": "ai_reviewer_required"',
+            '"quality_authority": "mas_ai_preflight_prose_review_publication_eval"',
         ),
     ),
     DriftRule(
