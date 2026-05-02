@@ -75,6 +75,136 @@ def test_real_paper_ai_first_soak_recording_entry_is_observational_only() -> Non
     assert validation["issues"] == []
 
 
+def test_real_paper_ai_first_soak_observation_from_runtime_snapshot_extracts_observability_evidence() -> None:
+    module = importlib.import_module("med_autoscience.controllers.real_paper_ai_first_soak")
+
+    observation = module.build_real_paper_ai_first_soak_observation_from_runtime_snapshot(
+        paper_id="dpcc-003",
+        runtime_snapshot_bundle={
+            "progress_snapshot": {
+                "current_blockers": ["manual_gate_waiting"],
+                "manual_gate": {"required": True, "state": "waiting_for_human_authorization"},
+            },
+            "quality_snapshot": {
+                "quality_authorization_source": "ai_reviewer_backed_publication_eval_or_manual_gate",
+                "route_back_count": 2,
+                "route_back_reasons": [
+                    "medical_prose_review_route_back",
+                    "claim_evidence_alignment",
+                ],
+                "ai_reviewer_intervention_points": [
+                    "pre_draft_readiness",
+                    "publication_eval",
+                ],
+                "mechanical_ready_overreach_detected": True,
+                "final_blockers": ["manual_gate_waiting"],
+            },
+            "artifact_snapshot": {
+                "artifact_rebuild_source": "canonical_sources_and_ai_reviewer_quality_decision",
+                "current_package_from_canonical_source": True,
+            },
+            "operations_dashboard_summary": {
+                "surface": "ai_first_operations_dashboard_summary",
+                "user_view": {
+                    "blockers": ["manual_gate_waiting"],
+                    "human_review_required": True,
+                },
+                "maintainer_view": {
+                    "ai_reviewer_trace": {"complete": True},
+                    "route_back": {"count": 2, "target": "write"},
+                    "artifact_stale": {"current_package_from_canonical_source": True},
+                },
+                "authority": {
+                    "observability_can_authorize_quality": False,
+                    "observability_can_mutate_runtime": False,
+                },
+            },
+        },
+    )
+
+    assert observation["surface"] == "real_paper_ai_first_soak_observation"
+    assert observation["paper_id"] == "dpcc-003"
+    assert observation["quality_authorization_source"] == (
+        "ai_reviewer_backed_publication_eval_or_manual_gate"
+    )
+    assert observation["artifact_rebuild_source"] == (
+        "canonical_sources_and_ai_reviewer_quality_decision"
+    )
+    assert observation["route_back_count"] == 2
+    assert observation["route_back_reasons"] == [
+        "medical_prose_review_route_back",
+        "claim_evidence_alignment",
+    ]
+    assert observation["ai_reviewer_intervention_points"] == [
+        "pre_draft_readiness",
+        "publication_eval",
+    ]
+    assert observation["mechanical_ready_overreach_detected"] is True
+    assert observation["final_blockers"] == ["manual_gate_waiting"]
+    assert observation["manual_gate"] == {
+        "required": True,
+        "state": "waiting_for_human_authorization",
+    }
+    assert observation["manual_study_artifact_patch_allowed"] is False
+    assert observation["canonical_flow_only"] is True
+    assert observation["observational_evidence_only"] is True
+    assert observation["artifact_write_paths"] == []
+
+    validation = module.validate_real_paper_ai_first_soak_observation(observation)
+
+    assert validation["ok"] is True
+    assert validation["issues"] == []
+
+
+def test_real_paper_ai_first_soak_observation_from_snapshot_fails_closed_when_authority_is_missing() -> None:
+    module = importlib.import_module("med_autoscience.controllers.real_paper_ai_first_soak")
+
+    observation = module.build_real_paper_ai_first_soak_observation_from_runtime_snapshot(
+        paper_id="dpcc-004",
+        operations_dashboard_summary={
+            "surface": "ai_first_operations_dashboard_summary",
+            "user_view": {
+                "blockers": ["publication_eval_stale"],
+                "human_review_required": True,
+            },
+            "maintainer_view": {
+                "ai_reviewer_trace": {"complete": False},
+                "route_back": {"count": 1, "target": "ai_reviewer"},
+                "artifact_stale": {
+                    "stale_artifact_count": 1,
+                    "current_package_from_canonical_source": False,
+                },
+            },
+            "authority": {
+                "observability_can_authorize_quality": False,
+                "observability_can_mutate_runtime": False,
+            },
+        },
+    )
+
+    assert observation["quality_authorization_source"] == "missing_ai_reviewer_quality_authorization"
+    assert observation["artifact_rebuild_source"] == "missing_canonical_artifact_rebuild_source"
+    assert observation["route_back_count"] == 1
+    assert observation["route_back_reasons"] == []
+    assert observation["ai_reviewer_intervention_points"] == []
+    assert observation["mechanical_ready_overreach_detected"] is False
+    assert observation["final_blockers"] == ["publication_eval_stale"]
+    assert observation["manual_gate"] == {
+        "required": True,
+        "state": "human_review_required",
+    }
+
+    validation = module.validate_real_paper_ai_first_soak_observation(observation)
+
+    assert validation["ok"] is False
+    assert {issue["code"] for issue in validation["issues"]} == {
+        "quality_authorization_source_missing",
+        "artifact_rebuild_source_not_canonical",
+        "route_back_reasons_missing",
+        "ai_reviewer_intervention_points_missing",
+    }
+
+
 def test_real_paper_ai_first_soak_validation_rejects_bypass_and_schema_drift() -> None:
     module = importlib.import_module("med_autoscience.controllers.real_paper_ai_first_soak")
     observation = module.build_real_paper_ai_first_soak_observation(
