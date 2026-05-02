@@ -117,11 +117,9 @@ def _current_package_refs_present(gate_report: Mapping[str, Any], package_freshn
 def _current_package_freshness_proof_current(package_freshness: Mapping[str, Any]) -> bool:
     if not _status_current_or_fresh(package_freshness.get("status")):
         return False
-    if _first_non_empty_text(
-        package_freshness.get("proof_path"),
-        package_freshness.get("current_package_root"),
-        package_freshness.get("current_package_zip"),
-    ) is None:
+    if _first_non_empty_text(package_freshness.get("proof_path")) is None:
+        return False
+    if _first_non_empty_text(package_freshness.get("current_package_root"), package_freshness.get("current_package_zip")) is None:
         return False
     return _first_non_empty_text(package_freshness.get("submission_manifest_path")) is not None
 

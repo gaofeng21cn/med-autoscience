@@ -121,4 +121,110 @@ def test_study_progress_projects_gate_specificity_as_controller_lane(
     assert "current_package_freshness/latest.json" in result["operator_status_card"]["next_confirmation_signal"]
 
 
+def test_gate_specificity_supersedes_older_task_intake_route_override(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "schema_version": 1,
+            "task_id": "study-task::002-risk::20260427T020548Z",
+            "emitted_at": "2026-04-27T02:05:48+00:00",
+            "study_id": "002-risk",
+            "entry_mode": "full_research",
+            "task_intent": "Reactivate the same paper line for reviewer_revision.",
+            "first_cycle_outputs": [
+                "paper/rebuttal/review_matrix.md and action_plan.md covering all feedback items.",
+            ],
+            "revision_intake": {"kind": "reviewer_revision", "status": "active"},
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "study_id": "002-risk",
+            "quest_id": "quest-002",
+            "emitted_at": "2026-05-02T12:22:47+00:00",
+            "verdict": {
+                "overall_verdict": "blocked",
+                "summary": "Gate still names generic publication blockers without concrete targets.",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-005",
+                    "gap_type": "claim",
+                    "severity": "must_fix",
+                    "summary": "claim_evidence_consistency_failed",
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "publication-eval-action::return_to_controller::publication-blockers::specificity",
+                    "action_type": "return_to_controller",
+                    "priority": "now",
+                    "reason": "Gate only named generic blocker labels.",
+                    "requires_controller_decision": True,
+                    "work_unit_fingerprint": "publication-blockers::specificity",
+                    "next_work_unit": {
+                        "unit_id": "gate_needs_specificity",
+                        "lane": "controller",
+                        "summary": "Ask the publication gate to identify concrete blocker targets.",
+                    },
+                }
+            ],
+        },
+    )
+    _write_runtime_watch(quest_root)
+    _write_bash_summary(quest_root)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "002-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "quest_id": "quest-002",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "paused",
+            "decision": "blocked",
+            "reason": "needs_specificity",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="002-risk")
+
+    assert result["task_intake"]["task_id"] == "study-task::002-risk::20260427T020548Z"
+    assert result["intervention_lane"]["lane_id"] == "publication_gate_specificity_required"
+    assert result["intervention_lane"]["route_target"] == "controller"
+    assert result["operator_verdict"]["lane_id"] == "publication_gate_specificity_required"
+    assert result["same_line_route_truth"] is None
+    assert "analysis-campaign" not in result["next_system_action"]
+
+
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

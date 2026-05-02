@@ -747,7 +747,22 @@ def test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity
         manuscript_family="prediction_model",
     )
     quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
-    _write_publication_eval(study_root, quest_root)
+    _write_publication_eval(
+        study_root,
+        quest_root,
+        recommended_actions=[
+            {
+                "action_id": "action-201",
+                "action_type": "bounded_analysis",
+                "priority": "now",
+                "reason": "Gate still reports claim-evidence repair and delivery refresh blockers.",
+                "route_target": "analysis-campaign",
+                "route_key_question": "Which claim-evidence object still needs repair?",
+                "route_rationale": "Quality repair is still blocked.",
+                "requires_controller_decision": True,
+            }
+        ],
+    )
     _write_json(
         study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",
         {
@@ -820,6 +835,7 @@ def test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity
                 "phase_owner": "publication_gate",
                 "bundle_tasks_downstream_only": True,
                 "current_required_action": "return_to_publishability_gate",
+                "controller_stage_note": "current_package is stale and quality repair is still blocked.",
             },
             "supervisor_tick_audit": {
                 "required": True,
@@ -843,6 +859,8 @@ def test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity
     assert result["progress_freshness"]["activity_timeout"]["active_run_id"] == "run-live-stale"
     assert result["intervention_lane"]["lane_id"] == "runtime_recovery_required"
     assert result["intervention_lane"]["severity"] == "critical"
+    assert result["intervention_lane"].get("route_target") != "analysis-campaign"
     assert result["operator_status_card"]["handling_state"] == "runtime_recovering"
+    assert result["operator_status_card"]["human_surface_freshness"] == "monitoring_runtime"
     assert "supervisor ticks alone cannot prove paper progress" in result["operator_status_card"]["current_focus"]
     assert "meaningful artifact delta" in result["operator_status_card"]["next_confirmation_signal"]
