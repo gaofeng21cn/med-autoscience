@@ -12,6 +12,8 @@ QUALITY_AUTHORIZATION_SOURCE = "ai_reviewer_backed_publication_eval_or_manual_ga
 STRUCTURED_ROUTE_BACK_TAXONOMY = "structured_rework_taxonomy"
 AI_REVIEWER_TRACE_SOURCE = "reviewer_operating_system_trace"
 MANUAL_GATE_SOURCE = "explicit_human_decision"
+MISSING_AI_REVIEWER_QUALITY_AUTHORIZATION = "missing_ai_reviewer_quality_authorization"
+MISSING_CANONICAL_ARTIFACT_REBUILD_SOURCE = "missing_canonical_artifact_rebuild_source"
 
 PAPER_LINES: tuple[dict[str, Any], ...] = (
     {
@@ -59,13 +61,110 @@ def _list(value: object) -> list[object]:
     return value if isinstance(value, list) else []
 
 
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
 def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
+
+
+def _int(value: object) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _bool(value: object) -> bool | None:
+    return value if isinstance(value, bool) else None
 
 
 def _contains_derived_artifact_marker(value: object) -> bool:
     text = _text(value)
     return any(marker in text for marker in DERIVED_ARTIFACT_AUTHORITY_MARKERS)
+
+
+def _runtime_snapshot_sections(
+    *,
+    runtime_snapshot_bundle: Mapping[str, Any] | None,
+    operations_dashboard_summary: Mapping[str, Any] | None,
+) -> tuple[Mapping[str, Any], Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]]:
+    bundle = _mapping(runtime_snapshot_bundle)
+    summary = _mapping(operations_dashboard_summary or bundle.get("operations_dashboard_summary"))
+    return (
+        _mapping(bundle.get("progress_snapshot")),
+        _mapping(bundle.get("quality_snapshot")),
+        _mapping(bundle.get("artifact_snapshot")),
+        summary,
+    )
+
+
+def _dashboard_views(
+    summary: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], Mapping[str, Any]]:
+    return _mapping(summary.get("user_view")), _mapping(summary.get("maintainer_view"))
+
+
+def _quality_authorization_source(
+    quality_snapshot: Mapping[str, Any],
+    maintainer_view: Mapping[str, Any],
+) -> str:
+    source = _text(quality_snapshot.get("quality_authorization_source"))
+    if source:
+        return source
+    trace_complete = _bool(_mapping(maintainer_view.get("ai_reviewer_trace")).get("complete"))
+    if trace_complete:
+        return QUALITY_AUTHORIZATION_SOURCE
+    return MISSING_AI_REVIEWER_QUALITY_AUTHORIZATION
+
+
+def _artifact_rebuild_source(
+    artifact_snapshot: Mapping[str, Any],
+    maintainer_view: Mapping[str, Any],
+) -> str:
+    source = _text(artifact_snapshot.get("artifact_rebuild_source"))
+    if source:
+        return source
+    canonical_source = _bool(artifact_snapshot.get("current_package_from_canonical_source"))
+    if canonical_source is None:
+        canonical_source = _bool(
+            _mapping(maintainer_view.get("artifact_stale")).get("current_package_from_canonical_source")
+        )
+    if canonical_source is True:
+        return CANONICAL_ARTIFACT_REBUILD_SOURCE
+    return MISSING_CANONICAL_ARTIFACT_REBUILD_SOURCE
+
+
+def _route_back_count(
+    *,
+    route_back_reasons: list[str],
+    quality_snapshot: Mapping[str, Any],
+    maintainer_view: Mapping[str, Any],
+) -> int:
+    if route_back_reasons:
+        return len(route_back_reasons)
+    snapshot_count = _int(quality_snapshot.get("route_back_count"))
+    dashboard_count = _int(_mapping(maintainer_view.get("route_back")).get("count"))
+    return max(snapshot_count, dashboard_count)
+
+
+def _manual_gate(
+    *,
+    progress_snapshot: Mapping[str, Any],
+    user_view: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    manual_gate = _mapping(progress_snapshot.get("manual_gate"))
+    if manual_gate:
+        return manual_gate
+    human_review_required = _bool(user_view.get("human_review_required"))
+    if human_review_required is True:
+        return {"required": True, "state": "human_review_required"}
+    if human_review_required is False:
+        return {"required": False, "state": "not_required"}
+    return {}
 
 
 def build_real_paper_ai_first_soak_contract() -> dict[str, Any]:
@@ -142,6 +241,51 @@ def build_real_paper_ai_first_soak_observation(
     }
 
 
+def build_real_paper_ai_first_soak_observation_from_runtime_snapshot(
+    *,
+    paper_id: str,
+    operations_dashboard_summary: Mapping[str, Any] | None = None,
+    runtime_snapshot_bundle: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    progress_snapshot, quality_snapshot, artifact_snapshot, summary = _runtime_snapshot_sections(
+        runtime_snapshot_bundle=runtime_snapshot_bundle,
+        operations_dashboard_summary=operations_dashboard_summary,
+    )
+    user_view, maintainer_view = _dashboard_views(summary)
+
+    route_back_reasons = (
+        _text_list(quality_snapshot.get("route_back_reasons"))
+        or _text_list(_mapping(maintainer_view.get("route_back")).get("reasons"))
+    )
+    ai_reviewer_intervention_points = (
+        _text_list(quality_snapshot.get("ai_reviewer_intervention_points"))
+        or _text_list(_mapping(maintainer_view.get("ai_reviewer_trace")).get("intervention_points"))
+    )
+
+    observation = build_real_paper_ai_first_soak_observation(
+        paper_id=paper_id,
+        quality_authorization_source=_quality_authorization_source(quality_snapshot, maintainer_view),
+        artifact_rebuild_source=_artifact_rebuild_source(artifact_snapshot, maintainer_view),
+        route_back_reasons=route_back_reasons,
+        ai_reviewer_intervention_points=ai_reviewer_intervention_points,
+        mechanical_ready_overreach_detected=bool(
+            quality_snapshot.get("mechanical_ready_overreach_detected")
+        ),
+        final_blockers=(
+            _text_list(quality_snapshot.get("final_blockers"))
+            or _text_list(progress_snapshot.get("current_blockers"))
+            or _text_list(user_view.get("blockers"))
+        ),
+        manual_gate=_manual_gate(progress_snapshot=progress_snapshot, user_view=user_view),
+    )
+    observation["route_back_count"] = _route_back_count(
+        route_back_reasons=route_back_reasons,
+        quality_snapshot=quality_snapshot,
+        maintainer_view=maintainer_view,
+    )
+    return observation
+
+
 def validate_real_paper_ai_first_soak_observation(
     observation: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -172,6 +316,11 @@ def validate_real_paper_ai_first_soak_observation(
 
     if _contains_derived_artifact_marker(observation.get("quality_authorization_source")):
         issues.append({"code": "quality_authority_uses_derived_artifact"})
+    if _text(observation.get("quality_authorization_source")) in {
+        "",
+        MISSING_AI_REVIEWER_QUALITY_AUTHORIZATION,
+    }:
+        issues.append({"code": "quality_authorization_source_missing"})
     if _text(observation.get("artifact_rebuild_source")) != CANONICAL_ARTIFACT_REBUILD_SOURCE:
         issues.append({"code": "artifact_rebuild_source_not_canonical"})
 
