@@ -45,6 +45,8 @@ def _blocker_strings(value: object) -> list[str]:
 def _pre_draft_state(state: Mapping[str, Any]) -> dict[str, Any]:
     readiness = _mapping(state.get("readiness"))
     route_back = _mapping(state.get("route_back"))
+    authoring_workplan_projection = dict(_mapping(state.get("authoring_workplan_projection")))
+    authoring_workplan_projection.pop("source_path", None)
     status = _text(state.get("status")) or "unknown"
     blockers = _blocker_strings(state.get("blockers"))
     if readiness.get("draft_ready") is True:
@@ -62,6 +64,7 @@ def _pre_draft_state(state: Mapping[str, Any]) -> dict[str, Any]:
         "route_back_target": route_back.get("target"),
         "route_back_reason": route_back.get("reason"),
         "blockers": blockers,
+        "authoring_workplan_projection": authoring_workplan_projection,
         "authority": {
             "mechanical_file_presence_can_authorize_ready": False,
             "mechanical_projection_can_authorize_ready": False,

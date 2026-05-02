@@ -69,6 +69,38 @@ def _authorized_blueprint() -> dict[str, Any]:
     }
 
 
+def _closed_authoring_workplan() -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "surface": "authoring_workplan",
+        "status": "closed",
+        "workplan_id": "paper-orchestra::authoring-workplan::001",
+        "sections": [
+            {
+                "section_id": "introduction",
+                "status": "closed",
+                "task_refs": ["write_clinical_problem", "write_gap_statement"],
+            },
+            {
+                "section_id": "methods",
+                "status": "closed",
+                "task_refs": ["write_population", "write_analysis_plan"],
+            },
+        ],
+        "work_units": [
+            {"work_unit_id": "write_clinical_problem", "status": "closed"},
+            {"work_unit_id": "write_gap_statement", "status": "closed"},
+            {"work_unit_id": "write_population", "status": "closed"},
+            {"work_unit_id": "write_analysis_plan", "status": "closed"},
+        ],
+        "authority": {
+            "source_family": "PaperOrchestra-inspired",
+            "read_model_only": True,
+            "can_authorize_draft_readiness": False,
+        },
+    }
+
+
 def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
     input_bundle = {
         "manuscript": str(study_root / "paper" / "manuscript.md"),
@@ -171,6 +203,7 @@ def _write_closed_authority_surfaces(study_root: Path) -> None:
     _write_json(study_root / "paper" / "evidence_ledger.json", _closed_ledger(surface="evidence_ledger"))
     _write_json(study_root / "paper" / "review_ledger.json", _closed_ledger(surface="review_ledger"))
     _write_json(study_root / "paper" / "medical_manuscript_blueprint.json", _authorized_blueprint())
+    _write_json(study_root / "paper" / "authoring_workplan.json", _closed_authoring_workplan())
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
         _ai_reviewer_publication_eval(study_root),
@@ -214,6 +247,60 @@ def test_pre_draft_runtime_allows_first_full_draft_only_after_closed_ai_reviewer
     }
     assert result["authority"]["reviewer_operating_system_valid"] is True
     assert result["refs"]["publication_eval"]["exists"] is True
+    assert result["authoring_workplan_projection"] == {
+        "surface": "authoring_workplan_projection",
+        "source_path": str(study_root / "paper" / "authoring_workplan.json"),
+        "exists": True,
+        "status": "closed",
+        "workplan_ready": True,
+        "required_before": "first_full_draft",
+        "source_family": "PaperOrchestra-inspired",
+        "section_count": 2,
+        "work_unit_count": 4,
+        "blockers": [],
+        "authority": {
+            "read_only": True,
+            "can_authorize_draft_readiness": False,
+            "can_mutate_runtime": False,
+        },
+    }
+
+
+def test_pre_draft_runtime_missing_authoring_workplan_fails_closed(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.pre_draft_quality_runtime")
+    study_root = tmp_path / "study"
+    _write_closed_authority_surfaces(study_root)
+    (study_root / "paper" / "authoring_workplan.json").unlink()
+
+    result = module.build_pre_draft_quality_runtime_state(study_root=study_root)
+
+    assert result["status"] == "route_back_required"
+    assert result["readiness"]["draft_ready"] is False
+    assert "authoring_workplan_missing" in result["blockers"]
+    assert result["route_back"]["target"] == "pre_draft_writing_readiness"
+    assert result["authoring_workplan_projection"]["workplan_ready"] is False
+    assert result["authoring_workplan_projection"]["authority"] == {
+        "read_only": True,
+        "can_authorize_draft_readiness": False,
+        "can_mutate_runtime": False,
+    }
+
+
+def test_pre_draft_runtime_authoring_workplan_cannot_authorize_draft_readiness(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.pre_draft_quality_runtime")
+    study_root = tmp_path / "study"
+    _write_closed_authority_surfaces(study_root)
+    (study_root / "paper" / "pre_draft_writing_readiness.json").unlink()
+
+    result = module.build_pre_draft_quality_runtime_state(study_root=study_root)
+
+    assert result["authoring_workplan_projection"]["workplan_ready"] is True
+    assert result["authoring_workplan_projection"]["authority"]["can_authorize_draft_readiness"] is False
+    assert result["status"] == "route_back_required"
+    assert result["readiness"]["draft_ready"] is False
+    assert "pre_draft_readiness_missing" in result["blockers"]
 
 
 def test_pre_draft_runtime_missing_or_open_readiness_routes_back(tmp_path: Path) -> None:
