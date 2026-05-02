@@ -28,6 +28,7 @@ from med_autoscience.runtime_protocol import (
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
 from .blocking_artifact_refs import MEDICAL_SURFACE_BLOCKER_ARTIFACTS
+from .deterministic_quality_gates import build_deterministic_quality_gate_projection
 from .discovery_and_drift import (
     PUBLICATION_SUPERVISOR_KEYS,
     _NON_SCIENTIFIC_HANDOFF_BLOCKING_ITEM_KEYS,
@@ -862,6 +863,18 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         evaluated_source_signature=submission_minimal_evaluated_source_signature,
         study_delivery_source_signature=study_delivery_source_signature,
     )
+    deterministic_quality_gates = build_deterministic_quality_gate_projection(
+        blockers=blockers,
+        medical_publication_surface=state.latest_medical_publication_surface,
+        medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
+        publication_reporting_checklist=publication_reporting_checklist,
+        submission_surface_qc_failures=list(state.submission_surface_qc_failures),
+        manuscript_terminology_violations=list(state.manuscript_terminology_violations),
+        blocking_artifact_refs=blocking_artifact_refs,
+        active_figure_count=active_figure_count,
+        prebundle_display_advisories=prebundle_display_advisories,
+        study_root=state.study_root,
+    )
 
     return {
         "schema_version": 1,
@@ -964,6 +977,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "medical_publication_surface_named_blockers": medical_publication_surface_named_blockers,
         "medical_publication_surface_route_back_recommendation": medical_publication_surface_route_back_recommendation,
         "submission_surface_qc_failures": list(state.submission_surface_qc_failures),
+        "deterministic_quality_gates": deterministic_quality_gates,
         "blocking_artifact_refs": blocking_artifact_refs,
         "archived_submission_surface_roots": list(state.archived_submission_surface_roots),
         "unmanaged_submission_surface_roots": list(state.unmanaged_submission_surface_roots),
