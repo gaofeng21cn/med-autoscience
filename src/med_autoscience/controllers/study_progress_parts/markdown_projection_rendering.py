@@ -145,6 +145,7 @@ def _build_markdown_context(payload: dict[str, Any]) -> dict[str, Any]:
         ),
         "quality_review_followthrough": quality_review_followthrough,
         "ai_first_default_entry_state": _mapping_copy(normalized_payload.get("ai_first_default_entry_state")),
+        "ai_first_feedback_state": _mapping_copy(normalized_payload.get("ai_first_feedback_state")),
         "recovery_contract": recovery_contract,
         "recovery_action_mode": _RECOVERY_ACTION_MODE_LABELS.get(
             _non_empty_text(recovery_contract.get("action_mode")) or "",
@@ -488,6 +489,33 @@ def _append_ai_first_default_entry(lines: list[str], state: Mapping[str, Any]) -
         lines.append(f"- 默认入口阻塞: {blocker}")
 
 
+def _append_ai_first_feedback_state(lines: list[str], state: Mapping[str, Any]) -> None:
+    if not state:
+        return
+    user_view = _mapping_copy(state.get("user_view"))
+    counts = _mapping_copy(state.get("counts"))
+    primary = _mapping_copy(state.get("primary_feedback"))
+    lines.extend(["", "## AI-first 运行反馈", ""])
+    lines.append(f"- 当前状态: {state.get('status') or 'unknown'}")
+    if state.get("summary"):
+        lines.append(f"- 当前反馈: {state.get('summary')}")
+    if user_view.get("primary_feedback_reason"):
+        lines.append(f"- 主要原因: {user_view.get('primary_feedback_reason')}")
+    if user_view.get("next_step"):
+        lines.append(f"- 下一步: {user_view.get('next_step')}")
+    lines.append(f"- 需要人工判断: {'是' if user_view.get('human_review_required') else '否'}")
+    lines.append(
+        "- 反馈计数: "
+        f"open {counts.get('open_feedback_count', 0)}；"
+        f"route-back {counts.get('open_route_back_count', 0)}；"
+        f"artifact pending {counts.get('artifact_rebuild_pending_count', 0)}；"
+        f"AI reviewer trace gap {counts.get('ai_reviewer_trace_incomplete_count', 0)}；"
+        f"repeat toil {counts.get('repeat_toil_count', 0)}"
+    )
+    if primary.get("category"):
+        lines.append(f"- 主要分类: {primary.get('category')}")
+
+
 def _append_quality_closure_basis(lines: list[str], quality_closure_basis: Mapping[str, Any]) -> None:
     for key in (
         "clinical_significance",
@@ -670,6 +698,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     _append_autonomy_contract(lines, ctx["autonomy_contract"])
     _append_autonomy_soak_status(lines, normalized_payload)
     _append_ai_first_default_entry(lines, ctx["ai_first_default_entry_state"])
+    _append_ai_first_feedback_state(lines, ctx["ai_first_feedback_state"])
     _append_quality_closure(lines, ctx)
     _append_quality_review_agenda(lines, ctx["quality_review_agenda"])
     _append_quality_review_loop(lines, ctx["quality_review_loop"])

@@ -83,3 +83,14 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
     assert "Pre-draft readiness" in markdown
     assert "AI reviewer workflow" in markdown
     assert "Artifact proof" in markdown
+    feedback = result["ai_first_feedback_state"]
+    assert feedback["surface"] == "ai_first_feedback_state"
+    assert feedback["authority"] == "observability_only"
+    assert feedback["status"] == "attention_required"
+    assert feedback["counts"]["ai_reviewer_trace_incomplete_count"] == 1
+    assert feedback["counts"]["artifact_rebuild_pending_count"] == 1
+    assert feedback["authority_contract"]["feedback_can_authorize_submission"] is False
+    assert result["refs"]["ai_first_feedback_ledger_path"].endswith(
+        "artifacts/runtime/ai_first_feedback_ledger/latest.json"
+    )
+    assert "AI-first 运行反馈" in markdown

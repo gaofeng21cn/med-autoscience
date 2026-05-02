@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from med_autoscience.controllers import (
+    ai_first_feedback,
     ai_first_observability,
     autonomy_ai_doctor,
     control_plane_facts,
@@ -913,6 +914,13 @@ def build_study_progress_projection(
             ],
         },
     }
+    ai_first_feedback_state = ai_first_feedback.materialize_ai_first_feedback_state(
+        study_root=resolved_study_root,
+        progress_snapshot=payload,
+        observed_at=generated_at,
+    )
+    payload["ai_first_feedback_state"] = ai_first_feedback_state
+    payload["refs"]["ai_first_feedback_ledger_path"] = ai_first_feedback_state["ledger"]["path"]
     return payload
 
 

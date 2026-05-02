@@ -93,11 +93,15 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
         "study_count": len(studies),
         "dashboard_count": 0,
         "default_entry_state_count": 0,
+        "feedback_state_count": 0,
         "attention_required": 0,
         "human_review_required": 0,
         "ai_reviewer_trace_incomplete": 0,
         "route_back_active": 0,
         "artifact_refresh_pending": 0,
+        "open_feedback_count": 0,
+        "repeat_toil_count": 0,
+        "manual_judgment_pending": 0,
     }
     study_dashboards: list[dict[str, Any]] = []
     for item in studies:
@@ -121,6 +125,14 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
 
         if _coerce_int(projection.get("stale_artifact_count")) > 0:
             counts["artifact_refresh_pending"] += 1
+        feedback_counts = dict(projection.get("feedback_counts") or {})
+        if feedback_counts:
+            counts["feedback_state_count"] += 1
+            counts["open_feedback_count"] += _coerce_int(feedback_counts.get("open_feedback_count"))
+            counts["repeat_toil_count"] += _coerce_int(feedback_counts.get("repeat_toil_count"))
+            counts["manual_judgment_pending"] += _coerce_int(
+                feedback_counts.get("manual_judgment_pending_count")
+            )
 
         study_dashboards.append(projection)
 
@@ -140,7 +152,8 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
             f"{counts['ai_reviewer_trace_incomplete']} 个 AI reviewer trace 不完整；"
             f"{counts['route_back_active']} 个 route-back 未闭环；"
             f"{counts['artifact_refresh_pending']} 个产物需要从 canonical source 刷新；"
-            f"{counts['human_review_required']} 个等待人工判断。"
+            f"{counts['human_review_required']} 个等待人工判断；"
+            f"{counts['open_feedback_count']} 个运行反馈信号打开。"
         )
     else:
         status = "on_track"
@@ -162,13 +175,59 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
 
 
 def _ai_first_operations_study_projection(item: Mapping[str, Any]) -> dict[str, Any] | None:
+    feedback_state = dict(item.get("ai_first_feedback_state") or {})
     default_state = dict(item.get("ai_first_default_entry_state") or {})
     if default_state:
-        return _ai_first_default_entry_state_projection(item=item, default_state=default_state)
+        return _attach_feedback_projection(
+            _ai_first_default_entry_state_projection(item=item, default_state=default_state),
+            feedback_state=feedback_state,
+        )
     dashboard = dict(item.get("ai_first_operations_dashboard") or {})
     if dashboard:
-        return _legacy_ai_first_dashboard_projection(item=item, dashboard=dashboard)
+        return _attach_feedback_projection(
+            _legacy_ai_first_dashboard_projection(item=item, dashboard=dashboard),
+            feedback_state=feedback_state,
+        )
+    if feedback_state:
+        return _attach_feedback_projection(
+            {
+                "study_id": item.get("study_id"),
+                "read_model": "ai_first_feedback_read_model",
+                "source_surface": "ai_first_feedback_state",
+                "current_stage": feedback_state.get("current_stage") or item.get("current_stage"),
+                "blockers": [],
+                "next_step": (feedback_state.get("user_view") or {}).get("next_step"),
+                "human_review_required": bool(
+                    (feedback_state.get("user_view") or {}).get("human_review_required")
+                ),
+                "authority": "observability_only",
+            },
+            feedback_state=feedback_state,
+        )
     return None
+
+
+def _attach_feedback_projection(
+    projection: dict[str, Any],
+    *,
+    feedback_state: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not feedback_state:
+        return projection
+    user_view = dict(feedback_state.get("user_view") or {})
+    counts = dict(feedback_state.get("counts") or {})
+    primary = dict(feedback_state.get("primary_feedback") or {})
+    updated = dict(projection)
+    updated["feedback_status"] = feedback_state.get("status")
+    updated["feedback_summary"] = feedback_state.get("summary")
+    updated["feedback_primary_category"] = primary.get("category")
+    updated["feedback_primary_reason"] = user_view.get("primary_feedback_reason")
+    updated["feedback_counts"] = counts
+    updated["human_review_required"] = bool(
+        updated.get("human_review_required") or user_view.get("human_review_required")
+    )
+    updated["next_step"] = updated.get("next_step") or user_view.get("next_step")
+    return updated
 
 
 def _ai_first_default_entry_state_projection(
@@ -453,6 +512,7 @@ def _study_item(
     )
     ai_first_default_entry_state = dict(progress_payload.get("ai_first_default_entry_state") or {})
     ai_first_operations_dashboard = dict(progress_payload.get("ai_first_operations_dashboard") or {})
+    ai_first_feedback_state = dict(progress_payload.get("ai_first_feedback_state") or {})
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
     runtime_health_snapshot = _runtime_health_snapshot_summary(progress_payload.get("runtime_health_snapshot"))
@@ -498,6 +558,7 @@ def _study_item(
         "gate_clearing_followthrough": gate_clearing_followthrough or None,
         "ai_first_default_entry_state": ai_first_default_entry_state or None,
         "ai_first_operations_dashboard": ai_first_operations_dashboard or None,
+        "ai_first_feedback_state": ai_first_feedback_state or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
@@ -754,7 +815,9 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             f"AI reviewer trace 不完整 {counts.get('ai_reviewer_trace_incomplete', 0)}；"
             f"route-back 未闭环 {counts.get('route_back_active', 0)}；"
             f"产物待刷新 {counts.get('artifact_refresh_pending', 0)}；"
-            f"等待人工判断 {counts.get('human_review_required', 0)}"
+            f"等待人工判断 {counts.get('human_review_required', 0)}；"
+            f"运行反馈 {counts.get('open_feedback_count', 0)}；"
+            f"重复返工 {counts.get('repeat_toil_count', 0)}"
         )
         for dashboard in ai_first_operations_state.get("study_dashboards") or []:
             if not isinstance(dashboard, Mapping):
@@ -775,6 +838,10 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
                 lines.append(f"  下一步: {dashboard.get('next_step')}")
             if dashboard.get("human_judgment"):
                 lines.append(f"  人工判断: {dashboard.get('human_judgment')}")
+            if dashboard.get("feedback_summary"):
+                lines.append(f"  运行反馈: {dashboard.get('feedback_summary')}")
+            if dashboard.get("feedback_primary_reason"):
+                lines.append(f"  反馈原因: {dashboard.get('feedback_primary_reason')}")
             if dashboard.get("ai_reviewer_trace_complete") is not None:
                 lines.append(
                     "  AI reviewer trace: "

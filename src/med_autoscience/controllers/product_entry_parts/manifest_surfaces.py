@@ -727,6 +727,19 @@ def build_product_frontdesk(
             "workspace_ai_first_operations_state": dict(
                 workspace_cockpit.get("ai_first_operations_state") or {}
             ),
+            "workspace_ai_first_feedback_state": {
+                "surface_kind": "workspace_ai_first_feedback_state",
+                "authority": "observability_only",
+                "counts": dict((workspace_cockpit.get("ai_first_operations_state") or {}).get("counts") or {}),
+                "study_feedback": [
+                    {
+                        "study_id": item.get("study_id"),
+                        "feedback_state": dict(item.get("ai_first_feedback_state") or {}),
+                    }
+                    for item in (workspace_cockpit.get("studies") or [])
+                    if isinstance(item, Mapping) and item.get("ai_first_feedback_state")
+                ],
+            },
             "workspace_attention_queue_preview": list((workspace_cockpit.get("attention_queue") or []))[:3],
             "workspace_truth_snapshots": [
                 dict(item["study_truth_snapshot"])

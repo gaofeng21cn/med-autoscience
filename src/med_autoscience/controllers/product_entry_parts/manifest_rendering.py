@@ -227,7 +227,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
             f"AI reviewer trace 不完整 {counts.get('ai_reviewer_trace_incomplete', 0)}；"
             f"route-back 未闭环 {counts.get('route_back_active', 0)}；"
             f"产物待刷新 {counts.get('artifact_refresh_pending', 0)}；"
-            f"等待人工判断 {counts.get('human_review_required', 0)}"
+            f"等待人工判断 {counts.get('human_review_required', 0)}；"
+            f"运行反馈 {counts.get('open_feedback_count', 0)}；"
+            f"重复返工 {counts.get('repeat_toil_count', 0)}"
         )
         for dashboard in workspace_ai_first_operations_state.get("study_dashboards") or []:
             if not isinstance(dashboard, Mapping):
@@ -248,6 +250,10 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
                 lines.append(f"  下一步: {dashboard.get('next_step')}")
             if dashboard.get("human_judgment"):
                 lines.append(f"  人工判断: {dashboard.get('human_judgment')}")
+            if dashboard.get("feedback_summary"):
+                lines.append(f"  运行反馈: {dashboard.get('feedback_summary')}")
+            if dashboard.get("feedback_primary_reason"):
+                lines.append(f"  反馈原因: {dashboard.get('feedback_primary_reason')}")
     for item in payload.get("workspace_attention_queue_preview") or []:
         if not isinstance(item, dict):
             continue
