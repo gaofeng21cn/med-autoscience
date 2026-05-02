@@ -55,6 +55,56 @@ def test_canonical_artifact_contract_forbids_current_package_as_authority() -> N
     }
 
 
+def test_artifact_rebuild_integrity_contract_proves_each_generated_artifact_source_chain() -> None:
+    module = importlib.import_module("med_autoscience.controllers.canonical_artifact_contract")
+
+    contract = module.build_artifact_rebuild_integrity_contract()
+
+    assert contract["surface"] == "artifact_rebuild_integrity_contract"
+    assert contract["derived_artifact_can_authorize_submission"] is False
+    assert contract["derived_artifact_can_be_quality_authority"] is False
+    assert contract["derived_artifact_can_be_edit_source"] is False
+    proofs_by_target = {proof["target"]: proof for proof in contract["rebuild_proofs"]}
+    assert set(proofs_by_target) == {"manuscript", "tables", "figures", "submission_package"}
+
+    expected_roles = {
+        "manuscript": "generated_manuscript_projection",
+        "tables": "generated_table_projection",
+        "figures": "generated_figure_projection",
+        "submission_package": "generated_submission_delivery_projection",
+    }
+    for target, proof in proofs_by_target.items():
+        assert proof["generated_artifact_role"] == expected_roles[target]
+        assert proof["derived_artifact_can_authorize_submission"] is False
+        assert proof["source_refs"]
+        assert proof["fingerprint_refs"]
+        assert proof["quality_decision_ref"] == "artifacts/publication_eval/latest.json"
+        assert proof["controller_decision_ref"] == "controller_decisions/latest.json"
+
+
+def test_artifact_rebuild_integrity_validation_fails_when_proof_loses_authority_refs() -> None:
+    module = importlib.import_module("med_autoscience.controllers.canonical_artifact_contract")
+    contract = module.build_artifact_rebuild_integrity_contract()
+    contract["derived_artifact_can_authorize_submission"] = True
+    contract["rebuild_proofs"][0]["source_refs"] = []
+    contract["rebuild_proofs"][1]["fingerprint_refs"] = []
+    contract["rebuild_proofs"][2]["quality_decision_ref"] = ""
+    contract["rebuild_proofs"][3]["controller_decision_ref"] = "submission_minimal/manifest.json"
+    contract["rebuild_proofs"][3]["derived_artifact_can_authorize_submission"] = True
+
+    validation = module.validate_artifact_rebuild_integrity_contract(contract)
+
+    assert validation["ok"] is False
+    assert {issue["code"] for issue in validation["issues"]} == {
+        "derived_artifact_authorizes_submission",
+        "rebuild_proof_missing_source_refs",
+        "rebuild_proof_missing_fingerprint_refs",
+        "rebuild_proof_missing_quality_decision_ref",
+        "rebuild_proof_controller_decision_ref_not_controller_owned",
+        "rebuild_proof_authorizes_submission_from_derived_artifact",
+    }
+
+
 def test_canonical_artifact_validation_fails_when_package_becomes_source() -> None:
     module = importlib.import_module("med_autoscience.controllers.canonical_artifact_contract")
     contract = module.build_canonical_artifact_contract()
