@@ -692,6 +692,66 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
         "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
         "current_focus": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
     }
+
+
+def test_materialize_evaluation_summary_blocks_bundle_only_when_eval_is_mechanical_projection(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    publication_eval_path = inputs["publication_eval_path"]
+    gate_report_path = inputs["gate_report_path"]
+    publication_eval_payload = dict(inputs["publication_eval_payload"])
+    publication_eval_payload["assessment_provenance"] = {
+        "owner": "mechanical_projection",
+        "source_kind": "publication_gate_report",
+        "policy_id": "publication_gate_projection_v1",
+        "source_refs": [str(gate_report_path)],
+        "ai_reviewer_required": True,
+    }
+    publication_eval_payload["quality_assessment"] = {
+        **dict(inputs["publication_eval_payload"]["quality_assessment"]),
+        "evidence_strength": {
+            "status": "ready",
+            "summary": "Mechanical projection found all required files present.",
+            "evidence_refs": [str(gate_report_path)],
+        }
+    }
+    _write_json(publication_eval_path, publication_eval_payload)
+    _write_json(
+        gate_report_path,
+        {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-05T06:05:00+00:00",
+            "quest_id": "quest-001",
+            "status": "blocked",
+            "allow_write": False,
+            "recommended_action": "complete_bundle_stage",
+            "latest_gate_path": str(gate_report_path),
+            "supervisor_phase": "bundle_stage_blocked",
+            "current_required_action": "complete_bundle_stage",
+            "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
+            "blockers": ["missing_submission_minimal"],
+        },
+    )
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
+
+    evaluation_summary_payload = module.read_evaluation_summary(study_root=study_root)
+
+    assert evaluation_summary_payload["quality_closure_truth"]["state"] == "review_required"
+    assert evaluation_summary_payload["quality_closure_truth"]["current_required_action"] == "return_to_ai_reviewer"
+    assert evaluation_summary_payload["quality_closure_truth"]["assessment_owner"] == "mechanical_projection"
+    assert evaluation_summary_payload["same_line_route_truth"]["same_line_state"] == "same_line_route_back"
+    assert evaluation_summary_payload["same_line_route_truth"]["route_target"] == "publication_eval"
+    assert evaluation_summary_payload["quality_closure_basis"]["publication_gate"]["status"] == "blocked"
+    assert "机械投影" in evaluation_summary_payload["quality_closure_basis"]["publication_gate"]["summary"]
 def test_materialize_evaluation_summary_artifacts_aligns_bundle_only_agenda_with_latest_task_intake_scope(
     tmp_path: Path,
 ) -> None:

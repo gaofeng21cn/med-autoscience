@@ -3,13 +3,100 @@ from __future__ import annotations
 import importlib
 
 
-def test_publication_gate_recommends_stop_loss_for_circular_clinical_claim() -> None:
+def test_mechanical_publication_gate_cannot_close_write_readiness() -> None:
+    module = importlib.import_module("med_autoscience.quality.publication_gate")
+
+    closure = module.derive_quality_closure_truth(
+        promotion_gate_payload={
+            "current_required_action": "continue_write_stage",
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "ai_reviewer_required": True,
+            },
+        },
+        route_repair_plan=None,
+        quality_closure_basis={
+            "evidence_strength": {
+                "status": "ready",
+                "summary": "Mechanical gate found no missing evidence files.",
+            },
+        },
+    )
+
+    assert closure["state"] == "review_required"
+    assert closure["current_required_action"] == "return_to_ai_reviewer"
+    assert closure["route_target"] == "publication_eval"
+    assert closure["assessment_owner"] == "mechanical_projection"
+    assert closure["ai_reviewer_required"] is True
+
+
+def test_ai_reviewer_publication_gate_can_close_write_readiness() -> None:
+    module = importlib.import_module("med_autoscience.quality.publication_gate")
+
+    closure = module.derive_quality_closure_truth(
+        promotion_gate_payload={
+            "current_required_action": "continue_write_stage",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "ai_reviewer_required": False,
+            },
+        },
+        route_repair_plan=None,
+        quality_closure_basis={
+            "evidence_strength": {
+                "status": "ready",
+                "summary": "AI reviewer accepted the evidence chain.",
+            },
+        },
+    )
+
+    assert closure["state"] == "write_line_ready"
+
+
+def test_publishability_stop_loss_requires_ai_reviewer_owner() -> None:
     module = importlib.import_module("med_autoscience.quality.publication_gate")
 
     closure = module.derive_quality_closure_truth(
         promotion_gate_payload={
             "current_required_action": "continue_write_stage",
             "stop_loss_pressure": "high",
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "ai_reviewer_required": True,
+            },
+        },
+        route_repair_plan=None,
+        quality_closure_basis={
+            "clinical_significance": {
+                "status": "blocked",
+                "summary": "Knosp is already the clinical invasion frame; no clinical meaning remains.",
+            },
+            "evidence_strength": {
+                "status": "blocked",
+                "summary": "Endpoint/predictor circularity: Knosp already separates invasiveness perfectly.",
+            },
+            "novelty_positioning": {
+                "status": "partial",
+                "summary": "The negative boundary does not create meaningful novelty.",
+            },
+        },
+    )
+
+    assert closure["state"] == "review_required"
+    assert closure["mechanical_stop_loss_flags"]
+
+
+def test_ai_reviewer_publication_gate_recommends_stop_loss_for_circular_clinical_claim() -> None:
+    module = importlib.import_module("med_autoscience.quality.publication_gate")
+
+    closure = module.derive_quality_closure_truth(
+        promotion_gate_payload={
+            "current_required_action": "continue_write_stage",
+            "stop_loss_pressure": "high",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "ai_reviewer_required": False,
+            },
         },
         route_repair_plan=None,
         quality_closure_basis={

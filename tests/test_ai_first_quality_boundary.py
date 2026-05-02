@@ -41,12 +41,18 @@ def test_mechanical_gate_controllers_do_not_claim_ai_reviewer_ownership() -> Non
     for relative_path in (
         "src/med_autoscience/controllers/medical_reporting_audit.py",
         "src/med_autoscience/controllers/publication_gate.py",
-        "src/med_autoscience/quality/publication_gate.py",
     ):
         source = _read(relative_path)
         assert "assessment_provenance" not in source
         assert "medical_publication_critique_v1" not in source
         assert "owner=\"ai_reviewer\"" not in source
+
+    reducer = _read("src/med_autoscience/quality/publication_gate.py")
+    assert "assessment_provenance" in reducer
+    assert "_ai_reviewer_backed" in reducer
+    assert '"owner": "ai_reviewer"' not in reducer
+    assert 'owner="ai_reviewer"' not in reducer
+    assert "medical_publication_critique_v1" not in reducer
 
 
 def test_ai_reviewer_materializer_is_separate_from_generic_latest_writer() -> None:

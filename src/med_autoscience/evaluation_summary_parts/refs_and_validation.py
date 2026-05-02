@@ -46,7 +46,7 @@ _ACTION_PRIORITY_RANK = {"now": 0, "next": 1}
 _ROUTE_REPAIR_ACTION_TYPES = {"continue_same_line", "route_back_same_line", "bounded_analysis", "stop_loss"}
 _QUALITY_DIMENSION_STATUSES = frozenset({"ready", "partial", "blocked", "underdefined"})
 _QUALITY_CLOSURE_STATES = frozenset(
-    {"quality_repair_required", "write_line_ready", "bundle_only_remaining", "stop_loss_recommended"}
+    {"quality_repair_required", "review_required", "write_line_ready", "bundle_only_remaining", "stop_loss_recommended"}
 )
 _QUALITY_CLOSURE_BASIS_KEYS = (
     "clinical_significance",

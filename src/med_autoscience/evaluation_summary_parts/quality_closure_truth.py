@@ -151,7 +151,9 @@ def _quality_execution_lane_from_summary_payload(summary_payload: dict[str, Any]
     )
     action_type = _optional_text(route_repair_plan.get("action_type"))
 
-    if action_type == "bounded_analysis" or route_target == "analysis-campaign":
+    if closure_state == "review_required":
+        lane_id = "general_quality_repair"
+    elif action_type == "bounded_analysis" or route_target == "analysis-campaign":
         lane_id = "claim_evidence"
     elif closure_state == "bundle_only_remaining" or current_required_action in {"continue_bundle_stage", "complete_bundle_stage"}:
         lane_id = "submission_hardening"
@@ -483,6 +485,20 @@ def _publication_gate_quality_basis(
     evidence_strength_status: str,
 ) -> dict[str, Any]:
     gate_ref = str(promotion_gate_ref.get("artifact_path") or "").strip()
+    provenance = (
+        dict(promotion_gate_payload.get("assessment_provenance") or {})
+        if isinstance(promotion_gate_payload.get("assessment_provenance"), dict)
+        else {}
+    )
+    if not (
+        _optional_text(provenance.get("owner")) == "ai_reviewer"
+        and provenance.get("ai_reviewer_required") is False
+    ):
+        return {
+            "status": "blocked",
+            "summary": "当前 publication gate 只是机械投影；不能作为科学质量、写作或投稿闭环判断。",
+            "evidence_refs": _fallback_refs(gate_ref),
+        }
     current_required_action = _required_text(
         "promotion gate",
         "current_required_action",
@@ -559,7 +575,10 @@ def _quality_closure_basis(
         ),
     }
     basis["publication_gate"] = _publication_gate_quality_basis(
-        promotion_gate_payload=promotion_gate_payload,
+        promotion_gate_payload={
+            **promotion_gate_payload,
+            "assessment_provenance": dict(publication_eval.get("assessment_provenance") or {}),
+        },
         promotion_gate_ref=promotion_gate_ref,
         route_repair_plan=route_repair_plan,
         evidence_strength_status=str(basis["evidence_strength"]["status"]),
@@ -581,11 +600,10 @@ def _quality_closure_truth(
             else {}
         )
         return {
-            "state": "quality_repair_required",
+            "state": "review_required",
             "summary": "当前 publication_eval 只是机械投影；必须先由 AI reviewer 读取 manuscript、evidence ledger、review ledger 与 study charter 后再给出科学质量闭环判断。",
-            "current_required_action": _optional_text(promotion_gate_payload.get("current_required_action"))
-            or "return_to_publishability_gate",
-            "route_target": _optional_text((route_repair_plan or {}).get("route_target")),
+            "current_required_action": "return_to_ai_reviewer",
+            "route_target": "publication_eval",
             "assessment_owner": _optional_text(provenance.get("owner")) or "mechanical_projection",
             "ai_reviewer_required": True,
         }
@@ -676,6 +694,11 @@ def build_same_line_route_truth(
         route_mode = "return"
         route_target = "stop"
         summary = "当前论文线已触发主动止损；停止当前 manuscript line，除非未来重新定义独立研究问题。"
+    elif closure_state == "review_required":
+        same_line_state = "same_line_route_back"
+        route_mode = "return"
+        route_target = "publication_eval"
+        summary = "当前 quality closure 仍需 AI reviewer 复评；先回到 publication_eval 生成 reviewer-owned 判断。"
     elif lane_id == "submission_hardening" or closure_state == "bundle_only_remaining":
         same_line_state = "finalize_only_remaining"
         route_mode = "return"

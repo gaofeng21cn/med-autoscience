@@ -32,48 +32,74 @@ def _quality_basis_summary(quality_closure_basis: dict[str, Any], dimension: str
     return str(payload.get("summary") or "").strip()
 
 
-def _publishability_stop_loss_recommended(
+def _assessment_provenance(payload: dict[str, Any]) -> dict[str, Any]:
+    provenance = payload.get("assessment_provenance")
+    return dict(provenance) if isinstance(provenance, dict) else {}
+
+
+def _ai_reviewer_backed(payload: dict[str, Any]) -> bool:
+    provenance = _assessment_provenance(payload)
+    return (
+        str(provenance.get("owner") or "").strip() == "ai_reviewer"
+        and provenance.get("ai_reviewer_required") is False
+    )
+
+
+def _mechanical_stop_loss_flags(
     *,
     promotion_gate_payload: dict[str, Any],
     quality_closure_basis: dict[str, Any],
-) -> bool:
+) -> list[str]:
     if str(promotion_gate_payload.get("stop_loss_pressure") or "").strip() != "high":
-        return False
+        return []
     clinical_status = _quality_basis_status(quality_closure_basis, "clinical_significance")
     novelty_status = _quality_basis_status(quality_closure_basis, "novelty_positioning")
     evidence_status = _quality_basis_status(quality_closure_basis, "evidence_strength")
+    flags: list[str] = []
     if clinical_status == "blocked" and novelty_status == "blocked":
-        return True
+        flags.append("clinical_significance_and_novelty_blocked")
     if clinical_status == "blocked" and evidence_status == "blocked":
         corpus = " ".join(
             _quality_basis_summary(quality_closure_basis, dimension)
             for dimension in ("clinical_significance", "evidence_strength", "novelty_positioning")
         ).lower()
-        return any(
-            marker in corpus
-            for marker in (
-                "endpoint/predictor",
-                "endpoint predictor",
-                "circular",
-                "circularity",
-                "no clinically meaningful",
-                "no clinical meaning",
-                "no meaningful novelty",
-                "clinically non-meaningful",
-                "dominant baseline",
-                "already perfect",
-                "already separates",
-                "one-liner",
-                "单变量",
-                "没有临床意义",
-                "没有新结论",
-                "论文不成立",
-                "循环",
-                "同义",
-                "已经完美",
-            )
+        markers = (
+            "endpoint/predictor",
+            "endpoint predictor",
+            "circular",
+            "circularity",
+            "no clinically meaningful",
+            "no clinical meaning",
+            "no meaningful novelty",
+            "clinically non-meaningful",
+            "dominant baseline",
+            "already perfect",
+            "already separates",
+            "one-liner",
+            "单变量",
+            "没有临床意义",
+            "没有新结论",
+            "论文不成立",
+            "循环",
+            "同义",
+            "已经完美",
         )
-    return False
+        flags.extend(f"marker:{marker}" for marker in markers if marker in corpus)
+    return flags
+
+
+def _publishability_stop_loss_recommended(
+    *,
+    promotion_gate_payload: dict[str, Any],
+    quality_closure_basis: dict[str, Any],
+) -> bool:
+    return bool(
+        _ai_reviewer_backed(promotion_gate_payload)
+        and _mechanical_stop_loss_flags(
+            promotion_gate_payload=promotion_gate_payload,
+            quality_closure_basis=quality_closure_basis,
+        )
+    )
 
 
 def derive_quality_closure_truth(
@@ -88,6 +114,23 @@ def derive_quality_closure_truth(
         promotion_gate_payload.get("current_required_action"),
     )
     evidence_strength_status = str((quality_closure_basis.get("evidence_strength") or {}).get("status") or "").strip()
+    stop_loss_flags = _mechanical_stop_loss_flags(
+        promotion_gate_payload=promotion_gate_payload,
+        quality_closure_basis=quality_closure_basis,
+    )
+    if not _ai_reviewer_backed(promotion_gate_payload):
+        provenance = _assessment_provenance(promotion_gate_payload)
+        payload = {
+            "state": "review_required",
+            "summary": "当前 publication gate 只是机械投影；必须先由 AI reviewer 读取 manuscript、evidence ledger、review ledger 与 study charter 后再给出科学质量闭环判断。",
+            "current_required_action": "return_to_ai_reviewer",
+            "route_target": "publication_eval",
+            "assessment_owner": str(provenance.get("owner") or "").strip() or "mechanical_projection",
+            "ai_reviewer_required": True,
+        }
+        if stop_loss_flags:
+            payload["mechanical_stop_loss_flags"] = stop_loss_flags
+        return payload
     if _publishability_stop_loss_recommended(
         promotion_gate_payload=promotion_gate_payload,
         quality_closure_basis=quality_closure_basis,

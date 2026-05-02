@@ -201,7 +201,10 @@ def _build_evaluation_summary_payload(
     )
     quality_closure_truth = _quality_closure_truth(
         publication_eval=publication_eval,
-        promotion_gate_payload=promotion_gate_payload,
+        promotion_gate_payload={
+            **promotion_gate_payload,
+            "assessment_provenance": dict(publication_eval.get("assessment_provenance") or {}),
+        },
         route_repair_plan=route_repair_plan,
         quality_closure_basis=quality_closure_basis,
     )
@@ -608,6 +611,28 @@ def _normalized_evaluation_summary(payload: dict[str, Any], *, study_root: Path)
                     "route_target",
                     quality_closure_truth.get("route_target"),
                 )
+            ),
+            **(
+                {
+                    "assessment_owner": _required_text(
+                        "evaluation summary quality_closure_truth",
+                        "assessment_owner",
+                        quality_closure_truth.get("assessment_owner"),
+                    )
+                }
+                if "assessment_owner" in quality_closure_truth
+                else {}
+            ),
+            **(
+                {
+                    "ai_reviewer_required": _required_bool(
+                        "evaluation summary quality_closure_truth",
+                        "ai_reviewer_required",
+                        quality_closure_truth.get("ai_reviewer_required"),
+                    )
+                }
+                if "ai_reviewer_required" in quality_closure_truth
+                else {}
             ),
         },
         "quality_execution_lane": {
