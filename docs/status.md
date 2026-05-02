@@ -34,6 +34,7 @@
 ## 当前 active tranche
 
 - 当前 tranche 固定为“质量闭环结构化 + 用户可见真相投影 + 对应 proof/soak 口径”。
+- 2026-05-02 长线目标架构已固定为 `MAS AI-first Research OS`：MAS Core、Quality OS、Runtime OS、Artifact OS、Evaluation OS、Observability OS 与 MDS Deconstruction 共同定义后续 owner、authority、contract 与 parity gate。当前阶段继续按能力逐步落地，不做一次性物理迁移。
 - 质量闭环结构化的 owner 继续落在 `study_charter`、`paper evidence ledger`、`review ledger`：把方向锁定后的普通科研推进、论文质量裁决、`bounded_analysis` 边界、reviewer concern 与 submission hygiene 压成同一套 `MAS` quality contract。
 - AI-first 质量边界已显式进入 `publication_eval/latest.json`：`publication_gate` 或 `medical_reporting_audit` 派生的记录只能标记为 `assessment_provenance.owner=mechanical_projection`，用于表达 gate/blocker/projection；只有由 AI reviewer 读取 manuscript、evidence ledger、review ledger 与 study charter 后按 `medical_publication_critique_v1` 写回的记录，才能标记为 `owner=ai_reviewer` 并驱动 reviewer-first ready、bundle-only remaining 或 finalize-ready 判断。
 - 当前 repo-side 落地已经要求质量修复写成结构化 route truth：当前是同线质量修复，还是 `bounded_analysis` 一类有限补充分析；回到哪条现有主线；当前那条主线要回答什么关键问题；为什么这是最窄、最诚实的修复路径。

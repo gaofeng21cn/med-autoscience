@@ -61,6 +61,20 @@
 - AI reviewer-backed `publication_eval/latest.json` 必须回指 manuscript、evidence ledger、review ledger 与 study charter，并使用 `medical_publication_critique_v1` policy；缺少该 provenance 时，下游只能输出 `review_required` / `projection_only`。
 - `controller_decisions/latest.json`、`study_runtime_status`、`runtime_watch` 负责把运行状态和控制动作沉成可回放记录。
 
+## MAS AI-first Research OS 长线目标
+
+长线目标固定为 `MAS AI-first Research OS`。这不是一次性物理迁移，而是一次性冻结 owner、authority、contract 与验收门槛，再按能力逐步吸收和替换。
+
+- `MAS Core` 持有 study truth、quality truth、publication truth、artifact truth 与用户可见 truth。
+- `Quality OS` 把 `study_charter`、evidence ledger、review ledger、pre-draft readiness 与 AI reviewer-backed `publication_eval/latest.json` 串成质量闭环。
+- `Runtime OS` 持有可恢复长时执行、runtime health、retry budget、human gate 与 controller-owned resume action。
+- `Artifact OS` 固定 canonical-source-first：manuscript、figures、tables、submission package 都从 canonical source 重建。
+- `Evaluation OS` 把历史返工转为 AI reviewer calibration corpus、quality regression 与 AI-first drift audit。
+- `Observability OS` 面向维护者暴露 drift、trace、route-back、cache freshness、artifact stale 和 runtime recovery，但不成为 authority。
+- `MDS Deconstruction` 只按 capability + parity proof 吸收 MDS 能力；MDS 在完成 cutover 前只作为 replaceable backend / behavior oracle / upstream intake buffer。
+
+这套目标架构的稳定 contract 由 `ai_first_research_os_architecture_contract` 表达；外部工程依据固定为 ISO/IEC/IEEE 42010、NIST AI RMF、EQUATOR、FAIR、durable execution、OpenTelemetry、G-Eval 与 SRE toil elimination。
+
 ## 当前架构明确保留的边界
 
 - `Med Auto Science` 负责研究工作线，并保持唯一入口与 owner 身份。
