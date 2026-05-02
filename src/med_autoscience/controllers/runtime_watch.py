@@ -1220,9 +1220,9 @@ def run_watch_for_runtime(
             )
     managed_study_actions = [
         _serialize_managed_study_action(
-            managed_study_action_overrides.get(str(Path(study_root).expanduser().resolve()), status_payload)
+            managed_study_action_overrides.get(str(Path(managed_study_root).expanduser().resolve()), status_payload)
         )
-        for _, status_payload in managed_study_statuses
+        for managed_study_root, status_payload in managed_study_statuses
     ]
     runtime_report = {
         "schema_version": 1,
