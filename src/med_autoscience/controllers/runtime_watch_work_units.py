@@ -195,6 +195,28 @@ def _ledger_has_executed_dispatch(
     return False
 
 
+def active_platform_repair_required(
+    *,
+    study_root: Path,
+    tick_request: Mapping[str, Any],
+) -> tuple[bool, str | None, int | None]:
+    work_unit_dispatch_key = dispatch_key(tick_request)
+    if work_unit_dispatch_key is None:
+        return False, None, None
+    latest_event = work_unit_ledger.latest_event(study_root=study_root, dispatch_key=work_unit_dispatch_key)
+    if not isinstance(latest_event, Mapping):
+        return False, work_unit_dispatch_key, None
+    if _non_empty_text(latest_event.get("event_type")) != "platform_repair_required":
+        return False, work_unit_dispatch_key, None
+    payload = latest_event.get("payload")
+    attempt_count = None
+    if isinstance(payload, Mapping):
+        raw_attempt_count = payload.get("redrive_attempt_count")
+        if isinstance(raw_attempt_count, int):
+            attempt_count = raw_attempt_count
+    return True, work_unit_dispatch_key, attempt_count
+
+
 def open_redrive_attempt_count(
     *,
     study_root: Path,
@@ -206,7 +228,7 @@ def open_redrive_attempt_count(
         if not isinstance(identity, Mapping) or identity.get("dispatch_key") != dispatch_key_value:
             continue
         event_type = _non_empty_text(event.get("event_type"))
-        if event_type in {"closed", "needs_specificity", "superseded", "platform_repair_required"}:
+        if event_type in {"closed", "needs_specificity", "superseded"}:
             count = 0
             continue
         if event_type == "dispatched":

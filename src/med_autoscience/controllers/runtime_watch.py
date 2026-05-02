@@ -706,6 +706,44 @@ def run_watch_for_runtime(
                         default_recorded_at=utc_now(),
                     )
                 elif (
+                    platform_repair := runtime_watch_work_units.active_platform_repair_required(
+                        study_root=study_root,
+                        tick_request=tick_request,
+                    )
+                )[0]:
+                    work_unit_context = runtime_watch_work_units.context_payload(
+                        tick_request,
+                        work_unit_dispatch_key=platform_repair[1],
+                    )
+                    wakeup_audit = {
+                        **wakeup_audit,
+                        "outcome": "platform_repair_required",
+                        "reason": "outer-loop work unit is blocked on prior platform repair requirement",
+                        "no_op_acknowledged": True,
+                        "dedupe_scope": "controller_work_unit_platform_repair",
+                        "redrive_attempt_count": platform_repair[2],
+                        "max_redrive_attempts": runtime_watch_work_units.MAX_OPEN_REDRIVE_ATTEMPTS,
+                        "platform_repair_kind": "work_unit_redrive_exhausted_without_attempt_result",
+                        "operator_summary": _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY,
+                        **work_unit_context,
+                    }
+                    suppression = _serialize_no_op_suppression(
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        wakeup_audit=wakeup_audit,
+                    )
+                    if suppression is not None:
+                        managed_study_no_op_suppressions.append(suppression)
+                        _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+                    runtime_watch_work_units.append_ledger_event(
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        tick_request=tick_request,
+                        event_type="platform_repair_required",
+                        wakeup_audit=wakeup_audit,
+                        default_recorded_at=utc_now(),
+                    )
+                elif (
                     redrive_exhaustion := runtime_watch_work_units.redrive_budget_exhausted(
                         study_root=study_root,
                         tick_request=tick_request,
