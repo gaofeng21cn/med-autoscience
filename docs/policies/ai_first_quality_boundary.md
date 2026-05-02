@@ -8,6 +8,7 @@
 - 这些机械面 materialize 的 `publication_eval/latest.json` 必须标记为 `assessment_provenance.owner=mechanical_projection`，并设置 `ai_reviewer_required=true`。
 - AI reviewer-backed `publication_eval/latest.json` 必须来自 AI reviewer 读取 manuscript、evidence ledger、review ledger 与 study charter 后写出的 artifact。
 - AI reviewer-backed record 必须使用 `medical_publication_critique_v1`，并标记 `assessment_provenance.owner=ai_reviewer` 与 `ai_reviewer_required=false`。
+- AI reviewer-backed record 还必须携带 `medical_publication_ai_reviewer_os_v1` 结构化审稿痕迹，包括输入 bundle、rubric scores、decision matrix、provenance checks 与 route-back decision；缺少该 trace 时不得写回质量权威。
 
 ## Downstream read rule
 
@@ -53,6 +54,7 @@
 - `coverage_as_quality` / `coverage-as-quality`：MDS manuscript coverage 被解释为 quality-ready 或 submission-ready。
 - `stale_ai_cache`：paper contract health cache 没有纳入 AI review、blueprint、publication eval、style corpus、review ledger 等 AI-first surfaces。
 - `prompt_only_gates`：质量边界只写在 prompt / skill 文案里，没有结构化 contract 或测试保护。
+- `ai_reviewer_os_trace_missing`：AI reviewer 只输出结论或自然语言审稿意见，缺少结构化输入、rubric、decision matrix 与 provenance trace。
 
 外部工程依据：
 

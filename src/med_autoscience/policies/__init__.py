@@ -39,6 +39,7 @@ from .medical_reporting_contract import (
 )
 from .publication_critique import (
     DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+    build_ai_reviewer_operating_system_contract,
     build_revision_action_contract,
     build_weight_contract as build_publication_critique_weight_contract,
 )
@@ -70,6 +71,7 @@ __all__ = [
     "resolve_medical_analysis_contract",
     "resolve_medical_reporting_contract",
     "DEFAULT_PUBLICATION_CRITIQUE_POLICY",
+    "build_ai_reviewer_operating_system_contract",
     "build_publication_critique_weight_contract",
     "build_revision_action_contract",
 ]

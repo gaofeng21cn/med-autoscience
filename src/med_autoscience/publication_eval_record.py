@@ -20,6 +20,7 @@ _RECORD_ALLOWED_FIELDS = frozenset(
         "assessment_provenance",
         "verdict",
         "quality_assessment",
+        "reviewer_operating_system",
         "gaps",
         "recommended_actions",
     }
@@ -285,7 +286,6 @@ class PublicationEvalCharterContextRef:
             "publication_objective",
             _require_text("publication eval charter context ref", "publication_objective", self.publication_objective),
         )
-
     def to_dict(self) -> dict[str, str]:
         return {
             "ref": self.ref,
@@ -815,6 +815,7 @@ class PublicationEvalRecord:
     recommended_actions: tuple[PublicationEvalRecommendedAction, ...]
     assessment_provenance: PublicationEvalAssessmentProvenance | None = None
     quality_assessment: PublicationEvalQualityAssessment | None = None
+    reviewer_operating_system: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.schema_version, int) or isinstance(self.schema_version, bool):
@@ -901,6 +902,10 @@ class PublicationEvalRecord:
                     else PublicationEvalQualityAssessment.from_payload(self.quality_assessment)
                 ),
             )
+        if self.reviewer_operating_system is not None and not isinstance(self.reviewer_operating_system, dict):
+            raise TypeError("publication eval record reviewer_operating_system must be a mapping")
+        if self.reviewer_operating_system is not None:
+            object.__setattr__(self, "reviewer_operating_system", dict(self.reviewer_operating_system))
         object.__setattr__(
             self,
             "gaps",
@@ -942,6 +947,8 @@ class PublicationEvalRecord:
         }
         if isinstance(self.quality_assessment, PublicationEvalQualityAssessment):
             payload["quality_assessment"] = self.quality_assessment.to_dict()
+        if isinstance(self.reviewer_operating_system, dict):
+            payload["reviewer_operating_system"] = self.reviewer_operating_system
         return payload
 
     @classmethod
@@ -976,6 +983,9 @@ class PublicationEvalRecord:
                 if "quality_assessment" in payload
                 else None
             ),
+            reviewer_operating_system=_payload_object(payload, "reviewer_operating_system", "publication eval record")
+            if "reviewer_operating_system" in payload
+            else None,
             gaps=tuple(
                 PublicationEvalGap.from_payload(item)
                 for item in _payload_object_sequence(payload, "gaps", "publication eval record")
@@ -985,15 +995,3 @@ class PublicationEvalRecord:
                 for item in _payload_object_sequence(payload, "recommended_actions", "publication eval record")
             ),
         )
-
-
-__all__ = [
-    "PublicationEvalAssessmentProvenance",
-    "PublicationEvalCharterContextRef",
-    "PublicationEvalGap",
-    "PublicationEvalQualityAssessment",
-    "PublicationEvalQualityDimension",
-    "PublicationEvalRecommendedAction",
-    "PublicationEvalRecord",
-    "PublicationEvalVerdict",
-]

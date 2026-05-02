@@ -127,6 +127,33 @@ MAS_AI_FIRST_RULES: tuple[DriftRule, ...] = (
         ),
     ),
     DriftRule(
+        check_id="ai_reviewer_eval_requires_structured_reviewer_os_trace",
+        category="ready_wording_without_ai_provenance",
+        root_key="mas_repo_root",
+        relative_path="src/med_autoscience/publication_eval_latest.py",
+        summary="AI reviewer publication eval materialization must require structured reviewer OS trace.",
+        required_markers=(
+            "validate_ai_reviewer_operating_system_trace",
+            'payload.get("reviewer_operating_system")',
+            '"AI reviewer publication eval reviewer_operating_system invalid: "',
+        ),
+    ),
+    DriftRule(
+        check_id="publication_critique_defines_ai_reviewer_os_contract",
+        category="doctor_meta_test_surface",
+        root_key="mas_repo_root",
+        relative_path="src/med_autoscience/policies/publication_critique.py",
+        summary="Publication critique policy must carry a structured AI reviewer operating system contract.",
+        required_markers=(
+            '"medical_publication_ai_reviewer_os_v1"',
+            '"required_input_surfaces"',
+            '"rubric_dimensions"',
+            '"decision_matrix"',
+            '"mechanical_projection_can_authorize_quality": False',
+            "build_ai_reviewer_operating_system_contract",
+        ),
+    ),
+    DriftRule(
         check_id="policy_records_external_engineering_basis_and_audit_scope",
         category="doctor_meta_test_surface",
         root_key="mas_repo_root",
