@@ -46,6 +46,38 @@ def _publication_eval_route_repair(publication_eval_payload: dict[str, Any] | No
     return min(candidates, key=lambda item: (item[0], item[1]))[2]
 
 
+def _publication_eval_specificity_request(publication_eval_payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    actions = (publication_eval_payload or {}).get("recommended_actions") or []
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        next_work_unit = action.get("next_work_unit")
+        if not isinstance(next_work_unit, dict):
+            continue
+        unit_id = _non_empty_text(next_work_unit.get("unit_id"))
+        if unit_id not in {"gate_needs_specificity", "needs_specificity"}:
+            continue
+        fingerprint = _non_empty_text(action.get("work_unit_fingerprint"))
+        questions = [
+            _non_empty_text(item)
+            for item in (action.get("specificity_questions") or [])
+            if _non_empty_text(item) is not None
+        ]
+        return {
+            "action_id": _non_empty_text(action.get("action_id")),
+            "action_type": _non_empty_text(action.get("action_type")),
+            "work_unit_id": unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "summary": (
+                _non_empty_text(next_work_unit.get("summary"))
+                or "Publication gate must identify concrete blocker targets before any repair worker can run."
+            ),
+            "specificity_questions": questions,
+            "reason": _non_empty_text(action.get("reason")),
+        }
+    return None
+
+
 def _decision_type_label(value: object) -> str | None:
     text = _non_empty_text(value)
     if text is None:
@@ -665,6 +697,8 @@ def _apply_quality_review_followthrough_to_operator_status(
     card = dict(operator_status_card or {})
     follow = dict(followthrough or {})
     if not card or not follow or not bool(follow.get("waiting_auto_re_review")):
+        return card
+    if _non_empty_text(card.get("handling_state")) in {"runtime_recovering", "publication_gate_specificity_required"}:
         return card
     card["quality_review_followthrough"] = follow
     card["current_focus"] = _non_empty_text(follow.get("summary")) or card.get("current_focus")

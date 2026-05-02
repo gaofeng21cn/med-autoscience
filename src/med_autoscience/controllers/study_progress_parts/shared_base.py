@@ -229,6 +229,7 @@ _RECOVERY_ACTION_MODE_LABELS = {
 _OPERATOR_STATUS_HANDLING_LABELS = {
     "runtime_supervision_recovering": "监管恢复中",
     "runtime_recovering": "运行恢复中",
+    "publication_gate_specificity_required": "发表门控需具体化",
     "paper_surface_refresh_in_progress": "人类查看面刷新中",
     "scientific_or_quality_repair_in_progress": "论文硬阻塞处理中",
     "waiting_human_decision": "等待用户判断",

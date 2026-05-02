@@ -36,6 +36,8 @@ def _operator_status_handling_state(
         return "package_ready_handoff"
     if lane_id == "workspace_supervision_gap":
         return "runtime_supervision_recovering"
+    if lane_id == "publication_gate_specificity_required":
+        return "publication_gate_specificity_required"
     if lane_id in {"runtime_recovery_required", "runtime_blocker"} or current_stage in {
         "managed_runtime_recovering",
         "managed_runtime_degraded",
@@ -92,6 +94,11 @@ def _operator_status_truth_snapshot(
             ("runtime_watch", _non_empty_text((runtime_watch_payload or {}).get("scanned_at"))),
             (latest_event_source, latest_event_time),
         ),
+        "publication_gate_specificity_required": (
+            ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
+            ("runtime_watch", _non_empty_text((runtime_watch_payload or {}).get("scanned_at"))),
+            (latest_event_source, latest_event_time),
+        ),
         "scientific_or_quality_repair_in_progress": (
             ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
             ("runtime_watch", _non_empty_text((runtime_watch_payload or {}).get("scanned_at"))),
@@ -130,6 +137,8 @@ def _operator_status_human_surface_summary(handling_state: str) -> tuple[str, st
         return parked_summary
     if handling_state == "paper_surface_refresh_in_progress":
         return "stale", "给人看的投稿包镜像仍落后于当前论文真相；没有 freshness proof 前不得视为投稿包可用。"
+    if handling_state == "publication_gate_specificity_required":
+        return "stale", "publication gate 还没有给出具体 blocker 对象；current_package 不能作为投稿可用包判断。"
     if handling_state == "waiting_user_decision":
         return "pending_decision", "当前主要等待人工判断，给人看的稿件状态以论文门控为准。"
     if handling_state in {"runtime_supervision_recovering", "runtime_recovering"}:
@@ -147,6 +156,8 @@ def _operator_status_verdict(handling_state: str) -> str:
         return "MAS 正在处理 runtime recovery，当前 study 仍处在受管修复中。"
     if handling_state == "paper_surface_refresh_in_progress":
         return "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
+    if handling_state == "publication_gate_specificity_required":
+        return "MAS 已阻止普通分析/写作重跑，当前等待 publication gate 给出具体 blocker 对象。"
     if handling_state == "scientific_or_quality_repair_in_progress":
         return "MAS 正在处理论文可发表性硬阻塞，给人看的稿件还没到放行状态。"
     if handling_state == "waiting_user_decision":
@@ -164,6 +175,8 @@ def _operator_status_owner_summary(handling_state: str) -> str:
         return "MAS 正在根据 runtime supervision 真相继续处理恢复。"
     if handling_state == "paper_surface_refresh_in_progress":
         return "MAS 正在根据 publication gate 真相刷新给人看的投稿包镜像。"
+    if handling_state == "publication_gate_specificity_required":
+        return "MAS 正在要求 publication gate 产出具体 claim、figure、table、metric 或 source path 后再派发修复。"
     if handling_state == "scientific_or_quality_repair_in_progress":
         return "MAS 正在收口论文可发表性与质量硬阻塞。"
     if handling_state == "waiting_user_decision":
@@ -200,6 +213,11 @@ def _operator_status_focus_summary(
         return parked_summary
     if handling_state == "paper_surface_refresh_in_progress":
         return "优先把人类查看面同步到当前论文真相，再继续盯论文门控。"
+    if handling_state == "publication_gate_specificity_required":
+        return (
+            _non_empty_text((intervention_lane or {}).get("summary"))
+            or "等待 publication gate 写出具体 claim/figure/table/metric/source path；没有具体对象前不派普通 repair worker。"
+        )
     if handling_state == "scientific_or_quality_repair_in_progress":
         route_summary = _non_empty_text((intervention_lane or {}).get("route_summary"))
         if route_summary is not None:
@@ -221,6 +239,8 @@ def _operator_status_next_confirmation_signal(handling_state: str, intervention_
         return "看 runtime_supervision/latest.json 的 health_status 回到 live，并确认 meaningful artifact delta 刷新。"
     if handling_state == "paper_surface_refresh_in_progress":
         return "看 artifacts/controller/current_package_freshness/latest.json 是否写出 fresh proof，再看 current_package 和 submission_minimal 是否同步到同一 authority signature。"
+    if handling_state == "publication_gate_specificity_required":
+        return "看 publication_eval/latest.json 是否写出具体 claim/figure/table/metric/source path；同时确认 current_package_freshness/latest.json 存在 fresh proof 后再判断投稿包可用。"
     if handling_state == "scientific_or_quality_repair_in_progress":
         route_label = _non_empty_text((intervention_lane or {}).get("route_target_label"))
         key_question = _non_empty_text((intervention_lane or {}).get("route_key_question"))

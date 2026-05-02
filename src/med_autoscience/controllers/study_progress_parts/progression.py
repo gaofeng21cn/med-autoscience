@@ -5,6 +5,7 @@ from .milestone_parking import finalize_milestone_parking_active, finalize_miles
 from .parked_progression import parked_intervention_lane, publication_supervisor_blocks_handoff, task_intake_quality_lane
 from .gate_clearing_progress import append_gate_clearing_batch_progress_signal, append_progress_signal
 from .runtime_liveness_projection import live_managed_runtime_present, runtime_recovery_pending_from_status
+from .specificity_lane import specificity_intervention_lane, specificity_next_system_action, specificity_stage_summary
 from . import shared as _shared
 from . import publication_runtime as _publication_runtime
 from .quality_review_loop import quality_review_loop_action_required
@@ -358,6 +359,9 @@ def _stage_summary(
             summary += f" 最近一次可见推进是：{latest_progress_message}"
         return summary
     if current_stage == "publication_supervision":
+        specificity_request = _publication_eval_specificity_request(publication_eval_payload)
+        if specificity_request is not None:
+            return specificity_stage_summary()
         route_repair = _publication_eval_route_repair(publication_eval_payload)
         route_summary = _route_repair_summary(route_repair, include_rationale=True)
         if route_summary is not None:
@@ -602,6 +606,9 @@ def _next_system_action(
         if reason is not None:
             return reason
     publication_action_key = _non_empty_text((publication_supervisor_state or {}).get("current_required_action"))
+    specificity_request = _publication_eval_specificity_request(publication_eval_payload)
+    if specificity_request is not None:
+        return specificity_next_system_action()
     route_repair = _publication_eval_route_repair(publication_eval_payload)
     route_repair_action = _route_repair_summary(route_repair)
     if (
@@ -907,6 +914,9 @@ def _intervention_lane(
         publication_eval_payload=publication_eval_payload,
         runtime_watch_payload=runtime_watch_payload,
     ):
+        specificity_request = _publication_eval_specificity_request(publication_eval_payload)
+        if specificity_request is not None:
+            return specificity_intervention_lane(specificity_request)
         route_repair = _publication_eval_route_repair(publication_eval_payload)
         route_summary = _route_repair_summary(route_repair)
         payload = {
