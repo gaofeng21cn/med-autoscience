@@ -620,6 +620,81 @@ def test_materialize_display_surface_multicenter_overview_adds_panel_labels_and_
     assert "table_catalog.json" in (paper_root / "tables" / "README.md").read_text(encoding="utf-8")
     assert "paper/tables/generated/" in (paper_root / "tables" / "generated" / "README.md").read_text(encoding="utf-8")
 
+
+def test_materialize_display_surface_multicenter_overview_requires_non_empty_caption(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "multicenter_generalizability",
+                    "display_kind": "figure",
+                    "requirement_key": "multicenter_generalizability_overview",
+                    "catalog_id": "F5",
+                    "shell_path": "paper/figures/multicenter_generalizability.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "multicenter_generalizability_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "multicenter_generalizability_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "multicenter_generalizability",
+                    "template_id": "multicenter_generalizability_overview",
+                    "catalog_id": "F5",
+                    "paper_role": "main_text",
+                    "title": "Internal multicenter heterogeneity summary",
+                    "caption": " ",
+                    "overview_mode": "center_support_counts",
+                    "center_event_y_label": "5-year CVD events",
+                    "coverage_y_label": "Patient count",
+                    "center_event_counts": [
+                        {"center_label": "Center 01", "split_bucket": "validation", "event_count": 2},
+                        {"center_label": "Center 02", "split_bucket": "validation", "event_count": 1},
+                        {"center_label": "Center 25", "split_bucket": "train", "event_count": 3},
+                    ],
+                    "coverage_panels": [
+                        {
+                            "panel_id": "region",
+                            "title": "Region coverage",
+                            "layout_role": "wide_left",
+                            "bars": [{"label": "Central", "count": 72}],
+                        },
+                        {
+                            "panel_id": "north_south",
+                            "title": "North vs South",
+                            "layout_role": "top_right",
+                            "bars": [{"label": "North", "count": 84}],
+                        },
+                        {
+                            "panel_id": "urban_rural",
+                            "title": "Urban/rural",
+                            "layout_role": "bottom_right",
+                            "bars": [{"label": "Urban", "count": 101}],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    with pytest.raises(ValueError, match="caption must be non-empty"):
+        module.materialize_display_surface(paper_root=paper_root)
+
+
 def test_materialize_display_surface_prunes_unreferenced_generated_outputs(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)

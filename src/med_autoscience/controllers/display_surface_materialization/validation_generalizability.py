@@ -12,6 +12,10 @@ def _validate_multicenter_generalizability_display_payload(
     if str(payload.get("template_id") or "").strip() != expected_template_id:
         raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
     title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    caption = _require_non_empty_string(
+        payload.get("caption"),
+        label=f"{path.name} display `{expected_display_id}` caption",
+    )
     overview_mode = _require_non_empty_string(
         payload.get("overview_mode"),
         label=f"{path.name} display `{expected_display_id}` overview_mode",
@@ -134,7 +138,7 @@ def _validate_multicenter_generalizability_display_payload(
         "display_id": expected_display_id,
         "template_id": expected_template_id,
         "title": title,
-        "caption": str(payload.get("caption") or "").strip(),
+        "caption": caption,
         "paper_role": str(payload.get("paper_role") or "").strip(),
         "overview_mode": overview_mode,
         "center_event_y_label": center_event_y_label,

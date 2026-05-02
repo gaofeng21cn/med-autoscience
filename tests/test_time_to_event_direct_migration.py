@@ -122,6 +122,7 @@ def _display_registry_payload() -> dict:
 
 def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.time_to_event_direct_migration")
+    materialization_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     study_root = tmp_path / "studies" / "001-dm"
     paper_root = tmp_path / "paper"
 
@@ -312,7 +313,16 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
     assert f5["displays"][0]["template_id"] == (
         display_registry.get_evidence_figure_spec("multicenter_generalizability_overview").template_id
     )
+    assert f5["displays"][0]["catalog_id"] == "F5"
+    assert f5["displays"][0]["paper_role"] == "main_text"
+    assert f5["displays"][0]["title"] == "Internal multicenter heterogeneity summary"
+    assert f5["displays"][0]["caption"] == "Center-level event support with coverage context under the frozen split."
     assert f5["displays"][0]["overview_mode"] == "center_support_counts"
+    assert materialization_module._load_evidence_display_payload(
+        paper_root=paper_root,
+        spec=display_registry.get_evidence_figure_spec("multicenter_generalizability_overview"),
+        display_id="multicenter_generalizability",
+    )[1]["caption"] == f5["displays"][0]["caption"]
     assert [item["center_label"] for item in f5["displays"][0]["center_event_counts"]] == [
         "Center 25",
         "Center 01",

@@ -76,6 +76,7 @@ publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate")
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
 study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
+time_to_event_direct_migration = _LazyModuleProxy(lambda: _load_controller("time_to_event_direct_migration"))
 
 
 def stable_gate_clearing_batch_path(*, study_root: Path) -> Path:
@@ -600,6 +601,55 @@ def _materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
     return display_surface_materialization.materialize_display_surface(paper_root=paper_root)
 
 
+def _run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) -> dict[str, Any]:
+    return time_to_event_direct_migration.run_time_to_event_direct_migration(
+        study_root=study_root,
+        paper_root=paper_root,
+    )
+
+
+def _display_registry_item_for_requirement(
+    *,
+    paper_root: Path,
+    requirement_key: str,
+) -> dict[str, Any] | None:
+    registry_payload = _read_json(Path(paper_root) / "display_registry.json")
+    displays = registry_payload.get("displays")
+    if not isinstance(displays, list):
+        return None
+    for item in displays:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("requirement_key") or "").strip() == requirement_key:
+            return item
+    return None
+
+
+def _time_to_event_direct_migration_display_inputs_need_refresh(*, paper_root: Path) -> bool:
+    item = _display_registry_item_for_requirement(
+        paper_root=paper_root,
+        requirement_key="multicenter_generalizability_overview",
+    )
+    if item is None:
+        return False
+    display_id = _non_empty_text(item.get("display_id"))
+    if display_id is None:
+        return True
+    spec = display_surface_materialization.display_registry.get_evidence_figure_spec(
+        "multicenter_generalizability_overview"
+    )
+    try:
+        _, payload = display_surface_materialization._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id=display_id,
+        )
+    except (FileNotFoundError, ValueError, json.JSONDecodeError):
+        return True
+    source_paths = _string_list(payload.get("source_paths"))
+    return any("ops/med-the research workflow" in item for item in source_paths)
+
+
 def _run_workspace_display_repair_script(*, paper_root: Path) -> dict[str, Any]:
     script_path = paper_root / "build" / "generate_display_exports.py"
     if not script_path.exists():
@@ -762,12 +812,29 @@ def run_gate_clearing_batch(
                 )
             )
         else:
+            if _time_to_event_direct_migration_display_inputs_need_refresh(paper_root=paper_root):
+                repair_units.append(
+                    GateClearingRepairUnit(
+                        unit_id="time_to_event_direct_migration",
+                        label="Refresh canonical time-to-event direct-migration display inputs before surface materialization",
+                        parallel_safe=True,
+                        depends_on=_existing_dependency_ids(repair_units, "repair_paper_live_paths"),
+                        run=lambda: _run_time_to_event_direct_migration(
+                            study_root=resolved_study_root,
+                            paper_root=paper_root,
+                        ),
+                    )
+                )
             repair_units.append(
                 GateClearingRepairUnit(
                     unit_id="materialize_display_surface",
                     label="Refresh display catalogs and generated paper-facing exports",
                     parallel_safe=True,
-                    depends_on=_existing_dependency_ids(repair_units, "repair_paper_live_paths"),
+                    depends_on=_existing_dependency_ids(
+                        repair_units,
+                        "repair_paper_live_paths",
+                        "time_to_event_direct_migration",
+                    ),
                     run=lambda: _materialize_display_surface(paper_root=paper_root),
                 )
             )
