@@ -193,6 +193,47 @@ def test_control_intent_lifecycle_blocks_same_fingerprint_without_artifact_delta
     assert module.lifecycle_state(study_root=study_root, identity=identity)["delivery_blocked"] is True
 
 
+def test_control_intent_lifecycle_blocks_terminal_platform_work_unit_states(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_root = tmp_path / "studies" / "001-risk"
+    terminal_event_expectations = {
+        "closed": "closed",
+        "needs_specificity": "needs_specificity",
+        "platform_repair_required": "platform_repair_required",
+        "await_artifact_delta_or_gate_replay": "await_artifact_delta_or_gate_replay",
+    }
+
+    for index, (event_type, block_reason) in enumerate(terminal_event_expectations.items(), start=1):
+        identity = module.build_control_intent_identity(
+            study_id="001-risk",
+            quest_id="quest-001",
+            route_target="analysis-campaign",
+            work_unit_id=f"analysis_claim_evidence_repair_{index}",
+            blocker_authority_fingerprint="publication-blockers::497d1260db522f01",
+            controller_actions=("ensure_study_runtime",),
+            source_kind="controller_decision_authorization",
+        )
+        module.append_event(
+            study_root=study_root,
+            identity=identity,
+            event_type="delivered",
+            payload={"active_run_id": f"run-{index:03d}"},
+            recorded_at=f"2026-05-02T00:0{index}:00+00:00",
+        )
+        module.append_event(
+            study_root=study_root,
+            identity=identity,
+            event_type=event_type,
+            payload={"reason": block_reason},
+            recorded_at=f"2026-05-02T00:1{index}:00+00:00",
+        )
+
+        lifecycle = module.lifecycle_state(study_root=study_root, identity=identity)
+
+        assert lifecycle["delivery_blocked"] is True
+        assert lifecycle["block_reason"] == block_reason
+
+
 def test_control_intent_lifecycle_supersedes_prior_fingerprint_and_resets_series(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.control_intent")
     study_root = tmp_path / "studies" / "001-risk"

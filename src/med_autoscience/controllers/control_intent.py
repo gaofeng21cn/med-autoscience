@@ -10,6 +10,8 @@ from typing import Any, Mapping
 
 _SCHEMA_VERSION = 1
 AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY = "await_artifact_delta_or_gate_replay"
+GATE_REREAD_REQUIRED = "gate_reread_required"
+PLATFORM_REPAIR_REQUIRED = "platform_repair_required"
 _LIFECYCLE_EVENT_TYPES = frozenset(
     {
         "planned",
@@ -19,9 +21,11 @@ _LIFECYCLE_EVENT_TYPES = frozenset(
         "artifact_written",
         "gate_replayed",
         "needs_specificity",
+        GATE_REREAD_REQUIRED,
         "explicit_recovery",
         "closed",
         "superseded",
+        PLATFORM_REPAIR_REQUIRED,
         "skipped_duplicate",
         AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,
     }
@@ -35,10 +39,28 @@ _SUPERSEDING_EVENT_TYPES = frozenset(
         AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,
     }
 )
-_TERMINAL_EVENT_TYPES = frozenset({"closed", "superseded"})
+_TERMINAL_EVENT_TYPES = frozenset(
+    {
+        "closed",
+        "needs_specificity",
+        "superseded",
+        GATE_REREAD_REQUIRED,
+        PLATFORM_REPAIR_REQUIRED,
+    }
+)
 _ACTIVE_EVENT_TYPES = _LIFECYCLE_EVENT_TYPES - _TERMINAL_EVENT_TYPES
+_CONSUMED_BLOCKING_EVENT_TYPES = _ACTIVE_EVENT_TYPES | (_TERMINAL_EVENT_TYPES - {"superseded"})
 _ARTIFACT_DELTA_EVENT_TYPES = frozenset({"artifact_written"})
 _DELIVERY_ANCHOR_EVENT_TYPES = frozenset({"planned", "dispatched", "delivered", "accepted"})
+_DIRECT_BLOCK_REASON_EVENT_TYPES = frozenset(
+    {
+        "closed",
+        "needs_specificity",
+        GATE_REREAD_REQUIRED,
+        PLATFORM_REPAIR_REQUIRED,
+        AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,
+    }
+)
 
 
 def _text(value: object) -> str | None:
@@ -356,9 +378,15 @@ def lifecycle_state(*, study_root: Path, identity: ControlIntentIdentity) -> dic
     latest = events[-1]
     latest_type = _event_type(latest)
     has_artifact_delta = artifact_delta_observed(events)
-    delivery_blocked = latest_type in _ACTIVE_EVENT_TYPES
+    delivery_blocked = latest_type in _CONSUMED_BLOCKING_EVENT_TYPES
     block_reason: str | None = None
-    if latest_type == AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY:
+    if latest_type in _DIRECT_BLOCK_REASON_EVENT_TYPES:
+        block_reason = latest_type
+    elif latest_type == "skipped_duplicate":
+        payload = latest.get("payload")
+        block_reason = _text(payload.get("reason")) if isinstance(payload, Mapping) else None
+        block_reason = block_reason or "skipped_duplicate"
+    elif latest_type == AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY:
         block_reason = AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY
     elif delivery_blocked and not has_artifact_delta:
         block_reason = "same_fingerprint_no_artifact_delta"
@@ -373,6 +401,7 @@ def lifecycle_state(*, study_root: Path, identity: ControlIntentIdentity) -> dic
         "latest_recorded_at": _text(latest.get("recorded_at")),
         "artifact_delta_observed": has_artifact_delta,
         "delivery_blocked": delivery_blocked,
+        "terminal_consumed": latest_type in _TERMINAL_EVENT_TYPES and latest_type != "superseded",
         "block_reason": block_reason,
     }
 
