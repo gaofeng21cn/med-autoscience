@@ -6,6 +6,7 @@ from typing import Any
 
 from med_autoscience.policies import DEFAULT_PUBLICATION_CRITIQUE_POLICY
 from med_autoscience.publication_eval_record import PublicationEvalRecord
+from med_autoscience.publication_eval_reviewer_os import validate_ai_reviewer_operating_system_trace
 
 __all__ = [
     "STABLE_PUBLICATION_EVAL_LATEST_RELATIVE_PATH",
@@ -104,4 +105,7 @@ def materialize_ai_reviewer_publication_eval_latest(
         raise ValueError("AI reviewer publication eval must include quality_assessment.medical_journal_prose_quality")
     if not str(prose_quality.get("summary") or "").strip():
         raise ValueError("AI reviewer publication eval medical_journal_prose_quality.summary must be non-empty")
+    reviewer_os_errors = validate_ai_reviewer_operating_system_trace(payload.get("reviewer_operating_system"))
+    if reviewer_os_errors:
+        raise ValueError("AI reviewer publication eval reviewer_operating_system invalid: " + "; ".join(reviewer_os_errors))
     return materialize_publication_eval_latest(study_root=study_root, record=normalized_record)

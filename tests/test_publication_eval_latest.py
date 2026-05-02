@@ -114,6 +114,60 @@ def _quality_assessment(study_root: Path) -> dict[str, object]:
     }
 
 
+def _reviewer_operating_system(study_root: Path) -> dict[str, object]:
+    quest_root = study_root.parents[1] / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
+    input_bundle = {
+        "manuscript": str(study_root / "paper" / "manuscript.md"),
+        "study_charter": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+        "evidence_ledger": str(study_root / "paper" / "evidence_ledger.json"),
+        "review_ledger": str(study_root / "paper" / "review" / "review_ledger.json"),
+        "medical_manuscript_blueprint": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+        "claim_evidence_map": str(study_root / "paper" / "claim_evidence_map.json"),
+        "medical_prose_review": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+        "publication_gate_projection": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+    }
+    rubric_scores = {
+        dimension: {
+            "status": "partial" if dimension in {"novelty_positioning", "human_review_readiness"} else "ready",
+            "rationale": f"{dimension} was judged from manuscript and ledger evidence.",
+            "evidence_refs": [
+                str(study_root / "paper" / "manuscript.md"),
+                str(quest_root / "artifacts" / "results" / "main_result.json"),
+            ],
+        }
+        for dimension in (
+            "clinical_significance",
+            "evidence_strength",
+            "novelty_positioning",
+            "medical_journal_prose_quality",
+            "human_review_readiness",
+        )
+    }
+    return {
+        "contract_id": "medical_publication_ai_reviewer_os_v1",
+        "input_bundle": input_bundle,
+        "rubric_scores": rubric_scores,
+        "decision_matrix": [
+            {
+                "dimension": dimension,
+                "status": score["status"],
+                "rationale": score["rationale"],
+            }
+            for dimension, score in rubric_scores.items()
+        ],
+        "provenance_checks": {
+            "assessment_owner": "ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+            "mechanical_projection_used_as_quality_authority": False,
+        },
+        "route_back_decision": {
+            "recommended_action": "revise_medical_journal_prose",
+            "rationale": "The next pass should repair prose and human-review readiness before closure.",
+        },
+    }
+
+
 def test_resolve_publication_eval_latest_ref_defaults_to_eval_owned_latest_surface(tmp_path: Path) -> None:
     module = importlib.import_module(MODULE_NAME)
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
@@ -215,6 +269,7 @@ def test_ai_reviewer_publication_eval_materializer_writes_review_backed_latest(t
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     payload = _minimal_payload(study_root)
     payload["quality_assessment"] = _quality_assessment(study_root)
+    payload["reviewer_operating_system"] = _reviewer_operating_system(study_root)
 
     result = module.materialize_ai_reviewer_publication_eval_latest(study_root=study_root, record=payload)
 
@@ -222,9 +277,22 @@ def test_ai_reviewer_publication_eval_materializer_writes_review_backed_latest(t
     resolved = module.read_publication_eval_latest(study_root=study_root)
     assert resolved["assessment_provenance"]["owner"] == "ai_reviewer"
     assert resolved["assessment_provenance"]["policy_id"] == "medical_publication_critique_v1"
+    assert resolved["reviewer_operating_system"]["contract_id"] == "medical_publication_ai_reviewer_os_v1"
     assert resolved["quality_assessment"]["medical_journal_prose_quality"]["reviewer_revision_advice"] == (
         "Rewrite representative figure-led sentences as finding-led sentences."
     )
+
+
+def test_ai_reviewer_publication_eval_materializer_rejects_missing_reviewer_os_trace(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    payload["quality_assessment"] = _quality_assessment(study_root)
+
+    with pytest.raises(ValueError, match="reviewer_operating_system"):
+        module.materialize_ai_reviewer_publication_eval_latest(study_root=study_root, record=payload)
 
 
 def test_ai_reviewer_publication_eval_materializer_rejects_missing_prose_quality_dimension(
@@ -234,6 +302,7 @@ def test_ai_reviewer_publication_eval_materializer_rejects_missing_prose_quality
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     payload = _minimal_payload(study_root)
     payload["quality_assessment"] = _quality_assessment(study_root)
+    payload["reviewer_operating_system"] = _reviewer_operating_system(study_root)
     payload["quality_assessment"].pop("medical_journal_prose_quality")
 
     with pytest.raises(ValueError, match="quality_assessment.medical_journal_prose_quality"):
@@ -277,6 +346,7 @@ def test_ai_reviewer_publication_eval_controller_materializes_runtime_checked_la
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     payload = _minimal_payload(study_root)
     payload["quality_assessment"] = _quality_assessment(study_root)
+    payload["reviewer_operating_system"] = _reviewer_operating_system(study_root)
     called: dict[str, object] = {}
 
     def fake_status(*, profile, study_id: str | None, study_root: Path | None, entry_mode: str | None) -> dict:

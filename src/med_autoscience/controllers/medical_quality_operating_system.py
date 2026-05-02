@@ -6,6 +6,10 @@ from med_autoscience.controllers.medical_reporting_guidelines import (
     build_guideline_quality_gate_expectation,
     build_reporting_guideline_expectation,
 )
+from med_autoscience.policies import (
+    DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+    build_ai_reviewer_operating_system_contract,
+)
 from med_autoscience.policies.medical_manuscript_draft_quality import (
     build_first_draft_manuscript_quality_contract,
 )
@@ -228,6 +232,7 @@ def _evidence_over_claims_gate() -> dict[str, Any]:
             ],
             "mechanical_projection_allowed_verdicts": ["review_required", "projection_only"],
             "mechanical_projection_can_authorize_quality": False,
+            "reviewer_operating_system_contract": "medical_publication_ai_reviewer_os_v1",
         },
         "ai_first_subjective_quality": {
             "authority_owner": "ai_reviewer",
@@ -328,7 +333,11 @@ def build_medical_quality_operating_system_contract(
                 "required_verdict": "not_blocked",
                 "must_be_ai_reviewer_backed_for_quality_closure": True,
                 "must_be_replayed_after_fast_lane": True,
+                "required_reviewer_operating_system_contract": "medical_publication_ai_reviewer_os_v1",
             },
+            "ai_reviewer_operating_system": build_ai_reviewer_operating_system_contract(
+                DEFAULT_PUBLICATION_CRITIQUE_POLICY
+            ),
             "evidence_over_claims_gate": _evidence_over_claims_gate(),
             "quality_preserving_fast_lane_policy": _quality_preserving_fast_lane_policy(),
             "first_draft_quality_floor": _first_draft_quality_floor(),

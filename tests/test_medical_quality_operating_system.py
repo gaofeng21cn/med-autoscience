@@ -66,6 +66,19 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
     assert contract["quality_contract"]["publication_eval"][
         "must_be_ai_reviewer_backed_for_quality_closure"
     ] is True
+    reviewer_os = contract["quality_contract"]["ai_reviewer_operating_system"]
+    assert reviewer_os["contract_id"] == "medical_publication_ai_reviewer_os_v1"
+    assert reviewer_os["owner"] == "ai_reviewer"
+    assert reviewer_os["mechanical_projection_can_authorize_quality"] is False
+    assert "manuscript" in reviewer_os["required_input_surfaces"]
+    assert "evidence_ledger" in reviewer_os["required_input_surfaces"]
+    assert "medical_journal_prose_quality" in reviewer_os["rubric_dimensions"]
+    assert "decision_matrix" in reviewer_os["required_trace_fields"]
+    assert reviewer_os["required_provenance"] == {
+        "assessment_owner": "ai_reviewer",
+        "policy_id": "medical_publication_critique_v1",
+        "ai_reviewer_required": False,
+    }
 
 
 def test_quality_os_selects_ai_guidelines_without_record_overlay_when_not_rwd() -> None:
@@ -142,6 +155,9 @@ def test_quality_os_blocks_claim_only_ready_and_fast_lane_gate_relaxation() -> N
     assert evidence_gate["ai_reviewer_publication_eval"][
         "mechanical_projection_can_authorize_quality"
     ] is False
+    assert evidence_gate["ai_reviewer_publication_eval"][
+        "reviewer_operating_system_contract"
+    ] == "medical_publication_ai_reviewer_os_v1"
     assert "generic_persona_approval" in evidence_gate["forbidden_authority_sources"]
     assert fast_lane["gate_relaxation_allowed"] is False
     assert "bounded_analysis_unit" in fast_lane["allowed_parallelism"]

@@ -201,6 +201,46 @@ def test_publication_eval_record_quality_dimension_guidance_round_trips() -> Non
     assert record.to_dict()["quality_assessment"] == payload["quality_assessment"]
 
 
+def test_publication_eval_record_round_trips_reviewer_operating_system_trace() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["reviewer_operating_system"] = {
+        "contract_id": "medical_publication_ai_reviewer_os_v1",
+        "input_bundle": {
+            "manuscript": "/tmp/workspace/studies/001-risk/paper/manuscript.md",
+            "study_charter": "/tmp/workspace/studies/001-risk/artifacts/controller/study_charter.json",
+        },
+        "rubric_scores": {
+            "clinical_significance": {
+                "status": "partial",
+                "rationale": "Clinical interpretation needs tighter framing.",
+                "evidence_refs": ["/tmp/workspace/studies/001-risk/paper/manuscript.md"],
+            },
+        },
+        "decision_matrix": [
+            {
+                "dimension": "clinical_significance",
+                "status": "partial",
+                "rationale": "Clinical interpretation needs tighter framing.",
+            }
+        ],
+        "provenance_checks": {
+            "assessment_owner": "ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+            "mechanical_projection_used_as_quality_authority": False,
+        },
+        "route_back_decision": {
+            "recommended_action": "revise_clinical_framing",
+            "rationale": "Repair the clinical framing before the next publication gate replay.",
+        },
+    }
+
+    record = module.PublicationEvalRecord.from_payload(payload)
+
+    assert record.to_dict()["reviewer_operating_system"] == payload["reviewer_operating_system"]
+
+
 @pytest.mark.parametrize("missing_field", ["verdict", "gaps", "recommended_actions"])
 def test_publication_eval_record_rejects_missing_required_fields(missing_field: str) -> None:
     module = _load_module()
