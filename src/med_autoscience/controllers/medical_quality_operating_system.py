@@ -157,6 +157,8 @@ def _authority_surfaces() -> dict[str, str]:
         "evidence_ledger": "paper/evidence_ledger.json",
         "review_ledger": "paper/review_ledger.json",
         "publication_eval": "artifacts/publication_eval/latest.json",
+        "medical_manuscript_blueprint": "paper/medical_manuscript_blueprint.json",
+        "medical_prose_review": "artifacts/publication_eval/medical_prose_review.json",
         "reporting_guideline_checklist": "reporting_guideline_checklist.json",
     }
 
@@ -213,6 +215,8 @@ def _evidence_over_claims_gate() -> dict[str, Any]:
             "study_charter.paper_quality_contract",
             "paper/evidence_ledger.json",
             "paper/review_ledger.json",
+            "paper/medical_manuscript_blueprint.json",
+            "artifacts/publication_eval/medical_prose_review.json",
             "artifacts/publication_eval/latest.json",
             "artifacts/controller_decisions/latest.json",
         ],
@@ -224,6 +228,16 @@ def _evidence_over_claims_gate() -> dict[str, Any]:
             ],
             "mechanical_projection_allowed_verdicts": ["review_required", "projection_only"],
             "mechanical_projection_can_authorize_quality": False,
+        },
+        "ai_first_subjective_quality": {
+            "authority_owner": "ai_reviewer",
+            "required_dimensions": [
+                "medical_journal_prose_quality",
+                "clinical_significance",
+                "claim_restraint",
+                "reader_flow",
+            ],
+            "mechanical_pattern_role": "evidence_snippets_only",
         },
         "forbidden_authority_sources": [
             "chat_summary",

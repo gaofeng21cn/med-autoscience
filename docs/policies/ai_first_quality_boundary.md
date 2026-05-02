@@ -33,6 +33,9 @@
 - 新增质量 read-model 时，先决定它消费的是 AI reviewer judgment 还是 mechanical projection。
 - 如果消费 AI reviewer judgment，入口必须 fail-closed 检查 `assessment_provenance.owner=ai_reviewer` 和 `ai_reviewer_required=false`。
 - 如果消费 mechanical projection，输出文案必须明确它只是 projection，不得写成科学审稿结论。
+- 医学论文文体、reader flow、段落论证节奏、是否像工作汇报、claim restraint、讨论克制性等主观质量，只能由 AI reviewer-backed `medical_prose_review` 或 AI reviewer-backed `publication_eval/latest.json` 判定。
+- Regex / pattern / deterministic scanner 可以保留为 `mechanical_safety_flags`、evidence snippets 或内部术语泄漏安全护栏；它们不得单独触发或清除 `medical_journal_prose_style_not_met` 这类主观文体 blocker。
+- deterministic gate 可以继续阻断可验证事实缺口，例如缺文件、schema 不完整、claim-evidence 缺失、submission 包 stale、内部控制术语泄漏或 provenance 损坏。
 - 不得用 hidden templates、heuristic-only reviewer verdict、scorecard-only ready verdict 或程序化正文/论文质量判断替代 AI reviewer artifact。
 - 需要新增可调用面时，优先挂在现有 controller / publication-eval surface 下，不新增第二前台入口。
 

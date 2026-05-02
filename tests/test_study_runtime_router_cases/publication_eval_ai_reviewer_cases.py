@@ -70,6 +70,13 @@ def test_study_runtime_status_preserves_current_ai_reviewer_publication_eval(
                     "summary": "AI reviewer closed the scientific quality loop.",
                     "stop_loss_pressure": "none",
                 },
+                "quality_assessment": {
+                    "medical_journal_prose_quality": {
+                        "status": "ready",
+                        "summary": "AI reviewer judged the manuscript prose ready for medical-journal review.",
+                        "evidence_refs": [str(runtime_paper_root / "review" / "medical_prose_review.json")],
+                    }
+                },
                 "gaps": [
                     {
                         "gap_id": "gap-001",

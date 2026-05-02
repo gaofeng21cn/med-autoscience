@@ -168,6 +168,14 @@ def test_publication_eval_record_quality_dimension_guidance_round_trips() -> Non
             "reviewer_revision_advice": "明确科学问题边界并补齐解释目标合同。",
             "reviewer_next_round_focus": "检查 novelty framing 与稿件主结论是否一一对应。",
         },
+        "medical_journal_prose_quality": {
+            "status": "blocked",
+            "summary": "Results 仍像证据面转写，缺少医学论文自然论证节奏。",
+            "evidence_refs": ["/tmp/workspace/studies/001-risk/paper/manuscript.md"],
+            "reviewer_reason": "段落主语和信息流仍由 artifact 或 display 驱动，不是临床发现驱动。",
+            "reviewer_revision_advice": "先陈述临床发现和定量结果，再引用 display，并把解释限制在 evidence map 支持范围内。",
+            "reviewer_next_round_focus": "重写 Results 主结果段和 Discussion principal finding 段。",
+        },
         "human_review_readiness": {
             "status": "ready",
             "summary": "人工审阅包已就绪。",
@@ -184,6 +192,12 @@ def test_publication_eval_record_quality_dimension_guidance_round_trips() -> Non
     assert clinical.reviewer_reason == "当前结果表面还不足以支撑稳定临床结论。"
     assert clinical.reviewer_revision_advice == "补齐临床解释段与结果对应关系，避免泛化结论。"
     assert clinical.reviewer_next_round_focus == "检查临床 framing 与结果摘要是否逐条对齐。"
+    prose = record.quality_assessment.medical_journal_prose_quality
+    assert prose is not None
+    assert prose.status == "blocked"
+    assert prose.reviewer_revision_advice == (
+        "先陈述临床发现和定量结果，再引用 display，并把解释限制在 evidence map 支持范围内。"
+    )
     assert record.to_dict()["quality_assessment"] == payload["quality_assessment"]
 
 

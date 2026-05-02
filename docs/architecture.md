@@ -57,6 +57,7 @@
 - `study charter` 冻结方向锁定后的自治边界与论文质量合同。
 - `evidence_ledger`、`review_ledger`、`publication_eval/latest.json` 负责把证据闭环、审阅闭环和投稿前判断投影成可审计真相。
 - `publication_gate` 与 `medical_reporting_audit` 只持有机械完整性、交付状态和 reporting blocker 判断；它们生成的 `publication_eval/latest.json` 是 `mechanical_projection`，不能替代 AI reviewer 对科学质量、审稿 readiness 或 submission-facing 闭环的判断。
+- 主观医学论文文体质量由 AI reviewer 持有：`medical_prose_review` 与 AI reviewer-backed `publication_eval/latest.json` 负责判断医学期刊声音、reader flow、论证节奏、claim restraint 和工作汇报残留；regex / pattern 只作为 `mechanical_safety_flags` 或 reviewer evidence snippets，不单独决定 `medical_journal_prose_style_not_met`。
 - AI reviewer-backed `publication_eval/latest.json` 必须回指 manuscript、evidence ledger、review ledger 与 study charter，并使用 `medical_publication_critique_v1` policy；缺少该 provenance 时，下游只能输出 `review_required` / `projection_only`。
 - `controller_decisions/latest.json`、`study_runtime_status`、`runtime_watch` 负责把运行状态和控制动作沉成可回放记录。
 

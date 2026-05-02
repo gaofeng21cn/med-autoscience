@@ -3,7 +3,12 @@ from .shared import *
 
 def test_build_report_blocks_structurally_complete_work_report_prose(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
-    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        medical_prose_review_verdict="block",
+    )
     paper_root = _paper_root_from_quest(quest_root)
     work_report_text = """
 ## Introduction
@@ -56,11 +61,47 @@ Limitations are recorded in the claim boundary surface.
     report = module.build_surface_report(module.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
+    assert "ai_medical_prose_review_missing_or_incomplete" not in report["blockers"]
     assert "medical_journal_prose_style_not_met" in report["blockers"]
     assert report["medical_journal_prose_style_valid"] is False
+    assert report["medical_journal_prose_ai_verdict"] == "block"
     assert report["medical_journal_prose_style_hit_count"] >= 4
+    assert report["medical_journal_prose_mechanical_flag_count"] >= 4
     assert any(hit["pattern_id"] == "figure_table_subject_results_sentence" for hit in report["top_hits"])
     assert any(hit["pattern_id"] == "unsupported_no_difference_claim" for hit in report["top_hits"])
+
+
+def test_build_report_requires_ai_prose_review_before_subjective_style_closure(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_medical_prose_review=False,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "ai_medical_prose_review_missing_or_incomplete" in report["blockers"]
+    assert "medical_journal_prose_style_not_met" not in report["blockers"]
+    assert report["medical_journal_prose_style_valid"] is False
+
+
+def test_build_report_blocks_ai_reviewer_backed_work_report_verdict(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        medical_prose_review_verdict="block",
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "medical_journal_prose_style_not_met" in report["blockers"]
+    assert report["medical_journal_prose_ai_verdict"] == "block"
 
 
 def test_build_report_accepts_medical_journal_style_prose(tmp_path: Path) -> None:
@@ -73,3 +114,4 @@ def test_build_report_accepts_medical_journal_style_prose(tmp_path: Path) -> Non
     assert "medical_journal_prose_style_not_met" not in report["blockers"]
     assert report["medical_journal_prose_style_valid"] is True
     assert report["medical_journal_prose_style_hit_count"] == 0
+    assert report["medical_journal_prose_ai_verdict"] == "clear"

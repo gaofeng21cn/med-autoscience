@@ -202,10 +202,11 @@ SOURCE_BASIS = (
 )
 
 PROSE_STYLE_SOURCE_BASIS = (
-    "Zeiger biomedical research paper writing",
-    "JAMA editors precision and concrete wording",
-    "Gopen and Swan reader expectation model",
-    "general medical journal original research exemplars",
+    "Zeiger biomedical research paper clear-writing and paper-text model",
+    "Gopen and Swan reader-expectation information flow",
+    "JAMA concise, specific, informative, non-overstated medical-journal wording",
+    "Elsevier medical manuscript audience, relevance, and avoid-overstatement guidance",
+    "JAMA Network Open original investigation prose exemplars",
 )
 
 
@@ -275,6 +276,7 @@ def build_medical_prose_style_contract() -> dict[str, Any]:
 def build_medical_manuscript_blueprint_contract() -> dict[str, Any]:
     return {
         "surface": "medical_manuscript_blueprint",
+        "stable_path": "paper/medical_manuscript_blueprint.json",
         "required_before": "first_full_draft",
         "gate_relaxation_allowed": False,
         "required_fields": [
@@ -282,11 +284,21 @@ def build_medical_manuscript_blueprint_contract() -> dict[str, Any]:
             "evidence_gap",
             "target_population",
             "study_design",
-            "primary_results",
+            "main_findings_by_clinical_importance",
             "clinical_interpretation",
             "limitations",
             "claim_evidence_map",
-            "figure_table_roles",
+            "figure_table_rhetorical_roles",
+            "discussion_claim_boundary",
+            "journal_voice_target",
+        ],
+        "required_argument_order": [
+            "clinical_problem",
+            "evidence_gap",
+            "study_objective",
+            "main_findings_by_clinical_importance",
+            "clinical_interpretation",
+            "limitations",
         ],
         "required_source_surfaces": [
             "study_charter.paper_quality_contract",
@@ -299,6 +311,41 @@ def build_medical_manuscript_blueprint_contract() -> dict[str, Any]:
             "compile this blueprint before prose generation and route back when the manuscript voice "
             "would otherwise be derived from run logs, controller checklists, or packaging metadata"
         ),
+    }
+
+
+def build_medical_prose_review_contract() -> dict[str, Any]:
+    return {
+        "surface": "medical_prose_review",
+        "stable_path": "artifacts/publication_eval/medical_prose_review.json",
+        "required_before": "quality_closure",
+        "owner": "ai_reviewer",
+        "mechanical_projection_can_authorize_quality": False,
+        "required_inputs": [
+            "paper/draft.md or paper/build/review_manuscript.md",
+            "paper/medical_manuscript_blueprint.json",
+            "medical_prose_style_contract",
+            "paper/claim_evidence_map.json",
+            "paper/results_narrative_map.json",
+            "paper/figure_semantics_manifest.json",
+            "paper/review/review_ledger.json",
+        ],
+        "required_outputs": [
+            "overall_style_verdict",
+            "section_level_diagnosis",
+            "representative_bad_sentences",
+            "representative_rewrites",
+            "route_back_recommendation",
+            "mechanical_safety_flags",
+        ],
+        "subjective_quality_authority": [
+            "medical_journal_voice",
+            "reader_flow",
+            "paragraph_argumentation_rhythm",
+            "claim_restraint",
+            "work_report_residue_judgment",
+        ],
+        "mechanical_checks_role": "safety_flags_and_evidence_snippets_only",
     }
 
 
@@ -356,6 +403,7 @@ def build_first_draft_manuscript_quality_contract(
         },
         "medical_prose_style_contract": build_medical_prose_style_contract(),
         "medical_manuscript_blueprint_contract": build_medical_manuscript_blueprint_contract(),
+        "medical_prose_review_contract": build_medical_prose_review_contract(),
         "first_draft_generation_model": {
             "pre_draft_inputs": [
                 "clinical_problem",
@@ -368,6 +416,7 @@ def build_first_draft_manuscript_quality_contract(
                 "reader_facing_contribution",
                 "medical_manuscript_blueprint",
                 "medical_prose_style_contract",
+                "medical_prose_review",
             ],
             "writer_obligations": [
                 "convert research questions into clinical findings rather than question-answer prose",

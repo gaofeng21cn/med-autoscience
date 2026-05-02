@@ -35,7 +35,9 @@ def test_build_report_flags_forbidden_terms_and_missing_ama_defaults(tmp_path: P
     assert "figure_semantics_manifest_missing_or_incomplete" in report["blockers"]
     assert "evidence_ledger_missing_or_incomplete" in report["blockers"]
     assert "derived_analysis_manifest_missing_or_incomplete" in report["blockers"]
-    assert "figure_table_led_results_narration_present" in report["blockers"]
+    assert "figure_table_led_results_narration_present" not in report["blockers"]
+    assert report["results_narration_hit_count"] > 0
+    assert report["medical_prose_reviewer_evidence_hit_count"] > 0
     assert "manuscript_safe_reproducibility_supplement_missing_or_incomplete" in report["blockers"]
     assert "endpoint_provenance_note_missing_or_unapplied" in report["blockers"]
     assert "undefined_methodology_labels_present" in report["blockers"]
@@ -531,5 +533,4 @@ def test_build_report_accepts_review_with_relative_subsection_levels(tmp_path: P
     assert "introduction_structure_missing_or_incomplete" not in report["blockers"]
     assert "methods_section_structure_missing_or_incomplete" not in report["blockers"]
     assert "results_section_structure_missing_or_incomplete" not in report["blockers"]
-
 

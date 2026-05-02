@@ -49,6 +49,8 @@ class SurfaceState:
     table_catalog_path: Path
     methods_implementation_manifest_path: Path
     review_ledger_path: Path
+    medical_manuscript_blueprint_path: Path
+    medical_prose_review_path: Path
     results_narrative_map_path: Path
     figure_semantics_manifest_path: Path
     claim_evidence_map_path: Path
@@ -548,6 +550,16 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
         table_catalog_path=paper_root / "tables" / "table_catalog.json",
         methods_implementation_manifest_path=paper_root / medical_surface_policy.METHODS_IMPLEMENTATION_MANIFEST_BASENAME,
         review_ledger_path=paper_root / "review" / medical_surface_policy.REVIEW_LEDGER_BASENAME,
+        medical_manuscript_blueprint_path=(
+            study_root / "paper" / medical_surface_policy.MEDICAL_MANUSCRIPT_BLUEPRINT_BASENAME
+            if study_root is not None
+            else paper_root / medical_surface_policy.MEDICAL_MANUSCRIPT_BLUEPRINT_BASENAME
+        ),
+        medical_prose_review_path=(
+            study_root / "artifacts" / "publication_eval" / medical_surface_policy.MEDICAL_PROSE_REVIEW_BASENAME
+            if study_root is not None
+            else paper_root / "review" / medical_surface_policy.MEDICAL_PROSE_REVIEW_BASENAME
+        ),
         results_narrative_map_path=paper_root / medical_surface_policy.RESULTS_NARRATIVE_MAP_BASENAME,
         figure_semantics_manifest_path=paper_root / medical_surface_policy.FIGURE_SEMANTICS_MANIFEST_BASENAME,
         claim_evidence_map_path=paper_root / medical_surface_policy.CLAIM_EVIDENCE_MAP_BASENAME,
@@ -613,4 +625,3 @@ def unique_hits(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
         seen.add(key)
         unique.append(hit)
     return unique
-

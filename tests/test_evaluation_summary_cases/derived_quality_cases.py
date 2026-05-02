@@ -48,6 +48,9 @@ def test_read_evaluation_summary_overrides_stale_bundle_only_agenda_with_latest_
             "reviewer_next_round_focus": "补齐 scientific follow-up questions 或 explanation targets，再复核创新叙事与主结论边界。",
             "evidence_refs": [str(inputs["charter_path"])],
         },
+        "medical_journal_prose_quality": _ready_medical_prose_quality(
+            study_root / "paper" / "review" / "medical_prose_review.json"
+        ),
         "human_review_readiness": {
             "status": "ready",
             "summary": "给人看的 current_package 和 submission_minimal 已同步到最新真相，可以进入人工审阅。",
