@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+from tests.fixtures.dm002_ai_first_observation import dm002_minimal_observation_progress_snapshot
+
 
 def _progress_snapshot(tmp_path: Path) -> dict[str, object]:
     return {
@@ -195,3 +197,32 @@ def test_ai_first_feedback_ledger_tracks_repeat_and_closure(tmp_path: Path) -> N
     assert ledger is not None
     assert ledger["open_event_count"] == 0
     assert ledger["closed_event_count"] >= second["ledger"]["open_event_count"]
+
+
+def test_dm002_minimal_observation_fixture_builds_observability_only_feedback_state(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_first_feedback")
+
+    progress = dm002_minimal_observation_progress_snapshot(tmp_path)
+    state = module.build_ai_first_feedback_state(progress_snapshot=progress)
+
+    assert progress["study_id"] == "002-dm-china-us-mortality-attribution"
+    assert state["surface"] == "ai_first_feedback_state"
+    assert state["read_model"] == "ai_first_feedback_read_model"
+    assert state["authority"] == "observability_only"
+    assert state["status"] == "attention_required"
+    assert state["authority_contract"]["feedback_can_authorize_quality"] is False
+    assert state["authority_contract"]["feedback_can_authorize_finalize"] is False
+    assert state["authority_contract"]["feedback_can_authorize_submission"] is False
+    assert state["authority_contract"]["feedback_can_mutate_runtime"] is False
+    assert state["counts"]["ai_reviewer_trace_incomplete_count"] == 1
+    assert state["counts"]["open_route_back_count"] == 1
+    assert state["counts"]["artifact_rebuild_pending_count"] == 1
+    assert state["primary_feedback"]["category"] == "ai_reviewer_trace_gap"
+
+    rendered_state = str(state)
+    assert "DM002_INTERNAL_PROMPT_SHOULD_NOT_LEAK" not in rendered_state
+    assert "DM002_FULL_PROMPT_SHOULD_NOT_LEAK" not in rendered_state
+    assert "DM002_RAW_LOG_SHOULD_NOT_LEAK" not in rendered_state
+    assert "DM002_TOKEN_CANARY" not in rendered_state
