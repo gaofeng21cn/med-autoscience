@@ -36,6 +36,7 @@ _AUTONOMOUS_DECISION_TYPES = frozenset(
         StudyDecisionType.CONTINUE_SAME_LINE.value,
         StudyDecisionType.ROUTE_BACK_SAME_LINE.value,
         StudyDecisionType.BOUNDED_ANALYSIS.value,
+        StudyDecisionType.RETURN_TO_CONTROLLER.value,
         StudyDecisionType.RELAUNCH_BRANCH.value,
     }
 )
@@ -46,6 +47,7 @@ _CATEGORY_BY_DECISION_TYPE = {
     StudyDecisionType.CONTINUE_SAME_LINE.value: "mas_autonomous_scientific_decision",
     StudyDecisionType.ROUTE_BACK_SAME_LINE.value: "mas_autonomous_scientific_decision",
     StudyDecisionType.BOUNDED_ANALYSIS.value: "mas_autonomous_scientific_decision",
+    StudyDecisionType.RETURN_TO_CONTROLLER.value: "mas_controller_specificity_decision",
     StudyDecisionType.RELAUNCH_BRANCH.value: "mas_autonomous_runtime_recovery",
 }
 

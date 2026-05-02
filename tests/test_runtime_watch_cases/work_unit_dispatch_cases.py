@@ -370,6 +370,42 @@ def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
         ],
     }
     calls: list[str] = []
+    dump_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "quest_id": "quest-001",
+            "status": "paused",
+            "active_run_id": None,
+            "pending_user_message_count": 2,
+            "last_controller_decision_authorization": {
+                "decision_id": "old-analysis-decision",
+                "route_target": "analysis-campaign",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::old",
+                "controller_work_unit_lifecycle": {"lifecycle_state": "new"},
+            },
+        },
+    )
+    dump_json(
+        quest_root / ".ds" / "user_message_queue.json",
+        {
+            "version": 1,
+            "pending": [
+                {
+                    "message_id": "msg-controller-old",
+                    "content": "MAS controller authorization. old analysis request",
+                    "dedupe_key": "control-intent::old",
+                    "status": "queued",
+                },
+                {
+                    "message_id": "msg-human-real",
+                    "content": "请等我确认目标期刊。",
+                    "status": "queued",
+                },
+            ],
+            "completed": [],
+        },
+    )
 
     def fake_outer_loop_tick(**kwargs):
         calls.append(str(kwargs.get("source") or ""))
@@ -391,6 +427,11 @@ def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
     wakeup_latest = json.loads(
         (study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json").read_text(encoding="utf-8")
     )
+    controller_decision = json.loads(
+        (study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8")
+    )
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    message_queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
     ledger_events = [
         json.loads(line)
         for line in (
@@ -405,6 +446,23 @@ def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
     assert wakeup_latest["no_op_acknowledged"] is True
     assert wakeup_latest["next_work_unit"]["unit_id"] == "gate_needs_specificity"
     assert wakeup_latest["specificity_questions"] == tick_request["specificity_questions"]
+    assert controller_decision["decision_type"] == "return_to_controller"
+    assert controller_decision["controller_actions"][0]["action_type"] == "request_gate_specificity"
+    assert controller_decision["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert controller_decision["work_unit_fingerprint"] == "publication-blockers::vague"
+    assert runtime_state["last_controller_decision_authorization"]["work_unit_id"] == "gate_needs_specificity"
+    assert runtime_state["last_controller_decision_authorization"]["work_unit_fingerprint"] == "publication-blockers::vague"
+    assert runtime_state["last_controller_decision_authorization"]["controller_work_unit_lifecycle"] == {
+        "lifecycle_state": "needs_specificity",
+        "latest_event_type": "needs_specificity",
+        "delivery_blocked": True,
+        "block_reason": "needs_specificity",
+        "terminal_consumed": True,
+    }
+    assert runtime_state["pending_user_message_count"] == 1
+    assert [item["message_id"] for item in message_queue["pending"]] == ["msg-human-real"]
+    assert [item["message_id"] for item in message_queue["completed"]] == ["msg-controller-old"]
+    assert message_queue["completed"][0]["status"] == "superseded_by_gate_specificity"
     assert [event["event_type"] for event in ledger_events] == ["needs_specificity"]
 
 
@@ -446,6 +504,54 @@ def test_outer_loop_tick_request_carries_publication_work_unit_context(tmp_path:
     assert request["work_unit_fingerprint"] == "publication-blockers::same"
     assert request["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
     assert request["blocking_work_units"][0]["unit_id"] == "analysis_claim_evidence_repair"
+
+
+def test_outer_loop_tick_request_carries_gate_specificity_controller_request(tmp_path: Path) -> None:
+    outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "quest-001"
+    _write_charter(study_root)
+    _write_publication_eval(
+        study_root,
+        quest_root,
+        action_type="return_to_controller",
+        reason="Publication gate needs concrete blocker targets before dispatch.",
+        work_unit_fingerprint="publication-blockers::vague",
+        next_work_unit={
+            "unit_id": "gate_needs_specificity",
+            "lane": "controller",
+            "summary": "Ask the publication gate to identify concrete blocker targets.",
+        },
+    )
+
+    request = outer_loop.build_runtime_watch_outer_loop_tick_request(
+        study_root=study_root,
+        status_payload={
+            **make_study_runtime_status_payload(
+                study_id="001-risk",
+                decision="blocked",
+                reason="study_completion_publishability_gate_blocked",
+            ),
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_status": "running",
+        },
+    )
+
+    assert request is not None
+    assert request["decision_type"] == "return_to_controller"
+    assert request["route_target"] == "controller"
+    assert request["controller_actions"] == [
+        {
+            "action_type": "request_gate_specificity",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
+    assert request["work_unit_fingerprint"] == "publication-blockers::vague"
+    assert request["next_work_unit"]["unit_id"] == "gate_needs_specificity"
 
 
 def test_matching_controller_decision_requires_same_work_unit_context(tmp_path: Path) -> None:

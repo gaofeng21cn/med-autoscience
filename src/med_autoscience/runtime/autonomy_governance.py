@@ -16,6 +16,7 @@ _AUTONOMOUS_SCIENTIFIC_DECISIONS = frozenset(
         "bounded_analysis",
     }
 )
+_AUTONOMOUS_CONTROLLER_SPECIFICITY_DECISIONS = frozenset({"return_to_controller"})
 _AUTONOMOUS_RUNTIME_RECOVERY_DECISIONS = frozenset({"relaunch_branch"})
 _MAJOR_HUMAN_GATE_DECISIONS = frozenset(
     {
@@ -193,6 +194,20 @@ def build_autonomy_governance_contract(
             decision_type=normalized_decision_type,
             controller_action_types=normalized_action_types,
             route_target=str(route_target).strip() if route_target is not None else None,
+        ).to_dict()
+
+    if normalized_decision_type in _AUTONOMOUS_CONTROLLER_SPECIFICITY_DECISIONS:
+        if requires_human_confirmation:
+            raise ValueError("autonomous MAS controller specificity decision cannot require human confirmation")
+        return AutonomyGovernanceContract(
+            lane_id="controller_specificity",
+            continuation_scope="gate_specificity_request",
+            next_stage=_route_or_default(route_target, "controller"),
+            human_gate_class="none",
+            requires_human_confirmation=False,
+            controller_action_types=normalized_action_types,
+            decision_type=normalized_decision_type,
+            reason_code="gate_specificity_request_blocks_runtime_dispatch",
         ).to_dict()
 
     if normalized_decision_type == "stop_loss" and not requires_human_confirmation:

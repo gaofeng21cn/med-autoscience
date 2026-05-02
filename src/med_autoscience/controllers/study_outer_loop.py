@@ -54,6 +54,8 @@ from med_autoscience.study_decision_record import (
     StudyDecisionType,
 )
 
+_GATE_NEEDS_SPECIFICITY_UNIT_ID = "gate_needs_specificity"
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -277,6 +279,14 @@ def _recommended_quality_review_loop_action(*, study_root: Path) -> dict[str, An
 
 def _autonomous_decision_type_for_publication_eval_action(action_payload: dict[str, Any]) -> str | None:
     action_type = str(action_payload.get("action_type") or "").strip()
+    next_work_unit = action_payload.get("next_work_unit")
+    next_work_unit_id = (
+        str(next_work_unit.get("unit_id") or "").strip()
+        if isinstance(next_work_unit, dict)
+        else ""
+    )
+    if action_type == StudyDecisionType.RETURN_TO_CONTROLLER.value and next_work_unit_id == _GATE_NEEDS_SPECIFICITY_UNIT_ID:
+        return StudyDecisionType.RETURN_TO_CONTROLLER.value
     if action_type == StudyDecisionType.CONTINUE_SAME_LINE.value:
         return StudyDecisionType.CONTINUE_SAME_LINE.value
     if action_type == StudyDecisionType.ROUTE_BACK_SAME_LINE.value:
@@ -387,7 +397,9 @@ def build_runtime_watch_outer_loop_tick_request(
     ).to_dict()
     controller_action_type = str(recommended_action.get("controller_action_type") or "").strip()
     if not controller_action_type:
-        if decision_type == StudyDecisionType.STOP_LOSS.value:
+        if decision_type == StudyDecisionType.RETURN_TO_CONTROLLER.value:
+            controller_action_type = StudyDecisionActionType.REQUEST_GATE_SPECIFICITY.value
+        elif decision_type == StudyDecisionType.STOP_LOSS.value:
             controller_action_type = StudyDecisionActionType.STOP_RUNTIME.value
         else:
             controller_action_type = _autonomous_controller_action_type_for_runtime_status(status_payload)
@@ -400,10 +412,27 @@ def build_runtime_watch_outer_loop_tick_request(
         "charter_ref": charter_ref,
         "publication_eval_ref": publication_eval_ref,
         "decision_type": decision_type,
-        "route_target": str(recommended_action.get("route_target") or "").strip() or None,
-        "route_key_question": str(recommended_action.get("route_key_question") or "").strip() or None,
+        "route_target": (
+            str(recommended_action.get("route_target") or "").strip()
+            or ("controller" if decision_type == StudyDecisionType.RETURN_TO_CONTROLLER.value else None)
+        ),
+        "route_key_question": (
+            str(recommended_action.get("route_key_question") or "").strip()
+            or (
+                "gate_needs_specificity: Which exact claim, figure, table, metric, source path, or package artifact is blocking the publication gate?"
+                if decision_type == StudyDecisionType.RETURN_TO_CONTROLLER.value
+                else None
+            )
+        ),
         "source_route_key_question": str(recommended_action.get("source_route_key_question") or "").strip() or None,
-        "route_rationale": str(recommended_action.get("route_rationale") or "").strip() or None,
+        "route_rationale": (
+            str(recommended_action.get("route_rationale") or "").strip()
+            or (
+                str(recommended_action.get("reason") or "").strip()
+                if decision_type == StudyDecisionType.RETURN_TO_CONTROLLER.value
+                else None
+            )
+        ),
         "requires_human_confirmation": False,
         "controller_actions": [controller_action],
         "reason": str(recommended_action.get("reason") or "").strip()
@@ -486,6 +515,12 @@ def _execute_controller_action(
             quest_id=quest_id,
             source=source,
         )
+    elif action.action_type is StudyDecisionActionType.REQUEST_GATE_SPECIFICITY:
+        result = {
+            "ok": True,
+            "status": "recorded",
+            "action": StudyDecisionActionType.REQUEST_GATE_SPECIFICITY.value,
+        }
     else:
         raise ValueError(f"unsupported study outer-loop controller action: {action.action_type.value}")
     return {
@@ -779,6 +814,84 @@ def study_outer_loop_tick(
         "controller_confirmation_summary_ref": confirmation_summary_ref,
         "dispatch_status": "executed",
         "executed_controller_action": executed_controller_action,
+    }
+
+
+def materialize_non_dispatching_outer_loop_decision(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str | None = None,
+    study_root: Path | None = None,
+    status_payload: dict[str, Any] | None = None,
+    charter_ref: StudyDecisionCharterRef | dict[str, Any],
+    publication_eval_ref: StudyDecisionPublicationEvalRef | dict[str, Any],
+    decision_type: str,
+    route_target: str | None = None,
+    route_key_question: str | None = None,
+    route_rationale: str | None = None,
+    source_route_key_question: str | None = None,
+    work_unit_fingerprint: str | None = None,
+    next_work_unit: dict[str, Any] | None = None,
+    blocking_work_units: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None = None,
+    requires_human_confirmation: bool = False,
+    controller_actions: list[dict[str, Any]] | tuple[StudyDecisionControllerAction, ...] | None = None,
+    reason: str,
+    source: str = "med_autoscience",
+    recorded_at: str | None = None,
+) -> dict[str, Any]:
+    resolved_study_id, resolved_study_root, _study_payload = _resolve_study(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+    )
+    status = (
+        dict(status_payload)
+        if isinstance(status_payload, dict)
+        else study_runtime_router.study_runtime_status(
+            profile=profile,
+            study_id=resolved_study_id,
+            study_root=resolved_study_root,
+        )
+    )
+    status = _hydrate_managed_runtime_refs(status)
+    runtime_status = _runtime_status_summary(status)
+    quest_id = str(status.get("quest_id") or "").strip()
+    if not quest_id:
+        raise ValueError("non-dispatching outer-loop decision requires quest_id")
+    written_record, confirmation_summary_ref, _publication_eval_payload, runtime_status = _materialize_study_decision_record(
+        status=status,
+        runtime_status=runtime_status,
+        profile=profile,
+        resolved_study_id=resolved_study_id,
+        resolved_study_root=resolved_study_root,
+        quest_id=quest_id,
+        charter_ref=charter_ref,
+        publication_eval_ref=publication_eval_ref,
+        decision_type=decision_type,
+        route_target=route_target,
+        route_key_question=route_key_question,
+        route_rationale=route_rationale,
+        source_route_key_question=source_route_key_question,
+        work_unit_fingerprint=work_unit_fingerprint,
+        next_work_unit=next_work_unit,
+        blocking_work_units=blocking_work_units,
+        requires_human_confirmation=requires_human_confirmation,
+        controller_actions=controller_actions,
+        reason=reason,
+        source=source,
+        recorded_at=recorded_at,
+        runtime_escalation_payload=status.get("runtime_escalation_ref") if isinstance(status.get("runtime_escalation_ref"), dict) else None,
+    )
+    return {
+        "study_id": resolved_study_id,
+        "quest_id": quest_id,
+        "source": source,
+        "runtime_status": runtime_status,
+        "runtime_escalation_ref": written_record.runtime_escalation_ref.to_dict(),
+        "study_decision_ref": written_record.ref().to_dict(),
+        "controller_confirmation_summary_ref": confirmation_summary_ref,
+        "dispatch_status": "recorded_non_dispatching",
+        "executed_controller_action": None,
     }
 
 

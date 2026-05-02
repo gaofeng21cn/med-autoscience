@@ -95,6 +95,7 @@ _ALLOWED_ROUTE_TARGETS = frozenset(
         "write",
         "review",
         "finalize",
+        "controller",
         "stop",
     }
 )

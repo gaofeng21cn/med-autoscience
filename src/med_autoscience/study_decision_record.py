@@ -45,6 +45,7 @@ class StudyDecisionType(StrEnum):
     CONTINUE_SAME_LINE = "continue_same_line"
     ROUTE_BACK_SAME_LINE = "route_back_same_line"
     BOUNDED_ANALYSIS = "bounded_analysis"
+    RETURN_TO_CONTROLLER = "return_to_controller"
     RELAUNCH_BRANCH = "relaunch_branch"
     REROUTE_STUDY = "reroute_study"
     STOP_LOSS = "stop_loss"
@@ -58,6 +59,7 @@ class StudyDecisionActionType(StrEnum):
     STOP_RUNTIME = "stop_runtime"
     RUN_GATE_CLEARING_BATCH = "run_gate_clearing_batch"
     RUN_QUALITY_REPAIR_BATCH = "run_quality_repair_batch"
+    REQUEST_GATE_SPECIFICITY = "request_gate_specificity"
 
 
 def _reject_unknown_fields(label: str, payload: dict[str, Any], allowed_fields: frozenset[str]) -> None:
