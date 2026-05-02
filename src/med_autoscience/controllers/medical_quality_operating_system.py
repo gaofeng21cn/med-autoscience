@@ -280,6 +280,89 @@ def _quality_preserving_fast_lane_policy() -> dict[str, Any]:
     }
 
 
+def build_quality_os_runtime_materialization_contract() -> dict[str, Any]:
+    return {
+        "surface": "quality_os_runtime_materialization_contract",
+        "schema_version": 1,
+        "default_verdict_when_unclosed": "NEEDS_REVIEW",
+        "runtime_surfaces": {
+            "pre_draft_readiness": "paper/pre_draft_writing_readiness.json",
+            "ai_review_ledger": "paper/review_ledger.json",
+            "publication_eval": "artifacts/publication_eval/latest.json",
+            "medical_prose_review": "artifacts/publication_eval/medical_prose_review.json",
+            "controller_decision": "artifacts/controller_decisions/latest.json",
+        },
+        "mechanical_gate_output_contract": {
+            "allowed_output_kinds": ["completeness", "evidence", "blocker", "projection"],
+            "forbidden_output_kinds": [
+                "ready_authorization",
+                "quality_closure",
+                "submission_authorization",
+            ],
+            "mechanical_projection_can_authorize_ready": False,
+        },
+        "default_flow": {
+            "write": {
+                "required_before": "first_full_draft",
+                "required_runtime_surface": "paper/pre_draft_writing_readiness.json",
+                "required_status": "closed",
+                "must_read": [
+                    "study_charter.paper_quality_contract",
+                    "paper/evidence_ledger.json",
+                    "paper/review_ledger.json",
+                    "paper/medical_manuscript_blueprint.json",
+                    "artifacts/publication_eval/latest.json",
+                ],
+                "fail_closed_when_missing": "route_back_required",
+                "ai_reviewer_provenance_required": True,
+                "mechanical_gate_can_authorize_ready": False,
+            },
+            "revise": {
+                "required_runtime_surface": "paper/review_ledger.json",
+                "route_back_required": True,
+                "route_back_trace_fields": [
+                    "finding_refs",
+                    "affected_claim_refs",
+                    "fix_refs",
+                    "acceptance_criteria",
+                    "next_route",
+                ],
+                "fail_closed_when_route_back_missing": "review_ledger_route_back_required",
+            },
+            "finalize": {
+                "requires_ai_reviewer_provenance": True,
+                "required_provenance": {
+                    "assessment_owner": "ai_reviewer",
+                    "policy_id": "medical_publication_critique_v1",
+                    "ai_reviewer_required": False,
+                },
+                "required_runtime_surfaces": [
+                    "artifacts/publication_eval/latest.json",
+                    "artifacts/publication_eval/medical_prose_review.json",
+                    "paper/review_ledger.json",
+                ],
+                "fail_closed_when_missing_provenance": "review_required",
+                "mechanical_gate_can_authorize_ready": False,
+            },
+            "submission": {
+                "requires_ai_reviewer_provenance": True,
+                "required_provenance": {
+                    "assessment_owner": "ai_reviewer",
+                    "policy_id": "medical_publication_critique_v1",
+                    "ai_reviewer_required": False,
+                },
+                "required_runtime_surfaces": [
+                    "artifacts/publication_eval/latest.json",
+                    "artifacts/publication_eval/medical_prose_review.json",
+                    "paper/review_ledger.json",
+                ],
+                "fail_closed_when_missing_provenance": "review_required",
+                "mechanical_gate_can_authorize_ready": False,
+            },
+        },
+    }
+
+
 def build_medical_quality_operating_system_contract(
     *,
     study_archetype: str | None,
@@ -347,5 +430,6 @@ def build_medical_quality_operating_system_contract(
             ),
             "stronger_paper_shape_scan": _stronger_paper_shape_scan(),
             "completion_claim_policy": _completion_claim_policy(),
+            "quality_runtime_materialization": build_quality_os_runtime_materialization_contract(),
         },
     }

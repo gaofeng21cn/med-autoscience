@@ -190,3 +190,77 @@ def test_quality_os_blocks_claim_only_ready_and_fast_lane_gate_relaxation() -> N
     assert "bounded_analysis_unit" in fast_lane["allowed_parallelism"]
     assert "skip_publication_eval" in fast_lane["forbidden_shortcuts"]
     assert "claim_only_ready" in fast_lane["forbidden_shortcuts"]
+
+
+def test_quality_os_materializes_default_runtime_quality_flow_contract() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.medical_quality_operating_system"
+    )
+
+    contract = module.build_medical_quality_operating_system_contract(
+        study_archetype="clinical_observation",
+        manuscript_family="observational_study",
+    )
+
+    assert "quality_runtime_materialization" in contract["quality_contract"]
+    runtime_contract = contract["quality_contract"]["quality_runtime_materialization"]
+    assert runtime_contract == module.build_quality_os_runtime_materialization_contract()
+    assert runtime_contract["surface"] == "quality_os_runtime_materialization_contract"
+    assert runtime_contract["default_verdict_when_unclosed"] == "NEEDS_REVIEW"
+    assert runtime_contract["mechanical_gate_output_contract"] == {
+        "allowed_output_kinds": ["completeness", "evidence", "blocker", "projection"],
+        "forbidden_output_kinds": ["ready_authorization", "quality_closure", "submission_authorization"],
+        "mechanical_projection_can_authorize_ready": False,
+    }
+
+    write_gate = runtime_contract["default_flow"]["write"]
+    assert write_gate["required_before"] == "first_full_draft"
+    assert write_gate["required_runtime_surface"] == "paper/pre_draft_writing_readiness.json"
+    assert write_gate["required_status"] == "closed"
+    assert write_gate["must_read"] == [
+        "study_charter.paper_quality_contract",
+        "paper/evidence_ledger.json",
+        "paper/review_ledger.json",
+        "paper/medical_manuscript_blueprint.json",
+        "artifacts/publication_eval/latest.json",
+    ]
+    assert write_gate["fail_closed_when_missing"] == "route_back_required"
+    assert write_gate["ai_reviewer_provenance_required"] is True
+    assert write_gate["mechanical_gate_can_authorize_ready"] is False
+
+    revise_gate = runtime_contract["default_flow"]["revise"]
+    assert revise_gate["required_runtime_surface"] == "paper/review_ledger.json"
+    assert revise_gate["route_back_required"] is True
+    assert revise_gate["route_back_trace_fields"] == [
+        "finding_refs",
+        "affected_claim_refs",
+        "fix_refs",
+        "acceptance_criteria",
+        "next_route",
+    ]
+    assert revise_gate["fail_closed_when_route_back_missing"] == "review_ledger_route_back_required"
+
+    finalize_gate = runtime_contract["default_flow"]["finalize"]
+    submission_gate = runtime_contract["default_flow"]["submission"]
+    for gate in (finalize_gate, submission_gate):
+        assert gate["requires_ai_reviewer_provenance"] is True
+        assert gate["required_provenance"] == {
+            "assessment_owner": "ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+        }
+        assert gate["required_runtime_surfaces"] == [
+            "artifacts/publication_eval/latest.json",
+            "artifacts/publication_eval/medical_prose_review.json",
+            "paper/review_ledger.json",
+        ]
+        assert gate["fail_closed_when_missing_provenance"] == "review_required"
+        assert gate["mechanical_gate_can_authorize_ready"] is False
+
+    assert runtime_contract["runtime_surfaces"] == {
+        "pre_draft_readiness": "paper/pre_draft_writing_readiness.json",
+        "ai_review_ledger": "paper/review_ledger.json",
+        "publication_eval": "artifacts/publication_eval/latest.json",
+        "medical_prose_review": "artifacts/publication_eval/medical_prose_review.json",
+        "controller_decision": "artifacts/controller_decisions/latest.json",
+    }
