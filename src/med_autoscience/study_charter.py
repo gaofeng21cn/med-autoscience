@@ -10,6 +10,7 @@ from med_autoscience.policies.medical_manuscript_draft_quality import (
     build_medical_manuscript_blueprint_contract,
     build_medical_prose_style_contract,
     build_medical_prose_review_contract,
+    build_pre_draft_writing_readiness_contract,
 )
 from med_autoscience.policies.medical_reporting_checklist import build_default_structured_reporting_contract
 from med_autoscience.policies.medical_reporting_contract import SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES
@@ -132,6 +133,7 @@ DEFAULT_FIRST_DRAFT_QUALITY_CONTRACT = {
     },
     "medical_prose_style_contract": build_medical_prose_style_contract(),
     "medical_manuscript_blueprint_contract": build_medical_manuscript_blueprint_contract(),
+    "pre_draft_writing_readiness_contract": build_pre_draft_writing_readiness_contract(),
     "medical_prose_review_contract": build_medical_prose_review_contract(),
     "first_draft_generation_model": {
         "pre_draft_inputs": [
@@ -144,6 +146,7 @@ DEFAULT_FIRST_DRAFT_QUALITY_CONTRACT = {
             "display_to_claim_map",
             "reader_facing_contribution",
             "medical_manuscript_blueprint",
+            "pre_draft_writing_readiness",
             "medical_prose_style_contract",
             "medical_prose_review",
         ],
@@ -303,6 +306,33 @@ def _materialize_bounded_analysis_contract(study_payload: dict[str, Any]) -> dic
     }
 
 
+def _materialize_first_draft_quality_contract(raw_contract: dict[str, Any]) -> dict[str, Any]:
+    contract = deepcopy(DEFAULT_FIRST_DRAFT_QUALITY_CONTRACT)
+    contract.update(raw_contract)
+    contract["pre_draft_writing_readiness_contract"] = _mapping(
+        raw_contract.get("pre_draft_writing_readiness_contract")
+    ) or build_pre_draft_writing_readiness_contract()
+    contract["quality_proxy_exclusion_policy"] = _mapping(
+        raw_contract.get("quality_proxy_exclusion_policy")
+    ) or {
+        "controller_or_progress_surfaces_can_authorize_body_quality": False,
+        "forbidden_quality_proxies": [
+            "controller_checklist",
+            "run_log_or_execution_transcript",
+            "progress_prose",
+            "generic_completion_checklist",
+            "packaging_metadata",
+        ],
+    }
+    generation_model = _mapping(contract.get("first_draft_generation_model"))
+    pre_draft_inputs = _string_list(generation_model.get("pre_draft_inputs"))
+    if "pre_draft_writing_readiness" not in pre_draft_inputs:
+        pre_draft_inputs.append("pre_draft_writing_readiness")
+    generation_model["pre_draft_inputs"] = pre_draft_inputs
+    contract["first_draft_generation_model"] = generation_model
+    return contract
+
+
 def _materialize_structured_reporting_contract(study_payload: dict[str, Any]) -> dict[str, Any]:
     raw_contract = _mapping(study_payload.get("structured_reporting_contract"))
     actionability_required = raw_contract.get("clinical_actionability_required")
@@ -334,9 +364,10 @@ def _materialize_structured_reporting_contract(study_payload: dict[str, Any]) ->
         or dict(DEFAULT_METHODS_COMPLETENESS_CONTRACT),
         "statistical_reporting": _mapping(raw_contract.get("statistical_reporting"))
         or dict(DEFAULT_STATISTICAL_REPORTING_CONTRACT),
-        "first_draft_quality_contract": _mapping(raw_contract.get("first_draft_quality_contract"))
-        or _mapping(study_payload.get("first_draft_quality_contract"))
-        or deepcopy(DEFAULT_FIRST_DRAFT_QUALITY_CONTRACT),
+        "first_draft_quality_contract": _materialize_first_draft_quality_contract(
+            _mapping(raw_contract.get("first_draft_quality_contract"))
+            or _mapping(study_payload.get("first_draft_quality_contract"))
+        ),
         "table_figure_claim_map_required": raw_contract.get("table_figure_claim_map_required") is not False,
         "human_metadata_admin_todos": [
             "authors",
