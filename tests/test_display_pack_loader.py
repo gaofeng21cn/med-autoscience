@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
 import subprocess
 
 import pytest
 
+import med_autoscience.display_pack_loader as display_pack_loader
 from med_autoscience.display_pack_loader import (
     load_enabled_local_display_pack_records,
     load_enabled_local_display_pack_template_records,
@@ -12,6 +14,10 @@ from med_autoscience.display_pack_loader import (
     load_enabled_local_display_packs,
     resolve_display_pack_selection,
 )
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+CORE_PACK_ID = "fenggaolab.org.medical-display-core"
 
 
 def _write_display_pack_config(repo_root: Path, *, version: str = "0.1.0") -> None:
@@ -127,6 +133,54 @@ def test_load_enabled_local_display_packs_reads_repo_config(tmp_path: Path) -> N
 
     assert [item.pack_id for item in manifests] == ["fenggaolab.org.medical-display-core"]
     assert manifests[0].version == "0.1.0"
+
+
+def test_load_enabled_local_display_packs_reads_packaged_default_config(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    packaged_root = tmp_path / "packaged_default"
+    shutil.copytree(REPO_ROOT / "config", packaged_root / "config")
+    shutil.copytree(REPO_ROOT / "display-packs", packaged_root / "display-packs")
+    monkeypatch.setattr(display_pack_loader, "_PACKAGED_DISPLAY_PACK_REPO_ROOT", packaged_root)
+
+    install_root = tmp_path / "installed"
+    install_root.mkdir()
+    monkeypatch.setattr(display_pack_loader, "_DEFAULT_REPO_ROOT", install_root)
+    manifests = load_enabled_local_display_packs(install_root)
+
+    assert [item.pack_id for item in manifests] == [CORE_PACK_ID]
+    assert manifests[0].version == "0.1.0"
+
+
+def test_packaged_default_display_pack_repo_matches_source_tree() -> None:
+    packaged_root = REPO_ROOT / "src" / "med_autoscience" / "resources" / "display_pack_repo"
+    source_roots = (REPO_ROOT / "config", REPO_ROOT / "display-packs")
+    packaged_roots = (packaged_root / "config", packaged_root / "display-packs")
+
+    def _tracked_resource_files(root: Path) -> list[Path]:
+        return sorted(
+            path
+            for path in root.rglob("*")
+            if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+        )
+
+    source_files = sorted(
+        path.relative_to(root).as_posix()
+        for root in source_roots
+        for path in _tracked_resource_files(root)
+    )
+    packaged_files = sorted(
+        path.relative_to(root).as_posix()
+        for root in packaged_roots
+        for path in _tracked_resource_files(root)
+    )
+
+    assert packaged_files == source_files
+    for source_root, packaged_root_item in zip(source_roots, packaged_roots, strict=True):
+        for source_path in _tracked_resource_files(source_root):
+            relative_path = source_path.relative_to(source_root)
+            assert (packaged_root_item / relative_path).read_bytes() == source_path.read_bytes()
 
 
 def test_load_enabled_local_display_pack_templates_reads_enabled_pack_templates(tmp_path: Path) -> None:

@@ -1,0 +1,14 @@
+template_id = "site_held_out_stability_figure"
+full_template_id = "fenggaolab.org.medical-display-core::site_held_out_stability_figure"
+kind = "evidence_figure"
+display_name = "Site-Held-Out Stability Figure"
+paper_family_ids = ["H"]
+audit_family = "Publication Shells and Tables"
+renderer_family = "python"
+input_schema_ref = "dpcc_transition_site_support_v1"
+qc_profile_ref = "publication_survival_curve"
+required_exports = ["png", "pdf", "svg"]
+allowed_paper_roles = ["main_text", "supplementary"]
+execution_mode = "python_plugin"
+entrypoint = "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
+paper_proven = false

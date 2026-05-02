@@ -1,0 +1,14 @@
+template_id = "table3_transition_site_support_summary"
+full_template_id = "fenggaolab.org.medical-display-core::table3_transition_site_support_summary"
+kind = "table_shell"
+display_name = "Table 3 Transition Site Support Summary"
+paper_family_ids = ["H"]
+audit_family = "Publication Shells and Tables"
+renderer_family = "n/a"
+input_schema_ref = "transition_site_support_summary_schema_v1"
+qc_profile_ref = "publication_table_interpretation"
+required_exports = ["md"]
+allowed_paper_roles = ["main_text", "supplementary"]
+execution_mode = "python_plugin"
+entrypoint = "fenggaolab_org_medical_display_core.table_shells:render_table_shell"
+paper_proven = false

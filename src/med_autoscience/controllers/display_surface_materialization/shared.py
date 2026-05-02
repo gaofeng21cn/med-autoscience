@@ -42,6 +42,8 @@ from med_autoscience import display_layout_qc, display_pack_lock, display_pack_r
 
 from med_autoscience.display_source_contract import INPUT_FILENAME_BY_SCHEMA_ID, TABLE_INPUT_FILENAME_BY_SCHEMA_ID  # noqa: E402
 
+from med_autoscience.display_pack_loader import default_display_pack_repo_root  # noqa: E402
+
 from med_autoscience.display_pack_resolver import get_pack_id, get_template_short_id  # noqa: E402
 
 from med_autoscience.policies.medical_reporting_contract import display_story_role_for_requirement_key  # noqa: E402
@@ -139,7 +141,7 @@ _TABLE_OUTPUT_CONFIG_BY_TEMPLATE_SHORT_ID: dict[str, dict[str, Any]] = {
     },
 }
 
-_REPO_ROOT = Path(__file__).resolve().parents[4]
+_REPO_ROOT = default_display_pack_repo_root()
 
 def _resolve_illustration_shell_paper_role(
     *,

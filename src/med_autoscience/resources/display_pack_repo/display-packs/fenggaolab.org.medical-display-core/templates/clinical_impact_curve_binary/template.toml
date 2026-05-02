@@ -1,0 +1,14 @@
+template_id = "clinical_impact_curve_binary"
+full_template_id = "fenggaolab.org.medical-display-core::clinical_impact_curve_binary"
+kind = "evidence_figure"
+display_name = "Clinical Impact Curve (Binary Outcome)"
+paper_family_ids = ["A"]
+audit_family = "Clinical Utility"
+renderer_family = "r_ggplot2"
+input_schema_ref = "binary_prediction_curve_inputs_v1"
+qc_profile_ref = "publication_evidence_curve"
+required_exports = ["png", "pdf"]
+allowed_paper_roles = ["main_text", "supplementary"]
+execution_mode = "python_plugin"
+entrypoint = "fenggaolab_org_medical_display_core.evidence_figures:render_r_evidence_figure"
+paper_proven = false

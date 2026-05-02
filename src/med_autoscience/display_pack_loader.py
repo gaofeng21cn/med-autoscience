@@ -13,6 +13,8 @@ from med_autoscience.display_pack_contract import (
 )
 
 _VALID_SOURCE_KINDS = frozenset(("local_dir", "git_repo", "python_package"))
+_DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
+_PACKAGED_DISPLAY_PACK_REPO_ROOT = Path(__file__).resolve().parent / "resources" / "display_pack_repo"
 
 
 @dataclass(frozen=True)
@@ -118,6 +120,20 @@ def _load_toml_payload(path: Path) -> dict[str, object]:
     return payload
 
 
+def _resolve_repo_config_root(repo_root: Path) -> Path:
+    normalized_repo_root = Path(repo_root).expanduser().resolve()
+    if (normalized_repo_root / "config" / "display_packs.toml").exists():
+        return normalized_repo_root
+    packaged_config_path = _PACKAGED_DISPLAY_PACK_REPO_ROOT / "config" / "display_packs.toml"
+    if normalized_repo_root == _DEFAULT_REPO_ROOT.resolve() and packaged_config_path.exists():
+        return _PACKAGED_DISPLAY_PACK_REPO_ROOT.resolve()
+    return normalized_repo_root
+
+
+def default_display_pack_repo_root() -> Path:
+    return _resolve_repo_config_root(_DEFAULT_REPO_ROOT)
+
+
 def _expect_source_kind(payload: dict[str, object]) -> str:
     kind = _expect_str(payload, "kind")
     if kind not in _VALID_SOURCE_KINDS:
@@ -207,7 +223,7 @@ def resolve_display_pack_selection(
     *,
     paper_root: Path | None = None,
 ) -> DisplayPackResolution:
-    normalized_repo_root = Path(repo_root).expanduser().resolve()
+    normalized_repo_root = _resolve_repo_config_root(repo_root)
     repo_config_path = normalized_repo_root / "config" / "display_packs.toml"
     repo_payload = _load_toml_payload(repo_config_path)
 

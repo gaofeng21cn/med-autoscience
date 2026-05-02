@@ -1,0 +1,7 @@
+default_enabled_packs = ["fenggaolab.org.medical-display-core"]
+
+[[sources]]
+kind = "local_dir"
+pack_id = "fenggaolab.org.medical-display-core"
+path = "display-packs/fenggaolab.org.medical-display-core"
+version = "0.1.0"

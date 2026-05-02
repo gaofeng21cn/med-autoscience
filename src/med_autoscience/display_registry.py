@@ -2,16 +2,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from pathlib import Path
 from typing import TypeVar
 
 from med_autoscience.display_pack_contract import DisplayTemplateManifest
-from med_autoscience.display_pack_loader import load_enabled_local_display_pack_templates
+from med_autoscience.display_pack_loader import (
+    default_display_pack_repo_root,
+    load_enabled_local_display_pack_templates,
+)
 from med_autoscience.display_pack_resolver import split_full_template_id
 
 
 _CORE_DISPLAY_PACK_ID = "fenggaolab.org.medical-display-core"
-_REPO_ROOT = Path(__file__).resolve().parents[2]
+_REPO_ROOT = default_display_pack_repo_root()
 _T = TypeVar("_T")
 
 
