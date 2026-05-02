@@ -266,3 +266,27 @@ def build_deterministic_quality_gate_projection(
         "blocking_gate_keys": list(blocker_summary),
         "blockers": blocker_summary,
     }
+
+
+def build_deterministic_quality_gate_projection_from_state(
+    *,
+    state: Any,
+    blockers: list[str],
+    medical_publication_surface_named_blockers: list[str],
+    publication_reporting_checklist: dict[str, Any] | None,
+    blocking_artifact_refs: list[dict[str, Any]],
+    active_figure_count: int | None,
+    prebundle_display_advisories: list[str],
+) -> dict[str, Any]:
+    return build_deterministic_quality_gate_projection(
+        blockers=blockers,
+        medical_publication_surface=state.latest_medical_publication_surface,
+        medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
+        publication_reporting_checklist=publication_reporting_checklist,
+        submission_surface_qc_failures=list(state.submission_surface_qc_failures),
+        manuscript_terminology_violations=list(state.manuscript_terminology_violations),
+        blocking_artifact_refs=blocking_artifact_refs,
+        active_figure_count=active_figure_count,
+        prebundle_display_advisories=prebundle_display_advisories,
+        study_root=state.study_root,
+    )
