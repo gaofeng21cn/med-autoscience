@@ -21,3 +21,5 @@ Artifact OS 的目标是让 manuscript、figures、tables 和 submission package
 - submission package 必须从 canonical sources + AI reviewer quality decision 重建。
 
 派生 projection 可以作为人读 handoff、提交镜像或 traceability output 使用；不能作为后续编辑、质量关闭、投稿授权的根。
+
+`artifact_rebuild_integrity_contract` 固定每类生成产物的 rebuild proof：`source_refs`、`fingerprint_refs`、`quality_decision_ref`、`controller_decision_ref` 和 `generated_artifact_role` 必须同时存在。缺任何一项只能说明 rebuild proof 不完整，不能把当前包、DOCX/PDF、zip 或 `submission_minimal/` 提升成质量或投稿 authority。

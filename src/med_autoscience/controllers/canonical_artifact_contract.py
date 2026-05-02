@@ -54,6 +54,27 @@ REBUILD_REQUIRED_INPUTS: tuple[str, ...] = (
     "ai_reviewer_quality_decision",
 )
 
+GENERATED_ARTIFACT_ROLES: dict[str, str] = {
+    "manuscript": "generated_manuscript_projection",
+    "tables": "generated_table_projection",
+    "figures": "generated_figure_projection",
+    "submission_package": "generated_submission_delivery_projection",
+}
+
+CANONICAL_SOURCE_REFS: tuple[str, ...] = (
+    "study_charter",
+    "paper/evidence_ledger.json",
+    "analysis_outputs",
+    "paper/medical_manuscript_blueprint.json",
+)
+
+CANONICAL_FINGERPRINT_REFS: tuple[str, ...] = (
+    "study_charter.sha256",
+    "paper/evidence_ledger.sha256",
+    "analysis_outputs.sha256",
+    "paper/medical_manuscript_blueprint.sha256",
+)
+
 
 def _list(value: object) -> list[object]:
     return value if isinstance(value, list) else []
@@ -110,6 +131,94 @@ def build_canonical_artifact_contract() -> dict[str, Any]:
             for target in REBUILD_TARGETS
         ],
         "forbidden_paths_as_authority": list(DERIVED_ARTIFACT_PATHS),
+    }
+
+
+def _rebuild_proof(target: str) -> dict[str, Any]:
+    return {
+        "target": target,
+        "generated_artifact_role": GENERATED_ARTIFACT_ROLES[target],
+        "source_refs": list(CANONICAL_SOURCE_REFS),
+        "fingerprint_refs": list(CANONICAL_FINGERPRINT_REFS),
+        "quality_decision_ref": "artifacts/publication_eval/latest.json",
+        "controller_decision_ref": "controller_decisions/latest.json",
+        "derived_artifact_can_authorize_submission": False,
+        "derived_artifact_can_be_quality_authority": False,
+        "derived_artifact_can_be_edit_source": False,
+    }
+
+
+def build_artifact_rebuild_integrity_contract() -> dict[str, Any]:
+    return {
+        "surface": "artifact_rebuild_integrity_contract",
+        "schema_version": SCHEMA_VERSION,
+        "artifact_owner": "MedAutoScience Artifact OS",
+        "derived_artifact_can_authorize_submission": False,
+        "derived_artifact_can_be_quality_authority": False,
+        "derived_artifact_can_be_edit_source": False,
+        "rebuild_proofs": [_rebuild_proof(target) for target in REBUILD_TARGETS],
+    }
+
+
+def validate_artifact_rebuild_integrity_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
+    issues: list[dict[str, Any]] = []
+    if contract.get("derived_artifact_can_authorize_submission") is not False:
+        issues.append({"code": "derived_artifact_authorizes_submission"})
+    if contract.get("derived_artifact_can_be_quality_authority") is not False:
+        issues.append({"code": "derived_artifact_used_as_quality_authority"})
+    if contract.get("derived_artifact_can_be_edit_source") is not False:
+        issues.append({"code": "derived_artifact_used_as_edit_source"})
+
+    proofs_by_target = {
+        _text(proof.get("target")): proof
+        for proof in _list(contract.get("rebuild_proofs"))
+        if isinstance(proof, Mapping)
+    }
+    for target in REBUILD_TARGETS:
+        proof = proofs_by_target.get(target)
+        if proof is None:
+            issues.append({"code": "rebuild_proof_missing", "target": target})
+            continue
+        if not _list(proof.get("source_refs")):
+            issues.append({"code": "rebuild_proof_missing_source_refs", "target": target})
+        if not _list(proof.get("fingerprint_refs")):
+            issues.append({"code": "rebuild_proof_missing_fingerprint_refs", "target": target})
+        if not _text(proof.get("quality_decision_ref")):
+            issues.append({"code": "rebuild_proof_missing_quality_decision_ref", "target": target})
+        if not _text(proof.get("controller_decision_ref")).startswith("controller_decisions/"):
+            issues.append(
+                {
+                    "code": "rebuild_proof_controller_decision_ref_not_controller_owned",
+                    "target": target,
+                }
+            )
+        if proof.get("derived_artifact_can_authorize_submission") is not False:
+            issues.append(
+                {
+                    "code": "rebuild_proof_authorizes_submission_from_derived_artifact",
+                    "target": target,
+                }
+            )
+        if proof.get("derived_artifact_can_be_quality_authority") is not False:
+            issues.append(
+                {
+                    "code": "rebuild_proof_uses_derived_artifact_as_quality_authority",
+                    "target": target,
+                }
+            )
+        if proof.get("derived_artifact_can_be_edit_source") is not False:
+            issues.append(
+                {
+                    "code": "rebuild_proof_uses_derived_artifact_as_edit_source",
+                    "target": target,
+                }
+            )
+    return {
+        "surface": "artifact_rebuild_integrity_contract_validation",
+        "schema_version": SCHEMA_VERSION,
+        "ok": not issues,
+        "issue_count": len(issues),
+        "issues": issues,
     }
 
 
