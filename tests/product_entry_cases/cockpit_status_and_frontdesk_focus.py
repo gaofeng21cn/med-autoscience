@@ -373,6 +373,31 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
                 "handling_state": "scientific_or_quality_repair_in_progress",
                 "user_visible_verdict": "当前需要 AI reviewer 复核后才能继续。",
             },
+            "ai_first_default_entry_state": {
+                "surface": "ai_first_default_entry_state",
+                "current_stage": "pre_submission_default_entry",
+                "pre_draft": {"summary": "pre-draft 已完成结构化初稿。"},
+                "ai_reviewer_workflow": {
+                    "summary": "AI reviewer workflow 正在补齐质量授权。",
+                    "trace_complete": False,
+                    "prompt": "internal prompt must stay hidden",
+                    "token_count": 1234,
+                },
+                "artifact_proof": {
+                    "summary": "artifact proof 等待 current_package 从 canonical source 刷新。",
+                    "refresh_pending_count": 2,
+                    "current_package_from_canonical_source": False,
+                    "log_path": "/tmp/internal.log",
+                },
+                "route_back": {
+                    "summary": "route-back 指向 analysis-campaign。",
+                    "active": True,
+                    "target": "analysis-campaign",
+                },
+                "next_step": "先补齐 AI reviewer workflow，再刷新 artifact proof。",
+                "human_judgment": {"summary": "等待人工判断是否释放投稿包。", "required": True},
+                "blockers": ["AI reviewer trace 还未闭环。"],
+            },
             "ai_first_operations_dashboard": {
                 "surface": "ai_first_operations_dashboard_summary",
                 "read_model": "ai_first_operations_dashboard_read_model",
@@ -424,20 +449,32 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
     markdown = module.render_workspace_cockpit_markdown(payload)
 
     state = payload["ai_first_operations_state"]
+    assert payload["studies"][0]["ai_first_default_entry_state"]["surface"] == "ai_first_default_entry_state"
     assert payload["studies"][0]["ai_first_operations_dashboard"]["surface"] == "ai_first_operations_dashboard_summary"
     assert state["authority"] == "observability_only"
+    assert state["read_model"] == "ai_first_default_entry_state_read_model"
     assert state["status"] == "attention_required"
     assert state["counts"]["dashboard_count"] == 1
+    assert state["counts"]["default_entry_state_count"] == 1
     assert state["counts"]["ai_reviewer_trace_incomplete"] == 1
     assert state["counts"]["route_back_active"] == 1
     assert state["counts"]["artifact_refresh_pending"] == 1
     assert state["counts"]["human_review_required"] == 1
     assert state["study_dashboards"][0]["route_back_target"] == "analysis-campaign"
-    assert state["study_dashboards"][0]["authority"]["observability_can_authorize_quality"] is False
+    assert state["study_dashboards"][0]["authority"] == "observability_only"
     assert "AI-first Operations" in markdown
+    assert "pre-draft: pre-draft 已完成结构化初稿。" in markdown
+    assert "AI reviewer workflow: AI reviewer workflow 正在补齐质量授权。" in markdown
+    assert "artifact proof: artifact proof 等待 current_package 从 canonical source 刷新。" in markdown
+    assert "route-back: route-back 指向 analysis-campaign。" in markdown
+    assert "下一步: 先补齐 AI reviewer workflow，再刷新 artifact proof。" in markdown
+    assert "人工判断: 等待人工判断是否释放投稿包。" in markdown
     assert "AI reviewer trace 不完整 1" in markdown
     assert "route-back 未闭环 1" in markdown
     assert "产物待刷新 1" in markdown
+    assert "internal prompt" not in markdown
+    assert "token_count" not in markdown
+    assert "/tmp/internal.log" not in markdown
 
 
 def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_brief(
