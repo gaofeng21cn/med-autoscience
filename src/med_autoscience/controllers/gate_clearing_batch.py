@@ -32,6 +32,7 @@ from med_autoscience.controllers import gate_clearing_batch_replay_closure
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import gate_clearing_batch_transportability
+from med_autoscience.controllers import gate_clearing_batch_time_to_event_grouped
 from med_autoscience.controllers import publication_shell_sync
 from med_autoscience.controllers.gate_clearing_batch_execution import GateClearingRepairUnit
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
@@ -767,6 +768,13 @@ def _legacy_time_to_event_grouped_payloads_need_normalization(*, paper_root: Pat
     return bool(candidate_display_ids)
 
 
+def _time_to_event_risk_group_surface_present(*, paper_root: Path) -> bool:
+    return gate_clearing_batch_time_to_event_grouped.time_to_event_risk_group_surface_present(
+        paper_root=paper_root,
+        read_json=_read_json,
+    )
+
+
 def _display_registry_item_for_requirement(
     *,
     paper_root: Path,
@@ -1022,7 +1030,16 @@ def run_gate_clearing_batch(
                         ),
                     )
                 )
-            if _legacy_time_to_event_grouped_payloads_need_normalization(paper_root=paper_root):
+            if (
+                _legacy_time_to_event_grouped_payloads_need_normalization(paper_root=paper_root)
+                or (
+                    _time_to_event_risk_group_surface_present(paper_root=paper_root)
+                    and any(
+                        unit.unit_id == "sync_transportability_reporting_surface"
+                        for unit in repair_units
+                    )
+                )
+            ):
                 repair_units.append(
                     GateClearingRepairUnit(
                         unit_id="normalize_legacy_time_to_event_grouped_payloads",
