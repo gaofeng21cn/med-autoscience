@@ -12,6 +12,7 @@ from med_autoscience.display_source_contract import (
 from med_autoscience.controllers.display_surface_materialization.contract_backed_registry import (
     resolve_contract_backed_figure_registry_fields,
 )
+from med_autoscience.policies.medical_reporting_contract import display_story_role_for_requirement_key
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -162,20 +163,35 @@ def _update_renderer_contracts(
     *,
     path: Path,
     expected_renderer_contracts: dict[str, dict[str, object]],
+    expected_story_roles: dict[str, str],
 ) -> bool:
     payload = load_json(path)
     figures = payload.get("figures")
-    if not isinstance(figures, list):
-        raise ValueError(f"{path.name} must contain a figures list")
+    if not isinstance(figures, (list, dict)):
+        raise ValueError(f"{path.name} must contain a figures list or object")
 
     remaining_figure_ids = set(expected_renderer_contracts)
     changed = False
-    for index, entry in enumerate(figures):
+    if isinstance(figures, dict):
+        figure_entries: list[tuple[str, dict[str, Any]]] = [
+            (str(figure_id), entry)
+            for figure_id, entry in figures.items()
+            if isinstance(entry, dict)
+        ]
+    else:
+        figure_entries = [(str(index), entry) for index, entry in enumerate(figures) if isinstance(entry, dict)]
+
+    for index, entry in figure_entries:
         if not isinstance(entry, dict):
             raise ValueError(f"{path.name} figures[{index}] must be an object")
-        figure_id = str(entry.get("figure_id") or "").strip()
+        figure_id = str(entry.get("figure_id") or index).strip()
         if figure_id not in expected_renderer_contracts:
             continue
+        expected_story_role = expected_story_roles.get(figure_id)
+        observed_story_role = str(entry.get("story_role") or "").strip()
+        if expected_story_role and not observed_story_role:
+            entry["story_role"] = expected_story_role
+            changed = True
         renderer_contract = entry.get("renderer_contract")
         if not isinstance(renderer_contract, dict):
             raise ValueError(f"{path.name} figures[{index}] is missing renderer_contract")
@@ -184,6 +200,15 @@ def _update_renderer_contracts(
                 continue
             renderer_contract[field_name] = expected_value
             changed = True
+        if "renderer" in renderer_contract and "renderer_family" in expected_renderer_contracts[figure_id]:
+            expected_renderer = expected_renderer_contracts[figure_id]["renderer_family"]
+            if renderer_contract.get("renderer") != expected_renderer:
+                renderer_contract["renderer"] = expected_renderer
+                changed = True
+            allowed_renderers = renderer_contract.get("allowed_renderers")
+            if isinstance(allowed_renderers, list) and expected_renderer not in allowed_renderers:
+                allowed_renderers.append(expected_renderer)
+                changed = True
         remaining_figure_ids.discard(figure_id)
 
     if remaining_figure_ids:
@@ -236,6 +261,86 @@ def _renderer_contract_for_registry_fields(registry_fields: dict[str, Any]) -> d
         "fallback_on_failure": False,
         "failure_action": "block_and_fix_environment",
     }
+
+
+def _export_format_from_path(path_value: object) -> str:
+    suffix = Path(str(path_value or "")).suffix.lower().lstrip(".")
+    return suffix
+
+
+def _collect_catalog_export_formats(entry: dict[str, Any]) -> list[str]:
+    renderer_contract = entry.get("renderer_contract")
+    required_exports = renderer_contract.get("required_exports") if isinstance(renderer_contract, dict) else None
+    formats: list[str] = []
+    if isinstance(required_exports, list):
+        formats.extend(str(item or "").strip().lower() for item in required_exports if str(item or "").strip())
+
+    for field_name in ("planned_exports", "export_paths", "output_paths"):
+        values = entry.get(field_name)
+        if not isinstance(values, list):
+            continue
+        formats.extend(_export_format_from_path(value) for value in values)
+
+    for field_name in ("output_path", "png_path", "svg_path", "pdf_path"):
+        value = entry.get(field_name)
+        if value:
+            formats.append(_export_format_from_path(value))
+
+    preferred_order = ("png", "svg", "pdf", "html", "csv", "json")
+    normalized = {item for item in formats if item}
+    ordered = [item for item in preferred_order if item in normalized]
+    ordered.extend(sorted(normalized.difference(preferred_order)))
+    return ordered
+
+
+def _renderer_contract_for_catalog_entry(entry: dict[str, Any]) -> dict[str, object] | None:
+    template_id = str(entry.get("template_id") or "").strip()
+    renderer_family = str(entry.get("renderer_family") or "").strip()
+    layout_qc_profile = str(entry.get("qc_profile") or "").strip()
+    renderer_contract = entry.get("renderer_contract")
+    if isinstance(renderer_contract, dict):
+        if not template_id:
+            template_id = str(renderer_contract.get("template_id") or "").strip()
+        if not renderer_family:
+            renderer_family = str(renderer_contract.get("renderer_family") or renderer_contract.get("renderer") or "").strip()
+        if not layout_qc_profile:
+            layout_qc_profile = str(renderer_contract.get("layout_qc_profile") or "").strip()
+    required_exports = _collect_catalog_export_formats(entry)
+    if not template_id or not renderer_family or not layout_qc_profile or not required_exports:
+        return None
+    figure_semantics = "illustration" if display_registry.is_illustration_shell(template_id) else "evidence"
+    if isinstance(renderer_contract, dict):
+        figure_semantics = str(renderer_contract.get("figure_semantics") or "").strip() or figure_semantics
+    return {
+        "figure_semantics": figure_semantics,
+        "renderer_family": renderer_family,
+        "template_id": template_id,
+        "layout_qc_profile": layout_qc_profile,
+        "required_exports": required_exports,
+        "fallback_on_failure": False,
+        "failure_action": "block_and_fix_environment",
+    }
+
+
+def _load_materialized_catalog_renderer_contracts(*, paper_root: Path) -> dict[str, dict[str, object]]:
+    contracts: dict[str, dict[str, object]] = {}
+    for catalog_path in (paper_root / "figures" / "figure_catalog.json", paper_root / "figure_catalog.json"):
+        if not catalog_path.exists():
+            continue
+        payload = load_json(catalog_path)
+        figures = payload.get("figures")
+        if not isinstance(figures, list):
+            raise ValueError(f"{catalog_path.name} must contain a figures list")
+        for index, entry in enumerate(figures):
+            if not isinstance(entry, dict):
+                raise ValueError(f"{catalog_path.name} figures[{index}] must be an object")
+            figure_id = str(entry.get("figure_id") or entry.get("catalog_id") or "").strip()
+            if not figure_id or figure_id in contracts:
+                continue
+            renderer_contract = _renderer_contract_for_catalog_entry(entry)
+            if renderer_contract is not None:
+                contracts[figure_id] = renderer_contract
+    return contracts
 
 
 def _contract_backed_figure_renderer_contract(
@@ -307,6 +412,8 @@ def sync_display_pack_surface(*, paper_root: Path) -> dict[str, Any]:
     illustration_shell_ids_by_path: dict[Path, str] = {}
     table_shell_ids_by_path: dict[Path, str] = {}
     figure_semantics_renderer_contracts: dict[str, dict[str, object]] = {}
+    figure_semantics_story_roles: dict[str, str] = {}
+    materialized_catalog_renderer_contracts = _load_materialized_catalog_renderer_contracts(paper_root=resolved_paper_root)
 
     for index, display in enumerate(displays):
         if not isinstance(display, dict):
@@ -326,7 +433,10 @@ def sync_display_pack_surface(*, paper_root: Path) -> dict[str, Any]:
             input_path = resolved_paper_root / input_filename
             figure_display_templates_by_input_path.setdefault(input_path, {})[display_id] = spec.template_id
             if catalog_id:
-                figure_semantics_renderer_contracts[catalog_id] = _renderer_contract_for_evidence_spec(spec)
+                figure_semantics_story_roles[catalog_id] = display_story_role_for_requirement_key(requirement_key)
+                figure_semantics_renderer_contracts[catalog_id] = (
+                    materialized_catalog_renderer_contracts.get(catalog_id) or _renderer_contract_for_evidence_spec(spec)
+                )
             continue
 
         if display_kind == "figure" and display_registry.is_illustration_shell(requirement_key):
@@ -336,7 +446,10 @@ def sync_display_pack_surface(*, paper_root: Path) -> dict[str, Any]:
                 if cohort_flow_path.exists():
                     illustration_shell_ids_by_path[cohort_flow_path] = spec.shell_id
             if catalog_id:
-                figure_semantics_renderer_contracts[catalog_id] = _renderer_contract_for_illustration_spec(spec)
+                figure_semantics_story_roles[catalog_id] = display_story_role_for_requirement_key(requirement_key)
+                figure_semantics_renderer_contracts[catalog_id] = (
+                    materialized_catalog_renderer_contracts.get(catalog_id) or _renderer_contract_for_illustration_spec(spec)
+                )
             continue
 
         if display_kind == "figure":
@@ -345,7 +458,10 @@ def sync_display_pack_surface(*, paper_root: Path) -> dict[str, Any]:
                 display=display,
                 catalog_id=catalog_id,
             )
-            figure_semantics_renderer_contracts[figure_id] = renderer_contract
+            figure_semantics_story_roles[figure_id] = display_story_role_for_requirement_key(requirement_key)
+            figure_semantics_renderer_contracts[figure_id] = (
+                materialized_catalog_renderer_contracts.get(figure_id) or renderer_contract
+            )
             continue
 
         if display_kind == "table":
@@ -384,6 +500,7 @@ def sync_display_pack_surface(*, paper_root: Path) -> dict[str, Any]:
         if _update_renderer_contracts(
             path=figure_semantics_path,
             expected_renderer_contracts=figure_semantics_renderer_contracts,
+            expected_story_roles=figure_semantics_story_roles,
         ):
             updated_files.append(figure_semantics_path)
 

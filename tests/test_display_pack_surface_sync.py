@@ -173,6 +173,256 @@ def test_sync_display_pack_surface_canonicalizes_source_truth(tmp_path: Path) ->
     assert risk_layering_contract["required_exports"] == ["png", "pdf"]
 
 
+def test_sync_display_pack_surface_updates_keyed_figure_semantics_manifest(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_pack_surface_sync")
+    paper_root = build_sync_workspace(tmp_path)
+    dump_json(
+        paper_root / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": {
+                "F1": {
+                    "figure_id": "F1",
+                    "title": "Cohort flow",
+                    "renderer_contract": {
+                        "renderer": "python",
+                        "allowed_renderers": ["python", "r_ggplot2"],
+                        "template_id": "F1",
+                        "layout_qc_profile": "F1",
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment",
+                    },
+                },
+                "F2": {
+                    "figure_id": "F2",
+                    "title": "Risk layering",
+                    "renderer_contract": {
+                        "renderer": "python",
+                        "allowed_renderers": ["python", "r_ggplot2"],
+                        "template_id": "F2",
+                        "layout_qc_profile": "F2",
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment",
+                    },
+                },
+            },
+        },
+    )
+
+    result = module.sync_display_pack_surface(paper_root=paper_root)
+
+    assert "paper/figure_semantics_manifest.json" in result["updated_files"]
+    figure_semantics = load_json(paper_root / "figure_semantics_manifest.json")
+    assert isinstance(figure_semantics, dict)
+    assert isinstance(figure_semantics["figures"], dict)
+    cohort_flow_contract = figure_semantics["figures"]["F1"]["renderer_contract"]
+    assert cohort_flow_contract["template_id"] == "fenggaolab.org.medical-display-core::cohort_flow_figure"
+    assert cohort_flow_contract["layout_qc_profile"] == "publication_illustration_flow"
+    assert cohort_flow_contract["renderer"] == "python"
+    risk_layering_contract = figure_semantics["figures"]["F2"]["renderer_contract"]
+    assert risk_layering_contract["template_id"] == "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars"
+    assert risk_layering_contract["layout_qc_profile"] == "publication_risk_layering_bars"
+    assert risk_layering_contract["renderer"] == "python"
+
+
+def test_sync_display_pack_surface_prefers_materialized_catalog_contract_for_keyed_manifest(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_pack_surface_sync")
+    paper_root = build_sync_workspace(tmp_path)
+    registry = load_json(paper_root / "display_registry.json")
+    assert isinstance(registry, dict)
+    registry["displays"].append(
+        {
+            "display_id": "km_risk_stratification",
+            "display_kind": "figure",
+            "requirement_key": "time_to_event_risk_group_summary",
+            "catalog_id": "F3",
+            "shell_path": "paper/figures/km_risk_stratification.shell.json",
+        }
+    )
+    dump_json(paper_root / "display_registry.json", registry)
+    dump_json(
+        paper_root / "time_to_event_grouped_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_grouped_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "km_risk_stratification",
+                    "catalog_id": "F3",
+                    "template_id": "time_to_event_risk_group_summary",
+                    "title": "External risk-group separation",
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F3",
+                    "catalog_id": "F3",
+                    "display_id": "km_risk_stratification",
+                    "template_id": "fenggaolab.org.medical-display-core::cumulative_incidence_grouped",
+                    "renderer_family": "r_ggplot2",
+                    "qc_profile": "publication_survival_curve",
+                    "paper_role": "main_text",
+                    "renderer_contract": {
+                        "figure_semantics": "evidence",
+                        "renderer_family": "r_ggplot2",
+                        "template_id": "fenggaolab.org.medical-display-core::cumulative_incidence_grouped",
+                        "layout_qc_profile": "publication_survival_curve",
+                        "required_exports": ["png", "pdf"],
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment",
+                    },
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": {
+                "F1": {
+                    "figure_id": "F1",
+                    "title": "Cohort flow",
+                    "story_role": "study_setup",
+                    "research_question": "Which cohorts define the external validation comparison?",
+                    "direct_message": "The cohort-flow shell defines the development and external validation populations.",
+                    "clinical_implication": "Keeps the setup figure on the manuscript-facing cohort-definition role.",
+                    "interpretation_boundary": "Study setup only; it is not itself a result claim.",
+                    "panel_level_messages": ["The figure traces the development and validation cohorts."],
+                    "glossary_terms": {"external validation cohort": "Participants reserved for transportability evaluation."},
+                    "threshold_or_stratification_caveats": ["Not applicable to the cohort-flow shell."],
+                    "renderer_contract": {
+                        "renderer": "python",
+                        "allowed_renderers": ["python", "r_ggplot2"],
+                        "template_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+                        "layout_qc_profile": "publication_illustration_flow",
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment",
+                    },
+                },
+                "F2": {
+                    "figure_id": "F2",
+                    "title": "Risk layering",
+                    "story_role": "result_evidence",
+                    "research_question": "How do model-defined strata separate risk?",
+                    "direct_message": "Risk strata show monotonic observed risk.",
+                    "clinical_implication": "Supports cautious risk-layer interpretation.",
+                    "interpretation_boundary": "The display does not establish treatment benefit.",
+                    "panel_level_messages": ["Bars summarize risk strata."],
+                    "glossary_terms": {"risk stratum": "A grouped predicted-risk category."},
+                    "threshold_or_stratification_caveats": ["Thresholds are explanatory."],
+                    "renderer_contract": {
+                        "renderer": "python",
+                        "allowed_renderers": ["python", "r_ggplot2"],
+                        "template_id": "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars",
+                        "layout_qc_profile": "publication_risk_layering_bars",
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment",
+                    },
+                },
+                "F3": {
+                    "figure_id": "F3",
+                    "title": "External risk-group separation",
+                    "story_role": "result_evidence",
+                    "research_question": "How do transported risk groups separate in the external cohort?",
+                    "direct_message": "The external cohort preserves only limited risk-group separation.",
+                    "clinical_implication": "Risk-group transfer requires local validation before clinical use.",
+                    "interpretation_boundary": "The display is descriptive and does not establish a causal mechanism.",
+                    "panel_level_messages": ["Main panel shows cumulative mortality by group."],
+                    "glossary_terms": {"transportability": "Validity of risk transfer across settings."},
+                    "threshold_or_stratification_caveats": ["Groups are explanatory strata."],
+                    "renderer_contract": {
+                        "renderer": "python",
+                        "allowed_renderers": ["python", "r_ggplot2"],
+                        "template_id": "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+                        "layout_qc_profile": "publication_survival_curve",
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment",
+                    },
+                }
+            },
+        },
+    )
+
+    result = module.sync_display_pack_surface(paper_root=paper_root)
+
+    assert "paper/figure_semantics_manifest.json" in result["updated_files"]
+    figure_semantics = load_json(paper_root / "figure_semantics_manifest.json")
+    assert isinstance(figure_semantics, dict)
+    updated_contract = figure_semantics["figures"]["F3"]["renderer_contract"]
+    assert updated_contract["template_id"] == "fenggaolab.org.medical-display-core::cumulative_incidence_grouped"
+    assert updated_contract["renderer"] == "r_ggplot2"
+    assert updated_contract["renderer_family"] == "r_ggplot2"
+    assert updated_contract["layout_qc_profile"] == "publication_survival_curve"
+    assert updated_contract["required_exports"] == ["png", "pdf"]
+
+
+def test_sync_display_pack_surface_adds_missing_story_role_to_keyed_manifest(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_pack_surface_sync")
+    paper_root = build_sync_workspace(tmp_path)
+    dump_json(
+        paper_root / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": {
+                "F1": {
+                    "figure_id": "F1",
+                    "title": "Cohort flow",
+                    "research_question": "Which cohorts define the external validation comparison?",
+                    "direct_message": "The cohort-flow shell defines the development and external validation populations.",
+                    "clinical_implication": "Keeps the setup figure on the manuscript-facing cohort-definition role.",
+                    "interpretation_boundary": "Study setup only; it is not itself a result claim.",
+                    "panel_level_messages": ["The figure traces the development and validation cohorts."],
+                    "glossary_terms": {"external validation cohort": "Participants reserved for transportability evaluation."},
+                    "threshold_or_stratification_caveats": ["Not applicable to the cohort-flow shell."],
+                    "renderer_contract": {
+                        "renderer": "python",
+                        "allowed_renderers": ["python", "r_ggplot2"],
+                        "template_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+                        "layout_qc_profile": "publication_illustration_flow",
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment",
+                    },
+                },
+                "F2": {
+                    "figure_id": "F2",
+                    "title": "Risk layering",
+                    "story_role": "result_evidence",
+                    "research_question": "How do model-defined strata separate risk?",
+                    "direct_message": "Risk strata show monotonic observed risk.",
+                    "clinical_implication": "Supports cautious risk-layer interpretation.",
+                    "interpretation_boundary": "The display does not establish treatment benefit.",
+                    "panel_level_messages": ["Bars summarize risk strata."],
+                    "glossary_terms": {"risk stratum": "A grouped predicted-risk category."},
+                    "threshold_or_stratification_caveats": ["Thresholds are explanatory."],
+                    "renderer_contract": {
+                        "renderer": "python",
+                        "allowed_renderers": ["python", "r_ggplot2"],
+                        "template_id": "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars",
+                        "layout_qc_profile": "publication_risk_layering_bars",
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment",
+                    },
+                },
+            },
+        },
+    )
+
+    result = module.sync_display_pack_surface(paper_root=paper_root)
+
+    assert "paper/figure_semantics_manifest.json" in result["updated_files"]
+    figure_semantics = load_json(paper_root / "figure_semantics_manifest.json")
+    assert isinstance(figure_semantics, dict)
+    assert figure_semantics["figures"]["F1"]["story_role"] == "study_setup"
+    assert figure_semantics["figures"]["F2"]["story_role"] == "result_evidence"
+
+
 def test_sync_display_pack_surface_resolves_contract_backed_figure_registry(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_pack_surface_sync")
     paper_root = build_sync_workspace(tmp_path)
