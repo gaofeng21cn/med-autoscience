@@ -5,6 +5,7 @@ import json
 import platform
 
 from med_autoscience.ai_first_drift_audit import run_ai_first_drift_audit
+from med_autoscience.controllers.ai_first_observability import build_doctor_ai_first_observability_summary
 from med_autoscience.controllers import hermes_supervision
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
@@ -29,6 +30,7 @@ class DoctorReport:
     external_runtime_contract: dict[str, object] = field(default_factory=dict)
     workspace_supervision_contract: dict[str, object] = field(default_factory=dict)
     ai_first_drift_audit: dict[str, object] = field(default_factory=dict)
+    ai_first_observability: dict[str, object] = field(default_factory=dict)
 
 
 def overlay_request_from_profile(profile: WorkspaceProfile) -> dict[str, object]:
@@ -48,6 +50,11 @@ def overlay_request_from_profile(profile: WorkspaceProfile) -> dict[str, object]
 
 def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
     workspace_contracts = inspect_workspace_contracts(profile)
+    ai_first_drift_audit = dict(
+        run_ai_first_drift_audit(
+            med_deepscientist_repo_root=profile.med_deepscientist_repo_root,
+        )
+    )
     overlay_status = (
         describe_medical_overlay(**overlay_request_from_profile(profile))
         if profile.enable_medical_overlay
@@ -76,10 +83,9 @@ def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
             )
         ),
         workspace_supervision_contract=dict(hermes_supervision.read_supervision_status(profile=profile)),
-        ai_first_drift_audit=dict(
-            run_ai_first_drift_audit(
-                med_deepscientist_repo_root=profile.med_deepscientist_repo_root,
-            )
+        ai_first_drift_audit=ai_first_drift_audit,
+        ai_first_observability=dict(
+            build_doctor_ai_first_observability_summary(drift_audit=ai_first_drift_audit)
         ),
     )
 
@@ -128,6 +134,7 @@ def render_doctor_report(report: DoctorReport) -> str:
             + json.dumps(report.workspace_supervision_contract, ensure_ascii=False, sort_keys=True)
         ),
         f"ai_first_drift_audit: {json.dumps(report.ai_first_drift_audit, ensure_ascii=False, sort_keys=True)}",
+        f"ai_first_observability: {json.dumps(report.ai_first_observability, ensure_ascii=False, sort_keys=True)}",
     ]
     return "\n".join(lines) + "\n"
 
