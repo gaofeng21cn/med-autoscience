@@ -3,6 +3,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from typing import Any, Callable
 
 from med_autoscience.controllers import publication_work_unit_lifecycle
@@ -98,6 +99,57 @@ def existing_dependency_ids(
     return tuple(unit_id for unit_id in candidate_unit_ids if unit_id in existing_ids)
 
 
+def _display_materialization_failure_refs(*, paper_root: Path, error: str) -> list[dict[str, Any]]:
+    candidate_names = set(re.findall(r"([A-Za-z0-9_./-]+\.json)", error))
+    refs: list[dict[str, Any]] = []
+    for name in sorted(candidate_names):
+        candidate = Path(name)
+        if candidate.is_absolute():
+            payload_path = candidate
+        else:
+            payload_path = Path(paper_root).expanduser().resolve() / candidate
+        try:
+            payload_path = payload_path.resolve()
+        except OSError:
+            payload_path = payload_path.expanduser()
+        if not payload_path.exists():
+            continue
+        refs.append(
+            {
+                "blocker": "display_surface_materialization_failed",
+                "artifact_path": str(payload_path),
+                "artifact_role": "display_input_payload",
+                "failure_reason": error,
+                "terminal_state": "gate_needs_specificity",
+            }
+        )
+    if refs:
+        return refs
+    registry_path = Path(paper_root).expanduser().resolve() / "display_registry.json"
+    if registry_path.exists():
+        refs.append(
+            {
+                "blocker": "display_surface_materialization_failed",
+                "artifact_path": str(registry_path),
+                "artifact_role": "display_registry",
+                "failure_reason": error,
+                "terminal_state": "gate_needs_specificity",
+            }
+        )
+    return refs
+
+
+def _failure_blocking_artifact_refs(
+    *,
+    unit: GateClearingRepairUnit,
+    paper_root: Path,
+    error: str,
+) -> list[dict[str, Any]]:
+    if unit.unit_id == "materialize_display_surface":
+        return _display_materialization_failure_refs(paper_root=paper_root, error=error)
+    return []
+
+
 def run_repair_unit(
     *,
     unit: GateClearingRepairUnit,
@@ -150,13 +202,18 @@ def run_repair_unit(
             if unit_status_is_success(_non_empty_text(item.get("status"))):
                 item["last_success_status"] = item["status"]
         except Exception as exc:
+            error = str(exc)
             item = {
                 "unit_id": unit.unit_id,
                 "label": unit.label,
                 "parallel_safe": unit.parallel_safe,
                 "status": "failed",
-                "error": str(exc),
+                "error": error,
             }
+            blocking_artifact_refs = _failure_blocking_artifact_refs(unit=unit, paper_root=paper_root, error=error)
+            if blocking_artifact_refs:
+                item["blocking_artifact_refs"] = blocking_artifact_refs
+                item["terminal_state"] = "gate_needs_specificity"
             finished_ns, finished_at = clock_snapshot()
             item.update(
                 {

@@ -27,6 +27,7 @@ from med_autoscience.runtime_protocol import (
 )
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
+from .blocking_artifact_refs import MEDICAL_SURFACE_BLOCKER_ARTIFACTS
 from .discovery_and_drift import (
     PUBLICATION_SUPERVISOR_KEYS,
     _NON_SCIENTIFIC_HANDOFF_BLOCKING_ITEM_KEYS,
@@ -242,6 +243,7 @@ def _append_blocking_artifact_ref(
     artifact_path: str | None,
     artifact_role: str,
     stale_reason: str | None = None,
+    source_path: str | None = None,
 ) -> None:
     if artifact_path is None:
         return
@@ -252,6 +254,8 @@ def _append_blocking_artifact_ref(
     }
     if stale_reason is not None:
         payload["stale_reason"] = stale_reason
+    if source_path is not None:
+        payload["source_path"] = source_path
     if payload not in refs:
         refs.append(payload)
 
@@ -290,13 +294,14 @@ def _blocking_artifact_refs(
             for item in medical_publication_surface_named_blockers
             if str(item or "").strip()
         }
-        if "figure_catalog_missing_or_incomplete" in named_blocker_set:
-            _append_blocking_artifact_ref(
-                refs,
-                blocker="figure_catalog_missing_or_incomplete",
-                artifact_path=str(paper_root / "figures" / "figure_catalog.json"),
-                artifact_role="figure_catalog",
-            )
+        for blocker in sorted(named_blocker_set):
+            for relative_path, artifact_role in MEDICAL_SURFACE_BLOCKER_ARTIFACTS.get(blocker, ()):
+                _append_blocking_artifact_ref(
+                    refs,
+                    blocker=blocker,
+                    artifact_path=str(paper_root / relative_path),
+                    artifact_role=artifact_role,
+                )
         if named_blocker_set & {
             "display_registry_contract_missing",
             "display_registry_missing",

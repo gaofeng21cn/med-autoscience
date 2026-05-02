@@ -157,6 +157,20 @@ def _string_list(value: object) -> list[str]:
     return items
 
 
+def _unit_blocking_artifact_refs(unit_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    refs: list[dict[str, Any]] = []
+    for item in unit_results:
+        value = item.get("blocking_artifact_refs")
+        if not isinstance(value, list):
+            continue
+        for ref in value:
+            if not isinstance(ref, dict):
+                continue
+            if ref not in refs:
+                refs.append(ref)
+    return refs
+
+
 def _quest_root(profile: WorkspaceProfile, *, quest_id: str) -> Path:
     return profile.med_deepscientist_runtime_root / "quests" / quest_id
 
@@ -997,6 +1011,9 @@ def run_gate_clearing_batch(
         "gate_replay_step": gate_replay_step,
         "publication_work_unit_lifecycle": lifecycle_record,
     }
+    repair_blocking_artifact_refs = _unit_blocking_artifact_refs(unit_results)
+    if repair_blocking_artifact_refs:
+        record["repair_blocking_artifact_refs"] = repair_blocking_artifact_refs
     if current_package_freshness_proof is not None:
         record["current_package_freshness_proof"] = current_package_freshness_proof
     if stale_gate_replay_closure is not None:

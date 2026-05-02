@@ -4,9 +4,13 @@ import hashlib
 import json
 from typing import Any, Mapping
 
+from med_autoscience.controllers._medical_display_surface_support import _REQUIRED_DISPLAY_SURFACE_STUBS
 from med_autoscience.controllers.gate_authority_currentness import resolve_gate_authority_currentness
 
 
+_REQUIRED_DISPLAY_SURFACE_BLOCKERS = frozenset(
+    stub.blocker_key for stub in _REQUIRED_DISPLAY_SURFACE_STUBS.values()
+)
 _CLAIM_EVIDENCE_BLOCKERS = frozenset(
     {
         "claim_evidence_consistency_failed",
@@ -51,7 +55,7 @@ _DISPLAY_REGISTRY_BLOCKERS = frozenset(
         "display_reporting_contract_missing",
         "registry_contract_mismatch",
     }
-)
+) | _REQUIRED_DISPLAY_SURFACE_BLOCKERS
 _SURFACE_BLOCKER_LABELS = frozenset(
     {
         "medical_publication_surface_blocked",
@@ -129,6 +133,12 @@ _ACTIONABLE_OBJECT_KEYS = frozenset(
         "package_artifact",
         "artifact_path",
         "source_path",
+    }
+)
+_GENERIC_SPECIFICITY_ACTIONABLE_OBJECT_KEYS = _ACTIONABLE_OBJECT_KEYS - frozenset(
+    {
+        "artifact_path",
+        "package_artifact",
     }
 )
 _GENERIC_SPECIFICITY_BLOCKERS = frozenset(
@@ -270,7 +280,10 @@ def _mapping_has_actionable_object_ref(
     blocker = str(payload.get("blocker") or "").strip()
     if blocker_scope is not None and blocker and blocker not in blocker_scope:
         return False
-    for key in _ACTIONABLE_OBJECT_KEYS:
+    actionable_keys = _ACTIONABLE_OBJECT_KEYS
+    if blocker_scope is not None and (not blocker or blocker in _GENERIC_SPECIFICITY_BLOCKERS):
+        actionable_keys = _GENERIC_SPECIFICITY_ACTIONABLE_OBJECT_KEYS
+    for key in actionable_keys:
         if str(payload.get(key) or "").strip():
             return True
     return False

@@ -50,6 +50,55 @@ def test_blocked_claim_evidence_route_produces_analysis_campaign_work_unit_for_s
     }
 
 
+def test_generic_claim_label_with_only_artifact_path_still_requires_specificity() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "medical_publication_surface_named_blockers": [
+                "claim_evidence_consistency_failed",
+            ],
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "claim_evidence_consistency_failed",
+                    "artifact_path": "/tmp/study/paper/claim_evidence_map.json",
+                    "artifact_role": "claim_evidence_map",
+                }
+            ],
+        }
+    )
+
+    assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert result["actionability_status"] == "blocked_by_non_actionable_gate"
+
+
+def test_missing_required_display_input_routes_to_display_contract_repair() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "medical_publication_surface_named_blockers": [
+                "missing_multicenter_generalizability_inputs",
+            ],
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "missing_multicenter_generalizability_inputs",
+                    "artifact_path": "/tmp/study/paper/multicenter_generalizability_inputs.json",
+                    "artifact_role": "display_input_payload",
+                }
+            ],
+        }
+    )
+
+    assert result["next_work_unit"] == {
+        "unit_id": "display_reporting_contract_repair",
+        "lane": "finalize",
+        "summary": "Repair display registry and local architecture reporting contracts.",
+    }
+
+
 def test_bundle_stage_stale_submission_package_produces_finalize_refresh_work_unit() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 

@@ -298,6 +298,119 @@ def test_next_work_unit_limits_gate_clearing_batch_to_analysis_repair_without_su
     assert result["selected_publication_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
 
 
+def test_gate_clearing_batch_records_display_materialization_failure_refs(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-dm-china-us-mortality-attribution",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    payload_path = paper_root / "multicenter_generalizability_inputs.json"
+    _write_json(
+        payload_path,
+        {
+            "schema_version": 1,
+            "input_schema_id": "multicenter_generalizability_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "multicenter_generalizability",
+                    "template_id": "mas.medical_display.multicenter_generalizability_overview",
+                }
+            ],
+        },
+    )
+    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-002")
+    publication_eval_payload["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "display_reporting_contract_repair",
+        "lane": "finalize",
+        "summary": "Repair display input payloads before package refresh.",
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+
+    gate_report = {
+        "status": "blocked",
+        "blockers": [
+            "medical_publication_surface_blocked",
+            "stale_submission_minimal_authority",
+            "submission_hardening_incomplete",
+        ],
+        "current_required_action": "complete_bundle_stage",
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_named_blockers": ["missing_multicenter_generalizability_inputs"],
+        "study_delivery_status": "stale_source_changed",
+        "study_delivery_stale_reason": "delivery_manifest_source_changed",
+        "blocking_artifact_refs": [
+            {
+                "blocker": "missing_multicenter_generalizability_inputs",
+                "artifact_path": str(payload_path),
+                "artifact_role": "display_input_payload",
+            }
+        ],
+    }
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(module, "_repair_paper_live_paths", lambda **_: {"status": "updated", "repaired_files": []})
+    monkeypatch.setattr(
+        module,
+        "_materialize_display_surface",
+        lambda *, paper_root: (_ for _ in ()).throw(
+            ValueError("multicenter_generalizability_inputs.json display `multicenter_generalizability` title must be non-empty")
+        ),
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["medical_publication_surface_blocked"],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="002-dm-china-us-mortality-attribution",
+        study_root=study_root,
+        quest_id="quest-002",
+        source="test-source",
+    )
+
+    materialize_result = next(item for item in result["unit_results"] if item["unit_id"] == "materialize_display_surface")
+    assert materialize_result["status"] == "failed"
+    assert materialize_result["terminal_state"] == "gate_needs_specificity"
+    assert materialize_result["blocking_artifact_refs"] == [
+        {
+            "blocker": "display_surface_materialization_failed",
+            "artifact_path": str(payload_path.resolve()),
+            "artifact_role": "display_input_payload",
+            "failure_reason": (
+                "multicenter_generalizability_inputs.json display `multicenter_generalizability` "
+                "title must be non-empty"
+            ),
+            "terminal_state": "gate_needs_specificity",
+        }
+    ]
+    assert result["repair_blocking_artifact_refs"] == materialize_result["blocking_artifact_refs"]
+    assert "current_package_freshness_proof" not in result
+    assert result["publication_work_unit_lifecycle"]["status"] == "blocked"
+
+
 def test_submission_minimal_refresh_skips_current_package_sync_until_authority_settles(
     monkeypatch,
     tmp_path: Path,

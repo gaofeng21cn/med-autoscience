@@ -209,7 +209,7 @@ def test_label_only_blocker_requires_specificity_before_long_repair() -> None:
     assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
 
 
-def test_true_current_blocker_with_artifact_ref_keeps_repair_unit() -> None:
+def test_true_current_generic_blocker_with_only_artifact_ref_requires_specificity() -> None:
     publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
 
     result = publication_work_units.derive_publication_work_units(
@@ -220,6 +220,27 @@ def test_true_current_blocker_with_artifact_ref_keeps_repair_unit() -> None:
                 {
                     "blocker": "claim_evidence_consistency_failed",
                     "artifact_path": "/tmp/study/paper/claim_evidence_map.json",
+                }
+            ],
+        }
+    )
+
+    assert result["actionability_status"] == "blocked_by_non_actionable_gate"
+    assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+
+
+def test_true_current_blocker_with_specific_source_ref_keeps_repair_unit() -> None:
+    publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = publication_work_units.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "blockers": ["claim_evidence_consistency_failed"],
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "claim_evidence_consistency_failed",
+                    "artifact_path": "/tmp/study/paper/claim_evidence_map.json",
+                    "source_path": "/tmp/study/paper/claim_evidence_map.json#/claims/C5",
                 }
             ],
         }
