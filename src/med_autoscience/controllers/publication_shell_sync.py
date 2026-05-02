@@ -61,11 +61,13 @@ def _load_csv_rows(path: Path) -> tuple[list[str], list[list[str]]]:
     return rows[0], rows[1:]
 
 
-def _resolve_table1_source_path(*, study_root: Path) -> Path:
+def _resolve_table1_source_path(*, study_root: Path, paper_root: Path) -> Path:
     resolved_study_root = Path(study_root).expanduser().resolve()
+    resolved_paper_root = Path(paper_root).expanduser().resolve()
     candidates = (
         resolved_study_root / "paper" / "submission_minimal" / "tables" / "Table1.csv",
         resolved_study_root / "manuscript" / "current_package" / "tables" / "Table1.csv",
+        resolved_paper_root / "tables" / "T1_baseline_characteristics.csv",
     )
     for candidate in candidates:
         if candidate.exists():
@@ -178,7 +180,10 @@ def run_publication_shell_sync(*, study_root: Path, paper_root: Path) -> dict[st
     table_binding = _require_binding(registry_payload=registry_payload, requirement_key="table1_baseline_characteristics")
 
     cohort_source = _load_json(resolved_study_root / "paper" / "derived" / "cohort_flow.json")
-    table1_source_path = _resolve_table1_source_path(study_root=resolved_study_root)
+    table1_source_path = _resolve_table1_source_path(
+        study_root=resolved_study_root,
+        paper_root=resolved_paper_root,
+    )
     table_header, table_rows = _load_csv_rows(table1_source_path)
     existing_cohort_payload = _load_json(resolved_paper_root / "cohort_flow.json")
     existing_table_payload = _load_json(resolved_paper_root / "baseline_characteristics_schema.json")

@@ -198,6 +198,48 @@ def test_run_publication_shell_sync_accepts_stage_neutral_current_package_when_o
     assert report["source_paths"]["table1_source"].endswith("manuscript/current_package/tables/Table1.csv")
 
 
+def test_run_publication_shell_sync_accepts_runtime_paper_root_table1_when_delivery_surfaces_are_absent(
+    tmp_path: Path,
+) -> None:
+    module, study_root, paper_root = _prepare_sync_context(tmp_path)
+    write_csv(
+        paper_root / "tables" / "T1_baseline_characteristics.csv",
+        [
+            "Characteristic",
+            "Overall (N=100)",
+            "No CVD death (n=80)",
+            "CVD death (n=20)",
+        ],
+        [
+            {
+                "Characteristic": "Age, years",
+                "Overall (N=100)": "67 [59-74]",
+                "No CVD death (n=80)": "65 [58-72]",
+                "CVD death (n=20)": "72 [64-78]",
+            },
+            {
+                "Characteristic": "Female sex, n (%)",
+                "Overall (N=100)": "48 (48.0%)",
+                "No CVD death (n=80)": "39 (48.8%)",
+                "CVD death (n=20)": "9 (45.0%)",
+            },
+        ],
+    )
+
+    report = module.run_publication_shell_sync(study_root=study_root, paper_root=paper_root)
+
+    table1 = json.loads((paper_root / "baseline_characteristics_schema.json").read_text(encoding="utf-8"))
+
+    assert report["source_paths"]["table1_source"].endswith("paper/tables/T1_baseline_characteristics.csv")
+    assert [item["label"] for item in table1["groups"]] == [
+        "Overall (N=100)",
+        "No CVD death (n=80)",
+        "CVD death (n=20)",
+    ]
+    assert [item["label"] for item in table1["variables"]] == ["Age, years", "Female sex, n (%)"]
+    assert table1["variables"][0]["values"] == ["67 [59-74]", "65 [58-72]", "72 [64-78]"]
+
+
 def test_run_publication_shell_sync_rejects_legacy_artifacts_final_table_surface(tmp_path: Path) -> None:
     module, study_root, paper_root = _prepare_sync_context(tmp_path)
     write_csv(
