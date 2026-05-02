@@ -141,6 +141,41 @@ def _story_role_matches_expected(*, observed_story_role: str, expected_story_rol
     return False
 
 
+def _normalize_figure_semantics_entries(payload: dict[object, object]) -> list[dict[object, object]] | None:
+    figures = payload.get("figures")
+    if isinstance(figures, list):
+        return [item for item in figures if isinstance(item, dict)]
+    if isinstance(figures, dict):
+        entries: list[dict[object, object]] = []
+        for figure_id, raw_entry in figures.items():
+            if not isinstance(raw_entry, dict):
+                continue
+            entry = dict(raw_entry)
+            if not str(entry.get("figure_id") or "").strip():
+                entry["figure_id"] = str(figure_id)
+            entries.append(entry)
+        return entries
+    return None
+
+
+def _renderer_contract_value(renderer_contract: object, *field_names: str) -> str:
+    if not isinstance(renderer_contract, dict):
+        return ""
+    for field_name in field_names:
+        value = str(renderer_contract.get(field_name) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _figure_semantics_list_is_valid(value: object) -> bool:
+    return isinstance(value, list) and any(str(item or "").strip() for item in value)
+
+
+def _figure_semantics_mapping_is_valid(value: object) -> bool:
+    return isinstance(value, dict) and any(str(key or "").strip() and str(item or "").strip() for key, item in value.items())
+
+
 def validate_methods_implementation_manifest(payload: object) -> list[str]:
     if not isinstance(payload, dict):
         return ["payload must be a JSON object"]
@@ -266,10 +301,10 @@ def validate_results_narrative_map(payload: object) -> list[str]:
 def validate_figure_semantics_manifest(payload: object) -> list[str]:
     if not isinstance(payload, dict):
         return ["payload must be a JSON object"]
-    figures = payload.get("figures")
-    if not isinstance(figures, list) or not figures:
+    figures = _normalize_figure_semantics_entries(payload)
+    if not figures:
         return ["figures must contain at least one figure entry"]
-    required_fields = (
+    legacy_required_fields = (
         "figure_id",
         "story_role",
         "research_question",
@@ -283,36 +318,86 @@ def validate_figure_semantics_manifest(payload: object) -> list[str]:
         "recommendation_boundary",
         "renderer_contract",
     )
+    keyed_required_fields = (
+        "figure_id",
+        "title",
+        "research_question",
+        "direct_message",
+        "clinical_implication",
+        "interpretation_boundary",
+        "panel_level_messages",
+        "glossary_terms",
+        "threshold_or_stratification_caveats",
+        "renderer_contract",
+    )
     panel_fields = ("panel_id", "message")
     glossary_fields = ("term", "explanation")
     for index, figure in enumerate(figures):
-        missing_fields = _missing_required_fields(figure, required_fields)
-        if missing_fields:
-            return [f"missing figures[{index}] fields: {', '.join(missing_fields)}"]
-        panel_messages = figure.get("panel_messages")
-        if not isinstance(panel_messages, list) or not panel_messages:
-            return [f"figures[{index}].panel_messages must contain at least one panel message"]
-        for panel_index, panel in enumerate(panel_messages):
-            missing_panel_fields = _missing_required_fields(panel, panel_fields)
-            if missing_panel_fields:
-                return [
-                    f"missing figures[{index}].panel_messages[{panel_index}] fields: {', '.join(missing_panel_fields)}"
-                ]
-        legend_glossary = figure.get("legend_glossary")
-        if not isinstance(legend_glossary, list) or not legend_glossary:
-            return [f"figures[{index}].legend_glossary must contain at least one glossary entry"]
-        for glossary_index, glossary in enumerate(legend_glossary):
-            missing_glossary_fields = _missing_required_fields(glossary, glossary_fields)
-            if missing_glossary_fields:
-                return [
-                    f"missing figures[{index}].legend_glossary[{glossary_index}] fields: {', '.join(missing_glossary_fields)}"
-                ]
         renderer_contract_payload = figure.get("renderer_contract")
         if not isinstance(renderer_contract_payload, dict):
             return [f"figures[{index}].renderer_contract must be an object"]
-        renderer_contract_errors = figure_renderer_contract.validate_renderer_contract(renderer_contract_payload)
-        if renderer_contract_errors:
-            return [f"figures[{index}].renderer_contract invalid: {'; '.join(renderer_contract_errors)}"]
+        has_keyed_shape = (
+            "panel_level_messages" in figure
+            or "glossary_terms" in figure
+            or "threshold_or_stratification_caveats" in figure
+            or "allowed_renderers" in renderer_contract_payload
+            or "renderer" in renderer_contract_payload
+        )
+        required_fields = keyed_required_fields if has_keyed_shape else legacy_required_fields
+        missing_fields = _missing_required_fields(figure, required_fields)
+        if missing_fields:
+            return [f"missing figures[{index}] fields: {', '.join(missing_fields)}"]
+        if has_keyed_shape:
+            if not _figure_semantics_list_is_valid(figure.get("panel_level_messages")):
+                return [f"figures[{index}].panel_level_messages must contain at least one panel message"]
+            if not _figure_semantics_mapping_is_valid(figure.get("glossary_terms")):
+                return [f"figures[{index}].glossary_terms must contain at least one glossary term"]
+            if not _figure_semantics_list_is_valid(figure.get("threshold_or_stratification_caveats")):
+                return [
+                    f"figures[{index}].threshold_or_stratification_caveats must contain at least one caveat"
+                ]
+            renderer_family = _renderer_contract_value(renderer_contract_payload, "renderer", "renderer_family")
+            if not renderer_family:
+                return [f"figures[{index}].renderer_contract renderer must be non-empty"]
+            allowed_renderers = renderer_contract_payload.get("allowed_renderers")
+            if isinstance(allowed_renderers, list):
+                normalized_allowed_renderers = {
+                    str(item or "").strip().lower() for item in allowed_renderers if str(item or "").strip()
+                }
+                if renderer_family.lower() not in normalized_allowed_renderers:
+                    return [
+                        f"figures[{index}].renderer_contract renderer `{renderer_family}` is not listed in allowed_renderers"
+                    ]
+            if renderer_contract_payload.get("fallback_on_failure") is not False:
+                return [f"figures[{index}].renderer_contract fallback_on_failure must be false"]
+            failure_action = str(renderer_contract_payload.get("failure_action") or "").strip()
+            if failure_action != figure_renderer_contract.FAILURE_ACTION_BLOCK_AND_FIX_ENVIRONMENT:
+                return [
+                    f"figures[{index}].renderer_contract failure_action must be "
+                    f"`{figure_renderer_contract.FAILURE_ACTION_BLOCK_AND_FIX_ENVIRONMENT}`"
+                ]
+        else:
+            panel_messages = figure.get("panel_messages")
+            if not isinstance(panel_messages, list) or not panel_messages:
+                return [f"figures[{index}].panel_messages must contain at least one panel message"]
+            for panel_index, panel in enumerate(panel_messages):
+                missing_panel_fields = _missing_required_fields(panel, panel_fields)
+                if missing_panel_fields:
+                    return [
+                        f"missing figures[{index}].panel_messages[{panel_index}] fields: {', '.join(missing_panel_fields)}"
+                    ]
+            legend_glossary = figure.get("legend_glossary")
+            if not isinstance(legend_glossary, list) or not legend_glossary:
+                return [f"figures[{index}].legend_glossary must contain at least one glossary entry"]
+            for glossary_index, glossary in enumerate(legend_glossary):
+                missing_glossary_fields = _missing_required_fields(glossary, glossary_fields)
+                if missing_glossary_fields:
+                    return [
+                        f"missing figures[{index}].legend_glossary[{glossary_index}] fields: {', '.join(missing_glossary_fields)}"
+                    ]
+            renderer_contract_errors = figure_renderer_contract.validate_renderer_contract(renderer_contract_payload)
+            if renderer_contract_errors:
+                return [f"figures[{index}].renderer_contract invalid: {'; '.join(renderer_contract_errors)}"]
         template_id = str(renderer_contract_payload.get("template_id") or "").strip()
         if template_id and display_registry.is_illustration_shell(template_id):
             shell_id = display_registry.get_illustration_shell_spec(template_id).shell_id

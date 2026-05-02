@@ -87,6 +87,96 @@ def _write_valid_medical_story_contracts(paper_root: Path, *, figure_required_ex
     )
 
 
+def _write_keyed_medical_story_contracts(paper_root: Path) -> None:
+    paper_root.mkdir(parents=True, exist_ok=True)
+    (paper_root / "results_narrative_map.json").write_text(
+        json.dumps(
+            {
+                "sections": [
+                    {
+                        "section_id": "transportability-results",
+                        "section_title": "Transportability results",
+                        "research_question": "What does external validation show?",
+                        "direct_answer": "Risk ordering transfers only partially while calibration remains unstable.",
+                        "supporting_display_items": ["F1"],
+                        "key_quantitative_findings": ["External validation supports a bounded interpretation."],
+                        "clinical_meaning": "External validation and recalibration are required before clinical use.",
+                        "boundary": "The result does not support a deployable universal model.",
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "figure_semantics_manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "figures": {
+                    "F1": {
+                        "figure_id": "F1",
+                        "title": "Study cohorts and external validation framework",
+                        "research_question": "How large is the observed mortality difference?",
+                        "direct_message": "The external validation cohort has a higher observed mortality rate.",
+                        "clinical_implication": "Analysts should verify the outcome scale before transport.",
+                        "interpretation_boundary": "This is an observed contrast, not a causal country-effect estimate.",
+                        "panel_level_messages": [
+                            {"panel": "overall", "message": "Cohort and endpoint context for external validation."}
+                        ],
+                        "glossary_terms": {
+                            "transportability": "Whether model behavior remains valid in another population.",
+                        },
+                        "threshold_or_stratification_caveats": [
+                            "Five-year all-cause mortality is the shared primary endpoint."
+                        ],
+                        "renderer_contract": {
+                            "renderer": "python",
+                            "allowed_renderers": ["python", "r_ggplot2"],
+                            "template_id": "F1",
+                            "layout_qc_profile": "F1",
+                            "fallback_on_failure": False,
+                            "failure_action": "block_and_fix_environment",
+                            "source_kind": "evidence_figure",
+                            "source_locked": True,
+                            "locked": True,
+                            "figure_kind": "evidence",
+                            "source_catalog": "paper/figure_catalog.json",
+                        },
+                    }
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "claim_evidence_map.json").write_text(
+        json.dumps(
+            {
+                "claims": [
+                    {
+                        "claim_id": "external-validation-boundary",
+                        "statement": "External validation supports a bounded transportability claim.",
+                        "status": "supported",
+                        "paper_role": "main_text",
+                        "display_bindings": ["F1"],
+                        "sections": ["transportability-results"],
+                        "evidence_items": [
+                            {
+                                "item_id": "external-validation-summary",
+                                "support_level": "direct",
+                                "source_paths": ["paper/results_narrative_map.json"],
+                            }
+                        ],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+
 def test_medical_reporting_audit_blocks_missing_population_accounting(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"
@@ -422,6 +512,84 @@ def test_medical_reporting_audit_reports_figure_semantics_missing_pdf_export(tmp
         "invalid_figure_semantics_manifest",
         "figure_semantics_manifest_missing_pdf_export",
     ]
+
+
+def test_medical_reporting_audit_accepts_keyed_figure_semantics_manifest(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
+    quest_root = tmp_path / "runtime" / "quests" / "002-dm-china-us-mortality-attribution"
+    paper_root = quest_root / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    (paper_root / "medical_reporting_contract.json").write_text(
+        json.dumps(
+            {
+                "reporting_guideline_family": "STROBE",
+                "display_registry_required": False,
+                "cohort_flow_required": False,
+                "baseline_characteristics_required": False,
+                "display_shell_plan": [],
+                "quality_gate_expectation": {"gate_relaxation_allowed": True},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "review").mkdir(parents=True, exist_ok=True)
+    (paper_root / "review" / "submission_checklist.json").write_text(
+        json.dumps(
+            {
+                "overall_status": "submission_minimal_materialized_handoff_ready",
+                "handoff_ready": True,
+                "blocking_items": [],
+                "package_status": "submission_minimal_ready",
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    _write_keyed_medical_story_contracts(paper_root)
+
+    report = module.run_controller(quest_root=quest_root, apply=False)
+
+    assert "invalid_figure_semantics_manifest" not in report["blockers"]
+    assert "missing_medical_story_contract" not in report["blockers"]
+    assert report["medical_story_contract_valid"] is True
+    assert report["medical_story_contract_blockers"] == []
+
+
+def test_medical_reporting_audit_blocks_keyed_figure_semantics_missing_message(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
+    quest_root = tmp_path / "runtime" / "quests" / "002-dm-china-us-mortality-attribution"
+    paper_root = quest_root / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    (paper_root / "medical_reporting_contract.json").write_text(
+        json.dumps(
+            {
+                "reporting_guideline_family": "STROBE",
+                "display_registry_required": False,
+                "cohort_flow_required": False,
+                "baseline_characteristics_required": False,
+                "display_shell_plan": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "reporting_guideline_checklist.json").write_text(
+        json.dumps({"schema_version": 1, "items": []}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    _write_keyed_medical_story_contracts(paper_root)
+    payload = json.loads((paper_root / "figure_semantics_manifest.json").read_text(encoding="utf-8"))
+    del payload["figures"]["F1"]["direct_message"]
+    (paper_root / "figure_semantics_manifest.json").write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    report = module.run_controller(quest_root=quest_root, apply=False)
+
+    assert "missing_medical_story_contract" in report["blockers"]
+    assert "invalid_figure_semantics_manifest" in report["medical_story_contract_blockers"]
 
 
 def test_medical_reporting_audit_downgrades_missing_reporting_guideline_checklist_when_handoff_ready(

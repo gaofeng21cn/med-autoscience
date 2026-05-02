@@ -1,5 +1,24 @@
 from .shared import *
 
+
+def _figure_semantics_entries(payload: object) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
+    figures = payload.get("figures")
+    if isinstance(figures, list):
+        return [item for item in figures if isinstance(item, dict)]
+    if isinstance(figures, dict):
+        entries: list[dict[str, Any]] = []
+        for figure_id, raw_entry in figures.items():
+            if not isinstance(raw_entry, dict):
+                continue
+            entry = dict(raw_entry)
+            if not str(entry.get("figure_id") or "").strip():
+                entry["figure_id"] = str(figure_id)
+            entries.append(entry)
+        return entries
+    return []
+
 def inspect_required_json_contract(
     *,
     path: Path,
@@ -266,8 +285,8 @@ def inspect_figure_semantics_coverage(
         return []
     semantic_ids = {
         str(item.get("figure_id") or "").strip()
-        for item in payload.get("figures", []) or []
-        if isinstance(item, dict) and str(item.get("figure_id") or "").strip()
+        for item in _figure_semantics_entries(payload)
+        if str(item.get("figure_id") or "").strip()
     }
     hits: list[dict[str, Any]] = []
     missing = sorted(figure_ids - semantic_ids)
@@ -331,8 +350,8 @@ def inspect_figure_semantic_renderer_alignment(
         return []
     semantics_by_id = {
         str(item.get("figure_id") or "").strip(): item
-        for item in figure_semantics_payload.get("figures", []) or []
-        if isinstance(item, dict) and str(item.get("figure_id") or "").strip()
+        for item in _figure_semantics_entries(figure_semantics_payload)
+        if str(item.get("figure_id") or "").strip()
     }
     hits: list[dict[str, Any]] = []
     for figure in figure_catalog_payload.get("figures", []) or []:
@@ -365,6 +384,8 @@ def inspect_figure_semantic_renderer_alignment(
         )
         for semantics_field, catalog_field in expected_pairs:
             expected_value = str(renderer_contract.get(semantics_field) or "").strip()
+            if semantics_field == "renderer_family" and not expected_value:
+                expected_value = str(renderer_contract.get("renderer") or "").strip()
             observed_value = str(figure.get(catalog_field) or "").strip()
             if expected_value and observed_value == expected_value:
                 continue
@@ -560,4 +581,3 @@ def ama_pdf_defaults_present(review_defaults_path: Path, ama_csl_path: Path) -> 
         return False
     defaults_text = read_review_defaults(review_defaults_path)
     return bool(medical_surface_policy.ama_defaults_regex().search(defaults_text))
-
