@@ -33,6 +33,7 @@ from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import gate_clearing_batch_transportability
 from med_autoscience.controllers import gate_clearing_batch_time_to_event_grouped
+from med_autoscience.controllers import gate_clearing_batch_authority_redrive
 from med_autoscience.controllers import publication_shell_sync
 from med_autoscience.controllers.gate_clearing_batch_execution import GateClearingRepairUnit
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
@@ -174,21 +175,6 @@ def _unit_blocking_artifact_refs(unit_results: list[dict[str, Any]]) -> list[dic
             if ref not in refs:
                 refs.append(ref)
     return refs
-
-
-def _analysis_work_unit_authority_closure_unit_ids(
-    *,
-    selected_publication_work_unit: dict[str, Any] | None,
-    submission_minimal_refresh_requested: bool,
-    repair_units: list[GateClearingRepairUnit],
-) -> tuple[str, ...]:
-    if _non_empty_text((selected_publication_work_unit or {}).get("unit_id")) != "analysis_claim_evidence_repair":
-        return ()
-    if not submission_minimal_refresh_requested:
-        return ()
-    if not any(unit.unit_id == "materialize_display_surface" for unit in repair_units):
-        return ()
-    return ("create_submission_minimal_package",)
 
 
 def _quest_root(profile: WorkspaceProfile, *, quest_id: str) -> Path:
@@ -952,6 +938,15 @@ def run_gate_clearing_batch(
         and gate_clearing_batch_submission.direct_submission_delivery_sync_requested(gate_report=gate_report)
         and study_delivery_sync.can_sync_study_delivery(paper_root=paper_root)
     )
+    authority_settle_delivery_redrive_requested = (
+        gate_clearing_batch_authority_redrive.previous_delivery_sync_awaited_authority_settle(latest_batch)
+        and study_delivery_status.startswith("stale")
+        and study_delivery_sync.can_sync_study_delivery(paper_root=paper_root)
+    )
+    if authority_settle_delivery_redrive_requested:
+        selected_publication_work_unit = submission_delivery_sync_closure_work_unit()
+        direct_submission_delivery_sync_requested = True
+        submission_minimal_refresh_requested = False
 
     repair_units: list[GateClearingRepairUnit] = []
     if mapping_payload:
@@ -974,7 +969,10 @@ def run_gate_clearing_batch(
         if str(item or "").strip()
     }
     display_repair_script_path = paper_root / "build" / "generate_display_exports.py"
-    if str(gate_report.get("medical_publication_surface_status") or "").strip() == "blocked":
+    if (
+        not authority_settle_delivery_redrive_requested
+        and str(gate_report.get("medical_publication_surface_status") or "").strip() == "blocked"
+    ):
         repair_units.append(
             GateClearingRepairUnit(
                 unit_id="repair_paper_live_paths",
@@ -1092,7 +1090,7 @@ def run_gate_clearing_batch(
                     run=lambda: _materialize_display_surface(paper_root=paper_root),
                 )
             )
-    elif bundle_stage_repair and display_repair_script_path.exists():
+    elif not authority_settle_delivery_redrive_requested and bundle_stage_repair and display_repair_script_path.exists():
         repair_units.append(
             GateClearingRepairUnit(
                 unit_id="workspace_display_repair_script",
@@ -1140,7 +1138,7 @@ def run_gate_clearing_batch(
     repair_units = filter_repair_units_for_publication_work_unit(
         repair_units,
         next_work_unit=explicit_next_work_unit,
-        additional_allowed_unit_ids=_analysis_work_unit_authority_closure_unit_ids(
+        additional_allowed_unit_ids=gate_clearing_batch_authority_redrive.analysis_work_unit_authority_closure_unit_ids(
             selected_publication_work_unit=explicit_next_work_unit,
             submission_minimal_refresh_requested=submission_minimal_refresh_requested,
             repair_units=repair_units,
