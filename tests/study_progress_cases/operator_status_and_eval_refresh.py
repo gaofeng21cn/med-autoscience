@@ -817,17 +817,18 @@ def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
 
     assert refreshed_publication_eval["emitted_at"] == "2026-04-12T09:40:00+00:00"
     assert refreshed_publication_eval["gaps"][0]["summary"] == "medical_publication_surface_blocked"
-    assert refreshed_publication_eval["recommended_actions"][0]["action_type"] == "route_back_same_line"
-    assert refreshed_publication_eval["recommended_actions"][0]["route_target"] == "write"
+    assert refreshed_publication_eval["recommended_actions"][0]["action_type"] == "return_to_controller"
+    assert refreshed_publication_eval["recommended_actions"][0]["next_work_unit"]["unit_id"] == "gate_needs_specificity"
     assert "study 目录里的投稿包镜像已经过期，仍停在旧版本，不能当作当前包。" not in result["current_blockers"]
     assert "论文叙事或方法/结果书写面仍有硬阻塞。" in result["current_blockers"]
-    assert result["operator_status_card"]["handling_state"] == "scientific_or_quality_repair_in_progress"
-    assert result["operator_status_card"]["user_visible_verdict"] == "MAS 正在处理论文可发表性硬阻塞，给人看的稿件还没到放行状态。"
+    assert result["operator_status_card"]["handling_state"] == "publication_gate_specificity_required"
+    assert "普通分析" in result["operator_status_card"]["user_visible_verdict"]
     assert result["module_surfaces"]["eval_hygiene"]["overall_verdict"] == "blocked"
     assert result["module_surfaces"]["eval_hygiene"]["status_summary"] == "稿件书写面还有医学论文表达硬阻塞，需要继续修文。"
-    assert result["intervention_lane"]["repair_mode"] == "same_line_route_back"
-    assert result["intervention_lane"]["route_target"] == "write"
-    assert "What is the narrowest same-line manuscript repair or continuation step required now?" in result["next_system_action"]
+    assert result["intervention_lane"]["repair_mode"] == "gate_needs_specificity"
+    assert result["intervention_lane"]["route_target"] == "controller"
+    assert result["intervention_lane"]["work_unit_id"] == "gate_needs_specificity"
+    assert "没有具体对象前不再启动普通分析或写作 worker" in result["next_system_action"]
 
 
 def test_study_progress_refreshes_semantically_stale_publication_eval_even_when_eval_is_newer(
