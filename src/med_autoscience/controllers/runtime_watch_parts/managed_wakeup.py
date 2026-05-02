@@ -43,6 +43,9 @@ def _serialize_managed_study_action(
     action_payload: dict[str, Any] | StudyRuntimeStatus,
 ) -> dict[str, Any]:
     payload = _managed_study_status_payload(action_payload)
+    terminal_authorization = _terminal_controller_work_unit_projection(payload)
+    if terminal_authorization is not None:
+        return terminal_authorization
     action = (
         action_payload
         if isinstance(action_payload, StudyRuntimeStatus)
@@ -62,6 +65,33 @@ def _serialize_managed_study_action(
         serialized["runtime_health_epoch"] = _non_empty_text(runtime_health_snapshot.get("runtime_health_epoch"))
         serialized["runtime_health_snapshot"] = runtime_health_snapshot
     return serialized
+
+
+def _terminal_controller_work_unit_projection(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    authorization = payload.get("last_controller_decision_authorization")
+    if not isinstance(authorization, Mapping):
+        return None
+    lifecycle = authorization.get("controller_work_unit_lifecycle")
+    if not isinstance(lifecycle, Mapping):
+        return None
+    lifecycle_state = _non_empty_text(lifecycle.get("lifecycle_state"))
+    if lifecycle_state not in {"needs_specificity", "platform_repair_required"}:
+        return None
+    serialized = {
+        "study_id": _non_empty_text(payload.get("study_id")),
+        "decision": "blocked",
+        "reason": lifecycle_state,
+        "controller_work_unit_lifecycle": {
+            "lifecycle_state": lifecycle_state,
+            "latest_event_type": _non_empty_text(lifecycle.get("latest_event_type")),
+            "delivery_blocked": bool(lifecycle.get("delivery_blocked")),
+            "block_reason": _non_empty_text(lifecycle.get("block_reason")),
+            "terminal_consumed": bool(lifecycle.get("terminal_consumed")),
+        },
+        "work_unit_id": _non_empty_text(authorization.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(authorization.get("work_unit_fingerprint")),
+    }
+    return {key: value for key, value in serialized.items() if value is not None}
 
 
 def _managed_study_status_payload(

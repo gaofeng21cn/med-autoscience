@@ -256,6 +256,39 @@ def _materialize_specificity_controller_state(
     return decision_result
 
 
+def _specificity_terminal_status_payload(
+    *,
+    status_payload: Mapping[str, Any],
+    tick_request: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(status_payload)
+    payload["decision"] = "blocked"
+    payload["reason"] = "gate_needs_specificity"
+    payload["last_controller_decision_authorization"] = {
+        "work_unit_id": "gate_needs_specificity",
+        "work_unit_fingerprint": _non_empty_text(tick_request.get("work_unit_fingerprint")),
+        "next_work_unit": _compact_work_unit_payload(tick_request.get("next_work_unit")),
+        "blocking_work_units": [
+            dict(item)
+            for item in (tick_request.get("blocking_work_units") or [])
+            if isinstance(item, dict)
+        ],
+        "controller_work_unit_lifecycle": {
+            "lifecycle_state": "needs_specificity",
+            "latest_event_type": "needs_specificity",
+            "delivery_blocked": True,
+            "block_reason": "needs_specificity",
+            "terminal_consumed": True,
+        },
+    }
+    payload["control_intent_lifecycle"] = {
+        "state": "needs_specificity",
+        "work_unit_id": "gate_needs_specificity",
+        "work_unit_fingerprint": _non_empty_text(tick_request.get("work_unit_fingerprint")),
+    }
+    return payload
+
+
 def _managed_study_recovery_failure_payload(
     *,
     preflight_payload: Mapping[str, Any],
@@ -808,7 +841,9 @@ def run_watch_for_runtime(
             rerouted_managed_study_statuses.append((study_root, resolved_status_payload))
         managed_study_statuses = rerouted_managed_study_statuses
     managed_study_supervision: list[dict[str, Any]] = []
+    managed_study_action_overrides: dict[str, dict[str, Any]] = {}
     for study_root, status_payload in managed_study_statuses:
+        study_root_key = str(Path(study_root).expanduser().resolve())
         if profile is not None:
             status_payload = _refresh_managed_study_status_after_ensure(
                 profile=profile,
@@ -876,6 +911,11 @@ def run_watch_for_runtime(
                             "study_decision_ref": specificity_decision_result.get("study_decision_ref"),
                         },
                     }
+                    status_payload = _specificity_terminal_status_payload(
+                        status_payload=status_payload,
+                        tick_request=tick_request,
+                    )
+                    managed_study_action_overrides[study_root_key] = status_payload
                     suppression = _serialize_no_op_suppression(
                         study_root=study_root,
                         status_payload=status_payload,
@@ -1179,7 +1219,9 @@ def run_watch_for_runtime(
                 )
             )
     managed_study_actions = [
-        _serialize_managed_study_action(status_payload)
+        _serialize_managed_study_action(
+            managed_study_action_overrides.get(str(Path(study_root).expanduser().resolve()), status_payload)
+        )
         for _, status_payload in managed_study_statuses
     ]
     runtime_report = {
