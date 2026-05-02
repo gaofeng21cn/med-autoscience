@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 import json
 import platform
 
+from med_autoscience.ai_first_drift_audit import run_ai_first_drift_audit
 from med_autoscience.controllers import hermes_supervision
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
@@ -27,6 +28,7 @@ class DoctorReport:
     behavior_gate: dict[str, object] = field(default_factory=dict)
     external_runtime_contract: dict[str, object] = field(default_factory=dict)
     workspace_supervision_contract: dict[str, object] = field(default_factory=dict)
+    ai_first_drift_audit: dict[str, object] = field(default_factory=dict)
 
 
 def overlay_request_from_profile(profile: WorkspaceProfile) -> dict[str, object]:
@@ -74,6 +76,11 @@ def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
             )
         ),
         workspace_supervision_contract=dict(hermes_supervision.read_supervision_status(profile=profile)),
+        ai_first_drift_audit=dict(
+            run_ai_first_drift_audit(
+                med_deepscientist_repo_root=profile.med_deepscientist_repo_root,
+            )
+        ),
     )
 
 
@@ -120,6 +127,7 @@ def render_doctor_report(report: DoctorReport) -> str:
             "workspace_supervision_contract: "
             + json.dumps(report.workspace_supervision_contract, ensure_ascii=False, sort_keys=True)
         ),
+        f"ai_first_drift_audit: {json.dumps(report.ai_first_drift_audit, ensure_ascii=False, sort_keys=True)}",
     ]
     return "\n".join(lines) + "\n"
 
