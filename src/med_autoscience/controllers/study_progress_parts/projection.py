@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from med_autoscience.controllers import autonomy_ai_doctor, control_plane_facts, runtime_health_kernel, study_truth_kernel
+from med_autoscience.controllers import (
+    ai_first_observability,
+    autonomy_ai_doctor,
+    control_plane_facts,
+    runtime_health_kernel,
+    study_truth_kernel,
+)
 from med_autoscience.medical_journal_style_corpus import stable_medical_journal_style_corpus_path
 from med_autoscience.medical_manuscript_blueprint import stable_medical_manuscript_blueprint_path
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
@@ -832,6 +838,22 @@ def build_study_progress_projection(
         runtime_supervision_ref=str(runtime_supervision_path) if runtime_supervision_payload is not None else None,
         runtime_watch_ref=str(runtime_watch_path) if runtime_watch_path is not None else None,
     )
+    ai_first_observability_snapshots = ai_first_observability.build_ai_first_observability_snapshots_from_study_root(
+        study_root=resolved_study_root,
+    )
+    ai_first_operations_dashboard = ai_first_observability.build_ai_first_operations_dashboard_summary(
+        drift_audit={"status": "not_run", "summary": {"fail_count": 0}},
+        progress_snapshot={
+            "current_stage": current_stage,
+            "current_blockers": current_blockers,
+            "next_system_action": next_system_action,
+            "human_review_required": needs_physician_decision,
+            "autonomy_contract": autonomy_contract,
+        },
+        runtime_snapshot=ai_first_observability_snapshots["runtime_snapshot"],
+        quality_snapshot=ai_first_observability_snapshots["quality_snapshot"],
+        artifact_snapshot=ai_first_observability_snapshots["artifact_snapshot"],
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -883,6 +905,8 @@ def build_study_progress_projection(
         "quality_review_followthrough": quality_review_followthrough or None,
         "medical_writing_quality_surfaces": medical_writing_quality_surfaces,
         "research_runtime_control_projection": research_runtime_control_projection,
+        "ai_first_observability_snapshots": ai_first_observability_snapshots,
+        "ai_first_operations_dashboard": ai_first_operations_dashboard,
         "study_truth_snapshot": study_truth_snapshot or None,
         "runtime_health_snapshot": runtime_health_snapshot or None,
         "module_surfaces": module_surfaces,
@@ -951,6 +975,15 @@ def build_study_progress_projection(
             ),
             "bash_summary_path": str(bash_summary_path) if bash_summary_path is not None else None,
             "details_projection_path": str(details_projection_path) if details_projection_path is not None else None,
+            "ai_first_observability_publication_eval_path": ai_first_observability_snapshots["refs"][
+                "publication_eval_path"
+            ],
+            "ai_first_observability_runtime_health_path": ai_first_observability_snapshots["refs"][
+                "runtime_health_path"
+            ],
+            "ai_first_observability_delivery_manifest_path": ai_first_observability_snapshots["refs"][
+                "delivery_manifest_path"
+            ],
         },
     }
     return payload

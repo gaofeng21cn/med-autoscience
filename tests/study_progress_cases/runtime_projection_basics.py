@@ -385,6 +385,23 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert result["runtime_efficiency"]["token_usage"]["cached_input_tokens"] == 400
     assert result["runtime_efficiency"]["latest_evidence_packets"][0]["summary"].startswith("bash_exec:")
     assert result["runtime_efficiency"]["gate_cache"]["input_fingerprint"] == "gate-fingerprint-001"
+    dashboard = result["ai_first_operations_dashboard"]
+    assert dashboard["surface"] == "ai_first_operations_dashboard_summary"
+    assert dashboard["read_model"] == "ai_first_operations_dashboard_read_model"
+    assert dashboard["contract"]["shared_read_model_consumers"] == [
+        "product_frontdesk",
+        "workspace_cockpit",
+        "study_progress",
+    ]
+    assert dashboard["user_view"]["current_stage"] == result["current_stage"]
+    assert dashboard["user_view"]["blockers"] == result["current_blockers"]
+    assert dashboard["user_view"]["next_step"] == result["next_system_action"]
+    assert dashboard["user_view"]["human_review_required"] is True
+    assert dashboard["maintainer_view"]["ai_reviewer_trace"]["complete"] is False
+    assert dashboard["maintainer_view"]["route_back"]["count"] == 0
+    assert dashboard["maintainer_view"]["artifact_stale"]["stale_artifact_count"] >= 1
+    assert dashboard["authority"]["observability_can_authorize_quality"] is False
+    assert result["refs"]["ai_first_observability_publication_eval_path"] == str(publication_eval_path)
     assert publishability_gate_report_path.exists()
 
 
