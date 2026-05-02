@@ -172,6 +172,8 @@ def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_proje
                     "route_back_active": 0,
                     "artifact_refresh_pending": 0,
                     "human_review_required": 0,
+                    "open_feedback_count": 0,
+                    "repeat_toil_count": 0,
                 },
             },
         },
@@ -208,6 +210,8 @@ def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_proje
     assert captured["product_entry_manifest"]["gateway_interaction_contract"] == manifest["gateway_interaction_contract"]
     assert captured["extra_payload"]["workspace_ai_first_operations_state"]["authority"] == "observability_only"
     assert captured["extra_payload"]["workspace_ai_first_operations_state"]["counts"]["dashboard_count"] == 1
+    assert captured["extra_payload"]["workspace_ai_first_feedback_state"]["authority"] == "observability_only"
+    assert captured["extra_payload"]["workspace_ai_first_feedback_state"]["counts"]["open_feedback_count"] == 0
     assert "domain_entry_contract" not in captured["extra_payload"]
     assert "gateway_interaction_contract" not in captured["extra_payload"]
 
