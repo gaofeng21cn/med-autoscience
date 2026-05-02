@@ -469,7 +469,43 @@ def test_run_gate_clearing_batch_normalizes_legacy_f3_cumulative_incidence_paylo
     monkeypatch.setattr(
         module.gate_clearing_batch_transportability,
         "transportability_reporting_surface_needs_sync",
-        lambda **_: False,
+        lambda **_: True,
+    )
+    stale_sync_payload = {
+        "schema_version": 1,
+        "input_schema_id": "time_to_event_grouped_inputs_v1",
+        "displays": [
+            {
+                "display_id": "km_risk_stratification",
+                "template_id": "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+                "title": "Cumulative incidence by transferred risk quartile",
+                "caption": "Cumulative incidence curves by China-derived risk strata.",
+                "x_label": "Years from baseline",
+                "y_label": "Cumulative incidence",
+                "groups": [
+                    {
+                        "label": "China Q1 low",
+                        "times": [0.0, 1.0, 3.0, 5.0],
+                        "values": [0.0, 0.001, 0.003, 0.004],
+                    },
+                    {
+                        "label": "China Q4 high",
+                        "times": [0.0, 1.0, 3.0, 5.0],
+                        "values": [0.0, 0.012, 0.031, 0.050],
+                    },
+                ],
+            }
+        ],
+    }
+
+    def fake_transportability_sync(**_: object) -> dict[str, object]:
+        _write_json(payload_path, stale_sync_payload)
+        return {"status": "updated", "written_files": [str(payload_path)]}
+
+    monkeypatch.setattr(
+        module.gate_clearing_batch_transportability,
+        "sync_transportability_reporting_surface",
+        fake_transportability_sync,
     )
 
     def fake_materialize(*, paper_root: Path) -> dict[str, object]:
@@ -507,11 +543,13 @@ def test_run_gate_clearing_batch_normalizes_legacy_f3_cumulative_incidence_paylo
     assert call_order == ["materialize"]
     assert [item["unit_id"] for item in result["unit_results"]] == [
         "repair_paper_live_paths",
+        "sync_transportability_reporting_surface",
         "normalize_legacy_time_to_event_grouped_payloads",
         "materialize_display_surface",
     ]
-    normalize_result = result["unit_results"][1]
+    normalize_result = result["unit_results"][2]
     assert normalize_result["status"] == "updated"
+    assert normalize_result["depends_on"] == ["repair_paper_live_paths", "sync_transportability_reporting_surface"]
     assert normalize_result["result"]["updated_display_ids"] == ["km_risk_stratification"]
     assert normalize_result["result"]["updated_payload_paths"] == [str(payload_path)]
     assert result["repair_blocking_artifact_refs"] == []

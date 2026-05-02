@@ -980,6 +980,7 @@ def run_gate_clearing_batch(
                         depends_on=_existing_dependency_ids(
                             repair_units,
                             "repair_paper_live_paths",
+                            "sync_transportability_reporting_surface",
                             "time_to_event_direct_migration",
                         ),
                         run=lambda: _normalize_legacy_time_to_event_grouped_payloads(paper_root=paper_root),
