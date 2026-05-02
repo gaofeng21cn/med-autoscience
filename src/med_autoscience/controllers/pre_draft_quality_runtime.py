@@ -36,6 +36,7 @@ _AUTHORITY_SURFACES = {
     "medical_manuscript_blueprint": Path("paper/medical_manuscript_blueprint.json"),
     "publication_eval": Path("artifacts/publication_eval/latest.json"),
 }
+_AUTHORING_WORKPLAN_PATH = Path("paper/authoring_workplan.json")
 
 
 def _read_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
@@ -192,6 +193,94 @@ def _publication_eval_not_blocked(publication_eval: dict[str, Any]) -> bool:
     return bool(overall)
 
 
+def _source_family(payload: dict[str, Any]) -> str:
+    authority = payload.get("authority")
+    if isinstance(authority, dict):
+        return _text(authority.get("source_family"))
+    return ""
+
+
+def _append_closed_items_blockers(
+    *,
+    payload: dict[str, Any],
+    item_key: str,
+    id_key: str,
+    blocker_prefix: str,
+    blockers: list[str],
+) -> int:
+    items = payload.get(item_key)
+    if not isinstance(items, list):
+        blockers.append(f"{blocker_prefix}_{item_key}_missing")
+        return 0
+    count = 0
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            blockers.append(f"{blocker_prefix}_{item_key}_invalid:{index}")
+            continue
+        count += 1
+        item_id = _text(item.get(id_key)) or str(index)
+        if _status(item) != _REQUIRED_STATUS:
+            blockers.append(f"{blocker_prefix}_{item_key}_not_closed:{item_id}")
+    return count
+
+
+def _build_authoring_workplan_projection(study_root: Path) -> dict[str, Any]:
+    path = study_root / _AUTHORING_WORKPLAN_PATH
+    payload, read_error = _read_json(path)
+    projection_blockers: list[str] = []
+    section_count = 0
+    work_unit_count = 0
+    status = ""
+    source_family = ""
+
+    if read_error is not None:
+        projection_blockers.append(f"authoring_workplan_{read_error}")
+    elif payload is not None:
+        status = _status(payload)
+        source_family = _source_family(payload)
+        if status != _REQUIRED_STATUS:
+            projection_blockers.append("authoring_workplan_not_closed")
+        section_count = _append_closed_items_blockers(
+            payload=payload,
+            item_key="sections",
+            id_key="section_id",
+            blocker_prefix="authoring_workplan",
+            blockers=projection_blockers,
+        )
+        work_unit_count = _append_closed_items_blockers(
+            payload=payload,
+            item_key="work_units",
+            id_key="work_unit_id",
+            blocker_prefix="authoring_workplan",
+            blockers=projection_blockers,
+        )
+        authority = payload.get("authority")
+        if not isinstance(authority, dict):
+            projection_blockers.append("authoring_workplan_authority_missing")
+        elif authority.get("read_model_only") is not True:
+            projection_blockers.append("authoring_workplan_not_read_model_only")
+        if isinstance(authority, dict) and authority.get("can_authorize_draft_readiness") is not False:
+            projection_blockers.append("authoring_workplan_authority_overreach")
+
+    return {
+        "surface": "authoring_workplan_projection",
+        "source_path": str(path),
+        "exists": path.exists(),
+        "status": status,
+        "workplan_ready": not projection_blockers,
+        "required_before": "first_full_draft",
+        "source_family": source_family,
+        "section_count": section_count,
+        "work_unit_count": work_unit_count,
+        "blockers": projection_blockers,
+        "authority": {
+            "read_only": True,
+            "can_authorize_draft_readiness": False,
+            "can_mutate_runtime": False,
+        },
+    }
+
+
 def _route_back_for_status(status: str, blockers: list[str]) -> dict[str, Any]:
     if status == "first_full_draft_ready":
         return {
@@ -280,6 +369,13 @@ def build_pre_draft_quality_runtime_state(study_root: str | Path) -> dict[str, A
         blockers.extend(ai_blockers)
         review_blockers.extend(blockers[before:])
 
+    authoring_workplan_projection = _build_authoring_workplan_projection(resolved_study_root)
+    authoring_workplan_blockers = [
+        str(item) for item in authoring_workplan_projection["blockers"] if str(item)
+    ]
+    blockers.extend(authoring_workplan_blockers)
+    route_back_blockers.extend(authoring_workplan_blockers)
+
     if review_blockers:
         status = "review_required"
     elif route_back_blockers:
@@ -301,6 +397,7 @@ def build_pre_draft_quality_runtime_state(study_root: str | Path) -> dict[str, A
         "blockers": blockers,
         "route_back": _route_back_for_status(status, blockers),
         "refs": refs,
+        "authoring_workplan_projection": authoring_workplan_projection,
         "authority": {
             "source_contract": build_quality_os_runtime_materialization_contract(),
             "assessment_provenance": _provenance_summary(publication_eval),

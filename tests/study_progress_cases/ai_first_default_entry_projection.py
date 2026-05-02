@@ -72,6 +72,22 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
     assert state["status"] == "review_required"
     assert state["pre_draft"]["draft_ready"] is False
     assert state["pre_draft"]["route_back_required"] is True
+    assert state["pre_draft"]["authoring_workplan_projection"] == {
+        "surface": "authoring_workplan_projection",
+        "exists": False,
+        "status": "",
+        "workplan_ready": False,
+        "required_before": "first_full_draft",
+        "source_family": "",
+        "section_count": 0,
+        "work_unit_count": 0,
+        "blockers": ["authoring_workplan_missing"],
+        "authority": {
+            "read_only": True,
+            "can_authorize_draft_readiness": False,
+            "can_mutate_runtime": False,
+        },
+    }
     assert state["ai_reviewer_workflow"]["authority_state"] == "projection_only"
     assert state["ai_reviewer_workflow"]["finalize_authorized"] is False
     assert state["ai_reviewer_workflow"]["submission_authorized"] is False
