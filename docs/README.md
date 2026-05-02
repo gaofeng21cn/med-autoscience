@@ -29,8 +29,12 @@ This guide is for readers who need product boundary, operator entry surfaces, ru
 - `OPL` integration, the product-entry manifest, and other machine-readable bridge surfaces belong to the integration and reference layers.
 - `OPL Runtime Manager` is the target family-level thin manager over the external `Hermes-Agent` substrate; it may consume MAS task registration, runtime-control projection, status/artifact locators, and wakeup/approval boundaries, but it does not own MAS study truth.
 - Hosted runtime carriers such as `Hermes-Agent` stay in explicit optional or reference-layer positions; they do not redefine the default MAS capability contract.
-- `StudyTruthKernel` and `RuntimeHealthKernel` are now the core read-model reducers for current study truth and runtime health; ordinary reads create shadow projections, while materialized snapshots require explicit reconcile/controller/watch apply actions.
-- First-draft manuscript quality is now a pre-draft contract: MAS must generate manuscript-native medical journal prose, not controller notes, figure/table anchor scaffolds, or administrative placeholders in article text.
+- `MedDeepScientist` remains the controlled backend, behavior oracle, and upstream intake buffer during migration; MAS remains the only research and publication owner.
+- AI-first is the current operating direction for runnable research quality. It is expressed through pre-draft quality runtime, AI reviewer workflow, artifact rebuild proof, operations state, and real-paper soak, not through mechanical checks over documentation wording.
+- `StudyTruthKernel` and `RuntimeHealthKernel` are current read-model reducers for study truth and runtime health; ordinary reads create shadow projections, while materialized snapshots require explicit reconcile/controller/watch apply actions.
+- First-draft manuscript quality is handled as a pre-draft runtime concern: MAS should generate manuscript-native medical journal prose, not controller notes, figure/table anchor scaffolds, or administrative placeholders in article text.
+- Artifact proof is canonical-source-first: manuscript, figures, tables, and packages should be rebuildable from canonical sources before they are treated as delivery evidence.
+- Real-paper soak remains the main evidence gap for the AI-first line; documents should state that gap instead of presenting every target-layer capability as proven current behavior.
 - Workspace Git/storage boundaries are now part of the maintained workspace contract: outer workspace Git stays lightweight, generated/runtime artifacts stay excluded, and storage-audit repair reports actual apply strategy.
 - Historical migration terms and older naming stay in reference or history layers.
 
@@ -127,6 +131,7 @@ Public-facing material should stay mirrored in English and Chinese.
 - Keep public-facing docs mirrored in English and Chinese.
 - Keep runtime, program, capability, and policy material technical and repo-tracked without letting it take over the public home page.
 - Keep historical material readable while keeping the active user path focused on research workspaces, progress, and files.
+- Documentation should keep current behavior, operating direction, and evidence gaps readable for humans. Do not use tests or preflight contracts to police wording.
 
 ## Governance
 

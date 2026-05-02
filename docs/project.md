@@ -2,7 +2,7 @@
 
 `Med Auto Science` 是可被通用 agent 直接调用的独立 medical research domain agent，外层由单一 MAS app skill 承接稳定 callable surface。它把研究问题、工作区语境、证据推进、人话进度和论文相关文件放在同一条研究线上，帮助团队把真实研究持续推进到可交付状态。
 
-## 三层结构
+## 当前结构
 
 - 用户层：研究问题、工作区、进度反馈、交付文件都统一由 `Med Auto Science` 这条 domain agent 主线承载；对外第一主语是独立 domain agent，其后是单一 MAS app skill。
 - 操作与集成层：`CLI`、`MCP`、`controller`，以及 repo-tracked 的 workspace commands / scripts / contracts，共同构成 MAS 对外稳定 capability surface；`product-entry manifest`、`OPL handoff` 与其他机器可读桥接只做 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不接管研究 owner 身份。
@@ -14,8 +14,9 @@
 - 把医学研究的关键判断和运行状态沉到可审计的仓库跟踪合同与持久表面。
 - 让研究问题、工作区语境、进度反馈和文件交付始终围绕同一条课题线组织。
 - 把 CLI、本地程序/脚本、durable surface 与 repo-tracked contract 收口成稳定 capability surface，方便 `Codex` / `OPL` skill activation 直接调用。
-- 让方向锁定后的自治推进、论文质量合同和投稿前审计沿同一条 controller 主线收口。
+- 让方向锁定后的自治推进、pre-draft 质量运行、AI reviewer workflow、投稿前审计和产物重建证明沿同一条 controller 主线收口。
 - 维护稳定的运行时合同、进度表面和交付表面，确保研究推进可验证、可回看、可迭代。
+- 文档负责人工可读地说明当前可用系统、运行方向和证据缺口；不通过新增测试或 preflight wording gate 约束文档措辞。
 
 ## 当前边界
 
@@ -25,9 +26,11 @@
 - `OPL Runtime Manager` 可以读取 MAS 的 task registration、runtime_control projection、artifact/progress locator 与 wakeup/approval 边界，用于上层状态索引和托管入口编排；这些 projection 只能回指 MAS durable truth surface，不能复制或替代研究判断。
 - `Hermes-Agent` 继续只出现在可选 hosted runtime target 或 reference-layer 语境，不改写 MAS 的稳定 capability surface 或研究 owner 语义。
 - `MedDeepScientist` 继续承载当前仍保留在受控后端中的研究执行能力，同时保留 behavior oracle 与 upstream intake buffer 职责；它不作为用户入口，也不承担第二 owner 身份。
+- `MAS AI-first Research OS` 是长线目标架构。当前可用落点是 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 与真实论文 soak 的逐步闭合；真实论文 soak 仍是证据缺口。
 
 ## 当前非目标
 
 - 不把迁移期命名、旧产品前门术语或历史交接叙事继续抬成默认用户入口。
 - 不把展示能力、交付打包或其他能力线混入当前医学研究主线定位。
 - 不把临时本地状态、对话记忆或 prompt-only intent 写成权威真相。
+- 不新增文档 wording gate，不把文档措辞交给测试程序、preflight contract 或机械后处理约束。
