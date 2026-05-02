@@ -382,3 +382,155 @@ def test_run_gate_clearing_batch_migrates_legacy_feature_shift_f5_payload_to_tra
     assert sync_result["result"]["legacy_feature_shift_f5_migrated"] is True
     assert sync_result["result"]["legacy_input_path"] == str(payload_path)
     assert result["repair_blocking_artifact_refs"] == []
+
+
+def test_transportability_f5_migration_relocates_legacy_runtime_metrics_path(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-dm-china-us-mortality-attribution",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary=(
+            "China-US comparative transportability and attribution-shift paper with "
+            "score compression and feature-shift explanation."
+        ),
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    metrics_path = quest_root / ".ds" / "worktrees" / "analysis-run" / "outputs" / "collapse_attribution_metrics.json"
+    _write_json(
+        metrics_path,
+        {
+            "metrics": {
+                "china_predicted_mean_5y_risk": 0.019599702325,
+                "nhanes_predicted_mean_5y_risk": 0.001137066343,
+                "predicted_risk_iqr_ratio_nhanes_to_china": 0.259964990333,
+                "dominant_shift_feature": "HDL",
+                "dominant_shift_feature_abs_share": 0.948473550443,
+            },
+            "source_metrics_summary": {
+                "discrimination": {
+                    "china_c_index": 0.759985474506,
+                    "nhanes_c_index": 0.564708523287,
+                    "china_n": 15789,
+                    "nhanes_n": 5659,
+                },
+                "calibration_drift": {
+                    "china_predicted_mean_5y_risk": 0.019599702325,
+                    "china_observed_5y_rate": 0.020330609918,
+                    "nhanes_predicted_mean_5y_risk": 0.001137066343,
+                    "nhanes_observed_5y_rate": 0.124403604877,
+                },
+            },
+        },
+    )
+    legacy_metrics_path = str(
+        profile.workspace_root
+        / "ops"
+        / "med-the research workflow"
+        / "runtime"
+        / "quests"
+        / "quest-002"
+        / ".ds"
+        / "worktrees"
+        / "analysis-run"
+        / "outputs"
+        / "collapse_attribution_metrics.json"
+    )
+    assert not Path(legacy_metrics_path).exists()
+    payload_path = paper_root / "multicenter_generalizability_inputs.json"
+    _write_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "multicenter_generalizability",
+                    "display_kind": "figure",
+                    "requirement_key": "multicenter_generalizability_overview",
+                    "catalog_id": "F5",
+                }
+            ],
+        },
+    )
+    _write_json(
+        payload_path,
+        {
+            "schema_version": 1,
+            "input_schema_id": "multicenter_generalizability_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "multicenter_generalizability",
+                    "template_id": "fenggaolab.org.medical-display-core::multicenter_generalizability_overview",
+                    "title": "Predictor distribution differences and transported score narrowing",
+                    "caption": "Feature-shift attribution for transportability loss.",
+                    "collapse_metrics_path": legacy_metrics_path,
+                    "feature_shift_csv_path": "analysis/collapse_attribution/outputs/feature_shift_contributions.csv",
+                    "risk_distribution_csv_path": (
+                        "analysis/collapse_attribution/outputs/"
+                        "predicted_risk_distribution_summary.csv"
+                    ),
+                    "primary_driver": "HDL",
+                }
+            ],
+        },
+    )
+    _write_blocked_publication_eval(study_root, quest_id="quest-002")
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": ["medical_publication_surface_blocked"],
+            "medical_publication_surface_status": "blocked",
+            "medical_publication_surface_named_blockers": ["invalid_figure_semantics_manifest"],
+        },
+    )
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(module, "_repair_paper_live_paths", lambda **_: {"status": "updated"})
+    monkeypatch.setattr(
+        module,
+        "_materialize_display_surface",
+        lambda *, paper_root: {"status": "materialized", "figures_materialized": ["F5"]},
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["medical_publication_surface_blocked"],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="002-dm-china-us-mortality-attribution",
+        study_root=study_root,
+        quest_id="quest-002",
+        source="test-source",
+    )
+
+    sync_result = result["unit_results"][1]
+    assert sync_result["unit_id"] == "sync_transportability_reporting_surface"
+    assert sync_result["status"] == "updated"
+    migrated_payload = json.loads(
+        (paper_root / "center_transportability_governance_summary_panel_inputs.json").read_text(encoding="utf-8")
+    )
+    migrated_display = migrated_payload["displays"][0]
+    assert migrated_display["centers"][1]["max_shift"] == 0.948473550443
+    assert migrated_display["centers"][1]["slope"] == 0.259964990333

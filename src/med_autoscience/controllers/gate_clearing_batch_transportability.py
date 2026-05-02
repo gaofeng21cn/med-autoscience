@@ -118,12 +118,47 @@ def _resolve_paper_payload_path(*, paper_root: Path, raw_path: object) -> Path |
         return None
     candidate = Path(text).expanduser()
     if candidate.is_absolute():
-        return candidate.resolve()
+        resolved = candidate.resolve()
+        if resolved.exists():
+            return resolved
+        relocated = _relocate_legacy_runtime_path(candidate=resolved, paper_root=Path(paper_root))
+        if relocated is not None:
+            return relocated
+        return resolved
     workspace_root = submission_minimal.workspace_root_from_paper_root(Path(paper_root))
     workspace_candidate = submission_minimal.resolve_relpath(workspace_root, text).expanduser().resolve()
     if workspace_candidate.exists():
         return workspace_candidate
     return (Path(paper_root).expanduser().resolve() / text).resolve()
+
+
+def _relocate_legacy_runtime_path(*, candidate: Path, paper_root: Path) -> Path | None:
+    text = str(candidate)
+    marker = "/ops/med-the research workflow/runtime/quests/"
+    replacement = "/ops/med-deepscientist/runtime/quests/"
+    if marker not in text:
+        return None
+    relocated = Path(text.replace(marker, replacement)).expanduser().resolve()
+    if relocated.exists():
+        return relocated
+    quest_marker = "/.ds/worktrees/"
+    if quest_marker not in text:
+        return None
+    suffix = text.split(quest_marker, 1)[1]
+    current_quest_root = _quest_root_from_paper_root(paper_root)
+    quest_relocated = (current_quest_root / ".ds" / "worktrees" / suffix).expanduser().resolve()
+    if quest_relocated.exists():
+        return quest_relocated
+    return None
+
+
+def _quest_root_from_paper_root(paper_root: Path) -> Path:
+    resolved = Path(paper_root).expanduser().resolve()
+    parts = resolved.parts
+    if ".ds" in parts:
+        ds_index = parts.index(".ds")
+        return Path(*parts[:ds_index])
+    return resolved.parent
 
 
 def _finite_number(value: object, *, default: float | None = None) -> float | None:
