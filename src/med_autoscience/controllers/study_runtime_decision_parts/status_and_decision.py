@@ -302,6 +302,13 @@ def _status_state(
         )
         _record_execution_owner_guard(status=result, quest_root=quest_root)
         _record_supervisor_tick_audit(status=result, study_root=study_root)
+        _record_runtime_health_dominance(
+            status=result,
+            study_root=study_root,
+            study_id=study_id,
+            quest_id=quest_id,
+            recorded_at=router._utc_now(),
+        )
         if not result.should_refresh_startup_hydration_while_blocked():
             result.extras.pop("runtime_escalation_ref", None)
         else:
@@ -378,17 +385,6 @@ def _status_state(
         )
         _record_mds_worker_activity(result)
         _record_auto_runtime_parked_projection(result)
-        from med_autoscience.controllers import runtime_health_kernel
-
-        runtime_health_snapshot = runtime_health_kernel.derive_runtime_health_snapshot_from_status_payload(
-            study_root=study_root,
-            study_id=study_id,
-            quest_id=quest_id,
-            status_payload=result.to_dict(),
-            recorded_at=router._utc_now(),
-        )
-        result.extras["runtime_health_snapshot"] = runtime_health_snapshot
-        result.extras["runtime_health_epoch"] = runtime_health_snapshot.get("runtime_health_epoch")
         result.extras["study_truth_snapshot"] = study_truth_kernel.derive_truth_snapshot_from_status_payload(
             study_root=study_root,
             study_id=study_id,

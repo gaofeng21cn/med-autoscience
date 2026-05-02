@@ -363,6 +363,127 @@ def test_supervisor_status_preserves_preinspected_liveness_and_worker_activity(
     assert result["progress_projection"]["supervision"]["active_run_id"] == "run-live"
 
 
+def test_live_worker_with_stale_artifact_delta_is_recovery_despite_live_audit(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps({"status": "running", "active_run_id": "run-live-stale"}) + "\n",
+    )
+    write_text(
+        study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",
+        json.dumps(
+            {
+                "surface": "autonomy_progress_slo_status",
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "quest_id": "001-risk",
+                "state": "breach",
+                "breach_types": ["read_churn_without_artifact_delta"],
+                "last_meaningful_progress_at": "2026-05-01T18:30:00+00:00",
+                "mds_progress_markers": {
+                    "meaningful_artifact_delta_at": "2026-05-01T18:30:00+00:00",
+                    "meaningful_artifact_delta_kind": "paper_bundle",
+                },
+                "ai_doctor_request_required": True,
+                "ai_doctor_state": "request_ready",
+                "quality_gate_relaxation_allowed": False,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "live",
+            "source": "combined_runner_or_bash_session",
+            "active_run_id": "run-live-stale",
+            "runner_live": True,
+            "bash_live": False,
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-live-stale",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "none",
+                "session_count": 0,
+                "live_session_count": 0,
+                "live_session_ids": [],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        decision_module,
+        "_supervisor_tick_now",
+        lambda: decision_module.datetime.fromisoformat("2026-05-02T11:00:00+00:00"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "blocked",
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "publication gate remains blocked.",
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["runtime_liveness_audit"]["status"] == "live"
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_marked_running_but_no_live_session"
+    assert result["runtime_health_snapshot"]["worker_liveness_state"]["state"] == "activity_timeout"
+    assert result["runtime_health_snapshot"]["canonical_runtime_action"] == "recover_runtime"
+    assert result["progress_projection"]["current_stage"] == "managed_runtime_recovering"
+    assert result["progress_projection"]["runtime_health_snapshot"]["canonical_runtime_action"] == "recover_runtime"
+
+
 def test_live_worker_missing_active_run_id_enters_controlled_recovery(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
