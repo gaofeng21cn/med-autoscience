@@ -301,6 +301,39 @@ MDS_AI_FIRST_RULES: tuple[DriftRule, ...] = (
     ),
 )
 
+GOVERNANCE_DRIFT_DEFENSES: tuple[dict[str, str], ...] = (
+    {
+        "defense_id": "mechanical_ready_overreach",
+        "regression_surface": "quality_closure_truth_and_publication_gate",
+        "risk": "mechanical checks phrase ready as quality or submission authorization",
+    },
+    {
+        "defense_id": "coverage_as_quality",
+        "regression_surface": "mds_manuscript_coverage_and_paper_contract_health",
+        "risk": "coverage completeness is interpreted as medical manuscript quality",
+    },
+    {
+        "defense_id": "prompt_only_gate",
+        "regression_surface": "quality_os_and_mds_stage_prompt_contracts",
+        "risk": "prompt wording becomes the only gate without durable authority evidence",
+    },
+    {
+        "defense_id": "marker_only_stop_loss",
+        "regression_surface": "publication_gate_stop_loss_and_publishability_decision",
+        "risk": "string markers trigger stop-loss without AI reviewer publishability judgment",
+    },
+    {
+        "defense_id": "stale_ai_cache",
+        "regression_surface": "mds_ai_surface_cache_fingerprint",
+        "risk": "cached paper health ignores updated AI reviewer surfaces",
+    },
+    {
+        "defense_id": "mds_quality_owner_drift",
+        "regression_surface": "mds_capability_parity_and_truth_boundary",
+        "risk": "MDS backend/oracle output is promoted into medical quality authority",
+    },
+)
+
 
 def default_repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
@@ -398,5 +431,33 @@ def run_ai_first_drift_audit(
             "docs/policies/ai_first_quality_boundary.md",
             "tests/test_ai_first_quality_boundary.py",
             "tests/test_ai_first_drift_audit.py",
+        ],
+    }
+
+
+def build_ai_first_governance_regression_os_summary() -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "surface": "ai_first_governance_regression_os",
+        "mechanical_system_role": "evidence_only",
+        "mechanical_projection_can_authorize_quality": False,
+        "quality_authority_owner": "MedAutoScience AI reviewer artifacts",
+        "drift_defenses": [
+            {
+                **defense,
+                "mechanical_inputs_can_only_supply": "evidence_only",
+                "ai_reviewer_or_mas_authority_required": True,
+                "failure_action": "fail_closed_to_review_required",
+            }
+            for defense in GOVERNANCE_DRIFT_DEFENSES
+        ],
+        "continuous_regression_entrypoints": [
+            "tests/test_ai_first_drift_audit.py",
+            "make test-meta",
+            "scripts/verify.sh",
+        ],
+        "policy_refs": [
+            "docs/policies/ai_first_quality_boundary.md",
+            "docs/policies/ai_reviewer_calibration_corpus.md",
         ],
     }
