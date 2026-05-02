@@ -23,7 +23,7 @@ from .parked_projection import (
     projected_current_stage,
 )
 from .markdown_projection import render_study_progress_markdown
-from . import operator_view as _operator_view, progress_freshness as _progress_freshness_parts, publication_runtime as _publication_runtime
+from . import ai_first_default_entry as _ai_first_default_entry, operator_view as _operator_view, progress_freshness as _progress_freshness_parts, publication_runtime as _publication_runtime
 from . import progression as _progression, runtime_efficiency as _runtime_efficiency, shared as _shared
 
 def _module_reexport(module) -> None:
@@ -31,7 +31,15 @@ def _module_reexport(module) -> None:
         if not name.startswith("__") and name != "_module_reexport":
             globals()[name] = value
 
-for _module in (_shared, _publication_runtime, _progression, _progress_freshness_parts, _operator_view, _runtime_efficiency):
+for _module in (
+    _shared,
+    _publication_runtime,
+    _progression,
+    _progress_freshness_parts,
+    _operator_view,
+    _runtime_efficiency,
+    _ai_first_default_entry,
+):
     _module_reexport(_module)
 
 
@@ -841,14 +849,19 @@ def build_study_progress_projection(
     ai_first_observability_snapshots = ai_first_observability.build_ai_first_observability_snapshots_from_study_root(
         study_root=resolved_study_root,
     )
+    ai_first_default_entry_state = _ai_first_default_entry.build_ai_first_default_entry_state(
+        study_root=resolved_study_root,
+    )
     ai_first_operations_dashboard = ai_first_observability.build_ai_first_operations_dashboard_summary(
         drift_audit={"status": "not_run", "summary": {"fail_count": 0}},
         progress_snapshot={
             "current_stage": current_stage,
             "current_blockers": current_blockers,
             "next_system_action": next_system_action,
-            "human_review_required": needs_physician_decision,
+            "human_review_required": needs_physician_decision
+            or bool(ai_first_default_entry_state.get("human_review_required")),
             "autonomy_contract": autonomy_contract,
+            "ai_first_default_entry_state": ai_first_default_entry_state,
         },
         runtime_snapshot=ai_first_observability_snapshots["runtime_snapshot"],
         quality_snapshot=ai_first_observability_snapshots["quality_snapshot"],
@@ -905,6 +918,7 @@ def build_study_progress_projection(
         "quality_review_followthrough": quality_review_followthrough or None,
         "medical_writing_quality_surfaces": medical_writing_quality_surfaces,
         "research_runtime_control_projection": research_runtime_control_projection,
+        "ai_first_default_entry_state": ai_first_default_entry_state,
         "ai_first_observability_snapshots": ai_first_observability_snapshots,
         "ai_first_operations_dashboard": ai_first_operations_dashboard,
         "study_truth_snapshot": study_truth_snapshot or None,
