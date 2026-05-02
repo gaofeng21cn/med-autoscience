@@ -235,14 +235,10 @@ def test_next_work_unit_limits_gate_clearing_batch_to_analysis_repair_without_su
         "status": "blocked",
         "blockers": [
             "medical_publication_surface_blocked",
-            "stale_submission_minimal_authority",
-            "submission_surface_qc_failure_present",
         ],
-        "current_required_action": "complete_bundle_stage",
         "medical_publication_surface_status": "blocked",
         "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
-        "study_delivery_status": "stale_source_changed",
-        "study_delivery_stale_reason": "delivery_manifest_source_changed",
+        "study_delivery_status": "current",
     }
 
     monkeypatch.setattr(
@@ -296,6 +292,115 @@ def test_next_work_unit_limits_gate_clearing_batch_to_analysis_repair_without_su
         "materialize_display_surface",
     ]
     assert result["selected_publication_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+
+
+def test_analysis_repair_refreshes_submission_minimal_when_materialization_leaves_authority_stale(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-004")
+    publication_eval_payload["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "analysis_claim_evidence_repair",
+        "lane": "analysis-campaign",
+        "summary": "Repair claim-evidence and paper-facing traceability blockers.",
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+
+    gate_report = {
+        "status": "blocked",
+        "blockers": [
+            "medical_publication_surface_blocked",
+            "stale_submission_minimal_authority",
+            "submission_surface_qc_failure_present",
+        ],
+        "current_required_action": "complete_bundle_stage",
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
+        "study_delivery_status": "stale_source_changed",
+        "study_delivery_stale_reason": "delivery_manifest_source_changed",
+    }
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(module, "CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS", 0)
+    settled_ns = time.time_ns() - 1_000_000_000
+    materialize_calls: list[Path] = []
+    create_calls: list[Path] = []
+    sync_calls: list[Path] = []
+    monkeypatch.setattr(module, "_repair_paper_live_paths", lambda **_: {"status": "updated", "repaired_files": []})
+    monkeypatch.setattr(
+        module,
+        "_materialize_display_surface",
+        lambda *, paper_root: (materialize_calls.append(paper_root), {"status": "materialized"})[1],
+    )
+
+    def fake_create(*, paper_root: Path, profile) -> dict[str, object]:
+        import os
+
+        create_calls.append(paper_root)
+        for relative_path, content in {
+            "manuscript.docx": "settled docx",
+            "paper.pdf": "%PDF-1.4\n",
+            "submission_manifest.json": '{"schema_version":1}\n',
+        }.items():
+            target = paper_root / "submission_minimal" / relative_path
+            _write_text(target, content)
+            os.utime(target, ns=(settled_ns, settled_ns))
+        return {"status": "ready"}
+
+    monkeypatch.setattr(module, "_create_submission_minimal_package", fake_create)
+    monkeypatch.setattr(
+        module,
+        "_sync_submission_minimal_delivery",
+        lambda *, paper_root, profile: (sync_calls.append(paper_root), {"status": "synced"})[1],
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["reviewer_first_concerns_unresolved"],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id="quest-004",
+        source="test-source",
+    )
+
+    assert materialize_calls == [paper_root]
+    assert create_calls == [paper_root]
+    assert sync_calls == [paper_root]
+    assert [item["unit_id"] for item in result["unit_results"]] == [
+        "repair_paper_live_paths",
+        "materialize_display_surface",
+        "create_submission_minimal_package",
+        "sync_submission_minimal_delivery",
+    ]
+    assert result["selected_publication_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert result["current_package_freshness_proof"]["status"] == "fresh"
 
 
 def test_gate_clearing_batch_records_display_materialization_failure_refs(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from importlib import import_module
-from typing import Any
+from typing import Any, Iterable
 
 
 PUBLICATION_WORK_UNIT_REPAIR_IDS = {
@@ -136,6 +136,7 @@ def filter_repair_units_for_publication_work_unit(
     repair_units: list[Any],
     *,
     next_work_unit: dict[str, str] | None,
+    additional_allowed_unit_ids: Iterable[str] = (),
 ) -> list[Any]:
     if next_work_unit is None:
         return repair_units
@@ -147,7 +148,12 @@ def filter_repair_units_for_publication_work_unit(
         return repair_units
     units_by_id = {unit.unit_id: unit for unit in repair_units}
     selected_unit_ids = set(allowed_unit_ids)
-    pending_unit_ids = list(allowed_unit_ids)
+    selected_unit_ids.update(
+        unit_id
+        for unit_id in additional_allowed_unit_ids
+        if isinstance(unit_id, str) and unit_id.strip()
+    )
+    pending_unit_ids = list(selected_unit_ids)
     while pending_unit_ids:
         selected_unit_id = pending_unit_ids.pop()
         unit = units_by_id.get(selected_unit_id)

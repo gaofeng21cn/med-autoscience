@@ -175,6 +175,21 @@ def _unit_blocking_artifact_refs(unit_results: list[dict[str, Any]]) -> list[dic
     return refs
 
 
+def _analysis_work_unit_authority_closure_unit_ids(
+    *,
+    selected_publication_work_unit: dict[str, Any] | None,
+    submission_minimal_refresh_requested: bool,
+    repair_units: list[GateClearingRepairUnit],
+) -> tuple[str, ...]:
+    if _non_empty_text((selected_publication_work_unit or {}).get("unit_id")) != "analysis_claim_evidence_repair":
+        return ()
+    if not submission_minimal_refresh_requested:
+        return ()
+    if not any(unit.unit_id == "materialize_display_surface" for unit in repair_units):
+        return ()
+    return ("create_submission_minimal_package",)
+
+
 def _quest_root(profile: WorkspaceProfile, *, quest_id: str) -> Path:
     return profile.med_deepscientist_runtime_root / "quests" / quest_id
 
@@ -1108,6 +1123,11 @@ def run_gate_clearing_batch(
     repair_units = filter_repair_units_for_publication_work_unit(
         repair_units,
         next_work_unit=explicit_next_work_unit,
+        additional_allowed_unit_ids=_analysis_work_unit_authority_closure_unit_ids(
+            selected_publication_work_unit=explicit_next_work_unit,
+            submission_minimal_refresh_requested=submission_minimal_refresh_requested,
+            repair_units=repair_units,
+        ),
     )
     repair_unit_execution_plan = gate_clearing_batch_scheduler.build_repair_unit_execution_plan(repair_units)
     if not repair_units and study_delivery_status.startswith("stale"):
