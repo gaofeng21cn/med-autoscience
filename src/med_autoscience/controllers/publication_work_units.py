@@ -103,6 +103,7 @@ _DIRECT_DELIVERY_REPLAY_REASONS = frozenset(
         "delivery_manifest_source_mismatch",
     }
 )
+_NON_BLOCKING_DELIVERY_STATUSES = frozenset({"current", "not_applicable", "clear", "ok"})
 _AUTHORITY_AND_DELIVERY_BLOCKERS = (
     _SUBMISSION_REFRESH_BLOCKERS
     | _DIRECT_DELIVERY_REPLAY_STATUSES
@@ -215,7 +216,7 @@ def _normalized_blockers(report: Mapping[str, Any]) -> tuple[str, ...]:
         *_text_sequence(report, "reporting_blockers"),
     }
     delivery_status = str(report.get("study_delivery_status") or "").strip()
-    if delivery_status:
+    if delivery_status and delivery_status not in _NON_BLOCKING_DELIVERY_STATUSES:
         blockers.add(delivery_status)
     current_required_action = str(report.get("current_required_action") or "").strip()
     if current_required_action in {"complete_bundle_stage", "continue_bundle_stage"}:

@@ -73,6 +73,53 @@ def test_generic_claim_label_with_only_artifact_path_still_requires_specificity(
     assert result["actionability_status"] == "blocked_by_non_actionable_gate"
 
 
+def test_current_delivery_status_does_not_make_generic_gate_labels_actionable() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "current_required_action": "return_to_publishability_gate",
+            "blockers": [
+                "medical_publication_surface_blocked",
+                "reviewer_first_concerns_unresolved",
+                "claim_evidence_consistency_failed",
+                "submission_hardening_incomplete",
+                "submission_surface_qc_failure_present",
+            ],
+            "medical_publication_surface_status": "blocked",
+            "medical_publication_surface_named_blockers": [
+                "reviewer_first_concerns_unresolved",
+                "claim_evidence_consistency_failed",
+                "submission_hardening_incomplete",
+            ],
+            "study_delivery_status": "current",
+            "submission_minimal_authority_status": "current",
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "claim_evidence_consistency_failed",
+                    "artifact_path": "/tmp/paper/claim_evidence_map.json",
+                    "artifact_role": "claim_evidence_map",
+                },
+                {
+                    "blocker": "reviewer_first_concerns_unresolved",
+                    "artifact_path": "/tmp/paper/review/review_ledger.json",
+                    "artifact_role": "review_ledger",
+                },
+                {
+                    "blocker": "submission_hardening_incomplete",
+                    "artifact_path": "/tmp/paper/submission_minimal/submission_manifest.json",
+                    "artifact_role": "submission_minimal_authority",
+                },
+            ],
+        }
+    )
+
+    assert "current" not in result["blockers"]
+    assert result["actionability_status"] == "blocked_by_non_actionable_gate"
+    assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+
+
 def test_missing_required_display_input_routes_to_display_contract_repair() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 
