@@ -29,8 +29,12 @@
 - `OPL` 集成、product-entry manifest 和其他机器可读桥接面都属于集成或参考层。
 - `OPL Runtime Manager` 是目标形态中的 family-level 薄运行管理层，位于外部 `Hermes-Agent` substrate 之上；它可以消费 MAS task registration、runtime-control projection、status/artifact locator 与 wakeup/approval 边界，但不持有 MAS study truth。
 - `Hermes-Agent` 只保留在显式可选 hosted runtime 或 reference-layer 语境中，不改写默认 capability contract。
-- `StudyTruthKernel` 与 `RuntimeHealthKernel` 已成为当前 study truth 与 runtime health 的核心 read-model reducer；普通读取只生成 shadow projection，materialized snapshot 必须由显式 reconcile、controller tick 或 runtime watch apply 写入。
-- 初稿质量已经前移成写作前合同：MAS 必须生成医学期刊可读的 manuscript-native prose，而不是 controller notes、figure/table anchor scaffold 或正文里的行政占位。
+- `MedDeepScientist` 在迁移期继续是受控后端、行为等价 oracle 和 upstream intake buffer；MAS 继续是唯一 research / publication owner。
+- AI-first 是当前可运行质量线的方向，落在 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 和真实论文 soak 上，不通过测试或 preflight contract 约束文档措辞。
+- `StudyTruthKernel` 与 `RuntimeHealthKernel` 是当前 study truth 与 runtime health 的 read-model reducer；普通读取只生成 shadow projection，materialized snapshot 必须由显式 reconcile、controller tick 或 runtime watch apply 写入。
+- 初稿质量作为写作前运行关注点处理：MAS 应生成医学期刊可读的 manuscript-native prose，而不是 controller notes、figure/table anchor scaffold 或正文里的行政占位。
+- 产物证明采用 canonical-source-first：manuscript、figures、tables 和 package 都应能从 canonical source 重建后再作为交付证据。
+- 真实论文 soak 仍是 AI-first 线的主要证据缺口；文档应明确这个缺口，不把目标层能力写成已经全部证明的当前事实。
 - Workspace Git/storage 边界已经进入当前维护合同：外层 workspace Git 保持轻量，generated/runtime artifacts 明确排除，storage-audit repair 按实际 apply strategy 报告释放量。
 - 历史迁移术语和旧命名继续留在参考层或历史层。
 
@@ -127,6 +131,7 @@
 - 继续把公开文档保持成中英双语镜像。
 - 运行时、推进记录、能力线和规则文档可以技术化，但公开首页继续围绕研究工作区、进度和文件组织。
 - 历史材料继续可读，当前默认用户路径继续聚焦研究问题、工作区推进和论文交付。
+- 文档负责把当前行为、运行方向和证据缺口讲清楚；不要用测试或 preflight contract 约束文档措辞。
 
 ## 治理说明
 

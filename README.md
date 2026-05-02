@@ -61,10 +61,12 @@ You can start with prompts like:
 - `Med Auto Science` is an independent medical research domain agent that can be called directly by Codex or other general-purpose agents.
 - Its single MAS app skill is the stable front door for callers that want the repo-tracked skill surface.
 - Under that skill, the stable callable surface is the local CLI, MCP tools, product-entry surfaces, controller-authorized workspace commands/scripts, durable surfaces, and repo-tracked contracts.
+- The AI-first line is an operating model, not a documentation wording gate: current work centers on pre-draft quality runtime, AI reviewer workflow, artifact rebuild proof, operations state, and real-paper soak.
 - `OPL` handoff, the product-entry manifest, and other machine-readable bridge payloads belong to the integration or reference layer.
 - It owns study intake, workspace context, evidence progression, progress reporting, and manuscript-facing delivery.
 - `OPL` stays at family-level session/runtime/projection orchestration and shared modules/contracts/indexes; it does not redefine MAS as an internal module.
 - The target `OPL Runtime Manager` may index MAS task/runtime/artifact projections over an external `Hermes-Agent` substrate, but MAS remains the owner of study truth and publication judgment.
+- `MedDeepScientist` remains a backend/oracle/intake buffer during migration; it is not a second product owner.
 - Clinical framing, claim acceptance, and submission decisions stay with researchers and PIs.
 - Journal submission and external system interaction stay under human supervision.
 
@@ -81,7 +83,7 @@ You can start with prompts like:
 
 - Read the [Docs Guide](./docs/README.md) first. It maps the current product boundary, operator entry surfaces, and the technical reading order.
 - If you need to bootstrap or take over a disease workspace, read [Bootstrap](./bootstrap/README.md) next. It explains the workspace-first model and the `init-workspace -> doctor -> show-profile -> bootstrap` path.
-- Treat [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md) as the repo-tracked truth set before changing runtime or docs.
+- Treat [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md) as the repo-tracked human-readable truth set before changing runtime or docs.
 - The current operator entry surfaces are `CLI`, `MCP`, `product-entry`, and `controller`. Product-entry and runtime contracts live under `docs/runtime/` and `docs/program/`, so an agent can start there instead of reverse-engineering the codebase; the stable callable surface remains the local CLI, MCP tools, product-entry surfaces, controller-authorized workspace commands/scripts, durable surfaces, and repo-tracked contracts.
 - When an external agent needs the repo-tracked MAS skill surface directly, use `medautosci product skill-catalog --profile <profile> --format json`; it returns the single MAS app skill, the underlying command contracts, and a machine-readable `runtime_continuity` envelope projected from existing runtime/session/progress/artifact surfaces.
 

@@ -57,23 +57,25 @@
 - `study charter` 冻结方向锁定后的自治边界与论文质量合同。
 - `evidence_ledger`、`review_ledger`、`publication_eval/latest.json` 负责把证据闭环、审阅闭环和投稿前判断投影成可审计真相。
 - `publication_gate` 与 `medical_reporting_audit` 只持有机械完整性、交付状态和 reporting blocker 判断；它们生成的 `publication_eval/latest.json` 是 `mechanical_projection`，不能替代 AI reviewer 对科学质量、审稿 readiness 或 submission-facing 闭环的判断。
-- 主观医学论文文体质量由 AI reviewer 持有：`medical_prose_review` 与 AI reviewer-backed `publication_eval/latest.json` 负责判断医学期刊声音、reader flow、论证节奏、claim restraint 和工作汇报残留；regex / pattern 只作为 `mechanical_safety_flags` 或 reviewer evidence snippets，不单独决定 `medical_journal_prose_style_not_met`。
+- 主观医学论文文体质量由 AI reviewer workflow 持有：`medical_prose_review` 与 AI reviewer-backed `publication_eval/latest.json` 负责判断医学期刊声音、reader flow、论证节奏、claim restraint 和工作汇报残留；regex / pattern 只作为 `mechanical_safety_flags` 或 reviewer evidence snippets，不单独决定 `medical_journal_prose_style_not_met`。
 - AI reviewer-backed `publication_eval/latest.json` 必须回指 manuscript、evidence ledger、review ledger 与 study charter，并使用 `medical_publication_critique_v1` policy；缺少该 provenance 时，下游只能输出 `review_required` / `projection_only`。
+- 初稿质量属于 pre-draft runtime 关注点：写作前应能看到研究问题、数据资产支撑、reporting guideline、display-to-claim map 和 manuscript-native prose 约束；文档只说明这条可运行质量线，不新增 wording gate。
+- 产物证明采用 canonical-source-first：manuscript、figures、tables 与 submission package 必须能从 canonical source 重建，artifact rebuild proof 才能支撑交付判断。
 - `controller_decisions/latest.json`、`study_runtime_status`、`runtime_watch` 负责把运行状态和控制动作沉成可回放记录。
 
 ## MAS AI-first Research OS 长线目标
 
-长线目标固定为 `MAS AI-first Research OS`。这不是一次性物理迁移，而是一次性冻结 owner、authority、contract 与验收门槛，再按能力逐步吸收和替换。
+长线目标固定为 `MAS AI-first Research OS`。这不是一次性物理迁移，也不是文档措辞门禁；它用来固定 owner、authority、contract 与验收口径，再按可运行能力逐步吸收和替换。
 
-- `MAS Core` 持有 study truth、quality truth、publication truth、artifact truth 与用户可见 truth。
-- `Quality OS` 把 `study_charter`、evidence ledger、review ledger、pre-draft readiness 与 AI reviewer-backed `publication_eval/latest.json` 串成质量闭环。
-- `Runtime OS` 持有可恢复长时执行、runtime health、retry budget、human gate 与 controller-owned resume action。
-- `Artifact OS` 固定 canonical-source-first：manuscript、figures、tables、submission package 都从 canonical source 重建。
-- `Evaluation OS` 把历史返工转为 AI reviewer calibration corpus、quality regression 与 AI-first drift audit。
+- `MAS Core` 是目标 owner 层：study truth、quality truth、publication truth、artifact truth 与用户可见 truth 都应归 MAS。
+- `Quality OS` 的当前落点是 pre-draft quality runtime、evidence ledger、review ledger 与 AI reviewer-backed `publication_eval/latest.json` 的闭环；真实论文 soak 仍需继续积累。
+- `Runtime OS` 的当前落点是 operations state、runtime health、retry budget、human gate 与 controller-owned resume action。
+- `Artifact OS` 固定 canonical-source-first：manuscript、figures、tables、submission package 都从 canonical source 重建，并通过 artifact rebuild proof 支撑交付判断。
+- `Evaluation OS` 的目标是把历史返工转为 AI reviewer calibration corpus、quality regression 与 AI-first drift audit；当前不能把这些目标项写成已经完成的全部事实。
 - `Observability OS` 面向维护者暴露 drift、trace、route-back、cache freshness、artifact stale 和 runtime recovery，但不成为 authority。
 - `MDS Deconstruction` 只按 capability + parity proof 吸收 MDS 能力；MDS 在完成 cutover 前只作为 replaceable backend / behavior oracle / upstream intake buffer。
 
-这套目标架构的稳定 contract 由 `ai_first_research_os_architecture_contract` 表达；外部工程依据固定为 ISO/IEC/IEEE 42010、NIST AI RMF、EQUATOR、FAIR、durable execution、OpenTelemetry、G-Eval 与 SRE toil elimination。
+这套目标架构的人工可读 contract 由 `docs/program/ai_first_research_os_architecture.md` 表达；外部工程依据固定为 ISO/IEC/IEEE 42010、NIST AI RMF、EQUATOR、FAIR、durable execution、OpenTelemetry、G-Eval 与 SRE toil elimination。它不授权新增文档 wording gate。
 
 ## 当前架构明确保留的边界
 
