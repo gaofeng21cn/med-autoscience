@@ -18,6 +18,10 @@ def test_inspect_med_deepscientist_repo_manifest_missing(tmp_path: Path) -> None
     assert result["freeze_base_commit"] is None
     assert result["applied_commits"] == ()
     assert result["is_controlled_fork"] is False
+    assert result["parity_deconstruction_summary"]["mds_role"] == "replaceable_backend_oracle"
+    assert result["parity_deconstruction_summary"]["mds_quality_authority"] == "none"
+    assert result["parity_deconstruction_summary"]["quality_owner"] == "MedAutoScience"
+    assert result["parity_deconstruction_summary"]["medical_quality_authority_granted_to_mds"] is False
 
 
 def test_inspect_med_deepscientist_repo_manifest_handles_invalid_json(tmp_path: Path) -> None:
@@ -35,6 +39,8 @@ def test_inspect_med_deepscientist_repo_manifest_handles_invalid_json(tmp_path: 
     assert result["freeze_base_commit"] is None
     assert result["applied_commits"] == ()
     assert result["is_controlled_fork"] is False
+    assert result["parity_deconstruction_summary"]["medical_quality_authority_owner"] == "MedAutoScience"
+    assert result["parity_deconstruction_summary"]["medical_quality_authority_granted_to_mds"] is False
 
 
 def test_inspect_med_deepscientist_repo_manifest_parses_expected_fields(tmp_path: Path) -> None:
@@ -57,6 +63,16 @@ def test_inspect_med_deepscientist_repo_manifest_parses_expected_fields(tmp_path
     assert result["freeze_base_commit"] == payload["freeze_base_commit"]
     assert result["applied_commits"] == tuple(payload["applied_commits"])
     assert result["is_controlled_fork"] is True
+    assert result["parity_deconstruction_summary"]["capability_ids"] == (
+        "runtime_execution",
+        "artifact_inventory",
+        "paper_contract_health",
+        "manuscript_coverage",
+        "prompt_stage_discipline",
+        "memory_and_lesson_store",
+    )
+    assert result["parity_deconstruction_summary"]["capability_count"] == 6
+    assert result["parity_deconstruction_summary"]["parity_proof_count"] == 6
 
 
 def test_inspect_med_deepscientist_repo_manifest_parses_phase1_full_schema(tmp_path: Path) -> None:

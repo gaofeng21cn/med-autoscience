@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.mds_capability_parity import build_mds_capability_parity_matrix
+
 MANIFEST_FILENAME = "MEDICAL_FORK_MANIFEST.json"
 CONTROLLED_ENGINE_IDS = frozenset({"medicaldeepscientist", "med-deepscientist"})
 CONTROLLED_ENGINE_FAMILIES = frozenset({"MedicalDeepScientist", "MedDeepScientist"})
@@ -31,6 +33,23 @@ MDS_FORBIDDEN_RUNTIME_HEALTH_SURFACES = (
     "worker_liveness_state",
     "allowed_controller_actions",
 )
+
+
+def _build_parity_deconstruction_summary() -> dict[str, Any]:
+    matrix = build_mds_capability_parity_matrix()
+    capabilities = list(matrix.get("capabilities") or [])
+    return {
+        "surface": "mds_capability_parity_deconstruction_summary",
+        "mds_role": matrix["mds_role"],
+        "mds_quality_authority": matrix["mds_quality_authority"],
+        "quality_owner": matrix["parity_summary"]["quality_owner"],
+        "physical_absorb_allowed": matrix["physical_absorb_allowed"],
+        "capability_ids": tuple(matrix["capability_ids"]),
+        "capability_count": len(capabilities),
+        "parity_proof_count": sum(1 for capability in capabilities if capability.get("parity_proof")),
+        "medical_quality_authority_owner": "MedAutoScience",
+        "medical_quality_authority_granted_to_mds": False,
+    }
 
 
 def _normalize_string(value: object) -> str | None:
@@ -77,6 +96,7 @@ def inspect_med_deepscientist_repo_manifest(repo_root: Path | str | None) -> dic
         "allowed_runtime_health_event_types": list(MDS_ALLOWED_RUNTIME_HEALTH_EVENT_TYPES),
         "forbidden_authority_surfaces": list(MDS_FORBIDDEN_AUTHORITY_SURFACES),
         "forbidden_runtime_health_surfaces": list(MDS_FORBIDDEN_RUNTIME_HEALTH_SURFACES),
+        "parity_deconstruction_summary": _build_parity_deconstruction_summary(),
         "checks": {
             "manifest_file_exists": False,
             "manifest_payload_is_mapping": False,
