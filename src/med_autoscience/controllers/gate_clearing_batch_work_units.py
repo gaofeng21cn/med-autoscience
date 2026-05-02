@@ -116,6 +116,15 @@ def derived_next_publication_work_unit(gate_report: dict[str, Any]) -> dict[str,
     return _compact_work_unit_payload(payload.get("next_work_unit"))
 
 
+def submission_delivery_sync_closure_work_unit() -> dict[str, str]:
+    return {
+        "unit_id": "submission_delivery_sync_closure",
+        "lane": "controller",
+        "summary": "Refresh the study delivery mirror from the current package, then replay the publication gate.",
+        "control_surface": "gate_clearing_batch",
+    }
+
+
 def filter_repair_units_for_publication_work_unit(
     repair_units: list[Any],
     *,

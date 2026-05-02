@@ -240,6 +240,59 @@ def test_runtime_health_reconcile_materializes_snapshot_from_status_payload(tmp_
     assert persisted["canonical_runtime_action"] == "recover_runtime"
 
 
+def test_runtime_health_treats_strict_live_activity_timeout_as_recovery(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "002-dm-cvd"
+    status_payload = {
+        "study_id": "002-dm-cvd",
+        "study_root": str(study_root),
+        "quest_id": "002-dm-cvd",
+        "quest_status": "running",
+        "decision": "noop",
+        "reason": "quest_already_running",
+        "runtime_liveness_audit": {
+            "status": "live",
+            "active_run_id": "run-live-stale",
+            "runtime_audit": {
+                "status": "live",
+                "worker_running": True,
+                "active_run_id": "run-live-stale",
+            },
+        },
+        "autonomy_slo": {
+            "state": "breach",
+            "breach_types": ["read_churn_without_artifact_delta", "same_fingerprint_loop"],
+            "last_meaningful_progress_at": "2026-05-01T18:30:00+00:00",
+            "mds_progress_markers": {
+                "meaningful_artifact_delta_at": "2026-05-01T18:30:00+00:00",
+                "meaningful_artifact_delta_kind": "paper_bundle",
+            },
+            "last_meaningful_progress": {
+                "seconds_since_last_meaningful_progress": 59841,
+            },
+        },
+        "supervisor_tick_audit": {
+            "status": "fresh",
+            "latest_recorded_at": "2026-05-02T11:07:28+00:00",
+        },
+    }
+
+    snapshot = module.derive_runtime_health_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="002-dm-cvd",
+        quest_id="002-dm-cvd",
+        status_payload=status_payload,
+        recorded_at="2026-05-02T11:07:29+00:00",
+    )
+
+    assert snapshot["worker_liveness_state"]["state"] == "activity_timeout"
+    assert snapshot["worker_liveness_state"]["active_run_id"] == "run-live-stale"
+    assert snapshot["attempt_state"] == "recovering"
+    assert snapshot["canonical_runtime_action"] == "recover_runtime"
+    assert "live_worker_meaningful_artifact_delta_timeout" in snapshot["blocking_reasons"]
+    assert "read_churn_without_artifact_delta" in snapshot["blocking_reasons"]
+
+
 def test_runtime_health_reconcile_ignores_volatile_watchdog_seconds_for_deduplication(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "003-dm-cvd"

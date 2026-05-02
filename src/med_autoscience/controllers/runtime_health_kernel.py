@@ -37,6 +37,13 @@ _RECOVERY_DECISIONS = frozenset({"create_and_start", "resume", "relaunch_stopped
 _ATTEMPT_EVENT_TYPES = frozenset({"launch_attempt", "recover_attempt", "relaunch_attempt"})
 _FAILED_ATTEMPT_STATES = frozenset({"failed", "timeout", "lost", "missing_live_session"})
 _TERMINAL_ESCALATION_REASONS = frozenset({"manual_runtime_review_required", "recovery_retry_budget_exhausted"})
+_ACTIVITY_TIMEOUT_BREACHES = frozenset(
+    {
+        "read_churn_without_artifact_delta",
+        "same_fingerprint_loop",
+        "no_meaningful_progress",
+    }
+)
 _BASE_ALLOWED_ACTIONS = (
     "read_runtime_status",
     "refresh_runtime_liveness",
@@ -402,18 +409,43 @@ def _strict_live(runtime_payload: Mapping[str, Any]) -> tuple[bool, str, bool | 
     return runtime_liveness_status == "live" and worker_running is True and active_run_id is not None, runtime_liveness_status, worker_running, active_run_id
 
 
+def _activity_timeout_from_runtime_payload(runtime_payload: Mapping[str, Any]) -> tuple[bool, list[str]]:
+    autonomy_slo = _mapping(runtime_payload.get("autonomy_slo"))
+    progress_freshness = _mapping(runtime_payload.get("progress_freshness"))
+    activity_timeout = _mapping(progress_freshness.get("activity_timeout"))
+    if _text(activity_timeout.get("state")) == "timed_out":
+        return True, ["live_worker_meaningful_artifact_delta_timeout"]
+    breach_types = {
+        text
+        for item in autonomy_slo.get("breach_types") or []
+        if (text := _text(item)) is not None
+    }
+    timeout_breaches = sorted(breach_types & _ACTIVITY_TIMEOUT_BREACHES)
+    if not timeout_breaches:
+        return False, []
+    state = _text(autonomy_slo.get("state"))
+    if state not in {"breach", "blocked_external"}:
+        return False, []
+    return True, ["live_worker_meaningful_artifact_delta_timeout", *timeout_breaches]
+
+
 def _worker_liveness_state(
     *,
     runtime_liveness_status: str,
     worker_running: bool | None,
     active_run_id: str | None,
     strict_live: bool,
+    activity_timeout: bool,
+    activity_timeout_reasons: list[str],
     quest_status: str | None,
     reason: str | None,
     supervisor_status: str | None,
 ) -> tuple[dict[str, Any], list[str]]:
     blocking_reasons: list[str] = []
-    if strict_live:
+    if strict_live and activity_timeout:
+        state = "activity_timeout"
+        blocking_reasons.extend(activity_timeout_reasons)
+    elif strict_live:
         state = "live"
     elif runtime_liveness_status == "live" and active_run_id is None:
         state = "unknown"
@@ -522,11 +554,14 @@ def _snapshot_from_events(
     decision = _text(runtime_payload.get("decision"))
     reason = _first_text(runtime_payload.get("reason"), runtime_payload.get("runtime_reason"))
     strict_live, runtime_liveness_status, worker_running, observed_active_run_id = _strict_live(runtime_payload)
+    activity_timeout, activity_timeout_reasons = _activity_timeout_from_runtime_payload(runtime_payload)
     worker_state, blocking_reasons = _worker_liveness_state(
         runtime_liveness_status=runtime_liveness_status,
         worker_running=worker_running,
         active_run_id=observed_active_run_id,
         strict_live=strict_live,
+        activity_timeout=activity_timeout,
+        activity_timeout_reasons=activity_timeout_reasons,
         quest_status=quest_status,
         reason=reason,
         supervisor_status=_text(supervisor_state.get("status")),
@@ -535,9 +570,13 @@ def _snapshot_from_events(
     attempt_count = _attempt_count(events, runtime_payload)
     escalation_event = _latest_event(events, "escalation_opened")
     missing_live_session = worker_state["state"] == "missing_live_session"
+    live_activity_timeout = worker_state["state"] == "activity_timeout"
     retry_budget_remaining = max(MAX_RECOVERY_ATTEMPTS - max(attempt_count, failed_attempts), 0)
 
-    if strict_live:
+    if live_activity_timeout:
+        attempt_state = "recovering"
+        canonical_runtime_action = "recover_runtime"
+    elif strict_live:
         attempt_state = "live"
         canonical_runtime_action = "continue_supervising_runtime"
         retry_budget_remaining = MAX_RECOVERY_ATTEMPTS
@@ -714,6 +753,8 @@ def _status_payload_runtime_health_events(
         "runtime_audit": stable_runtime_audit or None,
         "runtime_liveness_audit": stable_runtime_liveness_audit or None,
         "liveness_guard_reason": _text(runtime_liveness_audit.get("liveness_guard_reason")),
+        "autonomy_slo": _mapping(status_payload.get("autonomy_slo")) or None,
+        "progress_freshness": _mapping(status_payload.get("progress_freshness")) or None,
     }
     runtime_payload = {key: value for key, value in runtime_payload.items() if value is not None}
     if runtime_payload:

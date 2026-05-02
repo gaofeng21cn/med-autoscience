@@ -114,6 +114,18 @@ def _current_package_refs_present(gate_report: Mapping[str, Any], package_freshn
     return bool(package_ref and submission_ref)
 
 
+def _current_package_freshness_proof_current(package_freshness: Mapping[str, Any]) -> bool:
+    if not _status_current_or_fresh(package_freshness.get("status")):
+        return False
+    if _first_non_empty_text(
+        package_freshness.get("proof_path"),
+        package_freshness.get("current_package_root"),
+        package_freshness.get("current_package_zip"),
+    ) is None:
+        return False
+    return _first_non_empty_text(package_freshness.get("submission_manifest_path")) is not None
+
+
 def _signatures_match(*, evaluated: str | None, authority: str | None) -> bool:
     return bool(evaluated and authority and evaluated == authority)
 
@@ -248,17 +260,9 @@ def resolve_gate_authority_currentness(
         and not delivery_missing_source_paths
         and not _blocking_refs_have_missing_source_paths(gate_report.get("blocking_artifact_refs"))
     )
-    current_package_fresh = (
-        _status_current_or_fresh(package_freshness.get("status"))
-        or _status_current_or_fresh(gate_report.get("current_package_status"))
-        or _signatures_match(
-            evaluated=current_package_source_signature,
-            authority=current_package_authority_source_signature,
-        )
-        or (
-            submission_authority_current
-            and _current_package_refs_present(gate_report, package_freshness)
-        )
+    current_package_fresh = _current_package_freshness_proof_current(package_freshness) and _signatures_match(
+        evaluated=current_package_source_signature,
+        authority=current_package_authority_source_signature,
     )
     delivery_sync_required = (
         "stale_study_delivery_mirror" in blockers

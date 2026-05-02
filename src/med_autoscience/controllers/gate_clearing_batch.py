@@ -36,6 +36,7 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
     derived_next_publication_work_unit,
     explicit_next_publication_work_unit,
     filter_repair_units_for_publication_work_unit,
+    submission_delivery_sync_closure_work_unit,
 )
 
 
@@ -658,6 +659,12 @@ def run_gate_clearing_batch(
     selected_publication_work_unit = explicit_next_work_unit or derived_next_publication_work_unit(gate_report)
     if (
         isinstance(selected_publication_work_unit, dict)
+        and _non_empty_text(selected_publication_work_unit.get("unit_id")) == "gate_needs_specificity"
+        and gate_clearing_batch_replay_closure.stale_gate_replay_closed(latest_batch, gate_report=gate_report)
+    ):
+        selected_publication_work_unit = submission_delivery_sync_closure_work_unit()
+    if (
+        isinstance(selected_publication_work_unit, dict)
         and _non_empty_text(selected_publication_work_unit.get("unit_id"))
         in {"publication_gate_replay", "submission_delivery_sync_closure"}
         and gate_clearing_batch_replay_closure.stale_gate_replay_closed(latest_batch, gate_report=gate_report)
@@ -947,6 +954,22 @@ def run_gate_clearing_batch(
         unit_results=unit_results,
         schema_version=SCHEMA_VERSION,
     )
+    if stale_gate_replay_closure is not None and "stale_study_delivery_mirror" in (
+        stale_gate_replay_closure.get("closed_blockers") or []
+    ):
+        selected_publication_work_unit = submission_delivery_sync_closure_work_unit()
+        lifecycle_record = publication_work_unit_lifecycle.build_lifecycle_record(
+            source_eval_id=current_eval_id,
+            study_id=study_id,
+            quest_id=quest_id,
+            selected_work_unit=selected_publication_work_unit,
+            unit_results=unit_results,
+            gate_replay=gate_replay,
+        )
+        selected_publication_work_unit = publication_work_unit_lifecycle.enrich_selected_work_unit(
+            selected_work_unit=selected_publication_work_unit,
+            lifecycle_record=lifecycle_record,
+        )
     record = {
         "schema_version": SCHEMA_VERSION,
         "source_eval_id": current_eval_id,

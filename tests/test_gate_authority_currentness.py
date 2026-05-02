@@ -25,7 +25,7 @@ def test_stale_submission_authority_signatures_match_routes_to_gate_replay() -> 
     assert result["gate_fingerprint"] == "publication-gate::authority"
 
 
-def test_delivery_mirror_stale_but_package_current_routes_to_sync_then_replay() -> None:
+def test_delivery_mirror_stale_requires_current_package_freshness_proof_before_sync() -> None:
     publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
     currentness = importlib.import_module("med_autoscience.controllers.gate_authority_currentness")
 
@@ -47,6 +47,44 @@ def test_delivery_mirror_stale_but_package_current_routes_to_sync_then_replay() 
     resolution = currentness.resolve_gate_authority_currentness(gate_report)
     result = publication_work_units.derive_publication_work_units(gate_report)
 
+    assert resolution.current_package_fresh is False
+    assert resolution.delivery_sync_required is False
+    assert result["actionability_status"] == "blocked_by_non_actionable_gate"
+    assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+
+
+def test_delivery_mirror_stale_with_package_freshness_proof_routes_to_sync_then_replay() -> None:
+    publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
+    currentness = importlib.import_module("med_autoscience.controllers.gate_authority_currentness")
+
+    gate_report = {
+        "status": "blocked",
+        "current_required_action": "complete_bundle_stage",
+        "blockers": ["stale_study_delivery_mirror"],
+        "study_delivery_status": "stale_source_changed",
+        "study_delivery_stale_reason": "delivery_manifest_source_changed",
+        "submission_minimal_authority_status": "current",
+        "submission_minimal_evaluated_source_signature": "source::abc",
+        "submission_minimal_authority_source_signature": "source::abc",
+        "current_package_status": "fresh",
+        "current_package_source_signature": "source::abc",
+        "current_package_authority_source_signature": "source::abc",
+        "current_package_freshness": {
+            "status": "fresh",
+            "source_unit_id": "sync_submission_minimal_delivery",
+            "source_signature": "source::abc",
+            "authority_source_signature": "source::abc",
+            "submission_manifest_path": "/tmp/quest/paper/submission_minimal/submission_manifest.json",
+            "current_package_root": "/tmp/study/manuscript/current_package",
+            "proof_path": "/tmp/study/artifacts/controller/current_package_freshness/latest.json",
+        },
+        "gate_fingerprint": "publication-gate::delivery",
+    }
+
+    resolution = currentness.resolve_gate_authority_currentness(gate_report)
+    result = publication_work_units.derive_publication_work_units(gate_report)
+
+    assert resolution.current_package_fresh is True
     assert resolution.delivery_sync_required is True
     assert result["actionability_status"] == "controller_sync_closure_required"
     assert result["next_work_unit"] == {

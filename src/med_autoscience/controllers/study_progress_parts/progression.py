@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .activity_timeout_lane import activity_timeout_lane, activity_timeout_state
 from .milestone_parking import finalize_milestone_parking_active, finalize_milestone_parking_summary
 from .parked_progression import parked_intervention_lane, publication_supervisor_blocks_handoff, task_intake_quality_lane
 from .gate_clearing_progress import append_gate_clearing_batch_progress_signal, append_progress_signal
@@ -63,13 +64,6 @@ def _progress_freshness_required(current_stage: str) -> bool:
         "waiting_user_decision",
         "auto_runtime_parked",
     }
-
-
-def _activity_timeout_state(progress_freshness: dict[str, Any]) -> str | None:
-    activity_timeout = progress_freshness.get("activity_timeout")
-    if not isinstance(activity_timeout, dict):
-        return None
-    return _non_empty_text(activity_timeout.get("state"))
 
 
 def _latest_progress_signal(
@@ -811,6 +805,13 @@ def _intervention_lane(
     )
     handoff_blocked_by_supervisor = publication_supervisor_blocks_handoff(_mapping_copy(status.get("publication_supervisor_state")))
 
+    if activity_timeout_state(progress_freshness) == "timed_out":
+        return activity_timeout_lane(
+            progress_freshness=progress_freshness,
+            current_stage_summary=current_stage_summary,
+            blocker_summary=blocker_summary,
+            next_system_action=next_system_action,
+        )
     lane = parked_intervention_lane(
         auto_runtime_parked,
         current_stage_summary=current_stage_summary,
@@ -818,21 +819,6 @@ def _intervention_lane(
     )
     if lane is not None:
         return lane
-    if _activity_timeout_state(progress_freshness) == "timed_out":
-        return {
-            "lane_id": "runtime_recovery_required",
-            "title": "优先处理 activity timeout",
-            "severity": "critical",
-            "summary": (
-                _non_empty_text((progress_freshness.get("activity_timeout") or {}).get("summary"))
-                or _non_empty_text(progress_freshness.get("summary"))
-                or current_stage_summary
-                or blocker_summary
-                or next_system_action
-            ),
-            "recommended_action_id": "continue_or_relaunch",
-            "activity_timeout": dict(progress_freshness.get("activity_timeout") or {}),
-        }
     if task_intake_progress_override and not _task_intake_override_is_manuscript_fast_lane(task_intake_progress_override):
         lane = task_intake_quality_lane(
             task_intake_progress_override,

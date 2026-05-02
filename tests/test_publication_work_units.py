@@ -121,6 +121,15 @@ def test_stale_delivery_mirror_with_current_authority_routes_to_gate_replay() ->
             "current_package_status": "fresh",
             "current_package_source_signature": "source::abc",
             "current_package_authority_source_signature": "source::abc",
+            "current_package_freshness": {
+                "status": "fresh",
+                "source_unit_id": "sync_submission_minimal_delivery",
+                "source_signature": "source::abc",
+                "authority_source_signature": "source::abc",
+                "submission_manifest_path": "/tmp/quest/paper/submission_minimal/submission_manifest.json",
+                "current_package_root": "/tmp/study/manuscript/current_package",
+                "proof_path": "/tmp/study/artifacts/controller/current_package_freshness/latest.json",
+            },
             "gate_fingerprint": "publication-gate::stale-delivery",
         }
     )

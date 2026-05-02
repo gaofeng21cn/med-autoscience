@@ -24,6 +24,10 @@ def _operator_status_handling_state(
     auto_runtime_parked: dict[str, Any] | None,
 ) -> str:
     lane_id = _non_empty_text((intervention_lane or {}).get("lane_id")) or "monitor_only"
+    activity_timeout = (intervention_lane or {}).get("activity_timeout")
+    if lane_id == "runtime_recovery_required" and isinstance(activity_timeout, dict):
+        if _non_empty_text(activity_timeout.get("state")) == "timed_out":
+            return "runtime_recovering"
     if bool((auto_runtime_parked or {}).get("parked")):
         return _non_empty_text((auto_runtime_parked or {}).get("parked_state")) or "auto_runtime_parked"
     if _manual_finish_active(manual_finish_contract):

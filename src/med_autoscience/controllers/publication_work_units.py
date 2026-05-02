@@ -482,6 +482,13 @@ def _derive_blocking_work_units(
     if authority_currentness.delivery_current_after_sync and "stale_study_delivery_mirror" in blocker_set:
         _append_publication_gate_replay_unit(units)
         return units, "controller_gate_replay_required", ()
+    if (
+        "stale_study_delivery_mirror" in blocker_set
+        and authority_currentness.submission_authority_current
+        and not authority_currentness.current_package_fresh
+    ):
+        _append_gate_specificity_unit(units)
+        return units, "blocked_by_non_actionable_gate", _SPECIFICITY_QUESTIONS
     if _label_only_blocker_needs_specificity(report, blocker_set=blocker_set):
         _append_gate_specificity_unit(units)
         return units, "blocked_by_non_actionable_gate", _SPECIFICITY_QUESTIONS
