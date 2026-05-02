@@ -323,6 +323,51 @@ def test_generic_science_blockers_ignore_delivery_artifact_refs_for_specificity(
     ]
 
 
+def test_generic_science_blockers_with_missing_delivery_source_require_specificity() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "blockers": [
+                "stale_submission_minimal_authority",
+                "stale_study_delivery_mirror",
+                "medical_publication_surface_blocked",
+                "reviewer_first_concerns_unresolved",
+                "claim_evidence_consistency_failed",
+                "submission_hardening_incomplete",
+            ],
+            "study_delivery_status": "stale_source_missing",
+            "study_delivery_stale_reason": "delivery_manifest_sources_missing",
+            "study_delivery_missing_source_paths": [
+                "/tmp/runtime/paper/submission_minimal/manuscript_source.md",
+            ],
+            "medical_publication_surface_named_blockers": [
+                "reviewer_first_concerns_unresolved",
+                "claim_evidence_consistency_failed",
+                "submission_hardening_incomplete",
+            ],
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "stale_submission_minimal_authority",
+                    "artifact_path": "/tmp/paper/submission_minimal/submission_manifest.json",
+                },
+                {
+                    "blocker": "stale_study_delivery_mirror",
+                    "artifact_path": "/tmp/study/manuscript/delivery_manifest.json",
+                },
+            ],
+        }
+    )
+
+    assert result["actionability_status"] == "blocked_by_non_actionable_gate"
+    assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert result["fingerprint_blockers"] == [
+        "claim_evidence_consistency_failed",
+        "medical_publication_surface_blocked",
+        "reviewer_first_concerns_unresolved",
+    ]
+
+
 def test_non_actionable_gate_labels_require_specificity_before_dispatch() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 

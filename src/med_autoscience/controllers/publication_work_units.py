@@ -88,6 +88,7 @@ _DIRECT_DELIVERY_REPLAY_STATUSES = frozenset(
     {
         "stale_projection_missing",
         "stale_source_changed",
+        "stale_source_missing",
         "stale_source_mismatch",
     }
 )
@@ -97,6 +98,11 @@ _DIRECT_DELIVERY_REPLAY_REASONS = frozenset(
         "delivery_manifest_source_changed",
         "delivery_manifest_source_mismatch",
     }
+)
+_AUTHORITY_AND_DELIVERY_BLOCKERS = (
+    _SUBMISSION_REFRESH_BLOCKERS
+    | _DIRECT_DELIVERY_REPLAY_STATUSES
+    | _DIRECT_DELIVERY_REPLAY_REASONS
 )
 _TREATMENT_GAP_BLOCKERS = frozenset(
     {
@@ -368,7 +374,7 @@ def _append_gate_specificity_unit(units: list[dict[str, str]]) -> None:
 def _label_only_blocker_needs_specificity(report: Mapping[str, Any], *, blocker_set: set[str]) -> bool:
     if not blocker_set:
         return False
-    non_authority_blockers = blocker_set - _SUBMISSION_REFRESH_BLOCKERS
+    non_authority_blockers = blocker_set - _AUTHORITY_AND_DELIVERY_BLOCKERS
     if not non_authority_blockers:
         return False
     if not non_authority_blockers.issubset(_GENERIC_SPECIFICITY_BLOCKERS):
