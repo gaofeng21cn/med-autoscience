@@ -88,6 +88,109 @@ def _workspace_supervision_summary(
     }
 
 
+def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> dict[str, Any]:
+    counts = {
+        "study_count": len(studies),
+        "dashboard_count": 0,
+        "attention_required": 0,
+        "human_review_required": 0,
+        "ai_reviewer_trace_incomplete": 0,
+        "route_back_active": 0,
+        "artifact_refresh_pending": 0,
+    }
+    study_dashboards: list[dict[str, Any]] = []
+    for item in studies:
+        dashboard = dict(item.get("ai_first_operations_dashboard") or {})
+        if not dashboard:
+            continue
+        counts["dashboard_count"] += 1
+        user_view = dict(dashboard.get("user_view") or {})
+        maintainer_view = dict(dashboard.get("maintainer_view") or {})
+        blockers = [str(value) for value in (user_view.get("blockers") or []) if str(value).strip()]
+        if blockers:
+            counts["attention_required"] += 1
+        if bool(user_view.get("human_review_required")):
+            counts["human_review_required"] += 1
+
+        ai_reviewer_trace = dict(maintainer_view.get("ai_reviewer_trace") or {})
+        if ai_reviewer_trace.get("complete") is False:
+            counts["ai_reviewer_trace_incomplete"] += 1
+
+        route_back = dict(maintainer_view.get("route_back") or {})
+        route_back_count = _coerce_int(route_back.get("count"))
+        if route_back_count > 0:
+            counts["route_back_active"] += 1
+
+        artifact_stale = dict(maintainer_view.get("artifact_stale") or {})
+        stale_artifact_count = _coerce_int(artifact_stale.get("stale_artifact_count"))
+        if stale_artifact_count > 0:
+            counts["artifact_refresh_pending"] += 1
+
+        study_dashboards.append(
+            {
+                "study_id": item.get("study_id"),
+                "current_stage": user_view.get("current_stage"),
+                "blockers": blockers,
+                "next_step": user_view.get("next_step"),
+                "human_review_required": bool(user_view.get("human_review_required")),
+                "ai_reviewer_trace_complete": ai_reviewer_trace.get("complete"),
+                "route_back_count": route_back_count,
+                "route_back_target": route_back.get("target"),
+                "stale_artifact_count": stale_artifact_count,
+                "current_package_from_canonical_source": artifact_stale.get(
+                    "current_package_from_canonical_source"
+                ),
+                "quality_toil_count": _coerce_int(
+                    dict(maintainer_view.get("quality_toil") or {}).get("toil_count")
+                ),
+                "recommended_command": item.get("recommended_command")
+                or ((item.get("commands") or {}).get("progress")),
+                "authority": dict(dashboard.get("authority") or {}),
+            }
+        )
+
+    if counts["dashboard_count"] == 0:
+        status = "not_available"
+        summary = "当前还没有可汇总的 AI-first operations runtime state。"
+    elif (
+        counts["ai_reviewer_trace_incomplete"]
+        or counts["route_back_active"]
+        or counts["artifact_refresh_pending"]
+        or counts["attention_required"]
+        or counts["human_review_required"]
+    ):
+        status = "attention_required"
+        summary = (
+            f"{counts['dashboard_count']} 个 study 已接入 AI-first operations state；"
+            f"{counts['ai_reviewer_trace_incomplete']} 个 AI reviewer trace 不完整；"
+            f"{counts['route_back_active']} 个 route-back 未闭环；"
+            f"{counts['artifact_refresh_pending']} 个产物需要从 canonical source 刷新；"
+            f"{counts['human_review_required']} 个等待人工判断。"
+        )
+    else:
+        status = "on_track"
+        summary = (
+            f"{counts['dashboard_count']} 个 study 已接入 AI-first operations state；"
+            "当前质量授权、运行状态与产物刷新信号没有新的可见阻塞。"
+        )
+    return {
+        "surface_kind": "workspace_ai_first_operations_state",
+        "read_model": "ai_first_operations_dashboard_read_model",
+        "authority": "observability_only",
+        "status": status,
+        "summary": summary,
+        "counts": counts,
+        "study_dashboards": study_dashboards,
+    }
+
+
+def _coerce_int(value: object) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 def _mainline_snapshot() -> dict[str, Any]:
     payload = mainline_status.read_mainline_status()
     current_stage = dict(payload.get("current_stage") or {})
@@ -191,6 +294,7 @@ def _study_item(
         progress_payload,
         fallback_command=commands["progress"],
     )
+    ai_first_operations_dashboard = dict(progress_payload.get("ai_first_operations_dashboard") or {})
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
     runtime_health_snapshot = _runtime_health_snapshot_summary(progress_payload.get("runtime_health_snapshot"))
@@ -234,6 +338,7 @@ def _study_item(
         "quality_repair_followthrough": quality_repair_followthrough or None,
         "quality_review_followthrough": quality_review_followthrough or None,
         "gate_clearing_followthrough": gate_clearing_followthrough or None,
+        "ai_first_operations_dashboard": ai_first_operations_dashboard or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
@@ -372,6 +477,7 @@ def read_workspace_cockpit(
         studies=studies,
         commands=commands,
     )
+    ai_first_operations_state = _workspace_ai_first_operations_state(studies=studies)
     user_loop = _user_loop(profile=profile, profile_ref=profile_ref)
     operator_brief = _workspace_operator_brief(
         workspace_status=workspace_status,
@@ -394,6 +500,7 @@ def read_workspace_cockpit(
         "mainline_snapshot": mainline_snapshot,
         "workspace_alerts": workspace_alerts,
         "workspace_supervision": workspace_supervision,
+        "ai_first_operations_state": ai_first_operations_state,
         "attention_queue": attention_queue,
         "operator_brief": operator_brief,
         "user_loop": user_loop,
@@ -477,6 +584,39 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             )
     else:
         lines.append("- 当前还没有 workspace 级监管汇总。")
+    lines.extend(["", "## AI-first Operations", ""])
+    ai_first_operations_state = dict(payload.get("ai_first_operations_state") or {})
+    if ai_first_operations_state:
+        counts = dict(ai_first_operations_state.get("counts") or {})
+        lines.append(f"- 当前 operations 摘要: {ai_first_operations_state.get('summary') or 'none'}")
+        lines.append(
+            "- 当前计数: "
+            f"已接入 {counts.get('dashboard_count', 0)}；"
+            f"AI reviewer trace 不完整 {counts.get('ai_reviewer_trace_incomplete', 0)}；"
+            f"route-back 未闭环 {counts.get('route_back_active', 0)}；"
+            f"产物待刷新 {counts.get('artifact_refresh_pending', 0)}；"
+            f"等待人工判断 {counts.get('human_review_required', 0)}"
+        )
+        for dashboard in ai_first_operations_state.get("study_dashboards") or []:
+            if not isinstance(dashboard, Mapping):
+                continue
+            study_id = dashboard.get("study_id") or "unknown-study"
+            lines.append(f"- `{study_id}` operations: {dashboard.get('current_stage') or 'unknown'}")
+            if dashboard.get("next_step"):
+                lines.append(f"  下一步: {dashboard.get('next_step')}")
+            if dashboard.get("ai_reviewer_trace_complete") is not None:
+                lines.append(
+                    "  AI reviewer trace: "
+                    + ("完整" if dashboard.get("ai_reviewer_trace_complete") else "不完整")
+                )
+            if dashboard.get("route_back_count"):
+                lines.append(
+                    f"  route-back: {dashboard.get('route_back_count')} -> {dashboard.get('route_back_target') or 'unknown'}"
+                )
+            if dashboard.get("stale_artifact_count"):
+                lines.append(f"  产物刷新: {dashboard.get('stale_artifact_count')} 个待刷新")
+    else:
+        lines.append("- 当前还没有 AI-first operations runtime state。")
     lines.extend(
         [
             "",
