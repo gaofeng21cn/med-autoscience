@@ -274,6 +274,30 @@ def _managed_study_recovery_failure_payload(
     return payload
 
 
+def _study_requests_gate_specificity_terminal(
+    *,
+    study_root: Path,
+) -> bool:
+    try:
+        publication_eval = read_publication_eval_latest(study_root=study_root)
+    except (FileNotFoundError, ValueError, json.JSONDecodeError):
+        return False
+    recommended_actions = publication_eval.get("recommended_actions")
+    if not isinstance(recommended_actions, list):
+        return False
+    for action in recommended_actions:
+        if not isinstance(action, Mapping):
+            continue
+        if _non_empty_text(action.get("action_type")) != "return_to_controller":
+            continue
+        next_work_unit = action.get("next_work_unit")
+        if not isinstance(next_work_unit, Mapping):
+            continue
+        if _non_empty_text(next_work_unit.get("unit_id")) == "gate_needs_specificity":
+            return True
+    return False
+
+
 def build_default_controller_runners() -> dict[str, ControllerRunner]:
     return {
         "data_asset_gate": data_asset_gate.run_controller,
@@ -680,6 +704,16 @@ def run_watch_for_runtime(
             if not (study_root / "study.yaml").exists():
                 continue
             if apply:
+                if _study_requests_gate_specificity_terminal(study_root=study_root):
+                    preflight_payload = _managed_study_status_payload(
+                        study_runtime_router.study_runtime_status(
+                            profile=profile,
+                            study_root=study_root,
+                        )
+                    )
+                    action_payload = preflight_payload
+                    managed_study_statuses.append((study_root, _managed_study_status_payload(action_payload)))
+                    continue
                 try:
                     action_payload = study_runtime_router.ensure_study_runtime(
                         profile=profile,

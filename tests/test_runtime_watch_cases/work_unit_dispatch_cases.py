@@ -9,6 +9,7 @@ globals().update({
 })
 
 from .work_unit_dispatch_cases_cases.test_platform_repair_delta import *  # noqa: F403,F401
+from .work_unit_dispatch_cases_cases.test_specificity_terminal_preensure import *  # noqa: F403,F401
 
 
 def test_watch_runtime_redrives_repeated_work_unit_until_attempt_closes(
@@ -348,10 +349,22 @@ def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
         "quest_root": str(quest_root),
         "quest_status": "running",
     }
+    next_work_unit = {
+        "unit_id": "gate_needs_specificity",
+        "lane": "controller",
+        "summary": "Ask the publication gate to identify concrete blocker targets.",
+    }
+    publication_eval_ref = _write_publication_eval(
+        study_root,
+        quest_root,
+        action_type="return_to_controller",
+        work_unit_fingerprint="publication-blockers::vague",
+        next_work_unit=next_work_unit,
+    )
     tick_request = {
         "study_root": study_root,
         "charter_ref": _write_charter(study_root),
-        "publication_eval_ref": _write_publication_eval(study_root, quest_root, action_type="return_to_controller"),
+        "publication_eval_ref": publication_eval_ref,
         "decision_type": "return_to_controller",
         "route_target": None,
         "route_key_question": None,
