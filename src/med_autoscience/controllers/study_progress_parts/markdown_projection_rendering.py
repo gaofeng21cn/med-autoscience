@@ -144,6 +144,7 @@ def _build_markdown_context(payload: dict[str, Any]) -> dict[str, Any]:
             normalized_payload.get("gate_clearing_batch_followthrough")
         ),
         "quality_review_followthrough": quality_review_followthrough,
+        "ai_first_default_entry_state": _mapping_copy(normalized_payload.get("ai_first_default_entry_state")),
         "recovery_contract": recovery_contract,
         "recovery_action_mode": _RECOVERY_ACTION_MODE_LABELS.get(
             _non_empty_text(recovery_contract.get("action_mode")) or "",
@@ -447,6 +448,46 @@ def _append_quality_closure(lines: list[str], ctx: Mapping[str, Any]) -> None:
     _append_quality_closure_basis(lines, ctx["quality_closure_basis"])
 
 
+def _append_ai_first_default_entry(lines: list[str], state: Mapping[str, Any]) -> None:
+    if not state:
+        return
+    pre_draft = _mapping_copy(state.get("pre_draft"))
+    ai_reviewer = _mapping_copy(state.get("ai_reviewer_workflow"))
+    artifact = _mapping_copy(state.get("artifact_proof"))
+    route_back = _mapping_copy(state.get("route_back"))
+    lines.extend(["", "## AI-first 默认入口状态", ""])
+    lines.append(f"- 当前状态: {state.get('status') or 'unknown'}")
+    if state.get("summary"):
+        lines.append(f"- 当前判断: {state.get('summary')}")
+    if state.get("recommended_next_step"):
+        lines.append(f"- 下一步: {state.get('recommended_next_step')}")
+    if route_back:
+        lines.append("- route-back: " + ("需要" if route_back.get("required") else "不需要"))
+        if route_back.get("reason"):
+            lines.append(f"- route-back 原因: {route_back.get('reason')}")
+    if pre_draft:
+        lines.append(
+            "- Pre-draft readiness: "
+            f"{pre_draft.get('status') or 'unknown'}；"
+            f"{pre_draft.get('summary') or 'none'}"
+        )
+    if ai_reviewer:
+        lines.append(
+            "- AI reviewer workflow: "
+            f"{ai_reviewer.get('authority_state') or 'unknown'}；"
+            f"{ai_reviewer.get('summary') or 'none'}"
+        )
+    if artifact:
+        lines.append(
+            "- Artifact proof: "
+            f"{artifact.get('rebuild_status') or 'unknown'}；"
+            f"{artifact.get('summary') or 'none'}"
+        )
+    blockers = [str(item).strip() for item in state.get("blockers") or [] if str(item).strip()]
+    for blocker in blockers[:6]:
+        lines.append(f"- 默认入口阻塞: {blocker}")
+
+
 def _append_quality_closure_basis(lines: list[str], quality_closure_basis: Mapping[str, Any]) -> None:
     for key in (
         "clinical_significance",
@@ -628,6 +669,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     _append_blockers_and_next_step(lines, ctx)
     _append_autonomy_contract(lines, ctx["autonomy_contract"])
     _append_autonomy_soak_status(lines, normalized_payload)
+    _append_ai_first_default_entry(lines, ctx["ai_first_default_entry_state"])
     _append_quality_closure(lines, ctx)
     _append_quality_review_agenda(lines, ctx["quality_review_agenda"])
     _append_quality_review_loop(lines, ctx["quality_review_loop"])
