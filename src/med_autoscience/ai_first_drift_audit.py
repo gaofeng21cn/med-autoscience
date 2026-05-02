@@ -154,6 +154,27 @@ MAS_AI_FIRST_RULES: tuple[DriftRule, ...] = (
         ),
     ),
     DriftRule(
+        check_id="ai_reviewer_calibration_corpus_freezes_repair_toil_regressions",
+        category="doctor_meta_test_surface",
+        root_key="mas_repo_root",
+        relative_path="src/med_autoscience/controllers/ai_reviewer_calibration.py",
+        summary="Historical paper-repair toil must become AI reviewer calibration and regression cases.",
+        required_markers=(
+            '"surface": "ai_reviewer_calibration_corpus"',
+            '"mechanical_projection_can_close_case": False',
+            '"prompt_only_calibration_allowed": False',
+            '"assessment_provenance.owner": "ai_reviewer"',
+            '"thin_first_draft_despite_richer_data_asset"',
+            '"coverage_complete_but_quality_unreviewed"',
+            '"claim_strength_exceeds_evidence"',
+            '"reviewer_trace_missing"',
+            '"pre_draft_readiness_materialization_contract"',
+            '"fail_closed_without_ai_reviewer_provenance": True',
+            '"mechanical_inputs_can_only_supply": "evidence_only"',
+            '"mechanical_ready_verdict"',
+        ),
+    ),
+    DriftRule(
         check_id="policy_records_external_engineering_basis_and_audit_scope",
         category="doctor_meta_test_surface",
         root_key="mas_repo_root",
@@ -207,7 +228,8 @@ MDS_AI_FIRST_RULES: tuple[DriftRule, ...] = (
         summary="MDS manuscript coverage may only claim mechanical coverage, not quality readiness.",
         required_markers=(
             '"mechanical_coverage_only": True',
-            '"quality_authority": "ai_reviewer_required"',
+            '"quality_authority": "mas_ai_preflight_prose_review_publication_eval"',
+            "_PAPER_QUALITY_AUTHORITY_SEMANTICS",
         ),
     ),
     DriftRule(
