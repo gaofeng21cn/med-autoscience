@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-02：MAS AI-first Research OS 成为长线目标架构
+
+- 决策：长线目标固定为 `MAS AI-first Research OS`。MAS 作为唯一 research / quality / publication / artifact / user-visible truth owner；MDS 收敛为 replaceable backend、behavior oracle 与 upstream intake buffer。机械系统只负责 evidence、status、completeness、blocker、projection 与 replay；AI reviewer artifacts 持有科学质量、医学写作质量、publishability 与 submission-facing readiness。
+- 理由：近期论文修复证明，机械 gate 先给 ready、下游再补救会把质量风险推迟到最贵的阶段。把 owner、authority、contract 与验收门槛一次性冻结，才能让后续并行重构在同一目标架构下推进，而不是继续产生局部解释。
+- 影响：新增架构、质量、运行、产物、观测或 MDS 吸收能力时，必须回到 `ai_first_research_os_architecture_contract`；physical monorepo absorb 只能在 parity proof、owner cutover、rollback surface 与质量不降级证明成立后进行。
+
 ## 2026-05-01：StudyTruthKernel 成为 study 级用户可见真相 reducer
 
 - 决策：`StudyTruthKernel` 固定为 MAS study 级运行真相 reducer。`study_runtime_status` 与 `study-progress` 可以投影 shadow snapshot，但 `artifacts/truth/latest.json` 只能由显式 reconcile、controller tick 或 materialize 调用刷新。
