@@ -49,3 +49,79 @@ def _runtime_health_requires_explicit_resume(
         snapshot.get("canonical_runtime_action") == "await_explicit_resume"
         and snapshot.get("failure_reason") == "quest_stopped_requires_explicit_rerun"
     )
+
+
+def _runtime_health_requires_live_recovery(
+    *,
+    status: StudyRuntimeStatus,
+    runtime_health_snapshot: dict[str, object],
+) -> bool:
+    if status.quest_status not in _LIVE_QUEST_STATUSES:
+        return False
+    if runtime_health_snapshot.get("canonical_runtime_action") != "recover_runtime":
+        return False
+    worker_liveness_state = runtime_health_snapshot.get("worker_liveness_state")
+    worker_state = (
+        str(worker_liveness_state.get("state") or "").strip()
+        if isinstance(worker_liveness_state, dict)
+        else ""
+    )
+    return worker_state == "activity_timeout"
+
+
+def _record_autonomy_slo_status_if_present(*, status: StudyRuntimeStatus, study_root: Path) -> None:
+    from med_autoscience.controllers import autonomy_ai_doctor
+
+    payload = autonomy_ai_doctor.read_latest_slo_status(study_root=study_root)
+    if isinstance(payload, dict):
+        status.extras["autonomy_slo"] = dict(payload)
+
+
+def _derive_runtime_health_snapshot_for_status(
+    *,
+    status: StudyRuntimeStatus,
+    study_root: Path,
+    study_id: str,
+    quest_id: str,
+    recorded_at: str,
+) -> dict[str, object]:
+    return runtime_health_kernel.derive_runtime_health_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        status_payload=status.to_dict(),
+        recorded_at=recorded_at,
+    )
+
+
+def _record_runtime_health_dominance(
+    *,
+    status: StudyRuntimeStatus,
+    study_root: Path,
+    study_id: str,
+    quest_id: str,
+    recorded_at: str,
+) -> None:
+    _record_autonomy_slo_status_if_present(status=status, study_root=study_root)
+    runtime_health_snapshot = _derive_runtime_health_snapshot_for_status(
+        status=status,
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        recorded_at=recorded_at,
+    )
+    if _runtime_health_requires_live_recovery(status=status, runtime_health_snapshot=runtime_health_snapshot):
+        status.set_decision(
+            StudyRuntimeDecision.RESUME,
+            StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION,
+        )
+        _record_runtime_recovery_lifecycle_if_required(status)
+        runtime_health_snapshot = _derive_runtime_health_snapshot_for_status(
+            status=status,
+            study_root=study_root,
+            study_id=study_id,
+            quest_id=quest_id,
+            recorded_at=recorded_at,
+        )
+    status.extras["runtime_health_snapshot"] = runtime_health_snapshot
+    status.extras["runtime_health_epoch"] = runtime_health_snapshot.get("runtime_health_epoch")

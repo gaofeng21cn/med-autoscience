@@ -213,6 +213,9 @@ def _current_stage(
 ) -> str:
     quest_status = _non_empty_text(status.get("quest_status"))
     decision = _non_empty_text(status.get("decision"))
+    runtime_health_snapshot = _mapping_copy(status.get("runtime_health_snapshot"))
+    runtime_health_action = _non_empty_text(runtime_health_snapshot.get("canonical_runtime_action"))
+    runtime_health_attempt_state = _non_empty_text(runtime_health_snapshot.get("attempt_state"))
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
     live_managed_runtime = live_managed_runtime_present(
         status=status,
@@ -231,6 +234,8 @@ def _current_stage(
         return "waiting_user_decision"
     if finalize_milestone_parking_active(status) and not publication_supervisor_blocks_handoff(publication_supervisor_state):
         return "manual_finishing"
+    if runtime_health_action == "recover_runtime" or runtime_health_attempt_state == "recovering":
+        return "managed_runtime_recovering"
     if runtime_health_status == "recovering" and not live_managed_runtime:
         return "managed_runtime_recovering"
     if runtime_recovery_pending_from_status(
