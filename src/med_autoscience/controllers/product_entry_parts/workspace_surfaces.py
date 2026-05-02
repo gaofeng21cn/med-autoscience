@@ -92,6 +92,7 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
     counts = {
         "study_count": len(studies),
         "dashboard_count": 0,
+        "default_entry_state_count": 0,
         "attention_required": 0,
         "human_review_required": 0,
         "ai_reviewer_trace_incomplete": 0,
@@ -100,54 +101,28 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
     }
     study_dashboards: list[dict[str, Any]] = []
     for item in studies:
-        dashboard = dict(item.get("ai_first_operations_dashboard") or {})
-        if not dashboard:
+        projection = _ai_first_operations_study_projection(item)
+        if not projection:
             continue
         counts["dashboard_count"] += 1
-        user_view = dict(dashboard.get("user_view") or {})
-        maintainer_view = dict(dashboard.get("maintainer_view") or {})
-        blockers = [str(value) for value in (user_view.get("blockers") or []) if str(value).strip()]
+        if projection.get("read_model") == "ai_first_default_entry_state_read_model":
+            counts["default_entry_state_count"] += 1
+        blockers = [str(value) for value in (projection.get("blockers") or []) if str(value).strip()]
         if blockers:
             counts["attention_required"] += 1
-        if bool(user_view.get("human_review_required")):
+        if bool(projection.get("human_review_required")):
             counts["human_review_required"] += 1
 
-        ai_reviewer_trace = dict(maintainer_view.get("ai_reviewer_trace") or {})
-        if ai_reviewer_trace.get("complete") is False:
+        if projection.get("ai_reviewer_trace_complete") is False:
             counts["ai_reviewer_trace_incomplete"] += 1
 
-        route_back = dict(maintainer_view.get("route_back") or {})
-        route_back_count = _coerce_int(route_back.get("count"))
-        if route_back_count > 0:
+        if _coerce_int(projection.get("route_back_count")) > 0:
             counts["route_back_active"] += 1
 
-        artifact_stale = dict(maintainer_view.get("artifact_stale") or {})
-        stale_artifact_count = _coerce_int(artifact_stale.get("stale_artifact_count"))
-        if stale_artifact_count > 0:
+        if _coerce_int(projection.get("stale_artifact_count")) > 0:
             counts["artifact_refresh_pending"] += 1
 
-        study_dashboards.append(
-            {
-                "study_id": item.get("study_id"),
-                "current_stage": user_view.get("current_stage"),
-                "blockers": blockers,
-                "next_step": user_view.get("next_step"),
-                "human_review_required": bool(user_view.get("human_review_required")),
-                "ai_reviewer_trace_complete": ai_reviewer_trace.get("complete"),
-                "route_back_count": route_back_count,
-                "route_back_target": route_back.get("target"),
-                "stale_artifact_count": stale_artifact_count,
-                "current_package_from_canonical_source": artifact_stale.get(
-                    "current_package_from_canonical_source"
-                ),
-                "quality_toil_count": _coerce_int(
-                    dict(maintainer_view.get("quality_toil") or {}).get("toil_count")
-                ),
-                "recommended_command": item.get("recommended_command")
-                or ((item.get("commands") or {}).get("progress")),
-                "authority": dict(dashboard.get("authority") or {}),
-            }
-        )
+        study_dashboards.append(projection)
 
     if counts["dashboard_count"] == 0:
         status = "not_available"
@@ -171,17 +146,199 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
         status = "on_track"
         summary = (
             f"{counts['dashboard_count']} 个 study 已接入 AI-first operations state；"
-            "当前质量授权、运行状态与产物刷新信号没有新的可见阻塞。"
+            "当前 pre-draft、AI reviewer workflow、artifact proof 与 route-back 没有新的可见阻塞。"
         )
     return {
         "surface_kind": "workspace_ai_first_operations_state",
-        "read_model": "ai_first_operations_dashboard_read_model",
+        "read_model": "ai_first_default_entry_state_read_model"
+        if counts["default_entry_state_count"]
+        else "ai_first_operations_dashboard_read_model",
         "authority": "observability_only",
         "status": status,
         "summary": summary,
         "counts": counts,
         "study_dashboards": study_dashboards,
     }
+
+
+def _ai_first_operations_study_projection(item: Mapping[str, Any]) -> dict[str, Any] | None:
+    default_state = dict(item.get("ai_first_default_entry_state") or {})
+    if default_state:
+        return _ai_first_default_entry_state_projection(item=item, default_state=default_state)
+    dashboard = dict(item.get("ai_first_operations_dashboard") or {})
+    if dashboard:
+        return _legacy_ai_first_dashboard_projection(item=item, dashboard=dashboard)
+    return None
+
+
+def _ai_first_default_entry_state_projection(
+    *,
+    item: Mapping[str, Any],
+    default_state: Mapping[str, Any],
+) -> dict[str, Any]:
+    pre_draft = _state_section(default_state, "pre_draft", "pre_draft_state")
+    ai_reviewer_workflow = _state_section(
+        default_state,
+        "ai_reviewer_workflow",
+        "ai_reviewer_workflow_state",
+        "ai_reviewer",
+    )
+    artifact_proof = _state_section(
+        default_state,
+        "artifact_proof",
+        "artifact_proof_state",
+        "proof",
+    )
+    route_back = _state_section(default_state, "route_back", "route_back_state")
+    human_judgment = _state_section(
+        default_state,
+        "human_judgment",
+        "manual_judgment",
+        "human_review",
+    )
+    blockers = _normalized_strings(default_state.get("blockers") or default_state.get("attention"))
+    human_review_required = (
+        _state_bool(human_judgment, "required", "human_review_required", "manual_judgment_required")
+        or bool(default_state.get("human_review_required"))
+        or bool(default_state.get("manual_judgment_required"))
+    )
+    return {
+        "study_id": item.get("study_id"),
+        "read_model": "ai_first_default_entry_state_read_model",
+        "source_surface": _non_empty_text(default_state.get("surface"))
+        or "ai_first_default_entry_state",
+        "current_stage": _first_text(
+            default_state.get("current_stage"),
+            default_state.get("stage"),
+            item.get("current_stage"),
+        ),
+        "blockers": blockers,
+        "pre_draft_status": _state_label(pre_draft),
+        "ai_reviewer_workflow_status": _state_label(ai_reviewer_workflow),
+        "artifact_proof_status": _state_label(artifact_proof),
+        "route_back_status": _state_label(route_back),
+        "next_step": _first_text(
+            default_state.get("next_step"),
+            default_state.get("next_action"),
+            (default_state.get("next") or {}).get("summary")
+            if isinstance(default_state.get("next"), Mapping)
+            else None,
+        ),
+        "human_judgment": _state_label(human_judgment),
+        "human_review_required": human_review_required,
+        "ai_reviewer_trace_complete": _state_bool(
+            ai_reviewer_workflow,
+            "trace_complete",
+            "complete",
+            "ai_reviewer_trace_complete",
+        ),
+        "route_back_count": _route_back_count(route_back),
+        "route_back_target": _first_text(route_back.get("target"), route_back.get("return_to")),
+        "stale_artifact_count": _artifact_refresh_count(artifact_proof),
+        "current_package_from_canonical_source": _state_bool(
+            artifact_proof,
+            "current_package_from_canonical_source",
+            "from_canonical_source",
+        ),
+        "quality_toil_count": _coerce_int(default_state.get("quality_toil_count")),
+        "recommended_command": item.get("recommended_command")
+        or ((item.get("commands") or {}).get("progress")),
+        "authority": "observability_only",
+    }
+
+
+def _legacy_ai_first_dashboard_projection(
+    *,
+    item: Mapping[str, Any],
+    dashboard: Mapping[str, Any],
+) -> dict[str, Any]:
+    user_view = dict(dashboard.get("user_view") or {})
+    maintainer_view = dict(dashboard.get("maintainer_view") or {})
+    blockers = [str(value) for value in (user_view.get("blockers") or []) if str(value).strip()]
+    ai_reviewer_trace = dict(maintainer_view.get("ai_reviewer_trace") or {})
+    route_back = dict(maintainer_view.get("route_back") or {})
+    route_back_count = _coerce_int(route_back.get("count"))
+    artifact_stale = dict(maintainer_view.get("artifact_stale") or {})
+    stale_artifact_count = _coerce_int(artifact_stale.get("stale_artifact_count"))
+    return {
+        "study_id": item.get("study_id"),
+        "read_model": "ai_first_operations_dashboard_read_model",
+        "source_surface": _non_empty_text(dashboard.get("surface"))
+        or "ai_first_operations_dashboard",
+        "current_stage": user_view.get("current_stage"),
+        "blockers": blockers,
+        "pre_draft_status": _first_text(user_view.get("pre_draft_status"), user_view.get("current_stage")),
+        "ai_reviewer_workflow_status": "完整" if ai_reviewer_trace.get("complete") else "不完整",
+        "artifact_proof_status": "有待刷新产物" if stale_artifact_count > 0 else "无待刷新产物",
+        "route_back_status": _first_text(route_back.get("summary"), route_back.get("target")),
+        "next_step": user_view.get("next_step"),
+        "human_judgment": "等待人工判断" if bool(user_view.get("human_review_required")) else "暂不需要人工判断",
+        "human_review_required": bool(user_view.get("human_review_required")),
+        "ai_reviewer_trace_complete": ai_reviewer_trace.get("complete"),
+        "route_back_count": route_back_count,
+        "route_back_target": route_back.get("target"),
+        "stale_artifact_count": stale_artifact_count,
+        "current_package_from_canonical_source": artifact_stale.get(
+            "current_package_from_canonical_source"
+        ),
+        "quality_toil_count": _coerce_int(
+            dict(maintainer_view.get("quality_toil") or {}).get("toil_count")
+        ),
+        "recommended_command": item.get("recommended_command")
+        or ((item.get("commands") or {}).get("progress")),
+        "authority": "observability_only",
+    }
+
+
+def _state_section(payload: Mapping[str, Any], *keys: str) -> dict[str, Any]:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, Mapping):
+            return dict(value)
+        text = _non_empty_text(value)
+        if text is not None:
+            return {"summary": text}
+    return {}
+
+
+def _state_label(payload: Mapping[str, Any]) -> str | None:
+    return _first_text(payload.get("summary"), payload.get("label"), payload.get("status"))
+
+
+def _state_bool(payload: Mapping[str, Any], *keys: str) -> bool | None:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, bool):
+            return value
+    return None
+
+
+def _route_back_count(route_back: Mapping[str, Any]) -> int:
+    count = _coerce_int(route_back.get("count"))
+    if count > 0:
+        return count
+    active = _state_bool(route_back, "active", "required")
+    return 1 if active else 0
+
+
+def _artifact_refresh_count(artifact_proof: Mapping[str, Any]) -> int:
+    count = _coerce_int(
+        artifact_proof.get("stale_artifact_count")
+        or artifact_proof.get("refresh_pending_count")
+        or artifact_proof.get("pending_count")
+    )
+    if count > 0:
+        return count
+    refresh_pending = _state_bool(artifact_proof, "refresh_pending", "stale", "pending")
+    return 1 if refresh_pending else 0
+
+
+def _first_text(*values: object) -> str | None:
+    for value in values:
+        text = _non_empty_text(value)
+        if text is not None:
+            return text
+    return None
 
 
 def _coerce_int(value: object) -> int:
@@ -294,6 +451,7 @@ def _study_item(
         progress_payload,
         fallback_command=commands["progress"],
     )
+    ai_first_default_entry_state = dict(progress_payload.get("ai_first_default_entry_state") or {})
     ai_first_operations_dashboard = dict(progress_payload.get("ai_first_operations_dashboard") or {})
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
@@ -338,6 +496,7 @@ def _study_item(
         "quality_repair_followthrough": quality_repair_followthrough or None,
         "quality_review_followthrough": quality_review_followthrough or None,
         "gate_clearing_followthrough": gate_clearing_followthrough or None,
+        "ai_first_default_entry_state": ai_first_default_entry_state or None,
         "ai_first_operations_dashboard": ai_first_operations_dashboard or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
         "recovery_contract": recovery_contract or None,
@@ -602,8 +761,20 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
                 continue
             study_id = dashboard.get("study_id") or "unknown-study"
             lines.append(f"- `{study_id}` operations: {dashboard.get('current_stage') or 'unknown'}")
+            if dashboard.get("pre_draft_status"):
+                lines.append(f"  pre-draft: {dashboard.get('pre_draft_status')}")
+            if dashboard.get("ai_reviewer_workflow_status"):
+                lines.append(
+                    f"  AI reviewer workflow: {dashboard.get('ai_reviewer_workflow_status')}"
+                )
+            if dashboard.get("artifact_proof_status"):
+                lines.append(f"  artifact proof: {dashboard.get('artifact_proof_status')}")
+            if dashboard.get("route_back_status"):
+                lines.append(f"  route-back: {dashboard.get('route_back_status')}")
             if dashboard.get("next_step"):
                 lines.append(f"  下一步: {dashboard.get('next_step')}")
+            if dashboard.get("human_judgment"):
+                lines.append(f"  人工判断: {dashboard.get('human_judgment')}")
             if dashboard.get("ai_reviewer_trace_complete") is not None:
                 lines.append(
                     "  AI reviewer trace: "

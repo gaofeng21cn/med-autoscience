@@ -229,6 +229,25 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
             f"产物待刷新 {counts.get('artifact_refresh_pending', 0)}；"
             f"等待人工判断 {counts.get('human_review_required', 0)}"
         )
+        for dashboard in workspace_ai_first_operations_state.get("study_dashboards") or []:
+            if not isinstance(dashboard, Mapping):
+                continue
+            study_id = dashboard.get("study_id") or "unknown-study"
+            lines.append(f"- `{study_id}` operations: {dashboard.get('current_stage') or 'unknown'}")
+            if dashboard.get("pre_draft_status"):
+                lines.append(f"  pre-draft: {dashboard.get('pre_draft_status')}")
+            if dashboard.get("ai_reviewer_workflow_status"):
+                lines.append(
+                    f"  AI reviewer workflow: {dashboard.get('ai_reviewer_workflow_status')}"
+                )
+            if dashboard.get("artifact_proof_status"):
+                lines.append(f"  artifact proof: {dashboard.get('artifact_proof_status')}")
+            if dashboard.get("route_back_status"):
+                lines.append(f"  route-back: {dashboard.get('route_back_status')}")
+            if dashboard.get("next_step"):
+                lines.append(f"  下一步: {dashboard.get('next_step')}")
+            if dashboard.get("human_judgment"):
+                lines.append(f"  人工判断: {dashboard.get('human_judgment')}")
     for item in payload.get("workspace_attention_queue_preview") or []:
         if not isinstance(item, dict):
             continue
