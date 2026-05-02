@@ -724,6 +724,9 @@ def build_product_frontdesk(
             "phase4_backend_deconstruction": dict(manifest.get("phase4_backend_deconstruction") or {}),
             "operator_brief": operator_brief,
             "workspace_operator_brief": workspace_operator_brief,
+            "workspace_ai_first_operations_state": dict(
+                workspace_cockpit.get("ai_first_operations_state") or {}
+            ),
             "workspace_attention_queue_preview": list((workspace_cockpit.get("attention_queue") or []))[:3],
             "workspace_truth_snapshots": [
                 dict(item["study_truth_snapshot"])

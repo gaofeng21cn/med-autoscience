@@ -160,6 +160,20 @@ def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_proje
                 "recommended_command": "uv run python -m med_autoscience.cli submit-study-task --profile profile.local.toml",
             },
             "attention_queue": [],
+            "ai_first_operations_state": {
+                "surface_kind": "workspace_ai_first_operations_state",
+                "read_model": "ai_first_operations_dashboard_read_model",
+                "authority": "observability_only",
+                "status": "on_track",
+                "summary": "1 个 study 已接入 AI-first operations state；当前没有新的可见阻塞。",
+                "counts": {
+                    "dashboard_count": 1,
+                    "ai_reviewer_trace_incomplete": 0,
+                    "route_back_active": 0,
+                    "artifact_refresh_pending": 0,
+                    "human_review_required": 0,
+                },
+            },
         },
     )
 
@@ -192,6 +206,8 @@ def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_proje
     }
     assert captured["product_entry_manifest"]["domain_entry_contract"] == manifest["domain_entry_contract"]
     assert captured["product_entry_manifest"]["gateway_interaction_contract"] == manifest["gateway_interaction_contract"]
+    assert captured["extra_payload"]["workspace_ai_first_operations_state"]["authority"] == "observability_only"
+    assert captured["extra_payload"]["workspace_ai_first_operations_state"]["counts"]["dashboard_count"] == 1
     assert "domain_entry_contract" not in captured["extra_payload"]
     assert "gateway_interaction_contract" not in captured["extra_payload"]
 
@@ -257,6 +273,16 @@ def test_render_product_frontdesk_markdown_prefers_human_facing_labels() -> None
                 "verdict": "attention_required",
                 "summary": "当前 workspace 有关注项。",
                 "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+            },
+            "workspace_ai_first_operations_state": {
+                "summary": "1 个 study 已接入 AI-first operations state；当前有质量授权和产物刷新信号需要处理。",
+                "counts": {
+                    "dashboard_count": 1,
+                    "ai_reviewer_trace_incomplete": 1,
+                    "route_back_active": 1,
+                    "artifact_refresh_pending": 1,
+                    "human_review_required": 1,
+                },
             },
             "workspace_attention_queue_preview": [
                 {
@@ -329,6 +355,8 @@ def test_render_product_frontdesk_markdown_prefers_human_facing_labels() -> None
     assert "当前判断: MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。" in markdown
     assert "前台入口命令" in markdown
     assert "当前 workspace 判断: 当前 workspace 有关注项。" in markdown
+    assert "AI-first operations: 1 个 study 已接入 AI-first operations state" in markdown
+    assert "AI reviewer trace 不完整 1" in markdown
     assert "当前关注项: 001-risk 当前需要刷新投稿包镜像" in markdown
     assert "recommended_action" not in markdown
     assert "frontdesk_command" not in markdown

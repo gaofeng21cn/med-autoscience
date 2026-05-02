@@ -306,6 +306,140 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
     assert "人类查看面刷新中" in markdown
 
 
+def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progress(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    write_study(profile.workspace_root, "001-risk")
+
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: SimpleNamespace(
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            med_deepscientist_runtime_exists=True,
+            medical_overlay_ready=True,
+            external_runtime_contract={"ready": True},
+            workspace_supervision_contract={
+                "status": "loaded",
+                "loaded": True,
+                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "drift_reasons": [],
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_inspect_workspace_supervision",
+        lambda profile: {
+            "manager": "launchd",
+            "status": "loaded",
+            "loaded": True,
+            "job_exists": True,
+            "summary": "Hermes-hosted runtime supervision 已在线。",
+            "drift_reasons": [],
+        },
+    )
+    monkeypatch.setattr(
+        module.mainline_status,
+        "read_mainline_status",
+        lambda: {
+            "program_id": "research-foundry-medical-mainline",
+            "current_stage": {"id": "quality_os_runtime", "status": "in_progress", "summary": "质量运行面已接入。"},
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **kwargs: {
+            "study_id": "001-risk",
+            "current_stage": "publication_supervision",
+            "current_stage_summary": "AI-first operations 已接入当前 study。",
+            "current_blockers": ["AI reviewer trace 还未闭环。"],
+            "next_system_action": "回到 AI reviewer workflow 补齐质量授权。",
+            "intervention_lane": {
+                "lane_id": "quality_floor_blocker",
+                "title": "补齐 AI reviewer trace",
+                "summary": "质量授权还没有闭环。",
+            },
+            "operator_verdict": {"decision_mode": "monitor_only", "summary": "质量授权还没有闭环。"},
+            "operator_status_card": {
+                "handling_state": "scientific_or_quality_repair_in_progress",
+                "user_visible_verdict": "当前需要 AI reviewer 复核后才能继续。",
+            },
+            "ai_first_operations_dashboard": {
+                "surface": "ai_first_operations_dashboard_summary",
+                "read_model": "ai_first_operations_dashboard_read_model",
+                "user_view": {
+                    "current_stage": "publication_supervision",
+                    "blockers": ["AI reviewer trace 还未闭环。"],
+                    "next_step": "回到 AI reviewer workflow 补齐质量授权。",
+                    "human_review_required": True,
+                },
+                "maintainer_view": {
+                    "ai_reviewer_trace": {"complete": False},
+                    "route_back": {"count": 1, "target": "analysis-campaign"},
+                    "artifact_stale": {
+                        "stale_artifact_count": 2,
+                        "current_package_from_canonical_source": False,
+                    },
+                    "quality_toil": {"toil_count": 1},
+                },
+                "authority": {
+                    "observability_can_authorize_quality": False,
+                    "observability_can_mutate_runtime": False,
+                },
+            },
+            "recommended_command": (
+                "uv run python -m med_autoscience.cli study-progress --profile "
+                + str(profile_ref.resolve())
+                + " --study-id 001-risk"
+            ),
+            "recommended_commands": [],
+            "recovery_contract": {"action_mode": "inspect_progress"},
+            "needs_physician_decision": False,
+            "needs_user_decision": False,
+            "supervision": {
+                "browser_url": "http://127.0.0.1:20999",
+                "quest_session_api_url": "http://127.0.0.1:20999/api/quests/001-risk/session",
+                "active_run_id": "run-001",
+                "health_status": "live",
+                "supervisor_tick_status": "fresh",
+            },
+            "task_intake": {
+                "task_intent": "推进 001-risk 到可投稿状态。",
+                "journal_target": "BMC Medicine",
+            },
+            "progress_freshness": {"status": "fresh"},
+        },
+    )
+
+    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    markdown = module.render_workspace_cockpit_markdown(payload)
+
+    state = payload["ai_first_operations_state"]
+    assert payload["studies"][0]["ai_first_operations_dashboard"]["surface"] == "ai_first_operations_dashboard_summary"
+    assert state["authority"] == "observability_only"
+    assert state["status"] == "attention_required"
+    assert state["counts"]["dashboard_count"] == 1
+    assert state["counts"]["ai_reviewer_trace_incomplete"] == 1
+    assert state["counts"]["route_back_active"] == 1
+    assert state["counts"]["artifact_refresh_pending"] == 1
+    assert state["counts"]["human_review_required"] == 1
+    assert state["study_dashboards"][0]["route_back_target"] == "analysis-campaign"
+    assert state["study_dashboards"][0]["authority"]["observability_can_authorize_quality"] is False
+    assert "AI-first Operations" in markdown
+    assert "AI reviewer trace 不完整 1" in markdown
+    assert "route-back 未闭环 1" in markdown
+    assert "产物待刷新 1" in markdown
+
+
 def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_brief(
     monkeypatch,
     tmp_path: Path,

@@ -149,6 +149,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     operator_brief = dict(payload.get("operator_brief") or {})
     quickstart = dict(payload.get("product_entry_quickstart") or {})
     workspace_operator_brief = dict(payload.get("workspace_operator_brief") or {})
+    workspace_ai_first_operations_state = dict(payload.get("workspace_ai_first_operations_state") or {})
     lines = [
         "# Product Frontdesk",
         "",
@@ -215,6 +216,19 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         )
     else:
         lines.append("- 当前没有 workspace preview。")
+    if workspace_ai_first_operations_state:
+        counts = dict(workspace_ai_first_operations_state.get("counts") or {})
+        lines.append(
+            f"- AI-first operations: {workspace_ai_first_operations_state.get('summary') or 'none'}"
+        )
+        lines.append(
+            "- AI-first operations 计数: "
+            f"已接入 {counts.get('dashboard_count', 0)}；"
+            f"AI reviewer trace 不完整 {counts.get('ai_reviewer_trace_incomplete', 0)}；"
+            f"route-back 未闭环 {counts.get('route_back_active', 0)}；"
+            f"产物待刷新 {counts.get('artifact_refresh_pending', 0)}；"
+            f"等待人工判断 {counts.get('human_review_required', 0)}"
+        )
     for item in payload.get("workspace_attention_queue_preview") or []:
         if not isinstance(item, dict):
             continue
