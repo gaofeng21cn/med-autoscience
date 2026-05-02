@@ -14,16 +14,19 @@ from med_autoscience.medical_journal_style_corpus import (
 
 __all__ = [
     "STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_RELATIVE_PATH",
+    "STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH",
     "build_medical_manuscript_blueprint",
     "materialize_medical_manuscript_blueprint",
     "read_medical_manuscript_blueprint",
     "resolve_medical_manuscript_blueprint_ref",
     "stable_medical_manuscript_blueprint_path",
+    "stable_medical_manuscript_blueprint_source_path",
     "validate_medical_manuscript_blueprint",
 ]
 
 
 STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_RELATIVE_PATH = Path("paper/medical_manuscript_blueprint.json")
+STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH = Path("paper/medical_manuscript_blueprint_source.json")
 _REQUIRED_SEQUENCE = (
     "clinical_problem",
     "evidence_gap",
@@ -57,6 +60,12 @@ _REQUIRED_TOP_LEVEL_FIELDS = (
 
 def stable_medical_manuscript_blueprint_path(*, study_root: Path) -> Path:
     return (Path(study_root).expanduser().resolve() / STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_RELATIVE_PATH).resolve()
+
+
+def stable_medical_manuscript_blueprint_source_path(*, study_root: Path) -> Path:
+    return (
+        Path(study_root).expanduser().resolve() / STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH
+    ).resolve()
 
 
 def resolve_medical_manuscript_blueprint_ref(
@@ -299,6 +308,18 @@ def build_medical_manuscript_blueprint(
 
 
 def validate_medical_manuscript_blueprint(payload: object) -> list[str]:
+    errors = _validate_medical_manuscript_blueprint_structure(payload)
+    if errors:
+        return errors
+    if not isinstance(payload, Mapping):
+        return ["payload must be a JSON object"]
+    authorization_error = _validate_blueprint_ai_authorization(payload)
+    if authorization_error:
+        return [authorization_error]
+    return []
+
+
+def _validate_medical_manuscript_blueprint_structure(payload: object) -> list[str]:
     if not isinstance(payload, Mapping):
         return ["payload must be a JSON object"]
     missing = [field for field in _REQUIRED_TOP_LEVEL_FIELDS if field not in payload]
@@ -324,6 +345,26 @@ def validate_medical_manuscript_blueprint(payload: object) -> list[str]:
     return []
 
 
+def _validate_blueprint_ai_authorization(payload: Mapping[str, Any]) -> str | None:
+    provenance = payload.get("authoring_provenance")
+    if not isinstance(provenance, Mapping):
+        provenance = payload.get("assessment_provenance")
+    if not isinstance(provenance, Mapping):
+        return "medical manuscript blueprint requires AI authorization provenance"
+    owner = provenance.get("owner")
+    if owner not in {"ai_author", "ai_reviewer"}:
+        return "medical manuscript blueprint AI authorization owner must be ai_author or ai_reviewer"
+    if provenance.get("ai_reviewer_required") is False:
+        return None
+    clearance = payload.get("blueprint_quality_clearance")
+    if not isinstance(clearance, Mapping):
+        return "medical manuscript blueprint requires AI authorization clearance or ai_reviewer_required=false"
+    verdict = _text(clearance.get("verdict"))
+    if clearance.get("owner") == "ai_reviewer" and verdict in {"clear", "approved"}:
+        return None
+    return "medical manuscript blueprint requires AI reviewer clearance verdict clear or approved"
+
+
 def read_medical_manuscript_blueprint(
     *,
     study_root: Path,
@@ -343,14 +384,21 @@ def materialize_medical_manuscript_blueprint(
     paper_root: Path | None = None,
     payload: Mapping[str, Any] | None = None,
 ) -> dict[str, str]:
-    resolved_payload = dict(payload) if isinstance(payload, Mapping) else build_medical_manuscript_blueprint(
-        study_root=study_root,
-        paper_root=paper_root,
-    )
-    errors = validate_medical_manuscript_blueprint(resolved_payload)
+    if isinstance(payload, Mapping):
+        resolved_payload = dict(payload)
+        errors = validate_medical_manuscript_blueprint(resolved_payload)
+        path = stable_medical_manuscript_blueprint_path(study_root=study_root)
+    else:
+        resolved_payload = build_medical_manuscript_blueprint(
+            study_root=study_root,
+            paper_root=paper_root,
+        )
+        resolved_payload["source_kind"] = "mechanical_draft"
+        resolved_payload["canonical_ready"] = False
+        errors = _validate_medical_manuscript_blueprint_structure(resolved_payload)
+        path = stable_medical_manuscript_blueprint_source_path(study_root=study_root)
     if errors:
         raise ValueError(f"medical manuscript blueprint is invalid: {'; '.join(errors)}")
-    path = stable_medical_manuscript_blueprint_path(study_root=study_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(resolved_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {

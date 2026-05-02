@@ -115,3 +115,51 @@ def test_build_report_accepts_medical_journal_style_prose(tmp_path: Path) -> Non
     assert report["medical_journal_prose_style_valid"] is True
     assert report["medical_journal_prose_style_hit_count"] == 0
     assert report["medical_journal_prose_ai_verdict"] == "clear"
+
+
+def test_build_report_keeps_pattern_hits_as_evidence_when_ai_reviewer_clears_prose(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True, medical_prose_review_verdict="clear")
+    paper_root = _paper_root_from_quest(quest_root)
+    pattern_hit_text = """
+## Introduction
+
+Patients undergoing surgery need a clear clinical framing for postoperative risk interpretation.
+
+## Materials and Methods
+
+### Study design and cohort
+
+The cohort was assembled from consecutive eligible cases.
+
+### Variable definition and measurement
+
+Variables were extracted from the prespecified clinical record.
+
+### Model building
+
+The model was fit using the prespecified predictors.
+
+### Validation framework
+
+Validation used internal resampling.
+
+## Results
+
+### Primary analysis
+
+Figure 1 shows that the model worked well.
+
+## Discussion
+
+The findings support restrained follow-up stratification language within the study limitations.
+"""
+    (paper_root / "draft.md").write_text(pattern_hit_text, encoding="utf-8")
+    (paper_root / "build" / "review_manuscript.md").write_text(pattern_hit_text, encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert "medical_journal_prose_style_not_met" not in report["blockers"]
+    assert report["medical_journal_prose_ai_verdict"] == "clear"
+    assert report["medical_journal_prose_mechanical_flag_count"] >= 1
+    assert any(hit["pattern_id"] == "figure_table_subject_results_sentence" for hit in report["top_hits"])

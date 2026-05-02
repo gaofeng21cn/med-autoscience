@@ -97,16 +97,17 @@ def _write_blueprint_inputs(study_root: Path) -> None:
 def test_materialize_medical_manuscript_blueprint_uses_clinical_argument_order(tmp_path: Path) -> None:
     from med_autoscience.medical_manuscript_blueprint import (
         materialize_medical_manuscript_blueprint,
-        read_medical_manuscript_blueprint,
     )
 
     study_root = tmp_path / "study"
     _write_blueprint_inputs(study_root)
 
     result = materialize_medical_manuscript_blueprint(study_root=study_root)
-    payload = read_medical_manuscript_blueprint(study_root=study_root)
 
-    assert result["artifact_path"] == str(study_root.resolve() / "paper" / "medical_manuscript_blueprint.json")
+    assert result["artifact_path"] == str(study_root.resolve() / "paper" / "medical_manuscript_blueprint_source.json")
+    payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
+    assert payload["source_kind"] == "mechanical_draft"
+    assert payload["canonical_ready"] is False
     assert payload["argument_sequence"] == [
         "clinical_problem",
         "evidence_gap",
@@ -129,6 +130,47 @@ def test_materialize_medical_manuscript_blueprint_uses_clinical_argument_order(t
     assert payload["journal_voice_target"]["style_corpus_id"] == "general_medical_journal_style_corpus_v1"
     assert payload["journal_voice_target"]["style_corpus_ref"].endswith("paper/medical_journal_style_corpus.json")
     assert (study_root / "paper" / "medical_journal_style_corpus.json").exists()
+    assert not (study_root / "paper" / "medical_manuscript_blueprint.json").exists()
+
+
+def test_blueprint_reader_rejects_mechanical_draft_canonical_artifact(tmp_path: Path) -> None:
+    from med_autoscience.medical_manuscript_blueprint import (
+        materialize_medical_manuscript_blueprint,
+        read_medical_manuscript_blueprint,
+    )
+
+    study_root = tmp_path / "study"
+    _write_blueprint_inputs(study_root)
+    result = materialize_medical_manuscript_blueprint(study_root=study_root)
+    draft_payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
+    _write_json(study_root / "paper" / "medical_manuscript_blueprint.json", draft_payload)
+
+    with pytest.raises(ValueError, match="AI authorization"):
+        read_medical_manuscript_blueprint(study_root=study_root)
+
+
+def test_materialize_accepts_ai_authorized_canonical_blueprint(tmp_path: Path) -> None:
+    from med_autoscience.medical_manuscript_blueprint import (
+        build_medical_manuscript_blueprint,
+        materialize_medical_manuscript_blueprint,
+        read_medical_manuscript_blueprint,
+    )
+
+    study_root = tmp_path / "study"
+    _write_blueprint_inputs(study_root)
+    payload = build_medical_manuscript_blueprint(study_root=study_root)
+    payload["authoring_provenance"] = {
+        "owner": "ai_author",
+        "source_kind": "medical_manuscript_blueprint",
+        "policy_id": "medical_manuscript_blueprint_v1",
+        "ai_reviewer_required": False,
+    }
+
+    result = materialize_medical_manuscript_blueprint(study_root=study_root, payload=payload)
+    canonical = read_medical_manuscript_blueprint(study_root=study_root)
+
+    assert result["artifact_path"] == str(study_root.resolve() / "paper" / "medical_manuscript_blueprint.json")
+    assert canonical["authoring_provenance"]["owner"] == "ai_author"
 
 
 def test_blueprint_reader_rejects_non_authority_path(tmp_path: Path) -> None:

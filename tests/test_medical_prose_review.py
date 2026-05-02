@@ -17,6 +17,12 @@ def _write_valid_blueprint(study_root: Path) -> None:
         {
             "schema_version": 1,
             "surface": "medical_manuscript_blueprint",
+            "authoring_provenance": {
+                "owner": "ai_author",
+                "source_kind": "medical_manuscript_blueprint",
+                "policy_id": "medical_manuscript_blueprint_v1",
+                "ai_reviewer_required": False,
+            },
             "argument_sequence": [
                 "clinical_problem",
                 "evidence_gap",
@@ -104,4 +110,3 @@ def test_medical_prose_review_rejects_mechanical_projection_owner(tmp_path: Path
 
     with pytest.raises(ValueError, match="owner must be ai_reviewer"):
         materialize_medical_prose_review(study_root=study_root, payload=payload)
-

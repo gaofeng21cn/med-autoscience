@@ -97,3 +97,14 @@ def test_ai_first_prose_request_and_retrospective_audit_are_reviewer_owned() -> 
     assert "dpcc-004" in retrospective_source
     assert "long_excerpts_allowed" in corpus_source
     assert "Use the corpus to learn voice, rhythm, and reviewer questions" in corpus_source
+
+
+def test_medical_manuscript_blueprint_canonical_surface_requires_ai_authorization() -> None:
+    blueprint_source = _read("src/med_autoscience/medical_manuscript_blueprint.py")
+
+    assert 'Path("paper/medical_manuscript_blueprint_source.json")' in blueprint_source
+    assert '"source_kind"] = "mechanical_draft"' in blueprint_source
+    assert '"canonical_ready"] = False' in blueprint_source
+    assert "validate_medical_manuscript_blueprint(resolved_payload)" in blueprint_source
+    assert "requires AI authorization provenance" in blueprint_source
+    assert 'owner not in {"ai_author", "ai_reviewer"}' in blueprint_source
