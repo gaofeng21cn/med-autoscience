@@ -29,6 +29,9 @@ This guide is for readers who need product boundary, operator entry surfaces, ru
 - `OPL` integration, the product-entry manifest, and other machine-readable bridge surfaces belong to the integration and reference layers.
 - `OPL Runtime Manager` is the target family-level thin manager over the external `Hermes-Agent` substrate; it may consume MAS task registration, runtime-control projection, status/artifact locators, and wakeup/approval boundaries, but it does not own MAS study truth.
 - Hosted runtime carriers such as `Hermes-Agent` stay in explicit optional or reference-layer positions; they do not redefine the default MAS capability contract.
+- `StudyTruthKernel` and `RuntimeHealthKernel` are now the core read-model reducers for current study truth and runtime health; ordinary reads create shadow projections, while materialized snapshots require explicit reconcile/controller/watch apply actions.
+- First-draft manuscript quality is now a pre-draft contract: MAS must generate manuscript-native medical journal prose, not controller notes, figure/table anchor scaffolds, or administrative placeholders in article text.
+- Workspace Git/storage boundaries are now part of the maintained workspace contract: outer workspace Git stays lightweight, generated/runtime artifacts stay excluded, and storage-audit repair reports actual apply strategy.
 - Historical migration terms and older naming stay in reference or history layers.
 
 ## Technical Working Set
@@ -62,6 +65,8 @@ Public-facing material should stay mirrored in English and Chinese.
 - [Runtime core convergence and controlled cutover](runtime/runtime_core_convergence_and_controlled_cutover.md)
 - [Runtime core convergence and controlled cutover implementation plan](runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md)
 - [Runtime supervision loop](runtime/runtime_supervision_loop.md)
+- [Study truth kernel](runtime/study_truth_kernel.md)
+- [Runtime health kernel](runtime/runtime_health_kernel.md)
 - [Study runtime control surface](runtime/study_runtime_control_surface.md)
 - [Study runtime orchestration](runtime/study_runtime_orchestration.md)
 - [Workspace knowledge and literature contract](runtime/workspace_knowledge_and_literature_contract.md)
@@ -108,6 +113,7 @@ Public-facing material should stay mirrored in English and Chinese.
 - [Research route bias policy](policies/research_route_bias_policy.md)
 - [Publication gate policy](policies/publication_gate_policy.md)
 - [AI-first quality boundary policy](policies/ai_first_quality_boundary.md)
+- [Medical manuscript first-draft quality policy](policies/medical_manuscript_first_draft_quality.md)
 
 ### Traceability Records
 

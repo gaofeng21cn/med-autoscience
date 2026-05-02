@@ -1,5 +1,23 @@
 # 关键决策记录
 
+## 2026-05-01：StudyTruthKernel 成为 study 级用户可见真相 reducer
+
+- 决策：`StudyTruthKernel` 固定为 MAS study 级运行真相 reducer。`study_runtime_status` 与 `study-progress` 可以投影 shadow snapshot，但 `artifacts/truth/latest.json` 只能由显式 reconcile、controller tick 或 materialize 调用刷新。
+- 理由：近期 stopped / finalize / package authority / reviewer revision / publication gate 事故证明，多个 read-model 各自解释 next action 会制造 authority drift。把 dominance rules 收口到单一 reducer，才能让 package authority、publication gate 解释、delivery state 和 human gate 输出一致。
+- 影响：后续 truth/gate/status 事故必须同时补 reducer rule、fixture test 与 runbook entry；`MDS` 输出只能作为 runtime/native/review event 进入 MAS truth event，再由 MAS reducer 产生用户可见动作。
+
+## 2026-05-01：RuntimeHealthKernel 成为 runtime liveness 与 recovery reducer
+
+- 决策：`RuntimeHealthKernel` 固定为 `(study_id, quest_id)` 的运行健康 reducer。`runtime_health_snapshot` 负责 worker liveness、retry budget、recover/relaunch/escalate 语义；`last_launch_report` 只能保留最近动作摘要，不再作为 live worker authority。
+- 理由：恢复链路曾把 stale run handle、fresh supervisor tick、daemon probe 和 worker liveness 混成一类状态，容易无限 recovering 或误报 live。运行健康必须用 event history 和有限状态机收口。
+- 影响：`runtime watch --apply`、`runtime reconcile-health` 与 controller tick 才能 materialize health；runtime health 只能驱动 runtime action，不得反向覆盖 `StudyTruthKernel.canonical_next_action`、publication gate、package authority 或 delivery state。
+
+## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
+
+- 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。
+- 理由：真实稿件修订暴露出 MAS 初稿可能把 controller checklist、figure/table anchor、author-confirmation placeholder、claim-boundary 标签和 operations/review 语言带进正文。医学论文初稿必须从临床问题、研究设计、结果解释和投稿读者问题出发。
+- 影响：写作 route 在判断 draft ready 前必须检查这些输入；缺少支撑时 route back 到同线写作修复或有限补充分析。`medical_publication_surface` 继续作为 safety net，而不是主写作策略。
+
 ## 2026-04-26：稿件反馈后的 stopped milestone 统一视为 revision reactivation
 
 - 决策：已达投稿包、submission-ready 或 finalize 里程碑后，如果收到用户、导师或审稿层面的稿件反馈，必须把该反馈作为同一 study 的 `reviewer_revision` reactivation intake 处理。`stopped` 状态和 `current_package` 存在只说明旧里程碑曾经成立，不能授权 Codex 前台直接修改 `manuscript/current_package/` 后宣称完成。

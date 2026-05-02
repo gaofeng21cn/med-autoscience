@@ -29,6 +29,9 @@
 - `OPL` 集成、product-entry manifest 和其他机器可读桥接面都属于集成或参考层。
 - `OPL Runtime Manager` 是目标形态中的 family-level 薄运行管理层，位于外部 `Hermes-Agent` substrate 之上；它可以消费 MAS task registration、runtime-control projection、status/artifact locator 与 wakeup/approval 边界，但不持有 MAS study truth。
 - `Hermes-Agent` 只保留在显式可选 hosted runtime 或 reference-layer 语境中，不改写默认 capability contract。
+- `StudyTruthKernel` 与 `RuntimeHealthKernel` 已成为当前 study truth 与 runtime health 的核心 read-model reducer；普通读取只生成 shadow projection，materialized snapshot 必须由显式 reconcile、controller tick 或 runtime watch apply 写入。
+- 初稿质量已经前移成写作前合同：MAS 必须生成医学期刊可读的 manuscript-native prose，而不是 controller notes、figure/table anchor scaffold 或正文里的行政占位。
+- Workspace Git/storage 边界已经进入当前维护合同：外层 workspace Git 保持轻量，generated/runtime artifacts 明确排除，storage-audit repair 按实际 apply strategy 报告释放量。
 - 历史迁移术语和旧命名继续留在参考层或历史层。
 
 ## 技术工作集
@@ -62,6 +65,8 @@
 - [Runtime 核心收敛与受控 cutover](runtime/runtime_core_convergence_and_controlled_cutover.md)
 - [Runtime 核心收敛与受控 cutover 实施计划](runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md)
 - [运行时监督外环](runtime/runtime_supervision_loop.md)
+- [Study truth kernel](runtime/study_truth_kernel.md)
+- [Runtime health kernel](runtime/runtime_health_kernel.md)
 - [Study runtime 控制面](runtime/study_runtime_control_surface.md)
 - [Study runtime 编排](runtime/study_runtime_orchestration.md)
 - [Workspace knowledge 与 literature 合同](runtime/workspace_knowledge_and_literature_contract.md)
@@ -108,6 +113,7 @@
 - [研究路线偏置规则](policies/research_route_bias_policy.md)
 - [发表门控规则](policies/publication_gate_policy.md)
 - [AI-first 质量边界规则](policies/ai_first_quality_boundary.md)
+- [医学稿件初稿质量规则](policies/medical_manuscript_first_draft_quality.md)
 
 ### 追溯记录
 
