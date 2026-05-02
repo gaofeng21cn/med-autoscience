@@ -275,6 +275,54 @@ def test_generic_analysis_labels_with_downstream_delivery_churn_require_specific
     ]
 
 
+def test_generic_science_blockers_ignore_delivery_artifact_refs_for_specificity() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "blockers": [
+                "stale_submission_minimal_authority",
+                "stale_study_delivery_mirror",
+                "medical_publication_surface_blocked",
+                "reviewer_first_concerns_unresolved",
+                "claim_evidence_consistency_failed",
+                "submission_hardening_incomplete",
+            ],
+            "medical_publication_surface_named_blockers": [
+                "reviewer_first_concerns_unresolved",
+                "claim_evidence_consistency_failed",
+                "submission_hardening_incomplete",
+            ],
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "stale_submission_minimal_authority",
+                    "artifact_path": "/tmp/paper/submission_minimal/submission_manifest.json",
+                    "artifact_role": "submission_minimal_authority",
+                    "stale_reason": "submission_source_newer_than_manifest",
+                },
+                {
+                    "blocker": "stale_study_delivery_mirror",
+                    "artifact_path": "/tmp/study/manuscript/delivery_manifest.json",
+                    "artifact_role": "study_delivery_mirror",
+                    "stale_reason": "delivery_manifest_sources_missing",
+                },
+            ],
+            "paper_line_blocking_reasons": [
+                "MAS medical manuscript blueprint lacks AI authorization/provenance",
+                "MAS medical journal style corpus is incomplete",
+                "MAS AI medical prose review request is incomplete or not AI reviewer-targeted",
+                "MAS AI medical prose review is incomplete or not AI reviewer-owned",
+            ],
+        }
+    )
+
+    assert result["actionability_status"] == "blocked_by_non_actionable_gate"
+    assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert "analysis_claim_evidence_repair" not in [
+        unit["unit_id"] for unit in result["blocking_work_units"]
+    ]
+
+
 def test_non_actionable_gate_labels_require_specificity_before_dispatch() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 

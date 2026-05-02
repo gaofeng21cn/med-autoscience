@@ -256,25 +256,43 @@ def _unit(unit_id: str, lane: str, summary: str, **extra: str) -> dict[str, str]
     return payload
 
 
-def _mapping_has_actionable_object_ref(payload: Mapping[str, Any]) -> bool:
+def _mapping_has_actionable_object_ref(
+    payload: Mapping[str, Any],
+    *,
+    blocker_scope: set[str] | None = None,
+) -> bool:
+    blocker = str(payload.get("blocker") or "").strip()
+    if blocker_scope is not None and blocker and blocker not in blocker_scope:
+        return False
     for key in _ACTIONABLE_OBJECT_KEYS:
         if str(payload.get(key) or "").strip():
             return True
     return False
 
 
-def _has_actionable_object_ref(report: Mapping[str, Any]) -> bool:
-    if _mapping_has_actionable_object_ref(report):
+def _has_actionable_object_ref(
+    report: Mapping[str, Any],
+    *,
+    blocker_scope: set[str] | None = None,
+) -> bool:
+    if _mapping_has_actionable_object_ref(report, blocker_scope=blocker_scope):
         return True
-    if report.get("blocking_artifact_refs"):
+    blocking_artifact_refs = report.get("blocking_artifact_refs")
+    if isinstance(blocking_artifact_refs, list):
+        for item in blocking_artifact_refs:
+            if isinstance(item, Mapping) and _mapping_has_actionable_object_ref(item, blocker_scope=blocker_scope):
+                return True
+        if blocking_artifact_refs and blocker_scope is None:
+            return True
+    elif blocking_artifact_refs and blocker_scope is None:
         return True
     for key in ("blocker_details", "gate_blocker_details", "gaps"):
         value = report.get(key)
-        if isinstance(value, Mapping) and _mapping_has_actionable_object_ref(value):
+        if isinstance(value, Mapping) and _mapping_has_actionable_object_ref(value, blocker_scope=blocker_scope):
             return True
         if isinstance(value, list):
             for item in value:
-                if isinstance(item, Mapping) and _mapping_has_actionable_object_ref(item):
+                if isinstance(item, Mapping) and _mapping_has_actionable_object_ref(item, blocker_scope=blocker_scope):
                     return True
     return False
 
@@ -348,12 +366,14 @@ def _append_gate_specificity_unit(units: list[dict[str, str]]) -> None:
 
 
 def _label_only_blocker_needs_specificity(report: Mapping[str, Any], *, blocker_set: set[str]) -> bool:
-    if not blocker_set or _has_actionable_object_ref(report):
+    if not blocker_set:
         return False
     non_authority_blockers = blocker_set - _SUBMISSION_REFRESH_BLOCKERS
     if not non_authority_blockers:
         return False
-    return non_authority_blockers.issubset(_GENERIC_SPECIFICITY_BLOCKERS)
+    if not non_authority_blockers.issubset(_GENERIC_SPECIFICITY_BLOCKERS):
+        return False
+    return not _has_actionable_object_ref(report, blocker_scope=non_authority_blockers)
 
 
 def _append_blocker_rule_units(
@@ -457,8 +477,8 @@ def _derive_blocking_work_units(
         _append_publication_gate_replay_unit(units)
         return units, "controller_gate_replay_required", ()
     if _label_only_blocker_needs_specificity(report, blocker_set=blocker_set):
-        actionability_status, specificity_questions = _complete_actionability_units(report, blockers=blockers, units=units)
-        return units, actionability_status, specificity_questions
+        _append_gate_specificity_unit(units)
+        return units, "blocked_by_non_actionable_gate", _SPECIFICITY_QUESTIONS
     mixed_controller_repair = _is_mixed_controller_repair(blocker_set)
     if mixed_controller_repair:
         _append_mixed_controller_unit(units)
