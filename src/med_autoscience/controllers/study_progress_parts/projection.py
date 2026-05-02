@@ -1,6 +1,14 @@
 from __future__ import annotations
 
 from med_autoscience.controllers import autonomy_ai_doctor, control_plane_facts, runtime_health_kernel, study_truth_kernel
+from med_autoscience.medical_journal_style_corpus import stable_medical_journal_style_corpus_path
+from med_autoscience.medical_manuscript_blueprint import stable_medical_manuscript_blueprint_path
+from med_autoscience.medical_prose_review import stable_medical_prose_review_path
+from med_autoscience.medical_prose_review_request import stable_medical_prose_review_request_path
+from med_autoscience.retrospective_medical_prose_audit import (
+    stable_retrospective_medical_prose_audit_path,
+    stable_retrospective_medical_prose_audit_request_path,
+)
 
 from .parked_projection import (
     build_progress_parked_projection,
@@ -19,6 +27,93 @@ def _module_reexport(module) -> None:
 
 for _module in (_shared, _publication_runtime, _progression, _progress_freshness_parts, _operator_view, _runtime_efficiency):
     _module_reexport(_module)
+
+
+def _medical_writing_quality_surface_status(*, study_root: Path) -> dict[str, Any]:
+    blueprint_path = stable_medical_manuscript_blueprint_path(study_root=study_root)
+    style_corpus_path = stable_medical_journal_style_corpus_path(study_root=study_root)
+    prose_review_request_path = stable_medical_prose_review_request_path(study_root=study_root)
+    prose_review_path = stable_medical_prose_review_path(study_root=study_root)
+    retrospective_request_path = stable_retrospective_medical_prose_audit_request_path(study_root=study_root)
+    retrospective_audit_path = stable_retrospective_medical_prose_audit_path(study_root=study_root)
+
+    blueprint_payload = _read_json_object(blueprint_path)
+    corpus_payload = _read_json_object(style_corpus_path)
+    request_payload = _read_json_object(prose_review_request_path)
+    review_payload = _read_json_object(prose_review_path)
+    retrospective_request_payload = _read_json_object(retrospective_request_path)
+    retrospective_audit_payload = _read_json_object(retrospective_audit_path)
+    review_quality = (
+        _mapping_copy((review_payload or {}).get("medical_journal_prose_quality"))
+        if review_payload is not None
+        else {}
+    )
+    review_provenance = (
+        _mapping_copy((review_payload or {}).get("assessment_provenance"))
+        if review_payload is not None
+        else {}
+    )
+    retrospective_samples = (
+        list(retrospective_audit_payload.get("samples") or [])
+        if isinstance(retrospective_audit_payload, dict)
+        else []
+    )
+    return {
+        "surface_kind": "medical_writing_quality_surfaces",
+        "blueprint": {
+            "present": blueprint_path.exists(),
+            "valid": bool(blueprint_payload and blueprint_payload.get("surface") == "medical_manuscript_blueprint"),
+            "path": str(blueprint_path),
+            "argument_sequence": list((blueprint_payload or {}).get("argument_sequence") or []),
+        },
+        "style_corpus": {
+            "present": style_corpus_path.exists(),
+            "valid": bool(corpus_payload and corpus_payload.get("surface") == "medical_journal_style_corpus"),
+            "path": str(style_corpus_path),
+            "corpus_id": _non_empty_text((corpus_payload or {}).get("corpus_id")),
+        },
+        "prose_review_request": {
+            "present": prose_review_request_path.exists(),
+            "valid": bool(request_payload and request_payload.get("surface") == "medical_prose_review_request"),
+            "path": str(prose_review_request_path),
+            "review_owner": _non_empty_text((request_payload or {}).get("review_owner")),
+        },
+        "prose_review": {
+            "present": prose_review_path.exists(),
+            "valid": bool(
+                review_payload
+                and review_payload.get("surface") == "medical_prose_review"
+                and review_provenance.get("owner") == "ai_reviewer"
+            ),
+            "path": str(prose_review_path),
+            "owner": _non_empty_text(review_provenance.get("owner")),
+            "verdict": _non_empty_text(review_quality.get("overall_style_verdict")),
+            "summary": _non_empty_text(review_quality.get("summary")),
+        },
+        "retrospective_audit_request": {
+            "present": retrospective_request_path.exists(),
+            "valid": bool(
+                retrospective_request_payload
+                and retrospective_request_payload.get("surface") == "retrospective_medical_prose_audit_request"
+            ),
+            "path": str(retrospective_request_path),
+        },
+        "retrospective_audit": {
+            "present": retrospective_audit_path.exists(),
+            "valid": bool(
+                retrospective_audit_payload
+                and retrospective_audit_payload.get("surface") == "retrospective_medical_prose_audit"
+                and _mapping_copy(retrospective_audit_payload.get("assessment_provenance")).get("owner") == "ai_reviewer"
+            ),
+            "path": str(retrospective_audit_path),
+            "sample_count": len([item for item in retrospective_samples if isinstance(item, dict)]),
+            "sample_ids": [
+                _non_empty_text(item.get("sample_id"))
+                for item in retrospective_samples
+                if isinstance(item, dict) and _non_empty_text(item.get("sample_id")) is not None
+            ],
+        },
+    }
 
 
 def _supervision_active_run_id(
@@ -226,6 +321,7 @@ def build_study_progress_projection(
     details_projection_payload = _details_projection_payload(details_projection_path)
     evaluation_summary_payload = _read_json_object(stable_evaluation_summary_path(study_root=resolved_study_root))
     study_truth_snapshot = _mapping_copy(status.get("study_truth_snapshot"))
+    medical_writing_quality_surfaces = _medical_writing_quality_surface_status(study_root=resolved_study_root)
 
     publication_supervisor_state = (
         dict(status.get("publication_supervisor_state") or {})
@@ -785,6 +881,7 @@ def build_study_progress_projection(
         "quality_repair_batch_followthrough": quality_repair_batch_followthrough or None,
         "gate_clearing_batch_followthrough": gate_clearing_batch_followthrough or None,
         "quality_review_followthrough": quality_review_followthrough or None,
+        "medical_writing_quality_surfaces": medical_writing_quality_surfaces,
         "research_runtime_control_projection": research_runtime_control_projection,
         "study_truth_snapshot": study_truth_snapshot or None,
         "runtime_health_snapshot": runtime_health_snapshot or None,
@@ -837,6 +934,14 @@ def build_study_progress_projection(
             "evaluation_summary_path": (
                 evaluation_module_surface["summary_ref"] if evaluation_module_surface is not None else None
             ),
+            "medical_manuscript_blueprint_path": medical_writing_quality_surfaces["blueprint"]["path"],
+            "medical_journal_style_corpus_path": medical_writing_quality_surfaces["style_corpus"]["path"],
+            "medical_prose_review_request_path": medical_writing_quality_surfaces["prose_review_request"]["path"],
+            "medical_prose_review_path": medical_writing_quality_surfaces["prose_review"]["path"],
+            "retrospective_medical_prose_audit_request_path": (
+                medical_writing_quality_surfaces["retrospective_audit_request"]["path"]
+            ),
+            "retrospective_medical_prose_audit_path": medical_writing_quality_surfaces["retrospective_audit"]["path"],
             "study_truth_snapshot_path": str(study_truth_kernel.truth_snapshot_path(study_root=resolved_study_root)),
             "runtime_health_snapshot_path": str(
                 runtime_health_kernel.runtime_health_snapshot_path(study_root=resolved_study_root)

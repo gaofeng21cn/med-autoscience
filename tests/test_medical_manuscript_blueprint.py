@@ -126,6 +126,9 @@ def test_materialize_medical_manuscript_blueprint_uses_clinical_argument_order(t
         "Shows calibration and clinical utility support."
     )
     assert payload["journal_voice_target"]["voice"] == "neutral_clinical_original_research"
+    assert payload["journal_voice_target"]["style_corpus_id"] == "general_medical_journal_style_corpus_v1"
+    assert payload["journal_voice_target"]["style_corpus_ref"].endswith("paper/medical_journal_style_corpus.json")
+    assert (study_root / "paper" / "medical_journal_style_corpus.json").exists()
 
 
 def test_blueprint_reader_rejects_non_authority_path(tmp_path: Path) -> None:
@@ -138,4 +141,3 @@ def test_blueprint_reader_rejects_non_authority_path(tmp_path: Path) -> None:
             study_root=study_root,
             ref=study_root / "paper" / "draft_blueprint.json",
         )
-

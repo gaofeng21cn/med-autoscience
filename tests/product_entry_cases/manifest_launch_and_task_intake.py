@@ -735,11 +735,27 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
             "field_path": "refs.evaluation_summary_path",
             "fallback_fields": [
                 "refs.publication_eval_path",
+                "refs.medical_manuscript_blueprint_path",
+                "refs.medical_journal_style_corpus_path",
+                "refs.medical_prose_review_request_path",
+                "refs.medical_prose_review_path",
+                "refs.retrospective_medical_prose_audit_path",
                 "refs.controller_decision_path",
                 "refs.runtime_supervision_path",
                 "refs.runtime_watch_report_path",
             ],
             "pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
+        },
+        "medical_writing_quality_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "medical_writing_quality_surfaces",
+            "blueprint_field": "medical_writing_quality_surfaces.blueprint",
+            "style_corpus_field": "medical_writing_quality_surfaces.style_corpus",
+            "prose_review_request_field": "medical_writing_quality_surfaces.prose_review_request",
+            "prose_review_field": "medical_writing_quality_surfaces.prose_review",
+            "retrospective_audit_field": "medical_writing_quality_surfaces.retrospective_audit",
+            "subjective_quality_owner": "ai_reviewer",
+            "mechanical_flags_role": "evidence_snippets_only",
         },
         "command_templates": {
             "resume": (
