@@ -30,6 +30,15 @@ _REQUIRED_TOP_LEVEL_FIELDS = (
 )
 
 
+def _route_recommendation_is_ready(route: Mapping[str, Any], *, verdict: str) -> bool:
+    route_target = _text(route.get("route_target")) or "none"
+    if route_target not in _ALLOWED_ROUTE_BACK_TARGETS:
+        return False
+    if verdict == "clear":
+        return route_target == "none" and route.get("required") is False
+    return route_target != "none" and route.get("required") is True
+
+
 def stable_medical_prose_review_path(*, study_root: Path) -> Path:
     return (Path(study_root).expanduser().resolve() / STABLE_MEDICAL_PROSE_REVIEW_RELATIVE_PATH).resolve()
 
@@ -182,8 +191,7 @@ def validate_medical_prose_review(payload: object) -> list[str]:
     route = quality.get("route_back_recommendation")
     if not isinstance(route, Mapping):
         return ["medical_journal_prose_quality.route_back_recommendation must be an object"]
-    route_target = _text(route.get("route_target")) or "none"
-    if route_target not in _ALLOWED_ROUTE_BACK_TARGETS:
+    if not _route_recommendation_is_ready(route, verdict=verdict):
         return ["medical_journal_prose_quality.route_back_recommendation.route_target is invalid"]
     if not isinstance(payload.get("mechanical_safety_flags"), list):
         return ["mechanical_safety_flags must be a list"]

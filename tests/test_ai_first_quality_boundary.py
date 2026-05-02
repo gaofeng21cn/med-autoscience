@@ -73,3 +73,21 @@ def test_subjective_medical_prose_quality_is_ai_reviewer_owned() -> None:
     assert 'medical_journal_prose_ai_verdict in {"block", "revise"}' in publication_surface
     assert 'blockers.append("figure_table_led_results_narration_present")' not in publication_surface
     assert 'blockers.append("non_formal_question_sentence_present")' not in publication_surface
+
+
+def test_ai_first_prose_request_and_retrospective_audit_are_reviewer_owned() -> None:
+    request_source = _read("src/med_autoscience/medical_prose_review_request.py")
+    retrospective_source = _read("src/med_autoscience/retrospective_medical_prose_audit.py")
+    corpus_source = _read("src/med_autoscience/medical_journal_style_corpus.py")
+
+    assert '"review_owner": "ai_reviewer"' in request_source
+    assert '"mechanical_flags_role": "evidence_snippets_only"' in request_source
+    assert "validate_ai_medical_prose_review_response" in request_source
+    assert "materialize_ai_medical_prose_review_from_response" in request_source
+    assert '"audit_owner": "ai_reviewer"' in retrospective_source
+    assert '"manual_study_patch_allowed": False' in retrospective_source
+    assert "nf-pitnet-003" in retrospective_source
+    assert "dpcc-003" in retrospective_source
+    assert "dpcc-004" in retrospective_source
+    assert "long_excerpts_allowed" in corpus_source
+    assert "Use the corpus to learn voice, rhythm, and reviewer questions" in corpus_source

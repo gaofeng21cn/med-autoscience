@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 def _assert_artifact_inventory_surface(*, module, payload, profile, profile_ref) -> None:
-    assert payload["artifact_inventory"]["summary"]["supporting_files_count"] == 5
-    assert payload["artifact_inventory"]["summary"]["total_files_count"] == 5
+    assert payload["artifact_inventory"]["summary"]["supporting_files_count"] == 10
+    assert payload["artifact_inventory"]["summary"]["total_files_count"] == 10
     assert payload["artifact_inventory"]["supporting_files"][0]["kind"] == "supporting"
+    file_ids = {entry.get("file_id") for entry in payload["artifact_inventory"]["supporting_files"]}
+    assert {
+        "medical_manuscript_blueprint",
+        "medical_journal_style_corpus",
+        "medical_prose_review_request",
+        "medical_prose_review",
+        "retrospective_medical_prose_audit",
+    }.issubset(file_ids)
     assert any(
         entry.get("path") == "studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json"
         for entry in payload["artifact_inventory"]["supporting_files"]

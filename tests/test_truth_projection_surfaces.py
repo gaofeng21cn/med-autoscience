@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
 
 
 def _truth_snapshot() -> dict[str, object]:
@@ -107,3 +108,32 @@ def test_runtime_watch_managed_study_action_carries_truth_snapshot_summary() -> 
         "read_runtime_status",
         "open_monitoring_entry",
     ]
+
+
+def test_product_entry_surfaces_expose_medical_writing_quality_artifacts() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    artifact_inventory = module._build_artifact_inventory_surface(
+        profile=type("Profile", (), {"workspace_root": Path("/tmp/workspace"), "runtime_root": Path("/tmp/runtime")})(),
+        progress_projection={},
+        product_entry_shell={"launch_study": {"command": "launch"}, "study_progress": {"command": "progress"}},
+        study_runtime_status_command="status",
+    )
+
+    file_ids = {item["file_id"] for item in artifact_inventory["supporting_files"]}
+    assert "medical_manuscript_blueprint" in file_ids
+    assert "medical_journal_style_corpus" in file_ids
+    assert "medical_prose_review_request" in file_ids
+    assert "medical_prose_review" in file_ids
+    assert "retrospective_medical_prose_audit" in file_ids
+
+    control_projection = module._build_research_runtime_control_projection(
+        resume_command="launch",
+        check_progress_command="progress",
+        check_runtime_status_command="status",
+        surface_kind="research_runtime_control_projection",
+    )
+    assert control_projection["medical_writing_quality_surface"]["subjective_quality_owner"] == "ai_reviewer"
+    assert control_projection["medical_writing_quality_surface"]["mechanical_flags_role"] == (
+        "evidence_snippets_only"
+    )
+    assert "refs.medical_prose_review_path" in control_projection["artifact_pickup_surface"]["fallback_fields"]
