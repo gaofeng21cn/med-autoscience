@@ -55,3 +55,21 @@ def test_ai_reviewer_materializer_is_separate_from_generic_latest_writer() -> No
     assert "def materialize_ai_reviewer_publication_eval_latest" in source
     assert 'provenance["owner"] != "ai_reviewer"' in source
     assert 'DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"]' in source
+
+
+def test_subjective_medical_prose_quality_is_ai_reviewer_owned() -> None:
+    policy = _read("docs/policies/ai_first_quality_boundary.md")
+    architecture = _read("docs/architecture.md")
+    publication_surface = _read(
+        "src/med_autoscience/controllers/medical_publication_surface_parts/reporting.py"
+    )
+
+    assert "医学论文文体" in policy
+    assert "medical_prose_review" in policy
+    assert "Regex / pattern / deterministic scanner" in policy
+    assert "不得单独触发或清除 `medical_journal_prose_style_not_met`" in policy
+    assert "regex / pattern 只作为 `mechanical_safety_flags`" in architecture
+    assert 'blockers.append("medical_journal_prose_style_not_met")' in publication_surface
+    assert 'medical_journal_prose_ai_verdict in {"block", "revise"}' in publication_surface
+    assert 'blockers.append("figure_table_led_results_narration_present")' not in publication_surface
+    assert 'blockers.append("non_formal_question_sentence_present")' not in publication_surface

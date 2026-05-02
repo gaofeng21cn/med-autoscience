@@ -96,4 +96,12 @@ def materialize_ai_reviewer_publication_eval_latest(
         raise ValueError(
             f"AI reviewer publication eval policy_id must be {DEFAULT_PUBLICATION_CRITIQUE_POLICY['policy_id']}"
         )
+    quality_assessment = payload.get("quality_assessment")
+    if not isinstance(quality_assessment, dict):
+        raise ValueError("AI reviewer publication eval must include quality_assessment")
+    prose_quality = quality_assessment.get("medical_journal_prose_quality")
+    if not isinstance(prose_quality, dict):
+        raise ValueError("AI reviewer publication eval must include quality_assessment.medical_journal_prose_quality")
+    if not str(prose_quality.get("summary") or "").strip():
+        raise ValueError("AI reviewer publication eval medical_journal_prose_quality.summary must be non-empty")
     return materialize_publication_eval_latest(study_root=study_root, record=normalized_record)

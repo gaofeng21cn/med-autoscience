@@ -56,6 +56,20 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         pattern_id="review_ledger",
         label="review ledger",
     )
+    medical_manuscript_blueprint_valid, medical_manuscript_blueprint_hits = inspect_required_json_contract(
+        path=state.medical_manuscript_blueprint_path,
+        validator=medical_surface_policy.validate_medical_manuscript_blueprint,
+        pattern_id="medical_manuscript_blueprint",
+        label="medical manuscript blueprint",
+    )
+    medical_prose_review_payload = load_json(state.medical_prose_review_path, default=None)
+    medical_prose_review_valid, medical_prose_review_hits = inspect_required_json_contract(
+        path=state.medical_prose_review_path,
+        validator=medical_surface_policy.validate_medical_prose_review,
+        pattern_id="medical_prose_review",
+        label="AI-first medical prose review",
+        payload_override=medical_prose_review_payload,
+    )
     results_narrative_valid, results_narrative_hits = inspect_required_json_contract(
         path=state.results_narrative_map_path,
         validator=medical_surface_policy.validate_results_narrative_map,
@@ -238,6 +252,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     for path in (
         state.methods_implementation_manifest_path,
         state.review_ledger_path,
+        state.medical_manuscript_blueprint_path,
+        state.medical_prose_review_path,
         state.results_narrative_map_path,
         state.figure_semantics_manifest_path,
         state.claim_evidence_map_path,
@@ -266,6 +282,22 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         )
     )
     medical_journal_prose_hits = unique_hits(medical_journal_prose_hits)
+    medical_journal_prose_quality = {}
+    medical_journal_prose_ai_verdict = None
+    medical_journal_prose_ai_route_back = None
+    if isinstance(medical_prose_review_payload, dict):
+        medical_journal_prose_quality = (
+            dict(medical_prose_review_payload.get("medical_journal_prose_quality") or {})
+            if isinstance(medical_prose_review_payload.get("medical_journal_prose_quality"), dict)
+            else {}
+        )
+        medical_journal_prose_ai_verdict = (
+            str(medical_journal_prose_quality.get("overall_style_verdict") or "").strip()
+            or None
+        )
+        route_back = medical_journal_prose_quality.get("route_back_recommendation")
+        if isinstance(route_back, dict):
+            medical_journal_prose_ai_route_back = str(route_back.get("route_target") or "").strip() or None
     results_narration_hits: list[dict[str, Any]] = []
     results_narration_hits.extend(scan_results_narration_text_file(state.draft_path))
     results_narration_hits.extend(scan_results_narration_text_file(state.review_manuscript_path))
@@ -281,6 +313,9 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     non_formal_question_hits: list[dict[str, Any]] = []
     non_formal_question_hits.extend(scan_non_formal_question_sentences(state.draft_path))
     non_formal_question_hits.extend(scan_non_formal_question_sentences(state.review_manuscript_path))
+    medical_prose_reviewer_evidence_hits = unique_hits(
+        [*medical_journal_prose_hits, *results_narration_hits, *non_formal_question_hits]
+    )
     methodology_label_hits: list[dict[str, Any]] = []
     methodology_label_hits.extend(scan_methodology_labels_text_file(state.draft_path))
     methodology_label_hits.extend(scan_methodology_labels_text_file(state.review_manuscript_path))
@@ -356,6 +391,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(required_display_catalog_hits)
     hits.extend(methods_manifest_hits)
     hits.extend(review_ledger_hits)
+    hits.extend(medical_manuscript_blueprint_hits)
+    hits.extend(medical_prose_review_hits)
     hits.extend(results_narrative_hits)
     hits.extend(results_display_surface_hits)
     hits.extend(figure_semantics_hits)
@@ -400,6 +437,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("methods_implementation_manifest_missing_or_incomplete")
     if not review_ledger_valid:
         blockers.append("review_ledger_missing_or_incomplete")
+    if not medical_manuscript_blueprint_valid:
+        blockers.append("medical_manuscript_blueprint_missing_or_incomplete")
+    if not medical_prose_review_valid:
+        blockers.append("ai_medical_prose_review_missing_or_incomplete")
+    elif medical_journal_prose_ai_verdict in {"block", "revise"}:
+        blockers.append("medical_journal_prose_style_not_met")
     if not results_narrative_valid:
         blockers.append("results_narrative_map_missing_or_incomplete")
     if results_display_surface_hits:
@@ -428,14 +471,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("endpoint_provenance_note_missing_or_unapplied")
     if undefined_methodology_label_hits:
         blockers.append("undefined_methodology_labels_present")
-    if results_narration_hits:
-        blockers.append("figure_table_led_results_narration_present")
-    if non_formal_question_hits:
-        blockers.append("non_formal_question_sentence_present")
     if analysis_plane_jargon_hits:
         blockers.append("analysis_plane_jargon_present_on_manuscript_surface")
-    if medical_journal_prose_hits:
-        blockers.append("medical_journal_prose_style_not_met")
     if any(hit["pattern_id"] == "public_evidence_decisions_missing_or_incomplete" for hit in public_evidence_decision_hits):
         blockers.append("public_evidence_decisions_missing_or_incomplete")
     if any(
@@ -483,6 +520,41 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "review_ledger_path": str(state.review_ledger_path),
         "review_ledger_present": state.review_ledger_path.exists(),
         "review_ledger_valid": review_ledger_valid,
+        "medical_manuscript_blueprint_path": str(state.medical_manuscript_blueprint_path),
+        "medical_manuscript_blueprint_present": state.medical_manuscript_blueprint_path.exists(),
+        "medical_manuscript_blueprint_valid": medical_manuscript_blueprint_valid,
+        "medical_prose_review_path": str(state.medical_prose_review_path),
+        "medical_prose_review_present": state.medical_prose_review_path.exists(),
+        "medical_prose_review_valid": medical_prose_review_valid,
+        "medical_prose_review_owner": (
+            str(((medical_prose_review_payload or {}).get("assessment_provenance") or {}).get("owner") or "").strip()
+            if isinstance(medical_prose_review_payload, dict)
+            and isinstance(medical_prose_review_payload.get("assessment_provenance"), dict)
+            else None
+        ),
+        "medical_journal_prose_ai_verdict": medical_journal_prose_ai_verdict,
+        "medical_journal_prose_ai_route_back": medical_journal_prose_ai_route_back,
+        "medical_prose_review_status": (
+            str(medical_journal_prose_quality.get("status") or "").strip() or None
+        ),
+        "medical_prose_review_summary": (
+            str(medical_journal_prose_quality.get("summary") or "").strip() or None
+        ),
+        "medical_prose_review_section_level_diagnosis": (
+            dict(medical_journal_prose_quality.get("section_level_diagnosis") or {})
+            if isinstance(medical_journal_prose_quality.get("section_level_diagnosis"), dict)
+            else {}
+        ),
+        "medical_prose_review_representative_rewrites": [
+            dict(item)
+            for item in (medical_journal_prose_quality.get("representative_rewrites") or [])
+            if isinstance(item, dict)
+        ],
+        "medical_prose_review_representative_bad_sentences": [
+            str(item).strip()
+            for item in (medical_journal_prose_quality.get("representative_bad_sentences") or [])
+            if str(item).strip()
+        ],
         "introduction_structure_valid": not introduction_structure_hits,
         "methods_section_structure_valid": not methods_section_structure_hits,
         "results_section_structure_valid": not results_section_structure_hits,
@@ -492,7 +564,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "medical_story_contract_structural_valid": medical_story_contract_structural_valid,
         "medical_story_contract_valid": medical_story_contract_valid,
         "manuscript_rhetoric_medical_publication_native": not analysis_plane_jargon_hits,
-        "medical_journal_prose_style_valid": not medical_journal_prose_hits,
+        "medical_journal_prose_style_valid": (
+            medical_prose_review_valid and medical_journal_prose_ai_verdict == "clear"
+        ),
+        "medical_journal_prose_mechanical_flag_count": len(medical_prose_reviewer_evidence_hits),
+        "medical_prose_reviewer_evidence_hit_count": len(medical_prose_reviewer_evidence_hits),
+        "medical_prose_review_mechanical_safety_flags": medical_prose_reviewer_evidence_hits,
         "results_display_surface_valid": not results_display_surface_hits,
         "figure_semantics_manifest_path": str(state.figure_semantics_manifest_path),
         "figure_semantics_manifest_present": state.figure_semantics_manifest_path.exists(),
@@ -563,6 +640,11 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- methods_implementation_manifest_valid: `{report['methods_implementation_manifest_valid']}`",
         f"- review_ledger_present: `{report['review_ledger_present']}`",
         f"- review_ledger_valid: `{report['review_ledger_valid']}`",
+        f"- medical_manuscript_blueprint_present: `{report.get('medical_manuscript_blueprint_present', False)}`",
+        f"- medical_manuscript_blueprint_valid: `{report.get('medical_manuscript_blueprint_valid', False)}`",
+        f"- medical_prose_review_present: `{report.get('medical_prose_review_present', False)}`",
+        f"- medical_prose_review_valid: `{report.get('medical_prose_review_valid', False)}`",
+        f"- medical_journal_prose_ai_verdict: `{report.get('medical_journal_prose_ai_verdict') or 'none'}`",
         f"- introduction_structure_valid: `{report.get('introduction_structure_valid', True)}`",
         f"- methods_section_structure_valid: `{report.get('methods_section_structure_valid', True)}`",
         f"- results_section_structure_valid: `{report.get('results_section_structure_valid', True)}`",
@@ -717,6 +799,10 @@ def run_controller(
         "status": report["status"],
         "blockers": report["blockers"],
         "top_hits": report["top_hits"],
+        "medical_manuscript_blueprint_path": report.get("medical_manuscript_blueprint_path"),
+        "medical_prose_review_path": report.get("medical_prose_review_path"),
+        "medical_journal_prose_ai_verdict": report.get("medical_journal_prose_ai_verdict"),
+        "medical_journal_prose_mechanical_flag_count": report.get("medical_journal_prose_mechanical_flag_count"),
         "stop_result": stop_result,
         "intervention_enqueued": bool(intervention),
     }

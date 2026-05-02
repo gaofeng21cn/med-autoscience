@@ -41,6 +41,7 @@ _QUALITY_ASSESSMENT_ALLOWED_FIELDS = frozenset(
         "clinical_significance",
         "evidence_strength",
         "novelty_positioning",
+        "medical_journal_prose_quality",
         "human_review_readiness",
     }
 )
@@ -489,6 +490,7 @@ class PublicationEvalQualityAssessment:
     evidence_strength: PublicationEvalQualityDimension
     novelty_positioning: PublicationEvalQualityDimension
     human_review_readiness: PublicationEvalQualityDimension
+    medical_journal_prose_quality: PublicationEvalQualityDimension | None = None
 
     def __post_init__(self) -> None:
         for field_name in (
@@ -505,14 +507,27 @@ class PublicationEvalQualityAssessment:
                 if isinstance(value, PublicationEvalQualityDimension)
                 else PublicationEvalQualityDimension.from_payload(value),
             )
+        if self.medical_journal_prose_quality is not None:
+            object.__setattr__(
+                self,
+                "medical_journal_prose_quality",
+                (
+                    self.medical_journal_prose_quality
+                    if isinstance(self.medical_journal_prose_quality, PublicationEvalQualityDimension)
+                    else PublicationEvalQualityDimension.from_payload(self.medical_journal_prose_quality)
+                ),
+            )
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "clinical_significance": self.clinical_significance.to_dict(),
             "evidence_strength": self.evidence_strength.to_dict(),
             "novelty_positioning": self.novelty_positioning.to_dict(),
-            "human_review_readiness": self.human_review_readiness.to_dict(),
         }
+        if self.medical_journal_prose_quality is not None:
+            payload["medical_journal_prose_quality"] = self.medical_journal_prose_quality.to_dict()
+        payload["human_review_readiness"] = self.human_review_readiness.to_dict()
+        return payload
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "PublicationEvalQualityAssessment":
@@ -532,6 +547,13 @@ class PublicationEvalQualityAssessment:
             ),
             novelty_positioning=PublicationEvalQualityDimension.from_payload(
                 _payload_object(payload, "novelty_positioning", "publication eval quality assessment")
+            ),
+            medical_journal_prose_quality=(
+                PublicationEvalQualityDimension.from_payload(
+                    _payload_object(payload, "medical_journal_prose_quality", "publication eval quality assessment")
+                )
+                if "medical_journal_prose_quality" in payload
+                else None
             ),
             human_review_readiness=PublicationEvalQualityDimension.from_payload(
                 _payload_object(payload, "human_review_readiness", "publication eval quality assessment")

@@ -1,5 +1,5 @@
 from . import shared_base as _shared_base
-
+from .medical_writing_surfaces import write_medical_manuscript_blueprint_fixture, write_medical_prose_review_fixture
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -8,7 +8,6 @@ def _module_reexport(module) -> None:
 
 
 _module_reexport(_shared_base)
-
 def make_quest(
     tmp_path: Path,
     *,
@@ -37,6 +36,9 @@ def make_quest(
     include_question_mark_prose: bool | None = None,
     generated_figure_text_override: str | None = None,
     renderer_contract_override: dict[str, object] | None = None,
+    include_medical_manuscript_blueprint: bool | None = None,
+    include_medical_prose_review: bool | None = None,
+    medical_prose_review_verdict: str = "clear",
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
@@ -81,6 +83,10 @@ def make_quest(
         include_structured_results = medicalized
     if include_question_mark_prose is None:
         include_question_mark_prose = False
+    if include_medical_manuscript_blueprint is None:
+        include_medical_manuscript_blueprint = medicalized
+    if include_medical_prose_review is None:
+        include_medical_prose_review = medicalized
 
     dump_json(
         quest_root / ".ds" / "runtime_state.json",
@@ -465,9 +471,7 @@ def make_quest(
                     "section_title": "Threshold interpretation and subgroup consistency",
                     "research_question": "Were threshold-level summaries and subgroup patterns clinically consistent with the primary finding?",
                     "supporting_display_items": ["F4", "T1"],
-                    "key_quantitative_findings": [
-                        "Illustrative threshold summaries did not imply a recommended cut-off."
-                    ],
+                    "key_quantitative_findings": ["Illustrative threshold summaries did not imply a recommended cut-off."],
                     "clinical_meaning": "Supports careful translation of risk estimates.",
                 }
             )
@@ -654,6 +658,12 @@ def make_quest(
             "- manuscript_required_statement: The endpoint was based on the audited removal_rate field and should be interpreted as a working proxy for early residual status with an explicit 3-month MRI provenance caveat.\n",
             encoding="utf-8",
         )
+
+    if include_medical_manuscript_blueprint:
+        write_medical_manuscript_blueprint_fixture(paper_root)
+
+    if include_medical_prose_review:
+        write_medical_prose_review_fixture(paper_root, verdict=medical_prose_review_verdict)
 
     return quest_root
 

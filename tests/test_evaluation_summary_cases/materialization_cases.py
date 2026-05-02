@@ -254,9 +254,9 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
                 "evidence_refs": [str((study_root / "artifacts" / "controller" / "study_charter.json").resolve())],
             },
             "medical_journal_prose_quality": {
-                "status": "underdefined",
-                "summary": "当前 publication eval 还没有给出稳定的医学论文文体质量判断。",
-                "evidence_refs": [str(promotion_gate_path.resolve())],
+                "status": "ready",
+                "summary": "AI reviewer judged the manuscript voice, reader flow, and claim restraint ready for medical-journal review.",
+                "evidence_refs": [str(study_root / "paper" / "review" / "medical_prose_review.json")],
             },
             "human_review_readiness": {
                 "status": "blocked",
@@ -579,6 +579,9 @@ def test_materialize_evaluation_summary_artifacts_projects_bundle_only_remaining
             "summary": "Contribution boundaries are already frozen in the charter and manuscript lane.",
             "evidence_refs": [str(inputs["charter_path"])],
         },
+        "medical_journal_prose_quality": _ready_medical_prose_quality(
+            study_root / "paper" / "review" / "medical_prose_review.json"
+        ),
         "human_review_readiness": {
             "status": "partial",
             "summary": "Current package still needs one more finalize pass before human audit.",
@@ -729,6 +732,9 @@ def test_materialize_evaluation_summary_artifacts_aligns_bundle_only_agenda_with
             "reviewer_next_round_focus": "补齐 scientific follow-up questions 或 explanation targets，再复核创新叙事与主结论边界。",
             "evidence_refs": [str(inputs["charter_path"])],
         },
+        "medical_journal_prose_quality": _ready_medical_prose_quality(
+            study_root / "paper" / "review" / "medical_prose_review.json"
+        ),
         "human_review_readiness": {
             "status": "ready",
             "summary": "给人看的 current_package 和 submission_minimal 已同步到最新真相，可以进入人工审阅。",

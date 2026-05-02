@@ -175,6 +175,11 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
                 "summary": "创新性边界已经在 charter 与论文线中固定。",
                 "evidence_refs": [str(study_root / "artifacts" / "controller" / "study_charter.json")],
             },
+            "medical_journal_prose_quality": {
+                "status": "ready",
+                "summary": "AI reviewer judged the manuscript voice and claim restraint ready for medical-journal review.",
+                "evidence_refs": [str(study_root / "paper" / "review" / "medical_prose_review.json")],
+            },
             "human_review_readiness": {
                 "status": "partial",
                 "summary": "当前 package 还需要一轮 finalize 收口后再进入人工审阅。",

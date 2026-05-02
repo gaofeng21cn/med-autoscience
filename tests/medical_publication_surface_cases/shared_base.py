@@ -194,6 +194,17 @@ def _paper_root_from_quest(quest_root: Path) -> Path:
     return quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
 
 
+def _copy_medical_writing_authority_surfaces(*, paper_root: Path, study_root: Path) -> None:
+    blueprint_source = paper_root / "medical_manuscript_blueprint.json"
+    if blueprint_source.exists():
+        blueprint_payload = json.loads(blueprint_source.read_text(encoding="utf-8"))
+        dump_json(study_root / "paper" / "medical_manuscript_blueprint.json", blueprint_payload)
+    prose_review_source = paper_root / "review" / "medical_prose_review.json"
+    if prose_review_source.exists():
+        prose_review_payload = json.loads(prose_review_source.read_text(encoding="utf-8"))
+        dump_json(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json", prose_review_payload)
+
+
 def _attach_study_charter_context(
     monkeypatch,
     module,
@@ -233,6 +244,7 @@ def _attach_study_charter_context(
         dump_json(charter_path, payload)
 
     paper_root = _paper_root_from_quest(quest_root)
+    _copy_medical_writing_authority_surfaces(paper_root=paper_root, study_root=study_root)
     monkeypatch.setattr(
         module,
         "resolve_paper_root_context",
@@ -263,6 +275,7 @@ def _attach_public_anchor_study_context(monkeypatch, module, tmp_path: Path, que
     _write_study_charter(study_root, study_id="004-public-anchor-route")
 
     paper_root = _paper_root_from_quest(quest_root)
+    _copy_medical_writing_authority_surfaces(paper_root=paper_root, study_root=study_root)
 
     monkeypatch.setattr(
         module,
@@ -304,5 +317,4 @@ def _write_public_evidence_decisions(quest_root: Path, decisions: list[dict[str,
     payload = json.loads(derived_manifest_path.read_text(encoding="utf-8"))
     payload["public_evidence_decisions"] = decisions
     dump_json(derived_manifest_path, payload)
-
 

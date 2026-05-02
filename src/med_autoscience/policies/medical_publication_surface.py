@@ -29,6 +29,8 @@ ENDPOINT_PROVENANCE_NOTE_BASENAME = "endpoint_provenance_note.md"
 CLAIM_EVIDENCE_MAP_BASENAME = "claim_evidence_map.json"
 EVIDENCE_LEDGER_BASENAME = "evidence_ledger.json"
 REVIEW_LEDGER_BASENAME = "review_ledger.json"
+MEDICAL_MANUSCRIPT_BLUEPRINT_BASENAME = "medical_manuscript_blueprint.json"
+MEDICAL_PROSE_REVIEW_BASENAME = "medical_prose_review.json"
 PUBLIC_EVIDENCE_DECISIONS_KEY = "public_evidence_decisions"
 PUBLIC_EVIDENCE_SURFACE_DECISIONS = frozenset(
     {
@@ -96,6 +98,18 @@ def get_medical_journal_prose_patterns() -> list[tuple[str, str, re.Pattern[str]
         (pattern_id, phrase, re.compile(pattern, flags=flags))
         for pattern_id, phrase, pattern, flags in MEDICAL_JOURNAL_PROSE_PATTERN_SPECS
     ]
+
+
+def validate_medical_manuscript_blueprint(payload: object) -> list[str]:
+    from med_autoscience.medical_manuscript_blueprint import validate_medical_manuscript_blueprint as _validator
+
+    return _validator(payload)
+
+
+def validate_medical_prose_review(payload: object) -> list[str]:
+    from med_autoscience.medical_prose_review import validate_medical_prose_review as _validator
+
+    return _validator(payload)
 
 
 def ama_defaults_regex() -> re.Pattern[str]:
@@ -846,16 +860,11 @@ def build_intervention_message(report: dict[str, object]) -> str:
         method_label_clause = (
             " Any label such as `knowledge-guided`, `causal`, `mechanistic`, or `calibration-first` must carry a manuscript-checkable operational definition; otherwise rewrite it into a more conservative factual description."
         )
-    narration_clause = ""
-    if "figure_table_led_results_narration_present" in (report.get("blockers") or []):
-        narration_clause = (
-            " Rewrite the Results section so it no longer reads as `Figure/Table X shows ...`; each subsection should answer "
-            "the medical question first, then cite figures or tables as support."
-        )
-    formal_tone_clause = ""
-    if "non_formal_question_sentence_present" in (report.get("blockers") or []):
-        formal_tone_clause = (
-            " Remove question-form sentences from the manuscript prose; convert them into formal declarative statements."
+    prose_evidence_clause = ""
+    if int(report.get("medical_prose_reviewer_evidence_hit_count") or 0):
+        prose_evidence_clause = (
+            " Mechanical prose hits, including figure/table-led Results sentences or question-form prose, are evidence "
+            "snippets for the AI prose reviewer; they do not independently authorize a subjective style blocker."
         )
     medical_prose_clause = ""
     if "medical_journal_prose_style_not_met" in (report.get("blockers") or []):
@@ -880,6 +889,6 @@ def build_intervention_message(report: dict[str, object]) -> str:
         "or tool/service references such as `deepscientist`, service URLs, or editing recommendations. "
         "Do not advertise tooling in figure captions. Do not reopen accepted figures unless in-figure visible text itself still "
         "contains a forbidden manuscript term."
-        f"{ama_clause}{methods_clause}{prose_structure_clause}{results_clause}{figure_semantics_clause}{evidence_ledger_clause}{derived_analysis_clause}{public_evidence_clause}{public_surface_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause}{formal_tone_clause}{medical_prose_clause}{report_residue_clause} "
+        f"{ama_clause}{methods_clause}{prose_structure_clause}{results_clause}{figure_semantics_clause}{evidence_ledger_clause}{derived_analysis_clause}{public_evidence_clause}{public_surface_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{prose_evidence_clause}{medical_prose_clause}{report_residue_clause} "
         "After those corrections, resume reviewer-style proofing or finalize."
     )

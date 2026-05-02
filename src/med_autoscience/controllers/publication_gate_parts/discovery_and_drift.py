@@ -55,13 +55,14 @@ _MEDICAL_PUBLICATION_SURFACE_REVIEWER_FIRST_BLOCKERS = frozenset(
         "review_ledger_missing_or_incomplete",
         "forbidden_manuscript_terms_present",
         "analysis_plane_jargon_present_on_manuscript_surface",
-        "figure_table_led_results_narration_present",
-        "non_formal_question_sentence_present",
+        "ai_medical_prose_review_missing_or_incomplete",
+        "medical_journal_prose_style_not_met",
     }
 )
 _MEDICAL_PUBLICATION_SURFACE_CLAIM_EVIDENCE_BLOCKERS = frozenset(
     {
         "missing_medical_story_contract",
+        "medical_manuscript_blueprint_missing_or_incomplete",
         "claim_evidence_map_missing_or_incomplete",
         "evidence_ledger_missing_or_incomplete",
         "paper_facing_public_data_without_earned_evidence",

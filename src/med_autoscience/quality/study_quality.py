@@ -9,6 +9,7 @@ _QUALITY_DIMENSION_ORDER = (
     "clinical_significance",
     "evidence_strength",
     "novelty_positioning",
+    "medical_journal_prose_quality",
     "human_review_readiness",
 )
 
@@ -48,9 +49,23 @@ def _publication_eval_assessment_provenance(publication_eval: dict[str, Any]) ->
     }
 
 
+def _publication_eval_has_ai_prose_dimension(publication_eval: dict[str, Any]) -> bool:
+    quality_assessment = publication_eval.get("quality_assessment")
+    if not isinstance(quality_assessment, dict):
+        return False
+    prose_quality = quality_assessment.get("medical_journal_prose_quality")
+    if not isinstance(prose_quality, dict):
+        return False
+    return bool(_optional_text(prose_quality.get("summary"))) and bool(_optional_text(prose_quality.get("status")))
+
+
 def publication_eval_ai_reviewer_backed(publication_eval: dict[str, Any]) -> bool:
     provenance = _publication_eval_assessment_provenance(publication_eval)
-    return provenance["owner"] == "ai_reviewer" and not bool(provenance["ai_reviewer_required"])
+    return (
+        provenance["owner"] == "ai_reviewer"
+        and not bool(provenance["ai_reviewer_required"])
+        and _publication_eval_has_ai_prose_dimension(publication_eval)
+    )
 
 
 def _projection_only_reviewer_first(provenance: dict[str, Any]) -> dict[str, Any]:
@@ -59,7 +74,7 @@ def _projection_only_reviewer_first(provenance: dict[str, Any]) -> dict[str, Any
         "status": "review_required",
         "ready": False,
         "source": "publication_eval_projection",
-        "summary": "当前 publication_eval 只是机械投影；必须先由 AI reviewer 读取 manuscript、evidence ledger、review ledger 与 study charter 后再给出 reviewer-first readiness。",
+        "summary": "当前 publication_eval 只是机械投影或缺少 AI reviewer-backed 医学论文文体判断；必须先由 AI reviewer 读取 manuscript、blueprint、style contract、evidence ledger、review ledger 与 study charter 后再给出 reviewer-first readiness。",
         "open_concern_count": 0,
         "resolved_concern_count": 0,
         "evidence_refs": list(provenance.get("source_refs") or []),

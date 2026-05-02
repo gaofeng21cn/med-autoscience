@@ -21,6 +21,8 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
         "study_charter_owner": "study_charter.paper_quality_contract",
         "evidence_ledger": "paper/evidence_ledger.json",
         "review_ledger": "paper/review_ledger.json",
+        "medical_manuscript_blueprint": "paper/medical_manuscript_blueprint.json",
+        "medical_prose_review": "artifacts/publication_eval/medical_prose_review.json",
         "publication_eval": "artifacts/publication_eval/latest.json",
         "reporting_guideline_checklist": "reporting_guideline_checklist.json",
     }
@@ -50,6 +52,10 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
     assert "display_to_claim_map" in draft_contract["first_draft_generation_model"]["pre_draft_inputs"]
     assert "medical_manuscript_blueprint" in draft_contract["first_draft_generation_model"]["pre_draft_inputs"]
     assert "medical_prose_style_contract" in draft_contract["first_draft_generation_model"]["pre_draft_inputs"]
+    assert "medical_prose_review" in draft_contract["first_draft_generation_model"]["pre_draft_inputs"]
+    prose_review_contract = draft_contract["medical_prose_review_contract"]
+    assert prose_review_contract["owner"] == "ai_reviewer"
+    assert prose_review_contract["mechanical_projection_can_authorize_quality"] is False
     assert "paper/results_narrative_map.json" in draft_contract["must_bind_existing_surfaces"]
     assert contract["quality_contract"]["stronger_paper_shape_scan"]["status"] == (
         "required_before_first_full_draft"

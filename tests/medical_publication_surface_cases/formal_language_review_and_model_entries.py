@@ -1,6 +1,6 @@
 from .shared import *
 
-def test_build_report_blocks_when_non_formal_question_sentence_appears(tmp_path: Path) -> None:
+def test_build_report_surfaces_non_formal_question_sentence_as_ai_reviewer_evidence(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
@@ -11,8 +11,10 @@ def test_build_report_blocks_when_non_formal_question_sentence_appears(tmp_path:
 
     report = module.build_surface_report(module.build_surface_state(quest_root))
 
-    assert report["status"] == "blocked"
-    assert "non_formal_question_sentence_present" in report["blockers"]
+    assert report["status"] == "clear"
+    assert "non_formal_question_sentence_present" not in report["blockers"]
+    assert report["non_formal_question_hit_count"] >= 1
+    assert report["medical_prose_reviewer_evidence_hit_count"] >= 1
     assert any(hit["pattern_id"] == "non_formal_question_sentence" for hit in report["top_hits"])
 
 
@@ -301,4 +303,3 @@ def test_build_report_accepts_valid_review_ledger(tmp_path: Path) -> None:
     assert "review_ledger_missing_or_incomplete" not in report["blockers"]
     assert report["review_ledger_present"] is True
     assert report["review_ledger_valid"] is True
-

@@ -15,6 +15,14 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _ready_medical_prose_quality(ref: str | Path) -> dict[str, object]:
+    return {
+        "status": "ready",
+        "summary": "AI reviewer judged the manuscript voice, reader flow, and claim restraint ready for medical-journal review.",
+        "evidence_refs": [str(ref)],
+    }
+
+
 def _stable_inputs(tmp_path: Path) -> dict[str, object]:
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "001-risk"
@@ -108,6 +116,7 @@ def _stable_inputs(tmp_path: Path) -> dict[str, object]:
                 "summary": "Novelty framing exists, but reviewer-facing contribution boundaries still need tightening.",
                 "evidence_refs": [str(charter_path)],
             },
+            "medical_journal_prose_quality": _ready_medical_prose_quality(study_root / "paper" / "review" / "medical_prose_review.json"),
             "human_review_readiness": {
                 "status": "blocked",
                 "summary": "The draft is not yet honest enough to release as a human review package.",
@@ -230,7 +239,6 @@ def _write_reporting_contract_task_intake(study_root: Path) -> dict[str, object]
     }
     _write_json(study_root / "artifacts" / "controller" / "task_intake" / "latest.json", payload)
     return payload
-
 
 
 

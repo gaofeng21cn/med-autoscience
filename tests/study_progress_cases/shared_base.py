@@ -94,6 +94,33 @@ def _write_publication_eval(
     quality_assessment: dict[str, object] | None = None,
     assessment_provenance: dict[str, object] | None = None,
 ) -> Path:
+    default_quality_assessment = {
+        "clinical_significance": {
+            "status": "partial",
+            "summary": "临床问题已经冻结，但当前结果表面还不够稳定。",
+            "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+        },
+        "evidence_strength": {
+            "status": "blocked",
+            "summary": "当前 claim-evidence 证据链还没有闭环。",
+            "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+        },
+        "novelty_positioning": {
+            "status": "partial",
+            "summary": "创新点边界已经开始成形，但 reviewer-facing framing 仍待收紧。",
+            "evidence_refs": [str(study_root / "artifacts" / "controller" / "study_charter.json")],
+        },
+        "medical_journal_prose_quality": {
+            "status": "ready",
+            "summary": "AI reviewer judged the manuscript voice and claim restraint ready for medical-journal review.",
+            "evidence_refs": [str(study_root / "paper" / "review" / "medical_prose_review.json")],
+        },
+        "human_review_readiness": {
+            "status": "blocked",
+            "summary": "当前稿件还不能作为正式人工审阅包放行。",
+            "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+        },
+    }
     payload = {
         "schema_version": 1,
         "eval_id": "publication-eval::001-risk::quest-001::2026-04-10T09:09:00+00:00",
@@ -124,29 +151,7 @@ def _write_publication_eval(
             "summary": "论文主线仍缺少外部验证支持，暂时不能宣称主结论已经站稳。",
             "stop_loss_pressure": "watch",
         },
-        "quality_assessment": quality_assessment
-        or {
-            "clinical_significance": {
-                "status": "partial",
-                "summary": "临床问题已经冻结，但当前结果表面还不够稳定。",
-                "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
-            },
-            "evidence_strength": {
-                "status": "blocked",
-                "summary": "当前 claim-evidence 证据链还没有闭环。",
-                "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
-            },
-            "novelty_positioning": {
-                "status": "partial",
-                "summary": "创新点边界已经开始成形，但 reviewer-facing framing 仍待收紧。",
-                "evidence_refs": [str(study_root / "artifacts" / "controller" / "study_charter.json")],
-            },
-            "human_review_readiness": {
-                "status": "blocked",
-                "summary": "当前稿件还不能作为正式人工审阅包放行。",
-                "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
-            },
-        },
+        "quality_assessment": quality_assessment or default_quality_assessment,
         "gaps": [
             {
                 "gap_id": "gap-001",

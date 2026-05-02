@@ -80,6 +80,40 @@ def _minimal_payload(study_root: Path) -> dict[str, object]:
     }
 
 
+def _quality_assessment(study_root: Path) -> dict[str, object]:
+    quest_root = study_root.parents[1] / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
+    return {
+        "clinical_significance": {
+            "status": "ready",
+            "summary": "Clinical framing is stable.",
+            "evidence_refs": [str(study_root / "artifacts" / "controller" / "study_charter.json")],
+        },
+        "evidence_strength": {
+            "status": "ready",
+            "summary": "Core evidence is traceable.",
+            "evidence_refs": [str(quest_root / "artifacts" / "results" / "main_result.json")],
+        },
+        "novelty_positioning": {
+            "status": "partial",
+            "summary": "Contribution boundary is defined but still needs tightening.",
+            "evidence_refs": [str(study_root / "artifacts" / "controller" / "study_charter.json")],
+        },
+        "medical_journal_prose_quality": {
+            "status": "partial",
+            "summary": "AI reviewer found prose that needs a journal-voice revision pass before closure.",
+            "evidence_refs": [str(study_root / "paper" / "manuscript.md")],
+            "reviewer_reason": "Results flow still follows displays more than clinical findings.",
+            "reviewer_revision_advice": "Rewrite representative figure-led sentences as finding-led sentences.",
+            "reviewer_next_round_focus": "Results main finding and Discussion principal finding paragraphs.",
+        },
+        "human_review_readiness": {
+            "status": "partial",
+            "summary": "Human-facing package is not ready yet.",
+            "evidence_refs": [str(study_root / "paper" / "submission_minimal" / "submission_manifest.json")],
+        },
+    }
+
+
 def test_resolve_publication_eval_latest_ref_defaults_to_eval_owned_latest_surface(tmp_path: Path) -> None:
     module = importlib.import_module(MODULE_NAME)
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
@@ -180,6 +214,7 @@ def test_ai_reviewer_publication_eval_materializer_writes_review_backed_latest(t
     module = importlib.import_module(MODULE_NAME)
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     payload = _minimal_payload(study_root)
+    payload["quality_assessment"] = _quality_assessment(study_root)
 
     result = module.materialize_ai_reviewer_publication_eval_latest(study_root=study_root, record=payload)
 
@@ -187,6 +222,22 @@ def test_ai_reviewer_publication_eval_materializer_writes_review_backed_latest(t
     resolved = module.read_publication_eval_latest(study_root=study_root)
     assert resolved["assessment_provenance"]["owner"] == "ai_reviewer"
     assert resolved["assessment_provenance"]["policy_id"] == "medical_publication_critique_v1"
+    assert resolved["quality_assessment"]["medical_journal_prose_quality"]["reviewer_revision_advice"] == (
+        "Rewrite representative figure-led sentences as finding-led sentences."
+    )
+
+
+def test_ai_reviewer_publication_eval_materializer_rejects_missing_prose_quality_dimension(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    payload["quality_assessment"] = _quality_assessment(study_root)
+    payload["quality_assessment"].pop("medical_journal_prose_quality")
+
+    with pytest.raises(ValueError, match="quality_assessment.medical_journal_prose_quality"):
+        module.materialize_ai_reviewer_publication_eval_latest(study_root=study_root, record=payload)
 
 
 def test_resolve_publication_eval_latest_ref_rejects_med_deepscientist_runtime_paths(tmp_path: Path) -> None:
@@ -225,6 +276,7 @@ def test_ai_reviewer_publication_eval_controller_materializes_runtime_checked_la
     controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     payload = _minimal_payload(study_root)
+    payload["quality_assessment"] = _quality_assessment(study_root)
     called: dict[str, object] = {}
 
     def fake_status(*, profile, study_id: str | None, study_root: Path | None, entry_mode: str | None) -> dict:
