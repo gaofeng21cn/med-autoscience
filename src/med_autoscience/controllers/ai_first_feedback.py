@@ -12,6 +12,15 @@ READ_MODEL = "ai_first_feedback_read_model"
 LEDGER_SURFACE = "ai_first_feedback_ledger"
 LEDGER_SCHEMA_VERSION = 1
 LOW_LEVEL_FIELD_HINTS = ("raw_terminal_log", "full_prompt", "prompt", "secret", "token", "log_path")
+EVENT_PRIORITY = {
+    "ai_reviewer_trace_gap": 0,
+    "predraft_gap": 1,
+    "route_back_open": 2,
+    "artifact_rebuild_pending": 3,
+    "runtime_progress_stale": 4,
+    "manual_judgment_pending": 5,
+    "quality_toil_repeat": 6,
+}
 ACTION_RECOMMENDATIONS = {
     "predraft_gap": {
         "action_id": "return_to_predraft_readiness",
@@ -341,18 +350,107 @@ def _counts(events: list[Mapping[str, Any]]) -> dict[str, Any]:
 
 
 def _primary_event(events: list[dict[str, Any]]) -> dict[str, Any] | None:
-    priority = {
-        "ai_reviewer_trace_gap": 0,
-        "predraft_gap": 1,
-        "route_back_open": 2,
-        "artifact_rebuild_pending": 3,
-        "runtime_progress_stale": 4,
-        "manual_judgment_pending": 5,
-        "quality_toil_repeat": 6,
-    }
     if not events:
         return None
-    return sorted(events, key=lambda item: priority.get(str(item.get("category")), 99))[0]
+    return sorted(events, key=lambda item: EVENT_PRIORITY.get(str(item.get("category")), 99))[0]
+
+
+def _open_closed(item: Mapping[str, Any]) -> str:
+    return "closed" if item.get("closed_at") is not None else "open"
+
+
+def _counter_bucket() -> dict[str, int]:
+    return {"open": 0, "closed": 0}
+
+
+def _increment_bucket(target: dict[str, dict[str, int]], key: str, open_closed: str) -> None:
+    bucket = target.setdefault(key, _counter_bucket())
+    bucket[open_closed] = bucket.get(open_closed, 0) + 1
+
+
+def _repeat_toil_rows(feedback_ledger: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in _ledger_events(feedback_ledger):
+        if _int(item.get("repeat_count")) <= 1:
+            continue
+        if _text(item.get("category")) == "quality_toil_repeat":
+            continue
+        category = _text(item.get("category"), "unknown") or "unknown"
+        reason = _text(item.get("reason"), category) or category
+        source_surface = _text(item.get("source_surface"), "unknown") or "unknown"
+        rows.append(
+            {
+                "event_key": _text(item.get("event_key"), f"{category}:{_safe_key(reason)}"),
+                "category": category,
+                "reason": reason,
+                "source_surface": source_surface,
+                "open_closed": _open_closed(item),
+                "repeat_count": _int(item.get("repeat_count")),
+                "first_seen": _text(item.get("first_seen")),
+                "last_seen": _text(item.get("last_seen")),
+                "closed_at": _text(item.get("closed_at")),
+                "action_recommendation": _action_recommendation(
+                    category=category,
+                    source_next_action=_text(item.get("next_action")),
+                ),
+            }
+        )
+    return rows
+
+
+def _repeat_toil_priority(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if not rows:
+        return None
+    selected = sorted(
+        rows,
+        key=lambda item: (
+            0 if item.get("open_closed") == "open" else 1,
+            EVENT_PRIORITY.get(str(item.get("category")), 99),
+            -_int(item.get("repeat_count")),
+            str(item.get("reason") or ""),
+        ),
+    )[0]
+    return dict(selected)
+
+
+def _repeat_toil_summary(*, open_count: int, closed_count: int) -> str:
+    if open_count:
+        return f"{open_count} 个重复 AI-first 运行反馈信号仍处于打开状态。"
+    if closed_count:
+        return f"{closed_count} 个重复 AI-first 运行反馈信号已经关闭；当前没有打开的重复 toil。"
+    return "当前没有重复 AI-first 运行反馈信号。"
+
+
+def _repeat_toil_analytics(feedback_ledger: Mapping[str, Any] | None) -> dict[str, Any]:
+    rows = _repeat_toil_rows(feedback_ledger)
+    by_category: dict[str, dict[str, int]] = {}
+    by_reason: dict[str, dict[str, int]] = {}
+    by_source_surface: dict[str, dict[str, int]] = {}
+    by_open_closed = _counter_bucket()
+    for item in rows:
+        open_closed = str(item["open_closed"])
+        by_open_closed[open_closed] = by_open_closed.get(open_closed, 0) + 1
+        _increment_bucket(by_category, str(item["category"]), open_closed)
+        _increment_bucket(by_reason, str(item["reason"]), open_closed)
+        _increment_bucket(by_source_surface, str(item["source_surface"]), open_closed)
+    return {
+        "surface": "ai_first_feedback_repeat_toil_analytics",
+        "authority": "observability_only",
+        "summary": _repeat_toil_summary(
+            open_count=by_open_closed.get("open", 0),
+            closed_count=by_open_closed.get("closed", 0),
+        ),
+        "priority": _repeat_toil_priority(rows),
+        "by_category": by_category,
+        "by_reason": by_reason,
+        "by_source_surface": by_source_surface,
+        "by_open_closed": by_open_closed,
+        "authority_contract": {
+            "analytics_can_authorize_quality": False,
+            "analytics_can_authorize_submission": False,
+            "analytics_records_manuscript_content": False,
+        },
+    }
 
 
 def _has_feedback_inputs(progress_snapshot: Mapping[str, Any]) -> bool:
@@ -419,6 +517,7 @@ def build_ai_first_feedback_state(
         "maintainer_view": {
             "events": events,
             "source_surfaces": sorted({str(item.get("source_surface")) for item in events if item.get("source_surface")}),
+            "repeat_toil_analytics": _repeat_toil_analytics(feedback_ledger),
         },
         "events": events,
         "counts": _counts(events),
@@ -501,6 +600,7 @@ def materialize_ai_first_feedback_ledger(
         "events": events,
         "open_event_count": sum(1 for item in events if item.get("closed_at") is None),
         "closed_event_count": sum(1 for item in events if item.get("closed_at") is not None),
+        "repeat_toil_analytics": _repeat_toil_analytics({"events": events}),
         "authority_contract": {
             "ledger_can_authorize_quality": False,
             "ledger_can_authorize_submission": False,

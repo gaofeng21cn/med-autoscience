@@ -226,3 +226,92 @@ def test_dm002_minimal_observation_fixture_builds_observability_only_feedback_st
     assert "DM002_FULL_PROMPT_SHOULD_NOT_LEAK" not in rendered_state
     assert "DM002_RAW_LOG_SHOULD_NOT_LEAK" not in rendered_state
     assert "DM002_TOKEN_CANARY" not in rendered_state
+
+
+def test_ai_first_feedback_ledger_exposes_repeat_toil_analytics_without_authority_or_low_level_user_leakage(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_first_feedback")
+    study_root = tmp_path / "studies" / "001-risk"
+    progress = _progress_snapshot(tmp_path)
+
+    module.materialize_ai_first_feedback_state(
+        study_root=study_root,
+        progress_snapshot=progress,
+        observed_at="2026-05-02T01:00:00+00:00",
+    )
+    repeated = module.materialize_ai_first_feedback_state(
+        study_root=study_root,
+        progress_snapshot=progress,
+        observed_at="2026-05-02T02:00:00+00:00",
+    )
+    closed_progress = {
+        "study_id": "001-risk",
+        "current_stage": "bundle_stage_ready",
+        "next_system_action": "continue_current_route",
+        "progress_freshness": {"status": "fresh"},
+        "ai_first_default_entry_state": {
+            "surface": "ai_first_default_entry_state",
+            "status": "ready_for_current_paper_route",
+            "human_review_required": False,
+            "pre_draft": {"draft_ready": True},
+            "ai_reviewer_workflow": {
+                "trace_complete": True,
+                "finalize_authorized": True,
+                "submission_authorized": True,
+            },
+            "artifact_proof": {
+                "rebuild_pending": False,
+                "current_package_from_canonical_source": True,
+            },
+            "route_back": {"required": False},
+        },
+        "ai_first_operations_dashboard": {
+            "maintainer_view": {
+                "ai_reviewer_trace": {"complete": True},
+                "route_back": {"count": 0},
+                "artifact_stale": {
+                    "stale_artifact_count": 0,
+                    "current_package_from_canonical_source": True,
+                },
+            },
+        },
+    }
+    closed = module.materialize_ai_first_feedback_state(
+        study_root=study_root,
+        progress_snapshot=closed_progress,
+        observed_at="2026-05-02T03:00:00+00:00",
+    )
+
+    open_analytics = repeated["maintainer_view"]["repeat_toil_analytics"]
+    assert open_analytics["authority"] == "observability_only"
+    assert open_analytics["authority_contract"] == {
+        "analytics_can_authorize_quality": False,
+        "analytics_can_authorize_submission": False,
+        "analytics_records_manuscript_content": False,
+    }
+    assert open_analytics["summary"] == "6 个重复 AI-first 运行反馈信号仍处于打开状态。"
+    assert open_analytics["priority"]["category"] == "ai_reviewer_trace_gap"
+    assert open_analytics["priority"]["reason"] == "当前质量判断仍是机械投影。"
+    assert open_analytics["priority"]["open_closed"] == "open"
+    assert open_analytics["priority"]["repeat_count"] == 2
+    assert open_analytics["by_category"]["ai_reviewer_trace_gap"]["open"] == 1
+    assert open_analytics["by_category"]["ai_reviewer_trace_gap"]["closed"] == 0
+    assert open_analytics["by_reason"]["当前质量判断仍是机械投影。"]["open"] == 1
+    assert open_analytics["by_source_surface"]["ai_reviewer_runtime_workflow"]["open"] == 1
+    assert open_analytics["by_open_closed"]["open"] == 6
+    assert open_analytics["by_open_closed"]["closed"] == 0
+
+    closed_analytics = closed["maintainer_view"]["repeat_toil_analytics"]
+    assert closed_analytics["summary"] == "6 个重复 AI-first 运行反馈信号已经关闭；当前没有打开的重复 toil。"
+    assert closed_analytics["priority"]["open_closed"] == "closed"
+    assert closed_analytics["by_category"]["ai_reviewer_trace_gap"]["open"] == 0
+    assert closed_analytics["by_category"]["ai_reviewer_trace_gap"]["closed"] == 1
+    assert closed_analytics["by_open_closed"]["open"] == 0
+    assert closed_analytics["by_open_closed"]["closed"] == 6
+
+    user_view = str(repeated["user_view"])
+    assert "repeat_toil_analytics" not in user_view
+    assert "internal prompt" not in user_view
+    assert "token" not in user_view
+    assert "raw_terminal_log" not in user_view
