@@ -98,6 +98,38 @@ def test_ai_first_feedback_state_classifies_runtime_feedback_without_quality_aut
     assert "token_count" not in str(state["user_view"])
 
 
+def test_ai_first_feedback_state_projects_category_actions_without_authority(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_first_feedback")
+
+    state = module.build_ai_first_feedback_state(progress_snapshot=_progress_snapshot(tmp_path))
+
+    actions = {
+        item["category"]: item["action_recommendation"]
+        for item in state["events"]
+        if item.get("category") != "quality_toil_repeat"
+    }
+    assert actions["predraft_gap"]["action_id"] == "return_to_predraft_readiness"
+    assert actions["predraft_gap"]["target_surface"] == "pre_draft_quality_runtime"
+    assert actions["ai_reviewer_trace_gap"]["action_id"] == "return_to_ai_reviewer_workflow"
+    assert actions["ai_reviewer_trace_gap"]["target_surface"] == "ai_reviewer_runtime_workflow"
+    assert actions["route_back_open"]["action_id"] == "continue_route_back"
+    assert actions["route_back_open"]["target_surface"] == "same_line_route_back"
+    assert actions["artifact_rebuild_pending"]["action_id"] == "rebuild_canonical_artifacts"
+    assert actions["artifact_rebuild_pending"]["target_surface"] == "artifact_runtime_proof"
+    assert actions["manual_judgment_pending"]["action_id"] == "request_human_decision"
+    assert actions["manual_judgment_pending"]["target_surface"] == "human_decision_gate"
+    assert actions["runtime_progress_stale"]["action_id"] == "refresh_runtime_progress"
+    assert actions["runtime_progress_stale"]["target_surface"] == "runtime_progress_observer"
+    assert state["primary_action"]["action_id"] == "return_to_ai_reviewer_workflow"
+    assert state["user_view"]["next_action"] == "补齐 AI reviewer workflow、publication eval 与 medical prose review。"
+    assert state["authority_contract"]["feedback_actions_can_authorize_quality"] is False
+    assert state["authority_contract"]["feedback_actions_can_authorize_submission"] is False
+    assert "internal prompt" not in str(state["primary_action"])
+    assert "token_count" not in str(state["primary_action"])
+
+
 def test_ai_first_feedback_ledger_tracks_repeat_and_closure(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.ai_first_feedback")
     study_root = tmp_path / "studies" / "001-risk"

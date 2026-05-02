@@ -12,6 +12,43 @@ READ_MODEL = "ai_first_feedback_read_model"
 LEDGER_SURFACE = "ai_first_feedback_ledger"
 LEDGER_SCHEMA_VERSION = 1
 LOW_LEVEL_FIELD_HINTS = ("raw_terminal_log", "full_prompt", "prompt", "secret", "token", "log_path")
+ACTION_RECOMMENDATIONS = {
+    "predraft_gap": {
+        "action_id": "return_to_predraft_readiness",
+        "target_surface": "pre_draft_quality_runtime",
+        "summary": "补齐写作前研究问题、证据边界、claim 风险和 reporting guideline readiness。",
+    },
+    "ai_reviewer_trace_gap": {
+        "action_id": "return_to_ai_reviewer_workflow",
+        "target_surface": "ai_reviewer_runtime_workflow",
+        "summary": "补齐 AI reviewer workflow、publication eval 与 medical prose review。",
+    },
+    "route_back_open": {
+        "action_id": "continue_route_back",
+        "target_surface": "same_line_route_back",
+        "summary": "继续同线 route-back、bounded analysis 或 revise flow，直到反馈闭合。",
+    },
+    "artifact_rebuild_pending": {
+        "action_id": "rebuild_canonical_artifacts",
+        "target_surface": "artifact_runtime_proof",
+        "summary": "从 canonical source 重新建立 manuscript、figure、table 与 package rebuild proof。",
+    },
+    "manual_judgment_pending": {
+        "action_id": "request_human_decision",
+        "target_surface": "human_decision_gate",
+        "summary": "请求人工或 physician decision gate，不把等待判断当作 runtime failure。",
+    },
+    "runtime_progress_stale": {
+        "action_id": "refresh_runtime_progress",
+        "target_surface": "runtime_progress_observer",
+        "summary": "刷新 runtime progress、supervision 和 recovery surface，确认当前执行点。",
+    },
+    "quality_toil_repeat": {
+        "action_id": "inspect_repeated_feedback_reason",
+        "target_surface": "ai_first_feedback_ledger",
+        "summary": "复盘重复反馈原因并决定是否需要 repo-level 系统修复。",
+    },
+}
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -84,9 +121,29 @@ def _event(
         "severity": severity,
         "reason": reason,
         "next_action": next_action,
+        "action_recommendation": _action_recommendation(category=category, source_next_action=next_action),
         "source_surface": source_surface,
         "evidence_refs": evidence_refs,
         "human_review_required": human_review_required,
+    }
+
+
+def _action_recommendation(*, category: str, source_next_action: str | None = None) -> dict[str, Any]:
+    template = dict(ACTION_RECOMMENDATIONS.get(category) or {})
+    if not template:
+        template = {
+            "action_id": "inspect_feedback_signal",
+            "target_surface": "ai_first_feedback_state",
+            "summary": "检查当前 AI-first feedback signal 并选择对应运行入口。",
+        }
+    return {
+        **template,
+        "source_next_action": source_next_action,
+        "authority": "observability_only",
+        "can_authorize_quality": False,
+        "can_authorize_finalize": False,
+        "can_authorize_submission": False,
+        "can_mutate_runtime": False,
     }
 
 
@@ -341,6 +398,7 @@ def build_ai_first_feedback_state(
         summary = "当前没有新的 AI-first 运行反馈阻塞。"
     current_stage = _text(progress_snapshot.get("current_stage"), "unknown") or "unknown"
     next_step = _text(progress_snapshot.get("next_system_action")) or _text(default_entry.get("recommended_next_step"))
+    primary_action = dict((primary or {}).get("action_recommendation") or {}) if primary else None
     return {
         "surface": SURFACE,
         "schema_version": SCHEMA_VERSION,
@@ -350,10 +408,12 @@ def build_ai_first_feedback_state(
         "summary": summary,
         "current_stage": current_stage,
         "primary_feedback": primary,
+        "primary_action": primary_action,
         "user_view": {
             "current_stage": current_stage,
             "primary_feedback_reason": _text((primary or {}).get("reason")) if primary else None,
             "next_step": _text((primary or {}).get("next_action")) or next_step,
+            "next_action": _text((primary_action or {}).get("summary")) or _text((primary or {}).get("next_action")) or next_step,
             "human_review_required": any(bool(item.get("human_review_required")) for item in events),
         },
         "maintainer_view": {
@@ -367,6 +427,10 @@ def build_ai_first_feedback_state(
             "feedback_can_authorize_finalize": False,
             "feedback_can_authorize_submission": False,
             "feedback_can_mutate_runtime": False,
+            "feedback_actions_can_authorize_quality": False,
+            "feedback_actions_can_authorize_finalize": False,
+            "feedback_actions_can_authorize_submission": False,
+            "feedback_actions_can_mutate_runtime": False,
             "mechanical_feedback_is_projection_only": True,
         },
     }
