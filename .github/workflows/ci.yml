@@ -14,6 +14,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Checkout MedDeepScientist sibling for AI-first drift audit
+        uses: actions/checkout@v6
+        with:
+          repository: gaofeng21cn/med-deepscientist
+          path: ../med-deepscientist
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v6
         with:
