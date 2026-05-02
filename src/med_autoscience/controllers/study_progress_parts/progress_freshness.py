@@ -14,6 +14,11 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 
+_ACTIVITY_TIMEOUT_REASONS = {
+    "read_churn_without_artifact_delta",
+    "same_fingerprint_loop",
+}
+
 
 def _freshness_from_timestamp(
     *,
@@ -134,15 +139,45 @@ def _split_progress_freshness(
         summary=_non_empty_text(markers.get("meaningful_artifact_delta_kind"))
         or _non_empty_text(markers.get("turn_progress_kind")),
     )
+    breach_types = {
+        text
+        for item in (autonomy_slo_status or {}).get("breach_types") or []
+        if (text := _non_empty_text(item)) is not None
+    }
+    activity_timeout = {
+        "state": "ok",
+        "required": bool(runtime_facts.strict_live),
+        "summary": "live worker is within the meaningful artifact delta activity window.",
+        "active_run_id": runtime_facts.active_run_id,
+        "timeout_after_seconds": artifact_delta_freshness.get("stale_after_seconds"),
+        "seconds_without_artifact_delta": artifact_delta_freshness.get("seconds_since_latest_progress"),
+        "breach_types": sorted(breach_types),
+    }
+    if runtime_facts.strict_live and artifact_delta_freshness["status"] in {"missing", "stale"}:
+        activity_timeout["state"] = "timed_out"
+        activity_timeout["summary"] = (
+            "live worker has exceeded the meaningful artifact delta activity window; "
+            "supervisor ticks alone cannot prove paper progress."
+        )
+    elif runtime_facts.strict_live and breach_types & _ACTIVITY_TIMEOUT_REASONS:
+        activity_timeout["state"] = "at_risk"
+        activity_timeout["summary"] = (
+            "live worker has autonomy SLO churn signals and must produce artifact delta before closeout."
+        )
 
     updated = dict(progress_freshness)
     updated["supervisor_tick_freshness"] = supervisor_tick
     updated["worker_liveness_freshness"] = worker_liveness
     updated["meaningful_artifact_delta_freshness"] = artifact_delta_freshness
+    updated["activity_timeout"] = activity_timeout
     base_summary = _non_empty_text(updated.get("summary"))
     if worker_liveness["status"] in {"invalid", "recovering"}:
         updated["status"] = "stale"
         detail_summary = "监管心跳不能单独证明论文推进；worker liveness 或 artifact delta 需要恢复。"
+        updated["summary"] = f"{base_summary} {detail_summary}" if base_summary else detail_summary
+    elif activity_timeout["state"] == "timed_out":
+        updated["status"] = "stale"
+        detail_summary = "live worker 已超过 meaningful artifact delta 活动窗口，必须先恢复产物增量或写出平台修复终态。"
         updated["summary"] = f"{base_summary} {detail_summary}" if base_summary else detail_summary
     elif artifact_delta_freshness["status"] == "stale":
         updated["status"] = "stale"

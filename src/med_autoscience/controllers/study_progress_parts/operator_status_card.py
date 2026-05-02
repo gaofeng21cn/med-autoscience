@@ -125,7 +125,7 @@ def _operator_status_human_surface_summary(handling_state: str) -> tuple[str, st
     if parked_summary is not None:
         return parked_summary
     if handling_state == "paper_surface_refresh_in_progress":
-        return "stale", "给人看的投稿包镜像仍落后于当前论文真相。"
+        return "stale", "给人看的投稿包镜像仍落后于当前论文真相；没有 freshness proof 前不得视为投稿包可用。"
     if handling_state == "waiting_user_decision":
         return "pending_decision", "当前主要等待人工判断，给人看的稿件状态以论文门控为准。"
     if handling_state in {"runtime_supervision_recovering", "runtime_recovering"}:
@@ -175,6 +175,13 @@ def _operator_status_focus_summary(
     current_stage_summary: str,
     no_op_suppression: dict[str, Any] | None,
 ) -> str:
+    activity_timeout = (intervention_lane or {}).get("activity_timeout")
+    if handling_state == "runtime_recovering" and isinstance(activity_timeout, dict):
+        return (
+            _non_empty_text(activity_timeout.get("summary"))
+            or _non_empty_text((intervention_lane or {}).get("summary"))
+            or "live worker 已超过 meaningful artifact delta 活动窗口，当前必须先恢复产物增量。"
+        )
     if no_op_suppression is not None:
         return (
             _non_empty_text(no_op_suppression.get("operator_summary"))
@@ -207,9 +214,9 @@ def _operator_status_next_confirmation_signal(handling_state: str, intervention_
     if handling_state == "runtime_supervision_recovering":
         return "看 supervisor tick 是否回到 fresh，并确认监管缺口告警从 attention queue 消失。"
     if handling_state == "runtime_recovering":
-        return "看 runtime_supervision/latest.json 的 health_status 回到 live，或最近明确推进时间刷新。"
+        return "看 runtime_supervision/latest.json 的 health_status 回到 live，并确认 meaningful artifact delta 刷新。"
     if handling_state == "paper_surface_refresh_in_progress":
-        return "看 manuscript/delivery_manifest.json、current_package，或 submission_minimal 是否被刷新到最新真相。"
+        return "看 artifacts/controller/current_package_freshness/latest.json 是否写出 fresh proof，再看 current_package 和 submission_minimal 是否同步到同一 authority signature。"
     if handling_state == "scientific_or_quality_repair_in_progress":
         route_label = _non_empty_text((intervention_lane or {}).get("route_target_label"))
         key_question = _non_empty_text((intervention_lane or {}).get("route_key_question"))

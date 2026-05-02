@@ -65,6 +65,13 @@ def _progress_freshness_required(current_stage: str) -> bool:
     }
 
 
+def _activity_timeout_state(progress_freshness: dict[str, Any]) -> str | None:
+    activity_timeout = progress_freshness.get("activity_timeout")
+    if not isinstance(activity_timeout, dict):
+        return None
+    return _non_empty_text(activity_timeout.get("state"))
+
+
 def _latest_progress_signal(
     *,
     bash_summary_payload: dict[str, Any] | None,
@@ -811,6 +818,21 @@ def _intervention_lane(
     )
     if lane is not None:
         return lane
+    if _activity_timeout_state(progress_freshness) == "timed_out":
+        return {
+            "lane_id": "runtime_recovery_required",
+            "title": "优先处理 activity timeout",
+            "severity": "critical",
+            "summary": (
+                _non_empty_text((progress_freshness.get("activity_timeout") or {}).get("summary"))
+                or _non_empty_text(progress_freshness.get("summary"))
+                or current_stage_summary
+                or blocker_summary
+                or next_system_action
+            ),
+            "recommended_action_id": "continue_or_relaunch",
+            "activity_timeout": dict(progress_freshness.get("activity_timeout") or {}),
+        }
     if task_intake_progress_override and not _task_intake_override_is_manuscript_fast_lane(task_intake_progress_override):
         lane = task_intake_quality_lane(
             task_intake_progress_override,

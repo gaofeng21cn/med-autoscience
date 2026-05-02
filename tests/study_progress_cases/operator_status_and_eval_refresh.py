@@ -543,8 +543,9 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
     assert result["operator_status_card"]["handling_state"] == "paper_surface_refresh_in_progress"
     assert result["operator_status_card"]["latest_truth_source"] == "publication_eval"
     assert result["operator_status_card"]["human_surface_freshness"] == "stale"
+    assert "freshness proof" in result["operator_status_card"]["human_surface_summary"]
     assert result["operator_status_card"]["user_visible_verdict"] == "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
-    assert "delivery_manifest" in result["operator_status_card"]["next_confirmation_signal"]
+    assert "current_package_freshness/latest.json" in result["operator_status_card"]["next_confirmation_signal"]
     assert "操作员状态卡" in markdown
     assert "投稿包镜像" in markdown
 
