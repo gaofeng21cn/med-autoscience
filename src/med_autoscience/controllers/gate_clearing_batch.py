@@ -31,6 +31,7 @@ from med_autoscience.controllers import gate_clearing_batch_repair_fingerprints
 from med_autoscience.controllers import gate_clearing_batch_replay_closure
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import publication_work_unit_lifecycle
+from med_autoscience.controllers import gate_clearing_batch_transportability
 from med_autoscience.controllers.gate_clearing_batch_execution import GateClearingRepairUnit
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     derived_next_publication_work_unit,
@@ -44,14 +45,6 @@ from med_autoscience.display_source_contract import INPUT_FILENAME_BY_SCHEMA_ID
 SCHEMA_VERSION = 1
 STABLE_GATE_CLEARING_BATCH_RELATIVE_PATH = Path("artifacts/controller/gate_clearing_batch/latest.json")
 CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS = 5_000_000_000
-_LEGACY_DIRECT_MIGRATION_FEATURE_SHIFT_KEYS = frozenset(
-    {
-        "collapse_metrics_path",
-        "feature_shift_csv_path",
-        "risk_distribution_csv_path",
-        "primary_driver",
-    }
-)
 
 
 def _load_controller(module_name: str):
@@ -671,27 +664,12 @@ def _legacy_direct_migration_feature_shift_payload_present(
     input_schema_id: str,
     display_id: str,
 ) -> bool:
-    filename = INPUT_FILENAME_BY_SCHEMA_ID.get(input_schema_id)
-    if filename is None:
-        return False
-    payload = _read_json(Path(paper_root) / filename)
-    if str(payload.get("input_schema_id") or "").strip() != input_schema_id:
-        return False
-    displays = payload.get("displays")
-    if not isinstance(displays, list):
-        return False
-    for item in displays:
-        if not isinstance(item, dict):
-            continue
-        if str(item.get("display_id") or "").strip() != display_id:
-            continue
-        present_feature_shift_keys = {
-            key for key in _LEGACY_DIRECT_MIGRATION_FEATURE_SHIFT_KEYS if _non_empty_text(item.get(key)) is not None
-        }
-        if not present_feature_shift_keys:
-            return False
-        return not item.get("center_event_counts") and not item.get("coverage_panels")
-    return False
+    return gate_clearing_batch_transportability.legacy_direct_migration_feature_shift_payload_present(
+        paper_root=paper_root,
+        input_schema_id=input_schema_id,
+        display_id=display_id,
+        input_filename_by_schema_id=INPUT_FILENAME_BY_SCHEMA_ID,
+    )
 
 
 def _run_workspace_display_repair_script(*, paper_root: Path) -> dict[str, Any]:
@@ -856,6 +834,24 @@ def run_gate_clearing_batch(
                 )
             )
         else:
+            if gate_clearing_batch_transportability.transportability_reporting_surface_needs_sync(
+                study_root=resolved_study_root,
+                paper_root=paper_root,
+                profile=profile,
+            ):
+                repair_units.append(
+                    GateClearingRepairUnit(
+                        unit_id="sync_transportability_reporting_surface",
+                        label="Sync transportability reporting display contract before surface materialization",
+                        parallel_safe=True,
+                        depends_on=_existing_dependency_ids(repair_units, "repair_paper_live_paths"),
+                        run=lambda: gate_clearing_batch_transportability.sync_transportability_reporting_surface(
+                            study_root=resolved_study_root,
+                            paper_root=paper_root,
+                            profile=profile,
+                        ),
+                    )
+                )
             if _time_to_event_direct_migration_display_inputs_need_refresh(paper_root=paper_root):
                 repair_units.append(
                     GateClearingRepairUnit(
@@ -877,6 +873,7 @@ def run_gate_clearing_batch(
                     depends_on=_existing_dependency_ids(
                         repair_units,
                         "repair_paper_live_paths",
+                        "sync_transportability_reporting_surface",
                         "time_to_event_direct_migration",
                     ),
                     run=lambda: _materialize_display_surface(paper_root=paper_root),
@@ -1123,8 +1120,7 @@ def run_gate_clearing_batch(
         "publication_work_unit_lifecycle": lifecycle_record,
     }
     repair_blocking_artifact_refs = _unit_blocking_artifact_refs(unit_results)
-    if repair_blocking_artifact_refs:
-        record["repair_blocking_artifact_refs"] = repair_blocking_artifact_refs
+    record["repair_blocking_artifact_refs"] = repair_blocking_artifact_refs
     if current_package_freshness_proof is not None:
         record["current_package_freshness_proof"] = current_package_freshness_proof
     if stale_gate_replay_closure is not None:

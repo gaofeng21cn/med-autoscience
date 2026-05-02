@@ -76,6 +76,7 @@ _DISPLAY_INSTANCE_MAP: dict[str, tuple[str, str, str]] = {
     "time_to_event_risk_group_summary": ("km_risk_stratification", "figure", "F3"),
     "time_to_event_decision_curve": ("decision_curve", "figure", "F4"),
     "multicenter_generalizability_overview": ("multicenter_generalizability", "figure", "F5"),
+    "center_transportability_governance_summary_panel": ("transportability_governance", "figure", "F5"),
 }
 
 
@@ -152,6 +153,7 @@ def resolve_medical_reporting_contract(
     manuscript_family: str,
     endpoint_type: str | None = None,
     submission_target_family: str,
+    reporting_context: str | None = None,
 ) -> MedicalReportingContract:
     if study_archetype not in SUPPORTED_STUDY_ARCHETYPES:
         supported = ", ".join(SUPPORTED_STUDY_ARCHETYPES)
@@ -229,6 +231,11 @@ def resolve_medical_reporting_contract(
         and endpoint_type == "time_to_event"
         and submission_target_family == "general_medical_journal"
     ):
+        final_evidence_requirement = (
+            "center_transportability_governance_summary_panel"
+            if reporting_context == "transportability_attribution_shift"
+            else "multicenter_generalizability_overview"
+        )
         table_shell_requirements = (
             "table1_baseline_characteristics",
             "table2_time_to_event_performance_summary",
@@ -238,7 +245,7 @@ def resolve_medical_reporting_contract(
             "time_to_event_discrimination_calibration_panel",
             "time_to_event_risk_group_summary",
             "time_to_event_decision_curve",
-            "multicenter_generalizability_overview",
+            final_evidence_requirement,
         )
         display_ambition = "strong"
         minimum_main_text_figures = 4

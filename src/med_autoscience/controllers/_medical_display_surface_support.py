@@ -125,6 +125,15 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
         status="required_pending_materialization",
         template_id="multicenter_generalizability_overview",
     ),
+    "center_transportability_governance_summary_panel": RequiredDisplaySurfaceStub(
+        filename="center_transportability_governance_summary_panel_inputs.json",
+        blocker_key="missing_center_transportability_governance_summary_panel_inputs",
+        stub_kind="evidence_inputs",
+        schema_key="input_schema_id",
+        schema_value="center_transportability_governance_summary_panel_inputs_v1",
+        status="required_pending_materialization",
+        template_id="center_transportability_governance_summary_panel",
+    ),
     "local_architecture_overview_figure": RequiredDisplaySurfaceStub(
         filename="risk_layering_monotonic_inputs.json",
         blocker_key="missing_local_architecture_overview_inputs",

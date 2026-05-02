@@ -439,6 +439,69 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
     )
 
 
+def test_controller_routes_transportability_attribution_survival_f5_to_transportability_governance(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
+    policy_module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
+    profile = _make_profile(tmp_path)
+    study_root = _write_study(
+        profile.studies_root,
+        "002-dm-china-us-mortality-attribution",
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "title": "China-US diabetes mortality transportability and attribution shift",
+            "study_archetype": "clinical_classifier",
+            "endpoint_type": "time_to_event",
+            "manuscript_family": "prediction_model",
+            "primary_question": (
+                "Identify which risk relationships transport between China and NHANES "
+                "and distinguish calibration drift, support mismatch, and attribution shift."
+            ),
+            "paper_framing_summary": (
+                "Study 002 is a China-US comparative transportability and attribution-shift paper. "
+                "It is not a single-direction external validation report."
+            ),
+            "external_support_datasets": [
+                {
+                    "dataset_id": "nhanes-public-use-linked-mortality-2019",
+                    "role": "comparative_external_population",
+                    "target_use": ["allcause_transportability_anchor", "broad_cvd_attribution_shift"],
+                }
+            ],
+        },
+    )
+
+    result = module.resolve_medical_reporting_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+
+    assert result["status"] == "resolved"
+    assert result["figure_shell_requirements"] == [
+        "cohort_flow_figure",
+        "time_to_event_discrimination_calibration_panel",
+        "time_to_event_risk_group_summary",
+        "time_to_event_decision_curve",
+        "center_transportability_governance_summary_panel",
+    ]
+    assert result["required_evidence_templates"][-1] == "center_transportability_governance_summary_panel"
+    assert result["display_shell_plan"][4] == {
+        "display_id": "transportability_governance",
+        "display_kind": "figure",
+        "requirement_key": "center_transportability_governance_summary_panel",
+        "catalog_id": "F5",
+        "story_role": "result_evidence",
+    }
+    assert policy_module.resolve_medical_reporting_contract(
+        study_archetype="clinical_classifier",
+        manuscript_family="prediction_model",
+        endpoint_type="time_to_event",
+        submission_target_family="general_medical_journal",
+    ).figure_shell_requirements[-1] == "multicenter_generalizability_overview"
+
+
 def test_normalize_legacy_requirement_keys_rewrites_time_to_event_aliases() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
 

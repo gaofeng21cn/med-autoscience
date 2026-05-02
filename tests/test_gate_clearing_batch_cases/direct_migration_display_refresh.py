@@ -191,7 +191,7 @@ def test_run_gate_clearing_batch_rematerializes_stale_direct_migration_display_i
     assert result["unit_results"][1]["result"]["status"] == "synced"
 
 
-def test_run_gate_clearing_batch_does_not_direct_migrate_legacy_feature_shift_f5_payload(
+def test_run_gate_clearing_batch_migrates_legacy_feature_shift_f5_payload_to_transportability_governance(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -203,10 +203,62 @@ def test_run_gate_clearing_batch_does_not_direct_migrate_legacy_feature_shift_f5
         study_archetype="clinical_classifier",
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
+        paper_framing_summary=(
+            "China-US comparative transportability and attribution-shift paper with "
+            "score compression and feature-shift explanation."
+        ),
     )
     quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
+    metrics_path = quest_root / ".ds" / "worktrees" / "analysis-run" / "outputs" / "collapse_attribution_metrics.json"
+    _write_json(
+        metrics_path,
+        {
+            "metrics": {
+                "china_predicted_mean_5y_risk": 0.019599702325,
+                "nhanes_predicted_mean_5y_risk": 0.001137066343,
+                "predicted_risk_iqr_ratio_nhanes_to_china": 0.259964990333,
+                "dominant_shift_feature": "HDL",
+                "dominant_shift_feature_abs_share": 0.948473550443,
+            },
+            "reviewer_facing_takeaway": (
+                "HDL dominated feature shift and score compression explained the transportability collapse."
+            ),
+            "feature_shift_records": [
+                {
+                    "feature": "HDL",
+                    "absolute_contribution_share": 0.948473550443,
+                }
+            ],
+            "distribution_summary_records": [
+                {
+                    "cohort": "China",
+                    "predicted_mean_5y_risk": 0.019599702325,
+                    "share_at_or_below_china_q1_upper": 0.250047501425,
+                },
+                {
+                    "cohort": "NHANES",
+                    "predicted_mean_5y_risk": 0.001137066343,
+                    "share_at_or_below_china_q1_upper": 1.0,
+                },
+            ],
+            "source_metrics_summary": {
+                "discrimination": {
+                    "china_c_index": 0.759985474506,
+                    "nhanes_c_index": 0.564708523287,
+                    "china_n": 15789,
+                    "nhanes_n": 5659,
+                },
+                "calibration_drift": {
+                    "china_predicted_mean_5y_risk": 0.019599702325,
+                    "china_observed_5y_rate": 0.020330609918,
+                    "nhanes_predicted_mean_5y_risk": 0.001137066343,
+                    "nhanes_observed_5y_rate": 0.124403604877,
+                },
+            },
+        },
+    )
     payload_path = paper_root / "multicenter_generalizability_inputs.json"
     _write_json(
         paper_root / "display_registry.json",
@@ -237,7 +289,7 @@ def test_run_gate_clearing_batch_does_not_direct_migrate_legacy_feature_shift_f5
                     "title": "Predictor distribution differences and transported score narrowing",
                     "caption": "Feature-shift attribution for transportability loss.",
                     "claim_note": "HDL dominated feature shift and score compression.",
-                    "collapse_metrics_path": "analysis/collapse_attribution/outputs/collapse_attribution_metrics.json",
+                    "collapse_metrics_path": str(metrics_path),
                     "feature_shift_csv_path": "analysis/collapse_attribution/outputs/feature_shift_contributions.csv",
                     "risk_distribution_csv_path": (
                         "analysis/collapse_attribution/outputs/"
@@ -274,10 +326,29 @@ def test_run_gate_clearing_batch_does_not_direct_migrate_legacy_feature_shift_f5
 
     def fake_materialize(*, paper_root: Path) -> dict[str, object]:
         call_order.append("materialize")
-        raise ValueError(
-            "multicenter_generalizability_inputs.json display `multicenter_generalizability` "
-            "must contain a non-empty center_event_counts list"
+        reporting_contract = json.loads((paper_root / "medical_reporting_contract.json").read_text(encoding="utf-8"))
+        display_registry = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
+        migrated_payload = json.loads(
+            (paper_root / "center_transportability_governance_summary_panel_inputs.json").read_text(
+                encoding="utf-8"
+            )
         )
+        assert reporting_contract["display_shell_plan"][4]["display_id"] == "transportability_governance"
+        assert reporting_contract["display_shell_plan"][4]["requirement_key"] == (
+            "center_transportability_governance_summary_panel"
+        )
+        assert display_registry["displays"][4]["requirement_key"] == (
+            "center_transportability_governance_summary_panel"
+        )
+        assert migrated_payload["input_schema_id"] == "center_transportability_governance_summary_panel_inputs_v1"
+        migrated_display = migrated_payload["displays"][0]
+        assert migrated_display["display_id"] == "transportability_governance"
+        assert migrated_display["template_id"].endswith("::center_transportability_governance_summary_panel")
+        assert migrated_display["centers"][1]["center_label"] == "NHANES"
+        assert migrated_display["centers"][1]["max_shift"] == 0.948473550443
+        assert migrated_display["centers"][1]["slope"] == 0.259964990333
+        assert migrated_display["centers"][1]["verdict"] == "recalibration_required"
+        return {"status": "materialized", "figures_materialized": ["F5"]}
 
     monkeypatch.setattr(module, "_run_time_to_event_direct_migration", fake_direct_migration)
     monkeypatch.setattr(module, "_materialize_display_surface", fake_materialize)
@@ -303,21 +374,11 @@ def test_run_gate_clearing_batch_does_not_direct_migrate_legacy_feature_shift_f5
     assert call_order == ["materialize"]
     assert [item["unit_id"] for item in result["unit_results"]] == [
         "repair_paper_live_paths",
+        "sync_transportability_reporting_surface",
         "materialize_display_surface",
     ]
-    materialize_result = result["unit_results"][1]
-    assert materialize_result["status"] == "failed"
-    assert materialize_result["terminal_state"] == "gate_needs_specificity"
-    assert materialize_result["blocking_artifact_refs"] == [
-        {
-            "blocker": "display_surface_materialization_failed",
-            "artifact_path": str(payload_path.resolve()),
-            "artifact_role": "display_input_payload",
-            "failure_reason": (
-                "multicenter_generalizability_inputs.json display `multicenter_generalizability` "
-                "must contain a non-empty center_event_counts list"
-            ),
-            "terminal_state": "gate_needs_specificity",
-        }
-    ]
-    assert result["repair_blocking_artifact_refs"] == materialize_result["blocking_artifact_refs"]
+    sync_result = result["unit_results"][1]
+    assert sync_result["status"] == "updated"
+    assert sync_result["result"]["legacy_feature_shift_f5_migrated"] is True
+    assert sync_result["result"]["legacy_input_path"] == str(payload_path)
+    assert result["repair_blocking_artifact_refs"] == []

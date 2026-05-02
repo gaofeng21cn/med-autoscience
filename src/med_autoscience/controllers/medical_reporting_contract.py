@@ -28,6 +28,59 @@ from med_autoscience.controllers.medical_reporting_guidelines import (
 )
 
 
+_TRANSPORTABILITY_CONTEXT_TERMS = (
+    "transportability",
+    "transportable",
+    "external population",
+    "comparative external",
+    "support mismatch",
+    "attribution shift",
+    "attribution-shift",
+    "calibration drift",
+    "score compression",
+    "covariate distribution shift",
+    "feature shift",
+)
+
+
+def _iter_context_text(value: Any) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if isinstance(value, dict):
+        texts: list[str] = []
+        for item in value.values():
+            texts.extend(_iter_context_text(item))
+        return texts
+    if isinstance(value, list | tuple):
+        texts = []
+        for item in value:
+            texts.extend(_iter_context_text(item))
+        return texts
+    return []
+
+
+def _resolve_reporting_context(study_payload: dict[str, Any]) -> str | None:
+    fields = (
+        "title",
+        "primary_question",
+        "paper_framing_summary",
+        "secondary_endpoint_semantics",
+        "minimum_sci_ready_evidence_package",
+        "scientific_followup_questions",
+        "explanation_targets",
+        "external_support_datasets",
+    )
+    haystack = " ".join(
+        text.lower()
+        for field in fields
+        for text in _iter_context_text(study_payload.get(field))
+    )
+    if any(term in haystack for term in _TRANSPORTABILITY_CONTEXT_TERMS):
+        return "transportability_attribution_shift"
+    return None
+
+
 def resolve_medical_reporting_contract_for_study(
     *,
     study_root: Path,
@@ -133,6 +186,7 @@ def resolve_medical_reporting_contract_for_study(
         manuscript_family=manuscript_family,
         endpoint_type=endpoint_type,
         submission_target_family=str(target_context["submission_target_family"]),
+        reporting_context=_resolve_reporting_context(study_payload),
     )
     reporting_guideline_expectation = build_reporting_guideline_expectation(contract.reporting_guideline_family)
     quality_gate_expectation = build_guideline_quality_gate_expectation(contract.reporting_guideline_family)

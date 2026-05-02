@@ -900,3 +900,52 @@ def test_medical_reporting_audit_blocks_missing_direct_migration_stub(tmp_path: 
     assert report["status"] == "blocked"
     assert "missing_multicenter_generalizability_inputs" in report["blockers"]
     assert "missing_medical_story_contract" in report["blockers"]
+
+
+def test_medical_reporting_audit_blocks_missing_transportability_governance_stub(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
+    quest_root = tmp_path / "runtime" / "quests" / "002-dm-transportability"
+    paper_root = quest_root / "paper"
+    (paper_root / "figures").mkdir(parents=True, exist_ok=True)
+    display_plan = [
+        {
+            "display_id": "transportability_governance",
+            "display_kind": "figure",
+            "requirement_key": "center_transportability_governance_summary_panel",
+            "catalog_id": "F5",
+        }
+    ]
+    (paper_root / "medical_reporting_contract.json").write_text(
+        json.dumps(
+            {
+                "reporting_guideline_family": "TRIPOD",
+                "display_registry_required": True,
+                "display_shell_plan": display_plan,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "display_registry.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "source_contract_path": "paper/medical_reporting_contract.json",
+                "displays": [
+                    {
+                        **display_plan[0],
+                        "shell_path": "paper/figures/transportability_governance.shell.json",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "figures" / "transportability_governance.shell.json").write_text("{}", encoding="utf-8")
+
+    report = module.run_controller(quest_root=quest_root, apply=False)
+
+    assert report["status"] == "blocked"
+    assert "missing_center_transportability_governance_summary_panel_inputs" in report["blockers"]
+    assert "missing_multicenter_generalizability_inputs" not in report["blockers"]

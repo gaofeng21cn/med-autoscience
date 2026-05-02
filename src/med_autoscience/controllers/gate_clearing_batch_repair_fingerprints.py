@@ -270,6 +270,16 @@ def repair_unit_fingerprint(
             "script": path_fingerprint(paper_root / "build" / "generate_display_exports.py"),
             "display_registry": path_fingerprint(paper_root / "display_registry.json"),
         }
+    elif unit_id == "sync_transportability_reporting_surface":
+        payload = {
+            "unit_id": unit_id,
+            "medical_reporting_contract": path_fingerprint(paper_root / "medical_reporting_contract.json"),
+            "display_registry": path_fingerprint(paper_root / "display_registry.json"),
+            "legacy_multicenter_inputs": path_fingerprint(paper_root / "multicenter_generalizability_inputs.json"),
+            "transportability_inputs": path_fingerprint(
+                paper_root / "center_transportability_governance_summary_panel_inputs.json"
+            ),
+        }
     elif unit_id == "sync_submission_minimal_delivery":
         payload = {
             "unit_id": unit_id,

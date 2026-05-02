@@ -328,6 +328,55 @@ def test_startup_hydration_validation_blocks_missing_direct_migration_stub(tmp_p
     assert report["status"] == "blocked"
     assert "missing_multicenter_generalizability_inputs" in report["blockers"]
 
+
+def test_startup_hydration_validation_blocks_missing_transportability_governance_stub(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
+    quest_root = tmp_path / "runtime" / "quests" / "002-dm-transportability"
+    display_plan = [
+        {
+            "display_id": "transportability_governance",
+            "display_kind": "figure",
+            "requirement_key": "center_transportability_governance_summary_panel",
+            "catalog_id": "F5",
+        }
+    ]
+    write_json(quest_root / "paper" / "medical_analysis_contract.json", {"status": "resolved"})
+    write_json(
+        quest_root / "paper" / "medical_reporting_contract.json",
+        {
+            "status": "resolved",
+            "display_registry_required": True,
+            "display_shell_plan": display_plan,
+        },
+    )
+    write_json(
+        quest_root / "paper" / "display_registry.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    **display_plan[0],
+                    "shell_path": "paper/figures/transportability_governance.shell.json",
+                }
+            ],
+        },
+    )
+    write_json(
+        quest_root / "paper" / "figures" / "transportability_governance.shell.json",
+        {
+            "schema_version": 1,
+            **display_plan[0],
+        },
+    )
+
+    report = module.run_validation(quest_root=quest_root)
+
+    assert "missing_center_transportability_governance_summary_panel_inputs" in report["blockers"]
+    assert "missing_multicenter_generalizability_inputs" not in report["blockers"]
+
+
 def test_startup_hydration_validation_reads_active_worktree_paper_root_and_legacy_shell_requirements(
     tmp_path: Path,
 ) -> None:
