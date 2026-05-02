@@ -22,9 +22,10 @@ _LIFECYCLE_EVENT_TYPES = frozenset(
         "needs_specificity",
         "superseded",
         "skipped_duplicate",
+        "platform_repair_required",
     }
 )
-_TERMINAL_EVENT_TYPES = frozenset({"closed", "needs_specificity", "superseded"})
+_TERMINAL_EVENT_TYPES = frozenset({"closed", "needs_specificity", "superseded", "platform_repair_required"})
 
 
 def ledger_path(study_root: Path) -> Path:

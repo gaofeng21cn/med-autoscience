@@ -76,6 +76,7 @@ _MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "runtime_watch_auto_recovery"
 _MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE = "runtime_watch_controller_reroute"
 _MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE = "runtime_watch_outer_loop_wakeup"
 _NO_OP_SUPPRESSION_SUMMARY = "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。"
+_WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY = "同一 controller work unit 已达到有界 redrive 上限，需 MAS/MDS 平台修复后再继续。"
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -254,7 +255,13 @@ def _serialize_no_op_suppression(
     wakeup_audit: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     outcome = _non_empty_text(wakeup_audit.get("outcome"))
-    if outcome not in {"skipped_matching_work_unit", "skipped_matching_decision", "skipped_unchanged_inputs", "needs_specificity"}:
+    if outcome not in {
+        "skipped_matching_work_unit",
+        "skipped_matching_decision",
+        "skipped_unchanged_inputs",
+        "needs_specificity",
+        "platform_repair_required",
+    }:
         return None
     payload: dict[str, Any] = {
         "study_id": _non_empty_text(status_payload.get("study_id")) or Path(study_root).name,
@@ -263,7 +270,15 @@ def _serialize_no_op_suppression(
         "reason": _non_empty_text(wakeup_audit.get("reason")),
         "dedupe_scope": _non_empty_text(wakeup_audit.get("dedupe_scope")),
     }
-    for key in ("work_unit_fingerprint", "next_work_unit", "specificity_questions"):
+    for key in (
+        "work_unit_fingerprint",
+        "next_work_unit",
+        "specificity_questions",
+        "work_unit_dispatch_key",
+        "redrive_attempt_count",
+        "max_redrive_attempts",
+        "platform_repair_kind",
+    ):
         value = wakeup_audit.get(key)
         if value is not None:
             payload[key] = dict(value) if isinstance(value, Mapping) else value
@@ -271,6 +286,8 @@ def _serialize_no_op_suppression(
         payload["operator_summary"] = "Publication gate 只给出标签级 blocker；需先明确具体 claim、证据、图表、指标、引用或包件目标。"
     elif outcome == "skipped_matching_work_unit":
         payload["operator_summary"] = _NO_OP_SUPPRESSION_SUMMARY
+    elif outcome == "platform_repair_required":
+        payload["operator_summary"] = _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY
     else:
         payload["operator_summary"] = "外环输入或 controller decision 未变化；保持 no-op，等待新证据、新用户反馈或 blocker fingerprint 改变。"
     return payload
@@ -685,6 +702,44 @@ def run_watch_for_runtime(
                         status_payload=status_payload,
                         tick_request=tick_request,
                         event_type="skipped_duplicate",
+                        wakeup_audit=wakeup_audit,
+                        default_recorded_at=utc_now(),
+                    )
+                elif (
+                    redrive_exhaustion := runtime_watch_work_units.redrive_budget_exhausted(
+                        study_root=study_root,
+                        tick_request=tick_request,
+                    )
+                )[0]:
+                    work_unit_context = runtime_watch_work_units.context_payload(
+                        tick_request,
+                        work_unit_dispatch_key=redrive_exhaustion[1],
+                    )
+                    wakeup_audit = {
+                        **wakeup_audit,
+                        "outcome": "platform_repair_required",
+                        "reason": "outer-loop work unit redrive budget exhausted without result evidence",
+                        "no_op_acknowledged": True,
+                        "dedupe_scope": "controller_work_unit_redrive_budget",
+                        "redrive_attempt_count": redrive_exhaustion[2],
+                        "max_redrive_attempts": runtime_watch_work_units.MAX_OPEN_REDRIVE_ATTEMPTS,
+                        "platform_repair_kind": "work_unit_redrive_exhausted_without_attempt_result",
+                        "operator_summary": _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY,
+                        **work_unit_context,
+                    }
+                    suppression = _serialize_no_op_suppression(
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        wakeup_audit=wakeup_audit,
+                    )
+                    if suppression is not None:
+                        managed_study_no_op_suppressions.append(suppression)
+                        _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+                    runtime_watch_work_units.append_ledger_event(
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        tick_request=tick_request,
+                        event_type="platform_repair_required",
                         wakeup_audit=wakeup_audit,
                         default_recorded_at=utc_now(),
                     )

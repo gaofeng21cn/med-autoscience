@@ -21,6 +21,7 @@ _OUTER_LOOP_WAKEUP_SOURCE = "runtime_watch_outer_loop_wakeup"
 _LEDGER_EXECUTED_EVENT_TYPES = frozenset({"closed"})
 _SPECIFICITY_UNIT_ID = "gate_needs_specificity"
 _SPECIFICITY_ACTION_TYPE = "request_gate_specificity"
+MAX_OPEN_REDRIVE_ATTEMPTS = 3
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -192,6 +193,41 @@ def _ledger_has_executed_dispatch(
     ):
         return True
     return False
+
+
+def open_redrive_attempt_count(
+    *,
+    study_root: Path,
+    dispatch_key_value: str,
+) -> int:
+    count = 0
+    for event in work_unit_ledger.read_events(study_root=study_root):
+        identity = event.get("identity")
+        if not isinstance(identity, Mapping) or identity.get("dispatch_key") != dispatch_key_value:
+            continue
+        event_type = _non_empty_text(event.get("event_type"))
+        if event_type in {"closed", "needs_specificity", "superseded", "platform_repair_required"}:
+            count = 0
+            continue
+        if event_type == "dispatched":
+            count += 1
+    return count
+
+
+def redrive_budget_exhausted(
+    *,
+    study_root: Path,
+    tick_request: Mapping[str, Any],
+    max_attempts: int = MAX_OPEN_REDRIVE_ATTEMPTS,
+) -> tuple[bool, str | None, int]:
+    work_unit_dispatch_key = dispatch_key(tick_request)
+    if work_unit_dispatch_key is None:
+        return False, None, 0
+    attempt_count = open_redrive_attempt_count(
+        study_root=study_root,
+        dispatch_key_value=work_unit_dispatch_key,
+    )
+    return attempt_count >= max_attempts, work_unit_dispatch_key, attempt_count
 
 
 def _closed_event_has_result_evidence(event: Mapping[str, Any]) -> bool:

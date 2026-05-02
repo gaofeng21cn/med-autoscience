@@ -111,6 +111,110 @@ def test_watch_runtime_redrives_repeated_work_unit_until_attempt_closes(
     )
 
 
+def test_watch_runtime_escalates_after_bounded_work_unit_redrives(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "quest-001"
+    _write_charter(study_root)
+    _write_publication_eval(study_root, quest_root, action_type="bounded_analysis")
+    status_payload = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="blocked",
+            reason="study_completion_publishability_gate_blocked",
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+    }
+    tick_request = {
+        "study_root": study_root,
+        "charter_ref": _write_charter(study_root),
+        "publication_eval_ref": _write_publication_eval(study_root, quest_root, action_type="bounded_analysis"),
+        "decision_type": "bounded_analysis",
+        "route_target": "analysis-campaign",
+        "route_key_question": "analysis_claim_evidence_repair: Repair claim-evidence blockers.",
+        "route_rationale": "Run bounded claim-evidence repair.",
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": "ensure_study_runtime",
+                "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            }
+        ],
+        "reason": "Run bounded claim-evidence repair.",
+        "work_unit_fingerprint": "publication-blockers::same",
+        "next_work_unit": {
+            "unit_id": "analysis_claim_evidence_repair",
+            "lane": "analysis-campaign",
+            "summary": "Repair claim-evidence blockers.",
+        },
+    }
+    calls: list[str] = []
+
+    def fake_outer_loop_tick(**kwargs):
+        calls.append(str(kwargs.get("source") or ""))
+        return {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "source": kwargs.get("source"),
+            "study_decision_ref": {
+                "artifact_path": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve())
+            },
+            "dispatch_status": "executed",
+            "executed_controller_action": {"action_type": "ensure_study_runtime", "result": {"status": "executed"}},
+        }
+
+    monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    results = [
+        module.run_watch_for_runtime(
+            runtime_root=profile.runtime_root,
+            controller_runners={},
+            apply=True,
+            profile=profile,
+            ensure_study_runtimes=True,
+        )
+        for _ in range(4)
+    ]
+    wakeup_latest = json.loads(
+        (study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json").read_text(encoding="utf-8")
+    )
+    ledger_events = [
+        json.loads(line)
+        for line in (
+            study_root / "artifacts" / "runtime" / "work_unit_ledger" / "events.jsonl"
+        ).read_text(encoding="utf-8").splitlines()
+    ]
+
+    assert calls == [
+        "runtime_watch_outer_loop_wakeup",
+        "runtime_watch_outer_loop_wakeup",
+        "runtime_watch_outer_loop_wakeup",
+    ]
+    assert [len(item["managed_study_outer_loop_dispatches"]) for item in results] == [1, 1, 1, 0]
+    assert results[-1]["managed_study_no_op_suppressions"][0]["outcome"] == "platform_repair_required"
+    assert results[-1]["managed_study_no_op_suppressions"][0]["redrive_attempt_count"] == 3
+    assert wakeup_latest["outcome"] == "platform_repair_required"
+    assert wakeup_latest["platform_repair_kind"] == "work_unit_redrive_exhausted_without_attempt_result"
+    assert [event["event_type"] for event in ledger_events] == [
+        "dispatched",
+        "dispatched",
+        "dispatched",
+        "platform_repair_required",
+    ]
+
+
 def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
     tmp_path: Path,
     monkeypatch,
@@ -514,6 +618,52 @@ def test_work_unit_dedupe_accepts_closed_event_with_attempt_record(tmp_path: Pat
 
     assert already_executed is True
     assert dispatch_key == "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
+
+
+def test_work_unit_redrive_budget_resets_after_evidenced_close(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch_work_units")
+    ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    study_root = tmp_path / "studies" / "001-risk"
+    tick_request = {
+        "work_unit_fingerprint": "publication-blockers::same",
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+    }
+    identity = module.identity_from_tick_request(
+        study_id="001-risk",
+        quest_id="quest-001",
+        tick_request=tick_request,
+    )
+    for index in range(3):
+        ledger.append_event(
+            study_root=study_root,
+            identity=identity,
+            event_type="dispatched",
+            payload={"source": "runtime_watch", "attempt": index + 1},
+            recorded_at=f"2026-04-28T00:0{index}:00+00:00",
+        )
+    exhausted, dispatch_key, attempt_count = module.redrive_budget_exhausted(
+        study_root=study_root,
+        tick_request=tick_request,
+    )
+    assert exhausted is True
+    assert dispatch_key == "publication-blockers::same::analysis_claim_evidence_repair::run_gate_clearing_batch"
+    assert attempt_count == 3
+
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="closed",
+        payload={"artifact_delta_ref": "artifacts/delta.json"},
+        recorded_at="2026-04-28T00:03:00+00:00",
+    )
+
+    exhausted, _, attempt_count = module.redrive_budget_exhausted(
+        study_root=study_root,
+        tick_request=tick_request,
+    )
+    assert exhausted is False
+    assert attempt_count == 0
 
 
 def test_work_unit_dedupe_does_not_use_ledger_when_latest_inputs_changed(tmp_path: Path) -> None:
