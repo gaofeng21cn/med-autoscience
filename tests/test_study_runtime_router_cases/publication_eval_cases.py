@@ -600,13 +600,11 @@ def test_study_runtime_status_publication_eval_materializes_same_line_route_back
 
     assert result["publication_supervisor_state"]["supervisor_phase"] == "publishability_gate_blocked"
     assert payload["verdict"]["overall_verdict"] == "blocked"
-    assert payload["recommended_actions"][0]["action_type"] == "route_back_same_line"
+    assert payload["recommended_actions"][0]["action_type"] == "return_to_controller"
     assert payload["recommended_actions"][0]["reason"] == "稿件书写面还有医学论文表达硬阻塞，需要继续修文。"
-    assert payload["recommended_actions"][0]["route_target"] == "write"
-    assert (
-        payload["recommended_actions"][0]["route_key_question"]
-        == "What is the narrowest same-line manuscript repair or continuation step required now?"
-    )
+    assert "route_target" not in payload["recommended_actions"][0]
+    assert payload["recommended_actions"][0]["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert payload["recommended_actions"][0]["blocking_work_units"][0]["unit_id"] == "gate_needs_specificity"
     assert payload["recommended_actions"][0]["requires_controller_decision"] is True
 
 

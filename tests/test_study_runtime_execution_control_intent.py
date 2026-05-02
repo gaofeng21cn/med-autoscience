@@ -286,6 +286,52 @@ def test_execute_noop_runtime_decision_allows_gate_replay_while_awaiting_artifac
     assert status.to_dict()["controller_decision_authorization_relay"]["message_id"] == "msg-gate-replay-001"
 
 
+def test_relayed_controller_authorization_marker_includes_lifecycle_projection(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    _write_controller_decision_authorization(study_root)
+    _write_publication_eval_work_unit_authority(study_root)
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-live-001",
+            "pending_user_message_count": 0,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            return {"ok": True, "message": {"id": "msg-auth-lifecycle-001"}}
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    module._execute_runtime_decision(status=status, context=context)
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    marker = runtime_state["last_controller_decision_authorization"]
+
+    assert marker["controller_work_unit_lifecycle"] == {
+        "lifecycle_state": "new",
+        "latest_event_type": None,
+        "delivery_blocked": False,
+        "block_reason": None,
+        "terminal_consumed": False,
+    }
+
+
 def test_execute_noop_runtime_decision_resets_same_fingerprint_count_for_source_signature_change(
     tmp_path: Path,
 ) -> None:

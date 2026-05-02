@@ -52,6 +52,12 @@ _DISPLAY_REGISTRY_BLOCKERS = frozenset(
         "registry_contract_mismatch",
     }
 )
+_SURFACE_BLOCKER_LABELS = frozenset(
+    {
+        "medical_publication_surface_blocked",
+        "publication_gate_blocked",
+    }
+)
 _LOCAL_ARCHITECTURE_BLOCKERS = frozenset(
     {
         "local_architecture_overview_shell_missing",
@@ -117,6 +123,13 @@ _ACTIONABLE_OBJECT_KEYS = frozenset(
         "package_artifact",
         "artifact_path",
         "source_path",
+    }
+)
+_GENERIC_SPECIFICITY_BLOCKERS = frozenset(
+    {
+        "claim_evidence_consistency_failed",
+        "reviewer_first_concerns_unresolved",
+        *_SURFACE_BLOCKER_LABELS,
     }
 )
 _SPECIFICITY_QUESTIONS = (
@@ -224,6 +237,7 @@ def fingerprint_blockers_for_work_unit(*, blockers: tuple[str, ...], next_work_u
         "submission_delivery_sync_closure": _SUBMISSION_REFRESH_BLOCKERS,
         "display_reporting_contract_repair": _DISPLAY_REGISTRY_BLOCKERS,
         "local_architecture_overview_repair": _LOCAL_ARCHITECTURE_BLOCKERS,
+        "gate_needs_specificity": _GENERIC_SPECIFICITY_BLOCKERS,
     }
     scoped_blockers = blocker_set_by_unit.get(unit_id)
     if scoped_blockers is None:
@@ -334,23 +348,12 @@ def _append_gate_specificity_unit(units: list[dict[str, str]]) -> None:
 
 
 def _label_only_blocker_needs_specificity(report: Mapping[str, Any], *, blocker_set: set[str]) -> bool:
-    if len(blocker_set) != 1 or _has_actionable_object_ref(report):
+    if not blocker_set or _has_actionable_object_ref(report):
         return False
-    if blocker_set & _SUBMISSION_REFRESH_BLOCKERS:
+    non_authority_blockers = blocker_set - _SUBMISSION_REFRESH_BLOCKERS
+    if not non_authority_blockers:
         return False
-    if str(report.get("current_required_action") or "").strip():
-        return False
-    return bool(
-        blocker_set
-        & (
-            _CLAIM_EVIDENCE_BLOCKERS
-            | _STORY_BLOCKERS
-            | _FIGURE_RESULTS_BLOCKERS
-            | _DISPLAY_REGISTRY_BLOCKERS
-            | _LOCAL_ARCHITECTURE_BLOCKERS
-            | _TREATMENT_GAP_BLOCKERS
-        )
-    )
+    return non_authority_blockers.issubset(_GENERIC_SPECIFICITY_BLOCKERS)
 
 
 def _append_blocker_rule_units(

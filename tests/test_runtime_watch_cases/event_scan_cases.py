@@ -818,7 +818,7 @@ def test_publication_eval_action_uses_bounded_analysis_for_clear_continue_write_
 
     assert action.action_type == "bounded_analysis"
     assert action.priority == "now"
-def test_publication_eval_action_uses_same_line_route_back_for_blocked_reviewer_first_surface() -> None:
+def test_publication_eval_action_requires_specificity_for_generic_reviewer_first_surface() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
 
     action = module._publication_eval_action(
@@ -833,13 +833,14 @@ def test_publication_eval_action_uses_same_line_route_back_for_blocked_reviewer_
         evidence_refs=("/tmp/main_result.json",),
     )
 
-    assert action.action_type == "route_back_same_line"
+    assert action.action_type == "return_to_controller"
     assert action.reason == "稿件书写面还有医学论文表达硬阻塞，需要继续修文。"
-    assert action.route_target == "write"
-    assert action.route_key_question == "What is the narrowest same-line manuscript repair or continuation step required now?"
-    assert action.route_rationale == "稿件书写面还有医学论文表达硬阻塞，需要继续修文。"
+    assert action.route_target is None
+    assert action.route_key_question is None
+    assert action.route_rationale is None
+    assert action.to_dict()["next_work_unit"]["unit_id"] == "gate_needs_specificity"
     assert action.priority == "now"
-def test_publication_eval_action_uses_bounded_analysis_for_blocked_claim_evidence_route() -> None:
+def test_publication_eval_action_requires_specificity_for_generic_claim_evidence_route() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
 
     action = module._publication_eval_action(
@@ -854,14 +855,14 @@ def test_publication_eval_action_uses_bounded_analysis_for_blocked_claim_evidenc
         evidence_refs=("/tmp/main_result.json",),
     )
 
-    assert action.action_type == "bounded_analysis"
-    assert action.action_id.startswith("publication-eval-action::bounded_analysis::publication-blockers::")
+    assert action.action_type == "return_to_controller"
+    assert action.action_id.startswith("publication-eval-action::return_to_controller::publication-blockers::")
     assert action.to_dict()["work_unit_fingerprint"].startswith("publication-blockers::")
-    assert action.to_dict()["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
-    assert action.to_dict()["blocking_work_units"][0]["unit_id"] == "analysis_claim_evidence_repair"
+    assert action.to_dict()["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert action.to_dict()["blocking_work_units"][0]["unit_id"] == "gate_needs_specificity"
     assert action.reason == "当前 claim-evidence 对齐还不够，需要补一轮最小补充分析。"
-    assert action.route_target == "analysis-campaign"
-    assert action.route_key_question == "What is the narrowest supplementary analysis still required before the paper line can continue?"
+    assert action.route_target is None
+    assert action.route_key_question is None
 
 
 def test_publication_eval_action_does_not_dispatch_bounded_analysis_for_non_actionable_gate() -> None:

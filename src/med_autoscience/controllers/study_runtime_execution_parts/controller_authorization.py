@@ -346,6 +346,17 @@ def _controller_decision_authorization_dedupe_key(
     return f"controller-decision-authorization:{hashlib.sha256(encoded).hexdigest()}"
 
 
+def _controller_work_unit_lifecycle_projection(lifecycle: dict[str, Any] | None) -> dict[str, Any]:
+    payload = lifecycle if isinstance(lifecycle, dict) else {}
+    return {
+        "lifecycle_state": str(payload.get("lifecycle_state") or "new").strip() or "new",
+        "latest_event_type": payload.get("latest_event_type"),
+        "delivery_blocked": bool(payload.get("delivery_blocked")),
+        "block_reason": payload.get("block_reason"),
+        "terminal_consumed": bool(payload.get("terminal_consumed")),
+    }
+
+
 def _controller_decision_authorization_message(*, authorization_context: dict[str, Any]) -> str:
     route_target = str(authorization_context.get("route_target") or "").strip()
     route_target_label = str(authorization_context.get("route_target_label") or route_target).strip()
@@ -464,6 +475,9 @@ def _mark_controller_decision_authorization_relayed(
         "delivery_mode": delivery_mode,
         "message_id": message_id,
         "source": source,
+        "controller_work_unit_lifecycle": _controller_work_unit_lifecycle_projection(
+            authorization_context.get("controller_work_unit_lifecycle")
+        ),
     }
     _write_runtime_state(quest_root=quest_root, runtime_state=runtime_state)
 
@@ -562,6 +576,7 @@ def _relay_controller_decision_authorization_if_required(
         study_root=context.study_root,
         authorization_context=authorization_context,
     )
+    authorization_context["controller_work_unit_lifecycle"] = lifecycle
     if bool(lifecycle.get("delivery_blocked")):
         control_intent.append_skipped_duplicate_if_needed(
             study_root=context.study_root,

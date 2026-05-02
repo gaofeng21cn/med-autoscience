@@ -3,7 +3,30 @@ from __future__ import annotations
 import importlib
 
 
-def test_blocked_claim_evidence_route_produces_analysis_campaign_work_unit() -> None:
+def test_blocked_claim_evidence_route_requires_specificity_when_gate_only_names_generic_claim_label() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "current_required_action": "return_to_publishability_gate",
+            "medical_publication_surface_named_blockers": [
+                "claim_evidence_consistency_failed",
+            ],
+            "medical_publication_surface_route_back_recommendation": "return_to_analysis_campaign",
+        }
+    )
+
+    assert result["fingerprint"].startswith("publication-blockers::")
+    assert result["next_work_unit"] == {
+        "unit_id": "gate_needs_specificity",
+        "lane": "controller",
+        "summary": "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets.",
+    }
+    assert result["actionability_status"] == "blocked_by_non_actionable_gate"
+
+
+def test_blocked_claim_evidence_route_produces_analysis_campaign_work_unit_for_specific_contract_gaps() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 
     result = module.derive_publication_work_units(
@@ -15,21 +38,16 @@ def test_blocked_claim_evidence_route_produces_analysis_campaign_work_unit() -> 
                 "storyline_evidence_map_missing",
                 "figure_results_trace_incomplete",
             ],
+            "blocking_artifact_refs": [{"source_path": "paper/contracts/storyline_evidence_map.json"}],
             "medical_publication_surface_route_back_recommendation": "return_to_analysis_campaign",
         }
     )
 
-    assert result["fingerprint"].startswith("publication-blockers::")
     assert result["next_work_unit"] == {
         "unit_id": "analysis_claim_evidence_repair",
         "lane": "analysis-campaign",
         "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
     }
-    assert [unit["unit_id"] for unit in result["blocking_work_units"]] == [
-        "analysis_claim_evidence_repair",
-        "manuscript_story_repair",
-        "figure_results_trace_repair",
-    ]
 
 
 def test_bundle_stage_stale_submission_package_produces_finalize_refresh_work_unit() -> None:
@@ -226,7 +244,7 @@ def test_same_blocker_set_has_stable_order_independent_fingerprint() -> None:
     assert first["fingerprint"] == second["fingerprint"]
 
 
-def test_analysis_work_unit_fingerprint_ignores_downstream_delivery_blocker_churn() -> None:
+def test_generic_analysis_labels_with_downstream_delivery_churn_require_specificity_before_dispatch() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 
     with_delivery_churn = module.derive_publication_work_units(
@@ -249,9 +267,12 @@ def test_analysis_work_unit_fingerprint_ignores_downstream_delivery_blocker_chur
         }
     )
 
-    assert with_delivery_churn["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert with_delivery_churn["next_work_unit"]["unit_id"] == "gate_needs_specificity"
     assert with_delivery_churn["fingerprint"] == claim_only["fingerprint"]
-    assert with_delivery_churn["fingerprint_blockers"] == ["claim_evidence_consistency_failed"]
+    assert with_delivery_churn["fingerprint_blockers"] == [
+        "claim_evidence_consistency_failed",
+        "medical_publication_surface_blocked",
+    ]
 
 
 def test_non_actionable_gate_labels_require_specificity_before_dispatch() -> None:
@@ -277,4 +298,29 @@ def test_non_actionable_gate_labels_require_specificity_before_dispatch() -> Non
     assert result["specificity_questions"] == [
         "Which exact claim, figure, table, metric, citation, evidence row, or package artifact is blocking the gate?",
         "Which durable source path proves the blocker and which controller surface should own the repair?",
+    ]
+
+
+def test_mixed_generic_publication_blockers_require_specificity_before_analysis_dispatch() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "blockers": [
+                "medical_publication_surface_blocked",
+                "claim_evidence_consistency_failed",
+                "reviewer_first_concerns_unresolved",
+            ],
+        }
+    )
+
+    assert result["actionability_status"] == "blocked_by_non_actionable_gate"
+    assert result["next_work_unit"] == {
+        "unit_id": "gate_needs_specificity",
+        "lane": "controller",
+        "summary": "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets.",
+    }
+    assert "analysis_claim_evidence_repair" not in [
+        unit["unit_id"] for unit in result["blocking_work_units"]
     ]

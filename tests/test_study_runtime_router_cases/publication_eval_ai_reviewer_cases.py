@@ -284,6 +284,7 @@ def test_study_runtime_status_refreshes_publication_eval_when_gate_returns_to_pu
     assert payload["assessment_provenance"]["owner"] == "mechanical_projection"
     assert payload["assessment_provenance"]["ai_reviewer_required"] is True
     assert payload["emitted_at"] == "2026-04-30T12:30:58+00:00"
-    assert payload["recommended_actions"][0]["route_target"] == "analysis-campaign"
+    assert "route_target" not in payload["recommended_actions"][0]
+    assert payload["recommended_actions"][0]["next_work_unit"]["unit_id"] == "gate_needs_specificity"
 
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]
