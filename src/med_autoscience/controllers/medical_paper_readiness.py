@@ -132,24 +132,40 @@ def _validate_bounded_board(payload: Mapping[str, Any]) -> tuple[str, str]:
 
 def _validate_stop_loss_memo(payload: Mapping[str, Any]) -> tuple[str, str]:
     if payload.get("surface") in {"route_control_stoploss", "stop_loss_memo"}:
-        if payload.get("quality_claim_authorized") is not False:
-            return "blocked", "quality_claim_authorized_by_projection"
-        if payload.get("decision_allowed") is False:
-            blockers = payload.get("blockers")
-            if isinstance(blockers, list) and blockers:
-                return "blocked", _text(blockers[0]) or "route_control_decision_blocked"
-            return "blocked", "route_control_decision_blocked"
-        route_inputs = _mapping(payload.get("route_control_inputs")) or payload
-        if not _has_any_text(route_inputs.get("attempted_paths")):
-            return "blocked", "missing_attempted_paths"
-        if not _has_text(route_inputs.get("evidence_gain_ceiling")):
-            return "blocked", "missing_evidence_gain_ceiling"
-        if not _has_text(payload.get("decision")):
-            return "blocked", "missing_decision"
-        return "present", ""
-    if not _has_any_text(payload.get("attempted_paths")):
+        return _validate_route_control_stop_loss_payload(payload)
+    return _validate_legacy_stop_loss_payload(payload)
+
+
+def _validate_route_control_stop_loss_payload(payload: Mapping[str, Any]) -> tuple[str, str]:
+    if payload.get("quality_claim_authorized") is not False:
+        return "blocked", "quality_claim_authorized_by_projection"
+    if payload.get("decision_allowed") is False:
+        return "blocked", _route_control_decision_blocker(payload)
+    return _validate_stop_loss_required_inputs(
+        payload=payload,
+        route_inputs=_mapping(payload.get("route_control_inputs")) or payload,
+    )
+
+
+def _route_control_decision_blocker(payload: Mapping[str, Any]) -> str:
+    blockers = payload.get("blockers")
+    if isinstance(blockers, list) and blockers:
+        return _text(blockers[0]) or "route_control_decision_blocked"
+    return "route_control_decision_blocked"
+
+
+def _validate_legacy_stop_loss_payload(payload: Mapping[str, Any]) -> tuple[str, str]:
+    return _validate_stop_loss_required_inputs(payload=payload, route_inputs=payload)
+
+
+def _validate_stop_loss_required_inputs(
+    *,
+    payload: Mapping[str, Any],
+    route_inputs: Mapping[str, Any],
+) -> tuple[str, str]:
+    if not _has_any_text(route_inputs.get("attempted_paths")):
         return "blocked", "missing_attempted_paths"
-    if not _has_text(payload.get("evidence_gain_ceiling")):
+    if not _has_text(route_inputs.get("evidence_gain_ceiling")):
         return "blocked", "missing_evidence_gain_ceiling"
     if not _has_text(payload.get("decision")):
         return "blocked", "missing_decision"
