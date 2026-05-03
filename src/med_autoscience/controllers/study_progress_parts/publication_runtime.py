@@ -285,13 +285,28 @@ def _runtime_module_surface(
 ) -> dict[str, Any]:
     manual_finish_active = _manual_finish_active(manual_finish_contract)
     runtime_parked = bool((auto_runtime_parked or {}).get("parked"))
+    runtime_health_snapshot = _mapping_copy(status.get("runtime_health_snapshot"))
+    runtime_health_action = _non_empty_text(runtime_health_snapshot.get("canonical_runtime_action"))
+    runtime_health_attempt_state = _non_empty_text(runtime_health_snapshot.get("attempt_state"))
+    retry_budget_remaining = runtime_health_snapshot.get("retry_budget_remaining")
+    if runtime_health_action == "escalate_runtime" or (
+        runtime_health_attempt_state == "escalated"
+        and retry_budget_remaining == 0
+    ):
+        dominant_runtime_health_status = "escalated"
+    elif runtime_health_action == "recover_runtime" or runtime_health_attempt_state == "recovering":
+        dominant_runtime_health_status = "recovering"
+    else:
+        dominant_runtime_health_status = None
     runtime_health_status = (
         "parked"
         if runtime_parked
         else (
             _non_empty_text(status.get("runtime_liveness_status")) or "none"
             if manual_finish_active
-            else _non_empty_text((runtime_supervision_payload or {}).get("health_status")) or "unknown"
+            else dominant_runtime_health_status
+            or _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
+            or "unknown"
         )
     )
     current_required_action = (
@@ -306,7 +321,11 @@ def _runtime_module_surface(
         current_stage_summary
         if manual_finish_active or runtime_parked
         else (
-            _display_text((runtime_supervision_payload or {}).get("summary"))
+            (
+                None
+                if dominant_runtime_health_status is not None
+                else _display_text((runtime_supervision_payload or {}).get("summary"))
+            )
             or current_stage_summary
             or next_system_action
         )
@@ -315,7 +334,11 @@ def _runtime_module_surface(
         next_system_action
         if manual_finish_active or runtime_parked
         else (
-            _display_text((runtime_supervision_payload or {}).get("next_action_summary"))
+            (
+                None
+                if dominant_runtime_health_status is not None
+                else _display_text((runtime_supervision_payload or {}).get("next_action_summary"))
+            )
             or next_system_action
             or current_stage_summary
         )

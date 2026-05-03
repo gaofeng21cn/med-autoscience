@@ -136,6 +136,53 @@ def test_runtime_supervision_refresh_preserves_recovering_target(tmp_path: Path)
     )
 
     assert module._should_refresh_runtime_supervision_from_status(status=status, study_root=study_root) is True
+
+
+def test_runtime_supervision_refresh_uses_runtime_health_recovery_target_for_strict_live_timeout(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    study_root = tmp_path / "studies" / "001-risk"
+    latest_report_path = study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
+    latest_report_path.parent.mkdir(parents=True, exist_ok=True)
+    latest_report_path.write_text(
+        json.dumps(
+            {
+                "health_status": "live",
+                "runtime_liveness_status": "live",
+                "runtime_decision": "noop",
+                "runtime_reason": "quest_already_running",
+                "quest_status": "running",
+                "active_run_id": "run-live-stale",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    status = module.StudyRuntimeStatus.from_payload(
+        make_status_payload(
+            study_root=str(study_root),
+            quest_status="running",
+            decision="noop",
+            reason="quest_already_running",
+            runtime_liveness_audit={
+                "status": "live",
+                "active_run_id": "run-live-stale",
+                "runtime_audit": {
+                    "status": "live",
+                    "active_run_id": "run-live-stale",
+                    "worker_running": True,
+                },
+            },
+            runtime_health_snapshot={
+                "canonical_runtime_action": "recover_runtime",
+                "attempt_state": "recovering",
+                "retry_budget_remaining": 2,
+            },
+        )
+    )
+
+    assert module._should_refresh_runtime_supervision_from_status(status=status, study_root=study_root) is True
 def test_study_runtime_status_round_trips_through_typed_state() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     payload = make_status_payload(

@@ -332,8 +332,54 @@ def materialize_runtime_supervision(
         if quest_id is not None
         else None
     )
+    runtime_health_action = _non_empty_text((runtime_health_snapshot or {}).get("canonical_runtime_action"))
+    runtime_health_attempt_state = _non_empty_text((runtime_health_snapshot or {}).get("attempt_state"))
+    runtime_health_retry_budget_remaining = (
+        (runtime_health_snapshot or {}).get("retry_budget_remaining")
+        if isinstance((runtime_health_snapshot or {}).get("retry_budget_remaining"), int)
+        else None
+    )
+    runtime_health_escalated = runtime_health_action == "escalate_runtime" or (
+        runtime_health_attempt_state == "escalated"
+        and runtime_health_retry_budget_remaining == 0
+    )
+    runtime_health_worker_state = _non_empty_text(((runtime_health_snapshot or {}).get("worker_liveness_state") or {}).get("state"))
+    runtime_health_recovering = (
+        strict_live
+        and (runtime_health_action == "recover_runtime" or runtime_health_attempt_state == "recovering")
+    )
 
-    if strict_live:
+    if runtime_health_escalated:
+        health_status = "escalated"
+        last_transition = "runtime_health_retry_budget_exhausted"
+        consecutive_failure_count = max(previous_failure_count, 2)
+        recovery_attempt_count = max(
+            previous_attempt_count,
+            _int_or_zero((runtime_health_snapshot or {}).get("attempt_count")),
+        )
+        needs_human_intervention = True
+        summary = "托管运行时恢复重试预算已耗尽，必须人工介入。"
+        clinician_update = "系统确认 runtime health 已升级为人工复核，当前不能继续普通监管空转。"
+        next_action = "manual_intervention_required"
+        next_action_summary = "需要人工介入；请回到 MAS 控制面确认当前托管运行策略，并决定是否暂停、重启或接管。"
+    elif runtime_health_recovering:
+        health_status = "recovering"
+        last_transition = "runtime_health_recovery_required"
+        consecutive_failure_count = 0
+        recovery_attempt_count = max(
+            previous_attempt_count,
+            _int_or_zero((runtime_health_snapshot or {}).get("attempt_count")),
+        )
+        needs_human_intervention = False
+        if runtime_health_worker_state == "activity_timeout":
+            summary = "live worker 已超过 meaningful artifact delta 活动窗口，系统正在恢复 runtime 产物增量。"
+            clinician_update = "系统确认 live worker 仍在线，但 runtime health 要求先恢复 meaningful artifact delta。"
+        else:
+            summary = "系统正在自动启动或恢复托管运行。"
+            clinician_update = "系统正在推进托管运行进入可监督的 live 状态。"
+        next_action = "wait_for_runtime_recovery_confirmation"
+        next_action_summary = "等待下一次巡检确认 worker 已重新上线并恢复 live。"
+    elif strict_live:
         health_status = "live"
         last_transition = "recovered" if previous_health_status in {"recovering", "degraded", "escalated"} else "live_confirmed"
         consecutive_failure_count = 0

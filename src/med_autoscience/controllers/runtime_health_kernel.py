@@ -573,7 +573,12 @@ def _snapshot_from_events(
     live_activity_timeout = worker_state["state"] == "activity_timeout"
     retry_budget_remaining = max(MAX_RECOVERY_ATTEMPTS - max(attempt_count, failed_attempts), 0)
 
-    if live_activity_timeout:
+    if escalation_event is not None or failed_attempts >= MAX_RECOVERY_ATTEMPTS:
+        attempt_state = "escalated"
+        canonical_runtime_action = "escalate_runtime"
+        retry_budget_remaining = 0
+        blocking_reasons.append("runtime_recovery_retry_budget_exhausted")
+    elif live_activity_timeout:
         attempt_state = "recovering"
         canonical_runtime_action = "recover_runtime"
     elif strict_live:
@@ -583,11 +588,6 @@ def _snapshot_from_events(
     elif reason == "quest_stopped_requires_explicit_rerun":
         attempt_state = "awaiting_explicit_resume"
         canonical_runtime_action = "await_explicit_resume"
-    elif escalation_event is not None or failed_attempts >= MAX_RECOVERY_ATTEMPTS:
-        attempt_state = "escalated"
-        canonical_runtime_action = "escalate_runtime"
-        retry_budget_remaining = 0
-        blocking_reasons.append("runtime_recovery_retry_budget_exhausted")
     elif missing_live_session:
         attempt_state = "recovering"
         canonical_runtime_action = "recover_runtime"

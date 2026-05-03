@@ -696,7 +696,20 @@ def _should_refresh_runtime_supervision_from_status(
     decision = str(status_payload.get("decision") or "").strip() or None
     reason = str(status_payload.get("reason") or "").strip() or None
     quest_status = str(status_payload.get("quest_status") or "").strip() or None
-    if strict_live:
+    runtime_health_snapshot = status_payload.get("runtime_health_snapshot")
+    if not isinstance(runtime_health_snapshot, dict):
+        runtime_health_snapshot = {}
+    runtime_health_action = str(runtime_health_snapshot.get("canonical_runtime_action") or "").strip() or None
+    runtime_health_attempt_state = str(runtime_health_snapshot.get("attempt_state") or "").strip() or None
+    retry_budget_remaining = runtime_health_snapshot.get("retry_budget_remaining")
+    if runtime_health_action == "escalate_runtime" or (
+        runtime_health_attempt_state == "escalated"
+        and retry_budget_remaining == 0
+    ):
+        target_health_status = "escalated"
+    elif runtime_health_action == "recover_runtime" or runtime_health_attempt_state == "recovering":
+        target_health_status = "recovering"
+    elif strict_live:
         target_health_status = "live"
     elif runtime_supervision_controller.needs_recovery_projection(status_payload, strict_live=strict_live):
         target_health_status = "recovering"
