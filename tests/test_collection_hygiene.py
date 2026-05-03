@@ -107,4 +107,4 @@ def test_aggregate_collection_surfaces_hold_expected_collection_count() -> None:
     collected_lines = [line for line in result.stdout.splitlines() if "::" in line]
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert len(collected_lines) == 124
+    assert len(collected_lines) == 126

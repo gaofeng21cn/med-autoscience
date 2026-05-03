@@ -33,7 +33,7 @@ jobs:
       - name: Summarize regression lane duration
         if: always()
         continue-on-error: true
-        run: scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
+        run: uv run python scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload regression lane summary
         if: always()
@@ -71,7 +71,7 @@ jobs:
       - name: Summarize meta lane duration
         if: always()
         continue-on-error: true
-        run: scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
+        run: uv run python scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload meta lane summary
         if: always()
@@ -109,7 +109,7 @@ jobs:
       - name: Summarize family lane duration
         if: always()
         continue-on-error: true
-        run: scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
+        run: uv run python scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload family lane summary
         if: always()
@@ -157,7 +157,7 @@ jobs:
       - name: Summarize submission lane duration
         if: always()
         continue-on-error: true
-        run: scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
+        run: uv run python scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload submission lane summary
         if: always()
@@ -221,7 +221,7 @@ jobs:
       - name: Summarize display lane duration
         if: always()
         continue-on-error: true
-        run: scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
+        run: uv run python scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload display lane summary
         if: always()

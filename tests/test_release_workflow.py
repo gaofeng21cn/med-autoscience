@@ -177,7 +177,7 @@ def test_advisory_workflow_uploads_non_blocking_lane_summaries() -> None:
         )
         assert "if: always()" in summarize_step
         assert "continue-on-error: true" in summarize_step
-        assert 'scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"' in summarize_step
+        assert 'uv run python scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"' in summarize_step
         assert "if: always()" in upload_step
         assert "uses: actions/upload-artifact@v7" in upload_step
         assert "continue-on-error: true" in upload_step
@@ -222,7 +222,7 @@ def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     assert "product boundary, operator entry surfaces, runtime contracts, and maintenance records" in docs_readme
     assert "产品边界、操作入口、运行合同和维护记录" in docs_readme_zh
     assert "submission-facing DOCX/PDF" in preflight_doc
-    assert "`smoke`、`regression` 与 `ci-preflight`" in preflight_doc
+    assert "`smoke`、`regression`、`ci-preflight` 与 `structure`" in preflight_doc
     assert "`regression`、`display`、`submission`、`family` 与 `meta` lane 迁入 `macOS Advisory`" in preflight_doc
     assert "耗时预算只用于观察和提醒" in preflight_doc
     assert "不作为 push 阻塞条件" in preflight_doc
