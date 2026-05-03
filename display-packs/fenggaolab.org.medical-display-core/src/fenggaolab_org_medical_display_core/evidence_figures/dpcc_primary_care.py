@@ -287,7 +287,7 @@ def _render_python_phenotype_gap_structure_figure(
     panel_a_artist = _panel_label_artist(axes=composition_axes, label="A", panel_label_size=panel_label_size)
     panel_b_artist = _panel_label_artist(axes=gap_axes, label="B", panel_label_size=panel_label_size)
     top_margin = 0.86 - 0.06 * max(title_line_count - 1, 0) if title_artist is not None else 0.92
-    figure.subplots_adjust(left=0.08, right=0.96, top=max(0.72, top_margin), bottom=0.16, wspace=0.24)
+    figure.subplots_adjust(left=0.22, right=0.92, top=max(0.72, top_margin), bottom=0.16, wspace=0.24)
     figure.canvas.draw()
     renderer = figure.canvas.get_renderer()
 
@@ -549,7 +549,7 @@ def _render_python_site_held_out_stability_figure(
     panel_a_artist = _panel_label_artist(axes=transition_axes, label="A", panel_label_size=panel_label_size)
     panel_b_artist = _panel_label_artist(axes=coverage_axes, label="B", panel_label_size=panel_label_size)
     top_margin = 0.86 - 0.06 * max(title_line_count - 1, 0) if title_artist is not None else 0.92
-    figure.subplots_adjust(left=0.08, right=0.96, top=max(0.72, top_margin), bottom=0.18, wspace=0.24)
+    figure.subplots_adjust(left=0.16, right=0.96, top=max(0.72, top_margin), bottom=0.30, wspace=0.24)
     figure.canvas.draw()
     renderer = figure.canvas.get_renderer()
 

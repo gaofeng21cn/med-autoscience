@@ -177,7 +177,7 @@ def test_load_evidence_display_payload_accepts_dpcc_treatment_gap_alignment(tmp_
 
 
 @pytest.mark.parametrize(
-    ("template_short_id", "display_payload", "expected_panel_count", "expected_metric_key"),
+    ("template_short_id", "display_payload", "expected_panel_count", "expected_metric_key", "expected_qc_profile"),
     [
         (
             "phenotype_gap_structure_figure",
@@ -204,6 +204,7 @@ def test_load_evidence_display_payload_accepts_dpcc_treatment_gap_alignment(tmp_
             },
             2,
             "rows",
+            "publication_dpcc_phenotype_gap_structure",
         ),
         (
             "site_held_out_stability_figure",
@@ -257,6 +258,7 @@ def test_load_evidence_display_payload_accepts_dpcc_treatment_gap_alignment(tmp_
             },
             2,
             "transition_rows",
+            "publication_dpcc_transition_site_support",
         ),
         (
             "treatment_gap_alignment_figure",
@@ -283,6 +285,7 @@ def test_load_evidence_display_payload_accepts_dpcc_treatment_gap_alignment(tmp_
             },
             4,
             "panels",
+            "publication_dpcc_treatment_gap_alignment",
         ),
     ],
 )
@@ -292,8 +295,10 @@ def test_render_python_evidence_figure_materializes_dpcc_primary_care_templates(
     display_payload: dict[str, object],
     expected_panel_count: int,
     expected_metric_key: str,
+    expected_qc_profile: str,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    layout_qc = importlib.import_module("med_autoscience.display_layout_qc")
     output_png_path = tmp_path / f"{template_short_id}.png"
     output_pdf_path = tmp_path / f"{template_short_id}.pdf"
     layout_sidecar_path = tmp_path / f"{template_short_id}.layout.json"
@@ -312,3 +317,9 @@ def test_render_python_evidence_figure_materializes_dpcc_primary_care_templates(
     assert layout_sidecar["template_id"] == template_short_id
     assert len(layout_sidecar["panel_boxes"]) == expected_panel_count
     assert layout_sidecar["metrics"][expected_metric_key]
+    qc_result = layout_qc.run_display_layout_qc(
+        qc_profile=expected_qc_profile,
+        layout_sidecar=layout_sidecar,
+    )
+    assert qc_result["status"] == "pass", qc_result
+    assert qc_result["issues"] == []

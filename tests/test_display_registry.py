@@ -166,9 +166,9 @@ def test_time_to_event_multihorizon_calibration_panel_is_registered() -> None:
 @pytest.mark.parametrize(
     ("template_id", "expected_input_schema_id", "expected_qc_profile"),
     [
-        ("phenotype_gap_structure_figure", "dpcc_phenotype_gap_structure_v1", "publication_evidence_curve"),
-        ("site_held_out_stability_figure", "dpcc_transition_site_support_v1", "publication_survival_curve"),
-        ("treatment_gap_alignment_figure", "dpcc_treatment_gap_alignment_v1", "publication_evidence_curve"),
+        ("phenotype_gap_structure_figure", "dpcc_phenotype_gap_structure_v1", "publication_dpcc_phenotype_gap_structure"),
+        ("site_held_out_stability_figure", "dpcc_transition_site_support_v1", "publication_dpcc_transition_site_support"),
+        ("treatment_gap_alignment_figure", "dpcc_treatment_gap_alignment_v1", "publication_dpcc_treatment_gap_alignment"),
     ],
 )
 def test_dpcc_primary_care_figures_are_registered(
