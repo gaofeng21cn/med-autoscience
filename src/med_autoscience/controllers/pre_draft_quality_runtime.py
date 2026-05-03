@@ -7,6 +7,9 @@ from typing import Any
 from med_autoscience.controllers.medical_quality_operating_system import (
     build_quality_os_runtime_materialization_contract,
 )
+from med_autoscience.controllers.section_authoring_work_units import (
+    build_section_authoring_work_units,
+)
 from med_autoscience.publication_eval_reviewer_os import (
     validate_ai_reviewer_operating_system_trace,
 )
@@ -376,6 +379,15 @@ def build_pre_draft_quality_runtime_state(study_root: str | Path) -> dict[str, A
     blockers.extend(authoring_workplan_blockers)
     route_back_blockers.extend(authoring_workplan_blockers)
 
+    section_authoring_work_units = build_section_authoring_work_units(
+        study_root=resolved_study_root
+    )
+    section_authoring_blockers = [
+        str(item) for item in section_authoring_work_units["blockers"] if str(item)
+    ]
+    blockers.extend(section_authoring_blockers)
+    route_back_blockers.extend(section_authoring_blockers)
+
     if review_blockers:
         status = "review_required"
     elif route_back_blockers:
@@ -398,6 +410,7 @@ def build_pre_draft_quality_runtime_state(study_root: str | Path) -> dict[str, A
         "route_back": _route_back_for_status(status, blockers),
         "refs": refs,
         "authoring_workplan_projection": authoring_workplan_projection,
+        "section_authoring_work_units": section_authoring_work_units,
         "authority": {
             "source_contract": build_quality_os_runtime_materialization_contract(),
             "assessment_provenance": _provenance_summary(publication_eval),
