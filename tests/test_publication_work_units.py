@@ -73,6 +73,73 @@ def test_generic_claim_label_with_only_artifact_path_still_requires_specificity(
     assert result["actionability_status"] == "blocked_by_non_actionable_gate"
 
 
+def test_generic_claim_label_with_package_artifact_is_specific_enough_for_repair() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "medical_publication_surface_named_blockers": [
+                "claim_evidence_consistency_failed",
+            ],
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "claim_evidence_consistency_failed",
+                    "package_artifact": "current_package/tables/table_2.docx",
+                }
+            ],
+        }
+    )
+
+    assert result["actionability_status"] == "actionable"
+    assert result["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+
+
+def test_generic_claim_label_with_provenance_source_path_is_specific_enough_for_repair() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "medical_publication_surface_named_blockers": [
+                "claim_evidence_consistency_failed",
+            ],
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "claim_evidence_consistency_failed",
+                    "provenance_source_path": "paper/evidence_ledger.md",
+                }
+            ],
+        }
+    )
+
+    assert result["actionability_status"] == "actionable"
+    assert result["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+
+
+def test_generic_display_label_with_display_ref_is_specific_enough_for_repair() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "medical_publication_surface_named_blockers": [
+                "reviewer_first_concerns_unresolved",
+            ],
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "reviewer_first_concerns_unresolved",
+                    "display_ref": "Figure 2",
+                    "provenance_source_path": "paper/review/review_ledger.json",
+                }
+            ],
+        }
+    )
+
+    assert result["actionability_status"] == "actionable"
+    assert result["next_work_unit"]["unit_id"] == "manuscript_story_repair"
+
+
 def test_current_delivery_status_does_not_make_generic_gate_labels_actionable() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 
