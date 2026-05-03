@@ -210,6 +210,64 @@ def _completion_claim_policy() -> dict[str, Any]:
     }
 
 
+def _automated_medical_paper_chain() -> dict[str, Any]:
+    return {
+        "claim": "medical_paper_as_governed_research_state_machine",
+        "text_is_projection_not_authority": True,
+        "gate_relaxation_allowed": False,
+        "stable_components": [
+            {
+                "component_id": "mas_owner_truth",
+                "why_it_matters": "the study line needs a durable objective and claim boundary before automation can continue",
+                "authority_surface": "study_charter.paper_quality_contract",
+            },
+            {
+                "component_id": "mds_controlled_backend",
+                "why_it_matters": "long-running execution can be delegated without creating a second study owner",
+                "authority_role": "controlled_backend_oracle_intake_buffer",
+            },
+            {
+                "component_id": "durable_evidence_truth",
+                "why_it_matters": "claims, evidence, review concerns, and next actions must survive chat/session loss",
+                "authority_surfaces": [
+                    "paper/evidence_ledger.json",
+                    "paper/review_ledger.json",
+                    "artifacts/publication_eval/latest.json",
+                    "artifacts/controller_decisions/latest.json",
+                ],
+            },
+            {
+                "component_id": "ai_reviewer_quality_authority",
+                "why_it_matters": "scientific and prose quality are judgment tasks, not mechanical completion states",
+                "required_provenance": {
+                    "assessment_owner": "ai_reviewer",
+                    "policy_id": "medical_publication_critique_v1",
+                    "ai_reviewer_required": False,
+                },
+            },
+            {
+                "component_id": "canonical_source_first_artifact_authority",
+                "why_it_matters": "submission-facing files must be reproducible projections, not manual patch roots",
+                "derived_surfaces_not_authority": [
+                    "manuscript/current_package/",
+                    "submission_minimal/",
+                    "artifacts/final/",
+                ],
+            },
+        ],
+        "upstream_judgment_gap": {
+            "problem": "research_creativity_and_route_choice_are_less_stable_than_governance",
+            "must_strengthen": [
+                "literature_understanding",
+                "study_line_selection",
+                "analysis_design_discipline",
+                "stop_loss_reasoning",
+                "target_journal_writing_fit",
+            ],
+        },
+    }
+
+
 def _evidence_over_claims_gate() -> dict[str, Any]:
     return {
         "policy_id": "mas_evidence_over_claims_v1",
@@ -277,6 +335,196 @@ def _quality_preserving_fast_lane_policy() -> dict[str, Any]:
             "quality_closure_truth",
             "study_progress_projection",
         ],
+    }
+
+
+def _statistical_disciplines() -> list[dict[str, Any]]:
+    return [
+        {
+            "discipline_id": "missingness",
+            "why": "missingness changes the analyzed population and can reverse bias direction",
+            "required_record": [
+                "missingness_mechanism_assumption",
+                "handling_method",
+                "complete_case_or_imputation_rationale",
+                "sensitivity_analysis",
+            ],
+            "prevents": ["biased_cohort_interpretation", "inflated_model_performance"],
+        },
+        {
+            "discipline_id": "sample_size_precision",
+            "why": "medical claims need support from event counts, precision, or feasibility rationale, not significance alone",
+            "required_record": [
+                "sample_size_or_event_count",
+                "precision_or_confidence_interval",
+                "model_degrees_of_freedom_or_parameter_budget",
+                "power_precision_or_feasibility_rationale",
+            ],
+            "prevents": ["overclaiming_underpowered_results", "p_value_only_evidence"],
+        },
+        {
+            "discipline_id": "external_validation",
+            "why": "external validation separates local cohort findings from transportable medical conclusions",
+            "required_record": [
+                "validation_dataset_or_reason_unavailable",
+                "population_shift_assessment",
+                "performance_or_effect_transportability",
+                "claim_downgrade_when_absent",
+            ],
+            "prevents": ["single_cohort_generalization", "unqualified_model_claims"],
+        },
+        {
+            "discipline_id": "subgroup_analysis",
+            "why": "subgroups improve clinical interpretation only when tied to clinical rationale and multiplicity guardrails",
+            "required_record": [
+                "predeclared_or_clinically_justified_subgroups",
+                "interaction_or_heterogeneity_test",
+                "multiplicity_guardrail",
+                "exploratory_label_when_post_hoc",
+            ],
+            "prevents": ["post_hoc_subgroup_storytelling", "nominal_difference_as_core_claim"],
+        },
+        {
+            "discipline_id": "multiplicity",
+            "why": "automated analysis can create many nominal findings unless primary, secondary, and exploratory claims are separated",
+            "required_record": [
+                "primary_secondary_exploratory_labels",
+                "family_of_tests",
+                "adjustment_or_hierarchy_rationale",
+                "hypothesis_generating_limitations",
+            ],
+            "prevents": ["multiple_testing_false_discovery", "exploratory_result_as_confirmatory"],
+        },
+        {
+            "discipline_id": "clinical_utility",
+            "why": "statistical separation is not enough unless the result can change a clinical decision, workflow, or interpretation",
+            "required_record": [
+                "decision_curve_or_threshold_net_benefit",
+                "calibration_or_threshold_performance",
+                "workflow_or_resource_use_implication",
+                "clinical_interpretability_statement",
+            ],
+            "forbidden_shortcuts": ["AUC_or_p_value_alone_is_not_clinical_value"],
+            "prevents": ["metric_only_publication_claim", "unclear_clinical_use_case"],
+        },
+        {
+            "discipline_id": "endpoint_time_window",
+            "why": "endpoint definition and prediction or exposure time window define the clinical question itself",
+            "required_record": [
+                "endpoint_definition",
+                "index_time",
+                "prediction_or_followup_horizon",
+                "clinical_use_timing",
+            ],
+            "prevents": ["ambiguous_clinical_question", "time_leakage_or_misplaced_use_case"],
+        },
+        {
+            "discipline_id": "sensitivity_robustness",
+            "why": "main findings should survive plausible cohort, missingness, outlier, model, or competing-explanation pressure",
+            "required_record": [
+                "cohort_definition_sensitivity",
+                "missingness_or_outlier_sensitivity",
+                "model_specification_sensitivity",
+                "competing_explanation_check",
+            ],
+            "prevents": ["fragile_primary_claim", "unexamined_alternative_explanation"],
+        },
+    ]
+
+
+def _archetype_requirements() -> dict[str, list[str]]:
+    return {
+        "clinical_classifier": [
+            "discrimination",
+            "calibration",
+            "decision_curve_or_net_benefit",
+            "subgroup_performance",
+            "interpretability",
+            "external_validation_or_claim_downgrade",
+        ],
+        "clinical_subtype_reconstruction": [
+            "subtype_stability",
+            "between_subtype_clinical_difference",
+            "prognosis_or_treatment_response_contrast",
+            "subtype_identifier",
+            "clinical_interpretability",
+        ],
+        "external_validation_model_update": [
+            "original_model_reconstruction",
+            "external_performance",
+            "recalibration_or_model_update",
+            "case_mix_shift",
+            "transportability_limitations",
+        ],
+        "gray_zone_triage": [
+            "rule_out_threshold",
+            "rule_in_threshold",
+            "gray_zone_accounting",
+            "safety_tradeoff",
+            "resource_use_implication",
+        ],
+        "llm_agent_clinical_task": [
+            "task_definition",
+            "baseline_comparison",
+            "case_level_error_taxonomy",
+            "subgroup_or_scenario_performance",
+            "clinical_safety_boundary",
+        ],
+        "mechanistic_sidecar_extension": [
+            "main_clinical_route_linkage",
+            "pathway_or_functional_support",
+            "public_data_support",
+            "mechanism_claim_restraint",
+        ],
+    }
+
+
+def _archetype_analysis_contract() -> dict[str, Any]:
+    return {
+        "surface": "archetype_specific_analysis_contract",
+        "required_before": "analysis-campaign",
+        "gate_relaxation_allowed": False,
+        "analysis_is_not_work_volume": "each analysis must close a claim, reviewer concern, or publication gate blocker",
+        "statistical_disciplines": _statistical_disciplines(),
+        "archetype_requirements": _archetype_requirements(),
+    }
+
+
+def _bounded_analysis_decision_contract() -> dict[str, Any]:
+    return {
+        "surface": "bounded_analysis_decision_contract",
+        "route_meanings": ["explore", "exploit", "fusion", "debug", "stop"],
+        "candidate_board_required_fields": [
+            "candidate_id",
+            "route_meaning",
+            "target_claim_or_concern",
+            "expected_evidence_gain",
+            "cost_and_risk",
+            "clinical_interpretability",
+            "decision",
+            "decision_reason",
+        ],
+        "plateau_stop_triggers": [
+            "new_analysis_repeats_existing_result",
+            "evidence_gain_cannot_close_claim_or_reviewer_concern",
+            "analysis_would_break_study_charter_or_data_permission",
+            "claim_requires_post_hoc_storytelling",
+        ],
+        "stop_loss_memo": {
+            "required_when": [
+                "publication_eval_overall_verdict_weak_or_blocked",
+                "stop_loss_pressure_high",
+                "bounded_analysis_plateau",
+            ],
+            "required_fields": [
+                "attempted_paths",
+                "failure_reason",
+                "evidence_gain_ceiling",
+                "continuation_cost_and_risk",
+                "alternative_routes",
+                "human_gate_question",
+            ],
+        },
     }
 
 
@@ -401,6 +649,7 @@ def build_medical_quality_operating_system_contract(
             "owner_surface": "study_charter.paper_quality_contract",
             "gate_relaxation_allowed": False,
             "authority_surfaces": _authority_surfaces(),
+            "automated_medical_paper_chain": _automated_medical_paper_chain(),
             "evidence_ledger": {
                 "surface": "paper/evidence_ledger.json",
                 "required_status": "closed",
@@ -428,6 +677,8 @@ def build_medical_quality_operating_system_contract(
                 guideline_family=primary_guideline_family,
                 manuscript_family=manuscript_family,
             ),
+            "archetype_analysis_contract": _archetype_analysis_contract(),
+            "bounded_analysis_decision_contract": _bounded_analysis_decision_contract(),
             "stronger_paper_shape_scan": _stronger_paper_shape_scan(),
             "completion_claim_policy": _completion_claim_policy(),
             "quality_runtime_materialization": build_quality_os_runtime_materialization_contract(),

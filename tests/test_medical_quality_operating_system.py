@@ -264,3 +264,155 @@ def test_quality_os_materializes_default_runtime_quality_flow_contract() -> None
         "medical_prose_review": "artifacts/publication_eval/medical_prose_review.json",
         "controller_decision": "artifacts/controller_decisions/latest.json",
     }
+
+
+def test_quality_os_explains_automated_medical_paper_chain_without_lowering_authority() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.medical_quality_operating_system"
+    )
+
+    contract = module.build_medical_quality_operating_system_contract(
+        study_archetype="clinical_classifier",
+        manuscript_family="prediction_model",
+    )
+
+    automation_chain = contract["quality_contract"]["automated_medical_paper_chain"]
+    assert automation_chain["claim"] == "medical_paper_as_governed_research_state_machine"
+    assert automation_chain["text_is_projection_not_authority"] is True
+    assert automation_chain["gate_relaxation_allowed"] is False
+    assert [item["component_id"] for item in automation_chain["stable_components"]] == [
+        "mas_owner_truth",
+        "mds_controlled_backend",
+        "durable_evidence_truth",
+        "ai_reviewer_quality_authority",
+        "canonical_source_first_artifact_authority",
+    ]
+    assert automation_chain["stable_components"][0]["authority_surface"] == (
+        "study_charter.paper_quality_contract"
+    )
+    assert automation_chain["stable_components"][1]["authority_role"] == (
+        "controlled_backend_oracle_intake_buffer"
+    )
+    assert automation_chain["stable_components"][2]["authority_surfaces"] == [
+        "paper/evidence_ledger.json",
+        "paper/review_ledger.json",
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+    ]
+    assert automation_chain["stable_components"][3]["required_provenance"] == {
+        "assessment_owner": "ai_reviewer",
+        "policy_id": "medical_publication_critique_v1",
+        "ai_reviewer_required": False,
+    }
+    assert automation_chain["stable_components"][4]["derived_surfaces_not_authority"] == [
+        "manuscript/current_package/",
+        "submission_minimal/",
+        "artifacts/final/",
+    ]
+    assert automation_chain["upstream_judgment_gap"] == {
+        "problem": "research_creativity_and_route_choice_are_less_stable_than_governance",
+        "must_strengthen": [
+            "literature_understanding",
+            "study_line_selection",
+            "analysis_design_discipline",
+            "stop_loss_reasoning",
+            "target_journal_writing_fit",
+        ],
+    }
+
+
+def test_quality_os_includes_archetype_specific_analysis_discipline() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.medical_quality_operating_system"
+    )
+
+    contract = module.build_medical_quality_operating_system_contract(
+        study_archetype="clinical_subtype_reconstruction",
+        manuscript_family="observational_study",
+    )
+
+    analysis_contract = contract["quality_contract"]["archetype_analysis_contract"]
+    assert analysis_contract["surface"] == "archetype_specific_analysis_contract"
+    assert analysis_contract["required_before"] == "analysis-campaign"
+    assert analysis_contract["gate_relaxation_allowed"] is False
+    assert analysis_contract["analysis_is_not_work_volume"] == (
+        "each analysis must close a claim, reviewer concern, or publication gate blocker"
+    )
+    assert [item["discipline_id"] for item in analysis_contract["statistical_disciplines"]] == [
+        "missingness",
+        "sample_size_precision",
+        "external_validation",
+        "subgroup_analysis",
+        "multiplicity",
+        "clinical_utility",
+        "endpoint_time_window",
+        "sensitivity_robustness",
+    ]
+    missingness = analysis_contract["statistical_disciplines"][0]
+    assert missingness["why"] == (
+        "missingness changes the analyzed population and can reverse bias direction"
+    )
+    assert missingness["required_record"] == [
+        "missingness_mechanism_assumption",
+        "handling_method",
+        "complete_case_or_imputation_rationale",
+        "sensitivity_analysis",
+    ]
+    clinical_utility = next(
+        item
+        for item in analysis_contract["statistical_disciplines"]
+        if item["discipline_id"] == "clinical_utility"
+    )
+    assert "AUC_or_p_value_alone_is_not_clinical_value" in clinical_utility["forbidden_shortcuts"]
+    assert "decision_curve_or_threshold_net_benefit" in clinical_utility["required_record"]
+    assert analysis_contract["archetype_requirements"]["clinical_subtype_reconstruction"] == [
+        "subtype_stability",
+        "between_subtype_clinical_difference",
+        "prognosis_or_treatment_response_contrast",
+        "subtype_identifier",
+        "clinical_interpretability",
+    ]
+
+
+def test_quality_os_bounded_analysis_requires_candidate_board_and_stop_loss_memo() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.medical_quality_operating_system"
+    )
+
+    contract = module.build_medical_quality_operating_system_contract(
+        study_archetype="gray_zone_triage",
+        manuscript_family="observational_study",
+    )
+
+    bounded = contract["quality_contract"]["bounded_analysis_decision_contract"]
+    assert bounded["surface"] == "bounded_analysis_decision_contract"
+    assert bounded["route_meanings"] == ["explore", "exploit", "fusion", "debug", "stop"]
+    assert bounded["candidate_board_required_fields"] == [
+        "candidate_id",
+        "route_meaning",
+        "target_claim_or_concern",
+        "expected_evidence_gain",
+        "cost_and_risk",
+        "clinical_interpretability",
+        "decision",
+        "decision_reason",
+    ]
+    assert bounded["plateau_stop_triggers"] == [
+        "new_analysis_repeats_existing_result",
+        "evidence_gain_cannot_close_claim_or_reviewer_concern",
+        "analysis_would_break_study_charter_or_data_permission",
+        "claim_requires_post_hoc_storytelling",
+    ]
+    assert bounded["stop_loss_memo"]["required_when"] == [
+        "publication_eval_overall_verdict_weak_or_blocked",
+        "stop_loss_pressure_high",
+        "bounded_analysis_plateau",
+    ]
+    assert bounded["stop_loss_memo"]["required_fields"] == [
+        "attempted_paths",
+        "failure_reason",
+        "evidence_gain_ceiling",
+        "continuation_cost_and_risk",
+        "alternative_routes",
+        "human_gate_question",
+    ]

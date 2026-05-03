@@ -222,8 +222,7 @@ def list_tools() -> list[dict[str, Any]]:
                 "product_start, product_entry_manifest, build_product_entry, migration_audit, cleanup_apply, or "
                 "lifecycle_report. migration_audit is dry-run-only; cleanup_apply is contract-gated; "
                 "lifecycle_report is read-only unless a separate controller apply contract authorizes cleanup. "
-                "If the needed MAS contract is missing, stop and close the contract gap through a "
-                "controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution."
+                "If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution."
             ),
             "inputSchema": {
                 "type": "object",
