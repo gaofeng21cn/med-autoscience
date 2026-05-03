@@ -13,3 +13,4 @@ from .test_publication_gate_cases.journal_and_anchor_cases import *  # noqa: F40
 from .test_publication_gate_cases.supervisor_cases import *  # noqa: F403,F401
 from .test_publication_gate_cases.render_and_cli_cases import *  # noqa: F403,F401
 from .test_publication_gate_cases.deterministic_quality_gate_cases import *  # noqa: F403,F401
+from .test_publication_gate_cases.paper_root_authority_cases import *  # noqa: F403,F401
