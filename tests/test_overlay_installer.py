@@ -479,6 +479,42 @@ def test_ensure_medical_overlay_noops_when_targets_are_ready(tmp_path: Path) -> 
     assert result["post_status"]["all_targets_ready"] is True
 
 
+def test_ensure_medical_overlay_maintains_mds_stage_skills_when_workspace_overlay_is_ready(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    runtime_repo_root = tmp_path / "med-deepscientist"
+    quest_root = tmp_path / "workspace"
+    write_runtime_skill(runtime_repo_root, "write", "# DeepScientist write\n")
+    write_runtime_skill(runtime_repo_root, "optimize", "# DeepScientist optimize\n")
+
+    module.install_medical_overlay(
+        quest_root=quest_root,
+        med_deepscientist_repo_root=runtime_repo_root,
+        skill_ids=("write",),
+    )
+    shutil_root = quest_root / ".codex" / "skills" / "deepscientist-write"
+    if shutil_root.exists():
+        import shutil
+
+        shutil.rmtree(shutil_root)
+
+    result = module.ensure_medical_overlay(
+        quest_root=quest_root,
+        med_deepscientist_repo_root=runtime_repo_root,
+        skill_ids=("write",),
+        mode="ensure_ready",
+    )
+
+    assert result["selected_action"] == "noop"
+    assert result["action_result"] is None
+    assert result["mds_skill_sync"]["synced_count"] == 2
+    assert (
+        quest_root / ".codex" / "skills" / "deepscientist-write" / "SKILL.md"
+    ).read_text(encoding="utf-8") == "# DeepScientist write\n"
+    assert (
+        quest_root / ".codex" / "skills" / "deepscientist-optimize" / "SKILL.md"
+    ).read_text(encoding="utf-8") == "# DeepScientist optimize\n"
+
+
 def test_ensure_medical_overlay_reapplies_when_targets_are_drifted(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     home = tmp_path / "home"

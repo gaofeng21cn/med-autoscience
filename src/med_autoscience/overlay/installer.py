@@ -740,11 +740,12 @@ def ensure_medical_overlay(
     default_publication_profile: str | None = None,
     default_citation_style: str | None = None,
 ) -> dict[str, Any]:
+    normalized_skill_ids = _normalize_skill_ids(skill_ids)
     pre_status = describe_medical_overlay(
         quest_root=quest_root,
         home=home,
         med_deepscientist_repo_root=med_deepscientist_repo_root,
-        skill_ids=skill_ids,
+        skill_ids=normalized_skill_ids,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
         default_submission_targets=default_submission_targets,
@@ -752,6 +753,7 @@ def ensure_medical_overlay(
         default_citation_style=default_citation_style,
     )
     action_result: dict[str, Any] | None = None
+    mds_skill_sync: dict[str, Any] | None = None
     selected_action = "noop"
 
     if mode == "status_only":
@@ -778,7 +780,7 @@ def ensure_medical_overlay(
                 home=home,
                 authoritative_root=authoritative_root,
                 med_deepscientist_repo_root=med_deepscientist_repo_root,
-                skill_ids=skill_ids,
+                skill_ids=normalized_skill_ids,
                 policy_id=policy_id,
                 archetype_ids=archetype_ids,
                 default_submission_targets=default_submission_targets,
@@ -791,18 +793,28 @@ def ensure_medical_overlay(
                 home=home,
                 authoritative_root=authoritative_root,
                 med_deepscientist_repo_root=med_deepscientist_repo_root,
-                skill_ids=skill_ids,
+                skill_ids=normalized_skill_ids,
                 policy_id=policy_id,
                 archetype_ids=archetype_ids,
                 default_submission_targets=default_submission_targets,
                 default_publication_profile=default_publication_profile,
                 default_citation_style=default_citation_style,
             )
+        if action_result is not None:
+            raw_mds_sync = action_result.get("mds_skill_sync")
+            if isinstance(raw_mds_sync, dict):
+                mds_skill_sync = raw_mds_sync
+        elif selected_action == "noop":
+            mds_skill_sync = sync_mds_stage_skills(
+                quest_root=quest_root,
+                med_deepscientist_repo_root=med_deepscientist_repo_root,
+                skill_ids=normalized_skill_ids,
+            )
         post_status = (
             describe_medical_overlay(
                 quest_root=quest_root,
                 home=home,
-                skill_ids=skill_ids,
+                skill_ids=normalized_skill_ids,
                 policy_id=policy_id,
                 archetype_ids=archetype_ids,
                 default_submission_targets=default_submission_targets,
@@ -821,6 +833,7 @@ def ensure_medical_overlay(
         "pre_status": pre_status,
         "post_status": post_status,
         "action_result": action_result,
+        "mds_skill_sync": mds_skill_sync,
     }
 
 
