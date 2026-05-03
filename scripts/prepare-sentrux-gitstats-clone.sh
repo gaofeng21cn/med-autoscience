@@ -109,12 +109,10 @@ if [[ "${source_dirty}" -eq 1 ]]; then
 fi
 
 cleanup_target="$(printf '%q' "${tmp_root}")"
-cat <<OUTPUT
-sentrux_git_stats_clone=${clone_path}
-source_repo=${repo_root}
-source_head=${source_head}
-core_repositoryformatversion=${repo_format:-unset}
-extensions_relativeWorktrees=absent
-cleanup_command=rm -rf ${cleanup_target}
-mcp_usage=scan sentrux_git_stats_clone with Sentrux MCP, then run git_stats against that scan.
-OUTPUT
+printf 'sentrux_git_stats_clone=%s\n' "${clone_path}"
+printf 'source_repo=%s\n' "${repo_root}"
+printf 'source_head=%s\n' "${source_head}"
+printf 'core_repositoryformatversion=%s\n' "${repo_format:-unset}"
+printf 'extensions_relativeWorktrees=absent\n'
+printf 'cleanup_command=rm -rf %s\n' "${cleanup_target}"
+printf 'mcp_usage=scan sentrux_git_stats_clone with Sentrux MCP, then run git_stats against that scan.\n'
