@@ -132,3 +132,140 @@ def test_cleanup_apply_blocks_non_allowlisted_actions(tmp_path: Path) -> None:
     assert report["status"] == "blocked"
     assert cache_root.exists()
     assert "action_not_allowlisted" in report["apply_plan"][0]["blockers"]
+
+
+def test_cleanup_apply_missing_contract_has_no_planned_actions(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+
+    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+
+    assert report["status"] == "no_contract"
+    assert report["action_counts"] == {"planned": 0, "blocked": 0, "applied": 0, "mutating": 0}
+    assert report["workspaces"][0]["contract_present"] is False
+    assert report["apply_plan"] == []
+
+
+def test_cleanup_apply_blocks_targets_outside_workspace_after_resolve(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path)
+    outside_cache = tmp_path / "outside-cache"
+    outside_cache.mkdir()
+    (outside_cache / "cache.tmp").write_text("outside\n", encoding="utf-8")
+    contract_path = workspace_root / "control_plane_cleanup_apply.json"
+    payload = json.loads(contract_path.read_text(encoding="utf-8"))
+    payload["actions"][0]["target_path"] = "../outside-cache"
+    payload["actions"][0]["restore_contract"]["sha256"] = _dir_sha256(outside_cache)
+    contract_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+
+    assert report["status"] == "blocked"
+    assert cache_root.exists()
+    assert outside_cache.exists()
+    assert report["action_counts"]["applied"] == 0
+    assert "target_outside_workspace" in report["apply_plan"][0]["blockers"]
+
+
+def test_cleanup_apply_allowed_physical_actions_only_include_implemented_delete_safe_cache() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+
+    report = module.run_cleanup_apply(workspace_roots=[])
+
+    assert report["mutation_policy"]["allowed_physical_actions"] == ["delete-safe-cache"]
+
+
+def test_cleanup_apply_blocks_archive_even_when_contract_allowlists_it(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(
+        tmp_path,
+        action="archive",
+        allowlist=["archive"],
+    )
+
+    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+
+    assert report["status"] == "blocked"
+    assert cache_root.exists()
+    assert "action_not_allowlisted" in report["apply_plan"][0]["blockers"]
+
+
+def test_cleanup_apply_blocks_runtime_payload_without_restore_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(
+        tmp_path,
+        artifact_role="runtime_payload",
+        include_restore_contract=False,
+    )
+
+    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+
+    assert report["status"] == "blocked"
+    assert cache_root.exists()
+    assert "missing_restore_contract" in report["apply_plan"][0]["blockers"]
+
+
+def test_cleanup_apply_blocks_non_terminal_runtime_even_with_apply_intent(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path, runtime_status="starting")
+
+    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+
+    assert report["status"] == "blocked"
+    assert cache_root.exists()
+    assert report["action_counts"]["applied"] == 0
+    assert "runtime_not_terminal" in report["apply_plan"][0]["blockers"]
+
+
+def test_cleanup_apply_blocks_when_controller_intent_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path)
+    contract_path = workspace_root / "control_plane_cleanup_apply.json"
+    payload = json.loads(contract_path.read_text(encoding="utf-8"))
+    payload["controller_decision"] = {"decision": "audit_cleanup_apply", "apply_intent": False}
+    contract_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+
+    assert report["status"] == "blocked"
+    assert cache_root.exists()
+    assert report["action_counts"]["applied"] == 0
+    assert "controller_apply_intent_missing" in report["apply_plan"][0]["blockers"]
+
+
+def test_cleanup_apply_blocks_data_payload_without_checksum_restore_index_or_rehydrate_verification(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path, artifact_role="data_release")
+    contract_path = workspace_root / "control_plane_cleanup_apply.json"
+    payload = json.loads(contract_path.read_text(encoding="utf-8"))
+    payload["actions"][0]["restore_contract"] = {}
+    contract_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+
+    assert report["status"] == "blocked"
+    assert cache_root.exists()
+    assert report["action_counts"]["applied"] == 0
+    assert "missing_restore_contract" in report["apply_plan"][0]["blockers"]
+
+
+def test_cleanup_apply_blocks_runtime_payload_with_incomplete_restore_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path, artifact_role="runtime_payload")
+    contract_path = workspace_root / "control_plane_cleanup_apply.json"
+    payload = json.loads(contract_path.read_text(encoding="utf-8"))
+    payload["actions"][0]["restore_contract"] = {"restore_index_path": "missing.json"}
+    contract_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+
+    assert report["status"] == "blocked"
+    assert cache_root.exists()
+    assert report["action_counts"]["applied"] == 0
+    blockers = report["apply_plan"][0]["blockers"]
+    assert "missing_restore_index" in blockers
+    assert "missing_checksum" in blockers
+    assert "missing_rehydrate_verification" in blockers

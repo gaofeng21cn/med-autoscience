@@ -10,7 +10,7 @@ from typing import Any
 
 SCHEMA_VERSION = 1
 CONTRACT_NAME = "control_plane_cleanup_apply.json"
-ALLOWED_PHYSICAL_ACTIONS = frozenset({"archive", "compress", "delete-safe-cache"})
+ALLOWED_PHYSICAL_ACTIONS = frozenset({"delete-safe-cache"})
 LIVE_RUNTIME_STATUSES = frozenset({"running", "active"})
 TERMINAL_RUNTIME_STATUSES = frozenset({"stopped", "completed", "failed", "terminal", "parked"})
 
@@ -40,11 +40,17 @@ def run_cleanup_apply(
     blocked_count = sum(1 for item in apply_plan if item["blockers"])
     eligible_count = sum(1 for item in apply_plan if item["eligible_for_apply"])
     applied_count = len(applied_actions)
+    contract_count = sum(1 for item in workspaces if item["contract_present"])
     return {
         "surface": "control_plane_cleanup_apply",
         "schema_version": SCHEMA_VERSION,
         "apply": bool(apply),
-        "status": "applied" if applied_count else ("blocked" if blocked_count else "planned"),
+        "status": _report_status(
+            applied_count=applied_count,
+            blocked_count=blocked_count,
+            contract_count=contract_count,
+            workspace_count=len(workspaces),
+        ),
         "workspace_count": len(workspaces),
         "action_counts": {
             "planned": eligible_count,
@@ -117,10 +123,14 @@ def _plan_action(
         blockers.append("runtime_not_terminal")
     if controller_decision.get("apply_intent") is not True or _text(controller_decision.get("decision")) != "approve_cleanup_apply":
         blockers.append("controller_apply_intent_missing")
-    if action not in ALLOWED_PHYSICAL_ACTIONS or action not in {"archive", "compress", "delete-safe-cache"}:
+    if action not in ALLOWED_PHYSICAL_ACTIONS:
         blockers.append("action_not_allowlisted")
     if action not in allowlist:
         blockers.append("action_not_allowlisted")
+    try:
+        target_path.relative_to(workspace_root.resolve())
+    except ValueError:
+        blockers.append("target_outside_workspace")
     restore_blockers = _restore_contract_blockers(
         workspace_root=workspace_root,
         target_path=target_path,
@@ -168,6 +178,22 @@ def _restore_contract_blockers(
     if _text(rehydrate.get("status")) != "verified":
         blockers.append("missing_rehydrate_verification")
     return blockers
+
+
+def _report_status(
+    *,
+    applied_count: int,
+    blocked_count: int,
+    contract_count: int,
+    workspace_count: int,
+) -> str:
+    if applied_count:
+        return "applied"
+    if blocked_count:
+        return "blocked"
+    if workspace_count and not contract_count:
+        return "no_contract"
+    return "planned"
 
 
 def _apply_action(*, workspace_root: Path, action: Mapping[str, Any]) -> dict[str, Any]:
