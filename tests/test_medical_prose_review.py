@@ -51,6 +51,49 @@ def _write_valid_blueprint(study_root: Path) -> None:
     )
 
 
+def _target_journal_writing_layer() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "surface": "target_journal_writing_layer",
+        "role": "ai_reviewer_quality_context",
+        "target_journal_family": "general_internal_medicine",
+        "near_neighbor_style_corpus": [
+            {
+                "journal": "JAMA Internal Medicine",
+                "article_role": "near_neighbor",
+                "style_ref": "workspace_literature:jamainternmed-anchor",
+            }
+        ],
+        "section_plan": {
+            "Introduction": "clinical problem, evidence gap, objective",
+            "Methods": "cohort, endpoint, analysis, bias controls",
+            "Results": "primary finding before display references",
+            "Discussion": "principal finding, prior work, interpretation, limitations",
+        },
+        "claim_to_paragraph_map": [
+            {
+                "claim_id": "primary_claim",
+                "section": "Results",
+                "paragraph_role": "principal finding",
+                "evidence_refs": ["paper/evidence_ledger.json#primary_claim"],
+            }
+        ],
+        "display_to_claim_map": [
+            {
+                "display_id": "Figure 1",
+                "claim_id": "primary_claim",
+                "display_role": "supports primary finding",
+            }
+        ],
+        "restrained_language_strategy": {
+            "forbidden_phrases": ["proves", "definitively establishes"],
+            "required_claim_qualifiers": ["was associated with", "may support"],
+        },
+        "mechanical_projection_can_authorize_quality": False,
+        "quality_claim_authorized": False,
+    }
+
+
 def test_materialize_medical_prose_review_requires_ai_reviewer_owned_structured_judgment(tmp_path: Path) -> None:
     from med_autoscience.medical_prose_review import materialize_medical_prose_review, read_medical_prose_review
 
@@ -83,6 +126,61 @@ def test_materialize_medical_prose_review_requires_ai_reviewer_owned_structured_
     assert payload["medical_journal_prose_quality"]["representative_rewrites"][0]["after"].startswith(
         "The model improved"
     )
+
+
+def test_medical_prose_review_consumes_target_journal_writing_context(tmp_path: Path) -> None:
+    from med_autoscience.medical_prose_review import materialize_medical_prose_review, read_medical_prose_review
+
+    study_root = tmp_path / "study"
+    _write_valid_blueprint(study_root)
+    _write_json(study_root / "paper" / "target_journal_writing_layer.json", _target_journal_writing_layer())
+
+    materialize_medical_prose_review(
+        study_root=study_root,
+        manuscript_path=study_root / "paper" / "draft.md",
+        verdict="revise",
+        style_diagnosis="AI reviewer found figure-led Results prose.",
+        representative_bad_sentences=["Figure 1 shows the model worked well."],
+        representative_rewrites=[],
+        route_back_target="write",
+    )
+
+    payload = read_medical_prose_review(study_root=study_root)
+
+    assert payload["target_journal_context"] == {
+        "surface": "target_journal_writing_layer",
+        "role": "ai_reviewer_quality_context",
+        "target_journal_family": "general_internal_medicine",
+        "section_plan": {
+            "Introduction": "clinical problem, evidence gap, objective",
+            "Methods": "cohort, endpoint, analysis, bias controls",
+            "Results": "primary finding before display references",
+            "Discussion": "principal finding, prior work, interpretation, limitations",
+        },
+        "claim_to_paragraph_map": [
+            {
+                "claim_id": "primary_claim",
+                "section": "Results",
+                "paragraph_role": "principal finding",
+                "evidence_refs": ["paper/evidence_ledger.json#primary_claim"],
+            }
+        ],
+        "display_to_claim_map": [
+            {
+                "display_id": "Figure 1",
+                "claim_id": "primary_claim",
+                "display_role": "supports primary finding",
+            }
+        ],
+        "restrained_language_strategy": {
+            "forbidden_phrases": ["proves", "definitively establishes"],
+            "required_claim_qualifiers": ["was associated with", "may support"],
+            "requires_claim_evidence_alignment": True,
+            "forbids_overstatement_from_style_examples": True,
+        },
+        "mechanical_projection_can_authorize_quality": False,
+        "quality_claim_authorized": False,
+    }
 
 
 def test_medical_prose_review_rejects_mechanical_projection_owner(tmp_path: Path) -> None:

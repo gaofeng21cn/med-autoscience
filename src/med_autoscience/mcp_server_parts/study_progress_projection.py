@@ -144,6 +144,39 @@ def _compact_module_surfaces(value: Any) -> dict[str, Any] | None:
     return module_surfaces or None
 
 
+def _compact_medical_paper_readiness(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    compact = _compact_record(
+        value,
+        (
+            "surface",
+            "overall_status",
+            "ready_count",
+            "required_count",
+            "quality_claim_authorized",
+            "mechanical_projection_can_authorize_quality",
+            "next_action",
+        ),
+    )
+    if compact is None:
+        return None
+    missing_surfaces: list[dict[str, Any]] = []
+    for item in value.get("capability_surfaces") or []:
+        if not isinstance(item, dict):
+            continue
+        if not bool(item.get("required_for_ready")) or item.get("status") == "present":
+            continue
+        missing = _compact_record(
+            item,
+            ("surface_key", "status", "missing_reason"),
+        )
+        if missing is not None:
+            missing_surfaces.append(missing)
+    compact["missing_surfaces"] = missing_surfaces[:8]
+    return compact
+
+
 def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]:
     compact_keys = (
         "schema_version",
@@ -293,6 +326,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "task_intake": _compact_task_intake,
         "runtime_efficiency": _compact_runtime_efficiency,
         "module_surfaces": _compact_module_surfaces,
+        "medical_paper_readiness": _compact_medical_paper_readiness,
         "study_truth_snapshot": _compact_study_truth_snapshot,
         "runtime_health_snapshot": _compact_runtime_health_snapshot,
         "control_plane_snapshot": _compact_control_plane_snapshot,

@@ -27,6 +27,25 @@ def _complete_soak_evidence_map() -> dict[str, list[str]]:
     }
 
 
+def _write_sanitized_soak_fixture(study_root: Path, stage_evidence: dict[str, list[str]]) -> Path:
+    matrix_path = study_root / "artifacts" / "real_study_soak_matrix" / "evidence.json"
+    matrix_path.parent.mkdir(parents=True)
+    matrix_path.write_text(
+        json.dumps(
+            {
+                "fixture_kind": "sanitized_real_study_soak_fixture",
+                "study_id": "fixture-dpcc-003",
+                "contains_phi": False,
+                "stage_evidence": stage_evidence,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return matrix_path
+
+
 def test_real_paper_ai_first_soak_contract_freezes_observational_schema() -> None:
     module = importlib.import_module("med_autoscience.controllers.real_paper_ai_first_soak")
 
@@ -135,6 +154,65 @@ def test_real_study_soak_matrix_evidence_reads_study_root_stage_refs(tmp_path: P
     assert result["mechanical_projection_can_authorize_quality"] is False
     assert result["evidence_sources"] == [
         str(matrix_path),
+    ]
+
+
+def test_real_study_soak_matrix_evidence_accepts_sanitized_full_real_study_fixture(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.real_paper_ai_first_soak")
+    study_root = tmp_path / "sanitized-study-root"
+    matrix_path = _write_sanitized_soak_fixture(study_root, _complete_soak_evidence_map())
+
+    result = module.build_real_study_soak_matrix_evidence(study_roots=[study_root])
+
+    assert result["overall_status"] == "complete"
+    assert result["quality_claim_authorized"] is False
+    assert result["mechanical_projection_can_authorize_quality"] is False
+    assert result["evidence_sources"] == [str(matrix_path)]
+    by_stage = {stage["stage"]: stage for stage in result["required_stages"]}
+    assert set(by_stage) == {
+        "literature_scout",
+        "line_selection",
+        "main_analysis",
+        "bounded_analysis",
+        "route_back",
+        "stop_loss",
+        "revision_reopen",
+        "runtime_recovery",
+        "finalize_rebuild",
+        "final_pre_submission_audit",
+    }
+    assert by_stage["final_pre_submission_audit"]["evidence_refs"] == [
+        "studies/dpcc-003/artifacts/publication_eval/latest.json"
+    ]
+
+
+def test_real_study_soak_matrix_evidence_lists_missing_stage_gaps_for_sanitized_fixture(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.real_paper_ai_first_soak")
+    evidence_map = _complete_soak_evidence_map()
+    evidence_map.pop("bounded_analysis")
+    evidence_map["final_pre_submission_audit"] = []
+    _write_sanitized_soak_fixture(tmp_path / "sanitized-study-root", evidence_map)
+
+    result = module.build_real_study_soak_matrix_evidence(
+        study_roots=[tmp_path / "sanitized-study-root"]
+    )
+
+    assert result["overall_status"] == "partial"
+    assert result["quality_claim_authorized"] is False
+    assert result["mechanical_projection_can_authorize_quality"] is False
+    assert result["missing_stage_gaps"] == [
+        {
+            "stage": "bounded_analysis",
+            "missing_reason": "missing_durable_evidence_ref",
+        },
+        {
+            "stage": "final_pre_submission_audit",
+            "missing_reason": "missing_durable_evidence_ref",
+        },
     ]
 
 

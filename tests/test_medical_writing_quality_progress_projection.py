@@ -74,6 +74,49 @@ def test_study_progress_projects_medical_writing_quality_surfaces(tmp_path: Path
             "samples": [{"sample_id": "nf-pitnet-003"}, {"sample_id": "dpcc-003"}, {"sample_id": "dpcc-004"}],
         },
     )
+    _write_json(
+        study_root / "paper" / "target_journal_writing_layer.json",
+        {
+            "schema_version": 1,
+            "surface": "target_journal_writing_layer",
+            "role": "ai_reviewer_quality_context",
+            "target_journal_family": "general_internal_medicine",
+            "near_neighbor_style_corpus": [
+                {
+                    "journal": "JAMA Internal Medicine",
+                    "article_role": "near_neighbor",
+                    "style_ref": "workspace_literature:jamainternmed-anchor",
+                }
+            ],
+            "section_plan": {
+                "Introduction": "clinical problem, evidence gap, objective",
+                "Methods": "cohort and analysis",
+                "Results": "finding before display citation",
+                "Discussion": "interpretation and limitations",
+            },
+            "claim_to_paragraph_map": [
+                {
+                    "claim_id": "primary_claim",
+                    "section": "Results",
+                    "paragraph_role": "principal finding",
+                    "evidence_refs": ["paper/evidence_ledger.json#primary_claim"],
+                }
+            ],
+            "display_to_claim_map": [
+                {
+                    "display_id": "Figure 1",
+                    "claim_id": "primary_claim",
+                    "display_role": "supports primary finding",
+                }
+            ],
+            "restrained_language_strategy": {
+                "forbidden_phrases": ["proves"],
+                "required_claim_qualifiers": ["was associated with"],
+            },
+            "mechanical_projection_can_authorize_quality": False,
+            "quality_claim_authorized": False,
+        },
+    )
 
     result = study_progress.read_study_progress(profile=profile, study_id="001-risk")
 
@@ -83,6 +126,14 @@ def test_study_progress_projects_medical_writing_quality_surfaces(tmp_path: Path
     assert surfaces["prose_review_request"]["review_owner"] == "ai_reviewer"
     assert surfaces["prose_review"]["owner"] == "ai_reviewer"
     assert surfaces["prose_review"]["verdict"] == "clear"
+    assert surfaces["target_journal_context"]["present"] is True
+    assert surfaces["target_journal_context"]["valid"] is True
+    assert surfaces["target_journal_context"]["target_journal_family"] == "general_internal_medicine"
+    assert surfaces["target_journal_context"]["section_plan"]["Results"] == "finding before display citation"
+    assert surfaces["target_journal_context"]["claim_to_paragraph_map"][0]["claim_id"] == "primary_claim"
+    assert surfaces["target_journal_context"]["display_to_claim_map"][0]["display_id"] == "Figure 1"
+    assert surfaces["target_journal_context"]["restrained_language_strategy"]["forbids_overstatement_from_style_examples"] is True
+    assert surfaces["target_journal_context"]["quality_claim_authorized"] is False
     assert surfaces["retrospective_audit"]["sample_ids"] == ["nf-pitnet-003", "dpcc-003", "dpcc-004"]
     assert result["refs"]["medical_manuscript_blueprint_path"].endswith("paper/medical_manuscript_blueprint.json")
     assert result["refs"]["medical_journal_style_corpus_path"].endswith("paper/medical_journal_style_corpus.json")

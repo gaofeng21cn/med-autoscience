@@ -6,6 +6,7 @@ from med_autoscience.controllers import (
     ai_first_observability,
     autonomy_ai_doctor,
     control_plane_facts,
+    medical_paper_readiness,
     runtime_health_kernel,
     study_truth_kernel,
 )
@@ -246,6 +247,9 @@ def build_study_progress_projection(
     study_truth_snapshot = _mapping_copy(status.get("study_truth_snapshot"))
     control_plane_snapshot = _mapping_copy(status.get("control_plane_snapshot"))
     medical_writing_quality_surfaces = medical_writing_quality_surface_status(study_root=resolved_study_root)
+    medical_paper_readiness_surface = medical_paper_readiness.build_medical_paper_readiness_surface(
+        study_root=resolved_study_root,
+    )
 
     publication_supervisor_state = (
         dict(status.get("publication_supervisor_state") or {})
@@ -836,6 +840,7 @@ def build_study_progress_projection(
         "gate_clearing_batch_followthrough": gate_clearing_batch_followthrough or None,
         "quality_review_followthrough": quality_review_followthrough or None,
         "medical_writing_quality_surfaces": medical_writing_quality_surfaces,
+        "medical_paper_readiness": medical_paper_readiness_surface,
         "research_runtime_control_projection": research_runtime_control_projection,
         "ai_first_default_entry_state": ai_first_default_entry_state,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
@@ -901,6 +906,11 @@ def build_study_progress_projection(
                 medical_writing_quality_surfaces["retrospective_audit_request"]["path"]
             ),
             "retrospective_medical_prose_audit_path": medical_writing_quality_surfaces["retrospective_audit"]["path"],
+            "medical_paper_readiness_path": str(
+                medical_paper_readiness.stable_medical_paper_readiness_path(
+                    study_root=resolved_study_root,
+                )
+            ),
             "study_truth_snapshot_path": str(study_truth_kernel.truth_snapshot_path(study_root=resolved_study_root)),
             "runtime_health_snapshot_path": str(
                 runtime_health_kernel.runtime_health_snapshot_path(study_root=resolved_study_root)

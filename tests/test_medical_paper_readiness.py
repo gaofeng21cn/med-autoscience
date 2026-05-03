@@ -63,9 +63,22 @@ def _complete_surface_payloads() -> dict[str, dict[str, object]]:
     }
 
 
-def test_medical_paper_readiness_surface_marks_complete_study_ready(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_paper_readiness")
-    study_root = tmp_path / "study"
+def _complete_soak_stage_evidence() -> dict[str, list[str]]:
+    return {
+        "literature_scout": ["artifacts/medical_paper/literature_scout.json"],
+        "line_selection": ["artifacts/medical_paper/study_line_selection.json"],
+        "main_analysis": ["paper/medical_analysis_contract.json"],
+        "bounded_analysis": ["artifacts/medical_paper/bounded_analysis_candidate_board.json"],
+        "route_back": ["artifacts/controller_decisions/latest.json"],
+        "stop_loss": ["artifacts/medical_paper/stop_loss_memo.json"],
+        "revision_reopen": ["artifacts/task_intake/latest.json"],
+        "runtime_recovery": ["artifacts/runtime/runtime_supervision/latest.json"],
+        "finalize_rebuild": ["paper/submission_minimal/current_package.zip"],
+        "final_pre_submission_audit": ["artifacts/publication_eval/latest.json"],
+    }
+
+
+def _materialize_complete_readiness_inputs(module: object, study_root: Path) -> None:
     for surface_key, payload in _complete_surface_payloads().items():
         module.materialize_medical_paper_readiness_surface(
             study_root=study_root,
@@ -95,22 +108,15 @@ def test_medical_paper_readiness_surface_marks_complete_study_ready(tmp_path: Pa
             "quality_claim_authorized": False,
         },
     )
+
+
+def test_medical_paper_readiness_surface_marks_complete_study_ready(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_paper_readiness")
+    study_root = tmp_path / "study"
+    _materialize_complete_readiness_inputs(module, study_root)
     _write_json(
         study_root / "artifacts" / "real_study_soak_matrix" / "evidence.json",
-        {
-            "stage_evidence": {
-                "literature_scout": ["artifacts/medical_paper/literature_scout.json"],
-                "line_selection": ["artifacts/medical_paper/study_line_selection.json"],
-                "main_analysis": ["paper/medical_analysis_contract.json"],
-                "bounded_analysis": ["artifacts/medical_paper/bounded_analysis_candidate_board.json"],
-                "route_back": ["artifacts/controller_decisions/latest.json"],
-                "stop_loss": ["artifacts/medical_paper/stop_loss_memo.json"],
-                "revision_reopen": ["artifacts/task_intake/latest.json"],
-                "runtime_recovery": ["artifacts/runtime/runtime_supervision/latest.json"],
-                "finalize_rebuild": ["paper/submission_minimal/current_package.zip"],
-                "final_pre_submission_audit": ["artifacts/publication_eval/latest.json"],
-            }
-        },
+        {"stage_evidence": _complete_soak_stage_evidence()},
     )
 
     readiness = module.build_medical_paper_readiness_surface(study_root=study_root)
@@ -129,6 +135,66 @@ def test_medical_paper_readiness_surface_marks_complete_study_ready(tmp_path: Pa
         "target_journal_writing_layer": "present",
         "real_study_soak_matrix_evidence": "present",
     }
+
+
+def test_medical_paper_readiness_marks_sanitized_real_study_soak_evidence_present(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_paper_readiness")
+    study_root = tmp_path / "sanitized-study"
+    _materialize_complete_readiness_inputs(module, study_root)
+    _write_json(
+        study_root / "artifacts" / "real_study_soak_matrix" / "evidence.json",
+        {
+            "fixture_kind": "sanitized_real_study_soak_fixture",
+            "contains_phi": False,
+            "stage_evidence": _complete_soak_stage_evidence(),
+        },
+    )
+
+    readiness = module.build_medical_paper_readiness_surface(study_root=study_root)
+
+    by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
+    soak_surface = by_key["real_study_soak_matrix_evidence"]
+    assert readiness["overall_status"] == "ready"
+    assert soak_surface["status"] == "present"
+    assert soak_surface["missing_reason"] == ""
+    assert readiness["quality_claim_authorized"] is False
+    assert readiness["mechanical_projection_can_authorize_quality"] is False
+
+
+def test_medical_paper_readiness_blocks_sanitized_soak_fixture_with_missing_stage(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_paper_readiness")
+    study_root = tmp_path / "sanitized-study"
+    _materialize_complete_readiness_inputs(module, study_root)
+    stage_evidence = _complete_soak_stage_evidence()
+    stage_evidence.pop("runtime_recovery")
+    _write_json(
+        study_root / "artifacts" / "real_study_soak_matrix" / "evidence.json",
+        {
+            "fixture_kind": "sanitized_real_study_soak_fixture",
+            "contains_phi": False,
+            "stage_evidence": stage_evidence,
+        },
+    )
+
+    readiness = module.build_medical_paper_readiness_surface(study_root=study_root)
+
+    by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
+    soak_surface = by_key["real_study_soak_matrix_evidence"]
+    assert readiness["overall_status"] == "blocked"
+    assert soak_surface["status"] == "partial"
+    assert soak_surface["missing_reason"] == "missing_required_soak_stage"
+    assert soak_surface["missing_stage_gaps"] == [
+        {
+            "stage": "runtime_recovery",
+            "missing_reason": "missing_durable_evidence_ref",
+        }
+    ]
+    assert readiness["quality_claim_authorized"] is False
+    assert readiness["mechanical_projection_can_authorize_quality"] is False
 
 
 def test_medical_paper_readiness_surface_fails_closed_when_inputs_are_missing(tmp_path: Path) -> None:

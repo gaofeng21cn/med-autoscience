@@ -101,6 +101,49 @@ def _closed_authoring_workplan() -> dict[str, Any]:
     }
 
 
+def _target_journal_writing_layer() -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "surface": "target_journal_writing_layer",
+        "role": "ai_reviewer_quality_context",
+        "target_journal_family": "general_internal_medicine",
+        "near_neighbor_style_corpus": [
+            {
+                "journal": "JAMA Internal Medicine",
+                "article_role": "near_neighbor",
+                "style_ref": "workspace_literature:jamainternmed-anchor",
+            }
+        ],
+        "section_plan": {
+            "Introduction": "clinical problem, evidence gap, objective",
+            "Methods": "cohort and analysis",
+            "Results": "primary finding before display references",
+            "Discussion": "principal finding, prior work, interpretation, limitations",
+        },
+        "claim_to_paragraph_map": [
+            {
+                "claim_id": "core",
+                "section": "Results",
+                "paragraph_role": "principal finding",
+                "evidence_refs": ["paper/evidence_ledger.json#core"],
+            }
+        ],
+        "display_to_claim_map": [
+            {
+                "display_id": "Figure1",
+                "claim_id": "core",
+                "display_role": "supports primary finding",
+            }
+        ],
+        "restrained_language_strategy": {
+            "forbidden_phrases": ["proves"],
+            "required_claim_qualifiers": ["was associated with"],
+        },
+        "mechanical_projection_can_authorize_quality": False,
+        "quality_claim_authorized": False,
+    }
+
+
 def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
     input_bundle = {
         "manuscript": str(study_root / "paper" / "manuscript.md"),
@@ -237,6 +280,7 @@ def _write_closed_authority_surfaces(study_root: Path) -> None:
     _write_json(study_root / "paper" / "review_ledger.json", _closed_ledger(surface="review_ledger"))
     _write_json(study_root / "paper" / "medical_manuscript_blueprint.json", _authorized_blueprint())
     _write_json(study_root / "paper" / "authoring_workplan.json", _closed_authoring_workplan())
+    _write_json(study_root / "paper" / "target_journal_writing_layer.json", _target_journal_writing_layer())
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
         _ai_reviewer_publication_eval(study_root),
@@ -259,6 +303,8 @@ def test_pre_draft_runtime_allows_first_full_draft_only_after_closed_ai_reviewer
         "required_before": "first_full_draft",
         "draft_ready": True,
         "next_route": "first_full_draft",
+        "authoring_mode": "target_journal_context_bound",
+        "full_drafting_authorized": True,
         "mechanical_file_presence_can_authorize_ready": False,
     }
     assert result["blockers"] == []
@@ -306,6 +352,24 @@ def test_pre_draft_runtime_allows_first_full_draft_only_after_closed_ai_reviewer
         "results",
         "discussion",
     ]
+
+
+def test_pre_draft_runtime_missing_target_journal_layer_fails_closed_to_planning_only(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.pre_draft_quality_runtime")
+    study_root = tmp_path / "study"
+    _write_closed_authority_surfaces(study_root)
+    (study_root / "paper" / "target_journal_writing_layer.json").unlink()
+
+    result = module.build_pre_draft_quality_runtime_state(study_root=study_root)
+
+    assert result["status"] == "route_back_required"
+    assert result["readiness"]["draft_ready"] is False
+    assert result["readiness"]["authoring_mode"] == "pre_draft_planning_only"
+    assert result["readiness"]["full_drafting_authorized"] is False
+    assert "target_journal_writing_layer_missing" in result["blockers"]
+    assert result["route_back"]["target"] == "pre_draft_writing_readiness"
 
 
 def test_pre_draft_runtime_section_authoring_work_units_fail_closed_when_grounding_is_missing(

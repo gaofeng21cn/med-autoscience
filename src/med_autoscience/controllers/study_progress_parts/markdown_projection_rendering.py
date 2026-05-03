@@ -703,6 +703,40 @@ def _append_user_judgment(lines: list[str], payload: Mapping[str, Any]) -> None:
         lines.extend(["", "## 用户判断", "", f"- {str(summary or '').strip()}"])
 
 
+def _append_medical_paper_readiness(lines: list[str], payload: Mapping[str, Any]) -> None:
+    readiness = payload.get("medical_paper_readiness")
+    if not isinstance(readiness, Mapping):
+        return
+    ready_count = readiness.get("ready_count")
+    required_count = readiness.get("required_count")
+    next_action = readiness.get("next_action") if isinstance(readiness.get("next_action"), Mapping) else {}
+    missing_surfaces = [
+        item
+        for item in readiness.get("capability_surfaces") or []
+        if isinstance(item, Mapping)
+        and bool(item.get("required_for_ready"))
+        and str(item.get("status") or "").strip() != "present"
+    ]
+    lines.extend(
+        [
+            "",
+            "## 自动医学论文能力闭环 / Medical Paper Readiness",
+            "",
+            f"- 当前状态: `{str(readiness.get('overall_status') or 'unknown').strip()}`",
+            f"- readiness: `{ready_count}/{required_count}`",
+        ]
+    )
+    summary = str((next_action or {}).get("summary") or "").strip()
+    if summary:
+        lines.append(f"- 下一动作: {summary}")
+    for item in missing_surfaces:
+        surface_key = str(item.get("surface_key") or "unknown").strip()
+        missing_reason = str(item.get("missing_reason") or "unknown").strip()
+        lines.append(f"- 缺失 surface: {surface_key} (`{missing_reason}`)")
+    quality_authorized = "true" if readiness.get("quality_claim_authorized") is True else "false"
+    lines.append(f"- 质量声明授权: `{quality_authorized}`")
+
+
 def _append_recent_events(lines: list[str], latest_events: list[dict[str, Any]]) -> None:
     lines.extend(["", "## 最近进展", ""])
     if not latest_events:
@@ -761,6 +795,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     _append_quality_review_agenda(lines, ctx["quality_review_agenda"])
     _append_quality_review_loop(lines, ctx["quality_review_loop"])
     _append_quality_revision_plan(lines, ctx["quality_revision_plan"])
+    _append_medical_paper_readiness(lines, normalized_payload)
     _append_recovery_contract(lines, ctx)
     _append_user_judgment(lines, payload)
     _append_recent_events(lines, ctx["latest_events"])
