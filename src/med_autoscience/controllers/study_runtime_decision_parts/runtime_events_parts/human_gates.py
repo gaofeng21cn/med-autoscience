@@ -131,6 +131,48 @@ def _live_worker_missing_active_run_id(status: StudyRuntimeStatus) -> bool:
     return runtime_audit.get("worker_running") is True and not active_run_id
 
 
+def _runtime_overlay_ready_for_resume(status: StudyRuntimeStatus) -> bool:
+    payload = status.extras.get("runtime_overlay")
+    if not isinstance(payload, dict):
+        return True
+    audit = payload.get("audit")
+    if not isinstance(audit, dict):
+        return True
+    return audit.get("all_roots_ready") is not False
+
+
+def _set_running_quest_recovery_decision(
+    *,
+    status: StudyRuntimeStatus,
+    execution: dict[str, object],
+) -> None:
+    if not status.startup_boundary_allows_compute_stage:
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+        )
+    elif not status.runtime_reentry_allows_runtime_entry:
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+        )
+    elif not _runtime_overlay_ready_for_resume(status):
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
+        )
+    elif execution.get("auto_resume") is True:
+        status.set_decision(
+            StudyRuntimeDecision.RESUME,
+            StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION,
+        )
+    else:
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED,
+        )
+
+
 def _runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, object]:
     runtime_liveness_audit = _runtime_liveness_audit_payload(status)
     runtime_audit = (

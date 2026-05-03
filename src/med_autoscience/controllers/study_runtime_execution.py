@@ -336,6 +336,12 @@ def _run_runtime_preflight(
             )
             status.record_runtime_overlay(runtime_overlay_result)
             if not runtime_overlay_result.audit.all_roots_ready:
+                if status.reason is StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION:
+                    status.set_decision(
+                        StudyRuntimeDecision.BLOCKED,
+                        StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
+                    )
+                    return
                 status.set_decision(
                     StudyRuntimeDecision.BLOCKED,
                     StudyRuntimeReason.RUNTIME_OVERLAY_NOT_READY,

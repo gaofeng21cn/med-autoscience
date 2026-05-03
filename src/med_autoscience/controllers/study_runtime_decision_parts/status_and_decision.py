@@ -601,30 +601,14 @@ def _status_state(
                     StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
                 )
             elif _stale_progress_without_live_bash_sessions(result) or _live_worker_missing_active_run_id(result):
-                if not result.startup_boundary_allows_compute_stage:
-                    result.set_decision(
-                        StudyRuntimeDecision.BLOCKED,
-                        StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
-                    )
-                elif not result.runtime_reentry_allows_runtime_entry:
-                    result.set_decision(
-                        StudyRuntimeDecision.BLOCKED,
-                        StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
-                    )
-                elif execution.get("auto_resume") is True:
-                    result.set_decision(
-                        StudyRuntimeDecision.RESUME,
-                        StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION,
-                    )
-                else:
-                    result.set_decision(
-                        StudyRuntimeDecision.BLOCKED,
-                        StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED,
-                    )
+                _set_running_quest_recovery_decision(
+                    status=result,
+                    execution=execution,
+                )
             else:
-                result.set_decision(
-                    StudyRuntimeDecision.BLOCKED,
-                    StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
+                _set_running_quest_recovery_decision(
+                    status=result,
+                    execution=execution,
                 )
         elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
             if manual_finish_compatibility_guard and (
