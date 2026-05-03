@@ -245,7 +245,6 @@ def _render_python_phenotype_gap_structure_figure(
     composition_axes.set_yticklabels(labels)
     composition_axes.invert_yaxis()
     composition_axes.set_xlabel("Share of index cohort (%)", fontsize=axis_title_size, color="#13293d")
-    composition_axes.set_ylabel("Phenotype", fontsize=axis_title_size, color="#13293d")
     composition_title_artist = composition_axes.set_title(
         str(display_payload.get("composition_panel_title") or "Phenotype composition").strip(),
         loc="left",
@@ -299,7 +298,6 @@ def _render_python_phenotype_gap_structure_figure(
         (composition_title_artist, "composition_panel_title", "subplot_title"),
         (gap_axes.title, "gap_heatmap_title", "subplot_title"),
         (composition_axes.xaxis.label, "composition_x_axis_title", "x_axis_title"),
-        (composition_axes.yaxis.label, "composition_y_axis_title", "y_axis_title"),
         (colorbar.ax.yaxis.label, "gap_colorbar_title", "colorbar_title"),
     ):
         if artist is not None:

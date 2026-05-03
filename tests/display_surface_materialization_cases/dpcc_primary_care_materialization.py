@@ -323,3 +323,79 @@ def test_render_python_evidence_figure_materializes_dpcc_primary_care_templates(
     )
     assert qc_result["status"] == "pass", qc_result
     assert qc_result["issues"] == []
+
+
+def test_render_python_phenotype_gap_structure_handles_dpcc_long_phenotype_labels(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    layout_qc = importlib.import_module("med_autoscience.display_layout_qc")
+    output_png_path = tmp_path / "phenotype_gap_structure_figure.png"
+    output_pdf_path = tmp_path / "phenotype_gap_structure_figure.pdf"
+    layout_sidecar_path = tmp_path / "phenotype_gap_structure_figure.layout.json"
+
+    module._render_python_evidence_figure(
+        template_id=full_id("phenotype_gap_structure_figure"),
+        display_payload={
+            "title": "Phenotype composition and treatment-gap profiles across the DPCC index cohort.",
+            "rows": [
+                {
+                    "phenotype_label": "Adiposity-linked multimorbidity",
+                    "share_of_index_patients": 0.261737,
+                    "severe_glycemia_low_intensity_gap_rate": None,
+                    "uncontrolled_glycemia_no_drug_gap_rate": 0.393646,
+                    "hypertension_no_antihypertensive_gap_rate": 0.578579,
+                    "dyslipidemia_no_lipid_lowering_gap_rate": 0.836039,
+                },
+                {
+                    "phenotype_label": "Cardiometabolic-risk dominant diabetes",
+                    "share_of_index_patients": 0.20037,
+                    "severe_glycemia_low_intensity_gap_rate": None,
+                    "uncontrolled_glycemia_no_drug_gap_rate": None,
+                    "hypertension_no_antihypertensive_gap_rate": 0.604758,
+                    "dyslipidemia_no_lipid_lowering_gap_rate": 0.914041,
+                },
+                {
+                    "phenotype_label": "Lower-burden diabetes",
+                    "share_of_index_patients": 0.184971,
+                    "severe_glycemia_low_intensity_gap_rate": None,
+                    "uncontrolled_glycemia_no_drug_gap_rate": None,
+                    "hypertension_no_antihypertensive_gap_rate": None,
+                    "dyslipidemia_no_lipid_lowering_gap_rate": None,
+                },
+                {
+                    "phenotype_label": "Glycemic-dominant diabetes",
+                    "share_of_index_patients": 0.150179,
+                    "severe_glycemia_low_intensity_gap_rate": 0.861089,
+                    "uncontrolled_glycemia_no_drug_gap_rate": 0.500534,
+                    "hypertension_no_antihypertensive_gap_rate": 0.71519,
+                    "dyslipidemia_no_lipid_lowering_gap_rate": 0.855536,
+                },
+                {
+                    "phenotype_label": "Severe glycemic multimorbidity",
+                    "share_of_index_patients": 0.105677,
+                    "severe_glycemia_low_intensity_gap_rate": 0.757892,
+                    "uncontrolled_glycemia_no_drug_gap_rate": 0.335123,
+                    "hypertension_no_antihypertensive_gap_rate": 0.736795,
+                    "dyslipidemia_no_lipid_lowering_gap_rate": 0.759613,
+                },
+                {
+                    "phenotype_label": "Adiposity-dominant diabetes",
+                    "share_of_index_patients": 0.097065,
+                    "severe_glycemia_low_intensity_gap_rate": None,
+                    "uncontrolled_glycemia_no_drug_gap_rate": None,
+                    "hypertension_no_antihypertensive_gap_rate": None,
+                    "dyslipidemia_no_lipid_lowering_gap_rate": None,
+                },
+            ],
+        },
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    qc_result = layout_qc.run_display_layout_qc(
+        qc_profile="publication_dpcc_phenotype_gap_structure",
+        layout_sidecar=layout_sidecar,
+    )
+    assert qc_result["status"] == "pass", qc_result
+    assert qc_result["issues"] == []
