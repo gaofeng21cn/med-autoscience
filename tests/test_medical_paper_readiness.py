@@ -137,6 +137,125 @@ def test_medical_paper_readiness_surface_marks_complete_study_ready(tmp_path: Pa
     }
 
 
+def test_medical_paper_readiness_consumes_long_horizon_canonical_surfaces(tmp_path: Path) -> None:
+    readiness_module = importlib.import_module("med_autoscience.controllers.medical_paper_readiness")
+    literature_module = importlib.import_module("med_autoscience.controllers.literature_intelligence_os")
+    line_module = importlib.import_module("med_autoscience.controllers.study_line_decision_engine")
+    stats_module = importlib.import_module("med_autoscience.controllers.statistical_discipline_runtime")
+    route_module = importlib.import_module("med_autoscience.controllers.route_control_stoploss")
+    study_root = tmp_path / "study"
+
+    literature_module.materialize_literature_intelligence_os(
+        study_root=study_root,
+        payload={
+            "search_strategy": {"query": "diabetes mortality prediction", "mesh_terms": ["Diabetes Mellitus"]},
+            "search_date": "2026-05-03",
+            "searched_sources": ["PubMed"],
+            "anchor_papers": ["pmid:1"],
+            "guidelines": ["TRIPOD+AI"],
+            "systematic_reviews": ["pmid:review"],
+            "journal_neighbor_refs": ["paper:near-neighbor"],
+            "screening_decisions": [{"decision": "include", "reason": "same endpoint"}],
+            "citation_ledger_refs": ["paper/citation_ledger.json"],
+        },
+    )
+    line_module.materialize_study_line_decision(
+        study_root=study_root,
+        candidates=[
+            {
+                "line_id": "primary-risk-model",
+                "dimensions": {
+                    "novelty": 4,
+                    "clinical_relevance": 5,
+                    "data_fit": 5,
+                    "external_validation": 4,
+                    "analysis_feasibility": 4,
+                    "journal_fit": 4,
+                    "risk_cost": 1,
+                    "stop_threshold": "poor calibration or no external validation",
+                },
+                "evidence_refs": ["artifacts/medical_paper/literature_intelligence_os.json"],
+            }
+        ],
+    )
+    readiness_module.materialize_medical_paper_readiness_surface(
+        study_root=study_root,
+        surface_key="archetype_analysis_contract",
+        payload=stats_module.build_statistical_discipline_contract(study_archetype="prediction_model"),
+    )
+    readiness_module.materialize_medical_paper_readiness_surface(
+        study_root=study_root,
+        surface_key="bounded_analysis_candidate_board",
+        payload={
+            "candidates": [
+                {
+                    "target_claim": "transportable mortality risk prediction",
+                    "expected_evidence_gain": "close calibration and net-benefit concern",
+                    "statistical_risk": "moderate",
+                    "clinical_interpretability": "high",
+                    "decision": "exploit",
+                    "decision_reason": "reviewer concern targets calibration and utility",
+                }
+            ]
+        },
+    )
+    route_module.materialize_route_control_stoploss_memo(
+        root=study_root,
+        current_route="analysis-campaign",
+        decision="stop_loss",
+        evidence_state="weak",
+        stop_pressure="high",
+        attempted_paths=["primary-risk-model"],
+        failure_reasons=["external validation did not transport"],
+        continuation_cost="high",
+        evidence_gain_ceiling="low",
+        alternative_routes=["external-validation-only"],
+        evidence_refs=["artifacts/publication_eval/latest.json"],
+    )
+    _write_json(
+        study_root / "paper" / "target_journal_writing_layer.json",
+        {
+            "surface": "target_journal_writing_layer",
+            "schema_version": 1,
+            "role": "ai_reviewer_quality_context",
+            "target_journal_family": "general_internal_medicine",
+            "near_neighbor_style_corpus": [{"journal": "JAMA", "style_ref": "workspace_lit:jama"}],
+            "section_plan": {
+                "Introduction": "gap and objective",
+                "Methods": "cohort and analysis",
+                "Results": "primary finding",
+                "Discussion": "interpretation and limits",
+            },
+            "claim_to_paragraph_map": [
+                {"claim_id": "primary_claim", "section": "Results", "evidence_refs": ["evidence:primary"]}
+            ],
+            "display_to_claim_map": [{"display_id": "Table 2", "claim_id": "primary_claim"}],
+            "restrained_language_strategy": {"required_claim_qualifiers": ["was associated with"]},
+            "mechanical_projection_can_authorize_quality": False,
+            "quality_claim_authorized": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "real_study_soak_matrix" / "evidence.json",
+        {"stage_evidence": _complete_soak_stage_evidence()},
+    )
+
+    readiness = readiness_module.build_medical_paper_readiness_surface(study_root=study_root)
+
+    assert readiness["overall_status"] == "ready"
+    by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
+    assert by_key["literature_scout"]["status"] == "present"
+    assert by_key["literature_scout"]["evidence_refs"] == [
+        str(study_root.resolve() / "artifacts" / "medical_paper" / "literature_intelligence_os.json")
+    ]
+    assert by_key["study_line_selection"]["status"] == "present"
+    assert by_key["archetype_analysis_contract"]["status"] == "present"
+    assert by_key["bounded_analysis_candidate_board"]["status"] == "present"
+    assert by_key["stop_loss_memo"]["status"] == "present"
+    assert readiness["quality_claim_authorized"] is False
+    assert readiness["mechanical_projection_can_authorize_quality"] is False
+
+
 def test_medical_paper_readiness_marks_sanitized_real_study_soak_evidence_present(
     tmp_path: Path,
 ) -> None:

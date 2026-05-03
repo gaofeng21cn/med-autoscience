@@ -5,6 +5,10 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from med_autoscience.controllers import real_paper_ai_first_soak
+from med_autoscience.controllers import literature_intelligence_os
+from med_autoscience.controllers import multistudy_soak_proof
+from med_autoscience.controllers import statistical_discipline_runtime
+from med_autoscience.controllers import study_line_decision_engine
 from med_autoscience.policies import publication_critique
 
 
@@ -41,6 +45,10 @@ def _status_from_missing(missing_reason: str) -> str:
 
 
 def _validate_literature_scout(payload: Mapping[str, Any]) -> tuple[str, str]:
+    if payload.get("surface") == literature_intelligence_os.SURFACE:
+        if _text(payload.get("status")) == "ready":
+            return "present", ""
+        return "blocked", _text(payload.get("missing_reason")) or "literature_intelligence_not_ready"
     if not _mapping(payload.get("search_strategy")):
         return "blocked", "missing_search_strategy"
     if not _has_text(payload.get("search_date")):
@@ -55,6 +63,15 @@ def _validate_literature_scout(payload: Mapping[str, Any]) -> tuple[str, str]:
 
 
 def _validate_line_selection(payload: Mapping[str, Any]) -> tuple[str, str]:
+    if payload.get("surface") == study_line_decision_engine.SURFACE:
+        if _text(payload.get("status")) == "selected":
+            return "present", ""
+        blockers = payload.get("blockers")
+        if isinstance(blockers, list) and blockers:
+            first = blockers[0]
+            if isinstance(first, Mapping):
+                return "blocked", _text(first.get("code")) or "study_line_decision_blocked"
+        return "blocked", "study_line_decision_blocked"
     if not _has_text(payload.get("selected_line_id")):
         return "blocked", "missing_selected_line_id"
     dimensions = _mapping(payload.get("dimensions"))
@@ -75,6 +92,11 @@ def _validate_line_selection(payload: Mapping[str, Any]) -> tuple[str, str]:
 
 
 def _validate_analysis_contract(payload: Mapping[str, Any]) -> tuple[str, str]:
+    if any(field in payload for field in statistical_discipline_runtime.REQUIRED_STATISTICAL_DISCIPLINE_FIELDS):
+        statistical_status = statistical_discipline_runtime.validate_statistical_discipline_contract(payload)
+        if _text(statistical_status.get("status")) == "present":
+            return "present", ""
+        return "blocked", _text(statistical_status.get("reason_code")) or "statistical_contract_not_resolved"
     status = _text(payload.get("status"))
     if status != "resolved":
         return "blocked", _text(payload.get("reason_code")) or "analysis_contract_not_resolved"
@@ -87,6 +109,11 @@ def _validate_analysis_contract(payload: Mapping[str, Any]) -> tuple[str, str]:
 
 def _validate_bounded_board(payload: Mapping[str, Any]) -> tuple[str, str]:
     candidates = [item for item in _list(payload.get("candidates")) if isinstance(item, Mapping)]
+    if any("statistical_risk" in candidate for candidate in candidates):
+        statistical_status = statistical_discipline_runtime.validate_bounded_analysis_candidate_board(payload)
+        if _text(statistical_status.get("status")) == "present":
+            return "present", ""
+        return "blocked", _text(statistical_status.get("reason_code")) or "bounded_board_not_resolved"
     if not candidates:
         return "blocked", "missing_candidates"
     for candidate in candidates:
@@ -104,6 +131,22 @@ def _validate_bounded_board(payload: Mapping[str, Any]) -> tuple[str, str]:
 
 
 def _validate_stop_loss_memo(payload: Mapping[str, Any]) -> tuple[str, str]:
+    if payload.get("surface") in {"route_control_stoploss", "stop_loss_memo"}:
+        if payload.get("quality_claim_authorized") is not False:
+            return "blocked", "quality_claim_authorized_by_projection"
+        if payload.get("decision_allowed") is False:
+            blockers = payload.get("blockers")
+            if isinstance(blockers, list) and blockers:
+                return "blocked", _text(blockers[0]) or "route_control_decision_blocked"
+            return "blocked", "route_control_decision_blocked"
+        route_inputs = _mapping(payload.get("route_control_inputs")) or payload
+        if not _has_any_text(route_inputs.get("attempted_paths")):
+            return "blocked", "missing_attempted_paths"
+        if not _has_text(route_inputs.get("evidence_gain_ceiling")):
+            return "blocked", "missing_evidence_gain_ceiling"
+        if not _has_text(payload.get("decision")):
+            return "blocked", "missing_decision"
+        return "present", ""
     if not _has_any_text(payload.get("attempted_paths")):
         return "blocked", "missing_attempted_paths"
     if not _has_text(payload.get("evidence_gain_ceiling")):
@@ -132,6 +175,54 @@ def _validate_soak_matrix(payload: Mapping[str, Any]) -> tuple[str, str]:
     if status == "partial":
         return "partial", "missing_required_soak_stage"
     return "blocked", "missing_real_study_soak_evidence"
+
+
+def _literature_scout_payload(*, study_root: Path) -> Mapping[str, Any]:
+    payload = literature_intelligence_os.read_literature_intelligence_os(study_root=study_root)
+    if payload:
+        return payload
+    return _read_json(stable_capability_surface_path(study_root=study_root, surface_key="literature_scout"))
+
+
+def _study_line_payload(*, study_root: Path) -> Mapping[str, Any]:
+    payload = _read_json(study_line_decision_engine.stable_study_line_decision_path(study_root=study_root))
+    if payload:
+        return payload
+    return _read_json(stable_capability_surface_path(study_root=study_root, surface_key="study_line_selection"))
+
+
+def _soak_matrix_payload(*, study_root: Path) -> Mapping[str, Any]:
+    fixture_payload = _read_json(stable_capability_surface_path(study_root=study_root, surface_key="real_study_soak_matrix_evidence"))
+    matrix_input = fixture_payload.get("multistudy_soak_matrix")
+    if isinstance(matrix_input, list):
+        projection = multistudy_soak_proof.build_multistudy_soak_matrix_projection(matrix_input)
+        if projection.get("overall_status") == "ready":
+            return {
+                "surface": "real_study_soak_matrix_evidence",
+                "overall_status": "complete",
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+                "multistudy_soak_projection": projection,
+            }
+        return {
+            "surface": "real_study_soak_matrix_evidence",
+            "overall_status": "partial" if projection.get("overall_status") == "partial" else "missing",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+            "missing_stage_gaps": [
+                {"stage": str(gap), "missing_reason": "multistudy_soak_gap"}
+                for study in projection.get("studies", [])
+                if isinstance(study, Mapping)
+                for gap in study.get("missing_gaps", [])
+            ],
+            "multistudy_soak_projection": projection,
+        }
+    evidence_path = stable_capability_surface_path(study_root=study_root, surface_key="real_study_soak_matrix_evidence")
+    if not evidence_path.is_file():
+        return {}
+    return real_paper_ai_first_soak.build_real_study_soak_matrix_evidence(
+        study_roots=[Path(study_root)]
+    )
 
 
 CAPABILITY_SPECS: tuple[dict[str, Any], ...] = (
@@ -279,14 +370,25 @@ def materialize_medical_paper_readiness_surface(
 
 
 def _surface_payload(*, study_root: Path, surface_key: str) -> Mapping[str, Any]:
+    if surface_key == "literature_scout":
+        return _literature_scout_payload(study_root=study_root)
+    if surface_key == "study_line_selection":
+        return _study_line_payload(study_root=study_root)
     if surface_key == "real_study_soak_matrix_evidence":
-        evidence_path = stable_capability_surface_path(study_root=study_root, surface_key=surface_key)
-        if not evidence_path.is_file():
-            return {}
-        return real_paper_ai_first_soak.build_real_study_soak_matrix_evidence(
-            study_roots=[Path(study_root)]
-        )
+        return _soak_matrix_payload(study_root=study_root)
     return _read_json(stable_capability_surface_path(study_root=study_root, surface_key=surface_key))
+
+
+def _surface_evidence_refs(*, study_root: Path, surface_key: str, fallback_path: Path) -> list[str]:
+    if surface_key == "literature_scout":
+        path = literature_intelligence_os.stable_literature_intelligence_os_path(study_root=study_root)
+        if path.is_file():
+            return [str(path)]
+    if surface_key == "study_line_selection":
+        path = study_line_decision_engine.stable_study_line_decision_path(study_root=study_root)
+        if path.is_file():
+            return [str(path)]
+    return [str(fallback_path)]
 
 
 def _capability_status(*, study_root: Path, spec: Mapping[str, Any]) -> dict[str, Any]:
@@ -313,7 +415,7 @@ def _capability_status(*, study_root: Path, spec: Mapping[str, Any]) -> dict[str
         "label": spec["label"],
         "status": status,
         "artifact_path": str(path),
-        "evidence_refs": [str(path)],
+        "evidence_refs": _surface_evidence_refs(study_root=study_root, surface_key=surface_key, fallback_path=path),
         "missing_reason": missing_reason,
         "required_for_ready": bool(spec["required_for_ready"]),
     }
