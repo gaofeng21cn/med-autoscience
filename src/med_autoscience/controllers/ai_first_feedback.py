@@ -11,6 +11,8 @@ SURFACE = "ai_first_feedback_state"
 READ_MODEL = "ai_first_feedback_read_model"
 LEDGER_SURFACE = "ai_first_feedback_ledger"
 LEDGER_SCHEMA_VERSION = 1
+QUALITY_LEARNING_QUEUE_SURFACE = "ai_first_quality_learning_queue"
+QUALITY_LEARNING_QUEUE_READ_MODEL = "ai_first_quality_learning_queue_read_model"
 LOW_LEVEL_FIELD_HINTS = ("raw_terminal_log", "full_prompt", "prompt", "secret", "token", "log_path")
 EVENT_PRIORITY = {
     "ai_reviewer_trace_gap": 0,
@@ -56,6 +58,36 @@ ACTION_RECOMMENDATIONS = {
         "action_id": "inspect_repeated_feedback_reason",
         "target_surface": "ai_first_feedback_ledger",
         "summary": "复盘重复反馈原因并决定是否需要 repo-level 系统修复。",
+    },
+}
+QUALITY_LEARNING_FIX_LAYERS = {
+    "quality_toil_repeat": {
+        "impact_entry": "ai_first_feedback_ledger",
+        "suggested_fix_layer": "feedback-ledger governance",
+    },
+    "route_back_open": {
+        "impact_entry": "same_line_route_back",
+        "suggested_fix_layer": "route-back controller contract",
+    },
+    "ai_reviewer_trace_gap": {
+        "impact_entry": "ai_reviewer_runtime_workflow",
+        "suggested_fix_layer": "AI reviewer trace contract",
+    },
+    "artifact_rebuild_pending": {
+        "impact_entry": "artifact_runtime_proof",
+        "suggested_fix_layer": "artifact rebuild proof layer",
+    },
+    "predraft_gap": {
+        "impact_entry": "pre_draft_quality_runtime",
+        "suggested_fix_layer": "pre-draft quality contract",
+    },
+    "runtime_progress_stale": {
+        "impact_entry": "runtime_progress_observer",
+        "suggested_fix_layer": "runtime progress observer",
+    },
+    "manual_judgment_pending": {
+        "impact_entry": "human_decision_gate",
+        "suggested_fix_layer": "human gate governance",
     },
 }
 
@@ -453,6 +485,125 @@ def _repeat_toil_analytics(feedback_ledger: Mapping[str, Any] | None) -> dict[st
     }
 
 
+def _queue_open_events(
+    *,
+    feedback_state: Mapping[str, Any],
+    feedback_ledger: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    ledger_events = _ledger_events(feedback_ledger)
+    if ledger_events:
+        return [dict(item) for item in ledger_events if item.get("closed_at") is None]
+    return [dict(item) for item in _list(feedback_state.get("events")) if isinstance(item, Mapping)]
+
+
+def _queue_frequency(item: Mapping[str, Any]) -> int:
+    return max(_int(item.get("repeat_count")), 1)
+
+
+def _queue_category_rank(category: str) -> int:
+    if category == "quality_toil_repeat":
+        return -1
+    return EVENT_PRIORITY.get(category, 99)
+
+
+def _quality_learning_queue_item(item: Mapping[str, Any]) -> dict[str, Any]:
+    category = _text(item.get("category"), "unknown") or "unknown"
+    reason = _text(item.get("reason"), category) or category
+    action = _mapping(item.get("action_recommendation"))
+    layer = dict(QUALITY_LEARNING_FIX_LAYERS.get(category) or {})
+    impact_entry = (
+        _text(layer.get("impact_entry"))
+        or _text(action.get("target_surface"))
+        or _text(item.get("source_surface"), "unknown")
+        or "unknown"
+    )
+    suggested_fix_layer = _text(layer.get("suggested_fix_layer"), "inspect source read-model") or "inspect source read-model"
+    return {
+        "category": category,
+        "reason": reason,
+        "frequency": _queue_frequency(item),
+        "impact_entry": impact_entry,
+        "suggested_fix_layer": suggested_fix_layer,
+        "source_surface": _text(item.get("source_surface"), impact_entry) or impact_entry,
+    }
+
+
+def _aggregate_quality_learning_queue_items(events: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    for event in events:
+        item = _quality_learning_queue_item(event)
+        key = (
+            str(item["category"]),
+            str(item["reason"]),
+            str(item["impact_entry"]),
+            str(item["suggested_fix_layer"]),
+        )
+        prior = grouped.get(key)
+        if prior is None:
+            grouped[key] = item
+            continue
+        prior["frequency"] = _int(prior.get("frequency")) + _int(item.get("frequency"))
+        source_surface = str(item.get("source_surface") or "")
+        if source_surface and source_surface not in str(prior.get("source_surface") or "").split(", "):
+            prior["source_surface"] = f"{prior.get('source_surface')}, {source_surface}"
+    return sorted(
+        grouped.values(),
+        key=lambda item: (
+            -_int(item.get("frequency")),
+            _queue_category_rank(str(item.get("category") or "")),
+            str(item.get("reason") or ""),
+        ),
+    )
+
+
+def build_ai_first_quality_learning_queue(
+    *,
+    feedback_state: Mapping[str, Any],
+    feedback_ledger: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build a governance-only maintenance queue from sanitized feedback signals."""
+
+    open_events = _queue_open_events(feedback_state=feedback_state, feedback_ledger=feedback_ledger)
+    items = _aggregate_quality_learning_queue_items(open_events)
+    return {
+        "surface": QUALITY_LEARNING_QUEUE_SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "read_model": QUALITY_LEARNING_QUEUE_READ_MODEL,
+        "authority": "governance_only",
+        "source_authority": "observability_only",
+        "status": "attention_required" if items else "on_track",
+        "summary": (
+            f"{len(items)} 个 AI-first quality learning queue 维护项处于打开状态。"
+            if items
+            else "当前没有打开的 AI-first quality learning queue 维护项。"
+        ),
+        "items": items,
+        "counts": {
+            "open_queue_item_count": len(items),
+            "open_signal_frequency": sum(_int(item.get("frequency")) for item in items),
+            "by_reason": {str(item["reason"]): _int(item.get("frequency")) for item in items},
+            "by_impact_entry": {
+                str(entry): sum(_int(item.get("frequency")) for item in items if item.get("impact_entry") == entry)
+                for entry in sorted({str(item.get("impact_entry")) for item in items if item.get("impact_entry")})
+            },
+            "by_suggested_fix_layer": {
+                str(layer): sum(_int(item.get("frequency")) for item in items if item.get("suggested_fix_layer") == layer)
+                for layer in sorted(
+                    {str(item.get("suggested_fix_layer")) for item in items if item.get("suggested_fix_layer")}
+                )
+            },
+        },
+        "authority_contract": {
+            "queue_can_authorize_quality": False,
+            "queue_can_authorize_finalize": False,
+            "queue_can_authorize_submission": False,
+            "queue_can_mutate_runtime": False,
+            "queue_records_manuscript_content": False,
+            "queue_exposes_raw_logs_prompts_or_tokens": False,
+        },
+    }
+
+
 def _has_feedback_inputs(progress_snapshot: Mapping[str, Any]) -> bool:
     return bool(
         progress_snapshot.get("ai_first_default_entry_state")
@@ -497,6 +648,10 @@ def build_ai_first_feedback_state(
     current_stage = _text(progress_snapshot.get("current_stage"), "unknown") or "unknown"
     next_step = _text(progress_snapshot.get("next_system_action")) or _text(default_entry.get("recommended_next_step"))
     primary_action = dict((primary or {}).get("action_recommendation") or {}) if primary else None
+    quality_learning_queue = build_ai_first_quality_learning_queue(
+        feedback_state={"events": events},
+        feedback_ledger=feedback_ledger,
+    )
     return {
         "surface": SURFACE,
         "schema_version": SCHEMA_VERSION,
@@ -518,7 +673,9 @@ def build_ai_first_feedback_state(
             "events": events,
             "source_surfaces": sorted({str(item.get("source_surface")) for item in events if item.get("source_surface")}),
             "repeat_toil_analytics": _repeat_toil_analytics(feedback_ledger),
+            "quality_learning_queue": quality_learning_queue,
         },
+        "quality_learning_queue": quality_learning_queue,
         "events": events,
         "counts": _counts(events),
         "authority_contract": {
@@ -530,6 +687,10 @@ def build_ai_first_feedback_state(
             "feedback_actions_can_authorize_finalize": False,
             "feedback_actions_can_authorize_submission": False,
             "feedback_actions_can_mutate_runtime": False,
+            "quality_learning_queue_can_authorize_quality": False,
+            "quality_learning_queue_can_authorize_finalize": False,
+            "quality_learning_queue_can_authorize_submission": False,
+            "quality_learning_queue_records_manuscript_content": False,
             "mechanical_feedback_is_projection_only": True,
         },
     }
@@ -601,10 +762,17 @@ def materialize_ai_first_feedback_ledger(
         "open_event_count": sum(1 for item in events if item.get("closed_at") is None),
         "closed_event_count": sum(1 for item in events if item.get("closed_at") is not None),
         "repeat_toil_analytics": _repeat_toil_analytics({"events": events}),
+        "quality_learning_queue": build_ai_first_quality_learning_queue(
+            feedback_state={"events": active_events},
+            feedback_ledger={"events": events},
+        ),
         "authority_contract": {
             "ledger_can_authorize_quality": False,
             "ledger_can_authorize_submission": False,
             "ledger_records_manuscript_content": False,
+            "ledger_quality_learning_queue_can_authorize_quality": False,
+            "ledger_quality_learning_queue_can_authorize_finalize": False,
+            "ledger_quality_learning_queue_can_authorize_submission": False,
         },
     }
     path.parent.mkdir(parents=True, exist_ok=True)
