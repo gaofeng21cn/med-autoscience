@@ -389,6 +389,44 @@ def test_mcp_product_entry_can_call_migration_audit(monkeypatch, tmp_path: Path)
     assert "control_plane_migration_audit" in result["content"][0]["text"]
 
 
+def test_mcp_product_entry_can_call_cleanup_apply(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    captured: dict[str, object] = {}
+
+    def fake_run_cleanup_apply(*, workspace_roots, apply: bool) -> dict[str, object]:
+        captured["workspace_roots"] = list(workspace_roots)
+        captured["apply"] = apply
+        return {
+            "surface": "control_plane_cleanup_apply",
+            "apply": apply,
+            "status": "planned",
+            "workspace_count": 1,
+            "action_counts": {"planned": 1, "blocked": 0, "applied": 0, "mutating": 0},
+            "apply_plan": [{"action": "delete-safe-cache"}],
+            "applied_actions": [],
+        }
+
+    monkeypatch.setattr(module.control_plane_cleanup_apply, "run_cleanup_apply", fake_run_cleanup_apply)
+
+    result = module.call_tool(
+        "product_entry",
+        {
+            "mode": "cleanup_apply",
+            "workspace_roots": [str(tmp_path / "workspace")],
+            "apply": False,
+        },
+    )
+
+    assert result["isError"] is False
+    assert captured == {
+        "workspace_roots": [tmp_path / "workspace"],
+        "apply": False,
+    }
+    assert result["structuredContent"]["surface"] == "control_plane_cleanup_apply"
+    assert result["structuredContent"]["action_counts"]["mutating"] == 0
+    assert "control_plane_cleanup_apply" in result["content"][0]["text"]
+
+
 def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}

@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience import __version__
 from med_autoscience.controllers import (
+    control_plane_cleanup_apply,
     control_plane_migration_audit,
     data_assets,
     med_deepscientist_upgrade_check,
@@ -498,6 +499,22 @@ def _call_migration_audit(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_cleanup_apply(arguments: dict[str, Any]) -> dict[str, Any]:
+    workspace_roots = arguments.get("workspace_roots")
+    if not isinstance(workspace_roots, list) or not workspace_roots:
+        raise ValueError("workspace_roots must be a non-empty list for cleanup_apply")
+    resolved_roots: list[Path] = []
+    for value in workspace_roots:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("workspace_roots entries must be non-empty strings")
+        resolved_roots.append(Path(value))
+    result = control_plane_cleanup_apply.run_cleanup_apply(
+        workspace_roots=resolved_roots,
+        apply=_optional_bool(arguments, "apply", default=False),
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
 def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
     mode = _require_string(arguments, "mode")
     if mode == "report":
@@ -587,6 +604,8 @@ def _call_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
         return _call_build_product_entry(arguments)
     if mode == "migration_audit":
         return _call_migration_audit(arguments)
+    if mode == "cleanup_apply":
+        return _call_cleanup_apply(arguments)
     raise ValueError(f"Unsupported product_entry mode: {mode}")
 
 
