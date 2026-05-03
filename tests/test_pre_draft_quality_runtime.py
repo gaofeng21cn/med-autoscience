@@ -201,6 +201,39 @@ def _mechanical_projection_publication_eval(study_root: Path) -> dict[str, Any]:
 def _write_closed_authority_surfaces(study_root: Path) -> None:
     _write_json(study_root / "paper" / "pre_draft_writing_readiness.json", _closed_readiness())
     _write_json(study_root / "paper" / "evidence_ledger.json", _closed_ledger(surface="evidence_ledger"))
+    (study_root / "paper" / "evidence_ledger.md").write_text(
+        "# Evidence ledger\n\n- core: closed authority evidence.\n",
+        encoding="utf-8",
+    )
+    _write_json(
+        study_root / "paper" / "claim_evidence_map.json",
+        {
+            "claims": [
+                {
+                    "claim_id": "core",
+                    "statement": "The core manuscript claim is supported.",
+                    "status": "supported",
+                    "paper_role": "main_text",
+                    "display_bindings": ["Figure1"],
+                    "sections": ["introduction", "methods", "results", "discussion"],
+                    "evidence_items": [
+                        {
+                            "item_id": "core-evidence",
+                            "support_level": "direct",
+                            "source_paths": ["paper/derived_analysis_manifest.json"],
+                        }
+                    ],
+                }
+            ]
+        },
+    )
+    _write_json(study_root / "paper" / "methods_implementation_manifest.json", {"study_design": {}})
+    _write_json(study_root / "paper" / "results_narrative_map.json", {"sections": [{"section_id": "results"}]})
+    _write_json(study_root / "paper" / "figure_semantics_manifest.json", {"figures": [{"figure_id": "Figure1"}]})
+    _write_json(
+        study_root / "paper" / "derived_analysis_manifest.json",
+        {"numeric_results": [{"result_id": "core", "claim_refs": ["core"], "display_refs": ["Figure1"]}]},
+    )
     _write_json(study_root / "paper" / "review_ledger.json", _closed_ledger(surface="review_ledger"))
     _write_json(study_root / "paper" / "medical_manuscript_blueprint.json", _authorized_blueprint())
     _write_json(study_root / "paper" / "authoring_workplan.json", _closed_authoring_workplan())
@@ -264,6 +297,34 @@ def test_pre_draft_runtime_allows_first_full_draft_only_after_closed_ai_reviewer
             "can_mutate_runtime": False,
         },
     }
+    assert result["section_authoring_work_units"]["surface"] == "section_authoring_work_units"
+    assert result["section_authoring_work_units"]["status"] == "ready"
+    assert result["section_authoring_work_units"]["can_mutate_package"] is False
+    assert [unit["section"] for unit in result["section_authoring_work_units"]["units"]] == [
+        "introduction",
+        "methods",
+        "results",
+        "discussion",
+    ]
+
+
+def test_pre_draft_runtime_section_authoring_work_units_fail_closed_when_grounding_is_missing(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.pre_draft_quality_runtime")
+    study_root = tmp_path / "study"
+    _write_closed_authority_surfaces(study_root)
+    (study_root / "paper" / "claim_evidence_map.json").unlink()
+    (study_root / "paper" / "derived_analysis_manifest.json").unlink()
+
+    result = module.build_pre_draft_quality_runtime_state(study_root=study_root)
+
+    assert result["status"] == "route_back_required"
+    assert result["readiness"]["draft_ready"] is False
+    assert "missing_ref:paper/claim_evidence_map.json" in result["blockers"]
+    assert "missing_ref:paper/derived_analysis_manifest.json" in result["blockers"]
+    assert result["section_authoring_work_units"]["status"] == "blocked"
+    assert result["section_authoring_work_units"]["can_mutate_package"] is False
 
 
 def test_pre_draft_runtime_missing_authoring_workplan_fails_closed(tmp_path: Path) -> None:
