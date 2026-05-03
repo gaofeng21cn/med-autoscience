@@ -15,6 +15,26 @@
 | `skipped_with_user_acceptance` | 哪些项经用户明确接受后跳过。 |
 | `remaining_gaps` | 尚未闭环的问题；没有写 `none`。 |
 
+## AI-first handoff 扩展字段
+
+AI-first closeout/handoff lane 使用以下扩展字段记录人工/AI 接力状态。这些字段服务审阅和续接，不新增 wording gate、publication gate、submission gate 或 runtime authority。
+
+| 字段 | 含义 |
+| --- | --- |
+| `handoff_receiver` | 下一接手者、外部 active owner 或 `none`。 |
+| `handoff_entrypoint` | 下一次继续时读取的文档、surface、branch、PR 或命令。 |
+| `out_of_scope_boundaries` | 本轮明确不触碰的 live artifact、worktree、risk 或 soak 边界。 |
+
+`external_active_owner` 表示某项由本轮以外的活跃对话、worktree、branch 或上游 PR 持有。它不得被写成 `done`，当前 lane 也不得吸收、重写或清理该 owner 持有的 worktree/branch。
+
+worktree cleanup 只允许覆盖本轮新建并完成吸收的 worktree/branch。外部活跃 worktree、`risk-*` 独立线、等待上游 review 的 PR worktree、用户明确排除的 worktree，以及状态无法确认的 worktree 都必须保留并标 owner。
+
+## AI-first closeout/handoff 记录模板
+
+| plan_id | planned_items | landed_commits | tests_run | pushed | worktrees_cleaned | live_surface_verified | skipped_with_user_acceptance | remaining_gaps | handoff_receiver | handoff_entrypoint | out_of_scope_boundaries |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| template | item A; item B | none | none: not run yet | no | not_performed_by_request | none | none | none | external_active_owner or none | docs/program/... | DM002 live artifact; risk-*; real-paper soak; external worktrees |
+
 ## 当前计划记录
 
 | plan_id | planned_items | landed_commits | tests_run | pushed | worktrees_cleaned | live_surface_verified | skipped_with_user_acceptance | remaining_gaps |
