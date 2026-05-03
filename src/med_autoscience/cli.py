@@ -271,6 +271,21 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(_serialize_study_runtime_result(result), ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "pause-study-runtime":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        result = study_runtime_router.pause_study_runtime(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            entry_mode=args.entry_mode,
+            force=bool(args.force),
+            source="cli",
+        )
+        print(json.dumps(_serialize_study_runtime_result(result), ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "study-runtime-status":
         if bool(args.study_id) == bool(args.study_root):
             parser.error("Specify exactly one of --study-id or --study-root")

@@ -738,6 +738,78 @@ def test_execute_pause_runtime_decision_records_nested_pause_daemon_step(monkeyp
     assert outcome.daemon_step("pause") == {"ok": True, "status": "paused"}
     assert status.quest_status is module.StudyRuntimeQuestStatus.PAUSED
 
+
+def test_pause_study_runtime_records_takeover_and_persists_pause(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    transport = _managed_runtime_transport(module)
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running"}\n')
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        transport,
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "live",
+            "active_run_id": "run-001",
+            "worker_running": True,
+            "bash_session_audit": {"ok": True, "status": "none"},
+        },
+    )
+    monkeypatch.setattr(
+        transport,
+        "pause_quest",
+        lambda *, runtime_root, quest_id, source: {
+            "ok": True,
+            "status": "paused",
+            "snapshot": {"status": "paused", "active_run_id": None},
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_protocol,
+        "persist_runtime_artifacts",
+        lambda **kwargs: seen.setdefault("persist_calls", []).append(kwargs)
+        or module.study_runtime_protocol.StudyRuntimeArtifacts(
+            runtime_binding_path=kwargs["runtime_binding_path"],
+            launch_report_path=kwargs["launch_report_path"],
+            startup_payload_path=kwargs["startup_payload_path"],
+        ),
+    )
+
+    result = module.pause_study_runtime(
+        profile=profile,
+        study_root=study_root,
+        source="test-human-takeover",
+    )
+
+    assert result["decision"] == "pause"
+    assert result["reason"] == "human_takeover_requested"
+    assert result["quest_status"] == "paused"
+    assert result["foreground_takeover"]["status"] == "runtime_paused_for_human_takeover"
+    assert len(seen["persist_calls"]) == 1
+    assert seen["persist_calls"][0]["last_action"] == "pause"
+    assert seen["persist_calls"][0]["daemon_result"]["status"] == "paused"
+
+
 def test_ensure_study_runtime_persists_legacy_resume_daemon_result_shape(
     monkeypatch,
     tmp_path: Path,

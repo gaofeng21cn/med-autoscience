@@ -129,6 +129,7 @@ class StudyRuntimeReason(StrEnum):
     RUNTIME_OVERLAY_NOT_READY = "runtime_overlay_not_ready"
     RUNTIME_OVERLAY_AUDIT_FAILED_FOR_RUNNING_QUEST = "runtime_overlay_audit_failed_for_running_quest"
     HYDRATION_VALIDATION_FAILED = "hydration_validation_failed"
+    HUMAN_TAKEOVER_REQUESTED = "human_takeover_requested"
     STUDY_COMPLETION_SYNCED = "study_completion_synced"
 
 

@@ -71,6 +71,64 @@ Limitations are recorded in the claim boundary surface.
     assert any(hit["pattern_id"] == "unsupported_no_difference_claim" for hit in report["top_hits"])
 
 
+def test_build_report_blocks_transportability_framework_jargon_before_export(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    paper_root = _paper_root_from_quest(quest_root)
+    framework_text = """
+## Introduction
+
+The clinical problem is external validation of mortality risk prediction across diabetes cohorts.
+
+## Materials and Methods
+
+### Study design and cohort
+
+The cohort definition followed the prespecified external validation protocol.
+
+### Variable definition and measurement
+
+Predictors were harmonized across the source datasets.
+
+### Model building
+
+The transportability-first framing used a bounded outcome-scale audit.
+
+### Validation framework
+
+Calibration and discrimination were assessed in the validation cohort.
+
+## Results
+
+### Primary analysis
+
+The validation retained an honest non-zero ordering signal despite clinically shallow absolute-risk separation.
+
+### Secondary analysis
+
+Risk estimates were interpreted within cohort-level calibration limits.
+
+## Discussion
+
+These findings support model recalibration before clinical interpretation.
+"""
+    (paper_root / "draft.md").write_text(framework_text, encoding="utf-8")
+    (paper_root / "build" / "review_manuscript.md").write_text(framework_text, encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+    analysis_plane_pattern_ids = {
+        pattern_id for pattern_id, _, _ in module.medical_surface_policy.get_analysis_plane_jargon_patterns()
+    }
+
+    assert report["status"] == "blocked"
+    assert "analysis_plane_jargon_present_on_manuscript_surface" in report["blockers"]
+    assert report["analysis_plane_jargon_hit_count"] >= 4
+    assert "transportability_first_framing" in analysis_plane_pattern_ids
+    assert "bounded_outcome_scale_audit" in analysis_plane_pattern_ids
+    assert "honest_non_zero" in analysis_plane_pattern_ids
+    assert "clinically_shallow" in analysis_plane_pattern_ids
+
+
 def test_build_report_requires_ai_prose_review_before_subjective_style_closure(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(

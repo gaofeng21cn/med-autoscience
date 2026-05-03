@@ -71,7 +71,11 @@ ANALYSIS_PLANE_JARGON_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("one_bin_collapse", "one-bin collapse", r"\bone[\s-]+bin collapse\b", re.IGNORECASE),
     ("contextual_layer", "contextual layer", r"\bcontextual layer\b", re.IGNORECASE),
     ("analysis_slice", "analysis slice", r"\banalysis slice\b", re.IGNORECASE),
+    ("bounded_outcome_scale_audit", "bounded outcome-scale audit", r"\bbounded outcome[\s-]+scale audit\b", re.IGNORECASE),
+    ("clinically_shallow", "clinically shallow", r"\bclinically shallow\b", re.IGNORECASE),
+    ("honest_non_zero", "honest non-zero", r"\bhonest non[\s-]+zero\b", re.IGNORECASE),
     ("transportability_surface", "transportability surface", r"\btransportability surface\b", re.IGNORECASE),
+    ("transportability_first_framing", "transportability-first framing", r"\btransportability[\s-]+first framing\b", re.IGNORECASE),
     ("residual_ordering_signal", "residual ordering signal", r"\bresidual ordering signal\b", re.IGNORECASE),
     ("claim_boundary_surface", "claim boundary", r"\bclaim boundary\b", re.IGNORECASE),
 ]

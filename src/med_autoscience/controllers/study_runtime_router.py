@@ -254,6 +254,55 @@ def ensure_study_runtime(
     return status.to_dict()
 
 
+def pause_study_runtime(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str | None = None,
+    study_root: Path | None = None,
+    entry_mode: str | None = None,
+    force: bool = False,
+    source: str = "med_autoscience",
+) -> dict[str, Any]:
+    resolved_study_id, resolved_study_root, study_payload = _resolve_study(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+    )
+    context = _build_execution_context(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        study_payload=study_payload,
+        source=source,
+    )
+    status = _status_state(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        study_payload=study_payload,
+        entry_mode=entry_mode,
+        sync_runtime_summary=False,
+    )
+    if not status.quest_exists:
+        status.set_decision(StudyRuntimeDecision.BLOCKED, StudyRuntimeReason.QUEST_MISSING)
+        return status.to_dict()
+    status.set_decision(StudyRuntimeDecision.PAUSE, StudyRuntimeReason.HUMAN_TAKEOVER_REQUESTED)
+    outcome = _execute_pause_runtime_decision(status=status, context=context)
+    status.extras["foreground_takeover"] = {
+        "status": "runtime_paused_for_human_takeover",
+        "source": source,
+        "takeover_action": "pause_runtime_then_explicit_human_takeover",
+    }
+    _persist_runtime_artifacts(
+        status=status,
+        context=context,
+        outcome=outcome,
+        force=force,
+        source=source,
+    )
+    return status.to_dict()
+
+
 def study_outer_loop_tick(**kwargs: Any) -> dict[str, Any]:
     from med_autoscience.controllers import study_outer_loop
 
