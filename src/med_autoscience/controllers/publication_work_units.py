@@ -121,6 +121,12 @@ _ACTIONABLE_OBJECT_KEYS = frozenset(
     {
         "claim_id",
         "claim_ref",
+        "display_id",
+        "display_ref",
+        "evidence_id",
+        "evidence_ref",
+        "evidence_item_id",
+        "evidence_item_ref",
         "figure_id",
         "figure_ref",
         "table_id",
@@ -132,6 +138,11 @@ _ACTIONABLE_OBJECT_KEYS = frozenset(
         "evidence_row_id",
         "evidence_row_ref",
         "package_artifact",
+        "package_artifact_path",
+        "package_artifact_ref",
+        "provenance_source_id",
+        "provenance_source_path",
+        "provenance_source_ref",
         "artifact_path",
         "source_path",
     }
@@ -139,7 +150,6 @@ _ACTIONABLE_OBJECT_KEYS = frozenset(
 _GENERIC_SPECIFICITY_ACTIONABLE_OBJECT_KEYS = _ACTIONABLE_OBJECT_KEYS - frozenset(
     {
         "artifact_path",
-        "package_artifact",
     }
 )
 _GENERIC_SPECIFICITY_BLOCKERS = frozenset(
