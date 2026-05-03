@@ -154,12 +154,29 @@ def test_classify_changed_files_matches_public_doc_surface() -> None:
             "docs/README.zh-CN.md",
             "docs/project.md",
             "docs/architecture.md",
+            "docs/invariants.md",
             "docs/status.md",
             "docs/decisions.md",
+            "docs/references/series-doc-governance-checklist.md",
         ]
     )
 
     assert result.matched_categories == ("public_doc_surface",)
+    assert result.unclassified_changes == ()
+
+
+def test_classify_changed_files_matches_ci_workflow_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            ".github/workflows/advisory.yml",
+            ".github/workflows/ci.yml",
+            "tests/test_release_workflow.py",
+        ]
+    )
+
+    assert result.matched_categories == ("workflow_surface",)
     assert result.unclassified_changes == ()
 
 

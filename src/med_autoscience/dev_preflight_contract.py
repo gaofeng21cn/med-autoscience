@@ -25,6 +25,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="workflow_surface",
         exact_paths=(
+            ".github/workflows/advisory.yml",
             ".github/workflows/ci.yml",
             ".github/workflows/release.yml",
             ".github/release-notes.md",
@@ -51,7 +52,9 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "docs/README.zh-CN.md",
             "docs/architecture.md",
             "docs/decisions.md",
+            "docs/invariants.md",
             "docs/project.md",
+            "docs/references/series-doc-governance-checklist.md",
             "docs/status.md",
         ),
         prefix_paths=(),
