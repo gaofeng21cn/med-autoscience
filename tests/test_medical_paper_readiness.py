@@ -78,6 +78,55 @@ def _complete_soak_stage_evidence() -> dict[str, list[str]]:
     }
 
 
+def _reviewer_operating_system() -> dict[str, object]:
+    dimensions = (
+        "clinical_significance",
+        "evidence_strength",
+        "novelty_positioning",
+        "medical_journal_prose_quality",
+        "human_review_readiness",
+    )
+    return {
+        "contract_id": "medical_publication_ai_reviewer_os_v1",
+        "input_bundle": {
+            "manuscript": "paper/manuscript.md",
+            "study_charter": "artifacts/controller/study_charter.json",
+            "evidence_ledger": "paper/evidence_ledger.json",
+            "review_ledger": "paper/review/review_ledger.json",
+            "medical_manuscript_blueprint": "paper/medical_manuscript_blueprint.json",
+            "claim_evidence_map": "paper/claim_evidence_map.json",
+            "medical_prose_review": "artifacts/publication_eval/medical_prose_review.json",
+            "publication_gate_projection": "artifacts/publication_eval/latest.json",
+        },
+        "rubric_scores": {
+            dimension: {
+                "status": "ready",
+                "rationale": f"{dimension} is ready.",
+                "evidence_refs": ["paper/evidence_ledger.json"],
+            }
+            for dimension in dimensions
+        },
+        "decision_matrix": [
+            {
+                "dimension": dimension,
+                "status": "ready",
+                "rationale": f"{dimension} is ready.",
+            }
+            for dimension in dimensions
+        ],
+        "provenance_checks": {
+            "assessment_owner": "ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+            "mechanical_projection_used_as_quality_authority": False,
+        },
+        "route_back_decision": {
+            "recommended_action": "authorize_full_manuscript_drafting",
+            "rationale": "All authoring inputs are ready.",
+        },
+    }
+
+
 def _complete_literature_provider_runtime_payload() -> dict[str, object]:
     return {
         "providers": [
@@ -180,7 +229,19 @@ def _complete_authoring_runtime_authorization_inputs() -> dict[str, object]:
                 "source_refs": ["artifacts/publication_eval/latest.json"],
                 "ai_reviewer_required": False,
             },
+            "reviewer_operating_system": _reviewer_operating_system(),
             "quality_claim_authorized": True,
+            "publication_critique": {
+                "concerns": [
+                    {
+                        "concern_id": "concern-primary",
+                        "claim_id": "claim-primary",
+                        "display_id": "table-2",
+                        "evidence_ref": "paper/evidence_ledger.json#claim-primary",
+                        "reviewer_concern_ref": "paper/review/review_ledger.json#concern-primary",
+                    }
+                ]
+            },
             "quality_assessment": {
                 key: {
                     "status": "ready",
@@ -196,6 +257,10 @@ def _complete_authoring_runtime_authorization_inputs() -> dict[str, object]:
                 )
             },
         },
+        "calibration_case_refs": [
+            "ai_reviewer_calibration_corpus#thin_first_draft",
+            "ai_reviewer_calibration_corpus#overstrong_claim",
+        ],
     }
 
 
@@ -245,35 +310,60 @@ def _materialize_complete_v2_readiness_inputs(study_root: Path) -> None:
         study_root / "artifacts" / "medical_paper" / "authoring_runtime_authorization.json",
         authoring.build_authoring_runtime_authorization(**_complete_authoring_runtime_authorization_inputs()),
     )
-    _write_json(
-        study_root / "artifacts" / "medical_paper" / "real_study_soak_matrix_evidence.json",
-        {
-            "study_id": "prediction-model-study",
-            "study_archetype": "prediction_model",
-            "stages": [
-                "literature_scout",
-                "line_selection",
-                "main_analysis",
-                "bounded_analysis",
-                "route_back",
-                "stop_loss",
-                "revision_reopen",
-                "runtime_recovery",
-                "finalize_rebuild",
-                "final_pre_submission_audit",
-            ],
-            "contracts": {
-                "literature_contract": True,
-                "statistical_contract": True,
-                "external_validation_fixture": True,
-            },
-            "fixtures": {"external_validation": True},
-            "result_strength": "adequate",
-            "route_action": "continue",
-            "durable_refs": ["artifacts/medical_paper/real_study_soak_matrix_evidence.json"],
+    roots = _materialize_complete_v2_soak_monitor_inputs(study_root)
+    soak_monitor.materialize_real_workspace_soak_monitor(study_roots=roots)
+
+
+def _materialize_complete_v2_soak_monitor_inputs(study_root: Path) -> list[Path]:
+    roots = [
+        study_root,
+        study_root.parent / "observational-study",
+        study_root.parent / "subtype-study",
+    ]
+    archetypes = [
+        "prediction_model/external_validation",
+        "observational_real_world",
+        "subtype_or_triage",
+    ]
+    for root, archetype in zip(roots, archetypes, strict=True):
+        _write_json(
+            root / "artifacts" / "medical_paper" / "real_study_soak_matrix_evidence.json",
+            _complete_v2_soak_monitor_study_payload(study_id=root.name, study_archetype=archetype),
+        )
+    return roots
+
+
+def _complete_v2_soak_monitor_study_payload(
+    *,
+    study_id: str,
+    study_archetype: str,
+) -> dict[str, object]:
+    return {
+        "study_id": study_id,
+        "study_archetype": study_archetype,
+        "stages": [
+            "literature_scout",
+            "line_selection",
+            "baseline",
+            "primary_analysis",
+            "bounded_analysis",
+            "route_back",
+            "stop_loss",
+            "revision_reopen",
+            "runtime_recovery",
+            "finalize_rebuild",
+            "final_pre_submission_audit",
+        ],
+        "contracts": {
+            "literature_contract": True,
+            "statistical_contract": True,
+            "external_validation_fixture": True,
         },
-    )
-    soak_monitor.materialize_real_workspace_soak_monitor(study_roots=[study_root])
+        "fixtures": {"external_validation": True},
+        "result_strength": "adequate",
+        "route_action": "continue",
+        "durable_refs": [f"artifacts/medical_paper/{study_id}.json"],
+    }
 
 
 def _materialize_complete_readiness_inputs(module: object, study_root: Path) -> None:
@@ -306,6 +396,7 @@ def _materialize_complete_readiness_inputs(module: object, study_root: Path) -> 
             "quality_claim_authorized": False,
         },
     )
+    _materialize_complete_v2_readiness_inputs(study_root)
 
 
 def test_medical_paper_readiness_surface_marks_complete_study_ready(tmp_path: Path) -> None:
@@ -332,6 +423,12 @@ def test_medical_paper_readiness_surface_marks_complete_study_ready(tmp_path: Pa
         "stop_loss_memo": "present",
         "target_journal_writing_layer": "present",
         "real_study_soak_matrix_evidence": "present",
+        "literature_provider_runtime": "present",
+        "route_decision_orchestrator": "present",
+        "statistical_discipline_operations": "present",
+        "revision_rebuttal_loop": "present",
+        "authoring_runtime_authorization": "present",
+        "real_workspace_soak_monitor": "present",
     }
 
 
@@ -437,6 +534,7 @@ def test_medical_paper_readiness_consumes_long_horizon_canonical_surfaces(tmp_pa
         study_root / "artifacts" / "real_study_soak_matrix" / "evidence.json",
         {"stage_evidence": _complete_soak_stage_evidence()},
     )
+    _materialize_complete_v2_readiness_inputs(study_root)
 
     readiness = readiness_module.build_medical_paper_readiness_surface(study_root=study_root)
 

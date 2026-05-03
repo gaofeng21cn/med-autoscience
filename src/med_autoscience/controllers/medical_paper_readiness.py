@@ -4,7 +4,11 @@ import json
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from med_autoscience.controllers import literature_provider_runtime
 from med_autoscience.controllers import real_paper_ai_first_soak
+from med_autoscience.controllers import real_workspace_soak_monitor
+from med_autoscience.controllers import revision_rebuttal_loop
+from med_autoscience.controllers import route_decision_orchestrator
 from med_autoscience.controllers import literature_intelligence_os
 from med_autoscience.controllers import multistudy_soak_proof
 from med_autoscience.controllers import statistical_discipline_runtime
@@ -42,6 +46,34 @@ def _has_any_text(value: object) -> bool:
 
 def _status_from_missing(missing_reason: str) -> str:
     return "present" if not missing_reason else "blocked"
+
+
+def _first_blocker(payload: Mapping[str, Any], default: str) -> str:
+    blockers = payload.get("blockers")
+    if isinstance(blockers, list) and blockers:
+        first = blockers[0]
+        if isinstance(first, Mapping):
+            return _text(first.get("reason_code")) or _text(first.get("code")) or default
+        return _text(first) or default
+    return default
+
+
+def _blocks_quality_authority(payload: Mapping[str, Any]) -> str:
+    if payload.get("quality_claim_authorized") not in {False, None}:
+        return "quality_claim_authorized_by_projection"
+    if payload.get("mechanical_projection_can_authorize_quality") not in {False, None}:
+        return "mechanical_projection_quality_authority_enabled"
+    authority = _mapping(payload.get("authority"))
+    if authority.get("mechanical_projection_can_authorize_quality") not in {False, None}:
+        return "mechanical_projection_quality_authority_enabled"
+    contract = _mapping(payload.get("authority_contract"))
+    if contract.get("can_authorize_quality") is not False and "can_authorize_quality" in contract:
+        return "quality_authority_enabled_by_read_model"
+    if contract.get("can_authorize_submission") is not False and "can_authorize_submission" in contract:
+        return "submission_authority_enabled_by_read_model"
+    if contract.get("can_authorize_finalize") is not False and "can_authorize_finalize" in contract:
+        return "finalize_authority_enabled_by_read_model"
+    return ""
 
 
 def _validate_literature_scout(payload: Mapping[str, Any]) -> tuple[str, str]:
@@ -193,6 +225,90 @@ def _validate_soak_matrix(payload: Mapping[str, Any]) -> tuple[str, str]:
     return "blocked", "missing_real_study_soak_evidence"
 
 
+def _validate_literature_provider_runtime(payload: Mapping[str, Any]) -> tuple[str, str]:
+    authority_blocker = _blocks_quality_authority(payload)
+    if authority_blocker:
+        return "blocked", authority_blocker
+    if _text(payload.get("surface")) != literature_provider_runtime.SURFACE:
+        return "blocked", "unexpected_literature_provider_runtime_surface"
+    if _text(payload.get("status")) == "ready":
+        return "present", ""
+    return "blocked", _text(payload.get("missing_reason")) or "literature_provider_runtime_not_ready"
+
+
+def _validate_route_decision_orchestrator(payload: Mapping[str, Any]) -> tuple[str, str]:
+    authority_blocker = _blocks_quality_authority(payload)
+    if authority_blocker:
+        return "blocked", authority_blocker
+    if _text(payload.get("surface")) != route_decision_orchestrator.SURFACE:
+        return "blocked", "unexpected_route_decision_orchestrator_surface"
+    if _text(payload.get("status")) != "ready":
+        return "blocked", _first_blocker(payload, "route_decision_orchestrator_not_ready")
+    if _text(payload.get("route_decision")) not in {"proceed_to_baseline", "return_to_scout", "switch_line"}:
+        return "blocked", "unsupported_route_decision"
+    if not _has_text(payload.get("controller_decision_ref")):
+        return "blocked", "missing_controller_decision_ref"
+    controller_decision = _mapping(payload.get("controller_decision"))
+    if controller_decision and controller_decision.get("quality_claim_authorized") is not False:
+        return "blocked", "controller_decision_quality_authority_enabled"
+    return "present", ""
+
+
+def _validate_statistical_discipline_operations(payload: Mapping[str, Any]) -> tuple[str, str]:
+    authority_blocker = _blocks_quality_authority(payload)
+    if authority_blocker:
+        return "blocked", authority_blocker
+    if _text(payload.get("surface")) != "statistical_discipline_operations":
+        return "blocked", "unexpected_statistical_discipline_operations_surface"
+    status = _text(payload.get("status"))
+    if status == "ready":
+        return "present", ""
+    if status == "partial":
+        return "partial", _first_blocker(payload, "statistical_discipline_operations_partial")
+    return "blocked", _first_blocker(payload, "statistical_discipline_operations_blocked")
+
+
+def _validate_revision_rebuttal_loop(payload: Mapping[str, Any]) -> tuple[str, str]:
+    authority_blocker = _blocks_quality_authority(payload)
+    if authority_blocker:
+        return "blocked", authority_blocker
+    if _text(payload.get("surface")) != revision_rebuttal_loop.SURFACE:
+        return "blocked", "unexpected_revision_rebuttal_loop_surface"
+    if _text(payload.get("status")) == "ready":
+        return "present", ""
+    return "blocked", _first_blocker(payload, "revision_rebuttal_loop_blocked")
+
+
+def _validate_authoring_runtime_authorization(payload: Mapping[str, Any]) -> tuple[str, str]:
+    if payload.get("mechanical_projection_can_authorize_quality") not in {False, None}:
+        return "blocked", "mechanical_projection_quality_authority_enabled"
+    authority = _mapping(payload.get("authority"))
+    if authority.get("mechanical_projection_can_authorize_quality") is not False:
+        return "blocked", "mechanical_projection_quality_authority_enabled"
+    if _text(payload.get("surface")) != "ai_reviewer_journal_writing_authorization":
+        return "blocked", "unexpected_authoring_runtime_authorization_surface"
+    if payload.get("full_drafting_authorized") is True:
+        return "present", ""
+    return "blocked", _first_blocker(payload, "full_drafting_not_authorized")
+
+
+def _validate_real_workspace_soak_monitor(payload: Mapping[str, Any]) -> tuple[str, str]:
+    authority_blocker = _blocks_quality_authority(payload)
+    if authority_blocker:
+        return "blocked", authority_blocker
+    if _text(payload.get("surface")) != real_workspace_soak_monitor.SURFACE:
+        return "blocked", "unexpected_real_workspace_soak_monitor_surface"
+    contract = _mapping(payload.get("authority_contract"))
+    if contract.get("can_mutate_runtime") is not False and "can_mutate_runtime" in contract:
+        return "blocked", "runtime_mutation_authority_enabled_by_read_model"
+    status = _text(payload.get("overall_status"))
+    if status == "ready":
+        return "present", ""
+    if status == "partial":
+        return "partial", _text(payload.get("next_action")) or "real_workspace_soak_monitor_partial"
+    return "blocked", _text(payload.get("next_action")) or "real_workspace_soak_monitor_blocked"
+
+
 def _literature_scout_payload(*, study_root: Path) -> Mapping[str, Any]:
     payload = literature_intelligence_os.read_literature_intelligence_os(study_root=study_root)
     if payload:
@@ -304,6 +420,60 @@ CAPABILITY_SPECS: tuple[dict[str, Any], ...] = (
         "required_for_ready": True,
         "next_action_summary": "补齐真实 study soak evidence 后再声明自动论文链路可用。",
         "validator": _validate_soak_matrix,
+    },
+    {
+        "surface_key": "literature_provider_runtime",
+        "surface": "literature_provider_runtime",
+        "label": "Literature Provider Runtime",
+        "path": literature_provider_runtime.ARTIFACT_RELATIVE_PATH,
+        "required_for_ready": True,
+        "next_action_summary": "运行联网 literature provider runtime 并写入可审计来源后再继续。",
+        "validator": _validate_literature_provider_runtime,
+    },
+    {
+        "surface_key": "route_decision_orchestrator",
+        "surface": "route_decision_orchestrator",
+        "label": "Route Decision Orchestrator",
+        "path": READINESS_ROOT / "route_decision_orchestrator.json",
+        "required_for_ready": True,
+        "next_action_summary": "写入路线裁决和 controller decision durable ref 后再进入执行。",
+        "validator": _validate_route_decision_orchestrator,
+    },
+    {
+        "surface_key": "statistical_discipline_operations",
+        "surface": "statistical_discipline_operations",
+        "label": "Statistical Discipline Operations",
+        "path": READINESS_ROOT / "statistical_discipline_operations.json",
+        "required_for_ready": True,
+        "next_action_summary": "处理统计纪律 blocker 或记录 waiver 后再继续分析。",
+        "validator": _validate_statistical_discipline_operations,
+    },
+    {
+        "surface_key": "revision_rebuttal_loop",
+        "surface": "revision_rebuttal_loop",
+        "label": "Revision Rebuttal Loop",
+        "path": revision_rebuttal_loop.ARTIFACT_RELATIVE_PATH,
+        "required_for_ready": True,
+        "next_action_summary": "启动返修 rebuttal loop 并绑定证据账本和 review ledger。",
+        "validator": _validate_revision_rebuttal_loop,
+    },
+    {
+        "surface_key": "authoring_runtime_authorization",
+        "surface": "authoring_runtime_authorization",
+        "label": "Authoring Runtime Authorization",
+        "path": READINESS_ROOT / "authoring_runtime_authorization.json",
+        "required_for_ready": True,
+        "next_action_summary": "补齐目标期刊写作层、claim/display map、AI reviewer provenance 后再授权完整写作。",
+        "validator": _validate_authoring_runtime_authorization,
+    },
+    {
+        "surface_key": "real_workspace_soak_monitor",
+        "surface": "real_workspace_soak_monitor",
+        "label": "Real Workspace Soak Monitor",
+        "path": real_workspace_soak_monitor.MONITOR_REF,
+        "required_for_ready": True,
+        "next_action_summary": "运行只读真实 workspace soak monitor 并补齐 blocked/partial 缺口。",
+        "validator": _validate_real_workspace_soak_monitor,
     },
 )
 
