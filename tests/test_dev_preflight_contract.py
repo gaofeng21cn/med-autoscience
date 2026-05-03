@@ -71,6 +71,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
         [
             "src/med_autoscience/controllers/study_control_plane_kernel.py",
             "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report.py",
             "src/med_autoscience/controllers/control_plane_migration_audit.py",
             "src/med_autoscience/controllers/control_plane_state.py",
             "src/med_autoscience/cli.py",
@@ -87,6 +88,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/runtime_protocol/paper_artifacts.py",
             "tests/test_study_control_plane_kernel.py",
             "tests/test_artifact_lifecycle_inventory.py",
+            "tests/test_artifact_lifecycle_operations_report.py",
             "tests/test_control_plane_migration_audit.py",
             "tests/test_cli_cases/public_entry_commands.py",
             "tests/test_mcp_server.py",

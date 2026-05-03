@@ -27,13 +27,20 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
         "tests/test_study_control_plane_kernel.py",
         "tests/test_control_plane_state_machine.py",
         "tests/test_study_runtime_typed_surface_cases/status_type_cases.py",
+        "tests/test_control_plane_route_gate.py",
         "tests/test_artifact_lifecycle_inventory.py",
+        "tests/test_artifact_lifecycle_operations_report.py",
         "tests/test_runtime_protocol_paper_artifacts.py",
         "tests/test_study_delivery_sync.py",
         "tests/test_runtime_storage_maintenance.py",
+        "tests/test_control_plane_cleanup_apply.py",
         "tests/test_control_plane_migration_audit.py",
         "tests/test_cli_cases/public_entry_commands.py::test_migration_audit_command_dispatches_read_only_controller",
+        "tests/test_cli_cases/public_entry_commands.py::test_cleanup_apply_command_dispatches_controller",
+        "tests/test_cli_cases/public_entry_commands.py::test_lifecycle_report_command_dispatches_read_only_controller",
         "tests/test_mcp_server.py::test_mcp_product_entry_can_call_migration_audit",
+        "tests/test_mcp_server.py::test_mcp_product_entry_can_call_cleanup_apply",
+        "tests/test_mcp_server.py::test_mcp_product_entry_can_call_lifecycle_report",
         "tests/test_truth_projection_surfaces.py",
     ):
         assert test_path in makefile
@@ -51,6 +58,9 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
         "uv run pytest tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py "
         "tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q"
     ) in makefile
+    assert "test-structure:" in makefile
+    assert "python scripts/line_budget.py" in makefile
+    assert "sentrux gate" in makefile
     assert "test-full:" in makefile
     assert "./scripts/run-parallel-test-lanes.sh full" in makefile
 
@@ -129,12 +139,14 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'if [[ "${lane}" == "meta" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "display" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "submission" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "structure" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "control-plane" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "full" ]]; then' in verify_script
     assert "make test-fast" in verify_script
     assert "make test-meta" in verify_script
     assert "make test-display" in verify_script
     assert "make test-submission" in verify_script
+    assert "make test-structure" in verify_script
     assert "make test-control-plane" in verify_script
     assert "make test-full" in verify_script
 
