@@ -1,0 +1,728 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping
+from pathlib import Path
+from typing import Any
+import os
+
+from med_autoscience.controllers.artifact_lifecycle_inventory import (
+    ARTIFACT_ROLES,
+    classify_artifact,
+    lifecycle_for_role,
+)
+
+
+SCHEMA_VERSION = 1
+SURFACE_KIND = "control_plane_lifecycle_report"
+NOISE_SCAN_MODE = "statistical_only"
+CLASSIFIED_SCAN_MODE = "classified_files"
+SKIPPED_SCAN_MODE = "skipped"
+
+_STATISTICAL_DIR_BUCKETS = {
+    ".cache": "cache",
+    ".ds": "runtime",
+    ".mypy_cache": "cache",
+    ".pytest_cache": "cache",
+    ".ruff_cache": "cache",
+    "__pycache__": "cache",
+    "cache": "cache",
+}
+_HARD_SKIPPED_DIR_NAMES = {
+    ".git",
+    ".hg",
+    ".tox",
+    ".venv",
+    "node_modules",
+    "venv",
+}
+_SOURCE_BUCKETS = (
+    "runtime",
+    "dataset",
+    "cache",
+    "delivery_projection",
+    "audit_log",
+    "canonical_source",
+    "cold_archive",
+    "other",
+)
+_PROJECTION_SURFACES = ("current_package", "submission_minimal", "docx", "pdf", "zip")
+
+
+def run_lifecycle_operations_report(*, workspace_roots: Iterable[str | Path]) -> dict[str, Any]:
+    resolved_roots = sorted(_as_path(root) for root in workspace_roots)
+    workspaces = [_workspace_report(root) for root in resolved_roots]
+    return {
+        "surface": SURFACE_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "report_kind": "artifact_lifecycle_operations_report",
+        "workspace_count": len(workspaces),
+        "mutation_policy": {
+            "read_only": True,
+            "writes_workspace": False,
+            "cleanup_apply_supported": False,
+            "physical_cleanup_performed": False,
+        },
+        "scan_policy": {
+            "classified_scan_mode": CLASSIFIED_SCAN_MODE,
+            "noise_scan_mode": NOISE_SCAN_MODE,
+            "hard_skipped_directories": sorted(_HARD_SKIPPED_DIR_NAMES),
+            "statistical_directories": sorted(_STATISTICAL_DIR_BUCKETS),
+        },
+        "projection_role_catalog": _projection_role_catalog(),
+        "summary": _aggregate_summary(workspaces),
+        "source_totals": _aggregate_source_totals(workspaces),
+        "projection_completeness": _aggregate_projection_completeness(workspaces),
+        "workspaces": workspaces,
+    }
+
+
+def render_lifecycle_operations_report_markdown(report: Mapping[str, Any]) -> str:
+    summary = dict(report.get("summary") or {})
+    projection = dict(report.get("projection_completeness") or {})
+    lines = [
+        "# Control Plane Lifecycle Report",
+        "",
+        f"- surface: `{report.get('surface') or SURFACE_KIND}`",
+        f"- workspace count: `{report.get('workspace_count') or 0}`",
+        f"- total bytes: `{summary.get('total_bytes') or 0}`",
+        f"- classified files: `{summary.get('classified_file_count') or 0}`",
+        f"- statistical files: `{summary.get('statistical_file_count') or 0}`",
+        f"- complete studies: `{projection.get('complete_study_count') or 0}`",
+        f"- incomplete studies: `{projection.get('incomplete_study_count') or 0}`",
+        "",
+        "## Bloat Sources",
+        "",
+    ]
+    for source_kind, totals in dict(report.get("source_totals") or {}).items():
+        if not isinstance(totals, Mapping):
+            continue
+        lines.append(
+            f"- `{source_kind}`: bytes `{totals.get('bytes') or 0}`, "
+            f"files `{totals.get('file_count') or 0}`, scan `{totals.get('scan_mode') or 'none'}`"
+        )
+    lines.extend(["", "## Studies", ""])
+    for workspace in report.get("workspaces") or []:
+        if not isinstance(workspace, Mapping):
+            continue
+        for study in workspace.get("studies") or []:
+            if not isinstance(study, Mapping):
+                continue
+            completeness = dict(study.get("projection_completeness") or {})
+            blockers = ", ".join(completeness.get("blockers") or []) or "none"
+            lines.append(
+                f"- `{study.get('study_id') or 'workspace'}`: "
+                f"`{completeness.get('status') or 'unknown'}`, blockers: {blockers}"
+            )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _workspace_report(workspace_root: Path) -> dict[str, Any]:
+    scan = _scan_workspace(workspace_root)
+    study_roots = _discover_study_roots(workspace_root=workspace_root, paths=scan["classified_paths"])
+    artifacts = _classify_workspace_artifacts(
+        workspace_root=workspace_root,
+        paths=scan["classified_paths"],
+        study_roots=study_roots,
+    )
+    statistical_directories = scan["statistical_directories"]
+    skipped_directories = scan["skipped_directories"]
+    studies = _study_reports(workspace_root=workspace_root, study_roots=study_roots, artifacts=artifacts)
+    return {
+        "workspace_root": str(workspace_root),
+        "exists": workspace_root.exists(),
+        "classified_artifact_count": len(artifacts),
+        "statistical_directory_count": len(statistical_directories),
+        "skipped_directory_count": len(skipped_directories),
+        "summary": _workspace_summary(
+            artifacts=artifacts,
+            statistical_directories=statistical_directories,
+        ),
+        "source_totals": _workspace_source_totals(
+            artifacts=artifacts,
+            statistical_directories=statistical_directories,
+        ),
+        "projection_completeness": _workspace_projection_completeness(studies),
+        "studies": studies,
+        "artifacts": artifacts,
+        "statistical_directories": statistical_directories,
+        "skipped_directories": skipped_directories,
+    }
+
+
+def _scan_workspace(workspace_root: Path) -> dict[str, Any]:
+    classified_paths: list[Path] = []
+    statistical_directories: list[dict[str, Any]] = []
+    skipped_directories: list[dict[str, Any]] = []
+    if not workspace_root.exists():
+        return {
+            "classified_paths": classified_paths,
+            "statistical_directories": statistical_directories,
+            "skipped_directories": skipped_directories,
+        }
+    for current_root, dirnames, filenames in os.walk(workspace_root):
+        current_path = Path(current_root)
+        kept_dirnames: list[str] = []
+        for dirname in sorted(dirnames):
+            directory = current_path / dirname
+            source_bucket = _STATISTICAL_DIR_BUCKETS.get(dirname)
+            if source_bucket is not None:
+                statistical_directories.append(
+                    _statistical_directory_report(
+                        directory=directory,
+                        workspace_root=workspace_root,
+                        source_bucket=source_bucket,
+                    )
+                )
+                continue
+            if dirname in _HARD_SKIPPED_DIR_NAMES:
+                skipped_directories.append(
+                    {
+                        "path": str(directory.resolve()),
+                        "workspace_relative_path": _rel(directory, workspace_root),
+                        "scan_mode": SKIPPED_SCAN_MODE,
+                        "source_bucket": "other",
+                        "reason": "noise_directory_skipped",
+                    }
+                )
+                continue
+            kept_dirnames.append(dirname)
+        dirnames[:] = kept_dirnames
+        for filename in sorted(filenames):
+            candidate = current_path / filename
+            if candidate.is_file() and not candidate.is_symlink():
+                classified_paths.append(candidate.resolve())
+    return {
+        "classified_paths": sorted(classified_paths),
+        "statistical_directories": sorted(
+            statistical_directories,
+            key=lambda item: str(item.get("workspace_relative_path") or ""),
+        ),
+        "skipped_directories": sorted(
+            skipped_directories,
+            key=lambda item: str(item.get("workspace_relative_path") or ""),
+        ),
+    }
+
+
+def _classify_workspace_artifacts(
+    *,
+    workspace_root: Path,
+    paths: Iterable[Path],
+    study_roots: Iterable[Path],
+) -> list[dict[str, Any]]:
+    roots = tuple(sorted({_as_path(root) for root in study_roots}, key=lambda path: len(path.parts), reverse=True))
+    artifacts: list[dict[str, Any]] = []
+    for path in paths:
+        study_root = _study_root_for_path(path=path, study_roots=roots, workspace_root=workspace_root)
+        artifact = classify_artifact(path=path, study_root=study_root)
+        role = str(artifact.get("role") or "")
+        lifecycle = str(artifact.get("lifecycle") or "")
+        size_bytes = _file_size(path)
+        artifacts.append(
+            {
+                **artifact,
+                "workspace_relative_path": _rel(path, workspace_root),
+                "study_root": str(study_root),
+                "study_id": _study_id_for_root(study_root, workspace_root),
+                "size_bytes": size_bytes,
+                "scan_mode": CLASSIFIED_SCAN_MODE,
+                "source_bucket": _source_bucket_for_artifact(role=role, lifecycle=lifecycle, path=path),
+            }
+        )
+    return sorted(artifacts, key=lambda item: str(item.get("workspace_relative_path") or ""))
+
+
+def _statistical_directory_report(*, directory: Path, workspace_root: Path, source_bucket: str) -> dict[str, Any]:
+    stats = _tree_stats(directory)
+    role = "runtime_ephemeral" if source_bucket == "runtime" else "cache"
+    lifecycle = "runtime_transient" if source_bucket == "runtime" else "cache_transient"
+    return {
+        "path": str(directory.resolve()),
+        "workspace_relative_path": _rel(directory, workspace_root),
+        "source_bucket": source_bucket,
+        "role": role,
+        "lifecycle": lifecycle,
+        "scan_mode": NOISE_SCAN_MODE,
+        "size_bytes": stats["bytes"],
+        "file_count": stats["file_count"],
+        "directory_count": stats["directory_count"],
+        "cleanup_candidate_action": "audit-only",
+        "cleanup_blockers": [
+            "statistical_only_no_physical_cleanup_contract",
+        ],
+    }
+
+
+def _tree_stats(root: Path) -> dict[str, int]:
+    total_bytes = 0
+    file_count = 0
+    directory_count = 0
+    for current_root, dirnames, filenames in os.walk(root):
+        directory_count += 1
+        dirnames[:] = [name for name in dirnames if name not in _HARD_SKIPPED_DIR_NAMES]
+        for filename in filenames:
+            candidate = Path(current_root) / filename
+            if candidate.is_symlink():
+                continue
+            try:
+                stat = candidate.stat()
+            except OSError:
+                continue
+            file_count += 1
+            total_bytes += int(stat.st_size)
+    return {
+        "bytes": total_bytes,
+        "file_count": file_count,
+        "directory_count": directory_count,
+    }
+
+
+def _study_reports(
+    *,
+    workspace_root: Path,
+    study_roots: Iterable[Path],
+    artifacts: Iterable[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    artifact_list = [dict(item) for item in artifacts]
+    reports: list[dict[str, Any]] = []
+    for study_root in sorted({_as_path(root) for root in study_roots}):
+        study_artifacts = [
+            item
+            for item in artifact_list
+            if _is_relative_to(Path(str(item.get("path"))), study_root)
+        ]
+        surfaces = _projection_surfaces(study_artifacts)
+        reports.append(
+            {
+                "study_id": _study_id_for_root(study_root, workspace_root),
+                "study_root": str(study_root),
+                "workspace_relative_study_root": _rel(study_root, workspace_root),
+                "artifact_count": len(study_artifacts),
+                "role_counts": _role_counts(study_artifacts, []),
+                "lifecycle_counts": _lifecycle_counts(study_artifacts, []),
+                "authority_blocker_counts": _blocker_counts(study_artifacts, "authority_blockers"),
+                "cleanup_blocker_counts": _blocker_counts(study_artifacts, "cleanup_blockers"),
+                "projection_surfaces": surfaces,
+                "projection_completeness": _projection_completeness(surfaces),
+            }
+        )
+    return reports
+
+
+def _projection_surfaces(artifacts: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    artifact_list = [dict(item) for item in artifacts]
+    return {
+        "current_package": _surface_report(
+            name="current_package",
+            role="derived_projection",
+            artifacts=[
+                item
+                for item in artifact_list
+                if _path_has_part(item, "current_package") or _path_name(item) == "current_package.zip"
+            ],
+        ),
+        "submission_minimal": _surface_report(
+            name="submission_minimal",
+            role="human_handoff_mirror",
+            artifacts=[item for item in artifact_list if _path_has_part(item, "submission_minimal")],
+        ),
+        "docx": _surface_report(
+            name="docx",
+            role="derived_projection",
+            artifacts=[item for item in artifact_list if _path_suffix(item) == ".docx"],
+        ),
+        "pdf": _surface_report(
+            name="pdf",
+            role="derived_projection",
+            artifacts=[item for item in artifact_list if _path_suffix(item) == ".pdf"],
+        ),
+        "zip": _surface_report(
+            name="zip",
+            role="derived_projection",
+            artifacts=[item for item in artifact_list if _path_suffix(item) == ".zip"],
+        ),
+    }
+
+
+def _surface_report(*, name: str, role: str, artifacts: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    artifact_list = [dict(item) for item in artifacts]
+    lifecycle = lifecycle_for_role(role)
+    return {
+        "surface": name,
+        "role": role,
+        "lifecycle": lifecycle,
+        "present": bool(artifact_list),
+        "artifact_count": len(artifact_list),
+        "size_bytes": sum(int(item.get("size_bytes") or 0) for item in artifact_list),
+        "paths": [str(item.get("workspace_relative_path") or item.get("path") or "") for item in artifact_list],
+        "authority_blockers": sorted(
+            {
+                str(blocker)
+                for item in artifact_list
+                for blocker in list(item.get("authority_blockers") or [])
+            }
+        ),
+        "cleanup_blockers": sorted(
+            {
+                str(blocker)
+                for item in artifact_list
+                for blocker in list(item.get("cleanup_blockers") or [])
+            }
+        ),
+    }
+
+
+def _projection_completeness(surfaces: Mapping[str, Any]) -> dict[str, Any]:
+    blockers = [
+        f"missing_{surface_name}"
+        for surface_name in _PROJECTION_SURFACES
+        if not bool(dict(surfaces.get(surface_name) or {}).get("present"))
+    ]
+    return {
+        "status": "complete" if not blockers else "incomplete",
+        "required_surfaces": list(_PROJECTION_SURFACES),
+        "blockers": blockers,
+    }
+
+
+def _workspace_projection_completeness(studies: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    study_list = [dict(item) for item in studies]
+    missing_surface_counts = {f"missing_{name}": 0 for name in _PROJECTION_SURFACES}
+    complete = 0
+    incomplete = 0
+    for study in study_list:
+        completeness = dict(study.get("projection_completeness") or {})
+        if completeness.get("status") == "complete":
+            complete += 1
+        else:
+            incomplete += 1
+        for blocker in completeness.get("blockers") or []:
+            if blocker in missing_surface_counts:
+                missing_surface_counts[blocker] += 1
+    return {
+        "study_count": len(study_list),
+        "complete_study_count": complete,
+        "incomplete_study_count": incomplete,
+        "missing_surface_counts": missing_surface_counts,
+    }
+
+
+def _aggregate_projection_completeness(workspaces: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    result = {
+        "study_count": 0,
+        "complete_study_count": 0,
+        "incomplete_study_count": 0,
+        "missing_surface_counts": {f"missing_{name}": 0 for name in _PROJECTION_SURFACES},
+    }
+    for workspace in workspaces:
+        projection = dict(workspace.get("projection_completeness") or {})
+        result["study_count"] += int(projection.get("study_count") or 0)
+        result["complete_study_count"] += int(projection.get("complete_study_count") or 0)
+        result["incomplete_study_count"] += int(projection.get("incomplete_study_count") or 0)
+        for key, value in dict(projection.get("missing_surface_counts") or {}).items():
+            result["missing_surface_counts"][key] = result["missing_surface_counts"].get(key, 0) + int(value or 0)
+    return result
+
+
+def _workspace_summary(
+    *,
+    artifacts: Iterable[Mapping[str, Any]],
+    statistical_directories: Iterable[Mapping[str, Any]],
+) -> dict[str, Any]:
+    artifact_list = [dict(item) for item in artifacts]
+    statistical_list = [dict(item) for item in statistical_directories]
+    classified_bytes = sum(int(item.get("size_bytes") or 0) for item in artifact_list)
+    statistical_bytes = sum(int(item.get("size_bytes") or 0) for item in statistical_list)
+    return {
+        "total_bytes": classified_bytes + statistical_bytes,
+        "classified_bytes": classified_bytes,
+        "statistical_bytes": statistical_bytes,
+        "classified_file_count": len(artifact_list),
+        "statistical_file_count": sum(int(item.get("file_count") or 0) for item in statistical_list),
+        "role_counts": _role_counts(artifact_list, statistical_list),
+        "lifecycle_counts": _lifecycle_counts(artifact_list, statistical_list),
+        "authority_blocker_counts": _blocker_counts(artifact_list, "authority_blockers"),
+        "cleanup_blocker_counts": _blocker_counts(artifact_list + statistical_list, "cleanup_blockers"),
+    }
+
+
+def _aggregate_summary(workspaces: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    totals = {
+        "total_bytes": 0,
+        "classified_bytes": 0,
+        "statistical_bytes": 0,
+        "classified_file_count": 0,
+        "statistical_file_count": 0,
+        "role_counts": {},
+        "lifecycle_counts": {},
+        "authority_blocker_counts": {},
+        "cleanup_blocker_counts": {},
+    }
+    for workspace in workspaces:
+        summary = dict(workspace.get("summary") or {})
+        for key in ("total_bytes", "classified_bytes", "statistical_bytes", "classified_file_count", "statistical_file_count"):
+            totals[key] += int(summary.get(key) or 0)
+        for key in ("role_counts", "lifecycle_counts", "authority_blocker_counts", "cleanup_blocker_counts"):
+            _merge_counts(totals[key], dict(summary.get(key) or {}))
+    return totals
+
+
+def _workspace_source_totals(
+    *,
+    artifacts: Iterable[Mapping[str, Any]],
+    statistical_directories: Iterable[Mapping[str, Any]],
+) -> dict[str, Any]:
+    totals = _empty_source_totals()
+    for item in artifacts:
+        bucket = str(item.get("source_bucket") or "other")
+        _add_source_total(
+            totals,
+            bucket=bucket,
+            bytes_count=int(item.get("size_bytes") or 0),
+            file_count=1,
+            classified_count=1,
+            statistical_count=0,
+            scan_mode=CLASSIFIED_SCAN_MODE,
+        )
+    for item in statistical_directories:
+        bucket = str(item.get("source_bucket") or "other")
+        _add_source_total(
+            totals,
+            bucket=bucket,
+            bytes_count=int(item.get("size_bytes") or 0),
+            file_count=int(item.get("file_count") or 0),
+            classified_count=0,
+            statistical_count=1,
+            scan_mode=NOISE_SCAN_MODE,
+        )
+    return totals
+
+
+def _aggregate_source_totals(workspaces: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    totals = _empty_source_totals()
+    for workspace in workspaces:
+        for bucket, source_total in dict(workspace.get("source_totals") or {}).items():
+            if not isinstance(source_total, Mapping):
+                continue
+            _add_source_total(
+                totals,
+                bucket=bucket,
+                bytes_count=int(source_total.get("bytes") or 0),
+                file_count=int(source_total.get("file_count") or 0),
+                classified_count=int(source_total.get("classified_file_count") or 0),
+                statistical_count=int(source_total.get("statistical_directory_count") or 0),
+                scan_mode=str(source_total.get("scan_mode") or ""),
+            )
+    return totals
+
+
+def _empty_source_totals() -> dict[str, Any]:
+    return {
+        bucket: {
+            "bytes": 0,
+            "file_count": 0,
+            "classified_file_count": 0,
+            "statistical_directory_count": 0,
+            "scan_mode": "none",
+        }
+        for bucket in _SOURCE_BUCKETS
+    }
+
+
+def _add_source_total(
+    totals: dict[str, Any],
+    *,
+    bucket: str,
+    bytes_count: int,
+    file_count: int,
+    classified_count: int,
+    statistical_count: int,
+    scan_mode: str,
+) -> None:
+    if bucket not in totals:
+        bucket = "other"
+    total = totals[bucket]
+    total["bytes"] += bytes_count
+    total["file_count"] += file_count
+    total["classified_file_count"] += classified_count
+    total["statistical_directory_count"] += statistical_count
+    total["scan_mode"] = _merge_scan_modes(str(total.get("scan_mode") or ""), scan_mode)
+
+
+def _merge_scan_modes(left: str, right: str) -> str:
+    modes = {mode for mode in (left, right) if mode and mode != "none"}
+    if not modes:
+        return "none"
+    if len(modes) == 1:
+        return next(iter(modes))
+    return "mixed"
+
+
+def _role_counts(
+    artifacts: Iterable[Mapping[str, Any]],
+    statistical_directories: Iterable[Mapping[str, Any]],
+) -> dict[str, int]:
+    counts = {role: 0 for role in ARTIFACT_ROLES}
+    for item in list(artifacts) + list(statistical_directories):
+        role = str(item.get("role") or "")
+        if role in counts:
+            counts[role] += int(item.get("file_count") or 1)
+    return counts
+
+
+def _lifecycle_counts(
+    artifacts: Iterable[Mapping[str, Any]],
+    statistical_directories: Iterable[Mapping[str, Any]],
+) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in list(artifacts) + list(statistical_directories):
+        lifecycle = str(item.get("lifecycle") or "")
+        if not lifecycle:
+            continue
+        counts[lifecycle] = counts.get(lifecycle, 0) + int(item.get("file_count") or 1)
+    return counts
+
+
+def _blocker_counts(items: Iterable[Mapping[str, Any]], field_name: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in items:
+        for blocker in item.get(field_name) or []:
+            key = str(blocker)
+            counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def _merge_counts(target: dict[str, int], source: Mapping[str, Any]) -> None:
+    for key, value in source.items():
+        target[str(key)] = target.get(str(key), 0) + int(value or 0)
+
+
+def _projection_role_catalog() -> dict[str, dict[str, str]]:
+    return {
+        "current_package": {
+            "role": "derived_projection",
+            "lifecycle": lifecycle_for_role("derived_projection"),
+        },
+        "submission_minimal": {
+            "role": "human_handoff_mirror",
+            "lifecycle": lifecycle_for_role("human_handoff_mirror"),
+        },
+        "docx": {
+            "role": "derived_projection",
+            "lifecycle": lifecycle_for_role("derived_projection"),
+        },
+        "pdf": {
+            "role": "derived_projection",
+            "lifecycle": lifecycle_for_role("derived_projection"),
+        },
+        "zip": {
+            "role": "derived_projection",
+            "lifecycle": lifecycle_for_role("derived_projection"),
+        },
+    }
+
+
+def _discover_study_roots(*, workspace_root: Path, paths: Iterable[Path]) -> tuple[Path, ...]:
+    roots: set[Path] = set()
+    for container_name in ("studies", "papers"):
+        container = workspace_root / container_name
+        if container.exists():
+            roots.update(child.resolve() for child in container.iterdir() if child.is_dir())
+    for path in paths:
+        relative_parts = _relative_parts(path, workspace_root)
+        for container_name in ("studies", "papers"):
+            if container_name not in relative_parts:
+                continue
+            index = relative_parts.index(container_name)
+            if index + 1 < len(relative_parts):
+                roots.add((workspace_root / Path(*relative_parts[: index + 2])).resolve())
+    if not roots:
+        roots.add(workspace_root)
+    return tuple(sorted(roots))
+
+
+def _study_root_for_path(*, path: Path, study_roots: Iterable[Path], workspace_root: Path) -> Path:
+    for root in study_roots:
+        if _is_relative_to(path, root):
+            return root
+    return workspace_root
+
+
+def _source_bucket_for_artifact(*, role: str, lifecycle: str, path: Path) -> str:
+    if role == "runtime_ephemeral":
+        return "runtime"
+    if role == "data_release":
+        return "dataset"
+    if role in {"derived_projection", "human_handoff_mirror"}:
+        return "delivery_projection"
+    if role == "audit_log":
+        return "audit_log"
+    if role == "canonical_source":
+        return "canonical_source"
+    if role == "cold_archive":
+        return "cold_archive"
+    if "cache" in path.parts:
+        return "cache"
+    if lifecycle == "rebuildable_projection":
+        return "delivery_projection"
+    return "other"
+
+
+def _path_has_part(item: Mapping[str, Any], part: str) -> bool:
+    return part in Path(str(item.get("path") or "")).parts
+
+
+def _path_name(item: Mapping[str, Any]) -> str:
+    return Path(str(item.get("path") or "")).name
+
+
+def _path_suffix(item: Mapping[str, Any]) -> str:
+    return Path(str(item.get("path") or "")).suffix.lower()
+
+
+def _file_size(path: Path) -> int:
+    try:
+        return int(path.stat().st_size)
+    except OSError:
+        return 0
+
+
+def _study_id_for_root(study_root: Path, workspace_root: Path) -> str:
+    if study_root == workspace_root:
+        return workspace_root.name
+    return study_root.name
+
+
+def _as_path(value: str | Path) -> Path:
+    return Path(value).expanduser().resolve()
+
+
+def _rel(path: Path, root: Path) -> str:
+    try:
+        return path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return path.resolve().as_posix()
+
+
+def _relative_parts(path: Path, root: Path) -> tuple[str, ...]:
+    try:
+        return path.resolve().relative_to(root.resolve()).parts
+    except ValueError:
+        return path.resolve().parts
+
+
+def _is_relative_to(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+__all__ = [
+    "SCHEMA_VERSION",
+    "SURFACE_KIND",
+    "render_lifecycle_operations_report_markdown",
+    "run_lifecycle_operations_report",
+]

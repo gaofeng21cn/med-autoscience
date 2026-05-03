@@ -204,6 +204,10 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     cleanup_apply_parser.add_argument("--workspace-root", action="append", required=True)
     cleanup_apply_parser.add_argument("--apply", action="store_true")
 
+    lifecycle_report_parser = subparsers.add_parser("control-plane-lifecycle-report")
+    lifecycle_report_parser.add_argument("--workspace-root", action="append", required=True)
+    lifecycle_report_parser.add_argument("--markdown", action="store_true")
+
     surface_parser = subparsers.add_parser("medical-publication-surface")
     surface_parser.add_argument("--quest-root", required=True)
     surface_parser.add_argument("--apply", action="store_true")

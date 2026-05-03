@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience import __version__
 from med_autoscience.controllers import (
+    artifact_lifecycle_operations_report,
     control_plane_cleanup_apply,
     control_plane_migration_audit,
     data_assets,
@@ -515,6 +516,27 @@ def _call_cleanup_apply(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_lifecycle_report(arguments: dict[str, Any]) -> dict[str, Any]:
+    workspace_roots = arguments.get("workspace_roots")
+    if not isinstance(workspace_roots, list) or not workspace_roots:
+        raise ValueError("workspace_roots must be a non-empty list for lifecycle_report")
+    resolved_roots: list[Path] = []
+    for value in workspace_roots:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("workspace_roots entries must be non-empty strings")
+        resolved_roots.append(Path(value))
+    result = artifact_lifecycle_operations_report.run_lifecycle_operations_report(
+        workspace_roots=resolved_roots,
+    )
+    render_markdown = _optional_bool(arguments, "markdown", default=False)
+    text = (
+        artifact_lifecycle_operations_report.render_lifecycle_operations_report_markdown(result)
+        if render_markdown
+        else _json_text(result)
+    )
+    return _tool_text_result(text, structured=result)
+
+
 def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
     mode = _require_string(arguments, "mode")
     if mode == "report":
@@ -606,6 +628,8 @@ def _call_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
         return _call_migration_audit(arguments)
     if mode == "cleanup_apply":
         return _call_cleanup_apply(arguments)
+    if mode == "lifecycle_report":
+        return _call_lifecycle_report(arguments)
     raise ValueError(f"Unsupported product_entry mode: {mode}")
 
 

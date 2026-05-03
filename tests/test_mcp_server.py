@@ -427,6 +427,43 @@ def test_mcp_product_entry_can_call_cleanup_apply(monkeypatch, tmp_path: Path) -
     assert "control_plane_cleanup_apply" in result["content"][0]["text"]
 
 
+def test_mcp_product_entry_can_call_lifecycle_report(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    captured: dict[str, object] = {}
+
+    def fake_run_lifecycle_operations_report(*, workspace_roots) -> dict[str, object]:
+        captured["workspace_roots"] = list(workspace_roots)
+        return {
+            "surface": "control_plane_lifecycle_report",
+            "workspace_count": 1,
+            "mutation_policy": {"read_only": True, "physical_cleanup_performed": False},
+            "summary": {"total_bytes": 0},
+            "projection_completeness": {"complete_study_count": 0, "incomplete_study_count": 0},
+            "source_totals": {},
+            "workspaces": [],
+        }
+
+    monkeypatch.setattr(
+        module.artifact_lifecycle_operations_report,
+        "run_lifecycle_operations_report",
+        fake_run_lifecycle_operations_report,
+    )
+
+    result = module.call_tool(
+        "product_entry",
+        {
+            "mode": "lifecycle_report",
+            "workspace_roots": [str(tmp_path / "workspace")],
+        },
+    )
+
+    assert result["isError"] is False
+    assert captured == {"workspace_roots": [tmp_path / "workspace"]}
+    assert result["structuredContent"]["surface"] == "control_plane_lifecycle_report"
+    assert result["structuredContent"]["mutation_policy"]["physical_cleanup_performed"] is False
+    assert "control_plane_lifecycle_report" in result["content"][0]["text"]
+
+
 def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}
