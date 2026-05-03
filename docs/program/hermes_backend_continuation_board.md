@@ -80,7 +80,7 @@
 - `tests/test_runtime_protocol_layout.py`
 - `tests/test_runtime_protocol_study_runtime.py`
 - `tests/test_study_runtime_router.py`
-- `tests/test_runtime_contract_docs.py`
+- `tests/test_work_unit_runtime_contract.py`
 - `tests/test_dev_preflight_contract.py`
 
 如果当前改动同时触及 integration-harness wording，还要继续补跑：

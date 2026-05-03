@@ -63,7 +63,7 @@
 - `tests/test_runtime_protocol_layout.py`
 - `tests/test_runtime_protocol_study_runtime.py`
 - `tests/test_study_runtime_router.py`
-- `tests/test_runtime_contract_docs.py`
+- `tests/test_work_unit_runtime_contract.py`
 - `tests/test_dev_preflight_contract.py`
 - `tests/test_integration_harness_activation_package.py`
 - `make test-meta`

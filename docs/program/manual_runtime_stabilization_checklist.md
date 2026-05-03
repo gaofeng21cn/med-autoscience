@@ -61,7 +61,7 @@
 - `tests/test_external_runtime_dependency_gate.py`
 - `tests/test_hermes_runtime_contract.py`
 - `tests/test_hermes_runtime_check.py`
-- `tests/test_runtime_contract_docs.py`
+- `tests/test_work_unit_runtime_contract.py`
 - `tests/test_runtime_supervision_docs.py`
 - `tests/test_study_progress_docs.py`
 - `tests/test_runtime_protocol_study_runtime.py`
