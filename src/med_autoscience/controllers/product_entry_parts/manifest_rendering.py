@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from .program_surfaces import _render_phase5_platform_target_markdown_lines
+from .paper_orchestra_operator import render_paper_orchestra_operator_projection_lines
 from .shared import *  # noqa: F403
 from .workspace_attention import (
     _autonomy_soak_focus,
@@ -150,6 +151,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     quickstart = dict(payload.get("product_entry_quickstart") or {})
     workspace_operator_brief = dict(payload.get("workspace_operator_brief") or {})
     workspace_ai_first_operations_state = dict(payload.get("workspace_ai_first_operations_state") or {})
+    workspace_paper_orchestra_operator_projection = dict(
+        payload.get("workspace_paper_orchestra_operator_projection") or {}
+    )
     lines = [
         "# Product Frontdesk",
         "",
@@ -256,6 +260,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
                 lines.append(f"  反馈原因: {dashboard.get('feedback_primary_reason')}")
             if dashboard.get("feedback_action_summary"):
                 lines.append(f"  建议动作: {dashboard.get('feedback_action_summary')}")
+    lines.extend(render_paper_orchestra_operator_projection_lines(workspace_paper_orchestra_operator_projection))
     for item in payload.get("workspace_attention_queue_preview") or []:
         if not isinstance(item, dict):
             continue

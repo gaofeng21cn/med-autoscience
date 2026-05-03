@@ -766,6 +766,9 @@ def build_study_progress_projection(
     ai_first_default_entry_state = _ai_first_default_entry.build_ai_first_default_entry_state(
         study_root=resolved_study_root,
     )
+    paper_orchestra_operator_projection = _mapping_copy(
+        ai_first_default_entry_state.get("paper_orchestra_operator_projection")
+    )
     ai_first_operations_dashboard = ai_first_observability.build_ai_first_operations_dashboard_summary(
         drift_audit={"status": "not_run", "summary": {"fail_count": 0}},
         progress_snapshot={
@@ -833,6 +836,7 @@ def build_study_progress_projection(
         "medical_writing_quality_surfaces": medical_writing_quality_surfaces,
         "research_runtime_control_projection": research_runtime_control_projection,
         "ai_first_default_entry_state": ai_first_default_entry_state,
+        "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
         "ai_first_observability_snapshots": ai_first_observability_snapshots,
         "ai_first_operations_dashboard": ai_first_operations_dashboard,
         "study_truth_snapshot": study_truth_snapshot or None,

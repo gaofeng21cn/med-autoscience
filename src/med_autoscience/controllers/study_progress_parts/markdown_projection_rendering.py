@@ -145,6 +145,9 @@ def _build_markdown_context(payload: dict[str, Any]) -> dict[str, Any]:
         ),
         "quality_review_followthrough": quality_review_followthrough,
         "ai_first_default_entry_state": _mapping_copy(normalized_payload.get("ai_first_default_entry_state")),
+        "paper_orchestra_operator_projection": _mapping_copy(
+            normalized_payload.get("paper_orchestra_operator_projection")
+        ),
         "ai_first_feedback_state": _mapping_copy(normalized_payload.get("ai_first_feedback_state")),
         "recovery_contract": recovery_contract,
         "recovery_action_mode": _RECOVERY_ACTION_MODE_LABELS.get(
@@ -489,6 +492,29 @@ def _append_ai_first_default_entry(lines: list[str], state: Mapping[str, Any]) -
         lines.append(f"- 默认入口阻塞: {blocker}")
 
 
+def _append_paper_orchestra_operator_projection(lines: list[str], projection: Mapping[str, Any]) -> None:
+    if not projection:
+        return
+    current_stage = _mapping_copy(projection.get("current_dag_stage"))
+    next_owner = _mapping_copy(projection.get("next_owner"))
+    parallel_sections = [
+        _non_empty_text(item.get("section_id"))
+        for item in (projection.get("parallel_sections") or [])
+        if isinstance(item, Mapping)
+    ]
+    parallel_section_text = ", ".join(item for item in parallel_sections if item) or "none"
+    lines.extend(["", "## 论文写作 DAG", ""])
+    lines.append(f"- 当前状态: {projection.get('status') or 'unknown'}")
+    if current_stage:
+        lines.append(f"- 当前卡点: {current_stage.get('label') or current_stage.get('stage_id') or 'unknown'}")
+    lines.append(f"- 可并行 section: {parallel_section_text}")
+    if projection.get("blocking_gate_count") is not None:
+        lines.append(f"- 阻塞 gate 数: {projection.get('blocking_gate_count')}")
+    if next_owner:
+        lines.append(f"- 下一责任方: {next_owner.get('owner') or 'unknown'}")
+        lines.append(f"- 下一动作: {next_owner.get('action') or 'unknown'}")
+
+
 def _append_ai_first_feedback_state(lines: list[str], state: Mapping[str, Any]) -> None:
     if not state:
         return
@@ -700,6 +726,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     _append_autonomy_contract(lines, ctx["autonomy_contract"])
     _append_autonomy_soak_status(lines, normalized_payload)
     _append_ai_first_default_entry(lines, ctx["ai_first_default_entry_state"])
+    _append_paper_orchestra_operator_projection(lines, ctx["paper_orchestra_operator_projection"])
     _append_ai_first_feedback_state(lines, ctx["ai_first_feedback_state"])
     _append_quality_closure(lines, ctx)
     _append_quality_review_agenda(lines, ctx["quality_review_agenda"])

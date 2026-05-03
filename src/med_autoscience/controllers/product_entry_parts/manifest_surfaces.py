@@ -727,6 +727,9 @@ def build_product_frontdesk(
             "workspace_ai_first_operations_state": dict(
                 workspace_cockpit.get("ai_first_operations_state") or {}
             ),
+            "workspace_paper_orchestra_operator_projection": dict(
+                workspace_cockpit.get("paper_orchestra_operator_projection") or {}
+            ),
             "workspace_ai_first_feedback_state": {
                 "surface_kind": "workspace_ai_first_feedback_state",
                 "authority": "observability_only",

@@ -14,6 +14,10 @@ from .workspace_attention import (
     _same_line_route_truth_payload,
     _workspace_operator_brief,
 )
+from .paper_orchestra_operator import (
+    build_workspace_paper_orchestra_operator_projection,
+    render_paper_orchestra_operator_projection_lines,
+)
 from . import shared as _shared
 from . import program_surfaces as _program_surfaces
 
@@ -517,6 +521,7 @@ def _study_item(
     ai_first_default_entry_state = dict(progress_payload.get("ai_first_default_entry_state") or {})
     ai_first_operations_dashboard = dict(progress_payload.get("ai_first_operations_dashboard") or {})
     ai_first_feedback_state = dict(progress_payload.get("ai_first_feedback_state") or {})
+    paper_orchestra_operator_projection = dict(progress_payload.get("paper_orchestra_operator_projection") or {})
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
     runtime_health_snapshot = _runtime_health_snapshot_summary(progress_payload.get("runtime_health_snapshot"))
@@ -563,6 +568,7 @@ def _study_item(
         "ai_first_default_entry_state": ai_first_default_entry_state or None,
         "ai_first_operations_dashboard": ai_first_operations_dashboard or None,
         "ai_first_feedback_state": ai_first_feedback_state or None,
+        "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
@@ -702,6 +708,7 @@ def read_workspace_cockpit(
         commands=commands,
     )
     ai_first_operations_state = _workspace_ai_first_operations_state(studies=studies)
+    paper_orchestra_operator_projection = build_workspace_paper_orchestra_operator_projection(studies=studies)
     user_loop = _user_loop(profile=profile, profile_ref=profile_ref)
     operator_brief = _workspace_operator_brief(
         workspace_status=workspace_status,
@@ -725,6 +732,7 @@ def read_workspace_cockpit(
         "workspace_alerts": workspace_alerts,
         "workspace_supervision": workspace_supervision,
         "ai_first_operations_state": ai_first_operations_state,
+        "paper_orchestra_operator_projection": paper_orchestra_operator_projection,
         "attention_queue": attention_queue,
         "operator_brief": operator_brief,
         "user_loop": user_loop,
@@ -861,6 +869,7 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
                 lines.append(f"  产物刷新: {dashboard.get('stale_artifact_count')} 个待刷新")
     else:
         lines.append("- 当前还没有 AI-first operations runtime state。")
+    lines.extend(render_paper_orchestra_operator_projection_lines(payload.get("paper_orchestra_operator_projection") or {}))
     lines.extend(
         [
             "",
