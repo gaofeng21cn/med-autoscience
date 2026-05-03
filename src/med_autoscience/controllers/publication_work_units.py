@@ -153,6 +153,15 @@ _SPECIFICITY_QUESTIONS = (
     "Which exact claim, figure, table, metric, citation, evidence row, or package artifact is blocking the gate?",
     "Which durable source path proves the blocker and which controller surface should own the repair?",
 )
+_REQUIRED_SPECIFICITY_TARGET_KINDS = (
+    "claim",
+    "display",
+    "evidence_source",
+    "citation",
+    "metric",
+    "package_artifact",
+    "authorization_provenance",
+)
 _PRIMARY_WORK_UNIT_RULES = (
     (
         _CLAIM_EVIDENCE_BLOCKERS,
@@ -263,13 +272,13 @@ def fingerprint_blockers_for_work_unit(*, blockers: tuple[str, ...], next_work_u
     return filtered or blockers
 
 
-def _unit(unit_id: str, lane: str, summary: str, **extra: str) -> dict[str, str]:
-    payload = {
+def _unit(unit_id: str, lane: str, summary: str, **extra: Any) -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "unit_id": unit_id,
         "lane": lane,
         "summary": summary,
     }
-    payload.update({key: value for key, value in extra.items() if str(value).strip()})
+    payload.update({key: value for key, value in extra.items() if value is not None and str(value).strip()})
     return payload
 
 
@@ -381,6 +390,9 @@ def _append_gate_specificity_unit(units: list[dict[str, str]]) -> None:
             "gate_needs_specificity",
             "controller",
             "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets.",
+            controller_work_unit_executable=False,
+            non_executable_reason="gate_needs_specificity_without_targets",
+            required_target_kinds=list(_REQUIRED_SPECIFICITY_TARGET_KINDS),
         )
     )
 
