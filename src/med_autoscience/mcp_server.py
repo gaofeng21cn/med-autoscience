@@ -217,7 +217,14 @@ def list_tools() -> list[dict[str, Any]]:
         },
         {
             "name": "product_entry",
-            "description": "Read MedAutoScience product-entry surfaces through one tool: product_frontdesk, product_preflight, product_start, product_entry_manifest, build_product_entry, or migration_audit. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution.",
+            "description": (
+                "Read MedAutoScience product-entry surfaces through one tool: product_frontdesk, product_preflight, "
+                "product_start, product_entry_manifest, build_product_entry, migration_audit, cleanup_apply, or "
+                "lifecycle_report. migration_audit is dry-run-only; cleanup_apply is contract-gated; "
+                "lifecycle_report is read-only unless a separate controller apply contract authorizes cleanup. "
+                "If the needed MAS contract is missing, stop and close the contract gap through a "
+                "controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -230,6 +237,8 @@ def list_tools() -> list[dict[str, Any]]:
                         "type": "array",
                         "items": {"type": "string"},
                     },
+                    "apply": {"type": "boolean"},
+                    "markdown": {"type": "boolean"},
                 },
                 "required": ["mode"],
                 "additionalProperties": False,

@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+import pytest
+
 
 def write_profile(path: Path) -> None:
     path.write_text(
@@ -44,6 +46,35 @@ def test_mcp_server_lists_read_only_tools() -> None:
         "publication_status",
         "product_entry",
     ]
+
+
+@pytest.mark.parametrize(
+    "fragment",
+    ("migration_audit", "cleanup_apply", "lifecycle_report", "dry-run", "contract-gated"),
+)
+def test_mcp_product_entry_description_documents_control_plane_operations_surfaces(fragment: str) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
+
+    assert fragment in tools["product_entry"]["description"]
+
+
+@pytest.mark.parametrize(
+    ("option", "schema"),
+    (
+        ("apply", {"type": "boolean"}),
+        ("markdown", {"type": "boolean"}),
+    ),
+)
+def test_mcp_product_entry_schema_accepts_control_plane_operations_options(
+    option: str,
+    schema: dict[str, str],
+) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
+    properties = tools["product_entry"]["inputSchema"]["properties"]
+
+    assert properties[option] == schema
 
 
 def test_mcp_server_exposes_medical_reporting_audit_tool() -> None:

@@ -478,6 +478,19 @@ def test_build_gate_report_maps_surface_signals_to_named_controller_blockers(tmp
         "controller_stage_note"
     ]
     assert "reviewer-first hardening" not in report["controller_stage_note"]
+    blocking_artifact_refs_text = json.dumps(report["blocking_artifact_refs"], sort_keys=True)
+    assert '"source_path"' in blocking_artifact_refs_text
+    assert "reviewer_first_concerns_unresolved" in blocking_artifact_refs_text
+    assert "paper/review/review_ledger.json" in blocking_artifact_refs_text
+    assert "claim_evidence_consistency_failed" in blocking_artifact_refs_text
+    assert "paper/claim_evidence_map.json" in blocking_artifact_refs_text
+    assert "submission_hardening_incomplete" in blocking_artifact_refs_text
+    assert (
+        "paper/submission_minimal/submission_manifest.json"
+        in blocking_artifact_refs_text
+    )
+
+
 def test_build_gate_report_projects_surface_charter_expectation_gaps(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     evidence_gap_text = "External validation evidence package is durably archived for the manuscript route."

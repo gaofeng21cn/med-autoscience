@@ -10,6 +10,30 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "9b02ce03bf079db0257959c3219a1fd2b1ad1364"
+REQUIRED_CONTROL_PLANE_TESTS = (
+    "tests/test_control_plane_regression.py",
+    "tests/test_control_plane_structure.py",
+    "tests/test_study_control_plane_kernel.py",
+    "tests/test_control_plane_state_machine.py",
+    "tests/test_study_runtime_typed_surface_cases/status_type_cases.py",
+    "tests/test_control_plane_route_gate.py",
+    "tests/test_artifact_lifecycle_inventory.py",
+    "tests/test_artifact_lifecycle_operations_report.py",
+    "tests/test_runtime_protocol_paper_artifacts.py",
+    "tests/test_study_delivery_sync.py",
+    "tests/test_runtime_storage_maintenance.py",
+    "tests/test_control_plane_cleanup_apply.py",
+    "tests/test_control_plane_migration_audit.py",
+    "tests/test_cli_cases/public_entry_commands.py::test_migration_audit_command_dispatches_read_only_controller",
+    "tests/test_cli_cases/public_entry_commands.py::test_cleanup_apply_command_dispatches_controller",
+    "tests/test_cli_cases/public_entry_commands.py::test_lifecycle_report_command_dispatches_read_only_controller",
+    "tests/test_mcp_server.py::test_mcp_product_entry_description_documents_control_plane_operations_surfaces",
+    "tests/test_mcp_server.py::test_mcp_product_entry_schema_accepts_control_plane_operations_options",
+    "tests/test_mcp_server.py::test_mcp_product_entry_can_call_migration_audit",
+    "tests/test_mcp_server.py::test_mcp_product_entry_can_call_cleanup_apply",
+    "tests/test_mcp_server.py::test_mcp_product_entry_can_call_lifecycle_report",
+    "tests/test_truth_projection_surfaces.py",
+)
 
 
 def _read(relative_path: str) -> str:
@@ -21,28 +45,7 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
 
     assert "test-control-plane:" in makefile
     assert "CONTROL_PLANE_TESTS :=" in makefile
-    for test_path in (
-        "tests/test_control_plane_regression.py",
-        "tests/test_control_plane_structure.py",
-        "tests/test_study_control_plane_kernel.py",
-        "tests/test_control_plane_state_machine.py",
-        "tests/test_study_runtime_typed_surface_cases/status_type_cases.py",
-        "tests/test_control_plane_route_gate.py",
-        "tests/test_artifact_lifecycle_inventory.py",
-        "tests/test_artifact_lifecycle_operations_report.py",
-        "tests/test_runtime_protocol_paper_artifacts.py",
-        "tests/test_study_delivery_sync.py",
-        "tests/test_runtime_storage_maintenance.py",
-        "tests/test_control_plane_cleanup_apply.py",
-        "tests/test_control_plane_migration_audit.py",
-        "tests/test_cli_cases/public_entry_commands.py::test_migration_audit_command_dispatches_read_only_controller",
-        "tests/test_cli_cases/public_entry_commands.py::test_cleanup_apply_command_dispatches_controller",
-        "tests/test_cli_cases/public_entry_commands.py::test_lifecycle_report_command_dispatches_read_only_controller",
-        "tests/test_mcp_server.py::test_mcp_product_entry_can_call_migration_audit",
-        "tests/test_mcp_server.py::test_mcp_product_entry_can_call_cleanup_apply",
-        "tests/test_mcp_server.py::test_mcp_product_entry_can_call_lifecycle_report",
-        "tests/test_truth_projection_surfaces.py",
-    ):
+    for test_path in REQUIRED_CONTROL_PLANE_TESTS:
         assert test_path in makefile
     assert "PYTHONPATH=src uv run pytest -q $(CONTROL_PLANE_TESTS)" in makefile
     assert "test-fast:" in makefile
@@ -59,7 +62,7 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
         "tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q"
     ) in makefile
     assert "test-structure:" in makefile
-    assert "python scripts/line_budget.py" in makefile
+    assert "uv run python scripts/line_budget.py" in makefile
     assert "sentrux gate" in makefile
     assert "test-full:" in makefile
     assert "./scripts/run-parallel-test-lanes.sh full" in makefile

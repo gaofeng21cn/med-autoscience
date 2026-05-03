@@ -17,6 +17,8 @@ CONTROL_PLANE_TESTS := \
 	tests/test_cli_cases/public_entry_commands.py::test_migration_audit_command_dispatches_read_only_controller \
 	tests/test_cli_cases/public_entry_commands.py::test_cleanup_apply_command_dispatches_controller \
 	tests/test_cli_cases/public_entry_commands.py::test_lifecycle_report_command_dispatches_read_only_controller \
+	tests/test_mcp_server.py::test_mcp_product_entry_description_documents_control_plane_operations_surfaces \
+	tests/test_mcp_server.py::test_mcp_product_entry_schema_accepts_control_plane_operations_options \
 	tests/test_mcp_server.py::test_mcp_product_entry_can_call_migration_audit \
 	tests/test_mcp_server.py::test_mcp_product_entry_can_call_cleanup_apply \
 	tests/test_mcp_server.py::test_mcp_product_entry_can_call_lifecycle_report \
@@ -47,7 +49,7 @@ test-control-plane:
 	PYTHONPATH=src uv run pytest -q $(CONTROL_PLANE_TESTS)
 
 test-structure:
-	python scripts/line_budget.py
+	uv run python scripts/line_budget.py
 	sentrux gate
 	if [ -f .sentrux/rules.toml ]; then sentrux check; fi
 

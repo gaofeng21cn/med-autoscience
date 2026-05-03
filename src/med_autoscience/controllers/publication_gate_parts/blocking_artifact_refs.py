@@ -97,11 +97,13 @@ def build_blocking_artifact_refs(
         }
         for blocker in sorted(named_blocker_set):
             for relative_path, artifact_role in MEDICAL_SURFACE_BLOCKER_ARTIFACTS.get(blocker, ()):
+                artifact_path = str(paper_root / relative_path)
                 _append_blocking_artifact_ref(
                     refs,
                     blocker=blocker,
-                    artifact_path=str(paper_root / relative_path),
+                    artifact_path=artifact_path,
                     artifact_role=artifact_role,
+                    source_path=artifact_path,
                 )
         if named_blocker_set & {
             "display_registry_contract_missing",
