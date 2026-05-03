@@ -147,6 +147,53 @@ def test_run_publication_shell_sync_writes_cohort_flow_and_table1_inputs(tmp_pat
     assert [item["label"] for item in table1["variables"]] == ["Age, years", "Female sex, n (%)"]
 
 
+def test_run_publication_shell_sync_preserves_table1_p_value_column(tmp_path: Path) -> None:
+    module, study_root, paper_root = _prepare_sync_context(tmp_path)
+    write_csv(
+        study_root / "paper" / "submission_minimal" / "tables" / "Table1.csv",
+        [
+            "Characteristic",
+            "Overall (N=357)",
+            "No later persistent global hypopituitarism (n=259)",
+            "Later persistent global hypopituitarism (n=98)",
+            "P value",
+        ],
+        [
+            {
+                "Characteristic": "Age, years",
+                "Overall (N=357)": "51 [40-59]",
+                "No later persistent global hypopituitarism (n=259)": "50 [38-58]",
+                "Later persistent global hypopituitarism (n=98)": "56 [44-62]",
+                "P value": "0.009",
+            },
+            {
+                "Characteristic": "Female sex, n (%)",
+                "Overall (N=357)": "178 (49.9%)",
+                "No later persistent global hypopituitarism (n=259)": "130 (50.2%)",
+                "Later persistent global hypopituitarism (n=98)": "48 (49.0%)",
+                "P value": "0.906",
+            },
+        ],
+    )
+
+    module.run_publication_shell_sync(study_root=study_root, paper_root=paper_root)
+
+    table1 = json.loads((paper_root / "baseline_characteristics_schema.json").read_text(encoding="utf-8"))
+
+    assert [item["label"] for item in table1["groups"]] == [
+        "Overall (N=357)",
+        "No later persistent global hypopituitarism (n=259)",
+        "Later persistent global hypopituitarism (n=98)",
+    ]
+    assert table1["variables"][0]["values"] == [
+        "51 [40-59]",
+        "50 [38-58]",
+        "56 [44-62]",
+    ]
+    assert table1["variables"][0]["p_value"] == "0.009"
+    assert table1["variables"][1]["p_value"] == "0.906"
+
+
 def test_run_publication_shell_sync_rejects_legacy_submission_package_table_surface(tmp_path: Path) -> None:
     module, study_root, paper_root = _prepare_sync_context(tmp_path)
     write_csv(

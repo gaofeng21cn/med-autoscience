@@ -12,7 +12,7 @@ from .shared import (
 )
 
 
-def _validate_baseline_table_payload(path: Path, payload: dict[str, Any]) -> tuple[list[str], list[dict[str, Any]]]:
+def _validate_baseline_table_payload(path: Path, payload: dict[str, Any]) -> tuple[list[str], list[dict[str, Any]], bool]:
     groups = payload.get("groups")
     if not isinstance(groups, list) or not groups:
         raise ValueError(f"{path.name} must contain a non-empty groups list")
@@ -29,6 +29,7 @@ def _validate_baseline_table_payload(path: Path, payload: dict[str, Any]) -> tup
     if not isinstance(variables, list) or not variables:
         raise ValueError(f"{path.name} must contain a non-empty variables list")
     normalized_rows: list[dict[str, Any]] = []
+    has_p_values = False
     for index, variable in enumerate(variables):
         if not isinstance(variable, dict):
             raise ValueError(f"{path.name} variables[{index}] must be an object")
@@ -38,8 +39,12 @@ def _validate_baseline_table_payload(path: Path, payload: dict[str, Any]) -> tup
             raise ValueError(
                 f"{path.name} variables[{index}] must include label and values matching the number of groups"
             )
-        normalized_rows.append({"label": label, "values": [str(item).strip() for item in values]})
-    return group_labels, normalized_rows
+        row = {"label": label, "values": [str(item).strip() for item in values]}
+        if "p_value" in variable:
+            row["p_value"] = str(variable.get("p_value") or "").strip()
+            has_p_values = has_p_values or bool(row["p_value"])
+        normalized_rows.append(row)
+    return group_labels, normalized_rows, has_p_values
 
 
 def _validate_column_table_payload(path: Path, payload: dict[str, Any]) -> tuple[list[str], list[dict[str, Any]]]:
@@ -178,16 +183,27 @@ def render_table_shell(
     if template_short_id == "table1_baseline_characteristics":
         if output_csv_path is None:
             raise ValueError("table1_baseline_characteristics requires output_csv_path")
-        group_labels, rows = _validate_baseline_table_payload(payload_path, payload)
+        group_labels, rows, has_p_values = _validate_baseline_table_payload(payload_path, payload)
         title = str(payload.get("title") or "Baseline characteristics").strip() or "Baseline characteristics"
-        _write_table_outputs(
-            output_md_path=output_md_path,
-            title=title,
-            column_labels=group_labels,
-            rows=rows,
-            stub_header="Characteristic",
-            output_csv_path=output_csv_path,
-        )
+        if has_p_values:
+            headers = ["Characteristic", *group_labels, "P value"]
+            table_rows = [[row["label"], *row["values"], str(row.get("p_value") or "")] for row in rows]
+            _write_rectangular_table_outputs(
+                output_md_path=output_md_path,
+                title=title,
+                headers=headers,
+                table_rows=table_rows,
+                output_csv_path=output_csv_path,
+            )
+        else:
+            _write_table_outputs(
+                output_md_path=output_md_path,
+                title=title,
+                column_labels=group_labels,
+                rows=rows,
+                stub_header="Characteristic",
+                output_csv_path=output_csv_path,
+            )
         return {
             "title": title,
             "caption": str(payload.get("caption") or "Baseline characteristics across prespecified groups.").strip(),

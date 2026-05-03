@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+_TABLE1_P_VALUE_COLUMNS = frozenset(("p value", "p-value", "p_value"))
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -163,24 +165,27 @@ def _sync_table1_payload(
     display_id: str,
     catalog_id: str,
 ) -> dict[str, Any]:
+    has_p_value_column = bool(header) and header[-1].strip().casefold() in _TABLE1_P_VALUE_COLUMNS
+    group_header = header[1:-1] if has_p_value_column else header[1:]
     groups = [
         {
             "group_id": _slugify(label),
             "label": label,
         }
-        for label in header[1:]
+        for label in group_header
     ]
     variables = []
     for row in rows:
         if len(row) != len(header):
             raise ValueError("Table1 CSV row length does not match header length")
-        variables.append(
-            {
-                "variable_id": _slugify(row[0]),
-                "label": row[0],
-                "values": row[1:],
-            }
-        )
+        variable = {
+            "variable_id": _slugify(row[0]),
+            "label": row[0],
+            "values": row[1:-1] if has_p_value_column else row[1:],
+        }
+        if has_p_value_column:
+            variable["p_value"] = row[-1]
+        variables.append(variable)
     return {
         "schema_version": 1,
         "table_shell_id": "table1_baseline_characteristics",

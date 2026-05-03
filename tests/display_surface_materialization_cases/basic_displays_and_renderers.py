@@ -1,3 +1,5 @@
+import csv
+
 from .shared import *
 
 def test_normalize_figure_catalog_id_accepts_supplementary_short_form() -> None:
@@ -31,6 +33,31 @@ def test_materialize_display_surface_generates_official_shell_outputs(tmp_path: 
     assert table_catalog["tables"][0]["table_shell_id"] == full_id("table1_baseline_characteristics")
     assert table_catalog["tables"][0]["pack_id"] == "fenggaolab.org.medical-display-core"
     assert table_catalog["tables"][0]["qc_result"]["status"] == "pass"
+
+def test_materialize_display_surface_preserves_optional_table1_p_values(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    table_payload = json.loads((paper_root / "baseline_characteristics_schema.json").read_text(encoding="utf-8"))
+    table_payload["variables"][0]["p_value"] = "0.009"
+    table_payload["variables"][1]["p_value"] = "<0.001"
+    dump_json(paper_root / "baseline_characteristics_schema.json", table_payload)
+
+    module.materialize_display_surface(paper_root=paper_root)
+
+    csv_rows = list(csv.reader((paper_root / "tables" / "generated" / "T1_baseline_characteristics.csv").open()))
+    markdown = (paper_root / "tables" / "generated" / "T1_baseline_characteristics.md").read_text(encoding="utf-8")
+
+    assert csv_rows[0] == [
+        "Characteristic",
+        "Overall (n=128)",
+        "Low risk (n=73)",
+        "High risk (n=55)",
+        "P value",
+    ]
+    assert csv_rows[1][-1] == "0.009"
+    assert csv_rows[2][-1] == "<0.001"
+    assert "| Characteristic | Overall (n=128) | Low risk (n=73) | High risk (n=55) | P value |" in markdown
+    assert "| Age, median (IQR) | 52 (44-61) | 49 (42-56) | 58 (50-66) | 0.009 |" in markdown
 
 def test_materialize_display_surface_replaces_legacy_catalog_entries_with_matching_catalog_id(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
