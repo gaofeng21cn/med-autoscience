@@ -8,11 +8,13 @@ from typing import Any, Mapping
 SCHEMA_VERSION = 1
 SURFACE = "ai_first_external_lane_registry"
 PROTECTION_SURFACE = "ai_first_external_lane_cleanup_protection"
+SAFETY_SURFACE = "ai_first_closeout_cleanup_safety_check"
 AUTHORITY = "governance_cleanup_protection_only"
 DEFAULT_PROTECTED_PATTERNS = (
     "paper-orchestra-*",
     "mas-gate-*",
     "mas-progress-*",
+    "mas-runtime-*",
 )
 LOW_LEVEL_FIELD_HINTS = (
     "raw",
@@ -203,5 +205,30 @@ def assess_external_lane_cleanup_protection(
         "reason": reason,
         "matched_lane": dict(matched_lane) if matched_lane is not None else None,
         "default_protected_patterns": list(DEFAULT_PROTECTED_PATTERNS),
+        "authority_contract": _authority_contract(),
+    }
+
+
+def build_closeout_cleanup_safety_check(
+    *,
+    worktree_path: str | Path,
+    branch: str,
+    registry: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    protection = assess_external_lane_cleanup_protection(
+        worktree_path=worktree_path,
+        branch=branch,
+        registry=registry,
+    )
+    protected = protection["protected"] is True
+    return {
+        "surface": SAFETY_SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "worktree_path": protection["worktree_path"],
+        "branch": protection["branch"],
+        "allowed_to_cleanup": not protected,
+        "must_preserve": protected,
+        "decision_reason": protection["reason"],
+        "external_lane_protection": protection,
         "authority_contract": _authority_contract(),
     }
