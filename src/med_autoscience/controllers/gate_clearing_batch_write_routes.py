@@ -21,7 +21,7 @@ def create_submission_minimal_package_with_route(
     submission_minimal,
     paper_root: Path,
     profile: WorkspaceProfile,
-    control_plane_route_context: dict[str, Any] | None,
+    control_plane_route_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return call_with_control_plane_route_context(
         submission_minimal.create_submission_minimal_package,
@@ -37,7 +37,7 @@ def sync_submission_minimal_delivery_with_route(
     study_delivery_sync,
     paper_root: Path,
     profile: WorkspaceProfile,
-    control_plane_route_context: dict[str, Any] | None,
+    control_plane_route_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return call_with_control_plane_route_context(
         study_delivery_sync.sync_study_delivery,

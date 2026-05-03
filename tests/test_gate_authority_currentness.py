@@ -130,6 +130,26 @@ def test_delivery_mirror_stale_with_package_freshness_proof_routes_to_sync_then_
     }
 
 
+def test_control_plane_blocked_delivery_sync_does_not_count_as_closed() -> None:
+    currentness = importlib.import_module("med_autoscience.controllers.gate_authority_currentness")
+
+    result = currentness.sync_completed_current_package(
+        [
+            {
+                "unit_id": "sync_submission_minimal_delivery",
+                "status": "control_plane_route_blocked",
+                "result": {
+                    "status": "control_plane_route_blocked",
+                    "source_signature": "source::abc",
+                    "authority_source_signature": "source::abc",
+                },
+            }
+        ]
+    )
+
+    assert result is None
+
+
 def test_missing_submission_authority_signature_routes_to_controller_sync_not_long_repair() -> None:
     publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
     currentness = importlib.import_module("med_autoscience.controllers.gate_authority_currentness")

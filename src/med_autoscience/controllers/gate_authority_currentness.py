@@ -28,6 +28,7 @@ STALE_AUTHORITY_BLOCKERS = frozenset(
 )
 _SYNC_BLOCKING_STATUSES = frozenset(
     {
+        "control_plane_route_blocked",
         "failed",
         "missing",
         "skipped_failed_dependency",
