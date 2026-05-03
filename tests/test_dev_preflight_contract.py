@@ -79,6 +79,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/control_identity.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
+            "src/med_autoscience/controllers/runtime_watch_parts/control_plane_gate.py",
             "src/med_autoscience/controllers/runtime_watch_parts/managed_wakeup.py",
             "src/med_autoscience/controllers/study_progress_parts/projection.py",
             "src/med_autoscience/controllers/study_delivery_sync_parts/sync_orchestration.py",

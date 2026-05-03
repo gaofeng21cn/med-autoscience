@@ -248,6 +248,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/cli_parts/parser.py",
             "src/med_autoscience/mcp_server.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
+            "src/med_autoscience/controllers/runtime_watch_parts/control_plane_gate.py",
             "src/med_autoscience/controllers/runtime_watch_parts/managed_wakeup.py",
             "src/med_autoscience/controllers/study_control_plane_kernel.py",
             "src/med_autoscience/controllers/study_delivery_sync_parts/sync_orchestration.py",
