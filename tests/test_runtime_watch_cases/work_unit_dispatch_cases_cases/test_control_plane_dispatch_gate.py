@@ -259,7 +259,11 @@ def test_control_plane_blocked_request_supersedes_stale_specificity_decision(
         "quest_status": "running",
     }
 
-    monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: specificity_tick_request)
+    monkeypatch.setattr(
+        module.study_outer_loop,
+        "build_runtime_watch_outer_loop_tick_request",
+        lambda **_: specificity_tick_request,
+    )
     monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
     monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
@@ -321,7 +325,11 @@ def test_control_plane_blocked_request_supersedes_stale_specificity_decision(
         dispatch_calls.append(str(kwargs.get("source") or ""))
         return {"dispatch_status": "executed"}
 
-    monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: actionable_tick_request)
+    monkeypatch.setattr(
+        module.study_outer_loop,
+        "build_runtime_watch_outer_loop_tick_request",
+        lambda **_: actionable_tick_request,
+    )
     monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: blocked_status_payload)
     monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: blocked_status_payload)
     monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
