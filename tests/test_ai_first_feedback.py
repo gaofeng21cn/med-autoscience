@@ -315,3 +315,126 @@ def test_ai_first_feedback_ledger_exposes_repeat_toil_analytics_without_authorit
     assert "internal prompt" not in user_view
     assert "token" not in user_view
     assert "raw_terminal_log" not in user_view
+
+
+def test_ai_first_quality_learning_queue_sorts_repeated_reasons_by_frequency(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_first_feedback")
+    progress = _progress_snapshot(tmp_path)
+    state = module.build_ai_first_feedback_state(progress_snapshot=progress)
+    ledger = {
+        "surface": "ai_first_feedback_ledger",
+        "authority": "observability_only",
+        "events": [
+            {
+                "event_key": "artifact_rebuild_pending:canonical_artifact_rebuild_pending",
+                "category": "artifact_rebuild_pending",
+                "reason": "canonical_artifact_rebuild_pending",
+                "source_surface": "artifact_runtime_proof",
+                "repeat_count": 4,
+                "closed_at": None,
+                "action_recommendation": {
+                    "target_surface": "artifact_runtime_proof",
+                    "prompt": "QUEUE_PROMPT_CANARY",
+                    "token_count": 9001,
+                },
+                "raw_terminal_log": "QUEUE_RAW_LOG_CANARY",
+            },
+            {
+                "event_key": "ai_reviewer_trace_gap:trace_missing",
+                "category": "ai_reviewer_trace_gap",
+                "reason": "trace_missing",
+                "source_surface": "ai_reviewer_runtime_workflow",
+                "repeat_count": 2,
+                "closed_at": None,
+                "action_recommendation": {"target_surface": "ai_reviewer_runtime_workflow"},
+                "full_prompt": "QUEUE_FULL_PROMPT_CANARY",
+            },
+        ],
+    }
+
+    queue = module.build_ai_first_quality_learning_queue(feedback_state=state, feedback_ledger=ledger)
+
+    assert queue["surface"] == "ai_first_quality_learning_queue"
+    assert queue["read_model"] == "ai_first_quality_learning_queue_read_model"
+    assert queue["authority"] == "governance_only"
+    assert queue["source_authority"] == "observability_only"
+    assert [item["reason"] for item in queue["items"]] == [
+        "canonical_artifact_rebuild_pending",
+        "trace_missing",
+    ]
+    assert queue["items"][0]["frequency"] == 4
+    assert queue["items"][0]["impact_entry"] == "artifact_runtime_proof"
+    assert queue["items"][0]["suggested_fix_layer"] == "artifact rebuild proof layer"
+    assert queue["counts"]["by_reason"]["canonical_artifact_rebuild_pending"] == 4
+    assert queue["counts"]["by_impact_entry"]["artifact_runtime_proof"] == 4
+    assert queue["counts"]["by_suggested_fix_layer"]["artifact rebuild proof layer"] == 4
+    rendered = str(queue)
+    assert "QUEUE_PROMPT_CANARY" not in rendered
+    assert "QUEUE_FULL_PROMPT_CANARY" not in rendered
+    assert "QUEUE_RAW_LOG_CANARY" not in rendered
+    assert "token_count" not in rendered
+
+
+def test_ai_first_quality_learning_queue_ignores_closed_events_as_open_blockers(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_first_feedback")
+    state = module.build_ai_first_feedback_state(progress_snapshot=_progress_snapshot(tmp_path))
+    ledger = {
+        "surface": "ai_first_feedback_ledger",
+        "authority": "observability_only",
+        "events": [
+            {
+                "event_key": "route_back_open:return_to_analysis_campaign",
+                "category": "route_back_open",
+                "reason": "return_to_analysis_campaign",
+                "source_surface": "ai_first_default_entry_state",
+                "repeat_count": 8,
+                "closed_at": "2026-05-02T03:00:00+00:00",
+            },
+            {
+                "event_key": "artifact_rebuild_pending:canonical_artifact_rebuild_pending",
+                "category": "artifact_rebuild_pending",
+                "reason": "canonical_artifact_rebuild_pending",
+                "source_surface": "artifact_runtime_proof",
+                "repeat_count": 1,
+                "closed_at": None,
+            },
+        ],
+    }
+
+    queue = module.build_ai_first_quality_learning_queue(feedback_state=state, feedback_ledger=ledger)
+
+    assert queue["counts"]["open_queue_item_count"] == 1
+    assert [item["reason"] for item in queue["items"]] == ["canonical_artifact_rebuild_pending"]
+    assert "return_to_analysis_campaign" not in str(queue["items"])
+
+
+def test_ai_first_quality_learning_queue_is_not_exposed_in_user_view_and_has_false_permissions(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_first_feedback")
+
+    state = module.materialize_ai_first_feedback_state(
+        study_root=tmp_path / "studies" / "001-risk",
+        progress_snapshot=_progress_snapshot(tmp_path),
+        observed_at="2026-05-02T01:00:00+00:00",
+    )
+
+    assert "quality_learning_queue" in state["maintainer_view"]
+    assert "quality_learning_queue" in state
+    assert "quality_learning_queue" not in state["user_view"]
+    assert "internal prompt" not in str(state["user_view"])
+    assert "token" not in str(state["user_view"])
+    assert "raw_terminal_log" not in str(state["user_view"])
+    queue = state["quality_learning_queue"]
+    assert queue["authority_contract"] == {
+        "queue_can_authorize_quality": False,
+        "queue_can_authorize_finalize": False,
+        "queue_can_authorize_submission": False,
+        "queue_can_mutate_runtime": False,
+        "queue_records_manuscript_content": False,
+        "queue_exposes_raw_logs_prompts_or_tokens": False,
+    }
+    assert state["authority_contract"]["quality_learning_queue_can_authorize_quality"] is False
+    assert state["authority_contract"]["quality_learning_queue_can_authorize_finalize"] is False
+    assert state["authority_contract"]["quality_learning_queue_can_authorize_submission"] is False
+    assert state["authority_contract"]["quality_learning_queue_records_manuscript_content"] is False
