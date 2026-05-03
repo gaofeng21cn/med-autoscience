@@ -95,6 +95,13 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             )
             if next_action.get("summary"):
                 lines.append(f"  下一步: {next_action.get('summary')}")
+            action_cards = [card for card in study.get("action_cards") or [] if isinstance(card, Mapping)]
+            if action_cards:
+                labels = "；".join(
+                    f"{card.get('label')}: {card.get('summary')}" for card in action_cards if card.get("label")
+                )
+                if labels:
+                    lines.append(f"  动作卡: {labels}")
             lines.append("  quality authorization: projection-only")
     else:
         lines.append("- 当前还没有 Medical Paper Readiness projection。")
@@ -396,6 +403,16 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
                 f"下一步: {next_action.get('summary') or 'none'}；"
                 "quality authorization: projection-only"
             )
+            action_cards = [card for card in readiness.get("action_cards") or [] if isinstance(card, Mapping)]
+            if action_cards:
+                lines.append(
+                    "- Medical Paper Readiness 动作卡: "
+                    + "；".join(
+                        f"{card.get('label')}: {card.get('summary')}"
+                        for card in action_cards
+                        if card.get("label")
+                    )
+                )
         restore_point = dict(autonomy_contract.get("restore_point") or {})
         if restore_point.get("summary"):
             lines.append(f"- 恢复点: {restore_point.get('summary')}")

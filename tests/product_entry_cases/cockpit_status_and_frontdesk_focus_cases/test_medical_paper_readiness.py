@@ -122,22 +122,51 @@ def test_workspace_cockpit_passes_through_medical_paper_readiness_from_study_pro
     markdown = module.render_workspace_cockpit_markdown(payload)
 
     study_item = payload["studies"][0]
-    assert study_item["medical_paper_readiness"] == readiness
+    assert {
+        key: study_item["medical_paper_readiness"][key]
+        for key in (
+            "surface",
+            "read_model",
+            "authority",
+            "overall_status",
+            "quality_claim_authorized",
+            "mechanical_projection_can_authorize_quality",
+            "ready_count",
+            "required_count",
+            "next_action",
+            "capability_surfaces",
+        )
+    } == readiness
     assert payload["medical_paper_readiness_state"]["authority"] == "observability_projection_only"
     assert payload["medical_paper_readiness_state"]["counts"]["attention_required"] == 1
     assert payload["medical_paper_readiness_state"]["studies"][0]["overall_status"] == "blocked"
     assert payload["medical_paper_readiness_state"]["studies"][0]["next_action"] == next_action
+    assert payload["medical_paper_readiness_state"]["studies"][0]["action_cards"] == [
+        {
+            "action_id": "complete_literature_scout",
+            "label": "补文献",
+            "summary": "补齐可审计文献 scout、检索日期、anchor papers、guideline 和近邻文献。",
+            "surface_key": "literature_scout",
+            "status": "missing",
+            "missing_reason": "missing_canonical_artifact",
+            "authority": "observability_projection_only",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        }
+    ]
     attention = [item for item in payload["attention_queue"] if item["code"] == "medical_paper_readiness_gap"]
     assert attention
     assert attention[0]["study_id"] == "001-risk"
     assert attention[0]["medical_paper_readiness"]["quality_claim_authorized"] is False
     assert attention[0]["medical_paper_readiness"]["mechanical_projection_can_authorize_quality"] is False
-    assert attention[0]["summary"] == "补齐 Literature Scout OS 后再继续自动论文链路。"
+    assert attention[0]["recommended_step_id"] == "complete_literature_scout"
+    assert attention[0]["summary"] == "补齐可审计文献 scout、检索日期、anchor papers、guideline 和近邻文献。"
     assert "Medical Paper Readiness" in markdown
     assert "overall_status: `blocked`" in markdown
     assert "下一步: 补齐 Literature Scout OS 后再继续自动论文链路。" in markdown
+    assert "动作卡: 补文献: 补齐可审计文献 scout、检索日期、anchor papers、guideline 和近邻文献。" in markdown
     assert "quality authorization: projection-only" in markdown
-    assert "补齐 Literature Scout OS 后再继续自动论文链路。" in markdown
+    assert "补齐可审计文献 scout、检索日期、anchor papers、guideline 和近邻文献。" in markdown
 
 
 def test_workspace_cockpit_builds_medical_paper_readiness_projection_when_progress_lacks_it(
@@ -186,4 +215,48 @@ def test_workspace_cockpit_builds_medical_paper_readiness_projection_when_progre
     assert payload["studies"][0]["medical_paper_readiness"]["authority"] == "observability_projection_only"
     assert payload["studies"][0]["medical_paper_readiness"]["quality_claim_authorized"] is False
     assert payload["studies"][0]["medical_paper_readiness"]["mechanical_projection_can_authorize_quality"] is False
+    assert payload["studies"][0]["medical_paper_readiness"]["action_cards"][0]["label"] == "补文献"
     assert payload["medical_paper_readiness_state"]["status"] == "attention_required"
+
+
+def test_workspace_cockpit_does_not_emit_action_cards_for_ready_medical_paper_readiness(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    write_study(profile.workspace_root, "001-risk")
+    readiness = {
+        "surface": "medical_paper_readiness",
+        "overall_status": "ready",
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+        "ready_count": 7,
+        "required_count": 7,
+        "next_action": {"action_id": "continue_managed_execution", "summary": "继续托管执行。"},
+        "capability_surfaces": [
+            {
+                "surface_key": "literature_scout",
+                "label": "Literature Scout OS",
+                "status": "present",
+                "required_for_ready": True,
+            }
+        ],
+    }
+
+    monkeypatch.setattr(module, "build_doctor_report", lambda profile: _ready_doctor_report())
+    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: _ready_supervision())
+    monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
+    )
+
+    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+
+    study_readiness = payload["studies"][0]["medical_paper_readiness"]
+    assert study_readiness["action_cards"] == []
+    attention = [item for item in payload["attention_queue"] if item["code"] == "medical_paper_readiness_gap"]
+    assert attention == []

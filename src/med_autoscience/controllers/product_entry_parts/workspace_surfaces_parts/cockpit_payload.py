@@ -137,7 +137,92 @@ def _normalized_medical_paper_readiness_projection(value: object) -> dict[str, A
     readiness.setdefault("authority", "observability_projection_only")
     readiness["quality_claim_authorized"] = False
     readiness["mechanical_projection_can_authorize_quality"] = False
+    readiness["action_cards"] = _medical_paper_readiness_action_cards(readiness)
     return readiness
+
+
+READINESS_ACTION_CARD_BY_SURFACE = {
+    "literature_scout": {
+        "action_id": "complete_literature_scout",
+        "label": "补文献",
+        "summary": "补齐可审计文献 scout、检索日期、anchor papers、guideline 和近邻文献。",
+    },
+    "study_line_selection": {
+        "action_id": "rescore_study_line",
+        "label": "重评分路线",
+        "summary": "重新比较候选切入点，并冻结最强 study line 与 stop threshold。",
+    },
+    "archetype_analysis_contract": {
+        "action_id": "freeze_statistical_contract",
+        "label": "冻结分析合同",
+        "summary": "按 study archetype 冻结统计纪律合同和失败条件。",
+    },
+    "bounded_analysis_candidate_board": {
+        "action_id": "enter_bounded_analysis",
+        "label": "进入 bounded analysis",
+        "summary": "把补充分析绑定到 target claim、证据收益、统计风险和决策理由。",
+    },
+    "stop_loss_memo": {
+        "action_id": "decide_stop_loss_or_switch_line",
+        "label": "止损换线",
+        "summary": "写入 stop-loss memo，决定继续、route-back、止损或换线。",
+    },
+    "target_journal_writing_layer": {
+        "action_id": "start_ai_reviewer_journal_loop",
+        "label": "启动 AI reviewer",
+        "summary": "冻结目标期刊写作层并启动 AI reviewer 写作/质量闭环。",
+    },
+    "real_study_soak_matrix_evidence": {
+        "action_id": "rebuild_submission_package_after_soak",
+        "label": "重建投稿包",
+        "summary": "补齐多 study soak proof 后从 canonical source 重建投稿包并审计。",
+    },
+}
+
+
+def _medical_paper_readiness_action_cards(readiness: Mapping[str, Any]) -> list[dict[str, Any]]:
+    overall_status = _non_empty_text(readiness.get("overall_status")) or "unknown"
+    if overall_status == "ready":
+        return []
+    cards: list[dict[str, Any]] = []
+    for surface in readiness.get("capability_surfaces") or []:
+        if not isinstance(surface, Mapping):
+            continue
+        if surface.get("status") == "present":
+            continue
+        surface_key = _non_empty_text(surface.get("surface_key"))
+        card = dict(READINESS_ACTION_CARD_BY_SURFACE.get(surface_key or "") or {})
+        if not card:
+            continue
+        cards.append(
+            {
+                **card,
+                "surface_key": surface_key,
+                "status": _non_empty_text(surface.get("status")) or "unknown",
+                "missing_reason": _non_empty_text(surface.get("missing_reason")),
+                "authority": "observability_projection_only",
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+            }
+        )
+    if cards:
+        return cards
+    next_action = dict(readiness.get("next_action") or {})
+    surface_key = _non_empty_text(next_action.get("surface_key"))
+    card = dict(READINESS_ACTION_CARD_BY_SURFACE.get(surface_key or "") or {})
+    if not card:
+        return []
+    return [
+        {
+            **card,
+            "surface_key": surface_key,
+            "status": overall_status,
+            "missing_reason": None,
+            "authority": "observability_projection_only",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        }
+    ]
 
 
 def _read_medical_paper_readiness_projection(*, study_root: Path) -> dict[str, Any]:
@@ -183,6 +268,7 @@ def _workspace_medical_paper_readiness_state(*, studies: list[dict[str, Any]]) -
                 "ready_count": readiness.get("ready_count"),
                 "required_count": readiness.get("required_count"),
                 "next_action": dict(readiness.get("next_action") or {}),
+                "action_cards": list(readiness.get("action_cards") or []),
                 "quality_claim_authorized": False,
                 "mechanical_projection_can_authorize_quality": False,
                 "authority": _non_empty_text(readiness.get("authority")) or "observability_projection_only",

@@ -363,17 +363,28 @@ def _attention_queue(
         readiness_status = _non_empty_text(medical_paper_readiness_surface.get("overall_status"))
         readiness_next_action = dict(medical_paper_readiness_surface.get("next_action") or {})
         if readiness_status in {"missing", "blocked", "partial"}:
+            readiness_action_cards = [
+                card
+                for card in medical_paper_readiness_surface.get("action_cards") or []
+                if isinstance(card, Mapping)
+            ]
+            primary_card = dict(readiness_action_cards[0]) if readiness_action_cards else {}
             readiness_summary = (
-                _non_empty_text(readiness_next_action.get("summary"))
+                _non_empty_text(primary_card.get("summary"))
+                or _non_empty_text(readiness_next_action.get("summary"))
                 or "Medical Paper Readiness projection 显示自动医学论文能力闭环仍有缺口。"
+            )
+            recommended_step_id = (
+                _non_empty_text(primary_card.get("action_id"))
+                or _non_empty_text(readiness_next_action.get("action_id"))
+                or "inspect_medical_paper_readiness"
             )
             queue.append(
                 _attention_item(
                     code="medical_paper_readiness_gap",
                     title=f"{study_id} Medical Paper Readiness 仍有缺口",
                     summary=readiness_summary,
-                    recommended_step_id=_non_empty_text(readiness_next_action.get("action_id"))
-                    or "inspect_medical_paper_readiness",
+                    recommended_step_id=recommended_step_id,
                     recommended_command=_non_empty_text(((item.get("commands") or {}).get("progress"))),
                     scope="study",
                     study_id=study_id,
