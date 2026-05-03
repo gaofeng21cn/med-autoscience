@@ -1,3 +1,24 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
+
+try:
+    _non_empty_text
+except NameError:
+    from med_autoscience.controllers.product_entry_parts import shared as _shared
+    from med_autoscience.controllers.product_entry_parts import workspace_surfaces as _workspace_surfaces
+
+    def _module_reexport(module) -> None:
+        for name, value in vars(module).items():
+            if not name.startswith("__") and name != "_module_reexport":
+                globals()[name] = value
+
+    _module_reexport(_shared)
+    _module_reexport(_workspace_surfaces)
+
+
 def _study_item(
     *,
     progress_payload: dict[str, Any],

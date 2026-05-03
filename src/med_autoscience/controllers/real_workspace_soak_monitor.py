@@ -15,12 +15,27 @@ MONITOR_ROOT = Path("artifacts/medical_paper")
 
 MATRIX_REF = MONITOR_ROOT / "real_study_soak_matrix_evidence.json"
 READINESS_REF = MONITOR_ROOT / "medical_paper_readiness.json"
+CANONICAL_READINESS_REF = MONITOR_ROOT / "readiness.json"
 MONITOR_REF = MONITOR_ROOT / "real_workspace_soak_monitor.json"
 
 SURFACE_KEY_TO_CONTRACT = {
     "literature_scout": "literature_contract",
     "archetype_analysis_contract": "statistical_contract",
     "real_study_soak_matrix_evidence": "external_validation_fixture",
+}
+SURFACE_KEY_TO_STAGE = {
+    "literature_scout": "literature_scout",
+    "literature_provider_runtime": "literature_scout",
+    "study_line_selection": "line_selection",
+    "route_decision_orchestrator": "route_back",
+    "archetype_analysis_contract": "baseline",
+    "statistical_discipline_operations": "primary_analysis",
+    "bounded_analysis_candidate_board": "bounded_analysis",
+    "stop_loss_memo": "stop_loss",
+    "revision_rebuttal_loop": "revision_reopen",
+    "authoring_runtime_authorization": "final_pre_submission_audit",
+    "real_study_soak_matrix_evidence": "runtime_recovery",
+    "real_workspace_soak_monitor": "finalize_rebuild",
 }
 
 
@@ -74,6 +89,22 @@ def _contract_flags_from_readiness(payload: Mapping[str, Any]) -> dict[str, bool
         if contract:
             flags[contract] = _text(surface.get("status"), "") == "present"
     return flags
+
+
+def _stages_from_readiness(payload: Mapping[str, Any]) -> list[str]:
+    explicit_stages = payload.get("stages")
+    if explicit_stages:
+        return [str(stage) for stage in _sequence(explicit_stages)]
+    stages: list[str] = []
+    for surface in _sequence(payload.get("capability_surfaces")):
+        if not isinstance(surface, Mapping):
+            continue
+        if _text(surface.get("status"), "") != "present":
+            continue
+        stage = SURFACE_KEY_TO_STAGE.get(_text(surface.get("surface_key"), ""))
+        if stage and stage not in stages:
+            stages.append(stage)
+    return stages
 
 
 def _durable_refs_from_payload(
@@ -130,7 +161,7 @@ def _study_from_readiness_payload(
         "study_root": str(study_root),
         "study_id": _text(payload.get("study_id"), study_root.name),
         "study_archetype": _text(payload.get("study_archetype")),
-        "stages": payload.get("stages") or [],
+        "stages": _stages_from_readiness(payload),
         "contracts": _contract_flags_from_readiness(payload),
         "result_strength": _text(payload.get("result_strength"), "adequate"),
         "route_action": _text(payload.get("route_action"), "continue"),
@@ -165,8 +196,11 @@ def _read_study_input(study_root: Path) -> dict[str, Any]:
             source_path=matrix_path,
             payload=matrix_payload,
         )
-    readiness_path = root / READINESS_REF
+    readiness_path = root / CANONICAL_READINESS_REF
     readiness_payload = _read_json(readiness_path)
+    if not readiness_payload:
+        readiness_path = root / READINESS_REF
+        readiness_payload = _read_json(readiness_path)
     if readiness_payload:
         return _study_from_readiness_payload(
             study_root=root,
