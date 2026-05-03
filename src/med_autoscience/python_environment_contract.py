@@ -10,8 +10,39 @@ from packaging.requirements import Requirement
 from packaging.version import InvalidVersion, Version
 
 
+def _is_uv_tool_runtime_root(path: Path) -> bool:
+    receipt = path / "uv-receipt.toml"
+    pyvenv_cfg = path / "pyvenv.cfg"
+    if not receipt.is_file() or not pyvenv_cfg.is_file():
+        return False
+    try:
+        receipt_text = receipt.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return "med-autoscience" in receipt_text
+
+
+def _resolve_uv_tool_runtime_root(*, module_file: Path | None = None) -> Path | None:
+    resolved = (module_file or Path(__file__)).resolve()
+    for parent in resolved.parents:
+        if _is_uv_tool_runtime_root(parent):
+            return parent
+    return None
+
+
+def _current_uv_tool_runtime_root() -> Path | None:
+    try:
+        prefix = Path(sys.prefix).resolve()
+    except OSError:
+        return None
+    if _is_uv_tool_runtime_root(prefix):
+        return prefix
+    return None
+
+
 def _resolve_repo_root(*, module_file: Path | None = None) -> Path:
     candidate = (module_file or Path(__file__)).resolve().parents[2]
+    uv_tool_root = _resolve_uv_tool_runtime_root(module_file=module_file)
     try:
         completed = subprocess.run(
             ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
@@ -21,12 +52,12 @@ def _resolve_repo_root(*, module_file: Path | None = None) -> Path:
             check=False,
         )
     except OSError:
-        return candidate
+        return uv_tool_root or candidate
     if completed.returncode != 0:
-        return candidate
+        return uv_tool_root or candidate
     common_dir = Path(completed.stdout.strip())
     if not common_dir.is_absolute():
-        return candidate
+        return uv_tool_root or candidate
     if common_dir.name == ".git":
         return common_dir.parent
     return common_dir
@@ -34,6 +65,7 @@ def _resolve_repo_root(*, module_file: Path | None = None) -> Path:
 
 def _resolve_checkout_root(*, module_file: Path | None = None) -> Path:
     candidate = (module_file or Path(__file__)).resolve().parents[2]
+    uv_tool_root = _resolve_uv_tool_runtime_root(module_file=module_file)
     try:
         completed = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
@@ -43,12 +75,12 @@ def _resolve_checkout_root(*, module_file: Path | None = None) -> Path:
             check=False,
         )
     except OSError:
-        return candidate
+        return uv_tool_root or candidate
     if completed.returncode != 0:
-        return candidate
+        return uv_tool_root or candidate
     checkout_root = Path(completed.stdout.strip())
     if not checkout_root.is_absolute():
-        return candidate
+        return uv_tool_root or candidate
     return checkout_root
 
 
@@ -148,6 +180,8 @@ def _is_managed_runtime() -> bool:
         runtime_prefix = Path(sys.prefix).resolve()
     except OSError:
         return False
+    if _is_uv_tool_runtime_root(runtime_prefix):
+        return True
     return runtime_prefix in {
         MANAGED_RUNTIME_PREFIX,
         CHECKOUT_MANAGED_RUNTIME_PREFIX,

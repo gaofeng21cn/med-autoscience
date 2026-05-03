@@ -45,6 +45,9 @@ BIOCONDUCTOR_R_ANALYSIS_BUNDLE_PACKAGES = ("ComplexHeatmap",)
 
 
 def _managed_runtime_repo_root() -> Path:
+    uv_tool_root = python_environment_contract._current_uv_tool_runtime_root()
+    if uv_tool_root is not None:
+        return uv_tool_root
     return python_environment_contract.CHECKOUT_ROOT
 
 
@@ -67,6 +70,9 @@ def _managed_runtime_prefix() -> Path:
 
 
 def _managed_runtime_python_executable() -> str:
+    uv_tool_root = python_environment_contract._current_uv_tool_runtime_root()
+    if uv_tool_root is not None:
+        return str(Path(python_environment_contract.sys.executable).resolve())
     prefix = _managed_runtime_prefix()
     candidates = (
         prefix / "bin" / "python",

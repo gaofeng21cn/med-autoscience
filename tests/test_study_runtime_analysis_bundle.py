@@ -142,6 +142,36 @@ def test_managed_runtime_repo_root_prefers_checkout_root(monkeypatch, tmp_path) 
     assert module._managed_runtime_repo_root() == checkout_root
 
 
+def test_external_tool_install_runtime_uses_current_interpreter(monkeypatch, tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
+    tool_root = tmp_path / "uv" / "tools" / "med-autoscience"
+    module_root = tool_root / "lib" / "python3.12"
+    module_file = module_root / "site-packages" / "med_autoscience" / "python_environment_contract.py"
+    tool_python = tool_root / "bin" / "python3"
+    module_file.parent.mkdir(parents=True)
+    module_file.write_text("# installed package marker\n", encoding="utf-8")
+    tool_python.parent.mkdir(parents=True)
+    tool_python.write_text("#!/bin/sh\n", encoding="utf-8")
+    tool_python.chmod(0o755)
+    (tool_root / "uv-receipt.toml").write_text(
+        '[tool]\nrequirements = [{ name = "med-autoscience" }]\n',
+        encoding="utf-8",
+    )
+    (tool_root / "pyvenv.cfg").write_text("home = /usr/bin\n", encoding="utf-8")
+
+    monkeypatch.setattr(module.python_environment_contract, "REPO_ROOT", module_root)
+    monkeypatch.setattr(module.python_environment_contract, "CHECKOUT_ROOT", module_root)
+    monkeypatch.setattr(module.python_environment_contract, "MANAGED_RUNTIME_PREFIX", module_root / ".venv")
+    monkeypatch.setattr(module.python_environment_contract, "CHECKOUT_MANAGED_RUNTIME_PREFIX", module_root / ".venv")
+    monkeypatch.setattr(module.python_environment_contract, "__file__", str(module_file))
+    monkeypatch.setattr(module.python_environment_contract.sys, "prefix", str(tool_root))
+    monkeypatch.setattr(module.python_environment_contract.sys, "executable", str(tool_python))
+
+    assert module._managed_runtime_repo_root() == tool_root
+    assert module._managed_runtime_python_executable() == str(tool_python)
+    assert module._running_under_managed_runtime() is True
+
+
 def test_ensure_study_runtime_analysis_bundle_delegates_to_repo_managed_runtime(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
     before_state = {
