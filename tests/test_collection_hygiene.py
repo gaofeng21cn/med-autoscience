@@ -21,6 +21,28 @@ def _collect_only(*paths: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _current_nested_case_module_paths() -> set[str]:
+    product_entry_case_dir = (
+        REPO_ROOT
+        / "tests"
+        / "product_entry_cases"
+        / "cockpit_status_and_frontdesk_focus_cases"
+    )
+    runtime_watch_case_dir = REPO_ROOT / "tests" / "test_runtime_watch_cases"
+    nested_paths = [
+        *product_entry_case_dir.glob("test_*.py"),
+        *runtime_watch_case_dir.glob("*_cases_cases/test_*.py"),
+    ]
+    return {path.relative_to(REPO_ROOT / "tests").as_posix() for path in nested_paths}
+
+
+def _is_covered_by_nested_case_ignore(path: str) -> bool:
+    return any(
+        fnmatch.fnmatch(path, pattern)
+        for pattern in tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS
+    )
+
+
 def test_nested_case_collection_ignore_globs_are_declared() -> None:
     assert set(tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS) == {
         "product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_*.py",
@@ -32,31 +54,8 @@ def test_nested_case_collection_ignore_globs_are_declared() -> None:
 
 
 def test_declared_nested_case_families_cover_current_case_module_paths() -> None:
-    nested_case_files = {
-        path.relative_to(REPO_ROOT / "tests").as_posix()
-        for path in (
-            *(
-                REPO_ROOT
-                / "tests"
-                / "product_entry_cases"
-                / "cockpit_status_and_frontdesk_focus_cases"
-            ).glob("test_*.py"),
-            *(
-                REPO_ROOT
-                / "tests"
-                / "test_runtime_watch_cases"
-            ).glob("*_cases_cases/test_*.py"),
-        )
-    }
-
-    uncovered_paths = {
-        path
-        for path in nested_case_files
-        if not any(
-            fnmatch.fnmatch(path, pattern)
-            for pattern in tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS
-        )
-    }
+    nested_case_files = _current_nested_case_module_paths()
+    uncovered_paths = {path for path in nested_case_files if not _is_covered_by_nested_case_ignore(path)}
 
     assert nested_case_files
     assert uncovered_paths == set()

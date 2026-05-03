@@ -16,6 +16,21 @@ def _planned_pytest_paths(command: str) -> tuple[str, ...]:
     return tuple(part for part in parts[3:] if part.startswith("tests/"))
 
 
+def _all_category_exact_paths(module) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(path for spec in module._CATEGORY_SPECS for path in spec.exact_paths))
+
+
+def _category_path_families(module) -> tuple:
+    return tuple(
+        module.PreflightCoveragePathFamily(
+            family_id=spec.category_id,
+            exact_paths=spec.exact_paths,
+            prefix_paths=spec.prefix_paths,
+        )
+        for spec in module._CATEGORY_SPECS
+    )
+
+
 def test_preflight_category_exact_test_paths_exist() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
     repo_root = Path(__file__).resolve().parents[1]
@@ -47,23 +62,19 @@ def test_preflight_planned_pytest_paths_exist() -> None:
 
 def test_preflight_category_audit_keeps_spec_paths_explicit() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
-    spec_paths = tuple(dict.fromkeys(path for spec in module._CATEGORY_SPECS for path in spec.exact_paths))
-    path_families = tuple(
-        module.PreflightCoveragePathFamily(
-            family_id=spec.category_id,
-            exact_paths=spec.exact_paths,
-            prefix_paths=spec.prefix_paths,
-        )
-        for spec in module._CATEGORY_SPECS
-    )
 
-    audit = module.audit_preflight_contract_coverage(spec_paths, path_families=path_families)
+    audit = module.audit_preflight_contract_coverage(
+        _all_category_exact_paths(module),
+        path_families=_category_path_families(module),
+    )
 
     assert audit.generic_python_regression_paths == ()
     assert audit.fail_closed_paths == ()
-    for family_audit in audit.family_audits:
-        if family_audit.explicit_classified_paths:
-            assert family_audit.family_id in family_audit.explicit_categories
+    assert all(
+        family_audit.family_id in family_audit.explicit_categories
+        for family_audit in audit.family_audits
+        if family_audit.explicit_classified_paths
+    )
 
 
 def test_classify_changed_files_matches_runtime_contract_surface() -> None:
