@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import fnmatch
 from pathlib import Path
 
 from tests import conftest as tests_conftest
@@ -28,6 +29,37 @@ def test_nested_case_collection_ignore_globs_are_declared() -> None:
     assert tests_conftest.collect_ignore_glob == list(
         tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS
     )
+
+
+def test_declared_nested_case_families_cover_current_case_module_paths() -> None:
+    nested_case_files = {
+        path.relative_to(REPO_ROOT / "tests").as_posix()
+        for path in (
+            *(
+                REPO_ROOT
+                / "tests"
+                / "product_entry_cases"
+                / "cockpit_status_and_frontdesk_focus_cases"
+            ).glob("test_*.py"),
+            *(
+                REPO_ROOT
+                / "tests"
+                / "test_runtime_watch_cases"
+            ).glob("*_cases_cases/test_*.py"),
+        )
+    }
+
+    uncovered_paths = {
+        path
+        for path in nested_case_files
+        if not any(
+            fnmatch.fnmatch(path, pattern)
+            for pattern in tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS
+        )
+    }
+
+    assert nested_case_files
+    assert uncovered_paths == set()
 
 
 def test_submission_minimal_display_surface_uses_write_route_legacy_default() -> None:
@@ -64,3 +96,15 @@ def test_aggregate_collection_surfaces_still_collect_nested_cases() -> None:
     assert "::test_work_unit_dedupe_accepts_closed_attempt_result" in result.stdout
     assert "cockpit_status_and_frontdesk_focus_cases/test_" not in result.stdout
     assert "_cases_cases/test_" not in result.stdout
+
+
+def test_aggregate_collection_surfaces_hold_expected_collection_count() -> None:
+    result = _collect_only(
+        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py",
+        "tests/test_runtime_watch.py",
+    )
+
+    collected_lines = [line for line in result.stdout.splitlines() if "::" in line]
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert len(collected_lines) == 124
