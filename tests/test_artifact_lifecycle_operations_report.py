@@ -46,9 +46,11 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
     workspace_plan = report["workspaces"][0]["retention_plan"]
     assert workspace_plan["mutation_policy"]["physical_cleanup_performed"] is False
     assert workspace_plan["mutation_policy"]["allowed_physical_actions"] == ["delete-safe-cache"]
+    assert workspace_plan["operation_listing"] == "bounded"
+    assert "operations" not in workspace_plan
     projection_operations = [
         item
-        for item in workspace_plan["operations"]
+        for item in workspace_plan["operation_sample"]
         if item["retention_action"] == "regenerate_projection_then_remove_stale"
     ]
     assert projection_operations

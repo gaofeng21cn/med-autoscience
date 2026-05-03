@@ -9,6 +9,7 @@ from typing import Any
 SCHEMA_VERSION = 1
 SURFACE_KIND = "artifact_retention_operations_plan"
 ALLOWED_PHYSICAL_ACTIONS = ("delete-safe-cache",)
+DEFAULT_OPERATION_SAMPLE_LIMIT = 50
 _KEEP_ONLINE_ROLES = frozenset(
     {
         "canonical_source",
@@ -33,15 +34,51 @@ def build_artifact_retention_operations_plan(
         "schema_version": SCHEMA_VERSION,
         "surface_kind": SURFACE_KIND,
         "workspace_root": str(resolved_workspace_root),
-        "mutation_policy": {
-            "read_only": True,
-            "writes_workspace": False,
-            "physical_cleanup_performed": False,
-            "allowed_physical_actions": list(ALLOWED_PHYSICAL_ACTIONS),
-            "archive_compress_apply_supported": False,
-        },
+        "mutation_policy": _mutation_policy(),
         "summary": _summary(operations),
         "operations": operations,
+    }
+
+
+def aggregate_artifact_retention_operations_plans(
+    plans: Iterable[Mapping[str, Any]],
+) -> dict[str, Any]:
+    action_counts: dict[str, int] = {}
+    applyable_action_counts: dict[str, int] = {}
+    operation_count = 0
+    for plan in plans:
+        summary = _mapping(plan.get("summary"))
+        operation_count += int(summary.get("operation_count") or 0)
+        _merge_counts(action_counts, _mapping(summary.get("action_counts")))
+        _merge_counts(applyable_action_counts, _mapping(summary.get("applyable_action_counts")))
+    return {
+        "surface_kind": SURFACE_KIND,
+        "summary": {
+            "operation_count": operation_count,
+            "action_counts": dict(sorted(action_counts.items())),
+            "applyable_action_counts": dict(sorted(applyable_action_counts.items())),
+        },
+        "mutation_policy": _mutation_policy(),
+    }
+
+
+def compact_artifact_retention_operations_plan(
+    plan: Mapping[str, Any],
+    *,
+    operation_sample_limit: int = DEFAULT_OPERATION_SAMPLE_LIMIT,
+) -> dict[str, Any]:
+    operations = _list(plan.get("operations"))
+    sample = operations[:operation_sample_limit]
+    return {
+        "schema_version": int(plan.get("schema_version") or SCHEMA_VERSION),
+        "surface_kind": _text(plan.get("surface_kind")) or SURFACE_KIND,
+        "workspace_root": _text(plan.get("workspace_root")),
+        "mutation_policy": dict(_mapping(plan.get("mutation_policy"))) or _mutation_policy(),
+        "summary": dict(_mapping(plan.get("summary"))),
+        "operation_listing": "bounded",
+        "operation_sample": [dict(item) for item in sample if isinstance(item, Mapping)],
+        "operation_sample_limit": operation_sample_limit,
+        "operation_sample_truncated": len(operations) > operation_sample_limit,
     }
 
 
@@ -143,6 +180,16 @@ def _summary(operations: list[Mapping[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _mutation_policy() -> dict[str, Any]:
+    return {
+        "read_only": True,
+        "writes_workspace": False,
+        "physical_cleanup_performed": False,
+        "allowed_physical_actions": list(ALLOWED_PHYSICAL_ACTIONS),
+        "archive_compress_apply_supported": False,
+    }
+
+
 def _artifact_path(artifact: Mapping[str, Any]) -> str:
     raw_path = _text(artifact.get("path"))
     return raw_path
@@ -168,10 +215,18 @@ def _text(value: object) -> str:
     return value.strip() if isinstance(value, str) else ""
 
 
+def _mapping(value: object) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
 def _string_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+
+
+def _list(value: object) -> list[object]:
+    return value if isinstance(value, list) else []
 
 
 def _dedupe(values: list[str]) -> list[str]:
@@ -185,9 +240,17 @@ def _dedupe(values: list[str]) -> list[str]:
     return result
 
 
+def _merge_counts(target: dict[str, int], values: Mapping[str, Any]) -> None:
+    for key, value in values.items():
+        target[str(key)] = target.get(str(key), 0) + int(value or 0)
+
+
 __all__ = [
     "ALLOWED_PHYSICAL_ACTIONS",
+    "DEFAULT_OPERATION_SAMPLE_LIMIT",
     "SCHEMA_VERSION",
     "SURFACE_KIND",
+    "aggregate_artifact_retention_operations_plans",
     "build_artifact_retention_operations_plan",
+    "compact_artifact_retention_operations_plan",
 ]

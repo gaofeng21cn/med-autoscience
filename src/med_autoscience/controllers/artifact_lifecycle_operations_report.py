@@ -13,7 +13,9 @@ from med_autoscience.controllers.artifact_lifecycle_inventory import (
     lifecycle_for_role,
 )
 from med_autoscience.controllers.artifact_retention_operations_plan import (
+    aggregate_artifact_retention_operations_plans,
     build_artifact_retention_operations_plan,
+    compact_artifact_retention_operations_plan,
 )
 
 
@@ -209,7 +211,7 @@ def _workspace_report(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -
             artifacts=artifacts,
             statistical_directories=statistical_directories,
         ),
-        "retention_plan": retention_plan,
+        "retention_plan": compact_artifact_retention_operations_plan(retention_plan),
         "projection_completeness": _workspace_projection_completeness(studies),
         "studies": studies,
         "artifact_listing": "bounded",
@@ -764,30 +766,9 @@ def _aggregate_source_totals(workspaces: Iterable[Mapping[str, Any]]) -> dict[st
 
 
 def _aggregate_retention_plan(workspaces: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
-    action_counts: dict[str, int] = {}
-    applyable_action_counts: dict[str, int] = {}
-    operation_count = 0
-    for workspace in workspaces:
-        plan = dict(workspace.get("retention_plan") or {})
-        summary = dict(plan.get("summary") or {})
-        operation_count += int(summary.get("operation_count") or 0)
-        _merge_counts(action_counts, dict(summary.get("action_counts") or {}))
-        _merge_counts(applyable_action_counts, dict(summary.get("applyable_action_counts") or {}))
-    return {
-        "surface_kind": "artifact_retention_operations_plan",
-        "summary": {
-            "operation_count": operation_count,
-            "action_counts": dict(sorted(action_counts.items())),
-            "applyable_action_counts": dict(sorted(applyable_action_counts.items())),
-        },
-        "mutation_policy": {
-            "read_only": True,
-            "writes_workspace": False,
-            "physical_cleanup_performed": False,
-            "allowed_physical_actions": ["delete-safe-cache"],
-            "archive_compress_apply_supported": False,
-        },
-    }
+    return aggregate_artifact_retention_operations_plans(
+        dict(workspace.get("retention_plan") or {}) for workspace in workspaces
+    )
 
 
 def _empty_source_totals() -> dict[str, Any]:
