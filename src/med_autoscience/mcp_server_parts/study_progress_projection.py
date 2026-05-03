@@ -2,6 +2,87 @@ from __future__ import annotations
 
 from typing import Any
 
+READINESS_ACTION_BY_SURFACE: dict[str, dict[str, str]] = {
+    "literature_scout": {
+        "action_id": "complete_literature_scout",
+        "action_label": "补文献",
+        "semantic_label": "补文献",
+        "action_summary": "补齐可审计文献 scout、检索日期、anchor papers、guideline 和近邻文献。",
+    },
+    "literature_provider_runtime": {
+        "action_id": "run_provider_literature_scout",
+        "action_label": "联网补文献",
+        "semantic_label": "补文献",
+        "action_summary": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
+    },
+    "study_line_selection": {
+        "action_id": "rescore_study_line",
+        "action_label": "重评分路线",
+        "semantic_label": "路线裁决",
+        "action_summary": "重新比较候选切入点，并冻结最强 study line 与 stop threshold。",
+    },
+    "route_decision_orchestrator": {
+        "action_id": "materialize_route_decision",
+        "action_label": "写入路线裁决",
+        "semantic_label": "路线裁决",
+        "action_summary": "把路线选择、route-back 或 switch-line 决策写入 controller decision 投影。",
+    },
+    "archetype_analysis_contract": {
+        "action_id": "freeze_statistical_contract",
+        "action_label": "冻结分析合同",
+        "semantic_label": "统计 blocker",
+        "action_summary": "按 study archetype 冻结统计纪律合同和失败条件。",
+    },
+    "statistical_discipline_operations": {
+        "action_id": "resolve_statistical_blockers",
+        "action_label": "处理统计 blocker",
+        "semantic_label": "统计 blocker",
+        "action_summary": "逐项处理缺失值、precision、外部验证、多重性、临床效用和敏感性分析 blocker/waiver。",
+    },
+    "bounded_analysis_candidate_board": {
+        "action_id": "enter_bounded_analysis",
+        "action_label": "进入 bounded analysis",
+        "semantic_label": "统计 blocker",
+        "action_summary": "把补充分析绑定到 target claim、证据收益、统计风险和决策理由。",
+    },
+    "stop_loss_memo": {
+        "action_id": "decide_stop_loss_or_switch_line",
+        "action_label": "止损换线",
+        "semantic_label": "路线裁决",
+        "action_summary": "写入 stop-loss memo，决定继续、route-back、止损或换线。",
+    },
+    "target_journal_writing_layer": {
+        "action_id": "start_ai_reviewer_journal_loop",
+        "action_label": "启动 AI reviewer",
+        "semantic_label": "写作授权",
+        "action_summary": "冻结目标期刊写作层并启动 AI reviewer 写作/质量闭环。",
+    },
+    "revision_rebuttal_loop": {
+        "action_id": "start_revision_rebuttal_loop",
+        "action_label": "启动返修",
+        "semantic_label": "返修",
+        "action_summary": "摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。",
+    },
+    "authoring_runtime_authorization": {
+        "action_id": "authorize_manuscript_drafting",
+        "action_label": "授权写作",
+        "semantic_label": "写作授权",
+        "action_summary": "检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。",
+    },
+    "real_study_soak_matrix_evidence": {
+        "action_id": "rebuild_submission_package_after_soak",
+        "action_label": "重建投稿包",
+        "semantic_label": "真实 soak",
+        "action_summary": "补齐多 study soak proof 后从 canonical source 重建投稿包并审计。",
+    },
+    "real_workspace_soak_monitor": {
+        "action_id": "run_real_workspace_soak_monitor",
+        "action_label": "运行真实 soak",
+        "semantic_label": "真实 soak",
+        "action_summary": "从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。",
+    },
+}
+
 
 def _compact_string_list(value: Any, *, limit: int = 12) -> list[str]:
     if not isinstance(value, list):
@@ -167,14 +248,30 @@ def _compact_medical_paper_readiness(value: Any) -> dict[str, Any] | None:
             continue
         if not bool(item.get("required_for_ready")) or item.get("status") == "present":
             continue
-        missing = _compact_record(
-            item,
-            ("surface_key", "status", "missing_reason"),
-        )
+        missing = _compact_readiness_missing_surface(item)
         if missing is not None:
             missing_surfaces.append(missing)
     compact["missing_surfaces"] = missing_surfaces[:8]
     return compact
+
+
+def _compact_readiness_missing_surface(item: dict[str, Any]) -> dict[str, Any] | None:
+    missing = _compact_record(
+        item,
+        ("surface_key", "status", "missing_reason", "artifact_path", "evidence_refs"),
+    )
+    if missing is None:
+        return None
+    action = READINESS_ACTION_BY_SURFACE.get(str(missing.get("surface_key") or "").strip())
+    if action:
+        missing.update(
+            {
+                "action_id": action["action_id"],
+                "action_label": action["action_label"],
+                "action_summary": action["action_summary"],
+            }
+        )
+    return missing
 
 
 def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]:
@@ -499,9 +596,8 @@ def _render_mcp_progress_medical_paper_readiness(compact: dict[str, Any]) -> lis
     if next_action_summary:
         lines.append(f"- 下一动作: {next_action_summary}")
     for item in _mcp_medical_paper_missing_surfaces(readiness):
-        surface_key = str(item.get("surface_key") or "unknown").strip() or "unknown"
-        missing_reason = str(item.get("missing_reason") or "unknown").strip() or "unknown"
-        lines.append(f"- 缺失 surface: {surface_key} (`{missing_reason}`)")
+        lines.append(_mcp_medical_paper_missing_surface_line(item))
+        lines.append(_mcp_medical_paper_missing_surface_compat_line(item))
     lines.append(f"- quality_claim_authorized: `{readiness.get('quality_claim_authorized')}`")
     lines.append(
         "- mechanical_projection_can_authorize_quality: "
@@ -534,6 +630,37 @@ def _mcp_medical_paper_next_action_summary(readiness: dict[str, Any]) -> str:
 
 def _mcp_medical_paper_missing_surfaces(readiness: dict[str, Any]) -> list[dict[str, Any]]:
     return [item for item in readiness.get("missing_surfaces") or [] if isinstance(item, dict)]
+
+
+def _mcp_medical_paper_missing_surface_line(item: dict[str, Any]) -> str:
+    surface_key = str(item.get("surface_key") or "unknown").strip() or "unknown"
+    status = str(item.get("status") or "unknown").strip() or "unknown"
+    missing_reason = str(item.get("missing_reason") or "unknown").strip() or "unknown"
+    action = READINESS_ACTION_BY_SURFACE.get(surface_key, {})
+    semantic_label = action.get("semantic_label") or str(item.get("action_label") or "缺失 surface").strip()
+    action_summary = str(item.get("action_summary") or "").strip() or missing_reason
+    durable_ref = _mcp_readiness_surface_durable_ref(item)
+    suffix = f"；ref: `{durable_ref}`" if durable_ref else ""
+    return (
+        f"- {semantic_label}: {action_summary}"
+        f"（surface: `{surface_key}`；status: `{status}`；reason: `{missing_reason}`{suffix}）"
+    )
+
+
+def _mcp_medical_paper_missing_surface_compat_line(item: dict[str, Any]) -> str:
+    surface_key = str(item.get("surface_key") or "unknown").strip() or "unknown"
+    missing_reason = str(item.get("missing_reason") or "unknown").strip() or "unknown"
+    return f"- 缺失 surface: {surface_key} (`{missing_reason}`)"
+
+
+def _mcp_readiness_surface_durable_ref(item: dict[str, Any]) -> str:
+    evidence_refs = item.get("evidence_refs")
+    if isinstance(evidence_refs, list):
+        for ref in evidence_refs:
+            text = str(ref).strip()
+            if text:
+                return text
+    return str(item.get("artifact_path") or "").strip()
 
 
 def _render_mcp_progress_refs(compact: dict[str, Any]) -> list[str]:

@@ -12,3 +12,4 @@ from tests.study_progress_cases.runtime_liveness_convergence import *
 from tests.study_progress_cases.reviewer_handoff_quality_closure import *
 from tests.study_progress_cases.markdown_and_followthrough_projection import *
 from tests.study_progress_cases.ai_first_default_entry_projection import *
+from tests.study_progress_cases.medical_readiness_v2_projection import *
