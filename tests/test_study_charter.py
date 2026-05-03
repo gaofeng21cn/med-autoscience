@@ -213,6 +213,41 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
                 "Do not conclude only that a China-trained absolute risk model is non-transportable.",
             ],
         },
+        "protocol_sap_freeze": {
+            "surface": "protocol_sap_freeze",
+            "status": "requires_freeze_before_analysis",
+            "required_before_routes": ["analysis-campaign", "write", "finalize"],
+            "gate_relaxation_allowed": False,
+            "owner": "mas",
+            "freeze_ref": None,
+            "protocol_ref": None,
+            "sap_ref": None,
+            "study_design": None,
+            "population_or_cohort_boundary": None,
+            "target_population": None,
+            "endpoint_type": None,
+            "primary_endpoint": None,
+            "primary_analysis": None,
+            "secondary_analyses": [],
+            "statistical_methods": [],
+            "missing_data_plan": None,
+            "subgroup_plan": [],
+            "multiplicity_guardrails": [],
+            "power_precision_or_feasibility_rationale": None,
+            "reporting_guideline_family": None,
+            "required_updates_when_changed": [
+                "study_charter",
+                "analysis_campaign_plan",
+                "evidence_ledger",
+                "review_ledger",
+                "publication_eval",
+            ],
+            "route_back_policy": {
+                "missing_required_item": "decision",
+                "changed_primary_question_or_endpoint": "human_gate",
+                "changed_analysis_plan_within_locked_direction": "analysis-campaign",
+            },
+        },
         "bounded_analysis": {
             "default_owner": "mas",
             "allowed_scenarios": [
@@ -564,6 +599,79 @@ def test_materialize_study_charter_adds_prediction_model_reporting_guardrails(tm
     ]["before_review_handoff"]["required_items"]
 
 
+def test_materialize_study_charter_freezes_protocol_sap_contract(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "004-protocol"
+
+    module.materialize_study_charter(
+        study_root=study_root,
+        study_id="004-protocol",
+        study_payload={
+            "title": "Protocol SAP study",
+            "study_design": "retrospective cohort",
+            "target_population": "Adults with diabetes in primary care",
+            "cohort_boundary": "2016-2024 outpatient cohort with complete baseline labs",
+            "endpoint_type": "time_to_event",
+            "primary_endpoint": "5-year cardiovascular mortality",
+            "primary_analysis": "Cox proportional hazards model with external validation",
+            "secondary_analyses": ["calibration by age group", "decision curve analysis"],
+            "statistical_methods": ["Cox regression", "Harrell C-index", "calibration slope"],
+            "missing_data_plan": "Multiple imputation for baseline covariates",
+            "subgroup_plan": ["age strata", "sex strata"],
+            "multiplicity_guardrails": ["subgroups are exploratory", "no new primary claim"],
+            "power_precision_rationale": "Precision justified by expected event count and confidence interval width.",
+            "reporting_guideline_family": "TRIPOD",
+            "protocol_ref": "protocol.md",
+            "sap_ref": "analysis_plan.json",
+            "freeze_owner": "mas",
+            "freeze_ref": "controller_decision::freeze-protocol-sap",
+        },
+        execution={},
+        required_first_anchor=None,
+    )
+
+    payload = json.loads((study_root / "artifacts" / "controller" / "study_charter.json").read_text(encoding="utf-8"))
+    freeze_contract = payload["paper_quality_contract"]["protocol_sap_freeze"]
+
+    assert freeze_contract == {
+        "surface": "protocol_sap_freeze",
+        "status": "frozen_at_startup",
+        "required_before_routes": ["analysis-campaign", "write", "finalize"],
+        "gate_relaxation_allowed": False,
+        "owner": "mas",
+        "freeze_ref": "controller_decision::freeze-protocol-sap",
+        "protocol_ref": "protocol.md",
+        "sap_ref": "analysis_plan.json",
+        "study_design": "retrospective cohort",
+        "population_or_cohort_boundary": "2016-2024 outpatient cohort with complete baseline labs",
+        "target_population": "Adults with diabetes in primary care",
+        "endpoint_type": "time_to_event",
+        "primary_endpoint": "5-year cardiovascular mortality",
+        "primary_analysis": "Cox proportional hazards model with external validation",
+        "secondary_analyses": ["calibration by age group", "decision curve analysis"],
+        "statistical_methods": ["Cox regression", "Harrell C-index", "calibration slope"],
+        "missing_data_plan": "Multiple imputation for baseline covariates",
+        "subgroup_plan": ["age strata", "sex strata"],
+        "multiplicity_guardrails": ["subgroups are exploratory", "no new primary claim"],
+        "power_precision_or_feasibility_rationale": (
+            "Precision justified by expected event count and confidence interval width."
+        ),
+        "reporting_guideline_family": "TRIPOD",
+        "required_updates_when_changed": [
+            "study_charter",
+            "analysis_campaign_plan",
+            "evidence_ledger",
+            "review_ledger",
+            "publication_eval",
+        ],
+        "route_back_policy": {
+            "missing_required_item": "decision",
+            "changed_primary_question_or_endpoint": "human_gate",
+            "changed_analysis_plan_within_locked_direction": "analysis-campaign",
+        },
+    }
+
+
 def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Path) -> None:
     module = importlib.import_module(MODULE_NAME)
     study_root = tmp_path / "workspace" / "studies" / "002-minimal"
@@ -615,6 +723,41 @@ def test_materialize_study_charter_sets_default_contract_boundaries(tmp_path: Pa
         "review_ledger",
         "publication_eval",
     ]
+    assert paper_quality_contract["protocol_sap_freeze"] == {
+        "surface": "protocol_sap_freeze",
+        "status": "requires_freeze_before_analysis",
+        "required_before_routes": ["analysis-campaign", "write", "finalize"],
+        "gate_relaxation_allowed": False,
+        "owner": "mas",
+        "freeze_ref": None,
+        "protocol_ref": None,
+        "sap_ref": None,
+        "study_design": None,
+        "population_or_cohort_boundary": None,
+        "target_population": None,
+        "endpoint_type": None,
+        "primary_endpoint": None,
+        "primary_analysis": None,
+        "secondary_analyses": [],
+        "statistical_methods": [],
+        "missing_data_plan": None,
+        "subgroup_plan": [],
+        "multiplicity_guardrails": [],
+        "power_precision_or_feasibility_rationale": None,
+        "reporting_guideline_family": None,
+        "required_updates_when_changed": [
+            "study_charter",
+            "analysis_campaign_plan",
+            "evidence_ledger",
+            "review_ledger",
+            "publication_eval",
+        ],
+        "route_back_policy": {
+            "missing_required_item": "decision",
+            "changed_primary_question_or_endpoint": "human_gate",
+            "changed_analysis_plan_within_locked_direction": "analysis-campaign",
+        },
+    }
     assert paper_quality_contract["downstream_contract_roles"] == {
         "evidence_ledger": "records evidence against evidence_expectations",
         "review_ledger": "records review closure against review_expectations",

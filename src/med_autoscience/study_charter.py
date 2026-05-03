@@ -75,6 +75,38 @@ DEFAULT_BOUNDED_ANALYSIS_COMPLETION_BOUNDARY = {
         "publication_eval",
     ],
 }
+DEFAULT_PROTOCOL_SAP_REQUIRED_UPDATES = (
+    "study_charter",
+    "analysis_campaign_plan",
+    "evidence_ledger",
+    "review_ledger",
+    "publication_eval",
+)
+DEFAULT_PROTOCOL_SAP_ROUTE_BACK_POLICY = {
+    "missing_required_item": "decision",
+    "changed_primary_question_or_endpoint": "human_gate",
+    "changed_analysis_plan_within_locked_direction": "analysis-campaign",
+}
+PROTOCOL_SAP_FREEZE_INPUT_KEYS = (
+    "study_design",
+    "target_population",
+    "cohort_boundary",
+    "population_or_cohort_boundary",
+    "endpoint_type",
+    "primary_endpoint",
+    "primary_analysis",
+    "secondary_analyses",
+    "statistical_methods",
+    "missing_data_plan",
+    "subgroup_plan",
+    "multiplicity_guardrails",
+    "power_precision_rationale",
+    "power_precision_or_feasibility_rationale",
+    "reporting_guideline_family",
+    "protocol_ref",
+    "sap_ref",
+    "freeze_ref",
+)
 
 DEFAULT_METHODS_COMPLETENESS_CONTRACT = {
     "study_design": {"status": "required_before_first_full_draft"},
@@ -424,6 +456,64 @@ def _materialize_structured_reporting_contract(study_payload: dict[str, Any]) ->
     return contract
 
 
+def _materialize_protocol_sap_freeze_contract(
+    study_payload: dict[str, Any],
+    *,
+    structured_reporting_contract: dict[str, Any],
+) -> dict[str, Any]:
+    raw_contract = _mapping(study_payload.get("protocol_sap_freeze"))
+    raw_contract = {**raw_contract}
+
+    def _field(name: str) -> Any:
+        if name in raw_contract:
+            return raw_contract.get(name)
+        return study_payload.get(name)
+
+    has_freeze_inputs = bool(raw_contract) or any(
+        _field(key) not in (None, "", []) for key in PROTOCOL_SAP_FREEZE_INPUT_KEYS
+    )
+    reporting_guideline_family = (
+        _non_empty_string(_field("reporting_guideline_family"))
+        or _non_empty_string(structured_reporting_contract.get("reporting_guideline_family"))
+    )
+    status = _non_empty_string(_field("status")) or (
+        "frozen_at_startup" if has_freeze_inputs else "requires_freeze_before_analysis"
+    )
+    return {
+        "surface": "protocol_sap_freeze",
+        "status": status,
+        "required_before_routes": ["analysis-campaign", "write", "finalize"],
+        "gate_relaxation_allowed": False,
+        "owner": _non_empty_string(_field("freeze_owner")) or _non_empty_string(_field("owner")) or "mas",
+        "freeze_ref": _non_empty_string(_field("freeze_ref")),
+        "protocol_ref": _non_empty_string(_field("protocol_ref")),
+        "sap_ref": _non_empty_string(_field("sap_ref")),
+        "study_design": _non_empty_string(_field("study_design")),
+        "population_or_cohort_boundary": (
+            _non_empty_string(_field("population_or_cohort_boundary"))
+            or _non_empty_string(_field("cohort_boundary"))
+        ),
+        "target_population": _non_empty_string(_field("target_population")),
+        "endpoint_type": _non_empty_string(_field("endpoint_type")),
+        "primary_endpoint": _non_empty_string(_field("primary_endpoint")),
+        "primary_analysis": _non_empty_string(_field("primary_analysis")),
+        "secondary_analyses": _string_list(_field("secondary_analyses")),
+        "statistical_methods": _string_list(_field("statistical_methods")),
+        "missing_data_plan": _non_empty_string(_field("missing_data_plan")),
+        "subgroup_plan": _string_list(_field("subgroup_plan")),
+        "multiplicity_guardrails": _string_list(_field("multiplicity_guardrails")),
+        "power_precision_or_feasibility_rationale": (
+            _non_empty_string(_field("power_precision_or_feasibility_rationale"))
+            or _non_empty_string(_field("power_precision_rationale"))
+        ),
+        "reporting_guideline_family": reporting_guideline_family.upper()
+        if reporting_guideline_family is not None
+        else None,
+        "required_updates_when_changed": list(DEFAULT_PROTOCOL_SAP_REQUIRED_UPDATES),
+        "route_back_policy": dict(DEFAULT_PROTOCOL_SAP_ROUTE_BACK_POLICY),
+    }
+
+
 def resolve_study_charter_ref(
     *,
     study_root: Path,
@@ -474,6 +564,7 @@ def materialize_study_charter(
         or paper_framing_summary
         or title
     )
+    structured_reporting_contract = _materialize_structured_reporting_contract(study_payload)
     payload: dict[str, Any] = {
         "schema_version": 1,
         "charter_id": f"charter::{study_id}::v1",
@@ -518,8 +609,12 @@ def materialize_study_charter(
                 "scientific_followup_questions": scientific_followup_questions,
                 "manuscript_conclusion_redlines": manuscript_conclusion_redlines,
             },
+            "protocol_sap_freeze": _materialize_protocol_sap_freeze_contract(
+                study_payload,
+                structured_reporting_contract=structured_reporting_contract,
+            ),
             "bounded_analysis": _materialize_bounded_analysis_contract(study_payload),
-            "structured_reporting_contract": _materialize_structured_reporting_contract(study_payload),
+            "structured_reporting_contract": structured_reporting_contract,
             "downstream_contract_roles": dict(DOWNSTREAM_CONTRACT_ROLES),
         },
     }
