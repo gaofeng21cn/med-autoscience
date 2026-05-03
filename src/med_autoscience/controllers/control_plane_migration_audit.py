@@ -171,13 +171,21 @@ def _study_roots_from_manifests(workspace_root: Path, manifests: list[Path]) -> 
         study_id = _study_id_from_manifest(manifest_path, payload)
         if study_id is None:
             continue
-        candidate = manifest_path.parent
-        if candidate.name in {"paper", "manuscript", "submission_minimal"}:
-            candidate = candidate.parent
-        if candidate.name == "submission_minimal":
-            candidate = candidate.parent.parent
+        candidate = _study_root_from_manifest(workspace_root=workspace_root, manifest_path=manifest_path, study_id=study_id)
         roots.setdefault(study_id, candidate if candidate.exists() else workspace_root)
     return roots
+
+
+def _study_root_from_manifest(*, workspace_root: Path, manifest_path: Path, study_id: str) -> Path:
+    for parent in manifest_path.parents:
+        if parent == workspace_root:
+            break
+        if parent.name == study_id:
+            return parent
+    candidate = manifest_path.parent
+    while candidate.name in {"current_package", "paper", "manuscript", "submission_minimal"}:
+        candidate = candidate.parent
+    return candidate
 
 
 def _count_under(paths: Iterable[Path], root: Path) -> int:
