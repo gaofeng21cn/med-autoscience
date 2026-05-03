@@ -13,6 +13,8 @@ LEDGER_SURFACE = "ai_first_feedback_ledger"
 LEDGER_SCHEMA_VERSION = 1
 QUALITY_LEARNING_QUEUE_SURFACE = "ai_first_quality_learning_queue"
 QUALITY_LEARNING_QUEUE_READ_MODEL = "ai_first_quality_learning_queue_read_model"
+QUALITY_LEARNING_OPERATIONS_REPORT_SURFACE = "ai_first_quality_learning_operations_report"
+QUALITY_LEARNING_OPERATIONS_REPORT_READ_MODEL = "ai_first_quality_learning_operations_report_read_model"
 LOW_LEVEL_FIELD_HINTS = ("raw_terminal_log", "full_prompt", "prompt", "secret", "token", "log_path")
 EVENT_PRIORITY = {
     "ai_reviewer_trace_gap": 0,
@@ -496,6 +498,18 @@ def _queue_open_events(
     return [dict(item) for item in _list(feedback_state.get("events")) if isinstance(item, Mapping)]
 
 
+def _paper_quality_queue_events(
+    *,
+    feedback_state: Mapping[str, Any],
+    feedback_ledger: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    return [
+        dict(item)
+        for item in _queue_open_events(feedback_state=feedback_state, feedback_ledger=feedback_ledger)
+        if _text(item.get("category")) != "quality_toil_repeat"
+    ]
+
+
 def _queue_frequency(item: Mapping[str, Any]) -> int:
     return max(_int(item.get("repeat_count")), 1)
 
@@ -563,7 +577,7 @@ def build_ai_first_quality_learning_queue(
 ) -> dict[str, Any]:
     """Build a governance-only maintenance queue from sanitized feedback signals."""
 
-    open_events = _queue_open_events(feedback_state=feedback_state, feedback_ledger=feedback_ledger)
+    open_events = _paper_quality_queue_events(feedback_state=feedback_state, feedback_ledger=feedback_ledger)
     items = _aggregate_quality_learning_queue_items(open_events)
     return {
         "surface": QUALITY_LEARNING_QUEUE_SURFACE,
@@ -600,6 +614,92 @@ def build_ai_first_quality_learning_queue(
             "queue_can_mutate_runtime": False,
             "queue_records_manuscript_content": False,
             "queue_exposes_raw_logs_prompts_or_tokens": False,
+            "repeat_toil_is_quality_gate": False,
+        },
+    }
+
+
+def _operations_report_priority(item: Mapping[str, Any], *, rank: int, priority_type: str) -> dict[str, Any]:
+    reason = _text(item.get("reason"), "unknown") or "unknown"
+    frequency = _int(item.get("frequency")) or _queue_frequency(item)
+    impact_entry = _text(item.get("impact_entry"), "unknown") or "unknown"
+    suggested_fix_layer = _text(item.get("suggested_fix_layer"), "inspect source read-model") or "inspect source read-model"
+    category = _text(item.get("category"), "unknown") or "unknown"
+    return {
+        "priority_rank": rank,
+        "priority_type": priority_type,
+        "category": category,
+        "reason": reason,
+        "frequency": frequency,
+        "impact_entry": impact_entry,
+        "suggested_fix_layer": suggested_fix_layer,
+        "maintenance_priority": f"{reason} | frequency={frequency} | impact={impact_entry} | fix_layer={suggested_fix_layer}",
+        "source_surface": _text(item.get("source_surface"), impact_entry) or impact_entry,
+        "is_open_blocker": priority_type == "open_feedback",
+        "is_quality_gate": False,
+    }
+
+
+def _repeat_toil_improvement_items(feedback_ledger: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    rows = [
+        row
+        for row in _repeat_toil_rows(feedback_ledger)
+        if row.get("open_closed") == "open"
+    ]
+    return _aggregate_quality_learning_queue_items(rows)
+
+
+def build_ai_first_quality_learning_operations_report(
+    *,
+    feedback_state: Mapping[str, Any],
+    feedback_ledger: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build a maintainer-facing operations report from sanitized quality-learning signals."""
+
+    queue = build_ai_first_quality_learning_queue(
+        feedback_state=feedback_state,
+        feedback_ledger=feedback_ledger,
+    )
+    open_feedback_priorities = [
+        _operations_report_priority(item, rank=index + 1, priority_type="open_feedback")
+        for index, item in enumerate(queue["items"])
+    ]
+    repeat_toil_items = _repeat_toil_improvement_items(feedback_ledger)
+    system_improvement_priorities = [
+        _operations_report_priority(item, rank=index + 1, priority_type="system_improvement")
+        for index, item in enumerate(repeat_toil_items)
+    ]
+    return {
+        "surface": QUALITY_LEARNING_OPERATIONS_REPORT_SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "read_model": QUALITY_LEARNING_OPERATIONS_REPORT_READ_MODEL,
+        "authority": "maintainer_operations_only",
+        "source_authority": "observability_only",
+        "status": "attention_required" if open_feedback_priorities or system_improvement_priorities else "on_track",
+        "summary": (
+            f"{len(open_feedback_priorities)} 个 open feedback 维护优先项；"
+            f"{len(system_improvement_priorities)} 个 repeat-toil 系统改进优先项。"
+        ),
+        "open_feedback_priorities": open_feedback_priorities,
+        "system_improvement_priorities": system_improvement_priorities,
+        "quality_learning_queue": queue,
+        "counts": {
+            "open_feedback_priority_count": len(open_feedback_priorities),
+            "open_feedback_frequency": sum(_int(item.get("frequency")) for item in open_feedback_priorities),
+            "system_improvement_priority_count": len(system_improvement_priorities),
+            "system_improvement_frequency": sum(
+                _int(item.get("frequency")) for item in system_improvement_priorities
+            ),
+        },
+        "authority_contract": {
+            "report_can_authorize_quality": False,
+            "report_can_authorize_finalize": False,
+            "report_can_authorize_submission": False,
+            "report_can_mutate_runtime": False,
+            "closed_feedback_counts_as_open_blocker": False,
+            "repeat_toil_is_quality_gate": False,
+            "report_records_manuscript_content": False,
+            "report_exposes_raw_logs_prompts_or_tokens": False,
         },
     }
 
@@ -652,6 +752,10 @@ def build_ai_first_feedback_state(
         feedback_state={"events": events},
         feedback_ledger=feedback_ledger,
     )
+    quality_learning_operations_report = build_ai_first_quality_learning_operations_report(
+        feedback_state={"events": events},
+        feedback_ledger=feedback_ledger,
+    )
     return {
         "surface": SURFACE,
         "schema_version": SCHEMA_VERSION,
@@ -674,8 +778,10 @@ def build_ai_first_feedback_state(
             "source_surfaces": sorted({str(item.get("source_surface")) for item in events if item.get("source_surface")}),
             "repeat_toil_analytics": _repeat_toil_analytics(feedback_ledger),
             "quality_learning_queue": quality_learning_queue,
+            "quality_learning_operations_report": quality_learning_operations_report,
         },
         "quality_learning_queue": quality_learning_queue,
+        "quality_learning_operations_report": quality_learning_operations_report,
         "events": events,
         "counts": _counts(events),
         "authority_contract": {
@@ -691,6 +797,11 @@ def build_ai_first_feedback_state(
             "quality_learning_queue_can_authorize_finalize": False,
             "quality_learning_queue_can_authorize_submission": False,
             "quality_learning_queue_records_manuscript_content": False,
+            "quality_learning_operations_report_can_authorize_quality": False,
+            "quality_learning_operations_report_can_authorize_finalize": False,
+            "quality_learning_operations_report_can_authorize_submission": False,
+            "quality_learning_operations_report_records_manuscript_content": False,
+            "repeat_toil_is_quality_gate": False,
             "mechanical_feedback_is_projection_only": True,
         },
     }
@@ -766,6 +877,10 @@ def materialize_ai_first_feedback_ledger(
             feedback_state={"events": active_events},
             feedback_ledger={"events": events},
         ),
+        "quality_learning_operations_report": build_ai_first_quality_learning_operations_report(
+            feedback_state={"events": active_events},
+            feedback_ledger={"events": events},
+        ),
         "authority_contract": {
             "ledger_can_authorize_quality": False,
             "ledger_can_authorize_submission": False,
@@ -773,6 +888,8 @@ def materialize_ai_first_feedback_ledger(
             "ledger_quality_learning_queue_can_authorize_quality": False,
             "ledger_quality_learning_queue_can_authorize_finalize": False,
             "ledger_quality_learning_queue_can_authorize_submission": False,
+            "ledger_quality_learning_operations_report_can_authorize_quality": False,
+            "ledger_quality_learning_operations_report_can_authorize_submission": False,
         },
     }
     path.parent.mkdir(parents=True, exist_ok=True)

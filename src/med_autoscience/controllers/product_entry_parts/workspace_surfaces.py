@@ -106,6 +106,8 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
         "open_feedback_count": 0,
         "repeat_toil_count": 0,
         "manual_judgment_pending": 0,
+        "quality_learning_open_priority_count": 0,
+        "quality_learning_system_improvement_count": 0,
     }
     study_dashboards: list[dict[str, Any]] = []
     for item in studies:
@@ -137,6 +139,13 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
             counts["manual_judgment_pending"] += _coerce_int(
                 feedback_counts.get("manual_judgment_pending_count")
             )
+        report_counts = dict(projection.get("quality_learning_operations_report_counts") or {})
+        counts["quality_learning_open_priority_count"] += _coerce_int(
+            report_counts.get("open_feedback_priority_count")
+        )
+        counts["quality_learning_system_improvement_count"] += _coerce_int(
+            report_counts.get("system_improvement_priority_count")
+        )
 
         study_dashboards.append(projection)
 
@@ -222,6 +231,22 @@ def _attach_feedback_projection(
     counts = dict(feedback_state.get("counts") or {})
     primary = dict(feedback_state.get("primary_feedback") or {})
     primary_action = dict(feedback_state.get("primary_action") or {})
+    maintainer_view = dict(feedback_state.get("maintainer_view") or {})
+    quality_learning_report = dict(
+        feedback_state.get("quality_learning_operations_report")
+        or maintainer_view.get("quality_learning_operations_report")
+        or {}
+    )
+    open_priorities = [
+        dict(item)
+        for item in quality_learning_report.get("open_feedback_priorities") or []
+        if isinstance(item, Mapping)
+    ]
+    system_improvements = [
+        dict(item)
+        for item in quality_learning_report.get("system_improvement_priorities") or []
+        if isinstance(item, Mapping)
+    ]
     updated = dict(projection)
     updated["feedback_status"] = feedback_state.get("status")
     updated["feedback_summary"] = feedback_state.get("summary")
@@ -231,6 +256,11 @@ def _attach_feedback_projection(
     updated["feedback_action_target_surface"] = primary_action.get("target_surface")
     updated["feedback_action_summary"] = primary_action.get("summary") or user_view.get("next_action")
     updated["feedback_counts"] = counts
+    if quality_learning_report:
+        updated["quality_learning_operations_report_summary"] = quality_learning_report.get("summary")
+        updated["quality_learning_operations_report_counts"] = quality_learning_report.get("counts")
+        updated["quality_learning_top_open_priority"] = open_priorities[0] if open_priorities else None
+        updated["quality_learning_top_system_improvement"] = system_improvements[0] if system_improvements else None
     updated["human_review_required"] = bool(
         updated.get("human_review_required") or user_view.get("human_review_required")
     )
@@ -829,7 +859,9 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             f"产物待刷新 {counts.get('artifact_refresh_pending', 0)}；"
             f"等待人工判断 {counts.get('human_review_required', 0)}；"
             f"运行反馈 {counts.get('open_feedback_count', 0)}；"
-            f"重复返工 {counts.get('repeat_toil_count', 0)}"
+            f"重复返工 {counts.get('repeat_toil_count', 0)}；"
+            f"quality learning open priorities {counts.get('quality_learning_open_priority_count', 0)}；"
+            f"system improvements {counts.get('quality_learning_system_improvement_count', 0)}"
         )
         for dashboard in ai_first_operations_state.get("study_dashboards") or []:
             if not isinstance(dashboard, Mapping):
@@ -856,6 +888,28 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
                 lines.append(f"  反馈原因: {dashboard.get('feedback_primary_reason')}")
             if dashboard.get("feedback_action_summary"):
                 lines.append(f"  建议动作: {dashboard.get('feedback_action_summary')}")
+            if dashboard.get("quality_learning_operations_report_summary"):
+                lines.append(
+                    f"  Quality learning operations: {dashboard.get('quality_learning_operations_report_summary')}"
+                )
+            top_open_priority = dict(dashboard.get("quality_learning_top_open_priority") or {})
+            if top_open_priority:
+                lines.append(
+                    "  Maintainer priority: "
+                    f"{top_open_priority.get('reason')} | "
+                    f"frequency={top_open_priority.get('frequency')} | "
+                    f"impact={top_open_priority.get('impact_entry')} | "
+                    f"fix_layer={top_open_priority.get('suggested_fix_layer')}"
+                )
+            top_system_improvement = dict(dashboard.get("quality_learning_top_system_improvement") or {})
+            if top_system_improvement:
+                lines.append(
+                    "  System improvement priority: "
+                    f"{top_system_improvement.get('reason')} | "
+                    f"frequency={top_system_improvement.get('frequency')} | "
+                    f"impact={top_system_improvement.get('impact_entry')} | "
+                    f"fix_layer={top_system_improvement.get('suggested_fix_layer')}"
+                )
             if dashboard.get("ai_reviewer_trace_complete") is not None:
                 lines.append(
                     "  AI reviewer trace: "
