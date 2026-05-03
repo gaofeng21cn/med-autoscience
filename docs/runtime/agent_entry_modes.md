@@ -88,8 +88,8 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - key_question: Is this direction worth entering the current study line?
 - goal: Freeze a question-worthy study direction, evidence target, and immediate route recommendation.
 - enter_conditions: workspace/profile available | study question or dataset context is readable | current line still needs direction framing or evidence scoping
-- hard_success_gate: question framing names the study target, population, and evidence boundary | route recommendation names the next formal route with reasons | blockers and assumptions are explicit enough for controller review
-- durable_outputs_minimum: scout note or equivalent route artifact with evidence boundary and next-step recommendation | explicit open questions list tied to the study line | route recommendation linked to the active study charter boundary
+- hard_success_gate: question framing names the study target, population, and evidence boundary | Literature Scout OS records search strategy with MeSH, query, date, anchor papers, guideline, and journal-neighbor evidence anchors | route recommendation names the next formal route with reasons | blockers and assumptions are explicit enough for controller review
+- durable_outputs_minimum: scout note or equivalent route artifact with evidence boundary and next-step recommendation | Literature Scout OS artifact with search strategy, MeSH/query/date, anchor papers, guideline, and journal-neighbor refs | explicit open questions list tied to the study line | route recommendation linked to the active study charter boundary
 - human_gate_boundary: primary question, target population, or evidence boundary needs reset | recommended next route would widen the active study charter boundary
 - next_routes: baseline | write | decision
 - route_back_triggers: evidence target stays ambiguous after scouting | study question changes materially during later routes | downstream review surfaces missing direction rationale
@@ -98,8 +98,8 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - key_question: Which study line is strongest enough to justify the next route?
 - goal: Choose the strongest study line and freeze why it deserves managed execution.
 - enter_conditions: scout output or equivalent direction framing exists | candidate study directions can be compared on the same problem boundary | active route still needs a chosen line before baseline work
-- hard_success_gate: one primary line is selected with explicit tradeoffs | execution recommendation names whether to proceed to baseline or return to decision | chosen line matches the active study charter scope
-- durable_outputs_minimum: line-selection note with rationale and discarded alternatives | explicit next-route recommendation with boundary assumptions | claim sketch or study objective aligned to the chosen line
+- hard_success_gate: one primary line is selected with explicit tradeoffs | Study Line Selection Scorecard compares novelty, clinical relevance, data fit, analysis plasticity, external validation, journal fit, cost-risk, and stop threshold | execution recommendation names whether to proceed to baseline or return to decision | chosen line matches the active study charter scope
+- durable_outputs_minimum: line-selection note with rationale and discarded alternatives | Study Line Selection Scorecard with novelty, clinical relevance, data fit, analysis plasticity, external validation, journal fit, cost-risk, and stop threshold dimensions | explicit next-route recommendation with boundary assumptions | claim sketch or study objective aligned to the chosen line
 - human_gate_boundary: chosen line changes the locked study direction or main claim family | execution recommendation needs a new managed-study commitment beyond the active charter
 - next_routes: baseline | decision
 - route_back_triggers: baseline readiness is still missing | chosen line conflicts with later evidence review | controller requests a different route bias
@@ -128,8 +128,8 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - key_question: Have the bounded evidence gaps been closed?
 - goal: Close the bounded evidence gaps that still block claim acceptance or reviewer pressure.
 - enter_conditions: baseline or primary result artifact exists | bounded analysis question is explicit | study charter still allows the requested follow-up analyses
-- hard_success_gate: each targeted gap has a resolved outcome or explicit stop decision | added analyses stay within the bounded scope of the active line | resulting evidence package can support writing or a decision review
-- durable_outputs_minimum: analysis campaign summary with question-to-result traceability | added result artifacts or evidence refs for every resolved gap | explicit record of remaining gaps that still require route-back | reviewer/Codex revision handoff when the bounded analysis is triggered by a user manuscript-change request
+- hard_success_gate: each targeted gap has a resolved outcome or explicit stop decision | Bounded Analysis Candidate Board records explore, exploit, fusion, debug, and stop candidates with target claim, expected evidence gain, cost/risk, clinical interpretability, and decision reason | added analyses stay within the bounded scope of the active line | resulting evidence package can support writing or a decision review
+- durable_outputs_minimum: analysis campaign summary with question-to-result traceability | Bounded Analysis Candidate Board covering explore, exploit, fusion, debug, and stop options plus target claim, expected evidence gain, cost/risk, clinical interpretability, and decision reason | added result artifacts or evidence refs for every resolved gap | explicit record of remaining gaps that still require route-back | reviewer/Codex revision handoff when the bounded analysis is triggered by a user manuscript-change request
 - human_gate_boundary: requested follow-up analysis adds a new primary claim or leaves bounded analysis scope | campaign needs another gate window beyond the predeclared analysis budget boundary
 - next_routes: write | finalize | decision
 - route_back_triggers: new gaps expand beyond bounded analysis scope | claim support weakens after follow-up analysis | reviewer-first scan requests a different baseline or study line
@@ -158,8 +158,8 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - key_question: Should the current study line continue, route back, stop, or enter a human gate?
 - goal: Record the official go, stop, reroute, or human-gate judgment for the active study line.
 - enter_conditions: route recommendation or blocking condition is explicit | current evidence package and risks are reviewable | controller-owned judgment point has been reached
-- hard_success_gate: decision names the chosen route or terminal judgment | rationale cites the current evidence and unresolved risks | downstream owner and next action are unambiguous
-- durable_outputs_minimum: controller-facing decision record or equivalent durable judgment | cited evidence refs and route recommendation | explicit next owner or escalation target
+- hard_success_gate: decision names the chosen route or terminal judgment | Stop-loss Memo is written when the line should stop, route back, or enter a human gate | rationale cites the current evidence and unresolved risks | downstream owner and next action are unambiguous
+- durable_outputs_minimum: controller-facing decision record or equivalent durable judgment | Stop-loss Memo with attempted paths, failure reason, evidence gain ceiling, alternative routes, and human gate question when stop or route redesign is recommended | cited evidence refs and route recommendation | explicit next owner or escalation target
 - human_gate_boundary: official go, stop, reroute, or direction-reset judgment is required | decision changes the study boundary or authorizes external release
 - next_routes: scout | baseline | analysis-campaign | write | finalize
 - route_back_triggers: new evidence invalidates the recorded judgment | human gate changes the study boundary | downstream route reports unmet assumptions from the decision record

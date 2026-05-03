@@ -15,11 +15,15 @@ route_contracts:
     - current line still needs direction framing or evidence scoping
     hard_success_gate:
     - question framing names the study target, population, and evidence boundary
+    - Literature Scout OS records search strategy with MeSH, query, date, anchor papers,
+      guideline, and journal-neighbor evidence anchors
     - route recommendation names the next formal route with reasons
     - blockers and assumptions are explicit enough for controller review
     durable_outputs_minimum:
     - scout note or equivalent route artifact with evidence boundary and next-step
       recommendation
+    - Literature Scout OS artifact with search strategy, MeSH/query/date, anchor papers,
+      guideline, and journal-neighbor refs
     - explicit open questions list tied to the study line
     - route recommendation linked to the active study charter boundary
     human_gate_boundary:
@@ -44,10 +48,15 @@ route_contracts:
     - active route still needs a chosen line before baseline work
     hard_success_gate:
     - one primary line is selected with explicit tradeoffs
+    - Study Line Selection Scorecard compares novelty, clinical relevance, data fit,
+      analysis plasticity, external validation, journal fit, cost-risk, and stop threshold
     - execution recommendation names whether to proceed to baseline or return to decision
     - chosen line matches the active study charter scope
     durable_outputs_minimum:
     - line-selection note with rationale and discarded alternatives
+    - Study Line Selection Scorecard with novelty, clinical relevance, data fit, analysis
+      plasticity, external validation, journal fit, cost-risk, and stop threshold
+      dimensions
     - explicit next-route recommendation with boundary assumptions
     - claim sketch or study objective aligned to the chosen line
     human_gate_boundary:
@@ -131,10 +140,16 @@ route_contracts:
     - study charter still allows the requested follow-up analyses
     hard_success_gate:
     - each targeted gap has a resolved outcome or explicit stop decision
+    - Bounded Analysis Candidate Board records explore, exploit, fusion, debug, and
+      stop candidates with target claim, expected evidence gain, cost/risk, clinical
+      interpretability, and decision reason
     - added analyses stay within the bounded scope of the active line
     - resulting evidence package can support writing or a decision review
     durable_outputs_minimum:
     - analysis campaign summary with question-to-result traceability
+    - Bounded Analysis Candidate Board covering explore, exploit, fusion, debug, and
+      stop options plus target claim, expected evidence gain, cost/risk, clinical
+      interpretability, and decision reason
     - added result artifacts or evidence refs for every resolved gap
     - explicit record of remaining gaps that still require route-back
     - reviewer/Codex revision handoff when the bounded analysis is triggered by a
@@ -238,10 +253,14 @@ route_contracts:
     - controller-owned judgment point has been reached
     hard_success_gate:
     - decision names the chosen route or terminal judgment
+    - Stop-loss Memo is written when the line should stop, route back, or enter a
+      human gate
     - rationale cites the current evidence and unresolved risks
     - downstream owner and next action are unambiguous
     durable_outputs_minimum:
     - controller-facing decision record or equivalent durable judgment
+    - Stop-loss Memo with attempted paths, failure reason, evidence gain ceiling,
+      alternative routes, and human gate question when stop or route redesign is recommended
     - cited evidence refs and route recommendation
     - explicit next owner or escalation target
     human_gate_boundary:

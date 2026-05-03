@@ -149,6 +149,63 @@ def test_canonical_payload_includes_global_route_and_evidence_review_contracts()
         assert isinstance(evidence_review_contract[field], list)
 
 
+def test_route_contracts_include_literature_scout_line_selection_candidate_board_and_stop_loss_contracts() -> None:
+    payload = render_entry_modes_payload()
+    guide = render_entry_modes_guide()
+    canonical_text = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
+    combined_contract_text = f"{canonical_text}\n{guide}"
+
+    for term in (
+        "Literature Scout OS",
+        "search strategy",
+        "MeSH",
+        "query",
+        "date",
+        "anchor papers",
+        "guideline",
+        "journal-neighbor",
+    ):
+        assert term in combined_contract_text
+
+    for term in (
+        "Study Line Selection Scorecard",
+        "novelty",
+        "clinical relevance",
+        "data fit",
+        "analysis plasticity",
+        "external validation",
+        "journal fit",
+        "cost-risk",
+        "stop threshold",
+    ):
+        assert term in combined_contract_text
+
+    for term in (
+        "Bounded Analysis Candidate Board",
+        "explore",
+        "exploit",
+        "fusion",
+        "debug",
+        "stop",
+        "target claim",
+        "expected evidence gain",
+        "cost/risk",
+        "clinical interpretability",
+        "decision reason",
+    ):
+        assert term in combined_contract_text
+
+    for term in (
+        "Stop-loss Memo",
+        "attempted paths",
+        "failure reason",
+        "evidence gain ceiling",
+        "alternative routes",
+        "human gate question",
+    ):
+        assert term in combined_contract_text
+
+
 def test_render_entry_modes_guide_contains_required_contract_context() -> None:
     guide = render_entry_modes_guide()
     payload = render_entry_modes_payload()
