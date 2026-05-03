@@ -10,6 +10,7 @@ import sys
 from typing import Any, Mapping
 
 from med_autoscience.controllers import study_runtime_resolution
+from med_autoscience.controllers.artifact_lifecycle_inventory import build_study_artifact_lifecycle_registry
 from med_autoscience.controllers.runtime_storage_maintenance_parts import git_garbage
 from med_autoscience.controllers.runtime_storage_maintenance_parts.dataset_retention import (
     audit_dataset_retention as _dataset_retention_audit,
@@ -633,6 +634,12 @@ def audit_workspace_storage(
             runtime_report["estimated_release_bytes"] = runtime_estimated_release_bytes_for_report
             runtime_report["actual_release_bytes"] = actual_runtime_release_bytes
             artifact_summary = _study_artifact_size_summary(resolved_study_root)
+            artifact_lifecycle_registry = build_study_artifact_lifecycle_registry(
+                study_root=resolved_study_root,
+                workspace_root=workspace_root,
+                quest_root=quest_root,
+                runtime_status=snapshot,
+            )
             runtime_total_bytes += int(size_before.get("total_bytes") or 0)
             runtime_estimated_release_bytes += runtime_estimated_release_bytes_for_report
             runtime_actual_release_bytes += actual_runtime_release_bytes
@@ -646,6 +653,7 @@ def audit_workspace_storage(
                     "status": "applied" if apply_result and apply_result.get("status") == "maintained" else "audited",
                     "quest_runtime": snapshot,
                     "runtime": runtime_report,
+                    "artifact_lifecycle_registry": artifact_lifecycle_registry,
                     "size_before": size_before,
                     "size_after": size_after,
                     "study_artifacts": artifact_summary,

@@ -84,6 +84,7 @@ def _write_dataset_release(
     dataset_id: str,
     supersedes_versions: list[str] | None = None,
     restore_handle: str | None = None,
+    restore_index_path: str | None = None,
     checksum: str | None = None,
     rehydrate_verified: bool = False,
 ) -> Path:
@@ -93,6 +94,8 @@ def _write_dataset_release(
     source_lines = ["source_release:"]
     if restore_handle:
         source_lines.append(f"  restore_handle: {restore_handle}")
+    if restore_index_path:
+        source_lines.append(f"  restore_index_path: {restore_index_path}")
     if checksum:
         source_lines.append(f"  sha256: {checksum}")
     if rehydrate_verified:
@@ -211,7 +214,7 @@ def test_audit_workspace_storage_dry_run_reports_runtime_dataset_cache_and_git(t
         family_id="master",
         version_id="v1",
         dataset_id="dm_master",
-        restore_handle="s3://archive/dm_master/v1.tar.gz",
+        restore_index_path="datasets/master/v1/restore_index.json",
         checksum="abc123",
         rehydrate_verified=True,
     )
@@ -233,6 +236,13 @@ def test_audit_workspace_storage_dry_run_reports_runtime_dataset_cache_and_git(t
     assert live_report["runtime"]["candidate_action"] == "audit-only"
     assert live_report["runtime"]["blockers"] == ["live_runtime_active"]
     assert stopped_report["runtime"]["candidate_action"] == "compress-online"
+    assert stopped_report["artifact_lifecycle_registry"]["surface_kind"] == (
+        "workspace_study_artifact_lifecycle_registry"
+    )
+    runtime_artifacts = stopped_report["artifact_lifecycle_registry"]["artifacts"]
+    runtime_artifact = next(item for item in runtime_artifacts if item["path"].endswith("stdout.jsonl"))
+    assert runtime_artifact["role"] == "runtime_ephemeral"
+    assert runtime_artifact["cleanup_candidate_action"] == "archive-compress"
     dataset_releases = result["categories"]["dataset"]["releases"]
     v1_report = next(item for item in dataset_releases if item["version_id"] == "v1")
     v2_report = next(item for item in dataset_releases if item["version_id"] == "v2")
@@ -268,7 +278,7 @@ def test_audit_workspace_storage_blocks_superseded_dataset_without_restore_index
     v1_report = next(item for item in result["categories"]["dataset"]["releases"] if item["version_id"] == "v1")
     assert v1_report["candidate_action"] == "blocked"
     assert v1_report["blockers"] == [
-        "missing_restore_handle",
+        "missing_restore_index",
         "missing_checksum",
         "missing_rehydrate_verification",
     ]
@@ -383,7 +393,7 @@ def test_audit_workspace_storage_apply_does_not_count_offline_dataset_candidates
         family_id="master",
         version_id="v1",
         dataset_id="dm_master",
-        restore_handle="s3://archive/dm_master/v1.tar.gz",
+        restore_index_path="datasets/master/v1/restore_index.json",
         checksum="abc123",
         rehydrate_verified=True,
     )

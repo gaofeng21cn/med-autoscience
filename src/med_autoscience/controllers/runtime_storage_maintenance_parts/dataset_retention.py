@@ -7,13 +7,13 @@ from med_autoscience.controllers import data_assets
 from med_autoscience.controllers.artifact_lifecycle_inventory import evaluate_archive_cleanup_readiness
 
 
-def release_restore_handle(release: Mapping[str, Any]) -> str | None:
+def release_restore_index(release: Mapping[str, Any]) -> str | None:
     source_release = release.get("source_release")
     source_payload = source_release if isinstance(source_release, Mapping) else {}
     release_contract = release.get("declared_release_contract")
     contract_payload = release_contract if isinstance(release_contract, Mapping) else {}
     for payload in (source_payload, contract_payload, release):
-        for key in ("restore_handle", "restore_command", "archive_ref", "archive_uri", "external_archive_uri"):
+        for key in ("restore_index_path", "restore_index", "restore_index_ref"):
             value = payload.get(key) if isinstance(payload, Mapping) else None
             if isinstance(value, str) and value.strip():
                 return value.strip()
@@ -63,14 +63,14 @@ def audit_dataset_retention(workspace_root: Path) -> dict[str, Any]:
         release_bytes = int(inventory.get("total_size_bytes") or 0)
         totals["total_bytes"] += release_bytes
         superseding_versions = sorted(superseded_by.get((family_id, version_id), []))
-        restore_handle = release_restore_handle(release)
+        restore_index = release_restore_index(release)
         checksum = release_checksum(release)
         rehydrate_verification = release_rehydrate_verification(release)
         decision = dataset_release_decision(
             release=release,
             release_bytes=release_bytes,
             superseding_versions=superseding_versions,
-            restore_handle=restore_handle,
+            restore_index=restore_index,
             checksum=checksum,
             rehydrate_verification=rehydrate_verification,
         )
@@ -85,7 +85,7 @@ def audit_dataset_retention(workspace_root: Path) -> dict[str, Any]:
                 "bytes": release_bytes,
                 "superseded_by": superseding_versions,
                 "source_release": release.get("source_release"),
-                "restore_handle": restore_handle,
+                "restore_index_path": restore_index,
                 "checksum": checksum,
                 "rehydrate_verification": rehydrate_verification,
                 "candidate_action": decision["candidate_action"],
@@ -123,14 +123,14 @@ def dataset_release_decision(
     release: Mapping[str, Any],
     release_bytes: int,
     superseding_versions: list[str],
-    restore_handle: str | None,
+    restore_index: str | None,
     checksum: str | None,
     rehydrate_verification: Mapping[str, Any] | str | None,
 ) -> dict[str, Any]:
     blockers = dataset_release_blockers(
         release=release,
         superseding_versions=superseding_versions,
-        restore_handle=restore_handle,
+        restore_index=restore_index,
         checksum=checksum,
         rehydrate_verification=rehydrate_verification,
     )
@@ -163,7 +163,7 @@ def dataset_release_blockers(
     *,
     release: Mapping[str, Any],
     superseding_versions: list[str],
-    restore_handle: str | None,
+    restore_index: str | None,
     checksum: str | None,
     rehydrate_verification: Mapping[str, Any] | str | None,
 ) -> list[str]:
@@ -172,7 +172,7 @@ def dataset_release_blockers(
         blockers.append("missing_dataset_manifest")
     if superseding_versions:
         restore_metadata = {
-            "restore_handle": restore_handle,
+            "restore_index_path": restore_index,
             "sha256": checksum,
             "rehydrate_verification": rehydrate_verification,
         }
@@ -184,3 +184,6 @@ def dataset_release_blockers(
             if blocker not in blockers:
                 blockers.append(blocker)
     return blockers
+
+
+release_restore_handle = release_restore_index

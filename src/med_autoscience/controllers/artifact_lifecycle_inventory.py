@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 from typing import Any, Mapping, Sequence
 
 
@@ -57,6 +58,34 @@ def build_artifact_lifecycle_inventory(
     }
 
 
+def build_study_artifact_lifecycle_registry(
+    *,
+    study_root: Path,
+    workspace_root: Path,
+    quest_root: Path | None = None,
+    runtime_status: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    resolved_study_root = _resolve_path(study_root)
+    resolved_workspace_root = _resolve_path(workspace_root)
+    resolved_quest_root = _resolve_path(quest_root) if quest_root is not None else None
+    paths = _discover_registry_paths(
+        study_root=resolved_study_root,
+        workspace_root=resolved_workspace_root,
+        quest_root=resolved_quest_root,
+    )
+    inventory = build_artifact_lifecycle_inventory(
+        study_root=resolved_study_root,
+        quest_root=resolved_quest_root,
+        paths=paths,
+        runtime_status=runtime_status,
+    )
+    return {
+        **inventory,
+        "surface_kind": "workspace_study_artifact_lifecycle_registry",
+        "workspace_root": str(resolved_workspace_root),
+    }
+
+
 def classify_artifact(
     *,
     path: Path,
@@ -71,6 +100,7 @@ def classify_artifact(
     lifecycle = lifecycle_for_role(role)
     edit_source_allowed = role == "canonical_source"
     quality_authority_allowed = role == "canonical_source"
+    dispatch_authority_allowed = role == "canonical_source"
     cleanup_candidate_action = cleanup_action_for_artifact(
         role=role,
         lifecycle=lifecycle,
@@ -80,12 +110,19 @@ def classify_artifact(
         role=role,
         runtime_status=runtime_status,
     )
+    authority_blockers = _authority_blockers(
+        edit_source_allowed=edit_source_allowed,
+        quality_authority_allowed=quality_authority_allowed,
+        dispatch_authority_allowed=dispatch_authority_allowed,
+    )
     return {
         "path": str(resolved_path),
         "role": role,
         "lifecycle": lifecycle,
         "edit_source_allowed": edit_source_allowed,
         "quality_authority_allowed": quality_authority_allowed,
+        "dispatch_authority_allowed": dispatch_authority_allowed,
+        "authority_blockers": authority_blockers,
         "cleanup_candidate_action": cleanup_candidate_action,
         "cleanup_blockers": cleanup_blockers,
     }
@@ -107,10 +144,10 @@ def classify_artifact_role(
         return "data_release"
     if _path_contains(parts, ("artifacts", "runtime")) or _path_contains(parts, ("artifacts", "publication_eval")):
         return "audit_log"
-    if _path_contains(parts, ("submission_minimal",)):
-        return "human_handoff_mirror"
     if _is_generated_projection_path(resolved_path):
         return "derived_projection"
+    if _path_contains(parts, ("submission_minimal",)):
+        return "human_handoff_mirror"
     if _path_contains(parts, ("manuscript",)) and not _path_contains(parts, ("current_package",)):
         return "human_handoff_mirror"
     return "canonical_source" if _is_relative_to(resolved_path, study_root / "paper") else "audit_log"
@@ -141,8 +178,10 @@ def build_delivery_authority_sync(*, study_root: Path, paths: Sequence[Path]) ->
         "study_root": str(resolved_study_root),
         "direct_edit_allowed": not authority_paths,
         "quality_authority_allowed": not authority_paths,
+        "dispatch_authority_allowed": not authority_paths,
         "authority_source_roles": ["canonical_source"],
         "blocked_authority_paths": [str(_resolve_path(path)) for path in authority_paths],
+        "blocked_dispatch_paths": [str(_resolve_path(path)) for path in authority_paths],
         "blocked_authority_reasons": [
             "generated_delivery_surface_cannot_be_edit_source_or_quality_authority"
             for _ in authority_paths
@@ -188,11 +227,11 @@ def evaluate_archive_cleanup_readiness(
 ) -> dict[str, Any]:
     metadata = restore_metadata if isinstance(restore_metadata, Mapping) else {}
     blockers: list[str] = []
-    restore_handle = _first_text(metadata, ("restore_handle", "restore_command", "archive_ref", "archive_uri", "external_archive_uri"))
+    restore_index = _first_text(metadata, ("restore_index_path", "restore_index", "restore_index_ref"))
     checksum = _first_text(metadata, ("sha256", "checksum", "manifest_sha256", "archive_sha256"))
     rehydrate_status = _rehydrate_verification_status(metadata)
-    if restore_handle is None:
-        blockers.append("missing_restore_handle")
+    if restore_index is None:
+        blockers.append("missing_restore_index")
     if checksum is None:
         blockers.append("missing_checksum")
     if rehydrate_status != "verified":
@@ -202,8 +241,9 @@ def evaluate_archive_cleanup_readiness(
         "surface_kind": "archive_cleanup_readiness",
         "archive_path": str(_resolve_path(archive_path)),
         "candidate_action": "blocked" if blockers else "cleanup-expanded-copy",
+        "physical_cleanup_allowed": not blockers,
         "blockers": blockers,
-        "restore_handle": restore_handle,
+        "restore_index_path": restore_index,
         "checksum": checksum,
         "rehydrate_verification_status": rehydrate_status,
     }
@@ -217,6 +257,8 @@ def cleanup_action_for_artifact(
 ) -> str:
     if role == "runtime_ephemeral" and _runtime_is_live(runtime_status):
         return "audit-only"
+    if role == "runtime_ephemeral":
+        return "archive-compress"
     if role in {"canonical_source", "data_release", "audit_log", "human_handoff_mirror"}:
         return "keep-online"
     if lifecycle == "rebuildable_projection":
@@ -230,6 +272,47 @@ def cleanup_blockers_for_artifact(*, role: str, runtime_status: Mapping[str, Any
     if role == "runtime_ephemeral" and _runtime_is_live(runtime_status):
         return ["live_runtime_active"]
     return []
+
+
+def _discover_registry_paths(
+    *,
+    study_root: Path,
+    workspace_root: Path,
+    quest_root: Path | None,
+) -> list[Path]:
+    roots = [study_root, workspace_root / "datasets"]
+    if quest_root is not None:
+        roots.append(quest_root / ".ds")
+    seen: set[Path] = set()
+    paths: list[Path] = []
+    for root in roots:
+        if not root.exists():
+            continue
+        for current_root, dirnames, filenames in os.walk(root):
+            dirnames[:] = [name for name in dirnames if name not in {".git", ".venv", "__pycache__"}]
+            for filename in filenames:
+                candidate = Path(current_root) / filename
+                resolved = candidate.resolve()
+                if resolved not in seen:
+                    seen.add(resolved)
+                    paths.append(resolved)
+    return sorted(paths)
+
+
+def _authority_blockers(
+    *,
+    edit_source_allowed: bool,
+    quality_authority_allowed: bool,
+    dispatch_authority_allowed: bool,
+) -> list[str]:
+    blockers: list[str] = []
+    if not edit_source_allowed:
+        blockers.append("generated_delivery_surface_cannot_be_edit_source")
+    if not quality_authority_allowed:
+        blockers.append("generated_delivery_surface_cannot_be_quality_authority")
+    if not dispatch_authority_allowed:
+        blockers.append("generated_delivery_surface_cannot_be_dispatch_authority")
+    return blockers
 
 
 def _resolve_path(path: Path | None) -> Path:
@@ -307,6 +390,7 @@ __all__ = [
     "SCHEMA_VERSION",
     "build_artifact_lifecycle_inventory",
     "build_delivery_authority_sync",
+    "build_study_artifact_lifecycle_registry",
     "build_study_delivery_lifecycle_hook",
     "classify_artifact",
     "classify_artifact_role",

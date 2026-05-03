@@ -573,6 +573,7 @@ def _submission_minimal_authority_record(path: Path | None, *, artifact_format: 
         "lifecycle": "rebuildable_projection",
         "edit_source_allowed": False,
         "quality_authority_allowed": False,
+        "dispatch_authority_allowed": False,
         "authority_source_roles": ["canonical_source"],
     }
 
@@ -594,6 +595,7 @@ def resolve_submission_minimal_artifact_authority(
         "pdf": _submission_minimal_authority_record(pdf_path, artifact_format="pdf"),
         "submission_minimal_edit_source_allowed": False,
         "submission_minimal_quality_authority_allowed": False,
+        "submission_minimal_dispatch_authority_allowed": False,
     }
 
 
