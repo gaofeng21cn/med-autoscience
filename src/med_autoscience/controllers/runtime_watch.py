@@ -193,6 +193,28 @@ def _control_plane_dispatch_block(
     }
 
 
+def _runtime_recovery_blocked_by_control_plane(status_payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    snapshot = status_payload.get("control_plane_snapshot")
+    if not isinstance(snapshot, Mapping):
+        return None
+    route_authorization = snapshot.get("route_authorization")
+    route_payload = route_authorization if isinstance(route_authorization, Mapping) else {}
+    if route_payload.get("runtime_recovery_allowed") is not False:
+        return None
+    blocking_reasons = [
+        *_string_items(snapshot.get("blocking_reasons")),
+        *_string_items(route_payload.get("blocking_reasons")),
+    ]
+    if "runtime_recovery_not_authorized" not in blocking_reasons:
+        blocking_reasons.append("runtime_recovery_not_authorized")
+    return {
+        "outcome": "control_plane_runtime_recovery_blocked",
+        "reason": "control_plane_snapshot route_authorization blocked runtime recovery",
+        "control_plane_snapshot": dict(snapshot),
+        "control_plane_blocking_reasons": list(dict.fromkeys(blocking_reasons)),
+    }
+
+
 def _apply_control_plane_dispatch_block(
     *,
     study_root: Path,
@@ -936,12 +958,22 @@ def run_watch_for_runtime(
                         study_root=study_root,
                         status_payload=preflight_payload,
                     )
+                    control_plane_recovery_block = _runtime_recovery_blocked_by_control_plane(
+                        _managed_study_status_payload(preflight_payload)
+                    )
                     if recovery_hold is not None:
                         runtime_watch_recovery_policy.write_recovery_probe(
                             study_root=study_root,
                             recovery_hold=recovery_hold,
                         )
                         managed_study_recovery_holds.append(recovery_hold)
+                    elif control_plane_recovery_block is not None:
+                        action_payload = {
+                            **_managed_study_status_payload(preflight_payload),
+                            "decision": "blocked",
+                            "reason": "resume_request_failed",
+                            "control_plane_runtime_recovery_block": control_plane_recovery_block,
+                        }
                     else:
                         action_payload = study_runtime_router.ensure_study_runtime(
                             profile=profile,
