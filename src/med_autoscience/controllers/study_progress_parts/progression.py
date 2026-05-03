@@ -817,6 +817,9 @@ def _intervention_lane(
     )
     handoff_blocked_by_supervisor = publication_supervisor_blocks_handoff(_mapping_copy(status.get("publication_supervisor_state")))
 
+    specificity_request = _publication_eval_specificity_request(publication_eval_payload)
+    if specificity_request is not None:
+        return specificity_intervention_lane(specificity_request)
     if activity_timeout_state(progress_freshness) == "timed_out":
         return activity_timeout_lane(
             progress_freshness=progress_freshness,
@@ -919,9 +922,6 @@ def _intervention_lane(
         publication_eval_payload=publication_eval_payload,
         runtime_watch_payload=runtime_watch_payload,
     ):
-        specificity_request = _publication_eval_specificity_request(publication_eval_payload)
-        if specificity_request is not None:
-            return specificity_intervention_lane(specificity_request)
         route_repair = _publication_eval_route_repair(publication_eval_payload)
         route_summary = _route_repair_summary(route_repair)
         payload = {
