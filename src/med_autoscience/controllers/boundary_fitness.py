@@ -28,6 +28,7 @@ DEFAULT_BASELINE = {
     "tests/study_progress_cases/markdown_and_followthrough_projection.py": 1075,
     "src/med_autoscience/controllers/product_entry_parts/shared_base.py": 1020,
     "tests/display_surface_materialization_cases/basic_displays_and_renderers.py": 1083,
+    "tests/test_overlay_installer.py": 1018,
 }
 CODE_EXTENSIONS = frozenset(
     {

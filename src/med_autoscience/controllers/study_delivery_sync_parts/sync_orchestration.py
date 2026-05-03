@@ -941,13 +941,9 @@ def sync_study_delivery(
     normalized_publication_profile = normalize_publication_profile(publication_profile)
     if not is_supported_publication_profile(normalized_publication_profile):
         raise ValueError(f"unsupported publication profile: {publication_profile}")
-
     context = _resolve_delivery_context(paper_root.resolve())
-    paper_root = context["paper_root"]
-    worktree_root = context["worktree_root"]
-    quest_id = context["quest_id"]
-    study_id = context["study_id"]
-    study_root = context["study_root"]
+    paper_root, worktree_root = context["paper_root"], context["worktree_root"]
+    quest_id, study_id, study_root = context["quest_id"], context["study_id"], context["study_root"]
     resolved_route_context = (
         {"projection_only": True, "paths": [study_root / "manuscript" / "current_package"]}
         if control_plane_route_context is None and route_context is None
@@ -966,38 +962,27 @@ def sync_study_delivery(
     if normalized_stage == "draft_handoff":
         if normalized_publication_profile != GENERAL_MEDICAL_JOURNAL_PROFILE:
             raise ValueError("draft_handoff only supports the general_medical_journal profile")
-        return attach_control_plane_route_gate(sync_draft_handoff_delivery(
-            paper_root=paper_root,
-            quest_id=quest_id,
-            study_id=study_id,
-            study_root=study_root,
-        ), control_plane_route_gate)
+        result = sync_draft_handoff_delivery(
+            paper_root=paper_root, quest_id=quest_id, study_id=study_id, study_root=study_root
+        )
+        return attach_control_plane_route_gate(result, control_plane_route_gate)
 
     if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
-        return attach_control_plane_route_gate(sync_general_delivery(
+        result = sync_general_delivery(
             paper_root=paper_root,
             worktree_root=worktree_root,
             quest_id=quest_id,
             study_id=study_id,
             study_root=study_root,
             normalized_stage=normalized_stage,
-        ), control_plane_route_gate)
+        )
+        return attach_control_plane_route_gate(result, control_plane_route_gate)
 
     if not is_supported_publication_profile(normalized_publication_profile):
         raise ValueError(f"unsupported publication profile: {normalized_publication_profile}")
 
-    if promote_to_final:
-        return attach_control_plane_route_gate(sync_promoted_journal_delivery(
-            paper_root=paper_root,
-            worktree_root=worktree_root,
-            quest_id=quest_id,
-            study_id=study_id,
-            study_root=study_root,
-            normalized_stage=normalized_stage,
-            publication_profile=normalized_publication_profile,
-        ), control_plane_route_gate)
-
-    return attach_control_plane_route_gate(sync_journal_specific_delivery(
+    sync_journal_delivery = sync_promoted_journal_delivery if promote_to_final else sync_journal_specific_delivery
+    result = sync_journal_delivery(
         paper_root=paper_root,
         worktree_root=worktree_root,
         quest_id=quest_id,
@@ -1005,7 +990,8 @@ def sync_study_delivery(
         study_root=study_root,
         normalized_stage=normalized_stage,
         publication_profile=normalized_publication_profile,
-    ), control_plane_route_gate)
+    )
+    return attach_control_plane_route_gate(result, control_plane_route_gate)
 
 
 from .sync_cli import main, parse_args  # noqa: E402
