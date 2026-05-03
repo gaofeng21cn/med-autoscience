@@ -190,13 +190,34 @@ def _study_reports(workspace_root: Path, manifests: list[Path]) -> list[dict[str
     reports: list[dict[str, Any]] = []
     for study_id, study_root in sorted(_study_roots_from_manifests(workspace_root, manifests).items()):
         study_manifests = [path for path in manifests if _study_id_from_manifest(path, _read_json(path)) == study_id]
+        unclassified = sum(
+            1
+            for path in study_manifests
+            if _authority_status(_read_json(path), path) == "unclassified"
+        )
+        current_package_count = _count_under(packages, study_root)
+        submission_minimal_count = _count_under(submission_minimals, study_root)
         reports.append(
             {
                 "study_id": study_id,
                 "study_root": _rel(study_root, workspace_root),
                 "manifest_count": len(study_manifests),
-                "current_package_count": _count_under(packages, study_root),
-                "submission_minimal_count": _count_under(submission_minimals, study_root),
+                "current_package_count": current_package_count,
+                "submission_minimal_count": submission_minimal_count,
+                "authority_classification": "controller_authorized" if unclassified == 0 else "needs_authority_classification",
+                "lifecycle_classification": (
+                    "package_and_submission_ready"
+                    if current_package_count > 0 and submission_minimal_count > 0
+                    else "delivery_projection_incomplete"
+                ),
+                "authority_summary": {
+                    "unclassified_authority_surface": unclassified,
+                    "manifest_count": len(study_manifests),
+                },
+                "lifecycle_summary": {
+                    "current_package_count": current_package_count,
+                    "submission_minimal_count": submission_minimal_count,
+                },
                 "manifest_paths": [_rel(path, workspace_root) for path in study_manifests],
             }
         )
@@ -235,6 +256,8 @@ def _workspace_report(workspace_root: Path) -> tuple[dict[str, Any], list[dict[s
 
 
 def run_migration_audit(*, workspace_roots: Iterable[str | Path], dry_run: bool = True) -> dict[str, Any]:
+    if not dry_run:
+        raise ValueError("control plane migration audit is dry-run only; cleanup apply requires a separate controller apply contract")
     resolved_roots = sorted(_as_path(root) for root in workspace_roots)
     workspaces: list[dict[str, Any]] = []
     studies: list[dict[str, Any]] = []
@@ -260,6 +283,17 @@ def run_migration_audit(*, workspace_roots: Iterable[str | Path], dry_run: bool 
         "workspace_count": len(workspaces),
         "study_count": len(studies),
         "unclassified_authority_surface": unclassified,
+        "mutation_policy": {
+            "dry_run_read_only": True,
+            "cleanup_apply_supported": False,
+        },
+        "action_counts": {
+            "apply": 0,
+            "delete": 0,
+            "write": 0,
+            "mutating": 0,
+        },
+        "mutating_actions": [],
         "apply_actions": [],
         "delete_actions": [],
         "write_actions": [],

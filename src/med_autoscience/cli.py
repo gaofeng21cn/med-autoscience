@@ -72,6 +72,7 @@ ai_reviewer_publication_eval = _LazyModuleProxy(lambda: _load_controller("ai_rev
 medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_literature_audit"))
 medical_publication_surface = _LazyModuleProxy(lambda: _load_controller("medical_publication_surface"))
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
+control_plane_migration_audit = _LazyModuleProxy(lambda: _load_controller("control_plane_migration_audit"))
 mainline_status = _LazyModuleProxy(lambda: _load_controller("mainline_status"))
 portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
 product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
@@ -906,6 +907,14 @@ def main(argv: list[str] | None = None) -> int:
         result = medical_reporting_audit.run_controller(
             quest_root=Path(args.quest_root),
             apply=args.apply,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "control-plane-migration-audit":
+        result = control_plane_migration_audit.run_migration_audit(
+            workspace_roots=[Path(root) for root in args.workspace_root],
+            dry_run=True,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

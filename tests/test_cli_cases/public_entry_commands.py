@@ -409,6 +409,57 @@ def test_medical_reporting_audit_command_dispatches_controller(monkeypatch, tmp_
     assert called["quest_root"] == tmp_path / "quest"
     assert called["apply"] is False
     assert '"status": "clear"' in captured.out
+
+
+def test_migration_audit_command_dispatches_read_only_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_run_migration_audit(*, workspace_roots, dry_run: bool) -> dict[str, object]:
+        called["workspace_roots"] = list(workspace_roots)
+        called["dry_run"] = dry_run
+        return {
+            "surface": "control_plane_migration_audit",
+            "dry_run": dry_run,
+            "workspace_count": len(list(workspace_roots)),
+            "study_count": 2,
+            "unclassified_authority_surface": 0,
+            "action_counts": {"apply": 0, "delete": 0, "write": 0, "mutating": 0},
+            "mutating_actions": [],
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "authority_classification": "controller_authorized",
+                    "lifecycle_classification": "package_and_submission_ready",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(cli.control_plane_migration_audit, "run_migration_audit", fake_run_migration_audit)
+
+    exit_code = cli.main(
+        [
+            "control-plane-migration-audit",
+            "--workspace-root",
+            str(tmp_path / "DM-CVD-Mortality-Risk"),
+            "--workspace-root",
+            str(tmp_path / "NF-PitNET"),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {
+        "workspace_roots": [
+            tmp_path / "DM-CVD-Mortality-Risk",
+            tmp_path / "NF-PitNET",
+        ],
+        "dry_run": True,
+    }
+    payload = json.loads(captured.out)
+    assert payload["dry_run"] is True
+    assert payload["action_counts"]["mutating"] == 0
+    assert payload["mutating_actions"] == []
 def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

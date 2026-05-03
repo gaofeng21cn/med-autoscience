@@ -339,6 +339,56 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
     assert "自动推进研究" in result["content"][0]["text"]
 
 
+def test_mcp_product_entry_can_call_migration_audit(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    captured: dict[str, object] = {}
+
+    def fake_run_migration_audit(*, workspace_roots, dry_run: bool) -> dict[str, object]:
+        captured["workspace_roots"] = list(workspace_roots)
+        captured["dry_run"] = dry_run
+        return {
+            "surface": "control_plane_migration_audit",
+            "dry_run": dry_run,
+            "workspace_count": 2,
+            "study_count": 4,
+            "unclassified_authority_surface": 0,
+            "action_counts": {"apply": 0, "delete": 0, "write": 0, "mutating": 0},
+            "mutating_actions": [],
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "authority_classification": "controller_authorized",
+                    "lifecycle_classification": "package_and_submission_ready",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(module.control_plane_migration_audit, "run_migration_audit", fake_run_migration_audit)
+
+    result = module.call_tool(
+        "product_entry",
+        {
+            "mode": "migration_audit",
+            "workspace_roots": [
+                str(tmp_path / "DM-CVD-Mortality-Risk"),
+                str(tmp_path / "NF-PitNET"),
+            ],
+        },
+    )
+
+    assert result["isError"] is False
+    assert captured == {
+        "workspace_roots": [
+            tmp_path / "DM-CVD-Mortality-Risk",
+            tmp_path / "NF-PitNET",
+        ],
+        "dry_run": True,
+    }
+    assert result["structuredContent"]["dry_run"] is True
+    assert result["structuredContent"]["action_counts"]["mutating"] == 0
+    assert "control_plane_migration_audit" in result["content"][0]["text"]
+
+
 def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}

@@ -40,6 +40,32 @@ def test_migration_audit_dry_run_covers_dm_cvd_and_nf_pitnet_layouts(tmp_path: P
     assert all(study["manifest_count"] >= 2 for study in report["studies"])
 
 
+def test_migration_audit_report_projects_action_counts_and_study_classifications(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
+    workspace_roots = [
+        fixtures.build_dm_cvd_migration_audit_fixture(tmp_path),
+        fixtures.build_nf_pitnet_migration_audit_fixture(tmp_path),
+    ]
+
+    report = module.run_migration_audit(workspace_roots=workspace_roots, dry_run=True)
+
+    assert report["mutation_policy"] == {
+        "dry_run_read_only": True,
+        "cleanup_apply_supported": False,
+    }
+    assert report["action_counts"] == {
+        "apply": 0,
+        "delete": 0,
+        "write": 0,
+        "mutating": 0,
+    }
+    assert report["mutating_actions"] == []
+    assert all(study["authority_classification"] == "controller_authorized" for study in report["studies"])
+    assert all(study["lifecycle_classification"] == "package_and_submission_ready" for study in report["studies"])
+    assert all(study["authority_summary"]["unclassified_authority_surface"] == 0 for study in report["studies"])
+    assert all(study["lifecycle_summary"]["current_package_count"] >= 1 for study in report["studies"])
+
+
 def test_migration_audit_is_idempotent(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
     workspace_roots = [
@@ -72,6 +98,18 @@ def test_migration_audit_dry_run_does_not_write_delete_or_mutate(tmp_path: Path,
 
     assert report["dry_run"] is True
     assert _regular_files(tmp_path) == before
+
+
+def test_migration_audit_rejects_non_dry_run_apply_mode(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
+    workspace_root = fixtures.build_dm_cvd_migration_audit_fixture(tmp_path)
+
+    try:
+        module.run_migration_audit(workspace_roots=[workspace_root], dry_run=False)
+    except ValueError as exc:
+        assert "dry-run only" in str(exc)
+    else:
+        raise AssertionError("migration audit accepted non-dry-run mode")
 
 
 def test_migration_audit_skips_runtime_and_vcs_noise(tmp_path: Path) -> None:

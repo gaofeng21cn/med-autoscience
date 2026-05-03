@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience import __version__
 from med_autoscience.controllers import (
+    control_plane_migration_audit,
     data_assets,
     med_deepscientist_upgrade_check,
     external_research,
@@ -214,7 +215,7 @@ def list_tools() -> list[dict[str, Any]]:
         },
         {
             "name": "product_entry",
-            "description": "Read MedAutoScience product-entry surfaces through one tool: product_frontdesk, product_preflight, product_start, product_entry_manifest, or build_product_entry. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution.",
+            "description": "Read MedAutoScience product-entry surfaces through one tool: product_frontdesk, product_preflight, product_start, product_entry_manifest, build_product_entry, or migration_audit. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -223,8 +224,12 @@ def list_tools() -> list[dict[str, Any]]:
                     "study_id": {"type": "string"},
                     "study_root": {"type": "string"},
                     "entry_mode": {"type": "string"},
+                    "workspace_roots": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
                 },
-                "required": ["mode", "profile_path"],
+                "required": ["mode"],
                 "additionalProperties": False,
             },
         },
@@ -477,6 +482,22 @@ def _call_build_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(product_entry.render_build_product_entry_markdown(result), structured=result)
 
 
+def _call_migration_audit(arguments: dict[str, Any]) -> dict[str, Any]:
+    workspace_roots = arguments.get("workspace_roots")
+    if not isinstance(workspace_roots, list) or not workspace_roots:
+        raise ValueError("workspace_roots must be a non-empty list for migration_audit")
+    resolved_roots: list[Path] = []
+    for value in workspace_roots:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("workspace_roots entries must be non-empty strings")
+        resolved_roots.append(Path(value))
+    result = control_plane_migration_audit.run_migration_audit(
+        workspace_roots=resolved_roots,
+        dry_run=True,
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
 def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
     mode = _require_string(arguments, "mode")
     if mode == "report":
@@ -564,6 +585,8 @@ def _call_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
         return _call_product_manifest(arguments)
     if mode == "build_product_entry":
         return _call_build_product_entry(arguments)
+    if mode == "migration_audit":
+        return _call_migration_audit(arguments)
     raise ValueError(f"Unsupported product_entry mode: {mode}")
 
 

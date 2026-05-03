@@ -197,6 +197,9 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     medical_reporting_audit_parser.add_argument("--quest-root", required=True)
     medical_reporting_audit_parser.add_argument("--apply", action="store_true")
 
+    migration_audit_parser = subparsers.add_parser("control-plane-migration-audit")
+    migration_audit_parser.add_argument("--workspace-root", action="append", required=True)
+
     surface_parser = subparsers.add_parser("medical-publication-surface")
     surface_parser.add_argument("--quest-root", required=True)
     surface_parser.add_argument("--apply", action="store_true")
