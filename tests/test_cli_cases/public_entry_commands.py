@@ -460,6 +460,45 @@ def test_migration_audit_command_dispatches_read_only_controller(monkeypatch, tm
     assert payload["dry_run"] is True
     assert payload["action_counts"]["mutating"] == 0
     assert payload["mutating_actions"] == []
+
+
+def test_cleanup_apply_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_run_cleanup_apply(*, workspace_roots, apply: bool) -> dict[str, object]:
+        called["workspace_roots"] = list(workspace_roots)
+        called["apply"] = apply
+        return {
+            "surface": "control_plane_cleanup_apply",
+            "apply": apply,
+            "status": "planned",
+            "workspace_count": len(list(workspace_roots)),
+            "action_counts": {"planned": 1, "blocked": 0, "applied": 0, "mutating": 0},
+            "apply_plan": [{"action": "delete-safe-cache"}],
+            "applied_actions": [],
+        }
+
+    monkeypatch.setattr(cli.control_plane_cleanup_apply, "run_cleanup_apply", fake_run_cleanup_apply)
+
+    exit_code = cli.main(
+        [
+            "control-plane-cleanup-apply",
+            "--workspace-root",
+            str(tmp_path / "workspace"),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {
+        "workspace_roots": [tmp_path / "workspace"],
+        "apply": False,
+    }
+    payload = json.loads(captured.out)
+    assert payload["surface"] == "control_plane_cleanup_apply"
+    assert payload["apply"] is False
+    assert payload["action_counts"]["mutating"] == 0
 def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
