@@ -13,9 +13,12 @@ medautosci_mcp_bin="$(command -v medautosci-mcp)"
 
 "${medautosci_bin}" --help >/dev/null
 "${medautosci_bin}" doctor entry-modes >/dev/null
+mcp_tools_json="$(printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | PYTHONPATH=src "${medautosci_mcp_bin}")"
+export MCP_TOOLS_JSON="${mcp_tools_json}"
 
 python3 - <<'PY'
 import json
+import os
 from pathlib import Path
 
 repo_root = Path.cwd()
@@ -35,6 +38,16 @@ if manifest.get("name") != "mas":
 if manifest.get("skills") != "./skills/":
     raise SystemExit("MedAutoScience plugin manifest must point to ./skills/.")
 
+mcp_tools = {
+    item["name"]: item
+    for item in json.loads(os.environ["MCP_TOOLS_JSON"])["result"]["tools"]
+}
+product_entry_modes = set(mcp_tools["product_entry"]["inputSchema"]["properties"]["mode"]["enum"])
+required_modes = {"migration_audit", "cleanup_apply", "lifecycle_report"}
+missing_modes = sorted(required_modes - product_entry_modes)
+if missing_modes:
+    raise SystemExit(f"medautosci-mcp product_entry mode enum missing: {missing_modes}")
+
 print(json.dumps({
     "ok": True,
     "module": "medautoscience",
@@ -43,6 +56,7 @@ print(json.dumps({
         "mcp_cli": "medautosci-mcp",
         "public_help": "ready",
         "entry_modes": "ready",
+        "mcp_control_plane_modes": "ready",
         "plugin": "ready",
         "skill": "ready",
     },

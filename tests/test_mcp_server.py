@@ -77,6 +77,15 @@ def test_mcp_product_entry_schema_accepts_control_plane_operations_options(
     assert properties[option] == schema
 
 
+def test_mcp_product_entry_mode_schema_is_catalog_backed() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    catalog = importlib.import_module("med_autoscience.control_plane_command_catalog")
+    tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
+    mode_schema = tools["product_entry"]["inputSchema"]["properties"]["mode"]
+
+    assert mode_schema == catalog.build_control_plane_product_entry_mode_schema()
+
+
 def test_mcp_server_exposes_medical_reporting_audit_tool() -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     tools = module.build_tool_manifest()
