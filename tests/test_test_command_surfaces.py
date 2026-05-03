@@ -245,6 +245,44 @@ def test_verify_script_writes_single_lane_summary(tmp_path: Path) -> None:
     assert summary["lanes"][0]["log_path"] == ""
 
 
+def test_lane_duration_summary_script_reports_slowest_lane(tmp_path: Path) -> None:
+    summary_path = tmp_path / "lanes.json"
+    summary_path.write_text(
+        json.dumps(
+            {
+                "lanes": [
+                    {
+                        "lane": "test-regression",
+                        "command": "make test-regression",
+                        "exit_code": 0,
+                        "duration_seconds": 4,
+                    },
+                    {
+                        "lane": "test-display",
+                        "command": "make test-display",
+                        "exit_code": 0,
+                        "duration_seconds": 11,
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["uv", "run", "python", "scripts/summarize-test-lane-durations.py", str(summary_path)],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "lane=test-regression exit_code=0 duration_seconds=4 command=make test-regression" in result.stdout
+    assert "lane=test-display exit_code=0 duration_seconds=11 command=make test-display" in result.stdout
+    assert "slowest_lane=test-display duration_seconds=11" in result.stdout
+
+
 def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
     script = _read("scripts/opl-module-healthcheck.sh")
 

@@ -168,12 +168,16 @@ def test_advisory_workflow_uploads_non_blocking_lane_summaries() -> None:
         ("display-surface", "display"),
     ):
         workflow_job = _workflow_job(advisory_workflow, job_id)
+        summarize_step = _workflow_step(workflow_job, f"Summarize {lane} lane duration")
         upload_step = _workflow_step(workflow_job, f"Upload {lane} lane summary")
 
         assert (
             f"MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/{lane}.json"
             in workflow_job
         )
+        assert "if: always()" in summarize_step
+        assert "continue-on-error: true" in summarize_step
+        assert 'scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"' in summarize_step
         assert "if: always()" in upload_step
         assert "uses: actions/upload-artifact@v7" in upload_step
         assert "continue-on-error: true" in upload_step
@@ -222,6 +226,7 @@ def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     assert "`regression`、`display`、`submission`、`family` 与 `meta` lane 迁入 `macOS Advisory`" in preflight_doc
     assert "耗时预算只用于观察和提醒" in preflight_doc
     assert "不作为 push 阻塞条件" in preflight_doc
+    assert "advisory run log" in preflight_doc
 
 
 def test_ci_and_advisory_workflows_split_stable_push_and_advisory_jobs() -> None:

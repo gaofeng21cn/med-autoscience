@@ -30,6 +30,11 @@ jobs:
       - name: Run regression tests
         run: scripts/verify.sh regression
 
+      - name: Summarize regression lane duration
+        if: always()
+        continue-on-error: true
+        run: scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
+
       - name: Upload regression lane summary
         if: always()
         uses: actions/upload-artifact@v7
@@ -63,6 +68,11 @@ jobs:
       - name: Run meta tests
         run: scripts/verify.sh meta
 
+      - name: Summarize meta lane duration
+        if: always()
+        continue-on-error: true
+        run: scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
+
       - name: Upload meta lane summary
         if: always()
         uses: actions/upload-artifact@v7
@@ -95,6 +105,11 @@ jobs:
 
       - name: Run family shared tests
         run: scripts/verify.sh family
+
+      - name: Summarize family lane duration
+        if: always()
+        continue-on-error: true
+        run: scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload family lane summary
         if: always()
@@ -138,6 +153,11 @@ jobs:
 
       - name: Run submission tests
         run: scripts/verify.sh submission
+
+      - name: Summarize submission lane duration
+        if: always()
+        continue-on-error: true
+        run: scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload submission lane summary
         if: always()
@@ -197,6 +217,11 @@ jobs:
 
       - name: Run display tests
         run: scripts/verify.sh display
+
+      - name: Summarize display lane duration
+        if: always()
+        continue-on-error: true
+        run: scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload display lane summary
         if: always()
