@@ -4,27 +4,16 @@ from pathlib import Path
 import os
 from typing import Any, Mapping, Sequence
 
-
-SCHEMA_VERSION = 1
-ARTIFACT_ROLES = (
-    "canonical_source",
-    "runtime_ephemeral",
-    "derived_projection",
-    "human_handoff_mirror",
-    "data_release",
-    "cold_archive",
-    "audit_log",
+from med_autoscience.controllers.artifact_lifecycle_authority_kernel import (
+    ARTIFACT_ROLES,
+    SCHEMA_VERSION,
+    ArtifactLifecycleAuthorityKernel,
+    classify_artifact_role,
+    cleanup_action_for_artifact,
+    cleanup_blockers_for_artifact,
+    is_generated_authority_surface_path,
+    lifecycle_for_role,
 )
-LIVE_RUNTIME_STATUSES = frozenset({"running", "active"})
-GENERATED_AUTHORITY_SURFACE_NAMES = frozenset(
-    {
-        "current_package",
-        "current_package.zip",
-        "submission_minimal",
-    }
-)
-GENERATED_AUTHORITY_SUFFIXES = (".zip", ".pdf", ".docx")
-
 
 def build_artifact_lifecycle_inventory(
     *,
@@ -96,81 +85,16 @@ def classify_artifact(
     resolved_path = _resolve_path(path)
     resolved_study_root = _resolve_path(study_root)
     resolved_quest_root = _resolve_path(quest_root) if quest_root is not None else None
-    role = classify_artifact_role(path=resolved_path, study_root=resolved_study_root, quest_root=resolved_quest_root)
-    lifecycle = lifecycle_for_role(role)
-    edit_source_allowed = role == "canonical_source"
-    quality_authority_allowed = role == "canonical_source"
-    dispatch_authority_allowed = role == "canonical_source"
-    cleanup_candidate_action = cleanup_action_for_artifact(
-        role=role,
-        lifecycle=lifecycle,
+    return ArtifactLifecycleAuthorityKernel(
+        study_root=resolved_study_root,
+        quest_root=resolved_quest_root,
         runtime_status=runtime_status,
-    )
-    cleanup_blockers = cleanup_blockers_for_artifact(
-        role=role,
-        runtime_status=runtime_status,
-    )
-    authority_blockers = _authority_blockers(
-        edit_source_allowed=edit_source_allowed,
-        quality_authority_allowed=quality_authority_allowed,
-        dispatch_authority_allowed=dispatch_authority_allowed,
-    )
-    return {
-        "path": str(resolved_path),
-        "role": role,
-        "lifecycle": lifecycle,
-        "edit_source_allowed": edit_source_allowed,
-        "quality_authority_allowed": quality_authority_allowed,
-        "dispatch_authority_allowed": dispatch_authority_allowed,
-        "authority_blockers": authority_blockers,
-        "cleanup_candidate_action": cleanup_candidate_action,
-        "cleanup_blockers": cleanup_blockers,
-    }
-
-
-def classify_artifact_role(
-    *,
-    path: Path,
-    study_root: Path,
-    quest_root: Path | None = None,
-) -> str:
-    resolved_path = _resolve_path(path)
-    parts = resolved_path.parts
-    if _path_contains(parts, (".ds", "cold_archive")):
-        return "cold_archive"
-    if quest_root is not None and _is_relative_to(resolved_path, quest_root / ".ds"):
-        return "runtime_ephemeral"
-    if _path_contains(parts, ("datasets",)):
-        return "data_release"
-    if _path_contains(parts, ("artifacts", "runtime")) or _path_contains(parts, ("artifacts", "publication_eval")):
-        return "audit_log"
-    if _is_generated_projection_path(resolved_path):
-        return "derived_projection"
-    if _path_contains(parts, ("submission_minimal",)):
-        return "human_handoff_mirror"
-    if _path_contains(parts, ("manuscript",)) and not _path_contains(parts, ("current_package",)):
-        return "human_handoff_mirror"
-    return "canonical_source" if _is_relative_to(resolved_path, study_root / "paper") else "audit_log"
-
-
-def lifecycle_for_role(role: str) -> str:
-    mapping = {
-        "canonical_source": "active_authority",
-        "runtime_ephemeral": "runtime_transient",
-        "derived_projection": "rebuildable_projection",
-        "human_handoff_mirror": "human_handoff",
-        "data_release": "retained_release",
-        "cold_archive": "archived_restore_candidate",
-        "audit_log": "audit_retained",
-    }
-    if role not in mapping:
-        raise ValueError(f"unknown artifact role: {role}")
-    return mapping[role]
+    ).classify(resolved_path)
 
 
 def build_delivery_authority_sync(*, study_root: Path, paths: Sequence[Path]) -> dict[str, Any]:
     resolved_study_root = _resolve_path(study_root)
-    authority_paths = [path for path in paths if _is_generated_authority_surface_path(_resolve_path(path))]
+    authority_paths = [path for path in paths if is_generated_authority_surface_path(_resolve_path(path))]
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": "delivery_authority_sync",
@@ -249,31 +173,6 @@ def evaluate_archive_cleanup_readiness(
     }
 
 
-def cleanup_action_for_artifact(
-    *,
-    role: str,
-    lifecycle: str,
-    runtime_status: Mapping[str, Any] | None = None,
-) -> str:
-    if role == "runtime_ephemeral" and _runtime_is_live(runtime_status):
-        return "audit-only"
-    if role == "runtime_ephemeral":
-        return "archive-compress"
-    if role in {"canonical_source", "data_release", "audit_log", "human_handoff_mirror"}:
-        return "keep-online"
-    if lifecycle == "rebuildable_projection":
-        return "rebuildable"
-    if role == "cold_archive":
-        return "restore-gated"
-    return "audit-only"
-
-
-def cleanup_blockers_for_artifact(*, role: str, runtime_status: Mapping[str, Any] | None = None) -> list[str]:
-    if role == "runtime_ephemeral" and _runtime_is_live(runtime_status):
-        return ["live_runtime_active"]
-    return []
-
-
 def _discover_registry_paths(
     *,
     study_root: Path,
@@ -299,69 +198,10 @@ def _discover_registry_paths(
     return sorted(paths)
 
 
-def _authority_blockers(
-    *,
-    edit_source_allowed: bool,
-    quality_authority_allowed: bool,
-    dispatch_authority_allowed: bool,
-) -> list[str]:
-    blockers: list[str] = []
-    if not edit_source_allowed:
-        blockers.append("generated_delivery_surface_cannot_be_edit_source")
-    if not quality_authority_allowed:
-        blockers.append("generated_delivery_surface_cannot_be_quality_authority")
-    if not dispatch_authority_allowed:
-        blockers.append("generated_delivery_surface_cannot_be_dispatch_authority")
-    return blockers
-
-
 def _resolve_path(path: Path | None) -> Path:
     if path is None:
         raise ValueError("path must not be None")
     return Path(path).expanduser().resolve()
-
-
-def _runtime_is_live(runtime_status: Mapping[str, Any] | None) -> bool:
-    if not isinstance(runtime_status, Mapping):
-        return False
-    status = str(runtime_status.get("status") or "").strip().lower()
-    active_run_id = str(runtime_status.get("active_run_id") or "").strip()
-    return status in LIVE_RUNTIME_STATUSES and bool(active_run_id)
-
-
-def _is_generated_projection_path(path: Path) -> bool:
-    parts = path.parts
-    return (
-        _path_contains(parts, ("current_package",))
-        or path.name == "current_package.zip"
-        or path.suffix.lower() in GENERATED_AUTHORITY_SUFFIXES
-    )
-
-
-def _is_generated_authority_surface_path(path: Path) -> bool:
-    parts = path.parts
-    return (
-        any(part in GENERATED_AUTHORITY_SURFACE_NAMES for part in parts)
-        or path.name in GENERATED_AUTHORITY_SURFACE_NAMES
-        or path.suffix.lower() in GENERATED_AUTHORITY_SUFFIXES
-    )
-
-
-def _path_contains(parts: tuple[str, ...], expected: tuple[str, ...]) -> bool:
-    if not expected:
-        return False
-    if len(expected) == 1:
-        return expected[0] in parts
-    limit = len(parts) - len(expected) + 1
-    return any(parts[index : index + len(expected)] == expected for index in range(max(0, limit)))
-
-
-def _is_relative_to(path: Path, root: Path) -> bool:
-    try:
-        path.relative_to(root)
-    except ValueError:
-        return False
-    return True
 
 
 def _first_text(payload: Mapping[str, Any], keys: tuple[str, ...]) -> str | None:

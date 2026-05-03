@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.artifact_lifecycle_authority_kernel import ArtifactLifecycleAuthorityKernel
 from med_autoscience.publication_profiles import is_supported_publication_profile, normalize_publication_profile
 from med_autoscience.runtime_protocol.topology import resolve_study_root_from_quest_root
 
@@ -566,14 +567,27 @@ def resolve_submission_minimal_output_paths(
 
 
 def _submission_minimal_authority_record(path: Path | None, *, artifact_format: str) -> dict[str, Any]:
+    if path is not None:
+        artifact = ArtifactLifecycleAuthorityKernel(study_root=path.parent).classify(path)
+    else:
+        artifact = {
+            "role": "derived_projection",
+            "lifecycle": "rebuildable_projection",
+            "owner": "artifact_lifecycle_authority_kernel",
+            "authority_allowed": {"edit": False, "quality": False, "dispatch": False},
+            "projection_currentness": "projection_only",
+        }
     return {
         "path": str(path) if path is not None else None,
         "format": artifact_format,
-        "role": "derived_projection",
-        "lifecycle": "rebuildable_projection",
-        "edit_source_allowed": False,
-        "quality_authority_allowed": False,
-        "dispatch_authority_allowed": False,
+        "role": artifact["role"],
+        "lifecycle": artifact["lifecycle"],
+        "owner": artifact["owner"],
+        "authority_allowed": artifact["authority_allowed"],
+        "projection_currentness": artifact["projection_currentness"],
+        "edit_source_allowed": artifact["authority_allowed"]["edit"],
+        "quality_authority_allowed": artifact["authority_allowed"]["quality"],
+        "dispatch_authority_allowed": artifact["authority_allowed"]["dispatch"],
         "authority_source_roles": ["canonical_source"],
     }
 

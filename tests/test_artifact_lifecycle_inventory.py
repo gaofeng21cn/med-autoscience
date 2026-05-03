@@ -43,6 +43,61 @@ def test_artifact_inventory_classifies_roles_and_lifecycle(tmp_path: Path) -> No
     assert by_path[paths_by_expected_role["audit_log"]]["lifecycle"] == "audit_retained"
 
 
+def test_artifact_lifecycle_authority_kernel_prefers_manifest_owner_and_keeps_suffix_as_subtype(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_authority_kernel")
+    study_root = tmp_path / "studies" / "001-risk"
+    raw_release_zip = _write(study_root / "paper" / "raw" / "restricted" / "release.zip", "zip\n")
+
+    artifact = module.ArtifactLifecycleAuthorityKernel(
+        study_root=study_root,
+        manifest={
+            "artifacts": [
+                {
+                    "path": str(raw_release_zip),
+                    "owner": "data_steward",
+                    "source_refs": {"intake_manifest": "inbox/release_manifest.json"},
+                    "fingerprint": "sha256:raw-release",
+                }
+            ]
+        },
+    ).classify(raw_release_zip)
+
+    assert artifact["role"] == "data_release"
+    assert artifact["lifecycle"] == "raw_intake"
+    assert artifact["owner"] == "data_steward"
+    assert artifact["subtype"] == "zip"
+    assert artifact["source_refs"] == {"intake_manifest": "inbox/release_manifest.json"}
+    assert artifact["fingerprint"] == "sha256:raw-release"
+    assert artifact["authority_allowed"] == {"edit": False, "quality": False, "dispatch": False}
+
+
+def test_artifact_inventory_treats_inbox_and_dataset_zip_as_raw_intake_not_delivery_projection(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_inventory")
+    study_root = tmp_path / "studies" / "001-risk"
+    inbox_zip = _write(tmp_path / "inbox" / "source_extract.zip", "zip\n")
+    dataset_zip = _write(tmp_path / "datasets" / "master" / "v1" / "source_extract.zip", "zip\n")
+
+    inventory = module.build_artifact_lifecycle_inventory(
+        study_root=study_root,
+        paths=(inbox_zip, dataset_zip),
+    )
+
+    by_path = {Path(item["path"]): item for item in inventory["artifacts"]}
+    for raw_path in (inbox_zip, dataset_zip):
+        artifact = by_path[raw_path.resolve()]
+        assert artifact["role"] == "data_release"
+        assert artifact["lifecycle"] == "raw_intake"
+        assert artifact["subtype"] == "zip"
+        assert artifact["authority_allowed"] == {"edit": False, "quality": False, "dispatch": False}
+        assert artifact["edit_source_allowed"] is False
+        assert artifact["quality_authority_allowed"] is False
+        assert artifact["dispatch_authority_allowed"] is False
+
+
 def test_study_artifact_registry_discovers_surfaces_and_blocks_generated_authority(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_inventory")
     workspace_root = tmp_path / "workspace"
