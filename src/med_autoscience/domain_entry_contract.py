@@ -15,6 +15,11 @@ from opl_harness_shared.family_entry_contracts import (
     build_family_gateway_interaction_contract as _build_shared_family_gateway_interaction_contract,
 )
 
+from med_autoscience.control_plane_command_catalog import (
+    CONTROL_PLANE_OPERATIONS_COMMANDS,
+    ControlPlaneOperationsCommand,
+)
+
 
 SERVICE_SAFE_ENTRY_ADAPTER = "MedAutoScienceDomainEntry"
 SERVICE_SAFE_ENTRY_SURFACE_KIND = "med_autoscience_service_safe_domain_entry"
@@ -30,7 +35,7 @@ class DomainEntryCommandSpec:
     optional_fields: tuple[str, ...] = ()
 
 
-SERVICE_SAFE_DOMAIN_COMMANDS: dict[str, DomainEntryCommandSpec] = {
+SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
     "workspace-cockpit": DomainEntryCommandSpec(("profile_ref",)),
     "product-frontdesk": DomainEntryCommandSpec(("profile_ref",)),
     "product-preflight": DomainEntryCommandSpec(("profile_ref",)),
@@ -59,6 +64,10 @@ SERVICE_SAFE_DOMAIN_COMMANDS: dict[str, DomainEntryCommandSpec] = {
         ("profile_ref", "study_id"),
         ("direct_entry_mode",),
     ),
+}
+SERVICE_SAFE_DOMAIN_COMMANDS: dict[str, DomainEntryCommandSpec | ControlPlaneOperationsCommand] = {
+    **SERVICE_SAFE_OPERATOR_COMMANDS,
+    **{item.command: item for item in CONTROL_PLANE_OPERATIONS_COMMANDS},
 }
 
 

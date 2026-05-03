@@ -50,6 +50,24 @@ def test_build_product_entry_manifest_passes_contract_bundle_via_named_shared_kw
     assert "gateway_interaction_contract" not in captured["extra_payload"]
 
 
+def test_product_entry_manifest_domain_commands_include_control_plane_operations(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    catalog = importlib.import_module("med_autoscience.control_plane_command_catalog")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    payload = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    commands = payload["domain_entry_contract"]["supported_commands"]
+    command_contracts = {
+        item["command"]: item
+        for item in payload["domain_entry_contract"]["command_contracts"]
+    }
+
+    for spec in catalog.CONTROL_PLANE_OPERATIONS_COMMANDS:
+        assert spec.command in commands
+        assert command_contracts[spec.command] == spec.command_contract()
+
+
 def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_projection(
     monkeypatch,
     tmp_path: Path,
@@ -890,19 +908,9 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     assert payload["return_surface_contract"]["domain_entry_contract"]["service_safe_surface_kind"] == (
         "med_autoscience_service_safe_domain_entry"
     )
-    assert payload["return_surface_contract"]["domain_entry_contract"]["supported_commands"] == [
-        "workspace-cockpit",
-        "product-frontdesk",
-        "product-preflight",
-        "product-start",
-        "product-entry-manifest",
-        "skill-catalog",
-        "study-progress",
-        "study-runtime-status",
-        "launch-study",
-        "submit-study-task",
-        "build-product-entry",
-    ]
+    assert payload["return_surface_contract"]["domain_entry_contract"]["supported_commands"] == list(
+        SERVICE_SAFE_DOMAIN_COMMANDS
+    )
     assert payload["return_surface_contract"]["domain_entry_contract"]["domain_agent_entry_spec"] == {
         "surface_kind": "domain_agent_entry_spec",
         "agent_id": "mas",

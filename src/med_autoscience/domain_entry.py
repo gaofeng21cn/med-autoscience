@@ -3,7 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-from med_autoscience.controllers import product_entry, study_progress, study_runtime_router
+from med_autoscience.control_plane_command_catalog import CONTROL_PLANE_OPERATION_COMMANDS_BY_COMMAND
+from med_autoscience.controllers import (
+    artifact_lifecycle_operations_report,
+    control_plane_cleanup_apply,
+    control_plane_migration_audit,
+    product_entry,
+    study_progress,
+    study_runtime_router,
+)
 from med_autoscience.domain_entry_contract import SERVICE_SAFE_DOMAIN_COMMANDS
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
@@ -29,6 +37,12 @@ class MedAutoScienceDomainEntry:
         ]
         if missing_fields:
             raise ValueError(f"domain entry `{command}` 缺少必填字段: {', '.join(missing_fields)}")
+
+        if command in CONTROL_PLANE_OPERATION_COMMANDS_BY_COMMAND:
+            payload = _dispatch_control_plane_operation(command, request)
+            if "command" in payload:
+                return payload
+            return {"command": command, **payload}
 
         profile_ref = Path(str(request["profile_ref"])).expanduser().resolve()
         profile = self._profile_loader(profile_ref)
@@ -127,3 +141,41 @@ def _sequence_value(value: Any) -> tuple[Any, ...]:
     if isinstance(value, (list, tuple)):
         return tuple(value)
     return (value,)
+
+
+def _workspace_roots_value(value: Any) -> tuple[Path, ...]:
+    roots = _sequence_value(value)
+    if not roots:
+        raise ValueError("control-plane operation 缺少 workspace_roots。")
+    paths: list[Path] = []
+    for item in roots:
+        text = str(item).strip()
+        if not text:
+            raise ValueError("control-plane operation workspace_roots 不能包含空值。")
+        paths.append(Path(text).expanduser())
+    return tuple(paths)
+
+
+def _bool_value(value: Any, *, default: bool = False) -> bool:
+    if value is None:
+        return default
+    return bool(value)
+
+
+def _dispatch_control_plane_operation(command: str, request: Mapping[str, Any]) -> dict[str, Any]:
+    workspace_roots = _workspace_roots_value(request.get("workspace_roots"))
+    if command == "control-plane-migration-audit":
+        return control_plane_migration_audit.run_migration_audit(
+            workspace_roots=workspace_roots,
+            dry_run=True,
+        )
+    if command == "control-plane-cleanup-apply":
+        return control_plane_cleanup_apply.run_cleanup_apply(
+            workspace_roots=workspace_roots,
+            apply=_bool_value(request.get("apply")),
+        )
+    if command == "control-plane-lifecycle-report":
+        return artifact_lifecycle_operations_report.run_lifecycle_operations_report(
+            workspace_roots=workspace_roots,
+        )
+    raise ValueError(f"不支持的 control-plane operation command: {command}")

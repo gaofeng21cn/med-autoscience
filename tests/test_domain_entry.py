@@ -131,6 +131,35 @@ def test_domain_entry_rejects_missing_required_fields(tmp_path: Path) -> None:
         )
 
 
+def test_domain_entry_dispatches_control_plane_operations(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.domain_entry")
+    workspace_root = tmp_path / "workspace"
+
+    monkeypatch.setattr(
+        module.control_plane_migration_audit,
+        "run_migration_audit",
+        lambda *, workspace_roots, dry_run: {
+            "surface": "control_plane_migration_audit",
+            "workspace_roots": [str(path) for path in workspace_roots],
+            "dry_run": dry_run,
+        },
+    )
+
+    payload = module.MedAutoScienceDomainEntry().dispatch(
+        {
+            "command": "control-plane-migration-audit",
+            "workspace_roots": [str(workspace_root)],
+        }
+    )
+
+    assert payload == {
+        "command": "control-plane-migration-audit",
+        "surface": "control_plane_migration_audit",
+        "workspace_roots": [str(workspace_root)],
+        "dry_run": True,
+    }
+
+
 def test_domain_entry_contract_exports_domain_agent_entry_spec_v1() -> None:
     module = importlib.import_module("med_autoscience.domain_entry_contract")
 

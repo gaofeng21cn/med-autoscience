@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import inspect
+import json
 import re
 import tomllib
 from pathlib import Path
 
 import pytest
+from med_autoscience.control_plane_command_catalog import CONTROL_PLANE_OPERATIONS_COMMANDS
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +34,8 @@ REQUIRED_CONTROL_PLANE_TESTS = (
     "tests/test_mcp_server.py::test_mcp_product_entry_can_call_migration_audit",
     "tests/test_mcp_server.py::test_mcp_product_entry_can_call_cleanup_apply",
     "tests/test_mcp_server.py::test_mcp_product_entry_can_call_lifecycle_report",
+    "tests/test_test_command_surfaces.py::test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces",
+    "tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_lists_control_plane_operation_modes",
     "tests/test_truth_projection_surfaces.py",
 )
 
@@ -186,6 +190,8 @@ def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
     assert 'medautosci_mcp_bin="$(command -v medautosci-mcp)"' in script
     assert '"${medautosci_bin}" --help >/dev/null' in script
     assert '"${medautosci_bin}" doctor entry-modes >/dev/null' in script
+    assert 'printf \'{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\\n\'' in script
+    assert '"${medautosci_mcp_bin}"' in script
     assert '"plugins" / "mas" / ".codex-plugin" / "plugin.json"' in script
     assert '"plugins" / "mas" / "skills" / "mas" / "SKILL.md"' in script
 
@@ -212,3 +218,22 @@ def test_family_lane_test_files_are_marker_scoped_to_avoid_full_lane_overlap() -
     assert "pytestmark = pytest.mark.family" in editable_bootstrap
     assert "pytestmark = pytest.mark.family" in dev_preflight_contract
     assert "pytestmark = pytest.mark.family" in dev_preflight
+
+
+def test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces() -> None:
+    cli_parser = _read("src/med_autoscience/cli_parts/parser.py")
+    cli_main = _read("src/med_autoscience/cli.py")
+    mcp_server = _read("src/med_autoscience/mcp_server.py")
+    domain_entry_contract = _read("src/med_autoscience/domain_entry_contract.py")
+    schema = json.loads(_read("contracts/schemas/v1/product-entry-manifest.schema.json"))
+    supported_command_enum = set(
+        schema["$defs"]["domainEntryContract"]["properties"]["supported_commands"]["items"]["enum"]
+    )
+
+    for spec in CONTROL_PLANE_OPERATIONS_COMMANDS:
+        assert f'add_parser("{spec.cli_command}")' in cli_parser
+        assert f'args.command == "{spec.cli_command}"' in cli_main
+        assert f'if mode == "{spec.mcp_mode}"' in mcp_server
+        assert "CONTROL_PLANE_OPERATIONS_COMMANDS" in domain_entry_contract
+        assert "item.command: item" in domain_entry_contract
+        assert spec.command in supported_command_enum

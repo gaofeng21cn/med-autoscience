@@ -117,7 +117,23 @@
         "supported_commands": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "workspace-cockpit",
+              "product-frontdesk",
+              "product-preflight",
+              "product-start",
+              "product-entry-manifest",
+              "skill-catalog",
+              "study-progress",
+              "study-runtime-status",
+              "launch-study",
+              "submit-study-task",
+              "build-product-entry",
+              "control-plane-migration-audit",
+              "control-plane-cleanup-apply",
+              "control-plane-lifecycle-report"
+            ]
           }
         },
         "command_contracts": {
