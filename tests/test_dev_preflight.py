@@ -146,7 +146,23 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
     makefile = (repo_root / "Makefile").read_text(encoding="utf-8")
     verify_script = (repo_root / "scripts" / "verify.sh").read_text(encoding="utf-8")
 
-    assert ".PHONY: test test-fast test-meta test-display test-submission test-full test-family" in makefile
+    phony_line = next(line for line in makefile.splitlines() if line.startswith(".PHONY:"))
+    phony_targets = set(phony_line.split()[1:])
+    for target in (
+        "test",
+        "test-smoke",
+        "test-regression",
+        "test-ci-preflight",
+        "test-fast",
+        "test-meta",
+        "test-display",
+        "test-submission",
+        "test-full",
+        "test-family",
+        "test-structure",
+        "test-control-plane",
+    ):
+        assert target in phony_targets
     assert "test-control-plane:" in makefile
     assert 'if [[ "${lane}" == "control-plane" ]]; then\n  make test-control-plane\n  exit 0\nfi\n' in verify_script
     assert (
