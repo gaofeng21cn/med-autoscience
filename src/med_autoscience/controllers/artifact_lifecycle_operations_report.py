@@ -418,6 +418,14 @@ def _read_json(path: Path) -> Mapping[str, Any]:
 
 
 def _snapshot_bucket_stats(payload: Mapping[str, Any], source_bucket: str) -> dict[str, int] | None:
+    for candidate in _snapshot_bucket_candidates(payload, source_bucket):
+        snapshot = _coerce_snapshot_bucket_stats(candidate)
+        if snapshot is not None:
+            return snapshot
+    return None
+
+
+def _snapshot_bucket_candidates(payload: Mapping[str, Any], source_bucket: str) -> list[Mapping[str, Any]]:
     candidates: list[Mapping[str, Any]] = []
     direct = payload.get(source_bucket)
     if isinstance(direct, Mapping):
@@ -430,17 +438,19 @@ def _snapshot_bucket_stats(payload: Mapping[str, Any], source_bucket: str) -> di
         runtime = summary.get("runtime")
         if isinstance(runtime, Mapping):
             candidates.append(runtime)
-    for candidate in candidates:
-        bytes_count = _first_int(candidate, ("bytes", "size_bytes", "total_bytes"))
-        file_count = _first_int(candidate, ("file_count", "files", "total_files_count"))
-        directory_count = _first_int(candidate, ("directory_count", "directories", "dir_count")) or 0
-        if bytes_count is not None and file_count is not None:
-            return {
-                "bytes": bytes_count,
-                "file_count": file_count,
-                "directory_count": directory_count,
-            }
-    return None
+    return candidates
+
+
+def _coerce_snapshot_bucket_stats(candidate: Mapping[str, Any]) -> dict[str, int] | None:
+    bytes_count = _first_int(candidate, ("bytes", "size_bytes", "total_bytes"))
+    file_count = _first_int(candidate, ("file_count", "files", "total_files_count"))
+    if bytes_count is None or file_count is None:
+        return None
+    return {
+        "bytes": bytes_count,
+        "file_count": file_count,
+        "directory_count": _first_int(candidate, ("directory_count", "directories", "dir_count")) or 0,
+    }
 
 
 def _first_int(payload: Mapping[str, Any], keys: Iterable[str]) -> int | None:
@@ -533,21 +543,16 @@ def _surface_report(*, name: str, role: str, artifacts: Iterable[Mapping[str, An
         "artifact_count": len(artifact_list),
         "size_bytes": sum(int(item.get("size_bytes") or 0) for item in artifact_list),
         "paths": [str(item.get("workspace_relative_path") or item.get("path") or "") for item in artifact_list],
-        "authority_blockers": sorted(
-            {
-                str(blocker)
-                for item in artifact_list
-                for blocker in list(item.get("authority_blockers") or [])
-            }
-        ),
-        "cleanup_blockers": sorted(
-            {
-                str(blocker)
-                for item in artifact_list
-                for blocker in list(item.get("cleanup_blockers") or [])
-            }
-        ),
+        "authority_blockers": _artifact_blocker_values(artifact_list, "authority_blockers"),
+        "cleanup_blockers": _artifact_blocker_values(artifact_list, "cleanup_blockers"),
     }
+
+
+def _artifact_blocker_values(artifacts: Iterable[Mapping[str, Any]], key: str) -> list[str]:
+    blockers: set[str] = set()
+    for item in artifacts:
+        blockers.update(str(blocker) for blocker in list(item.get(key) or []))
+    return sorted(blockers)
 
 
 def _projection_completeness(surfaces: Mapping[str, Any]) -> dict[str, Any]:

@@ -90,20 +90,67 @@ def classify_artifact_role(
     resolved_path = _resolve_path(path)
     resolved_study_root = _resolve_path(study_root)
     resolved_quest_root = _resolve_path(quest_root) if quest_root is not None else None
-    parts = resolved_path.parts
-    if _path_contains(parts, (".ds", "cold_archive")):
+    relative_context = ArtifactRolePathContext(
+        path=resolved_path,
+        study_root=resolved_study_root,
+        quest_root=resolved_quest_root,
+    )
+    return _classify_artifact_role_from_context(relative_context)
+
+
+def _classify_artifact_role_from_context(context: "ArtifactRolePathContext") -> str:
+    if context.is_cold_archive:
         return "cold_archive"
-    if resolved_quest_root is not None and _is_relative_to(resolved_path, resolved_quest_root / ".ds"):
+    if context.is_runtime_ephemeral:
         return "runtime_ephemeral"
-    if is_raw_intake_path(resolved_path) or _path_contains(parts, ("datasets",)):
+    if context.is_data_release:
         return "data_release"
-    if _path_contains(parts, ("artifacts", "runtime")) or _path_contains(parts, ("artifacts", "publication_eval")):
+    if context.is_audit_log:
         return "audit_log"
-    if is_generated_authority_surface_path(resolved_path):
+    if context.is_generated_projection:
         return "derived_projection"
-    if _path_contains(parts, ("manuscript",)):
+    if context.is_human_handoff:
         return "human_handoff_mirror"
-    return "canonical_source" if _is_relative_to(resolved_path, resolved_study_root / "paper") else "audit_log"
+    return "canonical_source" if context.is_study_paper_surface else "audit_log"
+
+
+class ArtifactRolePathContext:
+    def __init__(self, *, path: Path, study_root: Path, quest_root: Path | None) -> None:
+        self.path = path
+        self.study_root = study_root
+        self.quest_root = quest_root
+        self.parts = path.parts
+
+    @property
+    def is_cold_archive(self) -> bool:
+        return _path_contains(self.parts, (".ds", "cold_archive"))
+
+    @property
+    def is_runtime_ephemeral(self) -> bool:
+        return self.quest_root is not None and _is_relative_to(self.path, self.quest_root / ".ds")
+
+    @property
+    def is_data_release(self) -> bool:
+        return is_raw_intake_path(self.path) or _path_contains(self.parts, ("datasets",))
+
+    @property
+    def is_audit_log(self) -> bool:
+        return _path_contains(self.parts, ("artifacts", "runtime")) or _path_contains(
+            self.parts,
+            ("artifacts", "publication_eval"),
+        )
+
+    @property
+    def is_generated_projection(self) -> bool:
+        return is_generated_authority_surface_path(self.path)
+
+    @property
+    def is_human_handoff(self) -> bool:
+        return _path_contains(self.parts, ("manuscript",))
+
+    @property
+    def is_study_paper_surface(self) -> bool:
+        return _is_relative_to(self.path, self.study_root / "paper")
 
 
 def lifecycle_for_artifact(*, role: str, path: Path) -> str:
