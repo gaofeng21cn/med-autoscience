@@ -78,6 +78,204 @@ def _complete_soak_stage_evidence() -> dict[str, list[str]]:
     }
 
 
+def _complete_literature_provider_runtime_payload() -> dict[str, object]:
+    return {
+        "providers": [
+            {
+                "provider_name": "pubmed",
+                "response_status": "ok",
+                "query": "diabetes mortality prediction",
+                "retrieved_at": "2026-05-03T00:00:00Z",
+                "source_refs": ["pubmed:search:1"],
+                "items": [
+                    {"category": "anchor_papers", "ref": "pmid:1"},
+                    {"category": "guidelines", "ref": "TRIPOD+AI"},
+                    {"category": "systematic_reviews", "ref": "pmid:review"},
+                    {"category": "journal_neighbor_refs", "ref": "paper:near-neighbor"},
+                ],
+            }
+        ],
+        "search_strategy": {"query": "diabetes mortality prediction"},
+        "search_date": "2026-05-03",
+        "citation_ledger_refs": ["paper/citation_ledger.json"],
+        "screening_decisions": [{"decision": "include", "reason": "same endpoint"}],
+    }
+
+
+def _complete_route_candidate(line_id: str = "primary-risk-model") -> dict[str, object]:
+    return {
+        "line_id": line_id,
+        "title": "Primary risk model",
+        "dimensions": {
+            "novelty": 5,
+            "clinical_relevance": 5,
+            "data_fit": 5,
+            "external_validation": 4,
+            "analysis_feasibility": 5,
+            "journal_fit": 4,
+            "risk_cost": 1,
+            "stop_threshold": "stop if transportability cannot be evaluated",
+        },
+        "evidence_refs": ["artifacts/medical_paper/literature_provider_runtime.json"],
+    }
+
+
+def _complete_revision_rebuttal_payload() -> dict[str, object]:
+    return {
+        "reviewer_comments": [
+            {
+                "comment_id": "R1-1",
+                "source": "reviewer_1",
+                "concern": "External validation needs clearer calibration evidence.",
+                "severity": "major",
+                "requested_change": "Add calibration and net-benefit analysis.",
+                "target_section": "Results",
+            }
+        ],
+        "evidence_ledger_refs": ["paper/evidence_ledger.json"],
+        "review_ledger_refs": ["paper/review/review_ledger.json"],
+    }
+
+
+def _complete_authoring_runtime_authorization_inputs() -> dict[str, object]:
+    return {
+        "target_journal_writing_layer": {
+            "target_journal_family": "clinical epidemiology",
+            "section_plan": [
+                {"section": "Introduction", "writing_role": "bounded clinical rationale"},
+                {"section": "Results", "writing_role": "finding-led paragraphs"},
+            ],
+        },
+        "claim_to_paragraph_map": {
+            "claims": [
+                {
+                    "claim_id": "claim-primary",
+                    "paragraph_id": "results-p1",
+                    "evidence_refs": ["paper/evidence_ledger.json#claim-primary"],
+                }
+            ]
+        },
+        "display_to_claim_map": {
+            "links": [
+                {
+                    "display_id": "table-2",
+                    "claim_ids": ["claim-primary"],
+                    "evidence_refs": ["paper/evidence_ledger.json#table-2"],
+                }
+            ]
+        },
+        "restrained_language_strategy": {
+            "strategy_id": "restrained-clinical-language-v1",
+            "overstrong_claim_controls": [
+                {"claim_id": "claim-primary", "required_qualifier": "was associated with"}
+            ],
+        },
+        "evidence_ledger_ref": "paper/evidence_ledger.json",
+        "review_ledger_ref": "paper/review/review_ledger.json",
+        "publication_eval": {
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "policy_id": "medical_publication_critique_v1",
+                "source_refs": ["artifacts/publication_eval/latest.json"],
+                "ai_reviewer_required": False,
+            },
+            "quality_claim_authorized": True,
+            "quality_assessment": {
+                key: {
+                    "status": "ready",
+                    "summary": f"{key} is ready.",
+                    "evidence_refs": ["paper/evidence_ledger.json"],
+                }
+                for key in (
+                    "clinical_significance",
+                    "evidence_strength",
+                    "novelty_positioning",
+                    "medical_journal_prose_quality",
+                    "human_review_readiness",
+                )
+            },
+        },
+    }
+
+
+def _materialize_complete_v2_readiness_inputs(study_root: Path) -> None:
+    literature_runtime = importlib.import_module("med_autoscience.controllers.literature_provider_runtime")
+    route_orchestrator = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+    stats_runtime = importlib.import_module("med_autoscience.controllers.statistical_discipline_runtime")
+    rebuttal_loop = importlib.import_module("med_autoscience.controllers.revision_rebuttal_loop")
+    authoring = importlib.import_module("med_autoscience.controllers.ai_reviewer_journal_loop")
+    soak_monitor = importlib.import_module("med_autoscience.controllers.real_workspace_soak_monitor")
+
+    literature_runtime.materialize_literature_provider_runtime(
+        study_root=study_root,
+        payload=_complete_literature_provider_runtime_payload(),
+    )
+    route_projection = route_orchestrator.materialize_route_decision_orchestration(
+        study_root=study_root,
+        candidates=[_complete_route_candidate()],
+        requested_action="select_line",
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "route_decision_orchestrator.json",
+        route_projection,
+    )
+    stats_projection = stats_runtime.build_statistical_discipline_operations_projection(
+        stats_runtime.build_statistical_discipline_contract(study_archetype="prediction_model"),
+        bounded_board={
+            "candidates": [
+                {
+                    "target_claim": "transportable mortality risk prediction",
+                    "expected_evidence_gain": "close calibration and net-benefit concern",
+                    "statistical_risk": "moderate",
+                    "clinical_interpretability": "high",
+                    "decision": "exploit",
+                    "decision_reason": "reviewer concern targets calibration and utility",
+                    "primary_evidence_basis": "calibration slope, confidence interval, and decision-curve net benefit",
+                }
+            ]
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "statistical_discipline_operations.json",
+        stats_projection,
+    )
+    rebuttal_loop.materialize_revision_rebuttal_loop(study_root, _complete_revision_rebuttal_payload())
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "authoring_runtime_authorization.json",
+        authoring.build_authoring_runtime_authorization(**_complete_authoring_runtime_authorization_inputs()),
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "real_study_soak_matrix_evidence.json",
+        {
+            "study_id": "prediction-model-study",
+            "study_archetype": "prediction_model",
+            "stages": [
+                "literature_scout",
+                "line_selection",
+                "main_analysis",
+                "bounded_analysis",
+                "route_back",
+                "stop_loss",
+                "revision_reopen",
+                "runtime_recovery",
+                "finalize_rebuild",
+                "final_pre_submission_audit",
+            ],
+            "contracts": {
+                "literature_contract": True,
+                "statistical_contract": True,
+                "external_validation_fixture": True,
+            },
+            "fixtures": {"external_validation": True},
+            "result_strength": "adequate",
+            "route_action": "continue",
+            "durable_refs": ["artifacts/medical_paper/real_study_soak_matrix_evidence.json"],
+        },
+    )
+    soak_monitor.materialize_real_workspace_soak_monitor(study_roots=[study_root])
+
+
 def _materialize_complete_readiness_inputs(module: object, study_root: Path) -> None:
     for surface_key, payload in _complete_surface_payloads().items():
         module.materialize_medical_paper_readiness_surface(

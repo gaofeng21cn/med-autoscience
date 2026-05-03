@@ -27,7 +27,7 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
             "src/med_autoscience/runtime_transport/med_deepscientist.py",
             "tests/test_profiles.py",
             "tests/test_runtime_backend.py",
-            "tests/test_runtime_contract_docs.py",
+            "tests/test_work_unit_runtime_contract.py",
             "tests/test_runtime_protocol_layout.py",
             "tests/test_runtime_transport_hermes.py",
             "tests/test_runtime_watch.py",
@@ -379,7 +379,7 @@ def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proo
     assert "uv run pytest tests/test_integration_harness_activation_package.py -q" in commands
     assert "uv run pytest tests/test_workspace_init.py -q" in commands
     assert "make test-meta" in commands
-    assert "uv run pytest tests/test_runtime_contract_docs.py -q" not in commands
+    assert "uv run pytest tests/test_work_unit_runtime_contract.py -q" not in commands
     assert "uv run pytest tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q" not in commands
 
 
@@ -392,7 +392,7 @@ def test_plan_commands_for_runtime_contract_surface_include_hermes_and_doc_proof
     assert "uv run pytest tests/test_profiles.py -q" in commands
     assert "uv run pytest tests/test_runtime_protocol_layout.py -q" in commands
     assert "uv run pytest tests/test_runtime_transport_hermes.py -q" in commands
-    assert "uv run pytest tests/test_runtime_contract_docs.py -q" in commands
+    assert "uv run pytest tests/test_work_unit_runtime_contract.py -q" in commands
     assert "make test-meta" in commands
 
 

@@ -158,7 +158,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/runtime_transport/med_deepscientist.py",
             "tests/test_profiles.py",
             "tests/test_runtime_backend.py",
-            "tests/test_runtime_contract_docs.py",
+            "tests/test_work_unit_runtime_contract.py",
             "tests/test_runtime_protocol_layout.py",
             "tests/test_runtime_protocol_runtime_watch.py",
             "tests/test_runtime_protocol_study_runtime.py",
@@ -173,7 +173,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         commands=(
             "uv run pytest tests/test_runtime_backend.py -q",
             "uv run pytest tests/test_profiles.py -q",
-            "uv run pytest tests/test_runtime_contract_docs.py -q",
+            "uv run pytest tests/test_work_unit_runtime_contract.py -q",
             "uv run pytest tests/test_runtime_protocol_layout.py -q",
             "uv run pytest tests/test_runtime_watch.py -q",
             "uv run pytest tests/test_study_runtime_router.py -q",
