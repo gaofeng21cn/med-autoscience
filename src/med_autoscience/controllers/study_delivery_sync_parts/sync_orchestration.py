@@ -21,7 +21,10 @@ from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
 from med_autoscience.controllers.artifact_lifecycle_inventory import build_study_delivery_lifecycle_hook
 from med_autoscience.controllers.control_plane_route_gate import (
     attach_control_plane_route_gate,
-    authorize_control_plane_route,
+)
+from med_autoscience.controllers.control_plane_write_route import (
+    blocked_control_plane_write_payload,
+    resolve_control_plane_write_route_context,
 )
 
 from .staging_and_sources import (
@@ -944,20 +947,18 @@ def sync_study_delivery(
     context = _resolve_delivery_context(paper_root.resolve())
     paper_root, worktree_root = context["paper_root"], context["worktree_root"]
     quest_id, study_id, study_root = context["quest_id"], context["study_id"], context["study_root"]
-    resolved_route_context = (
-        {"projection_only": True, "paths": [study_root / "manuscript" / "current_package"]}
-        if control_plane_route_context is None and route_context is None
-        else dict(control_plane_route_context or route_context or {})
+    resolved_route_context, control_plane_route_gate = resolve_control_plane_write_route_context(
+        action="delivery_sync",
+        context=control_plane_route_context or route_context,
+        default_paths=[study_root / "manuscript" / "current_package"],
     )
-    control_plane_route_gate = authorize_control_plane_route("delivery_sync", resolved_route_context)
     if not bool(control_plane_route_gate.get("authorized")):
-        return {
-            "status": "control_plane_route_blocked",
-            "stage": normalized_stage,
-            "paper_root": str(paper_root),
-            "study_root": str(study_root),
-            "control_plane_route_gate": control_plane_route_gate,
-        }
+        return blocked_control_plane_write_payload(
+            gate=control_plane_route_gate,
+            stage=normalized_stage,
+            paper_root=str(paper_root),
+            study_root=str(study_root),
+        )
 
     if normalized_stage == "draft_handoff":
         if normalized_publication_profile != GENERAL_MEDICAL_JOURNAL_PROFILE:

@@ -7,9 +7,11 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync, submission_minimal
+from med_autoscience.controllers.control_plane_route_context_call import call_with_control_plane_route_context
 from med_autoscience.journal_requirements import (
     describe_journal_submission_package,
     journal_requirements_json_path,
@@ -514,10 +516,16 @@ def run_controller(
     apply: bool,
     source: str = "codex-publication-gate",
     enqueue_intervention: bool = True,
+    control_plane_route_context: Mapping[str, Any] | None = None,
+    route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     from med_autoscience.controllers.control_plane_route_gate import authorize_control_plane_route
 
-    control_plane_route_gate = authorize_control_plane_route("bundle_build", {"projection_only": True})
+    resolved_route_context = control_plane_route_context or route_context
+    control_plane_route_gate = authorize_control_plane_route(
+        "bundle_build",
+        {"projection_only": True} if resolved_route_context is None else resolved_route_context,
+    )
     state = build_gate_state(quest_root)
     report = build_gate_report(state)
     report["control_plane_route_gate"] = control_plane_route_gate
@@ -531,9 +539,11 @@ def run_controller(
         and state.paper_root is not None
         and study_delivery_sync.can_sync_study_delivery(paper_root=state.paper_root)
     ):
-        draft_handoff_delivery_sync = study_delivery_sync.sync_study_delivery(
+        draft_handoff_delivery_sync = call_with_control_plane_route_context(
+            study_delivery_sync.sync_study_delivery,
             paper_root=state.paper_root,
             stage="draft_handoff",
+            control_plane_route_context=resolved_route_context,
         )
         state = build_gate_state(quest_root)
         report = build_gate_report(state)
@@ -549,10 +559,12 @@ def run_controller(
             "delivery_manifest_source_changed",
             "delivery_manifest_source_mismatch",
         }:
-            study_delivery_stale_sync = study_delivery_sync.sync_study_delivery(
+            study_delivery_stale_sync = call_with_control_plane_route_context(
+                study_delivery_sync.sync_study_delivery,
                 paper_root=state.paper_root,
                 stage="submission_minimal",
                 publication_profile=_stale_submission_delivery_sync_profile(state=state, report=report),
+                control_plane_route_context=resolved_route_context,
             )
         else:
             study_delivery_stale_sync = study_delivery_sync.materialize_submission_delivery_stale_notice(
@@ -571,11 +583,13 @@ def run_controller(
         and _non_empty_text(report.get("journal_requirements_study_root"))
     ):
         primary_journal_target = report["primary_journal_target"]
-        journal_package_sync = journal_package_controller.materialize_journal_package(
+        journal_package_sync = call_with_control_plane_route_context(
+            journal_package_controller.materialize_journal_package,
             paper_root=state.paper_root,
             study_root=Path(str(report["journal_requirements_study_root"])),
             journal_slug=str(primary_journal_target["journal_slug"]),
             publication_profile=_non_empty_text(primary_journal_target.get("publication_profile")),
+            control_plane_route_context=resolved_route_context,
         )
         state = build_gate_state(quest_root)
         report = build_gate_report(state)

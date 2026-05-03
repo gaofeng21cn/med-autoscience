@@ -40,6 +40,10 @@ from med_autoscience.controllers.gate_clearing_batch_execution import GateCleari
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     filter_repair_units_for_publication_work_unit,
 )
+from med_autoscience.controllers.control_plane_route_context_call import call_with_control_plane_route_context as _route_call
+from med_autoscience.controllers.gate_clearing_batch_write_routes import route_bound_call as _route_bound
+from med_autoscience.controllers.gate_clearing_batch_write_routes import create_submission_minimal_package_with_route
+from med_autoscience.controllers.gate_clearing_batch_write_routes import sync_submission_minimal_delivery_with_route
 from med_autoscience.display_source_contract import INPUT_FILENAME_BY_SCHEMA_ID
 
 
@@ -829,20 +833,11 @@ def _run_workspace_display_repair_script(*, paper_root: Path) -> dict[str, Any]:
     }
 
 
-def _create_submission_minimal_package(*, paper_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
-    return submission_minimal.create_submission_minimal_package(
-        paper_root=paper_root,
-        publication_profile=profile.default_publication_profile,
-        citation_style=profile.default_citation_style,
-    )
+def _create_submission_minimal_package(**kwargs: Any) -> dict[str, Any]:
+    return create_submission_minimal_package_with_route(submission_minimal=submission_minimal, **kwargs)
 
-
-def _sync_submission_minimal_delivery(*, paper_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
-    return study_delivery_sync.sync_study_delivery(
-        paper_root=paper_root,
-        stage="submission_minimal",
-        publication_profile=profile.default_publication_profile,
-    )
+def _sync_submission_minimal_delivery(**kwargs: Any) -> dict[str, Any]:
+    return sync_submission_minimal_delivery_with_route(study_delivery_sync=study_delivery_sync, **kwargs)
 
 
 def run_gate_clearing_batch(
@@ -852,7 +847,10 @@ def run_gate_clearing_batch(
     study_root: Path,
     quest_id: str,
     source: str = "med_autoscience",
+    control_plane_route_context: dict[str, Any] | None = None,
+    route_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    resolved_route_context = control_plane_route_context or route_context
     resolved_study_root = Path(study_root).expanduser().resolve()
     quest_root = _quest_root(profile, quest_id=quest_id)
     gate_state = publication_gate.build_gate_state(quest_root)
@@ -1123,7 +1121,10 @@ def run_gate_clearing_batch(
                 run=lambda: gate_clearing_batch_submission.sync_submission_minimal_delivery_after_settle(
                     paper_root=paper_root,
                     profile=profile,
-                    sync_submission_minimal_delivery=_sync_submission_minimal_delivery,
+                    sync_submission_minimal_delivery=_route_bound(
+                        function=_sync_submission_minimal_delivery,
+                        control_plane_route_context=resolved_route_context,
+                    ),
                     path_fingerprints=_path_fingerprints,
                     settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
                 ),
@@ -1141,7 +1142,7 @@ def run_gate_clearing_batch(
                     "workspace_display_repair_script",
                     "materialize_display_surface",
                 ),
-                run=lambda: _create_submission_minimal_package(paper_root=paper_root, profile=profile),
+                run=lambda: _route_call(_create_submission_minimal_package, paper_root=paper_root, profile=profile, control_plane_route_context=resolved_route_context),
             )
         )
     repair_units = filter_repair_units_for_publication_work_unit(
@@ -1226,7 +1227,10 @@ def run_gate_clearing_batch(
                 result = gate_clearing_batch_submission.sync_submission_minimal_delivery_after_settle(
                     paper_root=paper_root,
                     profile=profile,
-                    sync_submission_minimal_delivery=_sync_submission_minimal_delivery,
+                    sync_submission_minimal_delivery=_route_bound(
+                        function=_sync_submission_minimal_delivery,
+                        control_plane_route_context=resolved_route_context,
+                    ),
                     path_fingerprints=_path_fingerprints,
                     settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
                 )
@@ -1268,6 +1272,7 @@ def run_gate_clearing_batch(
             apply=True,
             source=source,
             enqueue_intervention=False,
+            control_plane_route_context=resolved_route_context,
         ),
     )
     gate_replay_step = publication_work_unit_lifecycle.gate_replay_step(
