@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from med_autoscience.controllers import (
+    ai_first_action_dispatch,
     ai_first_feedback,
     ai_first_observability,
     autonomy_ai_doctor,
@@ -923,8 +924,22 @@ def build_study_progress_projection(
         progress_snapshot=payload,
         observed_at=generated_at,
     )
+    action_dispatch_ledger = ai_first_action_dispatch.read_action_dispatch_ledger(
+        study_root=resolved_study_root
+    )
+    ai_first_action_dispatch_lifecycle = ai_first_action_dispatch.build_operator_action_lifecycle(
+        feedback_state=ai_first_feedback_state,
+        existing_ledger=action_dispatch_ledger,
+        observed_at=generated_at,
+    )
     payload["ai_first_feedback_state"] = ai_first_feedback_state
+    payload["ai_first_action_dispatch_lifecycle"] = ai_first_action_dispatch_lifecycle
     payload["refs"]["ai_first_feedback_ledger_path"] = ai_first_feedback_state["ledger"]["path"]
+    payload["refs"]["ai_first_action_dispatch_ledger_path"] = str(
+        ai_first_action_dispatch.stable_action_dispatch_ledger_path(
+            study_root=resolved_study_root
+        )
+    )
     return payload
 
 

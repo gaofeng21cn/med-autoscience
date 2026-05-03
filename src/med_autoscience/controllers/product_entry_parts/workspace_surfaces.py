@@ -106,6 +106,13 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
         "open_feedback_count": 0,
         "repeat_toil_count": 0,
         "manual_judgment_pending": 0,
+        "action_lifecycle_count": 0,
+        "action_open": 0,
+        "action_accepted": 0,
+        "action_in_progress": 0,
+        "action_blocked": 0,
+        "action_closed": 0,
+        "action_active": 0,
     }
     study_dashboards: list[dict[str, Any]] = []
     for item in studies:
@@ -137,6 +144,15 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
             counts["manual_judgment_pending"] += _coerce_int(
                 feedback_counts.get("manual_judgment_pending_count")
             )
+        lifecycle_counts = dict(projection.get("action_lifecycle_counts") or {})
+        if lifecycle_counts:
+            counts["action_lifecycle_count"] += 1
+            counts["action_open"] += _coerce_int(lifecycle_counts.get("open"))
+            counts["action_accepted"] += _coerce_int(lifecycle_counts.get("accepted"))
+            counts["action_in_progress"] += _coerce_int(lifecycle_counts.get("in_progress"))
+            counts["action_blocked"] += _coerce_int(lifecycle_counts.get("blocked"))
+            counts["action_closed"] += _coerce_int(lifecycle_counts.get("closed"))
+            counts["action_active"] += _coerce_int(lifecycle_counts.get("active"))
 
         study_dashboards.append(projection)
 
@@ -157,7 +173,8 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
             f"{counts['route_back_active']} 个 route-back 未闭环；"
             f"{counts['artifact_refresh_pending']} 个产物需要从 canonical source 刷新；"
             f"{counts['human_review_required']} 个等待人工判断；"
-            f"{counts['open_feedback_count']} 个运行反馈信号打开。"
+            f"{counts['open_feedback_count']} 个运行反馈信号打开；"
+            f"{counts['action_active']} 个 operator action 未闭合。"
         )
     else:
         status = "on_track"
@@ -180,33 +197,55 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
 
 def _ai_first_operations_study_projection(item: Mapping[str, Any]) -> dict[str, Any] | None:
     feedback_state = dict(item.get("ai_first_feedback_state") or {})
+    action_lifecycle = dict(item.get("ai_first_action_dispatch_lifecycle") or {})
     default_state = dict(item.get("ai_first_default_entry_state") or {})
     if default_state:
-        return _attach_feedback_projection(
-            _ai_first_default_entry_state_projection(item=item, default_state=default_state),
-            feedback_state=feedback_state,
+        return _attach_action_lifecycle_projection(
+            _attach_feedback_projection(
+                _ai_first_default_entry_state_projection(item=item, default_state=default_state),
+                feedback_state=feedback_state,
+            ),
+            action_lifecycle=action_lifecycle,
         )
     dashboard = dict(item.get("ai_first_operations_dashboard") or {})
     if dashboard:
-        return _attach_feedback_projection(
-            _legacy_ai_first_dashboard_projection(item=item, dashboard=dashboard),
-            feedback_state=feedback_state,
+        return _attach_action_lifecycle_projection(
+            _attach_feedback_projection(
+                _legacy_ai_first_dashboard_projection(item=item, dashboard=dashboard),
+                feedback_state=feedback_state,
+            ),
+            action_lifecycle=action_lifecycle,
         )
     if feedback_state:
-        return _attach_feedback_projection(
+        return _attach_action_lifecycle_projection(
+            _attach_feedback_projection(
+                {
+                    "study_id": item.get("study_id"),
+                    "read_model": "ai_first_feedback_read_model",
+                    "source_surface": "ai_first_feedback_state",
+                    "current_stage": feedback_state.get("current_stage") or item.get("current_stage"),
+                    "blockers": [],
+                    "next_step": (feedback_state.get("user_view") or {}).get("next_step"),
+                    "human_review_required": bool(
+                        (feedback_state.get("user_view") or {}).get("human_review_required")
+                    ),
+                    "authority": "observability_only",
+                },
+                feedback_state=feedback_state,
+            ),
+            action_lifecycle=action_lifecycle,
+        )
+    if action_lifecycle:
+        return _attach_action_lifecycle_projection(
             {
                 "study_id": item.get("study_id"),
-                "read_model": "ai_first_feedback_read_model",
-                "source_surface": "ai_first_feedback_state",
-                "current_stage": feedback_state.get("current_stage") or item.get("current_stage"),
+                "read_model": "ai_first_action_dispatch_lifecycle_read_model",
+                "source_surface": "ai_first_action_dispatch_lifecycle",
+                "current_stage": item.get("current_stage"),
                 "blockers": [],
-                "next_step": (feedback_state.get("user_view") or {}).get("next_step"),
-                "human_review_required": bool(
-                    (feedback_state.get("user_view") or {}).get("human_review_required")
-                ),
-                "authority": "observability_only",
+                "authority": "operations_governance_only",
             },
-            feedback_state=feedback_state,
+            action_lifecycle=action_lifecycle,
         )
     return None
 
@@ -231,6 +270,30 @@ def _attach_feedback_projection(
     updated["feedback_action_target_surface"] = primary_action.get("target_surface")
     updated["feedback_action_summary"] = primary_action.get("summary") or user_view.get("next_action")
     updated["feedback_counts"] = counts
+    updated["human_review_required"] = bool(
+        updated.get("human_review_required") or user_view.get("human_review_required")
+    )
+    updated["next_step"] = updated.get("next_step") or user_view.get("next_step")
+    return updated
+
+
+def _attach_action_lifecycle_projection(
+    projection: dict[str, Any],
+    *,
+    action_lifecycle: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not action_lifecycle:
+        return projection
+    counts = dict(action_lifecycle.get("counts") or {})
+    primary = dict(action_lifecycle.get("primary_action") or {})
+    user_view = dict(action_lifecycle.get("user_view") or {})
+    updated = dict(projection)
+    updated["action_lifecycle_status"] = action_lifecycle.get("status")
+    updated["action_lifecycle_counts"] = counts
+    updated["action_primary_status"] = primary.get("status") or user_view.get("primary_action_status")
+    updated["action_primary_summary"] = primary.get("summary") or user_view.get("next_step")
+    updated["action_primary_id"] = primary.get("action_id")
+    updated["action_target_surface"] = primary.get("target_surface")
     updated["human_review_required"] = bool(
         updated.get("human_review_required") or user_view.get("human_review_required")
     )
@@ -521,6 +584,9 @@ def _study_item(
     ai_first_default_entry_state = dict(progress_payload.get("ai_first_default_entry_state") or {})
     ai_first_operations_dashboard = dict(progress_payload.get("ai_first_operations_dashboard") or {})
     ai_first_feedback_state = dict(progress_payload.get("ai_first_feedback_state") or {})
+    ai_first_action_dispatch_lifecycle = dict(
+        progress_payload.get("ai_first_action_dispatch_lifecycle") or {}
+    )
     paper_orchestra_operator_projection = dict(progress_payload.get("paper_orchestra_operator_projection") or {})
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
@@ -568,6 +634,7 @@ def _study_item(
         "ai_first_default_entry_state": ai_first_default_entry_state or None,
         "ai_first_operations_dashboard": ai_first_operations_dashboard or None,
         "ai_first_feedback_state": ai_first_feedback_state or None,
+        "ai_first_action_dispatch_lifecycle": ai_first_action_dispatch_lifecycle or None,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
         "recovery_contract": recovery_contract or None,
@@ -829,7 +896,9 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             f"产物待刷新 {counts.get('artifact_refresh_pending', 0)}；"
             f"等待人工判断 {counts.get('human_review_required', 0)}；"
             f"运行反馈 {counts.get('open_feedback_count', 0)}；"
-            f"重复返工 {counts.get('repeat_toil_count', 0)}"
+            f"重复返工 {counts.get('repeat_toil_count', 0)}；"
+            f"动作未闭合 {counts.get('action_active', 0)}；"
+            f"动作阻塞 {counts.get('action_blocked', 0)}"
         )
         for dashboard in ai_first_operations_state.get("study_dashboards") or []:
             if not isinstance(dashboard, Mapping):
@@ -856,6 +925,12 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
                 lines.append(f"  反馈原因: {dashboard.get('feedback_primary_reason')}")
             if dashboard.get("feedback_action_summary"):
                 lines.append(f"  建议动作: {dashboard.get('feedback_action_summary')}")
+            if dashboard.get("action_primary_summary"):
+                lines.append(
+                    "  动作生命周期: "
+                    f"{dashboard.get('action_primary_status') or 'unknown'}；"
+                    f"{dashboard.get('action_primary_summary')}"
+                )
             if dashboard.get("ai_reviewer_trace_complete") is not None:
                 lines.append(
                     "  AI reviewer trace: "

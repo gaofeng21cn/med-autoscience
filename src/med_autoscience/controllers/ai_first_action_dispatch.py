@@ -9,7 +9,9 @@ from typing import Any, Mapping
 SURFACE = "ai_first_action_dispatch_ledger"
 SCHEMA_VERSION = 1
 AUTHORITY = "operations_governance_only"
-VALID_STATUSES = frozenset({"open", "accepted", "in_progress", "closed"})
+VALID_STATUSES = frozenset({"open", "accepted", "in_progress", "closed", "blocked"})
+ACTIVE_STATUSES = frozenset({"open", "accepted", "in_progress", "blocked"})
+LIFECYCLE_ORDER = ("blocked", "in_progress", "accepted", "open", "closed")
 LOW_LEVEL_FIELD_HINTS = ("raw_terminal_log", "full_prompt", "prompt", "secret", "token", "log_path")
 
 
@@ -200,6 +202,7 @@ def build_action_dispatch_projection(
         "open": sum(1 for item in dispatches if item.get("status") == "open"),
         "accepted": sum(1 for item in dispatches if item.get("status") == "accepted"),
         "in_progress": sum(1 for item in dispatches if item.get("status") == "in_progress"),
+        "blocked": sum(1 for item in dispatches if item.get("status") == "blocked"),
         "closed": sum(1 for item in dispatches if item.get("status") == "closed"),
         "total": len(dispatches),
     }
@@ -211,7 +214,10 @@ def build_action_dispatch_projection(
         "dispatches": dispatches,
         "counts": counts,
         "user_view": {
-            "open_action_count": counts["open"] + counts["accepted"] + counts["in_progress"],
+            "open_action_count": counts["open"]
+            + counts["accepted"]
+            + counts["in_progress"]
+            + counts["blocked"],
             "closed_action_count": counts["closed"],
             "next_action": _text((dispatches[0] if dispatches else {}).get("summary")),
         },
@@ -251,3 +257,114 @@ def materialize_action_dispatch_ledger(
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return payload
+
+
+def _lifecycle_counts(dispatches: list[Mapping[str, Any]]) -> dict[str, int]:
+    counts = {status: 0 for status in (*LIFECYCLE_ORDER, "total", "active")}
+    counts["total"] = len(dispatches)
+    for item in dispatches:
+        status = _text(item.get("status"), "open") or "open"
+        if status not in VALID_STATUSES:
+            status = "open"
+        counts[status] += 1
+        if status in ACTIVE_STATUSES:
+            counts["active"] += 1
+    return counts
+
+
+def _primary_dispatch(dispatches: list[Mapping[str, Any]]) -> Mapping[str, Any] | None:
+    for status in LIFECYCLE_ORDER:
+        for item in dispatches:
+            if item.get("status") == status:
+                return item
+    return None
+
+
+def _restore_existing_lifecycle(
+    *,
+    dispatches: list[Mapping[str, Any]],
+    existing_ledger: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    existing_by_key = {
+        str(item.get("dispatch_key")): item
+        for item in _list((existing_ledger or {}).get("dispatches"))
+        if isinstance(item, Mapping) and _text(item.get("dispatch_key"))
+    }
+    restored: list[dict[str, Any]] = []
+    for item in dispatches:
+        updated = dict(item)
+        prior = existing_by_key.get(str(item.get("dispatch_key")))
+        if prior:
+            status = _text(prior.get("status"))
+            if status in VALID_STATUSES:
+                updated["status"] = status
+            for key in ("created_at", "updated_at", "closure_evidence", "summary"):
+                if key in prior:
+                    updated[key] = prior[key]
+        restored.append(_redacted_mapping(updated))
+    return restored
+
+
+def build_operator_action_lifecycle(
+    *,
+    feedback_state: Mapping[str, Any],
+    existing_ledger: Mapping[str, Any] | None = None,
+    dispatch_owner: str = "mas_operator",
+    observed_at: str | None = None,
+) -> dict[str, Any]:
+    projection = build_action_dispatch_projection(
+        feedback_state=feedback_state,
+        existing_ledger=existing_ledger,
+        dispatch_owner=dispatch_owner,
+        status="open",
+        observed_at=observed_at,
+    )
+    dispatches = [
+        dict(item)
+        for item in _list(projection.get("dispatches"))
+        if isinstance(item, Mapping)
+    ]
+    dispatches = _restore_existing_lifecycle(
+        dispatches=dispatches,
+        existing_ledger=existing_ledger,
+    )
+    counts = _lifecycle_counts(dispatches)
+    primary = dict(_primary_dispatch(dispatches) or {})
+    primary_status = _text(primary.get("status"), "open") or "open"
+    next_step = _text(primary.get("summary")) or _text(
+        (_mapping(feedback_state.get("user_view"))).get("next_action")
+    )
+    blocked = primary_status == "blocked" or counts["blocked"] > 0
+    return {
+        "surface": "ai_first_action_dispatch_lifecycle",
+        "schema_version": 1,
+        "authority": AUTHORITY,
+        "read_model": "operator_action_lifecycle_read_model",
+        "updated_at": projection.get("updated_at"),
+        "status": "blocked" if blocked else ("open" if counts["active"] else "closed"),
+        "counts": counts,
+        "primary_action": {
+            "dispatch_key": primary.get("dispatch_key"),
+            "action_id": primary.get("action_id"),
+            "summary": next_step,
+            "target_surface": primary.get("target_surface"),
+            "status": primary_status if primary else None,
+            "source_feedback_key": primary.get("source_feedback_key"),
+        }
+        if primary
+        else None,
+        "user_view": {
+            "current_blocker": next_step if blocked else None,
+            "next_step": next_step,
+            "human_review_required": bool(
+                _mapping(feedback_state.get("user_view")).get("human_review_required")
+            ),
+            "primary_action_status": primary_status if primary else None,
+            "active_action_count": counts["active"],
+        },
+        "maintainer_view": {
+            "dispatches": dispatches,
+            "source_ledger_surface": (existing_ledger or {}).get("surface"),
+        },
+        "authority_contract": _authority_contract(),
+    }
