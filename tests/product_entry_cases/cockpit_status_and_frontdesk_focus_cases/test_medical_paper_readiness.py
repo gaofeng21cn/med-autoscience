@@ -1,0 +1,189 @@
+from __future__ import annotations
+
+from tests.product_entry_cases import shared as _shared
+from tests.product_entry_cases import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
+from tests.product_entry_cases import frontdesk_focus_cases as _frontdesk_focus_cases
+
+
+def _module_reexport(module) -> None:
+    for name, value in vars(module).items():
+        if not name.startswith("__") and name != "_module_reexport":
+            globals()[name] = value
+
+
+_module_reexport(_shared)
+_module_reexport(_attention_queue_and_cockpit_base)
+_module_reexport(_frontdesk_focus_cases)
+
+
+def _ready_doctor_report() -> SimpleNamespace:
+    return SimpleNamespace(
+        workspace_exists=True,
+        runtime_exists=True,
+        studies_exists=True,
+        portfolio_exists=True,
+        med_deepscientist_runtime_exists=True,
+        medical_overlay_ready=True,
+        external_runtime_contract={"ready": True},
+        workspace_supervision_contract={
+            "status": "loaded",
+            "loaded": True,
+            "summary": "Hermes-hosted runtime supervision 已在线。",
+            "drift_reasons": [],
+        },
+    )
+
+
+def _ready_supervision() -> dict[str, object]:
+    return {
+        "manager": "launchd",
+        "status": "loaded",
+        "loaded": True,
+        "job_exists": True,
+        "summary": "Hermes-hosted runtime supervision 已在线。",
+        "drift_reasons": [],
+    }
+
+
+def _ready_mainline_status() -> dict[str, object]:
+    return {
+        "program_id": "research-foundry-medical-mainline",
+        "current_stage": {
+            "id": "paper_readiness_product_entry",
+            "status": "in_progress",
+            "summary": "Medical Paper Readiness surface 正在接入 product entry。",
+        },
+    }
+
+
+def _base_progress_payload(*, study_id: str) -> dict[str, object]:
+    return {
+        "study_id": study_id,
+        "current_stage": "publication_supervision",
+        "current_stage_summary": "当前 study 处于医学论文能力闭环监管。",
+        "current_blockers": [],
+        "next_system_action": "继续观察 readiness surface。",
+        "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id " + study_id,
+        "supervision": {
+            "browser_url": "http://127.0.0.1:20999",
+            "quest_session_api_url": "http://127.0.0.1:20999/api/quests/" + study_id + "/session",
+            "active_run_id": "run-readiness",
+            "health_status": "live",
+            "supervisor_tick_status": "fresh",
+        },
+        "progress_freshness": {"status": "fresh"},
+    }
+
+
+def test_workspace_cockpit_passes_through_medical_paper_readiness_from_study_progress(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    write_study(profile.workspace_root, "001-risk")
+    next_action = {
+        "action_id": "complete_medical_paper_readiness_surface",
+        "surface_key": "literature_scout",
+        "summary": "补齐 Literature Scout OS 后再继续自动论文链路。",
+    }
+    readiness = {
+        "surface": "medical_paper_readiness",
+        "read_model": "medical_paper_readiness_read_model",
+        "authority": "observability_projection_only",
+        "overall_status": "blocked",
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+        "ready_count": 2,
+        "required_count": 7,
+        "next_action": next_action,
+        "capability_surfaces": [
+            {
+                "surface_key": "literature_scout",
+                "label": "Literature Scout OS",
+                "status": "missing",
+                "missing_reason": "missing_canonical_artifact",
+                "required_for_ready": True,
+            }
+        ],
+    }
+
+    monkeypatch.setattr(module, "build_doctor_report", lambda profile: _ready_doctor_report())
+    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: _ready_supervision())
+    monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
+    )
+
+    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    markdown = module.render_workspace_cockpit_markdown(payload)
+
+    study_item = payload["studies"][0]
+    assert study_item["medical_paper_readiness"] == readiness
+    assert payload["medical_paper_readiness_state"]["authority"] == "observability_projection_only"
+    assert payload["medical_paper_readiness_state"]["counts"]["attention_required"] == 1
+    assert payload["medical_paper_readiness_state"]["studies"][0]["overall_status"] == "blocked"
+    assert payload["medical_paper_readiness_state"]["studies"][0]["next_action"] == next_action
+    attention = [item for item in payload["attention_queue"] if item["code"] == "medical_paper_readiness_gap"]
+    assert attention
+    assert attention[0]["study_id"] == "001-risk"
+    assert attention[0]["medical_paper_readiness"]["quality_claim_authorized"] is False
+    assert attention[0]["medical_paper_readiness"]["mechanical_projection_can_authorize_quality"] is False
+    assert attention[0]["summary"] == "补齐 Literature Scout OS 后再继续自动论文链路。"
+    assert "Medical Paper Readiness" in markdown
+    assert "overall_status: `blocked`" in markdown
+    assert "下一步: 补齐 Literature Scout OS 后再继续自动论文链路。" in markdown
+    assert "quality authorization: projection-only" in markdown
+    assert "补齐 Literature Scout OS 后再继续自动论文链路。" in markdown
+
+
+def test_workspace_cockpit_builds_medical_paper_readiness_projection_when_progress_lacks_it(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    study_root = write_study(profile.workspace_root, "001-risk")
+    built_readiness = {
+        "surface": "medical_paper_readiness",
+        "overall_status": "missing",
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+        "ready_count": 0,
+        "required_count": 7,
+        "next_action": {
+            "action_id": "complete_medical_paper_readiness_surface",
+            "surface_key": "literature_scout",
+            "summary": "补齐 Literature Scout OS 后再继续自动论文链路。",
+        },
+        "capability_surfaces": [],
+    }
+    captured_roots: list[Path] = []
+
+    def fake_build_readiness(*, study_root: Path) -> dict[str, object]:
+        captured_roots.append(study_root)
+        return built_readiness
+
+    monkeypatch.setattr(module, "build_doctor_report", lambda profile: _ready_doctor_report())
+    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: _ready_supervision())
+    monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
+    monkeypatch.setattr(module.medical_paper_readiness, "build_medical_paper_readiness_surface", fake_build_readiness)
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **kwargs: _base_progress_payload(study_id="001-risk"),
+    )
+
+    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+
+    assert captured_roots == [study_root]
+    assert payload["studies"][0]["medical_paper_readiness"]["overall_status"] == "missing"
+    assert payload["studies"][0]["medical_paper_readiness"]["source"] == "read_projection"
+    assert payload["studies"][0]["medical_paper_readiness"]["authority"] == "observability_projection_only"
+    assert payload["studies"][0]["medical_paper_readiness"]["quality_claim_authorized"] is False
+    assert payload["studies"][0]["medical_paper_readiness"]["mechanical_projection_can_authorize_quality"] is False
+    assert payload["medical_paper_readiness_state"]["status"] == "attention_required"

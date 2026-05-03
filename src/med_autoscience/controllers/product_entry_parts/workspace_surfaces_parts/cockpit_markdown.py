@@ -72,6 +72,32 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             )
     else:
         lines.append("- 当前还没有 workspace 级监管汇总。")
+    lines.extend(["", "## 自动医学论文能力闭环 / Medical Paper Readiness", ""])
+    readiness_state = dict(payload.get("medical_paper_readiness_state") or {})
+    if readiness_state:
+        counts = dict(readiness_state.get("counts") or {})
+        lines.append(f"- 当前 readiness 摘要: {readiness_state.get('summary') or 'none'}")
+        lines.append(
+            "- 当前计数: "
+            f"已接入 {counts.get('projected_count', 0)}；"
+            f"ready {counts.get('ready', 0)}；"
+            f"需要关注 {counts.get('attention_required', 0)}；"
+            f"missing {counts.get('missing', 0)}"
+        )
+        for study in readiness_state.get("studies") or []:
+            if not isinstance(study, Mapping):
+                continue
+            next_action = dict(study.get("next_action") or {})
+            lines.append(
+                f"- `{study.get('study_id') or 'unknown-study'}` overall_status: "
+                f"`{study.get('overall_status') or 'unknown'}` "
+                f"({study.get('ready_count', 0)}/{study.get('required_count', 0)})"
+            )
+            if next_action.get("summary"):
+                lines.append(f"  下一步: {next_action.get('summary')}")
+            lines.append("  quality authorization: projection-only")
+    else:
+        lines.append("- 当前还没有 Medical Paper Readiness projection。")
     lines.extend(["", "## AI-first Operations", ""])
     ai_first_operations_state = dict(payload.get("ai_first_operations_state") or {})
     if ai_first_operations_state:
@@ -256,6 +282,15 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             )
             if gate_clearing_followthrough_preview:
                 lines.append(f"  gate-clearing 跟进: {gate_clearing_followthrough_preview}")
+            readiness = dict(item.get("medical_paper_readiness") or {})
+            if readiness:
+                next_action = dict(readiness.get("next_action") or {})
+                lines.append(
+                    "  Medical Paper Readiness: "
+                    f"{readiness.get('overall_status') or 'unknown'}；"
+                    f"{next_action.get('summary') or 'no next action'}；"
+                    "projection-only"
+                )
             restore_point = dict(autonomy_contract.get("restore_point") or {})
             if restore_point.get("summary"):
                 lines.append(f"  恢复点: {restore_point.get('summary')}")
@@ -352,6 +387,15 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         )
         if gate_clearing_followthrough_preview:
             lines.append(f"- gate-clearing 跟进: {gate_clearing_followthrough_preview}")
+        readiness = dict(item.get("medical_paper_readiness") or {})
+        if readiness:
+            next_action = dict(readiness.get("next_action") or {})
+            lines.append(
+                "- Medical Paper Readiness: "
+                f"overall_status `{readiness.get('overall_status') or 'unknown'}`；"
+                f"下一步: {next_action.get('summary') or 'none'}；"
+                "quality authorization: projection-only"
+            )
         restore_point = dict(autonomy_contract.get("restore_point") or {})
         if restore_point.get("summary"):
             lines.append(f"- 恢复点: {restore_point.get('summary')}")

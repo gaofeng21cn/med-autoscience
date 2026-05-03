@@ -25,6 +25,7 @@ def _attention_item(
     autonomy_soak_status: dict[str, Any] | None = None,
     research_runtime_control_projection: dict[str, Any] | None = None,
     study_truth_snapshot: dict[str, Any] | None = None,
+    medical_paper_readiness: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "priority": _ATTENTION_PRIORITIES.get(code, 999),
@@ -47,6 +48,7 @@ def _attention_item(
         "autonomy_soak_status": dict(autonomy_soak_status or {}) or None,
         "research_runtime_control_projection": dict(research_runtime_control_projection or {}) or None,
         "study_truth_snapshot": dict(study_truth_snapshot or {}) or None,
+        "medical_paper_readiness": dict(medical_paper_readiness or {}) or None,
     }
 
 
@@ -357,6 +359,27 @@ def _attention_queue(
         autonomy_soak_status = dict(item.get("autonomy_soak_status") or {})
         research_runtime_control_projection = dict(item.get("research_runtime_control_projection") or {})
         study_truth_snapshot = dict(item.get("study_truth_snapshot") or {})
+        medical_paper_readiness_surface = dict(item.get("medical_paper_readiness") or {})
+        readiness_status = _non_empty_text(medical_paper_readiness_surface.get("overall_status"))
+        readiness_next_action = dict(medical_paper_readiness_surface.get("next_action") or {})
+        if readiness_status in {"missing", "blocked", "partial"}:
+            readiness_summary = (
+                _non_empty_text(readiness_next_action.get("summary"))
+                or "Medical Paper Readiness projection 显示自动医学论文能力闭环仍有缺口。"
+            )
+            queue.append(
+                _attention_item(
+                    code="medical_paper_readiness_gap",
+                    title=f"{study_id} Medical Paper Readiness 仍有缺口",
+                    summary=readiness_summary,
+                    recommended_step_id=_non_empty_text(readiness_next_action.get("action_id"))
+                    or "inspect_medical_paper_readiness",
+                    recommended_command=_non_empty_text(((item.get("commands") or {}).get("progress"))),
+                    scope="study",
+                    study_id=study_id,
+                    medical_paper_readiness=medical_paper_readiness_surface,
+                )
+            )
         gate_clearing_summary = _gate_clearing_followthrough_summary(gate_clearing_followthrough)
         quality_repair_step_id = _non_empty_text(quality_repair_followthrough.get("recommended_step_id"))
         quality_repair_command = _non_empty_text(quality_repair_followthrough.get("recommended_command"))

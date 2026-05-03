@@ -60,6 +60,9 @@ def _study_item(
     dispatch_ledger = dict(progress_payload.get("dispatch_ledger") or {})
     publication_eval = dict(progress_payload.get("publication_eval") or {})
     paper_orchestra_operator_projection = dict(progress_payload.get("paper_orchestra_operator_projection") or {})
+    medical_paper_readiness_surface = _normalized_medical_paper_readiness_projection(
+        progress_payload.get("medical_paper_readiness")
+    )
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
     runtime_health_snapshot = _runtime_health_snapshot_summary(progress_payload.get("runtime_health_snapshot"))
@@ -114,6 +117,7 @@ def _study_item(
         "dispatch_ledger": dispatch_ledger or None,
         "publication_eval": publication_eval or None,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
+        "medical_paper_readiness": medical_paper_readiness_surface or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
@@ -122,6 +126,91 @@ def _study_item(
         "task_intake": task_intake or None,
         "progress_freshness": progress_freshness or None,
         "commands": commands,
+    }
+
+
+def _normalized_medical_paper_readiness_projection(value: object) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    readiness = dict(value)
+    readiness.setdefault("read_model", "medical_paper_readiness_read_model")
+    readiness.setdefault("authority", "observability_projection_only")
+    readiness["quality_claim_authorized"] = False
+    readiness["mechanical_projection_can_authorize_quality"] = False
+    return readiness
+
+
+def _read_medical_paper_readiness_projection(*, study_root: Path) -> dict[str, Any]:
+    readiness = _normalized_medical_paper_readiness_projection(
+        medical_paper_readiness.build_medical_paper_readiness_surface(study_root=study_root)
+    )
+    if readiness:
+        readiness.setdefault("source", "read_projection")
+    return readiness
+
+
+def _workspace_medical_paper_readiness_state(*, studies: list[dict[str, Any]]) -> dict[str, Any]:
+    projections = [
+        dict(item.get("medical_paper_readiness") or {})
+        for item in studies
+        if isinstance(item.get("medical_paper_readiness"), Mapping)
+    ]
+    counts = {
+        "study_count": len(studies),
+        "projected_count": len(projections),
+        "ready": 0,
+        "attention_required": 0,
+        "missing": 0,
+    }
+    study_summaries: list[dict[str, Any]] = []
+    for item, readiness in zip(
+        [study for study in studies if isinstance(study.get("medical_paper_readiness"), Mapping)],
+        projections,
+        strict=False,
+    ):
+        overall_status = _non_empty_text(readiness.get("overall_status")) or "unknown"
+        if overall_status == "ready":
+            counts["ready"] += 1
+        elif overall_status == "missing":
+            counts["missing"] += 1
+            counts["attention_required"] += 1
+        else:
+            counts["attention_required"] += 1
+        study_summaries.append(
+            {
+                "study_id": item.get("study_id"),
+                "overall_status": overall_status,
+                "ready_count": readiness.get("ready_count"),
+                "required_count": readiness.get("required_count"),
+                "next_action": dict(readiness.get("next_action") or {}),
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+                "authority": _non_empty_text(readiness.get("authority")) or "observability_projection_only",
+            }
+        )
+    if counts["projected_count"] == 0:
+        status = "not_available"
+        summary = "当前还没有可见 Medical Paper Readiness projection。"
+    elif counts["attention_required"]:
+        status = "attention_required"
+        summary = (
+            f"{counts['projected_count']} 个 study 已接入 Medical Paper Readiness projection；"
+            f"{counts['attention_required']} 个仍有 readiness 缺口。"
+        )
+    else:
+        status = "ready"
+        summary = (
+            f"{counts['projected_count']} 个 study 已接入 Medical Paper Readiness projection；"
+            "当前自动医学论文能力闭环没有新的可见缺口。"
+        )
+    return {
+        "surface_kind": "workspace_medical_paper_readiness_state",
+        "read_model": "medical_paper_readiness_read_model",
+        "authority": "observability_projection_only",
+        "status": status,
+        "summary": summary,
+        "counts": counts,
+        "studies": study_summaries,
     }
 
 
@@ -202,6 +291,8 @@ def _workspace_cockpit_study_snapshot(
         study_root=study_root,
     )
     item = _study_item(progress_payload=progress_payload, profile_ref=profile_ref)
+    if not item.get("medical_paper_readiness"):
+        item["medical_paper_readiness"] = _read_medical_paper_readiness_projection(study_root=study_root) or None
     alerts = list(item["current_blockers"])
     progress_freshness = dict(item.get("progress_freshness") or {})
     progress_summary = _non_empty_text(progress_freshness.get("summary"))
@@ -270,6 +361,7 @@ def read_workspace_cockpit(
         studies=studies,
         commands=commands,
     )
+    medical_paper_readiness_state = _workspace_medical_paper_readiness_state(studies=studies)
     ai_first_operations_state = _workspace_ai_first_operations_state(studies=studies)
     ai_first_cross_study_completion_projection = _workspace_ai_first_cross_study_completion_projection(
         study_roots=study_roots,
@@ -298,6 +390,7 @@ def read_workspace_cockpit(
         "mainline_snapshot": mainline_snapshot,
         "workspace_alerts": workspace_alerts,
         "workspace_supervision": workspace_supervision,
+        "medical_paper_readiness_state": medical_paper_readiness_state,
         "ai_first_operations_state": ai_first_operations_state,
         "ai_first_cross_study_completion_projection": ai_first_cross_study_completion_projection,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection,

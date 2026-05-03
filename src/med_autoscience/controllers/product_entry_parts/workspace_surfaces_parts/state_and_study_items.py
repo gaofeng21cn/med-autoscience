@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from med_autoscience.controllers import medical_paper_readiness
+
 from .workspace_attention import (
     _attention_queue,
     _autonomy_soak_focus,
