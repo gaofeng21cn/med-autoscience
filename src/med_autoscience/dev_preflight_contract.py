@@ -18,6 +18,32 @@ class ClassificationResult:
     unclassified_changes: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class PreflightCoveragePathFamily:
+    family_id: str
+    exact_paths: tuple[str, ...]
+    prefix_paths: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class PreflightCoverageFamilyAudit:
+    family_id: str
+    explicit_categories: tuple[str, ...]
+    explicit_classified_paths: tuple[str, ...]
+    generic_python_regression_paths: tuple[str, ...]
+    fail_closed_paths: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class PreflightCoverageAudit:
+    family_audits: tuple[PreflightCoverageFamilyAudit, ...]
+    explicit_classified_paths: tuple[str, ...]
+    generic_python_regression_paths: tuple[str, ...]
+    fail_closed_paths: tuple[str, ...]
+    generic_python_regression_families: tuple[str, ...]
+    fail_closed_families: tuple[str, ...]
+
+
 GENERIC_PYTHON_REGRESSION_CATEGORY = "generic_python_regression_surface"
 
 
@@ -292,6 +318,41 @@ _GENERIC_PYTHON_REGRESSION_COMMANDS = (
     "make test-regression",
 )
 
+_DEFAULT_COVERAGE_PATH_FAMILIES: tuple[PreflightCoveragePathFamily, ...] = (
+    PreflightCoveragePathFamily(
+        family_id="source_root",
+        exact_paths=(),
+        prefix_paths=("src/med_autoscience/",),
+    ),
+    PreflightCoveragePathFamily(
+        family_id="test_root",
+        exact_paths=(),
+        prefix_paths=("tests/",),
+    ),
+    PreflightCoveragePathFamily(
+        family_id="runtime_docs",
+        exact_paths=(),
+        prefix_paths=("docs/runtime/",),
+    ),
+    PreflightCoveragePathFamily(
+        family_id="program_docs",
+        exact_paths=(),
+        prefix_paths=("docs/program/",),
+    ),
+    PreflightCoveragePathFamily(
+        family_id="workflow_config",
+        exact_paths=(
+            "Makefile",
+            "pyproject.toml",
+            "uv.lock",
+        ),
+        prefix_paths=(
+            ".github/workflows/",
+            "scripts/",
+        ),
+    ),
+)
+
 
 def _normalize_changed_file(path: str) -> str:
     return path.strip().replace("\\", "/").removeprefix("./")
@@ -301,6 +362,12 @@ def _matches_spec(*, normalized_path: str, spec: PreflightCategorySpec) -> bool:
     if normalized_path in spec.exact_paths:
         return True
     return any(normalized_path.startswith(prefix) for prefix in spec.prefix_paths)
+
+
+def _matches_path_family(*, normalized_path: str, family: PreflightCoveragePathFamily) -> bool:
+    if normalized_path in family.exact_paths:
+        return True
+    return any(normalized_path.startswith(prefix) for prefix in family.prefix_paths)
 
 
 def classify_changed_files(changed_files: Sequence[str]) -> ClassificationResult:
@@ -334,6 +401,83 @@ def classify_changed_files(changed_files: Sequence[str]) -> ClassificationResult
 def is_generic_python_change(path: str) -> bool:
     normalized_path = _normalize_changed_file(path)
     return normalized_path.endswith(".py") and normalized_path.startswith(_GENERIC_PYTHON_PREFIXES)
+
+
+def _explicit_categories_for_path(normalized_path: str) -> tuple[str, ...]:
+    return tuple(
+        spec.category_id
+        for spec in _CATEGORY_SPECS
+        if _matches_spec(normalized_path=normalized_path, spec=spec)
+    )
+
+
+def _append_unique(values: list[str], candidates: Iterable[str]) -> None:
+    for candidate in candidates:
+        if candidate not in values:
+            values.append(candidate)
+
+
+def audit_preflight_contract_coverage(
+    repo_tracked_paths: Sequence[str],
+    *,
+    path_families: Sequence[PreflightCoveragePathFamily] = _DEFAULT_COVERAGE_PATH_FAMILIES,
+) -> PreflightCoverageAudit:
+    normalized_paths = tuple(
+        normalized_path
+        for path in repo_tracked_paths
+        if (normalized_path := _normalize_changed_file(str(path)))
+    )
+    family_audits: list[PreflightCoverageFamilyAudit] = []
+    all_explicit_classified_paths: list[str] = []
+    all_generic_python_regression_paths: list[str] = []
+    all_fail_closed_paths: list[str] = []
+    generic_python_regression_families: list[str] = []
+    fail_closed_families: list[str] = []
+
+    for family in path_families:
+        family_paths = tuple(
+            path for path in normalized_paths if _matches_path_family(normalized_path=path, family=family)
+        )
+        explicit_categories: list[str] = []
+        explicit_classified_paths: list[str] = []
+        generic_python_regression_paths: list[str] = []
+        fail_closed_paths: list[str] = []
+
+        for path in family_paths:
+            categories = _explicit_categories_for_path(path)
+            if categories:
+                _append_unique(explicit_categories, categories)
+                explicit_classified_paths.append(path)
+            elif is_generic_python_change(path):
+                generic_python_regression_paths.append(path)
+            else:
+                fail_closed_paths.append(path)
+
+        if generic_python_regression_paths:
+            generic_python_regression_families.append(family.family_id)
+        if fail_closed_paths:
+            fail_closed_families.append(family.family_id)
+        _append_unique(all_explicit_classified_paths, explicit_classified_paths)
+        _append_unique(all_generic_python_regression_paths, generic_python_regression_paths)
+        _append_unique(all_fail_closed_paths, fail_closed_paths)
+        family_audits.append(
+            PreflightCoverageFamilyAudit(
+                family_id=family.family_id,
+                explicit_categories=tuple(explicit_categories),
+                explicit_classified_paths=tuple(explicit_classified_paths),
+                generic_python_regression_paths=tuple(generic_python_regression_paths),
+                fail_closed_paths=tuple(fail_closed_paths),
+            )
+        )
+
+    return PreflightCoverageAudit(
+        family_audits=tuple(family_audits),
+        explicit_classified_paths=tuple(all_explicit_classified_paths),
+        generic_python_regression_paths=tuple(all_generic_python_regression_paths),
+        fail_closed_paths=tuple(all_fail_closed_paths),
+        generic_python_regression_families=tuple(generic_python_regression_families),
+        fail_closed_families=tuple(fail_closed_families),
+    )
 
 
 def plan_commands_for_categories(categories: Iterable[str]) -> list[str]:

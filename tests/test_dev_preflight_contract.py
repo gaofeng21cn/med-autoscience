@@ -88,6 +88,98 @@ def test_classify_changed_files_keeps_unknown_docs_fail_closed() -> None:
     assert result.unclassified_changes == ("docs/program/new_runtime_contract.md",)
 
 
+def test_audit_preflight_contract_coverage_identifies_explicit_classification() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    audit = module.audit_preflight_contract_coverage(
+        ["src/med_autoscience/controllers/study_runtime_router.py"],
+        path_families=(
+            module.PreflightCoveragePathFamily(
+                family_id="controller_sources",
+                exact_paths=(),
+                prefix_paths=("src/med_autoscience/controllers/",),
+            ),
+        ),
+    )
+
+    assert audit.explicit_classified_paths == (
+        "src/med_autoscience/controllers/study_runtime_router.py",
+    )
+    assert audit.generic_python_regression_paths == ()
+    assert audit.fail_closed_paths == ()
+    assert audit.family_audits[0].explicit_categories == ("runtime_contract_surface",)
+    assert audit.family_audits[0].explicit_classified_paths == (
+        "src/med_autoscience/controllers/study_runtime_router.py",
+    )
+
+
+def test_audit_preflight_contract_coverage_marks_generic_python_fallback() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    audit = module.audit_preflight_contract_coverage(
+        [
+            "src/med_autoscience/controllers/new_controller.py",
+            "tests/test_new_controller.py",
+        ],
+        path_families=(
+            module.PreflightCoveragePathFamily(
+                family_id="controller_sources",
+                exact_paths=(),
+                prefix_paths=("src/med_autoscience/controllers/",),
+            ),
+            module.PreflightCoveragePathFamily(
+                family_id="test_sources",
+                exact_paths=(),
+                prefix_paths=("tests/",),
+            ),
+        ),
+    )
+
+    assert audit.explicit_classified_paths == ()
+    assert audit.generic_python_regression_paths == (
+        "src/med_autoscience/controllers/new_controller.py",
+        "tests/test_new_controller.py",
+    )
+    assert audit.fail_closed_paths == ()
+    assert audit.generic_python_regression_families == (
+        "controller_sources",
+        "test_sources",
+    )
+
+
+def test_audit_preflight_contract_coverage_keeps_unknown_non_python_fail_closed() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    audit = module.audit_preflight_contract_coverage(
+        [
+            "docs/program/new_runtime_contract.md",
+            ".github/workflows/new-release.yml",
+            "tox.ini",
+        ],
+        path_families=(
+            module.PreflightCoveragePathFamily(
+                family_id="program_docs",
+                exact_paths=(),
+                prefix_paths=("docs/program/",),
+            ),
+            module.PreflightCoveragePathFamily(
+                family_id="workflow_config",
+                exact_paths=("tox.ini",),
+                prefix_paths=(".github/workflows/",),
+            ),
+        ),
+    )
+
+    assert audit.explicit_classified_paths == ()
+    assert audit.generic_python_regression_paths == ()
+    assert audit.fail_closed_paths == (
+        "docs/program/new_runtime_contract.md",
+        ".github/workflows/new-release.yml",
+        "tox.ini",
+    )
+    assert audit.fail_closed_families == ("program_docs", "workflow_config")
+
+
 def test_classify_changed_files_matches_control_plane_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
