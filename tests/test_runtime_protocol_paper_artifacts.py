@@ -277,6 +277,34 @@ def test_resolve_submission_minimal_output_paths_from_manifest(tmp_path: Path) -
     assert pdf_path == pdf
 
 
+def test_submission_minimal_artifact_authority_uses_lifecycle_kernel_shape(tmp_path: Path) -> None:
+    paper_bundle_manifest = tmp_path / "worktree" / "paper" / "paper_bundle_manifest.json"
+    dump_json(paper_bundle_manifest, {"schema_version": 1})
+    submission_manifest = {
+        "manuscript": {
+            "docx_path": "paper/submission_minimal/manuscript.docx",
+            "pdf_path": "paper/submission_minimal/paper.pdf",
+        }
+    }
+
+    resolution = paper_artifacts.resolve_submission_minimal_artifact_authority(
+        paper_bundle_manifest_path=paper_bundle_manifest,
+        submission_minimal_manifest=submission_manifest,
+    )
+
+    assert resolution["docx"]["role"] == "derived_projection"
+    assert resolution["docx"]["owner"] == "artifact_lifecycle_authority_kernel"
+    assert resolution["docx"]["authority_allowed"] == {"edit": False, "quality": False, "dispatch": False}
+    assert resolution["docx"]["projection_currentness"] == "projection_only"
+    assert resolution["pdf"]["role"] == "derived_projection"
+    assert resolution["pdf"]["owner"] == "artifact_lifecycle_authority_kernel"
+    assert resolution["pdf"]["authority_allowed"] == {"edit": False, "quality": False, "dispatch": False}
+    assert resolution["pdf"]["projection_currentness"] == "projection_only"
+    assert resolution["submission_minimal_edit_source_allowed"] is False
+    assert resolution["submission_minimal_quality_authority_allowed"] is False
+    assert resolution["submission_minimal_dispatch_authority_allowed"] is False
+
+
 def test_resolve_submission_minimal_paths_follow_authoritative_projected_paper_line(tmp_path: Path) -> None:
     quest_root = tmp_path / "runtime" / "quests" / "q001"
     projected_manifest = quest_root / "paper" / "paper_bundle_manifest.json"
