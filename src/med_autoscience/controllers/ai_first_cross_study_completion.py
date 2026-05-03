@@ -222,6 +222,20 @@ def _human_review_required(
     return feedback_user.get("human_review_required") is True
 
 
+def _external_owner_state(progress_snapshot: Mapping[str, Any]) -> dict[str, Any]:
+    owner = _text(
+        progress_snapshot.get("external_owner")
+        or progress_snapshot.get("external_runtime_owner")
+        or progress_snapshot.get("parked_owner"),
+        "unknown",
+    )
+    return {
+        "owner": owner,
+        "present": owner != "unknown",
+        "authority_contract": _authority_contract(),
+    }
+
+
 def _feedback_summary(feedback_state: Mapping[str, Any]) -> dict[str, Any]:
     counts = _mapping(feedback_state.get("counts"))
     primary_action = _mapping(feedback_state.get("primary_action"))
@@ -263,14 +277,22 @@ def _build_study_item(
     *,
     study_root: Path,
     progress_snapshot: Mapping[str, Any],
+    use_study_root_artifact_fallbacks: bool = True,
 ) -> dict[str, Any]:
-    feedback_state = _mapping(progress_snapshot.get("ai_first_feedback_state")) or _feedback_state_from_root(study_root)
-    dispatch_ledger = _mapping(progress_snapshot.get("dispatch_ledger")) or _dispatch_ledger_from_root(study_root)
+    feedback_state = _mapping(progress_snapshot.get("ai_first_feedback_state"))
+    if not feedback_state and use_study_root_artifact_fallbacks:
+        feedback_state = _feedback_state_from_root(study_root)
+    dispatch_ledger = _mapping(progress_snapshot.get("dispatch_ledger"))
+    if not dispatch_ledger and use_study_root_artifact_fallbacks:
+        dispatch_ledger = _dispatch_ledger_from_root(study_root)
     artifact_proof = (
         _mapping(_mapping(progress_snapshot.get("ai_first_default_entry_state")).get("artifact_proof"))
-        or _artifact_proof_from_root(study_root)
     )
-    publication_eval = _mapping(progress_snapshot.get("publication_eval")) or _publication_eval_from_root(study_root)
+    if not artifact_proof and use_study_root_artifact_fallbacks:
+        artifact_proof = _artifact_proof_from_root(study_root)
+    publication_eval = _mapping(progress_snapshot.get("publication_eval"))
+    if not publication_eval and use_study_root_artifact_fallbacks:
+        publication_eval = _publication_eval_from_root(study_root)
     feedback = _feedback_summary(feedback_state)
     dispatch = _dispatch_state(dispatch_ledger)
     ai_reviewer = _ai_reviewer_authority(
@@ -278,6 +300,7 @@ def _build_study_item(
         publication_eval=publication_eval,
     )
     artifact = _artifact_state(artifact_proof)
+    external_owner = _external_owner_state(progress_snapshot)
     human_review_required = _human_review_required(
         progress_snapshot=progress_snapshot,
         feedback_state=feedback_state,
@@ -312,6 +335,7 @@ def _build_study_item(
             "ai_reviewer_authority": ai_reviewer,
             "artifact_proof": artifact,
             "human_review": {"required": human_review_required},
+            "external_owner": external_owner,
             "redacted_fields": _redacted_fields(
                 progress_snapshot,
                 feedback_state,
@@ -328,15 +352,19 @@ def build_ai_first_cross_study_completion_projection(
     studies_root: str | Path | None = None,
     study_roots: list[str | Path] | None = None,
     progress_snapshots: Mapping[str, Mapping[str, Any]] | None = None,
+    use_study_root_artifact_fallbacks: bool = True,
 ) -> dict[str, Any]:
     roots = [Path(path).expanduser() for path in (study_roots or [])]
     if studies_root is not None:
         roots.extend(path for path in _study_roots_from_studies_root(studies_root) if path not in roots)
     snapshot_by_study = progress_snapshots or {}
+    if not roots and snapshot_by_study:
+        roots = [Path(study_id) for study_id in sorted(snapshot_by_study)]
     study_items = [
         _build_study_item(
             study_root=root,
             progress_snapshot=_mapping(snapshot_by_study.get(root.name)),
+            use_study_root_artifact_fallbacks=use_study_root_artifact_fallbacks,
         )
         for root in sorted(roots)
     ]

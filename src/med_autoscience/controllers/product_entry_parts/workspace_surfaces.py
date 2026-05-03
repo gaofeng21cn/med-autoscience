@@ -195,6 +195,23 @@ def _workspace_ai_first_operations_state(*, studies: list[dict[str, Any]]) -> di
     }
 
 
+def _workspace_ai_first_cross_study_completion_projection(
+    *,
+    study_roots: list[Path],
+    studies: list[dict[str, Any]],
+) -> dict[str, Any]:
+    progress_snapshots = {
+        str(item.get("study_id") or "").strip(): dict(item)
+        for item in studies
+        if str(item.get("study_id") or "").strip()
+    }
+    return ai_first_cross_study_completion.build_ai_first_cross_study_completion_projection(
+        study_roots=study_roots,
+        progress_snapshots=progress_snapshots,
+        use_study_root_artifact_fallbacks=False,
+    )
+
+
 def _ai_first_operations_study_projection(item: Mapping[str, Any]) -> dict[str, Any] | None:
     feedback_state = dict(item.get("ai_first_feedback_state") or {})
     action_lifecycle = dict(item.get("ai_first_action_dispatch_lifecycle") or {})
@@ -326,7 +343,7 @@ def _ai_first_default_entry_state_projection(
         "manual_judgment",
         "human_review",
     )
-    blockers = _normalized_strings(default_state.get("blockers") or default_state.get("attention"))
+    blockers = _normalized_strings(default_state.get("blockers") or default_state.get("attention") or [])
     human_review_required = (
         _state_bool(human_judgment, "required", "human_review_required", "manual_judgment_required")
         or bool(default_state.get("human_review_required"))
@@ -587,6 +604,8 @@ def _study_item(
     ai_first_action_dispatch_lifecycle = dict(
         progress_payload.get("ai_first_action_dispatch_lifecycle") or {}
     )
+    dispatch_ledger = dict(progress_payload.get("dispatch_ledger") or {})
+    publication_eval = dict(progress_payload.get("publication_eval") or {})
     paper_orchestra_operator_projection = dict(progress_payload.get("paper_orchestra_operator_projection") or {})
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
@@ -614,6 +633,8 @@ def _study_item(
         "auto_runtime_parked": auto_runtime_parked or None,
         "parked_state": progress_payload.get("parked_state"),
         "parked_owner": progress_payload.get("parked_owner"),
+        "external_owner": progress_payload.get("external_owner"),
+        "external_runtime_owner": progress_payload.get("external_runtime_owner"),
         "resource_release_expected": progress_payload.get("resource_release_expected"),
         "awaiting_explicit_wakeup": progress_payload.get("awaiting_explicit_wakeup"),
         "auto_execution_complete": progress_payload.get("auto_execution_complete"),
@@ -635,6 +656,8 @@ def _study_item(
         "ai_first_operations_dashboard": ai_first_operations_dashboard or None,
         "ai_first_feedback_state": ai_first_feedback_state or None,
         "ai_first_action_dispatch_lifecycle": ai_first_action_dispatch_lifecycle or None,
+        "dispatch_ledger": dispatch_ledger or None,
+        "publication_eval": publication_eval or None,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
         "recovery_contract": recovery_contract or None,
@@ -775,6 +798,10 @@ def read_workspace_cockpit(
         commands=commands,
     )
     ai_first_operations_state = _workspace_ai_first_operations_state(studies=studies)
+    ai_first_cross_study_completion_projection = _workspace_ai_first_cross_study_completion_projection(
+        study_roots=study_roots,
+        studies=studies,
+    )
     paper_orchestra_operator_projection = build_workspace_paper_orchestra_operator_projection(studies=studies)
     user_loop = _user_loop(profile=profile, profile_ref=profile_ref)
     operator_brief = _workspace_operator_brief(
@@ -799,6 +826,7 @@ def read_workspace_cockpit(
         "workspace_alerts": workspace_alerts,
         "workspace_supervision": workspace_supervision,
         "ai_first_operations_state": ai_first_operations_state,
+        "ai_first_cross_study_completion_projection": ai_first_cross_study_completion_projection,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection,
         "attention_queue": attention_queue,
         "operator_brief": operator_brief,
@@ -944,6 +972,51 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
                 lines.append(f"  产物刷新: {dashboard.get('stale_artifact_count')} 个待刷新")
     else:
         lines.append("- 当前还没有 AI-first operations runtime state。")
+    lines.extend(["", "## AI-first Cross-Study Completion", ""])
+    completion_projection = dict(payload.get("ai_first_cross_study_completion_projection") or {})
+    if completion_projection:
+        user_view = dict(completion_projection.get("user_view") or {})
+        maintainer_view = dict(completion_projection.get("maintainer_view") or {})
+        lines.append(f"- 当前 completion 状态: {user_view.get('status') or completion_projection.get('status') or 'unknown'}")
+        lines.append(
+            "- 当前计数: "
+            f"study {user_view.get('study_count', 0)}；"
+            f"需要关注 {user_view.get('attention_required_count', 0)}；"
+            f"等待人工判断 {user_view.get('human_review_required_count', 0)}；"
+            f"观测不足 {maintainer_view.get('insufficient_observability_count', 0)}"
+        )
+        if user_view.get("primary_next_action"):
+            lines.append(f"- 主下一步: {user_view.get('primary_next_action')}")
+        for study in completion_projection.get("studies") or []:
+            if not isinstance(study, Mapping):
+                continue
+            study_id = study.get("study_id") or "unknown-study"
+            study_user = dict(study.get("user_view") or {})
+            maintainer = dict(study.get("maintainer_view") or {})
+            feedback = dict(maintainer.get("feedback") or {})
+            dispatch = dict(maintainer.get("dispatch") or {})
+            ai_reviewer = dict(maintainer.get("ai_reviewer_authority") or {})
+            artifact = dict(maintainer.get("artifact_proof") or {})
+            human_review = dict(maintainer.get("human_review") or {})
+            external_owner = dict(maintainer.get("external_owner") or {})
+            lines.append(f"- `{study_id}` completion: {study_user.get('status') or study.get('status') or 'unknown'}")
+            lines.append(
+                "  feedback: "
+                f"{feedback.get('open_feedback_count', 0)} open；"
+                f"dispatch: {dispatch.get('open_action_count', 0)} open / {dispatch.get('total_action_count', 0)} total / {dispatch.get('latest_status') or 'unknown'}；"
+                f"AI reviewer: {ai_reviewer.get('owner') or 'unknown'} "
+                f"({'backed' if ai_reviewer.get('reviewer_backed') else 'not backed'})"
+            )
+            lines.append(
+                "  artifact proof: "
+                f"{artifact.get('rebuild_status') or 'unknown'}；"
+                f"human gate: {'open' if human_review.get('required') else 'closed'}；"
+                f"external owner: {external_owner.get('owner') or 'unknown'}"
+            )
+            if study_user.get("next_action"):
+                lines.append(f"  下一步: {study_user.get('next_action')}")
+    else:
+        lines.append("- 当前还没有 cross-study completion projection。")
     lines.extend(render_paper_orchestra_operator_projection_lines(payload.get("paper_orchestra_operator_projection") or {}))
     lines.extend(
         [
