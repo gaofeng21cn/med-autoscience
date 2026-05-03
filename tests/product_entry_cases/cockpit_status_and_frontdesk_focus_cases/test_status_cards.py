@@ -304,4 +304,3 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
     assert payload["attention_queue"][0]["summary"] == "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
     assert payload["operator_brief"]["summary"] == "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
     assert "人类查看面刷新中" in markdown
-

@@ -148,10 +148,3 @@ def test_workspace_cockpit_projects_gate_clearing_followthrough_into_attention_a
         "gate-clearing 跟进: 等待 gate replay；当前已按 gate-clearing batch 回放 deterministic 修复，正在等待新的 publication gate 结论。；看 replay 后的 publication gate 是否收窄 medical_publication_surface_blocked。"
         in markdown
     )
-
-
-
-
-
-
-

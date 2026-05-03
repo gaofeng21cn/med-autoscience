@@ -313,4 +313,3 @@ def _should_refresh_runtime_supervision_from_status(
             (str(latest_report.get("quest_status") or "").strip() or None) != quest_status,
         )
     )
-

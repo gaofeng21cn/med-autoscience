@@ -182,4 +182,3 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
     assert gate_surface["approval_gate_field"] == "needs_user_decision"
     assert gate_surface["legacy_approval_gate_field"] == "needs_physician_decision"
     assert payload["operator_brief"]["current_focus"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
-

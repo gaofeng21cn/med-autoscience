@@ -239,6 +239,12 @@ def test_next_work_unit_limits_gate_clearing_batch_to_analysis_repair_without_su
         "medical_publication_surface_status": "blocked",
         "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
         "study_delivery_status": "current",
+        "blocking_artifact_refs": [
+            {
+                "blocker": "claim_evidence_consistency_failed",
+                "source_path": "paper/claim_evidence_map.json",
+            }
+        ],
     }
 
     monkeypatch.setattr(
@@ -330,6 +336,12 @@ def test_analysis_repair_refreshes_submission_minimal_when_materialization_leave
         "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
         "study_delivery_status": "stale_source_changed",
         "study_delivery_stale_reason": "delivery_manifest_source_changed",
+        "blocking_artifact_refs": [
+            {
+                "blocker": "claim_evidence_consistency_failed",
+                "source_path": "paper/claim_evidence_map.json",
+            }
+        ],
     }
 
     monkeypatch.setattr(
@@ -664,6 +676,12 @@ def test_gate_clearing_batch_records_step_durations_with_monkeypatched_clock(
             "medical_publication_surface_status": "blocked",
             "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
             "study_delivery_status": "current",
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "claim_evidence_consistency_failed",
+                    "source_path": "paper/claim_evidence_map.json",
+                }
+            ],
         },
     )
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))

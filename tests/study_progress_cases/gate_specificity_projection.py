@@ -227,4 +227,150 @@ def test_gate_specificity_supersedes_older_task_intake_route_override(
     assert "analysis-campaign" not in result["next_system_action"]
 
 
+def test_gate_specificity_takes_priority_over_live_activity_timeout(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "study_id": "002-risk",
+            "quest_id": "quest-002",
+            "emitted_at": "2026-05-02T12:22:47+00:00",
+            "verdict": {
+                "overall_verdict": "blocked",
+                "summary": "Gate still names generic publication blockers without concrete targets.",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-005",
+                    "gap_type": "claim",
+                    "severity": "must_fix",
+                    "summary": "claim_evidence_consistency_failed",
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "publication-eval-action::return_to_controller::publication-blockers::specificity",
+                    "action_type": "return_to_controller",
+                    "priority": "now",
+                    "reason": "Gate only named generic blocker labels.",
+                    "requires_controller_decision": True,
+                    "work_unit_fingerprint": "publication-blockers::specificity",
+                    "next_work_unit": {
+                        "unit_id": "gate_needs_specificity",
+                        "lane": "controller",
+                        "summary": "Ask the publication gate to identify concrete blocker targets.",
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",
+        {
+            "surface": "autonomy_progress_slo_status",
+            "schema_version": 1,
+            "study_id": "002-risk",
+            "quest_id": "quest-002",
+            "state": "breach",
+            "breach_types": ["read_churn_without_artifact_delta"],
+            "last_meaningful_progress_at": "2026-05-01T18:30:00+00:00",
+            "mds_progress_markers": {
+                "meaningful_artifact_delta_at": "2026-05-01T18:30:00+00:00",
+                "meaningful_artifact_delta_kind": "paper_bundle",
+            },
+            "ai_doctor_request_required": True,
+            "ai_doctor_state": "request_ready",
+            "quality_gate_relaxation_allowed": False,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "002-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "quest_id": "quest-002",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "runtime_liveness_status": "live",
+            "active_run_id": "run-live-stale",
+            "worker_running": True,
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": "run-live-stale",
+                "runtime_audit": {
+                    "status": "live",
+                    "active_run_id": "run-live-stale",
+                    "worker_running": True,
+                },
+            },
+            "autonomous_runtime_notice": {
+                "required": True,
+                "quest_status": "running",
+                "active_run_id": "run-live-stale",
+                "browser_url": "http://127.0.0.1:20999",
+            },
+            "execution_owner_guard": {
+                "owner": "managed_runtime",
+                "supervisor_only": True,
+                "guard_reason": "live_managed_runtime",
+                "active_run_id": "run-live-stale",
+                "current_required_action": "supervise_managed_runtime",
+                "publication_gate_allows_direct_write": False,
+            },
+            "continuation_state": {
+                "quest_status": "running",
+                "active_run_id": "run-live-stale",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "controller_work_unit_pending",
+            },
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+                "latest_recorded_at": "2026-05-02T10:40:00+00:00",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: datetime(2026, 5, 2, 10, 40, tzinfo=timezone.utc),
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="002-risk")
+
+    assert result["progress_freshness"]["activity_timeout"]["state"] == "timed_out"
+    assert result["intervention_lane"]["lane_id"] == "publication_gate_specificity_required"
+    assert result["operator_status_card"]["handling_state"] == "publication_gate_specificity_required"
+    assert result["operator_verdict"]["lane_id"] == "publication_gate_specificity_required"
+    assert "ordinary runtime recovery" not in result["operator_status_card"]["current_focus"]
+    assert "claim/figure/table/metric/source path" in result["operator_status_card"]["next_confirmation_signal"]
+
+
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

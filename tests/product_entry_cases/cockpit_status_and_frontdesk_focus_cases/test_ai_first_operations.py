@@ -347,4 +347,3 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
     assert "COCKPIT_PROMPT_CANARY" not in markdown
     assert "COCKPIT_RAW_LOG_CANARY" not in markdown
     assert "/tmp/internal.log" not in markdown
-

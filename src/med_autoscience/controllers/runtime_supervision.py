@@ -271,6 +271,15 @@ def needs_recovery_projection(
     return is_auto_continuation_recovery_pending(status_payload, strict_live=resolved_strict_live)
 
 
+def _runtime_health_worker_state(runtime_health_snapshot: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(runtime_health_snapshot, Mapping):
+        return None
+    worker_state = runtime_health_snapshot.get("worker_liveness_state")
+    if not isinstance(worker_state, Mapping):
+        return None
+    return _non_empty_text(worker_state.get("state"))
+
+
 def _status_payload_supervisor_tick_status(status_payload: Mapping[str, Any]) -> str | None:
     supervisor_tick_audit = status_payload.get("supervisor_tick_audit")
     if not isinstance(supervisor_tick_audit, Mapping):
@@ -364,7 +373,7 @@ def materialize_runtime_supervision(
         next_action_summary = "需要人工介入；请回到 MAS 控制面确认当前托管运行策略，并决定是否暂停、重启或接管。"
     elif runtime_health_recovering:
         health_status = "recovering"
-        last_transition = "runtime_health_recovery_required"
+        last_transition = "activity_timeout" if runtime_health_worker_state == "activity_timeout" else "runtime_health_recovery_required"
         consecutive_failure_count = 0
         recovery_attempt_count = max(
             previous_attempt_count,
@@ -372,13 +381,15 @@ def materialize_runtime_supervision(
         )
         needs_human_intervention = False
         if runtime_health_worker_state == "activity_timeout":
-            summary = "live worker 已超过 meaningful artifact delta 活动窗口，系统正在恢复 runtime 产物增量。"
-            clinician_update = "系统确认 live worker 仍在线，但 runtime health 要求先恢复 meaningful artifact delta。"
+            summary = "live worker 已超过 meaningful artifact delta 活动窗口；监管心跳新鲜只能证明监控新鲜，不能证明论文正常推进。"
+            clinician_update = "系统确认 worker 仍在线，但没有新鲜 meaningful artifact delta，当前按恢复态处理。"
+            next_action = "wait_for_meaningful_artifact_delta"
+            next_action_summary = "等待或要求 worker 写出新的 meaningful artifact delta；只有产物增量刷新后才恢复 live 推进投影。"
         else:
             summary = "系统正在自动启动或恢复托管运行。"
             clinician_update = "系统正在推进托管运行进入可监督的 live 状态。"
-        next_action = "wait_for_runtime_recovery_confirmation"
-        next_action_summary = "等待下一次巡检确认 worker 已重新上线并恢复 live。"
+            next_action = "wait_for_runtime_recovery_confirmation"
+            next_action_summary = "等待下一次巡检确认 worker 已重新上线并恢复 live。"
     elif strict_live:
         health_status = "live"
         last_transition = "recovered" if previous_health_status in {"recovering", "degraded", "escalated"} else "live_confirmed"

@@ -184,4 +184,3 @@ def test_matching_controller_decision_requires_same_work_unit_context(tmp_path: 
         status_payload={},
         tick_request=tick_request,
     ) is True
-

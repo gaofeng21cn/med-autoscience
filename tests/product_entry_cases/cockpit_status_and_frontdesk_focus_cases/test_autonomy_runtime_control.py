@@ -182,4 +182,3 @@ def test_workspace_cockpit_attention_queue_carries_runtime_control_pickup_and_ga
         payload["operator_brief"]["research_runtime_control_projection"]["research_gate_surface"]["interrupt_policy"]
         == "human_gate"
     )
-

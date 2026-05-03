@@ -202,4 +202,3 @@ def test_workspace_cockpit_projects_ai_first_cross_study_completion_runtime_stat
     assert "`002-ready` completion: on_track" in markdown
     assert "AI reviewer: ai_reviewer (backed)" in markdown
     assert "artifact proof: current；human gate: closed；external owner: none" in markdown
-

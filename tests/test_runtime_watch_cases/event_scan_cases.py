@@ -886,6 +886,29 @@ def test_publication_eval_action_does_not_dispatch_bounded_analysis_for_non_acti
     assert action.to_dict()["blocking_work_units"][0]["unit_id"] == "gate_needs_specificity"
 
 
+def test_publication_eval_action_clears_same_line_route_for_non_actionable_finalize_gate() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+
+    action = module._publication_eval_action(
+        report={
+            "status": "blocked",
+            "current_required_action": "complete_bundle_stage",
+            "controller_stage_note": "Gate only reports a generic publication blocker without target specificity.",
+            "blockers": ["publication_gate_blocked"],
+        },
+        generated_at="2026-04-05T06:05:00+00:00",
+        evidence_refs=("/tmp/publishability_gate.json",),
+    )
+    payload = action.to_dict()
+
+    assert payload["action_type"] == "return_to_controller"
+    assert payload["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert payload["blocking_work_units"][0]["unit_id"] == "gate_needs_specificity"
+    assert "route_target" not in payload
+    assert "route_key_question" not in payload
+    assert "route_rationale" not in payload
+
+
 def test_publication_eval_action_keeps_stop_loss_even_when_gate_is_non_actionable() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
 

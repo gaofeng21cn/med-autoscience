@@ -316,7 +316,8 @@ def test_runtime_supervision_projects_strict_live_activity_timeout_as_recovering
     assert payload["active_run_id"] == "run-live-stale"
     assert payload["canonical_runtime_action"] == "recover_runtime"
     assert payload["runtime_health_snapshot"]["worker_liveness_state"]["state"] == "activity_timeout"
-    assert payload["next_action"] == "wait_for_runtime_recovery_confirmation"
+    assert payload["last_transition"] == "activity_timeout"
+    assert payload["next_action"] == "wait_for_meaningful_artifact_delta"
     assert payload["needs_human_intervention"] is False
 
 

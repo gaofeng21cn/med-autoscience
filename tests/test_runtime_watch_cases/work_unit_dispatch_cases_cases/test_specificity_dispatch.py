@@ -282,4 +282,3 @@ def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
     assert [item["message_id"] for item in message_queue["completed"]] == ["msg-controller-old"]
     assert message_queue["completed"][0]["status"] == "superseded_by_gate_specificity"
     assert [event["event_type"] for event in ledger_events] == ["needs_specificity"]
-
