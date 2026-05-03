@@ -236,6 +236,47 @@ def test_apply_data_asset_update_upserts_private_release_manifest(tmp_path: Path
     assert Path(result["mutation_log_path"]).exists()
 
 
+def test_apply_data_asset_update_upserts_private_release_manifest_semantic_readiness_fields(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
+    workspace_root = tmp_path / "workspace"
+    release_root = workspace_root / "datasets" / "master" / "v2026-05-04"
+    release_root.mkdir(parents=True, exist_ok=True)
+    (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+
+    result = module.apply_data_asset_update(
+        workspace_root=workspace_root,
+        payload={
+            "action": "upsert_private_release_manifest",
+            "family_id": "master",
+            "version_id": "v2026-05-04",
+            "manifest": {
+                "dataset_id": "paperflow_master",
+                "raw_snapshot": "private_release",
+                "generated_by": "pipeline/build_release.py",
+                "main_outputs": {"analysis_csv": "analysis.csv"},
+                "release_contract": {"semantic_readiness_required": True},
+                "data_dictionary": {"status": "locked", "path": "dictionary/data_dictionary.csv"},
+                "codebook": {"status": "locked", "path": "dictionary/codebook.md"},
+                "derived_variables": {"status": "locked", "path": "dictionary/derived_variables.yaml"},
+                "cohort_accounting": {
+                    "status": "locked",
+                    "source_n": 120,
+                    "analysis_n": 98,
+                    "cohort_flow_path": "cohort/cohort_flow.json",
+                },
+            },
+        },
+    )
+
+    manifest = yaml.safe_load((release_root / "dataset_manifest.yaml").read_text(encoding="utf-8"))
+    assert manifest["data_dictionary"] == {"status": "locked", "path": "dictionary/data_dictionary.csv"}
+    assert manifest["codebook"] == {"status": "locked", "path": "dictionary/codebook.md"}
+    assert manifest["derived_variables"] == {"status": "locked", "path": "dictionary/derived_variables.yaml"}
+    assert manifest["cohort_accounting"]["source_n"] == 120
+    assert result["refresh"]["startup_data_readiness"]["status"] == "attention_needed"
+    assert result["refresh"]["startup_data_readiness"]["private_semantic_readiness"]["blocked_release_count"] == 1
+
+
 def test_apply_data_asset_update_refresh_all_returns_compound_summary(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
     workspace_root = tmp_path / "workspace"

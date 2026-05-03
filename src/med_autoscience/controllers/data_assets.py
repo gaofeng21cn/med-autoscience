@@ -29,6 +29,13 @@ PUBLIC_DATASET_DISCOVERY_ALLOWED_STATUSES = {
     "not_started",
     "completed",
 }
+DATA_DOCUMENTATION_COMPONENTS = (
+    "data_dictionary",
+    "codebook",
+    "derived_variables",
+)
+COHORT_ACCOUNTING_COMPONENT = "cohort_accounting"
+RELEASE_READINESS_READY_STATUSES = {"ready", "complete", "locked"}
 
 
 def _data_assets_root(workspace_root: Path) -> Path:
@@ -150,6 +157,123 @@ def _standardization_status(release_contract: dict[str, object]) -> dict[str, ob
     }
 
 
+def _release_contract_field(
+    *,
+    manifest: dict[str, object],
+    release_contract: dict[str, object],
+    key: str,
+) -> dict[str, object]:
+    value = manifest.get(key)
+    if value is None:
+        value = release_contract.get(key)
+    return _normalize_dict(value)
+
+
+def _component_path_exists(*, version_root: Path, contract: dict[str, object]) -> bool:
+    relative_path = contract.get("path")
+    if not isinstance(relative_path, str) or not relative_path:
+        return False
+    return (version_root / relative_path).is_file()
+
+
+def _document_component_readiness(*, version_root: Path, contract: dict[str, object]) -> dict[str, object]:
+    status = contract.get("status") if isinstance(contract.get("status"), str) else None
+    path_exists = _component_path_exists(version_root=version_root, contract=contract)
+    errors: list[str] = []
+    if not contract:
+        errors.append("missing_contract")
+    if status not in RELEASE_READINESS_READY_STATUSES:
+        errors.append("status_not_ready")
+    if not path_exists:
+        errors.append("missing_declared_path")
+    return {
+        "status": status,
+        "path": contract.get("path") if isinstance(contract.get("path"), str) else None,
+        "path_exists": path_exists,
+        "ready": not errors,
+        "errors": errors,
+        "contract": contract,
+    }
+
+
+def _cohort_accounting_readiness(*, version_root: Path, contract: dict[str, object]) -> dict[str, object]:
+    status = contract.get("status") if isinstance(contract.get("status"), str) else None
+    source_n = _normalize_int(contract.get("source_n"))
+    analysis_n = _normalize_int(contract.get("analysis_n"))
+    exclusions = contract.get("exclusions") if isinstance(contract.get("exclusions"), list) else []
+    cohort_flow_path = contract.get("cohort_flow_path") if isinstance(contract.get("cohort_flow_path"), str) else None
+    cohort_flow_exists = (version_root / cohort_flow_path).is_file() if cohort_flow_path else False
+    errors: list[str] = []
+    if not contract:
+        errors.append("missing_contract")
+    if status not in RELEASE_READINESS_READY_STATUSES:
+        errors.append("status_not_ready")
+    if source_n is None:
+        errors.append("missing_source_n")
+    if analysis_n is None:
+        errors.append("missing_analysis_n")
+    if source_n is not None and analysis_n is not None and analysis_n > source_n:
+        errors.append("analysis_n_exceeds_source_n")
+    if not cohort_flow_exists:
+        errors.append("missing_cohort_flow")
+    return {
+        "status": status,
+        "source_n": source_n,
+        "analysis_n": analysis_n,
+        "exclusions": exclusions,
+        "cohort_flow_path": cohort_flow_path,
+        "cohort_flow_exists": cohort_flow_exists,
+        "ready": not errors,
+        "errors": errors,
+        "contract": contract,
+    }
+
+
+def _release_semantic_readiness(
+    *,
+    version_root: Path,
+    manifest: dict[str, object],
+    release_contract: dict[str, object],
+) -> dict[str, object]:
+    component_contracts = {
+        key: _release_contract_field(manifest=manifest, release_contract=release_contract, key=key)
+        for key in DATA_DOCUMENTATION_COMPONENTS
+    }
+    component_contracts[COHORT_ACCOUNTING_COMPONENT] = _release_contract_field(
+        manifest=manifest,
+        release_contract=release_contract,
+        key=COHORT_ACCOUNTING_COMPONENT,
+    )
+    required = bool(
+        manifest.get("semantic_readiness_required")
+        or release_contract.get("semantic_readiness_required")
+        or any(component_contracts.values())
+    )
+    components: dict[str, dict[str, object]] = {}
+    errors: list[str] = []
+    for key in DATA_DOCUMENTATION_COMPONENTS:
+        readiness = _document_component_readiness(
+            version_root=version_root,
+            contract=component_contracts[key],
+        )
+        components[key] = readiness
+        if required:
+            errors.extend(f"{key}:{error}" for error in readiness["errors"])
+    cohort_readiness = _cohort_accounting_readiness(
+        version_root=version_root,
+        contract=component_contracts[COHORT_ACCOUNTING_COMPONENT],
+    )
+    components[COHORT_ACCOUNTING_COMPONENT] = cohort_readiness
+    if required:
+        errors.extend(f"{COHORT_ACCOUNTING_COMPONENT}:{error}" for error in cohort_readiness["errors"])
+    return {
+        "required": required,
+        "ready": not errors,
+        "errors": errors,
+        "components": components,
+    }
+
+
 def _list_release_files(version_root: Path) -> list[Path]:
     return sorted(path for path in version_root.rglob("*") if path.is_file())
 
@@ -178,6 +302,11 @@ def _build_private_release(*, family_id: str, version_root: Path) -> dict[str, o
     if not supersedes_versions:
         supersedes_versions = _normalize_string_list(declared_release_contract.get("supersedes_versions"))
     inventory_summary = _inventory_summary(version_root=version_root, main_outputs=main_outputs)
+    semantic_readiness = _release_semantic_readiness(
+        version_root=version_root,
+        manifest=manifest,
+        release_contract=declared_release_contract,
+    )
     return {
         "family_id": family_id,
         "version_id": version_root.name,
@@ -193,6 +322,11 @@ def _build_private_release(*, family_id: str, version_root: Path) -> dict[str, o
         "supersedes_versions": supersedes_versions,
         "declared_release_contract": declared_release_contract,
         "standardization_status": _standardization_status(declared_release_contract),
+        "semantic_readiness": semantic_readiness,
+        "data_dictionary": semantic_readiness["components"]["data_dictionary"],
+        "codebook": semantic_readiness["components"]["codebook"],
+        "derived_variables": semantic_readiness["components"]["derived_variables"],
+        "cohort_accounting": semantic_readiness["components"]["cohort_accounting"],
         "inventory_summary": inventory_summary,
         "file_count": inventory_summary["file_count"],
     }
@@ -335,6 +469,7 @@ def _release_snapshot_for_report(release: dict[str, object]) -> dict[str, object
         "main_outputs": release.get("main_outputs", {}),
         "notes": release.get("notes", []),
         "declared_release_contract": release.get("declared_release_contract", {}),
+        "semantic_readiness": release.get("semantic_readiness", {}),
         "inventory_summary": release.get("inventory_summary", {}),
     }
 
@@ -783,6 +918,11 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
                     "upgrade_diff_report_exists": upgrade_diff_report_exists,
                     "standardization_status": (
                         bound_release.get("standardization_status")
+                        if isinstance(bound_release, dict)
+                        else None
+                    ),
+                    "semantic_readiness": (
+                        bound_release.get("semantic_readiness")
                         if isinstance(bound_release, dict)
                         else None
                     ),

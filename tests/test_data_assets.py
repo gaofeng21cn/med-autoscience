@@ -328,6 +328,98 @@ def test_init_data_assets_extracts_manifest_backed_private_release_contract(tmp_
     assert release["inventory_summary"]["declared_outputs_present"] == {"analysis_csv": True}
 
 
+def test_init_data_assets_extracts_data_dictionary_and_cohort_flow_readiness(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    version_root = workspace_root / "datasets" / "master" / "v2026-05-04"
+    version_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        version_root / "dataset_manifest.yaml",
+        dataset_id="paperflow_master",
+        version="v2026-05-04",
+        raw_snapshot="private_release",
+        generated_by="pipeline/build_release.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+        release_contract={
+            "semantic_readiness_required": True,
+            "data_dictionary": {"status": "locked", "path": "dictionary/data_dictionary.csv"},
+            "codebook": {"status": "locked", "path": "dictionary/codebook.md"},
+            "derived_variables": {"status": "locked", "path": "dictionary/derived_variables.yaml"},
+            "cohort_accounting": {
+                "status": "locked",
+                "source_n": 120,
+                "analysis_n": 98,
+                "exclusions": [{"reason": "missing outcome", "n": 22}],
+                "cohort_flow_path": "cohort/cohort_flow.json",
+            },
+        },
+    )
+    (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (version_root / "dictionary").mkdir()
+    (version_root / "dictionary" / "data_dictionary.csv").write_text("variable,label\nid,Identifier\n", encoding="utf-8")
+    (version_root / "dictionary" / "codebook.md").write_text("# Codebook\n", encoding="utf-8")
+    (version_root / "dictionary" / "derived_variables.yaml").write_text("variables: []\n", encoding="utf-8")
+    (version_root / "cohort").mkdir()
+    (version_root / "cohort" / "cohort_flow.json").write_text('{"source_n": 120, "analysis_n": 98}\n', encoding="utf-8")
+
+    module.init_data_assets(workspace_root=workspace_root)
+
+    private_registry = json.loads(
+        (workspace_root / "portfolio" / "data_assets" / "private" / "registry.json").read_text(encoding="utf-8")
+    )
+    release = private_registry["releases"][0]
+    assert release["semantic_readiness"]["required"] is True
+    assert release["semantic_readiness"]["ready"] is True
+    assert release["semantic_readiness"]["errors"] == []
+    assert release["data_dictionary"]["ready"] is True
+    assert release["codebook"]["path_exists"] is True
+    assert release["derived_variables"]["status"] == "locked"
+    assert release["cohort_accounting"]["ready"] is True
+    assert release["cohort_accounting"]["source_n"] == 120
+    assert release["cohort_accounting"]["analysis_n"] == 98
+
+
+def test_assess_data_asset_impact_projects_semantic_readiness_to_study_inputs(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    version_root = workspace_root / "datasets" / "master" / "v2026-05-04"
+    version_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        version_root / "dataset_manifest.yaml",
+        dataset_id="paperflow_master",
+        version="v2026-05-04",
+        raw_snapshot="private_release",
+        generated_by="pipeline/build_release.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+        release_contract={
+            "semantic_readiness_required": True,
+            "data_dictionary": {"status": "locked", "path": "dictionary/data_dictionary.csv"},
+            "codebook": {"status": "locked", "path": "dictionary/codebook.md"},
+            "derived_variables": {"status": "locked", "path": "dictionary/derived_variables.yaml"},
+            "cohort_accounting": {
+                "status": "locked",
+                "source_n": 120,
+                "analysis_n": 98,
+                "cohort_flow_path": "cohort/cohort_flow.json",
+            },
+        },
+    )
+    (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_dataset_manifest(
+        workspace_root / "studies" / "004-paperflow" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="paperflow_master",
+        relative_path="../../../datasets/master/v2026-05-04/analysis.csv",
+    )
+
+    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+
+    dataset = result["studies"][0]["dataset_inputs"][0]
+    assert dataset["semantic_readiness"]["required"] is True
+    assert dataset["semantic_readiness"]["ready"] is False
+    assert "data_dictionary:missing_declared_path" in dataset["semantic_readiness"]["errors"]
+    assert "cohort_accounting:missing_cohort_flow" in dataset["semantic_readiness"]["errors"]
+
+
 def test_build_private_release_diff_writes_delta_report(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"

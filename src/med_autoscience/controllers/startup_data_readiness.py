@@ -59,6 +59,30 @@ def _latest_private_releases_by_family(releases: list[dict[str, object]]) -> lis
     return latest_releases
 
 
+def _private_semantic_readiness(releases: list[dict[str, object]]) -> dict[str, Any]:
+    blocked: list[dict[str, Any]] = []
+    ready_count = 0
+    for release in releases:
+        semantic_readiness = data_assets._normalize_dict(release.get("semantic_readiness"))
+        if semantic_readiness.get("ready") is True:
+            ready_count += 1
+            continue
+        blocked.append(
+            {
+                "family_id": release.get("family_id"),
+                "version_id": release.get("version_id"),
+                "dataset_id": release.get("dataset_id"),
+                "errors": semantic_readiness.get("errors", []),
+            }
+        )
+    return {
+        "release_count": len(releases),
+        "ready_release_count": ready_count,
+        "blocked_release_count": len(blocked),
+        "blocked_releases": blocked,
+    }
+
+
 def _dataset_has_actionable_public_match(
     *,
     dataset_input: dict[str, Any],
@@ -102,6 +126,7 @@ def _study_summary(impact_report: dict[str, Any], *, actionable_public_datasets:
     outdated_private_release_study_ids: list[str] = []
     unresolved_contract_study_ids: list[str] = []
     standardization_blocked_study_ids: list[str] = []
+    semantic_readiness_blocked_study_ids: list[str] = []
     public_extension_study_ids: list[str] = []
 
     for item in studies:
@@ -130,7 +155,19 @@ def _study_summary(impact_report: dict[str, Any], *, actionable_public_datasets:
                 if isinstance(dataset, dict) and dataset.get("private_version_status") != "public_registry_backed"
             )
         )
-        if has_outdated_private_release or has_unresolved_contract or has_standardization_blocker:
+        has_semantic_readiness_blocker = any(
+            not data_assets._normalize_dict(dataset.get("semantic_readiness")).get("ready", False)
+            for dataset in dataset_inputs
+            if isinstance(dataset, dict)
+            and dataset.get("private_version_status") != "public_registry_backed"
+            and dataset.get("private_contract_status") == "manifest_backed"
+        )
+        if (
+            has_outdated_private_release
+            or has_unresolved_contract
+            or has_standardization_blocker
+            or has_semantic_readiness_blocker
+        ):
             review_needed_study_ids.append(study_id)
         else:
             clear_study_ids.append(study_id)
@@ -140,6 +177,8 @@ def _study_summary(impact_report: dict[str, Any], *, actionable_public_datasets:
             unresolved_contract_study_ids.append(study_id)
         if has_standardization_blocker:
             standardization_blocked_study_ids.append(study_id)
+        if has_semantic_readiness_blocker:
+            semantic_readiness_blocked_study_ids.append(study_id)
         if any(
             _dataset_has_actionable_public_match(
                 dataset_input=dataset,
@@ -159,6 +198,7 @@ def _study_summary(impact_report: dict[str, Any], *, actionable_public_datasets:
         "outdated_private_release_study_ids": sorted(outdated_private_release_study_ids),
         "unresolved_contract_study_ids": sorted(unresolved_contract_study_ids),
         "standardization_blocked_study_ids": sorted(standardization_blocked_study_ids),
+        "semantic_readiness_blocked_study_ids": sorted(semantic_readiness_blocked_study_ids),
         "public_extension_study_ids": sorted(public_extension_study_ids),
     }
 
@@ -259,7 +299,13 @@ def _public_opportunities(public_validation_report: dict[str, Any]) -> dict[str,
     }
 
 
-def _recommendations(*, private_release_count: int, study_summary: dict[str, Any], valid_public_dataset_count: int) -> list[str]:
+def _recommendations(
+    *,
+    private_release_count: int,
+    study_summary: dict[str, Any],
+    valid_public_dataset_count: int,
+    private_semantic_readiness: dict[str, Any],
+) -> list[str]:
     recommendations: list[str] = []
     if private_release_count == 0:
         recommendations.append("register_private_releases_before_launch")
@@ -267,6 +313,8 @@ def _recommendations(*, private_release_count: int, study_summary: dict[str, Any
         recommendations.append("repair_study_dataset_contracts")
     if study_summary.get("standardization_blocked_study_ids"):
         recommendations.append("materialize_standardized_analysis_release")
+    if study_summary.get("semantic_readiness_blocked_study_ids") or private_semantic_readiness["blocked_release_count"]:
+        recommendations.append("complete_data_dictionary_codebook_and_cohort_flow")
     if study_summary["outdated_private_release_study_ids"]:
         recommendations.append("reassess_studies_against_latest_private_release")
     if valid_public_dataset_count > 0:
@@ -292,6 +340,7 @@ def startup_data_readiness(*, workspace_root: Path) -> dict[str, Any]:
 
     actionable_public_datasets = _actionable_public_datasets(public_validation)
     study_summary = _study_summary(impact_report, actionable_public_datasets=actionable_public_datasets)
+    private_semantic_readiness = _private_semantic_readiness(releases)
     public_summary = {
         "dataset_count": public_validation["dataset_count"],
         "valid_dataset_count": public_validation["valid_dataset_count"],
@@ -307,6 +356,7 @@ def startup_data_readiness(*, workspace_root: Path) -> dict[str, Any]:
         private_release_count=len(releases),
         study_summary=study_summary,
         valid_public_dataset_count=public_summary["actionable_dataset_count"],
+        private_semantic_readiness=private_semantic_readiness,
     )
     report = {
         "schema_version": STARTUP_READINESS_SCHEMA_VERSION,
@@ -317,10 +367,13 @@ def startup_data_readiness(*, workspace_root: Path) -> dict[str, Any]:
             or bool(study_summary["unresolved_contract_study_ids"])
             or bool(study_summary["outdated_private_release_study_ids"])
             or bool(study_summary.get("standardization_blocked_study_ids"))
+            or bool(study_summary.get("semantic_readiness_blocked_study_ids"))
+            or bool(private_semantic_readiness["blocked_release_count"])
             else "clear"
         ),
         "private_release_count": len(releases),
         "latest_private_releases_by_family": _latest_private_releases_by_family(releases),
+        "private_semantic_readiness": private_semantic_readiness,
         "study_summary": study_summary,
         "public_summary": public_summary,
         "public_opportunities": _public_opportunities(public_validation),

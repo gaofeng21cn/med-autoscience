@@ -561,3 +561,99 @@ def test_startup_data_readiness_accepts_treatment_study_with_standardized_releas
     assert result["study_summary"]["standardization_blocked_study_ids"] == []
     assert result["study_summary"]["clear_study_ids"] == ["003-treatment-gap"]
     assert result["recommendations"] == ["startup_data_ready"]
+
+
+def test_startup_data_readiness_blocks_release_missing_dictionary_and_cohort_flow(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
+    workspace_root = tmp_path / "workspace"
+    release_root = workspace_root / "datasets" / "master" / "v2026-05-04"
+    release_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        release_root / "dataset_manifest.yaml",
+        dataset_id="paperflow_master",
+        version="v2026-05-04",
+        raw_snapshot="private_release",
+        generated_by="pipeline/build_release.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+        release_contract={
+            "semantic_readiness_required": True,
+            "data_dictionary": {"status": "locked", "path": "dictionary/data_dictionary.csv"},
+            "codebook": {"status": "locked", "path": "dictionary/codebook.md"},
+            "derived_variables": {"status": "locked", "path": "dictionary/derived_variables.yaml"},
+            "cohort_accounting": {
+                "status": "locked",
+                "source_n": 120,
+                "analysis_n": 98,
+                "cohort_flow_path": "cohort/cohort_flow.json",
+            },
+        },
+    )
+    (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_study_manifest(
+        workspace_root / "studies" / "004-paperflow" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="paperflow_master",
+        relative_path="../../../datasets/master/v2026-05-04/analysis.csv",
+        version="v2026-05-04",
+    )
+
+    result = module.startup_data_readiness(workspace_root=workspace_root)
+
+    assert result["status"] == "attention_needed"
+    assert result["study_summary"]["semantic_readiness_blocked_study_ids"] == ["004-paperflow"]
+    assert result["private_semantic_readiness"]["blocked_release_count"] == 1
+    assert result["private_semantic_readiness"]["blocked_releases"][0]["errors"] == [
+        "data_dictionary:missing_declared_path",
+        "codebook:missing_declared_path",
+        "derived_variables:missing_declared_path",
+        "cohort_accounting:missing_cohort_flow",
+    ]
+    assert result["recommendations"] == ["complete_data_dictionary_codebook_and_cohort_flow"]
+
+
+def test_startup_data_readiness_accepts_complete_dictionary_codebook_and_cohort_flow(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
+    workspace_root = tmp_path / "workspace"
+    release_root = workspace_root / "datasets" / "master" / "v2026-05-04"
+    release_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        release_root / "dataset_manifest.yaml",
+        dataset_id="paperflow_master",
+        version="v2026-05-04",
+        raw_snapshot="private_release",
+        generated_by="pipeline/build_release.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+        release_contract={
+            "semantic_readiness_required": True,
+            "data_dictionary": {"status": "locked", "path": "dictionary/data_dictionary.csv"},
+            "codebook": {"status": "locked", "path": "dictionary/codebook.md"},
+            "derived_variables": {"status": "locked", "path": "dictionary/derived_variables.yaml"},
+            "cohort_accounting": {
+                "status": "locked",
+                "source_n": 120,
+                "analysis_n": 98,
+                "exclusions": [{"reason": "missing outcome", "n": 22}],
+                "cohort_flow_path": "cohort/cohort_flow.json",
+            },
+        },
+    )
+    (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (release_root / "dictionary").mkdir()
+    (release_root / "dictionary" / "data_dictionary.csv").write_text("variable,label\nid,Identifier\n", encoding="utf-8")
+    (release_root / "dictionary" / "codebook.md").write_text("# Codebook\n", encoding="utf-8")
+    (release_root / "dictionary" / "derived_variables.yaml").write_text("variables: []\n", encoding="utf-8")
+    (release_root / "cohort").mkdir()
+    (release_root / "cohort" / "cohort_flow.json").write_text('{"source_n": 120, "analysis_n": 98}\n', encoding="utf-8")
+    write_study_manifest(
+        workspace_root / "studies" / "004-paperflow" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="paperflow_master",
+        relative_path="../../../datasets/master/v2026-05-04/analysis.csv",
+        version="v2026-05-04",
+    )
+
+    result = module.startup_data_readiness(workspace_root=workspace_root)
+
+    assert result["status"] == "clear"
+    assert result["study_summary"]["semantic_readiness_blocked_study_ids"] == []
+    assert result["private_semantic_readiness"]["ready_release_count"] == 1
+    assert result["private_semantic_readiness"]["blocked_releases"] == []
+    assert result["recommendations"] == ["startup_data_ready"]

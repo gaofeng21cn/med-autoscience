@@ -237,6 +237,14 @@ def _upsert_private_release_manifest(*, workspace_root: Path, payload: dict[str,
     supersedes_versions = data_assets._normalize_string_list(manifest.get("supersedes_versions"))
     if supersedes_versions:
         manifest_payload["supersedes_versions"] = supersedes_versions
+    for key in (
+        "data_dictionary",
+        "codebook",
+        "derived_variables",
+        "cohort_accounting",
+    ):
+        if isinstance(manifest.get(key), dict):
+            manifest_payload[key] = manifest[key]
     manifest_path = version_root / "dataset_manifest.yaml"
     manifest_path.write_text(yaml.safe_dump(manifest_payload, sort_keys=False, allow_unicode=True), encoding="utf-8")
     return {
