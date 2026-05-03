@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 from pathlib import Path
+import fnmatch
 from typing import Any, Callable
 
 import pytest
@@ -10,6 +11,13 @@ from tests.control_plane_route_helpers import writable_route_context
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+NESTED_CASE_COLLECTION_IGNORE_GLOBS = (
+    "product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_*.py",
+    "test_runtime_watch_cases/*_cases_cases/test_*.py",
+)
+
+collect_ignore_glob = list(NESTED_CASE_COLLECTION_IGNORE_GLOBS)
 
 META_FILES = {
     "tests/controller_charter/test_controller_charter_module_contract.py",
@@ -73,6 +81,11 @@ def _relative_test_path(item: pytest.Item) -> str:
     return path.relative_to(REPO_ROOT).as_posix()
 
 
+def _is_nested_case_collection_path(relative_test_path: str) -> bool:
+    relative_to_tests = relative_test_path.removeprefix("tests/")
+    return any(fnmatch.fnmatch(relative_to_tests, pattern) for pattern in NESTED_CASE_COLLECTION_IGNORE_GLOBS)
+
+
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers",
@@ -82,6 +95,9 @@ def pytest_configure(config: pytest.Config) -> None:
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     del config
+    nested_case_items = [item for item in items if _is_nested_case_collection_path(_relative_test_path(item))]
+    if nested_case_items:
+        items[:] = [item for item in items if item not in nested_case_items]
     for item in items:
         relative_path = _relative_test_path(item)
         if relative_path in META_FILES:
