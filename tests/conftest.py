@@ -60,6 +60,7 @@ FAMILY_FILES = {
 
 WRITE_ROUTE_LEGACY_DEFAULT_FILES = {
     "tests/test_submission_minimal.py",
+    "tests/test_submission_minimal_display_surface.py",
     "tests/test_study_delivery_sync.py",
     "tests/test_journal_package_controller.py",
     "tests/test_publication_gate.py",

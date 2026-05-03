@@ -30,6 +30,13 @@ def test_nested_case_collection_ignore_globs_are_declared() -> None:
     )
 
 
+def test_submission_minimal_display_surface_uses_write_route_legacy_default() -> None:
+    assert (
+        "tests/test_submission_minimal_display_surface.py"
+        in tests_conftest.WRITE_ROUTE_LEGACY_DEFAULT_FILES
+    )
+
+
 def test_nested_case_modules_are_not_default_collection_surfaces() -> None:
     result = _collect_only(
         "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_status_cards.py",
