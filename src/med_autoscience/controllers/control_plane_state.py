@@ -7,6 +7,7 @@ from med_autoscience.controllers import (
     control_plane_facts,
     control_plane_reconciler,
     runtime_failure_taxonomy,
+    study_control_plane_kernel,
 )
 
 
@@ -263,6 +264,7 @@ def resolve_control_plane_state(profile_payload: Mapping[str, Any]) -> str:
 
 def build_control_plane_state_surface(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
     status_payload = _mapping(profile_payload)
+    control_plane_snapshot = study_control_plane_kernel.build_control_plane_snapshot(status_payload)
     supervisor_tick_audit = _mapping(status_payload.get("supervisor_tick_audit"))
     facts = control_plane_facts.resolve_control_plane_facts(
         status_payload,
@@ -300,6 +302,13 @@ def build_control_plane_state_surface(profile_payload: Mapping[str, Any]) -> dic
         "schema_version": 1,
         "study_id": _text(status_payload.get("study_id")),
         "quest_id": _text(status_payload.get("quest_id")),
+        "control_plane_snapshot": control_plane_snapshot,
+        "control_plane_epoch": (
+            control_plane_snapshot["authority_refs"]["study_truth"].get("epoch")
+            if isinstance(control_plane_snapshot.get("authority_refs"), Mapping)
+            and isinstance(control_plane_snapshot["authority_refs"].get("study_truth"), Mapping)
+            else None
+        ),
         "current_state": state,
         "current_state_spec": state_spec,
         "control_plane_facts": facts.to_runtime_facts_dict(),

@@ -391,6 +391,11 @@ def _status_state(
             status_payload=result.to_dict(),
             recorded_at=router._utc_now(),
         )
+        from med_autoscience.controllers import study_control_plane_kernel
+
+        result.extras["control_plane_snapshot"] = study_control_plane_kernel.build_control_plane_snapshot(
+            result.to_dict()
+        )
         if include_progress_projection:
             from med_autoscience.controllers import study_progress as study_progress_controller
 
