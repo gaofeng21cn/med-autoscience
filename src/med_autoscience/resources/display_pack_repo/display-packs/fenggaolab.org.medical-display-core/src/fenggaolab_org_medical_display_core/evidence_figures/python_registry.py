@@ -148,16 +148,20 @@ def render_python_evidence_figure(
     output_png_path: Path,
     output_pdf_path: Path,
     layout_sidecar_path: Path,
+    output_svg_path: Path | None = None,
 ) -> None:
     _, template_short_id = _require_namespaced_registry_id(template_id, label="template_id")
     try:
         renderer = _PYTHON_EVIDENCE_RENDERERS[template_short_id]
     except KeyError as exc:
         raise RuntimeError(f"unsupported python evidence template `{template_id}`") from exc
-    renderer(
-        template_id=template_short_id,
-        display_payload=display_payload,
-        output_png_path=output_png_path,
-        output_pdf_path=output_pdf_path,
-        layout_sidecar_path=layout_sidecar_path,
-    )
+    render_kwargs = {
+        "template_id": template_short_id,
+        "display_payload": display_payload,
+        "output_png_path": output_png_path,
+        "output_pdf_path": output_pdf_path,
+        "layout_sidecar_path": layout_sidecar_path,
+    }
+    if output_svg_path is not None:
+        render_kwargs["output_svg_path"] = output_svg_path
+    renderer(**render_kwargs)

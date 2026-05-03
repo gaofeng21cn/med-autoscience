@@ -39,9 +39,17 @@ def _centered_offsets(count: int, *, half_span: float = 0.28) -> list[float]:
     step = (half_span * 2.0) / float(count - 1)
     return [(-half_span + step * float(index)) for index in range(count)]
 
-def _prepare_python_render_output_paths(*, output_png_path: Path, output_pdf_path: Path, layout_sidecar_path: Path) -> None:
+def _prepare_python_render_output_paths(
+    *,
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+    output_svg_path: Path | None = None,
+) -> None:
     output_png_path.parent.mkdir(parents=True, exist_ok=True)
     output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_svg_path is not None:
+        output_svg_path.parent.mkdir(parents=True, exist_ok=True)
     layout_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
 def _prepare_python_illustration_output_paths(
@@ -141,11 +149,13 @@ def _render_python_evidence_figure(
     output_png_path: Path,
     output_pdf_path: Path,
     layout_sidecar_path: Path,
+    output_svg_path: Path | None = None,
 ) -> None:
     _prepare_python_render_output_paths(
         output_png_path=output_png_path,
         output_pdf_path=output_pdf_path,
         layout_sidecar_path=layout_sidecar_path,
+        output_svg_path=output_svg_path,
     )
     render_callable = display_pack_runtime.resolve_python_plugin_callable(
         repo_root=_REPO_ROOT,
@@ -153,13 +163,16 @@ def _render_python_evidence_figure(
     )
     if render_callable is None:
         raise RuntimeError(f"template `{template_id}` is not wired to a pack-local python entrypoint")
-    render_callable(
-        template_id=template_id,
-        display_payload=display_payload,
-        output_png_path=output_png_path,
-        output_pdf_path=output_pdf_path,
-        layout_sidecar_path=layout_sidecar_path,
-    )
+    render_kwargs = {
+        "template_id": template_id,
+        "display_payload": display_payload,
+        "output_png_path": output_png_path,
+        "output_pdf_path": output_pdf_path,
+        "layout_sidecar_path": layout_sidecar_path,
+    }
+    if output_svg_path is not None:
+        render_kwargs["output_svg_path"] = output_svg_path
+    render_callable(**render_kwargs)
 
 
 __all__ = [

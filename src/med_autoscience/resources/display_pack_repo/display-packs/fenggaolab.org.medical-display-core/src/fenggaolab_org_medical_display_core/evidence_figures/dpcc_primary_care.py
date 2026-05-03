@@ -165,6 +165,7 @@ def _render_python_phenotype_gap_structure_figure(
     output_png_path: Path,
     output_pdf_path: Path,
     layout_sidecar_path: Path,
+    output_svg_path: Path | None = None,
 ) -> None:
     rows_payload = list(display_payload.get("rows") or [])
     if not rows_payload:
@@ -347,6 +348,8 @@ def _render_python_phenotype_gap_structure_figure(
     )
     figure.savefig(output_png_path, format="png", dpi=320)
     figure.savefig(output_pdf_path, format="pdf")
+    if output_svg_path is not None:
+        figure.savefig(output_svg_path, format="svg")
     plt.close(figure)
 
 
@@ -357,6 +360,7 @@ def _render_python_site_held_out_stability_figure(
     output_png_path: Path,
     output_pdf_path: Path,
     layout_sidecar_path: Path,
+    output_svg_path: Path | None = None,
 ) -> None:
     transition_rows = list(display_payload.get("transition_rows") or [])
     site_fold_rows = list(display_payload.get("site_fold_rows") or [])
@@ -617,6 +621,8 @@ def _render_python_site_held_out_stability_figure(
     )
     figure.savefig(output_png_path, format="png", dpi=320)
     figure.savefig(output_pdf_path, format="pdf")
+    if output_svg_path is not None:
+        figure.savefig(output_svg_path, format="svg")
     plt.close(figure)
 
 
@@ -627,6 +633,7 @@ def _render_python_treatment_gap_alignment_figure(
     output_png_path: Path,
     output_pdf_path: Path,
     layout_sidecar_path: Path,
+    output_svg_path: Path | None = None,
 ) -> None:
     rows_payload = list(display_payload.get("rows") or [])
     if not rows_payload:
@@ -813,6 +820,8 @@ def _render_python_treatment_gap_alignment_figure(
     )
     figure.savefig(output_png_path, format="png", dpi=320)
     figure.savefig(output_pdf_path, format="pdf")
+    if output_svg_path is not None:
+        figure.savefig(output_svg_path, format="svg")
     plt.close(figure)
 
 

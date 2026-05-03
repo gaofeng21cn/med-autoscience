@@ -301,6 +301,7 @@ def test_render_python_evidence_figure_materializes_dpcc_primary_care_templates(
     layout_qc = importlib.import_module("med_autoscience.display_layout_qc")
     output_png_path = tmp_path / f"{template_short_id}.png"
     output_pdf_path = tmp_path / f"{template_short_id}.pdf"
+    output_svg_path = tmp_path / f"{template_short_id}.svg"
     layout_sidecar_path = tmp_path / f"{template_short_id}.layout.json"
 
     module._render_python_evidence_figure(
@@ -308,11 +309,13 @@ def test_render_python_evidence_figure_materializes_dpcc_primary_care_templates(
         display_payload=display_payload,
         output_png_path=output_png_path,
         output_pdf_path=output_pdf_path,
+        output_svg_path=output_svg_path,
         layout_sidecar_path=layout_sidecar_path,
     )
 
     assert output_png_path.exists()
     assert output_pdf_path.exists()
+    assert output_svg_path.exists()
     layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
     assert layout_sidecar["template_id"] == template_short_id
     assert len(layout_sidecar["panel_boxes"]) == expected_panel_count
@@ -399,3 +402,171 @@ def test_render_python_phenotype_gap_structure_handles_dpcc_long_phenotype_label
     )
     assert qc_result["status"] == "pass", qc_result
     assert qc_result["issues"] == []
+
+
+def test_materialize_display_surface_records_svg_exports_for_dpcc_required_templates(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure2",
+                    "display_kind": "figure",
+                    "requirement_key": "phenotype_gap_structure_figure",
+                    "catalog_id": "F2",
+                },
+                {
+                    "display_id": "Figure3",
+                    "display_kind": "figure",
+                    "requirement_key": "site_held_out_stability_figure",
+                    "catalog_id": "F3",
+                },
+                {
+                    "display_id": "Figure4",
+                    "display_kind": "figure",
+                    "requirement_key": "treatment_gap_alignment_figure",
+                    "catalog_id": "F4",
+                },
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    dump_json(
+        paper_root / "dpcc_phenotype_gap_structure.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "dpcc_phenotype_gap_structure_v1",
+            "displays": [
+                {
+                    "display_id": "Figure2",
+                    "template_id": "phenotype_gap_structure_figure",
+                    "title": "Phenotype composition and treatment-gap profiles across the DPCC index cohort.",
+                    "rows": [
+                        {
+                            "phenotype_label": "Phenotype A",
+                            "share_of_index_patients": 0.42,
+                            "severe_glycemia_low_intensity_gap_rate": 0.18,
+                            "uncontrolled_glycemia_no_drug_gap_rate": 0.24,
+                            "hypertension_no_antihypertensive_gap_rate": 0.16,
+                            "dyslipidemia_no_lipid_lowering_gap_rate": 0.21,
+                        },
+                        {
+                            "phenotype_label": "Phenotype B",
+                            "share_of_index_patients": 0.58,
+                            "severe_glycemia_low_intensity_gap_rate": 0.07,
+                            "uncontrolled_glycemia_no_drug_gap_rate": 0.11,
+                            "hypertension_no_antihypertensive_gap_rate": None,
+                            "dyslipidemia_no_lipid_lowering_gap_rate": 0.14,
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "dpcc_transition_site_support.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "dpcc_transition_site_support_v1",
+            "displays": [
+                {
+                    "display_id": "Figure3",
+                    "template_id": "site_held_out_stability_figure",
+                    "title": "Transition stability and site-held-out support for phenotype assignment.",
+                    "transition_rows": [
+                        {
+                            "source_phenotype_label": "Phenotype A",
+                            "target_phenotype_label": "Phenotype A",
+                            "patient_count": 84,
+                            "share_of_transition_patients": 0.62,
+                        },
+                        {
+                            "source_phenotype_label": "Phenotype A",
+                            "target_phenotype_label": "Phenotype B",
+                            "patient_count": 51,
+                            "share_of_transition_patients": 0.38,
+                        },
+                        {
+                            "source_phenotype_label": "Phenotype B",
+                            "target_phenotype_label": "Phenotype B",
+                            "patient_count": 93,
+                            "share_of_transition_patients": 0.67,
+                        },
+                        {
+                            "source_phenotype_label": "Phenotype B",
+                            "target_phenotype_label": "Phenotype A",
+                            "patient_count": 45,
+                            "share_of_transition_patients": 0.33,
+                        },
+                    ],
+                    "site_fold_rows": [
+                        {
+                            "fold_id": "fold_1",
+                            "index_patients": 120,
+                            "share_of_index_patients": 0.34,
+                        },
+                        {
+                            "fold_id": "fold_2",
+                            "index_patients": 111,
+                            "share_of_index_patients": 0.31,
+                        },
+                        {
+                            "fold_id": "pooled_small_site",
+                            "index_patients": 121,
+                            "share_of_index_patients": 0.35,
+                        },
+                    ],
+                    "eligible_site_count": 6,
+                    "visit_coverage": 0.83,
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "dpcc_treatment_gap_alignment.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "dpcc_treatment_gap_alignment_v1",
+            "displays": [
+                {
+                    "display_id": "Figure4",
+                    "template_id": "treatment_gap_alignment_figure",
+                    "title": "Guideline-linked treatment gaps aligned to the six DPCC phenotypes.",
+                    "rows": [
+                        {
+                            "phenotype_label": "Phenotype A",
+                            "index_patients": 320,
+                            "severe_glycemia_low_intensity_gap_patients": 44,
+                            "uncontrolled_glycemia_no_drug_gap_patients": 61,
+                            "hypertension_no_antihypertensive_gap_patients": 37,
+                            "dyslipidemia_no_lipid_lowering_gap_patients": 72,
+                        },
+                        {
+                            "phenotype_label": "Phenotype B",
+                            "index_patients": 280,
+                            "severe_glycemia_low_intensity_gap_patients": 29,
+                            "uncontrolled_glycemia_no_drug_gap_patients": 41,
+                            "hypertension_no_antihypertensive_gap_patients": 18,
+                            "dyslipidemia_no_lipid_lowering_gap_patients": 56,
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figures = {entry["figure_id"]: entry for entry in figure_catalog["figures"]}
+    for figure_id in ("F2", "F3", "F4"):
+        export_paths = figures[figure_id]["export_paths"]
+        assert any(path.endswith(".svg") for path in export_paths)
+        for path in export_paths:
+            assert (paper_root / path.removeprefix("paper/")).exists()

@@ -725,24 +725,33 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             render_payload["render_context"] = render_context
             output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{template_short_id}.png"
             output_pdf_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{template_short_id}.pdf"
+            output_svg_path = (
+                resolved_paper_root / "figures" / "generated" / f"{figure_id}_{template_short_id}.svg"
+                if "svg" in spec.required_exports
+                else None
+            )
             layout_sidecar_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{template_short_id}.layout.json"
             _prepare_python_render_output_paths(
                 output_png_path=output_png_path,
                 output_pdf_path=output_pdf_path,
                 layout_sidecar_path=layout_sidecar_path,
+                output_svg_path=output_svg_path,
             )
             render_callable = display_pack_runtime.load_python_plugin_callable(
                 repo_root=_REPO_ROOT,
                 template_id=spec.template_id,
                 paper_root=resolved_paper_root,
             )
-            render_callable(
-                template_id=spec.template_id,
-                display_payload=render_payload,
-                output_png_path=output_png_path,
-                output_pdf_path=output_pdf_path,
-                layout_sidecar_path=layout_sidecar_path,
-            )
+            render_kwargs = {
+                "template_id": spec.template_id,
+                "display_payload": render_payload,
+                "output_png_path": output_png_path,
+                "output_pdf_path": output_pdf_path,
+                "layout_sidecar_path": layout_sidecar_path,
+            }
+            if output_svg_path is not None:
+                render_kwargs["output_svg_path"] = output_svg_path
+            render_callable(**render_kwargs)
             layout_sidecar = _load_layout_sidecar_or_raise(path=layout_sidecar_path, template_id=spec.template_id)
             layout_sidecar["render_context"] = render_context
             dump_json(layout_sidecar_path, layout_sidecar)
@@ -752,6 +761,8 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             )
             qc_result["layout_sidecar_path"] = _paper_relative_path(layout_sidecar_path, paper_root=resolved_paper_root)
             written_files.extend([str(output_png_path), str(output_pdf_path), str(layout_sidecar_path)])
+            if output_svg_path is not None:
+                written_files.append(str(output_svg_path))
             paper_role = str(display_payload.get("paper_role") or spec.allowed_paper_roles[0]).strip()
             if paper_role not in spec.allowed_paper_roles:
                 allowed_roles = ", ".join(spec.allowed_paper_roles)
@@ -773,6 +784,11 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "export_paths": [
                     _paper_relative_path(output_png_path, paper_root=resolved_paper_root),
                     _paper_relative_path(output_pdf_path, paper_root=resolved_paper_root),
+                    *(
+                        [_paper_relative_path(output_svg_path, paper_root=resolved_paper_root)]
+                        if output_svg_path is not None
+                        else []
+                    ),
                 ],
                 "source_paths": [
                     _paper_relative_path(payload_path, paper_root=resolved_paper_root),
