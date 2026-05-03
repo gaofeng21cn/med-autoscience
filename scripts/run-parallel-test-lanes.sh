@@ -7,7 +7,7 @@ if [[ "${1:-}" != "full" ]]; then
 fi
 
 lanes=(
-  "test-fast"
+  "test-regression"
   "test-meta"
   "test-display"
   "test-submission"

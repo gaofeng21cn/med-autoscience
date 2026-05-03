@@ -1,4 +1,4 @@
-.PHONY: test test-fast test-meta test-display test-submission test-full test-family test-structure test-control-plane
+.PHONY: test test-smoke test-regression test-ci-preflight test-fast test-meta test-display test-submission test-full test-family test-structure test-control-plane
 
 CONTROL_PLANE_TESTS := \
 	tests/test_control_plane_regression.py \
@@ -28,10 +28,18 @@ CONTROL_PLANE_TESTS := \
 	tests/test_product_entry.py \
 	tests/test_runtime_watch.py
 
-test: test-fast
+test: test-smoke
 
-test-fast:
+test-smoke:
+	uv run pytest tests/test_test_command_surfaces.py tests/test_line_budget.py -q
+
+test-regression:
 	uv run pytest -q -m "not meta and not display_heavy and not submission_heavy and not family"
+
+test-ci-preflight:
+	uv run pytest tests/test_release_workflow.py tests/test_python_environment_contract.py tests/test_codex_plugin.py tests/test_codex_plugin_installer.py -q
+
+test-fast: test-regression
 
 test-meta:
 	uv run pytest -q -m meta

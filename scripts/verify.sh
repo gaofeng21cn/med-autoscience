@@ -27,12 +27,27 @@ lane="${1:-}"
 run_sanity_checks
 
 if [[ -z "${lane}" ]]; then
-  make test-fast
+  make test-smoke
+  exit 0
+fi
+
+if [[ "${lane}" == "smoke" ]]; then
+  make test-smoke
+  exit 0
+fi
+
+if [[ "${lane}" == "regression" ]]; then
+  make test-regression
+  exit 0
+fi
+
+if [[ "${lane}" == "ci-preflight" ]]; then
+  make test-ci-preflight
   exit 0
 fi
 
 if [[ "${lane}" == "fast" ]]; then
-  make test-fast
+  make test-regression
   exit 0
 fi
 
@@ -71,5 +86,5 @@ if [[ "${lane}" == "control-plane" ]]; then
   exit 0
 fi
 
-echo "Usage: scripts/verify.sh [fast|meta|display|submission|family|structure|control-plane|full]" >&2
+echo "Usage: scripts/verify.sh [smoke|regression|ci-preflight|fast|meta|display|submission|family|structure|control-plane|full]" >&2
 exit 1
