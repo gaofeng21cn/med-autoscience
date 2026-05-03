@@ -1015,6 +1015,7 @@ def run_watch_for_runtime(
                 ) is not None:
                     work_unit_dispatch_key = runtime_watch_work_units.dispatch_key(tick_request)
                     blocked_wakeup_audit = apply_control_plane_dispatch_block(
+                        profile=profile,
                         study_root=study_root,
                         status_payload=status_payload,
                         tick_request=tick_request,
@@ -1177,6 +1178,7 @@ def run_watch_for_runtime(
                 else:
                     work_unit_dispatch_key = runtime_watch_work_units.dispatch_key(tick_request)
                     blocked_wakeup_audit = apply_control_plane_dispatch_block(
+                        profile=profile,
                         study_root=study_root,
                         status_payload=status_payload,
                         tick_request=tick_request,

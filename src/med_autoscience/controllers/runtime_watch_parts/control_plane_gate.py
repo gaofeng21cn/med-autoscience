@@ -128,6 +128,7 @@ def runtime_recovery_blocked_by_control_plane(status_payload: Mapping[str, Any])
 
 def apply_control_plane_dispatch_block(
     *,
+    profile: Any | None = None,
     study_root: Path,
     status_payload: Mapping[str, Any],
     tick_request: Mapping[str, Any],
@@ -152,6 +153,23 @@ def apply_control_plane_dispatch_block(
             work_unit_dispatch_key=runtime_watch_work_units.dispatch_key(tick_request),
         ),
     }
+    if profile is not None:
+        from med_autoscience.controllers import study_outer_loop
+
+        decision_result = study_outer_loop.materialize_non_dispatching_outer_loop_decision(
+            profile=profile,
+            status_payload=dict(status_payload),
+            source="runtime_watch_outer_loop_wakeup",
+            recorded_at=_non_empty_text(blocked_audit.get("recorded_at")),
+            **runtime_watch_work_units.strip_context(tick_request),
+        )
+        blocked_audit = {
+            **blocked_audit,
+            "controller_decision": {
+                "dispatch_status": decision_result.get("dispatch_status"),
+                "study_decision_ref": decision_result.get("study_decision_ref"),
+            },
+        }
     suppression = serialize_no_op_suppression(
         study_root=study_root,
         status_payload=status_payload,

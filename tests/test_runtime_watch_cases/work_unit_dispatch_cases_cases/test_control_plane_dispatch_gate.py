@@ -206,6 +206,150 @@ def test_watch_runtime_control_plane_open_snapshot_allows_outer_loop_dispatch(
     assert result["managed_study_no_op_suppressions"] == []
 
 
+def test_control_plane_blocked_request_supersedes_stale_specificity_decision(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "quest-001"
+    _write_charter(study_root)
+    specificity_work_unit = {
+        "unit_id": "gate_needs_specificity",
+        "lane": "controller",
+        "summary": "Ask the publication gate to identify concrete blocker targets.",
+    }
+    specificity_publication_eval_ref = _write_publication_eval(
+        study_root,
+        quest_root,
+        action_type="return_to_controller",
+        work_unit_fingerprint="publication-blockers::vague",
+        next_work_unit=specificity_work_unit,
+    )
+    specificity_tick_request = {
+        "study_root": study_root,
+        "charter_ref": _write_charter(study_root),
+        "publication_eval_ref": specificity_publication_eval_ref,
+        "decision_type": "return_to_controller",
+        "route_target": "controller",
+        "route_key_question": "gate_needs_specificity: Which exact claim is blocking the publication gate?",
+        "route_rationale": "Publication gate needs concrete blocker targets before dispatch.",
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": "request_gate_specificity",
+                "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            }
+        ],
+        "reason": "Publication gate needs concrete blocker targets before dispatch.",
+        "work_unit_fingerprint": "publication-blockers::vague",
+        "next_work_unit": specificity_work_unit,
+    }
+    status_payload = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="blocked",
+            reason="study_completion_publishability_gate_blocked",
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+    }
+
+    monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: specificity_tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+    stale_decision = json.loads(
+        (study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8")
+    )
+    assert stale_decision["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+
+    actionable_work_unit = {
+        "unit_id": "analysis_claim_evidence_repair",
+        "lane": "analysis-campaign",
+        "summary": "Repair claim-evidence blockers.",
+    }
+    actionable_publication_eval_ref = _write_publication_eval(
+        study_root,
+        quest_root,
+        action_type="bounded_analysis",
+        work_unit_fingerprint="publication-blockers::specific",
+        next_work_unit=actionable_work_unit,
+    )
+    actionable_tick_request = {
+        "study_root": study_root,
+        "charter_ref": _write_charter(study_root),
+        "publication_eval_ref": actionable_publication_eval_ref,
+        "decision_type": "bounded_analysis",
+        "route_target": "analysis-campaign",
+        "route_key_question": "analysis_claim_evidence_repair: Repair claim-evidence blockers.",
+        "route_rationale": "Run bounded claim-evidence repair.",
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": "ensure_study_runtime",
+                "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            }
+        ],
+        "reason": "Run bounded claim-evidence repair.",
+        "work_unit_fingerprint": "publication-blockers::specific",
+        "next_work_unit": actionable_work_unit,
+        "blocking_work_units": [actionable_work_unit],
+    }
+    blocked_status_payload = {
+        **status_payload,
+        "control_plane_snapshot": _control_plane_snapshot(
+            state="blocked",
+            blocking_reasons=["execution_owner_guard.supervisor_only"],
+        ),
+    }
+    dispatch_calls: list[str] = []
+
+    def fake_outer_loop_tick(**kwargs):
+        dispatch_calls.append(str(kwargs.get("source") or ""))
+        return {"dispatch_status": "executed"}
+
+    monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: actionable_tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: blocked_status_payload)
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: blocked_status_payload)
+    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+    current_decision = json.loads(
+        (study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8")
+    )
+    wakeup_latest = json.loads(
+        (study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert dispatch_calls == []
+    assert result["managed_study_outer_loop_dispatches"] == []
+    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "control_plane_dispatch_blocked"
+    assert wakeup_latest["outcome"] == "control_plane_dispatch_blocked"
+    assert wakeup_latest["controller_decision"]["dispatch_status"] == "recorded_non_dispatching"
+    assert current_decision["decision_type"] == "bounded_analysis"
+    assert current_decision["work_unit_fingerprint"] == "publication-blockers::specific"
+    assert current_decision["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+
+
 def test_watch_runtime_recovery_authorization_false_suppresses_runtime_recovery_dispatch(
     tmp_path: Path,
     monkeypatch,
