@@ -40,6 +40,68 @@ def test_migration_audit_dry_run_covers_dm_cvd_and_nf_pitnet_layouts(tmp_path: P
     assert all(study["manifest_count"] >= 2 for study in report["studies"])
 
 
+def test_migration_audit_projects_stable_ids_timestamps_and_fingerprints(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
+    workspace_roots = [
+        fixtures.build_dm_cvd_migration_audit_fixture(tmp_path),
+        fixtures.build_nf_pitnet_migration_audit_fixture(tmp_path),
+    ]
+
+    first = module.run_migration_audit(workspace_roots=workspace_roots, dry_run=True)
+    second = module.run_migration_audit(workspace_roots=reversed(workspace_roots), dry_run=True)
+
+    assert first == second
+    assert first["report_id"].startswith("control-plane-migration-audit::")
+    assert first["recorded_at"].endswith("+00:00")
+    assert first["workspace_fingerprint"].startswith("workspace-migration-audit::")
+    assert first["study_fingerprint"].startswith("study-migration-audit::")
+    assert len({workspace["workspace_fingerprint"] for workspace in first["workspaces"]}) == 2
+    assert all(workspace["recorded_at"] == first["recorded_at"] for workspace in first["workspaces"])
+    assert all(study["study_fingerprint"].startswith("study-migration-audit::") for study in first["studies"])
+    assert all(study["workspace_fingerprint"].startswith("workspace-migration-audit::") for study in first["studies"])
+    assert all(study["recorded_at"] == first["recorded_at"] for study in first["studies"])
+    assert all(
+        study["delivery_projection_completeness_reason"] == "current_package_and_submission_minimal_present"
+        for study in first["studies"]
+    )
+    assert all(study["delivery_projection_completion_plan"] is None for study in first["studies"])
+
+
+def test_migration_audit_projects_completion_plan_without_mutation_for_missing_submission_minimal(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
+    workspace_root = fixtures.build_migration_audit_fixture_missing_submission_minimal(tmp_path)
+
+    report = module.run_migration_audit(workspace_roots=[workspace_root], dry_run=True)
+
+    assert report["unclassified_authority_surface"] == 0
+    assert report["action_counts"]["mutating"] == 0
+    assert report["apply_actions"] == []
+    assert report["delete_actions"] == []
+    assert report["write_actions"] == []
+    assert report["mutating_actions"] == []
+    assert report["delivery_projection_completion_plan_count"] == 1
+    study = report["studies"][0]
+    assert study["authority_summary"]["unclassified_authority_surface"] == 0
+    assert study["current_package_count"] >= 1
+    assert study["submission_minimal_count"] == 0
+    assert study["lifecycle_classification"] == "delivery_projection_incomplete"
+    assert study["delivery_projection_completeness_reason"] == "missing_submission_minimal"
+    assert study["delivery_projection_completion_plan"] == {
+        "plan_type": "canonical_regeneration",
+        "missing_surface": "submission_minimal",
+        "manual_patch_allowed": False,
+        "canonical_regeneration_path": [
+            "refresh_canonical_manuscript_sources",
+            "regenerate_submission_minimal",
+            "rerun_publication_gate",
+        ],
+        "gate_status": "publication_gate_required_before_delivery_complete",
+        "mutation_policy": "dry_run_projection_only",
+    }
+
+
 def test_migration_audit_report_projects_action_counts_and_study_classifications(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
     workspace_roots = [

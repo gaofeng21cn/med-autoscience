@@ -303,6 +303,43 @@ def test_fast_lane_manifest_blocks_when_quality_enforcer_blocks() -> None:
     assert manifest["blocking_reasons"] == ["review_ledger_charter_expectation_not_closed"]
 
 
+def test_fast_lane_manifest_blocks_when_control_plane_route_gate_blocks() -> None:
+    module = importlib.import_module("med_autoscience.controllers.fast_lane_executor")
+
+    manifest = module.build_fast_lane_execution_manifest(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        repair_units=_repair_units(),
+        quality_ledger_enforcement=_quality_ledger_enforcement(),
+        replay_case={},
+        route_context={
+            "control_plane_snapshot": {
+                "surface": "control_plane_snapshot",
+                "dispatch_gate": {
+                    "state": "open",
+                    "dispatch_allowed": True,
+                    "blocking_reasons": [],
+                },
+                "route_authorization": {
+                    "authorized": True,
+                    "paper_write_allowed": True,
+                    "bundle_build_allowed": False,
+                    "runtime_recovery_allowed": True,
+                },
+                "authority_refs": {
+                    "study_truth": {"epoch": "truth-1"},
+                    "runtime_health": {"epoch": "runtime-1"},
+                },
+            }
+        },
+    )
+
+    assert manifest["manifest_state"] == "blocked_by_control_plane_route_gate"
+    assert manifest["execution_permission"]["auto_dispatch_allowed"] is False
+    assert manifest["control_plane_route_gate"]["allowed"] is False
+    assert "bundle_build_not_authorized" in manifest["blocking_reasons"]
+
+
 def test_fast_lane_manifest_blocks_gate_relaxation_even_if_allowed_flag_is_true() -> None:
     module = importlib.import_module("med_autoscience.controllers.fast_lane_executor")
 

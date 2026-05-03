@@ -1,0 +1,67 @@
+from __future__ import annotations
+
+import importlib
+from pathlib import Path
+
+
+def _write(path: Path, text: str = "payload\n") -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_status(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    _write(study_root / "paper" / "source" / "manuscript_source.md")
+    _write(study_root / "manuscript" / "current_package" / "manuscript.docx")
+    _write(study_root / "manuscript" / "current_package.zip", "zip\n")
+    _write(study_root / "paper" / "submission_minimal" / "paper.pdf")
+    _write(study_root / "artifacts" / "runtime" / "latest.json", "{}\n")
+    _write(workspace_root / "datasets" / "release" / "dataset_manifest.yaml")
+    _write(workspace_root / ".ds" / "runs" / "run-1" / "stdout.jsonl")
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+
+    assert report["surface"] == "control_plane_lifecycle_report"
+    assert report["mutation_policy"]["read_only"] is True
+    assert report["mutation_policy"]["physical_cleanup_performed"] is False
+    assert report["summary"]["role_counts"]["canonical_source"] == 1
+    assert report["source_totals"]["delivery_projection"]["file_count"] >= 3
+    assert report["source_totals"]["runtime"]["scan_mode"] == "statistical_only"
+    study = report["workspaces"][0]["studies"][0]
+    assert study["study_id"] == "001-risk"
+    assert study["projection_surfaces"]["current_package"]["role"] == "derived_projection"
+    assert study["projection_surfaces"]["submission_minimal"]["role"] == "human_handoff_mirror"
+    assert study["projection_completeness"]["status"] == "complete"
+    assert "missing_docx" not in study["projection_completeness"]["blockers"]
+    assert "missing_pdf" not in study["projection_completeness"]["blockers"]
+
+
+def test_lifecycle_operations_report_marks_incomplete_projection_surfaces(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "002-risk"
+    _write(study_root / "paper" / "source" / "manuscript_source.md")
+    _write(study_root / "manuscript" / "current_package" / "manuscript.docx")
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+    study = report["workspaces"][0]["studies"][0]
+
+    assert study["projection_completeness"]["status"] == "incomplete"
+    assert "missing_submission_minimal" in study["projection_completeness"]["blockers"]
+    assert "missing_pdf" in study["projection_completeness"]["blockers"]
+    assert "missing_zip" in study["projection_completeness"]["blockers"]
+
+
+def test_lifecycle_operations_report_markdown_is_renderable(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    _write(workspace_root / "studies" / "001-risk" / "paper" / "source.md")
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+    markdown = module.render_lifecycle_operations_report_markdown(report)
+
+    assert "# Control Plane Lifecycle Report" in markdown
+    assert "`001-risk`" in markdown

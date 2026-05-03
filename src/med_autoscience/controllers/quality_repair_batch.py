@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers import gate_clearing_batch
+from med_autoscience.controllers.control_plane_route_gate import assert_control_plane_route_authorized
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.publication_eval_latest import read_publication_eval_latest
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionType
@@ -184,6 +185,7 @@ def run_quality_repair_batch(
     source: str = "med_autoscience",
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
+    control_plane_route_gate = assert_control_plane_route_authorized("bundle_build", {"projection_only": True})
     publication_eval_payload = read_publication_eval_latest(study_root=resolved_study_root)
     summary_payload = _read_quality_summary(study_root=resolved_study_root)
     quality_closure_truth, quality_execution_lane = _quality_repair_context(summary_payload)
@@ -196,6 +198,7 @@ def run_quality_repair_batch(
             "status": "skipped_duplicate_eval",
             "source_eval_id": current_eval_id,
             "latest_record_path": str(stable_quality_repair_batch_path(study_root=resolved_study_root)),
+            "control_plane_route_gate": control_plane_route_gate,
         }
 
     gate_clearing_result = gate_clearing_batch.run_gate_clearing_batch(
@@ -226,6 +229,7 @@ def run_quality_repair_batch(
         "quality_execution_lane_id": _non_empty_text(quality_execution_lane.get("lane_id")),
         "gate_clearing_batch": gate_clearing_result,
         "gate_clearing_execution_summary": gate_clearing_execution_summary,
+        "control_plane_route_gate": control_plane_route_gate,
     }
     record_path = stable_quality_repair_batch_path(study_root=resolved_study_root)
     _write_json(record_path, record)

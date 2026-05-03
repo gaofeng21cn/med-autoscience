@@ -241,6 +241,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         category_id="control_plane_surface",
         exact_paths=(
             "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report.py",
             "src/med_autoscience/controllers/control_identity.py",
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance.py",
@@ -257,6 +258,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/runtime_protocol/paper_artifacts.py",
             "tests/control_plane_fixtures.py",
             "tests/test_artifact_lifecycle_inventory.py",
+            "tests/test_artifact_lifecycle_operations_report.py",
             "tests/test_cli_cases/public_entry_commands.py",
             "tests/test_control_plane_migration_audit.py",
             "tests/test_mcp_server.py",

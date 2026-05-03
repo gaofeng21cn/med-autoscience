@@ -22,6 +22,44 @@ def test_create_submission_minimal_package_creates_output_directory_and_copies_p
     assert manifest["output_root"] == "paper/submission_minimal"
 
 
+def test_create_submission_minimal_package_route_gate_blocks_materialization(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    shutil.rmtree(paper_root / "submission_minimal", ignore_errors=True)
+
+    result = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context={
+            "control_plane_snapshot": {
+                "surface": "control_plane_snapshot",
+                "dispatch_gate": {
+                    "state": "blocked",
+                    "dispatch_allowed": False,
+                    "blocking_reasons": ["execution_owner_guard.supervisor_only"],
+                },
+                "route_authorization": {
+                    "authorized": False,
+                    "paper_write_allowed": False,
+                    "bundle_build_allowed": False,
+                    "runtime_recovery_allowed": True,
+                },
+                "authority_refs": {
+                    "study_truth": {"epoch": "truth-1"},
+                    "runtime_health": {"epoch": "runtime-1"},
+                },
+            }
+        },
+    )
+
+    assert result["status"] == "control_plane_route_blocked"
+    assert result["control_plane_route_gate"]["allowed"] is False
+    assert "dispatch_gate_blocked" in result["control_plane_route_gate"]["blocking_reasons"]
+    assert not (paper_root / "submission_minimal").exists()
+
+
 def test_create_submission_minimal_package_writes_manifest_and_docx_path(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.submission_minimal")

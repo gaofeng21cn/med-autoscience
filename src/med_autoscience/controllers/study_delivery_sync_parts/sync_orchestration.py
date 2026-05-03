@@ -7,6 +7,7 @@ import tempfile
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
@@ -18,6 +19,10 @@ from med_autoscience.publication_profiles import (
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
 from med_autoscience.controllers.artifact_lifecycle_inventory import build_study_delivery_lifecycle_hook
+from med_autoscience.controllers.control_plane_route_gate import (
+    attach_control_plane_route_gate,
+    authorize_control_plane_route,
+)
 
 from .staging_and_sources import (
     SYNC_STAGES,
@@ -927,6 +932,8 @@ def sync_study_delivery(
     stage: str,
     publication_profile: str = "general_medical_journal",
     promote_to_final: bool = False,
+    control_plane_route_context: Mapping[str, Any] | None = None,
+    route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     normalized_stage = str(stage or "").strip()
     if normalized_stage not in SYNC_STAGES:
@@ -934,26 +941,34 @@ def sync_study_delivery(
     normalized_publication_profile = normalize_publication_profile(publication_profile)
     if not is_supported_publication_profile(normalized_publication_profile):
         raise ValueError(f"unsupported publication profile: {publication_profile}")
-
     context = _resolve_delivery_context(paper_root.resolve())
-    paper_root = context["paper_root"]
-    worktree_root = context["worktree_root"]
-    quest_id = context["quest_id"]
-    study_id = context["study_id"]
-    study_root = context["study_root"]
+    paper_root, worktree_root = context["paper_root"], context["worktree_root"]
+    quest_id, study_id, study_root = context["quest_id"], context["study_id"], context["study_root"]
+    resolved_route_context = (
+        {"projection_only": True, "paths": [study_root / "manuscript" / "current_package"]}
+        if control_plane_route_context is None and route_context is None
+        else dict(control_plane_route_context or route_context or {})
+    )
+    control_plane_route_gate = authorize_control_plane_route("delivery_sync", resolved_route_context)
+    if not bool(control_plane_route_gate.get("authorized")):
+        return {
+            "status": "control_plane_route_blocked",
+            "stage": normalized_stage,
+            "paper_root": str(paper_root),
+            "study_root": str(study_root),
+            "control_plane_route_gate": control_plane_route_gate,
+        }
 
     if normalized_stage == "draft_handoff":
         if normalized_publication_profile != GENERAL_MEDICAL_JOURNAL_PROFILE:
             raise ValueError("draft_handoff only supports the general_medical_journal profile")
-        return sync_draft_handoff_delivery(
-            paper_root=paper_root,
-            quest_id=quest_id,
-            study_id=study_id,
-            study_root=study_root,
+        result = sync_draft_handoff_delivery(
+            paper_root=paper_root, quest_id=quest_id, study_id=study_id, study_root=study_root
         )
+        return attach_control_plane_route_gate(result, control_plane_route_gate)
 
     if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
-        return sync_general_delivery(
+        result = sync_general_delivery(
             paper_root=paper_root,
             worktree_root=worktree_root,
             quest_id=quest_id,
@@ -961,22 +976,13 @@ def sync_study_delivery(
             study_root=study_root,
             normalized_stage=normalized_stage,
         )
+        return attach_control_plane_route_gate(result, control_plane_route_gate)
 
     if not is_supported_publication_profile(normalized_publication_profile):
         raise ValueError(f"unsupported publication profile: {normalized_publication_profile}")
 
-    if promote_to_final:
-        return sync_promoted_journal_delivery(
-            paper_root=paper_root,
-            worktree_root=worktree_root,
-            quest_id=quest_id,
-            study_id=study_id,
-            study_root=study_root,
-            normalized_stage=normalized_stage,
-            publication_profile=normalized_publication_profile,
-        )
-
-    return sync_journal_specific_delivery(
+    sync_journal_delivery = sync_promoted_journal_delivery if promote_to_final else sync_journal_specific_delivery
+    result = sync_journal_delivery(
         paper_root=paper_root,
         worktree_root=worktree_root,
         quest_id=quest_id,
@@ -985,6 +991,7 @@ def sync_study_delivery(
         normalized_stage=normalized_stage,
         publication_profile=normalized_publication_profile,
     )
+    return attach_control_plane_route_gate(result, control_plane_route_gate)
 
 
 from .sync_cli import main, parse_args  # noqa: E402

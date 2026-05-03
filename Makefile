@@ -6,13 +6,20 @@ CONTROL_PLANE_TESTS := \
 	tests/test_study_control_plane_kernel.py \
 	tests/test_control_plane_state_machine.py \
 	tests/test_study_runtime_typed_surface_cases/status_type_cases.py \
+	tests/test_control_plane_route_gate.py \
 	tests/test_artifact_lifecycle_inventory.py \
+	tests/test_artifact_lifecycle_operations_report.py \
 	tests/test_runtime_protocol_paper_artifacts.py \
 	tests/test_study_delivery_sync.py \
 	tests/test_runtime_storage_maintenance.py \
+	tests/test_control_plane_cleanup_apply.py \
 	tests/test_control_plane_migration_audit.py \
 	tests/test_cli_cases/public_entry_commands.py::test_migration_audit_command_dispatches_read_only_controller \
+	tests/test_cli_cases/public_entry_commands.py::test_cleanup_apply_command_dispatches_controller \
+	tests/test_cli_cases/public_entry_commands.py::test_lifecycle_report_command_dispatches_read_only_controller \
 	tests/test_mcp_server.py::test_mcp_product_entry_can_call_migration_audit \
+	tests/test_mcp_server.py::test_mcp_product_entry_can_call_cleanup_apply \
+	tests/test_mcp_server.py::test_mcp_product_entry_can_call_lifecycle_report \
 	tests/test_truth_projection_surfaces.py \
 	tests/test_runtime_health_projection_surfaces.py \
 	tests/test_study_progress.py \

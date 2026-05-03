@@ -8,14 +8,38 @@ from .markdown_surface import *
 from .post_materialization_sync import replay_post_submission_minimal_sync
 from .profile_builders import *
 from .source_contract import build_submission_minimal_source_contract
+from collections.abc import Mapping
+import inspect
 
 def create_submission_minimal_package(
     *,
     paper_root: Path,
     publication_profile: str,
     citation_style: str | None = "auto",
+    control_plane_route_context: Mapping[str, Any] | None = None,
+    route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    from med_autoscience.controllers.control_plane_route_gate import (
+        attach_control_plane_route_gate,
+        authorize_control_plane_route,
+    )
+
     paper_root = paper_root.resolve()
+    resolved_route_context = (
+        {"projection_only": True, "paths": [paper_root / "submission_minimal"]}
+        if control_plane_route_context is None and route_context is None
+        else dict(control_plane_route_context or route_context or {})
+    )
+    control_plane_route_gate = authorize_control_plane_route(
+        "submission_materialize",
+        resolved_route_context,
+    )
+    if not bool(control_plane_route_gate.get("authorized")):
+        return {
+            "status": "control_plane_route_blocked",
+            "paper_root": str(paper_root),
+            "control_plane_route_gate": control_plane_route_gate,
+        }
     workspace_root = workspace_root_from_paper_root(paper_root)
     requested_publication_profile = str(publication_profile or "").strip()
     profile_config = resolve_publication_profile_config(
@@ -422,6 +446,7 @@ def create_submission_minimal_package(
                 "reference_doc_path": str(profile_config.supplementary_reference_doc_path.resolve()),
             }
 
+        manifest["control_plane_route_gate"] = control_plane_route_gate
         write_text(
             readme_path,
             build_submission_minimal_readme(publication_profile=resolved_publication_profile),
@@ -469,10 +494,11 @@ def create_submission_minimal_package(
     delivery_sync_result: dict[str, Any] | None = None
     post_materialization_sync_result: dict[str, Any] | None = None
     if study_delivery_sync.can_sync_study_delivery(paper_root=paper_root):
-        delivery_sync_result = study_delivery_sync.sync_study_delivery(
+        delivery_sync_result = _sync_study_delivery_with_route_context(
             paper_root=paper_root,
             stage="submission_minimal",
             publication_profile=resolved_publication_profile,
+            control_plane_route_context=resolved_route_context,
         )
         post_materialization_sync_result = replay_post_submission_minimal_sync(
             paper_root=paper_root,
@@ -498,8 +524,30 @@ def create_submission_minimal_package(
             result["delivery_sync"] = delivery_sync_result
         if post_materialization_sync_result is not None:
             result["post_materialization_sync"] = post_materialization_sync_result
-        return result
-    return manifest
+        return attach_control_plane_route_gate(result, control_plane_route_gate)
+    return attach_control_plane_route_gate(manifest, control_plane_route_gate)
+
+
+def _sync_study_delivery_with_route_context(
+    *,
+    paper_root: Path,
+    stage: str,
+    publication_profile: str,
+    control_plane_route_context: Mapping[str, Any],
+) -> dict[str, Any]:
+    signature = inspect.signature(study_delivery_sync.sync_study_delivery)
+    if "control_plane_route_context" in signature.parameters:
+        return study_delivery_sync.sync_study_delivery(
+            paper_root=paper_root,
+            stage=stage,
+            publication_profile=publication_profile,
+            control_plane_route_context=control_plane_route_context,
+        )
+    return study_delivery_sync.sync_study_delivery(
+        paper_root=paper_root,
+        stage=stage,
+        publication_profile=publication_profile,
+    )
 
 
 def parse_args() -> argparse.Namespace:
