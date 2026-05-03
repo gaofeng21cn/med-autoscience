@@ -490,6 +490,38 @@ def _render_mcp_progress_blockers(compact: dict[str, Any]) -> list[str]:
     return ["", "## 当前阻塞", *[f"- {item}" for item in blockers]]
 
 
+def _render_mcp_progress_medical_paper_readiness(compact: dict[str, Any]) -> list[str]:
+    readiness = (
+        compact.get("medical_paper_readiness")
+        if isinstance(compact.get("medical_paper_readiness"), dict)
+        else {}
+    )
+    if not readiness:
+        return []
+    lines = [
+        "",
+        "## Medical Paper Readiness",
+        f"- readiness: `{readiness.get('overall_status') or 'unknown'}`；"
+        f"`{readiness.get('ready_count')}/{readiness.get('required_count')}`",
+    ]
+    next_action = readiness.get("next_action") if isinstance(readiness.get("next_action"), dict) else {}
+    next_action_summary = str((next_action or {}).get("summary") or "").strip()
+    if next_action_summary:
+        lines.append(f"- 下一动作: {next_action_summary}")
+    for item in readiness.get("missing_surfaces") or []:
+        if not isinstance(item, dict):
+            continue
+        surface_key = str(item.get("surface_key") or "unknown").strip() or "unknown"
+        missing_reason = str(item.get("missing_reason") or "unknown").strip() or "unknown"
+        lines.append(f"- 缺失 surface: {surface_key} (`{missing_reason}`)")
+    lines.append(f"- quality_claim_authorized: `{readiness.get('quality_claim_authorized')}`")
+    lines.append(
+        "- mechanical_projection_can_authorize_quality: "
+        f"`{readiness.get('mechanical_projection_can_authorize_quality')}`"
+    )
+    return lines
+
+
 def _render_mcp_progress_refs(compact: dict[str, Any]) -> list[str]:
     refs = compact.get("refs") if isinstance(compact.get("refs"), dict) else {}
     if not refs:
@@ -518,5 +550,6 @@ def render_mcp_study_progress_markdown(payload: dict[str, Any]) -> str:
     lines.extend(_render_mcp_progress_runtime_state(compact))
     lines.extend(_render_mcp_progress_operator_and_action(compact))
     lines.extend(_render_mcp_progress_blockers(compact))
+    lines.extend(_render_mcp_progress_medical_paper_readiness(compact))
     lines.extend(_render_mcp_progress_refs(compact))
     return "\n".join(lines) + "\n"

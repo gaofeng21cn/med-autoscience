@@ -100,6 +100,43 @@ def test_mcp_progress_compact_projection_carries_truth_snapshot_summary() -> Non
     assert compact["control_plane_snapshot"]["dispatch_gate"]["state"] == "blocked"
 
 
+def test_mcp_progress_markdown_renders_medical_paper_readiness_summary() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+
+    markdown = module.render_mcp_study_progress_markdown(
+        {
+            "study_id": "003-dpcc",
+            "current_stage": "writing",
+            "medical_paper_readiness": {
+                "surface": "medical_paper_readiness",
+                "overall_status": "blocked",
+                "ready_count": 4,
+                "required_count": 7,
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+                "next_action": {
+                    "summary": "补齐 Stop-loss Memo 后再继续自动论文链路。",
+                },
+                "capability_surfaces": [
+                    {
+                        "surface_key": "stop_loss_memo",
+                        "status": "missing",
+                        "missing_reason": "missing_canonical_artifact",
+                        "required_for_ready": True,
+                    }
+                ],
+            },
+        }
+    )
+
+    assert "## Medical Paper Readiness" in markdown
+    assert "- readiness: `blocked`；`4/7`" in markdown
+    assert "- 下一动作: 补齐 Stop-loss Memo 后再继续自动论文链路。" in markdown
+    assert "- 缺失 surface: stop_loss_memo (`missing_canonical_artifact`)" in markdown
+    assert "- quality_claim_authorized: `False`" in markdown
+    assert "- mechanical_projection_can_authorize_quality: `False`" in markdown
+
+
 def test_workspace_cockpit_study_item_carries_truth_snapshot_summary() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 
