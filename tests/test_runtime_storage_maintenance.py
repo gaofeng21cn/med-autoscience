@@ -85,6 +85,7 @@ def _write_dataset_release(
     supersedes_versions: list[str] | None = None,
     restore_handle: str | None = None,
     checksum: str | None = None,
+    rehydrate_verified: bool = False,
 ) -> Path:
     release_root = workspace_root / "datasets" / family_id / version_id
     release_root.mkdir(parents=True, exist_ok=True)
@@ -94,6 +95,13 @@ def _write_dataset_release(
         source_lines.append(f"  restore_handle: {restore_handle}")
     if checksum:
         source_lines.append(f"  sha256: {checksum}")
+    if rehydrate_verified:
+        source_lines.extend(
+            [
+                "  rehydrate_verification:",
+                "    status: verified",
+            ]
+        )
     supersedes_lines = []
     if supersedes_versions is not None:
         supersedes_lines.append("supersedes_versions:")
@@ -205,6 +213,7 @@ def test_audit_workspace_storage_dry_run_reports_runtime_dataset_cache_and_git(t
         dataset_id="dm_master",
         restore_handle="s3://archive/dm_master/v1.tar.gz",
         checksum="abc123",
+        rehydrate_verified=True,
     )
     _write_dataset_release(
         profile.workspace_root,
@@ -258,7 +267,11 @@ def test_audit_workspace_storage_blocks_superseded_dataset_without_restore_index
 
     v1_report = next(item for item in result["categories"]["dataset"]["releases"] if item["version_id"] == "v1")
     assert v1_report["candidate_action"] == "blocked"
-    assert v1_report["blockers"] == ["missing_restore_handle", "missing_checksum"]
+    assert v1_report["blockers"] == [
+        "missing_restore_handle",
+        "missing_checksum",
+        "missing_rehydrate_verification",
+    ]
 
 
 def test_audit_workspace_storage_apply_runs_stopped_studies_and_blocks_live_runtime(tmp_path: Path) -> None:
@@ -372,6 +385,7 @@ def test_audit_workspace_storage_apply_does_not_count_offline_dataset_candidates
         dataset_id="dm_master",
         restore_handle="s3://archive/dm_master/v1.tar.gz",
         checksum="abc123",
+        rehydrate_verified=True,
     )
     _write_dataset_release(
         profile.workspace_root,

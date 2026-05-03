@@ -529,6 +529,38 @@ def resolve_submission_minimal_output_paths(
     return docx_path, pdf_path
 
 
+def _submission_minimal_authority_record(path: Path | None, *, artifact_format: str) -> dict[str, Any]:
+    return {
+        "path": str(path) if path is not None else None,
+        "format": artifact_format,
+        "role": "derived_projection",
+        "lifecycle": "rebuildable_projection",
+        "edit_source_allowed": False,
+        "quality_authority_allowed": False,
+        "authority_source_roles": ["canonical_source"],
+    }
+
+
+def resolve_submission_minimal_artifact_authority(
+    *,
+    paper_bundle_manifest_path: Path | None,
+    submission_minimal_manifest: dict[str, Any] | None,
+) -> dict[str, Any]:
+    docx_path, pdf_path = resolve_submission_minimal_output_paths(
+        paper_bundle_manifest_path=paper_bundle_manifest_path,
+        submission_minimal_manifest=submission_minimal_manifest,
+    )
+    return {
+        "schema_version": 1,
+        "surface_kind": "paper_artifact_authority_resolution",
+        "status": "resolved" if docx_path is not None or pdf_path is not None else "unresolved",
+        "docx": _submission_minimal_authority_record(docx_path, artifact_format="docx"),
+        "pdf": _submission_minimal_authority_record(pdf_path, artifact_format="pdf"),
+        "submission_minimal_edit_source_allowed": False,
+        "submission_minimal_quality_authority_allowed": False,
+    }
+
+
 def resolve_managed_submission_surface_roots(paper_root: Path) -> tuple[Path, ...]:
     resolved_paper_root = _resolve_path(paper_root)
     if not resolved_paper_root.exists():

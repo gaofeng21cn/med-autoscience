@@ -18,6 +18,7 @@ from med_autoscience.publication_profiles import (
 )
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
+from med_autoscience.controllers.artifact_lifecycle_inventory import build_study_delivery_lifecycle_hook
 
 from .staging_and_sources import (
     SYNC_STAGES,
@@ -197,6 +198,13 @@ def sync_draft_handoff_delivery(
         },
         "copied_files": copied_files,
         "generated_files": generated_files,
+        "artifact_lifecycle": build_study_delivery_lifecycle_hook(
+            study_root=study_root,
+            current_package_root=current_package_root,
+            current_package_zip=current_package_zip,
+            copied_files=copied_files,
+            generated_files=generated_files,
+        ),
     }
     dump_json(manuscript_root / "delivery_manifest.json", manifest)
     return manifest
@@ -415,6 +423,13 @@ def sync_general_delivery(
             "targets": targets,
             "copied_files": remapped_copied_files,
             "generated_files": remapped_generated_files,
+            "artifact_lifecycle": build_study_delivery_lifecycle_hook(
+                study_root=study_root,
+                current_package_root=manuscript_root / "current_package",
+                current_package_zip=manuscript_root / "current_package.zip",
+                copied_files=remapped_copied_files,
+                generated_files=remapped_generated_files,
+            ),
         }
         dump_json(staging_manuscript_root / "delivery_manifest.json", manifest)
         replace_directory_atomically(
@@ -606,6 +621,13 @@ def sync_journal_specific_delivery(
         },
         "copied_files": copied_files,
         "generated_files": generated_files,
+        "artifact_lifecycle": build_study_delivery_lifecycle_hook(
+            study_root=study_root,
+            current_package_root=current_package_root,
+            current_package_zip=current_package_zip,
+            copied_files=copied_files,
+            generated_files=generated_files,
+        ),
     }
     dump_json(journal_package_root / "delivery_manifest.json", manifest)
     return manifest
@@ -830,6 +852,15 @@ def sync_promoted_journal_delivery(
             if item["category"] == "journal_submission_mirror"
         ],
         "generated_files": mirror_generated_files,
+        "artifact_lifecycle": build_study_delivery_lifecycle_hook(
+            study_root=study_root,
+            copied_files=[
+                item
+                for item in copied_files
+                if item["category"] == "journal_submission_mirror"
+            ],
+            generated_files=mirror_generated_files,
+        ),
     }
     dump_json(mirror_root / "delivery_manifest.json", mirror_manifest)
 
@@ -875,6 +906,17 @@ def sync_promoted_journal_delivery(
             if item["category"] != "journal_submission_mirror"
         ],
         "generated_files": generated_files,
+        "artifact_lifecycle": build_study_delivery_lifecycle_hook(
+            study_root=study_root,
+            current_package_root=current_package_root,
+            current_package_zip=current_package_zip,
+            copied_files=[
+                item
+                for item in copied_files
+                if item["category"] != "journal_submission_mirror"
+            ],
+            generated_files=generated_files,
+        ),
     }
     dump_json(manuscript_root / "delivery_manifest.json", manifest)
     return manifest

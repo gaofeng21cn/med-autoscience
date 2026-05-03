@@ -10,6 +10,7 @@ import sys
 from typing import Any, Mapping
 
 from med_autoscience.controllers import data_assets, study_runtime_resolution
+from med_autoscience.controllers.artifact_lifecycle_inventory import evaluate_archive_cleanup_readiness
 from med_autoscience.controllers.runtime_storage_maintenance_parts import git_garbage
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
@@ -326,6 +327,19 @@ def _release_checksum(release: Mapping[str, Any]) -> str | None:
     return None
 
 
+def _release_rehydrate_verification(release: Mapping[str, Any]) -> Mapping[str, Any] | str | None:
+    source_release = release.get("source_release")
+    source_payload = source_release if isinstance(source_release, Mapping) else {}
+    release_contract = release.get("declared_release_contract")
+    contract_payload = release_contract if isinstance(release_contract, Mapping) else {}
+    for payload in (source_payload, contract_payload, release):
+        for key in ("rehydrate_verification", "restore_verification", "rehydrate_verification_status"):
+            value = payload.get(key) if isinstance(payload, Mapping) else None
+            if isinstance(value, Mapping) or (isinstance(value, str) and value.strip()):
+                return value
+    return None
+
+
 def _dataset_retention_audit(workspace_root: Path) -> dict[str, Any]:
     releases = data_assets._scan_private_releases(workspace_root)
     superseded_by = _superseded_release_index(releases)
@@ -345,12 +359,14 @@ def _dataset_retention_audit(workspace_root: Path) -> dict[str, Any]:
         superseding_versions = sorted(superseded_by.get((family_id, version_id), []))
         restore_handle = _release_restore_handle(release)
         checksum = _release_checksum(release)
+        rehydrate_verification = _release_rehydrate_verification(release)
         decision = _dataset_release_decision(
             release=release,
             release_bytes=release_bytes,
             superseding_versions=superseding_versions,
             restore_handle=restore_handle,
             checksum=checksum,
+            rehydrate_verification=rehydrate_verification,
         )
         totals[decision["total_bucket"]] += release_bytes
         release_reports.append(
@@ -365,6 +381,7 @@ def _dataset_retention_audit(workspace_root: Path) -> dict[str, Any]:
                 "source_release": release.get("source_release"),
                 "restore_handle": restore_handle,
                 "checksum": checksum,
+                "rehydrate_verification": rehydrate_verification,
                 "candidate_action": decision["candidate_action"],
                 "risk": decision["risk"],
                 "estimated_release_bytes": decision["estimated_release_bytes"],
@@ -402,12 +419,14 @@ def _dataset_release_decision(
     superseding_versions: list[str],
     restore_handle: str | None,
     checksum: str | None,
+    rehydrate_verification: Mapping[str, Any] | str | None,
 ) -> dict[str, Any]:
     blockers = _dataset_release_blockers(
         release=release,
         superseding_versions=superseding_versions,
         restore_handle=restore_handle,
         checksum=checksum,
+        rehydrate_verification=rehydrate_verification,
     )
     if not superseding_versions:
         return {
@@ -440,14 +459,24 @@ def _dataset_release_blockers(
     superseding_versions: list[str],
     restore_handle: str | None,
     checksum: str | None,
+    rehydrate_verification: Mapping[str, Any] | str | None,
 ) -> list[str]:
     blockers: list[str] = []
     if release.get("contract_status") != "manifest_backed":
         blockers.append("missing_dataset_manifest")
-    if superseding_versions and not restore_handle:
-        blockers.append("missing_restore_handle")
-    if superseding_versions and not checksum:
-        blockers.append("missing_checksum")
+    if superseding_versions:
+        restore_metadata = {
+            "restore_handle": restore_handle,
+            "sha256": checksum,
+            "rehydrate_verification": rehydrate_verification,
+        }
+        archive_path = Path(str(release.get("data_root") or release.get("manifest_path") or "."))
+        for blocker in evaluate_archive_cleanup_readiness(
+            archive_path=archive_path,
+            restore_metadata=restore_metadata,
+        )["blockers"]:
+            if blocker not in blockers:
+                blockers.append(blocker)
     return blockers
 
 

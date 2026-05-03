@@ -28,6 +28,7 @@ from .paper_artifacts import (
     resolve_latest_paper_root,
     resolve_paper_bundle_manifest,
     resolve_submission_minimal_manifest,
+    resolve_submission_minimal_artifact_authority,
     resolve_submission_minimal_output_paths,
 )
 from .runtime_watch import (
@@ -103,6 +104,7 @@ __all__ = [
     "resolve_latest_paper_root",
     "resolve_paper_bundle_manifest",
     "resolve_submission_minimal_manifest",
+    "resolve_submission_minimal_artifact_authority",
     "resolve_submission_minimal_output_paths",
     "find_latest",
     "find_latest_main_result",
