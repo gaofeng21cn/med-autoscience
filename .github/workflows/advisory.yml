@@ -10,6 +10,8 @@ jobs:
     runs-on: macOS-latest
     name: Run regression advisory tests
     continue-on-error: true
+    env:
+      MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/regression.json
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -28,10 +30,21 @@ jobs:
       - name: Run regression tests
         run: scripts/verify.sh regression
 
+      - name: Upload regression lane summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        continue-on-error: true
+        with:
+          name: mas-test-lane-summary-regression
+          path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}
+          if-no-files-found: warn
+
   meta-contracts:
     runs-on: macOS-latest
     name: Run meta advisory tests
     continue-on-error: true
+    env:
+      MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/meta.json
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -50,10 +63,21 @@ jobs:
       - name: Run meta tests
         run: scripts/verify.sh meta
 
+      - name: Upload meta lane summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        continue-on-error: true
+        with:
+          name: mas-test-lane-summary-meta
+          path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}
+          if-no-files-found: warn
+
   family-shared:
     runs-on: macOS-latest
     name: Run family shared advisory tests
     continue-on-error: true
+    env:
+      MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/family.json
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -72,10 +96,21 @@ jobs:
       - name: Run family shared tests
         run: scripts/verify.sh family
 
+      - name: Upload family lane summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        continue-on-error: true
+        with:
+          name: mas-test-lane-summary-family
+          path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}
+          if-no-files-found: warn
+
   submission-surface:
     runs-on: macOS-latest
     name: Run submission-heavy advisory tests
     continue-on-error: true
+    env:
+      MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/submission.json
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -104,10 +139,21 @@ jobs:
       - name: Run submission tests
         run: scripts/verify.sh submission
 
+      - name: Upload submission lane summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        continue-on-error: true
+        with:
+          name: mas-test-lane-summary-submission
+          path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}
+          if-no-files-found: warn
+
   display-surface:
     runs-on: macOS-latest
     name: Run display-heavy advisory tests
     continue-on-error: true
+    env:
+      MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/display.json
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -151,3 +197,12 @@ jobs:
 
       - name: Run display tests
         run: scripts/verify.sh display
+
+      - name: Upload display lane summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        continue-on-error: true
+        with:
+          name: mas-test-lane-summary-display
+          path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}
+          if-no-files-found: warn

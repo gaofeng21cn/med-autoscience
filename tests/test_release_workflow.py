@@ -25,6 +25,12 @@ def _workflow_job(workflow: str, job_id: str) -> str:
     return match.group(0)
 
 
+def _workflow_step(workflow_job: str, step_name: str) -> str:
+    match = re.search(rf"(?ms)^      - name: {re.escape(step_name)}\n.*?(?=^      - name: |\Z)", workflow_job)
+    assert match is not None, f"missing workflow step: {step_name}"
+    return match.group(0)
+
+
 def test_domain_repo_does_not_publish_github_releases() -> None:
     workflow_text = "\n".join(_workflow_texts())
 
@@ -137,7 +143,43 @@ def test_advisory_workflow_only_prepares_study_runtime_analysis_bundle_for_displ
     assert "Run submission-heavy advisory tests" in advisory_workflow
     assert "Run display-heavy advisory tests" in advisory_workflow
     assert "continue-on-error: true" not in ci_workflow
-    assert advisory_workflow.count("continue-on-error: true") == 5
+    for workflow_job in (
+        regression_workflow,
+        meta_workflow,
+        family_workflow,
+        submission_workflow,
+        display_workflow,
+    ):
+        assert "continue-on-error: true" in workflow_job
+
+
+def test_advisory_workflow_uploads_non_blocking_lane_summaries() -> None:
+    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "MAS_TEST_LANE_SUMMARY_PATH" not in ci_workflow
+    assert "mas-test-lane-summary-" not in ci_workflow
+
+    for job_id, lane in (
+        ("regression", "regression"),
+        ("meta-contracts", "meta"),
+        ("family-shared", "family"),
+        ("submission-surface", "submission"),
+        ("display-surface", "display"),
+    ):
+        workflow_job = _workflow_job(advisory_workflow, job_id)
+        upload_step = _workflow_step(workflow_job, f"Upload {lane} lane summary")
+
+        assert (
+            f"MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/{lane}.json"
+            in workflow_job
+        )
+        assert "if: always()" in upload_step
+        assert "uses: actions/upload-artifact@v7" in upload_step
+        assert "continue-on-error: true" in upload_step
+        assert f"name: mas-test-lane-summary-{lane}" in upload_step
+        assert "path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}" in upload_step
+        assert "if-no-files-found: warn" in upload_step
 
 
 def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
@@ -178,6 +220,8 @@ def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     assert "submission-facing DOCX/PDF" in preflight_doc
     assert "`smoke`、`regression` 与 `ci-preflight`" in preflight_doc
     assert "`regression`、`display`、`submission`、`family` 与 `meta` lane 迁入 `macOS Advisory`" in preflight_doc
+    assert "耗时预算只用于观察和提醒" in preflight_doc
+    assert "不作为 push 阻塞条件" in preflight_doc
 
 
 def test_ci_and_advisory_workflows_split_stable_push_and_advisory_jobs() -> None:
