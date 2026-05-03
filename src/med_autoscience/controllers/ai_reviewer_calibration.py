@@ -144,3 +144,23 @@ def build_pre_draft_readiness_materialization_contract() -> dict[str, Any]:
             "claim_only_ready",
         ],
     }
+
+
+def build_quality_regression_calibration_evidence_contract() -> dict[str, Any]:
+    return {
+        "surface": "quality_regression_calibration_evidence_contract",
+        "owner": "MAS Evaluation OS",
+        "judge_scores": {
+            "accepted_sources": ["autorater", "side_by_side_judge"],
+            "role": "calibration_evidence_only",
+            "can_authorize_publication_quality": False,
+            "can_replace_ai_reviewer": False,
+        },
+        "required_refs": [
+            "draft_eval_ref",
+            "revision_eval_ref",
+            "final_package_eval_ref",
+            "calibration_evidence_refs",
+        ],
+        "fail_closed_without_refs": True,
+    }
