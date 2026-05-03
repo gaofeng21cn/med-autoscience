@@ -295,6 +295,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "module_surfaces": _compact_module_surfaces,
         "study_truth_snapshot": _compact_study_truth_snapshot,
         "runtime_health_snapshot": _compact_runtime_health_snapshot,
+        "control_plane_snapshot": _compact_control_plane_snapshot,
     }.items():
         item = builder(payload.get(key))
         if item is not None:
@@ -344,6 +345,25 @@ def _compact_runtime_health_snapshot(value: object) -> dict[str, Any] | None:
             "blocking_reasons",
             "allowed_controller_actions",
             "source_signature",
+        ),
+    )
+
+
+def _compact_control_plane_snapshot(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    return _compact_record(
+        value,
+        (
+            "control_state",
+            "canonical_next_action",
+            "canonical_runtime_action",
+            "dispatch_gate",
+            "route_authorization",
+            "blocking_reasons",
+            "allowed_controller_actions",
+            "authority_refs",
+            "quality_gate_relaxation_allowed",
         ),
     )
 

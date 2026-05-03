@@ -64,6 +64,9 @@ def _serialize_managed_study_action(
     if runtime_health_snapshot is not None:
         serialized["runtime_health_epoch"] = _non_empty_text(runtime_health_snapshot.get("runtime_health_epoch"))
         serialized["runtime_health_snapshot"] = runtime_health_snapshot
+    control_plane_snapshot = _control_plane_snapshot_summary(payload.get("control_plane_snapshot"))
+    if control_plane_snapshot is not None:
+        serialized["control_plane_snapshot"] = control_plane_snapshot
     return serialized
 
 
@@ -139,6 +142,24 @@ def _runtime_health_snapshot_summary(value: object) -> dict[str, Any] | None:
         "blocking_reasons",
         "allowed_controller_actions",
         "source_signature",
+    )
+    summary = {key: value[key] for key in keys if key in value}
+    return summary or None
+
+
+def _control_plane_snapshot_summary(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    keys = (
+        "control_state",
+        "canonical_next_action",
+        "canonical_runtime_action",
+        "dispatch_gate",
+        "route_authorization",
+        "blocking_reasons",
+        "allowed_controller_actions",
+        "authority_refs",
+        "quality_gate_relaxation_allowed",
     )
     summary = {key: value[key] for key in keys if key in value}
     return summary or None

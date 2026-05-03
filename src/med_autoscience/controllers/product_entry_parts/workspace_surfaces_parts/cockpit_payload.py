@@ -63,6 +63,7 @@ def _study_item(
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
     runtime_health_snapshot = _runtime_health_snapshot_summary(progress_payload.get("runtime_health_snapshot"))
+    control_plane_snapshot = _control_plane_snapshot_summary(progress_payload.get("control_plane_snapshot"))
     research_runtime_control_projection = dict(progress_payload.get("research_runtime_control_projection") or {})
     gate_surface = dict(research_runtime_control_projection.get("research_gate_surface") or {})
     if gate_surface.get("approval_gate_field") == "needs_user_decision":
@@ -76,6 +77,7 @@ def _study_item(
         "runtime_health_epoch": _non_empty_text(progress_payload.get("runtime_health_epoch"))
         or _non_empty_text((runtime_health_snapshot or {}).get("runtime_health_epoch")),
         "runtime_health_snapshot": runtime_health_snapshot,
+        "control_plane_snapshot": control_plane_snapshot,
         "current_stage": progress_payload.get("current_stage"),
         "current_stage_summary": progress_payload.get("current_stage_summary"),
         "current_blockers": list(progress_payload.get("current_blockers") or []),
@@ -155,6 +157,24 @@ def _runtime_health_snapshot_summary(value: object) -> dict[str, Any] | None:
         "blocking_reasons",
         "allowed_controller_actions",
         "source_signature",
+    )
+    summary = {key: value[key] for key in keys if key in value}
+    return summary or None
+
+
+def _control_plane_snapshot_summary(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    keys = (
+        "control_state",
+        "canonical_next_action",
+        "canonical_runtime_action",
+        "dispatch_gate",
+        "route_authorization",
+        "blocking_reasons",
+        "allowed_controller_actions",
+        "authority_refs",
+        "quality_gate_relaxation_allowed",
     )
     summary = {key: value[key] for key in keys if key in value}
     return summary or None

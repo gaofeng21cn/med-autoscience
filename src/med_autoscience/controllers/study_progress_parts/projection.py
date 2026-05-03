@@ -244,6 +244,7 @@ def build_study_progress_projection(
     details_projection_payload = _details_projection_payload(details_projection_path)
     evaluation_summary_payload = _read_json_object(stable_evaluation_summary_path(study_root=resolved_study_root))
     study_truth_snapshot = _mapping_copy(status.get("study_truth_snapshot"))
+    control_plane_snapshot = _mapping_copy(status.get("control_plane_snapshot"))
     medical_writing_quality_surfaces = medical_writing_quality_surface_status(study_root=resolved_study_root)
 
     publication_supervisor_state = (
@@ -842,6 +843,7 @@ def build_study_progress_projection(
         "ai_first_operations_dashboard": ai_first_operations_dashboard,
         "study_truth_snapshot": study_truth_snapshot or None,
         "runtime_health_snapshot": runtime_health_snapshot or None,
+        "control_plane_snapshot": control_plane_snapshot or None,
         "module_surfaces": module_surfaces,
         "runtime_efficiency": runtime_efficiency,
         "autonomy_slo": autonomy_slo_status,

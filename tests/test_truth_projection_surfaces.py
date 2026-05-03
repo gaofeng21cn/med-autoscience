@@ -32,6 +32,31 @@ def _truth_snapshot() -> dict[str, object]:
     }
 
 
+def _control_plane_snapshot() -> dict[str, object]:
+    return {
+        "surface": "control_plane_snapshot",
+        "control_state": "supervisor_gated",
+        "canonical_next_action": "supervise_runtime",
+        "canonical_runtime_action": "continue_supervising_runtime",
+        "dispatch_gate": {
+            "state": "blocked",
+            "dispatch_allowed": False,
+            "blocking_reasons": ["execution_owner_guard.supervisor_only"],
+        },
+        "route_authorization": {
+            "authorized": False,
+            "paper_write_allowed": False,
+            "bundle_build_allowed": False,
+        },
+        "blocking_reasons": ["execution_owner_guard.supervisor_only"],
+        "allowed_controller_actions": ["read_runtime_status", "open_monitoring_entry"],
+        "authority_refs": {
+            "study_truth": {"epoch": "truth-event-000004-live"},
+            "runtime_health": {"epoch": "runtime-health-event-000004-live"},
+        },
+    }
+
+
 def test_mcp_progress_compact_projection_carries_truth_snapshot_summary() -> None:
     module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
 
@@ -41,6 +66,7 @@ def test_mcp_progress_compact_projection_carries_truth_snapshot_summary() -> Non
             "truth_epoch": "truth-event-000004-live",
             "current_stage": "runtime_supervision",
             "study_truth_snapshot": _truth_snapshot(),
+            "control_plane_snapshot": _control_plane_snapshot(),
             "refs": {"study_truth_snapshot_path": "/workspace/studies/003/artifacts/truth/latest.json"},
         }
     )
@@ -70,6 +96,8 @@ def test_mcp_progress_compact_projection_carries_truth_snapshot_summary() -> Non
         "writer_epoch": "writer::run-e52f5574",
         "source_signature": "truth-snapshot::abc",
     }
+    assert compact["control_plane_snapshot"]["control_state"] == "supervisor_gated"
+    assert compact["control_plane_snapshot"]["dispatch_gate"]["state"] == "blocked"
 
 
 def test_workspace_cockpit_study_item_carries_truth_snapshot_summary() -> None:
@@ -80,12 +108,14 @@ def test_workspace_cockpit_study_item_carries_truth_snapshot_summary() -> None:
             "study_id": "003-dpcc",
             "truth_epoch": "truth-event-000004-live",
             "study_truth_snapshot": _truth_snapshot(),
+            "control_plane_snapshot": _control_plane_snapshot(),
             "supervision": {"active_run_id": "run-e52f5574"},
         },
         profile_ref="/tmp/profile.toml",
     )
 
     assert item["truth_epoch"] == "truth-event-000004-live"
+    assert item["control_plane_snapshot"]["control_state"] == "supervisor_gated"
     assert item["study_truth_snapshot"]["canonical_next_action"] == "supervise_runtime"
     assert item["study_truth_snapshot"]["package_state"]["authority_state"] == "provisionally_current_for_epoch"
 
