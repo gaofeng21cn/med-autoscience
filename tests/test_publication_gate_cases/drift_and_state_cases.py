@@ -765,6 +765,44 @@ def test_build_gate_state_prefers_authoritative_worktree_paper_root_when_bundle_
     state = module.build_gate_state(quest_root)
 
     assert state.paper_root == worktree_paper_root.resolve()
+
+
+def test_build_gate_state_uses_newer_bound_study_paper_authority(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "003-paper"
+    runtime_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    study_root = workspace_root / "studies" / "003-paper"
+    study_paper_root = study_root / "paper"
+    projected_paper_root = quest_root / "paper"
+
+    dump_json(quest_root / ".ds" / "runtime_state.json", {"quest_id": "003-paper", "status": "stopped"})
+    dump_json(runtime_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
+    dump_json(projected_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
+    dump_json(
+        projected_paper_root / "paper_line_state.json",
+        {
+            "schema_version": 1,
+            "paper_branch": "paper/main",
+            "paper_root": str(runtime_paper_root.resolve()),
+        },
+    )
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: 003-paper\n", encoding="utf-8")
+    (study_root / "runtime_binding.yaml").write_text("quest_id: 003-paper\n", encoding="utf-8")
+    dump_json(study_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
+    dump_json(study_paper_root / "submission_minimal" / "submission_manifest.json", {"schema_version": 1})
+    newer_time = (runtime_paper_root / "paper_bundle_manifest.json").stat().st_mtime + 60
+    os.utime(study_paper_root / "paper_bundle_manifest.json", (newer_time, newer_time))
+
+    state = module.build_gate_state(quest_root)
+
+    assert state.paper_root == study_paper_root.resolve()
+    assert state.study_root == study_root.resolve()
+    assert state.paper_bundle_manifest_path == study_paper_root.resolve() / "paper_bundle_manifest.json"
+    assert state.submission_minimal_manifest_path == study_paper_root.resolve() / "submission_minimal" / "submission_manifest.json"
+
+
 def test_build_gate_state_prefers_paper_line_authority_root_when_no_main_result_exists(
     tmp_path: Path,
 ) -> None:

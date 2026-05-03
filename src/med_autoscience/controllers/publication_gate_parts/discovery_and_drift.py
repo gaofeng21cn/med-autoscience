@@ -507,6 +507,9 @@ def resolve_bundle_authority_paper_root(
 ) -> Path | None:
     if paper_bundle_manifest_path is None:
         return None
+    authoritative_paper_root = paper_artifacts.resolve_latest_paper_root(quest_root)
+    if (authoritative_paper_root / "paper_bundle_manifest.json").exists():
+        return authoritative_paper_root
     resolved_manifest_path = paper_bundle_manifest_path.resolve()
     bundle_paper_root = resolved_manifest_path.parent.resolve()
     if resolved_manifest_path != _projected_bundle_manifest_path(quest_root):

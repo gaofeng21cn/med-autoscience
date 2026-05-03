@@ -202,7 +202,7 @@ def _copy_medical_writing_authority_surfaces(*, paper_root: Path, study_root: Pa
     prose_review_source = paper_root / "review" / "medical_prose_review.json"
     if prose_review_source.exists():
         prose_review_payload = json.loads(prose_review_source.read_text(encoding="utf-8"))
-        dump_json(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json", prose_review_payload)
+        dump_json(study_root / "paper" / "medical_prose_review.json", prose_review_payload)
 
 
 def _attach_study_charter_context(
@@ -317,4 +317,3 @@ def _write_public_evidence_decisions(quest_root: Path, decisions: list[dict[str,
     payload = json.loads(derived_manifest_path.read_text(encoding="utf-8"))
     payload["public_evidence_decisions"] = decisions
     dump_json(derived_manifest_path, payload)
-

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 
@@ -53,6 +54,56 @@ def test_resolve_latest_paper_root_follows_authoritative_projected_paper_line(tm
     result = resolve_latest_paper_root(quest_root)
 
     assert result == worktree_paper_root.resolve()
+
+
+def test_resolve_latest_paper_root_prefers_newer_bound_study_canonical_paper(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "q001"
+    runtime_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    study_root = workspace_root / "studies" / "q001"
+    study_paper_root = study_root / "paper"
+    projected_manifest = quest_root / "paper" / "paper_bundle_manifest.json"
+
+    dump_json(runtime_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
+    dump_json(projected_manifest, {"schema_version": 1, "paper_branch": "paper/main"})
+    dump_json(
+        quest_root / "paper" / "paper_line_state.json",
+        {
+            "schema_version": 1,
+            "paper_branch": "paper/main",
+            "paper_root": str(runtime_paper_root.resolve()),
+        },
+    )
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: q001\n", encoding="utf-8")
+    (study_root / "runtime_binding.yaml").write_text("quest_id: q001\n", encoding="utf-8")
+    dump_json(study_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
+    newer_time = runtime_paper_root.joinpath("paper_bundle_manifest.json").stat().st_mtime + 60
+    os.utime(study_paper_root / "paper_bundle_manifest.json", (newer_time, newer_time))
+
+    result = resolve_latest_paper_root(quest_root)
+
+    assert result == study_paper_root.resolve()
+
+
+def test_resolve_latest_paper_root_keeps_runtime_paper_when_bound_study_branch_differs(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "q001"
+    runtime_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    study_root = workspace_root / "studies" / "q001"
+    study_paper_root = study_root / "paper"
+
+    dump_json(runtime_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: q001\n", encoding="utf-8")
+    (study_root / "runtime_binding.yaml").write_text("quest_id: q001\n", encoding="utf-8")
+    dump_json(study_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/other"})
+    newer_time = runtime_paper_root.joinpath("paper_bundle_manifest.json").stat().st_mtime + 60
+    os.utime(study_paper_root / "paper_bundle_manifest.json", (newer_time, newer_time))
+
+    result = resolve_latest_paper_root(quest_root)
+
+    assert result == runtime_paper_root.resolve()
 
 
 def test_resolve_paper_bundle_and_submission_minimal_manifest(tmp_path: Path) -> None:

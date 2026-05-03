@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.publication_profiles import is_supported_publication_profile, normalize_publication_profile
+from med_autoscience.runtime_protocol.topology import resolve_study_root_from_quest_root
 
 def _resolve_path(path: Path) -> Path:
     return Path(path).expanduser().resolve()
@@ -106,6 +107,48 @@ def _resolve_worktree_bundle_manifest_by_branch(*, quest_root: Path, paper_branc
     return max(candidates, key=rank)
 
 
+def _resolve_bound_study_paper_bundle_manifest_by_branch(
+    *,
+    quest_root: Path,
+    paper_branch: str | None,
+) -> Path | None:
+    try:
+        binding = resolve_study_root_from_quest_root(quest_root)
+    except (FileNotFoundError, ValueError):
+        return None
+    if binding is None:
+        return None
+    _, study_root = binding
+    candidate = study_root / "paper" / "paper_bundle_manifest.json"
+    if not candidate.exists():
+        return None
+    payload = _load_json_mapping(candidate)
+    candidate_branch = _bundle_manifest_branch(payload)
+    if candidate_branch != paper_branch:
+        return None
+    return candidate.resolve()
+
+
+def _prefer_newer_bound_study_manifest(
+    *,
+    quest_root: Path,
+    current_manifest_path: Path,
+    paper_branch: str | None,
+) -> Path:
+    study_manifest = _resolve_bound_study_paper_bundle_manifest_by_branch(
+        quest_root=quest_root,
+        paper_branch=paper_branch,
+    )
+    if study_manifest is None:
+        return current_manifest_path.resolve()
+    resolved_current = current_manifest_path.resolve()
+    if study_manifest == resolved_current:
+        return resolved_current
+    if study_manifest.stat().st_mtime > resolved_current.stat().st_mtime:
+        return study_manifest
+    return resolved_current
+
+
 def _projected_manifest_has_authoritative_paper_line(quest_root: Path, manifest_path: Path) -> bool:
     return _resolve_projected_manifest_authoritative_paper_root(quest_root, manifest_path) is not None
 
@@ -131,14 +174,32 @@ def _resolve_projected_manifest_authoritative_paper_root(quest_root: Path, manif
             paper_branch=manifest_branch,
         )
         if authoritative_manifest is not None:
+            authoritative_manifest = _prefer_newer_bound_study_manifest(
+                quest_root=quest_root,
+                current_manifest_path=authoritative_manifest,
+                paper_branch=manifest_branch,
+            )
             return authoritative_manifest.parent.resolve()
     if candidate is not None:
+        candidate_manifest = candidate / "paper_bundle_manifest.json"
+        if candidate_manifest.exists():
+            candidate_manifest = _prefer_newer_bound_study_manifest(
+                quest_root=quest_root,
+                current_manifest_path=candidate_manifest,
+                paper_branch=manifest_branch,
+            )
+            return candidate_manifest.parent.resolve()
         return candidate
     authoritative_manifest = _resolve_worktree_bundle_manifest_by_branch(
         quest_root=quest_root,
         paper_branch=manifest_branch,
     )
     if authoritative_manifest is not None:
+        authoritative_manifest = _prefer_newer_bound_study_manifest(
+            quest_root=quest_root,
+            current_manifest_path=authoritative_manifest,
+            paper_branch=manifest_branch,
+        )
         return authoritative_manifest.parent.resolve()
     return None
 
@@ -184,7 +245,13 @@ def resolve_paper_bundle_manifest(quest_root: Path) -> Path | None:
         candidates.extend(resolved_quest_root.glob(pattern))
     if not candidates:
         return None
-    return max(candidates, key=lambda item: _paper_bundle_manifest_rank(resolved_quest_root, item))
+    selected = max(candidates, key=lambda item: _paper_bundle_manifest_rank(resolved_quest_root, item)).resolve()
+    selected_payload = _load_json_mapping(selected)
+    return _prefer_newer_bound_study_manifest(
+        quest_root=resolved_quest_root,
+        current_manifest_path=selected,
+        paper_branch=_bundle_manifest_branch(selected_payload),
+    )
 
 
 def resolve_submission_minimal_manifest(paper_bundle_manifest_path: Path | None) -> Path | None:

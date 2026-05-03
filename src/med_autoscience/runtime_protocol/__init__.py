@@ -18,6 +18,7 @@ from .topology import (
     resolve_paper_root_context,
     resolve_quest_root_from_worktree_root,
     resolve_study_id_from_worktree_root,
+    resolve_study_root_from_quest_root,
     resolve_study_root_from_paper_root,
     resolve_worktree_root_from_paper_root,
 )
@@ -116,6 +117,7 @@ __all__ = [
     "resolve_paper_root_context",
     "resolve_quest_root_from_worktree_root",
     "resolve_study_id_from_worktree_root",
+    "resolve_study_root_from_quest_root",
     "resolve_study_root_from_paper_root",
     "resolve_active_stdout_path",
     "resolve_worktree_root_from_paper_root",

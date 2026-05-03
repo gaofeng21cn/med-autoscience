@@ -223,6 +223,39 @@ def _resolve_study_binding_from_runtime_binding(
     return None
 
 
+def resolve_study_root_from_quest_root(
+    quest_root: Path,
+    *,
+    quest_id: str | None = None,
+) -> tuple[str, Path] | None:
+    resolved_quest_root = _resolve_path(quest_root)
+    workspace_root = _resolve_workspace_root_from_quest_root(resolved_quest_root)
+    normalized_quest_id = (quest_id or "").strip()
+    declared_study_id: str | None = None
+    quest_yaml_path = resolved_quest_root / "quest.yaml"
+    if quest_yaml_path.exists():
+        payload = _load_yaml_mapping(quest_yaml_path)
+        normalized_quest_id = normalized_quest_id or (_extract_string_field(payload, "quest_id") or "")
+        declared_study_id = _extract_declared_study_id(payload, quest_yaml_path=quest_yaml_path)
+    normalized_quest_id = normalized_quest_id or resolved_quest_root.name
+    for candidate_study_id in (declared_study_id, normalized_quest_id):
+        if not candidate_study_id:
+            continue
+        study_root = (workspace_root / "studies" / candidate_study_id).resolve()
+        if (study_root / "study.yaml").exists():
+            return candidate_study_id, study_root
+    binding = _resolve_study_binding_from_runtime_binding(
+        workspace_root=workspace_root,
+        quest_id=normalized_quest_id,
+    )
+    if binding is None:
+        return None
+    study_id, study_root = binding
+    if not (study_root / "study.yaml").exists():
+        raise FileNotFoundError(f"runtime binding resolved `{study_id}` but study.yaml is missing at {study_root}")
+    return study_id, study_root.resolve()
+
+
 def _resolve_study_binding(paper_root: Path) -> tuple[Path, Path, Path, str, str, Path]:
     resolved_paper_root = _resolve_path(paper_root)
     authoritative_paper_root = _resolve_authoritative_paper_root_from_projected_quest_paper(

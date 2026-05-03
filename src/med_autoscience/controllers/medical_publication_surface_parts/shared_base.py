@@ -556,7 +556,7 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
             else paper_root / medical_surface_policy.MEDICAL_MANUSCRIPT_BLUEPRINT_BASENAME
         ),
         medical_prose_review_path=(
-            study_root / "artifacts" / "publication_eval" / medical_surface_policy.MEDICAL_PROSE_REVIEW_BASENAME
+            study_root / "paper" / medical_surface_policy.MEDICAL_PROSE_REVIEW_BASENAME
             if study_root is not None
             else paper_root / "review" / medical_surface_policy.MEDICAL_PROSE_REVIEW_BASENAME
         ),
