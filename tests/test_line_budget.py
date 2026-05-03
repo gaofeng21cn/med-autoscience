@@ -18,9 +18,9 @@ def test_line_budget_script_accepts_current_locked_baseline() -> None:
     assert result.returncode == 0, result.stdout
 
 
-def test_verify_runs_line_budget_before_fast_tests() -> None:
+def test_verify_runs_line_budget_before_default_smoke_tests() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     verify_script = (repo_root / "scripts" / "verify.sh").read_text(encoding="utf-8")
 
     assert "uv run python scripts/line_budget.py" in verify_script
-    assert verify_script.index("uv run python scripts/line_budget.py") < verify_script.index("make test-fast")
+    assert verify_script.index("uv run python scripts/line_budget.py") < verify_script.index("make test-smoke")

@@ -48,8 +48,17 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     for test_path in REQUIRED_CONTROL_PLANE_TESTS:
         assert test_path in makefile
     assert "PYTHONPATH=src uv run pytest -q $(CONTROL_PLANE_TESTS)" in makefile
-    assert "test-fast:" in makefile
+    assert "test: test-smoke" in makefile
+    assert "test-smoke:" in makefile
+    assert "uv run pytest tests/test_test_command_surfaces.py tests/test_line_budget.py -q" in makefile
+    assert "test-regression:" in makefile
     assert 'uv run pytest -q -m "not meta and not display_heavy and not submission_heavy and not family"' in makefile
+    assert "test-ci-preflight:" in makefile
+    assert (
+        "uv run pytest tests/test_release_workflow.py tests/test_python_environment_contract.py "
+        "tests/test_codex_plugin.py tests/test_codex_plugin_installer.py -q"
+    ) in makefile
+    assert "test-fast: test-regression" in makefile
     assert "test-meta:" in makefile
     assert "uv run pytest -q -m meta" in makefile
     assert "test-display:" in makefile
@@ -139,13 +148,19 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'uv run python -m py_compile "${python_files[@]}"' in verify_script
     assert "run_sanity_checks" in verify_script
     assert 'if [[ -z "${lane}" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "smoke" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "regression" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "ci-preflight" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "fast" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "meta" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "display" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "submission" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "structure" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "control-plane" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "full" ]]; then' in verify_script
-    assert "make test-fast" in verify_script
+    assert "make test-smoke" in verify_script
+    assert "make test-regression" in verify_script
+    assert "make test-ci-preflight" in verify_script
     assert "make test-meta" in verify_script
     assert "make test-display" in verify_script
     assert "make test-submission" in verify_script
@@ -158,6 +173,7 @@ def test_verify_script_runs_sanity_checks_before_default_dispatch() -> None:
     verify_script = _read("scripts/verify.sh")
 
     assert 'run_sanity_checks\n\nif [[ -z "${lane}" ]]; then' in verify_script
+    assert verify_script.index("run_sanity_checks") < verify_script.index("make test-smoke")
 
 
 def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
@@ -178,7 +194,7 @@ def test_parallel_full_lane_script_covers_all_marker_groups() -> None:
     script = _read("scripts/run-parallel-test-lanes.sh")
 
     assert 'Usage: $0 full' in script
-    assert '"test-fast"' in script
+    assert '"test-regression"' in script
     assert '"test-meta"' in script
     assert '"test-display"' in script
     assert '"test-submission"' in script
