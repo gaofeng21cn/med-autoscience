@@ -111,6 +111,35 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
     assert result["refs"]["ai_first_feedback_ledger_path"].endswith(
         "artifacts/runtime/ai_first_feedback_ledger/latest.json"
     )
+    assert result["refs"]["ai_first_action_dispatch_ledger_path"].endswith(
+        "artifacts/runtime/ai_first_action_dispatch_ledger/latest.json"
+    )
+    action_dispatch = result["ai_first_action_dispatch_ledger"]
+    assert action_dispatch["surface"] == "ai_first_action_dispatch_ledger"
+    assert action_dispatch["authority"] == "operations_governance_only"
+    assert action_dispatch["counts"]["open"] >= 1
+    assert action_dispatch["counts"]["total"] == len(action_dispatch["dispatches"])
+    assert {
+        item["dispatch_key"]
+        for item in action_dispatch["dispatches"]
+    } == {
+        item["dispatch_key"]
+        for item in module.ai_first_action_dispatch.read_action_dispatch_ledger(study_root=study_root)["dispatches"]
+    }
+    lifecycle = result["ai_first_action_lifecycle"]
+    assert lifecycle["surface"] == "ai_first_action_lifecycle_projection"
+    assert lifecycle["primary_action"]["action_id"] == "return_to_ai_reviewer_workflow"
+    assert lifecycle["open_action_count"] == action_dispatch["counts"]["open"]
+    assert lifecycle["authority_contract"]["lifecycle_can_authorize_quality"] is False
+    assert lifecycle["authority_contract"]["lifecycle_can_authorize_submission"] is False
+    second = module.read_study_progress(profile=profile, study_id="001-risk")
+    first_keys = {item["dispatch_key"] for item in action_dispatch["dispatches"]}
+    second_keys = {
+        item["dispatch_key"]
+        for item in second["ai_first_action_dispatch_ledger"]["dispatches"]
+    }
+    assert first_keys.issubset(second_keys)
+    assert len(second_keys) == second["ai_first_action_dispatch_ledger"]["counts"]["total"]
     assert "AI-first 运行反馈" in markdown
     assert "建议动作: 补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown
 
