@@ -33,6 +33,37 @@ def test_action_dispatch_projection_tracks_open_actions_without_quality_authorit
     assert projection["authority_contract"]["dispatch_can_authorize_finalize"] is False
 
 
+def test_action_dispatch_lifecycle_projects_blocked_primary_action(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_first_action_dispatch")
+    opened = module.build_action_dispatch_projection(
+        feedback_state=_feedback_state(tmp_path),
+        status="open",
+        observed_at="2026-05-03T00:00:00+00:00",
+    )
+    first = dict(opened["dispatches"][0])
+    first["status"] = "blocked"
+    first["summary"] = "先补齐 AI reviewer workflow，再刷新 artifact proof。"
+    first["prompt"] = "internal prompt must stay hidden"
+    first["token_count"] = 1234
+
+    lifecycle = module.build_operator_action_lifecycle(
+        feedback_state=_feedback_state(tmp_path),
+        existing_ledger={**opened, "dispatches": [first, *opened["dispatches"][1:]]},
+        observed_at="2026-05-03T01:00:00+00:00",
+    )
+
+    assert lifecycle["surface"] == "ai_first_action_dispatch_lifecycle"
+    assert lifecycle["status"] == "blocked"
+    assert lifecycle["counts"]["blocked"] == 1
+    assert lifecycle["counts"]["active"] == lifecycle["counts"]["total"]
+    assert lifecycle["primary_action"]["status"] == "blocked"
+    assert lifecycle["primary_action"]["summary"] == "先补齐 AI reviewer workflow，再刷新 artifact proof。"
+    assert lifecycle["user_view"]["current_blocker"] == "先补齐 AI reviewer workflow，再刷新 artifact proof。"
+    assert lifecycle["user_view"]["human_review_required"] is True
+    assert "internal prompt" not in str(lifecycle["user_view"])
+    assert "token_count" not in str(lifecycle["user_view"])
+
+
 def test_action_dispatch_closed_status_requires_closure_evidence(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.ai_first_action_dispatch")
 

@@ -457,6 +457,36 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
                     "manual_judgment_pending_count": 1,
                 },
             },
+            "ai_first_action_dispatch_lifecycle": {
+                "surface": "ai_first_action_dispatch_lifecycle",
+                "read_model": "operator_action_lifecycle_read_model",
+                "authority": "operations_governance_only",
+                "status": "blocked",
+                "counts": {
+                    "open": 1,
+                    "accepted": 1,
+                    "in_progress": 1,
+                    "blocked": 1,
+                    "closed": 2,
+                    "active": 4,
+                    "total": 6,
+                },
+                "primary_action": {
+                    "action_id": "return_to_ai_reviewer_workflow",
+                    "target_surface": "ai_reviewer_runtime_workflow",
+                    "summary": "补齐 AI reviewer workflow、publication eval 与 medical prose review。",
+                    "status": "blocked",
+                    "prompt": "internal prompt must stay hidden",
+                    "token_count": 1234,
+                },
+                "user_view": {
+                    "current_blocker": "补齐 AI reviewer workflow、publication eval 与 medical prose review。",
+                    "next_step": "补齐 AI reviewer workflow、publication eval 与 medical prose review。",
+                    "human_review_required": True,
+                    "primary_action_status": "blocked",
+                    "active_action_count": 4,
+                },
+            },
             "recommended_command": (
                 "uv run python -m med_autoscience.cli study-progress --profile "
                 + str(profile_ref.resolve())
@@ -500,12 +530,22 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
     assert state["counts"]["open_feedback_count"] == 3
     assert state["counts"]["repeat_toil_count"] == 1
     assert state["counts"]["manual_judgment_pending"] == 1
+    assert state["counts"]["action_lifecycle_count"] == 1
+    assert state["counts"]["action_open"] == 1
+    assert state["counts"]["action_accepted"] == 1
+    assert state["counts"]["action_in_progress"] == 1
+    assert state["counts"]["action_blocked"] == 1
+    assert state["counts"]["action_closed"] == 2
+    assert state["counts"]["action_active"] == 4
     assert state["study_dashboards"][0]["route_back_target"] == "analysis-campaign"
     assert state["study_dashboards"][0]["feedback_primary_category"] == "ai_reviewer_trace_gap"
     assert state["study_dashboards"][0]["feedback_primary_reason"] == "当前质量判断仍是机械投影。"
     assert state["study_dashboards"][0]["feedback_action_id"] == "return_to_ai_reviewer_workflow"
     assert state["study_dashboards"][0]["feedback_action_summary"] == "补齐 AI reviewer workflow、publication eval 与 medical prose review。"
     assert state["study_dashboards"][0]["feedback_action_target_surface"] == "ai_reviewer_runtime_workflow"
+    assert state["study_dashboards"][0]["action_primary_status"] == "blocked"
+    assert state["study_dashboards"][0]["action_primary_id"] == "return_to_ai_reviewer_workflow"
+    assert state["study_dashboards"][0]["action_primary_summary"] == "补齐 AI reviewer workflow、publication eval 与 medical prose review。"
     assert state["study_dashboards"][0]["authority"] == "observability_only"
     assert "AI-first Operations" in markdown
     assert "pre-draft: pre-draft 已完成结构化初稿。" in markdown
@@ -519,8 +559,11 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
     assert "产物待刷新 1" in markdown
     assert "运行反馈 3" in markdown
     assert "重复返工 1" in markdown
+    assert "动作未闭合 4" in markdown
+    assert "动作阻塞 1" in markdown
     assert "反馈原因: 当前质量判断仍是机械投影。" in markdown
     assert "建议动作: 补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown
+    assert "动作生命周期: blocked；补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown
     assert "internal prompt" not in markdown
     assert "token_count" not in markdown
     assert "/tmp/internal.log" not in markdown

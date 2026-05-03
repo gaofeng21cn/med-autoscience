@@ -233,7 +233,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
             f"产物待刷新 {counts.get('artifact_refresh_pending', 0)}；"
             f"等待人工判断 {counts.get('human_review_required', 0)}；"
             f"运行反馈 {counts.get('open_feedback_count', 0)}；"
-            f"重复返工 {counts.get('repeat_toil_count', 0)}"
+            f"重复返工 {counts.get('repeat_toil_count', 0)}；"
+            f"动作未闭合 {counts.get('action_active', 0)}；"
+            f"动作阻塞 {counts.get('action_blocked', 0)}"
         )
         for dashboard in workspace_ai_first_operations_state.get("study_dashboards") or []:
             if not isinstance(dashboard, Mapping):
@@ -260,6 +262,12 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
                 lines.append(f"  反馈原因: {dashboard.get('feedback_primary_reason')}")
             if dashboard.get("feedback_action_summary"):
                 lines.append(f"  建议动作: {dashboard.get('feedback_action_summary')}")
+            if dashboard.get("action_primary_summary"):
+                lines.append(
+                    "  动作生命周期: "
+                    f"{dashboard.get('action_primary_status') or 'unknown'}；"
+                    f"{dashboard.get('action_primary_summary')}"
+                )
     lines.extend(render_paper_orchestra_operator_projection_lines(workspace_paper_orchestra_operator_projection))
     for item in payload.get("workspace_attention_queue_preview") or []:
         if not isinstance(item, dict):

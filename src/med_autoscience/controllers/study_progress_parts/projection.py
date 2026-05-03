@@ -931,17 +931,24 @@ def build_study_progress_projection(
         status="open",
         observed_at=generated_at,
     )
+    ai_first_action_dispatch_lifecycle = ai_first_action_dispatch.build_operator_action_lifecycle(
+        feedback_state=ai_first_feedback_state,
+        existing_ledger=ai_first_action_dispatch_ledger,
+        dispatch_owner="study_progress",
+        observed_at=generated_at,
+    )
     payload["ai_first_feedback_state"] = ai_first_feedback_state
     payload["ai_first_action_dispatch_ledger"] = ai_first_action_dispatch_ledger
     payload["ai_first_action_lifecycle"] = {
         "surface": "ai_first_action_lifecycle_projection",
         "authority": "operations_governance_only",
-        "primary_action": dict((ai_first_feedback_state.get("primary_action") or {})),
+        "primary_action": dict((ai_first_action_dispatch_lifecycle.get("primary_action") or {})),
         "counts": dict(ai_first_action_dispatch_ledger.get("counts") or {}),
         "open_action_count": (
             int((ai_first_action_dispatch_ledger.get("counts") or {}).get("open") or 0)
             + int((ai_first_action_dispatch_ledger.get("counts") or {}).get("accepted") or 0)
             + int((ai_first_action_dispatch_ledger.get("counts") or {}).get("in_progress") or 0)
+            + int((ai_first_action_dispatch_ledger.get("counts") or {}).get("blocked") or 0)
         ),
         "closed_action_count": int((ai_first_action_dispatch_ledger.get("counts") or {}).get("closed") or 0),
         "authority_contract": {
@@ -951,6 +958,7 @@ def build_study_progress_projection(
             "lifecycle_can_mutate_runtime": False,
         },
     }
+    payload["ai_first_action_dispatch_lifecycle"] = ai_first_action_dispatch_lifecycle
     payload["refs"]["ai_first_feedback_ledger_path"] = ai_first_feedback_state["ledger"]["path"]
     payload["refs"]["ai_first_action_dispatch_ledger_path"] = ai_first_action_dispatch_ledger["path"]
     return payload

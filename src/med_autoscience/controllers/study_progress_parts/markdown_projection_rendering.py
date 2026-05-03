@@ -149,6 +149,9 @@ def _build_markdown_context(payload: dict[str, Any]) -> dict[str, Any]:
             normalized_payload.get("paper_orchestra_operator_projection")
         ),
         "ai_first_feedback_state": _mapping_copy(normalized_payload.get("ai_first_feedback_state")),
+        "ai_first_action_dispatch_lifecycle": _mapping_copy(
+            normalized_payload.get("ai_first_action_dispatch_lifecycle")
+        ),
         "recovery_contract": recovery_contract,
         "recovery_action_mode": _RECOVERY_ACTION_MODE_LABELS.get(
             _non_empty_text(recovery_contract.get("action_mode")) or "",
@@ -544,6 +547,31 @@ def _append_ai_first_feedback_state(lines: list[str], state: Mapping[str, Any]) 
         lines.append(f"- 主要分类: {primary.get('category')}")
 
 
+def _append_ai_first_action_dispatch_lifecycle(lines: list[str], lifecycle: Mapping[str, Any]) -> None:
+    if not lifecycle:
+        return
+    counts = _mapping_copy(lifecycle.get("counts"))
+    primary = _mapping_copy(lifecycle.get("primary_action"))
+    user_view = _mapping_copy(lifecycle.get("user_view"))
+    lines.extend(["", "## AI-first 动作生命周期", ""])
+    lines.append(f"- 当前状态: {lifecycle.get('status') or 'unknown'}")
+    lines.append(
+        "- 动作计数: "
+        f"open {counts.get('open', 0)}；"
+        f"accepted {counts.get('accepted', 0)}；"
+        f"in_progress {counts.get('in_progress', 0)}；"
+        f"blocked {counts.get('blocked', 0)}；"
+        f"closed {counts.get('closed', 0)}"
+    )
+    if primary:
+        lines.append(f"- 主动作状态: {primary.get('status') or 'unknown'}")
+        if primary.get("summary"):
+            lines.append(f"- 主动作: {primary.get('summary')}")
+    if user_view.get("next_step"):
+        lines.append(f"- 下一步: {user_view.get('next_step')}")
+    lines.append(f"- 需要人工判断: {'是' if user_view.get('human_review_required') else '否'}")
+
+
 def _append_quality_closure_basis(lines: list[str], quality_closure_basis: Mapping[str, Any]) -> None:
     for key in (
         "clinical_significance",
@@ -728,6 +756,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     _append_ai_first_default_entry(lines, ctx["ai_first_default_entry_state"])
     _append_paper_orchestra_operator_projection(lines, ctx["paper_orchestra_operator_projection"])
     _append_ai_first_feedback_state(lines, ctx["ai_first_feedback_state"])
+    _append_ai_first_action_dispatch_lifecycle(lines, ctx["ai_first_action_dispatch_lifecycle"])
     _append_quality_closure(lines, ctx)
     _append_quality_review_agenda(lines, ctx["quality_review_agenda"])
     _append_quality_review_loop(lines, ctx["quality_review_loop"])

@@ -287,6 +287,8 @@ def test_render_product_frontdesk_markdown_prefers_human_facing_labels() -> None
                     "route_back_active": 1,
                     "artifact_refresh_pending": 1,
                     "human_review_required": 1,
+                    "action_active": 2,
+                    "action_blocked": 1,
                 },
                 "study_dashboards": [
                     {
@@ -298,6 +300,8 @@ def test_render_product_frontdesk_markdown_prefers_human_facing_labels() -> None
                         "route_back_status": "route-back 指向 analysis-campaign。",
                         "next_step": "先补齐 AI reviewer workflow，再刷新 artifact proof。",
                         "human_judgment": "等待人工判断是否释放投稿包。",
+                        "action_primary_status": "blocked",
+                        "action_primary_summary": "补齐 AI reviewer workflow、publication eval 与 medical prose review。",
                         "prompt": "internal prompt must stay hidden",
                         "token_count": 1234,
                         "log_path": "/tmp/internal.log",
@@ -377,12 +381,15 @@ def test_render_product_frontdesk_markdown_prefers_human_facing_labels() -> None
     assert "当前 workspace 判断: 当前 workspace 有关注项。" in markdown
     assert "AI-first operations: 1 个 study 已接入 AI-first operations state" in markdown
     assert "AI reviewer trace 不完整 1" in markdown
+    assert "动作未闭合 2" in markdown
+    assert "动作阻塞 1" in markdown
     assert "pre-draft: pre-draft 已完成结构化初稿。" in markdown
     assert "AI reviewer workflow: AI reviewer workflow 正在补齐质量授权。" in markdown
     assert "artifact proof: artifact proof 等待 current_package 从 canonical source 刷新。" in markdown
     assert "route-back: route-back 指向 analysis-campaign。" in markdown
     assert "下一步: 先补齐 AI reviewer workflow，再刷新 artifact proof。" in markdown
     assert "人工判断: 等待人工判断是否释放投稿包。" in markdown
+    assert "动作生命周期: blocked；补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown
     assert "当前关注项: 001-risk 当前需要刷新投稿包镜像" in markdown
     assert "internal prompt" not in markdown
     assert "token_count" not in markdown
