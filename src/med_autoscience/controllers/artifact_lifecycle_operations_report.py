@@ -77,9 +77,17 @@ def run_lifecycle_operations_report(*, workspace_roots: Iterable[str | Path]) ->
 
 
 def render_lifecycle_operations_report_markdown(report: Mapping[str, Any]) -> str:
+    lines = _markdown_summary_lines(report)
+    lines.extend(_markdown_source_total_lines(report))
+    lines.extend(_markdown_study_lines(report))
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _markdown_summary_lines(report: Mapping[str, Any]) -> list[str]:
     summary = dict(report.get("summary") or {})
     projection = dict(report.get("projection_completeness") or {})
-    lines = [
+    return [
         "# Control Plane Lifecycle Report",
         "",
         f"- surface: `{report.get('surface') or SURFACE_KIND}`",
@@ -93,6 +101,10 @@ def render_lifecycle_operations_report_markdown(report: Mapping[str, Any]) -> st
         "## Bloat Sources",
         "",
     ]
+
+
+def _markdown_source_total_lines(report: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
     for source_kind, totals in dict(report.get("source_totals") or {}).items():
         if not isinstance(totals, Mapping):
             continue
@@ -101,6 +113,11 @@ def render_lifecycle_operations_report_markdown(report: Mapping[str, Any]) -> st
             f"files `{totals.get('file_count') or 0}`, scan `{totals.get('scan_mode') or 'none'}`"
         )
     lines.extend(["", "## Studies", ""])
+    return lines
+
+
+def _markdown_study_lines(report: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
     for workspace in report.get("workspaces") or []:
         if not isinstance(workspace, Mapping):
             continue
@@ -113,8 +130,7 @@ def render_lifecycle_operations_report_markdown(report: Mapping[str, Any]) -> st
                 f"- `{study.get('study_id') or 'workspace'}`: "
                 f"`{completeness.get('status') or 'unknown'}`, blockers: {blockers}"
             )
-    lines.append("")
-    return "\n".join(lines)
+    return lines
 
 
 def _workspace_report(workspace_root: Path) -> dict[str, Any]:
