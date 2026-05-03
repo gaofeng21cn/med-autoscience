@@ -73,6 +73,7 @@ medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_li
 medical_publication_surface = _LazyModuleProxy(lambda: _load_controller("medical_publication_surface"))
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
 control_plane_migration_audit = _LazyModuleProxy(lambda: _load_controller("control_plane_migration_audit"))
+artifact_lifecycle_operations_report = _LazyModuleProxy(lambda: _load_controller("artifact_lifecycle_operations_report"))
 mainline_status = _LazyModuleProxy(lambda: _load_controller("mainline_status"))
 portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
 product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
@@ -917,6 +918,16 @@ def main(argv: list[str] | None = None) -> int:
             dry_run=True,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "control-plane-lifecycle-report":
+        result = artifact_lifecycle_operations_report.run_lifecycle_operations_report(
+            workspace_roots=[Path(root) for root in args.workspace_root],
+        )
+        if args.markdown:
+            print(artifact_lifecycle_operations_report.render_lifecycle_operations_report_markdown(result))
+        else:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "medical-publication-surface":
