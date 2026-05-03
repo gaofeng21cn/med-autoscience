@@ -30,8 +30,9 @@ def make_study_runtime_status_payload(
     study_id: str = "001-risk",
     decision: str = "create_and_start",
     reason: str = "quest_missing",
+    include_control_plane_snapshot: bool = False,
 ) -> dict[str, object]:
-    return {
+    payload = {
         "schema_version": 1,
         "study_id": study_id,
         "study_root": f"/tmp/studies/{study_id}",
@@ -47,6 +48,29 @@ def make_study_runtime_status_payload(
         "decision": decision,
         "reason": reason,
     }
+    if include_control_plane_snapshot:
+        payload["control_plane_snapshot"] = {
+            "surface": "control_plane_snapshot",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "control_state": "ready",
+            "canonical_next_action": "direct_study_execution",
+            "canonical_runtime_action": "continue_supervising_runtime",
+            "dispatch_gate": {
+                "state": "open",
+                "dispatch_allowed": True,
+                "blocking_reasons": [],
+            },
+            "route_authorization": {
+                "authorized": True,
+                "paper_write_allowed": True,
+                "bundle_build_allowed": True,
+                "runtime_recovery_allowed": True,
+            },
+            "blocking_reasons": [],
+        }
+    return payload
 
 
 def _write_runtime_escalation_record(quest_root: Path, study_root: Path) -> dict[str, str]:
@@ -232,8 +256,6 @@ def _write_publication_eval(
         "eval_id": payload["eval_id"],
         "artifact_path": str((study_root / "artifacts" / "publication_eval" / "latest.json").resolve()),
     }
-
-
 
 
 

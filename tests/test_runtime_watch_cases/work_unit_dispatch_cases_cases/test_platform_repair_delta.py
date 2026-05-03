@@ -26,6 +26,7 @@ def test_watch_runtime_closes_platform_repair_when_inputs_show_gate_delta(
             study_id="001-risk",
             decision="blocked",
             reason="study_completion_publishability_gate_blocked",
+            include_control_plane_snapshot=True,
         ),
         "study_root": str(study_root),
         "quest_id": "quest-001",

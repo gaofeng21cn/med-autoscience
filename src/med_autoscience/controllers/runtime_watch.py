@@ -78,6 +78,7 @@ _MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE = "runtime_watch_controller_reroute"
 _MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE = "runtime_watch_outer_loop_wakeup"
 _NO_OP_SUPPRESSION_SUMMARY = "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。"
 _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY = "同一 controller work unit 已达到有界 redrive 上限，需 MAS/MDS 平台修复后再继续。"
+_CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY = "control_plane_snapshot 已阻断外环 dispatch；runtime_watch 只记录审计和 ledger。"
 _REQUIRED_SPECIFICITY_TARGET_KINDS = (
     "claim",
     "display",
@@ -103,6 +104,135 @@ def _write_runtime_state(*, quest_root: Path, runtime_state: Mapping[str, Any]) 
 
 def _compact_work_unit_payload(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
+
+
+def _string_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return list(
+        dict.fromkeys(
+            text
+            for item in value
+            if isinstance(item, str)
+            for text in (item.strip(),)
+            if text
+        )
+    )
+
+
+def _controller_action_types(tick_request: Mapping[str, Any]) -> set[str]:
+    action_types: set[str] = set()
+    for action in tick_request.get("controller_actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        action_type = _non_empty_text(action.get("action_type"))
+        if action_type is not None:
+            action_types.add(action_type)
+    return action_types
+
+
+def _control_plane_dispatch_block(
+    *,
+    status_payload: Mapping[str, Any],
+    tick_request: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    snapshot = status_payload.get("control_plane_snapshot")
+    if not isinstance(snapshot, Mapping):
+        return {
+            "outcome": "control_plane_dispatch_blocked",
+            "reason": "control_plane_snapshot is missing; runtime_watch dispatch fails closed",
+            "no_op_acknowledged": True,
+            "dedupe_scope": "control_plane_snapshot_dispatch_gate",
+            "operator_summary": _CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY,
+            "control_plane_snapshot": None,
+            "control_plane_blocking_reasons": ["control_plane_snapshot_missing"],
+        }
+
+    gate = snapshot.get("dispatch_gate")
+    route_authorization = snapshot.get("route_authorization")
+    gate_payload = gate if isinstance(gate, Mapping) else {}
+    route_payload = route_authorization if isinstance(route_authorization, Mapping) else {}
+    blocking_reasons = [
+        *_string_items(gate_payload.get("blocking_reasons")),
+        *_string_items(snapshot.get("blocking_reasons")),
+    ]
+    gate_state = _non_empty_text(gate_payload.get("state"))
+    dispatch_allowed = gate_payload.get("dispatch_allowed")
+    if gate_state != "open" or dispatch_allowed is not True:
+        if not blocking_reasons:
+            blocking_reasons.append("dispatch_gate_blocked")
+    if route_payload.get("authorized") is False and "route_not_authorized" not in blocking_reasons:
+        blocking_reasons.append("route_not_authorized")
+    runtime_recovery_actions = {
+        "ensure_study_runtime",
+        "relaunch_runtime",
+        "recover_runtime",
+        "resume_runtime",
+        "resume_same_study_line",
+    }
+    if (
+        route_payload.get("runtime_recovery_allowed") is False
+        and _controller_action_types(tick_request) & runtime_recovery_actions
+    ):
+        blocking_reasons.append("runtime_recovery_not_authorized")
+
+    blocking_reasons = list(dict.fromkeys(blocking_reasons))
+    if not blocking_reasons:
+        return None
+    return {
+        "outcome": "control_plane_dispatch_blocked",
+        "reason": "control_plane_snapshot dispatch gate blocked runtime_watch outer-loop dispatch",
+        "no_op_acknowledged": True,
+        "dedupe_scope": "control_plane_snapshot_dispatch_gate",
+        "operator_summary": _CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY,
+        "control_plane_snapshot": dict(snapshot),
+        "control_plane_blocking_reasons": blocking_reasons,
+    }
+
+
+def _apply_control_plane_dispatch_block(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+    tick_request: Mapping[str, Any],
+    wakeup_audit: Mapping[str, Any],
+    quest_report: dict[str, Any] | None,
+    managed_study_no_op_suppressions: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    control_plane_block = _control_plane_dispatch_block(
+        status_payload=status_payload,
+        tick_request=tick_request,
+    )
+    if control_plane_block is None:
+        return None
+    blocked_audit = {
+        **wakeup_audit,
+        **control_plane_block,
+        **runtime_watch_work_units.context_payload(
+            tick_request,
+            work_unit_dispatch_key=runtime_watch_work_units.dispatch_key(tick_request),
+        ),
+    }
+    suppression = _serialize_no_op_suppression(
+        study_root=study_root,
+        status_payload=status_payload,
+        wakeup_audit=blocked_audit,
+    )
+    if suppression is not None:
+        managed_study_no_op_suppressions.append(suppression)
+        _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+    runtime_watch_work_units.append_ledger_event(
+        study_root=study_root,
+        status_payload=status_payload,
+        tick_request=tick_request,
+        event_type="control_plane_dispatch_blocked",
+        wakeup_audit=blocked_audit,
+        default_recorded_at=utc_now(),
+    )
+    return blocked_audit
 
 
 def _gate_specificity_non_executable_contract() -> dict[str, Any]:
@@ -511,6 +641,7 @@ def _serialize_no_op_suppression(
         "skipped_unchanged_inputs",
         "needs_specificity",
         "platform_repair_required",
+        "control_plane_dispatch_blocked",
     }:
         return None
     payload: dict[str, Any] = {
@@ -528,6 +659,8 @@ def _serialize_no_op_suppression(
         "redrive_attempt_count",
         "max_redrive_attempts",
         "platform_repair_kind",
+        "control_plane_snapshot",
+        "control_plane_blocking_reasons",
     ):
         value = wakeup_audit.get(key)
         if value is not None:
@@ -538,6 +671,8 @@ def _serialize_no_op_suppression(
         payload["operator_summary"] = _NO_OP_SUPPRESSION_SUMMARY
     elif outcome == "platform_repair_required":
         payload["operator_summary"] = _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY
+    elif outcome == "control_plane_dispatch_blocked":
+        payload["operator_summary"] = _CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY
     else:
         payload["operator_summary"] = "外环输入或 controller decision 未变化；保持 no-op，等待新证据、新用户反馈或 blocker fingerprint 改变。"
     return payload
@@ -994,56 +1129,67 @@ def run_watch_for_runtime(
                     default_recorded_at=utc_now(),
                 ) is not None:
                     work_unit_dispatch_key = runtime_watch_work_units.dispatch_key(tick_request)
-                    outer_loop_result = study_runtime_router.study_outer_loop_tick(
-                        profile=profile,
-                        source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
-                        **runtime_watch_work_units.strip_context(tick_request),
-                    )
-                    if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
-                        raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
-                    dispatch_payload = runtime_watch_outer_loop_dispatch.serialize_outer_loop_dispatch(
-                        tick_request=tick_request,
-                        outer_loop_result=outer_loop_result,
-                    )
-                    managed_study_outer_loop_dispatches.append(dispatch_payload)
-                    if quest_report is None:
-                        quest_report = _materialize_placeholder_quest_watch_report(status_payload)
-                        if isinstance(quest_report, dict):
-                            reports.append(quest_report)
-                            quest_root = _candidate_path(status_payload.get("quest_root"))
-                            if quest_root is not None:
-                                report_by_quest_root[str(quest_root)] = quest_report
-                    if isinstance(quest_report, dict):
-                        runtime_watch_outer_loop_dispatch.attach_to_quest_report(
-                            quest_report=quest_report,
-                            dispatch_payload=dispatch_payload,
-                            write_latest_watch_alias=_write_latest_watch_alias,
-                            render_watch_markdown=render_watch_markdown,
-                        )
-                    wakeup_audit = {
-                        **wakeup_audit,
-                        "outcome": "dispatched",
-                        "reason": "outer-loop wakeup dispatched after meaningful artifact delta cleared platform repair lock",
-                        "dispatch": dispatch_payload,
-                        **runtime_watch_work_units.context_payload(
-                            tick_request,
-                            work_unit_dispatch_key=work_unit_dispatch_key,
-                        ),
-                    }
-                    runtime_watch_work_units.append_ledger_event(
+                    blocked_wakeup_audit = _apply_control_plane_dispatch_block(
                         study_root=study_root,
                         status_payload=status_payload,
                         tick_request=tick_request,
-                        event_type="dispatched",
                         wakeup_audit=wakeup_audit,
-                        default_recorded_at=utc_now(),
+                        quest_report=quest_report,
+                        managed_study_no_op_suppressions=managed_study_no_op_suppressions,
                     )
-                    status_payload = _managed_study_status_payload(
-                        study_runtime_router.study_runtime_status(
+                    if blocked_wakeup_audit is not None:
+                        wakeup_audit = blocked_wakeup_audit
+                    else:
+                        outer_loop_result = study_runtime_router.study_outer_loop_tick(
                             profile=profile,
-                            study_root=study_root,
+                            source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
+                            **runtime_watch_work_units.strip_context(tick_request),
                         )
-                    )
+                        if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
+                            raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
+                        dispatch_payload = runtime_watch_outer_loop_dispatch.serialize_outer_loop_dispatch(
+                            tick_request=tick_request,
+                            outer_loop_result=outer_loop_result,
+                        )
+                        managed_study_outer_loop_dispatches.append(dispatch_payload)
+                        if quest_report is None:
+                            quest_report = _materialize_placeholder_quest_watch_report(status_payload)
+                            if isinstance(quest_report, dict):
+                                reports.append(quest_report)
+                                quest_root = _candidate_path(status_payload.get("quest_root"))
+                                if quest_root is not None:
+                                    report_by_quest_root[str(quest_root)] = quest_report
+                        if isinstance(quest_report, dict):
+                            runtime_watch_outer_loop_dispatch.attach_to_quest_report(
+                                quest_report=quest_report,
+                                dispatch_payload=dispatch_payload,
+                                write_latest_watch_alias=_write_latest_watch_alias,
+                                render_watch_markdown=render_watch_markdown,
+                            )
+                        wakeup_audit = {
+                            **wakeup_audit,
+                            "outcome": "dispatched",
+                            "reason": "outer-loop wakeup dispatched after meaningful artifact delta cleared platform repair lock",
+                            "dispatch": dispatch_payload,
+                            **runtime_watch_work_units.context_payload(
+                                tick_request,
+                                work_unit_dispatch_key=work_unit_dispatch_key,
+                            ),
+                        }
+                        runtime_watch_work_units.append_ledger_event(
+                            study_root=study_root,
+                            status_payload=status_payload,
+                            tick_request=tick_request,
+                            event_type="dispatched",
+                            wakeup_audit=wakeup_audit,
+                            default_recorded_at=utc_now(),
+                        )
+                        status_payload = _managed_study_status_payload(
+                            study_runtime_router.study_runtime_status(
+                                profile=profile,
+                                study_root=study_root,
+                            )
+                        )
                 elif (
                     platform_repair := runtime_watch_work_units.active_platform_repair_required(
                         study_root=study_root,
@@ -1142,56 +1288,67 @@ def run_watch_for_runtime(
                         _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
                 else:
                     work_unit_dispatch_key = runtime_watch_work_units.dispatch_key(tick_request)
-                    outer_loop_result = study_runtime_router.study_outer_loop_tick(
-                        profile=profile,
-                        source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
-                        **runtime_watch_work_units.strip_context(tick_request),
-                    )
-                    if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
-                        raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
-                    dispatch_payload = runtime_watch_outer_loop_dispatch.serialize_outer_loop_dispatch(
-                        tick_request=tick_request,
-                        outer_loop_result=outer_loop_result,
-                    )
-                    managed_study_outer_loop_dispatches.append(dispatch_payload)
-                    if quest_report is None:
-                        quest_report = _materialize_placeholder_quest_watch_report(status_payload)
-                        if isinstance(quest_report, dict):
-                            reports.append(quest_report)
-                            quest_root = _candidate_path(status_payload.get("quest_root"))
-                            if quest_root is not None:
-                                report_by_quest_root[str(quest_root)] = quest_report
-                    if isinstance(quest_report, dict):
-                        runtime_watch_outer_loop_dispatch.attach_to_quest_report(
-                            quest_report=quest_report,
-                            dispatch_payload=dispatch_payload,
-                            write_latest_watch_alias=_write_latest_watch_alias,
-                            render_watch_markdown=render_watch_markdown,
-                        )
-                    wakeup_audit = {
-                        **wakeup_audit,
-                        "outcome": "dispatched",
-                        "reason": "outer-loop wakeup dispatched an autonomous controller decision",
-                        "dispatch": dispatch_payload,
-                        **runtime_watch_work_units.context_payload(
-                            tick_request,
-                            work_unit_dispatch_key=work_unit_dispatch_key,
-                        ),
-                    }
-                    runtime_watch_work_units.append_ledger_event(
+                    blocked_wakeup_audit = _apply_control_plane_dispatch_block(
                         study_root=study_root,
                         status_payload=status_payload,
                         tick_request=tick_request,
-                        event_type="dispatched",
                         wakeup_audit=wakeup_audit,
-                        default_recorded_at=utc_now(),
+                        quest_report=quest_report,
+                        managed_study_no_op_suppressions=managed_study_no_op_suppressions,
                     )
-                    status_payload = _managed_study_status_payload(
-                        study_runtime_router.study_runtime_status(
+                    if blocked_wakeup_audit is not None:
+                        wakeup_audit = blocked_wakeup_audit
+                    else:
+                        outer_loop_result = study_runtime_router.study_outer_loop_tick(
                             profile=profile,
-                            study_root=study_root,
+                            source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
+                            **runtime_watch_work_units.strip_context(tick_request),
                         )
-                    )
+                        if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
+                            raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
+                        dispatch_payload = runtime_watch_outer_loop_dispatch.serialize_outer_loop_dispatch(
+                            tick_request=tick_request,
+                            outer_loop_result=outer_loop_result,
+                        )
+                        managed_study_outer_loop_dispatches.append(dispatch_payload)
+                        if quest_report is None:
+                            quest_report = _materialize_placeholder_quest_watch_report(status_payload)
+                            if isinstance(quest_report, dict):
+                                reports.append(quest_report)
+                                quest_root = _candidate_path(status_payload.get("quest_root"))
+                                if quest_root is not None:
+                                    report_by_quest_root[str(quest_root)] = quest_report
+                        if isinstance(quest_report, dict):
+                            runtime_watch_outer_loop_dispatch.attach_to_quest_report(
+                                quest_report=quest_report,
+                                dispatch_payload=dispatch_payload,
+                                write_latest_watch_alias=_write_latest_watch_alias,
+                                render_watch_markdown=render_watch_markdown,
+                            )
+                        wakeup_audit = {
+                            **wakeup_audit,
+                            "outcome": "dispatched",
+                            "reason": "outer-loop wakeup dispatched an autonomous controller decision",
+                            "dispatch": dispatch_payload,
+                            **runtime_watch_work_units.context_payload(
+                                tick_request,
+                                work_unit_dispatch_key=work_unit_dispatch_key,
+                            ),
+                        }
+                        runtime_watch_work_units.append_ledger_event(
+                            study_root=study_root,
+                            status_payload=status_payload,
+                            tick_request=tick_request,
+                            event_type="dispatched",
+                            wakeup_audit=wakeup_audit,
+                            default_recorded_at=utc_now(),
+                        )
+                        status_payload = _managed_study_status_payload(
+                            study_runtime_router.study_runtime_status(
+                                profile=profile,
+                                study_root=study_root,
+                            )
+                        )
                 _write_outer_loop_wakeup_audit(study_root=study_root, audit=wakeup_audit)
                 managed_study_outer_loop_wakeup_audits.append(wakeup_audit)
         quest_root = _candidate_path(status_payload.get("quest_root"))
