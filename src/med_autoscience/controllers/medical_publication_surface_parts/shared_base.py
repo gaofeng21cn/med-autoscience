@@ -14,6 +14,8 @@ import yaml
 
 from med_autoscience import display_registry
 from med_autoscience import runtime_backend as runtime_backend_contract
+from med_autoscience.controllers.statistical_discipline_runtime import validate_statistical_reviewer_audit
+from med_autoscience.policies import medical_disclosure_contract
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 from med_autoscience.policies.medical_reporting_contract import display_story_role_for_requirement_key
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout, resolve_runtime_root_from_quest_root
@@ -49,6 +51,8 @@ class SurfaceState:
     table_catalog_path: Path
     methods_implementation_manifest_path: Path
     review_ledger_path: Path
+    statistical_reviewer_audit_path: Path
+    structured_disclosure_audit_path: Path
     medical_manuscript_blueprint_path: Path
     medical_prose_review_path: Path
     results_narrative_map_path: Path
@@ -554,6 +558,8 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
         table_catalog_path=paper_root / "tables" / "table_catalog.json",
         methods_implementation_manifest_path=paper_root / medical_surface_policy.METHODS_IMPLEMENTATION_MANIFEST_BASENAME,
         review_ledger_path=paper_root / "review" / medical_surface_policy.REVIEW_LEDGER_BASENAME,
+        statistical_reviewer_audit_path=paper_root / "review" / medical_surface_policy.STATISTICAL_REVIEWER_AUDIT_BASENAME,
+        structured_disclosure_audit_path=paper_root / "review" / medical_disclosure_contract.STRUCTURED_DISCLOSURE_AUDIT_BASENAME,
         medical_manuscript_blueprint_path=(
             study_root / "paper" / medical_surface_policy.MEDICAL_MANUSCRIPT_BLUEPRINT_BASENAME
             if study_root is not None

@@ -1,13 +1,7 @@
-from . import shared_base as _shared_base
+from .shared_base import *
+from .shared_base import _write_review_ledger
 from .medical_writing_surfaces import write_medical_manuscript_blueprint_fixture, write_medical_prose_review_fixture
-
-def _module_reexport(module) -> None:
-    for name, value in vars(module).items():
-        if not name.startswith("__") and name != "_module_reexport":
-            globals()[name] = value
-
-
-_module_reexport(_shared_base)
+from .statistical_disclosure_fixtures import write_statistical_reviewer_audit_fixture, write_structured_disclosure_audit_fixture
 def make_quest(
     tmp_path: Path,
     *,
@@ -24,6 +18,8 @@ def make_quest(
     include_reproducibility_supplement: bool | None = None,
     include_endpoint_provenance_note: bool | None = None,
     include_review_ledger: bool | None = None,
+    include_statistical_reviewer_audit: bool | None = None,
+    include_structured_disclosure_audit: bool | None = None,
     include_operational_method_labels: bool | None = None,
     include_complete_model_registry: bool | None = None,
     include_complete_results_sections: bool | None = None,
@@ -63,6 +59,10 @@ def make_quest(
         include_endpoint_provenance_note = medicalized
     if include_review_ledger is None:
         include_review_ledger = medicalized
+    if include_statistical_reviewer_audit is None:
+        include_statistical_reviewer_audit = medicalized
+    if include_structured_disclosure_audit is None:
+        include_structured_disclosure_audit = medicalized
     if include_operational_method_labels is None:
         include_operational_method_labels = medicalized
     if include_complete_model_registry is None:
@@ -132,6 +132,10 @@ def make_quest(
 
     if include_review_ledger:
         _write_review_ledger(paper_root / "review" / "review_ledger.json")
+    if include_statistical_reviewer_audit:
+        write_statistical_reviewer_audit_fixture(paper_root)
+    if include_structured_disclosure_audit:
+        write_structured_disclosure_audit_fixture(paper_root)
 
     if medicalized:
         endpoint_statement = (
@@ -649,7 +653,6 @@ def make_quest(
                 ],
             },
         )
-
     if include_endpoint_provenance_note:
         (paper_root / "endpoint_provenance_note.md").write_text(
             "# Endpoint Provenance Note\n\n"
@@ -658,16 +661,11 @@ def make_quest(
             "- manuscript_required_statement: The endpoint was based on the audited removal_rate field and should be interpreted as a working proxy for early residual status with an explicit 3-month MRI provenance caveat.\n",
             encoding="utf-8",
         )
-
     if include_medical_manuscript_blueprint:
         write_medical_manuscript_blueprint_fixture(paper_root)
-
     if include_medical_prose_review:
         write_medical_prose_review_fixture(paper_root, verdict=medical_prose_review_verdict)
-
     return quest_root
-
-
 def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f5: bool) -> None:
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
     dump_json(

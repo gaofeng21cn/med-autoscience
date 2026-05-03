@@ -4,12 +4,14 @@ import pytest
 
 from med_autoscience.controllers.statistical_discipline_runtime import (
     REQUIRED_CANDIDATE_FIELDS,
+    REQUIRED_STATISTICAL_REVIEWER_AUDIT_SECTIONS,
     REQUIRED_STATISTICAL_DISCIPLINE_FIELDS,
     SUPPORTED_STUDY_ARCHETYPES,
     build_statistical_discipline_operations_projection,
     build_statistical_discipline_contract,
     validate_bounded_analysis_candidate_board,
     validate_statistical_discipline_contract,
+    validate_statistical_reviewer_audit,
 )
 
 
@@ -25,6 +27,32 @@ def _valid_candidate(**overrides: object) -> dict[str, object]:
     }
     candidate.update(overrides)
     return candidate
+
+
+def _valid_statistical_reviewer_audit(**section_overrides: object) -> dict[str, object]:
+    sections = {
+        section_key: {
+            "status": "pass",
+            "assessment": f"{section_key} is prespecified and aligned with the active claim boundary.",
+            "evidence_refs": [f"paper/{section_key}.json"],
+            "manuscript_action": "Keep the manuscript text aligned with the audited statistical evidence.",
+        }
+        for section_key in REQUIRED_STATISTICAL_REVIEWER_AUDIT_SECTIONS
+    }
+    sections["causal_language_boundary"]["forbidden_language"] = [
+        "causal effect",
+        "treatment effect",
+    ]
+    for section_key, override in section_overrides.items():
+        if isinstance(override, dict) and override:
+            sections[section_key].update(override)
+        else:
+            sections[section_key] = override
+    return {
+        "status": "resolved",
+        "reviewer_role": "statistical_reviewer",
+        "sections": sections,
+    }
 
 
 @pytest.mark.parametrize("study_archetype", SUPPORTED_STUDY_ARCHETYPES)
@@ -57,6 +85,50 @@ def test_statistical_discipline_contract_blocks_nominal_p_value_primary_evidence
     validation = validate_statistical_discipline_contract(contract)
 
     assert validation == {"status": "blocked", "reason_code": "nominal_p_value_primary_evidence"}
+
+
+def test_statistical_reviewer_audit_accepts_complete_truth_contract() -> None:
+    validation = validate_statistical_reviewer_audit(_valid_statistical_reviewer_audit())
+
+    assert validation == {"status": "present", "reason_code": ""}
+
+
+def test_statistical_reviewer_audit_requires_each_review_domain() -> None:
+    audit = _valid_statistical_reviewer_audit(statistical_plan={})
+
+    validation = validate_statistical_reviewer_audit(audit)
+
+    assert validation == {"status": "blocked", "reason_code": "missing_statistical_plan"}
+
+
+def test_statistical_reviewer_audit_blocks_unresolved_missing_data_review() -> None:
+    audit = _valid_statistical_reviewer_audit(
+        missing_data={
+            "status": "open",
+            "assessment": "Missingness remains unresolved.",
+            "evidence_refs": ["paper/methods_implementation_manifest.json"],
+            "manuscript_action": "Route back to analysis.",
+        }
+    )
+
+    validation = validate_statistical_reviewer_audit(audit)
+
+    assert validation == {"status": "blocked", "reason_code": "missing_data_not_passed"}
+
+
+def test_statistical_reviewer_audit_blocks_nominal_p_value_primary_evidence() -> None:
+    audit = _valid_statistical_reviewer_audit(
+        model_or_test_selection={
+            "primary_evidence_basis": "Nominal p-value below 0.05 as primary evidence."
+        }
+    )
+
+    validation = validate_statistical_reviewer_audit(audit)
+
+    assert validation == {
+        "status": "blocked",
+        "reason_code": "model_or_test_selection_nominal_p_value_primary_evidence",
+    }
 
 
 def test_bounded_analysis_candidate_board_requires_target_claim() -> None:

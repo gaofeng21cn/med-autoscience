@@ -56,6 +56,35 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         pattern_id="review_ledger",
         label="review ledger",
     )
+    statistical_reviewer_audit_payload = load_json(state.statistical_reviewer_audit_path, default=None)
+    statistical_reviewer_audit_validation = (
+        validate_statistical_reviewer_audit(statistical_reviewer_audit_payload)
+        if isinstance(statistical_reviewer_audit_payload, dict)
+        else {"status": "blocked", "reason_code": "missing_statistical_reviewer_audit"}
+    )
+    statistical_reviewer_audit_valid = statistical_reviewer_audit_validation["status"] == "present"
+    statistical_reviewer_audit_hits = (
+        []
+        if statistical_reviewer_audit_valid
+        else [
+            {
+                "path": str(state.statistical_reviewer_audit_path),
+                "location": "file",
+                "pattern_id": "statistical_reviewer_audit",
+                "phrase": statistical_reviewer_audit_validation["reason_code"],
+                "excerpt": (
+                    "Statistical reviewer audit is missing or unresolved: "
+                    f"{statistical_reviewer_audit_validation['reason_code']}."
+                ),
+            }
+        ]
+    )
+    structured_disclosure_audit_valid, structured_disclosure_audit_hits = inspect_required_json_contract(
+        path=state.structured_disclosure_audit_path,
+        validator=medical_disclosure_contract.validate_structured_disclosure_audit,
+        pattern_id="structured_disclosure_audit",
+        label="structured disclosure audit",
+    )
     medical_manuscript_blueprint_valid, medical_manuscript_blueprint_hits = inspect_required_json_contract(
         path=state.medical_manuscript_blueprint_path,
         validator=medical_surface_policy.validate_medical_manuscript_blueprint,
@@ -252,6 +281,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     for path in (
         state.methods_implementation_manifest_path,
         state.review_ledger_path,
+        state.statistical_reviewer_audit_path,
+        state.structured_disclosure_audit_path,
         state.medical_manuscript_blueprint_path,
         state.medical_prose_review_path,
         state.results_narrative_map_path,
@@ -391,6 +422,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(required_display_catalog_hits)
     hits.extend(methods_manifest_hits)
     hits.extend(review_ledger_hits)
+    hits.extend(statistical_reviewer_audit_hits)
+    hits.extend(structured_disclosure_audit_hits)
     hits.extend(medical_manuscript_blueprint_hits)
     hits.extend(medical_prose_review_hits)
     hits.extend(results_narrative_hits)
@@ -437,6 +470,10 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("methods_implementation_manifest_missing_or_incomplete")
     if not review_ledger_valid:
         blockers.append("review_ledger_missing_or_incomplete")
+    if not statistical_reviewer_audit_valid:
+        blockers.append("statistical_reviewer_audit_missing_or_incomplete")
+    if not structured_disclosure_audit_valid:
+        blockers.append("structured_disclosure_audit_missing_or_incomplete")
     if not medical_manuscript_blueprint_valid:
         blockers.append("medical_manuscript_blueprint_missing_or_incomplete")
     if not medical_prose_review_valid:
@@ -520,6 +557,13 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "review_ledger_path": str(state.review_ledger_path),
         "review_ledger_present": state.review_ledger_path.exists(),
         "review_ledger_valid": review_ledger_valid,
+        "statistical_reviewer_audit_path": str(state.statistical_reviewer_audit_path),
+        "statistical_reviewer_audit_present": state.statistical_reviewer_audit_path.exists(),
+        "statistical_reviewer_audit_valid": statistical_reviewer_audit_valid,
+        "statistical_reviewer_audit_reason_code": statistical_reviewer_audit_validation["reason_code"],
+        "structured_disclosure_audit_path": str(state.structured_disclosure_audit_path),
+        "structured_disclosure_audit_present": state.structured_disclosure_audit_path.exists(),
+        "structured_disclosure_audit_valid": structured_disclosure_audit_valid,
         "medical_manuscript_blueprint_path": str(state.medical_manuscript_blueprint_path),
         "medical_manuscript_blueprint_present": state.medical_manuscript_blueprint_path.exists(),
         "medical_manuscript_blueprint_valid": medical_manuscript_blueprint_valid,

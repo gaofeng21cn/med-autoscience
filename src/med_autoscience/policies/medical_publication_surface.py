@@ -31,6 +31,7 @@ EVIDENCE_LEDGER_BASENAME = "evidence_ledger.json"
 REVIEW_LEDGER_BASENAME = "review_ledger.json"
 MEDICAL_MANUSCRIPT_BLUEPRINT_BASENAME = "medical_manuscript_blueprint.json"
 MEDICAL_PROSE_REVIEW_BASENAME = "medical_prose_review.json"
+STATISTICAL_REVIEWER_AUDIT_BASENAME = "statistical_reviewer_audit.json"
 PUBLIC_EVIDENCE_DECISIONS_KEY = "public_evidence_decisions"
 PUBLIC_EVIDENCE_SURFACE_DECISIONS = frozenset(
     {
