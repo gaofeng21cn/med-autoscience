@@ -433,6 +433,43 @@ def _apply_resume_postcondition(
     return False
 
 
+def _pause_runtime_state_postcondition(
+    *,
+    context: StudyRuntimeExecutionContext,
+    error: str,
+) -> dict[str, Any]:
+    runtime_state = quest_state.load_runtime_state(context.quest_root)
+    runtime_status = str(runtime_state.get("status") or "").strip().lower() or None
+    active_run_id = str(runtime_state.get("active_run_id") or "").strip() or None
+    worker_running = bool(runtime_state.get("worker_running"))
+    effective = runtime_status == StudyRuntimeQuestStatus.PAUSED.value and active_run_id is None and not worker_running
+    return {
+        "effective": effective,
+        "source": "runtime_state",
+        "runtime_state_path": str(context.quest_root / ".ds" / "runtime_state.json"),
+        "runtime_state_status": runtime_status,
+        "active_run_id": active_run_id,
+        "worker_running": worker_running,
+        "control_transport_error": error,
+    }
+
+
+def _pause_failure_result_from_postcondition(postcondition: dict[str, Any]) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "ok": False,
+        "status": "paused" if postcondition["effective"] else "unavailable",
+        "error": postcondition["control_transport_error"],
+        "pause_postcondition": dict(postcondition),
+    }
+    if postcondition["effective"]:
+        payload["snapshot"] = {
+            "status": "paused",
+            "active_run_id": None,
+            "worker_running": False,
+        }
+    return payload
+
+
 def _execute_create_runtime_decision(
     *,
     status: StudyRuntimeStatus,
@@ -701,13 +738,28 @@ def _execute_pause_runtime_decision(
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
     router = _router_module()
-    pause_result = router._pause_quest(
-        runtime_root=context.runtime_root,
-        quest_id=status.quest_id,
-        source=context.source,
-        runtime_backend=context.runtime_backend,
-    )
     outcome = StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.PAUSE)
+    try:
+        pause_result = router._pause_quest(
+            runtime_root=context.runtime_root,
+            quest_id=status.quest_id,
+            source=context.source,
+            runtime_backend=context.runtime_backend,
+        )
+    except RuntimeError as exc:
+        postcondition = _pause_runtime_state_postcondition(context=context, error=str(exc))
+        status._record_dict_extra("pause_postcondition", postcondition)
+        pause_result = _pause_failure_result_from_postcondition(postcondition)
+        outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
+        if postcondition["effective"]:
+            status.update_quest_runtime(quest_status=StudyRuntimeQuestStatus.PAUSED)
+            return outcome
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.PAUSE_REQUEST_FAILED,
+        )
+        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
+        return outcome
     outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
     status.update_quest_runtime(
         quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused"),

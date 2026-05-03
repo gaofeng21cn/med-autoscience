@@ -375,6 +375,92 @@ def test_ai_first_quality_learning_queue_sorts_repeated_reasons_by_frequency(tmp
     assert "token_count" not in rendered
 
 
+def test_ai_first_quality_learning_operations_report_prioritizes_open_feedback_and_repeat_toil_separately(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_first_feedback")
+    state = module.build_ai_first_feedback_state(progress_snapshot=_progress_snapshot(tmp_path))
+    ledger = {
+        "surface": "ai_first_feedback_ledger",
+        "authority": "observability_only",
+        "events": [
+            {
+                "event_key": "route_back_open:return_to_analysis_campaign",
+                "category": "route_back_open",
+                "reason": "return_to_analysis_campaign",
+                "source_surface": "ai_first_default_entry_state",
+                "repeat_count": 9,
+                "closed_at": "2026-05-02T03:00:00+00:00",
+                "raw_terminal_log": "REPORT_CLOSED_RAW_LOG_CANARY",
+            },
+            {
+                "event_key": "artifact_rebuild_pending:canonical_artifact_rebuild_pending",
+                "category": "artifact_rebuild_pending",
+                "reason": "canonical_artifact_rebuild_pending",
+                "source_surface": "artifact_runtime_proof",
+                "repeat_count": 4,
+                "closed_at": None,
+                "action_recommendation": {
+                    "target_surface": "artifact_runtime_proof",
+                    "prompt": "REPORT_PROMPT_CANARY",
+                    "token_count": 9001,
+                },
+            },
+            {
+                "event_key": "ai_reviewer_trace_gap:trace_missing",
+                "category": "ai_reviewer_trace_gap",
+                "reason": "trace_missing",
+                "source_surface": "ai_reviewer_runtime_workflow",
+                "repeat_count": 2,
+                "closed_at": None,
+                "full_prompt": "REPORT_FULL_PROMPT_CANARY",
+            },
+        ],
+    }
+
+    report = module.build_ai_first_quality_learning_operations_report(
+        feedback_state=state,
+        feedback_ledger=ledger,
+    )
+
+    assert report["surface"] == "ai_first_quality_learning_operations_report"
+    assert report["read_model"] == "ai_first_quality_learning_operations_report_read_model"
+    assert report["authority"] == "maintainer_operations_only"
+    assert report["summary"] == "2 个 open feedback 维护优先项；2 个 repeat-toil 系统改进优先项。"
+    assert [item["reason"] for item in report["open_feedback_priorities"]] == [
+        "canonical_artifact_rebuild_pending",
+        "trace_missing",
+    ]
+    assert report["open_feedback_priorities"][0]["frequency"] == 4
+    assert report["open_feedback_priorities"][0]["impact_entry"] == "artifact_runtime_proof"
+    assert report["open_feedback_priorities"][0]["suggested_fix_layer"] == "artifact rebuild proof layer"
+    assert report["open_feedback_priorities"][0]["is_open_blocker"] is True
+    assert report["open_feedback_priorities"][0]["is_quality_gate"] is False
+    assert [item["reason"] for item in report["system_improvement_priorities"]] == [
+        "canonical_artifact_rebuild_pending",
+        "trace_missing",
+    ]
+    assert report["system_improvement_priorities"][0]["frequency"] == 4
+    assert report["system_improvement_priorities"][0]["is_open_blocker"] is False
+    assert report["system_improvement_priorities"][0]["is_quality_gate"] is False
+    assert "return_to_analysis_campaign" not in str(report["open_feedback_priorities"])
+    assert report["authority_contract"] == {
+        "report_can_authorize_quality": False,
+        "report_can_authorize_finalize": False,
+        "report_can_authorize_submission": False,
+        "report_can_mutate_runtime": False,
+        "closed_feedback_counts_as_open_blocker": False,
+        "repeat_toil_is_quality_gate": False,
+        "report_records_manuscript_content": False,
+        "report_exposes_raw_logs_prompts_or_tokens": False,
+    }
+    rendered = str(report)
+    assert "REPORT_PROMPT_CANARY" not in rendered
+    assert "REPORT_FULL_PROMPT_CANARY" not in rendered
+    assert "REPORT_CLOSED_RAW_LOG_CANARY" not in rendered
+    assert "token_count" not in rendered
+
+
 def test_ai_first_quality_learning_queue_ignores_closed_events_as_open_blockers(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.ai_first_feedback")
     state = module.build_ai_first_feedback_state(progress_snapshot=_progress_snapshot(tmp_path))
@@ -433,8 +519,12 @@ def test_ai_first_quality_learning_queue_is_not_exposed_in_user_view_and_has_fal
         "queue_can_mutate_runtime": False,
         "queue_records_manuscript_content": False,
         "queue_exposes_raw_logs_prompts_or_tokens": False,
+        "repeat_toil_is_quality_gate": False,
     }
     assert state["authority_contract"]["quality_learning_queue_can_authorize_quality"] is False
     assert state["authority_contract"]["quality_learning_queue_can_authorize_finalize"] is False
     assert state["authority_contract"]["quality_learning_queue_can_authorize_submission"] is False
     assert state["authority_contract"]["quality_learning_queue_records_manuscript_content"] is False
+    assert state["authority_contract"]["quality_learning_operations_report_can_authorize_quality"] is False
+    assert state["authority_contract"]["quality_learning_operations_report_can_authorize_submission"] is False
+    assert state["authority_contract"]["repeat_toil_is_quality_gate"] is False

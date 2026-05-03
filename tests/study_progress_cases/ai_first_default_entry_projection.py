@@ -111,8 +111,113 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
     assert result["refs"]["ai_first_feedback_ledger_path"].endswith(
         "artifacts/runtime/ai_first_feedback_ledger/latest.json"
     )
+    assert result["refs"]["ai_first_action_dispatch_ledger_path"].endswith(
+        "artifacts/runtime/ai_first_action_dispatch_ledger/latest.json"
+    )
+    action_dispatch = result["ai_first_action_dispatch_ledger"]
+    assert action_dispatch["surface"] == "ai_first_action_dispatch_ledger"
+    assert action_dispatch["authority"] == "operations_governance_only"
+    assert action_dispatch["counts"]["open"] >= 1
+    assert action_dispatch["counts"]["total"] == len(action_dispatch["dispatches"])
+    assert {
+        item["dispatch_key"]
+        for item in action_dispatch["dispatches"]
+    } == {
+        item["dispatch_key"]
+        for item in module.ai_first_action_dispatch.read_action_dispatch_ledger(study_root=study_root)["dispatches"]
+    }
+    lifecycle = result["ai_first_action_lifecycle"]
+    assert lifecycle["surface"] == "ai_first_action_lifecycle_projection"
+    assert lifecycle["primary_action"]["action_id"] == "return_to_ai_reviewer_workflow"
+    assert lifecycle["open_action_count"] == action_dispatch["counts"]["open"]
+    assert lifecycle["authority_contract"]["lifecycle_can_authorize_quality"] is False
+    assert lifecycle["authority_contract"]["lifecycle_can_authorize_submission"] is False
+    second = module.read_study_progress(profile=profile, study_id="001-risk")
+    first_keys = {item["dispatch_key"] for item in action_dispatch["dispatches"]}
+    second_keys = {
+        item["dispatch_key"]
+        for item in second["ai_first_action_dispatch_ledger"]["dispatches"]
+    }
+    assert first_keys.issubset(second_keys)
+    assert len(second_keys) == second["ai_first_action_dispatch_ledger"]["counts"]["total"]
     assert "AI-first 运行反馈" in markdown
     assert "建议动作: 补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown
+
+
+def test_study_progress_projects_ai_first_action_dispatch_lifecycle(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    dispatch = importlib.import_module("med_autoscience.controllers.ai_first_action_dispatch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_json(
+        study_root / "artifacts" / "runtime" / "ai_first_action_dispatch_ledger" / "latest.json",
+        {
+            "surface": "ai_first_action_dispatch_ledger",
+            "schema_version": 1,
+            "authority": "operations_governance_only",
+            "dispatches": [
+                {
+                    "dispatch_key": "feedback::return_to_ai_reviewer_workflow::ai_reviewer_runtime_workflow",
+                    "action_id": "return_to_ai_reviewer_workflow",
+                    "target_surface": "ai_reviewer_runtime_workflow",
+                    "source_feedback_key": "ai_reviewer_trace_gap",
+                    "summary": "补齐 AI reviewer workflow、publication eval 与 medical prose review。",
+                    "status": "in_progress",
+                    "prompt": "internal prompt must stay hidden",
+                    "token_count": 1234,
+                }
+            ],
+            "counts": {"in_progress": 1, "total": 1},
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "active_run_id": "run-001",
+            "publication_supervisor_state": {
+                "supervisor_phase": "write",
+                "phase_owner": "publication_gate",
+                "current_required_action": "continue_write_stage",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+    markdown = module.render_study_progress_markdown(result)
+
+    lifecycle = result["ai_first_action_dispatch_lifecycle"]
+    assert lifecycle["surface"] == "ai_first_action_dispatch_lifecycle"
+    assert lifecycle["primary_action"]["status"] == "in_progress"
+    assert lifecycle["primary_action"]["action_id"] == "return_to_ai_reviewer_workflow"
+    assert lifecycle["counts"]["in_progress"] >= 1
+    assert lifecycle["counts"]["active"] >= 1
+    assert result["refs"]["ai_first_action_dispatch_ledger_path"] == str(
+        dispatch.stable_action_dispatch_ledger_path(study_root=study_root)
+    )
+    assert "AI-first 动作生命周期" in markdown
+    assert "主动作状态: in_progress" in markdown
+    assert "补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown
+    assert "internal prompt" not in markdown
+    assert "token_count" not in markdown
 
 
 def test_study_progress_projects_paper_orchestra_operator_read_model_without_new_runtime_truth(

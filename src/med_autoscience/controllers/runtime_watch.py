@@ -78,6 +78,15 @@ _MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE = "runtime_watch_controller_reroute"
 _MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE = "runtime_watch_outer_loop_wakeup"
 _NO_OP_SUPPRESSION_SUMMARY = "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。"
 _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY = "同一 controller work unit 已达到有界 redrive 上限，需 MAS/MDS 平台修复后再继续。"
+_REQUIRED_SPECIFICITY_TARGET_KINDS = (
+    "claim",
+    "display",
+    "evidence_source",
+    "citation",
+    "metric",
+    "package_artifact",
+    "authorization_provenance",
+)
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -94,6 +103,14 @@ def _write_runtime_state(*, quest_root: Path, runtime_state: Mapping[str, Any]) 
 
 def _compact_work_unit_payload(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
+
+
+def _gate_specificity_non_executable_contract() -> dict[str, Any]:
+    return {
+        "controller_work_unit_executable": False,
+        "non_executable_reason": "gate_needs_specificity_without_targets",
+        "required_target_kinds": list(_REQUIRED_SPECIFICITY_TARGET_KINDS),
+    }
 
 
 def _specificity_control_intent_identity(
@@ -238,6 +255,7 @@ def _materialize_specificity_controller_state(
         "delivery_mode": "controller_terminal_projection",
         "message_id": None,
         "source": _MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
+        **_gate_specificity_non_executable_contract(),
         "controller_work_unit_lifecycle": {
             "lifecycle_state": str(lifecycle.get("lifecycle_state") or "needs_specificity"),
             "latest_event_type": lifecycle.get("latest_event_type"),
@@ -273,6 +291,7 @@ def _specificity_terminal_status_payload(
             for item in (tick_request.get("blocking_work_units") or [])
             if isinstance(item, dict)
         ],
+        **_gate_specificity_non_executable_contract(),
         "controller_work_unit_lifecycle": {
             "lifecycle_state": "needs_specificity",
             "latest_event_type": "needs_specificity",

@@ -18,12 +18,24 @@ def test_blocked_claim_evidence_route_requires_specificity_when_gate_only_names_
     )
 
     assert result["fingerprint"].startswith("publication-blockers::")
-    assert result["next_work_unit"] == {
-        "unit_id": "gate_needs_specificity",
-        "lane": "controller",
-        "summary": "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets.",
-    }
+    assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert result["next_work_unit"]["lane"] == "controller"
+    assert (
+        result["next_work_unit"]["summary"]
+        == "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets."
+    )
     assert result["actionability_status"] == "blocked_by_non_actionable_gate"
+    assert result["next_work_unit"]["controller_work_unit_executable"] is False
+    assert result["next_work_unit"]["non_executable_reason"] == "gate_needs_specificity_without_targets"
+    assert result["next_work_unit"]["required_target_kinds"] == [
+        "claim",
+        "display",
+        "evidence_source",
+        "citation",
+        "metric",
+        "package_artifact",
+        "authorization_provenance",
+    ]
 
 
 def test_blocked_claim_evidence_route_produces_analysis_campaign_work_unit_for_specific_contract_gaps() -> None:
@@ -48,6 +60,8 @@ def test_blocked_claim_evidence_route_produces_analysis_campaign_work_unit_for_s
         "lane": "analysis-campaign",
         "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
     }
+    assert result["next_work_unit"].get("controller_work_unit_executable") is not False
+    assert "non_executable_reason" not in result["next_work_unit"]
 
 
 def test_generic_claim_label_with_only_artifact_path_still_requires_specificity() -> None:
@@ -555,11 +569,12 @@ def test_non_actionable_gate_labels_require_specificity_before_dispatch() -> Non
     )
 
     assert result["actionability_status"] == "blocked_by_non_actionable_gate"
-    assert result["next_work_unit"] == {
-        "unit_id": "gate_needs_specificity",
-        "lane": "controller",
-        "summary": "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets.",
-    }
+    assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert result["next_work_unit"]["lane"] == "controller"
+    assert (
+        result["next_work_unit"]["summary"]
+        == "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets."
+    )
     assert result["specificity_questions"] == [
         "Which exact claim, figure, table, metric, citation, evidence row, or package artifact is blocking the gate?",
         "Which durable source path proves the blocker and which controller surface should own the repair?",
@@ -581,11 +596,12 @@ def test_mixed_generic_publication_blockers_require_specificity_before_analysis_
     )
 
     assert result["actionability_status"] == "blocked_by_non_actionable_gate"
-    assert result["next_work_unit"] == {
-        "unit_id": "gate_needs_specificity",
-        "lane": "controller",
-        "summary": "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets.",
-    }
+    assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert result["next_work_unit"]["lane"] == "controller"
+    assert (
+        result["next_work_unit"]["summary"]
+        == "Ask the publication gate to identify concrete claim, display, evidence, citation, metric, or package-artifact targets."
+    )
     assert "analysis_claim_evidence_repair" not in [
         unit["unit_id"] for unit in result["blocking_work_units"]
     ]
