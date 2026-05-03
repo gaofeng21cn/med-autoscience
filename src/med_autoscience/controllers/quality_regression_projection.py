@@ -18,6 +18,18 @@ QUALITY_STATUS_RANK = {
     "partial": 2,
     "ready": 3,
 }
+REAL_STUDY_SOAK_STAGES: tuple[str, ...] = (
+    "literature_scout",
+    "line_selection",
+    "main_analysis",
+    "bounded_analysis",
+    "route_back",
+    "stop_loss",
+    "revision_reopen",
+    "runtime_recovery",
+    "finalize_rebuild",
+    "final_pre_submission_audit",
+)
 AUTHORITY = {
     "owner": "MAS Evaluation OS",
     "can_authorize_publication_quality": False,
@@ -194,5 +206,11 @@ def build_quality_regression_projection(
         "calibration_evidence": {
             "refs": calibration_refs,
             "judge_scores": _normalized_judge_scores(judge_scores),
+        },
+        "soak_matrix_evidence": {
+            "role": "soak_proof_only",
+            "can_authorize_publication_quality": False,
+            "required_stages": list(REAL_STUDY_SOAK_STAGES),
+            "stage_results": [],
         },
     }

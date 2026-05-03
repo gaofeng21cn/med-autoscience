@@ -17,6 +17,23 @@
 - medical prose review route-back。
 - claim strength exceeds evidence。
 - reviewer trace missing。
+- thin first draft。
+- overstrong claim。
+- missing reviewer trace。
+- coverage as quality。
+- mechanical gate as quality。
+
+## Target Journal Writing Layer
+
+`target_journal_writing_layer` 是 AI reviewer operating system 的质量上下文，不是新入口。它必须覆盖 target journal family、near-neighbor style corpus、section plan、claim-to-paragraph map、display-to-claim map 与 restrained language strategy。
+
+near-neighbor corpus 只能作为 style and structure calibration，不能供应 claim，不能覆盖 evidence ledger。restrained language strategy 必须绑定 claim-evidence alignment，且禁止从风格样例推出更强医学结论。
+
+## Real-study Soak Matrix
+
+`real_study_soak_matrix` 是 calibration corpus 内的 soak proof surface，用来证明真实 study 能穿过 literature scout、line selection、main analysis、bounded analysis、route-back、stop-loss、revision reopen、runtime recovery、finalize rebuild 与 final pre-submission audit。
+
+soak matrix 只提供质量回归与 route-back 证据。它要求 AI reviewer provenance、route-back trace 与 quality regression projection，但 mechanical gate 仍只能作为 evidence-only 输入，不能授权 publication quality。
 
 ## Pre-draft Materialization
 

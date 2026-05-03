@@ -161,6 +161,23 @@ def test_quality_regression_projection_compares_package_versions_without_publica
             "can_replace_ai_reviewer": False,
         }
     ]
+    assert projection["soak_matrix_evidence"] == {
+        "role": "soak_proof_only",
+        "can_authorize_publication_quality": False,
+        "required_stages": [
+            "literature_scout",
+            "line_selection",
+            "main_analysis",
+            "bounded_analysis",
+            "route_back",
+            "stop_loss",
+            "revision_reopen",
+            "runtime_recovery",
+            "finalize_rebuild",
+            "final_pre_submission_audit",
+        ],
+        "stage_results": [],
+    }
 
 
 def test_quality_regression_projection_fails_closed_without_eval_or_calibration_refs() -> None:

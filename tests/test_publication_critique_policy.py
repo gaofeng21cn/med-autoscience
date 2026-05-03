@@ -46,3 +46,35 @@ def test_default_publication_critique_policy_exposes_weight_and_action_contract(
         if item["field"] == "medical_journal_prose_quality"
     )
     assert "medical journal prose" in style_dimension["focus"]
+
+
+def test_publication_critique_policy_exposes_target_journal_writing_layer() -> None:
+    from med_autoscience.policies.publication_critique import (
+        DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+        build_ai_reviewer_operating_system_contract,
+    )
+
+    contract = build_ai_reviewer_operating_system_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+
+    assert contract["target_journal_writing_layer"] == {
+        "surface": "target_journal_writing_layer",
+        "role": "ai_reviewer_quality_context",
+        "mechanical_projection_can_authorize_quality": False,
+        "required_fields": [
+            "target_journal_family",
+            "near_neighbor_style_corpus",
+            "section_plan",
+            "claim_to_paragraph_map",
+            "display_to_claim_map",
+            "restrained_language_strategy",
+        ],
+        "near_neighbor_style_corpus": {
+            "role": "style_and_structure_calibration_only",
+            "can_supply_claims": False,
+            "can_override_evidence_ledger": False,
+        },
+        "restrained_language_strategy": {
+            "requires_claim_evidence_alignment": True,
+            "forbids_overstatement_from_style_examples": True,
+        },
+    }

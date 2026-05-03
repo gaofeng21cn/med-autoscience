@@ -20,6 +20,14 @@ AI_REVIEWER_OS_DECISION_DIMENSIONS = (
     "medical_journal_prose_quality",
     "human_review_readiness",
 )
+TARGET_JOURNAL_WRITING_LAYER_REQUIRED_FIELDS = (
+    "target_journal_family",
+    "near_neighbor_style_corpus",
+    "section_plan",
+    "claim_to_paragraph_map",
+    "display_to_claim_map",
+    "restrained_language_strategy",
+)
 
 
 DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
@@ -66,6 +74,21 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
         "mechanical_projection_can_authorize_quality": False,
         "required_input_surfaces": list(AI_REVIEWER_OS_INPUT_SURFACES),
         "rubric_dimensions": list(AI_REVIEWER_OS_DECISION_DIMENSIONS),
+        "target_journal_writing_layer": {
+            "surface": "target_journal_writing_layer",
+            "role": "ai_reviewer_quality_context",
+            "mechanical_projection_can_authorize_quality": False,
+            "required_fields": list(TARGET_JOURNAL_WRITING_LAYER_REQUIRED_FIELDS),
+            "near_neighbor_style_corpus": {
+                "role": "style_and_structure_calibration_only",
+                "can_supply_claims": False,
+                "can_override_evidence_ledger": False,
+            },
+            "restrained_language_strategy": {
+                "requires_claim_evidence_alignment": True,
+                "forbids_overstatement_from_style_examples": True,
+            },
+        },
         "required_trace_fields": [
             "input_bundle",
             "rubric_scores",
@@ -144,12 +167,32 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
     if contract.get("mechanical_projection_can_authorize_quality") is not False:
         raise ValueError("AI reviewer operating system 必须禁止 mechanical projection 授权质量。")
 
+    writing_layer = contract.get("target_journal_writing_layer")
+    if not isinstance(writing_layer, dict):
+        raise ValueError("AI reviewer operating system 缺少 target_journal_writing_layer。")
+    if writing_layer.get("mechanical_projection_can_authorize_quality") is not False:
+        raise ValueError("target_journal_writing_layer 必须禁止 mechanical projection 授权质量。")
+    writing_layer_fields = writing_layer.get("required_fields")
+    if not isinstance(writing_layer_fields, list):
+        raise ValueError("target_journal_writing_layer required_fields 必须是列表。")
+    normalized_writing_layer_fields = tuple(
+        _require_non_empty_text(item, "target_journal_writing_layer.required_fields")
+        for item in writing_layer_fields
+    )
+    missing_writing_fields = sorted(set(TARGET_JOURNAL_WRITING_LAYER_REQUIRED_FIELDS) - set(normalized_writing_layer_fields))
+    if missing_writing_fields:
+        raise ValueError("target_journal_writing_layer 缺少字段: " + ", ".join(missing_writing_fields))
+
     return {
         **contract,
         "required_input_surfaces": list(normalized_inputs),
         "rubric_dimensions": list(normalized_dimensions),
         "required_trace_fields": list(normalized_trace_fields),
         "required_provenance": dict(provenance),
+        "target_journal_writing_layer": {
+            **writing_layer,
+            "required_fields": list(normalized_writing_layer_fields),
+        },
     }
 
 

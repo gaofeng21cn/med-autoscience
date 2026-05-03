@@ -33,12 +33,60 @@ def test_calibration_corpus_turns_repair_toil_into_ai_reviewer_regressions() -> 
         "medical_prose_review_route_back",
         "claim_strength_exceeds_evidence",
         "reviewer_trace_missing",
+        "thin_first_draft",
+        "overstrong_claim",
+        "missing_reviewer_trace",
+        "coverage_as_quality",
+        "mechanical_gate_as_quality",
     }
     for case in corpus["cases"]:
         assert case["expected_route"] in {"return_to_ai_reviewer", "return_to_analysis_campaign", "return_to_write"}
         assert case["quality_gate_relaxation_allowed"] is False
         assert case["mechanical_facts_role"] == "evidence_only"
         assert case["minimum_ai_reviewer_trace"] == corpus["authority"]["ai_reviewer_provenance_requirements"]
+
+
+def test_calibration_corpus_exposes_required_case_families_and_soak_matrix() -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_calibration")
+
+    corpus = module.build_ai_reviewer_calibration_corpus()
+
+    cases = {case["case_id"]: case for case in corpus["cases"]}
+    for required_case_id in (
+        "thin_first_draft",
+        "overstrong_claim",
+        "missing_reviewer_trace",
+        "coverage_as_quality",
+        "mechanical_gate_as_quality",
+    ):
+        case = cases[required_case_id]
+        assert case["mechanical_facts_role"] == "evidence_only"
+        assert case["quality_gate_relaxation_allowed"] is False
+        assert case["minimum_ai_reviewer_trace"] == corpus["authority"]["ai_reviewer_provenance_requirements"]
+
+    assert corpus["soak_matrix"] == {
+        "surface": "real_study_soak_matrix",
+        "role": "quality_regression_and_route_back_proof",
+        "mechanical_projection_can_authorize_quality": False,
+        "required_stages": [
+            "literature_scout",
+            "line_selection",
+            "main_analysis",
+            "bounded_analysis",
+            "route_back",
+            "stop_loss",
+            "revision_reopen",
+            "runtime_recovery",
+            "finalize_rebuild",
+            "final_pre_submission_audit",
+        ],
+        "stage_evidence_contract": {
+            "requires_ai_reviewer_provenance_for_quality": True,
+            "requires_route_back_trace": True,
+            "requires_quality_regression_projection": True,
+            "mechanical_gate_role": "evidence_only",
+        },
+    }
 
 
 def test_pre_draft_readiness_materializer_requires_ai_authorized_inputs() -> None:

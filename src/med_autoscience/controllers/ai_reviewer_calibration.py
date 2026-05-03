@@ -16,6 +16,18 @@ MECHANICAL_INPUT_CONTRACT = {
     "can_close_quality_gate": False,
     "can_replace_ai_reviewer_provenance": False,
 }
+REAL_STUDY_SOAK_STAGES = (
+    "literature_scout",
+    "line_selection",
+    "main_analysis",
+    "bounded_analysis",
+    "route_back",
+    "stop_loss",
+    "revision_reopen",
+    "runtime_recovery",
+    "finalize_rebuild",
+    "final_pre_submission_audit",
+)
 
 CALIBRATION_CASES: tuple[dict[str, Any], ...] = (
     {
@@ -72,6 +84,51 @@ CALIBRATION_CASES: tuple[dict[str, Any], ...] = (
         "minimum_ai_reviewer_trace": AI_REVIEWER_PROVENANCE_REQUIREMENTS,
         "reviewer_expectation": "fail closed until reviewer_operating_system trace is complete",
     },
+    {
+        "case_id": "thin_first_draft",
+        "failure_mode": "first draft stays descriptive when the target journal layer requires stronger section planning and claim placement",
+        "expected_route": "return_to_write",
+        "mechanical_facts_role": "evidence_only",
+        "quality_gate_relaxation_allowed": False,
+        "minimum_ai_reviewer_trace": AI_REVIEWER_PROVENANCE_REQUIREMENTS,
+        "reviewer_expectation": "require target journal family, section plan, and claim-to-paragraph trace before draft readiness",
+    },
+    {
+        "case_id": "overstrong_claim",
+        "failure_mode": "target-journal style examples or near-neighbor framing produce claims stronger than the evidence ledger supports",
+        "expected_route": "return_to_ai_reviewer",
+        "mechanical_facts_role": "evidence_only",
+        "quality_gate_relaxation_allowed": False,
+        "minimum_ai_reviewer_trace": AI_REVIEWER_PROVENANCE_REQUIREMENTS,
+        "reviewer_expectation": "route back to restrained language strategy and claim-evidence alignment",
+    },
+    {
+        "case_id": "missing_reviewer_trace",
+        "failure_mode": "publication critique lacks reviewer operating system trace across route-back and final audit stages",
+        "expected_route": "return_to_ai_reviewer",
+        "mechanical_facts_role": "evidence_only",
+        "quality_gate_relaxation_allowed": False,
+        "minimum_ai_reviewer_trace": AI_REVIEWER_PROVENANCE_REQUIREMENTS,
+        "reviewer_expectation": "fail closed until AI reviewer provenance and route-back trace are present",
+    },
+    {
+        "case_id": "coverage_as_quality",
+        "failure_mode": "section, display, or checklist coverage is treated as publication quality",
+        "expected_route": "return_to_ai_reviewer",
+        "mechanical_facts_role": "evidence_only",
+        "quality_gate_relaxation_allowed": False,
+        "minimum_ai_reviewer_trace": AI_REVIEWER_PROVENANCE_REQUIREMENTS,
+        "reviewer_expectation": "preserve coverage as mechanical evidence and require subjective AI reviewer quality judgment",
+    },
+    {
+        "case_id": "mechanical_gate_as_quality",
+        "failure_mode": "a passing controller or mechanical gate is projected as manuscript quality readiness",
+        "expected_route": "return_to_ai_reviewer",
+        "mechanical_facts_role": "evidence_only",
+        "quality_gate_relaxation_allowed": False,
+        "minimum_ai_reviewer_trace": AI_REVIEWER_PROVENANCE_REQUIREMENTS,
+        "reviewer_expectation": "block readiness until AI reviewer artifact owns the quality decision",
+    },
 )
 
 
@@ -87,6 +144,18 @@ def build_ai_reviewer_calibration_corpus() -> dict[str, Any]:
             "ai_reviewer_provenance_requirements": AI_REVIEWER_PROVENANCE_REQUIREMENTS,
         },
         "cases": [dict(case) for case in CALIBRATION_CASES],
+        "soak_matrix": {
+            "surface": "real_study_soak_matrix",
+            "role": "quality_regression_and_route_back_proof",
+            "mechanical_projection_can_authorize_quality": False,
+            "required_stages": list(REAL_STUDY_SOAK_STAGES),
+            "stage_evidence_contract": {
+                "requires_ai_reviewer_provenance_for_quality": True,
+                "requires_route_back_trace": True,
+                "requires_quality_regression_projection": True,
+                "mechanical_gate_role": "evidence_only",
+            },
+        },
         "regression_axes": [
             "ai_reviewer_provenance",
             "pre_draft_quality",
@@ -94,6 +163,8 @@ def build_ai_reviewer_calibration_corpus() -> dict[str, Any]:
             "medical_journal_prose",
             "claim_evidence_alignment",
             "reviewer_os_trace_completeness",
+            "target_journal_writing_layer",
+            "real_study_soak_matrix",
         ],
     }
 
