@@ -567,11 +567,13 @@ def run_controller(
                 control_plane_route_context=resolved_route_context,
             )
         else:
-            study_delivery_stale_sync = study_delivery_sync.materialize_submission_delivery_stale_notice(
+            study_delivery_stale_sync = call_with_control_plane_route_context(
+                study_delivery_sync.materialize_submission_delivery_stale_notice,
                 paper_root=state.paper_root,
                 stale_reason=stale_reason,
                 missing_source_paths=list(report.get("study_delivery_missing_source_paths") or []),
-        )
+                control_plane_route_context=resolved_route_context,
+            )
         state = build_gate_state(quest_root)
         report = build_gate_report(state)
     if (

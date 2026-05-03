@@ -445,13 +445,20 @@ def test_run_controller_materializes_stale_study_delivery_notice_when_apply_enab
         },
     )
 
-    result = module.run_controller(quest_root=quest_root, apply=True)
+    route_context = {"control_plane_snapshot": {"surface": "snapshot"}}
+
+    result = module.run_controller(
+        quest_root=quest_root,
+        apply=True,
+        control_plane_route_context=route_context,
+    )
 
     assert len(calls) == 1
     assert calls[0]["stale_reason"] == "current_submission_source_missing"
     assert calls[0]["missing_source_paths"] == [
         "/tmp/runtime/quests/002/paper/submission_minimal/submission_manifest.json",
     ]
+    assert calls[0]["control_plane_route_context"] is route_context
     assert result["study_delivery_stale_sync"]["status"] == "stale_source_missing"
 def test_run_controller_resyncs_delivery_when_only_current_package_projection_is_missing(
     tmp_path: Path,

@@ -426,6 +426,26 @@ def test_materialize_submission_delivery_stale_notice_clears_stale_mirror_files(
         paper_root=paper_root,
         stale_reason=str(result["stale_reason"]),
         missing_source_paths=list(result["missing_source_paths"]),
+        route_context={
+            "control_plane_snapshot": {
+                "surface": "control_plane_snapshot",
+                "dispatch_gate": {
+                    "state": "open",
+                    "dispatch_allowed": True,
+                    "blocking_reasons": [],
+                },
+                "route_authorization": {
+                    "authorized": True,
+                    "paper_write_allowed": True,
+                    "bundle_build_allowed": True,
+                    "runtime_recovery_allowed": True,
+                },
+                "authority_refs": {
+                    "study_truth": {"epoch": "truth-1"},
+                    "runtime_health": {"epoch": "runtime-1"},
+                },
+            },
+        },
     )
 
     manuscript_root = study_root / "manuscript"
@@ -457,6 +477,93 @@ def test_materialize_submission_delivery_stale_notice_clears_stale_mirror_files(
     assert status_payload["submission_ready"] is False
     assert status_payload["active_delivery_manifest_path"] == str(manuscript_root / "delivery_manifest.json")
     assert status_payload["missing_source_paths"] != []
+
+
+def test_materialize_submission_delivery_stale_notice_blocks_without_snapshot(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+    manuscript_root = study_root / "manuscript"
+    baseline_status = manuscript_root / "delivery_status.json"
+    assert not baseline_status.exists()
+
+    result = module.materialize_submission_delivery_stale_notice(
+        paper_root=paper_root,
+        stale_reason="current_submission_source_missing",
+        missing_source_paths=[str(paper_root / "submission_minimal" / "submission_manifest.json")],
+    )
+
+    assert result["status"] == "control_plane_route_blocked"
+    assert result["control_plane_route_gate"]["action"] == "submission_notice_materialize"
+    assert "control_plane_snapshot_missing" in result["control_plane_route_gate"]["blocking_reasons"]
+    assert not baseline_status.exists()
+    assert (manuscript_root / "current_package" / "manuscript.docx").exists()
+
+
+def test_materialize_submission_delivery_stale_notice_allows_open_snapshot(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    result = module.materialize_submission_delivery_stale_notice(
+        paper_root=paper_root,
+        stale_reason="current_submission_source_missing",
+        route_context={
+            "control_plane_snapshot": {
+                "surface": "control_plane_snapshot",
+                "dispatch_gate": {
+                    "state": "open",
+                    "dispatch_allowed": True,
+                    "blocking_reasons": [],
+                },
+                "route_authorization": {
+                    "authorized": True,
+                    "paper_write_allowed": True,
+                    "bundle_build_allowed": True,
+                    "runtime_recovery_allowed": True,
+                },
+                "authority_refs": {
+                    "study_truth": {"epoch": "truth-1"},
+                    "runtime_health": {"epoch": "runtime-1"},
+                },
+            },
+        },
+    )
+
+    manuscript_root = study_root / "manuscript"
+    assert result["status"] == "stale_source_missing"
+    assert result["control_plane_route_gate"]["action"] == "submission_notice_materialize"
+    assert result["control_plane_route_gate"]["authorized"] is True
+    assert (manuscript_root / "delivery_status.json").exists()
+
+
+def test_materialize_submission_delivery_stale_notice_blocks_projection_only_write(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    result = module.materialize_submission_delivery_stale_notice(
+        paper_root=paper_root,
+        stale_reason="current_submission_source_missing",
+        route_context={"projection_only": True},
+    )
+
+    assert result["status"] == "control_plane_route_blocked"
+    assert result["control_plane_route_gate"]["projection_only"] is True
+    assert "projection_only_write_blocked" in result["control_plane_route_gate"]["blocking_reasons"]
+    assert not (study_root / "manuscript" / "delivery_status.json").exists()
 def test_sync_study_delivery_accepts_study_owned_paper_root(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     quest_paper_root, study_root = make_delivery_workspace(tmp_path)

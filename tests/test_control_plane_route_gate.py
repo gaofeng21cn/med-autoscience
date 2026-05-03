@@ -74,6 +74,32 @@ def test_route_gate_allows_open_snapshot_for_submission_materialize() -> None:
     assert gate["blocking_reasons"] == []
 
 
+def test_route_gate_allows_submission_notice_materialize_with_bundle_build_authority() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "submission_notice_materialize",
+        {"control_plane_snapshot": _snapshot()},
+    )
+
+    assert gate["authorized"] is True
+    assert gate["route_authorization_flag"] == "bundle_build_allowed"
+    assert gate["blocking_reasons"] == []
+
+
+def test_route_gate_blocks_submission_notice_materialize_when_bundle_build_false() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "submission_notice_materialize",
+        {"control_plane_snapshot": _snapshot(bundle_build_allowed=False)},
+    )
+
+    assert gate["authorized"] is False
+    assert gate["route_authorization_flag"] == "bundle_build_allowed"
+    assert "bundle_build_allowed_false" in gate["blocking_reasons"]
+
+
 def test_route_gate_projection_only_records_generated_surface_policy() -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
 
