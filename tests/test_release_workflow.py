@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import tomllib
 from pathlib import Path
 
@@ -16,6 +17,12 @@ PYPROJECT_PATH = REPO_ROOT / "pyproject.toml"
 
 def _workflow_texts() -> list[str]:
     return [path.read_text(encoding="utf-8") for path in sorted(WORKFLOW_DIR.glob("*.yml"))]
+
+
+def _workflow_job(workflow: str, job_id: str) -> str:
+    match = re.search(rf"(?ms)^  {re.escape(job_id)}:\n.*?(?=^  [A-Za-z0-9_-]+:\n|\Z)", workflow)
+    assert match is not None, f"missing workflow job: {job_id}"
+    return match.group(0)
 
 
 def test_domain_repo_does_not_publish_github_releases() -> None:
@@ -50,14 +57,24 @@ def test_ci_and_advisory_workflows_track_python_312_minor_instead_of_exact_patch
 def test_ci_and_advisory_workflows_split_system_dependencies_by_lane() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
-    family_workflow, display_workflow = advisory_workflow.split("display-surface:", maxsplit=1)
+    regression_workflow = _workflow_job(advisory_workflow, "regression")
+    meta_workflow = _workflow_job(advisory_workflow, "meta-contracts")
+    family_workflow = _workflow_job(advisory_workflow, "family-shared")
+    submission_workflow = _workflow_job(advisory_workflow, "submission-surface")
+    display_workflow = _workflow_job(advisory_workflow, "display-surface")
 
-    assert "Install pandoc and BasicTeX" in ci_workflow
-    assert "brew install pandoc" in ci_workflow
-    assert "brew install --cask basictex" in ci_workflow
-    assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' in ci_workflow
+    assert "Install pandoc and BasicTeX" not in ci_workflow
+    assert "brew install pandoc" not in ci_workflow
+    assert "brew install --cask basictex" not in ci_workflow
+    assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' not in ci_workflow
     assert "graphviz" not in ci_workflow
+    assert "brew install pandoc graphviz pkg-config libxml2 r" not in regression_workflow
+    assert "brew install pandoc graphviz pkg-config libxml2 r" not in meta_workflow
     assert "brew install pandoc graphviz pkg-config libxml2 r" not in family_workflow
+    assert "brew install pandoc" in submission_workflow
+    assert "brew install --cask basictex" in submission_workflow
+    assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' in submission_workflow
+    assert "graphviz" not in submission_workflow
     assert "brew install pandoc graphviz pkg-config libxml2 r" in display_workflow
     assert "brew install --cask basictex" in display_workflow
     assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' in display_workflow
@@ -71,12 +88,18 @@ def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
 
     assert "uv sync --frozen --group dev" in ci_workflow
     assert "uv sync --frozen --group dev" in advisory_workflow
-    assert "scripts/verify.sh meta" in ci_workflow
-    assert "scripts/verify.sh" in ci_workflow
+    assert 'scripts/verify.sh ci-preflight "${{ github.event.before }}"' in ci_workflow
+    assert "scripts/verify.sh meta" not in ci_workflow
+    assert re.search(r"run: scripts/verify\.sh\s*$", ci_workflow, flags=re.MULTILINE) is None
+    assert "scripts/verify.sh regression" in advisory_workflow
+    assert "scripts/verify.sh meta" in advisory_workflow
     assert "scripts/verify.sh family" in advisory_workflow
     assert "scripts/verify.sh display" in advisory_workflow
+    assert "scripts/verify.sh submission" in advisory_workflow
+    assert "scripts/verify.sh regression" not in ci_workflow
     assert "scripts/verify.sh family" not in ci_workflow
     assert "scripts/verify.sh display" not in ci_workflow
+    assert "scripts/verify.sh submission" not in ci_workflow
     assert "uv run python -m build --sdist --wheel" in ci_workflow
     assert "python -m pytest" not in ci_workflow
     assert "python -m pytest" not in advisory_workflow
@@ -87,23 +110,34 @@ def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
     assert "make test-meta" not in ci_workflow
     assert "make test-fast" not in ci_workflow
     assert "make test-display" not in ci_workflow
+    assert "make test-regression" not in advisory_workflow
+    assert "make test-meta" not in advisory_workflow
     assert "make test-family" not in advisory_workflow
+    assert "make test-submission" not in advisory_workflow
     assert "make test-display" not in advisory_workflow
 
 
 def test_advisory_workflow_only_prepares_study_runtime_analysis_bundle_for_display_lane() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
-    family_workflow, display_workflow = advisory_workflow.split("display-surface:", maxsplit=1)
+    regression_workflow = _workflow_job(advisory_workflow, "regression")
+    meta_workflow = _workflow_job(advisory_workflow, "meta-contracts")
+    family_workflow = _workflow_job(advisory_workflow, "family-shared")
+    submission_workflow = _workflow_job(advisory_workflow, "submission-surface")
+    display_workflow = _workflow_job(advisory_workflow, "display-surface")
 
     assert ci_workflow.count("Ensure study runtime analysis bundle") == 0
     assert advisory_workflow.count("Ensure study runtime analysis bundle") == 1
+    assert "Ensure study runtime analysis bundle" not in regression_workflow
+    assert "Ensure study runtime analysis bundle" not in meta_workflow
     assert "Ensure study runtime analysis bundle" not in family_workflow
+    assert "Ensure study runtime analysis bundle" not in submission_workflow
     assert "Ensure study runtime analysis bundle" in display_workflow
+    assert "Run regression advisory tests" in advisory_workflow
+    assert "Run submission-heavy advisory tests" in advisory_workflow
     assert "Run display-heavy advisory tests" in advisory_workflow
     assert "continue-on-error: true" not in ci_workflow
-    assert "continue-on-error: true" in family_workflow
-    assert "continue-on-error: true" in display_workflow
+    assert advisory_workflow.count("continue-on-error: true") == 5
 
 
 def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
@@ -142,8 +176,8 @@ def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     assert "product boundary, operator entry surfaces, runtime contracts, and maintenance records" in docs_readme
     assert "产品边界、操作入口、运行合同和维护记录" in docs_readme_zh
     assert "submission-facing DOCX/PDF" in preflight_doc
-    assert "`pandoc` 与 `BasicTeX`" in preflight_doc
-    assert "display-heavy` 与 `family` lane 迁入 `macOS Advisory`" in preflight_doc
+    assert "`smoke`、`regression` 与 `ci-preflight`" in preflight_doc
+    assert "`regression`、`display`、`submission`、`family` 与 `meta` lane 迁入 `macOS Advisory`" in preflight_doc
 
 
 def test_ci_and_advisory_workflows_split_stable_push_and_advisory_jobs() -> None:
@@ -151,11 +185,22 @@ def test_ci_and_advisory_workflows_split_stable_push_and_advisory_jobs() -> None
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
 
     assert "quick-checks:" in ci_workflow
+    assert "Run change-aware CI preflight and build" in ci_workflow
+    assert 'scripts/verify.sh ci-preflight "${{ github.event.before }}"' in ci_workflow
+    assert "Run stable core tests and build" not in ci_workflow
     assert "display-surface:" not in ci_workflow
-    assert "Run stable core tests and build" in ci_workflow
+    assert "submission-surface:" not in ci_workflow
+    assert "regression:" not in ci_workflow
+    assert "meta-contracts:" not in ci_workflow
+    assert "regression:" in advisory_workflow
+    assert "meta-contracts:" in advisory_workflow
     assert "family-shared:" in advisory_workflow
+    assert "submission-surface:" in advisory_workflow
     assert "display-surface:" in advisory_workflow
+    assert "Run regression advisory tests" in advisory_workflow
+    assert "Run meta advisory tests" in advisory_workflow
     assert "Run family shared advisory tests" in advisory_workflow
+    assert "Run submission-heavy advisory tests" in advisory_workflow
     assert "Run display-heavy advisory tests" in advisory_workflow
 
 

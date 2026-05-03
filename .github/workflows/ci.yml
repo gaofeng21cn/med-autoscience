@@ -9,10 +9,12 @@ on:
 jobs:
   quick-checks:
     runs-on: macOS-latest
-    name: Run stable core tests and build
+    name: Run change-aware CI preflight and build
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Checkout MedDeepScientist sibling for AI-first drift audit
         uses: actions/checkout@v6
@@ -28,24 +30,11 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v8.0.0
 
-      - name: Install pandoc and BasicTeX
-        run: |
-          brew install pandoc
-          brew install --cask basictex
-
-      - name: Configure TeX toolchain
-        run: |
-          echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"
-          /Library/TeX/texbin/xelatex --version | head -n 1
-
       - name: Install dependencies
         run: uv sync --frozen --group dev
 
-      - name: Run meta tests
-        run: scripts/verify.sh meta
-
-      - name: Run fast tests
-        run: scripts/verify.sh
+      - name: Run change-aware CI preflight
+        run: scripts/verify.sh ci-preflight "${{ github.event.before }}"
 
       - name: Build sdist and wheel
         run: uv run python -m build --sdist --wheel

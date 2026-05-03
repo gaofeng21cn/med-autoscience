@@ -36,4 +36,8 @@
 ## 验证
 
 - 统一验证入口为 `scripts/verify.sh`。
+- 不带参数的 `scripts/verify.sh` 是本地 smoke 入口，负责 sanity 与 fast tests，不代表完整回归。
+- `scripts/verify.sh regression` 是显式回归入口，默认由 advisory/nightly 承接。
+- `scripts/verify.sh ci-preflight <base-ref>` 是 push CI 入口，必须基于 repo-tracked preflight contract 展开变更面检查，并与 build 共同保护 `main` / `development`。
+- `regression`、`display`、`submission`、`family` 与 `meta` lane 由 advisory/nightly 承接，不回灌到 push quick-checks。
 - 修改 docs/contract surface 或运行语义时，至少补跑 `make test-meta`。

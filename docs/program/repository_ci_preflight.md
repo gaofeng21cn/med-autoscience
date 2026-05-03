@@ -1,17 +1,26 @@
 # Repository CI Preflight
 
-这个仓库当前采用的是“主线可直接 push，push CI 只承载稳定核心验证，重构高漂移面进入独立 advisory workflow”的模式。
+这个仓库当前采用的是“主线可直接 push，push CI 承载 change-aware preflight 与 build，重构高漂移面进入独立 advisory/nightly workflow”的模式。
 
 这意味着：
 
 - `main` 和 `development` 的 `push` 触发 `macOS CI`
-- `macOS CI` 只运行 `quick-checks` stable core：`meta / fast / build`
+- `macOS CI` 只运行 `quick-checks`：`scripts/verify.sh ci-preflight <base-ref>` 与 build
 - 提交前如果想提前发现高频问题，应优先运行本地 preflight
-- 常规 `quick-checks` lane 保留 submission-facing DOCX/PDF 仍会实际消费的 `pandoc` 与 `BasicTeX`
-- `display-heavy` 与 `family` lane 迁入 `macOS Advisory`，支持手动触发和每日定时触发
+- `regression`、`display`、`submission`、`family` 与 `meta` lane 迁入 `macOS Advisory`，支持手动触发和每日定时触发
 - `macOS Advisory` 的 `display-heavy` lane 继续承担 analysis bundle ready 的重型远端回归提示，并显式准备 `BasicTeX`、`graphviz`、`R`、`pkg-config` 与 `libxml2` 支撑 PDF 导出和 R 包编译
+- `macOS Advisory` 的 `submission-heavy` lane 承担 submission-facing DOCX/PDF 产物和投稿包相关回归，并显式准备 `pandoc` 与 `BasicTeX`
 - `macOS Advisory` 的 `family` lane 承担 OPL shared boundary / family shared modules 的跨仓合同提示
+- `macOS Advisory` 的 `meta` lane 承担 repo-tracked contract、docs、workflow 与入口面一致性提示
 - `release/full` lane 继续保持严格，用来覆盖正式发布前的整条重型验证链路
+
+## 验证职责
+
+`smoke`、`regression` 与 `ci-preflight` 的职责分开：
+
+- `smoke`：本地默认入口，即不带参数的 `scripts/verify.sh`。它负责快速确认当前 checkout 的基础 sanity 与 fast tests，适合提交前和小改动自检。
+- `regression`：显式回归入口，即 `scripts/verify.sh regression`。它负责比 smoke 更宽的行为回归，默认由 advisory/nightly 承接，避免把高漂移或高耗时回归压到每次 push。
+- `ci-preflight`：push CI 入口，即 `scripts/verify.sh ci-preflight <base-ref>`。它负责基于 base ref 展开 checked-in preflight contract，只检查本次变更实际触达的高风险面，并与 build 一起保护主线。
 
 ## 何时运行
 

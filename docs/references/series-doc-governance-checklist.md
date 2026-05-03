@@ -40,7 +40,10 @@
 
 ## 五、默认验证
 
+- 默认本地 smoke：`scripts/verify.sh`
+- 默认 push CI 入口：`scripts/verify.sh ci-preflight <base-ref>` 加 build
+- 默认 nightly/advisory 回归入口：`scripts/verify.sh regression`
 - 默认 docs 审计入口：`scripts/verify.sh meta`
 - 同义验证入口：`make test-meta`
-- 默认 smoke：`scripts/verify.sh`
+- `display`、`submission`、`family` 与 `meta` 继续由 advisory/nightly 承接，不作为 push quick-checks 的固定负载
 - 若验证命令、docs index、runtime/product-entry contract surface 有变化，继续同步 `Makefile`、`scripts/verify.sh`、`README*` 与 `tests/test_*`
