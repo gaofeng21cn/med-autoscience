@@ -16,6 +16,7 @@ from med_autoscience.study_task_intake_fast_lane import (
 from med_autoscience.study_task_intake_fast_lane_closeout import (
     task_intake_yields_to_manuscript_fast_lane_closeout as _fast_lane_closeout_yields_task_intake,
 )
+from med_autoscience import study_task_intake_direct_completion as direct_completion
 from med_autoscience.study_task_intake_stop_loss import (
     build_publishability_stop_loss_intake,
     build_publishability_stop_loss_progress_override,
@@ -629,6 +630,11 @@ def task_intake_yields_to_deterministic_submission_closeout(
 ) -> bool:
     if not task_intake_overrides_auto_manual_finish(payload):
         return False
+    if direct_completion.task_intake_yields_to_direct_foreground_completion(
+        payload,
+        task_intake_root=task_intake_root(study_root=study_root) if study_root is not None else None,
+    ):
+        return True
     if task_intake_yields_to_manuscript_fast_lane_closeout(payload, study_root=study_root):
         return True
     blocked_submission_closeout = _task_intake_yields_to_blocked_submission_closeout(publishability_gate_report)

@@ -238,7 +238,15 @@ def _normalized_blockers(report: Mapping[str, Any]) -> tuple[str, ...]:
     if delivery_status and delivery_status not in _NON_BLOCKING_DELIVERY_STATUSES:
         blockers.add(delivery_status)
     current_required_action = str(report.get("current_required_action") or "").strip()
-    if current_required_action in {"complete_bundle_stage", "continue_bundle_stage"}:
+    clear_current_bundle_stage = (
+        current_required_action == "continue_bundle_stage"
+        and str(report.get("status") or "").strip() == "clear"
+        and not blockers
+        and (not delivery_status or delivery_status in _NON_BLOCKING_DELIVERY_STATUSES)
+        and str(report.get("submission_minimal_authority_status") or "").strip() in {"", "current"}
+        and str(report.get("medical_publication_surface_status") or "").strip() in {"", "clear", "current", "ok"}
+    )
+    if current_required_action in {"complete_bundle_stage", "continue_bundle_stage"} and not clear_current_bundle_stage:
         blockers.add(current_required_action)
     return tuple(sorted(blockers))
 
