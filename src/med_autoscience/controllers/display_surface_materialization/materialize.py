@@ -437,6 +437,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             )
             shell_payload = load_json(payload_path)
             paper_role = _resolve_illustration_shell_paper_role(
+                registry_item=item,
                 shell_payload=shell_payload,
                 requirement_key=requirement_key,
                 allowed_paper_roles=spec.allowed_paper_roles,

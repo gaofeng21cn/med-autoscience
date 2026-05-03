@@ -145,11 +145,12 @@ _REPO_ROOT = default_display_pack_repo_root()
 
 def _resolve_illustration_shell_paper_role(
     *,
+    registry_item: dict[str, Any] | None = None,
     shell_payload: dict[str, Any],
     requirement_key: str,
     allowed_paper_roles: tuple[str, ...],
 ) -> str:
-    explicit_paper_role = str(shell_payload.get("paper_role") or "").strip()
+    explicit_paper_role = str((registry_item or {}).get("paper_role") or shell_payload.get("paper_role") or "").strip()
     if explicit_paper_role:
         return explicit_paper_role
     story_role = display_story_role_for_requirement_key(requirement_key)
