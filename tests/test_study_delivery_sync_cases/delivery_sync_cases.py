@@ -55,6 +55,41 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
     assert "evidence_ledger.json" in delivery_manifest["source_relative_paths"]
 
 
+def test_sync_study_delivery_route_gate_blocks_current_package_projection(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    result = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        route_context={
+            "control_plane_snapshot": {
+                "surface": "control_plane_snapshot",
+                "dispatch_gate": {
+                    "state": "open",
+                    "dispatch_allowed": True,
+                    "blocking_reasons": [],
+                },
+                "route_authorization": {
+                    "authorized": True,
+                    "paper_write_allowed": True,
+                    "bundle_build_allowed": False,
+                    "runtime_recovery_allowed": True,
+                },
+                "authority_refs": {
+                    "study_truth": {"epoch": "truth-1"},
+                    "runtime_health": {"epoch": "runtime-1"},
+                },
+            }
+        },
+    )
+
+    assert result["status"] == "control_plane_route_blocked"
+    assert result["control_plane_route_gate"]["route_authorization_flag"] == "bundle_build_allowed"
+    assert not (study_root / "manuscript" / "current_package").exists()
+    assert not (study_root / "manuscript" / "current_package.zip").exists()
+
+
 def test_submission_delivery_manifest_and_status_expose_authority_handshake_signatures(
     tmp_path: Path,
 ) -> None:

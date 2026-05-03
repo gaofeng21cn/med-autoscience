@@ -515,8 +515,12 @@ def run_controller(
     source: str = "codex-publication-gate",
     enqueue_intervention: bool = True,
 ) -> dict[str, Any]:
+    from med_autoscience.controllers.control_plane_route_gate import authorize_control_plane_route
+
+    control_plane_route_gate = authorize_control_plane_route("bundle_build", {"projection_only": True})
     state = build_gate_state(quest_root)
     report = build_gate_report(state)
+    report["control_plane_route_gate"] = control_plane_route_gate
     draft_handoff_delivery_sync = None
     study_delivery_stale_sync = None
     journal_package_sync = None

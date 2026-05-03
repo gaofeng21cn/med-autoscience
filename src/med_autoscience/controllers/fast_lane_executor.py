@@ -5,6 +5,7 @@ import json
 from typing import Any, Mapping
 
 from med_autoscience.controllers import gate_clearing_batch_scheduler
+from med_autoscience.controllers.control_plane_route_gate import authorize_control_plane_route
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -116,12 +117,24 @@ def build_fast_lane_execution_manifest(
     repair_units: list[Any],
     quality_ledger_enforcement: Mapping[str, Any],
     replay_case: Mapping[str, Any],
+    route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    control_plane_route_gate = authorize_control_plane_route(
+        "bundle_build",
+        {"projection_only": True} if route_context is None else route_context,
+    )
     execution_plan = gate_clearing_batch_scheduler.build_repair_unit_execution_plan(repair_units)
     plan_manifest = _mapping(execution_plan.get("fast_lane_execution_manifest"))
     manifest_state = _manifest_state(quality_ledger_enforcement)
     blocking_reasons = _blocking_reasons(quality_ledger_enforcement)
-    auto_dispatch_allowed = manifest_state == "ready" and execution_plan.get("status") == "planned"
+    if not bool(control_plane_route_gate.get("authorized")):
+        manifest_state = "blocked_by_control_plane_route_gate"
+        blocking_reasons.append("bundle_build_not_authorized")
+    auto_dispatch_allowed = (
+        manifest_state == "ready"
+        and execution_plan.get("status") == "planned"
+        and bool(control_plane_route_gate.get("authorized"))
+    )
     replay_required = bool(replay_case) or bool(
         _mapping(execution_plan.get("execution_policy")).get("requires_publication_gate_replay")
     )
@@ -153,7 +166,9 @@ def build_fast_lane_execution_manifest(
             "auto_dispatch_allowed": auto_dispatch_allowed,
             "controller_only": True,
             "gate_relaxation_allowed": False,
+            "control_plane_route_authorized": bool(control_plane_route_gate.get("authorized")),
         },
+        "control_plane_route_gate": control_plane_route_gate,
         "execution_plan": execution_plan,
         "quality_gate_policy": dict(_mapping(plan_manifest.get("quality_gate_policy"))),
         "quality_enforcement": dict(quality_ledger_enforcement),

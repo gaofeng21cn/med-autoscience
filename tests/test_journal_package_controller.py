@@ -116,6 +116,44 @@ def test_materialize_journal_package_writes_stable_shallow_package(tmp_path: Pat
     assert "derived target-journal projection" in readme
 
 
+def test_materialize_journal_package_route_gate_blocks_zip_materialization(tmp_path: Path) -> None:
+    package_module = importlib.import_module("med_autoscience.controllers.journal_package")
+    paper_root, study_root = make_package_workspace(tmp_path)
+    write_rheumatology_requirements(study_root)
+
+    result = package_module.materialize_journal_package(
+        paper_root=paper_root,
+        study_root=study_root,
+        journal_slug="rheumatology-international",
+        publication_profile="general_medical_journal",
+        route_context={
+            "control_plane_snapshot": {
+                "surface": "control_plane_snapshot",
+                "dispatch_gate": {
+                    "state": "open",
+                    "dispatch_allowed": True,
+                    "blocking_reasons": [],
+                },
+                "route_authorization": {
+                    "authorized": True,
+                    "paper_write_allowed": True,
+                    "bundle_build_allowed": False,
+                    "runtime_recovery_allowed": True,
+                },
+                "authority_refs": {
+                    "study_truth": {"epoch": "truth-1"},
+                    "runtime_health": {"epoch": "runtime-1"},
+                },
+            }
+        },
+    )
+
+    package_root = study_root / "submission_packages" / "rheumatology-international"
+    assert result["status"] == "control_plane_route_blocked"
+    assert result["control_plane_route_gate"]["allowed"] is False
+    assert not package_root.exists()
+
+
 def test_materialize_journal_package_marks_runtime_worktree_preview_until_target_confirmed(tmp_path: Path) -> None:
     package_module = importlib.import_module("med_autoscience.controllers.journal_package")
     study_root = tmp_path / "studies" / "001-guideline-aligned-triple-trend"
