@@ -81,6 +81,19 @@ def test_deterministic_quality_gates_keep_clear_projection_separate_from_ai_revi
 
     study_root = tmp_path / "studies" / "002-early-residual-risk"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    dump_json(
+        paper_root / "evidence_ledger.json",
+        {
+            "schema_version": 1,
+            "items": [
+                {
+                    "citation_key": "ref1",
+                    "source_kind": "doi",
+                    "doi": "10.1000/ref1",
+                }
+            ],
+        },
+    )
     source_root = paper_root / "build"
     source_refs = ["review_manuscript.md"]
     artifact_proof = importlib.import_module("med_autoscience.controllers.artifact_runtime_proof")
@@ -115,4 +128,52 @@ def test_deterministic_quality_gates_keep_clear_projection_separate_from_ai_revi
     assert gates["authority"] == {
         "deterministic_projection_can_replace_ai_reviewer": False,
         "scientific_quality_authority": "publication_eval_and_controller_decisions",
+    }
+
+
+def test_deterministic_quality_gates_include_medical_literature_hygiene_evidence(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_current_medical_publication_surface_report=True,
+        medical_publication_surface_status="clear",
+        medical_publication_surface_report={
+            "claim_evidence_map_valid": True,
+            "evidence_ledger_valid": True,
+            "structured_reporting_checklist": {
+                "claim_evidence_alignment": {"status": "pass"},
+                "statistical_reporting": {"status": "pass"},
+            },
+        },
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    write_text(
+        paper_root / "build" / "review_manuscript.md",
+        "The manuscript cites one unsupported reference [@ref1].\n",
+    )
+    dump_json(
+        paper_root / "evidence_ledger.json",
+        {
+            "schema_version": 1,
+            "items": [
+                {
+                    "citation_key": "ref1",
+                    "source_kind": "local_note",
+                }
+            ],
+        },
+    )
+
+    report = module.build_gate_report(module.build_gate_state(quest_root))
+    citation_gate = report["deterministic_quality_gates"]["gates"]["citation_grounding"]
+    hygiene_ref = citation_gate["evidence_refs"][0]["medical_literature_hygiene"]
+
+    assert "unsupported_citation_blockers_present" in citation_gate["blockers"]
+    assert hygiene_ref["surface"] == "medical_literature_hygiene_projection"
+    assert hygiene_ref["authority"] == {
+        "can_replace_medical_literature_review": False,
+        "can_authorize_publication_quality": False,
     }

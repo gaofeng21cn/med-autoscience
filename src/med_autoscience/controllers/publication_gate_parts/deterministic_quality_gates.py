@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import artifact_runtime_proof
+from med_autoscience.controllers import artifact_runtime_proof, medical_literature_hygiene
 
 
 GATE_KEYS: tuple[str, ...] = (
@@ -158,6 +158,7 @@ def build_deterministic_quality_gate_projection(
     submission_surface_qc_failures: list[dict[str, Any]],
     manuscript_terminology_violations: list[dict[str, Any]],
     blocking_artifact_refs: list[dict[str, Any]],
+    medical_literature_hygiene_projection: dict[str, Any] | None,
     active_figure_count: int | None,
     prebundle_display_advisories: list[str],
     study_root: Path | None,
@@ -171,14 +172,18 @@ def build_deterministic_quality_gate_projection(
         structured_checklist,
         selected_keys=frozenset({"claim_evidence_alignment", "citation_grounding"}),
     )
+    literature_hygiene_blockers = _string_list(
+        (medical_literature_hygiene_projection or {}).get("blockers")
+    )
     citation_gate = _gate(
         gate_key="citation_grounding",
-        blockers=[*citation_blockers, *citation_checklist_blockers],
+        blockers=[*citation_blockers, *citation_checklist_blockers, *literature_hygiene_blockers],
         evidence_refs=[
             {
                 "medical_publication_surface_path": (medical_publication_surface or {}).get("report_path"),
                 "claim_evidence_map_valid": (medical_publication_surface or {}).get("claim_evidence_map_valid"),
                 "evidence_ledger_valid": (medical_publication_surface or {}).get("evidence_ledger_valid"),
+                "medical_literature_hygiene": medical_literature_hygiene_projection,
                 "blocking_artifact_refs": [
                     item
                     for item in blocking_artifact_refs
@@ -286,6 +291,11 @@ def build_deterministic_quality_gate_projection_from_state(
         submission_surface_qc_failures=list(state.submission_surface_qc_failures),
         manuscript_terminology_violations=list(state.manuscript_terminology_violations),
         blocking_artifact_refs=blocking_artifact_refs,
+        medical_literature_hygiene_projection=(
+            medical_literature_hygiene.build_medical_literature_hygiene_projection(paper_root=state.paper_root)
+            if state.paper_root is not None
+            else None
+        ),
         active_figure_count=active_figure_count,
         prebundle_display_advisories=prebundle_display_advisories,
         study_root=state.study_root,
