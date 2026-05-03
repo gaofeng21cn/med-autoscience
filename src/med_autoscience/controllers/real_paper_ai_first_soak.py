@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+import json
+from pathlib import Path
+from typing import Any, Iterable, Mapping
+
+from med_autoscience.controllers.ai_reviewer_calibration import REAL_STUDY_SOAK_STAGES
 
 
 SCHEMA_VERSION = 1
 SURFACE = "real_paper_ai_first_soak"
 OBSERVATION_SURFACE = "real_paper_ai_first_soak_observation"
+MATRIX_EVIDENCE_SURFACE = "real_study_soak_matrix_evidence"
 
 CANONICAL_ARTIFACT_REBUILD_SOURCE = "canonical_sources_and_ai_reviewer_quality_decision"
 QUALITY_AUTHORIZATION_SOURCE = "ai_reviewer_backed_publication_eval_or_manual_gate"
@@ -14,6 +19,11 @@ AI_REVIEWER_TRACE_SOURCE = "reviewer_operating_system_trace"
 MANUAL_GATE_SOURCE = "explicit_human_decision"
 MISSING_AI_REVIEWER_QUALITY_AUTHORIZATION = "missing_ai_reviewer_quality_authorization"
 MISSING_CANONICAL_ARTIFACT_REBUILD_SOURCE = "missing_canonical_artifact_rebuild_source"
+MISSING_DURABLE_EVIDENCE_REF = "missing_durable_evidence_ref"
+
+STUDY_ROOT_SOAK_EVIDENCE_REFS: tuple[Path, ...] = (
+    Path("artifacts/real_study_soak_matrix/evidence.json"),
+)
 
 PAPER_LINES: tuple[dict[str, Any], ...] = (
     {
@@ -71,6 +81,10 @@ def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
+def _path(value: str | Path) -> Path:
+    return value if isinstance(value, Path) else Path(value)
+
+
 def _int(value: object) -> int:
     try:
         return int(value or 0)
@@ -85,6 +99,57 @@ def _bool(value: object) -> bool | None:
 def _contains_derived_artifact_marker(value: object) -> bool:
     text = _text(value)
     return any(marker in text for marker in DERIVED_ARTIFACT_AUTHORITY_MARKERS)
+
+
+def _durable_refs(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value] if value.strip() else []
+    if not isinstance(value, list):
+        return []
+    refs: list[str] = []
+    for item in value:
+        if isinstance(item, Mapping):
+            ref = _text(item.get("ref") or item.get("path") or item.get("uri"))
+        else:
+            ref = _text(item)
+        if ref:
+            refs.append(ref)
+    return refs
+
+
+def _read_json_mapping(path: Path) -> Mapping[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return _mapping(payload)
+
+
+def _merge_stage_evidence(
+    target: dict[str, list[str]],
+    evidence: Mapping[str, Any],
+) -> None:
+    stage_evidence = _mapping(evidence.get("stage_evidence")) or evidence
+    for stage in REAL_STUDY_SOAK_STAGES:
+        refs = _durable_refs(stage_evidence.get(stage))
+        if refs:
+            target.setdefault(stage, []).extend(refs)
+
+
+def _study_root_stage_evidence(
+    study_roots: Iterable[str | Path] | None,
+) -> tuple[dict[str, list[str]], list[str]]:
+    stage_evidence: dict[str, list[str]] = {}
+    evidence_sources: list[str] = []
+    for root_value in study_roots or []:
+        root = _path(root_value)
+        for relative_ref in STUDY_ROOT_SOAK_EVIDENCE_REFS:
+            evidence_path = root / relative_ref
+            if not evidence_path.is_file():
+                continue
+            evidence_sources.append(str(evidence_path))
+            _merge_stage_evidence(stage_evidence, _read_json_mapping(evidence_path))
+    return stage_evidence, evidence_sources
 
 
 def _runtime_snapshot_sections(
@@ -208,6 +273,49 @@ def build_real_paper_ai_first_soak_contract() -> dict[str, Any]:
             "quality_gate_relaxation",
             "study_workspace_patch",
         ],
+    }
+
+
+def build_real_study_soak_matrix_evidence(
+    *,
+    evidence_map: Mapping[str, Any] | None = None,
+    study_roots: Iterable[str | Path] | None = None,
+) -> dict[str, Any]:
+    stage_evidence, evidence_sources = _study_root_stage_evidence(study_roots)
+    if evidence_map is not None:
+        _merge_stage_evidence(stage_evidence, evidence_map)
+
+    required_stages: list[dict[str, Any]] = []
+    complete_count = 0
+    for stage in REAL_STUDY_SOAK_STAGES:
+        refs = stage_evidence.get(stage, [])
+        is_complete = bool(refs)
+        if is_complete:
+            complete_count += 1
+        required_stages.append(
+            {
+                "stage": stage,
+                "status": "complete" if is_complete else "missing",
+                "evidence_refs": refs,
+                "missing_reason": "" if is_complete else MISSING_DURABLE_EVIDENCE_REF,
+            }
+        )
+
+    if complete_count == len(required_stages):
+        overall_status = "complete"
+    elif complete_count:
+        overall_status = "partial"
+    else:
+        overall_status = "missing"
+
+    return {
+        "surface": MATRIX_EVIDENCE_SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "overall_status": overall_status,
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+        "required_stages": required_stages,
+        "evidence_sources": evidence_sources,
     }
 
 

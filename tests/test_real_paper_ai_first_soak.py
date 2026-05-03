@@ -1,11 +1,30 @@
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
 
 import pytest
 
 
 pytestmark = pytest.mark.meta
+
+
+def _complete_soak_evidence_map() -> dict[str, list[str]]:
+    return {
+        "literature_scout": ["studies/dpcc-003/artifacts/literature_scout/latest.json"],
+        "line_selection": ["studies/dpcc-003/artifacts/line_selection/latest.json"],
+        "main_analysis": ["studies/dpcc-003/artifacts/main_analysis/latest.json"],
+        "bounded_analysis": ["studies/dpcc-003/artifacts/bounded_analysis/latest.json"],
+        "route_back": ["studies/dpcc-003/artifacts/quality/route_back_trace.json"],
+        "stop_loss": ["studies/dpcc-003/runtime_escalation_record.json"],
+        "revision_reopen": ["studies/dpcc-003/controller_decisions/latest.json"],
+        "runtime_recovery": ["studies/dpcc-003/study_runtime_status.json"],
+        "finalize_rebuild": ["studies/dpcc-003/artifacts/finalize_rebuild/latest.json"],
+        "final_pre_submission_audit": [
+            "studies/dpcc-003/artifacts/publication_eval/latest.json"
+        ],
+    }
 
 
 def test_real_paper_ai_first_soak_contract_freezes_observational_schema() -> None:
@@ -45,6 +64,78 @@ def test_real_paper_ai_first_soak_contract_freezes_observational_schema() -> Non
         "ai_reviewer_intervention_points": "reviewer_operating_system_trace",
         "manual_gate": "explicit_human_decision",
     }
+
+
+def test_real_study_soak_matrix_evidence_marks_complete_only_with_every_required_stage() -> None:
+    module = importlib.import_module("med_autoscience.controllers.real_paper_ai_first_soak")
+
+    result = module.build_real_study_soak_matrix_evidence(
+        evidence_map=_complete_soak_evidence_map()
+    )
+
+    assert result["surface"] == "real_study_soak_matrix_evidence"
+    assert result["schema_version"] == 1
+    assert result["overall_status"] == "complete"
+    assert result["quality_claim_authorized"] is False
+    assert result["mechanical_projection_can_authorize_quality"] is False
+
+    by_stage = {stage["stage"]: stage for stage in result["required_stages"]}
+    assert by_stage["literature_scout"] == {
+        "stage": "literature_scout",
+        "status": "complete",
+        "evidence_refs": ["studies/dpcc-003/artifacts/literature_scout/latest.json"],
+        "missing_reason": "",
+    }
+    assert all(stage["status"] == "complete" for stage in result["required_stages"])
+
+
+def test_real_study_soak_matrix_evidence_fails_closed_when_a_required_stage_lacks_durable_refs() -> None:
+    module = importlib.import_module("med_autoscience.controllers.real_paper_ai_first_soak")
+    evidence_map = _complete_soak_evidence_map()
+    evidence_map["route_back"] = []
+    evidence_map.pop("runtime_recovery")
+
+    result = module.build_real_study_soak_matrix_evidence(evidence_map=evidence_map)
+
+    assert result["surface"] == "real_study_soak_matrix_evidence"
+    assert result["overall_status"] == "partial"
+    assert result["quality_claim_authorized"] is False
+    assert result["mechanical_projection_can_authorize_quality"] is False
+
+    by_stage = {stage["stage"]: stage for stage in result["required_stages"]}
+    assert by_stage["route_back"] == {
+        "stage": "route_back",
+        "status": "missing",
+        "evidence_refs": [],
+        "missing_reason": "missing_durable_evidence_ref",
+    }
+    assert by_stage["runtime_recovery"] == {
+        "stage": "runtime_recovery",
+        "status": "missing",
+        "evidence_refs": [],
+        "missing_reason": "missing_durable_evidence_ref",
+    }
+
+
+def test_real_study_soak_matrix_evidence_reads_study_root_stage_refs(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.real_paper_ai_first_soak")
+    study_root = tmp_path / "dpcc-003"
+    matrix_path = study_root / "artifacts" / "real_study_soak_matrix" / "evidence.json"
+    matrix_path.parent.mkdir(parents=True)
+    matrix_path.write_text(
+        json.dumps({"stage_evidence": _complete_soak_evidence_map()}),
+        encoding="utf-8",
+    )
+
+    result = module.build_real_study_soak_matrix_evidence(study_roots=[study_root])
+
+    assert result["surface"] == "real_study_soak_matrix_evidence"
+    assert result["overall_status"] == "complete"
+    assert result["quality_claim_authorized"] is False
+    assert result["mechanical_projection_can_authorize_quality"] is False
+    assert result["evidence_sources"] == [
+        str(matrix_path),
+    ]
 
 
 def test_real_paper_ai_first_soak_recording_entry_is_observational_only() -> None:
