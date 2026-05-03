@@ -781,6 +781,9 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "ai_doctor_state_field": "ai_doctor_state",
         "repair_recommendation_field": "repair_recommendation",
         "last_meaningful_progress_field": "last_meaningful_progress_at",
+        "artifact_runtime_proof_field": "artifact_runtime_proof",
+        "submission_hygiene_truth_field": "submission_hygiene_truth",
+        "product_recommended_flow_field": "product_recommended_flow",
         "artifact_pickup_field": "research_runtime_control_projection.artifact_pickup_surface",
         "artifact_pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
         "runtime_human_gate_field": "research_runtime_control_projection.research_gate_surface",
@@ -818,6 +821,17 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
             "surface_kind": "study_progress",
             "field_path": "refs",
         },
+        "artifact_runtime_proof_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "artifact_runtime_proof",
+            "delivery_manifest_field": "refs.artifact_runtime_proof_delivery_manifest_path",
+        },
+        "submission_hygiene_truth_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "submission_hygiene_truth",
+            "recommended_flow_field": "product_recommended_flow",
+            "blocking_gate_keys_field": "submission_hygiene_truth.blocking_gate_keys",
+        },
         "artifact_pickup_surface": {
             "surface_kind": "study_progress",
             "field_path": "refs.evaluation_summary_path",
@@ -844,6 +858,11 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
             "retrospective_audit_field": "medical_writing_quality_surfaces.retrospective_audit",
             "subjective_quality_owner": "ai_reviewer",
             "mechanical_flags_role": "evidence_snippets_only",
+        },
+        "recommended_flow_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "product_recommended_flow",
+            "default_step_field": "product_recommended_flow.recommended_step_id",
         },
         "command_templates": {
             "resume": (

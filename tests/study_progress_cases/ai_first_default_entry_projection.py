@@ -144,6 +144,102 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
     assert "建议动作: 补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown
 
 
+def test_study_progress_projects_artifact_proof_and_submission_hygiene_truth(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    paper_root = study_root / "paper"
+    source_root = paper_root / "submission_minimal"
+    source_root.mkdir(parents=True, exist_ok=True)
+    (source_root / "manuscript.md").write_text("# Manuscript\n\nCurrent.\n", encoding="utf-8")
+    _write_json(
+        source_root / "submission_manifest.json",
+        {
+            "citation_style": "AMA",
+            "manuscript": {"surface_qc": {"status": "pass", "failures": []}},
+        },
+    )
+    source_signature = module.artifact_runtime_proof._source_signature(
+        study_root=study_root,
+        source_root=source_root,
+        paper_root=paper_root,
+        source_refs=["manuscript.md", "submission_manifest.json"],
+    )[0]
+    _write_json(
+        study_root / "manuscript" / "delivery_manifest.json",
+        {
+            "source_signature": source_signature,
+            "authority_source_signature": source_signature,
+            "source_relative_paths": ["manuscript.md", "submission_manifest.json"],
+            "source": {"paper_root": str(paper_root), "package_source_root": str(source_root)},
+            "surface_roles": {
+                "controller_authorized_paper_root": str(paper_root),
+                "controller_authorized_package_source_root": str(source_root),
+            },
+            "blocking_artifact_refs": [],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "verdict": {"overall_verdict": "promising"},
+            "deterministic_quality_gates": {
+                "surface": "deterministic_quality_gate_projection",
+                "status": "clear",
+                "blocking_gate_keys": [],
+                "gates": {
+                    "citation_grounding": {"status": "pass", "blockers": []},
+                    "numeric_grounding": {"status": "pass", "blockers": []},
+                    "display_grounding": {"status": "pass", "blockers": []},
+                    "internal_language_leakage": {"status": "pass", "blockers": []},
+                },
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "active_run_id": "run-001",
+            "publication_supervisor_state": {
+                "supervisor_phase": "finalize",
+                "phase_owner": "publication_gate",
+                "current_required_action": "continue_bundle_stage",
+            },
+            "supervisor_tick_audit": {"required": False, "status": "not_required"},
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["artifact_runtime_proof"]["rebuild_status"] == "current"
+    assert result["submission_hygiene_truth"]["status"] == "clear"
+    assert result["submission_hygiene_truth"]["gates"]["citation_grounding"]["status"] == "pass"
+    assert result["submission_hygiene_truth"]["gates"]["numeric_grounding"]["status"] == "pass"
+    assert result["submission_hygiene_truth"]["gates"]["display_grounding"]["status"] == "pass"
+    assert result["submission_hygiene_truth"]["gates"]["internal_language_leakage"]["status"] == "pass"
+    assert result["product_recommended_flow"]["recommended_step_id"] == "inspect_study_progress"
+    assert result["refs"]["artifact_runtime_proof_delivery_manifest_path"].endswith(
+        "manuscript/delivery_manifest.json"
+    )
+    assert result["refs"]["submission_hygiene_submission_manifest_path"].endswith(
+        "paper/submission_minimal/submission_manifest.json"
+    )
+
+
 def test_study_progress_projects_ai_first_action_dispatch_lifecycle(
     monkeypatch,
     tmp_path: Path,

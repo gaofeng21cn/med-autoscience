@@ -570,6 +570,17 @@ def _build_research_runtime_control_projection(
             "surface_kind": "study_progress",
             "field_path": "refs",
         },
+        "artifact_runtime_proof_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "artifact_runtime_proof",
+            "delivery_manifest_field": "refs.artifact_runtime_proof_delivery_manifest_path",
+        },
+        "submission_hygiene_truth_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "submission_hygiene_truth",
+            "recommended_flow_field": "product_recommended_flow",
+            "blocking_gate_keys_field": "submission_hygiene_truth.blocking_gate_keys",
+        },
         "artifact_pickup_surface": {
             "surface_kind": "study_progress",
             "field_path": "refs.evaluation_summary_path",
@@ -596,6 +607,11 @@ def _build_research_runtime_control_projection(
             "retrospective_audit_field": "medical_writing_quality_surfaces.retrospective_audit",
             "subjective_quality_owner": "ai_reviewer",
             "mechanical_flags_role": "evidence_snippets_only",
+        },
+        "recommended_flow_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "product_recommended_flow",
+            "default_step_field": "product_recommended_flow.recommended_step_id",
         },
         "command_templates": {
             "resume": resume_command,
@@ -625,6 +641,18 @@ def _build_artifact_inventory_surface(
     study_runtime_status_command: str,
 ) -> dict[str, Any]:
     supporting_files = [
+        {
+            "file_id": "artifact_runtime_proof",
+            "label": "Artifact runtime proof",
+            "path": "studies/<study_id>/manuscript/delivery_manifest.json",
+            "summary": "canonical-source rebuild proof consumed by study_progress artifact_runtime_proof.",
+        },
+        {
+            "file_id": "submission_hygiene_truth",
+            "label": "Submission hygiene truth",
+            "path": "study_progress.submission_hygiene_truth",
+            "summary": "aggregates submission minimal, publication surface QC, internal language leakage, citation/numeric/display gates, and artifact proof.",
+        },
         {
             "file_id": "task_intake_latest",
             "label": "Study task intake (latest)",

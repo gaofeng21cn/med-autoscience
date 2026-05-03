@@ -5,6 +5,7 @@ from med_autoscience.controllers import (
     ai_first_feedback,
     ai_first_observability,
     autonomy_ai_doctor,
+    artifact_runtime_proof,
     control_plane_facts,
     medical_paper_readiness,
     runtime_health_kernel,
@@ -249,6 +250,15 @@ def build_study_progress_projection(
     medical_writing_quality_surfaces = medical_writing_quality_surface_status(study_root=resolved_study_root)
     medical_paper_readiness_surface = medical_paper_readiness.build_medical_paper_readiness_surface(
         study_root=resolved_study_root,
+    )
+    artifact_runtime_proof_surface = artifact_runtime_proof.build_artifact_runtime_proof(
+        resolved_study_root,
+    )
+    submission_hygiene_truth = artifact_runtime_proof.build_submission_hygiene_truth(
+        resolved_study_root,
+        artifact_runtime_proof=artifact_runtime_proof_surface,
+        publication_eval_payload=publication_eval_payload,
+        evaluation_summary_payload=evaluation_summary_payload,
     )
 
     publication_supervisor_state = (
@@ -841,6 +851,9 @@ def build_study_progress_projection(
         "quality_review_followthrough": quality_review_followthrough or None,
         "medical_writing_quality_surfaces": medical_writing_quality_surfaces,
         "medical_paper_readiness": medical_paper_readiness_surface,
+        "artifact_runtime_proof": artifact_runtime_proof_surface,
+        "submission_hygiene_truth": submission_hygiene_truth,
+        "product_recommended_flow": submission_hygiene_truth.get("recommended_flow"),
         "research_runtime_control_projection": research_runtime_control_projection,
         "ai_first_default_entry_state": ai_first_default_entry_state,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
@@ -910,6 +923,12 @@ def build_study_progress_projection(
                 medical_paper_readiness.stable_medical_paper_readiness_path(
                     study_root=resolved_study_root,
                 )
+            ),
+            "artifact_runtime_proof_delivery_manifest_path": (
+                (artifact_runtime_proof_surface.get("refs") or {}).get("delivery_manifest_path")
+            ),
+            "submission_hygiene_submission_manifest_path": (
+                (submission_hygiene_truth.get("refs") or {}).get("submission_manifest_path")
             ),
             "study_truth_snapshot_path": str(study_truth_kernel.truth_snapshot_path(study_root=resolved_study_root)),
             "runtime_health_snapshot_path": str(

@@ -101,6 +101,17 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
             "surface_kind": "study_progress",
             "field_path": "refs",
         },
+        "artifact_runtime_proof_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "artifact_runtime_proof",
+            "delivery_manifest_field": "refs.artifact_runtime_proof_delivery_manifest_path",
+        },
+        "submission_hygiene_truth_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "submission_hygiene_truth",
+            "recommended_flow_field": "product_recommended_flow",
+            "blocking_gate_keys_field": "submission_hygiene_truth.blocking_gate_keys",
+        },
         "artifact_pickup_surface": {
             "surface_kind": "study_progress",
             "field_path": "refs.evaluation_summary_path",
@@ -127,6 +138,11 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
             "retrospective_audit_field": "medical_writing_quality_surfaces.retrospective_audit",
             "subjective_quality_owner": "ai_reviewer",
             "mechanical_flags_role": "evidence_snippets_only",
+        },
+        "recommended_flow_surface": {
+            "surface_kind": "study_progress",
+            "field_path": "product_recommended_flow",
+            "default_step_field": "product_recommended_flow.recommended_step_id",
         },
         "command_templates": {
             "resume": (

@@ -220,3 +220,89 @@ def test_authority_states_proof_cannot_authorize_scientific_quality(tmp_path: Pa
         "derived_artifact_can_be_quality_authority": False,
         "derived_artifact_can_be_edit_source": False,
     }
+
+
+def test_submission_hygiene_truth_aggregates_submission_qc_publication_gates_and_artifact_proof(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_runtime_proof")
+    study_root, paper_root, source_root, signature, relative_paths = _canonical_study(tmp_path)
+    _write_text(
+        study_root / "paper" / "submission_minimal" / "submission_manifest.json",
+        json.dumps(
+            {
+                "citation_style": "AMA",
+                "publication_profile": "default_medical",
+                "manuscript": {
+                    "surface_qc": {
+                        "status": "fail",
+                        "failures": [
+                            {
+                                "failure_reason": "submission_source_markdown_internal_instruction_leakage",
+                                "path": "manuscript.md",
+                            }
+                        ],
+                    }
+                },
+            },
+            ensure_ascii=False,
+        ),
+    )
+    signature = _source_signature(paper_root=paper_root, source_root=source_root, relative_paths=relative_paths)
+    _write_manifest(
+        study_root,
+        source_signature=signature,
+        source_root=source_root,
+        paper_root=paper_root,
+        relative_paths=relative_paths,
+    )
+    deterministic_quality_gates = {
+        "surface": "deterministic_quality_gate_projection",
+        "status": "blocked",
+        "blocking_gate_keys": ["citation_grounding", "numeric_grounding"],
+        "gates": {
+            "citation_grounding": {
+                "gate_key": "citation_grounding",
+                "status": "blocked",
+                "blockers": ["citation_key_sync_failed"],
+            },
+            "numeric_grounding": {
+                "gate_key": "numeric_grounding",
+                "status": "blocked",
+                "blockers": ["statistical_reporting_incomplete"],
+            },
+            "display_grounding": {
+                "gate_key": "display_grounding",
+                "status": "pass",
+                "blockers": [],
+            },
+            "internal_language_leakage": {
+                "gate_key": "internal_language_leakage",
+                "status": "blocked",
+                "blockers": ["forbidden_manuscript_terminology"],
+            },
+        },
+    }
+    publication_eval = {
+        "verdict": {"overall_verdict": "blocked"},
+        "deterministic_quality_gates": deterministic_quality_gates,
+    }
+    evaluation_summary = {"quality_closure_truth": {"state": "blocked", "blockers": ["quality_gate_pending"]}}
+
+    truth = module.build_submission_hygiene_truth(
+        study_root,
+        publication_eval_payload=publication_eval,
+        evaluation_summary_payload=evaluation_summary,
+    )
+
+    assert truth["surface"] == "submission_hygiene_truth"
+    assert truth["status"] == "blocked"
+    assert truth["submission_minimal"]["status"] == "present"
+    assert truth["submission_minimal"]["surface_qc"]["internal_language_leakage"] is True
+    assert truth["publication_surface_qc"]["overall_verdict"] == "blocked"
+    assert truth["gates"]["citation_grounding"]["blockers"] == ["citation_key_sync_failed"]
+    assert truth["gates"]["numeric_grounding"]["blockers"] == ["statistical_reporting_incomplete"]
+    assert truth["internal_language_leakage"]["status"] == "blocked"
+    assert truth["artifact_runtime_proof"]["rebuild_status"] == "current"
+    assert truth["recommended_flow"]["surface"] == "product_recommended_flow_projection"
+    assert truth["authority"]["hygiene_truth_can_authorize_submission"] is False

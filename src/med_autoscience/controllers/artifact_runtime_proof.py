@@ -200,6 +200,273 @@ def _stable_blocking_refs(value: object) -> list[dict[str, Any]]:
     return refs
 
 
+def _read_json_object(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return dict(payload) if isinstance(payload, Mapping) else None
+
+
+def _status_from_bool(*, passed: bool | None, exists: bool = True) -> str:
+    if not exists:
+        return "missing"
+    if passed is True:
+        return "pass"
+    if passed is False:
+        return "fail"
+    return "unknown"
+
+
+def _submission_minimal_truth(*, study_root: Path, manifest_payload: Mapping[str, Any] | None) -> dict[str, Any]:
+    manifest_path = study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+    manifest = _read_json_object(manifest_path)
+    if manifest is None:
+        manifest = dict(_mapping(manifest_payload.get("submission_minimal")) if manifest_payload is not None else {})
+    surface_qc = _mapping(_mapping(manifest.get("manuscript")).get("surface_qc"))
+    failures = [
+        dict(item)
+        for item in _list(surface_qc.get("failures"))
+        if isinstance(item, Mapping)
+    ]
+    return {
+        "surface": "submission_minimal_truth",
+        "status": "present" if manifest else "missing",
+        "manifest_path": str(manifest_path) if manifest_path.exists() else None,
+        "citation_style": _text(manifest.get("citation_style")),
+        "publication_profile": _text(manifest.get("publication_profile")),
+        "surface_qc": {
+            "status": _text(surface_qc.get("status")) or ("unknown" if manifest else "missing"),
+            "failure_count": len(failures),
+            "failures": failures,
+            "internal_language_leakage": any(
+                _text(item.get("failure_reason")) == "submission_source_markdown_internal_instruction_leakage"
+                for item in failures
+            ),
+        },
+    }
+
+
+def _publication_surface_qc_truth(
+    *,
+    publication_eval_payload: Mapping[str, Any] | None,
+    evaluation_summary_payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    verdict = _mapping(publication_eval_payload.get("verdict")) if publication_eval_payload is not None else {}
+    quality_closure_truth = (
+        _mapping(evaluation_summary_payload.get("quality_closure_truth"))
+        if evaluation_summary_payload is not None
+        else {}
+    )
+    deterministic_gates = (
+        _mapping(publication_eval_payload.get("deterministic_quality_gates"))
+        if publication_eval_payload is not None
+        else {}
+    )
+    blockers: list[str] = []
+    for source in (
+        publication_eval_payload.get("blockers") if publication_eval_payload is not None else None,
+        quality_closure_truth.get("blockers"),
+        deterministic_gates.get("blocking_gate_keys"),
+    ):
+        for item in _list(source):
+            text = _text(item)
+            if text is not None and text not in blockers:
+                blockers.append(text)
+    return {
+        "surface": "publication_surface_qc_truth",
+        "status": (
+            _text(deterministic_gates.get("status"))
+            or _text(verdict.get("overall_verdict"))
+            or _text(quality_closure_truth.get("state"))
+            or ("missing" if publication_eval_payload is None and evaluation_summary_payload is None else "unknown")
+        ),
+        "overall_verdict": _text(verdict.get("overall_verdict")),
+        "quality_closure_state": _text(quality_closure_truth.get("state")),
+        "blocking_gate_keys": list(deterministic_gates.get("blocking_gate_keys") or []),
+        "blockers": blockers,
+    }
+
+
+def _deterministic_gate_status(
+    *,
+    deterministic_gates: Mapping[str, Any],
+    gate_key: str,
+    fallback_blockers: list[str],
+    exists: bool = True,
+) -> dict[str, Any]:
+    gate_payload = _mapping(_mapping(deterministic_gates.get("gates")).get(gate_key))
+    blockers = list(gate_payload.get("blockers") or [])
+    if not blockers:
+        blockers = list(fallback_blockers)
+    return {
+        "gate_key": gate_key,
+        "status": _text(gate_payload.get("status")) or _status_from_bool(passed=not blockers, exists=exists),
+        "blockers": blockers,
+        "evidence_refs": list(gate_payload.get("evidence_refs") or []),
+    }
+
+
+def _submission_hygiene_flow(*, status: str, blockers: list[str]) -> dict[str, Any]:
+    if status == "clear":
+        step_id = "inspect_study_progress"
+        summary = "投稿卫生 truth 已清晰，继续通过 study-progress 监管 artifact 与质量门控。"
+    elif "artifact_rebuild" in blockers or "artifact_runtime_proof_blocked" in blockers:
+        step_id = "rebuild_from_canonical_source"
+        summary = "先从 canonical source 重建投稿包，再刷新 artifact_runtime_proof。"
+    else:
+        step_id = "return_to_publication_gate"
+        summary = "先回到 publication gate / submission minimal 修复 hygiene blockers。"
+    return {
+        "surface": "product_recommended_flow_projection",
+        "recommended_step_id": step_id,
+        "summary": summary,
+        "steps": [
+            {
+                "step_id": "inspect_study_progress",
+                "surface_kind": "study_progress",
+                "field_path": "submission_hygiene_truth",
+            },
+            {
+                "step_id": "repair_hygiene_blockers",
+                "surface_kind": "publication_eval_or_submission_minimal",
+                "field_path": "submission_hygiene_truth.gates",
+            },
+            {
+                "step_id": "rebuild_from_canonical_source",
+                "surface_kind": "artifact_runtime_proof",
+                "field_path": "submission_hygiene_truth.artifact_runtime_proof",
+            },
+        ],
+    }
+
+
+def build_submission_hygiene_truth(
+    study_root: str | Path,
+    *,
+    artifact_runtime_proof: Mapping[str, Any] | None = None,
+    publication_eval_payload: Mapping[str, Any] | None = None,
+    evaluation_summary_payload: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    proof = dict(artifact_runtime_proof or build_artifact_runtime_proof(resolved_study_root))
+    manifest_payload = _read_json_object(resolved_study_root / "manuscript" / "delivery_manifest.json")
+    if publication_eval_payload is None:
+        publication_eval_payload = _read_json_object(
+            resolved_study_root / "artifacts" / "publication_eval" / "latest.json"
+        )
+    if evaluation_summary_payload is None:
+        evaluation_summary_payload = _read_json_object(
+            resolved_study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+        )
+    submission_minimal_truth = _submission_minimal_truth(
+        study_root=resolved_study_root,
+        manifest_payload=manifest_payload,
+    )
+    publication_surface_qc_truth = _publication_surface_qc_truth(
+        publication_eval_payload=publication_eval_payload,
+        evaluation_summary_payload=evaluation_summary_payload,
+    )
+    deterministic_gates = (
+        _mapping(publication_eval_payload.get("deterministic_quality_gates"))
+        if publication_eval_payload is not None
+        else {}
+    )
+    surface_failures = list(_mapping(submission_minimal_truth.get("surface_qc")).get("failures") or [])
+    internal_language_failures = [
+        item
+        for item in surface_failures
+        if _text((item if isinstance(item, Mapping) else {}).get("failure_reason"))
+        == "submission_source_markdown_internal_instruction_leakage"
+    ]
+    artifact_blocked = proof.get("rebuild_status") != "current" or not bool(
+        proof.get("current_package_from_canonical_source")
+    )
+    gates = {
+        "citation_grounding": _deterministic_gate_status(
+            deterministic_gates=deterministic_gates,
+            gate_key="citation_grounding",
+            fallback_blockers=[],
+            exists=publication_eval_payload is not None,
+        ),
+        "numeric_grounding": _deterministic_gate_status(
+            deterministic_gates=deterministic_gates,
+            gate_key="numeric_grounding",
+            fallback_blockers=[],
+            exists=publication_eval_payload is not None,
+        ),
+        "display_grounding": _deterministic_gate_status(
+            deterministic_gates=deterministic_gates,
+            gate_key="display_grounding",
+            fallback_blockers=[
+                _text(item.get("failure_reason")) or "submission_surface_qc_failure_present"
+                for item in surface_failures
+                if isinstance(item, Mapping)
+            ],
+            exists=publication_eval_payload is not None or bool(surface_failures),
+        ),
+        "internal_language_leakage": _deterministic_gate_status(
+            deterministic_gates=deterministic_gates,
+            gate_key="internal_language_leakage",
+            fallback_blockers=[
+                _text(item.get("failure_reason")) or "submission_source_markdown_internal_instruction_leakage"
+                for item in internal_language_failures
+                if isinstance(item, Mapping)
+            ],
+            exists=publication_eval_payload is not None or bool(internal_language_failures),
+        ),
+        "artifact_rebuild": {
+            "gate_key": "artifact_rebuild",
+            "status": "blocked" if artifact_blocked else "pass",
+            "blockers": [
+                _text(item.get("code")) or "artifact_runtime_proof_blocked"
+                for item in _list(proof.get("blockers"))
+                if isinstance(item, Mapping)
+            ],
+            "evidence_refs": [{"artifact_runtime_proof_refs": dict(proof.get("refs") or {})}],
+        },
+    }
+    blockers = [
+        gate_key
+        for gate_key, gate in gates.items()
+        if _text(gate.get("status")) in {"blocked", "fail", "missing"}
+    ]
+    status = "clear" if not blockers else "blocked"
+    return {
+        "surface": "submission_hygiene_truth",
+        "schema_version": SCHEMA_VERSION,
+        "status": status,
+        "summary": (
+            "Submission hygiene gates are clear."
+            if status == "clear"
+            else f"Submission hygiene blocked by {', '.join(blockers)}."
+        ),
+        "submission_minimal": submission_minimal_truth,
+        "publication_surface_qc": publication_surface_qc_truth,
+        "internal_language_leakage": gates["internal_language_leakage"],
+        "gates": gates,
+        "blocking_gate_keys": blockers,
+        "artifact_runtime_proof": proof,
+        "recommended_flow": _submission_hygiene_flow(status=status, blockers=blockers),
+        "authority": {
+            "hygiene_truth_can_authorize_scientific_quality": False,
+            "hygiene_truth_can_authorize_submission": False,
+            "scientific_quality_authority": "publication_eval_and_controller_decisions",
+            "artifact_authority": "artifact_runtime_proof",
+        },
+        "refs": {
+            "study_root": str(resolved_study_root),
+            "publication_eval_path": str(resolved_study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "evaluation_summary_path": str(
+                resolved_study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+            ),
+            "submission_manifest_path": str(
+                resolved_study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+            ),
+        },
+    }
+
+
 def build_artifact_runtime_proof(study_root: str | Path) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     manifest_path = resolved_study_root / "manuscript" / "delivery_manifest.json"

@@ -59,6 +59,9 @@ def _study_item(
     )
     dispatch_ledger = dict(progress_payload.get("dispatch_ledger") or {})
     publication_eval = dict(progress_payload.get("publication_eval") or {})
+    artifact_runtime_proof_surface = dict(progress_payload.get("artifact_runtime_proof") or {})
+    submission_hygiene_truth = dict(progress_payload.get("submission_hygiene_truth") or {})
+    product_recommended_flow = dict(progress_payload.get("product_recommended_flow") or {})
     paper_orchestra_operator_projection = dict(progress_payload.get("paper_orchestra_operator_projection") or {})
     medical_paper_readiness_surface = _normalized_medical_paper_readiness_projection(
         progress_payload.get("medical_paper_readiness")
@@ -116,6 +119,9 @@ def _study_item(
         "ai_first_action_dispatch_lifecycle": ai_first_action_dispatch_lifecycle or None,
         "dispatch_ledger": dispatch_ledger or None,
         "publication_eval": publication_eval or None,
+        "artifact_runtime_proof": artifact_runtime_proof_surface or None,
+        "submission_hygiene_truth": submission_hygiene_truth or None,
+        "product_recommended_flow": product_recommended_flow or None,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
         "medical_paper_readiness": medical_paper_readiness_surface or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,

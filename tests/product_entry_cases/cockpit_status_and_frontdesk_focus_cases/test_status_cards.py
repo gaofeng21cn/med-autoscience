@@ -293,6 +293,28 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
                 "status": "fresh",
                 "summary": "最近 12 小时内仍有明确研究推进记录。",
             },
+            "artifact_runtime_proof": {
+                "surface": "artifact_runtime_proof",
+                "rebuild_status": "current",
+                "current_package_from_canonical_source": True,
+            },
+            "submission_hygiene_truth": {
+                "surface": "submission_hygiene_truth",
+                "status": "clear",
+                "blocking_gate_keys": [],
+                "gates": {
+                    "citation_grounding": {"status": "pass", "blockers": []},
+                    "numeric_grounding": {"status": "pass", "blockers": []},
+                    "display_grounding": {"status": "pass", "blockers": []},
+                    "internal_language_leakage": {"status": "pass", "blockers": []},
+                    "artifact_rebuild": {"status": "pass", "blockers": []},
+                },
+            },
+            "product_recommended_flow": {
+                "surface": "product_recommended_flow_projection",
+                "recommended_step_id": "inspect_study_progress",
+                "summary": "投稿卫生 truth 已清晰，继续通过 study-progress 监管 artifact 与质量门控。",
+            },
         },
     )
 
@@ -300,6 +322,9 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
     markdown = module.render_workspace_cockpit_markdown(payload)
 
     assert payload["studies"][0]["operator_status_card"]["handling_state"] == "paper_surface_refresh_in_progress"
+    assert payload["studies"][0]["artifact_runtime_proof"]["rebuild_status"] == "current"
+    assert payload["studies"][0]["submission_hygiene_truth"]["status"] == "clear"
+    assert payload["studies"][0]["product_recommended_flow"]["recommended_step_id"] == "inspect_study_progress"
     assert payload["attention_queue"][0]["operator_status_card"]["handling_state"] == "paper_surface_refresh_in_progress"
     assert payload["attention_queue"][0]["summary"] == "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
     assert payload["operator_brief"]["summary"] == "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
