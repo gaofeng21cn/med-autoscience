@@ -184,45 +184,65 @@ def _medical_paper_readiness_action_cards(readiness: Mapping[str, Any]) -> list[
     overall_status = _non_empty_text(readiness.get("overall_status")) or "unknown"
     if overall_status == "ready":
         return []
-    cards: list[dict[str, Any]] = []
-    for surface in readiness.get("capability_surfaces") or []:
-        if not isinstance(surface, Mapping):
-            continue
-        if surface.get("status") == "present":
-            continue
-        surface_key = _non_empty_text(surface.get("surface_key"))
-        card = dict(READINESS_ACTION_CARD_BY_SURFACE.get(surface_key or "") or {})
-        if not card:
-            continue
-        cards.append(
-            {
-                **card,
-                "surface_key": surface_key,
-                "status": _non_empty_text(surface.get("status")) or "unknown",
-                "missing_reason": _non_empty_text(surface.get("missing_reason")),
-                "authority": "observability_projection_only",
-                "quality_claim_authorized": False,
-                "mechanical_projection_can_authorize_quality": False,
-            }
-        )
+    cards = _readiness_surface_action_cards(readiness)
     if cards:
         return cards
+    return _readiness_next_action_cards(readiness=readiness, overall_status=overall_status)
+
+
+def _readiness_surface_action_cards(readiness: Mapping[str, Any]) -> list[dict[str, Any]]:
+    cards: list[dict[str, Any]] = []
+    for surface in readiness.get("capability_surfaces") or []:
+        card = _readiness_surface_action_card(surface)
+        if card:
+            cards.append(card)
+    return cards
+
+
+def _readiness_surface_action_card(surface: object) -> dict[str, Any] | None:
+    if not isinstance(surface, Mapping) or surface.get("status") == "present":
+        return None
+    surface_key = _non_empty_text(surface.get("surface_key"))
+    card = dict(READINESS_ACTION_CARD_BY_SURFACE.get(surface_key or "") or {})
+    if not card:
+        return None
+    return _readiness_action_card_payload(
+        card=card,
+        surface_key=surface_key,
+        status=_non_empty_text(surface.get("status")) or "unknown",
+        missing_reason=_non_empty_text(surface.get("missing_reason")),
+    )
+
+
+def _readiness_next_action_cards(
+    *,
+    readiness: Mapping[str, Any],
+    overall_status: str,
+) -> list[dict[str, Any]]:
     next_action = dict(readiness.get("next_action") or {})
     surface_key = _non_empty_text(next_action.get("surface_key"))
     card = dict(READINESS_ACTION_CARD_BY_SURFACE.get(surface_key or "") or {})
     if not card:
         return []
-    return [
-        {
-            **card,
-            "surface_key": surface_key,
-            "status": overall_status,
-            "missing_reason": None,
-            "authority": "observability_projection_only",
-            "quality_claim_authorized": False,
-            "mechanical_projection_can_authorize_quality": False,
-        }
-    ]
+    return [_readiness_action_card_payload(card=card, surface_key=surface_key, status=overall_status, missing_reason=None)]
+
+
+def _readiness_action_card_payload(
+    *,
+    card: Mapping[str, Any],
+    surface_key: str | None,
+    status: str,
+    missing_reason: str | None,
+) -> dict[str, Any]:
+    return {
+        **dict(card),
+        "surface_key": surface_key,
+        "status": status,
+        "missing_reason": missing_reason,
+        "authority": "observability_projection_only",
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
 
 
 def _read_medical_paper_readiness_projection(*, study_root: Path) -> dict[str, Any]:
