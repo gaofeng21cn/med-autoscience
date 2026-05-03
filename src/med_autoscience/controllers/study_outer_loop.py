@@ -55,6 +55,14 @@ from med_autoscience.study_decision_record import (
 )
 
 _GATE_NEEDS_SPECIFICITY_UNIT_ID = "gate_needs_specificity"
+_GATE_NEEDS_SPECIFICITY_QUESTION = (
+    "gate_needs_specificity: Which exact claim, figure, table, metric, source path, or package artifact is blocking "
+    "the publication gate?"
+)
+_GATE_NEEDS_SPECIFICITY_RATIONALE = (
+    "Publication gate selected gate_needs_specificity because the current blocker is generic and lacks concrete "
+    "claim, display, evidence, citation, metric, source path, package artifact, or provenance target details."
+)
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -298,6 +306,36 @@ def _autonomous_decision_type_for_publication_eval_action(action_payload: dict[s
     return None
 
 
+def _action_has_gate_needs_specificity_work_unit(action_payload: dict[str, Any]) -> bool:
+    next_work_unit = action_payload.get("next_work_unit")
+    if isinstance(next_work_unit, dict) and str(next_work_unit.get("unit_id") or "").strip() == _GATE_NEEDS_SPECIFICITY_UNIT_ID:
+        return True
+    blocking_work_units = action_payload.get("blocking_work_units")
+    if not isinstance(blocking_work_units, list):
+        return False
+    for work_unit in blocking_work_units:
+        if isinstance(work_unit, dict) and str(work_unit.get("unit_id") or "").strip() == _GATE_NEEDS_SPECIFICITY_UNIT_ID:
+            return True
+    return False
+
+
+def _promote_gate_needs_specificity_action(action_payload: dict[str, Any]) -> dict[str, Any]:
+    if not _action_has_gate_needs_specificity_work_unit(action_payload):
+        return action_payload
+    promoted = dict(action_payload)
+    prior_route_key_question = str(promoted.get("route_key_question") or "").strip()
+    if prior_route_key_question and not str(promoted.get("source_route_key_question") or "").strip():
+        promoted["source_route_key_question"] = prior_route_key_question
+    promoted["action_type"] = StudyDecisionType.RETURN_TO_CONTROLLER.value
+    promoted["route_target"] = "controller"
+    promoted["route_key_question"] = _GATE_NEEDS_SPECIFICITY_QUESTION
+    promoted["route_rationale"] = _GATE_NEEDS_SPECIFICITY_RATIONALE
+    promoted["reason"] = _GATE_NEEDS_SPECIFICITY_RATIONALE
+    promoted["controller_action_type"] = StudyDecisionActionType.REQUEST_GATE_SPECIFICITY.value
+    promoted["requires_controller_decision"] = True
+    return promoted
+
+
 def _autonomous_controller_action_type_for_runtime_status(status_payload: dict[str, Any]) -> str:
     if str(status_payload.get("reason") or "").strip() == "quest_stopped_requires_explicit_rerun":
         return StudyDecisionActionType.ENSURE_STUDY_RUNTIME_RELAUNCH_STOPPED.value
@@ -376,6 +414,7 @@ def build_runtime_watch_outer_loop_tick_request(
                 recommended_action = batch_action
     if recommended_action is None:
         return None
+    recommended_action = _promote_gate_needs_specificity_action(recommended_action)
     decision_type = _autonomous_decision_type_for_publication_eval_action(recommended_action)
     if decision_type is None:
         return None
@@ -419,7 +458,7 @@ def build_runtime_watch_outer_loop_tick_request(
         "route_key_question": (
             str(recommended_action.get("route_key_question") or "").strip()
             or (
-                "gate_needs_specificity: Which exact claim, figure, table, metric, source path, or package artifact is blocking the publication gate?"
+                _GATE_NEEDS_SPECIFICITY_QUESTION
                 if decision_type == StudyDecisionType.RETURN_TO_CONTROLLER.value
                 else None
             )
