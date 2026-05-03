@@ -237,6 +237,36 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "make test-family",
         ),
     ),
+    PreflightCategorySpec(
+        category_id="control_plane_surface",
+        exact_paths=(
+            "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
+            "src/med_autoscience/controllers/control_identity.py",
+            "src/med_autoscience/controllers/control_intent.py",
+            "src/med_autoscience/controllers/runtime_storage_maintenance.py",
+            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
+            "src/med_autoscience/controllers/runtime_watch_parts/managed_wakeup.py",
+            "src/med_autoscience/controllers/study_control_plane_kernel.py",
+            "src/med_autoscience/controllers/study_delivery_sync_parts/sync_orchestration.py",
+            "src/med_autoscience/controllers/study_delivery_sync_parts/sync_cli.py",
+            "src/med_autoscience/controllers/study_progress_parts/projection.py",
+            "src/med_autoscience/runtime_protocol/paper_artifacts.py",
+            "tests/control_plane_fixtures.py",
+            "tests/test_artifact_lifecycle_inventory.py",
+            "tests/test_control_plane_migration_audit.py",
+            "tests/test_runtime_protocol_paper_artifacts.py",
+            "tests/test_runtime_storage_maintenance.py",
+            "tests/test_study_control_plane_kernel.py",
+            "tests/test_study_delivery_sync.py",
+            "tests/test_truth_projection_surfaces.py",
+        ),
+        prefix_paths=(
+            "src/med_autoscience/controllers/control_plane_",
+        ),
+        commands=(
+            "make test-control-plane",
+        ),
+    ),
 )
 
 

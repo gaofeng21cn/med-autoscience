@@ -20,10 +20,22 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     makefile = _read("Makefile")
 
     assert "test-control-plane:" in makefile
-    assert (
-        "PYTHONPATH=src uv run pytest -q tests/test_control_plane_regression.py "
-        "tests/test_control_plane_structure.py"
-    ) in makefile
+    assert "CONTROL_PLANE_TESTS :=" in makefile
+    for test_path in (
+        "tests/test_control_plane_regression.py",
+        "tests/test_control_plane_structure.py",
+        "tests/test_study_control_plane_kernel.py",
+        "tests/test_control_plane_state_machine.py",
+        "tests/test_study_runtime_typed_surface_cases/status_type_cases.py",
+        "tests/test_artifact_lifecycle_inventory.py",
+        "tests/test_runtime_protocol_paper_artifacts.py",
+        "tests/test_study_delivery_sync.py",
+        "tests/test_runtime_storage_maintenance.py",
+        "tests/test_control_plane_migration_audit.py",
+        "tests/test_truth_projection_surfaces.py",
+    ):
+        assert test_path in makefile
+    assert "PYTHONPATH=src uv run pytest -q $(CONTROL_PLANE_TESTS)" in makefile
     assert "test-fast:" in makefile
     assert 'uv run pytest -q -m "not meta and not display_heavy and not submission_heavy and not family"' in makefile
     assert "test-meta:" in makefile

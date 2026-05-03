@@ -64,6 +64,37 @@ def test_classify_changed_files_flags_unclassified_paths() -> None:
     assert result.unclassified_changes == ("src/med_autoscience/controllers/untracked_controller.py",)
 
 
+def test_classify_changed_files_matches_control_plane_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "src/med_autoscience/controllers/study_control_plane_kernel.py",
+            "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
+            "src/med_autoscience/controllers/control_plane_migration_audit.py",
+            "src/med_autoscience/controllers/control_plane_state.py",
+            "src/med_autoscience/controllers/control_intent.py",
+            "src/med_autoscience/controllers/control_identity.py",
+            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
+            "src/med_autoscience/controllers/runtime_watch_parts/managed_wakeup.py",
+            "src/med_autoscience/controllers/study_progress_parts/projection.py",
+            "src/med_autoscience/controllers/study_delivery_sync_parts/sync_orchestration.py",
+            "src/med_autoscience/controllers/study_delivery_sync_parts/sync_cli.py",
+            "src/med_autoscience/runtime_protocol/paper_artifacts.py",
+            "tests/test_study_control_plane_kernel.py",
+            "tests/test_artifact_lifecycle_inventory.py",
+            "tests/test_control_plane_migration_audit.py",
+            "tests/control_plane_fixtures.py",
+        ]
+    )
+
+    assert result.matched_categories == (
+        "control_plane_surface",
+        "runtime_contract_surface",
+    )
+    assert result.unclassified_changes == ()
+
+
 def test_classify_changed_files_matches_external_runtime_dependency_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
@@ -230,3 +261,11 @@ def test_plan_commands_for_family_shared_surface_use_focused_family_lane() -> No
     commands = module.plan_commands_for_categories(("family_shared_surface",))
 
     assert commands == ["make test-family"]
+
+
+def test_plan_commands_for_control_plane_surface_use_focused_lane() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    commands = module.plan_commands_for_categories(("control_plane_surface",))
+
+    assert commands == ["make test-control-plane"]
