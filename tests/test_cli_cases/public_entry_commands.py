@@ -302,6 +302,34 @@ def test_preflight_changes_command_outputs_json(monkeypatch, capsys) -> None:
     assert payload["ok"] is True
     assert payload["changed_files"] == ["README.md"]
     assert payload["matched_categories"] == ["codex_plugin_docs_surface"]
+
+
+def test_preflight_base_ref_command_uses_ci_preflight(monkeypatch, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_run_ci_preflight(**kwargs):
+        called.update(kwargs)
+        return cli.dev_preflight.PreflightResult(
+            input_mode="ci-base_ref",
+            changed_files=("src/med_autoscience/new.py",),
+            matched_categories=("generic_python_regression_surface",),
+            unclassified_changes=(),
+            planned_commands=("make test-regression",),
+            results=(),
+            ok=True,
+        )
+
+    monkeypatch.setattr(cli.dev_preflight, "run_ci_preflight", fake_run_ci_preflight)
+
+    exit_code = cli.main(["doctor", "preflight", "--base-ref", "HEAD~1", "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["base_ref"] == "HEAD~1"
+    payload = json.loads(captured.out)
+    assert payload["input_mode"] == "ci-base_ref"
+    assert payload["planned_commands"] == ["make test-regression"]
 def test_preflight_changes_command_rejects_multiple_change_sources() -> None:
     cli = importlib.import_module("med_autoscience.cli")
 

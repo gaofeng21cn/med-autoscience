@@ -18,6 +18,9 @@ class ClassificationResult:
     unclassified_changes: tuple[str, ...]
 
 
+GENERIC_PYTHON_REGRESSION_CATEGORY = "generic_python_regression_surface"
+
+
 _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="workflow_surface",
@@ -277,6 +280,15 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     ),
 )
 
+_GENERIC_PYTHON_PREFIXES = (
+    "src/med_autoscience/",
+    "tests/",
+)
+
+_GENERIC_PYTHON_REGRESSION_COMMANDS = (
+    "make test-regression",
+)
+
 
 def _normalize_changed_file(path: str) -> str:
     return path.strip().replace("\\", "/").removeprefix("./")
@@ -303,6 +315,10 @@ def classify_changed_files(changed_files: Sequence[str]) -> ClassificationResult
             matched_here = True
             if spec.category_id not in matched_categories:
                 matched_categories.append(spec.category_id)
+        if not matched_here and is_generic_python_change(normalized_path):
+            matched_here = True
+            if GENERIC_PYTHON_REGRESSION_CATEGORY not in matched_categories:
+                matched_categories.append(GENERIC_PYTHON_REGRESSION_CATEGORY)
         if not matched_here and normalized_path not in unclassified_changes:
             unclassified_changes.append(normalized_path)
 
@@ -310,6 +326,11 @@ def classify_changed_files(changed_files: Sequence[str]) -> ClassificationResult
         matched_categories=tuple(matched_categories),
         unclassified_changes=tuple(unclassified_changes),
     )
+
+
+def is_generic_python_change(path: str) -> bool:
+    normalized_path = _normalize_changed_file(path)
+    return normalized_path.endswith(".py") and normalized_path.startswith(_GENERIC_PYTHON_PREFIXES)
 
 
 def plan_commands_for_categories(categories: Iterable[str]) -> list[str]:
@@ -323,6 +344,10 @@ def plan_commands_for_categories(categories: Iterable[str]) -> list[str]:
         if spec.category_id not in selected_categories:
             continue
         for command in spec.commands:
+            if command not in planned_commands:
+                planned_commands.append(command)
+    if GENERIC_PYTHON_REGRESSION_CATEGORY in selected_categories:
+        for command in _GENERIC_PYTHON_REGRESSION_COMMANDS:
             if command not in planned_commands:
                 planned_commands.append(command)
     return planned_commands

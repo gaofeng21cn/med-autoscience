@@ -218,17 +218,20 @@ def main(argv: list[str] | None = None) -> int:
             input_mode = "staged"
         elif args.base_ref:
             input_mode = "base_ref"
-        changed_files = dev_preflight.collect_changed_files(
-            repo_root=Path.cwd(),
-            files=list(args.files or []),
-            staged=bool(args.staged),
-            base_ref=args.base_ref,
-        )
-        result = dev_preflight.run_preflight(
-            changed_files=changed_files,
-            repo_root=Path.cwd(),
-            input_mode=input_mode,
-        )
+        if args.base_ref:
+            result = dev_preflight.run_ci_preflight(base_ref=args.base_ref, repo_root=Path.cwd())
+        else:
+            changed_files = dev_preflight.collect_changed_files(
+                repo_root=Path.cwd(),
+                files=list(args.files or []),
+                staged=bool(args.staged),
+                base_ref=args.base_ref,
+            )
+            result = dev_preflight.run_preflight(
+                changed_files=changed_files,
+                repo_root=Path.cwd(),
+                input_mode=input_mode,
+            )
         if args.format == "json":
             print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
         else:

@@ -56,12 +56,36 @@ def test_classify_changed_files_flags_unclassified_paths() -> None:
 
     result = module.classify_changed_files(
         [
-            "src/med_autoscience/controllers/untracked_controller.py",
+            "docs/program/untracked_runtime_contract.md",
         ]
     )
 
     assert result.matched_categories == ()
-    assert result.unclassified_changes == ("src/med_autoscience/controllers/untracked_controller.py",)
+    assert result.unclassified_changes == ("docs/program/untracked_runtime_contract.md",)
+
+
+def test_classify_changed_files_routes_unknown_python_to_generic_regression() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "src/med_autoscience/controllers/new_controller.py",
+            "tests/test_new_controller.py",
+        ]
+    )
+
+    assert result.matched_categories == ("generic_python_regression_surface",)
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == ["make test-regression"]
+
+
+def test_classify_changed_files_keeps_unknown_docs_fail_closed() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(["docs/program/new_runtime_contract.md"])
+
+    assert result.matched_categories == ()
+    assert result.unclassified_changes == ("docs/program/new_runtime_contract.md",)
 
 
 def test_classify_changed_files_matches_control_plane_surface() -> None:

@@ -124,9 +124,23 @@ def run_preflight(*, changed_files: list[str], repo_root: Path, input_mode: str 
             ok=False,
         )
 
+    results, ok = _run_planned_commands(commands=planned_commands, repo_root=repo_root)
+
+    return PreflightResult(
+        input_mode=input_mode,
+        changed_files=tuple(normalized_changed_files),
+        matched_categories=classification.matched_categories,
+        unclassified_changes=classification.unclassified_changes,
+        planned_commands=planned_commands,
+        results=results,
+        ok=ok,
+    )
+
+
+def _run_planned_commands(*, commands: tuple[str, ...], repo_root: Path) -> tuple[tuple[CommandResult, ...], bool]:
     results: list[CommandResult] = []
     ok = True
-    for command in planned_commands:
+    for command in commands:
         completed = subprocess.run(
             shlex.split(command),
             cwd=repo_root,
@@ -142,13 +156,21 @@ def run_preflight(*, changed_files: list[str], repo_root: Path, input_mode: str 
         results.append(command_result)
         if completed.returncode != 0:
             ok = False
+    return tuple(results), ok
 
-    return PreflightResult(
-        input_mode=input_mode,
-        changed_files=tuple(normalized_changed_files),
-        matched_categories=classification.matched_categories,
-        unclassified_changes=classification.unclassified_changes,
-        planned_commands=planned_commands,
-        results=tuple(results),
-        ok=ok,
-    )
+
+def run_ci_preflight(*, base_ref: str, repo_root: Path) -> PreflightResult:
+    changed_files = collect_changed_files(repo_root=repo_root, base_ref=base_ref)
+    if not changed_files:
+        planned_commands = ("make test-smoke",)
+        results, ok = _run_planned_commands(commands=planned_commands, repo_root=repo_root)
+        return PreflightResult(
+            input_mode="ci-empty",
+            changed_files=(),
+            matched_categories=("smoke_surface",),
+            unclassified_changes=(),
+            planned_commands=planned_commands,
+            results=results,
+            ok=ok,
+        )
+    return run_preflight(changed_files=changed_files, repo_root=repo_root, input_mode="ci-base_ref")

@@ -12,14 +12,70 @@ def test_run_preflight_reports_unclassified_changes_without_running_commands(tmp
     module = importlib.import_module("med_autoscience.dev_preflight")
 
     result = module.run_preflight(
-        changed_files=["src/med_autoscience/controllers/untracked_controller.py"],
+        changed_files=["docs/program/untracked_runtime_contract.md"],
         repo_root=tmp_path,
     )
 
     assert result.ok is False
-    assert result.unclassified_changes == ("src/med_autoscience/controllers/untracked_controller.py",)
+    assert result.unclassified_changes == ("docs/program/untracked_runtime_contract.md",)
     assert result.results == ()
     assert result.planned_commands == ()
+
+
+def test_run_preflight_routes_unknown_python_changes_to_regression(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight")
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        calls.append(list(command))
+
+        class Result:
+            returncode = 0
+            stdout = "ok\n"
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    result = module.run_preflight(
+        changed_files=["src/med_autoscience/controllers/new_controller.py"],
+        repo_root=tmp_path,
+    )
+
+    assert result.ok is True
+    assert result.matched_categories == ("generic_python_regression_surface",)
+    assert result.unclassified_changes == ()
+    assert result.planned_commands == ("make test-regression",)
+    assert calls == [["make", "test-regression"]]
+
+
+def test_run_ci_preflight_runs_smoke_for_empty_diff(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight")
+    calls: list[list[str]] = []
+
+    monkeypatch.setattr(module, "collect_changed_files", lambda **kwargs: [])
+
+    def fake_run(command, **kwargs):
+        calls.append(list(command))
+
+        class Result:
+            returncode = 0
+            stdout = "ok\n"
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    result = module.run_ci_preflight(base_ref="HEAD~1", repo_root=tmp_path)
+
+    assert result.ok is True
+    assert result.input_mode == "ci-empty"
+    assert result.changed_files == ()
+    assert result.matched_categories == ("smoke_surface",)
+    assert result.planned_commands == ("make test-smoke",)
+    assert calls == [["make", "test-smoke"]]
 
 
 def test_run_preflight_executes_planned_commands(monkeypatch, tmp_path: Path) -> None:
@@ -165,6 +221,9 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
         assert target in phony_targets
     assert "test-control-plane:" in makefile
     assert 'if [[ "${lane}" == "control-plane" ]]; then\n  make test-control-plane\n  exit 0\nfi\n' in verify_script
+    assert "test-smoke:" in makefile
+    assert "test-regression:" in makefile
+    assert "test-ci-preflight:" in makefile
     assert (
         "test-family:\n"
         "\tuv run pytest tests/test_family_shared_release.py "
@@ -172,6 +231,7 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
         "tests/test_dev_preflight.py -q\n"
     ) in makefile
     assert 'if [[ "${lane}" == "family" ]]; then\n  make test-family\n  exit 0\nfi\n' in verify_script
+    assert 'if [[ "${lane}" == "ci-preflight" ]]; then' in verify_script
 
 
 def test_collect_changed_files_from_staged_diff(monkeypatch, tmp_path: Path) -> None:
