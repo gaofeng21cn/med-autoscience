@@ -137,9 +137,13 @@ def _submission_minimal_paths(root: Path) -> list[Path]:
 
 
 def _delivery_projection_completion(
-    *, current_package_count: int, submission_minimal_count: int
+    *,
+    current_package_count: int,
+    submission_minimal_count: int,
+    delivery_manifest_summary: Mapping[str, Any],
 ) -> tuple[str, dict[str, Any] | None]:
-    if current_package_count > 0 and submission_minimal_count > 0:
+    missing_delivery_surfaces = _missing_delivery_manifest_surfaces(delivery_manifest_summary)
+    if current_package_count > 0 and submission_minimal_count > 0 and not missing_delivery_surfaces:
         return "current_package_and_submission_minimal_present", None
 
     missing_surfaces: list[str] = []
@@ -150,13 +154,29 @@ def _delivery_projection_completion(
     if submission_minimal_count == 0:
         missing_surfaces.append("submission_minimal")
         regeneration_path.append("regenerate_submission_minimal")
-    regeneration_path.append("rerun_publication_gate")
+    if missing_surfaces:
+        regeneration_path.append("rerun_publication_gate")
+        missing_surface = "_and_".join(missing_surfaces)
+        return (
+            f"missing_{missing_surface}",
+            {
+                "plan_type": "canonical_regeneration",
+                "missing_surface": missing_surface,
+                "manual_patch_allowed": False,
+                "canonical_regeneration_path": regeneration_path,
+                "gate_status": "publication_gate_required_before_delivery_complete",
+                "mutation_policy": "dry_run_projection_only",
+            },
+        )
 
-    missing_surface = "_and_".join(missing_surfaces)
+    for surface_name in missing_delivery_surfaces:
+        regeneration_path.append(f"backfill_{surface_name}")
+    regeneration_path.append("rerun_publication_gate")
+    missing_surface = _delivery_manifest_missing_surface_name(missing_delivery_surfaces)
     return (
         f"missing_{missing_surface}",
         {
-            "plan_type": "canonical_regeneration",
+            "plan_type": "delivery_manifest_lifecycle_backfill",
             "missing_surface": missing_surface,
             "manual_patch_allowed": False,
             "canonical_regeneration_path": regeneration_path,
@@ -164,6 +184,31 @@ def _delivery_projection_completion(
             "mutation_policy": "dry_run_projection_only",
         },
     )
+
+
+def _delivery_manifest_missing_surface_name(missing_surfaces: Iterable[str]) -> str:
+    names = list(missing_surfaces)
+    if "delivery_manifest_lifecycle_hook" in names and "delivery_manifest_publication_refs" in names:
+        names = [
+            "delivery_manifest_lifecycle_hook" if name == "delivery_manifest_lifecycle_hook" else name
+            for name in names
+            if name != "delivery_manifest_publication_refs"
+        ]
+        names.append("publication_refs")
+    return "_and_".join(names)
+
+
+def _missing_delivery_manifest_surfaces(summary: Mapping[str, Any]) -> list[str]:
+    if int(summary.get("delivery_manifest_count") or 0) == 0:
+        return ["delivery_manifest"]
+    missing: list[str] = []
+    if not bool(summary.get("lifecycle_hook_present")):
+        missing.append("delivery_manifest_lifecycle_hook")
+    if not bool(summary.get("source_signature_present")):
+        missing.append("delivery_manifest_source_signature")
+    if not bool(summary.get("publication_refs_present")):
+        missing.append("delivery_manifest_publication_refs")
+    return missing
 
 
 def _study_id_from_manifest(path: Path, payload: Mapping[str, Any]) -> str | None:
@@ -240,6 +285,39 @@ def _count_under(paths: Iterable[Path], root: Path) -> int:
     return sum(1 for path in paths if path == root or root in path.parents)
 
 
+def _is_delivery_manifest(path: Path, payload: Mapping[str, Any]) -> bool:
+    return _text(payload.get("surface")) == "delivery_manifest" or path.name == "delivery_manifest.json"
+
+
+def _delivery_manifest_summary(manifests: Iterable[Path]) -> dict[str, Any]:
+    delivery_manifests = [path for path in manifests if _is_delivery_manifest(path, _read_json(path))]
+    return {
+        "delivery_manifest_count": len(delivery_manifests),
+        "lifecycle_hook_present": any(_delivery_manifest_lifecycle_hook_present(_read_json(path)) for path in delivery_manifests),
+        "source_signature_present": any(_delivery_manifest_source_signature_present(_read_json(path)) for path in delivery_manifests),
+        "publication_refs_present": any(_delivery_manifest_publication_refs_present(_read_json(path)) for path in delivery_manifests),
+    }
+
+
+def _delivery_manifest_lifecycle_hook_present(payload: Mapping[str, Any]) -> bool:
+    lifecycle = payload.get("artifact_lifecycle")
+    if not isinstance(lifecycle, Mapping):
+        return False
+    return bool(lifecycle.get("authority_sync")) and bool(lifecycle.get("lifecycle_roles"))
+
+
+def _delivery_manifest_source_signature_present(payload: Mapping[str, Any]) -> bool:
+    return bool(_text(payload.get("source_signature")) or _text(payload.get("delivery_source_signature")))
+
+
+def _delivery_manifest_publication_refs_present(payload: Mapping[str, Any]) -> bool:
+    for field_name in ("publication_refs", "delivery_context_refs", "publication_context_refs"):
+        refs = payload.get(field_name)
+        if isinstance(refs, Mapping) and any(_text(value) for value in refs.values()):
+            return True
+    return False
+
+
 def _study_reports(workspace_root: Path, manifests: list[Path]) -> list[dict[str, Any]]:
     packages = _current_package_paths(workspace_root)
     submission_minimals = _submission_minimal_paths(workspace_root)
@@ -253,9 +331,11 @@ def _study_reports(workspace_root: Path, manifests: list[Path]) -> list[dict[str
         )
         current_package_count = _count_under(packages, study_root)
         submission_minimal_count = _count_under(submission_minimals, study_root)
+        delivery_manifest_summary = _delivery_manifest_summary(study_manifests)
         completeness_reason, completion_plan = _delivery_projection_completion(
             current_package_count=current_package_count,
             submission_minimal_count=submission_minimal_count,
+            delivery_manifest_summary=delivery_manifest_summary,
         )
         reports.append(
             {
@@ -267,11 +347,12 @@ def _study_reports(workspace_root: Path, manifests: list[Path]) -> list[dict[str
                 "authority_classification": "controller_authorized" if unclassified == 0 else "needs_authority_classification",
                 "lifecycle_classification": (
                     "package_and_submission_ready"
-                    if current_package_count > 0 and submission_minimal_count > 0
+                    if completion_plan is None
                     else "delivery_projection_incomplete"
                 ),
                 "delivery_projection_completeness_reason": completeness_reason,
                 "delivery_projection_completion_plan": completion_plan,
+                "delivery_manifest_summary": delivery_manifest_summary,
                 "authority_summary": {
                     "unclassified_authority_surface": unclassified,
                     "manifest_count": len(study_manifests),

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+import json
 from pathlib import Path
 from typing import Any
 import os
+import time
 
 from med_autoscience.controllers.artifact_lifecycle_inventory import (
     ARTIFACT_ROLES,
@@ -17,6 +19,8 @@ SURFACE_KIND = "control_plane_lifecycle_report"
 NOISE_SCAN_MODE = "statistical_only"
 CLASSIFIED_SCAN_MODE = "classified_files"
 SKIPPED_SCAN_MODE = "skipped"
+SNAPSHOT_SCAN_MODE = "snapshot_reference"
+DEEP_STATISTICAL_SCAN_MODE = "deep_statistical"
 
 _STATISTICAL_DIR_BUCKETS = {
     ".cache": "cache",
@@ -46,11 +50,39 @@ _SOURCE_BUCKETS = (
     "other",
 )
 _PROJECTION_SURFACES = ("current_package", "submission_minimal", "docx", "pdf", "zip")
+_DEFAULT_ARTIFACT_SAMPLE_LIMIT = 50
+_DEFAULT_MAX_FILES = 1000
+_DEFAULT_MAX_SECONDS = 5.0
 
 
-def run_lifecycle_operations_report(*, workspace_roots: Iterable[str | Path]) -> dict[str, Any]:
+def _scan_policy(*, deep: bool, max_files: int | None, max_seconds: float | None) -> dict[str, Any]:
+    resolved_max_files = _DEFAULT_MAX_FILES if max_files is None else int(max_files)
+    resolved_max_seconds = _DEFAULT_MAX_SECONDS if max_seconds is None else float(max_seconds)
+    if resolved_max_files < 1:
+        raise ValueError("max_files must be >= 1")
+    if resolved_max_seconds <= 0:
+        raise ValueError("max_seconds must be > 0")
+    return {
+        "deep_scan_enabled": bool(deep),
+        "artifact_listing": "bounded",
+        "artifact_sample_limit": _DEFAULT_ARTIFACT_SAMPLE_LIMIT,
+        "max_files": resolved_max_files,
+        "max_seconds": int(resolved_max_seconds)
+        if resolved_max_seconds.is_integer()
+        else resolved_max_seconds,
+    }
+
+
+def run_lifecycle_operations_report(
+    *,
+    workspace_roots: Iterable[str | Path],
+    deep: bool = False,
+    max_files: int | None = None,
+    max_seconds: float | None = None,
+) -> dict[str, Any]:
     resolved_roots = sorted(_as_path(root) for root in workspace_roots)
-    workspaces = [_workspace_report(root) for root in resolved_roots]
+    scan_policy = _scan_policy(deep=deep, max_files=max_files, max_seconds=max_seconds)
+    workspaces = [_workspace_report(root, scan_policy=scan_policy) for root in resolved_roots]
     return {
         "surface": SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
@@ -67,6 +99,7 @@ def run_lifecycle_operations_report(*, workspace_roots: Iterable[str | Path]) ->
             "noise_scan_mode": NOISE_SCAN_MODE,
             "hard_skipped_directories": sorted(_HARD_SKIPPED_DIR_NAMES),
             "statistical_directories": sorted(_STATISTICAL_DIR_BUCKETS),
+            **scan_policy,
         },
         "projection_role_catalog": _projection_role_catalog(),
         "summary": _aggregate_summary(workspaces),
@@ -133,8 +166,8 @@ def _markdown_study_lines(report: Mapping[str, Any]) -> list[str]:
     return lines
 
 
-def _workspace_report(workspace_root: Path) -> dict[str, Any]:
-    scan = _scan_workspace(workspace_root)
+def _workspace_report(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -> dict[str, Any]:
+    scan = _scan_workspace(workspace_root, scan_policy=scan_policy)
     study_roots = _discover_study_roots(workspace_root=workspace_root, paths=scan["classified_paths"])
     artifacts = _classify_workspace_artifacts(
         workspace_root=workspace_root,
@@ -160,13 +193,16 @@ def _workspace_report(workspace_root: Path) -> dict[str, Any]:
         ),
         "projection_completeness": _workspace_projection_completeness(studies),
         "studies": studies,
-        "artifacts": artifacts,
+        "artifact_listing": "bounded",
+        "artifact_sample": artifacts[:_DEFAULT_ARTIFACT_SAMPLE_LIMIT],
+        "artifact_sample_limit": _DEFAULT_ARTIFACT_SAMPLE_LIMIT,
+        "artifact_sample_truncated": len(artifacts) > _DEFAULT_ARTIFACT_SAMPLE_LIMIT,
         "statistical_directories": statistical_directories,
         "skipped_directories": skipped_directories,
     }
 
 
-def _scan_workspace(workspace_root: Path) -> dict[str, Any]:
+def _scan_workspace(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -> dict[str, Any]:
     classified_paths: list[Path] = []
     statistical_directories: list[dict[str, Any]] = []
     skipped_directories: list[dict[str, Any]] = []
@@ -188,6 +224,7 @@ def _scan_workspace(workspace_root: Path) -> dict[str, Any]:
                         directory=directory,
                         workspace_root=workspace_root,
                         source_bucket=source_bucket,
+                        scan_policy=scan_policy,
                     )
                 )
                 continue
@@ -249,20 +286,56 @@ def _classify_workspace_artifacts(
     return sorted(artifacts, key=lambda item: str(item.get("workspace_relative_path") or ""))
 
 
-def _statistical_directory_report(*, directory: Path, workspace_root: Path, source_bucket: str) -> dict[str, Any]:
-    stats = _tree_stats(directory)
+def _statistical_directory_report(
+    *,
+    directory: Path,
+    workspace_root: Path,
+    source_bucket: str,
+    scan_policy: Mapping[str, Any],
+) -> dict[str, Any]:
     role = "runtime_ephemeral" if source_bucket == "runtime" else "cache"
     lifecycle = "runtime_transient" if source_bucket == "runtime" else "cache_transient"
+    snapshot = _storage_snapshot_for_directory(
+        workspace_root=workspace_root,
+        directory=directory,
+        source_bucket=source_bucket,
+    )
+    if snapshot is not None and not bool(scan_policy.get("deep_scan_enabled")):
+        return {
+            "path": str(directory.resolve()),
+            "workspace_relative_path": _rel(directory, workspace_root),
+            "source_bucket": source_bucket,
+            "role": role,
+            "lifecycle": lifecycle,
+            "scan_mode": SNAPSHOT_SCAN_MODE,
+            "source_snapshot": snapshot["source_snapshot"],
+            "size_bytes": snapshot["bytes"],
+            "file_count": snapshot["file_count"],
+            "directory_count": snapshot["directory_count"],
+            "cleanup_candidate_action": "audit-only",
+            "cleanup_blockers": [
+                "snapshot_reference_no_physical_cleanup_contract",
+            ],
+        }
+    stats = _tree_stats(
+        directory,
+        deep=bool(scan_policy.get("deep_scan_enabled")),
+        max_files=int(scan_policy.get("max_files") or _DEFAULT_MAX_FILES),
+        max_seconds=float(scan_policy.get("max_seconds") or _DEFAULT_MAX_SECONDS),
+    )
+    scan_mode = DEEP_STATISTICAL_SCAN_MODE if bool(scan_policy.get("deep_scan_enabled")) else NOISE_SCAN_MODE
     return {
         "path": str(directory.resolve()),
         "workspace_relative_path": _rel(directory, workspace_root),
         "source_bucket": source_bucket,
         "role": role,
         "lifecycle": lifecycle,
-        "scan_mode": NOISE_SCAN_MODE,
+        "scan_mode": scan_mode,
         "size_bytes": stats["bytes"],
         "file_count": stats["file_count"],
         "directory_count": stats["directory_count"],
+        "bounded": bool(scan_policy.get("deep_scan_enabled")),
+        "truncated": bool(stats["truncated"]),
         "cleanup_candidate_action": "audit-only",
         "cleanup_blockers": [
             "statistical_only_no_physical_cleanup_contract",
@@ -270,14 +343,27 @@ def _statistical_directory_report(*, directory: Path, workspace_root: Path, sour
     }
 
 
-def _tree_stats(root: Path) -> dict[str, int]:
+def _tree_stats(
+    root: Path,
+    *,
+    deep: bool = False,
+    max_files: int = _DEFAULT_MAX_FILES,
+    max_seconds: float = _DEFAULT_MAX_SECONDS,
+) -> dict[str, int | bool]:
     total_bytes = 0
     file_count = 0
     directory_count = 0
+    truncated = False
+    deadline = time.monotonic() + max(0.0, max_seconds)
     for current_root, dirnames, filenames in os.walk(root):
         directory_count += 1
         dirnames[:] = [name for name in dirnames if name not in _HARD_SKIPPED_DIR_NAMES]
+        if not deep:
+            dirnames[:] = []
         for filename in filenames:
+            if deep and (file_count >= max_files or time.monotonic() > deadline):
+                truncated = True
+                break
             candidate = Path(current_root) / filename
             if candidate.is_symlink():
                 continue
@@ -287,11 +373,86 @@ def _tree_stats(root: Path) -> dict[str, int]:
                 continue
             file_count += 1
             total_bytes += int(stat.st_size)
+        if truncated:
+            break
     return {
         "bytes": total_bytes,
         "file_count": file_count,
         "directory_count": directory_count,
+        "truncated": truncated,
     }
+
+
+def _storage_snapshot_for_directory(
+    *,
+    workspace_root: Path,
+    directory: Path,
+    source_bucket: str,
+) -> dict[str, Any] | None:
+    for snapshot_path in _storage_snapshot_paths(workspace_root):
+        payload = _read_json(snapshot_path)
+        snapshot = _snapshot_bucket_stats(payload, source_bucket)
+        if snapshot is None:
+            continue
+        return {
+            **snapshot,
+            "source_snapshot": _rel(snapshot_path, workspace_root),
+        }
+    return None
+
+
+def _storage_snapshot_paths(workspace_root: Path) -> tuple[Path, ...]:
+    return (
+        workspace_root / "storage_audit" / "latest.json",
+        workspace_root / "artifacts" / "runtime_storage" / "latest.json",
+        workspace_root / "artifacts" / "runtime" / "storage_audit_latest.json",
+    )
+
+
+def _read_json(path: Path) -> Mapping[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, Mapping) else {}
+
+
+def _snapshot_bucket_stats(payload: Mapping[str, Any], source_bucket: str) -> dict[str, int] | None:
+    candidates: list[Mapping[str, Any]] = []
+    direct = payload.get(source_bucket)
+    if isinstance(direct, Mapping):
+        candidates.append(direct)
+    totals = payload.get("source_totals")
+    if isinstance(totals, Mapping) and isinstance(totals.get(source_bucket), Mapping):
+        candidates.append(totals[source_bucket])
+    summary = payload.get("summary")
+    if isinstance(summary, Mapping) and source_bucket == "runtime":
+        runtime = summary.get("runtime")
+        if isinstance(runtime, Mapping):
+            candidates.append(runtime)
+    for candidate in candidates:
+        bytes_count = _first_int(candidate, ("bytes", "size_bytes", "total_bytes"))
+        file_count = _first_int(candidate, ("file_count", "files", "total_files_count"))
+        directory_count = _first_int(candidate, ("directory_count", "directories", "dir_count")) or 0
+        if bytes_count is not None and file_count is not None:
+            return {
+                "bytes": bytes_count,
+                "file_count": file_count,
+                "directory_count": directory_count,
+            }
+    return None
+
+
+def _first_int(payload: Mapping[str, Any], keys: Iterable[str]) -> int | None:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, bool):
+            continue
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            continue
+    return None
 
 
 def _study_reports(
@@ -510,7 +671,7 @@ def _workspace_source_totals(
             file_count=int(item.get("file_count") or 0),
             classified_count=0,
             statistical_count=1,
-            scan_mode=NOISE_SCAN_MODE,
+            scan_mode=str(item.get("scan_mode") or NOISE_SCAN_MODE),
         )
     return totals
 

@@ -188,6 +188,48 @@ def _write_text(path: Path, text: str) -> Path:
     return path
 
 
+def _delivery_manifest_lifecycle_hook(
+    *, study_root: Path, current_package: Path, submission_minimal: Path
+) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "surface_kind": "study_delivery_sync_lifecycle",
+        "authority_sync": {
+            "surface_kind": "delivery_authority_sync",
+            "status": "projection_only",
+            "study_root": str(study_root),
+            "direct_edit_allowed": False,
+            "quality_authority_allowed": False,
+            "dispatch_authority_allowed": False,
+            "authority_source_roles": ["canonical_source"],
+            "blocked_authority_paths": [
+                str(current_package),
+                str(current_package.with_suffix(".zip")),
+                str(submission_minimal),
+            ],
+        },
+        "lifecycle_roles": {
+            "current_package": "derived_projection",
+            "submission_minimal": "human_handoff_mirror",
+            "zip": "derived_projection",
+            "pdf": "derived_projection",
+            "docx": "derived_projection",
+        },
+    }
+
+
+def _delivery_manifest_publication_refs(
+    *, paper_root: Path, current_package: Path, submission_minimal: Path
+) -> dict[str, str]:
+    return {
+        "paper_root_ref": str(paper_root),
+        "current_package_ref": str(current_package),
+        "current_package_zip_ref": str(current_package.with_suffix(".zip")),
+        "submission_minimal_ref": str(submission_minimal),
+        "publication_eval_ref": str(paper_root.parent / "artifacts" / "publication_eval" / "latest.json"),
+    }
+
+
 def build_dm_cvd_migration_audit_fixture(root: Path) -> Path:
     workspace_root = root / "DM-CVD-Mortality-Risk"
     studies_root = workspace_root / "studies"
@@ -221,6 +263,16 @@ def build_dm_cvd_migration_audit_fixture(root: Path) -> Path:
                     "human_facing_current_package_root": str(current_package),
                     "human_facing_current_package_zip": str(current_package.with_suffix(".zip")),
                 },
+                "publication_refs": _delivery_manifest_publication_refs(
+                    paper_root=paper_root,
+                    current_package=current_package,
+                    submission_minimal=submission_minimal,
+                ),
+                "artifact_lifecycle": _delivery_manifest_lifecycle_hook(
+                    study_root=study_root,
+                    current_package=current_package,
+                    submission_minimal=submission_minimal,
+                ),
             },
         )
         _write_json(
@@ -276,6 +328,16 @@ def build_nf_pitnet_migration_audit_fixture(root: Path) -> Path:
                     "current_package_root": str(package_root),
                     "current_package_zip": str(package_root.with_suffix(".zip")),
                 },
+                "publication_refs": _delivery_manifest_publication_refs(
+                    paper_root=paper_root,
+                    current_package=package_root,
+                    submission_minimal=submission_root,
+                ),
+                "artifact_lifecycle": _delivery_manifest_lifecycle_hook(
+                    study_root=study_root,
+                    current_package=package_root,
+                    submission_minimal=submission_root,
+                ),
             },
         )
         _write_json(
@@ -368,8 +430,65 @@ def build_migration_audit_fixture_missing_submission_minimal(root: Path) -> Path
                 "human_facing_current_package_root": str(current_package),
                 "human_facing_current_package_zip": str(current_package.with_suffix(".zip")),
             },
+            "publication_refs": _delivery_manifest_publication_refs(
+                paper_root=paper_root,
+                current_package=current_package,
+                submission_minimal=paper_root / "submission_minimal",
+            ),
+            "artifact_lifecycle": _delivery_manifest_lifecycle_hook(
+                study_root=study_root,
+                current_package=current_package,
+                submission_minimal=paper_root / "submission_minimal",
+            ),
         },
     )
     _write_text(current_package / "README.md", f"# {study_id}\n")
     _write_text(current_package.with_suffix(".zip"), "zip-placeholder\n")
+    return workspace_root
+
+
+def build_migration_audit_fixture_missing_delivery_lifecycle_hook(root: Path) -> Path:
+    workspace_root = root / "DM-CVD-Missing-Lifecycle-Hook"
+    study_id = "006-delivery-lifecycle-hook-backfill"
+    study_root = workspace_root / "studies" / study_id
+    paper_root = study_root / "paper"
+    manuscript_root = study_root / "manuscript"
+    current_package = manuscript_root / "current_package"
+    submission_minimal = paper_root / "submission_minimal"
+
+    _write_json(
+        paper_root / "study_manifest.json",
+        {
+            "study_id": study_id,
+            "surface": "study_manifest",
+            "authority_owner": "controller",
+        },
+    )
+    _write_json(
+        manuscript_root / "delivery_manifest.json",
+        {
+            "study_id": study_id,
+            "surface": "delivery_manifest",
+            "authority_owner": "controller",
+            "source_signature": f"sig-{study_id}",
+            "authority_source_signature": f"sig-{study_id}",
+            "surface_roles": {
+                "human_facing_current_package_root": str(current_package),
+                "human_facing_current_package_zip": str(current_package.with_suffix(".zip")),
+            },
+        },
+    )
+    _write_json(
+        submission_minimal / "submission_manifest.json",
+        {
+            "study_id": study_id,
+            "surface": "submission_minimal_manifest",
+            "authority_owner": "controller",
+            "source_signature": f"sig-{study_id}",
+            "authority_source_signature": f"sig-{study_id}",
+        },
+    )
+    _write_text(current_package / "README.md", f"# {study_id}\n")
+    _write_text(current_package.with_suffix(".zip"), "zip-placeholder\n")
+    _write_text(submission_minimal / "paper.md", f"# {study_id} submission\n")
     return workspace_root
