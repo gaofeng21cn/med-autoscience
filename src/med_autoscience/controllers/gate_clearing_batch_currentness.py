@@ -155,6 +155,7 @@ def publication_work_unit_selection(
     latest_batch: dict[str, Any],
     gate_report: dict[str, Any],
     authority_settle_delivery_redrive_requested: bool,
+    direct_submission_delivery_sync_requested: bool = False,
 ) -> dict[str, Any]:
     explicit_next_work_unit = explicit_next_publication_work_unit(publication_eval_payload)
     current_publication_work_unit_payload = publication_work_units.derive_publication_work_units(gate_report)
@@ -169,6 +170,10 @@ def publication_work_unit_selection(
         selected_publication_work_unit = submission_delivery_sync_closure_work_unit()
     if authority_settle_delivery_redrive_requested:
         selected_publication_work_unit = submission_delivery_sync_closure_work_unit()
+    if direct_submission_delivery_sync_requested and publication_work_unit_id(
+        explicit_next_work_unit
+    ) == GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID:
+        selected_publication_work_unit = submission_delivery_sync_closure_work_unit()
     work_unit_currentness = publication_work_unit_currentness(
         publication_eval_payload=publication_eval_payload,
         latest_batch=latest_batch,
@@ -178,7 +183,7 @@ def publication_work_unit_selection(
         selected_publication_work_unit=selected_publication_work_unit,
     )
     terminal_reason = None
-    if not authority_settle_delivery_redrive_requested:
+    if not authority_settle_delivery_redrive_requested and not direct_submission_delivery_sync_requested:
         terminal_reason = gate_specificity_terminal_reason(
             explicit_publication_work_unit=explicit_next_work_unit,
             selected_publication_work_unit=selected_publication_work_unit,

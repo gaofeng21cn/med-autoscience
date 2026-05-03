@@ -908,6 +908,7 @@ def run_gate_clearing_batch(
         latest_batch=latest_batch,
         gate_report=gate_report,
         authority_settle_delivery_redrive_requested=authority_settle_delivery_redrive_requested,
+        direct_submission_delivery_sync_requested=direct_submission_delivery_sync_requested,
     )
     explicit_next_work_unit = work_unit_selection["explicit_next_work_unit"]
     current_publication_work_unit_payload = work_unit_selection["current_publication_work_unit_payload"]
@@ -1147,7 +1148,7 @@ def run_gate_clearing_batch(
         )
     repair_units = filter_repair_units_for_publication_work_unit(
         repair_units,
-        next_work_unit=explicit_next_work_unit,
+        next_work_unit=selected_publication_work_unit,
         additional_allowed_unit_ids=gate_clearing_batch_authority_redrive.analysis_work_unit_authority_closure_unit_ids(
             selected_publication_work_unit=explicit_next_work_unit,
             submission_minimal_refresh_requested=submission_minimal_refresh_requested,
