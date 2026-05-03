@@ -17,12 +17,13 @@ CONTROL_PLANE_TESTS := \
 	tests/test_control_plane_migration_audit.py \
 	tests/test_cli_cases/public_entry_commands.py::test_migration_audit_command_dispatches_read_only_controller \
 	tests/test_cli_cases/public_entry_commands.py::test_cleanup_apply_command_dispatches_controller \
-	tests/test_cli_cases/public_entry_commands.py::test_lifecycle_report_command_dispatches_read_only_controller \
+	tests/test_cli_cases/public_entry_commands.py::test_lifecycle_report_command_dispatches_read_only_controller_options \
+	tests/test_cli_cases/control_plane_operation_commands.py \
 	tests/test_mcp_server.py::test_mcp_product_entry_description_documents_control_plane_operations_surfaces \
 	tests/test_mcp_server.py::test_mcp_product_entry_schema_accepts_control_plane_operations_options \
 	tests/test_mcp_server.py::test_mcp_product_entry_can_call_migration_audit \
 	tests/test_mcp_server.py::test_mcp_product_entry_can_call_cleanup_apply \
-	tests/test_mcp_server.py::test_mcp_product_entry_can_call_lifecycle_report \
+	tests/test_mcp_server.py::test_mcp_product_entry_can_call_lifecycle_report_with_scan_options \
 	tests/test_test_command_surfaces.py::test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces \
 	tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_lists_control_plane_operation_modes \
 	tests/test_truth_projection_surfaces.py \

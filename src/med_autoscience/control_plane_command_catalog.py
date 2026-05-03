@@ -42,7 +42,7 @@ CONTROL_PLANE_OPERATIONS_COMMANDS: tuple[ControlPlaneOperationsCommand, ...] = (
         surface="control_plane_cleanup_apply",
         description="Contract-gated cleanup apply plan and allowlisted delete-safe-cache execution.",
         required_fields=("workspace_roots",),
-        optional_fields=("apply",),
+        optional_fields=("apply", "control_plane_snapshot"),
         contract_gated=True,
         read_only=False,
     ),

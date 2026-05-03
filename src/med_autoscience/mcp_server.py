@@ -126,6 +126,14 @@ def _optional_path(arguments: dict[str, Any], key: str) -> Path | None:
     return Path(value)
 
 
+def _optional_mapping(value: Any) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError("control_plane_snapshot must be an object when provided")
+    return value
+
+
 def list_tools() -> list[dict[str, Any]]:
     return [
         {
@@ -258,6 +266,7 @@ def list_tools() -> list[dict[str, Any]]:
                         "items": {"type": "string"},
                     },
                     "apply": {"type": "boolean"},
+                    "control_plane_snapshot": {"type": "object"},
                     "markdown": {"type": "boolean"},
                     "deep": {"type": "boolean"},
                     "max_files": {"type": "integer", "minimum": 1},
@@ -544,6 +553,7 @@ def _call_cleanup_apply(arguments: dict[str, Any]) -> dict[str, Any]:
     result = control_plane_cleanup_apply.run_cleanup_apply(
         workspace_roots=resolved_roots,
         apply=_optional_bool(arguments, "apply", default=False),
+        control_plane_snapshot=_optional_mapping(arguments.get("control_plane_snapshot")),
     )
     return _tool_text_result(_json_text(result), structured=result)
 

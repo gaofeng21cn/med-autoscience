@@ -12,6 +12,16 @@ from med_autoscience.controllers.artifact_lifecycle_inventory import (
     classify_artifact,
     lifecycle_for_role,
 )
+from med_autoscience.controllers.artifact_lifecycle_operations_report_parts.scan_policy import (
+    HARD_SKIPPED_DIR_NAMES as _HARD_SKIPPED_DIR_NAMES,
+    STATISTICAL_DIR_BUCKETS as _STATISTICAL_DIR_BUCKETS,
+    STATISTICAL_RELATIVE_DIR_BUCKETS as _STATISTICAL_RELATIVE_DIR_BUCKETS,
+    STATISTICAL_ROLE_LIFECYCLE_BY_BUCKET as _STATISTICAL_ROLE_LIFECYCLE_BY_BUCKET,
+    STATISTICAL_STUDY_ARTIFACT_DIR_BUCKETS as _STATISTICAL_STUDY_ARTIFACT_DIR_BUCKETS,
+)
+from med_autoscience.controllers.artifact_lifecycle_operations_report_parts.markdown import (
+    render_lifecycle_operations_report_markdown,
+)
 from med_autoscience.controllers.artifact_retention_operations_plan import (
     aggregate_artifact_retention_operations_plans,
     build_artifact_retention_operations_plan,
@@ -27,33 +37,6 @@ SKIPPED_SCAN_MODE = "skipped"
 SNAPSHOT_SCAN_MODE = "snapshot_reference"
 DEEP_STATISTICAL_SCAN_MODE = "deep_statistical"
 
-_STATISTICAL_DIR_BUCKETS = {
-    ".cache": "cache",
-    ".ds": "runtime",
-    ".mypy_cache": "cache",
-    ".pytest_cache": "cache",
-    ".ruff_cache": "cache",
-    "__pycache__": "cache",
-    "cache": "cache",
-}
-_STATISTICAL_RELATIVE_DIR_BUCKETS = {
-    (".ds", "worktrees"): "runtime",
-    ("ops", "med-deepscientist", "runtime", "quests"): "runtime",
-    ("ops", "med-deepscientist", "runtime", "archives"): "runtime",
-    ("ops", "med-deepscientist", "runtime", "recovery"): "runtime",
-    ("ops", "med-deepscientist", "runtime", "runtime"): "runtime",
-    ("datasets", "raw"): "dataset",
-    ("datasets", "release"): "dataset",
-    ("datasets", "private_release"): "dataset",
-}
-_HARD_SKIPPED_DIR_NAMES = {
-    ".git",
-    ".hg",
-    ".tox",
-    ".venv",
-    "node_modules",
-    "venv",
-}
 _SOURCE_BUCKETS = (
     "runtime",
     "dataset",
@@ -125,63 +108,6 @@ def run_lifecycle_operations_report(
     }
 
 
-def render_lifecycle_operations_report_markdown(report: Mapping[str, Any]) -> str:
-    lines = _markdown_summary_lines(report)
-    lines.extend(_markdown_source_total_lines(report))
-    lines.extend(_markdown_study_lines(report))
-    lines.append("")
-    return "\n".join(lines)
-
-
-def _markdown_summary_lines(report: Mapping[str, Any]) -> list[str]:
-    summary = dict(report.get("summary") or {})
-    projection = dict(report.get("projection_completeness") or {})
-    return [
-        "# Control Plane Lifecycle Report",
-        "",
-        f"- surface: `{report.get('surface') or SURFACE_KIND}`",
-        f"- workspace count: `{report.get('workspace_count') or 0}`",
-        f"- total bytes: `{summary.get('total_bytes') or 0}`",
-        f"- classified files: `{summary.get('classified_file_count') or 0}`",
-        f"- statistical files: `{summary.get('statistical_file_count') or 0}`",
-        f"- complete studies: `{projection.get('complete_study_count') or 0}`",
-        f"- incomplete studies: `{projection.get('incomplete_study_count') or 0}`",
-        "",
-        "## Bloat Sources",
-        "",
-    ]
-
-
-def _markdown_source_total_lines(report: Mapping[str, Any]) -> list[str]:
-    lines: list[str] = []
-    for source_kind, totals in dict(report.get("source_totals") or {}).items():
-        if not isinstance(totals, Mapping):
-            continue
-        lines.append(
-            f"- `{source_kind}`: bytes `{totals.get('bytes') or 0}`, "
-            f"files `{totals.get('file_count') or 0}`, scan `{totals.get('scan_mode') or 'none'}`"
-        )
-    lines.extend(["", "## Studies", ""])
-    return lines
-
-
-def _markdown_study_lines(report: Mapping[str, Any]) -> list[str]:
-    lines: list[str] = []
-    for workspace in report.get("workspaces") or []:
-        if not isinstance(workspace, Mapping):
-            continue
-        for study in workspace.get("studies") or []:
-            if not isinstance(study, Mapping):
-                continue
-            completeness = dict(study.get("projection_completeness") or {})
-            blockers = ", ".join(completeness.get("blockers") or []) or "none"
-            lines.append(
-                f"- `{study.get('study_id') or 'workspace'}`: "
-                f"`{completeness.get('status') or 'unknown'}`, blockers: {blockers}"
-            )
-    return lines
-
-
 def _workspace_report(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -> dict[str, Any]:
     scan = _scan_workspace(workspace_root, scan_policy=scan_policy)
     study_roots = _discover_study_roots(workspace_root=workspace_root, paths=scan["classified_paths"])
@@ -218,6 +144,7 @@ def _workspace_report(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -
         "artifact_sample": artifacts[:_DEFAULT_ARTIFACT_SAMPLE_LIMIT],
         "artifact_sample_limit": _DEFAULT_ARTIFACT_SAMPLE_LIMIT,
         "artifact_sample_truncated": len(artifacts) > _DEFAULT_ARTIFACT_SAMPLE_LIMIT,
+        "classified_scan_truncated": bool(scan.get("classified_scan_truncated")),
         "statistical_directories": statistical_directories,
         "skipped_directories": skipped_directories,
     }
@@ -227,49 +154,50 @@ def _scan_workspace(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -> 
     classified_paths: list[Path] = []
     statistical_directories: list[dict[str, Any]] = []
     skipped_directories: list[dict[str, Any]] = []
+    classified_scan_truncated = False
+    classified_scan_deadline = time.monotonic() + float(scan_policy.get("max_seconds") or _DEFAULT_MAX_SECONDS)
+    classified_scan_max_files = int(scan_policy.get("max_files") or _DEFAULT_MAX_FILES)
+    deep_scan_enabled = bool(scan_policy.get("deep_scan_enabled"))
     if not workspace_root.exists():
         return {
             "classified_paths": classified_paths,
             "statistical_directories": statistical_directories,
             "skipped_directories": skipped_directories,
-    }
+            "classified_scan_truncated": classified_scan_truncated,
+        }
     for current_root, dirnames, filenames in os.walk(workspace_root):
         current_path = Path(current_root)
-        if not _should_descend_directory(current_path, workspace_root=workspace_root, scan_policy=scan_policy):
+        if not _should_descend_directory(
+            current_path,
+            workspace_root=workspace_root,
+            deep=deep_scan_enabled,
+        ):
             dirnames[:] = []
             continue
-        kept_dirnames: list[str] = []
-        for dirname in sorted(dirnames):
-            directory = current_path / dirname
-            source_bucket = _statistical_source_bucket(directory, workspace_root=workspace_root)
-            if source_bucket is not None:
-                statistical_directories.append(
-                    _statistical_directory_report(
-                        directory=directory,
-                        workspace_root=workspace_root,
-                        source_bucket=source_bucket,
-                        scan_policy=scan_policy,
-                    )
-                )
-                continue
-            if dirname in _HARD_SKIPPED_DIR_NAMES:
-                skipped_directories.append(
-                    {
-                        "path": str(directory.resolve()),
-                        "workspace_relative_path": _rel(directory, workspace_root),
-                        "scan_mode": SKIPPED_SCAN_MODE,
-                        "source_bucket": "other",
-                        "reason": "noise_directory_skipped",
-                    }
-                )
-                continue
-            kept_dirnames.append(dirname)
-        dirnames[:] = kept_dirnames
-        if _should_scan_classified_files(current_path, workspace_root=workspace_root, scan_policy=scan_policy):
-            for filename in sorted(filenames):
-                candidate = current_path / filename
-                if candidate.is_file() and not candidate.is_symlink():
-                    classified_paths.append(candidate.resolve())
+        dirnames[:] = _kept_child_directories(
+            current_path=current_path,
+            dirnames=dirnames,
+            workspace_root=workspace_root,
+            scan_policy=scan_policy,
+            statistical_directories=statistical_directories,
+            skipped_directories=skipped_directories,
+        )
+        if _should_scan_classified_files(
+            current_path,
+            workspace_root=workspace_root,
+            deep=deep_scan_enabled,
+        ):
+            classified_scan_truncated = _append_classified_files(
+                current_path=current_path,
+                filenames=filenames,
+                classified_paths=classified_paths,
+                deep=deep_scan_enabled,
+                max_files=classified_scan_max_files,
+                deadline=classified_scan_deadline,
+            )
+        if classified_scan_truncated:
+            dirnames[:] = []
+            break
     return {
         "classified_paths": sorted(classified_paths),
         "statistical_directories": sorted(
@@ -280,48 +208,115 @@ def _scan_workspace(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -> 
             skipped_directories,
             key=lambda item: str(item.get("workspace_relative_path") or ""),
         ),
+        "classified_scan_truncated": classified_scan_truncated,
     }
 
 
-def _should_descend_directory(
-    current_path: Path,
+def _kept_child_directories(
     *,
+    current_path: Path,
+    dirnames: list[str],
     workspace_root: Path,
     scan_policy: Mapping[str, Any],
-) -> bool:
-    if bool(scan_policy.get("deep_scan_enabled")):
-        return True
-    relative_parts = _relative_parts(current_path, workspace_root)
-    if len(relative_parts) <= 1 or relative_parts[0] in {"studies", "papers"}:
-        return True
-    return any(_is_prefix(relative_parts, candidate) for candidate in _STATISTICAL_RELATIVE_DIR_BUCKETS)
+    statistical_directories: list[dict[str, Any]],
+    skipped_directories: list[dict[str, Any]],
+) -> list[str]:
+    kept_dirnames: list[str] = []
+    for dirname in sorted(dirnames):
+        directory = current_path / dirname
+        source_bucket = _statistical_source_bucket(directory, workspace_root=workspace_root)
+        if source_bucket is not None:
+            statistical_directories.append(
+                _statistical_directory_report(
+                    directory=directory,
+                    workspace_root=workspace_root,
+                    source_bucket=source_bucket,
+                    scan_policy=scan_policy,
+                )
+            )
+        elif dirname in _HARD_SKIPPED_DIR_NAMES:
+            skipped_directories.append(_skipped_directory_report(directory, workspace_root=workspace_root))
+        else:
+            kept_dirnames.append(dirname)
+    return kept_dirnames
 
 
-def _should_scan_classified_files(
-    current_path: Path,
+def _skipped_directory_report(directory: Path, *, workspace_root: Path) -> dict[str, Any]:
+    return {
+        "path": str(directory.resolve()),
+        "workspace_relative_path": _rel(directory, workspace_root),
+        "scan_mode": SKIPPED_SCAN_MODE,
+        "source_bucket": "other",
+        "reason": "noise_directory_skipped",
+    }
+
+
+def _append_classified_files(
     *,
-    workspace_root: Path,
-    scan_policy: Mapping[str, Any],
+    current_path: Path,
+    filenames: list[str],
+    classified_paths: list[Path],
+    deep: bool,
+    max_files: int,
+    deadline: float,
 ) -> bool:
-    if bool(scan_policy.get("deep_scan_enabled")):
-        return True
+    truncated = False
+    for filename in sorted(filenames):
+        if _classified_scan_exhausted(
+            deep=deep,
+            classified_count=len(classified_paths),
+            max_files=max_files,
+            deadline=deadline,
+        ):
+            truncated = True
+            break
+        candidate = current_path / filename
+        if candidate.is_file() and not candidate.is_symlink():
+            classified_paths.append(candidate.resolve())
+    return truncated
+
+
+def _classified_scan_exhausted(*, deep: bool, classified_count: int, max_files: int, deadline: float) -> bool:
+    return bool(deep and (classified_count >= max_files or time.monotonic() > deadline))
+
+
+def _should_descend_directory(current_path: Path, *, workspace_root: Path, deep: bool) -> bool:
     relative_parts = _relative_parts(current_path, workspace_root)
-    if len(relative_parts) <= 1:
-        return True
-    return relative_parts[0] in {"studies", "papers"}
+    return deep or (
+        _study_artifact_source_bucket(relative_parts) is None
+        and (
+            len(relative_parts) <= 1
+            or relative_parts[0] in {"studies", "papers"}
+            or any(_is_prefix(relative_parts, candidate) for candidate in _STATISTICAL_RELATIVE_DIR_BUCKETS)
+        )
+    )
+
+
+def _should_scan_classified_files(current_path: Path, *, workspace_root: Path, deep: bool) -> bool:
+    relative_parts = _relative_parts(current_path, workspace_root)
+    return deep or (
+        _study_artifact_source_bucket(relative_parts) is None
+        and (len(relative_parts) <= 1 or relative_parts[0] in {"studies", "papers"})
+    )
 
 
 def _statistical_source_bucket(directory: Path, *, workspace_root: Path) -> str | None:
-    source_bucket = _STATISTICAL_DIR_BUCKETS.get(directory.name)
-    if source_bucket is not None:
-        return source_bucket
     relative_parts = _relative_parts(directory, workspace_root)
-    return _STATISTICAL_RELATIVE_DIR_BUCKETS.get(relative_parts)
+    return (
+        _STATISTICAL_DIR_BUCKETS.get(directory.name)
+        or _STATISTICAL_RELATIVE_DIR_BUCKETS.get(relative_parts)
+        or _study_artifact_source_bucket(relative_parts)
+    )
+
+
+def _study_artifact_source_bucket(relative_parts: tuple[str, ...]) -> str | None:
+    if len(relative_parts) < 4 or relative_parts[0] not in {"studies", "papers"}:
+        return None
+    return _STATISTICAL_STUDY_ARTIFACT_DIR_BUCKETS.get(relative_parts[2:])
 
 
 def _is_prefix(prefix: tuple[str, ...], parts: tuple[str, ...]) -> bool:
     return len(prefix) <= len(parts) and parts[: len(prefix)] == prefix
-
 
 
 def _classify_workspace_artifacts(
@@ -359,8 +354,7 @@ def _statistical_directory_report(
     source_bucket: str,
     scan_policy: Mapping[str, Any],
 ) -> dict[str, Any]:
-    role = "runtime_ephemeral" if source_bucket == "runtime" else "cache"
-    lifecycle = "runtime_transient" if source_bucket == "runtime" else "cache_transient"
+    role, lifecycle = _STATISTICAL_ROLE_LIFECYCLE_BY_BUCKET.get(source_bucket, ("cache", "cache_transient"))
     snapshot = _storage_snapshot_for_directory(
         workspace_root=workspace_root,
         directory=directory,

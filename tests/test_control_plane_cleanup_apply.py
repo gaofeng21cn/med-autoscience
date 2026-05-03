@@ -63,6 +63,29 @@ def _cleanup_apply_fixture(
     return workspace_root, cache_root
 
 
+def _snapshot(*, cleanup_apply_allowed: bool = True, gate_state: str = "open") -> dict[str, object]:
+    return {
+        "surface": "control_plane_snapshot",
+        "control_state": "ready",
+        "canonical_next_action": "cleanup_apply",
+        "authority_refs": {
+            "study_truth": {"epoch": "truth-1"},
+            "runtime_health": {"epoch": "health-1"},
+        },
+        "dispatch_gate": {
+            "state": gate_state,
+            "blocking_reasons": ["supervisor_only"] if gate_state != "open" else [],
+        },
+        "route_authorization": {
+            "paper_write_allowed": True,
+            "bundle_build_allowed": True,
+            "runtime_recovery_allowed": True,
+            "cleanup_apply_allowed": cleanup_apply_allowed,
+            "authorized": cleanup_apply_allowed,
+        },
+    }
+
+
 def test_cleanup_apply_default_generates_plan_without_mutating(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
     workspace_root, cache_root = _cleanup_apply_fixture(tmp_path)
@@ -82,19 +105,59 @@ def test_cleanup_apply_true_deletes_safe_cache_after_all_gates(tmp_path: Path) -
     module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
     workspace_root, cache_root = _cleanup_apply_fixture(tmp_path)
 
-    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
 
     assert report["status"] == "applied"
     assert not cache_root.exists()
     assert report["action_counts"] == {"planned": 1, "blocked": 0, "applied": 1, "mutating": 1}
     assert report["applied_actions"][0]["action"] == "delete-safe-cache"
+    assert report["control_plane_route_gate"]["authorized"] is True
+
+
+def test_cleanup_apply_true_fails_closed_without_control_plane_snapshot(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path)
+
+    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+
+    assert report["status"] == "blocked"
+    assert cache_root.exists()
+    assert report["action_counts"]["applied"] == 0
+    assert report["control_plane_route_gate"]["authorized"] is False
+    assert "control_plane_snapshot_missing" in report["control_plane_route_gate"]["blocking_reasons"]
+    assert "control_plane_route_gate:control_plane_snapshot_missing" in report["apply_plan"][0]["blockers"]
+
+
+def test_cleanup_apply_true_fails_closed_when_route_flag_false(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path)
+
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(cleanup_apply_allowed=False),
+    )
+
+    assert report["status"] == "blocked"
+    assert cache_root.exists()
+    assert report["action_counts"]["applied"] == 0
+    assert "cleanup_apply_allowed_false" in report["control_plane_route_gate"]["blocking_reasons"]
+    assert "control_plane_route_gate:cleanup_apply_allowed_false" in report["apply_plan"][0]["blockers"]
 
 
 def test_cleanup_apply_live_runtime_is_audit_only(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
     workspace_root, cache_root = _cleanup_apply_fixture(tmp_path, runtime_status="running")
 
-    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
 
     assert report["status"] == "blocked"
     assert cache_root.exists()
@@ -111,7 +174,11 @@ def test_cleanup_apply_blocks_data_release_without_restore_contract(tmp_path: Pa
         include_restore_contract=False,
     )
 
-    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
 
     assert report["status"] == "blocked"
     assert cache_root.exists()
@@ -127,7 +194,11 @@ def test_cleanup_apply_blocks_non_allowlisted_actions(tmp_path: Path) -> None:
         allowlist=["delete"],
     )
 
-    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
 
     assert report["status"] == "blocked"
     assert cache_root.exists()
@@ -139,7 +210,11 @@ def test_cleanup_apply_missing_contract_has_no_planned_actions(tmp_path: Path) -
     workspace_root = tmp_path / "workspace"
     workspace_root.mkdir()
 
-    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
 
     assert report["status"] == "no_contract"
     assert report["action_counts"] == {"planned": 0, "blocked": 0, "applied": 0, "mutating": 0}
@@ -159,7 +234,11 @@ def test_cleanup_apply_blocks_targets_outside_workspace_after_resolve(tmp_path: 
     payload["actions"][0]["restore_contract"]["sha256"] = _dir_sha256(outside_cache)
     contract_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
 
     assert report["status"] == "blocked"
     assert cache_root.exists()
@@ -184,7 +263,11 @@ def test_cleanup_apply_blocks_archive_even_when_contract_allowlists_it(tmp_path:
         allowlist=["archive"],
     )
 
-    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
 
     assert report["status"] == "blocked"
     assert cache_root.exists()
@@ -199,7 +282,11 @@ def test_cleanup_apply_blocks_runtime_payload_without_restore_contract(tmp_path:
         include_restore_contract=False,
     )
 
-    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
 
     assert report["status"] == "blocked"
     assert cache_root.exists()
@@ -210,7 +297,11 @@ def test_cleanup_apply_blocks_non_terminal_runtime_even_with_apply_intent(tmp_pa
     module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
     workspace_root, cache_root = _cleanup_apply_fixture(tmp_path, runtime_status="starting")
 
-    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
 
     assert report["status"] == "blocked"
     assert cache_root.exists()
@@ -226,7 +317,11 @@ def test_cleanup_apply_blocks_when_controller_intent_missing(tmp_path: Path) -> 
     payload["controller_decision"] = {"decision": "audit_cleanup_apply", "apply_intent": False}
     contract_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
 
     assert report["status"] == "blocked"
     assert cache_root.exists()
@@ -244,7 +339,11 @@ def test_cleanup_apply_blocks_data_payload_without_checksum_restore_index_or_reh
     payload["actions"][0]["restore_contract"] = {}
     contract_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.run_cleanup_apply(workspace_roots=[workspace_root], apply=True)
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
 
     assert report["status"] == "blocked"
     assert cache_root.exists()

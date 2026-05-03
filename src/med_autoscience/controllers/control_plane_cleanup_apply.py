@@ -7,6 +7,8 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.control_plane_route_gate import authorize_control_plane_route
+
 
 SCHEMA_VERSION = 1
 CONTRACT_NAME = "control_plane_cleanup_apply.json"
@@ -19,17 +21,35 @@ def run_cleanup_apply(
     *,
     workspace_roots: Iterable[str | Path],
     apply: bool = False,
+    control_plane_snapshot: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     workspaces: list[dict[str, Any]] = []
     apply_plan: list[dict[str, Any]] = []
     applied_actions: list[dict[str, Any]] = []
+    if apply:
+        control_plane_route_gate = authorize_control_plane_route(
+            "cleanup_apply",
+            {"control_plane_snapshot": dict(control_plane_snapshot or {})},
+        )
+    else:
+        gate = authorize_control_plane_route("cleanup_apply", {"projection_only": True})
+        control_plane_route_gate = {
+            **gate,
+            "authorized": True,
+            "allowed": True,
+            "blocking_reasons": [],
+            "planning_only": True,
+        }
 
     for root in sorted(Path(item).expanduser().resolve() for item in workspace_roots):
-        workspace_report = _workspace_plan(workspace_root=root)
+        workspace_report = _workspace_plan(
+            workspace_root=root,
+            control_plane_route_gate=control_plane_route_gate,
+        )
         workspaces.append(workspace_report["workspace"])
         for action in workspace_report["actions"]:
             planned_action = dict(action)
-            if apply and planned_action["eligible_for_apply"]:
+            if apply and control_plane_route_gate.get("authorized") and planned_action["eligible_for_apply"]:
                 applied = _apply_action(workspace_root=root, action=planned_action)
                 planned_action["applied"] = applied["applied"]
                 planned_action["apply_result"] = applied
@@ -52,6 +72,7 @@ def run_cleanup_apply(
             workspace_count=len(workspaces),
         ),
         "workspace_count": len(workspaces),
+        "control_plane_route_gate": control_plane_route_gate,
         "action_counts": {
             "planned": eligible_count,
             "blocked": blocked_count,
@@ -69,7 +90,11 @@ def run_cleanup_apply(
     }
 
 
-def _workspace_plan(*, workspace_root: Path) -> dict[str, Any]:
+def _workspace_plan(
+    *,
+    workspace_root: Path,
+    control_plane_route_gate: Mapping[str, Any],
+) -> dict[str, Any]:
     contract_path = workspace_root / CONTRACT_NAME
     contract = _read_json(contract_path)
     runtime = _mapping(contract.get("runtime"))
@@ -85,6 +110,7 @@ def _workspace_plan(*, workspace_root: Path) -> dict[str, Any]:
             runtime=runtime,
             controller_decision=controller_decision,
             allowlist=allowlist,
+            control_plane_route_gate=control_plane_route_gate,
             action_payload=_mapping(item),
         )
         for item in _list(contract.get("actions"))
@@ -101,12 +127,63 @@ def _workspace_plan(*, workspace_root: Path) -> dict[str, Any]:
     }
 
 
+def _control_plane_gate_blockers(control_plane_route_gate: Mapping[str, Any]) -> list[str]:
+    if bool(control_plane_route_gate.get("authorized")):
+        return []
+    return [
+        f"control_plane_route_gate:{reason}"
+        for reason in _list(control_plane_route_gate.get("blocking_reasons"))
+        if _text(reason) is not None
+    ]
+
+
+def _runtime_blockers(runtime_status: str | None) -> list[str]:
+    if runtime_status in LIVE_RUNTIME_STATUSES:
+        return ["live_runtime_active"]
+    if runtime_status not in TERMINAL_RUNTIME_STATUSES:
+        return ["runtime_not_terminal"]
+    return []
+
+
+def _controller_decision_blockers(controller_decision: Mapping[str, Any]) -> list[str]:
+    if (
+        controller_decision.get("apply_intent") is True
+        and _text(controller_decision.get("decision")) == "approve_cleanup_apply"
+    ):
+        return []
+    return ["controller_apply_intent_missing"]
+
+
+def _action_allowlist_blockers(*, action: str, allowlist: set[str]) -> list[str]:
+    blockers: list[str] = []
+    if action not in ALLOWED_PHYSICAL_ACTIONS:
+        blockers.append("action_not_allowlisted")
+    if action not in allowlist:
+        blockers.append("action_not_allowlisted")
+    return blockers
+
+
+def _target_path_blockers(*, workspace_root: Path, target_path: Path) -> list[str]:
+    try:
+        target_path.relative_to(workspace_root.resolve())
+    except ValueError:
+        return ["target_outside_workspace"]
+    return []
+
+
+def _artifact_role_blockers(*, artifact_role: str, restore_contract: Mapping[str, Any]) -> list[str]:
+    if artifact_role in {"data_release", "runtime_payload"} and not restore_contract:
+        return ["missing_restore_contract"]
+    return []
+
+
 def _plan_action(
     *,
     workspace_root: Path,
     runtime: Mapping[str, Any],
     controller_decision: Mapping[str, Any],
     allowlist: set[str],
+    control_plane_route_gate: Mapping[str, Any],
     action_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
     action = _text(action_payload.get("action")) or "unknown"
@@ -114,32 +191,22 @@ def _plan_action(
     target_path = (workspace_root / target_ref).resolve() if target_ref else workspace_root
     artifact_role = _text(action_payload.get("artifact_role")) or "unknown"
     restore_contract = _mapping(action_payload.get("restore_contract"))
-    blockers: list[str] = []
     runtime_status = _text(runtime.get("status"))
-
-    if runtime_status in LIVE_RUNTIME_STATUSES:
-        blockers.append("live_runtime_active")
-    elif runtime_status not in TERMINAL_RUNTIME_STATUSES:
-        blockers.append("runtime_not_terminal")
-    if controller_decision.get("apply_intent") is not True or _text(controller_decision.get("decision")) != "approve_cleanup_apply":
-        blockers.append("controller_apply_intent_missing")
-    if action not in ALLOWED_PHYSICAL_ACTIONS:
-        blockers.append("action_not_allowlisted")
-    if action not in allowlist:
-        blockers.append("action_not_allowlisted")
-    try:
-        target_path.relative_to(workspace_root.resolve())
-    except ValueError:
-        blockers.append("target_outside_workspace")
-    restore_blockers = _restore_contract_blockers(
-        workspace_root=workspace_root,
-        target_path=target_path,
-        restore_contract=restore_contract,
+    blockers = _dedupe(
+        [
+            *_control_plane_gate_blockers(control_plane_route_gate),
+            *_runtime_blockers(runtime_status),
+            *_controller_decision_blockers(controller_decision),
+            *_action_allowlist_blockers(action=action, allowlist=allowlist),
+            *_target_path_blockers(workspace_root=workspace_root, target_path=target_path),
+            *_restore_contract_blockers(
+                workspace_root=workspace_root,
+                target_path=target_path,
+                restore_contract=restore_contract,
+            ),
+            *_artifact_role_blockers(artifact_role=artifact_role, restore_contract=restore_contract),
+        ]
     )
-    if restore_blockers:
-        blockers.extend(restore_blockers)
-    if artifact_role in {"data_release", "runtime_payload"} and not restore_contract:
-        blockers.append("missing_restore_contract")
 
     candidate_action = "audit-only" if "live_runtime_active" in blockers else action
     return {
@@ -149,7 +216,8 @@ def _plan_action(
         "target_path": str(target_path),
         "artifact_role": artifact_role,
         "eligible_for_apply": not blockers,
-        "blockers": _dedupe(blockers),
+        "blockers": blockers,
+        "control_plane_route_gate": dict(control_plane_route_gate),
         "restore_contract": dict(restore_contract),
         "applied": False,
     }
@@ -163,10 +231,10 @@ def _restore_contract_blockers(
 ) -> list[str]:
     if not restore_contract:
         return ["missing_restore_contract"]
-    blockers: list[str] = []
     restore_index = _text(restore_contract.get("restore_index_path") or restore_contract.get("restore_index"))
     checksum = _text(restore_contract.get("sha256") or restore_contract.get("checksum"))
     rehydrate = _mapping(restore_contract.get("rehydrate_verification"))
+    blockers: list[str] = []
     if restore_index is None:
         blockers.append("missing_restore_index")
     elif not (workspace_root / restore_index).exists():

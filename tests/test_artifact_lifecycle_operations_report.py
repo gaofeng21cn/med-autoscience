@@ -10,6 +10,21 @@ def _write(path: Path, text: str = "payload\n") -> Path:
     return path
 
 
+def _record_file_size_calls(module):
+    original_file_size = module._file_size
+    touched_paths: list[Path] = []
+
+    def recording_file_size(path: Path) -> int:
+        touched_paths.append(path)
+        return original_file_size(path)
+
+    return recording_file_size, touched_paths
+
+
+def _touched_relative_paths(root: Path, touched_paths: list[Path]) -> set[str]:
+    return {path.relative_to(root).as_posix() for path in touched_paths}
+
+
 def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_status(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
     workspace_root = tmp_path / "workspace"
@@ -103,6 +118,41 @@ def test_lifecycle_operations_report_default_does_not_walk_nested_runtime_or_wor
     for path in forbidden_files:
         _write(path, "large\n")
 
+    recording_file_size, touched_paths = _record_file_size_calls(module)
+    monkeypatch.setattr(module, "_file_size", recording_file_size)
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+    touched_relative_paths = _touched_relative_paths(workspace_root, touched_paths)
+
+    assert report["scan_policy"]["deep_scan_enabled"] is False
+    assert "studies/001-risk/paper/source/manuscript_source.md" in touched_relative_paths
+    assert "ops/med-deepscientist/runtime/quests/quest-001/payload/huge.bin" not in touched_relative_paths
+    assert "datasets/raw/release/nested/rows.csv" not in touched_relative_paths
+    assert ".ds/worktrees/lane-a/nested/payload.bin" not in touched_relative_paths
+    source_totals = report["source_totals"]
+    assert source_totals["runtime"]["scan_mode"] == "statistical_only"
+    assert source_totals["dataset"]["scan_mode"] == "statistical_only"
+
+
+def test_lifecycle_operations_report_default_does_not_walk_nested_audit_payloads(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    _write(workspace_root / "studies" / "001-risk" / "paper" / "source" / "manuscript_source.md")
+    audit_payload = (
+        workspace_root
+        / "studies"
+        / "001-risk"
+        / "artifacts"
+        / "autonomy"
+        / "ai_doctor_attempts"
+        / "nested"
+        / "attempt.json"
+    )
+    _write(audit_payload, "{}\n")
+
     original_file_size = module._file_size
     touched_paths: list[Path] = []
 
@@ -113,16 +163,16 @@ def test_lifecycle_operations_report_default_does_not_walk_nested_runtime_or_wor
     monkeypatch.setattr(module, "_file_size", recording_file_size)
 
     report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
-    touched_relative_paths = {path.relative_to(workspace_root).as_posix() for path in touched_paths}
+    touched_relative_paths = _touched_relative_paths(workspace_root, touched_paths)
 
-    assert report["scan_policy"]["deep_scan_enabled"] is False
     assert "studies/001-risk/paper/source/manuscript_source.md" in touched_relative_paths
-    assert "ops/med-deepscientist/runtime/quests/quest-001/payload/huge.bin" not in touched_relative_paths
-    assert "datasets/raw/release/nested/rows.csv" not in touched_relative_paths
-    assert ".ds/worktrees/lane-a/nested/payload.bin" not in touched_relative_paths
-    source_totals = report["source_totals"]
-    assert source_totals["runtime"]["scan_mode"] == "statistical_only"
-    assert source_totals["dataset"]["scan_mode"] == "statistical_only"
+    assert "studies/001-risk/artifacts/autonomy/ai_doctor_attempts/nested/attempt.json" not in touched_relative_paths
+    audit_stats = report["workspaces"][0]["statistical_directories"][0]
+    assert audit_stats["workspace_relative_path"] == "studies/001-risk/artifacts/autonomy"
+    assert audit_stats["source_bucket"] == "audit_log"
+    assert audit_stats["role"] == "audit_log"
+    assert audit_stats["scan_mode"] == "statistical_only"
+    assert report["source_totals"]["audit_log"]["scan_mode"] == "statistical_only"
 
 
 def test_lifecycle_operations_report_deep_scan_is_explicit_and_bounded(tmp_path: Path) -> None:
@@ -180,6 +230,27 @@ def test_lifecycle_operations_report_deep_scan_walks_bounded_operational_payload
     assert stats_by_path["datasets/raw"]["scan_mode"] == "deep_statistical"
     assert stats_by_path["datasets/raw"]["file_count"] == 1
     assert stats_by_path["datasets/raw"]["truncated"] is True
+
+
+def test_lifecycle_operations_report_deep_classified_scan_uses_workspace_budget(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    _write(workspace_root / "a.txt")
+    _write(workspace_root / "b.txt")
+    _write(workspace_root / "studies" / "001-risk" / "paper" / "source" / "manuscript_source.md")
+
+    report = module.run_lifecycle_operations_report(
+        workspace_roots=[workspace_root],
+        deep=True,
+        max_files=1,
+        max_seconds=10,
+    )
+    workspace = report["workspaces"][0]
+
+    assert workspace["classified_artifact_count"] == 1
+    assert workspace["classified_scan_truncated"] is True
 
 
 def test_lifecycle_operations_report_marks_incomplete_projection_surfaces(tmp_path: Path) -> None:

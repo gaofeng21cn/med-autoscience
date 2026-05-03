@@ -477,6 +477,98 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"),
             },
         ],
+        "workflow_steps": [
+            {
+                "step_id": "run_provider_literature_scout",
+                "title": "联网补文献",
+                "summary": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
+                "surface_kind": "medical_paper_readiness_action_card",
+                "command": (
+                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    + str(profile_ref.resolve())
+                    + " --format json"
+                ),
+                "requires": ["profile_ref", "study_id"],
+                "authority": "observability_projection_only",
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+            },
+            {
+                "step_id": "materialize_route_decision",
+                "title": "写入路线裁决",
+                "summary": "把路线选择、route-back 或 switch-line 决策写入 controller decision 投影。",
+                "surface_kind": "medical_paper_readiness_action_card",
+                "command": (
+                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    + str(profile_ref.resolve())
+                    + " --format json"
+                ),
+                "requires": ["profile_ref", "study_id"],
+                "authority": "observability_projection_only",
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+            },
+            {
+                "step_id": "resolve_statistical_blockers",
+                "title": "处理统计 blocker",
+                "summary": "逐项处理缺失值、precision、外部验证、多重性、临床效用和敏感性分析 blocker/waiver。",
+                "surface_kind": "medical_paper_readiness_action_card",
+                "command": (
+                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    + str(profile_ref.resolve())
+                    + " --format json"
+                ),
+                "requires": ["profile_ref", "study_id"],
+                "authority": "observability_projection_only",
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+            },
+            {
+                "step_id": "start_revision_rebuttal_loop",
+                "title": "启动返修",
+                "summary": "摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。",
+                "surface_kind": "medical_paper_readiness_action_card",
+                "command": (
+                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    + str(profile_ref.resolve())
+                    + " --format json"
+                ),
+                "requires": ["profile_ref", "study_id"],
+                "authority": "observability_projection_only",
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+            },
+            {
+                "step_id": "authorize_manuscript_drafting",
+                "title": "授权写作",
+                "summary": "检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。",
+                "surface_kind": "medical_paper_readiness_action_card",
+                "command": (
+                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    + str(profile_ref.resolve())
+                    + " --format json"
+                ),
+                "requires": ["profile_ref", "study_id"],
+                "authority": "observability_projection_only",
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+            },
+            {
+                "step_id": "run_real_workspace_soak_monitor",
+                "title": "运行真实 soak",
+                "summary": "从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。",
+                "surface_kind": "medical_paper_readiness_action_card",
+                "command": (
+                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    + str(profile_ref.resolve())
+                    + " --format json"
+                ),
+                "requires": ["profile_ref", "study_id"],
+                "authority": "observability_projection_only",
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+            },
+        ],
     }
 
 def assert_manifest_entry_and_lifecycle_surfaces(*, module, payload, profile, profile_ref) -> None:

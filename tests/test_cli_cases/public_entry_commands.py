@@ -508,9 +508,10 @@ def test_cleanup_apply_command_dispatches_controller(monkeypatch, tmp_path: Path
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
 
-    def fake_run_cleanup_apply(*, workspace_roots, apply: bool) -> dict[str, object]:
+    def fake_run_cleanup_apply(*, workspace_roots, apply: bool, control_plane_snapshot=None) -> dict[str, object]:
         called["workspace_roots"] = list(workspace_roots)
         called["apply"] = apply
+        called["control_plane_snapshot"] = control_plane_snapshot
         return {
             "surface": "control_plane_cleanup_apply",
             "apply": apply,
@@ -536,6 +537,7 @@ def test_cleanup_apply_command_dispatches_controller(monkeypatch, tmp_path: Path
     assert called == {
         "workspace_roots": [tmp_path / "workspace"],
         "apply": False,
+        "control_plane_snapshot": None,
     }
     payload = json.loads(captured.out)
     assert payload["surface"] == "control_plane_cleanup_apply"

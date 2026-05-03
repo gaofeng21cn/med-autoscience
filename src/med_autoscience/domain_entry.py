@@ -197,6 +197,10 @@ def _optional_float_value(value: Any) -> float | None:
     return float(value)
 
 
+def _optional_mapping_value(value: Any) -> Mapping[str, Any] | None:
+    return value if isinstance(value, Mapping) else None
+
+
 def _dispatch_control_plane_operation(command: str, request: Mapping[str, Any]) -> dict[str, Any]:
     workspace_roots = _workspace_roots_value(request.get("workspace_roots"))
     if command == "control-plane-migration-audit":
@@ -208,6 +212,7 @@ def _dispatch_control_plane_operation(command: str, request: Mapping[str, Any]) 
         return control_plane_cleanup_apply.run_cleanup_apply(
             workspace_roots=workspace_roots,
             apply=_bool_value(request.get("apply")),
+            control_plane_snapshot=_optional_mapping_value(request.get("control_plane_snapshot")),
         )
     if command == "control-plane-lifecycle-report":
         return artifact_lifecycle_operations_report.run_lifecycle_operations_report(

@@ -11,6 +11,7 @@ def _snapshot(
     paper_write_allowed: bool = True,
     bundle_build_allowed: bool = True,
     runtime_recovery_allowed: bool = True,
+    cleanup_apply_allowed: bool = True,
 ) -> dict[str, object]:
     return {
         "surface": "control_plane_snapshot",
@@ -28,6 +29,7 @@ def _snapshot(
             "paper_write_allowed": paper_write_allowed,
             "bundle_build_allowed": bundle_build_allowed,
             "runtime_recovery_allowed": runtime_recovery_allowed,
+            "cleanup_apply_allowed": cleanup_apply_allowed,
             "authorized": paper_write_allowed and bundle_build_allowed and runtime_recovery_allowed,
         },
     }
@@ -98,6 +100,19 @@ def test_route_gate_blocks_submission_notice_materialize_when_bundle_build_false
     assert gate["authorized"] is False
     assert gate["route_authorization_flag"] == "bundle_build_allowed"
     assert "bundle_build_allowed_false" in gate["blocking_reasons"]
+
+
+def test_route_gate_blocks_cleanup_apply_when_route_flag_false() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "cleanup_apply",
+        {"control_plane_snapshot": _snapshot(cleanup_apply_allowed=False)},
+    )
+
+    assert gate["authorized"] is False
+    assert gate["route_authorization_flag"] == "cleanup_apply_allowed"
+    assert "cleanup_apply_allowed_false" in gate["blocking_reasons"]
 
 
 def test_route_gate_projection_only_records_generated_surface_policy() -> None:

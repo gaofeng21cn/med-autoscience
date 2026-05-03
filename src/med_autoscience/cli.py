@@ -928,6 +928,12 @@ def main(argv: list[str] | None = None) -> int:
         result = control_plane_cleanup_apply.run_cleanup_apply(
             workspace_roots=[Path(root) for root in args.workspace_root],
             apply=args.apply,
+            control_plane_snapshot=_load_optional_object_payload_from_args(
+                payload_file=args.control_plane_snapshot_file,
+                payload_json=args.control_plane_snapshot_json,
+                file_label="--control-plane-snapshot-file",
+                json_label="--control-plane-snapshot-json",
+            ),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

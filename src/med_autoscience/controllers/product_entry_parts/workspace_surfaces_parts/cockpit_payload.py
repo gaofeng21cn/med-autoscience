@@ -328,25 +328,29 @@ def _read_medical_paper_readiness_projection(*, study_root: Path) -> dict[str, A
     return readiness
 
 
-def _workspace_medical_paper_readiness_state(*, studies: list[dict[str, Any]]) -> dict[str, Any]:
-    projections = [
-        dict(item.get("medical_paper_readiness") or {})
+def _medical_paper_readiness_entries(
+    studies: list[dict[str, Any]],
+) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    return [
+        (item, dict(item.get("medical_paper_readiness") or {}))
         for item in studies
         if isinstance(item.get("medical_paper_readiness"), Mapping)
     ]
+
+
+def _medical_paper_readiness_counts(
+    *,
+    study_count: int,
+    entries: list[tuple[dict[str, Any], dict[str, Any]]],
+) -> dict[str, int]:
     counts = {
-        "study_count": len(studies),
-        "projected_count": len(projections),
+        "study_count": study_count,
+        "projected_count": len(entries),
         "ready": 0,
         "attention_required": 0,
         "missing": 0,
     }
-    study_summaries: list[dict[str, Any]] = []
-    for item, readiness in zip(
-        [study for study in studies if isinstance(study.get("medical_paper_readiness"), Mapping)],
-        projections,
-        strict=False,
-    ):
+    for _, readiness in entries:
         overall_status = _non_empty_text(readiness.get("overall_status")) or "unknown"
         if overall_status == "ready":
             counts["ready"] += 1
@@ -355,44 +359,66 @@ def _workspace_medical_paper_readiness_state(*, studies: list[dict[str, Any]]) -
             counts["attention_required"] += 1
         else:
             counts["attention_required"] += 1
-        study_summaries.append(
-            {
-                "study_id": item.get("study_id"),
-                "overall_status": overall_status,
-                "ready_count": readiness.get("ready_count"),
-                "required_count": readiness.get("required_count"),
-                "next_action": dict(readiness.get("next_action") or {}),
-                "action_cards": list(readiness.get("action_cards") or []),
-                "workflow_steps": [
-                    _readiness_action_card_workflow_step(
-                        card=dict(card),
-                        command=dict(item.get("commands") or {}).get("progress")
-                        or dict(item.get("commands") or {}).get("status")
-                        or "",
-                    )
-                    for card in readiness.get("action_cards") or []
-                    if isinstance(card, Mapping)
-                ],
-                "quality_claim_authorized": False,
-                "mechanical_projection_can_authorize_quality": False,
-                "authority": _non_empty_text(readiness.get("authority")) or "observability_projection_only",
-            }
-        )
+    return counts
+
+
+def _readiness_workflow_steps(
+    *,
+    item: Mapping[str, Any],
+    readiness: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    commands = dict(item.get("commands") or {})
+    command = commands.get("progress") or commands.get("status") or ""
+    return [
+        _readiness_action_card_workflow_step(card=dict(card), command=command)
+        for card in readiness.get("action_cards") or []
+        if isinstance(card, Mapping)
+    ]
+
+
+def _readiness_study_summary(
+    *,
+    item: Mapping[str, Any],
+    readiness: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "study_id": item.get("study_id"),
+        "overall_status": _non_empty_text(readiness.get("overall_status")) or "unknown",
+        "ready_count": readiness.get("ready_count"),
+        "required_count": readiness.get("required_count"),
+        "next_action": dict(readiness.get("next_action") or {}),
+        "action_cards": list(readiness.get("action_cards") or []),
+        "workflow_steps": _readiness_workflow_steps(item=item, readiness=readiness),
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+        "authority": _non_empty_text(readiness.get("authority")) or "observability_projection_only",
+    }
+
+
+def _workspace_medical_paper_readiness_status(counts: Mapping[str, int]) -> tuple[str, str]:
     if counts["projected_count"] == 0:
-        status = "not_available"
-        summary = "当前还没有可见 Medical Paper Readiness projection。"
-    elif counts["attention_required"]:
-        status = "attention_required"
-        summary = (
+        return "not_available", "当前还没有可见 Medical Paper Readiness projection。"
+    if counts["attention_required"]:
+        return (
+            "attention_required",
             f"{counts['projected_count']} 个 study 已接入 Medical Paper Readiness projection；"
-            f"{counts['attention_required']} 个仍有 readiness 缺口。"
+            f"{counts['attention_required']} 个仍有 readiness 缺口。",
         )
-    else:
-        status = "ready"
-        summary = (
-            f"{counts['projected_count']} 个 study 已接入 Medical Paper Readiness projection；"
-            "当前自动医学论文能力闭环没有新的可见缺口。"
-        )
+    return (
+        "ready",
+        f"{counts['projected_count']} 个 study 已接入 Medical Paper Readiness projection；"
+        "当前自动医学论文能力闭环没有新的可见缺口。",
+    )
+
+
+def _workspace_medical_paper_readiness_state(*, studies: list[dict[str, Any]]) -> dict[str, Any]:
+    entries = _medical_paper_readiness_entries(studies)
+    counts = _medical_paper_readiness_counts(study_count=len(studies), entries=entries)
+    study_summaries = [
+        _readiness_study_summary(item=item, readiness=readiness)
+        for item, readiness in entries
+    ]
+    status, summary = _workspace_medical_paper_readiness_status(counts)
     return {
         "surface_kind": "workspace_medical_paper_readiness_state",
         "read_model": "medical_paper_readiness_read_model",

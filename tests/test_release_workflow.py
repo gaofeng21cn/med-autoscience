@@ -186,15 +186,11 @@ def test_advisory_workflow_uploads_non_blocking_lane_summaries() -> None:
         assert "if-no-files-found: warn" in upload_step
 
 
-def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
-    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
-    readme_zh = (REPO_ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
-    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
-    docs_readme_zh = (REPO_ROOT / "docs" / "README.zh-CN.md").read_text(encoding="utf-8")
-    preflight_doc = (REPO_ROOT / "docs" / "program" / "repository_ci_preflight.md").read_text(
-        encoding="utf-8"
-    )
-
+def _assert_public_readmes_are_user_entry_only(
+    *,
+    readme: str,
+    readme_zh: str,
+) -> None:
     assert "Docs Guide" in readme
     assert "Project" in readme
     assert "independent medical research domain agent" in readme
@@ -207,6 +203,7 @@ def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     assert "submission-facing DOCX/PDF coverage" not in readme
     assert "`pandoc` plus `BasicTeX`" not in readme
     assert "advisory on push" not in readme
+
     assert "文档索引" in readme_zh
     assert "项目概览" in readme_zh
     assert "独立的 medical research domain agent" in readme_zh
@@ -219,6 +216,14 @@ def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     assert "submission-facing DOCX/PDF 覆盖" not in readme_zh
     assert "`pandoc` 与 `BasicTeX`" not in readme_zh
     assert "push 上保持 advisory 告警" not in readme_zh
+
+
+def _assert_docs_readmes_route_to_maintenance_docs(
+    *,
+    docs_readme: str,
+    docs_readme_zh: str,
+    preflight_doc: str,
+) -> None:
     assert "product boundary, operator entry surfaces, runtime contracts, and maintenance records" in docs_readme
     assert "产品边界、操作入口、运行合同和维护记录" in docs_readme_zh
     assert "submission-facing DOCX/PDF" in preflight_doc
@@ -227,6 +232,23 @@ def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     assert "耗时预算只用于观察和提醒" in preflight_doc
     assert "不作为 push 阻塞条件" in preflight_doc
     assert "advisory run log" in preflight_doc
+
+
+def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    readme_zh = (REPO_ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    docs_readme_zh = (REPO_ROOT / "docs" / "README.zh-CN.md").read_text(encoding="utf-8")
+    preflight_doc = (REPO_ROOT / "docs" / "program" / "repository_ci_preflight.md").read_text(
+        encoding="utf-8"
+    )
+
+    _assert_public_readmes_are_user_entry_only(readme=readme, readme_zh=readme_zh)
+    _assert_docs_readmes_route_to_maintenance_docs(
+        docs_readme=docs_readme,
+        docs_readme_zh=docs_readme_zh,
+        preflight_doc=preflight_doc,
+    )
 
 
 def test_ci_and_advisory_workflows_split_stable_push_and_advisory_jobs() -> None:
