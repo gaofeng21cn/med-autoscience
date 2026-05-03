@@ -82,6 +82,28 @@ def test_pre_draft_readiness_materializer_requires_ai_authorized_inputs() -> Non
     ]
 
 
+def test_quality_regression_calibration_evidence_contract_keeps_judge_scores_non_authoritative() -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_calibration")
+
+    contract = module.build_quality_regression_calibration_evidence_contract()
+
+    assert contract["surface"] == "quality_regression_calibration_evidence_contract"
+    assert contract["owner"] == "MAS Evaluation OS"
+    assert contract["judge_scores"] == {
+        "accepted_sources": ["autorater", "side_by_side_judge"],
+        "role": "calibration_evidence_only",
+        "can_authorize_publication_quality": False,
+        "can_replace_ai_reviewer": False,
+    }
+    assert contract["required_refs"] == [
+        "draft_eval_ref",
+        "revision_eval_ref",
+        "final_package_eval_ref",
+        "calibration_evidence_refs",
+    ]
+    assert contract["fail_closed_without_refs"] is True
+
+
 def test_ai_first_drift_audit_tracks_calibration_corpus() -> None:
     module = importlib.import_module("med_autoscience.ai_first_drift_audit")
 
