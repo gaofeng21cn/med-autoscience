@@ -23,6 +23,22 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def write_complete_canonical_study_paper_surface(
+    paper_root: Path,
+    *,
+    paper_branch: str,
+) -> None:
+    dump_json(paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": paper_branch})
+    (paper_root / "draft.md").write_text("# Draft\n\nJournal-style manuscript.\n", encoding="utf-8")
+    dump_json(paper_root / "medical_manuscript_blueprint.json", {"schema_version": 1})
+    dump_json(paper_root / "medical_prose_review.json", {"schema_version": 1})
+    dump_json(paper_root / "claim_evidence_map.json", {"schema_version": 1})
+    dump_json(paper_root / "results_narrative_map.json", {"schema_version": 1})
+    dump_json(paper_root / "figure_semantics_manifest.json", {"schema_version": 1})
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+
+
 def test_resolve_latest_paper_root_prefers_latest_manifest(tmp_path: Path) -> None:
     quest_root = tmp_path / "runtime" / "quests" / "q001"
     old_manifest = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "paper_bundle_manifest.json"
@@ -77,7 +93,7 @@ def test_resolve_latest_paper_root_prefers_newer_bound_study_canonical_paper(tmp
     (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: q001\n", encoding="utf-8")
     (study_root / "runtime_binding.yaml").write_text("quest_id: q001\n", encoding="utf-8")
-    dump_json(study_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
+    write_complete_canonical_study_paper_surface(study_paper_root, paper_branch="paper/main")
     newer_time = runtime_paper_root.joinpath("paper_bundle_manifest.json").stat().st_mtime + 60
     os.utime(study_paper_root / "paper_bundle_manifest.json", (newer_time, newer_time))
 
@@ -86,7 +102,9 @@ def test_resolve_latest_paper_root_prefers_newer_bound_study_canonical_paper(tmp
     assert result == study_paper_root.resolve()
 
 
-def test_resolve_latest_paper_root_keeps_runtime_paper_when_bound_study_branch_differs(tmp_path: Path) -> None:
+def test_resolve_latest_paper_root_keeps_runtime_paper_when_bound_study_branch_differs_and_surface_incomplete(
+    tmp_path: Path,
+) -> None:
     workspace_root = tmp_path / "workspace"
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "q001"
     runtime_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
@@ -104,6 +122,26 @@ def test_resolve_latest_paper_root_keeps_runtime_paper_when_bound_study_branch_d
     result = resolve_latest_paper_root(quest_root)
 
     assert result == runtime_paper_root.resolve()
+
+
+def test_resolve_latest_paper_root_prefers_complete_bound_study_canonical_paper_when_branch_differs(
+    tmp_path: Path,
+) -> None:
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "q001"
+    runtime_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    study_root = workspace_root / "studies" / "q001"
+    study_paper_root = study_root / "paper"
+
+    dump_json(runtime_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: q001\n", encoding="utf-8")
+    (study_root / "runtime_binding.yaml").write_text("quest_id: q001\n", encoding="utf-8")
+    write_complete_canonical_study_paper_surface(study_paper_root, paper_branch="main")
+
+    result = resolve_latest_paper_root(quest_root)
+
+    assert result == study_paper_root.resolve()
 
 
 def test_resolve_paper_bundle_and_submission_minimal_manifest(tmp_path: Path) -> None:

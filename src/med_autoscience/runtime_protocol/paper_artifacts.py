@@ -8,6 +8,20 @@ from typing import Any
 from med_autoscience.publication_profiles import is_supported_publication_profile, normalize_publication_profile
 from med_autoscience.runtime_protocol.topology import resolve_study_root_from_quest_root
 
+
+_CANONICAL_STUDY_PAPER_REQUIRED_SURFACES = (
+    "paper_bundle_manifest.json",
+    "draft.md",
+    "medical_manuscript_blueprint.json",
+    "medical_prose_review.json",
+    "claim_evidence_map.json",
+    "results_narrative_map.json",
+    "figure_semantics_manifest.json",
+    "figures/figure_catalog.json",
+    "tables/table_catalog.json",
+)
+
+
 def _resolve_path(path: Path) -> Path:
     return Path(path).expanduser().resolve()
 
@@ -129,6 +143,25 @@ def _resolve_bound_study_paper_bundle_manifest_by_branch(
     return candidate.resolve()
 
 
+def _is_complete_bound_study_canonical_paper_root(paper_root: Path) -> bool:
+    return all((paper_root / relpath).exists() for relpath in _CANONICAL_STUDY_PAPER_REQUIRED_SURFACES)
+
+
+def _resolve_complete_bound_study_paper_bundle_manifest(quest_root: Path) -> Path | None:
+    try:
+        binding = resolve_study_root_from_quest_root(quest_root)
+    except (FileNotFoundError, ValueError):
+        return None
+    if binding is None:
+        return None
+    _, study_root = binding
+    paper_root = study_root / "paper"
+    candidate = paper_root / "paper_bundle_manifest.json"
+    if not candidate.exists() or not _is_complete_bound_study_canonical_paper_root(paper_root):
+        return None
+    return candidate.resolve()
+
+
 def _prefer_newer_bound_study_manifest(
     *,
     quest_root: Path,
@@ -236,6 +269,9 @@ def _paper_bundle_manifest_rank(quest_root: Path, manifest_path: Path) -> tuple[
 
 def resolve_paper_bundle_manifest(quest_root: Path) -> Path | None:
     resolved_quest_root = _resolve_path(quest_root)
+    complete_study_manifest = _resolve_complete_bound_study_paper_bundle_manifest(resolved_quest_root)
+    if complete_study_manifest is not None:
+        return complete_study_manifest
     candidates: list[Path] = []
     patterns = [
         ".ds/worktrees/*/paper/paper_bundle_manifest.json",
