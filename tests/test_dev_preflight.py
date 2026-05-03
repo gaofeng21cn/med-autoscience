@@ -220,7 +220,12 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
     ):
         assert target in phony_targets
     assert "test-control-plane:" in makefile
-    assert 'if [[ "${lane}" == "control-plane" ]]; then\n  make test-control-plane\n  exit 0\nfi\n' in verify_script
+    assert (
+        'if [[ "${lane}" == "control-plane" ]]; then\n'
+        '  run_with_optional_summary "control-plane" "make test-control-plane" make test-control-plane\n'
+        "  exit 0\n"
+        "fi\n"
+    ) in verify_script
     assert "test-smoke:" in makefile
     assert "test-regression:" in makefile
     assert "test-ci-preflight:" in makefile
@@ -230,7 +235,12 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
         "tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py "
         "tests/test_dev_preflight.py -q\n"
     ) in makefile
-    assert 'if [[ "${lane}" == "family" ]]; then\n  make test-family\n  exit 0\nfi\n' in verify_script
+    assert (
+        'if [[ "${lane}" == "family" ]]; then\n'
+        '  run_with_optional_summary "family" "make test-family" make test-family\n'
+        "  exit 0\n"
+        "fi\n"
+    ) in verify_script
     assert 'if [[ "${lane}" == "ci-preflight" ]]; then' in verify_script
 
 
