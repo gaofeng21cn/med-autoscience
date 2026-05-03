@@ -11,8 +11,12 @@ SURFACE = "ai_reviewer_journal_writing_authorization"
 FULL_DRAFTING_MODE = "full_manuscript_drafting"
 PRE_DRAFT_MODE = "pre_draft_planning_only"
 REQUIRED_POLICY_ID = "medical_publication_critique_v1"
+CRITIQUE_LINK_FIELDS = ("claim_id", "display_id", "evidence_ref", "reviewer_concern_ref")
 
-__all__ = ["build_ai_reviewer_journal_writing_authorization"]
+__all__ = [
+    "build_ai_reviewer_journal_writing_authorization",
+    "build_authoring_runtime_authorization",
+]
 
 
 def _mapping_or_none(value: Any) -> dict[str, Any] | None:
@@ -198,6 +202,108 @@ def _calibration_cases_status(
     return applied_cases
 
 
+def _concern_id(concern: Mapping[str, Any], index: int) -> str:
+    explicit_id = _non_empty_ref(concern.get("concern_id"))
+    return explicit_id if explicit_id is not None else f"concern[{index}]"
+
+
+def _publication_critique_concerns(publication_eval: Mapping[str, Any]) -> list[Any] | None:
+    critique_payload = (
+        publication_eval.get("publication_critique")
+        or publication_eval.get("critique_trace")
+        or publication_eval.get("publication_critique_trace")
+    )
+    if isinstance(critique_payload, Mapping):
+        concerns = (
+            critique_payload.get("concerns")
+            or critique_payload.get("critique_concerns")
+            or critique_payload.get("concern_linkage")
+        )
+    else:
+        concerns = critique_payload
+    return _non_empty_sequence(concerns)
+
+
+def _critique_concern_linkage(
+    publication_eval: Mapping[str, Any] | None,
+    blockers: list[str],
+) -> list[dict[str, Any]]:
+    if publication_eval is None:
+        return []
+    concerns = _publication_critique_concerns(publication_eval)
+    if concerns is None:
+        _add_blocker(blockers, "publication_critique_trace_missing")
+        return []
+
+    concern_linkage: list[dict[str, Any]] = []
+    for index, raw_concern in enumerate(concerns):
+        if not isinstance(raw_concern, Mapping):
+            _add_blocker(blockers, f"critique_concern_invalid[{index}]")
+            continue
+        concern = dict(raw_concern)
+        linked_values = {
+            field: _non_empty_ref(concern.get(field))
+            for field in CRITIQUE_LINK_FIELDS
+        }
+        concern_identifier = _concern_id(concern, index)
+        if not any(linked_values.values()):
+            _add_blocker(blockers, f"critique_concern_unlinked:{concern_identifier}")
+        concern_linkage.append(
+            {
+                "concern_id": concern_identifier,
+                "claim_id": linked_values["claim_id"],
+                "display_id": linked_values["display_id"],
+                "evidence_ref": linked_values["evidence_ref"],
+                "reviewer_concern_ref": linked_values["reviewer_concern_ref"],
+            }
+        )
+    return concern_linkage
+
+
+def _required_input_status(blockers: Sequence[str], *prefixes: str) -> str:
+    return "blocked" if any(blocker.startswith(prefix) for blocker in blockers for prefix in prefixes) else "ready"
+
+
+def _authorization_contract(blockers: Sequence[str]) -> dict[str, Any]:
+    return {
+        "required_inputs": {
+            "target_journal_writing_layer": _required_input_status(
+                blockers,
+                "target_journal_writing_layer",
+            ),
+            "claim_to_paragraph_map": _required_input_status(
+                blockers,
+                "claim_to_paragraph_map",
+            ),
+            "display_to_claim_map": _required_input_status(
+                blockers,
+                "display_to_claim_map",
+            ),
+            "restrained_language_strategy": _required_input_status(
+                blockers,
+                "restrained_language_strategy",
+            ),
+            "evidence_ledger_ref": _required_input_status(blockers, "evidence_ledger_ref"),
+            "review_ledger_ref": _required_input_status(blockers, "review_ledger_ref"),
+            "publication_eval_ai_reviewer_provenance": _required_input_status(
+                blockers,
+                "publication_eval",
+                "reviewer_operating_system",
+                "quality_claim",
+                "mechanical_projection",
+            ),
+            "calibration_refs": _required_input_status(blockers, "calibration_"),
+            "critique_trace": _required_input_status(
+                blockers,
+                "publication_critique_trace",
+                "critique_concern",
+            ),
+        },
+        "status": "blocked" if blockers else "authorized",
+        "blockers": list(blockers),
+    }
+
+
 def build_ai_reviewer_journal_writing_authorization(
     *,
     target_journal_writing_layer: Mapping[str, Any],
@@ -228,9 +334,10 @@ def build_ai_reviewer_journal_writing_authorization(
     )
 
     ai_reviewer_authorized, quality_claim_authorized = _publication_eval_authority(
-        _mapping_or_none(publication_eval),
+        normalized_publication_eval := _mapping_or_none(publication_eval),
         blockers,
     )
+    concern_linkage = _critique_concern_linkage(normalized_publication_eval, blockers)
 
     full_drafting_authorized = not blockers and ai_reviewer_authorized and quality_claim_authorized
     return {
@@ -250,4 +357,10 @@ def build_ai_reviewer_journal_writing_authorization(
             "review_ledger_ref": normalized_review_ref,
         },
         "calibration_cases_applied": applied_cases,
+        "concern_linkage": concern_linkage,
+        "authorization_contract": _authorization_contract(blockers),
     }
+
+
+def build_authoring_runtime_authorization(**kwargs: Any) -> dict[str, Any]:
+    return build_ai_reviewer_journal_writing_authorization(**kwargs)

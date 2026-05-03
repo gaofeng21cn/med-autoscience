@@ -82,6 +82,18 @@ def _publication_eval() -> dict[str, Any]:
             }
             for dimension in QUALITY_DIMENSIONS
         },
+        "publication_critique": {
+            "concerns": [
+                {
+                    "concern_id": "concern-overstrong-primary",
+                    "claim_id": "claim-primary",
+                    "display_id": "figure-1",
+                    "evidence_ref": "paper/evidence_ledger.json#claim-primary",
+                    "reviewer_concern_ref": "paper/review/review_ledger.json#concern-overstrong-primary",
+                    "summary": "Primary claim needs restrained association wording.",
+                }
+            ],
+        },
     }
 
 
@@ -150,6 +162,23 @@ def test_complete_ai_reviewer_authorizes_full_manuscript_drafting() -> None:
     assert [case["case_id"] for case in projection["calibration_cases_applied"]] == [
         "thin_first_draft",
         "overstrong_claim",
+    ]
+    assert projection["authorization_contract"]["status"] == "authorized"
+    assert projection["authorization_contract"]["blockers"] == []
+    assert projection["authorization_contract"]["required_inputs"][
+        "target_journal_writing_layer"
+    ] == "ready"
+    assert projection["authorization_contract"]["required_inputs"][
+        "publication_eval_ai_reviewer_provenance"
+    ] == "ready"
+    assert projection["concern_linkage"] == [
+        {
+            "concern_id": "concern-overstrong-primary",
+            "claim_id": "claim-primary",
+            "display_id": "figure-1",
+            "evidence_ref": "paper/evidence_ledger.json#claim-primary",
+            "reviewer_concern_ref": "paper/review/review_ledger.json#concern-overstrong-primary",
+        }
     ]
 
 
@@ -245,3 +274,21 @@ def test_mechanical_projection_fields_cannot_authorize_quality() -> None:
     assert projection["full_drafting_authorized"] is False
     assert projection["mode"] == "pre_draft_planning_only"
     assert "mechanical_projection_cannot_authorize_quality" in projection["blockers"]
+
+
+def test_unlinked_publication_critique_concern_blocks_full_drafting() -> None:
+    publication_eval = _publication_eval()
+    publication_eval["publication_critique"]["concerns"] = [
+        {
+            "concern_id": "concern-unlinked",
+            "summary": "Concern has no durable trace to claims, displays, evidence, or review ledger.",
+        }
+    ]
+
+    projection = _projection(publication_eval=publication_eval)
+
+    assert projection["full_drafting_authorized"] is False
+    assert projection["mode"] == "pre_draft_planning_only"
+    assert projection["authorization_contract"]["status"] == "blocked"
+    assert "critique_concern_unlinked:concern-unlinked" in projection["blockers"]
+    assert projection["authorization_contract"]["required_inputs"]["critique_trace"] == "blocked"
