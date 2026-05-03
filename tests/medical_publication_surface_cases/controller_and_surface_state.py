@@ -220,6 +220,34 @@ def test_build_surface_state_uses_newer_bound_study_paper_authority(tmp_path: Pa
     assert state.medical_prose_review_path == study_paper_root.resolve() / "medical_prose_review.json"
 
 
+def test_build_surface_state_prefers_eval_owned_medical_prose_review(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "003-paper"
+    runtime_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    study_root = workspace_root / "studies" / "003-paper"
+    stable_review_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
+
+    dump_json(quest_root / ".ds" / "runtime_state.json", {"quest_id": "003-paper", "status": "stopped"})
+    dump_json(runtime_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: 003-paper\n", encoding="utf-8")
+    (study_root / "runtime_binding.yaml").write_text("quest_id: 003-paper\n", encoding="utf-8")
+    dump_json(
+        study_root / "paper" / "paper_bundle_manifest.json",
+        {"schema_version": 1, "paper_branch": "paper/main"},
+    )
+    dump_json(study_root / "paper" / "medical_prose_review.json", {"surface": "paper_local_review"})
+    dump_json(stable_review_path, {"surface": "medical_prose_review"})
+    newer_time = (runtime_paper_root / "paper_bundle_manifest.json").stat().st_mtime + 60
+    os.utime(study_root / "paper" / "paper_bundle_manifest.json", (newer_time, newer_time))
+
+    state = module.build_surface_state(quest_root)
+
+    assert state.paper_root == (study_root / "paper").resolve()
+    assert state.medical_prose_review_path == stable_review_path.resolve()
+
+
 def test_write_surface_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)

@@ -536,6 +536,10 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
         study_root = paper_context.study_root
     if study_root is None:
         study_root = resolve_study_root_from_live_quest_root(quest_root, runtime_state)
+    medical_prose_review_path = resolve_medical_prose_review_path(
+        paper_root=paper_root,
+        study_root=study_root,
+    )
     return SurfaceState(
         quest_root=quest_root,
         runtime_state=runtime_state,
@@ -555,11 +559,7 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
             if study_root is not None
             else paper_root / medical_surface_policy.MEDICAL_MANUSCRIPT_BLUEPRINT_BASENAME
         ),
-        medical_prose_review_path=(
-            study_root / "paper" / medical_surface_policy.MEDICAL_PROSE_REVIEW_BASENAME
-            if study_root is not None
-            else paper_root / "review" / medical_surface_policy.MEDICAL_PROSE_REVIEW_BASENAME
-        ),
+        medical_prose_review_path=medical_prose_review_path,
         results_narrative_map_path=paper_root / medical_surface_policy.RESULTS_NARRATIVE_MAP_BASENAME,
         figure_semantics_manifest_path=paper_root / medical_surface_policy.FIGURE_SEMANTICS_MANIFEST_BASENAME,
         claim_evidence_map_path=paper_root / medical_surface_policy.CLAIM_EVIDENCE_MAP_BASENAME,
@@ -568,6 +568,23 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
         reproducibility_supplement_path=paper_root / medical_surface_policy.REPRODUCIBILITY_SUPPLEMENT_BASENAME,
         endpoint_provenance_note_path=paper_root / medical_surface_policy.ENDPOINT_PROVENANCE_NOTE_BASENAME,
     )
+
+
+def resolve_medical_prose_review_path(*, paper_root: Path, study_root: Path | None) -> Path:
+    candidates: list[Path] = []
+    if study_root is not None:
+        candidates.append(study_root / "artifacts" / "publication_eval" / medical_surface_policy.MEDICAL_PROSE_REVIEW_BASENAME)
+        candidates.append(study_root / "paper" / medical_surface_policy.MEDICAL_PROSE_REVIEW_BASENAME)
+    candidates.extend(
+        [
+            paper_root / medical_surface_policy.MEDICAL_PROSE_REVIEW_BASENAME,
+            paper_root / "review" / medical_surface_policy.MEDICAL_PROSE_REVIEW_BASENAME,
+        ]
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    return candidates[0].resolve()
 
 
 def excerpt_around(text: str, start: int, end: int, *, width: int = 96) -> str:
