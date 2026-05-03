@@ -543,15 +543,23 @@ def test_cleanup_apply_command_dispatches_controller(monkeypatch, tmp_path: Path
     assert payload["action_counts"]["mutating"] == 0
 
 
-def test_lifecycle_report_command_dispatches_read_only_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_lifecycle_report_command_dispatches_read_only_controller_options(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
 
-    def fake_run_lifecycle_operations_report(*, workspace_roots) -> dict[str, object]:
+    def fake_run_lifecycle_operations_report(*, workspace_roots, deep: bool, max_files: int, max_seconds: float) -> dict[str, object]:
         called["workspace_roots"] = list(workspace_roots)
+        called["deep"] = deep
+        called["max_files"] = max_files
+        called["max_seconds"] = max_seconds
         return {
             "surface": "control_plane_lifecycle_report",
             "workspace_count": len(list(workspace_roots)),
+            "scan_policy": {
+                "deep_scan_enabled": deep,
+                "max_files": max_files,
+                "max_seconds": max_seconds,
+            },
             "mutation_policy": {"read_only": True, "physical_cleanup_performed": False},
         }
 
@@ -566,14 +574,27 @@ def test_lifecycle_report_command_dispatches_read_only_controller(monkeypatch, t
             "control-plane-lifecycle-report",
             "--workspace-root",
             str(tmp_path / "workspace"),
+            "--deep",
+            "--max-files",
+            "7",
+            "--max-seconds",
+            "1.5",
         ]
     )
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert called == {"workspace_roots": [tmp_path / "workspace"]}
+    assert called == {
+        "workspace_roots": [tmp_path / "workspace"],
+        "deep": True,
+        "max_files": 7,
+        "max_seconds": 1.5,
+    }
     payload = json.loads(captured.out)
     assert payload["surface"] == "control_plane_lifecycle_report"
+    assert payload["scan_policy"]["deep_scan_enabled"] is True
+    assert payload["scan_policy"]["max_files"] == 7
+    assert payload["scan_policy"]["max_seconds"] == 1.5
     assert payload["mutation_policy"]["physical_cleanup_performed"] is False
 
 

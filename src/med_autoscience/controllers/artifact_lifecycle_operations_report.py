@@ -31,6 +31,16 @@ _STATISTICAL_DIR_BUCKETS = {
     "__pycache__": "cache",
     "cache": "cache",
 }
+_STATISTICAL_RELATIVE_DIR_BUCKETS = {
+    (".ds", "worktrees"): "runtime",
+    ("ops", "med-deepscientist", "runtime", "quests"): "runtime",
+    ("ops", "med-deepscientist", "runtime", "archives"): "runtime",
+    ("ops", "med-deepscientist", "runtime", "recovery"): "runtime",
+    ("ops", "med-deepscientist", "runtime", "runtime"): "runtime",
+    ("datasets", "raw"): "dataset",
+    ("datasets", "release"): "dataset",
+    ("datasets", "private_release"): "dataset",
+}
 _HARD_SKIPPED_DIR_NAMES = {
     ".git",
     ".hg",
@@ -211,13 +221,16 @@ def _scan_workspace(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -> 
             "classified_paths": classified_paths,
             "statistical_directories": statistical_directories,
             "skipped_directories": skipped_directories,
-        }
+    }
     for current_root, dirnames, filenames in os.walk(workspace_root):
         current_path = Path(current_root)
+        if not _should_descend_directory(current_path, workspace_root=workspace_root, scan_policy=scan_policy):
+            dirnames[:] = []
+            continue
         kept_dirnames: list[str] = []
         for dirname in sorted(dirnames):
             directory = current_path / dirname
-            source_bucket = _STATISTICAL_DIR_BUCKETS.get(dirname)
+            source_bucket = _statistical_source_bucket(directory, workspace_root=workspace_root)
             if source_bucket is not None:
                 statistical_directories.append(
                     _statistical_directory_report(
@@ -241,10 +254,11 @@ def _scan_workspace(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -> 
                 continue
             kept_dirnames.append(dirname)
         dirnames[:] = kept_dirnames
-        for filename in sorted(filenames):
-            candidate = current_path / filename
-            if candidate.is_file() and not candidate.is_symlink():
-                classified_paths.append(candidate.resolve())
+        if _should_scan_classified_files(current_path, workspace_root=workspace_root, scan_policy=scan_policy):
+            for filename in sorted(filenames):
+                candidate = current_path / filename
+                if candidate.is_file() and not candidate.is_symlink():
+                    classified_paths.append(candidate.resolve())
     return {
         "classified_paths": sorted(classified_paths),
         "statistical_directories": sorted(
@@ -256,6 +270,47 @@ def _scan_workspace(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -> 
             key=lambda item: str(item.get("workspace_relative_path") or ""),
         ),
     }
+
+
+def _should_descend_directory(
+    current_path: Path,
+    *,
+    workspace_root: Path,
+    scan_policy: Mapping[str, Any],
+) -> bool:
+    if bool(scan_policy.get("deep_scan_enabled")):
+        return True
+    relative_parts = _relative_parts(current_path, workspace_root)
+    if len(relative_parts) <= 1 or relative_parts[0] in {"studies", "papers"}:
+        return True
+    return any(_is_prefix(relative_parts, candidate) for candidate in _STATISTICAL_RELATIVE_DIR_BUCKETS)
+
+
+def _should_scan_classified_files(
+    current_path: Path,
+    *,
+    workspace_root: Path,
+    scan_policy: Mapping[str, Any],
+) -> bool:
+    if bool(scan_policy.get("deep_scan_enabled")):
+        return True
+    relative_parts = _relative_parts(current_path, workspace_root)
+    if len(relative_parts) <= 1:
+        return True
+    return relative_parts[0] in {"studies", "papers"}
+
+
+def _statistical_source_bucket(directory: Path, *, workspace_root: Path) -> str | None:
+    source_bucket = _STATISTICAL_DIR_BUCKETS.get(directory.name)
+    if source_bucket is not None:
+        return source_bucket
+    relative_parts = _relative_parts(directory, workspace_root)
+    return _STATISTICAL_RELATIVE_DIR_BUCKETS.get(relative_parts)
+
+
+def _is_prefix(prefix: tuple[str, ...], parts: tuple[str, ...]) -> bool:
+    return len(prefix) <= len(parts) and parts[: len(prefix)] == prefix
+
 
 
 def _classify_workspace_artifacts(

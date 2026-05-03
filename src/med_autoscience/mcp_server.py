@@ -92,6 +92,24 @@ def _optional_bool(arguments: dict[str, Any], key: str, *, default: bool = False
     return value
 
 
+def _optional_int(arguments: dict[str, Any], key: str) -> int | None:
+    value = arguments.get(key)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{key} must be an integer")
+    return value
+
+
+def _optional_float(arguments: dict[str, Any], key: str) -> float | None:
+    value = arguments.get(key)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{key} must be a number")
+    return float(value)
+
+
 def _optional_string(arguments: dict[str, Any], key: str, *, default: str) -> str:
     value = arguments.get(key, default)
     if not isinstance(value, str) or not value.strip():
@@ -241,6 +259,9 @@ def list_tools() -> list[dict[str, Any]]:
                     },
                     "apply": {"type": "boolean"},
                     "markdown": {"type": "boolean"},
+                    "deep": {"type": "boolean"},
+                    "max_files": {"type": "integer", "minimum": 1},
+                    "max_seconds": {"type": "number", "exclusiveMinimum": 0},
                 },
                 "required": ["mode"],
                 "additionalProperties": False,
@@ -538,6 +559,9 @@ def _call_lifecycle_report(arguments: dict[str, Any]) -> dict[str, Any]:
         resolved_roots.append(Path(value))
     result = artifact_lifecycle_operations_report.run_lifecycle_operations_report(
         workspace_roots=resolved_roots,
+        deep=_optional_bool(arguments, "deep", default=False),
+        max_files=_optional_int(arguments, "max_files"),
+        max_seconds=_optional_float(arguments, "max_seconds"),
     )
     render_markdown = _optional_bool(arguments, "markdown", default=False)
     text = (

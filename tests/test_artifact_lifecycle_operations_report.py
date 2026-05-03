@@ -66,6 +66,50 @@ def test_lifecycle_operations_report_default_uses_storage_audit_snapshot_without
     assert report["source_totals"]["runtime"]["file_count"] == 2
 
 
+def test_lifecycle_operations_report_default_does_not_walk_nested_runtime_or_worktree_payloads(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    _write(workspace_root / "studies" / "001-risk" / "paper" / "source" / "manuscript_source.md")
+    forbidden_files = [
+        workspace_root / ".ds" / "worktrees" / "lane-a" / "nested" / "payload.bin",
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "quest-001"
+        / "payload"
+        / "huge.bin",
+        workspace_root / "datasets" / "raw" / "release" / "nested" / "rows.csv",
+    ]
+    for path in forbidden_files:
+        _write(path, "large\n")
+
+    original_file_size = module._file_size
+    touched_paths: list[Path] = []
+
+    def recording_file_size(path: Path) -> int:
+        touched_paths.append(path)
+        return original_file_size(path)
+
+    monkeypatch.setattr(module, "_file_size", recording_file_size)
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+    touched_relative_paths = {path.relative_to(workspace_root).as_posix() for path in touched_paths}
+
+    assert report["scan_policy"]["deep_scan_enabled"] is False
+    assert "studies/001-risk/paper/source/manuscript_source.md" in touched_relative_paths
+    assert "ops/med-deepscientist/runtime/quests/quest-001/payload/huge.bin" not in touched_relative_paths
+    assert "datasets/raw/release/nested/rows.csv" not in touched_relative_paths
+    assert ".ds/worktrees/lane-a/nested/payload.bin" not in touched_relative_paths
+    source_totals = report["source_totals"]
+    assert source_totals["runtime"]["scan_mode"] == "statistical_only"
+    assert source_totals["dataset"]["scan_mode"] == "statistical_only"
+
+
 def test_lifecycle_operations_report_deep_scan_is_explicit_and_bounded(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
     workspace_root = tmp_path / "workspace"
@@ -90,6 +134,37 @@ def test_lifecycle_operations_report_deep_scan_is_explicit_and_bounded(tmp_path:
     assert runtime_stats["bounded"] is True
     assert runtime_stats["file_count"] == 1
     assert runtime_stats["truncated"] is True
+
+
+def test_lifecycle_operations_report_deep_scan_walks_bounded_operational_payloads(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    _write(workspace_root / "studies" / "001-risk" / "paper" / "source" / "manuscript_source.md")
+    _write(workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001" / "a.txt")
+    _write(workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001" / "nested" / "b.txt")
+    _write(workspace_root / "datasets" / "raw" / "release" / "nested" / "rows.csv")
+    _write(workspace_root / "datasets" / "raw" / "release" / "nested" / "rows-2.csv")
+
+    report = module.run_lifecycle_operations_report(
+        workspace_roots=[workspace_root],
+        deep=True,
+        max_files=1,
+        max_seconds=10,
+    )
+    workspace = report["workspaces"][0]
+    stats_by_path = {
+        item["workspace_relative_path"]: item
+        for item in workspace["statistical_directories"]
+    }
+
+    assert stats_by_path["ops/med-deepscientist/runtime/quests"]["scan_mode"] == "deep_statistical"
+    assert stats_by_path["ops/med-deepscientist/runtime/quests"]["file_count"] == 1
+    assert stats_by_path["ops/med-deepscientist/runtime/quests"]["truncated"] is True
+    assert stats_by_path["datasets/raw"]["scan_mode"] == "deep_statistical"
+    assert stats_by_path["datasets/raw"]["file_count"] == 1
+    assert stats_by_path["datasets/raw"]["truncated"] is True
 
 
 def test_lifecycle_operations_report_marks_incomplete_projection_surfaces(tmp_path: Path) -> None:

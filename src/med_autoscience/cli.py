@@ -935,6 +935,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "control-plane-lifecycle-report":
         result = artifact_lifecycle_operations_report.run_lifecycle_operations_report(
             workspace_roots=[Path(root) for root in args.workspace_root],
+            deep=bool(args.deep),
+            max_files=args.max_files,
+            max_seconds=args.max_seconds,
         )
         if args.markdown:
             print(artifact_lifecycle_operations_report.render_lifecycle_operations_report_markdown(result))

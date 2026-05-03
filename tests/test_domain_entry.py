@@ -160,6 +160,46 @@ def test_domain_entry_dispatches_control_plane_operations(monkeypatch, tmp_path:
     }
 
 
+def test_domain_entry_dispatches_lifecycle_report_scan_options(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.domain_entry")
+    workspace_root = tmp_path / "workspace"
+
+    monkeypatch.setattr(
+        module.artifact_lifecycle_operations_report,
+        "run_lifecycle_operations_report",
+        lambda *, workspace_roots, deep, max_files, max_seconds: {
+            "surface": "control_plane_lifecycle_report",
+            "workspace_roots": [str(path) for path in workspace_roots],
+            "scan_policy": {
+                "deep_scan_enabled": deep,
+                "max_files": max_files,
+                "max_seconds": max_seconds,
+            },
+        },
+    )
+
+    payload = module.MedAutoScienceDomainEntry().dispatch(
+        {
+            "command": "control-plane-lifecycle-report",
+            "workspace_roots": [str(workspace_root)],
+            "deep": True,
+            "max_files": 13,
+            "max_seconds": 3.25,
+        }
+    )
+
+    assert payload == {
+        "command": "control-plane-lifecycle-report",
+        "surface": "control_plane_lifecycle_report",
+        "workspace_roots": [str(workspace_root)],
+        "scan_policy": {
+            "deep_scan_enabled": True,
+            "max_files": 13,
+            "max_seconds": 3.25,
+        },
+    }
+
+
 def test_domain_entry_contract_exports_domain_agent_entry_spec_v1() -> None:
     module = importlib.import_module("med_autoscience.domain_entry_contract")
 

@@ -66,6 +66,12 @@ def test_product_entry_manifest_domain_commands_include_control_plane_operations
     for spec in catalog.CONTROL_PLANE_OPERATIONS_COMMANDS:
         assert spec.command in commands
         assert command_contracts[spec.command] == spec.command_contract()
+    assert command_contracts["control-plane-lifecycle-report"]["optional_fields"] == [
+        "markdown",
+        "deep",
+        "max_files",
+        "max_seconds",
+    ]
 
 
 def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_projection(

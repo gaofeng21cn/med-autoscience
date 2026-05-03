@@ -185,6 +185,18 @@ def _bool_value(value: Any, *, default: bool = False) -> bool:
     return bool(value)
 
 
+def _optional_int_value(value: Any) -> int | None:
+    if value is None:
+        return None
+    return int(value)
+
+
+def _optional_float_value(value: Any) -> float | None:
+    if value is None:
+        return None
+    return float(value)
+
+
 def _dispatch_control_plane_operation(command: str, request: Mapping[str, Any]) -> dict[str, Any]:
     workspace_roots = _workspace_roots_value(request.get("workspace_roots"))
     if command == "control-plane-migration-audit":
@@ -200,5 +212,8 @@ def _dispatch_control_plane_operation(command: str, request: Mapping[str, Any]) 
     if command == "control-plane-lifecycle-report":
         return artifact_lifecycle_operations_report.run_lifecycle_operations_report(
             workspace_roots=workspace_roots,
+            deep=_bool_value(request.get("deep")),
+            max_files=_optional_int_value(request.get("max_files")),
+            max_seconds=_optional_float_value(request.get("max_seconds")),
         )
     raise ValueError(f"不支持的 control-plane operation command: {command}")

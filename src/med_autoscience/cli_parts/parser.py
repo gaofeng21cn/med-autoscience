@@ -207,6 +207,9 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     lifecycle_report_parser = subparsers.add_parser("control-plane-lifecycle-report")
     lifecycle_report_parser.add_argument("--workspace-root", action="append", required=True)
     lifecycle_report_parser.add_argument("--markdown", action="store_true")
+    lifecycle_report_parser.add_argument("--deep", action="store_true")
+    lifecycle_report_parser.add_argument("--max-files", type=int)
+    lifecycle_report_parser.add_argument("--max-seconds", type=float)
 
     surface_parser = subparsers.add_parser("medical-publication-surface")
     surface_parser.add_argument("--quest-root", required=True)

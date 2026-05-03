@@ -53,7 +53,7 @@ CONTROL_PLANE_OPERATIONS_COMMANDS: tuple[ControlPlaneOperationsCommand, ...] = (
         surface="control_plane_lifecycle_report",
         description="Read-only bounded artifact lifecycle operations report.",
         required_fields=("workspace_roots",),
-        optional_fields=("markdown",),
+        optional_fields=("markdown", "deep", "max_files", "max_seconds"),
     ),
 )
 

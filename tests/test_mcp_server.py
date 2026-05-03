@@ -64,11 +64,14 @@ def test_mcp_product_entry_description_documents_control_plane_operations_surfac
     (
         ("apply", {"type": "boolean"}),
         ("markdown", {"type": "boolean"}),
+        ("deep", {"type": "boolean"}),
+        ("max_files", {"type": "integer", "minimum": 1}),
+        ("max_seconds", {"type": "number", "exclusiveMinimum": 0}),
     ),
 )
 def test_mcp_product_entry_schema_accepts_control_plane_operations_options(
     option: str,
-    schema: dict[str, str],
+    schema: dict[str, object],
 ) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
@@ -481,15 +484,23 @@ def test_mcp_product_entry_can_call_cleanup_apply(monkeypatch, tmp_path: Path) -
     assert "control_plane_cleanup_apply" in result["content"][0]["text"]
 
 
-def test_mcp_product_entry_can_call_lifecycle_report(monkeypatch, tmp_path: Path) -> None:
+def test_mcp_product_entry_can_call_lifecycle_report_with_scan_options(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}
 
-    def fake_run_lifecycle_operations_report(*, workspace_roots) -> dict[str, object]:
+    def fake_run_lifecycle_operations_report(*, workspace_roots, deep: bool, max_files: int, max_seconds: float) -> dict[str, object]:
         captured["workspace_roots"] = list(workspace_roots)
+        captured["deep"] = deep
+        captured["max_files"] = max_files
+        captured["max_seconds"] = max_seconds
         return {
             "surface": "control_plane_lifecycle_report",
             "workspace_count": 1,
+            "scan_policy": {
+                "deep_scan_enabled": deep,
+                "max_files": max_files,
+                "max_seconds": max_seconds,
+            },
             "mutation_policy": {"read_only": True, "physical_cleanup_performed": False},
             "summary": {"total_bytes": 0},
             "projection_completeness": {"complete_study_count": 0, "incomplete_study_count": 0},
@@ -508,12 +519,21 @@ def test_mcp_product_entry_can_call_lifecycle_report(monkeypatch, tmp_path: Path
         {
             "mode": "lifecycle_report",
             "workspace_roots": [str(tmp_path / "workspace")],
+            "deep": True,
+            "max_files": 9,
+            "max_seconds": 2.5,
         },
     )
 
     assert result["isError"] is False
-    assert captured == {"workspace_roots": [tmp_path / "workspace"]}
+    assert captured == {
+        "workspace_roots": [tmp_path / "workspace"],
+        "deep": True,
+        "max_files": 9,
+        "max_seconds": 2.5,
+    }
     assert result["structuredContent"]["surface"] == "control_plane_lifecycle_report"
+    assert result["structuredContent"]["scan_policy"]["max_files"] == 9
     assert result["structuredContent"]["mutation_policy"]["physical_cleanup_performed"] is False
     assert "control_plane_lifecycle_report" in result["content"][0]["text"]
 
