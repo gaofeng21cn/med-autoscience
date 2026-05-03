@@ -136,4 +136,109 @@ def test_activity_timeout_takes_priority_over_paper_surface_refresh_gap(
     assert "meaningful artifact delta" in result["operator_status_card"]["next_confirmation_signal"]
 
 
+def test_runtime_health_snapshot_recovery_dominates_stale_live_runtime_module_projection(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {
+            "schema_version": 1,
+            "recorded_at": "2026-05-02T10:55:00+00:00",
+            "study_id": "002-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-002",
+            "quest_root": str(quest_root),
+            "health_status": "live",
+            "runtime_liveness_status": "live",
+            "worker_running": True,
+            "active_run_id": "run-live-stale",
+            "runtime_decision": "noop",
+            "runtime_reason": "quest_already_running",
+            "quest_status": "running",
+            "next_action": "continue_supervising_runtime",
+            "next_action_summary": "继续监督当前托管运行，并等待新的阶段事件。",
+            "summary": "托管运行时在线，研究仍在自动推进。",
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "002-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "quest_id": "quest-002",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "runtime_liveness_status": "live",
+            "worker_running": True,
+            "active_run_id": "run-live-stale",
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": "run-live-stale",
+                "runtime_audit": {
+                    "status": "live",
+                    "active_run_id": "run-live-stale",
+                    "worker_running": True,
+                },
+            },
+            "runtime_health_snapshot": {
+                "surface": "runtime_health_snapshot",
+                "study_id": "002-risk",
+                "quest_id": "quest-002",
+                "attempt_state": "recovering",
+                "canonical_runtime_action": "recover_runtime",
+                "retry_budget_remaining": 2,
+                "worker_liveness_state": {
+                    "state": "activity_timeout",
+                    "runtime_liveness_status": "live",
+                    "worker_running": True,
+                    "active_run_id": "run-live-stale",
+                },
+                "blocking_reasons": ["live_worker_meaningful_artifact_delta_timeout"],
+            },
+            "autonomous_runtime_notice": {
+                "required": True,
+                "quest_id": "quest-002",
+                "quest_status": "running",
+                "active_run_id": "run-live-stale",
+            },
+            "execution_owner_guard": {
+                "owner": "managed_runtime",
+                "supervisor_only": True,
+                "active_run_id": "run-live-stale",
+                "current_required_action": "supervise_runtime_only",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "latest_recorded_at": "2026-05-02T11:00:00+00:00",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="002-risk")
+
+    assert result["current_stage"] == "managed_runtime_recovering"
+    assert result["supervision"]["health_status"] == "recovering"
+    assert result["module_surfaces"]["runtime"]["health_status"] == "recovering"
+    assert result["module_surfaces"]["runtime"]["next_action_summary"] != "继续监督当前托管运行，并等待新的阶段事件。"
+
+
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]
