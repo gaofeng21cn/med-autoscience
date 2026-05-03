@@ -1,11 +1,19 @@
 from __future__ import annotations
 
-import json
-import os
-import tempfile
 from pathlib import Path
 
 import yaml
+
+from med_autoscience.controllers.data_assets_parts import impact_assessment as _impact_assessment
+from med_autoscience.controllers.data_assets_parts.serialization import (
+    load_json as _load_json,
+    load_yaml_dict as _load_yaml_dict,
+    normalize_dict as _normalize_dict,
+    normalize_int as _normalize_int,
+    normalize_string_list as _normalize_string_list,
+    normalize_string_map as _normalize_string_map,
+    write_json as _write_json,
+)
 
 
 PRIVATE_REGISTRY_BASENAME = "registry.json"
@@ -72,74 +80,6 @@ def _impact_report_path(workspace_root: Path) -> Path:
 
 def _private_diff_report_path(*, workspace_root: Path, family_id: str, from_version: str, to_version: str) -> Path:
     return _private_diffs_root(workspace_root) / family_id / f"{from_version}__{to_version}.json"
-
-
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
-    temp_name: str | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            "w",
-            encoding="utf-8",
-            dir=path.parent,
-            prefix=f".{path.name}.",
-            suffix=".tmp",
-            delete=False,
-        ) as handle:
-            temp_name = handle.name
-            handle.write(content)
-            handle.flush()
-            os.fsync(handle.fileno())
-        Path(temp_name).replace(path)
-    finally:
-        if temp_name is not None:
-            Path(temp_name).unlink(missing_ok=True)
-
-
-def _load_json(path: Path, *, default: dict) -> dict:
-    if not path.exists():
-        return default
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _load_yaml_dict(path: Path) -> dict[str, object]:
-    if not path.exists():
-        return {}
-    payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    return payload if isinstance(payload, dict) else {}
-
-
-def _normalize_string_map(value: object) -> dict[str, str]:
-    if not isinstance(value, dict):
-        return {}
-    normalized: dict[str, str] = {}
-    for key, item in value.items():
-        if isinstance(key, str) and isinstance(item, str):
-            normalized[key] = item
-    return normalized
-
-
-def _normalize_string_list(value: object) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    normalized: list[str] = []
-    for item in value:
-        if isinstance(item, str):
-            normalized.append(item)
-    return normalized
-
-
-def _normalize_dict(value: object) -> dict[str, object]:
-    return value if isinstance(value, dict) else {}
-
-
-def _normalize_int(value: object) -> int | None:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    return None
 
 
 def _standardization_status(release_contract: dict[str, object]) -> dict[str, object]:
@@ -842,102 +782,57 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
         dataset_reports: list[dict[str, object]] = []
         overall_status = "clear"
         for item, dataset_id, source_path, family_id, version_id, bound_release in resolved_inputs:
-            public_registry_backed = item.get("source") == "portfolio_public_registry"
             latest_version = latest_versions.get(family_id) if family_id is not None else None
-            if public_registry_backed:
-                private_status = "public_registry_backed"
-            elif family_id is None or version_id is None:
-                private_status = "unversioned_path"
-            elif latest_version is None:
-                private_status = "family_not_registered"
-            elif latest_version == version_id:
-                private_status = "up_to_date"
-            elif _is_historical_comparator_release(
+            public_registry_backed = item.get("source") == "portfolio_public_registry"
+            historical_comparator = _is_historical_comparator_release(
                 family_id=family_id,
                 version_id=version_id,
                 latest_version=latest_version,
                 study_versions_by_family=study_versions_by_family,
-            ):
-                private_status = "historical_comparator"
-            else:
-                private_status = "older_than_latest"
-                overall_status = "review_needed"
-            if public_registry_backed:
-                private_contract_status = "public_registry_backed"
-            elif family_id is None or version_id is None:
-                private_contract_status = None
-            elif bound_release is None:
-                private_contract_status = "release_not_registered"
-                overall_status = "review_needed"
-            else:
-                private_contract_status = str(bound_release.get("contract_status") or "directory_scan_only")
-                if private_contract_status != "manifest_backed":
-                    overall_status = "review_needed"
-            upgrade_diff_report_path: str | None = None
-            upgrade_diff_report_exists = False
-            if (
-                family_id is not None
-                and version_id is not None
-                and latest_version is not None
-                and latest_version != version_id
-                and private_status == "older_than_latest"
-            ):
-                cache_key = (family_id, version_id, latest_version)
-                diff_report = diff_cache.get(cache_key)
-                if diff_report is None:
-                    diff_report = build_private_release_diff(
-                        workspace_root=workspace_root,
-                        family_id=family_id,
-                        from_version=version_id,
-                        to_version=latest_version,
-                    )
-                    diff_cache[cache_key] = diff_report
-                upgrade_diff_report_path = str(diff_report["report_path"])
-                upgrade_diff_report_exists = Path(upgrade_diff_report_path).exists()
-
-            public_matches = [
-                dataset
-                for dataset in public_payload.get("datasets", [])
-                if dataset.get("validation", {}).get("is_valid")
-                if dataset.get("status") != "rejected"
-                if dataset_id in dataset.get("target_dataset_ids", []) or family_id in dataset.get("target_families", [])
-            ]
-            if public_matches:
-                overall_status = "review_needed"
-
-            dataset_reports.append(
-                {
-                    "dataset_id": dataset_id,
-                    "source_path": source_path,
-                    "family_id": family_id,
-                    "version_id": version_id,
-                    "latest_private_version": latest_version,
-                    "private_version_status": private_status,
-                    "private_contract_status": private_contract_status,
-                    "upgrade_diff_report_path": upgrade_diff_report_path,
-                    "upgrade_diff_report_exists": upgrade_diff_report_exists,
-                    "standardization_status": (
-                        bound_release.get("standardization_status")
-                        if isinstance(bound_release, dict)
-                        else None
-                    ),
-                    "semantic_readiness": (
-                        bound_release.get("semantic_readiness")
-                        if isinstance(bound_release, dict)
-                        else None
-                    ),
-                    "public_support_count": len(public_matches),
-                    "public_support_dataset_ids": [item.get("dataset_id") for item in public_matches],
-                    "public_support_roles": sorted(
-                        {
-                            role
-                            for item in public_matches
-                            for role in (item.get("roles") or [])
-                            if isinstance(role, str)
-                        }
-                    ),
-                }
             )
+            private_status = _impact_assessment.private_version_status(
+                public_registry_backed=public_registry_backed,
+                family_id=family_id,
+                version_id=version_id,
+                latest_version=latest_version,
+                historical_comparator=historical_comparator,
+            )
+            private_contract_status = _impact_assessment.private_contract_status(
+                public_registry_backed=public_registry_backed,
+                family_id=family_id,
+                version_id=version_id,
+                bound_release=bound_release,
+            )
+            upgrade_diff_report_path, upgrade_diff_report_exists = _impact_assessment.upgrade_diff_summary(
+                workspace_root=workspace_root,
+                family_id=family_id,
+                version_id=version_id,
+                latest_version=latest_version,
+                private_status=private_status,
+                diff_cache=diff_cache,
+                build_private_release_diff=build_private_release_diff,
+            )
+            public_matches = _impact_assessment.matching_public_datasets(
+                public_payload=public_payload,
+                dataset_id=dataset_id,
+                family_id=family_id,
+            )
+            dataset_report, review_needed = _impact_assessment.dataset_asset_impact_report(
+                dataset_id=dataset_id,
+                source_path=source_path,
+                family_id=family_id,
+                version_id=version_id,
+                bound_release=bound_release,
+                latest_version=latest_version,
+                private_status=private_status,
+                private_contract_status=private_contract_status,
+                upgrade_diff_report_path=upgrade_diff_report_path,
+                upgrade_diff_report_exists=upgrade_diff_report_exists,
+                public_matches=public_matches,
+            )
+            if review_needed:
+                overall_status = "review_needed"
+            dataset_reports.append(dataset_report)
         study_reports.append(
             {
                 "study_id": study_root.name,

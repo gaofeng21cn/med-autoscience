@@ -415,6 +415,34 @@ def _mapping(value: object) -> Mapping[str, Any]:
     return {}
 
 
+def _validate_statistical_reviewer_section(
+    *,
+    section_key: str,
+    section: Mapping[str, Any],
+) -> dict[str, str]:
+    status = _text(section.get("status"))
+    if status not in SUPPORTED_STATISTICAL_REVIEWER_SECTION_STATUSES:
+        return {"status": "blocked", "reason_code": f"{section_key}_not_passed"}
+    for field in REQUIRED_STATISTICAL_REVIEWER_SECTION_FIELDS:
+        value = section.get(field)
+        if field == "evidence_refs":
+            if not _sequence(value):
+                return {"status": "blocked", "reason_code": f"{section_key}_missing_{field}"}
+        elif not _has_text(value):
+            return {"status": "blocked", "reason_code": f"{section_key}_missing_{field}"}
+    if _contains_nominal_p_value_primary_evidence(section):
+        return {"status": "blocked", "reason_code": f"{section_key}_nominal_p_value_primary_evidence"}
+    return {"status": "present", "reason_code": ""}
+
+
+def _validate_causal_language_boundary(sections: Mapping[str, Any]) -> dict[str, str]:
+    causal_boundary = _mapping(sections.get("causal_language_boundary"))
+    forbidden_language = _sequence(causal_boundary.get("forbidden_language"))
+    if not forbidden_language:
+        return {"status": "blocked", "reason_code": "causal_language_boundary_missing_forbidden_language"}
+    return {"status": "present", "reason_code": ""}
+
+
 def validate_statistical_reviewer_audit(payload: Mapping[str, Any]) -> dict[str, str]:
     if _text(payload.get("status")) != "resolved":
         return {"status": "blocked", "reason_code": _text(payload.get("reason_code")) or "audit_not_resolved"}
@@ -428,24 +456,11 @@ def validate_statistical_reviewer_audit(payload: Mapping[str, Any]) -> dict[str,
         section = _mapping(sections.get(section_key))
         if not section:
             return {"status": "blocked", "reason_code": f"missing_{section_key}"}
-        status = _text(section.get("status"))
-        if status not in SUPPORTED_STATISTICAL_REVIEWER_SECTION_STATUSES:
-            return {"status": "blocked", "reason_code": f"{section_key}_not_passed"}
-        for field in REQUIRED_STATISTICAL_REVIEWER_SECTION_FIELDS:
-            value = section.get(field)
-            if field == "evidence_refs":
-                if not _sequence(value):
-                    return {"status": "blocked", "reason_code": f"{section_key}_missing_{field}"}
-            elif not _has_text(value):
-                return {"status": "blocked", "reason_code": f"{section_key}_missing_{field}"}
-        if _contains_nominal_p_value_primary_evidence(section):
-            return {"status": "blocked", "reason_code": f"{section_key}_nominal_p_value_primary_evidence"}
+        section_result = _validate_statistical_reviewer_section(section_key=section_key, section=section)
+        if section_result["status"] != "present":
+            return section_result
 
-    causal_boundary = _mapping(sections.get("causal_language_boundary"))
-    forbidden_language = _sequence(causal_boundary.get("forbidden_language"))
-    if not forbidden_language:
-        return {"status": "blocked", "reason_code": "causal_language_boundary_missing_forbidden_language"}
-    return {"status": "present", "reason_code": ""}
+    return _validate_causal_language_boundary(sections)
 
 
 def validate_bounded_analysis_candidate_board(payload: Mapping[str, Any]) -> dict[str, str]:

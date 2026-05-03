@@ -208,6 +208,34 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     return dict(payload) if isinstance(payload, Mapping) else None
 
 
+def _read_delivery_manifest(
+    *,
+    study_root: Path,
+    manifest_path: Path,
+) -> tuple[Mapping[str, Any] | None, dict[str, Any] | None]:
+    if not manifest_path.exists():
+        return None, _blocked_proof(
+            study_root=study_root,
+            manifest_path=manifest_path,
+            blockers=[{"code": "delivery_manifest_missing"}],
+        )
+    try:
+        manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None, _blocked_proof(
+            study_root=study_root,
+            manifest_path=manifest_path,
+            blockers=[{"code": "delivery_manifest_invalid"}],
+        )
+    if not isinstance(manifest_payload, Mapping):
+        return None, _blocked_proof(
+            study_root=study_root,
+            manifest_path=manifest_path,
+            blockers=[{"code": "delivery_manifest_invalid"}],
+        )
+    return manifest_payload, None
+
+
 def _status_from_bool(*, passed: bool | None, exists: bool = True) -> str:
     if not exists:
         return "missing"
@@ -263,6 +291,48 @@ def _publication_surface_qc_truth(
         if publication_eval_payload is not None
         else {}
     )
+    return {
+        "surface": "publication_surface_qc_truth",
+        "status": _publication_surface_qc_status(
+            deterministic_gates=deterministic_gates,
+            verdict=verdict,
+            quality_closure_truth=quality_closure_truth,
+            publication_eval_payload=publication_eval_payload,
+            evaluation_summary_payload=evaluation_summary_payload,
+        ),
+        "overall_verdict": _text(verdict.get("overall_verdict")),
+        "quality_closure_state": _text(quality_closure_truth.get("state")),
+        "blocking_gate_keys": list(deterministic_gates.get("blocking_gate_keys") or []),
+        "blockers": _publication_surface_qc_blockers(
+            publication_eval_payload=publication_eval_payload,
+            quality_closure_truth=quality_closure_truth,
+            deterministic_gates=deterministic_gates,
+        ),
+    }
+
+
+def _publication_surface_qc_status(
+    *,
+    deterministic_gates: Mapping[str, Any],
+    verdict: Mapping[str, Any],
+    quality_closure_truth: Mapping[str, Any],
+    publication_eval_payload: Mapping[str, Any] | None,
+    evaluation_summary_payload: Mapping[str, Any] | None,
+) -> str:
+    return (
+        _text(deterministic_gates.get("status"))
+        or _text(verdict.get("overall_verdict"))
+        or _text(quality_closure_truth.get("state"))
+        or ("missing" if publication_eval_payload is None and evaluation_summary_payload is None else "unknown")
+    )
+
+
+def _publication_surface_qc_blockers(
+    *,
+    publication_eval_payload: Mapping[str, Any] | None,
+    quality_closure_truth: Mapping[str, Any],
+    deterministic_gates: Mapping[str, Any],
+) -> list[str]:
     blockers: list[str] = []
     for source in (
         publication_eval_payload.get("blockers") if publication_eval_payload is not None else None,
@@ -273,19 +343,7 @@ def _publication_surface_qc_truth(
             text = _text(item)
             if text is not None and text not in blockers:
                 blockers.append(text)
-    return {
-        "surface": "publication_surface_qc_truth",
-        "status": (
-            _text(deterministic_gates.get("status"))
-            or _text(verdict.get("overall_verdict"))
-            or _text(quality_closure_truth.get("state"))
-            or ("missing" if publication_eval_payload is None and evaluation_summary_payload is None else "unknown")
-        ),
-        "overall_verdict": _text(verdict.get("overall_verdict")),
-        "quality_closure_state": _text(quality_closure_truth.get("state")),
-        "blocking_gate_keys": list(deterministic_gates.get("blocking_gate_keys") or []),
-        "blockers": blockers,
-    }
+    return blockers
 
 
 def _deterministic_gate_status(
@@ -341,6 +399,68 @@ def _submission_hygiene_flow(*, status: str, blockers: list[str]) -> dict[str, A
     }
 
 
+def _failure_reasons(failures: list[Any]) -> list[str]:
+    return [
+        _text(item.get("failure_reason")) or "submission_surface_qc_failure_present"
+        for item in failures
+        if isinstance(item, Mapping)
+    ]
+
+
+def _submission_hygiene_gates(
+    *,
+    deterministic_gates: Mapping[str, Any],
+    publication_eval_payload: Mapping[str, Any] | None,
+    surface_failures: list[Any],
+    proof: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    internal_language_failures = [
+        item
+        for item in surface_failures
+        if _text((item if isinstance(item, Mapping) else {}).get("failure_reason"))
+        == "submission_source_markdown_internal_instruction_leakage"
+    ]
+    artifact_blocked = proof.get("rebuild_status") != "current" or not bool(
+        proof.get("current_package_from_canonical_source")
+    )
+    return {
+        "citation_grounding": _deterministic_gate_status(
+            deterministic_gates=deterministic_gates,
+            gate_key="citation_grounding",
+            fallback_blockers=[],
+            exists=publication_eval_payload is not None,
+        ),
+        "numeric_grounding": _deterministic_gate_status(
+            deterministic_gates=deterministic_gates,
+            gate_key="numeric_grounding",
+            fallback_blockers=[],
+            exists=publication_eval_payload is not None,
+        ),
+        "display_grounding": _deterministic_gate_status(
+            deterministic_gates=deterministic_gates,
+            gate_key="display_grounding",
+            fallback_blockers=_failure_reasons(surface_failures),
+            exists=publication_eval_payload is not None or bool(surface_failures),
+        ),
+        "internal_language_leakage": _deterministic_gate_status(
+            deterministic_gates=deterministic_gates,
+            gate_key="internal_language_leakage",
+            fallback_blockers=_failure_reasons(internal_language_failures),
+            exists=publication_eval_payload is not None or bool(internal_language_failures),
+        ),
+        "artifact_rebuild": {
+            "gate_key": "artifact_rebuild",
+            "status": "blocked" if artifact_blocked else "pass",
+            "blockers": [
+                _text(item.get("code")) or "artifact_runtime_proof_blocked"
+                for item in _list(proof.get("blockers"))
+                if isinstance(item, Mapping)
+            ],
+            "evidence_refs": [{"artifact_runtime_proof_refs": dict(proof.get("refs") or {})}],
+        },
+    }
+
+
 def build_submission_hygiene_truth(
     study_root: str | Path,
     *,
@@ -373,59 +493,12 @@ def build_submission_hygiene_truth(
         else {}
     )
     surface_failures = list(_mapping(submission_minimal_truth.get("surface_qc")).get("failures") or [])
-    internal_language_failures = [
-        item
-        for item in surface_failures
-        if _text((item if isinstance(item, Mapping) else {}).get("failure_reason"))
-        == "submission_source_markdown_internal_instruction_leakage"
-    ]
-    artifact_blocked = proof.get("rebuild_status") != "current" or not bool(
-        proof.get("current_package_from_canonical_source")
+    gates = _submission_hygiene_gates(
+        deterministic_gates=deterministic_gates,
+        publication_eval_payload=publication_eval_payload,
+        surface_failures=surface_failures,
+        proof=proof,
     )
-    gates = {
-        "citation_grounding": _deterministic_gate_status(
-            deterministic_gates=deterministic_gates,
-            gate_key="citation_grounding",
-            fallback_blockers=[],
-            exists=publication_eval_payload is not None,
-        ),
-        "numeric_grounding": _deterministic_gate_status(
-            deterministic_gates=deterministic_gates,
-            gate_key="numeric_grounding",
-            fallback_blockers=[],
-            exists=publication_eval_payload is not None,
-        ),
-        "display_grounding": _deterministic_gate_status(
-            deterministic_gates=deterministic_gates,
-            gate_key="display_grounding",
-            fallback_blockers=[
-                _text(item.get("failure_reason")) or "submission_surface_qc_failure_present"
-                for item in surface_failures
-                if isinstance(item, Mapping)
-            ],
-            exists=publication_eval_payload is not None or bool(surface_failures),
-        ),
-        "internal_language_leakage": _deterministic_gate_status(
-            deterministic_gates=deterministic_gates,
-            gate_key="internal_language_leakage",
-            fallback_blockers=[
-                _text(item.get("failure_reason")) or "submission_source_markdown_internal_instruction_leakage"
-                for item in internal_language_failures
-                if isinstance(item, Mapping)
-            ],
-            exists=publication_eval_payload is not None or bool(internal_language_failures),
-        ),
-        "artifact_rebuild": {
-            "gate_key": "artifact_rebuild",
-            "status": "blocked" if artifact_blocked else "pass",
-            "blockers": [
-                _text(item.get("code")) or "artifact_runtime_proof_blocked"
-                for item in _list(proof.get("blockers"))
-                if isinstance(item, Mapping)
-            ],
-            "evidence_refs": [{"artifact_runtime_proof_refs": dict(proof.get("refs") or {})}],
-        },
-    }
     blockers = [
         gate_key
         for gate_key, gate in gates.items()
@@ -467,58 +540,13 @@ def build_submission_hygiene_truth(
     }
 
 
-def build_artifact_runtime_proof(study_root: str | Path) -> dict[str, Any]:
-    resolved_study_root = Path(study_root).expanduser().resolve()
-    manifest_path = resolved_study_root / "manuscript" / "delivery_manifest.json"
-    if not manifest_path.exists():
-        return _blocked_proof(
-            study_root=resolved_study_root,
-            manifest_path=manifest_path,
-            blockers=[{"code": "delivery_manifest_missing"}],
-        )
-
-    try:
-        manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return _blocked_proof(
-            study_root=resolved_study_root,
-            manifest_path=manifest_path,
-            blockers=[{"code": "delivery_manifest_invalid"}],
-        )
-    if not isinstance(manifest_payload, Mapping):
-        return _blocked_proof(
-            study_root=resolved_study_root,
-            manifest_path=manifest_path,
-            blockers=[{"code": "delivery_manifest_invalid"}],
-        )
-
-    manifest = manifest_payload
-    surface_roles = _mapping(manifest.get("surface_roles"))
-    source_payload = _mapping(manifest.get("source"))
-    targets = _mapping(manifest.get("targets"))
-    source_root_text = _text(surface_roles.get("controller_authorized_package_source_root"))
-    paper_root_text = _text(surface_roles.get("controller_authorized_paper_root")) or _text(source_payload.get("paper_root"))
-    source_root = Path(source_root_text).expanduser().resolve() if source_root_text is not None else None
-    paper_root = Path(paper_root_text).expanduser().resolve() if paper_root_text is not None else None
-    recorded_source_signature = _text(manifest.get("source_signature"))
-    recorded_authority_source_signature = _text(manifest.get("authority_source_signature")) or recorded_source_signature
-    blocking_artifact_refs = _stable_blocking_refs(manifest.get("blocking_artifact_refs"))
-    current_package_root = _text(surface_roles.get("human_facing_current_package_root")) or _text(
-        targets.get("current_package_root")
-    )
-    current_package_zip = _text(surface_roles.get("human_facing_current_package_zip")) or _text(
-        targets.get("current_package_zip")
-    )
-
-    refs: dict[str, Any] = {
-        "controller_authorized_package_source_root": str(source_root) if source_root is not None else None,
-        "controller_authorized_paper_root": str(paper_root) if paper_root is not None else None,
-        "current_package_root": current_package_root,
-        "current_package_zip": current_package_zip,
-        "delivery_source_signature": recorded_source_signature,
-        "authority_source_signature": recorded_authority_source_signature,
-        "blocking_artifact_refs": blocking_artifact_refs,
-    }
+def _artifact_proof_manifest_blockers(
+    *,
+    source_root: Path | None,
+    recorded_source_signature: str | None,
+    recorded_authority_source_signature: str | None,
+    blocking_artifact_refs: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     blockers: list[dict[str, Any]] = []
     if source_root is None:
         blockers.append({"code": "controller_authorized_package_source_root_missing"})
@@ -543,22 +571,42 @@ def build_artifact_runtime_proof(study_root: str | Path) -> dict[str, Any]:
                 "authority_source_signature": recorded_authority_source_signature,
             }
         )
+    return blockers
 
-    if source_root is None:
-        return _blocked_proof(
-            study_root=resolved_study_root,
-            manifest_path=manifest_path,
-            blockers=blockers,
-            refs=refs,
-        )
 
-    source_refs = _canonical_source_ref_texts(manifest)
-    refs["canonical_source_refs"] = source_refs
-    if not source_refs:
-        blockers.append({"code": "canonical_source_refs_missing"})
+def _artifact_proof_manifest_refs(
+    *,
+    source_root: Path | None,
+    paper_root: Path | None,
+    current_package_root: str | None,
+    current_package_zip: str | None,
+    recorded_source_signature: str | None,
+    recorded_authority_source_signature: str | None,
+    blocking_artifact_refs: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "controller_authorized_package_source_root": str(source_root) if source_root is not None else None,
+        "controller_authorized_paper_root": str(paper_root) if paper_root is not None else None,
+        "current_package_root": current_package_root,
+        "current_package_zip": current_package_zip,
+        "delivery_source_signature": recorded_source_signature,
+        "authority_source_signature": recorded_authority_source_signature,
+        "blocking_artifact_refs": blocking_artifact_refs,
+    }
 
+
+def _append_source_signature_blockers(
+    *,
+    study_root: Path,
+    source_root: Path,
+    paper_root: Path | None,
+    source_refs: list[str],
+    recorded_source_signature: str | None,
+    refs: dict[str, Any],
+    blockers: list[dict[str, Any]],
+) -> None:
     evaluated_source_signature, source_entries, missing_refs = _source_signature(
-        study_root=resolved_study_root,
+        study_root=study_root,
         source_root=source_root,
         paper_root=paper_root,
         source_refs=source_refs,
@@ -580,6 +628,74 @@ def build_artifact_runtime_proof(study_root: str | Path) -> dict[str, Any]:
                 "delivery_source_signature": recorded_source_signature,
             }
         )
+
+
+def build_artifact_runtime_proof(study_root: str | Path) -> dict[str, Any]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    manifest_path = resolved_study_root / "manuscript" / "delivery_manifest.json"
+    manifest_payload, blocked_manifest = _read_delivery_manifest(
+        study_root=resolved_study_root,
+        manifest_path=manifest_path,
+    )
+    if blocked_manifest is not None:
+        return blocked_manifest
+
+    manifest = manifest_payload or {}
+    surface_roles = _mapping(manifest.get("surface_roles"))
+    source_payload = _mapping(manifest.get("source"))
+    targets = _mapping(manifest.get("targets"))
+    source_root_text = _text(surface_roles.get("controller_authorized_package_source_root"))
+    paper_root_text = _text(surface_roles.get("controller_authorized_paper_root")) or _text(source_payload.get("paper_root"))
+    source_root = Path(source_root_text).expanduser().resolve() if source_root_text is not None else None
+    paper_root = Path(paper_root_text).expanduser().resolve() if paper_root_text is not None else None
+    recorded_source_signature = _text(manifest.get("source_signature"))
+    recorded_authority_source_signature = _text(manifest.get("authority_source_signature")) or recorded_source_signature
+    blocking_artifact_refs = _stable_blocking_refs(manifest.get("blocking_artifact_refs"))
+    current_package_root = _text(surface_roles.get("human_facing_current_package_root")) or _text(
+        targets.get("current_package_root")
+    )
+    current_package_zip = _text(surface_roles.get("human_facing_current_package_zip")) or _text(
+        targets.get("current_package_zip")
+    )
+
+    refs = _artifact_proof_manifest_refs(
+        source_root=source_root,
+        paper_root=paper_root,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+        recorded_source_signature=recorded_source_signature,
+        recorded_authority_source_signature=recorded_authority_source_signature,
+        blocking_artifact_refs=blocking_artifact_refs,
+    )
+    blockers = _artifact_proof_manifest_blockers(
+        source_root=source_root,
+        recorded_source_signature=recorded_source_signature,
+        recorded_authority_source_signature=recorded_authority_source_signature,
+        blocking_artifact_refs=blocking_artifact_refs,
+    )
+
+    if source_root is None:
+        return _blocked_proof(
+            study_root=resolved_study_root,
+            manifest_path=manifest_path,
+            blockers=blockers,
+            refs=refs,
+        )
+
+    source_refs = _canonical_source_ref_texts(manifest)
+    refs["canonical_source_refs"] = source_refs
+    if not source_refs:
+        blockers.append({"code": "canonical_source_refs_missing"})
+
+    _append_source_signature_blockers(
+        study_root=resolved_study_root,
+        source_root=source_root,
+        paper_root=paper_root,
+        source_refs=source_refs,
+        recorded_source_signature=recorded_source_signature,
+        refs=refs,
+        blockers=blockers,
+    )
 
     if blockers:
         return _blocked_proof(

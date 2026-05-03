@@ -115,29 +115,11 @@ def _dimension_evidence_refs(
     return [ref_bundle[surface] for surface in _REQUIRED_TRACE_INPUTS if surface in ref_bundle]
 
 
-def build_ai_reviewer_publication_eval_workflow_trace(
+def _rubric_scores_and_decision_matrix(
     *,
-    manuscript_ref: str | Path,
-    evidence_ref: str | Path,
-    review_ref: str | Path,
-    charter_ref: str | Path,
-    record: PublicationEvalRecord | Mapping[str, Any],
-    additional_refs: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    record_payload = _record_payload(record)
-    ref_bundle = _normalize_ref_bundle(
-        manuscript_ref=manuscript_ref,
-        evidence_ref=evidence_ref,
-        review_ref=review_ref,
-        charter_ref=charter_ref,
-        additional_refs=additional_refs,
-    )
-    contract = build_ai_reviewer_operating_system_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
-    dimensions = _dimension_payloads(record_payload)
-    for surface in contract["required_input_surfaces"]:
-        if surface not in ref_bundle:
-            raise ValueError(f"AI reviewer publication eval workflow missing input ref for {surface}")
-
+    dimensions: Mapping[str, Mapping[str, Any]],
+    ref_bundle: Mapping[str, str],
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
     rubric_scores: dict[str, dict[str, Any]] = {}
     decision_matrix: list[dict[str, Any]] = []
     for dimension, payload in dimensions.items():
@@ -161,13 +143,49 @@ def build_ai_reviewer_publication_eval_workflow_trace(
                 "rationale": rationale,
             }
         )
+    return rubric_scores, decision_matrix
 
+
+def _route_back_decision(record_payload: Mapping[str, Any]) -> dict[str, str]:
     recommended_action = "continue_same_line"
     route_rationale = "AI reviewer publication eval workflow trace is complete."
     actions = [item for item in _list(record_payload.get("recommended_actions")) if isinstance(item, Mapping)]
     if actions:
         recommended_action = _text(actions[0].get("action_type")) or _text(actions[0].get("action_id")) or recommended_action
         route_rationale = _text(actions[0].get("reason")) or route_rationale
+    return {
+        "recommended_action": recommended_action,
+        "rationale": route_rationale,
+    }
+
+
+def build_ai_reviewer_publication_eval_workflow_trace(
+    *,
+    manuscript_ref: str | Path,
+    evidence_ref: str | Path,
+    review_ref: str | Path,
+    charter_ref: str | Path,
+    record: PublicationEvalRecord | Mapping[str, Any],
+    additional_refs: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    record_payload = _record_payload(record)
+    ref_bundle = _normalize_ref_bundle(
+        manuscript_ref=manuscript_ref,
+        evidence_ref=evidence_ref,
+        review_ref=review_ref,
+        charter_ref=charter_ref,
+        additional_refs=additional_refs,
+    )
+    contract = build_ai_reviewer_operating_system_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+    dimensions = _dimension_payloads(record_payload)
+    for surface in contract["required_input_surfaces"]:
+        if surface not in ref_bundle:
+            raise ValueError(f"AI reviewer publication eval workflow missing input ref for {surface}")
+
+    rubric_scores, decision_matrix = _rubric_scores_and_decision_matrix(
+        dimensions=dimensions,
+        ref_bundle=ref_bundle,
+    )
 
     trace = {
         "contract_id": contract["contract_id"],
@@ -180,10 +198,7 @@ def build_ai_reviewer_publication_eval_workflow_trace(
             "ai_reviewer_required": False,
             "mechanical_projection_used_as_quality_authority": False,
         },
-        "route_back_decision": {
-            "recommended_action": recommended_action,
-            "rationale": route_rationale,
-        },
+        "route_back_decision": _route_back_decision(record_payload),
     }
     errors = validate_ai_reviewer_operating_system_trace(trace)
     if errors:
