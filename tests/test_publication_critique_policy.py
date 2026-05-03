@@ -78,3 +78,85 @@ def test_publication_critique_policy_exposes_target_journal_writing_layer() -> N
             "forbids_overstatement_from_style_examples": True,
         },
     }
+
+
+def test_target_journal_writing_layer_can_be_materialized_as_first_class_surface(tmp_path: Path) -> None:
+    from med_autoscience.policies.publication_critique import (
+        materialize_target_journal_writing_layer,
+        read_target_journal_writing_layer,
+    )
+
+    study_root = tmp_path / "study"
+    source = {
+        "target_journal_family": "general_internal_medicine",
+        "near_neighbor_style_corpus": [
+            {
+                "journal": "JAMA Internal Medicine",
+                "article_role": "near_neighbor",
+                "style_ref": "workspace_literature:jamainternmed-anchor",
+            }
+        ],
+        "section_plan": {
+            "Introduction": "clinical problem, evidence gap, objective",
+            "Methods": "cohort, endpoint, analysis, bias controls",
+            "Results": "primary finding before display references",
+            "Discussion": "principal finding, prior work, interpretation, limitations",
+        },
+        "claim_to_paragraph_map": [
+            {
+                "claim_id": "primary_claim",
+                "section": "Results",
+                "paragraph_role": "principal finding",
+                "evidence_refs": ["paper/evidence_ledger.json#primary_claim"],
+            }
+        ],
+        "display_to_claim_map": [
+            {
+                "display_id": "Figure 1",
+                "claim_id": "primary_claim",
+                "display_role": "supports primary finding",
+            }
+        ],
+        "restrained_language_strategy": {
+            "forbidden_phrases": ["proves", "definitively establishes"],
+            "required_claim_qualifiers": ["was associated with", "may support"],
+        },
+    }
+
+    result = materialize_target_journal_writing_layer(study_root=study_root, payload=source)
+    payload = read_target_journal_writing_layer(study_root=study_root)
+
+    assert result == {
+        "surface": "target_journal_writing_layer",
+        "artifact_path": str(study_root.resolve() / "paper" / "target_journal_writing_layer.json"),
+    }
+    assert payload["surface"] == "target_journal_writing_layer"
+    assert payload["schema_version"] == 1
+    assert payload["target_journal_family"] == "general_internal_medicine"
+    assert payload["near_neighbor_style_corpus"][0]["journal"] == "JAMA Internal Medicine"
+    assert payload["section_plan"]["Introduction"] == "clinical problem, evidence gap, objective"
+    assert payload["claim_to_paragraph_map"][0]["evidence_refs"] == [
+        "paper/evidence_ledger.json#primary_claim"
+    ]
+    assert payload["display_to_claim_map"][0]["display_id"] == "Figure 1"
+    assert payload["restrained_language_strategy"]["forbids_overstatement_from_style_examples"] is True
+    assert payload["mechanical_projection_can_authorize_quality"] is False
+    assert payload["quality_claim_authorized"] is False
+
+
+def test_target_journal_writing_layer_fails_closed_when_required_fields_are_missing(tmp_path: Path) -> None:
+    import pytest
+
+    from med_autoscience.policies.publication_critique import materialize_target_journal_writing_layer
+
+    with pytest.raises(ValueError, match="target_journal_writing_layer missing section_plan"):
+        materialize_target_journal_writing_layer(
+            study_root=tmp_path / "study",
+            payload={
+                "target_journal_family": "general_internal_medicine",
+                "near_neighbor_style_corpus": [],
+                "claim_to_paragraph_map": [],
+                "display_to_claim_map": [],
+                "restrained_language_strategy": {},
+            },
+        )
