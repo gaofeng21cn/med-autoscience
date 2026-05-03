@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 from pathlib import Path
 import fnmatch
+from collections.abc import Iterable, Mapping
 from typing import Any, Callable
 
 import pytest
@@ -74,6 +75,16 @@ WRITE_ROUTE_LEGACY_DEFAULT_PREFIXES = (
     "tests/test_publication_gate_cases/",
     "tests/test_gate_clearing_batch_cases/",
 )
+WRITE_ROUTE_LEGACY_FUNCTIONS = {
+    "med_autoscience.controllers.submission_minimal": ("create_submission_minimal_package",),
+    "med_autoscience.controllers.study_delivery_sync": ("sync_study_delivery",),
+    "med_autoscience.controllers.journal_package": ("materialize_journal_package",),
+    "med_autoscience.controllers.publication_gate": ("run_controller",),
+    "med_autoscience.controllers.publication_gate_parts.supervisor_and_cli": ("run_controller",),
+    "med_autoscience.controllers.quality_repair_batch": ("run_quality_repair_batch",),
+    "med_autoscience.controllers.gate_clearing_batch": ("run_gate_clearing_batch",),
+    "med_autoscience.controllers.fast_lane_executor": ("build_fast_lane_execution_manifest",),
+}
 
 
 def _relative_test_path(item: pytest.Item) -> str:
@@ -122,40 +133,55 @@ def _inject_legacy_write_route_context(
     request: pytest.FixtureRequest,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    if request.node.get_closest_marker("write_route_legacy_default") is None:
-        return
-    if "test_control_plane_write_route_authority.py" in _relative_test_path(request.node):
+    if not _should_inject_legacy_write_route_context(request.node):
         return
     route_context = writable_route_context()
+    for module, function_name in _iter_legacy_write_route_targets():
+        function = getattr(module, function_name, None)
+        if callable(function):
+            monkeypatch.setattr(module, function_name, _wrap_legacy_write_route_function(function, route_context))
 
-    def _wrap(function: Callable[..., Any]) -> Callable[..., Any]:
-        signature = inspect.signature(function)
 
-        def wrapped(*args: Any, **kwargs: Any) -> Any:
-            if kwargs.get("control_plane_route_context") is None and kwargs.get("route_context") is None:
-                if "control_plane_route_context" in signature.parameters:
-                    kwargs["control_plane_route_context"] = route_context
-                elif "route_context" in signature.parameters:
-                    kwargs["route_context"] = route_context
-            return function(*args, **kwargs)
+def _should_inject_legacy_write_route_context(node: pytest.Item) -> bool:
+    if node.get_closest_marker("write_route_legacy_default") is None:
+        return False
+    return "test_control_plane_write_route_authority.py" not in _relative_test_path(node)
 
-        return wrapped
 
-    for module_name, function_names in {
-        "med_autoscience.controllers.submission_minimal": ("create_submission_minimal_package",),
-        "med_autoscience.controllers.study_delivery_sync": ("sync_study_delivery",),
-        "med_autoscience.controllers.journal_package": ("materialize_journal_package",),
-        "med_autoscience.controllers.publication_gate": ("run_controller",),
-        "med_autoscience.controllers.publication_gate_parts.supervisor_and_cli": ("run_controller",),
-        "med_autoscience.controllers.quality_repair_batch": ("run_quality_repair_batch",),
-        "med_autoscience.controllers.gate_clearing_batch": ("run_gate_clearing_batch",),
-        "med_autoscience.controllers.fast_lane_executor": ("build_fast_lane_execution_manifest",),
-    }.items():
+def _iter_legacy_write_route_targets() -> Iterable[tuple[Any, str]]:
+    for module_name, function_names in WRITE_ROUTE_LEGACY_FUNCTIONS.items():
         try:
             module = __import__(module_name, fromlist=["_"])
         except ImportError:
             continue
         for function_name in function_names:
-            function = getattr(module, function_name, None)
-            if callable(function):
-                monkeypatch.setattr(module, function_name, _wrap(function))
+            yield module, function_name
+
+
+def _wrap_legacy_write_route_function(
+    function: Callable[..., Any],
+    route_context: dict[str, object],
+) -> Callable[..., Any]:
+    signature = inspect.signature(function)
+
+    def wrapped(*args: Any, **kwargs: Any) -> Any:
+        if _missing_route_context(kwargs):
+            _inject_route_context_kwarg(kwargs, signature, route_context)
+        return function(*args, **kwargs)
+
+    return wrapped
+
+
+def _missing_route_context(kwargs: Mapping[str, Any]) -> bool:
+    return kwargs.get("control_plane_route_context") is None and kwargs.get("route_context") is None
+
+
+def _inject_route_context_kwarg(
+    kwargs: dict[str, Any],
+    signature: inspect.Signature,
+    route_context: dict[str, object],
+) -> None:
+    if "control_plane_route_context" in signature.parameters:
+        kwargs["control_plane_route_context"] = route_context
+    elif "route_context" in signature.parameters:
+        kwargs["route_context"] = route_context

@@ -458,38 +458,63 @@ def _append_quality_closure(lines: list[str], ctx: Mapping[str, Any]) -> None:
 def _append_ai_first_default_entry(lines: list[str], state: Mapping[str, Any]) -> None:
     if not state:
         return
-    pre_draft = _mapping_copy(state.get("pre_draft"))
-    ai_reviewer = _mapping_copy(state.get("ai_reviewer_workflow"))
-    artifact = _mapping_copy(state.get("artifact_proof"))
-    route_back = _mapping_copy(state.get("route_back"))
     lines.extend(["", "## AI-first 默认入口状态", ""])
+    _append_ai_first_default_summary_lines(lines, state)
+    _append_ai_first_default_route_back(lines, _mapping_copy(state.get("route_back")))
+    _append_ai_first_default_component(
+        lines,
+        label="Pre-draft readiness",
+        component=_mapping_copy(state.get("pre_draft")),
+        status_key="status",
+    )
+    _append_ai_first_default_component(
+        lines,
+        label="AI reviewer workflow",
+        component=_mapping_copy(state.get("ai_reviewer_workflow")),
+        status_key="authority_state",
+    )
+    _append_ai_first_default_component(
+        lines,
+        label="Artifact proof",
+        component=_mapping_copy(state.get("artifact_proof")),
+        status_key="rebuild_status",
+    )
+    _append_ai_first_default_blockers(lines, state)
+
+
+def _append_ai_first_default_summary_lines(lines: list[str], state: Mapping[str, Any]) -> None:
     lines.append(f"- 当前状态: {state.get('status') or 'unknown'}")
     if state.get("summary"):
         lines.append(f"- 当前判断: {state.get('summary')}")
     if state.get("recommended_next_step"):
         lines.append(f"- 下一步: {state.get('recommended_next_step')}")
-    if route_back:
-        lines.append("- route-back: " + ("需要" if route_back.get("required") else "不需要"))
-        if route_back.get("reason"):
-            lines.append(f"- route-back 原因: {route_back.get('reason')}")
-    if pre_draft:
-        lines.append(
-            "- Pre-draft readiness: "
-            f"{pre_draft.get('status') or 'unknown'}；"
-            f"{pre_draft.get('summary') or 'none'}"
-        )
-    if ai_reviewer:
-        lines.append(
-            "- AI reviewer workflow: "
-            f"{ai_reviewer.get('authority_state') or 'unknown'}；"
-            f"{ai_reviewer.get('summary') or 'none'}"
-        )
-    if artifact:
-        lines.append(
-            "- Artifact proof: "
-            f"{artifact.get('rebuild_status') or 'unknown'}；"
-            f"{artifact.get('summary') or 'none'}"
-        )
+
+
+def _append_ai_first_default_route_back(lines: list[str], route_back: Mapping[str, Any]) -> None:
+    if not route_back:
+        return
+    lines.append("- route-back: " + ("需要" if route_back.get("required") else "不需要"))
+    if route_back.get("reason"):
+        lines.append(f"- route-back 原因: {route_back.get('reason')}")
+
+
+def _append_ai_first_default_component(
+    lines: list[str],
+    *,
+    label: str,
+    component: Mapping[str, Any],
+    status_key: str,
+) -> None:
+    if not component:
+        return
+    lines.append(
+        f"- {label}: "
+        f"{component.get(status_key) or 'unknown'}；"
+        f"{component.get('summary') or 'none'}"
+    )
+
+
+def _append_ai_first_default_blockers(lines: list[str], state: Mapping[str, Any]) -> None:
     blockers = [str(item).strip() for item in state.get("blockers") or [] if str(item).strip()]
     for blocker in blockers[:6]:
         lines.append(f"- 默认入口阻塞: {blocker}")
@@ -707,34 +732,41 @@ def _append_medical_paper_readiness(lines: list[str], payload: Mapping[str, Any]
     readiness = payload.get("medical_paper_readiness")
     if not isinstance(readiness, Mapping):
         return
-    ready_count = readiness.get("ready_count")
-    required_count = readiness.get("required_count")
+    lines.extend(_medical_paper_readiness_header(readiness))
+    summary = _medical_paper_readiness_next_action_summary(readiness)
+    if summary:
+        lines.append(f"- 下一动作: {summary}")
+    for item in _missing_required_medical_paper_surfaces(readiness):
+        surface_key = str(item.get("surface_key") or "unknown").strip()
+        missing_reason = str(item.get("missing_reason") or "unknown").strip()
+        lines.append(f"- 缺失 surface: {surface_key} (`{missing_reason}`)")
+    quality_authorized = "true" if readiness.get("quality_claim_authorized") is True else "false"
+    lines.append(f"- 质量声明授权: `{quality_authorized}`")
+
+
+def _medical_paper_readiness_header(readiness: Mapping[str, Any]) -> list[str]:
+    return [
+        "",
+        "## 自动医学论文能力闭环 / Medical Paper Readiness",
+        "",
+        f"- 当前状态: `{str(readiness.get('overall_status') or 'unknown').strip()}`",
+        f"- readiness: `{readiness.get('ready_count')}/{readiness.get('required_count')}`",
+    ]
+
+
+def _medical_paper_readiness_next_action_summary(readiness: Mapping[str, Any]) -> str:
     next_action = readiness.get("next_action") if isinstance(readiness.get("next_action"), Mapping) else {}
-    missing_surfaces = [
+    return str((next_action or {}).get("summary") or "").strip()
+
+
+def _missing_required_medical_paper_surfaces(readiness: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    return [
         item
         for item in readiness.get("capability_surfaces") or []
         if isinstance(item, Mapping)
         and bool(item.get("required_for_ready"))
         and str(item.get("status") or "").strip() != "present"
     ]
-    lines.extend(
-        [
-            "",
-            "## 自动医学论文能力闭环 / Medical Paper Readiness",
-            "",
-            f"- 当前状态: `{str(readiness.get('overall_status') or 'unknown').strip()}`",
-            f"- readiness: `{ready_count}/{required_count}`",
-        ]
-    )
-    summary = str((next_action or {}).get("summary") or "").strip()
-    if summary:
-        lines.append(f"- 下一动作: {summary}")
-    for item in missing_surfaces:
-        surface_key = str(item.get("surface_key") or "unknown").strip()
-        missing_reason = str(item.get("missing_reason") or "unknown").strip()
-        lines.append(f"- 缺失 surface: {surface_key} (`{missing_reason}`)")
-    quality_authorized = "true" if readiness.get("quality_claim_authorized") is True else "false"
-    lines.append(f"- 质量声明授权: `{quality_authorized}`")
 
 
 def _append_recent_events(lines: list[str], latest_events: list[dict[str, Any]]) -> None:

@@ -491,26 +491,14 @@ def _render_mcp_progress_blockers(compact: dict[str, Any]) -> list[str]:
 
 
 def _render_mcp_progress_medical_paper_readiness(compact: dict[str, Any]) -> list[str]:
-    readiness = (
-        compact.get("medical_paper_readiness")
-        if isinstance(compact.get("medical_paper_readiness"), dict)
-        else {}
-    )
+    readiness = _medical_paper_readiness_payload(compact)
     if not readiness:
         return []
-    lines = [
-        "",
-        "## Medical Paper Readiness",
-        f"- readiness: `{readiness.get('overall_status') or 'unknown'}`；"
-        f"`{readiness.get('ready_count')}/{readiness.get('required_count')}`",
-    ]
-    next_action = readiness.get("next_action") if isinstance(readiness.get("next_action"), dict) else {}
-    next_action_summary = str((next_action or {}).get("summary") or "").strip()
+    lines = _mcp_medical_paper_readiness_header(readiness)
+    next_action_summary = _mcp_medical_paper_next_action_summary(readiness)
     if next_action_summary:
         lines.append(f"- 下一动作: {next_action_summary}")
-    for item in readiness.get("missing_surfaces") or []:
-        if not isinstance(item, dict):
-            continue
+    for item in _mcp_medical_paper_missing_surfaces(readiness):
         surface_key = str(item.get("surface_key") or "unknown").strip() or "unknown"
         missing_reason = str(item.get("missing_reason") or "unknown").strip() or "unknown"
         lines.append(f"- 缺失 surface: {surface_key} (`{missing_reason}`)")
@@ -520,6 +508,32 @@ def _render_mcp_progress_medical_paper_readiness(compact: dict[str, Any]) -> lis
         f"`{readiness.get('mechanical_projection_can_authorize_quality')}`"
     )
     return lines
+
+
+def _medical_paper_readiness_payload(compact: dict[str, Any]) -> dict[str, Any]:
+    return (
+        compact.get("medical_paper_readiness")
+        if isinstance(compact.get("medical_paper_readiness"), dict)
+        else {}
+    )
+
+
+def _mcp_medical_paper_readiness_header(readiness: dict[str, Any]) -> list[str]:
+    return [
+        "",
+        "## Medical Paper Readiness",
+        f"- readiness: `{readiness.get('overall_status') or 'unknown'}`；"
+        f"`{readiness.get('ready_count')}/{readiness.get('required_count')}`",
+    ]
+
+
+def _mcp_medical_paper_next_action_summary(readiness: dict[str, Any]) -> str:
+    next_action = readiness.get("next_action") if isinstance(readiness.get("next_action"), dict) else {}
+    return str((next_action or {}).get("summary") or "").strip()
+
+
+def _mcp_medical_paper_missing_surfaces(readiness: dict[str, Any]) -> list[dict[str, Any]]:
+    return [item for item in readiness.get("missing_surfaces") or [] if isinstance(item, dict)]
 
 
 def _render_mcp_progress_refs(compact: dict[str, Any]) -> list[str]:
