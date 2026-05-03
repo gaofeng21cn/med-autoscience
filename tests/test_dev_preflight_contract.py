@@ -73,6 +73,9 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
             "src/med_autoscience/controllers/control_plane_migration_audit.py",
             "src/med_autoscience/controllers/control_plane_state.py",
+            "src/med_autoscience/cli.py",
+            "src/med_autoscience/cli_parts/parser.py",
+            "src/med_autoscience/mcp_server.py",
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/control_identity.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
@@ -84,6 +87,8 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "tests/test_study_control_plane_kernel.py",
             "tests/test_artifact_lifecycle_inventory.py",
             "tests/test_control_plane_migration_audit.py",
+            "tests/test_cli_cases/public_entry_commands.py",
+            "tests/test_mcp_server.py",
             "tests/control_plane_fixtures.py",
         ]
     )

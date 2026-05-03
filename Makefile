@@ -11,6 +11,8 @@ CONTROL_PLANE_TESTS := \
 	tests/test_study_delivery_sync.py \
 	tests/test_runtime_storage_maintenance.py \
 	tests/test_control_plane_migration_audit.py \
+	tests/test_cli_cases/public_entry_commands.py::test_migration_audit_command_dispatches_read_only_controller \
+	tests/test_mcp_server.py::test_mcp_product_entry_can_call_migration_audit \
 	tests/test_truth_projection_surfaces.py \
 	tests/test_runtime_health_projection_surfaces.py \
 	tests/test_study_progress.py \
