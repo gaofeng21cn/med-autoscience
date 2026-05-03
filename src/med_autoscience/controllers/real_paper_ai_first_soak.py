@@ -286,12 +286,20 @@ def build_real_study_soak_matrix_evidence(
         _merge_stage_evidence(stage_evidence, evidence_map)
 
     required_stages: list[dict[str, Any]] = []
+    missing_stage_gaps: list[dict[str, str]] = []
     complete_count = 0
     for stage in REAL_STUDY_SOAK_STAGES:
         refs = stage_evidence.get(stage, [])
         is_complete = bool(refs)
         if is_complete:
             complete_count += 1
+        else:
+            missing_stage_gaps.append(
+                {
+                    "stage": stage,
+                    "missing_reason": MISSING_DURABLE_EVIDENCE_REF,
+                }
+            )
         required_stages.append(
             {
                 "stage": stage,
@@ -315,6 +323,7 @@ def build_real_study_soak_matrix_evidence(
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
         "required_stages": required_stages,
+        "missing_stage_gaps": missing_stage_gaps,
         "evidence_sources": evidence_sources,
     }
 

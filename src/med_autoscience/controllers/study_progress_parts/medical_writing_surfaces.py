@@ -7,6 +7,10 @@ from med_autoscience.medical_journal_style_corpus import stable_medical_journal_
 from med_autoscience.medical_manuscript_blueprint import stable_medical_manuscript_blueprint_path
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 from med_autoscience.medical_prose_review_request import stable_medical_prose_review_request_path
+from med_autoscience.policies.publication_critique import (
+    read_target_journal_writing_layer,
+    stable_target_journal_writing_layer_path,
+)
 from med_autoscience.retrospective_medical_prose_audit import (
     stable_retrospective_medical_prose_audit_path,
     stable_retrospective_medical_prose_audit_request_path,
@@ -20,6 +24,7 @@ def medical_writing_quality_surface_status(*, study_root: Path) -> dict[str, Any
     style_corpus_path = stable_medical_journal_style_corpus_path(study_root=study_root)
     prose_review_request_path = stable_medical_prose_review_request_path(study_root=study_root)
     prose_review_path = stable_medical_prose_review_path(study_root=study_root)
+    target_journal_path = stable_target_journal_writing_layer_path(study_root=study_root)
     retrospective_request_path = stable_retrospective_medical_prose_audit_request_path(study_root=study_root)
     retrospective_audit_path = stable_retrospective_medical_prose_audit_path(study_root=study_root)
 
@@ -27,6 +32,12 @@ def medical_writing_quality_surface_status(*, study_root: Path) -> dict[str, Any
     corpus_payload = _read_json_object(style_corpus_path)
     request_payload = _read_json_object(prose_review_request_path)
     review_payload = _read_json_object(prose_review_path)
+    try:
+        target_journal_payload = read_target_journal_writing_layer(study_root=study_root)
+        target_journal_read_error = None
+    except (OSError, TypeError, ValueError):
+        target_journal_payload = None
+        target_journal_read_error = "missing_or_invalid"
     retrospective_request_payload = _read_json_object(retrospective_request_path)
     retrospective_audit_payload = _read_json_object(retrospective_audit_path)
     review_quality = (
@@ -75,6 +86,21 @@ def medical_writing_quality_surface_status(*, study_root: Path) -> dict[str, Any
             "owner": _non_empty_text(review_provenance.get("owner")),
             "verdict": _non_empty_text(review_quality.get("overall_style_verdict")),
             "summary": _non_empty_text(review_quality.get("summary")),
+        },
+        "target_journal_context": {
+            "present": target_journal_path.exists(),
+            "valid": target_journal_payload is not None,
+            "path": str(target_journal_path),
+            "read_error": target_journal_read_error,
+            "target_journal_family": _non_empty_text((target_journal_payload or {}).get("target_journal_family")),
+            "section_plan": _mapping_copy((target_journal_payload or {}).get("section_plan")),
+            "claim_to_paragraph_map": list((target_journal_payload or {}).get("claim_to_paragraph_map") or []),
+            "display_to_claim_map": list((target_journal_payload or {}).get("display_to_claim_map") or []),
+            "restrained_language_strategy": _mapping_copy(
+                (target_journal_payload or {}).get("restrained_language_strategy")
+            ),
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
         },
         "retrospective_audit_request": {
             "present": retrospective_request_path.exists(),

@@ -10,6 +10,10 @@ from med_autoscience.controllers.medical_quality_operating_system import (
 from med_autoscience.controllers.section_authoring_work_units import (
     build_section_authoring_work_units,
 )
+from med_autoscience.policies.publication_critique import (
+    read_target_journal_writing_layer,
+    stable_target_journal_writing_layer_path,
+)
 from med_autoscience.publication_eval_reviewer_os import (
     validate_ai_reviewer_operating_system_trace,
 )
@@ -203,6 +207,32 @@ def _source_family(payload: dict[str, Any]) -> str:
     return ""
 
 
+def _target_journal_context_ref(study_root: Path) -> tuple[dict[str, Any], list[str]]:
+    path = stable_target_journal_writing_layer_path(study_root=study_root)
+    ref: dict[str, Any] = {
+        "path": str(path),
+        "exists": path.exists(),
+    }
+    try:
+        payload = read_target_journal_writing_layer(study_root=study_root)
+    except FileNotFoundError:
+        ref["read_error"] = "missing"
+        return ref, ["target_journal_writing_layer_missing"]
+    except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+        ref["read_error"] = "invalid"
+        ref["error"] = str(exc)
+        return ref, ["target_journal_writing_layer_invalid"]
+    ref.update(
+        {
+            "status": "present",
+            "target_journal_family": _text(payload.get("target_journal_family")),
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        }
+    )
+    return ref, []
+
+
 def _append_closed_items_blockers(
     *,
     payload: dict[str, Any],
@@ -388,6 +418,11 @@ def build_pre_draft_quality_runtime_state(study_root: str | Path) -> dict[str, A
     blockers.extend(section_authoring_blockers)
     route_back_blockers.extend(section_authoring_blockers)
 
+    target_journal_context_ref, target_journal_blockers = _target_journal_context_ref(resolved_study_root)
+    refs["target_journal_writing_layer"] = target_journal_context_ref
+    blockers.extend(target_journal_blockers)
+    route_back_blockers.extend(target_journal_blockers)
+
     if review_blockers:
         status = "review_required"
     elif route_back_blockers:
@@ -403,6 +438,12 @@ def build_pre_draft_quality_runtime_state(study_root: str | Path) -> dict[str, A
             "required_before": "first_full_draft",
             "draft_ready": status == "first_full_draft_ready",
             "next_route": "first_full_draft" if status == "first_full_draft_ready" else status,
+            "authoring_mode": (
+                "target_journal_context_bound"
+                if status == "first_full_draft_ready"
+                else "pre_draft_planning_only"
+            ),
+            "full_drafting_authorized": status == "first_full_draft_ready",
             "mechanical_file_presence_can_authorize_ready": False,
         },
         "status": status,

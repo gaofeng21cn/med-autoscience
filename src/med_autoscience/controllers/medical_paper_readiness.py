@@ -307,7 +307,7 @@ def _capability_status(*, study_root: Path, spec: Mapping[str, Any]) -> dict[str
 
     validator: CapabilityValidator = spec["validator"]
     status, missing_reason = validator(payload)
-    return {
+    result = {
         "surface_key": surface_key,
         "surface": spec["surface"],
         "label": spec["label"],
@@ -317,6 +317,14 @@ def _capability_status(*, study_root: Path, spec: Mapping[str, Any]) -> dict[str
         "missing_reason": missing_reason,
         "required_for_ready": bool(spec["required_for_ready"]),
     }
+    missing_stage_gaps = payload.get("missing_stage_gaps")
+    if isinstance(missing_stage_gaps, list):
+        result["missing_stage_gaps"] = [
+            dict(item)
+            for item in missing_stage_gaps
+            if isinstance(item, Mapping)
+        ]
+    return result
 
 
 def _overall_status(capability_surfaces: list[Mapping[str, Any]]) -> str:

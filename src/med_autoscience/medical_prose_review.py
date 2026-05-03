@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.medical_manuscript_blueprint import read_medical_manuscript_blueprint
+from med_autoscience.policies.publication_critique import read_target_journal_writing_layer
 
 __all__ = [
     "STABLE_MEDICAL_PROSE_REVIEW_RELATIVE_PATH",
@@ -85,6 +86,24 @@ def _source_ref(path: Path) -> str | None:
     return str(path.resolve()) if path.exists() else None
 
 
+def _target_journal_context(study_root: Path) -> dict[str, Any] | None:
+    try:
+        layer = read_target_journal_writing_layer(study_root=study_root)
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return None
+    return {
+        "surface": layer["surface"],
+        "role": layer["role"],
+        "target_journal_family": layer["target_journal_family"],
+        "section_plan": layer["section_plan"],
+        "claim_to_paragraph_map": layer["claim_to_paragraph_map"],
+        "display_to_claim_map": layer["display_to_claim_map"],
+        "restrained_language_strategy": layer["restrained_language_strategy"],
+        "mechanical_projection_can_authorize_quality": False,
+        "quality_claim_authorized": False,
+    }
+
+
 def _review_quality_from_verdict(
     *,
     verdict: str,
@@ -141,6 +160,11 @@ def build_medical_prose_review(
             source_ref_values.append(ref)
     if not source_ref_values:
         source_ref_values.append(str(resolved_study_root))
+    target_journal_context = _target_journal_context(resolved_study_root)
+    if target_journal_context is not None:
+        target_ref = _source_ref(resolved_study_root / "paper" / "target_journal_writing_layer.json")
+        if target_ref and target_ref not in source_ref_values:
+            source_ref_values.append(target_ref)
     return {
         "schema_version": 1,
         "surface": "medical_prose_review",
@@ -160,6 +184,7 @@ def build_medical_prose_review(
         "mechanical_safety_flags": list(mechanical_safety_flags or []),
         "source_refs": source_ref_values,
         "manuscript_character_count": len(manuscript_text),
+        **({"target_journal_context": target_journal_context} if target_journal_context else {}),
     }
 
 
