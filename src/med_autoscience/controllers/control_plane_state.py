@@ -297,6 +297,7 @@ def build_control_plane_state_surface(profile_payload: Mapping[str, Any]) -> dic
         auto_runtime_parked=auto_runtime_parked,
         runtime_failure_classification=runtime_failure,
     )
+    canonical_next_action = _text(control_plane_snapshot.get("canonical_next_action"))
     return {
         "surface": "control_plane_state",
         "schema_version": 1,
@@ -313,7 +314,8 @@ def build_control_plane_state_surface(profile_payload: Mapping[str, Any]) -> dic
         "current_state_spec": state_spec,
         "control_plane_facts": facts.to_runtime_facts_dict(),
         "control_plane_reconciler": reconciler,
-        "canonical_next_action": reconciler["canonical_next_action"],
+        "compat_reconciler_projection": reconciler,
+        "canonical_next_action": canonical_next_action,
         "auto_runtime_parked": auto_runtime_parked,
         "runtime_failure_classification": dict(runtime_failure) or None,
         "states": control_plane_state_catalog(),

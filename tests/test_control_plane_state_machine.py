@@ -63,7 +63,9 @@ def test_control_plane_state_uses_facts_for_no_live_projection() -> None:
     assert surface["auto_recovery_allowed"] is True
     assert surface["resource_release_expected"] is False
     assert surface["control_plane_facts"]["missing_live_session"] is True
-    assert surface["canonical_next_action"] == "recover_runtime"
+    assert surface["canonical_next_action"] == surface["control_plane_snapshot"]["canonical_next_action"]
+    assert surface["canonical_next_action"] == "read_runtime_status"
+    assert surface["compat_reconciler_projection"]["canonical_next_action"] == "recover_runtime"
 
 
 def test_control_plane_reconciler_prioritizes_recovery_over_pending_work_unit() -> None:
@@ -94,10 +96,39 @@ def test_control_plane_reconciler_prioritizes_recovery_over_pending_work_unit() 
     )
 
     assert surface["current_state"] == "no_live"
-    assert surface["canonical_next_action"] == "recover_runtime"
+    assert surface["canonical_next_action"] == surface["control_plane_snapshot"]["canonical_next_action"]
+    assert surface["canonical_next_action"] == "read_runtime_status"
     assert surface["control_plane_reconciler"]["work_unit_pending"] is True
     assert surface["control_plane_reconciler"]["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert surface["compat_reconciler_projection"] == surface["control_plane_reconciler"]
+    assert surface["compat_reconciler_projection"]["canonical_next_action"] == "recover_runtime"
     assert surface["auto_runtime_parked"]["parked"] is False
+
+
+def test_control_plane_state_canonical_action_uses_snapshot_not_compat_reconciler() -> None:
+    surface = _surface(
+        {
+            "study_id": "003-control-plane",
+            "quest_id": "quest-control-plane",
+            "quest_status": "running",
+            "runtime_liveness_status": "none",
+            "reason": "quest_marked_running_but_no_live_session",
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-control-plane",
+                "canonical_next_action": "resume_same_study_line",
+            },
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-event-control-plane",
+                "canonical_runtime_action": "recover_runtime",
+            },
+        }
+    )
+
+    assert surface["control_plane_snapshot"]["canonical_next_action"] == "resume_same_study_line"
+    assert surface["canonical_next_action"] == "resume_same_study_line"
+    assert surface["control_plane_epoch"] == "truth-event-control-plane"
+    assert surface["compat_reconciler_projection"]["canonical_next_action"] == "recover_runtime"
+    assert surface["control_plane_reconciler"] == surface["compat_reconciler_projection"]
 
 
 def test_control_plane_state_maps_user_parked_to_blocked_human() -> None:
