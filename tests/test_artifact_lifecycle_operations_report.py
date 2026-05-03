@@ -30,6 +30,8 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
     assert report["mutation_policy"]["read_only"] is True
     assert report["mutation_policy"]["physical_cleanup_performed"] is False
     assert report["summary"]["role_counts"]["canonical_source"] == 1
+    assert report["retention_plan"]["summary"]["action_counts"]["keep_online"] >= 1
+    assert report["retention_plan"]["summary"]["action_counts"]["regenerate_projection_then_remove_stale"] >= 1
     assert report["source_totals"]["delivery_projection"]["file_count"] >= 3
     assert report["source_totals"]["runtime"]["scan_mode"] == "statistical_only"
     study = report["workspaces"][0]["studies"][0]
@@ -41,6 +43,16 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
     assert "missing_pdf" not in study["projection_completeness"]["blockers"]
     assert "artifacts" not in report["workspaces"][0]
     assert report["workspaces"][0]["artifact_sample"]
+    workspace_plan = report["workspaces"][0]["retention_plan"]
+    assert workspace_plan["mutation_policy"]["physical_cleanup_performed"] is False
+    assert workspace_plan["mutation_policy"]["allowed_physical_actions"] == ["delete-safe-cache"]
+    projection_operations = [
+        item
+        for item in workspace_plan["operations"]
+        if item["retention_action"] == "regenerate_projection_then_remove_stale"
+    ]
+    assert projection_operations
+    assert all(item["physical_delete_allowed"] is False for item in projection_operations)
 
 
 def test_lifecycle_operations_report_default_uses_storage_audit_snapshot_without_deep_runtime_scan(
@@ -64,6 +76,7 @@ def test_lifecycle_operations_report_default_uses_storage_audit_snapshot_without
     assert workspace["statistical_directories"][0]["file_count"] == 2
     assert workspace["statistical_directories"][0]["size_bytes"] == 12
     assert report["source_totals"]["runtime"]["file_count"] == 2
+    assert workspace["retention_plan"]["summary"]["action_counts"]["keep_online"] >= 1
 
 
 def test_lifecycle_operations_report_default_does_not_walk_nested_runtime_or_worktree_payloads(

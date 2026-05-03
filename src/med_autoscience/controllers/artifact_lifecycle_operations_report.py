@@ -12,6 +12,9 @@ from med_autoscience.controllers.artifact_lifecycle_inventory import (
     classify_artifact,
     lifecycle_for_role,
 )
+from med_autoscience.controllers.artifact_retention_operations_plan import (
+    build_artifact_retention_operations_plan,
+)
 
 
 SCHEMA_VERSION = 1
@@ -114,6 +117,7 @@ def run_lifecycle_operations_report(
         "projection_role_catalog": _projection_role_catalog(),
         "summary": _aggregate_summary(workspaces),
         "source_totals": _aggregate_source_totals(workspaces),
+        "retention_plan": _aggregate_retention_plan(workspaces),
         "projection_completeness": _aggregate_projection_completeness(workspaces),
         "workspaces": workspaces,
     }
@@ -187,6 +191,10 @@ def _workspace_report(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -
     statistical_directories = scan["statistical_directories"]
     skipped_directories = scan["skipped_directories"]
     studies = _study_reports(workspace_root=workspace_root, study_roots=study_roots, artifacts=artifacts)
+    retention_plan = build_artifact_retention_operations_plan(
+        workspace_root=workspace_root,
+        artifacts=[*artifacts, *statistical_directories],
+    )
     return {
         "workspace_root": str(workspace_root),
         "exists": workspace_root.exists(),
@@ -201,6 +209,7 @@ def _workspace_report(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -
             artifacts=artifacts,
             statistical_directories=statistical_directories,
         ),
+        "retention_plan": retention_plan,
         "projection_completeness": _workspace_projection_completeness(studies),
         "studies": studies,
         "artifact_listing": "bounded",
@@ -752,6 +761,33 @@ def _aggregate_source_totals(workspaces: Iterable[Mapping[str, Any]]) -> dict[st
                 scan_mode=str(source_total.get("scan_mode") or ""),
             )
     return totals
+
+
+def _aggregate_retention_plan(workspaces: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    action_counts: dict[str, int] = {}
+    applyable_action_counts: dict[str, int] = {}
+    operation_count = 0
+    for workspace in workspaces:
+        plan = dict(workspace.get("retention_plan") or {})
+        summary = dict(plan.get("summary") or {})
+        operation_count += int(summary.get("operation_count") or 0)
+        _merge_counts(action_counts, dict(summary.get("action_counts") or {}))
+        _merge_counts(applyable_action_counts, dict(summary.get("applyable_action_counts") or {}))
+    return {
+        "surface_kind": "artifact_retention_operations_plan",
+        "summary": {
+            "operation_count": operation_count,
+            "action_counts": dict(sorted(action_counts.items())),
+            "applyable_action_counts": dict(sorted(applyable_action_counts.items())),
+        },
+        "mutation_policy": {
+            "read_only": True,
+            "writes_workspace": False,
+            "physical_cleanup_performed": False,
+            "allowed_physical_actions": ["delete-safe-cache"],
+            "archive_compress_apply_supported": False,
+        },
+    }
 
 
 def _empty_source_totals() -> dict[str, Any]:

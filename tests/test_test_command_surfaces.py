@@ -22,6 +22,7 @@ REQUIRED_CONTROL_PLANE_TESTS = (
     "tests/test_study_runtime_typed_surface_cases/status_type_cases.py",
     "tests/test_control_plane_route_gate.py",
     "tests/test_artifact_lifecycle_inventory.py",
+    "tests/test_artifact_retention_operations_plan.py",
     "tests/test_artifact_lifecycle_operations_report.py",
     "tests/test_runtime_protocol_paper_artifacts.py",
     "tests/test_study_delivery_sync.py",
