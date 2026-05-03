@@ -161,7 +161,11 @@ def test_run_gate_clearing_batch_rematerializes_stale_direct_migration_display_i
         call_order.append("materialize")
         return {"status": "materialized", "figures_materialized": ["F5"]}
 
-    monkeypatch.setattr(module, "_run_time_to_event_direct_migration", fake_direct_migration)
+    monkeypatch.setattr(
+        module.time_to_event_direct_migration,
+        "run_time_to_event_direct_migration",
+        fake_direct_migration,
+    )
     monkeypatch.setattr(module, "_materialize_display_surface", fake_materialize)
     monkeypatch.setattr(
         module.publication_gate,
@@ -350,7 +354,11 @@ def test_run_gate_clearing_batch_migrates_legacy_feature_shift_f5_payload_to_tra
         assert migrated_display["centers"][1]["verdict"] == "recalibration_required"
         return {"status": "materialized", "figures_materialized": ["F5"]}
 
-    monkeypatch.setattr(module, "_run_time_to_event_direct_migration", fake_direct_migration)
+    monkeypatch.setattr(
+        module.time_to_event_direct_migration,
+        "run_time_to_event_direct_migration",
+        fake_direct_migration,
+    )
     monkeypatch.setattr(module, "_materialize_display_surface", fake_materialize)
     monkeypatch.setattr(
         module.publication_gate,

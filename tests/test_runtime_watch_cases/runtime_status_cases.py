@@ -8,6 +8,8 @@ globals().update({
     if not name.startswith('__')
 })
 
+from .runtime_status_cases_cases.test_runtime_activity_projection import *  # noqa: F403,F401
+
 def test_runtime_watch_uses_runtime_watch_protocol_helpers(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     quest_root = make_quest(tmp_path, "q001", status="running")

@@ -38,10 +38,7 @@ from med_autoscience.controllers import gate_clearing_batch_authority_redrive
 from med_autoscience.controllers import publication_shell_sync
 from med_autoscience.controllers.gate_clearing_batch_execution import GateClearingRepairUnit
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
-    derived_next_publication_work_unit,
-    explicit_next_publication_work_unit,
     filter_repair_units_for_publication_work_unit,
-    submission_delivery_sync_closure_work_unit,
 )
 from med_autoscience.display_source_contract import INPUT_FILENAME_BY_SCHEMA_ID
 
@@ -391,52 +388,6 @@ def _latest_batch_record(*, study_root: Path) -> dict[str, Any]:
     return _read_json(stable_gate_clearing_batch_path(study_root=study_root))
 
 
-def _write_gate_specificity_terminal_batch(
-    *,
-    study_root: Path,
-    study_id: str,
-    quest_id: str,
-    paper_root: Path,
-    current_workspace_root: Path,
-    source_eval_id: str,
-    gate_report: dict[str, Any],
-    explicit_publication_work_unit: dict[str, Any] | None,
-    terminal_publication_work_unit: dict[str, Any],
-    current_publication_work_unit_payload: dict[str, Any],
-    work_unit_currentness: dict[str, Any],
-    terminal_reason: str,
-) -> dict[str, Any]:
-    gate_replay_timing = publication_work_unit_lifecycle.instant_timing(clock=_clock_snapshot)
-    record, lifecycle_record = gate_clearing_batch_currentness.gate_specificity_terminal_batch_record(
-        schema_version=SCHEMA_VERSION,
-        study_root=study_root,
-        study_id=study_id,
-        quest_id=quest_id,
-        paper_root=paper_root,
-        current_workspace_root=current_workspace_root,
-        source_eval_id=source_eval_id,
-        gate_report=gate_report,
-        gate_blockers=_gate_blockers(gate_report),
-        explicit_publication_work_unit=explicit_publication_work_unit,
-        terminal_publication_work_unit=terminal_publication_work_unit,
-        current_publication_work_unit_payload=current_publication_work_unit_payload,
-        work_unit_currentness=work_unit_currentness,
-        terminal_reason=terminal_reason,
-        gate_replay_timing=gate_replay_timing,
-    )
-    record_path = stable_gate_clearing_batch_path(study_root=study_root)
-    _write_json(record_path, record)
-    _write_json(
-        publication_work_unit_lifecycle.stable_publication_work_unit_lifecycle_path(study_root=study_root),
-        lifecycle_record,
-    )
-    return {
-        "ok": True,
-        "record_path": str(record_path),
-        **record,
-    }
-
-
 def _recommended_action_by_type(
     *,
     publication_eval_payload: dict[str, Any],
@@ -684,20 +635,6 @@ def _publication_shell_surface_needs_sync(*, study_root: Path, paper_root: Path)
     return any(not isinstance(item, dict) for item in variables)
 
 
-def _sync_publication_shell_surface(*, study_root: Path, paper_root: Path) -> dict[str, Any]:
-    return publication_shell_sync.run_publication_shell_sync(
-        study_root=study_root,
-        paper_root=paper_root,
-    )
-
-
-def _run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) -> dict[str, Any]:
-    return time_to_event_direct_migration.run_time_to_event_direct_migration(
-        study_root=study_root,
-        paper_root=paper_root,
-    )
-
-
 def _legacy_time_to_event_grouped_payload_normalization_candidates(
     *,
     paper_root: Path,
@@ -939,19 +876,6 @@ def run_gate_clearing_batch(
             "source_eval_id": current_eval_id,
         }
 
-    explicit_next_work_unit = explicit_next_publication_work_unit(publication_eval_payload)
-    current_publication_work_unit_payload = publication_work_units.derive_publication_work_units(gate_report)
-    current_next_work_unit = current_publication_work_unit_payload.get("next_work_unit")
-    selected_publication_work_unit = (
-        explicit_next_work_unit
-        or (current_next_work_unit if isinstance(current_next_work_unit, dict) else derived_next_publication_work_unit(gate_report))
-    )
-    if (
-        isinstance(selected_publication_work_unit, dict)
-        and _non_empty_text(selected_publication_work_unit.get("unit_id")) == "gate_needs_specificity"
-        and gate_clearing_batch_replay_closure.stale_gate_replay_closed(latest_batch, gate_report=gate_report)
-    ):
-        selected_publication_work_unit = submission_delivery_sync_closure_work_unit()
     current_workspace_root = _current_workspace_root(
         quest_root=quest_root,
         default=paper_root.parent,
@@ -978,40 +902,27 @@ def run_gate_clearing_batch(
         and study_delivery_sync.can_sync_study_delivery(paper_root=paper_root)
     )
     if authority_settle_delivery_redrive_requested:
-        selected_publication_work_unit = submission_delivery_sync_closure_work_unit()
         direct_submission_delivery_sync_requested = True
         submission_minimal_refresh_requested = False
 
-    work_unit_currentness = gate_clearing_batch_currentness.publication_work_unit_currentness(
+    work_unit_selection = gate_clearing_batch_currentness.publication_work_unit_selection(
         publication_eval_payload=publication_eval_payload,
         latest_batch=latest_batch,
         gate_report=gate_report,
-        current_publication_work_unit_payload=current_publication_work_unit_payload,
-        explicit_publication_work_unit=explicit_next_work_unit,
-        selected_publication_work_unit=selected_publication_work_unit,
+        authority_settle_delivery_redrive_requested=authority_settle_delivery_redrive_requested,
     )
-    terminal_reason = None
-    if not authority_settle_delivery_redrive_requested:
-        terminal_reason = gate_clearing_batch_currentness.gate_specificity_terminal_reason(
-            explicit_publication_work_unit=explicit_next_work_unit,
-            selected_publication_work_unit=selected_publication_work_unit,
-            current_publication_work_unit_payload=current_publication_work_unit_payload,
-            work_unit_currentness=work_unit_currentness,
-        )
+    explicit_next_work_unit = work_unit_selection["explicit_next_work_unit"]
+    current_publication_work_unit_payload = work_unit_selection["current_publication_work_unit_payload"]
+    selected_publication_work_unit = work_unit_selection["selected_publication_work_unit"]
+    work_unit_currentness = work_unit_selection["work_unit_currentness"]
+    terminal_reason = work_unit_selection["terminal_reason"]
     if terminal_reason is not None:
-        terminal_work_unit = (
-            selected_publication_work_unit
-            if gate_clearing_batch_currentness.publication_work_unit_id(selected_publication_work_unit)
-            == gate_clearing_batch_currentness.GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID
-            else current_next_work_unit
-        )
-        if not isinstance(terminal_work_unit, dict):
-            terminal_work_unit = {
-                "unit_id": gate_clearing_batch_currentness.GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID,
-                "lane": "controller",
-                "summary": "Ask the publication gate to identify concrete blocker targets.",
-            }
-        return _write_gate_specificity_terminal_batch(
+        return gate_clearing_batch_currentness.write_gate_specificity_terminal_batch(
+            record_path=stable_gate_clearing_batch_path(study_root=resolved_study_root),
+            lifecycle_path=publication_work_unit_lifecycle.stable_publication_work_unit_lifecycle_path(
+                study_root=resolved_study_root
+            ),
+            schema_version=SCHEMA_VERSION,
             study_root=resolved_study_root,
             study_id=study_id,
             quest_id=quest_id,
@@ -1019,11 +930,15 @@ def run_gate_clearing_batch(
             current_workspace_root=current_workspace_root,
             source_eval_id=current_eval_id,
             gate_report=gate_report,
+            gate_blockers=_gate_blockers(gate_report),
             explicit_publication_work_unit=explicit_next_work_unit,
-            terminal_publication_work_unit=terminal_work_unit,
+            terminal_publication_work_unit=gate_clearing_batch_currentness.terminal_publication_work_unit(
+                work_unit_selection
+            ),
             current_publication_work_unit_payload=current_publication_work_unit_payload,
             work_unit_currentness=work_unit_currentness,
             terminal_reason=terminal_reason,
+            gate_replay_timing=publication_work_unit_lifecycle.instant_timing(clock=_clock_snapshot),
         )
 
     if (
@@ -1032,20 +947,15 @@ def run_gate_clearing_batch(
         in {"publication_gate_replay", "submission_delivery_sync_closure"}
         and gate_clearing_batch_replay_closure.stale_gate_replay_closed(latest_batch, gate_report=gate_report)
     ):
-        return {
-            "ok": True,
-            "status": "skipped_stale_gate_replay_closed",
-            "source_eval_id": current_eval_id,
-            "latest_record_path": str(stable_gate_clearing_batch_path(study_root=resolved_study_root)),
-            "gate_fingerprint": gate_report.get("gate_fingerprint"),
-            "evaluated_source_signature": gate_report.get("submission_minimal_evaluated_source_signature"),
-            "authority_source_signature": gate_report.get("submission_minimal_authority_source_signature"),
-            "blocking_artifact_refs": gate_report.get("blocking_artifact_refs") or [],
-            "selected_publication_work_unit": selected_publication_work_unit,
-            "work_unit_fingerprint": current_publication_work_unit_payload.get("fingerprint"),
-            "work_unit_currentness": work_unit_currentness,
-            "stale_gate_replay_closure": latest_batch.get("stale_gate_replay_closure"),
-        }
+        return gate_clearing_batch_currentness.stale_gate_replay_closed_result(
+            source_eval_id=current_eval_id,
+            latest_record_path=stable_gate_clearing_batch_path(study_root=resolved_study_root),
+            latest_batch=latest_batch,
+            gate_report=gate_report,
+            selected_publication_work_unit=selected_publication_work_unit,
+            current_publication_work_unit_payload=current_publication_work_unit_payload,
+            work_unit_currentness=work_unit_currentness,
+        )
 
     repair_units: list[GateClearingRepairUnit] = []
     if mapping_payload:
@@ -1121,7 +1031,7 @@ def run_gate_clearing_batch(
                         label="Refresh canonical time-to-event direct-migration display inputs before surface materialization",
                         parallel_safe=True,
                         depends_on=_existing_dependency_ids(repair_units, "repair_paper_live_paths"),
-                        run=lambda: _run_time_to_event_direct_migration(
+                        run=lambda: time_to_event_direct_migration.run_time_to_event_direct_migration(
                             study_root=resolved_study_root,
                             paper_root=paper_root,
                         ),
@@ -1167,7 +1077,7 @@ def run_gate_clearing_batch(
                             repair_units,
                             "repair_paper_live_paths",
                         ),
-                        run=lambda: _sync_publication_shell_surface(
+                        run=lambda: publication_shell_sync.run_publication_shell_sync(
                             study_root=resolved_study_root,
                             paper_root=paper_root,
                         ),
@@ -1391,58 +1301,43 @@ def run_gate_clearing_batch(
         unit_results=unit_results,
         schema_version=SCHEMA_VERSION,
     )
-    if stale_gate_replay_closure is not None and "stale_study_delivery_mirror" in (
-        stale_gate_replay_closure.get("closed_blockers") or []
-    ):
-        selected_publication_work_unit = submission_delivery_sync_closure_work_unit()
-        lifecycle_record = publication_work_unit_lifecycle.build_lifecycle_record(
+    selected_publication_work_unit, closure_lifecycle_record = (
+        gate_clearing_batch_currentness.selected_work_unit_after_stale_delivery_closure(
+            stale_gate_replay_closure=stale_gate_replay_closure,
+            selected_publication_work_unit=selected_publication_work_unit,
             source_eval_id=current_eval_id,
             study_id=study_id,
             quest_id=quest_id,
-            selected_work_unit=selected_publication_work_unit,
             unit_results=unit_results,
             gate_replay=gate_replay,
         )
-        selected_publication_work_unit = publication_work_unit_lifecycle.enrich_selected_work_unit(
-            selected_work_unit=selected_publication_work_unit,
-            lifecycle_record=lifecycle_record,
-        )
-    record = {
-        "schema_version": SCHEMA_VERSION,
-        "source_eval_id": current_eval_id,
-        "source_eval_artifact_path": str(
-            (resolved_study_root / "artifacts" / "publication_eval" / "latest.json").resolve()
-        ),
-        "status": "executed",
-        "quest_id": quest_id,
-        "study_id": study_id,
-        "paper_root": str(paper_root),
-        "workspace_root": str(paper_root.parent),
-        "current_workspace_root": str(current_workspace_root),
-        "gate_blockers": sorted(gate_blockers),
-        "gate_fingerprint": gate_report.get("gate_fingerprint"),
-        "evaluated_source_signature": gate_report.get("submission_minimal_evaluated_source_signature"),
-        "authority_source_signature": gate_report.get("submission_minimal_authority_source_signature"),
-        "blocking_artifact_refs": gate_report.get("blocking_artifact_refs") or [],
-        "selected_publication_work_unit": selected_publication_work_unit,
-        "explicit_publication_work_unit": explicit_next_work_unit,
-        "current_publication_work_unit": current_publication_work_unit_payload.get("next_work_unit"),
-        "work_unit_fingerprint": current_publication_work_unit_payload.get("fingerprint"),
-        "work_unit_currentness": work_unit_currentness,
-        "unit_results": unit_results,
-        "unit_fingerprints": unit_fingerprints,
-        "repair_unit_execution_plan": repair_unit_execution_plan,
-        "execution_summary": execution_summary,
-        "gate_replay": gate_replay,
-        "gate_replay_step": gate_replay_step,
-        "publication_work_unit_lifecycle": lifecycle_record,
-    }
-    repair_blocking_artifact_refs = _unit_blocking_artifact_refs(unit_results)
-    record["repair_blocking_artifact_refs"] = repair_blocking_artifact_refs
-    if current_package_freshness_proof is not None:
-        record["current_package_freshness_proof"] = current_package_freshness_proof
-    if stale_gate_replay_closure is not None:
-        record["stale_gate_replay_closure"] = stale_gate_replay_closure
+    )
+    lifecycle_record = closure_lifecycle_record or lifecycle_record
+    record = gate_clearing_batch_currentness.build_executed_batch_record(
+        schema_version=SCHEMA_VERSION,
+        study_root=resolved_study_root,
+        source_eval_id=current_eval_id,
+        quest_id=quest_id,
+        study_id=study_id,
+        paper_root=paper_root,
+        current_workspace_root=current_workspace_root,
+        gate_blockers=gate_blockers,
+        gate_report=gate_report,
+        selected_publication_work_unit=selected_publication_work_unit,
+        explicit_publication_work_unit=explicit_next_work_unit,
+        current_publication_work_unit_payload=current_publication_work_unit_payload,
+        work_unit_currentness=work_unit_currentness,
+        unit_results=unit_results,
+        unit_fingerprints=unit_fingerprints,
+        repair_unit_execution_plan=repair_unit_execution_plan,
+        execution_summary=execution_summary,
+        gate_replay=gate_replay,
+        gate_replay_step=gate_replay_step,
+        lifecycle_record=lifecycle_record,
+        repair_blocking_artifact_refs=_unit_blocking_artifact_refs(unit_results),
+        current_package_freshness_proof=current_package_freshness_proof,
+        stale_gate_replay_closure=stale_gate_replay_closure,
+    )
     record_path = stable_gate_clearing_batch_path(study_root=resolved_study_root)
     _write_json(record_path, record)
     _write_json(
