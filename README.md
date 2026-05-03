@@ -61,12 +61,14 @@ You can start with prompts like:
 - `Med Auto Science` is an independent medical research domain agent that can be called directly by Codex or other general-purpose agents.
 - Its single MAS app skill is the stable front door for callers that want the repo-tracked skill surface.
 - Under that skill, the stable callable surface is the local CLI, MCP tools, product-entry surfaces, controller-authorized workspace commands/scripts, durable surfaces, and repo-tracked contracts.
+- Named product-entry, cockpit, and progress commands are internal command contracts under that single app skill; they are not a separate public first subject.
 - The AI-first line is an operating model, not a documentation wording gate: current work centers on pre-draft quality runtime, AI reviewer workflow, artifact rebuild proof, operations state, and real-paper soak.
 - `OPL` handoff, the product-entry manifest, and other machine-readable bridge payloads belong to the integration or reference layer.
 - It owns study intake, workspace context, evidence progression, progress reporting, and manuscript-facing delivery.
 - `OPL` stays at family-level session/runtime/projection orchestration and shared modules/contracts/indexes; it does not redefine MAS as an internal module.
 - The target `OPL Runtime Manager` may index MAS task/runtime/artifact projections over an external `Hermes-Agent` substrate, but MAS remains the owner of study truth and publication judgment.
 - `MedDeepScientist` remains a backend/oracle/intake buffer during migration; it is not a second product owner.
+- User-installable MAS standalone GitHub Release or installer stories are not the current distribution contract; OPL-managed module installation currently uses git checkout / sibling repo paths and may later consume OPL Packages/GHCR-backed module coordinates.
 - Clinical framing, claim acceptance, and submission decisions stay with researchers and PIs.
 - Journal submission and external system interaction stay under human supervision.
 

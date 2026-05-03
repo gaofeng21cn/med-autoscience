@@ -20,7 +20,7 @@
 
 - 用户视角：给出病种、数据、目标问题和期望论文结果，在同一个工作区里持续推进研究。
 - 研究推进视角：围绕同一条课题线管理问题定义、证据补足、进度反馈和文件交付。
-- 命令行操作视角：当前最小操作路径仍是 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 这一组接口；对外它们都收口在单一 `Med Auto Science` app skill 之下，并继续通过 repo-tracked command contracts 被调用。
+- 命令行操作视角：当前最小操作路径仍是 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 这一组接口；对外它们都收口在单一 `Med Auto Science` app skill 之下，并继续通过 repo-tracked command contracts 被调用。`product-frontdesk` 只是内部操作回路与 projection contract，不是独立公开产品入口。
 
 ## 当前执行与监管模型
 
@@ -50,6 +50,7 @@
 - proof/soak 口径当前围绕真实 study 的长期自治、pre-draft 质量运行、AI reviewer workflow、artifact rebuild proof 与 operations state 是否闭合，不围绕 `MDS` 再造一套长期 owner 面；`MDS` 只保留 migration oracle、backend compatibility、upstream intake buffer 三个迁移期角色。
 - 当前 tranche 的 repo-side 落点是单项目 owner truth、用户可见边界和 program/mainline 口径收紧；这一步不推进 `physical monorepo absorb`、跨仓 `runtime core ingest` 或把 `MDS` 重新解释成并行产品面。
 - `build_product_entry.return_surface_contract`、`skill-catalog` domain projection、`mainline-status` / `mainline-phase` / `product-frontdesk` / `product-entry-manifest` 继续作为 caller 读取 MAS/MDS owner boundary、runtime continuity、artifact locator 与 progress truth 的入口；这些入口只能投影 MAS durable truth，不能替代研究质量判断。
+- OPL 或其他 caller 读取这些入口时，只能把它们当作 MAS durable truth 的投影与内部 command contract；不得把 MDS、product-frontdesk 或 product-entry manifest 写成并行 owner 面。
 - 当前 tranche 的通过条件是：`MAS` 能默认自治推进方向锁定后的研究与有限补充分析，用户可见 truth 与 durable surface 对齐，major boundary 与最终投稿审计之外不再把 human 判断留在 `MDS` 或隐藏 owner 面里。真实论文 soak 仍是完成这条判断的主要证据缺口。
 
 ## 当前验收与 proof 口径

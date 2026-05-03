@@ -131,6 +131,20 @@ def test_verify_script_runs_sanity_checks_before_default_dispatch() -> None:
     assert 'run_sanity_checks\n\nif [[ -z "${lane}" ]]; then' in verify_script
 
 
+def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
+    script = _read("scripts/opl-module-healthcheck.sh")
+
+    assert "scripts/verify.sh" not in script
+    assert "make test-fast" not in script
+    assert 'command -v uv >/dev/null 2>&1' in script
+    assert 'medautosci_bin="$(command -v medautosci)"' in script
+    assert 'medautosci_mcp_bin="$(command -v medautosci-mcp)"' in script
+    assert '"${medautosci_bin}" --help >/dev/null' in script
+    assert '"${medautosci_bin}" doctor entry-modes >/dev/null' in script
+    assert '"plugins" / "mas" / ".codex-plugin" / "plugin.json"' in script
+    assert '"plugins" / "mas" / "skills" / "mas" / "SKILL.md"' in script
+
+
 def test_parallel_full_lane_script_covers_all_marker_groups() -> None:
     script = _read("scripts/run-parallel-test-lanes.sh")
 

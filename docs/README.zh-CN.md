@@ -26,10 +26,12 @@
 - 默认用户最关心的是研究问题、工作区语境、人话进度和文件交付。
 - `CLI`、`MCP`、`controller` 属于操作与自动化入口。
 - 稳定可调用面通过单一 MAS app skill 对外承接，包含本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract。
+- `product-frontdesk`、`workspace-cockpit`、`study-progress` 与 product-entry manifest 继续是单一 app skill 之下的内部 command/projection contract，不是独立公开产品入口。
 - `OPL` 集成、product-entry manifest 和其他机器可读桥接面都属于集成或参考层。
 - `OPL Runtime Manager` 是目标形态中的 family-level 薄运行管理层，位于外部 `Hermes-Agent` substrate 之上；它可以消费 MAS task registration、runtime-control projection、status/artifact locator 与 wakeup/approval 边界，但不持有 MAS study truth。
 - `Hermes-Agent` 只保留在显式可选 hosted runtime 或 reference-layer 语境中，不改写默认 capability contract。
 - `MedDeepScientist` 在迁移期继续是受控后端、行为等价 oracle 和 upstream intake buffer；MAS 继续是唯一 research / publication owner。
+- MAS standalone GitHub Release / 独立 installer 不是当前用户安装通道；分发叙事应指向当前 OPL 管理模块路径，或未来 OPL Packages/GHCR module 坐标。
 - AI-first 是当前可运行质量线的方向，落在 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 和真实论文 soak 上，不通过测试或 preflight contract 约束文档措辞。
 - `StudyTruthKernel` 与 `RuntimeHealthKernel` 是当前 study truth 与 runtime health 的 read-model reducer；普通读取只生成 shadow projection，materialized snapshot 必须由显式 reconcile、controller tick 或 runtime watch apply 写入。
 - 初稿质量作为写作前运行关注点处理：MAS 应生成医学期刊可读的 manuscript-native prose，而不是 controller notes、figure/table anchor scaffold 或正文里的行政占位。

@@ -26,10 +26,12 @@ This guide is for readers who need product boundary, operator entry surfaces, ru
 - The default user concern is study question, workspace context, progress narration, and file delivery.
 - `CLI`, `MCP`, and `controller` are operator and automation entry surfaces.
 - The stable callable surface is exposed through the single MAS app skill and includes the local CLI, workspace commands/scripts, durable surfaces, and repo-tracked contracts.
+- `product-frontdesk`, `workspace-cockpit`, `study-progress`, and product-entry manifests remain internal command/projection contracts below the single app skill, not separate public entry products.
 - `OPL` integration, the product-entry manifest, and other machine-readable bridge surfaces belong to the integration and reference layers.
 - `OPL Runtime Manager` is the target family-level thin manager over the external `Hermes-Agent` substrate; it may consume MAS task registration, runtime-control projection, status/artifact locators, and wakeup/approval boundaries, but it does not own MAS study truth.
 - Hosted runtime carriers such as `Hermes-Agent` stay in explicit optional or reference-layer positions; they do not redefine the default MAS capability contract.
 - `MedDeepScientist` remains the controlled backend, behavior oracle, and upstream intake buffer during migration; MAS remains the only research and publication owner.
+- MAS standalone GitHub Releases / installers are not the active user-installation channel; distribution wording should point to the current OPL-managed module path or future OPL Packages/GHCR module coordinates.
 - AI-first is the current operating direction for runnable research quality. It is expressed through pre-draft quality runtime, AI reviewer workflow, artifact rebuild proof, operations state, and real-paper soak, not through mechanical checks over documentation wording.
 - `StudyTruthKernel` and `RuntimeHealthKernel` are current read-model reducers for study truth and runtime health; ordinary reads create shadow projections, while materialized snapshots require explicit reconcile/controller/watch apply actions.
 - First-draft manuscript quality is handled as a pre-draft runtime concern: MAS should generate manuscript-native medical journal prose, not controller notes, figure/table anchor scaffolds, or administrative placeholders in article text.
