@@ -253,6 +253,41 @@ def test_install_medical_overlay_seeds_workspace_targets_from_runtime_repo_skill
         )
 
 
+def test_install_medical_overlay_mirrors_complete_mds_stage_skill_set_to_workspace_root(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    runtime_repo_root = tmp_path / "med-deepscientist"
+    quest_root = tmp_path / "workspace"
+    write_runtime_skill(runtime_repo_root, "write", "# DeepScientist write\n")
+    write_runtime_skill(runtime_repo_root, "optimize", "# DeepScientist optimize\n")
+    write_runtime_skill(runtime_repo_root, "paper-plot", "# DeepScientist paper plot\n")
+    (runtime_repo_root / "src" / "skills" / "write" / "templates").mkdir(parents=True)
+    (runtime_repo_root / "src" / "skills" / "write" / "templates" / "journal.md").write_text(
+        "venue template\n",
+        encoding="utf-8",
+    )
+    stale_skill = quest_root / ".codex" / "skills" / "deepscientist-stale" / "SKILL.md"
+    stale_skill.parent.mkdir(parents=True, exist_ok=True)
+    stale_skill.write_text("# stale\n", encoding="utf-8")
+
+    result = module.install_medical_overlay(
+        quest_root=quest_root,
+        med_deepscientist_repo_root=runtime_repo_root,
+        skill_ids=("write",),
+    )
+
+    mds_sync = result["mds_skill_sync"]
+    assert mds_sync["scope"] == "quest"
+    assert mds_sync["synced_count"] == 3
+    assert [item["skill_id"] for item in mds_sync["synced"]] == ["optimize", "paper-plot", "write"]
+    assert mds_sync["overlay_skill_ids"] == ["write", "journal-resolution"]
+    for skill_id in ("write", "optimize", "paper-plot"):
+        assert (quest_root / ".codex" / "skills" / f"deepscientist-{skill_id}" / "SKILL.md").exists()
+    assert (
+        quest_root / ".codex" / "skills" / "deepscientist-write" / "templates" / "journal.md"
+    ).read_text(encoding="utf-8") == "venue template\n"
+    assert not stale_skill.parent.exists()
+
+
 def test_install_medical_overlay_materializes_workspace_full_template_skill_without_home_source(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     home = tmp_path / "home"
@@ -714,9 +749,12 @@ def test_materialize_runtime_medical_overlay_rewrites_existing_worktrees(tmp_pat
     workspace_root = tmp_path / "workspace"
     quest_root = tmp_path / "runtime" / "quests" / "q001"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
+    repo_root = tmp_path / "med-deepscientist"
+    write_runtime_skill(repo_root, "write", "# DeepScientist write\n")
 
     module.install_medical_overlay(
         quest_root=workspace_root,
+        med_deepscientist_repo_root=repo_root,
         skill_ids=("write",),
     )
     write_skill(worktree_root / ".codex" / "skills", "write", "upstream write\n")
@@ -724,6 +762,7 @@ def test_materialize_runtime_medical_overlay_rewrites_existing_worktrees(tmp_pat
     result = module.materialize_runtime_medical_overlay(
         quest_root=quest_root,
         authoritative_root=workspace_root,
+        med_deepscientist_repo_root=repo_root,
         skill_ids=("write",),
     )
 
@@ -744,6 +783,59 @@ def test_materialize_runtime_medical_overlay_rewrites_existing_worktrees(tmp_pat
     by_surface = {Path(item["runtime_root"]).name: item for item in audit["surfaces"]}
     assert by_surface["q001"]["all_targets_ready"] is True
     assert by_surface["paper-run-1"]["all_targets_ready"] is True
+    for root in (quest_root, worktree_root):
+        assert (
+            root / ".codex" / "skills" / "deepscientist-write" / "SKILL.md"
+        ).read_text(encoding="utf-8") == "# DeepScientist write\n"
+
+
+def test_materialize_runtime_medical_overlay_preserves_workspace_and_quest_local_stage_skills_without_home_global_writes(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    workspace_root = tmp_path / "workspace"
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    home = tmp_path / "home"
+    home_skills_root = home / ".codex" / "skills"
+    repo_root = tmp_path / "med-deepscientist"
+    write_runtime_skill(repo_root, "write", "# DeepScientist write\n")
+    write_runtime_skill(repo_root, "optimize", "# DeepScientist optimize\n")
+    (repo_root / "src" / "skills" / "write" / "templates").mkdir(parents=True)
+    (repo_root / "src" / "skills" / "write" / "templates" / "journal.md").write_text(
+        "venue template\n",
+        encoding="utf-8",
+    )
+
+    module.install_medical_overlay(
+        quest_root=workspace_root,
+        med_deepscientist_repo_root=repo_root,
+        skill_ids=("write",),
+    )
+    result = module.materialize_runtime_medical_overlay(
+        quest_root=quest_root,
+        authoritative_root=workspace_root,
+        home=home,
+        med_deepscientist_repo_root=repo_root,
+        skill_ids=("write",),
+    )
+
+    assert result["materialized_surface_count"] == 1
+    for root in (workspace_root, quest_root):
+        for skill_id in ("write", "journal-resolution"):
+            skill_root = root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-{skill_id}"
+            assert (skill_root / "SKILL.md").exists()
+            assert read_manifest(skill_root)["scope"] == "quest"
+    for root in (workspace_root, quest_root):
+        assert (
+            root / ".codex" / "skills" / "deepscientist-write" / "SKILL.md"
+        ).read_text(encoding="utf-8") == "# DeepScientist write\n"
+        assert (
+            root / ".codex" / "skills" / "deepscientist-write" / "templates" / "journal.md"
+        ).read_text(encoding="utf-8") == "venue template\n"
+        assert (
+            root / ".codex" / "skills" / "deepscientist-optimize" / "SKILL.md"
+        ).read_text(encoding="utf-8") == "# DeepScientist optimize\n"
+    assert not home_skills_root.exists()
 
 
 def test_materialize_runtime_medical_overlay_rewrites_stale_worktree_manifest_paths(tmp_path: Path) -> None:

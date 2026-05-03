@@ -84,7 +84,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.default_submission_targets[0]["primary"] is True
 
 
-def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_path: Path) -> None:
+def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: Path) -> None:
     profile_path = tmp_path / "minimal.local.toml"
     profile_path.write_text(
         "\n".join(
@@ -111,7 +111,7 @@ def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_pat
     assert profile.hermes_home_root == Path.home() / ".hermes"
     assert profile.managed_runtime_backend_id == "hermes"
     assert profile.enable_medical_overlay is True
-    assert profile.medical_overlay_scope == "global"
+    assert profile.medical_overlay_scope == "workspace"
     assert profile.medical_overlay_skills == (
         "intake-audit",
         "scout",

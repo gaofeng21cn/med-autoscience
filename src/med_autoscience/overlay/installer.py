@@ -10,6 +10,7 @@ import shutil
 from typing import Any
 
 from med_autoscience.overlay.constants import DEFAULT_MEDICAL_OVERLAY_SKILL_IDS
+from med_autoscience.overlay.mds_stage_sync import sync_mds_stage_skills
 from med_autoscience.policies.research_route_bias import (
     DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID,
     get_policy,
@@ -647,6 +648,11 @@ def _install_overlay(
         )
         for target in targets
     ]
+    mds_skill_sync = sync_mds_stage_skills(
+        quest_root=resolved_quest_root,
+        med_deepscientist_repo_root=med_deepscientist_repo_root,
+        skill_ids=normalized_skill_ids,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "overlay_name": OVERLAY_NAME,
@@ -660,6 +666,7 @@ def _install_overlay(
         "default_citation_style": default_citation_style,
         "targets": installed_targets,
         "installed_count": sum(1 for item in installed_targets if item["action"] != "already_installed"),
+        "mds_skill_sync": mds_skill_sync,
     }
 
 

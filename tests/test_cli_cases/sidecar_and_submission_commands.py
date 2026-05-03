@@ -821,6 +821,69 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     assert '"impact_report"' in captured.out
     assert '"startup_data_readiness"' in captured.out
     assert '"studies"' not in captured.out
+
+
+def test_bootstrap_command_maintains_workspace_local_stage_skills_without_home_global_writes(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    home = tmp_path / "home"
+    med_deepscientist_repo_root = tmp_path / "med-deepscientist"
+    write_profile(
+        profile_path,
+        workspace_root=workspace_root,
+        med_deepscientist_repo_root=med_deepscientist_repo_root,
+        hermes_agent_repo_root=tmp_path / "hermes-agent",
+    )
+    for skill_id in ("scout", "write"):
+        skill_path = med_deepscientist_repo_root / "src" / "skills" / skill_id / "SKILL.md"
+        skill_path.parent.mkdir(parents=True, exist_ok=True)
+        skill_path.write_text(f"# DeepScientist {skill_id}\n", encoding="utf-8")
+    template_path = med_deepscientist_repo_root / "src" / "skills" / "write" / "templates" / "journal.md"
+    template_path.parent.mkdir(parents=True, exist_ok=True)
+    template_path.write_text("venue template\n", encoding="utf-8")
+    profile_text = profile_path.read_text(encoding="utf-8").replace(
+        'hermes_home_root = "~/.hermes"',
+        f'hermes_home_root = "{home / ".hermes"}"',
+    )
+    profile_path.write_text(profile_text, encoding="utf-8")
+
+    monkeypatch.setattr(cli, "build_doctor_report", lambda profile: None, raising=False)
+    monkeypatch.setattr(
+        cli.analysis_bundle_controller,
+        "ensure_study_runtime_analysis_bundle",
+        lambda: {"action": "already_ready", "ready": True},
+    )
+    monkeypatch.setattr(
+        cli.data_asset_updates_controller,
+        "refresh_data_assets",
+        lambda *, workspace_root: {"status": {"layout_ready": True}},
+    )
+    monkeypatch.setenv("HOME", str(home))
+
+    exit_code = cli.main(["workspace", "bootstrap", "--profile", str(profile_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert '"scope": "quest"' in captured.out
+    for skill_id in ("scout", "idea", "decision", "write", "finalize", "journal-resolution"):
+        assert (
+            workspace_root / ".codex" / "skills" / f"medical-research-{skill_id}" / "SKILL.md"
+        ).exists()
+    for skill_id in ("scout", "write"):
+        assert (
+            workspace_root / ".codex" / "skills" / f"deepscientist-{skill_id}" / "SKILL.md"
+        ).read_text(encoding="utf-8") == f"# DeepScientist {skill_id}\n"
+    assert (
+        workspace_root / ".codex" / "skills" / "deepscientist-write" / "templates" / "journal.md"
+    ).read_text(encoding="utf-8") == "venue template\n"
+    assert not (home / ".codex" / "skills").exists()
+
+
 def test_bootstrap_command_honors_status_only_overlay_mode(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

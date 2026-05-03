@@ -313,7 +313,7 @@ def _patch_runtime_sidecars(monkeypatch):
     )
 
 
-def test_prepare_runtime_overlay_passes_profile_repo_root_to_overlay_installer(
+def test_prepare_runtime_overlay_maintains_workspace_and_quest_local_stage_skills(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -326,7 +326,11 @@ def test_prepare_runtime_overlay_passes_profile_repo_root_to_overlay_installer(
         module.overlay_installer,
         "ensure_medical_overlay",
         lambda **kwargs: calls.setdefault("ensure", kwargs)
-        or {"selected_action": "noop", "post_status": {"all_targets_ready": True}},
+        or {
+            "selected_action": "noop",
+            "post_status": {"all_targets_ready": True},
+            "mds_skill_sync": {"synced_count": 2},
+        },
     )
     monkeypatch.setattr(
         module.overlay_installer,
@@ -342,6 +346,13 @@ def test_prepare_runtime_overlay_passes_profile_repo_root_to_overlay_installer(
 
     module._prepare_runtime_overlay(profile=profile, quest_root=quest_root)
 
+    assert calls["ensure"]["quest_root"] == profile.workspace_root
+    assert calls["materialize"]["quest_root"] == quest_root
+    assert calls["materialize"]["authoritative_root"] == profile.workspace_root
+    assert calls["audit"]["quest_root"] == quest_root
+    assert "home" not in calls["ensure"]
+    assert "home" not in calls["materialize"]
+    assert "home" not in calls["audit"]
     assert calls["ensure"]["med_deepscientist_repo_root"] == profile.med_deepscientist_repo_root
     assert calls["materialize"]["med_deepscientist_repo_root"] == profile.med_deepscientist_repo_root
     assert calls["audit"]["med_deepscientist_repo_root"] == profile.med_deepscientist_repo_root

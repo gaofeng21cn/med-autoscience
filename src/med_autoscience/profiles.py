@@ -240,7 +240,7 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
         default_publication_profile=_require_string(payload, "default_publication_profile"),
         default_citation_style=_require_string(payload, "default_citation_style"),
         enable_medical_overlay=_optional_bool(payload, "enable_medical_overlay", default=True),
-        medical_overlay_scope=_optional_string_with_default(payload, "medical_overlay_scope", default="global"),
+        medical_overlay_scope=_optional_string_with_default(payload, "medical_overlay_scope", default="workspace"),
         medical_overlay_skills=_optional_string_list(
             payload,
             "medical_overlay_skills",
