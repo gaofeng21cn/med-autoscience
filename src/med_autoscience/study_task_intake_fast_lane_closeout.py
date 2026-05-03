@@ -200,3 +200,118 @@ def task_intake_yields_to_manuscript_fast_lane_closeout(
         task_intake_payload=payload,
         closeout_payload=latest_manuscript_fast_lane_closeout(task_intake_root=task_intake_root),
     )
+
+
+def _gate_report_clear_for_quality_closeout(gate_report: dict[str, Any] | None) -> bool:
+    if not isinstance(gate_report, dict):
+        return False
+    if _non_empty_text(gate_report.get("status")) != "clear":
+        return False
+    blockers = {
+        str(item or "").strip()
+        for item in (gate_report.get("blockers") or [])
+        if str(item or "").strip()
+    }
+    if blockers:
+        return False
+    if gate_report.get("allow_write") is False:
+        return False
+    current_required_action = _non_empty_text(gate_report.get("current_required_action"))
+    return current_required_action in {None, "continue_bundle_stage", "complete_bundle_stage"}
+
+
+def _evaluation_summary_requests_ai_reviewer_quality_closure(
+    evaluation_summary: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(evaluation_summary, dict):
+        return False
+    quality_closure_truth = _mapping_value(evaluation_summary.get("quality_closure_truth"))
+    quality_review_loop = _mapping_value(evaluation_summary.get("quality_review_loop"))
+    study_quality_truth = _mapping_value(evaluation_summary.get("study_quality_truth"))
+    reviewer_first = _mapping_value(study_quality_truth.get("reviewer_first"))
+    closure_state = (
+        _non_empty_text(quality_closure_truth.get("state"))
+        or _non_empty_text(quality_review_loop.get("closure_state"))
+    )
+    if closure_state != "quality_repair_required":
+        return False
+    corpus = [
+        text
+        for text in (
+            _non_empty_text(value)
+            for value in (
+                quality_closure_truth.get("summary"),
+                quality_review_loop.get("summary"),
+                quality_review_loop.get("recommended_next_action"),
+                study_quality_truth.get("summary"),
+                reviewer_first.get("summary"),
+            )
+        )
+        if text is not None
+    ]
+    for values in (quality_review_loop.get("blocking_issues"), quality_review_loop.get("next_review_focus")):
+        if isinstance(values, list):
+            corpus.extend(text for text in (_non_empty_text(value) for value in values) if text is not None)
+    markers = ("ai reviewer", "ai_reviewer", "assessment_provenance.owner=ai_reviewer", "reviewer-authored")
+    return any(marker in text.lower() for text in corpus for marker in markers)
+
+
+def _evaluation_summary_reports_bundle_only_remaining(
+    evaluation_summary: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(evaluation_summary, dict):
+        return False
+    quality_closure_truth = _mapping_value(evaluation_summary.get("quality_closure_truth"))
+    quality_review_loop = _mapping_value(evaluation_summary.get("quality_review_loop"))
+    closure_state = (
+        _non_empty_text(quality_closure_truth.get("state"))
+        or _non_empty_text(quality_review_loop.get("closure_state"))
+    )
+    return closure_state == "bundle_only_remaining"
+
+
+def _evaluation_summary_confirms_scientific_quality_closed(
+    evaluation_summary: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(evaluation_summary, dict):
+        return False
+    study_quality_truth = _mapping_value(evaluation_summary.get("study_quality_truth"))
+    if study_quality_truth.get("contract_closed") is True:
+        return True
+    narrowest_scientific_gap = _mapping_value(study_quality_truth.get("narrowest_scientific_gap"))
+    return _non_empty_text(narrowest_scientific_gap.get("state")) == "closed"
+
+
+def task_intake_yields_to_verified_manuscript_fast_lane_closeout(
+    payload: dict[str, Any] | None,
+    *,
+    task_intake_root: Path | None,
+    publishability_gate_report: dict[str, Any] | None = None,
+    evaluation_summary: dict[str, Any] | None = None,
+) -> bool:
+    if not task_intake_yields_to_manuscript_fast_lane_closeout(
+        payload,
+        task_intake_root=task_intake_root,
+    ):
+        return False
+    gate_report = (
+        publishability_gate_report
+        if isinstance(publishability_gate_report, dict)
+        else _mapping_value((evaluation_summary or {}).get("promotion_gate_status"))
+    )
+    if not _gate_report_clear_for_quality_closeout(gate_report):
+        return False
+    if _evaluation_summary_requests_ai_reviewer_quality_closure(evaluation_summary):
+        return False
+    if not (
+        _evaluation_summary_reports_bundle_only_remaining(evaluation_summary)
+        or _evaluation_summary_confirms_scientific_quality_closed(evaluation_summary)
+    ):
+        return False
+    return _closeout_surface_is_fresher_than_task_intake(
+        payload,
+        gate_report,
+    ) and _closeout_surface_is_fresher_than_task_intake(
+        payload,
+        evaluation_summary,
+    )

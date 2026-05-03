@@ -15,6 +15,7 @@ from med_autoscience.study_task_intake_fast_lane import (
 )
 from med_autoscience.study_task_intake_fast_lane_closeout import (
     task_intake_yields_to_manuscript_fast_lane_closeout as _fast_lane_closeout_yields_task_intake,
+    task_intake_yields_to_verified_manuscript_fast_lane_closeout as _verified_fast_lane_closeout_yields_task_intake,
 )
 from med_autoscience import study_task_intake_direct_completion as direct_completion
 from med_autoscience.study_task_intake_stop_loss import (
@@ -51,14 +52,13 @@ _ANALYSIS_ROUTE_MARKERS = (
     "analysis-campaign",
 )
 _BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
-_DETERMINISTIC_SUBMISSION_CLOSEOUT_BLOCKERS = frozenset(
-    {
-        "stale_submission_minimal_authority",
-        "stale_study_delivery_mirror",
-        "submission_surface_qc_failure_present",
-        "submission_hardening_incomplete",
-    }
-)
+_DETERMINISTIC_SUBMISSION_CLOSEOUT_BLOCKERS = frozenset({
+    "stale_submission_minimal_authority",
+    "stale_study_delivery_mirror",
+    "submission_surface_qc_failure_present",
+    "submission_hardening_incomplete",
+})
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -332,11 +332,6 @@ def task_intake_yields_to_manuscript_fast_lane_closeout(
         payload,
         task_intake_root=task_intake_root(study_root=study_root) if study_root is not None else None,
     )
-
-
-def latest_task_intake_yields_to_manuscript_fast_lane_closeout(*, study_root: Path) -> bool:
-    payload = read_latest_task_intake(study_root=study_root)
-    return task_intake_yields_to_manuscript_fast_lane_closeout(payload, study_root=study_root)
 
 
 def _revision_handoff_verification_confirms_writeback(
@@ -635,7 +630,12 @@ def task_intake_yields_to_deterministic_submission_closeout(
         task_intake_root=task_intake_root(study_root=study_root) if study_root is not None else None,
     ):
         return True
-    if task_intake_yields_to_manuscript_fast_lane_closeout(payload, study_root=study_root):
+    if _verified_fast_lane_closeout_yields_task_intake(
+        payload,
+        task_intake_root=task_intake_root(study_root=study_root) if study_root is not None else None,
+        publishability_gate_report=publishability_gate_report,
+        evaluation_summary=evaluation_summary,
+    ):
         return True
     blocked_submission_closeout = _task_intake_yields_to_blocked_submission_closeout(publishability_gate_report)
     if task_intake_is_reviewer_revision(payload):

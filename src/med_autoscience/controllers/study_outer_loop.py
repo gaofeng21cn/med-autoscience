@@ -11,7 +11,7 @@ from med_autoscience.controllers import publication_gate as publication_gate_con
 from med_autoscience.controllers import quality_repair_batch
 from med_autoscience.controllers.study_outer_loop_parts.decision_refs import (
     _build_study_decision_charter_ref,
-    _latest_task_intake_yields_to_fast_lane_closeout,
+    _latest_task_intake_yields_to_verified_fast_lane_closeout,
     _read_evaluation_summary_payload,
     _read_latest_publication_eval_payload,
     _read_publication_eval_payload,
@@ -371,8 +371,10 @@ def build_runtime_watch_outer_loop_tick_request(
             publication_gate_controller.build_gate_state(quest_root)
         )
     evaluation_summary = _read_evaluation_summary_payload(study_root=resolved_study_root)
-    task_intake_yields_to_fast_lane_closeout = _latest_task_intake_yields_to_fast_lane_closeout(
+    task_intake_yields_to_fast_lane_closeout = _latest_task_intake_yields_to_verified_fast_lane_closeout(
         study_root=resolved_study_root,
+        publishability_gate_report=gate_report,
+        evaluation_summary=evaluation_summary,
     )
     if task_intake_yields_to_fast_lane_closeout:
         recommended_action = _recommended_manuscript_fast_lane_closeout_autopark_action(

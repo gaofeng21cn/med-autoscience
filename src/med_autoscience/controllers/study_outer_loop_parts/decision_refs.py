@@ -14,6 +14,9 @@ from med_autoscience.publication_eval_latest import (
     resolve_publication_eval_latest_ref,
 )
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
+from med_autoscience.study_task_intake_fast_lane_closeout import (
+    task_intake_yields_to_verified_manuscript_fast_lane_closeout,
+)
 from med_autoscience.study_decision_record import (
     StudyDecisionCharterRef,
     StudyDecisionPublicationEvalRef,
@@ -94,5 +97,16 @@ def _build_study_decision_charter_ref(*, study_root: Path, missing_message: str)
     )
 
 
-def _latest_task_intake_yields_to_fast_lane_closeout(*, study_root: Path) -> bool:
-    return study_task_intake.latest_task_intake_yields_to_manuscript_fast_lane_closeout(study_root=study_root)
+def _latest_task_intake_yields_to_verified_fast_lane_closeout(
+    *,
+    study_root: Path,
+    publishability_gate_report: dict[str, Any] | None = None,
+    evaluation_summary: dict[str, Any] | None = None,
+) -> bool:
+    payload = study_task_intake.read_latest_task_intake(study_root=study_root)
+    return task_intake_yields_to_verified_manuscript_fast_lane_closeout(
+        payload,
+        task_intake_root=study_task_intake.task_intake_root(study_root=study_root),
+        publishability_gate_report=publishability_gate_report,
+        evaluation_summary=evaluation_summary,
+    )
