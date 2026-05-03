@@ -465,6 +465,20 @@ def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
     assert controller_decision["work_unit_fingerprint"] == "publication-blockers::vague"
     assert runtime_state["last_controller_decision_authorization"]["work_unit_id"] == "gate_needs_specificity"
     assert runtime_state["last_controller_decision_authorization"]["work_unit_fingerprint"] == "publication-blockers::vague"
+    assert runtime_state["last_controller_decision_authorization"]["controller_work_unit_executable"] is False
+    assert (
+        runtime_state["last_controller_decision_authorization"]["non_executable_reason"]
+        == "gate_needs_specificity_without_targets"
+    )
+    assert runtime_state["last_controller_decision_authorization"]["required_target_kinds"] == [
+        "claim",
+        "display",
+        "evidence_source",
+        "citation",
+        "metric",
+        "package_artifact",
+        "authorization_provenance",
+    ]
     assert runtime_state["last_controller_decision_authorization"]["controller_work_unit_lifecycle"] == {
         "lifecycle_state": "needs_specificity",
         "latest_event_type": "needs_specificity",
