@@ -26,6 +26,17 @@ REQUIRED_STATISTICAL_DISCIPLINE_FIELDS = (
     "failure_conditions",
 )
 
+STATISTICAL_DISCIPLINE_OPERATION_FIELDS = (
+    "missingness_plan",
+    "sample_size_precision_plan",
+    "external_validation_plan",
+    "subgroup_plan",
+    "multiplicity_guardrail",
+    "clinical_utility_plan",
+    "endpoint_time_window",
+    "sensitivity_plan",
+)
+
 SUPPORTED_CANDIDATE_DECISIONS = (
     "explore",
     "exploit",
@@ -61,6 +72,28 @@ _PRIMARY_EVIDENCE_KEYS = (
     "decision_reason",
     "sensitivity_plan",
 )
+
+_OPERATION_FIELD_LABELS = {
+    "missingness_plan": "Missing-data discipline",
+    "sample_size_precision_plan": "Precision and event-count discipline",
+    "external_validation_plan": "External-validation discipline",
+    "subgroup_plan": "Subgroup discipline",
+    "multiplicity_guardrail": "Multiplicity guardrail",
+    "clinical_utility_plan": "Clinical-utility discipline",
+    "endpoint_time_window": "Endpoint and time-window discipline",
+    "sensitivity_plan": "Sensitivity-analysis discipline",
+}
+
+_OPERATION_FIELD_SUMMARIES = {
+    "missingness_plan": "Specify missingness measurement, handling, and sensitivity checks before promotion.",
+    "sample_size_precision_plan": "Anchor the claim in sample size, event counts, and precision rather than nominal significance.",
+    "external_validation_plan": "State external, temporal, or held-out validation requirements for the target claim.",
+    "subgroup_plan": "Prespecify subgroup support thresholds and interpretation limits.",
+    "multiplicity_guardrail": "Separate primary evidence from exploratory comparisons and control repeated contrasts.",
+    "clinical_utility_plan": "Tie statistical evidence to an actionable clinical threshold, workflow, or care-pathway consequence.",
+    "endpoint_time_window": "Lock endpoint definitions, index date, lookback, outcome window, and follow-up closure.",
+    "sensitivity_plan": "Prespecify robustness checks that can falsify or qualify the target claim.",
+}
 
 _ARCHETYPE_DISCIPLINE: dict[str, dict[str, str]] = {
     "observational_real_world": {
@@ -160,6 +193,59 @@ def _contains_nominal_p_value_primary_evidence(payload: Mapping[str, Any]) -> bo
     return False
 
 
+def _contains_nominal_p_value(text: object) -> bool:
+    normalized = _text(text).lower()
+    return bool(normalized and any(term in normalized for term in _NOMINAL_P_VALUE_TERMS))
+
+
+def _waiver_reason(payload: Mapping[str, Any], field: str) -> str:
+    for key in (f"{field}_waiver_reason", f"waiver_reason_{field}"):
+        reason = _text(payload.get(key))
+        if reason:
+            return reason
+    waivers = payload.get("waivers")
+    if isinstance(waivers, Mapping):
+        return _text(waivers.get(field))
+    for waiver in _sequence(waivers):
+        if isinstance(waiver, Mapping) and _text(waiver.get("field")) == field:
+            return _text(waiver.get("reason"))
+    return ""
+
+
+def _operation_action_card(
+    *,
+    action_id: str,
+    label: str,
+    summary: str,
+    field: str,
+    status: str,
+    waiver_allowed: bool,
+) -> dict[str, object]:
+    return {
+        "action_id": action_id,
+        "label": label,
+        "summary": summary,
+        "field": field,
+        "status": status,
+        "required_for_ready": status == "blocked",
+        "waiver_allowed": waiver_allowed,
+    }
+
+
+def _bounded_board_candidates(payload: Mapping[str, Any] | None) -> list[Mapping[str, Any]]:
+    if not isinstance(payload, Mapping):
+        return []
+    return [candidate for candidate in _sequence(payload.get("candidates")) if isinstance(candidate, Mapping)]
+
+
+def _weak_or_blocked_status(payload: Mapping[str, Any]) -> str:
+    for key in ("status", "board_status", "evidence_state", "strength", "signal_status"):
+        value = _text(payload.get(key)).lower()
+        if value in {"weak", "blocked"}:
+            return value
+    return ""
+
+
 def build_statistical_discipline_contract(*, study_archetype: str) -> dict[str, Any]:
     archetype = _text(study_archetype)
     if archetype not in SUPPORTED_STUDY_ARCHETYPES:
@@ -175,6 +261,116 @@ def build_statistical_discipline_contract(*, study_archetype: str) -> dict[str, 
         "study_archetype": archetype,
         "primary_evidence_rule": "Effect size, precision, calibration, validation, and clinical utility must anchor the claim; nominal p-value alone cannot be primary evidence.",
         **_ARCHETYPE_DISCIPLINE[archetype],
+    }
+
+
+def build_statistical_discipline_operations_projection(
+    contract: Mapping[str, Any],
+    bounded_board: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    blockers: list[str] = []
+    waivers: list[dict[str, str]] = []
+    action_cards: list[dict[str, object]] = []
+
+    for field in STATISTICAL_DISCIPLINE_OPERATION_FIELDS:
+        waiver_reason = _waiver_reason(contract, field)
+        if waiver_reason:
+            waivers.append({"field": field, "reason": waiver_reason})
+
+        value_present = _has_text(contract.get(field))
+        nominal_primary_evidence = _contains_nominal_p_value(contract.get(field))
+        if value_present and not nominal_primary_evidence:
+            status = "waived" if waiver_reason else "present"
+        elif waiver_reason:
+            status = "waived"
+        else:
+            status = "blocked"
+
+        if not value_present and not waiver_reason:
+            blockers.append(f"missing_{field}")
+        if nominal_primary_evidence:
+            blockers.append("nominal_p_value_primary_evidence")
+
+        action_cards.append(
+            _operation_action_card(
+                action_id=f"resolve_{field}",
+                label=_OPERATION_FIELD_LABELS[field],
+                summary=_OPERATION_FIELD_SUMMARIES[field],
+                field=field,
+                status=status,
+                waiver_allowed=True,
+            )
+        )
+
+    if isinstance(bounded_board, Mapping):
+        board_status = _weak_or_blocked_status(bounded_board)
+        if board_status:
+            blockers.append(f"bounded_board_{board_status}")
+            action_cards.append(
+                _operation_action_card(
+                    action_id="repair_bounded_board",
+                    label="Bounded-board evidence repair",
+                    summary="Repair weak or blocked bounded-board evidence before using board decisions.",
+                    field="bounded_board",
+                    status="blocked",
+                    waiver_allowed=False,
+                )
+            )
+
+    for index, candidate in enumerate(_bounded_board_candidates(bounded_board)):
+        board_status = _weak_or_blocked_status(candidate)
+        if board_status:
+            blockers.append(f"candidate_{index}_{board_status}_board")
+            action_cards.append(
+                _operation_action_card(
+                    action_id=f"candidate_{index}_repair_bounded_board",
+                    label="Bounded-board evidence repair",
+                    summary="Repair weak or blocked bounded-board evidence before using this candidate.",
+                    field="bounded_board",
+                    status="blocked",
+                    waiver_allowed=False,
+                )
+            )
+
+        decision = _text(candidate.get("decision"))
+        if decision not in SUPPORTED_CANDIDATE_DECISIONS:
+            blockers.append(f"candidate_{index}_unsupported_decision")
+            action_cards.append(
+                _operation_action_card(
+                    action_id=f"candidate_{index}_select_supported_decision",
+                    label="Supported board decision",
+                    summary="Set decision to explore, exploit, fusion, debug, or stop.",
+                    field="bounded_board",
+                    status="blocked",
+                    waiver_allowed=False,
+                )
+            )
+            continue
+
+        if decision == "stop":
+            if not _has_text(candidate.get("decision_reason")):
+                blockers.append(f"candidate_{index}_missing_stop_reason")
+            action_cards.append(
+                _operation_action_card(
+                    action_id=f"candidate_{index}_stop_loss_switch_line",
+                    label="Stop-loss / switch-line decision",
+                    summary="Stop the current analysis line or switch line using the recorded decision reason.",
+                    field="bounded_board",
+                    status="blocked",
+                    waiver_allowed=False,
+                )
+            )
+
+    unique_blockers = list(dict.fromkeys(blockers))
+    return {
+        "surface": "statistical_discipline_operations",
+        "schema_version": 1,
+        "status": "blocked" if unique_blockers else "partial" if waivers else "ready",
+        "blockers": unique_blockers,
+        "waivers": waivers,
+        "action_cards": action_cards,
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
     }
 
 

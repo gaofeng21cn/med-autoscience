@@ -6,6 +6,7 @@ from med_autoscience.controllers.statistical_discipline_runtime import (
     REQUIRED_CANDIDATE_FIELDS,
     REQUIRED_STATISTICAL_DISCIPLINE_FIELDS,
     SUPPORTED_STUDY_ARCHETYPES,
+    build_statistical_discipline_operations_projection,
     build_statistical_discipline_contract,
     validate_bounded_analysis_candidate_board,
     validate_statistical_discipline_contract,
@@ -108,3 +109,89 @@ def test_bounded_analysis_candidate_board_blocks_unknown_decision() -> None:
     validation = validate_bounded_analysis_candidate_board({"candidates": [candidate]})
 
     assert validation == {"status": "blocked", "reason_code": "candidate_unsupported_decision"}
+
+
+def test_statistical_discipline_operations_projection_blocks_missing_and_nominal_primary_evidence() -> None:
+    contract = build_statistical_discipline_contract(study_archetype="prediction_model")
+    del contract["external_validation_plan"]
+    contract["sample_size_precision_plan"] = "Primary evidence will be a nominal p-value below 0.05."
+    contract["subgroup_plan_waiver_reason"] = "No clinically meaningful subgroup is defensible for this endpoint."
+
+    projection = build_statistical_discipline_operations_projection(contract)
+
+    assert projection["surface"] == "statistical_discipline_operations"
+    assert projection["schema_version"] == 1
+    assert projection["status"] == "blocked"
+    assert projection["quality_claim_authorized"] is False
+    assert projection["mechanical_projection_can_authorize_quality"] is False
+    cards = {card["field"]: card for card in projection["action_cards"]}
+    assert set(cards) == {
+        "missingness_plan",
+        "sample_size_precision_plan",
+        "external_validation_plan",
+        "subgroup_plan",
+        "multiplicity_guardrail",
+        "clinical_utility_plan",
+        "endpoint_time_window",
+        "sensitivity_plan",
+    }
+    assert cards["external_validation_plan"]["status"] == "blocked"
+    assert cards["external_validation_plan"]["required_for_ready"] is True
+    assert cards["external_validation_plan"]["waiver_allowed"] is True
+    assert cards["sample_size_precision_plan"]["status"] == "blocked"
+    assert cards["subgroup_plan"]["status"] == "waived"
+    assert projection["waivers"] == [
+        {
+            "field": "subgroup_plan",
+            "reason": "No clinically meaningful subgroup is defensible for this endpoint.",
+        }
+    ]
+    assert "missing_external_validation_plan" in projection["blockers"]
+    assert "nominal_p_value_primary_evidence" in projection["blockers"]
+
+
+def test_statistical_discipline_operations_projection_blocks_weak_board_and_recommends_stop_switch() -> None:
+    contract = build_statistical_discipline_contract(study_archetype="observational_real_world")
+    bounded_board = {
+        "candidates": [
+            _valid_candidate(
+                target_claim="Primary route no longer supports the clinical claim.",
+                expected_evidence_gain="Low after locked diagnostics.",
+                statistical_risk="weak",
+                decision="stop",
+                decision_reason="External support and precision are both below the prespecified stop threshold.",
+                board_status="weak",
+            ),
+            _valid_candidate(decision="continue"),
+        ]
+    }
+
+    projection = build_statistical_discipline_operations_projection(contract, bounded_board=bounded_board)
+
+    assert projection["status"] == "blocked"
+    assert "candidate_0_weak_board" in projection["blockers"]
+    assert "candidate_1_unsupported_decision" in projection["blockers"]
+    stop_cards = [card for card in projection["action_cards"] if card["field"] == "bounded_board"]
+    assert {
+        "action_id": "candidate_0_stop_loss_switch_line",
+        "label": "Stop-loss / switch-line decision",
+        "summary": "Stop the current analysis line or switch line using the recorded decision reason.",
+        "field": "bounded_board",
+        "status": "blocked",
+        "required_for_ready": True,
+        "waiver_allowed": False,
+    } in stop_cards
+
+
+def test_statistical_discipline_operations_projection_blocks_top_level_weak_board_and_stop_without_reason() -> None:
+    contract = build_statistical_discipline_contract(study_archetype="observational_real_world")
+    bounded_board = {
+        "status": "weak",
+        "candidates": [_valid_candidate(decision="stop", decision_reason="")],
+    }
+
+    projection = build_statistical_discipline_operations_projection(contract, bounded_board=bounded_board)
+
+    assert projection["status"] == "blocked"
+    assert "bounded_board_weak" in projection["blockers"]
+    assert "candidate_0_missing_stop_reason" in projection["blockers"]
