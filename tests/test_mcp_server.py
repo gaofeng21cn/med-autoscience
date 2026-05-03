@@ -348,17 +348,27 @@ def test_mcp_product_entry_can_call_migration_audit(monkeypatch, tmp_path: Path)
         captured["dry_run"] = dry_run
         return {
             "surface": "control_plane_migration_audit",
+            "report_id": "control-plane-migration-audit::mock",
+            "recorded_at": "1970-01-01T00:00:00+00:00",
+            "workspace_fingerprint": "workspace-migration-audit::mock",
+            "study_fingerprint": "study-migration-audit::mock",
             "dry_run": dry_run,
             "workspace_count": 2,
             "study_count": 4,
             "unclassified_authority_surface": 0,
+            "delivery_projection_completion_plan_count": 1,
             "action_counts": {"apply": 0, "delete": 0, "write": 0, "mutating": 0},
             "mutating_actions": [],
             "studies": [
                 {
                     "study_id": "001-risk",
+                    "study_fingerprint": "study-migration-audit::001",
+                    "workspace_fingerprint": "workspace-migration-audit::001",
+                    "recorded_at": "1970-01-01T00:00:00+00:00",
                     "authority_classification": "controller_authorized",
                     "lifecycle_classification": "package_and_submission_ready",
+                    "delivery_projection_completeness_reason": "current_package_and_submission_minimal_present",
+                    "delivery_projection_completion_plan": None,
                 }
             ],
         }
@@ -385,6 +395,10 @@ def test_mcp_product_entry_can_call_migration_audit(monkeypatch, tmp_path: Path)
         "dry_run": True,
     }
     assert result["structuredContent"]["dry_run"] is True
+    assert result["structuredContent"]["report_id"] == "control-plane-migration-audit::mock"
+    assert result["structuredContent"]["workspace_fingerprint"] == "workspace-migration-audit::mock"
+    assert result["structuredContent"]["study_fingerprint"] == "study-migration-audit::mock"
+    assert result["structuredContent"]["delivery_projection_completion_plan_count"] == 1
     assert result["structuredContent"]["action_counts"]["mutating"] == 0
     assert "control_plane_migration_audit" in result["content"][0]["text"]
 

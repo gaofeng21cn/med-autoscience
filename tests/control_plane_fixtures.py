@@ -338,3 +338,38 @@ def build_migration_audit_fixture_with_runtime_noise(root: Path) -> Path:
         },
     )
     return workspace_root
+
+
+def build_migration_audit_fixture_missing_submission_minimal(root: Path) -> Path:
+    workspace_root = root / "DM-CVD-Missing-Submission"
+    study_id = "005-delivery-projection-rebuild"
+    study_root = workspace_root / "studies" / study_id
+    paper_root = study_root / "paper"
+    manuscript_root = study_root / "manuscript"
+    current_package = manuscript_root / "current_package"
+
+    _write_json(
+        paper_root / "study_manifest.json",
+        {
+            "study_id": study_id,
+            "surface": "study_manifest",
+            "authority_owner": "controller",
+        },
+    )
+    _write_json(
+        manuscript_root / "delivery_manifest.json",
+        {
+            "study_id": study_id,
+            "surface": "delivery_manifest",
+            "authority_owner": "controller",
+            "source_signature": f"sig-{study_id}",
+            "authority_source_signature": f"sig-{study_id}",
+            "surface_roles": {
+                "human_facing_current_package_root": str(current_package),
+                "human_facing_current_package_zip": str(current_package.with_suffix(".zip")),
+            },
+        },
+    )
+    _write_text(current_package / "README.md", f"# {study_id}\n")
+    _write_text(current_package.with_suffix(".zip"), "zip-placeholder\n")
+    return workspace_root

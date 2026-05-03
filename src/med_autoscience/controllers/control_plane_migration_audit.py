@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+import hashlib
 import json
 from collections.abc import Iterable, Mapping
 from pathlib import Path
@@ -31,6 +33,7 @@ _TRAVERSABLE_DIR_NAMES = {
     "studies",
 }
 _TRAVERSABLE_DIR_PREFIXES = ("0",)
+_FINGERPRINT_LENGTH = 24
 
 
 def _text(value: object) -> str | None:
@@ -57,6 +60,21 @@ def _read_json(path: Path) -> Mapping[str, Any]:
     except (OSError, json.JSONDecodeError, UnicodeDecodeError):
         return {}
     return payload if isinstance(payload, Mapping) else {}
+
+
+def _canonical_digest(payload: object) -> str:
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _fingerprint(prefix: str, payload: object) -> str:
+    return f"{prefix}::{_canonical_digest(payload)[:_FINGERPRINT_LENGTH]}"
+
+
+def _content_addressed_recorded_at(digest: str) -> str:
+    offset_seconds = int(digest[:8], 16) % 86400
+    recorded_at = datetime(2026, 5, 3, tzinfo=UTC) + timedelta(seconds=offset_seconds)
+    return recorded_at.isoformat()
 
 
 def _is_manifest(path: Path) -> bool:
@@ -116,6 +134,36 @@ def _submission_minimal_paths(root: Path) -> list[Path]:
     if not root.exists():
         return []
     return sorted(path for path in _iter_candidate_nodes(root) if path.name == "submission_minimal" and path.is_dir())
+
+
+def _delivery_projection_completion(
+    *, current_package_count: int, submission_minimal_count: int
+) -> tuple[str, dict[str, Any] | None]:
+    if current_package_count > 0 and submission_minimal_count > 0:
+        return "current_package_and_submission_minimal_present", None
+
+    missing_surfaces: list[str] = []
+    regeneration_path = ["refresh_canonical_manuscript_sources"]
+    if current_package_count == 0:
+        missing_surfaces.append("current_package")
+        regeneration_path.append("regenerate_current_package")
+    if submission_minimal_count == 0:
+        missing_surfaces.append("submission_minimal")
+        regeneration_path.append("regenerate_submission_minimal")
+    regeneration_path.append("rerun_publication_gate")
+
+    missing_surface = "_and_".join(missing_surfaces)
+    return (
+        f"missing_{missing_surface}",
+        {
+            "plan_type": "canonical_regeneration",
+            "missing_surface": missing_surface,
+            "manual_patch_allowed": False,
+            "canonical_regeneration_path": regeneration_path,
+            "gate_status": "publication_gate_required_before_delivery_complete",
+            "mutation_policy": "dry_run_projection_only",
+        },
+    )
 
 
 def _study_id_from_manifest(path: Path, payload: Mapping[str, Any]) -> str | None:
@@ -205,6 +253,10 @@ def _study_reports(workspace_root: Path, manifests: list[Path]) -> list[dict[str
         )
         current_package_count = _count_under(packages, study_root)
         submission_minimal_count = _count_under(submission_minimals, study_root)
+        completeness_reason, completion_plan = _delivery_projection_completion(
+            current_package_count=current_package_count,
+            submission_minimal_count=submission_minimal_count,
+        )
         reports.append(
             {
                 "study_id": study_id,
@@ -218,6 +270,8 @@ def _study_reports(workspace_root: Path, manifests: list[Path]) -> list[dict[str
                     if current_package_count > 0 and submission_minimal_count > 0
                     else "delivery_projection_incomplete"
                 ),
+                "delivery_projection_completeness_reason": completeness_reason,
+                "delivery_projection_completion_plan": completion_plan,
                 "authority_summary": {
                     "unclassified_authority_surface": unclassified,
                     "manifest_count": len(study_manifests),
@@ -273,24 +327,66 @@ def run_migration_audit(*, workspace_roots: Iterable[str | Path], dry_run: bool 
 
     for workspace_root in resolved_roots:
         workspace, workspace_studies, workspace_unclassified = _workspace_report(workspace_root)
+        workspace_fingerprint = _fingerprint("workspace-migration-audit", workspace)
+        workspace = {
+            **workspace,
+            "workspace_fingerprint": workspace_fingerprint,
+        }
         workspaces.append(workspace)
-        studies.extend(
-            {
+        for study in workspace_studies:
+            full_study = {
                 "workspace_root": workspace["workspace_root"],
                 "workspace_style": workspace["workspace_style"],
+                "workspace_fingerprint": workspace_fingerprint,
                 **study,
             }
-            for study in workspace_studies
-        )
+            studies.append(
+                {
+                    **full_study,
+                    "study_fingerprint": _fingerprint("study-migration-audit", full_study),
+                }
+            )
         unclassified += workspace_unclassified
 
-    return {
+    workspace_fingerprint = _fingerprint(
+        "workspace-migration-audit",
+        [workspace["workspace_fingerprint"] for workspace in workspaces],
+    )
+    study_fingerprint = _fingerprint(
+        "study-migration-audit",
+        [study["study_fingerprint"] for study in studies],
+    )
+    delivery_plan_count = sum(1 for study in studies if study["delivery_projection_completion_plan"] is not None)
+    report_payload = {
         "surface": "control_plane_migration_audit",
         "schema_version": 1,
         "dry_run": bool(dry_run),
         "workspace_count": len(workspaces),
         "study_count": len(studies),
         "unclassified_authority_surface": unclassified,
+        "workspace_fingerprint": workspace_fingerprint,
+        "study_fingerprint": study_fingerprint,
+        "delivery_projection_completion_plan_count": delivery_plan_count,
+        "workspaces": workspaces,
+        "studies": studies,
+    }
+    report_digest = _canonical_digest(report_payload)
+    recorded_at = _content_addressed_recorded_at(report_digest)
+    workspaces = [{**workspace, "recorded_at": recorded_at} for workspace in workspaces]
+    studies = [{**study, "recorded_at": recorded_at} for study in studies]
+
+    return {
+        "surface": "control_plane_migration_audit",
+        "schema_version": 1,
+        "report_id": f"control-plane-migration-audit::{report_digest[:_FINGERPRINT_LENGTH]}",
+        "recorded_at": recorded_at,
+        "dry_run": bool(dry_run),
+        "workspace_count": len(workspaces),
+        "study_count": len(studies),
+        "unclassified_authority_surface": unclassified,
+        "workspace_fingerprint": workspace_fingerprint,
+        "study_fingerprint": study_fingerprint,
+        "delivery_projection_completion_plan_count": delivery_plan_count,
         "mutation_policy": {
             "dry_run_read_only": True,
             "cleanup_apply_supported": False,

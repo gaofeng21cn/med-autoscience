@@ -420,17 +420,27 @@ def test_migration_audit_command_dispatches_read_only_controller(monkeypatch, tm
         called["dry_run"] = dry_run
         return {
             "surface": "control_plane_migration_audit",
+            "report_id": "control-plane-migration-audit::mock",
+            "recorded_at": "1970-01-01T00:00:00+00:00",
+            "workspace_fingerprint": "workspace-migration-audit::mock",
+            "study_fingerprint": "study-migration-audit::mock",
             "dry_run": dry_run,
             "workspace_count": len(list(workspace_roots)),
             "study_count": 2,
             "unclassified_authority_surface": 0,
+            "delivery_projection_completion_plan_count": 1,
             "action_counts": {"apply": 0, "delete": 0, "write": 0, "mutating": 0},
             "mutating_actions": [],
             "studies": [
                 {
                     "study_id": "001-risk",
+                    "study_fingerprint": "study-migration-audit::001",
+                    "workspace_fingerprint": "workspace-migration-audit::001",
+                    "recorded_at": "1970-01-01T00:00:00+00:00",
                     "authority_classification": "controller_authorized",
                     "lifecycle_classification": "package_and_submission_ready",
+                    "delivery_projection_completeness_reason": "current_package_and_submission_minimal_present",
+                    "delivery_projection_completion_plan": None,
                 }
             ],
         }
@@ -458,6 +468,10 @@ def test_migration_audit_command_dispatches_read_only_controller(monkeypatch, tm
     }
     payload = json.loads(captured.out)
     assert payload["dry_run"] is True
+    assert payload["report_id"] == "control-plane-migration-audit::mock"
+    assert payload["workspace_fingerprint"] == "workspace-migration-audit::mock"
+    assert payload["study_fingerprint"] == "study-migration-audit::mock"
+    assert payload["delivery_projection_completion_plan_count"] == 1
     assert payload["action_counts"]["mutating"] == 0
     assert payload["mutating_actions"] == []
 
