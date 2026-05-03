@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import inspect
 from pathlib import Path
+from typing import Any, Callable
 
 import pytest
+
+from tests.control_plane_route_helpers import writable_route_context
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -45,10 +49,35 @@ FAMILY_FILES = {
     "tests/test_family_shared_release.py",
 }
 
+WRITE_ROUTE_LEGACY_DEFAULT_FILES = {
+    "tests/test_submission_minimal.py",
+    "tests/test_study_delivery_sync.py",
+    "tests/test_journal_package_controller.py",
+    "tests/test_publication_gate.py",
+    "tests/test_quality_repair_batch.py",
+    "tests/test_gate_clearing_batch.py",
+    "tests/test_fast_lane_executor.py",
+    "tests/test_artifact_lifecycle_inventory.py",
+}
+
+WRITE_ROUTE_LEGACY_DEFAULT_PREFIXES = (
+    "tests/submission_minimal_cases/",
+    "tests/test_study_delivery_sync_cases/",
+    "tests/test_publication_gate_cases/",
+    "tests/test_gate_clearing_batch_cases/",
+)
+
 
 def _relative_test_path(item: pytest.Item) -> str:
     path = Path(str(item.fspath)).resolve()
     return path.relative_to(REPO_ROOT).as_posix()
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers",
+        "write_route_legacy_default: legacy focused write tests that inject explicit control-plane route authority",
+    )
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -61,3 +90,56 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             item.add_marker(pytest.mark.display_heavy)
         if relative_path in FAMILY_FILES:
             item.add_marker(pytest.mark.family)
+        if relative_path in WRITE_ROUTE_LEGACY_DEFAULT_FILES or relative_path.startswith(
+            WRITE_ROUTE_LEGACY_DEFAULT_PREFIXES
+        ):
+            item.add_marker(pytest.mark.write_route_legacy_default)
+
+
+@pytest.fixture
+def writable_control_plane_route_context() -> dict[str, object]:
+    return writable_route_context()
+
+
+@pytest.fixture(autouse=True)
+def _inject_legacy_write_route_context(
+    request: pytest.FixtureRequest,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    if request.node.get_closest_marker("write_route_legacy_default") is None:
+        return
+    if "test_control_plane_write_route_authority.py" in _relative_test_path(request.node):
+        return
+    route_context = writable_route_context()
+
+    def _wrap(function: Callable[..., Any]) -> Callable[..., Any]:
+        signature = inspect.signature(function)
+
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
+            if kwargs.get("control_plane_route_context") is None and kwargs.get("route_context") is None:
+                if "control_plane_route_context" in signature.parameters:
+                    kwargs["control_plane_route_context"] = route_context
+                elif "route_context" in signature.parameters:
+                    kwargs["route_context"] = route_context
+            return function(*args, **kwargs)
+
+        return wrapped
+
+    for module_name, function_names in {
+        "med_autoscience.controllers.submission_minimal": ("create_submission_minimal_package",),
+        "med_autoscience.controllers.study_delivery_sync": ("sync_study_delivery",),
+        "med_autoscience.controllers.journal_package": ("materialize_journal_package",),
+        "med_autoscience.controllers.publication_gate": ("run_controller",),
+        "med_autoscience.controllers.publication_gate_parts.supervisor_and_cli": ("run_controller",),
+        "med_autoscience.controllers.quality_repair_batch": ("run_quality_repair_batch",),
+        "med_autoscience.controllers.gate_clearing_batch": ("run_gate_clearing_batch",),
+        "med_autoscience.controllers.fast_lane_executor": ("build_fast_lane_execution_manifest",),
+    }.items():
+        try:
+            module = __import__(module_name, fromlist=["_"])
+        except ImportError:
+            continue
+        for function_name in function_names:
+            function = getattr(module, function_name, None)
+            if callable(function):
+                monkeypatch.setattr(module, function_name, _wrap(function))

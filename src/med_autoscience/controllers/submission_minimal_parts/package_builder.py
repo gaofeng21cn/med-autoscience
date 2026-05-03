@@ -19,27 +19,23 @@ def create_submission_minimal_package(
     control_plane_route_context: Mapping[str, Any] | None = None,
     route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    from med_autoscience.controllers.control_plane_route_gate import (
-        attach_control_plane_route_gate,
-        authorize_control_plane_route,
+    from med_autoscience.controllers.control_plane_write_route import (
+        attach_write_route_gate,
+        blocked_control_plane_write_payload,
+        resolve_control_plane_write_route_context,
     )
 
     paper_root = paper_root.resolve()
-    resolved_route_context = (
-        {"projection_only": True, "paths": [paper_root / "submission_minimal"]}
-        if control_plane_route_context is None and route_context is None
-        else dict(control_plane_route_context or route_context or {})
-    )
-    control_plane_route_gate = authorize_control_plane_route(
-        "submission_materialize",
-        resolved_route_context,
+    resolved_route_context, control_plane_route_gate = resolve_control_plane_write_route_context(
+        action="submission_materialize",
+        context=control_plane_route_context or route_context,
+        default_paths=[paper_root / "submission_minimal"],
     )
     if not bool(control_plane_route_gate.get("authorized")):
-        return {
-            "status": "control_plane_route_blocked",
-            "paper_root": str(paper_root),
-            "control_plane_route_gate": control_plane_route_gate,
-        }
+        return blocked_control_plane_write_payload(
+            gate=control_plane_route_gate,
+            paper_root=str(paper_root),
+        )
     workspace_root = workspace_root_from_paper_root(paper_root)
     requested_publication_profile = str(publication_profile or "").strip()
     profile_config = resolve_publication_profile_config(
@@ -524,8 +520,8 @@ def create_submission_minimal_package(
             result["delivery_sync"] = delivery_sync_result
         if post_materialization_sync_result is not None:
             result["post_materialization_sync"] = post_materialization_sync_result
-        return attach_control_plane_route_gate(result, control_plane_route_gate)
-    return attach_control_plane_route_gate(manifest, control_plane_route_gate)
+        return attach_write_route_gate(result, control_plane_route_gate)
+    return attach_write_route_gate(manifest, control_plane_route_gate)
 
 
 def _sync_study_delivery_with_route_context(

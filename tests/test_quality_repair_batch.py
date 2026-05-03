@@ -178,6 +178,9 @@ def test_run_quality_repair_batch_wraps_gate_clearing_and_writes_record(monkeypa
         source="test-source",
     )
 
+    assert seen["kwargs"].pop("control_plane_route_context")["control_plane_snapshot"]["surface"] == (
+        "control_plane_snapshot"
+    )
     assert seen["kwargs"] == {
         "profile": profile,
         "study_id": "001-risk",

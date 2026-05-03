@@ -5,7 +5,7 @@ import json
 from typing import Any, Mapping
 
 from med_autoscience.controllers import gate_clearing_batch_scheduler
-from med_autoscience.controllers.control_plane_route_gate import authorize_control_plane_route
+from med_autoscience.controllers.control_plane_write_route import resolve_control_plane_write_route_context
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -119,9 +119,10 @@ def build_fast_lane_execution_manifest(
     replay_case: Mapping[str, Any],
     route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    control_plane_route_gate = authorize_control_plane_route(
-        "bundle_build",
-        {"projection_only": True} if route_context is None else route_context,
+    _resolved_route_context, control_plane_route_gate = resolve_control_plane_write_route_context(
+        action="bundle_build",
+        context=route_context,
+        default_paths=[],
     )
     execution_plan = gate_clearing_batch_scheduler.build_repair_unit_execution_plan(repair_units)
     plan_manifest = _mapping(execution_plan.get("fast_lane_execution_manifest"))

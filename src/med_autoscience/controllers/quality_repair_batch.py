@@ -183,9 +183,15 @@ def run_quality_repair_batch(
     study_root: Path,
     quest_id: str,
     source: str = "med_autoscience",
+    control_plane_route_context: Mapping[str, Any] | None = None,
+    route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
-    control_plane_route_gate = assert_control_plane_route_authorized("bundle_build", {"projection_only": True})
+    resolved_route_context = control_plane_route_context or route_context
+    control_plane_route_gate = assert_control_plane_route_authorized(
+        "bundle_build",
+        {"projection_only": True} if resolved_route_context is None else resolved_route_context,
+    )
     publication_eval_payload = read_publication_eval_latest(study_root=resolved_study_root)
     summary_payload = _read_quality_summary(study_root=resolved_study_root)
     quality_closure_truth, quality_execution_lane = _quality_repair_context(summary_payload)
@@ -207,6 +213,7 @@ def run_quality_repair_batch(
         study_root=resolved_study_root,
         quest_id=quest_id,
         source=source,
+        control_plane_route_context=resolved_route_context,
     )
     gate_clearing_execution_summary = (
         dict(gate_clearing_result.get("execution_summary"))
