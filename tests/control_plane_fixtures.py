@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+from pathlib import Path
 from typing import Any
 
 
@@ -172,3 +174,167 @@ def same_fingerprint_status_payload() -> dict[str, Any]:
             "current_required_action": "return_to_publishability_gate",
         },
     }
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
+def _write_text(path: Path, text: str) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def build_dm_cvd_migration_audit_fixture(root: Path) -> Path:
+    workspace_root = root / "DM-CVD-Mortality-Risk"
+    studies_root = workspace_root / "studies"
+
+    for study_id in (
+        "001-dm-cvd-mortality-risk",
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+    ):
+        study_root = studies_root / study_id
+        paper_root = study_root / "paper"
+        manuscript_root = study_root / "manuscript"
+        current_package = manuscript_root / "current_package"
+        submission_minimal = paper_root / "submission_minimal"
+        _write_json(
+            paper_root / "study_manifest.json",
+            {
+                "study_id": study_id,
+                "surface": "study_manifest",
+                "authority_owner": "controller",
+            },
+        )
+        _write_json(
+            manuscript_root / "delivery_manifest.json",
+            {
+                "study_id": study_id,
+                "surface": "delivery_manifest",
+                "authority_owner": "controller",
+                "source_signature": f"sig-{study_id}",
+                "authority_source_signature": f"sig-{study_id}",
+                "surface_roles": {
+                    "human_facing_current_package_root": str(current_package),
+                    "human_facing_current_package_zip": str(current_package.with_suffix(".zip")),
+                },
+            },
+        )
+        _write_json(
+            submission_minimal / "submission_manifest.json",
+            {
+                "study_id": study_id,
+                "surface": "submission_minimal_manifest",
+                "authority_owner": "controller",
+                "source_signature": f"sig-{study_id}",
+                "authority_source_signature": f"sig-{study_id}",
+            },
+        )
+        _write_text(current_package / "README.md", f"# {study_id}\n")
+        _write_text(current_package.with_suffix(".zip"), "zip-placeholder\n")
+        _write_text(submission_minimal / "paper.md", f"# {study_id} submission\n")
+
+    _write_json(
+        workspace_root / "product_entry_manifest.json",
+        {
+            "surface": "product_entry_manifest",
+            "authority_owner": "controller",
+            "studies": ["001-dm-cvd-mortality-risk", "003-dpcc-primary-care-phenotype-treatment-gap"],
+        },
+    )
+    return workspace_root
+
+
+def build_nf_pitnet_migration_audit_fixture(root: Path) -> Path:
+    workspace_root = root / "NF-PitNET"
+
+    for study_id in ("003-endocrine-burden-followup", "004-invasive-architecture"):
+        study_root = workspace_root / "papers" / study_id
+        paper_root = study_root / "paper"
+        package_root = study_root / "manuscript" / "current_package"
+        submission_root = paper_root / "submission_minimal"
+        _write_json(
+            paper_root / "study_manifest.json",
+            {
+                "study_id": study_id,
+                "surface": "study_manifest",
+                "authority_owner": "controller",
+            },
+        )
+        _write_json(
+            study_root / "manuscript" / "delivery_manifest.json",
+            {
+                "study_id": study_id,
+                "surface": "delivery_manifest",
+                "authority_owner": "controller",
+                "source_signature": f"sig-{study_id}",
+                "authority_source_signature": f"sig-{study_id}",
+                "targets": {
+                    "current_package_root": str(package_root),
+                    "current_package_zip": str(package_root.with_suffix(".zip")),
+                },
+            },
+        )
+        _write_json(
+            submission_root / "submission_manifest.json",
+            {
+                "study_id": study_id,
+                "surface": "submission_minimal_manifest",
+                "authority_owner": "controller",
+                "source_signature": f"sig-{study_id}",
+                "authority_source_signature": f"sig-{study_id}",
+            },
+        )
+        _write_text(package_root / "README.md", f"# {study_id}\n")
+        _write_text(package_root.with_suffix(".zip"), "zip-placeholder\n")
+        _write_text(submission_root / "paper.md", f"# {study_id} submission\n")
+
+    _write_json(
+        workspace_root / "workspace_manifest.json",
+        {
+            "surface": "workspace_manifest",
+            "authority_owner": "controller",
+            "studies": ["003-endocrine-burden-followup", "004-invasive-architecture"],
+        },
+    )
+    return workspace_root
+
+
+def build_migration_audit_fixture_with_runtime_noise(root: Path) -> Path:
+    workspace_root = build_dm_cvd_migration_audit_fixture(root)
+    _write_json(
+        workspace_root / ".ds" / "runtime" / "quests" / "999-noise" / "paper" / "study_manifest.json",
+        {
+            "study_id": "999-runtime-noise",
+            "surface": "study_manifest",
+            "authority_owner": "controller",
+        },
+    )
+    _write_json(
+        workspace_root / ".git" / "objects" / "noise_manifest.json",
+        {
+            "study_id": "998-git-noise",
+            "surface": "study_manifest",
+            "authority_owner": "controller",
+        },
+    )
+    _write_json(
+        workspace_root / "data" / "raw" / "vendor_manifest.json",
+        {
+            "study_id": "997-data-noise",
+            "surface": "dataset_manifest",
+            "authority_owner": "controller",
+        },
+    )
+    _write_json(
+        workspace_root / "analysis" / "scratch" / "scratch_manifest.json",
+        {
+            "study_id": "996-analysis-noise",
+            "surface": "scratch_manifest",
+            "authority_owner": "controller",
+        },
+    )
+    return workspace_root
