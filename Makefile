@@ -39,7 +39,8 @@ test-regression:
 	uv run pytest -q -m "not meta and not display_heavy and not submission_heavy and not family"
 
 test-ci-preflight:
-	uv run pytest tests/test_release_workflow.py tests/test_python_environment_contract.py tests/test_codex_plugin.py tests/test_codex_plugin_installer.py -q
+	@if [ -z "$${BASE_REF:-}" ]; then echo "BASE_REF is required, for example: BASE_REF=HEAD~1 make test-ci-preflight" >&2; exit 2; fi
+	uv run python -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"
 
 test-fast: test-regression
 

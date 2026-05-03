@@ -42,7 +42,12 @@ if [[ "${lane}" == "regression" ]]; then
 fi
 
 if [[ "${lane}" == "ci-preflight" ]]; then
-  make test-ci-preflight
+  base_ref="${2:-}"
+  if [[ -z "${base_ref}" ]]; then
+    echo "Usage: scripts/verify.sh ci-preflight <base-ref>" >&2
+    exit 2
+  fi
+  BASE_REF="${base_ref}" make test-ci-preflight
   exit 0
 fi
 
@@ -86,5 +91,5 @@ if [[ "${lane}" == "control-plane" ]]; then
   exit 0
 fi
 
-echo "Usage: scripts/verify.sh [smoke|regression|ci-preflight|fast|meta|display|submission|family|structure|control-plane|full]" >&2
+echo "Usage: scripts/verify.sh [smoke|regression|ci-preflight <base-ref>|fast|meta|display|submission|family|structure|control-plane|full]" >&2
 exit 1

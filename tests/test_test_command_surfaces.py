@@ -58,10 +58,7 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     assert "test-regression:" in makefile
     assert 'uv run pytest -q -m "not meta and not display_heavy and not submission_heavy and not family"' in makefile
     assert "test-ci-preflight:" in makefile
-    assert (
-        "uv run pytest tests/test_release_workflow.py tests/test_python_environment_contract.py "
-        "tests/test_codex_plugin.py tests/test_codex_plugin_installer.py -q"
-    ) in makefile
+    assert 'uv run python -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"' in makefile
     assert "test-fast: test-regression" in makefile
     assert "test-meta:" in makefile
     assert "uv run pytest -q -m meta" in makefile
@@ -155,6 +152,8 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'if [[ "${lane}" == "smoke" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "regression" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "ci-preflight" ]]; then' in verify_script
+    assert 'Usage: scripts/verify.sh ci-preflight <base-ref>' in verify_script
+    assert 'BASE_REF="${base_ref}" make test-ci-preflight' in verify_script
     assert 'if [[ "${lane}" == "fast" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "meta" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "display" ]]; then' in verify_script
