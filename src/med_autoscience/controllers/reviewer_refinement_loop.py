@@ -39,6 +39,12 @@ def _list_of_mappings(value: object) -> list[dict[str, Any]]:
     return [dict(item) for item in value if isinstance(item, Mapping)]
 
 
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [_text(item) for item in value if _text(item)]
+
+
 def _ai_reviewer_authority_blockers(publication_eval: Mapping[str, Any]) -> list[str]:
     blockers: list[str] = []
     provenance = _mapping(publication_eval.get("assessment_provenance"))
@@ -70,6 +76,62 @@ def _blocking_gap_summaries(publication_eval: Mapping[str, Any]) -> list[str]:
     return summaries
 
 
+def _snapshot_ref(
+    *,
+    publication_eval: Mapping[str, Any],
+    publication_eval_path: Path,
+) -> dict[str, Any]:
+    return {
+        "source_surface": "publication_eval/latest.json",
+        "source_eval_id": _text(publication_eval.get("eval_id")),
+        "source_artifact_path": str(publication_eval_path),
+    }
+
+
+def _snapshot_refs(
+    *,
+    publication_eval: Mapping[str, Any],
+    publication_eval_path: Path,
+) -> list[dict[str, Any]]:
+    return [
+        _snapshot_ref(
+            publication_eval=publication_eval,
+            publication_eval_path=publication_eval_path,
+        )
+    ]
+
+
+def _worklog_lifecycle(
+    *,
+    accepted: bool,
+    route_back: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if accepted:
+        return {
+            "state": "accepted",
+            "route": "accepted",
+            "accepted": True,
+            "reverted": False,
+            "source": "ai_reviewer_backed_publication_eval_latest",
+        }
+    lifecycle: dict[str, Any] = {
+        "state": "reverted",
+        "route": "same_line_route_back",
+        "accepted": False,
+        "reverted": True,
+        "source": "ai_reviewer_backed_publication_eval_latest",
+        "direct_package_mutation_allowed": False,
+    }
+    if route_back:
+        action_id = _text(route_back.get("action_id"))
+        route_target = _text(route_back.get("route_target"))
+        if action_id:
+            lifecycle["route_back_action_id"] = action_id
+        if route_target:
+            lifecycle["route_target"] = route_target
+    return lifecycle
+
+
 def _accept_blockers(publication_eval: Mapping[str, Any], authority_blockers: list[str]) -> list[str]:
     blockers = list(authority_blockers)
     verdict = _mapping(publication_eval.get("verdict"))
@@ -85,7 +147,11 @@ def _accept_blockers(publication_eval: Mapping[str, Any], authority_blockers: li
     return blockers
 
 
-def _first_same_line_route_back(publication_eval: Mapping[str, Any]) -> dict[str, Any] | None:
+def _first_same_line_route_back(
+    *,
+    publication_eval: Mapping[str, Any],
+    publication_eval_path: Path,
+) -> dict[str, Any] | None:
     for action in _list_of_mappings(publication_eval.get("recommended_actions")):
         if _text(action.get("action_type")) != StudyDecisionType.ROUTE_BACK_SAME_LINE.value:
             continue
@@ -99,11 +165,22 @@ def _first_same_line_route_back(publication_eval: Mapping[str, Any]) -> dict[str
             or _text(action.get("reason"))
             or "AI reviewer requested same-line refinement before package-facing advance.",
             "requires_controller_decision": action.get("requires_controller_decision") is True,
+            "artifact_refs": _text_list(action.get("evidence_refs")),
+            "snapshot_refs": _snapshot_refs(
+                publication_eval=publication_eval,
+                publication_eval_path=publication_eval_path,
+            ),
         }
     return None
 
 
-def _quality_worklog(publication_eval: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _quality_worklog(
+    *,
+    publication_eval: Mapping[str, Any],
+    publication_eval_path: Path,
+    accepted: bool,
+    route_back: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
     quality_assessment = _mapping(publication_eval.get("quality_assessment"))
     worklog: list[dict[str, Any]] = []
     for dimension, payload in quality_assessment.items():
@@ -111,46 +188,93 @@ def _quality_worklog(publication_eval: Mapping[str, Any]) -> list[dict[str, Any]
         status = _text(item.get("status"))
         if not status or status == "ready":
             continue
+        summary = _text(item.get("summary"))
+        artifact_refs = _text_list(item.get("evidence_refs"))
         worklog.append(
             {
                 "kind": "quality_dimension",
+                "concern_id": f"quality_dimension:{dimension}",
+                "reviewer_concern": summary,
+                "section": dimension,
                 "dimension": dimension,
                 "status": status,
-                "summary": _text(item.get("summary")),
+                "summary": summary,
                 "reviewer_revision_advice": _text(item.get("reviewer_revision_advice")) or None,
                 "reviewer_next_round_focus": _text(item.get("reviewer_next_round_focus")) or None,
-                "evidence_refs": [
-                    _text(ref)
-                    for ref in item.get("evidence_refs", [])
-                    if _text(ref)
-                ],
+                "evidence_refs": artifact_refs,
+                "artifact_refs": artifact_refs,
+                "snapshot_refs": _snapshot_refs(
+                    publication_eval=publication_eval,
+                    publication_eval_path=publication_eval_path,
+                ),
+                "lifecycle": _worklog_lifecycle(
+                    accepted=accepted,
+                    route_back=route_back,
+                ),
             }
         )
     return worklog
 
 
-def _gap_worklog(publication_eval: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _gap_worklog(
+    *,
+    publication_eval: Mapping[str, Any],
+    publication_eval_path: Path,
+    accepted: bool,
+    route_back: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
     worklog: list[dict[str, Any]] = []
     for gap in _list_of_mappings(publication_eval.get("gaps")):
+        gap_id = _text(gap.get("gap_id"))
+        gap_type = _text(gap.get("gap_type"))
+        summary = _text(gap.get("summary"))
+        artifact_refs = _text_list(gap.get("evidence_refs"))
         worklog.append(
             {
                 "kind": "publication_gap",
-                "gap_id": _text(gap.get("gap_id")),
-                "gap_type": _text(gap.get("gap_type")),
+                "concern_id": f"publication_gap:{gap_id}",
+                "reviewer_concern": summary,
+                "section": gap_type,
+                "gap_id": gap_id,
+                "gap_type": gap_type,
                 "severity": _text(gap.get("severity")),
-                "summary": _text(gap.get("summary")),
-                "evidence_refs": [
-                    _text(ref)
-                    for ref in gap.get("evidence_refs", [])
-                    if _text(ref)
-                ],
+                "summary": summary,
+                "evidence_refs": artifact_refs,
+                "artifact_refs": artifact_refs,
+                "snapshot_refs": _snapshot_refs(
+                    publication_eval=publication_eval,
+                    publication_eval_path=publication_eval_path,
+                ),
+                "lifecycle": _worklog_lifecycle(
+                    accepted=accepted,
+                    route_back=route_back,
+                ),
             }
         )
     return worklog
 
 
-def _worklog(publication_eval: Mapping[str, Any]) -> list[dict[str, Any]]:
-    return [*_quality_worklog(publication_eval), *_gap_worklog(publication_eval)]
+def _worklog(
+    *,
+    publication_eval: Mapping[str, Any],
+    publication_eval_path: Path,
+    accepted: bool,
+    route_back: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    return [
+        *_quality_worklog(
+            publication_eval=publication_eval,
+            publication_eval_path=publication_eval_path,
+            accepted=accepted,
+            route_back=route_back,
+        ),
+        *_gap_worklog(
+            publication_eval=publication_eval,
+            publication_eval_path=publication_eval_path,
+            accepted=accepted,
+            route_back=route_back,
+        ),
+    ]
 
 
 def _fallback_route_back(
@@ -158,6 +282,7 @@ def _fallback_route_back(
     authority_blockers: list[str],
     accept_blockers: list[str],
     publication_eval: Mapping[str, Any],
+    publication_eval_path: Path,
 ) -> dict[str, Any]:
     target = "review" if authority_blockers else "write"
     if authority_blockers:
@@ -176,6 +301,11 @@ def _fallback_route_back(
         "route_rationale": rationale,
         "requires_controller_decision": True,
         "blockers": list(accept_blockers),
+        "artifact_refs": [],
+        "snapshot_refs": _snapshot_refs(
+            publication_eval=publication_eval,
+            publication_eval_path=publication_eval_path,
+        ),
     }
 
 
@@ -186,12 +316,16 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
     authority_blockers = _ai_reviewer_authority_blockers(publication_eval)
     accept_blockers = _accept_blockers(publication_eval, authority_blockers)
     accepted = not accept_blockers
-    route_back = None if accepted else _first_same_line_route_back(publication_eval)
+    route_back = None if accepted else _first_same_line_route_back(
+        publication_eval=publication_eval,
+        publication_eval_path=publication_eval_path,
+    )
     if route_back is None and not accepted:
         route_back = _fallback_route_back(
             authority_blockers=authority_blockers,
             accept_blockers=accept_blockers,
             publication_eval=publication_eval,
+            publication_eval_path=publication_eval_path,
         )
 
     return {
@@ -220,7 +354,12 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
             "direct_package_mutation_allowed": False,
             "route_back": route_back,
         },
-        "worklog": _worklog(publication_eval),
+        "worklog": _worklog(
+            publication_eval=publication_eval,
+            publication_eval_path=publication_eval_path,
+            accepted=accepted,
+            route_back=route_back,
+        ),
         "contract": {
             "read_model_only": True,
             "accept_authority": "AI reviewer-backed artifacts/publication_eval/latest.json",

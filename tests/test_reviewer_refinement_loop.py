@@ -191,6 +191,24 @@ def test_reviewer_refinement_loop_accepts_only_ai_reviewer_backed_publication_ev
         "direct_package_mutation_allowed": False,
         "route_back": None,
     }
+    assert read_model["worklog"][0]["concern_id"] == "publication_gap:optional-style-note"
+    assert read_model["worklog"][0]["reviewer_concern"] == "Minor cover-letter polish remains optional."
+    assert read_model["worklog"][0]["section"] == "delivery"
+    assert read_model["worklog"][0]["artifact_refs"] == [str(study_root / "paper" / "cover_letter.md")]
+    assert read_model["worklog"][0]["snapshot_refs"] == [
+        {
+            "source_surface": "publication_eval/latest.json",
+            "source_eval_id": payload["eval_id"],
+            "source_artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        }
+    ]
+    assert read_model["worklog"][0]["lifecycle"] == {
+        "state": "accepted",
+        "route": "accepted",
+        "accepted": True,
+        "reverted": False,
+        "source": "ai_reviewer_backed_publication_eval_latest",
+    }
     assert read_model["contract"]["read_model_only"] is True
 
 
@@ -252,6 +270,14 @@ def test_reviewer_refinement_loop_maps_revert_to_same_line_route_back_without_pa
         "route_key_question": "Which claim sentence exceeds evidence strength?",
         "route_rationale": "AI reviewer requires same-line manuscript repair before package advance.",
         "requires_controller_decision": True,
+        "artifact_refs": [payload["runtime_context_refs"]["main_result_ref"]],
+        "snapshot_refs": [
+            {
+                "source_surface": "publication_eval/latest.json",
+                "source_eval_id": payload["eval_id"],
+                "source_artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            }
+        ],
     }
     assert {
         (item["kind"], item.get("dimension") or item.get("gap_id"))
@@ -259,6 +285,32 @@ def test_reviewer_refinement_loop_maps_revert_to_same_line_route_back_without_pa
     } == {
         ("quality_dimension", "evidence_strength"),
         ("publication_gap", "claim-strength"),
+    }
+    worklog_by_concern = {item["concern_id"]: item for item in read_model["worklog"]}
+    assert worklog_by_concern["quality_dimension:evidence_strength"]["section"] == "evidence_strength"
+    assert worklog_by_concern["quality_dimension:evidence_strength"]["reviewer_concern"] == (
+        "Main result supports direction but not final claim strength."
+    )
+    assert worklog_by_concern["quality_dimension:evidence_strength"]["artifact_refs"] == [
+        payload["runtime_context_refs"]["main_result_ref"]
+    ]
+    assert worklog_by_concern["publication_gap:claim-strength"]["section"] == "claim"
+    assert worklog_by_concern["publication_gap:claim-strength"]["snapshot_refs"] == [
+        {
+            "source_surface": "publication_eval/latest.json",
+            "source_eval_id": payload["eval_id"],
+            "source_artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        }
+    ]
+    assert worklog_by_concern["publication_gap:claim-strength"]["lifecycle"] == {
+        "state": "reverted",
+        "route": "same_line_route_back",
+        "accepted": False,
+        "reverted": True,
+        "source": "ai_reviewer_backed_publication_eval_latest",
+        "route_back_action_id": "route-back-claim-strength",
+        "route_target": "write",
+        "direct_package_mutation_allowed": False,
     }
 
 
