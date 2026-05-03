@@ -105,6 +105,13 @@ clean integration 形成后，必须在该 worktree 原位重跑 acceptance veri
 - 已归档且不再作为当前真相源的 mailbox/state 残留
 - 已退出的 tmux worker pane / HUD pane
 
+执行任何 worktree/branch 吸收或清理动作前，必须先读取 `ai_first_external_lane_registry` 的 closeout cleanup safety check：
+
+- `allowed_to_cleanup=true` 才能继续清理判定；
+- `must_preserve=true` 时必须保留并记录 owner；
+- 默认保护 `paper-orchestra-*`、`mas-gate-*`、`mas-progress-*`、`mas-runtime-*`；
+- 未登记 external active 的本轮 `ai-first-*` worktree 不进入默认保护。
+
 当前不应清理的对象只有两类：
 
 1. 仍有活 tmux pane / 活 team state 占用的对象
