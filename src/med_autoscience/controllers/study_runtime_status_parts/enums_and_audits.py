@@ -130,6 +130,7 @@ class StudyRuntimeReason(StrEnum):
     RUNTIME_OVERLAY_AUDIT_FAILED_FOR_RUNNING_QUEST = "runtime_overlay_audit_failed_for_running_quest"
     HYDRATION_VALIDATION_FAILED = "hydration_validation_failed"
     HUMAN_TAKEOVER_REQUESTED = "human_takeover_requested"
+    PAUSE_REQUEST_FAILED = "pause_request_failed"
     STUDY_COMPLETION_SYNCED = "study_completion_synced"
 
 
