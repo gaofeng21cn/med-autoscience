@@ -135,7 +135,8 @@ def test_run_preflight_executes_external_runtime_dependency_commands(monkeypatch
     assert result.ok is True
     assert result.matched_categories == ("external_runtime_dependency_surface",)
     assert result.unclassified_changes == ()
-    assert "uv run pytest tests/test_external_runtime_dependency_gate.py -q" in result.planned_commands
+    assert "uv run pytest tests/test_hermes_runtime_contract.py -q" in result.planned_commands
+    assert "uv run pytest tests/test_hermes_runtime_check.py -q" in result.planned_commands
     assert calls[0] == ["uv", "run", "pytest", "tests/test_med_deepscientist_repo_manifest.py", "-q"]
 
 

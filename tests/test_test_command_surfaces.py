@@ -88,6 +88,17 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     assert "./scripts/run-parallel-test-lanes.sh full" in makefile
 
 
+def test_structure_lane_keeps_line_budget_and_sentrux_as_explicit_structure_checks() -> None:
+    makefile = _read("Makefile")
+    structure_block = makefile.split("test-structure:", maxsplit=1)[1].split(
+        "\ntest-full:", maxsplit=1
+    )[0]
+
+    assert "\tuv run python scripts/line_budget.py" in structure_block
+    assert "\tsentrux gate" in structure_block
+    assert "\tif [ -f .sentrux/rules.toml ]; then sentrux check; fi" in structure_block
+
+
 def test_pyproject_registers_meta_display_and_submission_markers() -> None:
     pyproject = tomllib.loads(_read("pyproject.toml"))
     markers = pyproject["tool"]["pytest"]["ini_options"]["markers"]

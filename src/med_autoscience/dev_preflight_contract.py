@@ -191,6 +191,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "docs/references/workspace_architecture.md",
             "docs/runtime/agent_runtime_interface.md",
             "docs/program/external_runtime_dependency_gate.md",
+            "docs/program/manual_runtime_stabilization_checklist.md",
             "docs/program/merge_and_cutover_gates.md",
             "docs/runtime/runtime_boundary.md",
             "docs/program/upstream_intake.md",
@@ -201,7 +202,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/med_deepscientist_repo_manifest.py",
             "src/med_autoscience/workspace_contracts.py",
             "tests/test_deepscientist_upgrade_check.py",
-            "tests/test_external_runtime_dependency_gate.py",
             "tests/test_hermes_runtime_check.py",
             "tests/test_hermes_runtime_contract.py",
             "tests/test_med_deepscientist_repo_manifest.py",
@@ -214,7 +214,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "uv run pytest tests/test_deepscientist_upgrade_check.py -q",
             "uv run pytest tests/test_hermes_runtime_contract.py -q",
             "uv run pytest tests/test_hermes_runtime_check.py -q",
-            "uv run pytest tests/test_external_runtime_dependency_gate.py -q",
         ),
     ),
     PreflightCategorySpec(

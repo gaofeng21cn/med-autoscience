@@ -17,11 +17,12 @@
 
 ## 验证职责
 
-`smoke`、`regression` 与 `ci-preflight` 的职责分开：
+`smoke`、`regression`、`ci-preflight` 与 `structure` 的职责分开：
 
-- `smoke`：本地默认入口，即不带参数的 `scripts/verify.sh`。它负责快速确认当前 checkout 的基础 sanity 与 fast tests，适合提交前和小改动自检。
+- `smoke`：本地默认入口，即不带参数的 `scripts/verify.sh`。它负责快速确认当前 checkout 的基础 sanity 与 fast tests，适合提交前和小改动自检。`line budget` 是有意保留在 smoke 前置 sanity 里的 sanity gate，用来及时发现测试或源码文件继续膨胀；这不改变默认 smoke 的 fast-test 行为。
 - `regression`：显式回归入口，即 `scripts/verify.sh regression`。它负责比 smoke 更宽的行为回归，默认由 advisory/nightly 承接，避免把高漂移或高耗时回归压到每次 push。
 - `ci-preflight`：push CI 入口，即 `scripts/verify.sh ci-preflight <base-ref>`。它负责基于 base ref 展开 checked-in preflight contract，只检查本次变更实际触达的高风险面，并与 build 一起保护主线。
+- `structure`：显式结构入口，即 `scripts/verify.sh structure`。structure lane 继续承担 line budget 与 Sentrux 的结构检查职责；smoke 中的 line budget 只作为轻量 sanity gate，不取代 structure lane。
 
 ## 耗时预算
 

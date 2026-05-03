@@ -58,7 +58,6 @@
 
 当前这份清单对应的 repo-native regression surface 至少包括：
 
-- `tests/test_external_runtime_dependency_gate.py`
 - `tests/test_hermes_runtime_contract.py`
 - `tests/test_hermes_runtime_check.py`
 - `tests/test_work_unit_runtime_contract.py`

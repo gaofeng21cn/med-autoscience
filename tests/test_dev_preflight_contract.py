@@ -1,10 +1,69 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
+import shlex
 
 import pytest
 
 pytestmark = pytest.mark.family
+
+
+def _planned_pytest_paths(command: str) -> tuple[str, ...]:
+    parts = shlex.split(command)
+    if len(parts) < 3 or parts[:3] != ["uv", "run", "pytest"]:
+        return ()
+    return tuple(part for part in parts[3:] if part.startswith("tests/"))
+
+
+def test_preflight_category_exact_test_paths_exist() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+    repo_root = Path(__file__).resolve().parents[1]
+
+    missing_paths = [
+        f"{spec.category_id}: {path}"
+        for spec in module._CATEGORY_SPECS
+        for path in spec.exact_paths
+        if path.startswith("tests/") and not (repo_root / path).exists()
+    ]
+
+    assert missing_paths == []
+
+
+def test_preflight_planned_pytest_paths_exist() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+    repo_root = Path(__file__).resolve().parents[1]
+
+    missing_paths = [
+        f"{spec.category_id}: {path}"
+        for spec in module._CATEGORY_SPECS
+        for command in spec.commands
+        for path in _planned_pytest_paths(command)
+        if not (repo_root / path).exists()
+    ]
+
+    assert missing_paths == []
+
+
+def test_preflight_category_audit_keeps_spec_paths_explicit() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+    spec_paths = tuple(dict.fromkeys(path for spec in module._CATEGORY_SPECS for path in spec.exact_paths))
+    path_families = tuple(
+        module.PreflightCoveragePathFamily(
+            family_id=spec.category_id,
+            exact_paths=spec.exact_paths,
+            prefix_paths=spec.prefix_paths,
+        )
+        for spec in module._CATEGORY_SPECS
+    )
+
+    audit = module.audit_preflight_contract_coverage(spec_paths, path_families=path_families)
+
+    assert audit.generic_python_regression_paths == ()
+    assert audit.fail_closed_paths == ()
+    for family_audit in audit.family_audits:
+        if family_audit.explicit_classified_paths:
+            assert family_audit.family_id in family_audit.explicit_categories
 
 
 def test_classify_changed_files_matches_runtime_contract_surface() -> None:
@@ -225,6 +284,7 @@ def test_classify_changed_files_matches_external_runtime_dependency_surface() ->
     result = module.classify_changed_files(
         [
             "docs/program/external_runtime_dependency_gate.md",
+            "docs/program/manual_runtime_stabilization_checklist.md",
             "docs/references/workspace_architecture.md",
             "docs/references/disease_workspace_quickstart.md",
             "src/med_autoscience/workspace_contracts.py",
@@ -366,7 +426,8 @@ def test_plan_commands_for_external_runtime_dependency_surface_include_gate_proo
     assert "uv run pytest tests/test_med_deepscientist_repo_manifest.py -q" in commands
     assert "uv run pytest tests/test_workspace_contracts.py -q" in commands
     assert "uv run pytest tests/test_deepscientist_upgrade_check.py -q" in commands
-    assert "uv run pytest tests/test_external_runtime_dependency_gate.py -q" in commands
+    assert "uv run pytest tests/test_hermes_runtime_contract.py -q" in commands
+    assert "uv run pytest tests/test_hermes_runtime_check.py -q" in commands
 
 
 def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proofs() -> None:
