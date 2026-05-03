@@ -25,6 +25,8 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
     report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
 
     assert report["surface"] == "control_plane_lifecycle_report"
+    assert report["scan_policy"]["deep_scan_enabled"] is False
+    assert report["scan_policy"]["artifact_listing"] == "bounded"
     assert report["mutation_policy"]["read_only"] is True
     assert report["mutation_policy"]["physical_cleanup_performed"] is False
     assert report["summary"]["role_counts"]["canonical_source"] == 1
@@ -37,6 +39,57 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
     assert study["projection_completeness"]["status"] == "complete"
     assert "missing_docx" not in study["projection_completeness"]["blockers"]
     assert "missing_pdf" not in study["projection_completeness"]["blockers"]
+    assert "artifacts" not in report["workspaces"][0]
+    assert report["workspaces"][0]["artifact_sample"]
+
+
+def test_lifecycle_operations_report_default_uses_storage_audit_snapshot_without_deep_runtime_scan(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    _write(study_root / "paper" / "source" / "manuscript_source.md")
+    _write(study_root / "manuscript" / "current_package" / "manuscript.docx")
+    _write(study_root / "manuscript" / "current_package.zip", "zip\n")
+    _write(study_root / "paper" / "submission_minimal" / "paper.pdf")
+    _write(workspace_root / "storage_audit" / "latest.json", '{"runtime": {"bytes": 12, "file_count": 2}}\n')
+    _write(workspace_root / ".ds" / "runs" / "run-1" / "worktrees" / "nested" / "huge.bin", "runtime\n")
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+    workspace = report["workspaces"][0]
+
+    assert workspace["statistical_directories"][0]["scan_mode"] == "snapshot_reference"
+    assert workspace["statistical_directories"][0]["source_snapshot"] == "storage_audit/latest.json"
+    assert workspace["statistical_directories"][0]["file_count"] == 2
+    assert workspace["statistical_directories"][0]["size_bytes"] == 12
+    assert report["source_totals"]["runtime"]["file_count"] == 2
+
+
+def test_lifecycle_operations_report_deep_scan_is_explicit_and_bounded(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    _write(study_root / "paper" / "source" / "manuscript_source.md")
+    _write(workspace_root / ".ds" / "runs" / "run-1" / "a.txt")
+    _write(workspace_root / ".ds" / "runs" / "run-1" / "b.txt")
+
+    report = module.run_lifecycle_operations_report(
+        workspace_roots=[workspace_root],
+        deep=True,
+        max_files=1,
+        max_seconds=10,
+    )
+    workspace = report["workspaces"][0]
+    runtime_stats = workspace["statistical_directories"][0]
+
+    assert report["scan_policy"]["deep_scan_enabled"] is True
+    assert report["scan_policy"]["max_files"] == 1
+    assert report["scan_policy"]["max_seconds"] == 10
+    assert runtime_stats["scan_mode"] == "deep_statistical"
+    assert runtime_stats["bounded"] is True
+    assert runtime_stats["file_count"] == 1
+    assert runtime_stats["truncated"] is True
 
 
 def test_lifecycle_operations_report_marks_incomplete_projection_surfaces(tmp_path: Path) -> None:

@@ -102,6 +102,46 @@ def test_migration_audit_projects_completion_plan_without_mutation_for_missing_s
     }
 
 
+def test_migration_audit_requires_delivery_manifest_lifecycle_hook_before_ready(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
+    workspace_root = fixtures.build_migration_audit_fixture_missing_delivery_lifecycle_hook(tmp_path)
+    before = _regular_files(tmp_path)
+
+    report = module.run_migration_audit(workspace_roots=[workspace_root], dry_run=True)
+
+    assert _regular_files(tmp_path) == before
+    assert report["action_counts"]["mutating"] == 0
+    assert report["delivery_projection_completion_plan_count"] == 1
+    study = report["studies"][0]
+    assert study["current_package_count"] >= 1
+    assert study["submission_minimal_count"] >= 1
+    assert study["lifecycle_classification"] == "delivery_projection_incomplete"
+    assert study["delivery_projection_completeness_reason"] == (
+        "missing_delivery_manifest_lifecycle_hook_and_publication_refs"
+    )
+    assert study["delivery_manifest_summary"] == {
+        "delivery_manifest_count": 1,
+        "lifecycle_hook_present": False,
+        "source_signature_present": True,
+        "publication_refs_present": False,
+    }
+    assert study["delivery_projection_completion_plan"] == {
+        "plan_type": "delivery_manifest_lifecycle_backfill",
+        "missing_surface": "delivery_manifest_lifecycle_hook_and_publication_refs",
+        "manual_patch_allowed": False,
+        "canonical_regeneration_path": [
+            "refresh_canonical_manuscript_sources",
+            "backfill_delivery_manifest_lifecycle_hook",
+            "backfill_delivery_manifest_publication_refs",
+            "rerun_publication_gate",
+        ],
+        "gate_status": "publication_gate_required_before_delivery_complete",
+        "mutation_policy": "dry_run_projection_only",
+    }
+
+
 def test_migration_audit_report_projects_action_counts_and_study_classifications(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
     workspace_roots = [
