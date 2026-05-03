@@ -147,15 +147,30 @@ READINESS_ACTION_CARD_BY_SURFACE = {
         "label": "补文献",
         "summary": "补齐可审计文献 scout、检索日期、anchor papers、guideline 和近邻文献。",
     },
+    "literature_provider_runtime": {
+        "action_id": "run_provider_literature_scout",
+        "label": "联网补文献",
+        "summary": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
+    },
     "study_line_selection": {
         "action_id": "rescore_study_line",
         "label": "重评分路线",
         "summary": "重新比较候选切入点，并冻结最强 study line 与 stop threshold。",
     },
+    "route_decision_orchestrator": {
+        "action_id": "materialize_route_decision",
+        "label": "写入路线裁决",
+        "summary": "把路线选择、route-back 或 switch-line 决策写入 controller decision 投影。",
+    },
     "archetype_analysis_contract": {
         "action_id": "freeze_statistical_contract",
         "label": "冻结分析合同",
         "summary": "按 study archetype 冻结统计纪律合同和失败条件。",
+    },
+    "statistical_discipline_operations": {
+        "action_id": "resolve_statistical_blockers",
+        "label": "处理统计 blocker",
+        "summary": "逐项处理缺失值、precision、外部验证、多重性、临床效用和敏感性分析 blocker/waiver。",
     },
     "bounded_analysis_candidate_board": {
         "action_id": "enter_bounded_analysis",
@@ -172,10 +187,25 @@ READINESS_ACTION_CARD_BY_SURFACE = {
         "label": "启动 AI reviewer",
         "summary": "冻结目标期刊写作层并启动 AI reviewer 写作/质量闭环。",
     },
+    "revision_rebuttal_loop": {
+        "action_id": "start_revision_rebuttal_loop",
+        "label": "启动返修",
+        "summary": "摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。",
+    },
+    "authoring_runtime_authorization": {
+        "action_id": "authorize_manuscript_drafting",
+        "label": "授权写作",
+        "summary": "检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。",
+    },
     "real_study_soak_matrix_evidence": {
         "action_id": "rebuild_submission_package_after_soak",
         "label": "重建投稿包",
         "summary": "补齐多 study soak proof 后从 canonical source 重建投稿包并审计。",
+    },
+    "real_workspace_soak_monitor": {
+        "action_id": "run_real_workspace_soak_monitor",
+        "label": "运行真实 soak",
+        "summary": "从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。",
     },
 }
 
