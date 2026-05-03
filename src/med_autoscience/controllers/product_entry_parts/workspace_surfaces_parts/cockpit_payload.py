@@ -215,7 +215,6 @@ READINESS_ACTION_CARD_BY_SURFACE = {
     },
 }
 
-
 def _medical_paper_readiness_action_cards(readiness: Mapping[str, Any]) -> list[dict[str, Any]]:
     overall_status = _non_empty_text(readiness.get("overall_status")) or "unknown"
     if overall_status == "ready":
@@ -281,6 +280,24 @@ def _readiness_action_card_payload(
     }
 
 
+def _readiness_action_card_workflow_step(
+    *,
+    card: Mapping[str, Any],
+    command: str,
+) -> dict[str, Any]:
+    return {
+        "step_id": _non_empty_text(card.get("action_id")) or "inspect_medical_paper_readiness",
+        "title": _non_empty_text(card.get("label")) or "处理 Medical Paper Readiness 动作",
+        "surface_kind": "medical_paper_readiness_action_card",
+        "command": command,
+        "summary": _non_empty_text(card.get("summary")) or "",
+        "requires": ["profile_ref", "study_id"],
+        "authority": "observability_projection_only",
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+
+
 def _read_medical_paper_readiness_projection(*, study_root: Path) -> dict[str, Any]:
     readiness = _normalized_medical_paper_readiness_projection(
         medical_paper_readiness.build_medical_paper_readiness_surface(study_root=study_root)
@@ -325,6 +342,16 @@ def _workspace_medical_paper_readiness_state(*, studies: list[dict[str, Any]]) -
                 "required_count": readiness.get("required_count"),
                 "next_action": dict(readiness.get("next_action") or {}),
                 "action_cards": list(readiness.get("action_cards") or []),
+                "workflow_steps": [
+                    _readiness_action_card_workflow_step(
+                        card=dict(card),
+                        command=dict(item.get("commands") or {}).get("progress")
+                        or dict(item.get("commands") or {}).get("status")
+                        or "",
+                    )
+                    for card in readiness.get("action_cards") or []
+                    if isinstance(card, Mapping)
+                ],
                 "quality_claim_authorized": False,
                 "mechanical_projection_can_authorize_quality": False,
                 "authority": _non_empty_text(readiness.get("authority")) or "observability_projection_only",

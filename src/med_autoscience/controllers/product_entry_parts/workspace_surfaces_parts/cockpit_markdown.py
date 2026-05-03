@@ -98,7 +98,7 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             action_cards = [card for card in study.get("action_cards") or [] if isinstance(card, Mapping)]
             if action_cards:
                 labels = "；".join(
-                    f"{card.get('label')}: {card.get('summary')}" for card in action_cards if card.get("label")
+                    _readiness_action_card_label(card) for card in action_cards if card.get("label")
                 )
                 if labels:
                     lines.append(f"  动作卡: {labels}")
@@ -408,7 +408,7 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
                 lines.append(
                     "- Medical Paper Readiness 动作卡: "
                     + "；".join(
-                        f"{card.get('label')}: {card.get('summary')}"
+                        _readiness_action_card_label(card)
                         for card in action_cards
                         if card.get("label")
                     )
@@ -427,3 +427,14 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         lines.append(f"- 启动命令: `{((item.get('commands') or {}).get('launch') or '')}`")
         lines.append("")
     return "\n".join(lines)
+
+
+def _readiness_action_card_label(card: Mapping[str, Any]) -> str:
+    status = _non_empty_text(card.get("status"))
+    missing_reason = _non_empty_text(card.get("missing_reason"))
+    suffix = ""
+    if status and missing_reason:
+        suffix = f" [{status} / {missing_reason}]"
+    elif status:
+        suffix = f" [{status}]"
+    return f"{card.get('label')}{suffix}: {card.get('summary')}"
