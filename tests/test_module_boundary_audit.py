@@ -39,6 +39,9 @@ def test_module_boundary_audit_report_declares_layers_dependencies_and_authority
     assert by_group["product_entry_projection"]["writable_authority_surfaces"] == []
     assert by_group["observability_os"]["projection_only"] is True
     assert by_group["observability_os"]["may_control_runtime"] is False
+    assert "src/med_autoscience/controllers/outcome_provider_ops_projection.py" in by_group[
+        "observability_os"
+    ]["repo_targets"]
     assert by_group["mds_backend_oracle"]["owner"] == "MedDeepScientist"
     assert by_group["mds_backend_oracle"]["writable_authority_surfaces"] == []
     assert by_group["maintainability"]["modifies_runtime_or_study_truth"] is False
