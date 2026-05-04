@@ -17,6 +17,10 @@ QUALITY_DIMENSIONS = (
     "medical_journal_prose_quality",
     "human_review_readiness",
 )
+AUTHORING_CALIBRATION_REFS = (
+    "ai_reviewer_calibration_corpus#thin_first_draft",
+    "ai_reviewer_calibration_corpus#overstrong_claim",
+)
 
 
 def _reviewer_operating_system() -> dict[str, Any]:
@@ -59,6 +63,11 @@ def _reviewer_operating_system() -> dict[str, Any]:
         "route_back_decision": {
             "recommended_action": "authorize_full_manuscript_drafting",
             "rationale": "The target-journal writing layer and claim evidence trace are ready.",
+            "calibration_refs_applied": list(AUTHORING_CALIBRATION_REFS),
+            "calibration_judgment": {
+                "role": "required_authoring_judgment_input",
+                "refs": list(AUTHORING_CALIBRATION_REFS),
+            },
         },
     }
 
@@ -178,6 +187,18 @@ def test_complete_ai_reviewer_authorizes_full_manuscript_drafting() -> None:
         "ai_reviewer_calibration_corpus#thin_first_draft",
         "ai_reviewer_calibration_corpus#overstrong_claim",
     ]
+    assert projection["calibration_judgment_trace"] == {
+        "required_refs": [
+            "ai_reviewer_calibration_corpus#thin_first_draft",
+            "ai_reviewer_calibration_corpus#overstrong_claim",
+        ],
+        "applied_refs": [
+            "ai_reviewer_calibration_corpus#thin_first_draft",
+            "ai_reviewer_calibration_corpus#overstrong_claim",
+        ],
+        "missing_refs": [],
+        "status": "ready",
+    }
     assert projection["concern_linkage"] == [
         {
             "concern_id": "concern-overstrong-primary",
@@ -238,7 +259,17 @@ def test_missing_reviewer_operating_system_trace_blocks_full_drafting() -> None:
 
 
 def test_overstrong_claim_calibration_case_is_applied() -> None:
+    publication_eval = _publication_eval()
+    route_back_decision = publication_eval["reviewer_operating_system"]["route_back_decision"]
+    route_back_decision["calibration_refs_applied"] = [
+        "ai_reviewer_calibration_corpus#overstrong_claim"
+    ]
+    route_back_decision["calibration_judgment"] = {
+        "role": "required_authoring_judgment_input",
+        "refs": ["ai_reviewer_calibration_corpus#overstrong_claim"],
+    }
     projection = _projection(
+        publication_eval=publication_eval,
         calibration_case_refs=["ai_reviewer_calibration_corpus#overstrong_claim"],
     )
 
@@ -251,6 +282,37 @@ def test_overstrong_claim_calibration_case_is_applied() -> None:
             "quality_gate_relaxation_allowed": False,
         }
     ]
+
+
+def test_full_drafting_requires_calibration_refs_to_participate_in_ai_reviewer_judgment() -> None:
+    publication_eval = deepcopy(_publication_eval())
+    route_back_decision = publication_eval["reviewer_operating_system"]["route_back_decision"]
+    route_back_decision.pop("calibration_refs_applied")
+    route_back_decision.pop("calibration_judgment")
+
+    projection = _projection(publication_eval=publication_eval)
+
+    assert projection["full_drafting_authorized"] is False
+    assert projection["mode"] == "pre_draft_planning_only"
+    assert projection["calibration_judgment_trace"] == {
+        "required_refs": [
+            "ai_reviewer_calibration_corpus#thin_first_draft",
+            "ai_reviewer_calibration_corpus#overstrong_claim",
+        ],
+        "applied_refs": [],
+        "missing_refs": [
+            "ai_reviewer_calibration_corpus#thin_first_draft",
+            "ai_reviewer_calibration_corpus#overstrong_claim",
+        ],
+        "status": "blocked",
+    }
+    assert "calibration_ref_not_used_in_ai_reviewer_judgment:thin_first_draft" in projection[
+        "blockers"
+    ]
+    assert "calibration_ref_not_used_in_ai_reviewer_judgment:overstrong_claim" in projection[
+        "blockers"
+    ]
+    assert projection["authorization_contract"]["required_inputs"]["calibration_refs"] == "blocked"
 
 
 def test_quality_claim_authorized_false_blocks_full_drafting() -> None:

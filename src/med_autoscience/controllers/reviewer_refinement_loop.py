@@ -15,6 +15,9 @@ from med_autoscience.publication_eval_reviewer_os import (
     validate_ai_reviewer_operating_system_trace,
 )
 from med_autoscience.study_decision_record import StudyDecisionType
+from med_autoscience.controllers.revision_rebuttal_loop import (
+    build_revision_rebuttal_loop_projection,
+)
 
 
 __all__ = ["build_reviewer_refinement_loop_read_model"]
@@ -301,6 +304,134 @@ def _worklog(
     ]
 
 
+def _reviewer_comments_from_worklog(worklog: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    comments: list[dict[str, Any]] = []
+    for item in worklog:
+        section = _text(item.get("section"))
+        severity = _text(item.get("severity")) or "major"
+        if severity in _BLOCKING_GAP_SEVERITIES:
+            severity = "major"
+        requested_change = (
+            _text(item.get("reviewer_revision_advice"))
+            or _text(item.get("summary"))
+            or "Repair this reviewer concern before acceptance."
+        )
+        if section in {"claim", "evidence", "evidence_strength"} and "analysis" not in requested_change.lower():
+            requested_change = f"Add additional analysis or evidence repair before acceptance. {requested_change}"
+        comments.append(
+            {
+                "comment_id": _text(item.get("concern_id")),
+                "source": "ai_reviewer",
+                "concern": _text(item.get("reviewer_concern")) or _text(item.get("summary")),
+                "severity": severity,
+                "requested_change": requested_change,
+                "target_section": section,
+                "target_claim": _text(item.get("claim_id")) or None,
+            }
+        )
+    return comments
+
+
+def _dedupe_refs(refs: list[str]) -> list[str]:
+    deduped: list[str] = []
+    for ref in refs:
+        if ref and ref not in deduped:
+            deduped.append(ref)
+    return deduped
+
+
+def _review_refs_for_repair_loop(
+    *,
+    publication_eval: Mapping[str, Any],
+    worklog: list[dict[str, Any]],
+) -> list[str]:
+    refs: list[str] = []
+    reviewer_os = _mapping(publication_eval.get("reviewer_operating_system"))
+    input_bundle = _mapping(reviewer_os.get("input_bundle"))
+    refs.extend([_text(input_bundle.get("review_ledger"))])
+    for item in worklog:
+        refs.extend(_text_list(item.get("reviewer_trace_refs")))
+        if not any(refs):
+            refs.extend(_text(snapshot.get("source_artifact_path")) for snapshot in _list_of_mappings(item.get("snapshot_refs")))
+    return _dedupe_refs(refs) or ["publication_eval/latest.json"]
+
+
+def _comment_matrix_for_worklog(
+    *,
+    worklog: list[dict[str, Any]],
+    review_refs: list[str],
+) -> list[dict[str, Any]]:
+    matrix: list[dict[str, Any]] = []
+    for item, comment in zip(worklog, _reviewer_comments_from_worklog(worklog), strict=True):
+        evidence_refs = _dedupe_refs(
+            _text_list(item.get("evidence_refs")) + _text_list(item.get("artifact_refs"))
+        )
+        projection = build_revision_rebuttal_loop_projection(
+            {
+                "reviewer_comments": [comment],
+                "evidence_ledger_refs": evidence_refs,
+                "review_ledger_refs": review_refs,
+            }
+        )
+        matrix.extend(projection["comment_to_action_matrix"])
+    return matrix
+
+
+def _repair_plan(action_matrix: list[dict[str, Any]]) -> dict[str, bool]:
+    return {
+        "analysis_repair_required": any(
+            item["repair_routes"]["analysis_repair"]["required"] for item in action_matrix
+        ),
+        "text_repair_required": any(
+            item["repair_routes"]["text_repair"]["required"] for item in action_matrix
+        ),
+        "ai_reviewer_recheck_required": any(
+            item["repair_routes"]["ai_reviewer_recheck"]["required"] for item in action_matrix
+        ),
+        "mechanical_projection_can_authorize_quality": False,
+    }
+
+
+def _next_repair_loop_action(action_matrix: list[dict[str, Any]]) -> dict[str, str]:
+    if any(item["repair_routes"]["analysis_repair"]["required"] for item in action_matrix):
+        return {
+            "action": "repair_recheck_required",
+            "reason": "analysis_repair_requires_ai_reviewer_recheck",
+        }
+    if any(item["repair_routes"]["text_repair"]["required"] for item in action_matrix):
+        return {
+            "action": "repair_recheck_required",
+            "reason": "text_repair_requires_ai_reviewer_recheck",
+        }
+    return {
+        "action": "repair_recheck_required",
+        "reason": "rebuttal_closure_requires_ai_reviewer_recheck",
+    }
+
+
+def _repair_loop_projection(
+    *,
+    publication_eval: Mapping[str, Any],
+    worklog: list[dict[str, Any]],
+) -> dict[str, Any]:
+    review_refs = _review_refs_for_repair_loop(
+        publication_eval=publication_eval,
+        worklog=worklog,
+    )
+    action_matrix = _comment_matrix_for_worklog(worklog=worklog, review_refs=review_refs)
+    return {
+        "mode": _REPAIR_PLANNING_MODE,
+        "status": "ready" if action_matrix else "blocked",
+        "blockers": [] if action_matrix else ["missing_reviewer_comments"],
+        "comment_to_action_matrix": action_matrix,
+        "repair_plan": _repair_plan(action_matrix),
+        "next_action": _next_repair_loop_action(action_matrix) if action_matrix else {
+            "action": "collect_revision_intake",
+            "reason": "missing_reviewer_comments",
+        },
+    }
+
+
 def _fallback_route_back(
     *,
     authority_blockers: list[str],
@@ -354,6 +485,31 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
             publication_eval=publication_eval,
             publication_eval_path=publication_eval_path,
         )
+    worklog = _worklog(
+        publication_eval=publication_eval,
+        publication_eval_path=publication_eval_path,
+        accepted=accepted,
+        route_back=route_back,
+    )
+    repair_loop = _repair_loop_projection(
+        publication_eval=publication_eval,
+        worklog=worklog,
+    ) if not accepted else {
+        "mode": _ACCEPTED_MODE,
+        "status": "accepted",
+        "blockers": [],
+        "comment_to_action_matrix": [],
+        "repair_plan": {
+            "analysis_repair_required": False,
+            "text_repair_required": False,
+            "ai_reviewer_recheck_required": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+        "next_action": {
+            "action": "none",
+            "reason": "reviewer_refinement_accepted",
+        },
+    }
 
     return {
         "surface": _SURFACE,
@@ -378,18 +534,15 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
         },
         "required_calibration_refs": required_calibration_refs,
         "calibration_learning": calibration_learning,
+        "comment_to_action_matrix": repair_loop["comment_to_action_matrix"],
+        "repair_loop": repair_loop,
         "revert": {
             "required": not accepted,
             "strategy": "same_line_route_back" if not accepted else "none",
             "direct_package_mutation_allowed": False,
             "route_back": route_back,
         },
-        "worklog": _worklog(
-            publication_eval=publication_eval,
-            publication_eval_path=publication_eval_path,
-            accepted=accepted,
-            route_back=route_back,
-        ),
+        "worklog": worklog,
         "contract": {
             "read_model_only": True,
             "mode_when_blocked": _REPAIR_PLANNING_MODE,

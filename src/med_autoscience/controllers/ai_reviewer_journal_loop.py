@@ -346,6 +346,36 @@ def _critique_concern_linkage(
     return concern_linkage
 
 
+def _calibration_judgment_trace(
+    *,
+    publication_eval: Mapping[str, Any] | None,
+    required_calibration_refs: Sequence[str],
+    blockers: list[str],
+) -> dict[str, Any]:
+    reviewer_os = _mapping_or_none((publication_eval or {}).get("reviewer_operating_system")) or {}
+    route_back_decision = _mapping_or_none(reviewer_os.get("route_back_decision")) or {}
+    calibration_judgment = _mapping_or_none(route_back_decision.get("calibration_judgment")) or {}
+    applied_refs = []
+    for raw_ref in [
+        *_normalized_text_list(route_back_decision.get("calibration_refs_applied")),
+        *_normalized_text_list(calibration_judgment.get("refs")),
+    ]:
+        if raw_ref not in applied_refs:
+            applied_refs.append(raw_ref)
+    missing_refs = [ref for ref in required_calibration_refs if ref not in applied_refs]
+    for ref in missing_refs:
+        _add_blocker(
+            blockers,
+            f"calibration_ref_not_used_in_ai_reviewer_judgment:{_calibration_case_id(ref)}",
+        )
+    return {
+        "required_refs": list(required_calibration_refs),
+        "applied_refs": applied_refs,
+        "missing_refs": missing_refs,
+        "status": "blocked" if missing_refs else "ready",
+    }
+
+
 def _required_input_status(blockers: Sequence[str], *prefixes: str) -> str:
     return "blocked" if any(blocker.startswith(prefix) for blocker in blockers for prefix in prefixes) else "ready"
 
@@ -437,6 +467,11 @@ def build_ai_reviewer_journal_writing_authorization(
         blockers,
     )
     concern_linkage = _critique_concern_linkage(normalized_publication_eval, blockers)
+    calibration_judgment_trace = _calibration_judgment_trace(
+        publication_eval=normalized_publication_eval,
+        required_calibration_refs=required_calibration_refs,
+        blockers=blockers,
+    )
 
     full_drafting_authorized = not blockers and ai_reviewer_authorized and quality_claim_authorized
     return {
@@ -457,6 +492,7 @@ def build_ai_reviewer_journal_writing_authorization(
         },
         "calibration_cases_applied": applied_cases,
         "required_calibration_refs": required_calibration_refs,
+        "calibration_judgment_trace": calibration_judgment_trace,
         "concern_linkage": concern_linkage,
         "authorization_contract": _authorization_contract(blockers),
     }

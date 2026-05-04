@@ -231,6 +231,13 @@ def test_reviewer_refinement_loop_maps_revert_to_same_line_route_back_without_pa
         "reviewer_revision_advice": "Add the bounded sensitivity paragraph before acceptance.",
         "reviewer_next_round_focus": "Evidence strength and claim wording.",
     }
+    payload["quality_assessment"]["medical_journal_prose_quality"] = {
+        "status": "partial",
+        "summary": "Discussion wording is too strong for observational evidence.",
+        "evidence_refs": [str(study_root / "paper" / "manuscript.md")],
+        "reviewer_revision_advice": "Revise text to restrained association language.",
+        "reviewer_next_round_focus": "Discussion claim wording.",
+    }
     payload["gaps"] = [
         {
             "gap_id": "claim-strength",
@@ -284,6 +291,7 @@ def test_reviewer_refinement_loop_maps_revert_to_same_line_route_back_without_pa
         for item in read_model["worklog"]
     } == {
         ("quality_dimension", "evidence_strength"),
+        ("quality_dimension", "medical_journal_prose_quality"),
         ("publication_gap", "claim-strength"),
     }
     worklog_by_concern = {item["concern_id"]: item for item in read_model["worklog"]}
@@ -312,6 +320,50 @@ def test_reviewer_refinement_loop_maps_revert_to_same_line_route_back_without_pa
         "route_target": "write",
         "direct_package_mutation_allowed": False,
     }
+    assert read_model["comment_to_action_matrix"] == read_model["repair_loop"][
+        "comment_to_action_matrix"
+    ]
+    matrix_by_comment = {item["comment_id"]: item for item in read_model["comment_to_action_matrix"]}
+    assert matrix_by_comment["publication_gap:claim-strength"]["repair_routes"]["analysis_repair"] == {
+        "required": True,
+        "target_claim": None,
+        "target_section": "claim",
+        "ledger_refs": [
+            payload["runtime_context_refs"]["main_result_ref"],
+            str(study_root / "paper" / "review" / "review_ledger.json"),
+        ],
+    }
+    assert matrix_by_comment["publication_gap:claim-strength"]["repair_routes"]["text_repair"][
+        "required"
+    ] is False
+    assert matrix_by_comment["publication_gap:claim-strength"]["repair_routes"][
+        "ai_reviewer_recheck"
+    ] == {
+        "required": True,
+        "reason": "analysis_repair_requires_ai_reviewer_recheck",
+    }
+    assert matrix_by_comment["quality_dimension:medical_journal_prose_quality"]["repair_routes"][
+        "analysis_repair"
+    ]["required"] is False
+    assert matrix_by_comment["quality_dimension:medical_journal_prose_quality"]["repair_routes"][
+        "text_repair"
+    ] == {
+        "required": True,
+        "target_claim": None,
+        "target_section": "medical_journal_prose_quality",
+        "ledger_refs": [
+            str(study_root / "paper" / "manuscript.md"),
+            str(study_root / "paper" / "review" / "review_ledger.json"),
+        ],
+    }
+    assert read_model["repair_loop"]["repair_plan"] == {
+        "analysis_repair_required": True,
+        "text_repair_required": True,
+        "ai_reviewer_recheck_required": True,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+    assert read_model["repair_loop"]["mode"] == "repair_planning_only"
+    assert read_model["repair_loop"]["blockers"] == []
 
 
 def test_reviewer_refinement_loop_fails_closed_for_non_ai_reviewer_projection(
