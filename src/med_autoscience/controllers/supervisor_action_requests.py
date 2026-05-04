@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
+from med_autoscience.controllers.supervisor_action_request_lifecycle import (
+    AI_REVIEWER_REQUEST_STATES,
+    AI_REVIEWER_REQUIRED_INPUT_SURFACES,
+)
 from med_autoscience.policies import DEFAULT_PUBLICATION_CRITIQUE_POLICY
 
 __all__ = [
@@ -56,6 +60,67 @@ def _text_list(value: object) -> list[str]:
         if text is not None:
             items.append(text)
     return items
+
+
+def _mapping_copy(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _ref_contract(value: object, *, surface: str) -> dict[str, Any]:
+    ref = _mapping_copy(value)
+    if not ref:
+        return {"surface": surface, "required": True, "present": False, "valid": False}
+    ref.setdefault("surface", surface)
+    ref.setdefault("required", True)
+    if "present" not in ref:
+        ref["present"] = bool(_text(ref.get("path")) or _text(ref.get("relative_path")) or _text(ref.get("ref")))
+    if "valid" not in ref:
+        ref["valid"] = bool(ref["present"])
+    return ref
+
+
+def _ai_reviewer_input_contract(input_refs: Mapping[str, Any] | None) -> dict[str, Any]:
+    refs = _mapping(input_refs)
+    required_refs = {
+        surface: _ref_contract(refs.get(surface), surface=surface)
+        for surface in AI_REVIEWER_REQUIRED_INPUT_SURFACES
+    }
+    missing = [
+        surface
+        for surface, ref in required_refs.items()
+        if ref.get("present") is False or ref.get("valid") is False
+    ]
+    return {
+        "contract_id": "return_to_ai_reviewer_workflow_inputs_v1",
+        "required_refs": required_refs,
+        "required_surfaces": list(AI_REVIEWER_REQUIRED_INPUT_SURFACES),
+        "all_required_refs_present": not missing,
+        "missing_or_invalid_refs": missing,
+        "assessment_scope": "manuscript_evidence_review_charter",
+    }
+
+
+def _ai_reviewer_request_lifecycle(
+    *,
+    state: str,
+    assigned_to: str | None,
+    assessment_ref: str | None,
+    blocked_reason: str | None,
+) -> dict[str, Any]:
+    resolved_state = _required_text("request_lifecycle.state", state)
+    if resolved_state not in AI_REVIEWER_REQUEST_STATES:
+        raise ValueError(f"request_lifecycle.state must be one of: {', '.join(AI_REVIEWER_REQUEST_STATES)}")
+    return {
+        "state": resolved_state,
+        "allowed_states": list(AI_REVIEWER_REQUEST_STATES),
+        "assigned_to": assigned_to,
+        "assessment_ref": assessment_ref,
+        "blocked_reason": blocked_reason,
+        "authority": "observability_only",
+        "can_authorize_quality": False,
+        "can_authorize_finalize": False,
+        "can_authorize_submission": False,
+    }
 
 
 def _request_id(kind: str, *, study_id: str, quest_id: str | None) -> str:
@@ -146,6 +211,11 @@ def build_ai_reviewer_publication_eval_request(
     quest_id: str | None,
     source_surface: str,
     workflow_state: Mapping[str, Any],
+    input_refs: Mapping[str, Any] | None = None,
+    lifecycle_state: str = "requested",
+    assigned_to: str | None = None,
+    assessment_ref: str | None = None,
+    blocked_reason: str | None = None,
 ) -> dict[str, Any]:
     resolved_study_id = _required_text("study_id", study_id)
     resolved_quest_id = _text(quest_id)
@@ -153,6 +223,7 @@ def build_ai_reviewer_publication_eval_request(
     workflow = _mapping(workflow_state)
     quality_authority = _mapping(workflow.get("quality_authority"))
     route_back = _mapping(workflow.get("route_back"))
+    input_contract = _ai_reviewer_input_contract(input_refs or _mapping(workflow.get("input_refs")))
 
     packet = _base_packet(
         "return_to_ai_reviewer_workflow",
@@ -167,11 +238,30 @@ def build_ai_reviewer_publication_eval_request(
                 "Request an AI reviewer-owned publication_eval/latest.json; missing reviewer provenance "
                 "is request-only and cannot authorize quality closure."
             ),
+            "request_lifecycle": _ai_reviewer_request_lifecycle(
+                state=lifecycle_state,
+                assigned_to=_text(assigned_to),
+                assessment_ref=_text(assessment_ref),
+                blocked_reason=_text(blocked_reason),
+            ),
+            "input_contract": input_contract,
             "required_publication_eval_provenance": {
                 "owner": "ai_reviewer",
                 "source_kind": "publication_eval_ai_reviewer",
                 "policy_id": DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"],
                 "ai_reviewer_required": False,
+            },
+            "required_output": {
+                "surface": "publication_eval/latest.json",
+                "writer": "ai_reviewer_publication_eval_workflow",
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "writeback_required": True,
+                "assessment_written_lifecycle_state": "assessment_written",
+                "pre_writeback_authority": "observability_only",
+                "pre_writeback_can_authorize_quality": False,
+                "pre_writeback_can_authorize_finalize": False,
+                "pre_writeback_can_authorize_submission": False,
             },
             "requested_artifact": {
                 "surface": "publication_eval/latest.json",

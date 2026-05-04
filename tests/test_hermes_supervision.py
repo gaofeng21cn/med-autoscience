@@ -512,6 +512,83 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
     assert result["freshness"]["max_expected_artifact_age_seconds"] == 600
 
 
+def test_ensure_supervision_writes_portable_install_proof_when_explicitly_requested(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    profile = make_profile(tmp_path)
+    supervisor_scan = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+    supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
+    supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_scan.chmod(0o755)
+    cron_template = (
+        profile.workspace_root
+        / "ops"
+        / "medautoscience"
+        / "supervisor"
+        / "cron"
+        / "supervisor-scan.cron"
+    )
+    cron_template.parent.mkdir(parents=True, exist_ok=True)
+    cron_template.write_text("* * * * * supervisor-scan\n", encoding="utf-8")
+
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+
+    result = module.ensure_supervision(
+        profile=profile,
+        manager="cron",
+        trigger_now=False,
+        write_install_proof=True,
+    )
+
+    proof_path = profile.workspace_root / "artifacts" / "supervision" / "install_proof" / "latest.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    assert result["install_proof_path"] == str(proof_path)
+    assert result["install_proof"]["artifact_path"] == str(proof_path)
+    assert proof["manager"] == "cron"
+    assert proof["scheduler_owner"] == "cron_scheduler"
+    assert proof["install_commands"] == result["install_commands"]
+    assert proof["status_check_commands"] == result["status_check_commands"]
+    assert proof["expected_artifacts"] == result["expected_artifacts"]
+    assert proof["artifact_path"] == str(proof_path)
+    assert proof["last_scan_time"] is not None
+    assert proof["freshness"]["max_expected_artifact_age_seconds"] == 600
+    assert proof["safe_action_mode"] == "developer_apply_safe"
+    assert proof["github_gate"]["allowed"] is True
+    assert proof["host_service_claim"] == "not_installed_by_mas"
+    assert proof["status"] != "installed"
+
+
+def test_ensure_supervision_projects_codex_app_heartbeat_as_compat_owner(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    profile = make_profile(tmp_path)
+    supervisor_scan = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+    supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
+    supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_scan.chmod(0o755)
+    automation_path = tmp_path / "home" / ".codex" / "automations" / "mas" / "automation.toml"
+    automation_path.parent.mkdir(parents=True, exist_ok=True)
+    automation_path.write_text(
+        'status = "ACTIVE"\n'
+        'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
+        '--developer-supervisor-mode developer_apply_safe action_queue why_not_applied"\n',
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setattr(module, "_codex_app_automation_path", lambda: automation_path)
+
+    result = module.ensure_supervision(profile=profile, manager="codex_app", trigger_now=False)
+
+    assert result["manager"] == "codex_app"
+    assert result["scheduler_owner"] == "codex_app_compat"
+    assert result["install_proof"]["scheduler_owner"] == "codex_app_compat"
+
+
 def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
     monkeypatch,
     tmp_path: Path,

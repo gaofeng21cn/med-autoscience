@@ -60,6 +60,7 @@ display_pack_surface_sync = _LazyModuleProxy(lambda: _load_controller("display_p
 display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("display_surface_materialization"))
 hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime_check"))
 hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervision"))
+runtime_supervisor_consumer = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_consumer"))
 runtime_supervisor_scan = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_scan"))
 med_deepscientist_upgrade_check = _LazyModuleProxy(lambda: _load_controller("med_deepscientist_upgrade_check"))
 runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
@@ -328,6 +329,17 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(study_progress.render_study_progress_markdown(result), end="")
+        return 0
+
+    if args.command == "runtime-supervisor-consume":
+        profile = load_profile(args.profile)
+        result = runtime_supervisor_consumer.supervisor_consume(
+            profile=profile,
+            study_ids=tuple(args.studies or ()),
+            mode=args.mode,
+            apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "open-auto-research-soak":
@@ -660,6 +672,7 @@ def main(argv: list[str] | None = None) -> int:
             interval_seconds=int(args.interval_seconds),
             trigger_now=not bool(args.no_trigger_now),
             manager=str(args.manager),
+            write_install_proof=bool(args.write_install_proof),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

@@ -316,6 +316,95 @@ def test_study_progress_projects_ai_first_action_dispatch_lifecycle(
     assert "token_count" not in markdown
 
 
+def test_study_progress_projects_ai_reviewer_request_lifecycle(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    request_lifecycle = importlib.import_module(
+        "med_autoscience.controllers.supervisor_action_request_lifecycle"
+    )
+    request_builder = importlib.import_module("med_autoscience.controllers.supervisor_action_requests")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    packet = request_builder.build_ai_reviewer_publication_eval_request(
+        study_id="001-risk",
+        quest_id="quest-001",
+        source_surface="ai_reviewer_runtime_workflow_state",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+            "blockers": ["publication_eval_not_ai_reviewer_authority"],
+        },
+        input_refs={
+            "manuscript": {"relative_path": "paper/manuscript.md"},
+            "evidence_ledger": {"relative_path": "paper/evidence_ledger.json"},
+            "review_ledger": {"relative_path": "paper/review/review_ledger.json"},
+            "study_charter": {"relative_path": "artifacts/controller/study_charter.json"},
+        },
+        lifecycle_state="assigned",
+        assigned_to="ai_reviewer",
+    )
+    request_lifecycle.materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "source_kind": "publication_gate_report",
+                "ai_reviewer_required": True,
+            },
+            "verdict": {"overall_verdict": "mixed"},
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "active_run_id": "run-001",
+            "publication_supervisor_state": {
+                "supervisor_phase": "write",
+                "phase_owner": "publication_gate",
+                "current_required_action": "continue_write_stage",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    lifecycle = result["ai_reviewer_request_lifecycle"]
+    assert lifecycle["surface"] == "ai_reviewer_request_lifecycle"
+    assert lifecycle["state"] == "assigned"
+    assert lifecycle["request_kind"] == "return_to_ai_reviewer_workflow"
+    assert lifecycle["input_contract"]["required_surfaces"] == [
+        "manuscript",
+        "evidence_ledger",
+        "review_ledger",
+        "study_charter",
+    ]
+    assert lifecycle["required_output"]["surface"] == "publication_eval/latest.json"
+    assert lifecycle["assessment_written"] is False
+    assert lifecycle["can_authorize_quality"] is False
+    assert result["refs"]["ai_reviewer_request_lifecycle_path"] == str(
+        request_lifecycle.stable_ai_reviewer_request_path(study_root=study_root)
+    )
+
+
 def test_study_progress_projects_paper_orchestra_operator_read_model_without_new_runtime_truth(
     monkeypatch,
     tmp_path: Path,

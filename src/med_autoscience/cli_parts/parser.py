@@ -63,6 +63,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
         choices=("hermes", "systemd", "cron", "docker", "launchd"),
         default="hermes",
     )
+    runtime_ensure_supervision_parser.add_argument("--write-install-proof", action="store_true")
 
     runtime_remove_supervision_parser = subparsers.add_parser("runtime-remove-supervision")
     runtime_remove_supervision_parser.add_argument("--profile", required=True)
@@ -77,6 +78,18 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
         "--developer-supervisor-mode",
         choices=("internal_only", "external_observe", "developer_apply_safe"),
     )
+
+    runtime_supervisor_consume_parser = subparsers.add_parser("runtime-supervisor-consume")
+    runtime_supervisor_consume_parser.add_argument("--profile", required=True)
+    runtime_supervisor_consume_parser.add_argument("--studies", nargs="+", required=True)
+    runtime_supervisor_consume_parser.add_argument(
+        "--mode",
+        choices=("developer_apply_safe",),
+        required=True,
+    )
+    runtime_supervisor_consume_apply = runtime_supervisor_consume_parser.add_mutually_exclusive_group(required=True)
+    runtime_supervisor_consume_apply.add_argument("--dry-run", action="store_true")
+    runtime_supervisor_consume_apply.add_argument("--apply", action="store_true")
 
     register_runtime_storage_parsers(subparsers)
 

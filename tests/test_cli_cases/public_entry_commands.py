@@ -667,11 +667,19 @@ def test_runtime_ensure_supervision_command_dispatches_controller(monkeypatch, t
     write_profile(profile_path)
     called: dict[str, object] = {}
 
-    def fake_ensure_supervision(*, profile, interval_seconds: int, trigger_now: bool, manager: str) -> dict[str, object]:
+    def fake_ensure_supervision(
+        *,
+        profile,
+        interval_seconds: int,
+        trigger_now: bool,
+        manager: str,
+        write_install_proof: bool,
+    ) -> dict[str, object]:
         called["profile"] = profile
         called["interval_seconds"] = interval_seconds
         called["trigger_now"] = trigger_now
         called["manager"] = manager
+        called["write_install_proof"] = write_install_proof
         return {"action": "created"}
 
     monkeypatch.setattr(cli.hermes_supervision, "ensure_supervision", fake_ensure_supervision)
@@ -687,6 +695,7 @@ def test_runtime_ensure_supervision_command_dispatches_controller(monkeypatch, t
             "--no-trigger-now",
             "--manager",
             "systemd",
+            "--write-install-proof",
         ]
     )
     captured = capsys.readouterr()
@@ -696,6 +705,7 @@ def test_runtime_ensure_supervision_command_dispatches_controller(monkeypatch, t
     assert called["interval_seconds"] == 600
     assert called["trigger_now"] is False
     assert called["manager"] == "systemd"
+    assert called["write_install_proof"] is True
     assert json.loads(captured.out)["action"] == "created"
 def test_runtime_remove_supervision_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")

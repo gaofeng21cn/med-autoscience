@@ -108,7 +108,7 @@ workspace bootstrap 会渲染 portable scheduler entry 与示例模板：
 - `ops/medautoscience/supervisor/kubernetes/supervisor-scan-cronjob.yaml`
 - `ops/medautoscience/supervisor/launchd/README.md`
 
-`medautosci runtime ensure-supervision --manager systemd|cron|docker|launchd` 返回可复制的安装命令和模板路径，并验证当前 workspace 是否已有可执行的 `supervisor-scan` entry。这个接口只生成 scheduler instruction，不声称宿主 service 已安装；安装动作仍归属 host operator 或外部 scheduler。
+`medautosci runtime ensure-supervision --manager systemd|cron|docker|launchd` 返回可复制的安装命令和模板路径，并验证当前 workspace 是否已有可执行的 `supervisor-scan` entry。显式追加 `--write-install-proof` 时，它会写出 workspace-level `artifacts/supervision/install_proof/latest.json`，记录 manager、scheduler owner、安装命令、状态检查命令、预期产物、freshness、safe-action mode、GitHub gate 与 host service claim。这个接口只生成 scheduler instruction / install proof，不在没有真实宿主安装 evidence 时声称宿主 service 已安装；安装动作仍归属 host operator 或外部 scheduler。
 
 同时，外环还必须对“最近一次 supervisor tick 是否仍然新鲜”给出正式判断：
 

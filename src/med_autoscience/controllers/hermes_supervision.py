@@ -202,6 +202,7 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
     codex_app_prompt = _codex_app_automation_prompt_check()
     developer_mode_enabled = bool(github_user.get("matches_expected"))
     supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
+    scheduler_owner = "codex_app_compat" if manager == "codex_app" else f"{manager}_scheduler"
     expected_artifacts = [
         str(profile.workspace_root / "ops" / "medautoscience" / "runtime" / "supervisor" / "latest.json"),
         str(profile.workspace_root / "ops" / "medautoscience" / "runtime" / "supervisor" / "action_queue.json"),
@@ -218,7 +219,7 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
         "developer_mode_enabled": developer_mode_enabled,
         "safe_actions_enabled": developer_mode_enabled,
         "repo_level_repair_authority": developer_mode_enabled,
-        "scheduler_owner": f"{manager}_scheduler",
+        "scheduler_owner": scheduler_owner,
         "github_user": github_user,
         "github_user_gate": github_user.get("gate"),
         "codex_app_automation_prompt": codex_app_prompt,
@@ -238,11 +239,57 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
     }
 
 
+def _install_proof_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / "artifacts" / "supervision" / "install_proof" / "latest.json"
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _portable_install_proof(
+    *,
+    profile: WorkspaceProfile,
+    manager: str,
+    scheduler_owner: str,
+    install_commands: list[str],
+    status_check_commands: list[list[str]],
+    expected_artifacts: list[str],
+    freshness: dict[str, Any],
+    safe_action_mode: str,
+    github_gate: dict[str, Any] | None,
+    host_service_claim: str,
+    status: str,
+) -> dict[str, Any]:
+    proof_path = _install_proof_path(profile)
+    generated_at = _utc_now()
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": "portable_scheduler_install_proof",
+        "generated_at": generated_at,
+        "manager": manager,
+        "scheduler_owner": scheduler_owner,
+        "install_commands": install_commands,
+        "status_check_commands": status_check_commands,
+        "expected_artifacts": expected_artifacts,
+        "artifact_path": str(proof_path),
+        "last_scan_time": generated_at,
+        "freshness": freshness,
+        "safe_action_mode": safe_action_mode,
+        "github_gate": dict(github_gate or {}),
+        "host_service_claim": host_service_claim,
+        "status": status,
+        "installed": False,
+    }
+
+
 def _portable_supervisor_instruction(
     *,
     profile: WorkspaceProfile,
     manager: str,
     interval_seconds: int,
+    write_install_proof: bool = False,
 ) -> dict[str, Any]:
     supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
     templates = _portable_supervisor_templates(profile)
@@ -296,6 +343,22 @@ def _portable_supervisor_instruction(
         manager=manager_key,
         interval_seconds=interval_seconds,
     )
+    host_service_claim = "not_installed_by_mas"
+    install_proof = _portable_install_proof(
+        profile=profile,
+        manager=manager_key,
+        scheduler_owner=developer_supervisor_mode["scheduler_owner"],
+        install_commands=install_commands,
+        status_check_commands=developer_supervisor_mode["install_proof"]["status_check_commands"],
+        expected_artifacts=developer_supervisor_mode["install_proof"]["expected_artifacts"],
+        freshness=developer_supervisor_mode["install_proof"]["freshness"],
+        safe_action_mode=developer_supervisor_mode["mode"],
+        github_gate=developer_supervisor_mode["github_user_gate"],
+        host_service_claim=host_service_claim,
+        status=str(developer_supervisor_mode["install_proof"]["status"]),
+    )
+    if write_install_proof:
+        _write_json(_install_proof_path(profile), install_proof)
     return {
         "action": "portable_scheduler_instruction",
         "manager": manager_key,
@@ -322,14 +385,15 @@ def _portable_supervisor_instruction(
         ],
         "templates": result_templates,
         "install_commands": install_commands,
-        "install_proof": developer_supervisor_mode["install_proof"],
-        "status_check_commands": developer_supervisor_mode["install_proof"]["status_check_commands"],
-        "expected_artifacts": developer_supervisor_mode["install_proof"]["expected_artifacts"],
-        "freshness": developer_supervisor_mode["install_proof"]["freshness"],
+        "install_proof": install_proof,
+        "install_proof_path": str(_install_proof_path(profile)) if write_install_proof else None,
+        "status_check_commands": install_proof["status_check_commands"],
+        "expected_artifacts": install_proof["expected_artifacts"],
+        "freshness": install_proof["freshness"],
         "developer_supervisor_mode": developer_supervisor_mode,
         "codex_app_automation_prompt": developer_supervisor_mode["codex_app_automation_prompt"],
         "codex_app_heartbeat_required": False,
-        "host_service_claim": "not_installed_by_mas",
+        "host_service_claim": host_service_claim,
         "docker_policy": "run supervisor-scan as a one-shot container from external cron or Kubernetes CronJob",
     }
 
@@ -734,12 +798,14 @@ def ensure_supervision(
     interval_seconds: int = DEFAULT_INTERVAL_SECONDS,
     trigger_now: bool = True,
     manager: str = "hermes",
+    write_install_proof: bool = False,
 ) -> dict[str, Any]:
     if manager != "hermes":
         return _portable_supervisor_instruction(
             profile=profile,
             manager=manager,
             interval_seconds=interval_seconds,
+            write_install_proof=write_install_proof,
         )
     _ensure_script_file(profile, interval_seconds=interval_seconds)
     watch_runtime_repair = _repair_legacy_workspace_watch_runtime_entry(profile)

@@ -4,6 +4,7 @@ from med_autoscience.controllers import (
     ai_first_action_dispatch,
     ai_first_feedback,
     ai_first_observability,
+    supervisor_action_request_lifecycle,
     autonomy_ai_doctor,
     artifact_runtime_proof,
     control_plane_facts,
@@ -815,6 +816,10 @@ def build_study_progress_projection(
         study_root=resolved_study_root,
         active_run_id=current_active_run_id,
     )
+    ai_reviewer_request_lifecycle = supervisor_action_request_lifecycle.project_ai_reviewer_request_lifecycle(
+        study_root=resolved_study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
     ai_first_operations_dashboard = ai_first_observability.build_ai_first_operations_dashboard_summary(
         drift_audit={"status": "not_run", "summary": {"fail_count": 0}},
         progress_snapshot={
@@ -887,6 +892,7 @@ def build_study_progress_projection(
         "product_recommended_flow": submission_hygiene_truth.get("recommended_flow"),
         "research_runtime_control_projection": research_runtime_control_projection,
         "open_auto_research_projection": open_auto_research_state,
+        "ai_reviewer_request_lifecycle": ai_reviewer_request_lifecycle,
         "portable_supervisor_dashboard": portable_supervisor_dashboard,
         "ai_first_default_entry_state": ai_first_default_entry_state,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
@@ -967,6 +973,15 @@ def build_study_progress_projection(
                 open_auto_research_projection.stable_open_auto_research_projection_path(
                     study_root=resolved_study_root,
                 )
+            ),
+            "ai_reviewer_request_lifecycle_path": (
+                str(
+                    supervisor_action_request_lifecycle.stable_ai_reviewer_request_path(
+                        study_root=resolved_study_root,
+                    )
+                )
+                if ai_reviewer_request_lifecycle is not None
+                else None
             ),
             "portable_supervisor_hourly_path": (
                 portable_supervisor_dashboard.get("source_path")

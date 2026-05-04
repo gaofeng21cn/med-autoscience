@@ -6,6 +6,10 @@ from med_autoscience.controllers.supervisor_action_requests import (
     build_ai_reviewer_publication_eval_request,
     build_publication_gate_specificity_request,
 )
+from med_autoscience.controllers.supervisor_action_request_lifecycle import (
+    materialize_ai_reviewer_request,
+    project_ai_reviewer_request_lifecycle,
+)
 
 
 def test_publication_gate_specificity_request_packet_names_required_target_types() -> None:
@@ -132,6 +136,36 @@ def test_ai_reviewer_publication_eval_request_packet_is_reviewer_owned_without_a
         "policy_id": "medical_publication_critique_v1",
         "ai_reviewer_required": False,
     }
+    assert packet["request_lifecycle"] == {
+        "state": "requested",
+        "allowed_states": ["requested", "assigned", "assessment_written", "blocked", "stale"],
+        "assigned_to": None,
+        "assessment_ref": None,
+        "blocked_reason": None,
+        "authority": "observability_only",
+        "can_authorize_quality": False,
+        "can_authorize_finalize": False,
+        "can_authorize_submission": False,
+    }
+    assert packet["input_contract"]["required_surfaces"] == [
+        "manuscript",
+        "evidence_ledger",
+        "review_ledger",
+        "study_charter",
+    ]
+    assert packet["input_contract"]["all_required_refs_present"] is False
+    assert packet["required_output"] == {
+        "surface": "publication_eval/latest.json",
+        "writer": "ai_reviewer_publication_eval_workflow",
+        "owner": "ai_reviewer",
+        "source_kind": "publication_eval_ai_reviewer",
+        "writeback_required": True,
+        "assessment_written_lifecycle_state": "assessment_written",
+        "pre_writeback_authority": "observability_only",
+        "pre_writeback_can_authorize_quality": False,
+        "pre_writeback_can_authorize_finalize": False,
+        "pre_writeback_can_authorize_submission": False,
+    }
     assert packet["requested_artifact"] == {
         "surface": "publication_eval/latest.json",
         "writer": "ai_reviewer_publication_eval_workflow",
@@ -147,6 +181,100 @@ def test_ai_reviewer_publication_eval_request_packet_is_reviewer_owned_without_a
     assert packet["blockers"] == ["publication_eval_not_ai_reviewer_authority"]
 
 
+def test_ai_reviewer_request_accepts_required_input_refs_and_lifecycle_assignment() -> None:
+    packet = build_ai_reviewer_publication_eval_request(
+        study_id="002-risk",
+        quest_id="quest-002",
+        source_surface="ai_reviewer_runtime_workflow_state",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+            "blockers": ["publication_eval_not_ai_reviewer_authority"],
+        },
+        input_refs={
+            "manuscript": {"relative_path": "paper/manuscript.md"},
+            "evidence_ledger": {"relative_path": "paper/evidence_ledger.json"},
+            "review_ledger": {"relative_path": "paper/review/review_ledger.json"},
+            "study_charter": {"relative_path": "artifacts/controller/study_charter.json"},
+        },
+        lifecycle_state="assigned",
+        assigned_to="ai_reviewer",
+    )
+
+    assert packet["request_lifecycle"]["state"] == "assigned"
+    assert packet["request_lifecycle"]["assigned_to"] == "ai_reviewer"
+    assert packet["input_contract"]["all_required_refs_present"] is True
+    assert packet["input_contract"]["missing_or_invalid_refs"] == []
+    assert set(packet["input_contract"]["required_refs"]) == {
+        "manuscript",
+        "evidence_ledger",
+        "review_ledger",
+        "study_charter",
+    }
+    assert packet["authority"] == "observability_only"
+    assert packet["can_clear_quality_gate"] is False
+    assert packet["required_output"]["pre_writeback_can_authorize_quality"] is False
+
+
+def test_ai_reviewer_request_lifecycle_projects_blocked_and_assessment_written(tmp_path) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "002-risk"
+    blocked_packet = build_ai_reviewer_publication_eval_request(
+        study_id="002-risk",
+        quest_id="quest-002",
+        source_surface="ai_reviewer_runtime_workflow_state",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+            "blockers": ["publication_eval_not_ai_reviewer_authority"],
+        },
+    )
+    materialize_ai_reviewer_request(study_root=study_root, packet=blocked_packet)
+
+    blocked = project_ai_reviewer_request_lifecycle(study_root=study_root)
+    assert blocked is not None
+    assert blocked["state"] == "blocked"
+    assert blocked["authority"] == "observability_only"
+    assert blocked["can_authorize_quality"] is False
+    assert "manuscript_ref_missing" in blocked["blockers"]
+
+    assigned_packet = build_ai_reviewer_publication_eval_request(
+        study_id="002-risk",
+        quest_id="quest-002",
+        source_surface="ai_reviewer_runtime_workflow_state",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+            "blockers": ["publication_eval_not_ai_reviewer_authority"],
+        },
+        input_refs={
+            "manuscript": {"relative_path": "paper/manuscript.md"},
+            "evidence_ledger": {"relative_path": "paper/evidence_ledger.json"},
+            "review_ledger": {"relative_path": "paper/review/review_ledger.json"},
+            "study_charter": {"relative_path": "artifacts/controller/study_charter.json"},
+        },
+        lifecycle_state="assigned",
+        assigned_to="ai_reviewer",
+    )
+    materialize_ai_reviewer_request(study_root=study_root, packet=assigned_packet)
+
+    assessment_written = project_ai_reviewer_request_lifecycle(
+        study_root=study_root,
+        publication_eval_payload={
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "ai_reviewer_required": False,
+            }
+        },
+    )
+    assert assessment_written is not None
+    assert assessment_written["state"] == "assessment_written"
+    assert assessment_written["requested_state"] == "assigned"
+    assert assessment_written["assessment_written"] is True
+    assert assessment_written["required_output"]["surface"] == "publication_eval/latest.json"
+    assert assessment_written["can_authorize_finalize"] is False
+
+
 def test_request_builder_rejects_prepopulated_specificity_targets() -> None:
     with pytest.raises(ValueError, match="request packet must not prepopulate gate specificity targets"):
         build_publication_gate_specificity_request(
@@ -156,4 +284,15 @@ def test_request_builder_rejects_prepopulated_specificity_targets() -> None:
             source_action={"action_id": "action-1"},
             blocking_gaps=[],
             requested_targets=[{"target_type": "claim", "target_id": "claim-1"}],
+        )
+
+
+def test_ai_reviewer_request_rejects_unknown_lifecycle_state() -> None:
+    with pytest.raises(ValueError, match="request_lifecycle.state must be one of"):
+        build_ai_reviewer_publication_eval_request(
+            study_id="002-risk",
+            quest_id="quest-002",
+            source_surface="ai_reviewer_runtime_workflow_state",
+            workflow_state={"quality_authority": {}, "route_back": {}},
+            lifecycle_state="ready",
         )

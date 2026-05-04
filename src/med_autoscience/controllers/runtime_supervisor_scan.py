@@ -8,6 +8,7 @@ from typing import Any
 
 from med_autoscience.controllers import study_progress, study_runtime_router
 from med_autoscience.controllers import supervisor_action_requests
+from med_autoscience.controllers import supervisor_action_request_lifecycle
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
 from med_autoscience.controllers.study_progress_parts.publication_runtime import _publication_eval_specificity_request
 from med_autoscience.developer_supervisor_mode import (
@@ -518,10 +519,16 @@ def _materialize_request_packets(
                 },
                 "blockers": ["publication_eval_not_ai_reviewer_authority"],
             },
+            input_refs=supervisor_action_request_lifecycle.default_ai_reviewer_request_input_refs(
+                study_root=study_root,
+            ),
         )
         packet["target_assessment_owner"] = "ai_reviewer"
         packet["may_authorize_quality_gate"] = False
-        _write_json(study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json", packet)
+        supervisor_action_request_lifecycle.materialize_ai_reviewer_request(
+            study_root=study_root,
+            packet=packet,
+        )
 
 
 def _blocked_reason_from_scan(
