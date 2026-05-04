@@ -131,6 +131,7 @@
               "submit-study-task",
               "build-product-entry",
               "control-plane-migration-audit",
+              "control-plane-backfill-apply",
               "control-plane-cleanup-apply",
               "control-plane-lifecycle-report"
             ]
