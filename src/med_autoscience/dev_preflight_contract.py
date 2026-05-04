@@ -233,6 +233,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "docs/program/research_foundry_medical_mainline.md",
             "docs/references/research_foundry_medical_phase_ladder.md",
             "scripts/prepare-sentrux-gitstats-clone.sh",
+            "scripts/run-parallel-test-lanes.sh",
             "src/med_autoscience/controllers/workspace_init.py",
             "src/med_autoscience/dev_preflight_contract.py",
             "tests/test_dev_preflight.py",
