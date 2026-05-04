@@ -27,6 +27,14 @@ It fixes eight lanes:
 
 `P2_observability_and_profiling` also owns delivery metrics / forecasting projection so ETA, blocker, next confirmation, and human-gate wording stay on the same operator truth surface instead of becoming a separate owner lane.
 
+The current enhancement backlog is consolidated in [MAS/MDS Unified Enhancement Program](./mas_mds_unified_enhancement_program.md). The three previously separate recommendation groups, automatic research, file management, and control-plane consistency, are treated as one program backlog instead of independent owner lanes. Their landing map is:
+
+- `L1_real_workspace_longitudinal_soak` strengthens `P1_autonomy_reliability_core` and `P3_medical_quality_os`.
+- `L2_pi_action_projection` strengthens `P2_observability_and_profiling` without creating a second next-action authority.
+- `L3_outcome_calibration_and_provider_ops` strengthens `P2_observability_and_profiling`, `P3_medical_quality_os`, and `P7_incident_learning_loop` as observability/calibration input.
+- `L4_delivery_and_legacy_upgrade_visibility` strengthens `P2_observability_and_profiling` and `P4_quality_preserving_fast_lane` as read-only delivery visibility.
+- `L5_natural_boundary_and_audit_compaction` strengthens `P6_natural_boundary_refactor`; audit compaction remains blocked until restore/index/provenance contracts exist.
+
 The board is deliberately stricter than a prose roadmap: every lane has an owner, primary surfaces, and an acceptance gate. The program is not release-ready until every lane is completed or absorbed and none are blocked.
 
 The `2026-04-30` one-shot learning program folds external agent / research / orchestration learning into this board. New sources are no longer accepted as prose-only lessons: each source must be classified as `adopt_contract`, `adopt_template`, `watch_only`, or `reject`, and any `adopt_*` decision must land on runtime, controller, eval_hygiene, operator projection, or tests.
