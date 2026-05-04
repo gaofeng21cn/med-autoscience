@@ -171,9 +171,27 @@ def test_advisory_workflow_only_prepares_study_runtime_analysis_bundle_for_displ
 def test_advisory_workflow_uploads_non_blocking_lane_summaries() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
+    history_workflow = _workflow_job(advisory_workflow, "duration-history")
 
     assert "MAS_TEST_LANE_SUMMARY_PATH" not in ci_workflow
     assert "mas-test-lane-summary-" not in ci_workflow
+    assert "duration-history:" in advisory_workflow
+    assert "needs:" in history_workflow
+    assert "regression" in history_workflow
+    assert "meta-contracts" in history_workflow
+    assert "family-shared" in history_workflow
+    assert "submission-surface" in history_workflow
+    assert "display-surface" in history_workflow
+    assert "if: always()" in history_workflow
+    assert "continue-on-error: true" in history_workflow
+    assert "actions/download-artifact@v7" in history_workflow
+    assert "pattern: mas-test-lane-summary-*" in history_workflow
+    assert "path: artifacts/mas-test-lane-summary-history" in history_workflow
+    assert "merge-multiple: true" in history_workflow
+    assert (
+        "uv run python scripts/summarize-test-lane-history.py artifacts/mas-test-lane-summary-history"
+        in history_workflow
+    )
 
     for job_id, lane in (
         ("regression", "regression"),

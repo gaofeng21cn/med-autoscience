@@ -387,6 +387,55 @@ def test_lane_duration_summary_script_reports_slowest_lane(tmp_path: Path) -> No
     assert "slowest_lane=test-display duration_seconds=11" in result.stdout
 
 
+def test_lane_duration_history_script_reports_per_lane_trends(tmp_path: Path) -> None:
+    summary_dir = tmp_path / "history"
+    nested_dir = summary_dir / "older"
+    nested_dir.mkdir(parents=True)
+    (summary_dir / "current.json").write_text(
+        json.dumps(
+            {
+                "lanes": [
+                    {"lane": "regression", "duration_seconds": 10},
+                    {"lane": "display", "duration_seconds": 30},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (nested_dir / "previous.json").write_text(
+        json.dumps(
+            {
+                "lanes": [
+                    {"lane": "regression", "duration_seconds": 6},
+                    {"lane": "display", "duration_seconds": 50},
+                    {"lane": "display", "duration_seconds": -1},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["uv", "run", "python", "scripts/summarize-test-lane-history.py", str(summary_dir)],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert f"lane history summary: {summary_dir}" in result.stdout
+    assert (
+        f"lane=display samples=2 median_seconds=40 max_seconds=50 slowest_summary={nested_dir / 'previous.json'}"
+        in result.stdout
+    )
+    assert f"slowest_lane=display duration_seconds=50 summary={nested_dir / 'previous.json'}" in result.stdout
+    assert (
+        f"lane=regression samples=2 median_seconds=8 max_seconds=10 slowest_summary={summary_dir / 'current.json'}"
+        in result.stdout
+    )
+
+
 def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
     script = _read("scripts/opl-module-healthcheck.sh")
 
