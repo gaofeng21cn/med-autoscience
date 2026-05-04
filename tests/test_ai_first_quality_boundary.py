@@ -99,6 +99,23 @@ def test_ai_first_prose_request_and_retrospective_audit_are_reviewer_owned() -> 
     assert "Use the corpus to learn voice, rhythm, and reviewer questions" in corpus_source
 
 
+def test_supervisor_action_requests_remain_observability_only() -> None:
+    source = _read("src/med_autoscience/controllers/supervisor_action_requests.py")
+
+    assert '"authority": "observability_only"' in source
+    assert '"authoritative": False' in source
+    assert '"can_clear_quality_gate": False' in source
+    assert '"quality_gate_relaxation_allowed": False' in source
+    assert '"manual_study_patch_allowed": False' in source
+    assert '"paper_patch_allowed": False' in source
+    assert '"current_package_patch_allowed": False' in source
+    assert '"medical_conclusion_allowed": False' in source
+    assert '"owner": "ai_reviewer"' in source
+    assert '"ai_reviewer_required": False' in source
+    assert "materialize_publication_eval_latest" not in source
+    assert "materialize_ai_reviewer_publication_eval_latest" not in source
+
+
 def test_medical_manuscript_blueprint_canonical_surface_requires_ai_authorization() -> None:
     blueprint_source = _read("src/med_autoscience/medical_manuscript_blueprint.py")
 
