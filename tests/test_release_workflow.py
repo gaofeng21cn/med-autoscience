@@ -265,6 +265,11 @@ def _assert_docs_readmes_route_to_maintenance_docs(
     assert "耗时预算只用于观察和提醒" in preflight_doc
     assert "不作为 push 阻塞条件" in preflight_doc
     assert "`delta_from_baseline_percent`" in preflight_doc
+    assert "`--format json` contract" in preflight_doc
+    assert "`surface_kind`" in preflight_doc
+    assert "`summary_dir`" in preflight_doc
+    assert "`lanes[]`" in preflight_doc
+    assert "number-or-null" in preflight_doc
     assert "observability/advisory 信号" in preflight_doc
     assert "advisory run log" in preflight_doc
 

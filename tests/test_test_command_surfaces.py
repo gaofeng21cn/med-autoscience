@@ -503,11 +503,14 @@ def test_lane_duration_history_script_accepts_explicit_baseline(tmp_path: Path) 
     )
 
 
-def test_lane_duration_history_script_can_emit_json_for_dashboard(tmp_path: Path) -> None:
+def test_lane_duration_history_json_contract_has_stable_schema_and_null_delta_semantics(
+    tmp_path: Path,
+) -> None:
     summary_dir = tmp_path / "history"
     summary_dir.mkdir()
-    summary_path = summary_dir / "current.json"
-    summary_path.write_text(
+    first_summary_path = summary_dir / "current-a.json"
+    second_summary_path = summary_dir / "current-b.json"
+    first_summary_path.write_text(
         json.dumps(
             {
                 "lanes": [
@@ -518,9 +521,20 @@ def test_lane_duration_history_script_can_emit_json_for_dashboard(tmp_path: Path
         ),
         encoding="utf-8",
     )
+    second_summary_path.write_text(
+        json.dumps({"lanes": [{"lane": "regression", "duration_seconds": 13}]}),
+        encoding="utf-8",
+    )
     baseline_path = tmp_path / "baseline.json"
     baseline_path.write_text(
-        json.dumps({"lanes": [{"lane": "regression", "duration_seconds": 10}]}),
+        json.dumps(
+            {
+                "lanes": [
+                    {"lane": "regression", "duration_seconds": 10},
+                    {"lane": "display", "duration_seconds": 0},
+                ]
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -544,6 +558,25 @@ def test_lane_duration_history_script_can_emit_json_for_dashboard(tmp_path: Path
 
     assert result.returncode == 0, result.stdout + result.stderr
     payload = json.loads(result.stdout)
+    assert set(payload) == {"surface_kind", "summary_dir", "lanes"}
+    assert isinstance(payload["lanes"], list)
+    for lane in payload["lanes"]:
+        assert set(lane) == {
+            "lane",
+            "samples",
+            "median_seconds",
+            "max_seconds",
+            "slowest_seconds",
+            "slowest_summary",
+            "delta_from_baseline_percent",
+        }
+        for numeric_key in ("samples", "median_seconds", "max_seconds", "slowest_seconds"):
+            numeric_value = lane[numeric_key]
+            assert isinstance(numeric_value, int | float) and not isinstance(numeric_value, bool)
+        delta = lane["delta_from_baseline_percent"]
+        assert delta is None or (
+            isinstance(delta, int | float) and not isinstance(delta, bool)
+        )
     assert payload == {
         "surface_kind": "test_lane_history_summary",
         "summary_dir": str(summary_dir),
@@ -554,17 +587,17 @@ def test_lane_duration_history_script_can_emit_json_for_dashboard(tmp_path: Path
                 "median_seconds": 36,
                 "max_seconds": 36,
                 "slowest_seconds": 36,
-                "slowest_summary": str(summary_path),
+                "slowest_summary": str(first_summary_path),
                 "delta_from_baseline_percent": None,
             },
             {
                 "lane": "regression",
-                "samples": 1,
-                "median_seconds": 12,
-                "max_seconds": 12,
-                "slowest_seconds": 12,
-                "slowest_summary": str(summary_path),
-                "delta_from_baseline_percent": 20.0,
+                "samples": 2,
+                "median_seconds": 12.5,
+                "max_seconds": 13,
+                "slowest_seconds": 13,
+                "slowest_summary": str(second_summary_path),
+                "delta_from_baseline_percent": 25.0,
             },
         ],
     }

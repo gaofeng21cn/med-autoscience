@@ -28,6 +28,8 @@
 
 耗时预算只用于观察和提醒，不作为 push 阻塞条件。预算漂移应该先进入 advisory run log、artifact、只读 history summary、run summary 或人工排查；history summary 可以显示 `delta_from_baseline_percent`，也可以用 `--format json` 给后续 dashboard 消费，但它仍是 observability/advisory 信号。除非另有 repo 决策，不能把 duration guard 回灌到 `macOS CI` 的 `quick-checks`。
 
+`--format json` contract 是 `scripts/summarize-test-lane-history.py` 的只读消费面，当前稳定字段为 `surface_kind`、`summary_dir` 与 `lanes[]`。每个 `lanes[]` 项保留 lane 名称、样本数、中位耗时、最大耗时、最慢 summary 路径，以及 `delta_from_baseline_percent`；其中 duration / sample 字段保持 number，缺少可用 baseline 或 baseline 非正数时 `delta_from_baseline_percent` 保持 number-or-null 语义并输出 JSON `null`。
+
 - `smoke`：目标是本地秒级到低分钟级反馈；超过预算时提醒维护者检查 fast tests、line budget 或基础 sanity 是否膨胀。
 - `ci-preflight`：目标是保持 push CI 可承受，只运行 change-aware preflight 与 build；耗时提醒用于判断 preflight contract 是否过宽，不额外触发重 lane。
 - `full`：目标是正式发布前完整覆盖，允许显著慢于 smoke / ci-preflight；耗时漂移通过 advisory / full summary 与 history summary 观察，不能替代质量失败或变成日常 push 门禁。
