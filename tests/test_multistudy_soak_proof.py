@@ -161,3 +161,74 @@ def test_weak_result_must_stop_loss_or_switch_line() -> None:
     )
     assert projection["overall_status"] == "ready"
     assert projection["studies"][2]["next_action"] == "stop_loss"
+
+
+def test_projection_exposes_read_only_route_and_proof_observations() -> None:
+    risk_model = {
+        **_ready_study("001-risk-model", "prediction_model/external_validation"),
+        "previous_readiness_status": "partial",
+        "readiness_status": "ready",
+        "last_green_at": "2026-05-04T01:00:00Z",
+        "last_green_scan_id": "scan-001",
+        "route_decision": {
+            "action": "continue",
+            "reason": "external validation calibration remains stable",
+        },
+        "revision_reopen_seen": True,
+        "runtime_recovery_seen": True,
+        "finalize_rebuild_seen": True,
+    }
+    real_world = {
+        **_ready_study("002-real-world", "observational_real_world"),
+        "result_strength": "weak",
+        "route_action": "stop_loss",
+        "stop_loss_triggered": True,
+        "blocked_reason": "effect estimate below publishable threshold",
+        "readiness_status": "blocked",
+    }
+    triage = {
+        **_ready_study("003-triage", "subtype_or_triage"),
+        "route_decision": {"action": "switch_line", "reason": "triage subtype signal is stronger"},
+    }
+
+    projection = _module().build_multistudy_soak_matrix_projection(
+        [risk_model, real_world, triage],
+    )
+
+    by_id = {study["study_id"]: study for study in projection["studies"]}
+    assert by_id["001-risk-model"]["readiness_observation"] == {
+        "previous_status": "partial",
+        "current_status": "ready",
+        "drift": "partial->ready",
+        "last_green_at": "2026-05-04T01:00:00Z",
+        "last_green_scan_id": "scan-001",
+        "blocked_reason": "",
+    }
+    assert by_id["001-risk-model"]["route_decision"] == {
+        "action": "continue",
+        "reason": "external validation calibration remains stable",
+        "result_strength": "adequate",
+        "stop_loss_triggered": False,
+    }
+    assert by_id["001-risk-model"]["proof_observation"] == {
+        "revision_reopen_seen": True,
+        "runtime_recovery_seen": True,
+        "finalize_rebuild_seen": True,
+    }
+    assert by_id["002-real-world"]["route_decision"]["stop_loss_triggered"] is True
+    assert by_id["002-real-world"]["readiness_observation"]["blocked_reason"] == (
+        "effect estimate below publishable threshold"
+    )
+    assert by_id["003-triage"]["route_decision"] == {
+        "action": "switch_line",
+        "reason": "triage subtype signal is stronger",
+        "result_strength": "adequate",
+        "stop_loss_triggered": False,
+    }
+    assert projection["read_only_monitor_contract"] == {
+        "read_model": "multistudy_soak_matrix_read_model",
+        "writes_runtime_owned_surfaces": False,
+        "can_authorize_quality": False,
+        "can_authorize_submission": False,
+        "can_authorize_finalize": False,
+    }

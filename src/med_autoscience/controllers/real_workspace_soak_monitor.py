@@ -391,6 +391,8 @@ def _study_from_catalog_entry(
         "durable_refs": _catalog_durable_refs(entry),
         "readiness_status": _catalog_readiness_status(entry),
         "previous_readiness_status": _catalog_previous_readiness_status(entry),
+        "last_green_at": _text(entry.get("last_green_at"), ""),
+        "last_green_scan_id": _text(entry.get("last_green_scan_id"), ""),
         "blocked_reason": _catalog_blocked_reason(entry),
         "route_reason": _catalog_route_reason(entry),
         "stop_loss_triggered": _catalog_bool(entry, "stop_loss_triggered"),
@@ -427,9 +429,14 @@ def _merge_catalog_metadata(
     catalog_route_action = _text(catalog.get("route_action"), "")
     if catalog_route_action:
         merged["route_action"] = catalog_route_action
+    result_strength = _text(catalog.get("result_strength"), "")
+    if result_strength:
+        merged["result_strength"] = result_strength
     for key in (
         "readiness_status",
         "previous_readiness_status",
+        "last_green_at",
+        "last_green_scan_id",
         "blocked_reason",
         "route_reason",
         "stop_loss_triggered",
@@ -676,6 +683,88 @@ def _route_decision_summary(studies: Sequence[Mapping[str, Any]]) -> list[dict[s
     ]
 
 
+def _readiness_drift_read_model(studies: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    drift: list[dict[str, Any]] = []
+    for study in studies:
+        previous = _text(study.get("previous_readiness_status"), "")
+        current = _text(study.get("readiness_status"), "")
+        if not previous or not current or previous == current:
+            continue
+        drift.append(
+            {
+                "study_id": _text(study.get("study_id")),
+                "previous_status": previous,
+                "current_status": current,
+                "drift": f"{previous}->{current}",
+                "last_green_at": _text(study.get("last_green_at"), ""),
+                "last_green_scan_id": _text(study.get("last_green_scan_id"), ""),
+            }
+        )
+    return drift
+
+
+def _route_decision_read_model(studies: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "study_id": _text(study.get("study_id")),
+            "study_archetype": _text(study.get("study_archetype")),
+            "route_action": _text(study.get("route_action"), "continue"),
+            "reason": _text(study.get("route_reason"), ""),
+            "result_strength": _text(study.get("result_strength"), "adequate"),
+            "next_action": "stop_loss"
+            if _truthy_bool(study.get("stop_loss_triggered"))
+            else _text(study.get("next_action")),
+        }
+        for study in studies
+        if _text(study.get("study_id"), "") != "multistudy_matrix"
+    ]
+
+
+def _stop_loss_trigger_read_model(studies: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    triggers: list[dict[str, Any]] = []
+    for study in studies:
+        if not _truthy_bool(study.get("stop_loss_triggered")):
+            continue
+        triggers.append(
+            {
+                "study_id": _text(study.get("study_id")),
+                "route_action": _text(study.get("route_action"), "continue"),
+                "result_strength": _text(study.get("result_strength"), "adequate"),
+                "blocked_reason": _text(study.get("blocked_reason"), ""),
+            }
+        )
+    return triggers
+
+
+def _proof_observation_read_model(studies: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "study_id": _text(study.get("study_id")),
+            "revision_reopen_seen": bool(study.get("revision_reopen_seen")),
+            "runtime_recovery_seen": bool(study.get("runtime_recovery_seen")),
+            "finalize_rebuild_seen": bool(study.get("finalize_rebuild_seen")),
+        }
+        for study in studies
+        if _text(study.get("study_id"), "") != "multistudy_matrix"
+    ]
+
+
+def _soak_read_model(studies: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    return {
+        "readiness_drift": _readiness_drift_read_model(studies),
+        "blocked_reasons": _blocked_reason_summary(studies),
+        "route_decisions": _route_decision_read_model(studies),
+        "stop_loss_triggers": _stop_loss_trigger_read_model(studies),
+        "proof_observations": _proof_observation_read_model(studies),
+        "authority": {
+            "writes_runtime_owned_surfaces": False,
+            "can_authorize_quality": False,
+            "can_authorize_submission": False,
+            "can_authorize_finalize": False,
+        },
+    }
+
+
 def _any_seen(studies: Sequence[Mapping[str, Any]], key: str) -> bool:
     return any(_truthy_bool(study.get(key)) for study in studies)
 
@@ -768,6 +857,8 @@ def _study_items(
         for key in (
             "readiness_status",
             "previous_readiness_status",
+            "last_green_at",
+            "last_green_scan_id",
             "blocked_reason",
             "route_reason",
             "stop_loss_triggered",
@@ -850,6 +941,7 @@ def build_real_workspace_soak_monitor(
         "drift_signals": _drift_signals(study_items),
         "blocked_reason_summary": _blocked_reason_summary(study_items),
         "route_decision_summary": _route_decision_summary(study_items),
+        "soak_read_model": _soak_read_model(study_items),
         "stop_loss_triggered": _any_seen(study_items, "stop_loss_triggered"),
         "revision_reopen_seen": _any_seen(study_items, "revision_reopen_seen"),
         "runtime_recovery_seen": _any_seen(study_items, "runtime_recovery_seen"),

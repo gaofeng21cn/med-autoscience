@@ -617,3 +617,161 @@ def test_continuous_real_workspace_monitor_materializer_appends_scan_history_and
     assert second["authority_contract"]["can_authorize_quality"] is False
     assert second["authority_contract"]["can_authorize_submission"] is False
     assert second["authority_contract"]["can_authorize_finalize"] is False
+
+
+def test_real_workspace_monitor_exposes_soak_read_model_without_runtime_authority(
+    tmp_path: Path,
+) -> None:
+    roots = [
+        tmp_path / "proof-risk",
+        tmp_path / "proof-real-world",
+        tmp_path / "proof-triage",
+    ]
+    for root, archetype in zip(
+        roots,
+        (
+            "prediction_model/external_validation",
+            "observational_real_world",
+            "subtype_or_triage",
+        ),
+        strict=True,
+    ):
+        _write_json(_matrix_path(root), _ready_matrix_payload(root.name, archetype))
+
+    catalog_payload = {
+        "catalog_id": "soak-proof-catalog",
+        "scan_id": "scan-101",
+        "scan_started_at": "2026-05-04T02:00:00Z",
+        "studies": [
+            {
+                "study_id": roots[0].name,
+                "study_root": str(roots[0]),
+                "previous_readiness_status": "partial",
+                "readiness_status": "ready",
+                "last_green_at": "2026-05-04T01:55:00Z",
+                "last_green_scan_id": "scan-100",
+                "route_decision": {
+                    "action": "continue",
+                    "reason": "external validation proof is current",
+                },
+                "revision_reopen_seen": True,
+                "runtime_recovery_seen": True,
+                "finalize_rebuild_seen": True,
+            },
+            {
+                "study_id": roots[1].name,
+                "study_root": str(roots[1]),
+                "readiness_status": "blocked",
+                "blocked_reason": "observational endpoint failed stop-loss threshold",
+                "result_strength": "weak",
+                "route_action": "stop_loss",
+                "stop_loss_triggered": True,
+                "revision_reopen_seen": False,
+                "runtime_recovery_seen": True,
+                "finalize_rebuild_seen": False,
+            },
+            {
+                "study_id": roots[2].name,
+                "study_root": str(roots[2]),
+                "readiness_status": "ready",
+                "route_decision": {
+                    "action": "switch_line",
+                    "reason": "triage route has stronger subtype evidence",
+                },
+                "revision_reopen_seen": True,
+                "runtime_recovery_seen": False,
+                "finalize_rebuild_seen": True,
+            },
+        ],
+    }
+
+    projection = _module().build_real_workspace_soak_monitor(
+        study_roots=roots,
+        catalog_payload=catalog_payload,
+    )
+
+    assert projection["soak_read_model"] == {
+        "readiness_drift": [
+            {
+                "study_id": "proof-risk",
+                "previous_status": "partial",
+                "current_status": "ready",
+                "drift": "partial->ready",
+                "last_green_at": "2026-05-04T01:55:00Z",
+                "last_green_scan_id": "scan-100",
+            }
+        ],
+        "blocked_reasons": [
+            {
+                "study_id": "proof-real-world",
+                "status": "partial",
+                "blocked_reason": "observational endpoint failed stop-loss threshold",
+                "gaps": ["proof:finalize_rebuild"],
+            }
+        ],
+        "route_decisions": [
+            {
+                "study_id": "proof-risk",
+                "study_archetype": "prediction_model/external_validation",
+                "route_action": "continue",
+                "reason": "external validation proof is current",
+                "result_strength": "adequate",
+                "next_action": "continue_multistudy_soak",
+            },
+            {
+                "study_id": "proof-real-world",
+                "study_archetype": "observational_real_world",
+                "route_action": "stop_loss",
+                "reason": "",
+                "result_strength": "weak",
+                "next_action": "stop_loss",
+            },
+            {
+                "study_id": "proof-triage",
+                "study_archetype": "subtype_or_triage",
+                "route_action": "switch_line",
+                "reason": "triage route has stronger subtype evidence",
+                "result_strength": "adequate",
+                "next_action": "continue_multistudy_soak",
+            },
+        ],
+        "stop_loss_triggers": [
+            {
+                "study_id": "proof-real-world",
+                "route_action": "stop_loss",
+                "result_strength": "weak",
+                "blocked_reason": "observational endpoint failed stop-loss threshold",
+            }
+        ],
+        "proof_observations": [
+            {
+                "study_id": "proof-risk",
+                "revision_reopen_seen": True,
+                "runtime_recovery_seen": True,
+                "finalize_rebuild_seen": True,
+            },
+            {
+                "study_id": "proof-real-world",
+                "revision_reopen_seen": False,
+                "runtime_recovery_seen": True,
+                "finalize_rebuild_seen": False,
+            },
+            {
+                "study_id": "proof-triage",
+                "revision_reopen_seen": True,
+                "runtime_recovery_seen": False,
+                "finalize_rebuild_seen": True,
+            },
+        ],
+        "authority": {
+            "writes_runtime_owned_surfaces": False,
+            "can_authorize_quality": False,
+            "can_authorize_submission": False,
+            "can_authorize_finalize": False,
+        },
+    }
+    assert projection["overall_status"] == "partial"
+    assert projection["read_only_monitor_contract"]["writes_runtime_owned_surfaces"] is False
+    assert projection["authority_contract"]["can_authorize_quality"] is False
+    assert projection["authority_contract"]["can_authorize_submission"] is False
+    assert projection["authority_contract"]["can_authorize_finalize"] is False

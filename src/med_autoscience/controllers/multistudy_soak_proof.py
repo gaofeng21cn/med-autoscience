@@ -49,6 +49,14 @@ def _bool(value: object) -> bool:
     return value is True
 
 
+def _optional_bool(value: object) -> bool | None:
+    if value is True:
+        return True
+    if value is False:
+        return False
+    return None
+
+
 def _authority_contract() -> dict[str, Any]:
     return {
         "authority": "observability_read_model_only",
@@ -57,6 +65,16 @@ def _authority_contract() -> dict[str, Any]:
         "can_authorize_submission": False,
         "can_mutate_runtime": False,
         "read_model_is_quality_authority": False,
+    }
+
+
+def _read_only_monitor_contract() -> dict[str, Any]:
+    return {
+        "read_model": READ_MODEL,
+        "writes_runtime_owned_surfaces": False,
+        "can_authorize_quality": False,
+        "can_authorize_submission": False,
+        "can_authorize_finalize": False,
     }
 
 
@@ -89,9 +107,110 @@ def _result_strength(study: Mapping[str, Any]) -> str:
     return _text(study.get("result_strength") or result.get("strength"), "adequate")
 
 
+def _route_mapping(study: Mapping[str, Any]) -> Mapping[str, Any]:
+    route_decision = _mapping(study.get("route_decision"))
+    if route_decision:
+        return route_decision
+    return _mapping(study.get("route"))
+
+
 def _route_action(study: Mapping[str, Any]) -> str:
-    route = _mapping(study.get("route"))
-    return _text(study.get("route_action") or route.get("action"), "continue")
+    route = _route_mapping(study)
+    return _text(route.get("action") or study.get("route_action"), "continue")
+
+
+def _route_reason(study: Mapping[str, Any]) -> str:
+    route = _route_mapping(study)
+    return _text(
+        study.get("route_reason")
+        or study.get("route_decision_reason")
+        or route.get("reason")
+        or route.get("decision_reason"),
+        "",
+    )
+
+
+def _readiness_mapping(study: Mapping[str, Any]) -> Mapping[str, Any]:
+    return _mapping(study.get("readiness"))
+
+
+def _previous_readiness_status(study: Mapping[str, Any]) -> str:
+    readiness = _readiness_mapping(study)
+    return _text(
+        study.get("previous_readiness_status")
+        or study.get("last_readiness_status")
+        or readiness.get("previous_overall_status"),
+        "",
+    )
+
+
+def _readiness_status(study: Mapping[str, Any]) -> str:
+    readiness = _readiness_mapping(study)
+    return _text(
+        study.get("readiness_status")
+        or study.get("current_readiness_status")
+        or readiness.get("overall_status"),
+        "",
+    )
+
+
+def _blocked_reason(study: Mapping[str, Any]) -> str:
+    readiness = _readiness_mapping(study)
+    reasons = study.get("blocked_reasons") or readiness.get("blocked_reasons")
+    if isinstance(reasons, list | tuple) and reasons:
+        return "; ".join(_text(reason, "") for reason in reasons if _text(reason, ""))
+    return _text(
+        study.get("blocked_reason")
+        or study.get("blocked_reason_summary")
+        or readiness.get("blocked_reason")
+        or readiness.get("missing_reason"),
+        "",
+    )
+
+
+def _observed_bool(study: Mapping[str, Any], key: str) -> bool:
+    explicit = _optional_bool(study.get(key))
+    if explicit is not None:
+        return explicit
+    if key == "stop_loss_triggered":
+        return _route_action(study) == "stop_loss"
+    stage_by_key = {
+        "revision_reopen_seen": "revision_reopen",
+        "runtime_recovery_seen": "runtime_recovery",
+        "finalize_rebuild_seen": "finalize_rebuild",
+    }
+    stage = stage_by_key.get(key, "")
+    return bool(stage and stage in _stage_set(study))
+
+
+def _readiness_observation(study: Mapping[str, Any]) -> dict[str, Any]:
+    previous = _previous_readiness_status(study)
+    current = _readiness_status(study)
+    return {
+        "previous_status": previous,
+        "current_status": current,
+        "drift": f"{previous}->{current}" if previous and current and previous != current else "",
+        "last_green_at": _text(study.get("last_green_at"), ""),
+        "last_green_scan_id": _text(study.get("last_green_scan_id"), ""),
+        "blocked_reason": _blocked_reason(study),
+    }
+
+
+def _route_decision_observation(study: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "action": _route_action(study),
+        "reason": _route_reason(study),
+        "result_strength": _result_strength(study),
+        "stop_loss_triggered": _observed_bool(study, "stop_loss_triggered"),
+    }
+
+
+def _proof_observation(study: Mapping[str, Any]) -> dict[str, bool]:
+    return {
+        "revision_reopen_seen": _observed_bool(study, "revision_reopen_seen"),
+        "runtime_recovery_seen": _observed_bool(study, "runtime_recovery_seen"),
+        "finalize_rebuild_seen": _observed_bool(study, "finalize_rebuild_seen"),
+    }
 
 
 def _missing_gaps(study: Mapping[str, Any]) -> list[str]:
@@ -174,6 +293,9 @@ def _build_study_projection(study: Mapping[str, Any]) -> dict[str, Any]:
         "blocking_gaps": blocked,
         "result_strength": _result_strength(study),
         "route_action": _route_action(study),
+        "readiness_observation": _readiness_observation(study),
+        "route_decision": _route_decision_observation(study),
+        "proof_observation": _proof_observation(study),
         "next_action": next_action,
         "authority_contract": _authority_contract(),
     }
@@ -260,4 +382,5 @@ def build_multistudy_soak_matrix_projection(
         "coverage_manifest": _coverage_manifest(study_items),
         "studies": study_items,
         "authority_contract": _authority_contract(),
+        "read_only_monitor_contract": _read_only_monitor_contract(),
     }
