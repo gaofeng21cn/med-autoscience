@@ -38,6 +38,8 @@ STATISTICAL_DISCIPLINE_OPERATION_FIELDS = (
 )
 
 FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS = (
+    "sample_size_precision_plan",
+    "external_validation_plan",
     "clinical_utility_plan",
     "endpoint_time_window",
 )
@@ -99,6 +101,23 @@ _NOMINAL_P_VALUE_TERMS = (
     "p<0.05 as primary",
 )
 
+_METRIC_ONLY_PRIMARY_EVIDENCE_TERMS = {
+    "auc_only_primary_evidence": (
+        "auc-only",
+        "auc only",
+        "auc alone",
+        "auc as primary",
+        "auc is the primary evidence",
+    ),
+    "cluster_separation_only_primary_evidence": (
+        "cluster separation-only",
+        "cluster separation only",
+        "cluster separation alone",
+        "cluster separation as primary",
+        "cluster separation is the primary evidence",
+    ),
+}
+
 _PRIMARY_EVIDENCE_KEYS = (
     "primary_evidence",
     "primary_evidence_basis",
@@ -159,6 +178,34 @@ _REVIEWER_FAMILY_LABELS = {
     "prediction_external_validation": "Prediction / external-validation statistical reviewer",
     "subtype_triage": "Subtype / triage statistical reviewer",
     "ai_clinical_task": "AI clinical-task statistical reviewer",
+}
+
+_GUIDELINE_FAMILIES = {
+    "prediction_model": (
+        "TRIPOD",
+        "TRIPOD-AI",
+        "transparent_reporting_multivariable_prediction_external_validation",
+    ),
+    "external_validation": (
+        "TRIPOD",
+        "transparent_reporting_multivariable_prediction_external_validation",
+    ),
+    "observational_real_world": (
+        "STROBE",
+        "RECORD",
+    ),
+    "subtype_reconstruction": (
+        "STROBE",
+        "subtype_triage_specific_reviewer_concerns",
+    ),
+    "gray_zone_triage": (
+        "TRIPOD",
+        "subtype_triage_specific_reviewer_concerns",
+    ),
+    "ai_clinical_task": (
+        "TRIPOD-AI",
+        "CONSORT-AI",
+    ),
 }
 
 _REVIEWER_TEMPLATE_EVIDENCE_REFS = {
@@ -450,6 +497,23 @@ def _contains_nominal_p_value_primary_evidence(payload: Mapping[str, Any]) -> bo
     return False
 
 
+def _metric_only_primary_evidence_reason(payload: Mapping[str, Any]) -> str:
+    for key in _PRIMARY_EVIDENCE_KEYS:
+        text = _text(payload.get(key)).lower()
+        if not text:
+            continue
+        for reason_code, terms in _METRIC_ONLY_PRIMARY_EVIDENCE_TERMS.items():
+            if any(term in text for term in terms):
+                return reason_code
+    return ""
+
+
+def _primary_evidence_violation_reason(payload: Mapping[str, Any]) -> str:
+    if _contains_nominal_p_value_primary_evidence(payload):
+        return "nominal_p_value_primary_evidence"
+    return _metric_only_primary_evidence_reason(payload)
+
+
 def _contains_nominal_p_value(text: object) -> bool:
     normalized = _text(text).lower()
     return bool(normalized and any(term in normalized for term in _NOMINAL_P_VALUE_TERMS))
@@ -606,8 +670,9 @@ def _bounded_board_candidate_projection(
 
     if _contains_forbidden_evidence_classification(candidate):
         blockers.append(f"candidate_{index}_forbidden_evidence_classification")
-    if _contains_nominal_p_value_primary_evidence(candidate):
-        blockers.append(f"candidate_{index}_nominal_p_value_primary_evidence")
+    primary_evidence_violation = _primary_evidence_violation_reason(candidate)
+    if primary_evidence_violation:
+        blockers.append(f"candidate_{index}_{primary_evidence_violation}")
 
     decision = _text(candidate.get("decision"))
     if decision not in SUPPORTED_CANDIDATE_DECISIONS:
@@ -644,8 +709,9 @@ def _reviewer_waiver_requirements(field: str) -> dict[str, object]:
             "waiver_allowed": False,
             "required_reason_components": [],
             "fail_closed_reason": (
-                "Endpoint/time-window and clinical-utility concerns cannot be waived because they "
-                "define the claim semantics and intended-use consequence."
+                "Precision, external validation, endpoint/time-window, and clinical-utility concerns "
+                "cannot be waived because they define the claim support, semantics, transportability, "
+                "and intended-use consequence."
             ),
         }
     return {
@@ -696,6 +762,31 @@ def _reviewer_template(
     }
 
 
+def _authority_contract() -> dict[str, bool]:
+    return {
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+
+
+def _guideline_pack(study_archetype: str) -> dict[str, object]:
+    return {
+        "guideline_families": list(_GUIDELINE_FAMILIES[study_archetype]),
+        "authority_contract": _authority_contract(),
+    }
+
+
+def _evidence_contract(*, family: str) -> dict[str, dict[str, object]]:
+    return {
+        field: {
+            "blocker": f"missing_{field}",
+            "required_evidence_refs": list(_REVIEWER_TEMPLATE_EVIDENCE_REFS[family][field]),
+            "waiver_allowed": field not in FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS,
+        }
+        for field in STATISTICAL_DISCIPLINE_OPERATION_FIELDS
+    }
+
+
 def build_statistical_reviewer_discipline_library() -> dict[str, Any]:
     archetypes: dict[str, dict[str, object]] = {}
     for study_archetype in SUPPORTED_STUDY_ARCHETYPES:
@@ -708,6 +799,8 @@ def build_statistical_reviewer_discipline_library() -> dict[str, Any]:
             "study_archetype": study_archetype,
             "template_family": family,
             "label": _REVIEWER_FAMILY_LABELS[family],
+            "guideline_pack": _guideline_pack(study_archetype),
+            "evidence_contract": _evidence_contract(family=family),
             "templates": templates,
         }
 
@@ -716,7 +809,9 @@ def build_statistical_reviewer_discipline_library() -> dict[str, Any]:
         "schema_version": 1,
         "status": "ready",
         "supported_study_archetypes": list(SUPPORTED_STUDY_ARCHETYPES),
-        "primary_evidence_rule": "Nominal p-value cannot be used as primary evidence.",
+        "primary_evidence_rule": (
+            "Nominal p-value, AUC-only, and cluster separation-only cannot be used as primary evidence."
+        ),
         "fail_closed_fields": list(FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS),
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
@@ -806,7 +901,14 @@ def build_statistical_discipline_contract(*, study_archetype: str) -> dict[str, 
     return {
         "status": "resolved",
         "study_archetype": archetype,
-        "primary_evidence_rule": "Effect size, precision, calibration, validation, and clinical utility must anchor the claim; nominal p-value alone cannot be primary evidence.",
+        "primary_evidence_rule": (
+            "Effect size, precision, calibration, validation, and clinical utility must anchor the claim; "
+            "nominal p-value, AUC-only, or cluster separation-only evidence cannot be primary evidence."
+        ),
+        "guideline_pack": _guideline_pack(archetype),
+        "evidence_contract": _evidence_contract(family=_reviewer_template_family(archetype)),
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
         **_ARCHETYPE_DISCIPLINE[archetype],
     }
 
@@ -865,8 +967,9 @@ def validate_statistical_discipline_contract(payload: Mapping[str, Any]) -> dict
             return {"status": "blocked", "reason_code": f"missing_{field}"}
     if _contains_forbidden_evidence_classification(payload):
         return {"status": "blocked", "reason_code": "forbidden_evidence_classification"}
-    if _contains_nominal_p_value_primary_evidence(payload):
-        return {"status": "blocked", "reason_code": "nominal_p_value_primary_evidence"}
+    primary_evidence_violation = _primary_evidence_violation_reason(payload)
+    if primary_evidence_violation:
+        return {"status": "blocked", "reason_code": primary_evidence_violation}
     return {"status": "present", "reason_code": ""}
 
 
@@ -893,8 +996,9 @@ def _validate_statistical_reviewer_section(
             return {"status": "blocked", "reason_code": f"{section_key}_missing_{field}"}
     if _contains_forbidden_evidence_classification(section):
         return {"status": "blocked", "reason_code": f"{section_key}_forbidden_evidence_classification"}
-    if _contains_nominal_p_value_primary_evidence(section):
-        return {"status": "blocked", "reason_code": f"{section_key}_nominal_p_value_primary_evidence"}
+    primary_evidence_violation = _primary_evidence_violation_reason(section)
+    if primary_evidence_violation:
+        return {"status": "blocked", "reason_code": f"{section_key}_{primary_evidence_violation}"}
     return {"status": "present", "reason_code": ""}
 
 
@@ -939,7 +1043,8 @@ def validate_bounded_analysis_candidate_board(payload: Mapping[str, Any]) -> dic
             return {"status": "blocked", "reason_code": "candidate_unsupported_decision"}
         if _contains_forbidden_evidence_classification(candidate):
             return {"status": "blocked", "reason_code": "candidate_forbidden_evidence_classification"}
-        if _contains_nominal_p_value_primary_evidence(candidate):
-            return {"status": "blocked", "reason_code": "candidate_nominal_p_value_primary_evidence"}
+        primary_evidence_violation = _primary_evidence_violation_reason(candidate)
+        if primary_evidence_violation:
+            return {"status": "blocked", "reason_code": f"candidate_{primary_evidence_violation}"}
 
     return {"status": "present", "reason_code": ""}
