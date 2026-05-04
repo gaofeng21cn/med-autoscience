@@ -503,6 +503,73 @@ def test_lane_duration_history_script_accepts_explicit_baseline(tmp_path: Path) 
     )
 
 
+def test_lane_duration_history_script_can_emit_json_for_dashboard(tmp_path: Path) -> None:
+    summary_dir = tmp_path / "history"
+    summary_dir.mkdir()
+    summary_path = summary_dir / "current.json"
+    summary_path.write_text(
+        json.dumps(
+            {
+                "lanes": [
+                    {"lane": "regression", "duration_seconds": 12},
+                    {"lane": "display", "duration_seconds": 36},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(
+        json.dumps({"lanes": [{"lane": "regression", "duration_seconds": 10}]}),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            "uv",
+            "run",
+            "python",
+            "scripts/summarize-test-lane-history.py",
+            str(summary_dir),
+            "--baseline",
+            str(baseline_path),
+            "--format",
+            "json",
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "surface_kind": "test_lane_history_summary",
+        "summary_dir": str(summary_dir),
+        "lanes": [
+            {
+                "lane": "display",
+                "samples": 1,
+                "median_seconds": 36,
+                "max_seconds": 36,
+                "slowest_seconds": 36,
+                "slowest_summary": str(summary_path),
+                "delta_from_baseline_percent": None,
+            },
+            {
+                "lane": "regression",
+                "samples": 1,
+                "median_seconds": 12,
+                "max_seconds": 12,
+                "slowest_seconds": 12,
+                "slowest_summary": str(summary_path),
+                "delta_from_baseline_percent": 20.0,
+            },
+        ],
+    }
+
+
 def test_lane_duration_history_script_reports_null_delta_without_usable_baseline(tmp_path: Path) -> None:
     summary_dir = tmp_path / "history"
     summary_dir.mkdir()

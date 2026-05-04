@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import json
 import statistics
 import sys
@@ -41,6 +42,19 @@ def _format_delta_percent(current: float, baseline: float | None) -> str:
     return f"{((current - baseline) / baseline) * 100:.1f}"
 
 
+def _delta_percent(current: float, baseline: float | None) -> float | None:
+    if baseline is None or baseline <= 0:
+        return None
+    return round(((current - baseline) / baseline) * 100, 1)
+
+
+def _numeric_median(values: list[int]) -> int | float:
+    median = statistics.median(values)
+    if isinstance(median, int) or median.is_integer():
+        return int(median)
+    return median
+
+
 def _baseline_durations(path: Path) -> dict[str, float]:
     payload = _load_summary(path)
     lane_durations: dict[str, list[int]] = {}
@@ -59,9 +73,9 @@ def _baseline_durations(path: Path) -> dict[str, float]:
     }
 
 
-def summarize_lane_history(summary_dir: Path, baseline_path: Path | None = None) -> str:
+def _lane_records(summary_dir: Path) -> dict[str, list[tuple[int, Path]]] | None:
     if not summary_dir.exists():
-        return f"lane history summary empty: {summary_dir}"
+        return None
     if not summary_dir.is_dir():
         raise SystemExit(f"invalid lane summary directory: {summary_dir}")
 
@@ -76,7 +90,11 @@ def summarize_lane_history(summary_dir: Path, baseline_path: Path | None = None)
             if not isinstance(lane_name, str) or not lane_name or duration_seconds is None:
                 continue
             lane_records.setdefault(lane_name, []).append((duration_seconds, path))
+    return lane_records
 
+
+def summarize_lane_history(summary_dir: Path, baseline_path: Path | None = None) -> str:
+    lane_records = _lane_records(summary_dir)
     if not lane_records:
         return f"lane history summary empty: {summary_dir}"
 
@@ -113,20 +131,55 @@ def summarize_lane_history(summary_dir: Path, baseline_path: Path | None = None)
     return "\n".join(lines)
 
 
-def main(argv: list[str]) -> int:
-    baseline_path = None
-    if len(argv) == 2:
-        summary_dir = Path(argv[1])
-    elif len(argv) == 4 and argv[2] == "--baseline":
-        summary_dir = Path(argv[1])
-        baseline_path = Path(argv[3])
-    else:
-        print(
-            "Usage: scripts/summarize-test-lane-history.py <summary-dir> [--baseline <json>]",
-            file=sys.stderr,
+def summarize_lane_history_json(summary_dir: Path, baseline_path: Path | None = None) -> dict[str, Any]:
+    lane_records = _lane_records(summary_dir)
+    explicit_baselines = _baseline_durations(baseline_path) if baseline_path is not None else {}
+    payload: dict[str, Any] = {
+        "surface_kind": "test_lane_history_summary",
+        "summary_dir": str(summary_dir),
+        "lanes": [],
+    }
+    if not lane_records:
+        return payload
+
+    lanes: list[dict[str, Any]] = []
+    for lane_name in sorted(lane_records):
+        records = lane_records[lane_name]
+        durations = [duration for duration, _path in records]
+        median = _numeric_median(durations)
+        baseline_duration = explicit_baselines.get(lane_name)
+        slowest_duration, slowest_path = max(records, key=lambda record: record[0])
+        lanes.append(
+            {
+                "lane": lane_name,
+                "samples": len(records),
+                "median_seconds": median,
+                "max_seconds": max(durations),
+                "slowest_seconds": slowest_duration,
+                "slowest_summary": str(slowest_path),
+                "delta_from_baseline_percent": _delta_percent(float(median), baseline_duration),
+            }
         )
-        return 2
-    print(summarize_lane_history(summary_dir, baseline_path))
+    payload["lanes"] = lanes
+    return payload
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="scripts/summarize-test-lane-history.py",
+        usage="%(prog)s <summary-dir> [--baseline <json>] [--format text|json]",
+    )
+    parser.add_argument("summary_dir", metavar="<summary-dir>")
+    parser.add_argument("--baseline", metavar="<json>")
+    parser.add_argument("--format", choices=("text", "json"), default="text")
+    args = parser.parse_args(argv[1:])
+
+    summary_dir = Path(args.summary_dir)
+    baseline_path = Path(args.baseline) if args.baseline is not None else None
+    if args.format == "json":
+        print(json.dumps(summarize_lane_history_json(summary_dir, baseline_path), sort_keys=True))
+    else:
+        print(summarize_lane_history(summary_dir, baseline_path))
     return 0
 
 
