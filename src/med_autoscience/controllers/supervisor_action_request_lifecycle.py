@@ -12,6 +12,11 @@ AI_REVIEWER_REQUIRED_INPUT_SURFACES = (
     "review_ledger",
     "study_charter",
 )
+AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES = (
+    Path("paper/draft.md"),
+    Path("paper/manuscript.md"),
+    Path("paper/build/review_manuscript.md"),
+)
 
 
 def _text(value: object) -> str | None:
@@ -35,13 +40,24 @@ def _ref_payload(*, study_root: Path, surface: str, relative_path: Path) -> dict
     }
 
 
+def _first_existing_relative_path(*, study_root: Path, candidates: tuple[Path, ...]) -> Path:
+    for candidate in candidates:
+        if (study_root / candidate).exists():
+            return candidate
+    return candidates[0]
+
+
 def default_ai_reviewer_request_input_refs(*, study_root: str | Path) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
+    manuscript_relative_path = _first_existing_relative_path(
+        study_root=resolved_study_root,
+        candidates=AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES,
+    )
     return {
         "manuscript": _ref_payload(
             study_root=resolved_study_root,
             surface="manuscript",
-            relative_path=Path("paper/manuscript.md"),
+            relative_path=manuscript_relative_path,
         ),
         "evidence_ledger": _ref_payload(
             study_root=resolved_study_root,

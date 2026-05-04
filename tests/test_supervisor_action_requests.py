@@ -7,6 +7,7 @@ from med_autoscience.controllers.supervisor_action_requests import (
     build_publication_gate_specificity_request,
 )
 from med_autoscience.controllers.supervisor_action_request_lifecycle import (
+    default_ai_reviewer_request_input_refs,
     materialize_ai_reviewer_request,
     project_ai_reviewer_request_lifecycle,
 )
@@ -108,6 +109,19 @@ def test_publication_gate_specificity_request_packet_names_required_target_types
         }
     ]
     assert "claim/figure/table/metric/source_path" in packet["request_summary"]
+
+
+def test_ai_reviewer_default_input_refs_use_existing_draft_manuscript_source(tmp_path) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "003-nf"
+    paper_root = study_root / "paper"
+    paper_root.mkdir(parents=True)
+    (paper_root / "draft.md").write_text("# Draft\n\nCurrent canonical manuscript.\n", encoding="utf-8")
+
+    refs = default_ai_reviewer_request_input_refs(study_root=study_root)
+
+    assert refs["manuscript"]["relative_path"] == "paper/draft.md"
+    assert refs["manuscript"]["present"] is True
+    assert refs["manuscript"]["valid"] is True
 
 
 def test_ai_reviewer_publication_eval_request_packet_is_reviewer_owned_without_authority() -> None:
