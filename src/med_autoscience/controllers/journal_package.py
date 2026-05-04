@@ -27,7 +27,12 @@ from med_autoscience.publication_profiles import (
 )
 from med_autoscience.controllers import study_delivery_sync
 from med_autoscience.controllers.submission_package_layout import (
+    AUDIT_DIRNAME,
     build_package_layout_block,
+    build_analysis_manifest_document,
+    build_source_relative_paths_document,
+    build_source_signature_document,
+    reproducibility_path,
     resolve_submission_manifest_path,
     submission_manifest_path,
 )
@@ -78,6 +83,55 @@ def _load_json_object(path: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _source_signature_payload(source_manifest: Mapping[str, Any]) -> dict[str, Any]:
+    source_contract = source_manifest.get("source_contract")
+    source_contract_payload = source_contract if isinstance(source_contract, dict) else {}
+    source_signature = (
+        str(source_manifest.get("source_signature") or source_contract_payload.get("source_signature") or "").strip()
+        or None
+    )
+    source_paths = source_contract_payload.get("source_paths")
+    source_files = source_contract_payload.get("source_files")
+    return {
+        "source_signature": source_signature,
+        "source_contract": source_contract_payload,
+        "source_paths": source_paths if isinstance(source_paths, list) else [],
+        "source_files": source_files if isinstance(source_files, list) else [],
+    }
+
+
+def _write_journal_reproducibility_documents(
+    *,
+    package_root: Path,
+    source_manifest: Mapping[str, Any],
+) -> None:
+    source_payload = _source_signature_payload(source_manifest)
+    study_delivery_sync.dump_json(
+        reproducibility_path(package_root, "source_signature"),
+        build_source_signature_document(
+            source_signature=source_payload["source_signature"] or "",
+            source_contract=source_payload["source_contract"],
+            package_role="journal_targeted_projection",
+        ),
+    )
+    study_delivery_sync.dump_json(
+        reproducibility_path(package_root, "source_relative_paths"),
+        build_source_relative_paths_document(
+            source_relative_paths=source_payload["source_paths"],
+            source_files=source_payload["source_files"],
+            package_role="journal_targeted_projection",
+        ),
+    )
+    study_delivery_sync.dump_json(
+        reproducibility_path(package_root, "analysis_manifest"),
+        build_analysis_manifest_document(
+            analysis_manifest_source=None,
+            analysis_manifest_present=False,
+            package_role="journal_targeted_projection",
+        ),
+    )
 
 
 def _paper_authority_summary(*, paper_root: Path, study_root: Path, source_root: Path) -> dict[str, Any]:
@@ -270,7 +324,8 @@ def materialize_journal_package(
         target_authority=target_authority,
         requirements_path=requirements_path,
     )
-    requirements_snapshot_path = package_root / "journal_requirements_snapshot.json"
+    requirements_snapshot_path = package_root / AUDIT_DIRNAME / "journal_requirements_snapshot.json"
+    requirements_snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     requirements_snapshot_path.write_text(
         requirements_path.read_text(encoding="utf-8"),
         encoding="utf-8",
@@ -347,7 +402,14 @@ def materialize_journal_package(
             human_package_root=package_root,
             source_signature=str(source_manifest.get("source_signature") or "").strip() or None,
             package_role="journal_targeted_projection",
-            legacy_input_status="v2_generated",
+            legacy_input_status=(
+                "v2_source_manifest_read"
+                if source_manifest_path == submission_manifest_path(source_root)
+                else "legacy_root_manifest_read"
+            ),
+            extra_audit_paths={
+                "journal_requirements_snapshot": Path(AUDIT_DIRNAME) / "journal_requirements_snapshot.json",
+            },
         ),
     }
     package_manifest_path = submission_manifest_path(package_root)
@@ -355,6 +417,10 @@ def materialize_journal_package(
     package_manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
+    )
+    _write_journal_reproducibility_documents(
+        package_root=package_root,
+        source_manifest=source_manifest,
     )
     _zip_package_root(package_root=package_root, zip_path=zip_path)
     package_status = describe_journal_submission_package(

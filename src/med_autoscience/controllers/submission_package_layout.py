@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 
 SUBMISSION_PACKAGE_LAYOUT_VERSION = "submission-package.v2"
@@ -96,8 +96,18 @@ def build_package_layout_block(
     human_package_root: Path | None = None,
     source_signature: str | None = None,
     legacy_input_status: str | None = None,
+    extra_audit_paths: Mapping[str, Path] | None = None,
+    extra_reproducibility_paths: Mapping[str, Path] | None = None,
 ) -> dict[str, Any]:
     root = Path(package_root)
+    audit_relative_paths = {
+        **V2_AUDIT_RELATIVE_PATHS,
+        **{str(key): Path(value) for key, value in (extra_audit_paths or {}).items()},
+    }
+    reproducibility_relative_paths = {
+        **V2_REPRODUCIBILITY_RELATIVE_PATHS,
+        **{str(key): Path(value) for key, value in (extra_reproducibility_paths or {}).items()},
+    }
     block: dict[str, Any] = {
         "layout_version": SUBMISSION_PACKAGE_LAYOUT_VERSION,
         "package_root": _path_label(root, workspace_root=workspace_root),
@@ -105,11 +115,11 @@ def build_package_layout_block(
         "reproducibility_root": _path_label(reproducibility_root(root), workspace_root=workspace_root),
         "audit_paths": {
             key: _path_label(root / relative_path, workspace_root=workspace_root)
-            for key, relative_path in V2_AUDIT_RELATIVE_PATHS.items()
+            for key, relative_path in audit_relative_paths.items()
         },
         "reproducibility_paths": {
             key: _path_label(root / relative_path, workspace_root=workspace_root)
-            for key, relative_path in V2_REPRODUCIBILITY_RELATIVE_PATHS.items()
+            for key, relative_path in reproducibility_relative_paths.items()
         },
     }
     if package_role:

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.submission_package_layout import (
+    AUDIT_DIRNAME,
     resolve_submission_manifest_path,
     submission_manifest_path,
 )
@@ -88,6 +89,14 @@ def journal_submission_package_root(*, study_root: Path, journal_slug: str) -> P
 
 def journal_submission_manifest_path(*, study_root: Path, journal_slug: str) -> Path:
     return submission_manifest_path(journal_submission_package_root(study_root=study_root, journal_slug=journal_slug))
+
+
+def journal_requirements_snapshot_path(*, package_root: Path) -> Path:
+    root = Path(package_root).expanduser().resolve()
+    v2_path = root / AUDIT_DIRNAME / "journal_requirements_snapshot.json"
+    if v2_path.exists():
+        return v2_path
+    return root / "journal_requirements_snapshot.json"
 
 
 def _serialize_requirements(requirements: JournalRequirements) -> dict[str, Any]:
@@ -203,10 +212,11 @@ def describe_journal_submission_package(*, study_root: Path, journal_slug: str) 
             "zip_path": str(zip_path),
         }
 
+    requirements_snapshot_path = journal_requirements_snapshot_path(package_root=package_root)
     required_paths = (
         package_root / "main_manuscript.docx",
         package_root / "main_manuscript.pdf",
-        package_root / "journal_requirements_snapshot.json",
+        requirements_snapshot_path,
         zip_path,
     )
     missing_files = [str(path) for path in required_paths if not path.exists()]
@@ -215,6 +225,7 @@ def describe_journal_submission_package(*, study_root: Path, journal_slug: str) 
         "status": status,
         "package_root": str(package_root),
         "submission_manifest_path": str(manifest_path),
+        "journal_requirements_snapshot_path": str(requirements_snapshot_path),
         "zip_path": str(zip_path),
         "missing_files": missing_files,
     }

@@ -42,6 +42,24 @@ def make_package_workspace(tmp_path: Path) -> tuple[Path, Path]:
         {
             "schema_version": 1,
             "publication_profile": "general_medical_journal",
+            "source_signature": "source::fixture",
+            "source_contract": {
+                "source_signature": "source::fixture",
+                "source_paths": [
+                    "paper/build/review_manuscript.md",
+                    "paper/figures/Figure1.png",
+                ],
+                "source_files": [
+                    {
+                        "path": "paper/build/review_manuscript.md",
+                        "sha256": "review-sha",
+                    },
+                    {
+                        "path": "paper/figures/Figure1.png",
+                        "sha256": "figure-sha",
+                    },
+                ],
+            },
             "front_matter_placeholders": {
                 "authors": "pending",
                 "ethics": "pending",
@@ -100,10 +118,24 @@ def test_materialize_journal_package_writes_stable_shallow_package(tmp_path: Pat
     assert result["status"] == "materialized"
     assert (package_root / "main_manuscript.docx").exists()
     assert (package_root / "main_manuscript.pdf").exists()
-    assert (package_root / "journal_requirements_snapshot.json").exists()
     assert (package_root / "audit" / "submission_manifest.json").exists()
+    assert (package_root / "audit" / "journal_requirements_snapshot.json").exists()
+    assert (package_root / "reproducibility" / "source_signature.json").exists()
+    assert (package_root / "reproducibility" / "source_relative_paths.json").exists()
+    assert (package_root / "reproducibility" / "analysis_manifest.json").exists()
+    assert not (package_root / "submission_manifest.json").exists()
+    assert not (package_root / "journal_requirements_snapshot.json").exists()
     assert (package_root / "SUBMISSION_TODO.md").exists()
     assert (package_root / "rheumatology-international_submission_package.zip").exists()
+    package_status = importlib.import_module("med_autoscience.journal_requirements").describe_journal_submission_package(
+        study_root=study_root,
+        journal_slug="rheumatology-international",
+    )
+    assert package_status["status"] == "current"
+    assert package_status["journal_requirements_snapshot_path"] == str(
+        package_root / "audit" / "journal_requirements_snapshot.json"
+    )
+    assert package_status["missing_files"] == []
     manifest = json.loads((package_root / "audit" / "submission_manifest.json").read_text(encoding="utf-8"))
     assert manifest["package_role"] == "journal_targeted_projection"
     assert manifest["default_human_facing_package_root"] == str(study_root / "manuscript" / "current_package")
@@ -111,6 +143,35 @@ def test_materialize_journal_package_writes_stable_shallow_package(tmp_path: Pat
     assert manifest["source_authority"]["is_study_canonical_paper_root"] is True
     assert manifest["journal_target_authority"]["confirmation_status"] == "unconfirmed"
     assert manifest["formatting_boundary"]["journal_submission_ready_claim_allowed"] is False
+    assert manifest["paths"]["requirements_snapshot"] == str(
+        package_root / "audit" / "journal_requirements_snapshot.json"
+    )
+    assert manifest["delivery_layout"]["audit_paths"]["submission_manifest"] == str(
+        package_root / "audit" / "submission_manifest.json"
+    )
+    assert manifest["delivery_layout"]["audit_paths"]["journal_requirements_snapshot"] == str(
+        package_root / "audit" / "journal_requirements_snapshot.json"
+    )
+    assert manifest["delivery_layout"]["reproducibility_paths"]["source_signature"] == str(
+        package_root / "reproducibility" / "source_signature.json"
+    )
+    source_signature = json.loads(
+        (package_root / "reproducibility" / "source_signature.json").read_text(encoding="utf-8")
+    )
+    assert source_signature["package_role"] == "journal_targeted_projection"
+    assert source_signature["source_signature"] == "source::fixture"
+    source_relative_paths = json.loads(
+        (package_root / "reproducibility" / "source_relative_paths.json").read_text(encoding="utf-8")
+    )
+    assert source_relative_paths["source_relative_paths"] == [
+        "paper/build/review_manuscript.md",
+        "paper/figures/Figure1.png",
+    ]
+    analysis_manifest = json.loads(
+        (package_root / "reproducibility" / "analysis_manifest.json").read_text(encoding="utf-8")
+    )
+    assert analysis_manifest["package_role"] == "journal_targeted_projection"
+    assert analysis_manifest["analysis_manifest_present"] is False
     readme = (package_root / "README.md").read_text(encoding="utf-8")
     assert "Default human-facing package: `manuscript/current_package/`" in readme
     assert "derived target-journal projection" in readme
@@ -244,3 +305,39 @@ def test_materialized_journal_package_survives_manuscript_delivery_sync_refresh(
     assert (
         study_root / "submission_packages" / "rheumatology-international" / "audit" / "submission_manifest.json"
     ).exists()
+
+
+def test_materialize_journal_package_reads_legacy_submission_manifest_without_rewriting_root_audit_json(
+    tmp_path: Path,
+) -> None:
+    package_module = importlib.import_module("med_autoscience.controllers.journal_package")
+    paper_root, study_root = make_package_workspace(tmp_path)
+    source_root = paper_root / "submission_minimal"
+    legacy_manifest_path = source_root / "submission_manifest.json"
+    legacy_manifest = json.loads(legacy_manifest_path.read_text(encoding="utf-8"))
+    legacy_manifest["source_signature"] = "source::legacy-root"
+    legacy_manifest_path.write_text(
+        json.dumps(legacy_manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    write_rheumatology_requirements(study_root)
+
+    result = package_module.materialize_journal_package(
+        paper_root=paper_root,
+        study_root=study_root,
+        journal_slug="rheumatology-international",
+        publication_profile="general_medical_journal",
+    )
+
+    package_root = study_root / "submission_packages" / "rheumatology-international"
+    assert result["status"] == "materialized"
+    assert result["submission_manifest_path"] == str(package_root / "audit" / "submission_manifest.json")
+    assert not (package_root / "submission_manifest.json").exists()
+    assert not (package_root / "journal_requirements_snapshot.json").exists()
+    manifest = json.loads((package_root / "audit" / "submission_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["source_submission_manifest_path"] == str(legacy_manifest_path)
+    assert manifest["delivery_layout"]["legacy_input_status"] == "legacy_root_manifest_read"
+    source_signature = json.loads(
+        (package_root / "reproducibility" / "source_signature.json").read_text(encoding="utf-8")
+    )
+    assert source_signature["source_signature"] == "source::legacy-root"
