@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.control_plane_command_catalog import CONTROL_PLANE_OPERATIONS_COMMANDS
+
 
 GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("doctor", "report"): "doctor",
@@ -111,6 +113,16 @@ def print_public_help() -> None:
             "  medautosci study progress --profile <profile> --study-id <study_id>",
             "  medautosci product manifest --profile <profile> --study-id <study_id>",
             "  medautosci product skill-catalog --profile <profile> --format json",
+        ]
+    )
+    lines.extend(
+        [
+            "",
+            "Control-plane operations:",
+            *[
+                f"  {item.cli_command:<32}{item.description}"
+                for item in CONTROL_PLANE_OPERATIONS_COMMANDS
+            ],
         ]
     )
     print("\n".join(lines))
