@@ -82,7 +82,7 @@ def build_open_auto_research_projection(
     }
 
 
-def materialize_open_auto_research_projection(
+def _materialize_open_auto_research_projection(
     *,
     study_root: Path,
     active_run_id: str | None = None,
@@ -321,6 +321,5 @@ def _workspace_summary(counts: Mapping[str, int]) -> str:
 __all__ = [
     "build_open_auto_research_projection",
     "build_workspace_open_auto_research_projection",
-    "materialize_open_auto_research_projection",
     "stable_open_auto_research_projection_path",
 ]

@@ -195,3 +195,10 @@ def test_study_progress_projects_open_auto_research_capabilities_without_authori
         "artifacts/runtime/open_auto_research_projection/latest.json"
     )
     assert not projection_path.exists()
+
+
+def test_open_auto_research_projection_does_not_export_materializer() -> None:
+    module = importlib.import_module("med_autoscience.controllers.open_auto_research_projection")
+
+    assert not hasattr(module, "materialize_open_auto_research_projection")
+    assert "materialize_open_auto_research_projection" not in module.__all__
