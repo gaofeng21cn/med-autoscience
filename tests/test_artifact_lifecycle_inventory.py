@@ -163,6 +163,36 @@ def test_delivery_authority_sync_blocks_generated_surfaces_as_edit_or_quality_au
     assert sync["blocked_dispatch_paths"] == [str(path.resolve()) for path in generated_paths]
 
 
+def test_docx_pdf_and_zip_outputs_are_projection_only_even_outside_named_delivery_roots(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_inventory")
+    study_root = tmp_path / "studies" / "001-risk"
+    generated_outputs = (
+        _write(study_root / "paper" / "build" / "manuscript.docx"),
+        _write(study_root / "paper" / "build" / "paper.pdf", "%PDF\n"),
+        _write(study_root / "paper" / "build" / "submission_package.zip", "zip\n"),
+    )
+
+    inventory = module.build_artifact_lifecycle_inventory(
+        study_root=study_root,
+        paths=generated_outputs,
+    )
+
+    by_path = {Path(item["path"]): item for item in inventory["artifacts"]}
+    for generated_path in generated_outputs:
+        artifact = by_path[generated_path.resolve()]
+        assert artifact["role"] == "derived_projection"
+        assert artifact["lifecycle"] == "rebuildable_projection"
+        assert artifact["authority_allowed"] == {"edit": False, "quality": False, "dispatch": False}
+        assert artifact["edit_source_allowed"] is False
+        assert artifact["quality_authority_allowed"] is False
+        assert artifact["dispatch_authority_allowed"] is False
+        assert artifact["authority_blockers"] == [
+            "generated_delivery_surface_cannot_be_edit_source",
+            "generated_delivery_surface_cannot_be_quality_authority",
+            "generated_delivery_surface_cannot_be_dispatch_authority",
+        ]
+
+
 def test_paper_artifact_resolver_exposes_projection_only_authority_for_submission_outputs(tmp_path: Path) -> None:
     paper_artifacts = importlib.import_module("med_autoscience.runtime_protocol.paper_artifacts")
     paper_bundle_manifest = tmp_path / "study" / "paper" / "paper_bundle_manifest.json"

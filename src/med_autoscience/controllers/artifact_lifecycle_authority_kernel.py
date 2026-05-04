@@ -142,7 +142,7 @@ class ArtifactRolePathContext:
 
     @property
     def is_generated_projection(self) -> bool:
-        return is_generated_authority_surface_path(self.path)
+        return is_generated_authority_surface_path(self.path) or is_generated_authority_suffix(self.path)
 
     @property
     def is_human_handoff(self) -> bool:
@@ -221,7 +221,7 @@ def projection_currentness_for_artifact(*, role: str) -> str:
 def authority_blockers_for_artifact(*, path: Path, authority_allowed: Mapping[str, bool]) -> list[str]:
     if authority_allowed.get("edit") and authority_allowed.get("quality") and authority_allowed.get("dispatch"):
         return []
-    if not is_generated_authority_surface_path(path):
+    if not (is_generated_authority_surface_path(path) or is_generated_authority_suffix(path)):
         return []
     return [
         "generated_delivery_surface_cannot_be_edit_source",

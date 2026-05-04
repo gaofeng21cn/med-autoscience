@@ -499,6 +499,7 @@ def create_submission_minimal_package(
         post_materialization_sync_result = replay_post_submission_minimal_sync(
             paper_root=paper_root,
             publication_profile=resolved_publication_profile,
+            control_plane_route_context=resolved_route_context,
         )
         refreshed_source_contract = build_submission_minimal_source_contract(
             paper_root=paper_root,

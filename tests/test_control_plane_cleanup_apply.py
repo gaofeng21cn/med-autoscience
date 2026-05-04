@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import hashlib
 import importlib
 import json
@@ -84,6 +85,53 @@ def _snapshot(*, cleanup_apply_allowed: bool = True, gate_state: str = "open") -
             "authorized": cleanup_apply_allowed,
         },
     }
+
+
+def _literal_set_assignment(module: ast.Module, name: str) -> set[str]:
+    for node in module.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
+            continue
+        value = node.value
+        if not (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Name)
+            and value.func.id == "frozenset"
+            and value.args
+            and isinstance(value.args[0], ast.Set)
+        ):
+            raise AssertionError(f"{name} must stay a literal frozenset")
+        return {
+            element.value
+            for element in value.args[0].elts
+            if isinstance(element, ast.Constant) and isinstance(element.value, str)
+        }
+    raise AssertionError(f"{name} assignment not found")
+
+
+def _implemented_apply_actions(module: ast.Module) -> set[str]:
+    for node in module.body:
+        if not isinstance(node, ast.FunctionDef) or node.name != "_apply_action":
+            continue
+        actions: set[str] = set()
+        for child in ast.walk(node):
+            if isinstance(child, ast.Compare) and isinstance(child.left, ast.Name) and child.left.id == "action_id":
+                for comparator in child.comparators:
+                    if isinstance(comparator, ast.Constant) and isinstance(comparator.value, str):
+                        actions.add(comparator.value)
+        return actions
+    raise AssertionError("_apply_action not found")
+
+
+def test_cleanup_apply_physical_allowlist_matches_implemented_and_tested_actions() -> None:
+    path = Path("src/med_autoscience/controllers/control_plane_cleanup_apply.py")
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+
+    allowed_actions = _literal_set_assignment(tree, "ALLOWED_PHYSICAL_ACTIONS")
+
+    assert allowed_actions == {"delete-safe-cache"}
+    assert _implemented_apply_actions(tree) == allowed_actions
 
 
 def test_cleanup_apply_default_generates_plan_without_mutating(tmp_path: Path) -> None:
