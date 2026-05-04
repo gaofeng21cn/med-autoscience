@@ -34,6 +34,9 @@
 - `ci-preflight`：目标是保持 push CI 可承受，只运行 change-aware preflight 与 build；耗时提醒用于判断 preflight contract 是否过宽，不额外触发重 lane。
 - `full`：目标是正式发布前完整覆盖，允许显著慢于 smoke / ci-preflight；耗时漂移通过 advisory / full summary 与 history summary 观察，不能替代质量失败或变成日常 push 门禁。
 
+重 lane 慢测试画像使用只读入口 `scripts/profile-heavy-test-lanes.py --print-only` 生成可复现的
+`pytest --durations` 命令；实际 profiling 由维护者显式运行，不进入 push CI。
+
 ## 何时运行
 
 以下场景建议在本地先跑：
