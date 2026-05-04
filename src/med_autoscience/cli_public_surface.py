@@ -70,6 +70,9 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("publication", "reporting-audit"): "medical-reporting-audit",
     ("publication", "surface"): "medical-publication-surface",
     ("publication", "figure-loop-guard"): "figure-loop-guard",
+    ("product", "governance-report"): "control-plane-governance-report",
+    ("product", "backfill-apply"): "control-plane-backfill-apply",
+    ("product", "safe-cache-cleanup-apply"): "control-plane-safe-cache-cleanup-apply",
     ("product", "frontdesk"): "product-frontdesk",
     ("product", "preflight"): "product-preflight",
     ("product", "start"): "product-start",
@@ -90,7 +93,7 @@ GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
     "runtime": "runtime watch、Hermes supervision、overlay、analysis bundle 与 storage maintenance。",
     "study": "study runtime、progress、launch 与 delivery sync。",
     "publication": "投稿包、display surface、journal/target 与 publication gate。",
-    "product": "frontdesk、preflight、start、manifest 与 build-entry。",
+    "product": "frontdesk、preflight、start、manifest、build-entry 与 governance surfaces。",
 }
 GROUPED_SUBCOMMANDS: dict[str, tuple[str, ...]] = {
     group: tuple(subcommand for candidate_group, subcommand in GROUPED_COMMAND_ALIASES if candidate_group == group)
@@ -121,7 +124,7 @@ def print_public_help() -> None:
             "",
             "Control-plane operations:",
             *[
-                f"  {item.cli_command:<32}{item.description}"
+                f"  {item.cli_command:<42}{item.description}"
                 for item in CONTROL_PLANE_OPERATIONS_COMMANDS
             ],
         ]

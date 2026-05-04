@@ -934,6 +934,52 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "control-plane-governance-report":
+        result = artifact_lifecycle_operations_report.run_lifecycle_operations_report(
+            workspace_roots=[Path(root) for root in args.workspace_root],
+            deep=bool(args.deep),
+            max_files=args.max_files,
+            max_seconds=args.max_seconds,
+        )
+        result = {
+            **result,
+            "surface": "storage_governance_report",
+            "source_surface": result.get("surface"),
+        }
+        if args.markdown:
+            print(artifact_lifecycle_operations_report.render_lifecycle_operations_report_markdown(result))
+        else:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "control-plane-safe-cache-cleanup-apply":
+        cleanup_apply_kwargs = {
+            "workspace_roots": [Path(root) for root in args.workspace_root],
+            "apply": args.apply,
+            "control_plane_snapshot": _load_optional_object_payload_from_args(
+                payload_file=args.control_plane_snapshot_file,
+                payload_json=args.control_plane_snapshot_json,
+                file_label="--control-plane-snapshot-file",
+                json_label="--control-plane-snapshot-json",
+            ),
+        }
+        retention_report = _load_optional_object_payload_from_args(
+            payload_file=args.retention_report_file,
+            payload_json=args.retention_report_json,
+            file_label="--retention-report-file",
+            json_label="--retention-report-json",
+        )
+        if retention_report is not None:
+            cleanup_apply_kwargs["retention_report"] = retention_report
+        result = control_plane_cleanup_apply.run_cleanup_apply(**cleanup_apply_kwargs)
+        result = {
+            **result,
+            "surface": "control_plane_safe_cache_cleanup_apply",
+            "source_surface": result.get("surface"),
+        }
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "control-plane-migration-audit":
         result = control_plane_migration_audit.run_migration_audit(
             workspace_roots=[Path(root) for root in args.workspace_root],

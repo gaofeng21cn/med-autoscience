@@ -50,7 +50,17 @@ def test_mcp_server_lists_read_only_tools() -> None:
 
 @pytest.mark.parametrize(
     "fragment",
-    ("migration_audit", "backfill_apply", "cleanup_apply", "lifecycle_report", "dry-run", "contract-gated"),
+    (
+        "migration_audit",
+        "governance_report",
+        "backfill_apply",
+        "safe_cache_cleanup_apply",
+        "cleanup_apply",
+        "lifecycle_report",
+        "dry-run",
+        "contract-gated",
+        "delete-safe-cache",
+    ),
 )
 def test_mcp_product_entry_description_documents_control_plane_operations_surfaces(fragment: str) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
@@ -67,6 +77,7 @@ def test_mcp_product_entry_description_documents_control_plane_operations_surfac
         ("deep", {"type": "boolean"}),
         ("max_files", {"type": "integer", "minimum": 1}),
         ("max_seconds", {"type": "number", "exclusiveMinimum": 0}),
+        ("control_plane_snapshot", {"type": "object"}),
     ),
 )
 def test_mcp_product_entry_schema_accepts_control_plane_operations_options(
@@ -87,6 +98,30 @@ def test_mcp_product_entry_mode_schema_is_catalog_backed() -> None:
     mode_schema = tools["product_entry"]["inputSchema"]["properties"]["mode"]
 
     assert mode_schema == catalog.build_control_plane_product_entry_mode_schema()
+
+
+def test_mcp_product_entry_schema_exposes_storage_governance_modes_from_catalog() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    catalog = importlib.import_module("med_autoscience.control_plane_command_catalog")
+    tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
+    mode_schema = tools["product_entry"]["inputSchema"]["properties"]["mode"]
+
+    expected_modes = {
+        item.mcp_mode
+        for item in catalog.CONTROL_PLANE_OPERATIONS_COMMANDS
+        if item.surface in {
+            "storage_governance_report",
+            "control_plane_backfill_apply",
+            "control_plane_safe_cache_cleanup_apply",
+        }
+    }
+
+    assert expected_modes == {
+        "governance_report",
+        "backfill_apply",
+        "safe_cache_cleanup_apply",
+    }
+    assert expected_modes.issubset(set(mode_schema["enum"]))
 
 
 def test_mcp_server_exposes_medical_reporting_audit_tool() -> None:
@@ -516,10 +551,17 @@ def test_mcp_product_entry_can_call_cleanup_apply(monkeypatch, tmp_path: Path) -
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}
 
-    def fake_run_cleanup_apply(*, workspace_roots, apply: bool, control_plane_snapshot=None) -> dict[str, object]:
+    def fake_run_cleanup_apply(
+        *,
+        workspace_roots,
+        apply: bool,
+        control_plane_snapshot=None,
+        retention_report=None,
+    ) -> dict[str, object]:
         captured["workspace_roots"] = list(workspace_roots)
         captured["apply"] = apply
         captured["control_plane_snapshot"] = control_plane_snapshot
+        captured["retention_report"] = retention_report
         return {
             "surface": "control_plane_cleanup_apply",
             "apply": apply,
@@ -547,6 +589,7 @@ def test_mcp_product_entry_can_call_cleanup_apply(monkeypatch, tmp_path: Path) -
         "workspace_roots": [tmp_path / "workspace"],
         "apply": False,
         "control_plane_snapshot": {"surface": "control_plane_snapshot"},
+        "retention_report": None,
     }
     assert result["structuredContent"]["surface"] == "control_plane_cleanup_apply"
     assert result["structuredContent"]["action_counts"]["mutating"] == 0

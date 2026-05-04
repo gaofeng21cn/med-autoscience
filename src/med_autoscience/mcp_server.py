@@ -250,7 +250,8 @@ def list_tools() -> list[dict[str, Any]]:
             "name": "product_entry",
             "description": (
                 "Read MedAutoScience product-entry surfaces through one tool: "
-                f"{product_entry_description_modes_text()}. migration_audit is dry-run-only; cleanup_apply is contract-gated; "
+                f"{product_entry_description_modes_text()}. migration_audit is dry-run-only; governance_report is read-only; "
+                "backfill_apply and cleanup_apply are contract-gated; safe_cache_cleanup_apply is limited to allowlisted delete-safe-cache actions. "
                 "lifecycle_report is read-only unless a separate controller apply contract authorizes cleanup. "
                 "If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution."
             ),
@@ -268,6 +269,7 @@ def list_tools() -> list[dict[str, Any]]:
                     },
                     "apply": {"type": "boolean"},
                     "control_plane_snapshot": {"type": "object"},
+                    "retention_report": {"type": "object"},
                     "markdown": {"type": "boolean"},
                     "deep": {"type": "boolean"},
                     "max_files": {"type": "integer", "minimum": 1},
@@ -572,6 +574,7 @@ def _call_cleanup_apply(arguments: dict[str, Any]) -> dict[str, Any]:
         workspace_roots=resolved_roots,
         apply=_optional_bool(arguments, "apply", default=False),
         control_plane_snapshot=_optional_mapping(arguments.get("control_plane_snapshot")),
+        retention_report=_optional_mapping(arguments.get("retention_report")),
     )
     return _tool_text_result(_json_text(result), structured=result)
 
@@ -598,6 +601,21 @@ def _call_lifecycle_report(arguments: dict[str, Any]) -> dict[str, Any]:
         else _json_text(result)
     )
     return _tool_text_result(text, structured=result)
+
+
+def _call_governance_report(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = _call_lifecycle_report(arguments)
+    structured = result.get("structuredContent")
+    if isinstance(structured, dict):
+        governed = {
+            **structured,
+            "surface": "storage_governance_report",
+            "source_surface": structured.get("surface"),
+        }
+        result["structuredContent"] = governed
+        if result["content"] and result["content"][0]["text"].lstrip().startswith("{"):
+            result["content"][0]["text"] = _json_text(governed)
+    return result
 
 
 def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -693,6 +711,21 @@ def _call_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
         return _call_backfill_apply(arguments)
     if mode == "cleanup_apply":
         return _call_cleanup_apply(arguments)
+    if mode == "safe_cache_cleanup_apply":
+        result = _call_cleanup_apply(arguments)
+        structured = result.get("structuredContent")
+        if isinstance(structured, dict):
+            projected = {
+                **structured,
+                "surface": "control_plane_safe_cache_cleanup_apply",
+                "source_surface": structured.get("surface"),
+            }
+            result["structuredContent"] = projected
+            if result["content"] and result["content"][0]["text"].lstrip().startswith("{"):
+                result["content"][0]["text"] = _json_text(projected)
+        return result
+    if mode == "governance_report":
+        return _call_governance_report(arguments)
     if mode == "lifecycle_report":
         return _call_lifecycle_report(arguments)
     raise ValueError(f"Unsupported product_entry mode: {mode}")

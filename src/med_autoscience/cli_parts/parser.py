@@ -210,14 +210,29 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     medical_reporting_audit_parser.add_argument("--quest-root", required=True)
     medical_reporting_audit_parser.add_argument("--apply", action="store_true")
 
-    migration_audit_parser = subparsers.add_parser("control-plane-migration-audit")
-    migration_audit_parser.add_argument("--workspace-root", action="append", required=True)
+    governance_report_parser = subparsers.add_parser("control-plane-governance-report")
+    governance_report_parser.add_argument("--workspace-root", action="append", required=True)
+    governance_report_parser.add_argument("--markdown", action="store_true")
+    governance_report_parser.add_argument("--deep", action="store_true")
+    governance_report_parser.add_argument("--max-files", type=int)
+    governance_report_parser.add_argument("--max-seconds", type=float)
 
     backfill_apply_parser = subparsers.add_parser("control-plane-backfill-apply")
     backfill_apply_parser.add_argument("--workspace-root", action="append", required=True)
     backfill_apply_parser.add_argument("--apply", action="store_true")
     backfill_apply_parser.add_argument("--control-plane-snapshot-json")
     backfill_apply_parser.add_argument("--control-plane-snapshot-file")
+
+    safe_cache_cleanup_apply_parser = subparsers.add_parser("control-plane-safe-cache-cleanup-apply")
+    safe_cache_cleanup_apply_parser.add_argument("--workspace-root", action="append", required=True)
+    safe_cache_cleanup_apply_parser.add_argument("--apply", action="store_true")
+    safe_cache_cleanup_apply_parser.add_argument("--control-plane-snapshot-json")
+    safe_cache_cleanup_apply_parser.add_argument("--control-plane-snapshot-file")
+    safe_cache_cleanup_apply_parser.add_argument("--retention-report-json")
+    safe_cache_cleanup_apply_parser.add_argument("--retention-report-file")
+
+    migration_audit_parser = subparsers.add_parser("control-plane-migration-audit")
+    migration_audit_parser.add_argument("--workspace-root", action="append", required=True)
 
     cleanup_apply_parser = subparsers.add_parser("control-plane-cleanup-apply")
     cleanup_apply_parser.add_argument("--workspace-root", action="append", required=True)
