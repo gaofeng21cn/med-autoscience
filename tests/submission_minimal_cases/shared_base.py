@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import io
 import json
 import os
 from pathlib import Path
@@ -8,7 +9,12 @@ import shutil
 import zipfile
 import zlib
 
+import pytest
 from pypdf import PdfReader
+
+
+_LIGHTWEIGHT_DOCX_BY_IMAGE_COUNT: dict[int, bytes] = {}
+_LIGHTWEIGHT_PDF_BY_IMAGE_COUNT: dict[int, bytes] = {}
 
 
 def dump_json(path: Path, payload: dict) -> None:
@@ -23,6 +29,10 @@ def write_text(path: Path, text: str) -> None:
 
 def write_png(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(_png_bytes())
+
+
+def _png_bytes() -> bytes:
     raw_scanline = b"\x00\xff\xff\xff"
     compressed = zlib.compress(raw_scanline)
 
@@ -38,7 +48,103 @@ def write_png(path: Path) -> None:
             chunk(b"IEND", b""),
         ]
     )
-    path.write_bytes(png_bytes)
+    return png_bytes
+
+
+def _markdown_image_count(path: Path) -> int:
+    if not path.exists():
+        return 0
+    return sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip().startswith("!["))
+
+
+def _lightweight_docx_bytes(image_count: int) -> bytes:
+    resolved_image_count = max(0, int(image_count))
+    cached = _LIGHTWEIGHT_DOCX_BY_IMAGE_COUNT.get(resolved_image_count)
+    if cached is not None:
+        return cached
+
+    from docx import Document
+
+    document = Document()
+    document.add_paragraph("Lightweight submission export fixture")
+    document.sections[0].footer.paragraphs[0].text = "Lightweight submission export fixture footer"
+    png = _png_bytes()
+    for _ in range(resolved_image_count):
+        document.add_picture(io.BytesIO(png))
+    output = io.BytesIO()
+    document.save(output)
+    payload = output.getvalue()
+    _LIGHTWEIGHT_DOCX_BY_IMAGE_COUNT[resolved_image_count] = payload
+    return payload
+
+
+def _lightweight_pdf_bytes(image_count: int) -> bytes:
+    resolved_image_count = max(0, int(image_count))
+    cached = _LIGHTWEIGHT_PDF_BY_IMAGE_COUNT.get(resolved_image_count)
+    if cached is not None:
+        return cached
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    panel_count = max(1, resolved_image_count)
+    figure, axes = plt.subplots(panel_count, 1, figsize=(1, panel_count))
+    if panel_count == 1:
+        axes = [axes]
+    for index, axis in enumerate(axes):
+        axis.axis("off")
+        if index < resolved_image_count:
+            axis.imshow([[(1.0, 1.0, 1.0)]])
+    output = io.BytesIO()
+    figure.savefig(output, format="pdf")
+    plt.close(figure)
+    payload = output.getvalue()
+    _LIGHTWEIGHT_PDF_BY_IMAGE_COUNT[resolved_image_count] = payload
+    return payload
+
+
+@pytest.fixture
+def real_submission_exports() -> None:
+    pass
+
+
+@pytest.fixture(autouse=True)
+def lightweight_submission_exports(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    if "real_submission_exports" in request.fixturenames:
+        return
+
+    package_builder = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
+    submission_minimal = importlib.import_module("med_autoscience.controllers.submission_minimal")
+
+    def export_docx(
+        *,
+        compiled_markdown_path: Path,
+        paper_root: Path,
+        output_docx_path: Path,
+        csl_path: Path,
+        reference_doc_path: Path | None = None,
+    ) -> None:
+        del paper_root, csl_path, reference_doc_path
+        output_docx_path.parent.mkdir(parents=True, exist_ok=True)
+        output_docx_path.write_bytes(_lightweight_docx_bytes(_markdown_image_count(compiled_markdown_path)))
+
+    def export_pdf(
+        *,
+        compiled_markdown_path: Path,
+        paper_root: Path,
+        output_pdf_path: Path,
+        csl_path: Path,
+    ) -> None:
+        del paper_root, csl_path
+        output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+        output_pdf_path.write_bytes(_lightweight_pdf_bytes(_markdown_image_count(compiled_markdown_path)))
+
+    monkeypatch.setattr(package_builder, "export_docx", export_docx)
+    monkeypatch.setattr(package_builder, "export_pdf", export_pdf)
+    monkeypatch.setattr(submission_minimal, "export_docx", export_docx)
+    monkeypatch.setattr(submission_minimal, "export_pdf", export_pdf)
 
 
 def write_docx(path: Path, text: str) -> None:
@@ -499,5 +605,4 @@ def make_authoritative_worktree_source_workspace(tmp_path: Path) -> Path:
         },
     )
     return paper_root
-
 

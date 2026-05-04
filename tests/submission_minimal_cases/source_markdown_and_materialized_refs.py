@@ -106,6 +106,7 @@ Legend text for the lowercase independent figure legend section.
 
 def test_create_submission_minimal_package_supports_manuscript_shaped_draft_without_front_matter(
     tmp_path: Path,
+    real_submission_exports,
 ) -> None:
     from docx import Document
 
@@ -278,6 +279,7 @@ Preserved legend for the manuscript-shaped top-level figures block.
 
 def test_create_submission_minimal_package_accepts_materialized_submission_source_from_compile_report(
     tmp_path: Path,
+    real_submission_exports,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_materialized_submission_source_workspace(tmp_path)

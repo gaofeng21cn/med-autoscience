@@ -196,6 +196,7 @@ def test_create_submission_minimal_package_rejects_legacy_frontiers_profile(
 def test_create_submission_minimal_package_frontiers_family_profile_preserves_reference_doc_parts(
     tmp_path: Path,
     monkeypatch,
+    real_submission_exports,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
@@ -384,6 +385,7 @@ def test_create_submission_minimal_package_frontiers_family_uses_admin_gap_notes
 
 def test_create_submission_minimal_package_builds_submission_facing_docx_for_current_draft_shape(
     tmp_path: Path,
+    real_submission_exports,
 ) -> None:
     from docx import Document
 
@@ -418,6 +420,7 @@ def test_create_submission_minimal_package_builds_submission_facing_docx_for_cur
 
 def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_backed_figures(
     tmp_path: Path,
+    real_submission_exports,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_current_draft_workspace(tmp_path)
@@ -471,6 +474,7 @@ def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_b
 
 def test_create_submission_minimal_package_uses_catalog_backed_figures_when_main_figure_section_has_only_legends(
     tmp_path: Path,
+    real_submission_exports,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
@@ -524,6 +528,7 @@ Caption only. The inline image line was dropped from the reviewer manuscript.
 
 def test_create_submission_minimal_package_supports_short_f_figure_headings_from_review_manuscript(
     tmp_path: Path,
+    real_submission_exports,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)

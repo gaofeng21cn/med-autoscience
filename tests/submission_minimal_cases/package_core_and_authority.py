@@ -500,7 +500,10 @@ def test_create_submission_minimal_package_general_profile_writes_figure_legends
     assert "| Characteristic | Value |" in submission_markdown
 
 
-def test_create_submission_minimal_package_general_profile_embeds_figures_into_docx_and_pdf(tmp_path: Path) -> None:
+def test_create_submission_minimal_package_general_profile_embeds_figures_into_docx_and_pdf(
+    tmp_path: Path,
+    real_submission_exports,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 

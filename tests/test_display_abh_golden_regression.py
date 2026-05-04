@@ -4,6 +4,9 @@ import importlib
 import importlib.util
 import json
 from pathlib import Path
+import shutil
+
+import pytest
 
 
 def _load_materialization_test_support():
@@ -300,6 +303,27 @@ def _build_abh_paper_proven_workspace(tmp_path: Path) -> Path:
     return paper_root
 
 
+@pytest.fixture(scope="module")
+def materialized_abh_paper_proven_fixture(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> tuple[Path, dict[str, object]]:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = _build_abh_paper_proven_workspace(tmp_path_factory.mktemp("abh_paper_proven"))
+    result = module.materialize_display_surface(paper_root=paper_root)
+    assert result["status"] == "materialized"
+    return paper_root, result
+
+
+def _copy_materialized_abh_paper_proven_fixture(
+    tmp_path: Path,
+    fixture: tuple[Path, dict[str, object]],
+) -> tuple[Path, dict[str, object]]:
+    cached_paper_root, result = fixture
+    paper_root = tmp_path / "paper"
+    shutil.copytree(cached_paper_root, paper_root)
+    return paper_root, dict(result)
+
+
 def test_abh_golden_regression_tracked_docs_track_current_suite() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     docs_root = repo_root / "docs" / "capabilities" / "medical-display"
@@ -331,11 +355,14 @@ def test_abh_golden_regression_tracked_docs_track_current_suite() -> None:
         assert token in text
 
 
-def test_materialize_display_surface_preserves_ab_golden_regression_invariants(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
-    paper_root = _build_abh_paper_proven_workspace(tmp_path)
-
-    result = module.materialize_display_surface(paper_root=paper_root)
+def test_materialize_display_surface_preserves_ab_golden_regression_invariants(
+    tmp_path: Path,
+    materialized_abh_paper_proven_fixture: tuple[Path, dict[str, object]],
+) -> None:
+    paper_root, result = _copy_materialized_abh_paper_proven_fixture(
+        tmp_path,
+        materialized_abh_paper_proven_fixture,
+    )
 
     assert result["status"] == "materialized"
     assert result["figures_materialized"] == ["F1", "F2", "F3", "F4", "F5", "GA1"]
@@ -412,11 +439,14 @@ def test_materialize_display_surface_preserves_ab_golden_regression_invariants(t
             assert event_counts[-1] - event_counts[0] >= 1
 
 
-def test_materialize_display_surface_preserves_h_golden_regression_invariants(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
-    paper_root = _build_abh_paper_proven_workspace(tmp_path)
-
-    result = module.materialize_display_surface(paper_root=paper_root)
+def test_materialize_display_surface_preserves_h_golden_regression_invariants(
+    tmp_path: Path,
+    materialized_abh_paper_proven_fixture: tuple[Path, dict[str, object]],
+) -> None:
+    paper_root, result = _copy_materialized_abh_paper_proven_fixture(
+        tmp_path,
+        materialized_abh_paper_proven_fixture,
+    )
 
     assert result["status"] == "materialized"
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))

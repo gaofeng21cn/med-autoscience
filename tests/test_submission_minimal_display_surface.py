@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import display_registry
+from tests.submission_minimal_cases.shared import lightweight_submission_exports, real_submission_exports
 
 PNG_1X1_BASE64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNg"
