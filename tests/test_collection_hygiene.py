@@ -122,6 +122,66 @@ def _is_covered_by_nested_case_ignore(path: str) -> bool:
     )
 
 
+def _format_paths(paths: set[str]) -> str:
+    if not paths:
+        return "  - <none>"
+    return "\n".join(f"  - {path}" for path in sorted(paths))
+
+
+def _nested_case_ignore_failure_message(uncovered_paths: set[str]) -> str:
+    configured_globs = "\n".join(
+        f"  - {pattern}" for pattern in tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS
+    )
+    return (
+        "Nested case modules must stay out of default pytest collection.\n"
+        "Uncovered nested case module paths:\n"
+        f"{_format_paths(uncovered_paths)}\n"
+        "Current tests/conftest.py NESTED_CASE_COLLECTION_IGNORE_GLOBS:\n"
+        f"{configured_globs}\n"
+        "If these paths are a new aggregate-managed family, add a precise family glob to "
+        "tests/conftest.py and add the modules to AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES plus "
+        "NESTED_CASE_REEXPORT_SURFACES in tests/test_collection_hygiene.py. If they should be "
+        "default-collected tests, keep them outside nested case directories and rely on normal marker "
+        "management instead."
+    )
+
+
+def _coverage_failure_message(
+    *,
+    surface_name: str,
+    missing_paths: set[str],
+    stale_paths: set[str],
+    instruction: str,
+) -> str:
+    return (
+        f"Nested case module {surface_name} coverage is out of sync.\n"
+        "Missing nested case module paths:\n"
+        f"{_format_paths(missing_paths)}\n"
+        "Stale declared paths:\n"
+        f"{_format_paths(stale_paths)}\n"
+        f"{instruction}"
+    )
+
+
+def _missing_imports_failure_message(
+    *,
+    surface_kind: str,
+    surface: str,
+    missing_imports: set[str],
+) -> str:
+    missing_tokens = {
+        f"{path} -> {_entrypoint_import_token(surface, path)}"
+        for path in missing_imports
+    }
+    return (
+        f"{surface_kind} is missing explicit nested-case imports: {surface}\n"
+        "Missing module paths and expected import tokens:\n"
+        f"{_format_paths(missing_tokens)}\n"
+        "Add explicit re-export imports for these paths, or remove the path from the declared "
+        "surface if the module is no longer part of that family."
+    )
+
+
 def test_nested_case_collection_ignore_globs_are_declared() -> None:
     assert set(tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS) == {
         "product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_*.py",
@@ -137,7 +197,7 @@ def test_declared_nested_case_families_cover_current_case_module_paths() -> None
     uncovered_paths = {path for path in nested_case_files if not _is_covered_by_nested_case_ignore(path)}
 
     assert nested_case_files
-    assert uncovered_paths == set()
+    assert uncovered_paths == set(), _nested_case_ignore_failure_message(uncovered_paths)
 
 
 def test_declared_nested_case_modules_have_aggregate_entrypoint_coverage() -> None:
@@ -145,8 +205,24 @@ def test_declared_nested_case_modules_have_aggregate_entrypoint_coverage() -> No
     aggregate_coverage = set().union(*AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES.values())
     reexport_coverage = set().union(*NESTED_CASE_REEXPORT_SURFACES.values())
 
-    assert nested_case_files == aggregate_coverage
-    assert nested_case_files == reexport_coverage
+    assert nested_case_files == aggregate_coverage, _coverage_failure_message(
+        surface_name="aggregate entrypoint",
+        missing_paths=nested_case_files - aggregate_coverage,
+        stale_paths=aggregate_coverage - nested_case_files,
+        instruction=(
+            "Add missing paths to AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES under the aggregate "
+            "entrypoint that owns the family, or remove stale paths after deleting/moving modules."
+        ),
+    )
+    assert nested_case_files == reexport_coverage, _coverage_failure_message(
+        surface_name="re-export surface",
+        missing_paths=nested_case_files - reexport_coverage,
+        stale_paths=reexport_coverage - nested_case_files,
+        instruction=(
+            "Add missing paths to NESTED_CASE_REEXPORT_SURFACES under the re-export module that "
+            "should import them, then add the matching explicit import in that module."
+        ),
+    )
 
 
 def test_nested_case_reexport_surfaces_explicitly_import_declared_nested_modules() -> None:
@@ -158,7 +234,11 @@ def test_nested_case_reexport_surfaces_explicitly_import_declared_nested_modules
             if _entrypoint_import_token(reexport_surface, module) not in surface_source
         }
 
-        assert missing_imports == set()
+        assert missing_imports == set(), _missing_imports_failure_message(
+            surface_kind="Nested case re-export surface",
+            surface=reexport_surface,
+            missing_imports=missing_imports,
+        )
 
 
 def test_aggregate_entrypoints_explicitly_import_nested_case_reexport_surfaces() -> None:
@@ -170,7 +250,11 @@ def test_aggregate_entrypoints_explicitly_import_nested_case_reexport_surfaces()
             if _entrypoint_import_token(entrypoint, surface) not in entrypoint_source
         }
 
-        assert missing_imports == set()
+        assert missing_imports == set(), _missing_imports_failure_message(
+            surface_kind="Aggregate entrypoint",
+            surface=entrypoint,
+            missing_imports=missing_imports,
+        )
 
 
 def test_submission_minimal_display_surface_uses_write_route_legacy_default() -> None:
