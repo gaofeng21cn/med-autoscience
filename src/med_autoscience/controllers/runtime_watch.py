@@ -764,10 +764,12 @@ def run_watch_for_runtime(
     managed_study_alert_deliveries: list[dict[str, Any]] = []
     managed_study_autonomy_slo_statuses: list[dict[str, Any]] = []
     managed_study_autonomy_repair_actions: list[dict[str, Any]] = []
+    managed_study_runtime_recovery_payloads: dict[str, dict[str, Any]] = {}
     if ensure_study_runtimes:
         if profile is None:
             raise ValueError("profile is required when ensure_study_runtimes is enabled")
         for study_root in sorted(profile.studies_root.iterdir()):
+            study_root_key = str(Path(study_root).expanduser().resolve())
             if not study_root.is_dir():
                 continue
             if not (study_root / "study.yaml").exists():
@@ -789,6 +791,13 @@ def run_watch_for_runtime(
                         study_root=study_root,
                         source="runtime_watch",
                     )
+                    action_status_payload = _managed_study_status_payload(action_payload)
+                    if _non_empty_text(action_status_payload.get("decision")) in {
+                        "create_and_start",
+                        "resume",
+                        "relaunch_stopped",
+                    }:
+                        managed_study_runtime_recovery_payloads[study_root_key] = action_status_payload
                 except Exception as exc:
                     preflight_payload = _managed_study_status_payload(
                         study_runtime_router.study_runtime_status(
@@ -840,6 +849,13 @@ def run_watch_for_runtime(
                             study_root=study_root,
                             source=_MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
                         )
+                        action_status_payload = _managed_study_status_payload(action_payload)
+                        if _non_empty_text(action_status_payload.get("decision")) in {
+                            "create_and_start",
+                            "resume",
+                            "relaunch_stopped",
+                        }:
+                            managed_study_runtime_recovery_payloads[study_root_key] = action_status_payload
                         managed_study_auto_recoveries.append(
                             _serialize_managed_study_auto_recovery(
                                 preflight_payload=preflight_payload,
@@ -890,6 +906,7 @@ def run_watch_for_runtime(
     managed_study_action_overrides: dict[str, dict[str, Any]] = {}
     for study_root, status_payload in managed_study_statuses:
         study_root_key = str(Path(study_root).expanduser().resolve())
+        current_study_outer_loop_dispatched = False
         if profile is not None:
             status_payload = _refresh_managed_study_status_after_ensure(
                 profile=profile,
@@ -1048,6 +1065,7 @@ def run_watch_for_runtime(
                             outer_loop_result=outer_loop_result,
                         )
                         managed_study_outer_loop_dispatches.append(dispatch_payload)
+                        current_study_outer_loop_dispatched = True
                         if quest_report is None:
                             quest_report = _materialize_placeholder_quest_watch_report(status_payload)
                             if isinstance(quest_report, dict):
@@ -1211,6 +1229,7 @@ def run_watch_for_runtime(
                             outer_loop_result=outer_loop_result,
                         )
                         managed_study_outer_loop_dispatches.append(dispatch_payload)
+                        current_study_outer_loop_dispatched = True
                         if quest_report is None:
                             quest_report = _materialize_placeholder_quest_watch_report(status_payload)
                             if isinstance(quest_report, dict):
@@ -1298,13 +1317,14 @@ def run_watch_for_runtime(
             if (
                 apply
                 and ready_ai_doctor_repair is not None
-                and not managed_study_outer_loop_dispatches
-                and not managed_study_action_overrides
+                and not current_study_outer_loop_dispatched
+                and study_root_key not in managed_study_action_overrides
             ):
                 autonomy_repair = apply_ready_ai_doctor_repair(
                     profile=profile,
                     study_root=study_root,
                     status_payload=status_payload,
+                    runtime_recovery_payload=managed_study_runtime_recovery_payloads.get(study_root_key),
                     repair_payload=ready_ai_doctor_repair,
                 )
                 if autonomy_repair is not None:
