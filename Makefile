@@ -3,6 +3,7 @@
 MAS_PYTEST_WORKERS ?= auto
 MAS_PYTEST_DIST ?= loadscope
 MAS_PYTEST_XDIST_ARGS := -n $(MAS_PYTEST_WORKERS) --dist=$(MAS_PYTEST_DIST)
+ARCH_OWNER_BOUNDARY_TEST := tests/test_architecture_owner_boundary.py
 
 CONTROL_PLANE_TESTS := \
 	tests/test_control_plane_regression.py \
@@ -56,6 +57,7 @@ test-fast: test-regression
 
 test-meta:
 	uv run pytest -q -m meta
+	uv run pytest -q $(ARCH_OWNER_BOUNDARY_TEST)
 
 test-display:
 	uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy

@@ -77,6 +77,19 @@
 
 这套目标架构的人工可读 contract 由 `docs/program/ai_first_research_os_architecture.md` 与 controller surface `ai_first_research_os_architecture_contract` 表达；外部工程依据固定为 ISO/IEC/IEEE 42010、NIST AI RMF、EQUATOR、FAIR、durable execution、OpenTelemetry、G-Eval 与 SRE toil elimination。它不授权新增文档 wording gate。
 
+## MAS/MDS owner boundary fitness function
+
+MAS/MDS 的模块数量已经足够大，单靠文档描述 owner 容易漂移。因此当前架构增加 `mas_mds_architecture_owner_boundary_report` 作为 architecture owner boundary fitness function。它确认并防护四类重复 authority 风险：entry projection 越权解释下一步、MDS oracle 被读成医学质量 owner、observability 输出直接驱动 control、runtime liveness 被多处局部重算。
+
+该 surface 的规则是：
+
+- `mas_core`、`quality_os`、`runtime_os` 才能持有 study truth、quality truth、runtime health 和 user-visible next action。
+- `study_progress`、`workspace-cockpit`、`product-frontdesk`、product-entry manifest 与 MCP 只做 projection，不替代 authority。
+- `Observability OS` 只提供 evidence、calibration、analytics 和 replay proof，不直接授权 finalize、submission 或 publication readiness。
+- `MDS` 只保留 controlled backend、behavior oracle、upstream intake buffer 三类角色；`paper_contract_health` 和 coverage 只能是 backend preflight / mechanical oracle。
+
+当前修复计划见 [MAS/MDS Owner Boundary Refactor Plan](./program/mas_mds_owner_boundary_refactor_plan.md)。该计划采用 strangler-style 逐面吸收和 architecture fitness functions，而不是 big-bang rewrite 或一次性 monorepo absorb。
+
 ## 当前架构明确保留的边界
 
 - `Med Auto Science` 负责研究工作线，并保持唯一入口与 owner 身份。

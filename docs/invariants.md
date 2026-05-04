@@ -25,6 +25,8 @@
 - 已达投稿包、submission-ready 或 finalize 里程碑后收到用户、导师或审稿稿件反馈时，反馈本身就是同一 study 的重新激活信号；旧 stopped/submission-ready/finalize 状态不得被解释为前台直接修改 `manuscript/current_package/` 的许可，必须先写入 durable revision intake，再通过 MAS/MDS relaunch/resume 接管 canonical paper surface 并重新生成投影包。
 - `MDS` 只能作为 runtime/native/review 事件源、受控后端和行为等价 oracle；MAS 的 `StudyTruthKernel` 持有用户可见 `canonical_next_action`、publication gate 解释、package authority 解释和 delivery state。任何 truth/gate/status 事故必须同时落 reducer rule、fixture test 与 runbook entry。
 - `MDS` 只能作为 runtime health probe / native runtime event source；MAS 的 `RuntimeHealthKernel` 持有 `canonical_runtime_action`、worker liveness 判断、retry budget、runtime escalation 与 allowed controller actions。任何 liveness/recovery 事故必须同时落 reducer rule、fixture test 与 runbook entry。
+- `mas_mds_architecture_owner_boundary_report` 是当前 architecture owner boundary fitness function。entry projection、observability、MDS backend/oracle 或 runtime adapter 不得声明或替代 `study_truth`、`runtime_health`、`scientific_quality`、`medical_writing_quality`、`publication_readiness`、`submission_authority`、`artifact_authority` 或 `user_visible_next_action`。
+- MAS/MDS 重构只能沿 owner matrix + strangler refactor + architecture fitness functions 推进。big-bang rewrite、未带 parity proof 的 physical absorb、未带 rollback surface 的 owner switch、以及用 MDS mechanical oracle 替代 MAS AI reviewer / controller authority 的变更都必须 fail-closed。
 - 大型 public data 默认保持 remote-only；只有在 durable study charter 或 analysis plan 明确具体用途、体积预算、复用位置与清理/保留策略后，才允许下载或物化完整资产。停题、止损或短期无明确用途时，应清理本地镜像并保留 registry / mutation log 作为可追溯入口。
 
 ## 文档与结构
