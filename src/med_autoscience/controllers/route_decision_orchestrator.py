@@ -6,6 +6,11 @@ from typing import Any, Mapping, Sequence
 
 from med_autoscience.controllers import study_line_decision_engine
 from med_autoscience.controllers import route_control_stoploss
+from med_autoscience.controllers.route_decision_orchestrator_parts.rehearsal import (
+    ROUTE_DECISION_REHEARSAL_MEMO_PATH,
+    build_route_decision_rehearsal,
+    materialize_route_decision_rehearsal,
+)
 
 
 SCHEMA_VERSION = 1

@@ -375,3 +375,115 @@ def test_orchestrator_explicit_continue_is_not_allowed_under_high_stop_pressure(
     assert projection["controller_decision"]["route_control_decision"] == "stop_loss"
     assert stop_loss_path.is_file()
     assert not decision_path.exists()
+
+
+def test_route_decision_rehearsal_materializes_required_decision_memo(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+
+    projection = module.materialize_route_decision_rehearsal(
+        study_root=tmp_path / "study",
+        current_route="dpcc-003.primary-care-risk",
+        alternative_routes=["dpcc-004.guideline-gap"],
+    )
+
+    memo_path = tmp_path / "study" / "artifacts" / "medical_paper" / "route_decision_rehearsal_memo.json"
+    decision_path = tmp_path / "study" / "artifacts" / "controller_decisions" / "latest.json"
+
+    assert projection["surface"] == "route_decision_rehearsal"
+    assert projection["status"] == "ready"
+    assert projection["rehearsal_classes"] == [
+        "weak-result",
+        "blocked-statistics",
+        "missing-external-validation",
+    ]
+    assert projection["allowed_decisions"] == [
+        "continue",
+        "route_back",
+        "bounded_repair",
+        "stop_loss",
+        "switch_line",
+        "human_gate",
+    ]
+    assert projection["decision_coverage"] == {
+        "continue": True,
+        "route_back": True,
+        "bounded_repair": True,
+        "stop_loss": True,
+        "switch_line": True,
+        "human_gate": True,
+    }
+    assert projection["quality_claim_authorized"] is False
+    assert projection["controller_decision_role"] == "route_recommendation_only"
+    assert projection["materialized_paths"] == {"decision_memo": str(memo_path)}
+    assert memo_path.is_file()
+    assert not decision_path.exists()
+
+    written = json.loads(memo_path.read_text(encoding="utf-8"))
+    assert written == projection["decision_memo"]
+    assert written["surface"] == "route_decision_rehearsal_memo"
+    assert written["controller_decision_role"] == "route_recommendation_only"
+    assert written["quality_claim_authorized"] is False
+    assert written["authority"]["can_authorize_publication_quality"] is False
+    assert written["durable_refs"]["controller_decision_suggestion"] == (
+        "artifacts/controller_decisions/latest.json"
+    )
+    assert written["durable_refs"]["publication_quality_authority"] == (
+        "artifacts/publication_eval/latest.json"
+    )
+
+
+def test_route_decision_rehearsal_maps_required_cases_without_quality_authority(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+
+    projection = module.build_route_decision_rehearsal(
+        study_root=tmp_path / "study",
+        current_route="dpcc-003.primary-care-risk",
+        alternative_routes=["dpcc-004.guideline-gap"],
+    )
+
+    decisions_by_case = {case["case_id"]: case["decision"] for case in projection["cases"]}
+    assert decisions_by_case == {
+        "blocked-statistics-clear-control": "continue",
+        "blocked-statistics-repair": "bounded_repair",
+        "missing-external-validation-scout": "route_back",
+        "missing-external-validation-human-gate": "human_gate",
+        "weak-result-switch-line": "switch_line",
+        "weak-result-stop-loss": "stop_loss",
+    }
+
+    for case in projection["cases"]:
+        assert case["controller_decision"]["role"] == "route_recommendation_only"
+        assert case["controller_decision"]["write_authorized"] is False
+        assert case["controller_decision"]["quality_claim_authorized"] is False
+        assert case["route_control_memo"]["quality_claim_authorized"] is False
+        assert case["route_control_memo"]["authority"]["can_authorize_publication_quality"] is False
+
+
+def test_weak_result_rehearsal_never_continues_or_piles_bounded_analysis(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+
+    projection = module.build_route_decision_rehearsal(
+        study_root=tmp_path / "study",
+        current_route="dpcc-003.primary-care-risk",
+        alternative_routes=["dpcc-004.guideline-gap"],
+    )
+
+    weak_cases = [case for case in projection["cases"] if case["rehearsal_class"] == "weak-result"]
+    assert {case["case_id"] for case in weak_cases} == {
+        "weak-result-switch-line",
+        "weak-result-stop-loss",
+    }
+    for case in weak_cases:
+        assert case["decision"] in {"switch_line", "stop_loss"}
+        assert case["decision"] not in {"continue", "bounded_repair"}
+        assert case["next_action"] in {"switch_line", "stop_loss"}
+        assert case["analysis_continuation_allowed"] is False
+        assert case["weak_route_analysis_guard"] == {
+            "continue_blocked": True,
+            "bounded_repair_blocked": True,
+            "reason": "weak_result_cannot_continue_or_expand_analysis",
+        }
