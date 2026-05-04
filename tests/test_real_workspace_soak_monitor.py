@@ -231,3 +231,262 @@ def test_real_workspace_soak_monitor_materializer_writes_only_monitor_artifact(
     assert not (root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (root / "runtime_escalation_record.json").exists()
     assert not (root / "controller_decisions" / "latest.json").exists()
+
+
+def test_continuous_real_workspace_monitor_reads_catalog_payload_and_records_drift(
+    tmp_path: Path,
+) -> None:
+    roots = [
+        tmp_path / "risk-model",
+        tmp_path / "real-world",
+        tmp_path / "triage",
+    ]
+    for root, archetype in zip(
+        roots,
+        (
+            "prediction_model/external_validation",
+            "observational_real_world",
+            "subtype_or_triage",
+        ),
+        strict=True,
+    ):
+        _write_json(_matrix_path(root), _ready_matrix_payload(root.name, archetype))
+
+    catalog_payload = {
+        "catalog_id": "sanitized-real-workspace-catalog",
+        "studies": [
+            {
+                "study_id": roots[0].name,
+                "study_root": str(roots[0]),
+                "previous_readiness_status": "partial",
+                "readiness_status": "ready",
+                "route_decision": {"action": "continue", "reason": "calibration stable"},
+                "revision_reopen_seen": True,
+                "runtime_recovery_seen": True,
+                "finalize_rebuild_seen": True,
+            },
+            {
+                "study_id": roots[1].name,
+                "study_root": str(roots[1]),
+                "route_action": "stop_loss",
+                "stop_loss_triggered": True,
+                "blocked_reason": "",
+            },
+            {
+                "study_id": roots[2].name,
+                "study_root": str(roots[2]),
+                "readiness": {"overall_status": "ready"},
+                "route_action": "continue",
+            },
+        ],
+    }
+
+    projection = _module().build_real_workspace_soak_monitor(
+        study_roots=roots,
+        catalog_payload=catalog_payload,
+    )
+
+    assert projection["monitor_mode"] == "continuous_read_only"
+    assert projection["catalog_source"] == {
+        "kind": "payload",
+        "path": "",
+        "catalog_id": "sanitized-real-workspace-catalog",
+        "study_count": 3,
+    }
+    assert projection["overall_status"] == "ready"
+    assert projection["stop_loss_triggered"] is True
+    assert projection["revision_reopen_seen"] is True
+    assert projection["runtime_recovery_seen"] is True
+    assert projection["finalize_rebuild_seen"] is True
+    assert projection["drift_signals"] == [
+        {
+            "study_id": "risk-model",
+            "signals": ["readiness_status_changed:partial->ready"],
+        }
+    ]
+    assert projection["route_decision_summary"][0] == {
+        "study_id": "risk-model",
+        "route_action": "continue",
+        "result_strength": "adequate",
+        "next_action": "continue_multistudy_soak",
+        "reason": "calibration stable",
+    }
+
+
+def test_continuous_real_workspace_monitor_reads_catalog_path_without_study_roots(
+    tmp_path: Path,
+) -> None:
+    roots = [
+        tmp_path / "catalog-risk",
+        tmp_path / "catalog-real-world",
+        tmp_path / "catalog-triage",
+    ]
+    for root, archetype in zip(
+        roots,
+        (
+            "prediction_model/external_validation",
+            "observational_real_world",
+            "subtype_or_triage",
+        ),
+        strict=True,
+    ):
+        _write_json(_matrix_path(root), _ready_matrix_payload(root.name, archetype))
+    catalog_path = tmp_path / "workspace_catalog.json"
+    _write_json(
+        catalog_path,
+        {
+            "studies": [{"study_root": str(root)} for root in roots],
+        },
+    )
+
+    projection = _module().build_real_workspace_soak_monitor(
+        study_roots=[],
+        catalog_path=catalog_path,
+    )
+
+    assert projection["overall_status"] == "ready"
+    assert projection["catalog_source"]["kind"] == "path"
+    assert projection["catalog_source"]["path"] == str(catalog_path.resolve())
+    assert {study["study_id"] for study in projection["studies"]} == {
+        "catalog-risk",
+        "catalog-real-world",
+        "catalog-triage",
+    }
+
+
+def test_continuous_real_workspace_monitor_materializer_accepts_catalog_path(
+    tmp_path: Path,
+) -> None:
+    roots = [
+        tmp_path / "materialize-catalog-risk",
+        tmp_path / "materialize-catalog-real-world",
+        tmp_path / "materialize-catalog-triage",
+    ]
+    for root, archetype in zip(
+        roots,
+        (
+            "prediction_model/external_validation",
+            "observational_real_world",
+            "subtype_or_triage",
+        ),
+        strict=True,
+    ):
+        _write_json(_matrix_path(root), _ready_matrix_payload(root.name, archetype))
+    catalog_path = tmp_path / "workspace_catalog.json"
+    _write_json(
+        catalog_path,
+        {
+            "studies": [{"study_root": str(root)} for root in roots],
+        },
+    )
+
+    result = _module().materialize_real_workspace_soak_monitor(
+        study_roots=[],
+        catalog_path=catalog_path,
+    )
+
+    monitor_path = roots[0] / "artifacts" / "medical_paper" / "real_workspace_soak_monitor.json"
+    assert result["artifact_path"] == str(monitor_path.resolve())
+    assert monitor_path.is_file()
+
+
+def test_continuous_real_workspace_monitor_cannot_be_ready_without_durable_refs(
+    tmp_path: Path,
+) -> None:
+    catalog_payload = {
+        "studies": [
+            {
+                "study_id": "catalog-only-risk",
+                "study_archetype": "prediction_model/external_validation",
+                "stages": list(ALL_STAGES),
+                "contracts": {
+                    "literature_contract": True,
+                    "statistical_contract": True,
+                    "external_validation_fixture": True,
+                },
+            },
+            {
+                "study_id": "catalog-only-real-world",
+                "study_archetype": "observational_real_world",
+                "stages": list(ALL_STAGES),
+                "contracts": {
+                    "literature_contract": True,
+                    "statistical_contract": True,
+                },
+                "durable_refs": ["artifacts/medical_paper/readiness.json"],
+            },
+            {
+                "study_id": "catalog-only-triage",
+                "study_archetype": "subtype_or_triage",
+                "stages": list(ALL_STAGES),
+                "contracts": {
+                    "literature_contract": True,
+                    "statistical_contract": True,
+                },
+                "durable_refs": ["artifacts/medical_paper/readiness.json"],
+            },
+        ]
+    }
+
+    projection = _module().build_real_workspace_soak_monitor(
+        study_roots=[],
+        catalog_payload=catalog_payload,
+    )
+
+    assert projection["overall_status"] == "partial"
+    study = {item["study_id"]: item for item in projection["studies"]}["catalog-only-risk"]
+    assert study["status"] == "partial"
+    assert "durable_refs:missing" in study["missing_gaps"]
+    assert study["next_action"] == "materialize_durable_refs"
+
+
+def test_continuous_real_workspace_monitor_cannot_be_ready_without_finalize_proof(
+    tmp_path: Path,
+) -> None:
+    catalog_payload = {
+        "studies": [
+            {
+                "study_id": "catalog-risk",
+                "study_archetype": "prediction_model/external_validation",
+                "stages": list(ALL_STAGES),
+                "contracts": {
+                    "literature_contract": True,
+                    "statistical_contract": True,
+                    "external_validation_fixture": True,
+                },
+                "durable_refs": ["artifacts/medical_paper/readiness.json"],
+                "finalize_rebuild_seen": False,
+            },
+            {
+                "study_id": "catalog-real-world",
+                "study_archetype": "observational_real_world",
+                "stages": list(ALL_STAGES),
+                "contracts": {
+                    "literature_contract": True,
+                    "statistical_contract": True,
+                },
+                "durable_refs": ["artifacts/medical_paper/readiness.json"],
+            },
+            {
+                "study_id": "catalog-triage",
+                "study_archetype": "subtype_or_triage",
+                "stages": list(ALL_STAGES),
+                "contracts": {
+                    "literature_contract": True,
+                    "statistical_contract": True,
+                },
+                "durable_refs": ["artifacts/medical_paper/readiness.json"],
+            },
+        ]
+    }
+
+    projection = _module().build_real_workspace_soak_monitor(
+        study_roots=[],
+        catalog_payload=catalog_payload,
+    )
+
+    assert projection["overall_status"] == "partial"
+    study = {item["study_id"]: item for item in projection["studies"]}["catalog-risk"]
+    assert study["finalize_rebuild_seen"] is False
+    assert "proof:finalize_rebuild" in study["missing_gaps"]
+    assert study["next_action"] == "materialize_finalize_rebuild_proof"
