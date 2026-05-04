@@ -22,6 +22,7 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_status_cards.py",
     },
     "tests/test_runtime_watch.py": {
+        "tests/test_runtime_watch_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
         "tests/test_runtime_watch_cases/runtime_status_cases_cases/test_runtime_activity_projection.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_control_plane_dispatch_gate.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_outer_loop_context.py",
@@ -38,6 +39,7 @@ NESTED_CASE_REEXPORT_SURFACES = {
         AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES["tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py"]
     ),
     "tests/test_runtime_watch_cases/runtime_status_cases.py": {
+        "tests/test_runtime_watch_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
         "tests/test_runtime_watch_cases/runtime_status_cases_cases/test_runtime_activity_projection.py",
     },
     "tests/test_runtime_watch_cases/work_unit_dispatch_cases.py": {
@@ -227,4 +229,4 @@ def test_aggregate_collection_surfaces_hold_expected_collection_count() -> None:
         "tests/test_runtime_watch.py",
     )
 
-    assert len(collected_lines) == 133
+    assert len(collected_lines) == 134
