@@ -377,6 +377,10 @@ def test_guarded_operator_action_dispatch_fails_closed_without_payload(tmp_path)
     assert result["status"] == "blocked"
     assert result["missing_reason"] == "missing_operator_payload"
     assert result["durable_ref"] is None
+    assert result["replay_ref"].endswith(".json")
+    assert result["blocked_retry_reason"] == "missing_operator_payload"
+    assert result["retry_governance"]["retryable"] is False
+    assert result["retry_governance"]["blocked_retry_reason"] == "missing_operator_payload"
     assert result["authority_contract"]["guard"] == "existing_product_entry_controller_guard"
     assert result["authority_contract"]["can_mutate_runtime"] is False
     assert result["authority_contract"]["can_authorize_quality"] is False
@@ -409,10 +413,20 @@ def test_guarded_operator_action_replays_duplicate_submit_without_rematerializin
     )
 
     assert first["status"] == "ready"
+    assert first["replay_ref"].startswith("artifacts/medical_paper/actions/ledger/")
+    ledger = json.loads((study_root / first["replay_ref"]).read_text(encoding="utf-8"))
+    assert ledger["surface"] == "medical_paper_v5_guarded_operator_replay_ledger"
+    assert ledger["legacy_surface"] == "medical_paper_v3_guarded_operator_action_ledger"
+    assert ledger["action_timeline"][0]["event"] == "new_result"
+    assert ledger["input_digest_history"] == [first["input_digest"]]
+    assert ledger["authority_contract_snapshot"]["can_write_runtime_owned_artifacts"] is False
+    assert ledger["retry_governance"]["retryable"] is True
     assert replayed["status"] == "ready"
     assert replayed["duplicate_submit_detected"] is True
     assert replayed["replay"] is True
     assert replayed["reconciliation"] == "result_replayed"
+    assert replayed["replay_ref"] == first["replay_ref"]
+    assert replayed["retry_governance"]["duplicate_submit_detected"] is True
     assert replayed["idempotency_key"] == first["idempotency_key"]
     assert replayed["input_digest"] == first["input_digest"]
     assert replayed["durable_ref"] == first["durable_ref"]
@@ -450,6 +464,9 @@ def test_guarded_operator_action_blocks_payload_drift_for_same_idempotency_key(t
     assert drift["expected_input_digest"] == first["input_digest"]
     assert drift["observed_input_digest"] != first["input_digest"]
     assert drift["durable_ref"] is None
+    assert drift["replay_ref"] == first["replay_ref"]
+    assert drift["retry_governance"]["retryable"] is False
+    assert drift["retry_governance"]["reconciliation"] == "input_digest_drift"
     durable_path = study_root / "artifacts" / "medical_paper" / "literature_provider_runtime.json"
     persisted = json.loads(durable_path.read_text(encoding="utf-8"))
     assert persisted["query"] == "diabetes mortality prediction"
@@ -481,4 +498,6 @@ def test_guarded_operator_action_reconciles_missing_result_artifact_from_ledger(
     assert replayed["status"] == "ready"
     assert replayed["duplicate_submit_detected"] is True
     assert replayed["reconciliation"] == "result_recreated_from_ledger"
+    assert replayed["replay_ref"] == first["replay_ref"]
+    assert replayed["retry_governance"]["reconciliation"] == "result_recreated_from_ledger"
     assert (study_root / result_path).is_file()

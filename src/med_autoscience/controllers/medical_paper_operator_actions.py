@@ -12,6 +12,7 @@ SCHEMA_VERSION = 1
 COMMAND_SURFACE = "medical_paper_v3_guarded_operator_command"
 RESULT_SURFACE = "medical_paper_v3_guarded_operator_action_result"
 LEDGER_SURFACE = "medical_paper_v3_guarded_operator_action_ledger"
+REPLAY_LEDGER_SURFACE = "medical_paper_v5_guarded_operator_replay_ledger"
 ACTIONS_ROOT = Path("artifacts/medical_paper/actions")
 
 ACTION_SURFACE_KEYS: dict[str, str] = {
@@ -65,9 +66,6 @@ def guarded_operator_command(
         surface_key=surface_key,
         action_instance_id=action_instance_id,
     )
-    digest = input_digest
-    if digest is None:
-        digest = _pending_input_digest(action_id=action_id, surface_key=surface_key)
     resolved_idempotency_key = _resolved_idempotency_key(
         action_id=action_id,
         surface_key=surface_key,
@@ -124,6 +122,7 @@ def guarded_pending_action_result(
     return {
         "status": "guarded_pending",
         "durable_ref": None,
+        "replay_ref": None,
         "missing_reason": missing_reason,
         "next_action": next_action,
         "authority_contract": guarded_operator_authority_contract(),
@@ -235,6 +234,7 @@ def dispatch_guarded_medical_paper_operator_action(
     missing_reason = _text(materialized.get("missing_reason"))
     durable_ref = _text(materialized.get("artifact_path")) or None
     result_ref = _action_result_relative_path(idempotency_key=resolved_idempotency_key)
+    ledger_ref = _action_ledger_relative_path(idempotency_key=resolved_idempotency_key)
     result = {
         "surface": RESULT_SURFACE,
         "schema_version": SCHEMA_VERSION,
@@ -245,6 +245,7 @@ def dispatch_guarded_medical_paper_operator_action(
         "surface_key": expected_surface_key,
         "status": status,
         "durable_ref": durable_ref if status not in {"blocked", "missing"} else durable_ref,
+        "replay_ref": str(ledger_ref),
         "missing_reason": missing_reason,
         "next_action": _next_action_for_status(status=status, missing_reason=missing_reason),
         "authority_contract": guarded_operator_authority_contract(),
@@ -254,6 +255,12 @@ def dispatch_guarded_medical_paper_operator_action(
         "replay": False,
         "reconciliation": "new_result",
         "action_result_ref": str(result_ref),
+        "retry_governance": _retry_governance(
+            status=status,
+            missing_reason=missing_reason,
+            duplicate_submit_detected=False,
+            reconciliation="new_result",
+        ),
         "materializer_result": materialized,
     }
     _write_action_result_and_ledger(
@@ -298,6 +305,11 @@ def _blocked_result(
         "surface_key": surface_key,
         "status": "blocked",
         "durable_ref": None,
+        "replay_ref": (
+            str(_action_ledger_relative_path(idempotency_key=resolved_idempotency_key))
+            if resolved_idempotency_key
+            else None
+        ),
         "missing_reason": missing_reason,
         "next_action": "补齐 operator payload 后再通过 product-entry/controller guard 调用。",
         "authority_contract": guarded_operator_authority_contract(),
@@ -306,6 +318,13 @@ def _blocked_result(
         "duplicate_submit_detected": duplicate_submit_detected,
         "replay": False,
         "reconciliation": reconciliation,
+        "blocked_retry_reason": missing_reason,
+        "retry_governance": _retry_governance(
+            status="blocked",
+            missing_reason=missing_reason,
+            duplicate_submit_detected=duplicate_submit_detected,
+            reconciliation=reconciliation,
+        ),
     }
     if expected_input_digest is not None:
         result["expected_input_digest"] = expected_input_digest
@@ -437,18 +456,13 @@ def _write_action_result_and_ledger(
     _write_json(study_root / result_ref, result)
     _write_json(
         study_root / ledger_ref,
-        {
-            "surface": LEDGER_SURFACE,
-            "schema_version": SCHEMA_VERSION,
-            "action_id": result.get("action_id"),
-            "action_instance_id": result.get("action_instance_id"),
-            "surface_key": result.get("surface_key"),
-            "idempotency_key": idempotency_key,
-            "input_digest": result.get("input_digest"),
-            "durable_ref": result.get("durable_ref"),
-            "action_result_ref": str(result_ref),
-            "result": dict(result),
-        },
+        _replay_ledger_payload(
+            idempotency_key=idempotency_key,
+            result_ref=result_ref,
+            result=result,
+            event_kind="new_result",
+            reconciliation="new_result",
+        ),
     )
 
 
@@ -479,12 +493,81 @@ def _replayed_result(*, result: Mapping[str, Any], reconciliation: str) -> dict[
     replayed["authority_contract"] = guarded_operator_authority_contract()
     replayed["quality_claim_authorized"] = False
     replayed["mechanical_projection_can_authorize_quality"] = False
+    idempotency_key = _text(replayed.get("idempotency_key"))
+    if idempotency_key:
+        replayed["replay_ref"] = str(_action_ledger_relative_path(idempotency_key=idempotency_key))
+    replayed["retry_governance"] = _retry_governance(
+        status=_text(replayed.get("status")) or "unknown",
+        missing_reason=_text(replayed.get("missing_reason")),
+        duplicate_submit_detected=True,
+        reconciliation=reconciliation,
+    )
     return replayed
+
+
+def _retry_governance(
+    *,
+    status: str,
+    missing_reason: str | None,
+    duplicate_submit_detected: bool,
+    reconciliation: str,
+) -> dict[str, Any]:
+    blocked = status == "blocked"
+    return {
+        "surface": "medical_paper_v5_operator_retry_governance",
+        "retryable": not blocked,
+        "blocked_retry_reason": missing_reason if blocked else "",
+        "duplicate_submit_detected": duplicate_submit_detected,
+        "reconciliation": reconciliation,
+        "authority_contract_snapshot": guarded_operator_authority_contract(),
+        "can_authorize_quality": False,
+        "can_authorize_submission": False,
+        "can_authorize_finalize": False,
+    }
+
+
+def _replay_ledger_payload(
+    *,
+    idempotency_key: str,
+    result_ref: Path,
+    result: Mapping[str, Any],
+    event_kind: str,
+    reconciliation: str,
+) -> dict[str, Any]:
+    input_digest = _text(result.get("input_digest"))
+    return {
+        "surface": REPLAY_LEDGER_SURFACE,
+        "legacy_surface": LEDGER_SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "action_id": result.get("action_id"),
+        "action_instance_id": result.get("action_instance_id"),
+        "surface_key": result.get("surface_key"),
+        "idempotency_key": idempotency_key,
+        "input_digest": input_digest,
+        "input_digest_history": [input_digest] if input_digest else [],
+        "durable_ref": result.get("durable_ref"),
+        "action_result_ref": str(result_ref),
+        "replay_ref": str(_action_ledger_relative_path(idempotency_key=idempotency_key)),
+        "action_timeline": [
+            {
+                "event": event_kind,
+                "status": result.get("status"),
+                "input_digest": input_digest,
+                "reconciliation": reconciliation,
+                "durable_ref": result.get("durable_ref"),
+                "blocked_retry_reason": result.get("missing_reason") if result.get("status") == "blocked" else "",
+            }
+        ],
+        "retry_governance": dict(result.get("retry_governance") or {}),
+        "authority_contract_snapshot": guarded_operator_authority_contract(),
+        "result": dict(result),
+    }
 
 
 __all__ = [
     "ACTION_SURFACE_KEYS",
     "COMMAND_SURFACE",
+    "REPLAY_LEDGER_SURFACE",
     "RESULT_SURFACE",
     "dispatch_guarded_medical_paper_operator_action",
     "guarded_operator_input_digest",
