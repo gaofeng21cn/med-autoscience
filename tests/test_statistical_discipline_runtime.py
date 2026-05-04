@@ -78,6 +78,29 @@ def test_statistical_discipline_contract_blocks_when_external_validation_plan_mi
     assert validation == {"status": "blocked", "reason_code": "missing_external_validation_plan"}
 
 
+@pytest.mark.parametrize(
+    "field",
+    [
+        "missingness_plan",
+        "sample_size_precision_plan",
+        "external_validation_plan",
+        "subgroup_plan",
+        "multiplicity_guardrail",
+        "clinical_utility_plan",
+        "endpoint_time_window",
+        "sensitivity_plan",
+    ],
+)
+def test_statistical_discipline_contract_allows_machine_checkable_waiver_for_operation_fields(field: str) -> None:
+    contract = build_statistical_discipline_contract(study_archetype="prediction_model")
+    del contract[field]
+    contract[f"{field}_waiver_reason"] = "The active claim is explicitly bounded away from this evidence domain."
+
+    validation = validate_statistical_discipline_contract(contract)
+
+    assert validation == {"status": "present", "reason_code": ""}
+
+
 def test_statistical_discipline_contract_blocks_nominal_p_value_primary_evidence() -> None:
     contract = build_statistical_discipline_contract(study_archetype="observational_real_world")
     contract["sensitivity_plan"] = "Primary evidence will be the nominal p-value from the main comparison."
@@ -85,6 +108,15 @@ def test_statistical_discipline_contract_blocks_nominal_p_value_primary_evidence
     validation = validate_statistical_discipline_contract(contract)
 
     assert validation == {"status": "blocked", "reason_code": "nominal_p_value_primary_evidence"}
+
+
+def test_statistical_discipline_contract_blocks_primary_secondary_exploratory_classification() -> None:
+    contract = build_statistical_discipline_contract(study_archetype="observational_real_world")
+    contract["evidence_classification"] = "primary"
+
+    validation = validate_statistical_discipline_contract(contract)
+
+    assert validation == {"status": "blocked", "reason_code": "forbidden_evidence_classification"}
 
 
 def test_statistical_reviewer_audit_accepts_complete_truth_contract() -> None:
@@ -131,6 +163,21 @@ def test_statistical_reviewer_audit_blocks_nominal_p_value_primary_evidence() ->
     }
 
 
+def test_statistical_reviewer_audit_blocks_primary_secondary_exploratory_classification() -> None:
+    audit = _valid_statistical_reviewer_audit(
+        statistical_plan={
+            "evidence_classification": "secondary",
+        }
+    )
+
+    validation = validate_statistical_reviewer_audit(audit)
+
+    assert validation == {
+        "status": "blocked",
+        "reason_code": "statistical_plan_forbidden_evidence_classification",
+    }
+
+
 def test_bounded_analysis_candidate_board_requires_target_claim() -> None:
     candidate = _valid_candidate(target_claim="")
 
@@ -173,6 +220,14 @@ def test_bounded_analysis_candidate_board_blocks_nominal_p_value_primary_evidenc
     validation = validate_bounded_analysis_candidate_board({"candidates": [candidate]})
 
     assert validation == {"status": "blocked", "reason_code": "candidate_nominal_p_value_primary_evidence"}
+
+
+def test_bounded_analysis_candidate_board_blocks_primary_secondary_exploratory_classification() -> None:
+    candidate = _valid_candidate(evidence_classification="exploratory")
+
+    validation = validate_bounded_analysis_candidate_board({"candidates": [candidate]})
+
+    assert validation == {"status": "blocked", "reason_code": "candidate_forbidden_evidence_classification"}
 
 
 def test_bounded_analysis_candidate_board_blocks_unknown_decision() -> None:
@@ -267,3 +322,14 @@ def test_statistical_discipline_operations_projection_blocks_top_level_weak_boar
     assert projection["status"] == "blocked"
     assert "bounded_board_weak" in projection["blockers"]
     assert "candidate_0_missing_stop_reason" in projection["blockers"]
+
+
+@pytest.mark.parametrize("field", REQUIRED_CANDIDATE_FIELDS)
+def test_statistical_discipline_operations_projection_blocks_candidate_missing_required_binding(field: str) -> None:
+    contract = build_statistical_discipline_contract(study_archetype="observational_real_world")
+    bounded_board = {"candidates": [_valid_candidate(**{field: ""})]}
+
+    projection = build_statistical_discipline_operations_projection(contract, bounded_board=bounded_board)
+
+    assert projection["status"] == "blocked"
+    assert f"candidate_0_missing_{field}" in projection["blockers"]

@@ -95,6 +95,21 @@ _PRIMARY_EVIDENCE_KEYS = (
     "sensitivity_plan",
 )
 
+_FORBIDDEN_EVIDENCE_CLASSIFICATIONS = (
+    "primary",
+    "secondary",
+    "exploratory",
+)
+
+_EVIDENCE_CLASSIFICATION_KEYS = (
+    "evidence_classification",
+    "evidence_class",
+    "evidence_tier",
+    "claim_classification",
+    "analysis_classification",
+    "analysis_role",
+)
+
 _OPERATION_FIELD_LABELS = {
     "missingness_plan": "Missing-data discipline",
     "sample_size_precision_plan": "Precision and event-count discipline",
@@ -218,6 +233,14 @@ def _contains_nominal_p_value_primary_evidence(payload: Mapping[str, Any]) -> bo
 def _contains_nominal_p_value(text: object) -> bool:
     normalized = _text(text).lower()
     return bool(normalized and any(term in normalized for term in _NOMINAL_P_VALUE_TERMS))
+
+
+def _contains_forbidden_evidence_classification(payload: Mapping[str, Any]) -> bool:
+    for key in _EVIDENCE_CLASSIFICATION_KEYS:
+        value = _text(payload.get(key)).lower()
+        if value in _FORBIDDEN_EVIDENCE_CLASSIFICATIONS:
+            return True
+    return False
 
 
 def _waiver_reason(payload: Mapping[str, Any], field: str) -> str:
@@ -354,6 +377,28 @@ def build_statistical_discipline_operations_projection(
                 )
             )
 
+        missing_required_fields = [
+            field for field in REQUIRED_CANDIDATE_FIELDS if not _has_text(candidate.get(field))
+        ]
+        for field in missing_required_fields:
+            blockers.append(f"candidate_{index}_missing_{field}")
+        if missing_required_fields:
+            action_cards.append(
+                _operation_action_card(
+                    action_id=f"candidate_{index}_complete_required_bindings",
+                    label="Bounded-board candidate binding",
+                    summary="Bind the candidate to target claim, evidence gain, risk, interpretability, decision, and decision reason.",
+                    field="bounded_board",
+                    status="blocked",
+                    waiver_allowed=False,
+                )
+            )
+
+        if _contains_forbidden_evidence_classification(candidate):
+            blockers.append(f"candidate_{index}_forbidden_evidence_classification")
+        if _contains_nominal_p_value_primary_evidence(candidate):
+            blockers.append(f"candidate_{index}_nominal_p_value_primary_evidence")
+
         decision = _text(candidate.get("decision"))
         if decision not in SUPPORTED_CANDIDATE_DECISIONS:
             blockers.append(f"candidate_{index}_unsupported_decision")
@@ -402,8 +447,10 @@ def validate_statistical_discipline_contract(payload: Mapping[str, Any]) -> dict
     if _text(payload.get("study_archetype")) not in SUPPORTED_STUDY_ARCHETYPES:
         return {"status": "blocked", "reason_code": "unsupported_study_archetype"}
     for field in REQUIRED_STATISTICAL_DISCIPLINE_FIELDS:
-        if not _has_text(payload.get(field)):
+        if not _has_text(payload.get(field)) and not _waiver_reason(payload, field):
             return {"status": "blocked", "reason_code": f"missing_{field}"}
+    if _contains_forbidden_evidence_classification(payload):
+        return {"status": "blocked", "reason_code": "forbidden_evidence_classification"}
     if _contains_nominal_p_value_primary_evidence(payload):
         return {"status": "blocked", "reason_code": "nominal_p_value_primary_evidence"}
     return {"status": "present", "reason_code": ""}
@@ -430,6 +477,8 @@ def _validate_statistical_reviewer_section(
                 return {"status": "blocked", "reason_code": f"{section_key}_missing_{field}"}
         elif not _has_text(value):
             return {"status": "blocked", "reason_code": f"{section_key}_missing_{field}"}
+    if _contains_forbidden_evidence_classification(section):
+        return {"status": "blocked", "reason_code": f"{section_key}_forbidden_evidence_classification"}
     if _contains_nominal_p_value_primary_evidence(section):
         return {"status": "blocked", "reason_code": f"{section_key}_nominal_p_value_primary_evidence"}
     return {"status": "present", "reason_code": ""}
@@ -474,6 +523,8 @@ def validate_bounded_analysis_candidate_board(payload: Mapping[str, Any]) -> dic
                 return {"status": "blocked", "reason_code": f"candidate_missing_{field}"}
         if _text(candidate.get("decision")) not in SUPPORTED_CANDIDATE_DECISIONS:
             return {"status": "blocked", "reason_code": "candidate_unsupported_decision"}
+        if _contains_forbidden_evidence_classification(candidate):
+            return {"status": "blocked", "reason_code": "candidate_forbidden_evidence_classification"}
         if _contains_nominal_p_value_primary_evidence(candidate):
             return {"status": "blocked", "reason_code": "candidate_nominal_p_value_primary_evidence"}
 
