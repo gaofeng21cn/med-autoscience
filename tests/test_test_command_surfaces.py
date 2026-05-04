@@ -84,20 +84,123 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     ) in makefile
     assert "test-structure:" in makefile
     assert "uv run python scripts/line_budget.py" in makefile
-    assert "sentrux gate" in makefile
+    assert "scripts/run-structure-quality-gate.sh" in makefile
     assert "test-full:" in makefile
     assert "./scripts/run-parallel-test-lanes.sh full" in makefile
 
 
-def test_structure_lane_keeps_line_budget_and_sentrux_as_explicit_structure_checks() -> None:
+def test_structure_lane_keeps_line_budget_and_quality_gate_wrapper() -> None:
     makefile = _read("Makefile")
     structure_block = makefile.split("test-structure:", maxsplit=1)[1].split(
         "\ntest-full:", maxsplit=1
     )[0]
 
     assert "\tuv run python scripts/line_budget.py" in structure_block
-    assert "\tsentrux gate" in structure_block
-    assert "\tif [ -f .sentrux/rules.toml ]; then sentrux check; fi" in structure_block
+    assert "\tscripts/run-structure-quality-gate.sh" in structure_block
+
+
+def test_structure_quality_gate_wrapper_runs_sentrux_and_opl_compare_ref_on_failure() -> None:
+    script = _read("scripts/run-structure-quality-gate.sh")
+
+    assert 'compare_ref="${OPL_QUALITY_DETAILS_COMPARE_REF:-origin/main}"' in script
+    assert 'opl_bin="${OPL_QUALITY_DETAILS_BIN:-/Users/gaofeng/workspace/one-person-lab/bin/opl}"' in script
+    assert 'run_sentrux_command "sentrux gate" sentrux gate' in script
+    assert 'run_sentrux_command "sentrux check" sentrux check' in script
+    assert '--compare-ref "${compare_ref}"' in script
+    assert 'return "${exit_code}"' in script
+
+
+def test_structure_quality_gate_wrapper_preserves_sentrux_failure_code(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    capture_path = tmp_path / "opl.args"
+    fake_sentrux = fake_bin / "sentrux"
+    fake_sentrux.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "if [[ \"$1\" == \"gate\" ]]; then exit 33; fi\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    fake_sentrux.chmod(0o755)
+    fake_opl = fake_bin / "opl"
+    fake_opl.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"$@\" >\"${MAS_TEST_CAPTURE_PATH}\"\n",
+        encoding="utf-8",
+    )
+    fake_opl.chmod(0o755)
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
+    env["MAS_TEST_CAPTURE_PATH"] = str(capture_path)
+    env["OPL_QUALITY_DETAILS_BIN"] = str(fake_opl)
+
+    result = subprocess.run(
+        ["bash", "scripts/run-structure-quality-gate.sh"],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 33, result.stdout + result.stderr
+    opl_args = capture_path.read_text(encoding="utf-8")
+    assert "quality\n" in opl_args
+    assert "details\n" in opl_args
+    assert "--root\n" in opl_args
+    assert f"{REPO_ROOT}\n" in opl_args
+    assert "--compare-ref\norigin/main\n" in opl_args
+
+
+def test_structure_quality_gate_wrapper_runs_opl_for_sentrux_check_failures(tmp_path: Path) -> None:
+    rules_path = REPO_ROOT / ".sentrux" / "rules.toml"
+    rules_path.write_text("[constraints]\n", encoding="utf-8")
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    capture_path = tmp_path / "opl.args"
+    sentrux_calls_path = tmp_path / "sentrux.calls"
+    fake_sentrux = fake_bin / "sentrux"
+    fake_sentrux.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"$1\" >>\"${MAS_TEST_SENTRUX_CALLS_PATH}\"\n"
+        "if [[ \"$1\" == \"check\" ]]; then exit 44; fi\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    fake_sentrux.chmod(0o755)
+    fake_opl = fake_bin / "opl"
+    fake_opl.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"$@\" >\"${MAS_TEST_CAPTURE_PATH}\"\n",
+        encoding="utf-8",
+    )
+    fake_opl.chmod(0o755)
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
+    env["MAS_TEST_CAPTURE_PATH"] = str(capture_path)
+    env["MAS_TEST_SENTRUX_CALLS_PATH"] = str(sentrux_calls_path)
+    env["OPL_QUALITY_DETAILS_COMPARE_REF"] = "HEAD~1"
+    env["OPL_QUALITY_DETAILS_BIN"] = str(fake_opl)
+
+    try:
+        result = subprocess.run(
+            ["bash", "scripts/run-structure-quality-gate.sh"],
+            cwd=REPO_ROOT,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    finally:
+        rules_path.unlink(missing_ok=True)
+
+    assert result.returncode == 44, result.stdout + result.stderr
+    assert sentrux_calls_path.read_text(encoding="utf-8").splitlines() == ["gate", "check"]
+    assert "--compare-ref\nHEAD~1\n" in capture_path.read_text(encoding="utf-8")
 
 
 def test_pyproject_registers_meta_display_and_submission_markers() -> None:

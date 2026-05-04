@@ -54,6 +54,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             ".github/workflows/advisory.yml",
             ".github/workflows/ci.yml",
             ".github/workflows/release.yml",
+            ".github/workflows/sentrux-advisory.yml",
             ".github/release-notes.md",
             "pyproject.toml",
             "scripts/install-macos.sh",
@@ -252,6 +253,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         exact_paths=(
             "Makefile",
             "pyproject.toml",
+            "scripts/run-structure-quality-gate.sh",
             "scripts/verify.sh",
             "src/med_autoscience/editable_shared_bootstrap.py",
             "src/med_autoscience/dev_preflight.py",
