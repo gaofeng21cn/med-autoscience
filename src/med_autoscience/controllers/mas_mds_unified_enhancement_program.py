@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.controllers.mas_mds_longitudinal_soak import (
+    summarize_l1_longitudinal_outputs,
+)
+
 
 PROGRAM_ID = "mas_mds_unified_enhancement_program"
 SCHEMA_VERSION = 1
@@ -290,21 +294,42 @@ def _materialize_lane(lane: Mapping[str, Any]) -> dict[str, Any]:
 def build_unified_enhancement_program_board(progress_payload: Mapping[str, Any] | None = None) -> dict[str, Any]:
     progress = _mapping(progress_payload)
     lane_progress = _mapping(progress.get("lane_progress"))
+    l1_longitudinal_soak_proof = _mapping(progress.get("l1_longitudinal_soak_proof"))
     lanes: list[dict[str, Any]] = []
     for lane_id, lane in _lane_by_id().items():
         override = _mapping(lane_progress.get(lane_id))
-        status = _text(override.get("status")) or _text(lane.get("stage")) or "active"
+        outputs: dict[str, Any] | None = None
+        derived_status = ""
+        if lane_id == "L1_real_workspace_longitudinal_soak" and l1_longitudinal_soak_proof:
+            outputs = summarize_l1_longitudinal_outputs(l1_longitudinal_soak_proof)
+            if outputs.get("overall_status") == "ready":
+                derived_status = "completed"
+        status = _text(override.get("status")) or derived_status or _text(lane.get("stage")) or "active"
+        lane_item = {
+            **lane,
+            "status": status,
+            "commit": _text(override.get("commit")),
+            "verification": list(_list(override.get("verification"))),
+            "blocks_usable_target": status not in {"completed", "absorbed"},
+        }
+        if outputs is not None:
+            lane_item["outputs"] = outputs
         lanes.append(
-            {
-                **lane,
-                "status": status,
-                "commit": _text(override.get("commit")),
-                "verification": list(_list(override.get("verification"))),
-                "blocks_usable_target": status not in {"completed", "absorbed"},
-            }
+            lane_item
         )
     completed = [lane for lane in lanes if lane["status"] in {"completed", "absorbed"}]
     blocked = [lane for lane in lanes if lane["status"] == "blocked"]
+    status_summary: dict[str, Any] = {
+        "lane_count": len(lanes),
+        "recommendation_count": len(RECOMMENDATION_MAPPING),
+        "completed_or_absorbed_count": len(completed),
+        "blocked_count": len(blocked),
+        "usable_target_ready": len(completed) == len(lanes) and not blocked,
+    }
+    if l1_longitudinal_soak_proof:
+        status_summary["l1_longitudinal_soak_status"] = _text(
+            _mapping(summarize_l1_longitudinal_outputs(l1_longitudinal_soak_proof)).get("overall_status")
+        )
     return {
         "surface": "mas_mds_unified_enhancement_program_board",
         "schema_version": SCHEMA_VERSION,
@@ -339,13 +364,7 @@ def build_unified_enhancement_program_board(progress_payload: Mapping[str, Any] 
             {"lane_id": item["lane_id"], "branch": item["branch"], "absorb_order": item["absorb_order"]}
             for item in PARALLEL_WORKTREE_LANDING
         ],
-        "status_summary": {
-            "lane_count": len(lanes),
-            "recommendation_count": len(RECOMMENDATION_MAPPING),
-            "completed_or_absorbed_count": len(completed),
-            "blocked_count": len(blocked),
-            "usable_target_ready": len(completed) == len(lanes) and not blocked,
-        },
+        "status_summary": status_summary,
     }
 
 

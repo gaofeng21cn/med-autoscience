@@ -72,6 +72,8 @@ Owner: `MedAutoScience runtime + quality`
 
 Authority boundary：`L1` 只产生 proof/evidence；它不能直接改写 publication readiness。ready 仍由 AI reviewer-backed `publication_eval/latest.json`、evidence/review ledger、controller decision 和 artifact rebuild proof 共同给出。
 
+落地 surface：`mas_mds_longitudinal_soak_proof` / `mas_mds_longitudinal_soak_read_model` 以 catalog/timeline payload 生成机器可读纵向证据投影，覆盖投前、返修、重开同一论文线、换线、最终重建、draft authorization 到 submission package rebuild latency、failure recovery/replay evidence。该 surface 的 authority mode 固定为 `evidence_only`，并显式禁止写入 live study、`current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 delivery truth；program board 只消费它的 L1 status/outputs 摘要。
+
 ### L2 PI action projection
 
 Owner: `MedAutoScience product entry`
