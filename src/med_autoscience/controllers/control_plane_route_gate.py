@@ -175,26 +175,24 @@ def _controller_or_gate_payload(
     projection_only: bool,
     snapshot: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if bool(controller_route_gate.get("authorized")):
-        payload = _gate_payload(
-            action=action,
-            authorized=True,
-            projection_only=projection_only,
-            blocking_reasons=[],
-            snapshot=snapshot,
-        )
-        payload["controller_route_gate"] = dict(controller_route_gate)
-        payload["controller_route_overrode_blocking_reasons"] = list(snapshot_blocking_reasons)
-        return payload
+    blocking_reasons = list(snapshot_blocking_reasons)
+    controller_route_present = bool(controller_route_gate.get("present"))
+    if controller_route_present and not bool(controller_route_gate.get("authorized")):
+        blocking_reasons.append("controller_repair_authorization_blocked")
+        for reason in _list(controller_route_gate.get("blocking_reasons")):
+            reason_text = _text(reason)
+            if reason_text and reason_text not in blocking_reasons:
+                blocking_reasons.append(reason_text)
     payload = _gate_payload(
         action=action,
-        authorized=not snapshot_blocking_reasons,
+        authorized=not blocking_reasons,
         projection_only=projection_only,
-        blocking_reasons=snapshot_blocking_reasons,
+        blocking_reasons=blocking_reasons,
         snapshot=snapshot,
     )
-    if controller_route_gate.get("present"):
+    if controller_route_present:
         payload["controller_route_gate"] = dict(controller_route_gate)
+        payload["controller_repair_authorization_ref"] = _controller_repair_authorization_ref(controller_route_gate)
     return payload
 
 
@@ -240,6 +238,21 @@ def _controller_route_context(route_context: Mapping[str, Any]) -> Mapping[str, 
         if isinstance(value, Mapping):
             return value
     return {}
+
+
+def _controller_repair_authorization_ref(controller_route_gate: Mapping[str, Any]) -> dict[str, Any]:
+    authority_ref = _mapping(controller_route_gate.get("authority_ref"))
+    return {
+        "surface": "controller_repair_authorization",
+        "authorized": bool(controller_route_gate.get("authorized")),
+        "action": _text(controller_route_gate.get("action")),
+        "work_unit_id": _text(controller_route_gate.get("work_unit_id")),
+        "controller_action_type": _text(controller_route_gate.get("controller_action_type")),
+        "control_surface": _text(controller_route_gate.get("control_surface")),
+        "gate_fingerprint": _text(authority_ref.get("gate_fingerprint")),
+        "work_unit_fingerprint": _text(authority_ref.get("work_unit_fingerprint")),
+        "source_eval_id": _text(authority_ref.get("source_eval_id")),
+    }
 
 
 def _snapshot_ref(snapshot: Mapping[str, Any]) -> dict[str, Any] | None:

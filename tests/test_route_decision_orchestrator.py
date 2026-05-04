@@ -9,6 +9,9 @@ def _candidate(line_id: str, score: float, *, risk_cost: float = 1.0) -> dict[st
     return {
         "line_id": line_id,
         "title": f"{line_id} title",
+        "question": f"Can {line_id} answer the locked research question?",
+        "expected_artifact": f"artifacts/medical_paper/candidate_paths/{line_id}.json",
+        "claim_boundary_change": "unchanged",
         "dimensions": {
             "novelty": score,
             "clinical_relevance": score,
@@ -98,3 +101,64 @@ def test_orchestrator_switches_to_explicit_alternative_route(tmp_path: Path) -> 
     assert projection["route_decision"] == "switch_line"
     assert projection["next_action"] == "enter_baseline"
     assert projection["controller_decision"]["route_target"] == "line-b"
+
+
+def test_orchestrator_projects_bounded_candidate_path_graph_without_replacing_controller_truth(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+    study_root = tmp_path / "study"
+
+    projection = module.build_route_decision_orchestration(
+        study_root=study_root,
+        candidates=[_candidate("line-a", 3), _candidate("line-b", 5)],
+        requested_action="select_line",
+    )
+
+    graph = projection["candidate_path_graph"]
+    assert graph["surface"] == "candidate_path_graph"
+    assert graph["authority"] == "read_model_only"
+    assert graph["replaces_controller_decision"] is False
+    assert graph["replaces_study_truth"] is False
+    assert graph["controller_decision_ref"] == projection["controller_decision_ref"]
+    assert graph["allowed_decisions"] == ["proceed", "refine", "pivot", "stop", "human_gate"]
+    assert graph["decision"] == "proceed"
+    assert graph["selected_candidate_id"] == "line-b"
+
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    assert not decision_path.exists()
+
+    for candidate in graph["candidates"]:
+        assert set(candidate) >= {
+            "question",
+            "evidence_basis",
+            "expected_artifact",
+            "stop_rule",
+            "decision",
+            "controller_decision_ref",
+        }
+        assert candidate["controller_decision_ref"] == projection["controller_decision_ref"]
+        assert candidate["decision"] in graph["allowed_decisions"]
+
+
+def test_orchestrator_human_gates_pivot_when_claim_boundary_expands(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+    expanded = _candidate("expanded-line", 5)
+    expanded["claim_boundary_change"] = "expanded"
+
+    projection = module.build_route_decision_orchestration(
+        study_root=tmp_path / "study",
+        candidates=[_candidate("line-a", 4), expanded],
+        requested_action="switch_line",
+        alternative_line_id="expanded-line",
+    )
+
+    graph = projection["candidate_path_graph"]
+    assert projection["status"] == "blocked"
+    assert projection["route_decision"] == "human_gate"
+    assert projection["next_action"] == "human_gate"
+    assert graph["decision"] == "human_gate"
+    assert graph["selected_candidate_id"] == "expanded-line"
+    assert "pivot_requires_unchanged_claim_boundary" in projection["blockers"]
+    pivot_candidate = next(candidate for candidate in graph["candidates"] if candidate["candidate_id"] == "expanded-line")
+    assert pivot_candidate["decision"] == "human_gate"

@@ -180,6 +180,141 @@ def test_quality_regression_projection_compares_package_versions_without_publica
     }
 
 
+def test_quality_regression_projection_exposes_non_authoritative_hierarchical_rubric_tree() -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_regression_projection")
+
+    projection = module.build_quality_regression_projection(
+        draft_eval=_eval("draft", {dimension: "partial" for dimension in QUALITY_DIMENSIONS}),
+        revision_eval=_eval("revision", {dimension: "ready" for dimension in QUALITY_DIMENSIONS}),
+        final_package_eval=_eval("final", {dimension: "ready" for dimension in QUALITY_DIMENSIONS}),
+        historical_repair_results=[],
+        calibration_evidence_refs=["paper/review_ledger.json#paperbench-rubric-tree"],
+        judge_scores=[],
+        rubric_nodes=[
+            {
+                "node_id": "root",
+                "label": "Publication quality calibration rubric",
+                "reviewer_kind": "ai_reviewer",
+                "evidence_refs": ["artifacts/publication_eval/latest.json#quality_assessment"],
+                "judge_calibration_refs": ["paper/review_ledger.json#paperbench-rubric-tree"],
+                "score": 0.76,
+                "children": [
+                    {
+                        "node_id": "root.evidence_strength",
+                        "label": "Evidence strength",
+                        "reviewer_kind": "human_reviewer",
+                        "evidence_refs": ["paper/evidence_ledger.json#primary-outcomes"],
+                        "judge_calibration_refs": ["paper/review_ledger.json#human-evidence-strength"],
+                        "score": 0.8,
+                    },
+                    {
+                        "node_id": "root.prose_quality",
+                        "label": "Medical journal prose quality",
+                        "reviewer_kind": "ai_reviewer",
+                        "evidence_refs": ["paper/review_ledger.json#prose-route-back"],
+                        "judge_calibration_refs": ["paper/review_ledger.json#ai-prose-quality"],
+                        "score": 0.7,
+                    },
+                ],
+            }
+        ],
+    )
+
+    rubric_tree = projection["calibration_evidence"]["rubric_tree"]
+    assert rubric_tree["surface"] == "paperbench_style_hierarchical_rubric_tree"
+    assert rubric_tree["owner"] == "MAS Evaluation OS"
+    assert rubric_tree["role"] == "calibration_evidence_only"
+    assert rubric_tree["can_replace_publication_eval_latest"] is False
+    assert rubric_tree["can_authorize_submission_readiness"] is False
+    assert rubric_tree["can_authorize_publication_quality"] is False
+    assert rubric_tree["publication_authority_surface"] == "artifacts/publication_eval/latest.json"
+    assert rubric_tree["reviewer_distinction"] == {
+        "human_reviewer_role": "calibration_signal_only",
+        "ai_reviewer_role": "publication_eval_trace_evidence_only",
+        "rubric_can_replace_ai_reviewer": False,
+    }
+    assert rubric_tree["nodes"] == [
+        {
+            "node_id": "root",
+            "label": "Publication quality calibration rubric",
+            "reviewer_kind": "ai_reviewer",
+            "evidence_refs": ["artifacts/publication_eval/latest.json#quality_assessment"],
+            "judge_calibration_refs": ["paper/review_ledger.json#paperbench-rubric-tree"],
+            "score": 0.76,
+            "score_role": "calibration_evidence_only",
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+            "children": [
+                {
+                    "node_id": "root.evidence_strength",
+                    "label": "Evidence strength",
+                    "reviewer_kind": "human_reviewer",
+                    "evidence_refs": ["paper/evidence_ledger.json#primary-outcomes"],
+                    "judge_calibration_refs": ["paper/review_ledger.json#human-evidence-strength"],
+                    "score": 0.8,
+                    "score_role": "calibration_evidence_only",
+                    "can_authorize_publication_quality": False,
+                    "can_authorize_submission_readiness": False,
+                    "children": [],
+                },
+                {
+                    "node_id": "root.prose_quality",
+                    "label": "Medical journal prose quality",
+                    "reviewer_kind": "ai_reviewer",
+                    "evidence_refs": ["paper/review_ledger.json#prose-route-back"],
+                    "judge_calibration_refs": ["paper/review_ledger.json#ai-prose-quality"],
+                    "score": 0.7,
+                    "score_role": "calibration_evidence_only",
+                    "can_authorize_publication_quality": False,
+                    "can_authorize_submission_readiness": False,
+                    "children": [],
+                },
+            ],
+        }
+    ]
+
+
+def test_quality_regression_projection_fails_closed_for_invalid_rubric_tree_refs_and_reviewers() -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_regression_projection")
+    evals = {
+        "draft_eval": _eval("draft", {dimension: "partial" for dimension in QUALITY_DIMENSIONS}),
+        "revision_eval": _eval("revision", {dimension: "ready" for dimension in QUALITY_DIMENSIONS}),
+        "final_package_eval": _eval("final", {dimension: "ready" for dimension in QUALITY_DIMENSIONS}),
+    }
+
+    with pytest.raises(ValueError, match="rubric_nodes\\[0\\].reviewer_kind"):
+        module.build_quality_regression_projection(
+            **evals,
+            historical_repair_results=[],
+            calibration_evidence_refs=["paper/review_ledger.json#paperbench-rubric-tree"],
+            rubric_nodes=[
+                {
+                    "node_id": "root",
+                    "label": "Publication quality calibration rubric",
+                    "reviewer_kind": "mechanical_gate",
+                    "evidence_refs": ["artifacts/publication_eval/latest.json#quality_assessment"],
+                    "judge_calibration_refs": ["paper/review_ledger.json#paperbench-rubric-tree"],
+                }
+            ],
+        )
+
+    with pytest.raises(ValueError, match="rubric_nodes\\[0\\].judge_calibration_refs"):
+        module.build_quality_regression_projection(
+            **evals,
+            historical_repair_results=[],
+            calibration_evidence_refs=["paper/review_ledger.json#paperbench-rubric-tree"],
+            rubric_nodes=[
+                {
+                    "node_id": "root",
+                    "label": "Publication quality calibration rubric",
+                    "reviewer_kind": "human_reviewer",
+                    "evidence_refs": ["artifacts/publication_eval/latest.json#quality_assessment"],
+                    "judge_calibration_refs": [],
+                }
+            ],
+        )
+
+
 def test_quality_regression_projection_fails_closed_without_eval_or_calibration_refs() -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_regression_projection")
     draft_eval = _eval("draft", {dimension: "partial" for dimension in QUALITY_DIMENSIONS})

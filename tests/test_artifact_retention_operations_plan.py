@@ -56,6 +56,12 @@ def test_retention_plan_keeps_authority_release_audit_and_handoff_online(tmp_pat
     assert plan["surface_kind"] == "artifact_retention_operations_plan"
     assert plan["mutation_policy"]["physical_cleanup_performed"] is False
     assert plan["mutation_policy"]["allowed_physical_actions"] == ["delete-safe-cache"]
+    assert plan["retention_policy_catalog"]["default_keep_online_roles"] == [
+        "audit_log",
+        "canonical_source",
+        "data_release",
+        "human_handoff_mirror",
+    ]
     assert {item["retention_action"] for item in plan["operations"]} == {"keep_online"}
     assert all(item["physical_delete_allowed"] is False for item in plan["operations"])
     assert plan["summary"]["action_counts"]["keep_online"] == 4
@@ -91,10 +97,12 @@ def test_retention_plan_projects_generated_surfaces_without_physical_delete(tmp_
     }
     for item in plan["operations"]:
         assert item["projection_status"] == "stale_or_rebuildable_projection"
+        assert item["removal_marker"] == "regenerate-before-remove"
         assert item["canonical_regeneration_gate"]["required"] is True
         assert item["canonical_regeneration_gate"]["status"] == "required_before_physical_removal"
         assert "canonical_regeneration_required_before_projection_removal" in item["blockers"]
         assert item["physical_delete_allowed"] is False
+    assert plan["retention_policy_catalog"]["derived_projection_removal_marker"] == "regenerate-before-remove"
 
 
 def test_retention_plan_blocks_runtime_archive_compress_and_keeps_live_runtime_audit_only(
@@ -153,6 +161,7 @@ def test_retention_plan_only_marks_safe_cache_as_applyable(tmp_path: Path) -> No
     plan = module.build_artifact_retention_operations_plan(workspace_root=tmp_path, artifacts=artifacts)
 
     assert plan["summary"]["applyable_action_counts"] == {"delete_safe_cache": 1}
+    assert plan["retention_policy_catalog"]["physical_apply_allowlist"] == ["delete-safe-cache"]
     assert plan["operations"][0]["retention_action"] == "delete_safe_cache"
     assert plan["operations"][0]["physical_delete_allowed"] is True
     assert plan["operations"][1]["retention_action"] == "restore_contract_required"

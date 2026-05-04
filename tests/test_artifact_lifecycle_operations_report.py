@@ -44,6 +44,18 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
     assert report["scan_policy"]["artifact_listing"] == "bounded"
     assert report["mutation_policy"]["read_only"] is True
     assert report["mutation_policy"]["physical_cleanup_performed"] is False
+    assert report["retention_policy_catalog"]["report_default"] == {
+        "read_only": True,
+        "operation_listing": "bounded",
+    }
+    assert report["retention_policy_catalog"]["default_keep_online_roles"] == [
+        "audit_log",
+        "canonical_source",
+        "data_release",
+        "human_handoff_mirror",
+    ]
+    assert report["retention_policy_catalog"]["derived_projection_removal_marker"] == "regenerate-before-remove"
+    assert report["retention_policy_catalog"]["live_runtime_rule"] == "audit-only"
     assert report["summary"]["role_counts"]["canonical_source"] == 1
     assert report["retention_plan"]["summary"]["action_counts"]["keep_online"] >= 1
     assert report["retention_plan"]["summary"]["action_counts"]["regenerate_projection_then_remove_stale"] >= 1
@@ -61,6 +73,7 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
     workspace_plan = report["workspaces"][0]["retention_plan"]
     assert workspace_plan["mutation_policy"]["physical_cleanup_performed"] is False
     assert workspace_plan["mutation_policy"]["allowed_physical_actions"] == ["delete-safe-cache"]
+    assert workspace_plan["retention_policy_catalog"]["physical_apply_allowlist"] == ["delete-safe-cache"]
     assert workspace_plan["operation_listing"] == "bounded"
     assert "operations" not in workspace_plan
     projection_operations = [
@@ -70,6 +83,7 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
     ]
     assert projection_operations
     assert all(item["physical_delete_allowed"] is False for item in projection_operations)
+    assert {item["removal_marker"] for item in projection_operations} == {"regenerate-before-remove"}
 
 
 def test_lifecycle_operations_report_default_uses_storage_audit_snapshot_without_deep_runtime_scan(

@@ -18,6 +18,7 @@ _KEEP_ONLINE_ROLES = frozenset(
         "human_handoff_mirror",
     }
 )
+_REGENERATE_BEFORE_REMOVE_MARKER = "regenerate-before-remove"
 
 
 def build_artifact_retention_operations_plan(
@@ -35,6 +36,7 @@ def build_artifact_retention_operations_plan(
         "surface_kind": SURFACE_KIND,
         "workspace_root": str(resolved_workspace_root),
         "mutation_policy": _mutation_policy(),
+        "retention_policy_catalog": retention_policy_catalog(),
         "summary": _summary(operations),
         "operations": operations,
     }
@@ -59,6 +61,7 @@ def aggregate_artifact_retention_operations_plans(
             "applyable_action_counts": dict(sorted(applyable_action_counts.items())),
         },
         "mutation_policy": _mutation_policy(),
+        "retention_policy_catalog": retention_policy_catalog(),
     }
 
 
@@ -74,6 +77,8 @@ def compact_artifact_retention_operations_plan(
         "surface_kind": _text(plan.get("surface_kind")) or SURFACE_KIND,
         "workspace_root": _text(plan.get("workspace_root")),
         "mutation_policy": dict(_mapping(plan.get("mutation_policy"))) or _mutation_policy(),
+        "retention_policy_catalog": dict(_mapping(plan.get("retention_policy_catalog")))
+        or retention_policy_catalog(),
         "summary": dict(_mapping(plan.get("summary"))),
         "operation_listing": "bounded",
         "operation_sample": [dict(item) for item in sample if isinstance(item, Mapping)],
@@ -116,6 +121,7 @@ def _retention_operation(*, workspace_root: Path, artifact: Mapping[str, Any]) -
         return {
             **base,
             "retention_action": "regenerate_projection_then_remove_stale",
+            "removal_marker": _REGENERATE_BEFORE_REMOVE_MARKER,
             "projection_status": "stale_or_rebuildable_projection",
             "canonical_regeneration_gate": {
                 "required": True,
@@ -190,6 +196,28 @@ def _mutation_policy() -> dict[str, Any]:
     }
 
 
+def retention_policy_catalog() -> dict[str, Any]:
+    return {
+        "default_keep_online_roles": sorted(_KEEP_ONLINE_ROLES),
+        "derived_projection_removal_marker": _REGENERATE_BEFORE_REMOVE_MARKER,
+        "derived_projection_rule": "regenerate_projection_then_remove_stale",
+        "live_runtime_rule": "audit-only",
+        "payload_restore_gate": {
+            "required_fields": [
+                "restore_index_path",
+                "sha256",
+                "rehydrate_verification.status=verified",
+            ],
+            "status": "required_before_physical_cleanup",
+        },
+        "physical_apply_allowlist": list(ALLOWED_PHYSICAL_ACTIONS),
+        "report_default": {
+            "read_only": True,
+            "operation_listing": "bounded",
+        },
+    }
+
+
 def _artifact_path(artifact: Mapping[str, Any]) -> str:
     raw_path = _text(artifact.get("path"))
     return raw_path
@@ -253,4 +281,5 @@ __all__ = [
     "aggregate_artifact_retention_operations_plans",
     "build_artifact_retention_operations_plan",
     "compact_artifact_retention_operations_plan",
+    "retention_policy_catalog",
 ]

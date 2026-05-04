@@ -229,12 +229,12 @@ def _restore_contract_blockers(
     target_path: Path,
     restore_contract: Mapping[str, Any],
 ) -> list[str]:
+    blockers: list[str] = []
     if not restore_contract:
-        return ["missing_restore_contract"]
+        blockers.append("missing_restore_contract")
     restore_index = _text(restore_contract.get("restore_index_path") or restore_contract.get("restore_index"))
     checksum = _text(restore_contract.get("sha256") or restore_contract.get("checksum"))
     rehydrate = _mapping(restore_contract.get("rehydrate_verification"))
-    blockers: list[str] = []
     if restore_index is None:
         blockers.append("missing_restore_index")
     elif not (workspace_root / restore_index).exists():

@@ -26,6 +26,7 @@ from med_autoscience.controllers.artifact_retention_operations_plan import (
     aggregate_artifact_retention_operations_plans,
     build_artifact_retention_operations_plan,
     compact_artifact_retention_operations_plan,
+    retention_policy_catalog,
 )
 
 
@@ -92,6 +93,7 @@ def run_lifecycle_operations_report(
             "cleanup_apply_supported": False,
             "physical_cleanup_performed": False,
         },
+        "retention_policy_catalog": retention_policy_catalog(),
         "scan_policy": {
             "classified_scan_mode": CLASSIFIED_SCAN_MODE,
             "noise_scan_mode": NOISE_SCAN_MODE,

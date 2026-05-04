@@ -6,6 +6,7 @@ from pathlib import Path
 
 def _complete_payload() -> dict[str, object]:
     return {
+        "study_id": "003-invasive-architecture",
         "search_strategy": {
             "query": "Pituitary neuroendocrine tumor invasive architecture",
             "mesh_terms": ["Pituitary Neoplasms", "Biomarkers"],
@@ -29,6 +30,45 @@ def _complete_payload() -> dict[str, object]:
             },
         ],
         "citation_ledger_refs": ["paper/evidence_ledger.json#anchor-1"],
+        "evidence_nodes": [
+            {
+                "node_id": "anchor-invasive-pattern",
+                "claim": "Invasive architecture is clinically relevant for pituitary tumor characterization.",
+                "pmid": "12345678",
+                "source_ref": "pubmed:query-run-2026-05-03#12345678",
+                "evidence_type": "anchor_paper",
+            },
+            {
+                "node_id": "guideline-reporting",
+                "claim": "Prediction or reporting claims require transparent citation grounding.",
+                "guideline_ref": "guideline:TRIPOD+AI",
+                "evidence_type": "guideline",
+            },
+        ],
+        "perspective_questions": [
+            {
+                "question": "Which invasion definitions are clinically stable enough to anchor the study claim?",
+                "source_refs": ["pmid:12345678"],
+            }
+        ],
+        "contradiction_flags": [
+            {
+                "flag_id": "definition-heterogeneity",
+                "signal": "Different studies use non-identical invasion definitions.",
+                "evidence_refs": ["pmid:12345678", "guideline:TRIPOD+AI"],
+                "review_signal_only": True,
+            }
+        ],
+        "metadata_quality": {
+            "pmid_coverage": "partial",
+            "doi_coverage": "partial",
+            "guideline_ref_coverage": "present",
+        },
+        "citation_grounding": {
+            "grounded_node_count": 2,
+            "ungrounded_node_count": 0,
+            "ledger_refs": ["paper/evidence_ledger.json#anchor-1"],
+        },
     }
 
 
@@ -50,7 +90,31 @@ def test_literature_intelligence_os_materializes_complete_ready_surface(tmp_path
     read_model = module.read_literature_intelligence_os(study_root=study_root)
     assert read_model["surface"] == "literature_intelligence_os"
     assert read_model["status"] == "ready"
+    assert read_model["schema_version"] == 1
+    assert read_model["study_id"] == "003-invasive-architecture"
     assert read_model["search_strategy"]["query"] == "Pituitary neuroendocrine tumor invasive architecture"
+    assert read_model["source_coverage"] == {
+        "searched_source_count": 2,
+        "anchor_paper_count": 1,
+        "guideline_count": 1,
+        "systematic_review_count": 1,
+        "journal_neighbor_ref_count": 1,
+        "citation_ledger_ref_count": 1,
+        "evidence_node_count": 2,
+        "perspective_question_count": 1,
+        "contradiction_flag_count": 1,
+    }
+    assert read_model["evidence_nodes"][0]["pmid"] == "12345678"
+    assert read_model["perspective_questions"][0]["question"].startswith("Which invasion definitions")
+    assert read_model["contradiction_flags"][0]["review_signal_only"] is True
+    assert read_model["metadata_quality"]["guideline_ref_coverage"] == "present"
+    assert read_model["citation_grounding"]["ungrounded_node_count"] == 0
+    assert read_model["authority"] == {
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission": False,
+        "can_authorize_finalize": False,
+        "contradiction_flags_authority": "evidence_review_signal_only",
+    }
     assert read_model["quality_claim_authorized"] is False
     assert read_model["mechanical_projection_can_authorize_quality"] is False
 
@@ -64,9 +128,13 @@ def test_literature_intelligence_os_materializes_complete_ready_surface(tmp_path
         "journal_neighbor_ref_count": 1,
         "screening_decision_count": 2,
         "citation_ledger_ref_count": 1,
+        "evidence_node_count": 2,
+        "perspective_question_count": 1,
+        "contradiction_flag_count": 1,
     }
     assert summary["quality_claim_authorized"] is False
     assert summary["mechanical_projection_can_authorize_quality"] is False
+    assert summary["authority"]["can_authorize_publication_quality"] is False
 
 
 def test_literature_intelligence_os_fails_closed_when_network_sources_are_missing(
@@ -127,6 +195,54 @@ def test_literature_intelligence_os_requires_screening_reason(tmp_path: Path) ->
     assert read_model["status"] == "blocked"
 
 
+def test_literature_intelligence_os_requires_evidence_node_provenance(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.literature_intelligence_os")
+    payload = _complete_payload()
+    payload["evidence_nodes"] = [
+        {
+            "node_id": "ungrounded-node",
+            "claim": "This claim has no PMID, DOI, guideline ref, or source ref.",
+            "evidence_type": "anchor_paper",
+        }
+    ]
+
+    result = module.materialize_literature_intelligence_os(
+        study_root=tmp_path / "study",
+        payload=payload,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["missing_reason"] == "missing_evidence_node_provenance"
+    read_model = module.read_literature_intelligence_os(study_root=tmp_path / "study")
+    assert read_model["status"] == "blocked"
+    assert read_model["evidence_nodes"][0]["node_id"] == "ungrounded-node"
+    assert read_model["authority"]["contradiction_flags_authority"] == "evidence_review_signal_only"
+
+
+def test_literature_intelligence_os_contradictions_are_review_signals_only(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.literature_intelligence_os")
+    payload = _complete_payload()
+    payload["contradiction_flags"] = [
+        {
+            "flag_id": "opposite-effect-direction",
+            "signal": "Two evidence nodes point in different effect directions.",
+            "evidence_refs": ["pmid:12345678", "doi:10.1000/systematic-review"],
+        }
+    ]
+
+    result = module.materialize_literature_intelligence_os(
+        study_root=tmp_path / "study",
+        payload=payload,
+    )
+
+    assert result["status"] == "ready"
+    assert result["quality_claim_authorized"] is False
+    read_model = module.read_literature_intelligence_os(study_root=tmp_path / "study")
+    assert read_model["contradiction_flags"][0]["review_signal_only"] is True
+    assert read_model["authority"]["can_authorize_publication_quality"] is False
+    assert read_model["authority"]["contradiction_flags_authority"] == "evidence_review_signal_only"
+
+
 def test_literature_intelligence_os_summary_fails_closed_without_canonical_artifact(
     tmp_path: Path,
 ) -> None:
@@ -139,3 +255,4 @@ def test_literature_intelligence_os_summary_fails_closed_without_canonical_artif
     assert summary["artifact_path"].endswith("artifacts/medical_paper/literature_intelligence_os.json")
     assert summary["quality_claim_authorized"] is False
     assert summary["mechanical_projection_can_authorize_quality"] is False
+    assert summary["authority"]["can_authorize_publication_quality"] is False

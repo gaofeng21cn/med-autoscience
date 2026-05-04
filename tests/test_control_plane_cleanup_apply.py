@@ -183,7 +183,11 @@ def test_cleanup_apply_blocks_data_release_without_restore_contract(tmp_path: Pa
     assert report["status"] == "blocked"
     assert cache_root.exists()
     assert report["action_counts"]["applied"] == 0
-    assert "missing_restore_contract" in report["apply_plan"][0]["blockers"]
+    blockers = report["apply_plan"][0]["blockers"]
+    assert "missing_restore_contract" in blockers
+    assert "missing_restore_index" in blockers
+    assert "missing_checksum" in blockers
+    assert "missing_rehydrate_verification" in blockers
 
 
 def test_cleanup_apply_blocks_non_allowlisted_actions(tmp_path: Path) -> None:
