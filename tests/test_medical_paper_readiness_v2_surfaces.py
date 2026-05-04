@@ -175,6 +175,10 @@ def _reviewer_operating_system() -> dict[str, object]:
         "route_back_decision": {
             "recommended_action": "authorize_full_manuscript_drafting",
             "rationale": "All authoring inputs are ready.",
+            "calibration_refs_applied": [
+                "ai_reviewer_calibration_corpus#thin_first_draft",
+                "ai_reviewer_calibration_corpus#overstrong_claim",
+            ],
         },
     }
 

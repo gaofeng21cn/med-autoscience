@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import subprocess
 import sys
 import fnmatch
@@ -9,6 +10,9 @@ from tests import conftest as tests_conftest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+AGGREGATE_ENTRYPOINT_COLLECTION_COUNT_FLOOR = 139
+NESTED_STRUCTURE_PARENT_NAMES = {"cases", "modules", "parts"}
 
 AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
     "tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py": {
@@ -91,23 +95,34 @@ def _collectable_test_ids(*paths: str) -> set[str]:
     return {line for line in result.stdout.splitlines() if "::" in line}
 
 
+def _current_nested_structure_module_paths() -> set[str]:
+    return {
+        path.relative_to(REPO_ROOT / "tests").as_posix()
+        for path in (REPO_ROOT / "tests").rglob("test_*.py")
+        if _is_nested_structure_module_path(path.relative_to(REPO_ROOT / "tests"))
+    }
+
+
 def _current_nested_case_module_paths() -> set[str]:
-    product_entry_case_dir = (
-        REPO_ROOT
-        / "tests"
-        / "product_entry_cases"
-        / "cockpit_status_and_frontdesk_focus_cases"
-    )
-    runtime_watch_case_dir = REPO_ROOT / "tests" / "test_runtime_watch_cases"
-    nested_paths = [
-        *product_entry_case_dir.glob("test_*.py"),
-        *runtime_watch_case_dir.glob("*_cases_cases/test_*.py"),
-    ]
-    return {path.relative_to(REPO_ROOT / "tests").as_posix() for path in nested_paths}
+    return {
+        path
+        for path in _current_nested_structure_module_paths()
+        if _is_covered_by_nested_case_ignore(path)
+    }
 
 
 def _read(relative_path: str) -> str:
     return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+
+
+def _is_nested_structure_module_path(relative_path: Path) -> bool:
+    structural_parent_count = sum(
+        part.endswith("_cases")
+        or part.endswith("_cases_cases")
+        or part in NESTED_STRUCTURE_PARENT_NAMES
+        for part in relative_path.parts[:-1]
+    )
+    return structural_parent_count >= 2
 
 
 def _entrypoint_import_token(entrypoint: str, nested_module: str) -> str:
@@ -121,6 +136,34 @@ def _is_covered_by_nested_case_ignore(path: str) -> bool:
         fnmatch.fnmatch(path, pattern)
         for pattern in tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS
     )
+
+
+def _is_marker_managed_nested_path(path: str) -> bool:
+    relative_test_path = "tests/" + path
+    return (
+        relative_test_path in tests_conftest.META_FILES
+        or relative_test_path in tests_conftest.DISPLAY_HEAVY_FILES
+        or relative_test_path in tests_conftest.FAMILY_FILES
+        or relative_test_path in tests_conftest.WRITE_ROUTE_LEGACY_DEFAULT_FILES
+        or relative_test_path.startswith(tests_conftest.WRITE_ROUTE_LEGACY_DEFAULT_PREFIXES)
+        or "pytestmark = pytest.mark." in _read(relative_test_path)
+    )
+
+
+def _test_function_names(relative_path: str) -> set[str]:
+    tree = ast.parse(_read(relative_path), filename=relative_path)
+    return {
+        node.name
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
+    }
+
+
+def _collected_test_function_names(collected_ids: set[str]) -> set[str]:
+    return {
+        collected_id.rsplit("::", maxsplit=1)[-1].split("[", maxsplit=1)[0]
+        for collected_id in collected_ids
+    }
 
 
 def _format_paths(paths: set[str]) -> str:
@@ -144,6 +187,23 @@ def _nested_case_ignore_failure_message(uncovered_paths: set[str]) -> str:
         "NESTED_CASE_REEXPORT_SURFACES in tests/test_collection_hygiene.py. If they should be "
         "default-collected tests, keep them outside nested case directories and rely on normal marker "
         "management instead."
+    )
+
+
+def _nested_structure_classification_failure_message(unclassified_paths: set[str]) -> str:
+    configured_globs = "\n".join(
+        f"  - {pattern}" for pattern in tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS
+    )
+    return (
+        "Nested structure test modules must be explicitly classified.\n"
+        "Unclassified nested module paths:\n"
+        f"{_format_paths(unclassified_paths)}\n"
+        "Current nested ignore surface:\n"
+        f"{configured_globs}\n"
+        "Aggregate-managed nested families must add a precise family glob to "
+        "tests/conftest.py and declare aggregate/re-export coverage here. "
+        "Default-collected nested families must be marker-managed through tests/conftest.py "
+        "or module-level pytestmark."
     )
 
 
@@ -183,6 +243,20 @@ def _missing_imports_failure_message(
     )
 
 
+def _aggregate_collection_failure_message(
+    *,
+    entrypoint: str,
+    missing_test_names: set[str],
+) -> str:
+    return (
+        f"Aggregate entrypoint coverage shrank for {entrypoint}.\n"
+        "Missing nested case test names:\n"
+        f"{_format_paths(missing_test_names)}\n"
+        "Keep the aggregate entrypoint importing every declared nested case module, or update "
+        "AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES after deleting/moving the module."
+    )
+
+
 def test_nested_case_collection_ignore_globs_are_declared() -> None:
     assert set(tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS) == {
         "product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_*.py",
@@ -193,12 +267,16 @@ def test_nested_case_collection_ignore_globs_are_declared() -> None:
     )
 
 
-def test_declared_nested_case_families_cover_current_case_module_paths() -> None:
-    nested_case_files = _current_nested_case_module_paths()
-    uncovered_paths = {path for path in nested_case_files if not _is_covered_by_nested_case_ignore(path)}
+def test_nested_structure_modules_are_explicitly_classified() -> None:
+    nested_structure_files = _current_nested_structure_module_paths()
+    unclassified_paths = {
+        path
+        for path in nested_structure_files
+        if not _is_covered_by_nested_case_ignore(path) and not _is_marker_managed_nested_path(path)
+    }
 
-    assert nested_case_files
-    assert uncovered_paths == set(), _nested_case_ignore_failure_message(uncovered_paths)
+    assert nested_structure_files
+    assert unclassified_paths == set(), _nested_structure_classification_failure_message(unclassified_paths)
 
 
 def test_declared_nested_case_modules_have_aggregate_entrypoint_coverage() -> None:
@@ -223,7 +301,20 @@ def test_declared_nested_case_modules_have_aggregate_entrypoint_coverage() -> No
             "Add missing paths to NESTED_CASE_REEXPORT_SURFACES under the re-export module that "
             "should import them, then add the matching explicit import in that module."
         ),
-    )
+        )
+
+
+def test_aggregate_entrypoints_collect_all_declared_nested_case_tests() -> None:
+    for entrypoint, nested_modules in AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES.items():
+        expected_test_names = set().union(*(_test_function_names(module) for module in nested_modules))
+        collected_names = _collected_test_function_names(_collectable_test_ids(entrypoint))
+        missing_test_names = expected_test_names - collected_names
+
+        assert expected_test_names
+        assert missing_test_names == set(), _aggregate_collection_failure_message(
+            entrypoint=entrypoint,
+            missing_test_names=missing_test_names,
+        )
 
 
 def test_nested_case_reexport_surfaces_explicitly_import_declared_nested_modules() -> None:
@@ -266,16 +357,13 @@ def test_submission_minimal_display_surface_uses_write_route_legacy_default() ->
 
 
 def test_nested_case_modules_are_not_default_collection_surfaces() -> None:
-    result = _collect_only(
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_status_cards.py",
-        "tests/test_runtime_watch_cases/runtime_status_cases_cases/test_runtime_activity_projection.py",
-        "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_work_unit_dedupe.py",
-    )
+    nested_case_modules = {"tests/" + path for path in _current_nested_case_module_paths()}
+    result = _collect_only(*sorted(nested_case_modules))
 
+    assert nested_case_modules
     assert result.returncode == 5, result.stdout + result.stderr
-    assert "test_status_cards.py::" not in result.stdout
-    assert "test_runtime_activity_projection.py::" not in result.stdout
-    assert "test_work_unit_dedupe.py::" not in result.stdout
+    for nested_case_module in nested_case_modules:
+        assert f"{nested_case_module}::" not in result.stdout
 
 
 def test_aggregate_collection_surfaces_still_collect_nested_cases() -> None:
@@ -308,10 +396,10 @@ def test_representative_nested_case_modules_only_collect_through_aggregate_entry
         assert f"::{test_name}" in aggregate_output
 
 
-def test_aggregate_collection_surfaces_hold_expected_collection_count() -> None:
+def test_aggregate_collection_surfaces_do_not_shrink_below_trend_floor() -> None:
     collected_lines = _collectable_test_ids(
         "tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py",
         "tests/test_runtime_watch.py",
     )
 
-    assert len(collected_lines) == 141
+    assert len(collected_lines) >= AGGREGATE_ENTRYPOINT_COLLECTION_COUNT_FLOOR

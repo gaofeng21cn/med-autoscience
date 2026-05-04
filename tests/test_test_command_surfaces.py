@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import inspect
 import json
 import os
@@ -54,6 +55,38 @@ PARALLEL_FULL_LANES = (
 
 def _read(relative_path: str) -> str:
     return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+
+
+def _assert_command_surface_matches_catalog(
+    *,
+    surface: str,
+    expected_commands: set[str],
+    actual_commands: set[str],
+) -> None:
+    assert expected_commands == actual_commands, (
+        f"control-plane command catalog/{surface} drift: "
+        f"missing_from_{surface}={sorted(expected_commands - actual_commands)} "
+        f"missing_from_catalog={sorted(actual_commands - expected_commands)}"
+    )
+
+
+def _assert_mcp_modes_cover_catalog(*, expected: tuple[object, ...], actual_modes: set[str]) -> None:
+    missing_commands = [
+        getattr(spec, "command")
+        for spec in expected
+        if getattr(spec, "mcp_mode") not in actual_modes
+    ]
+    unexpected_modes = sorted(
+        mode
+        for mode in actual_modes
+        if mode.startswith(("migration_", "governance_", "backfill_", "cleanup_", "safe_cache_", "lifecycle_"))
+        and mode not in {getattr(spec, "mcp_mode") for spec in expected}
+    )
+    assert not missing_commands and not unexpected_modes, (
+        "control-plane command catalog/mcp drift: "
+        f"missing_commands_from_mcp={missing_commands} "
+        f"unexpected_control_plane_mcp_modes={unexpected_modes}"
+    )
 
 
 def test_makefile_exposes_layered_test_entrypoints() -> None:
@@ -800,10 +833,18 @@ def test_family_lane_test_files_are_marker_scoped_to_avoid_full_lane_overlap() -
 
 
 def test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces() -> None:
-    cli_parser = _read("src/med_autoscience/cli_parts/parser.py")
-    cli_main = _read("src/med_autoscience/cli.py")
-    mcp_server = _read("src/med_autoscience/mcp_server.py")
-    domain_entry_contract = _read("src/med_autoscience/domain_entry_contract.py")
+    from med_autoscience import cli, domain_entry_contract, mcp_server
+
+    parser = cli.build_parser()
+    cli_commands: set[str] = set()
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            cli_commands.update(action.choices)
+
+    mcp_tools = {tool["name"]: tool for tool in mcp_server.build_tool_manifest()}
+    mcp_modes = set(mcp_tools["product_entry"]["inputSchema"]["properties"]["mode"]["enum"])
+    domain_catalog = domain_entry_contract.build_domain_entry_command_catalog()
+    product_entry_manifest_contract = domain_entry_contract.build_domain_entry_contract()
     schema = json.loads(_read("contracts/schemas/v1/product-entry-manifest.schema.json"))
     supported_command_enum = set(
         schema["$defs"]["domainEntryContract"]["properties"]["supported_commands"]["items"]["enum"]
@@ -813,15 +854,48 @@ def test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_sch
         command for command in supported_command_enum if command.startswith("control-plane-")
     }
 
-    assert catalog_commands == schema_control_plane_commands, (
-        "control-plane command catalog/schema drift: "
-        f"missing_from_schema={sorted(catalog_commands - schema_control_plane_commands)} "
-        f"missing_from_catalog={sorted(schema_control_plane_commands - catalog_commands)}"
+    _assert_command_surface_matches_catalog(
+        surface="cli",
+        expected_commands=catalog_commands,
+        actual_commands={command for command in cli_commands if command.startswith("control-plane-")},
+    )
+    _assert_mcp_modes_cover_catalog(
+        expected=CONTROL_PLANE_OPERATIONS_COMMANDS,
+        actual_modes=mcp_modes,
+    )
+    _assert_command_surface_matches_catalog(
+        surface="product_entry_manifest",
+        expected_commands=catalog_commands,
+        actual_commands={
+            command
+            for command in product_entry_manifest_contract["supported_commands"]
+            if command.startswith("control-plane-")
+        },
+    )
+    _assert_command_surface_matches_catalog(
+        surface="domain_entry_command_catalog",
+        expected_commands=catalog_commands,
+        actual_commands={
+            item["command"]
+            for item in domain_catalog["command_contracts"]
+            if item["command"].startswith("control-plane-")
+        },
+    )
+    _assert_command_surface_matches_catalog(
+        surface="schema",
+        expected_commands=catalog_commands,
+        actual_commands=schema_control_plane_commands,
     )
 
+    manifest_contracts = {
+        item["command"]: item
+        for item in product_entry_manifest_contract["command_contracts"]
+        if item["command"].startswith("control-plane-")
+    }
     for spec in CONTROL_PLANE_OPERATIONS_COMMANDS:
-        assert f'add_parser("{spec.cli_command}")' in cli_parser
-        assert f'args.command == "{spec.cli_command}"' in cli_main
-        assert f'if mode == "{spec.mcp_mode}"' in mcp_server
-        assert "CONTROL_PLANE_OPERATIONS_COMMANDS" in domain_entry_contract
-        assert "item.command: item" in domain_entry_contract
+        assert manifest_contracts.get(spec.command) == spec.command_contract(), (
+            "control-plane command contract drift: "
+            f"command={spec.command!r} "
+            f"manifest_contract={manifest_contracts.get(spec.command)!r} "
+            f"catalog_contract={spec.command_contract()!r}"
+        )
