@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.controllers.audit_compaction_governance import (
+    build_audit_compaction_governance_report,
+    validate_audit_compaction_governance_report,
+)
+
 
 PROGRAM_ID = "mas_mds_unified_enhancement_program"
 SCHEMA_VERSION = 1
@@ -129,6 +134,7 @@ PROGRAM_LANES = (
             "Sentrux and line-budget structure target list",
             "audit compaction pre-contract",
         ),
+        "read_model_surface": "mas_l5_audit_compaction_governance",
         "authority_boundary": "maintainability lane does not change study truth, publication truth, delivery truth, or runtime action",
         "compaction_gates": ("restore", "index", "provenance"),
     },
@@ -290,19 +296,43 @@ def _materialize_lane(lane: Mapping[str, Any]) -> dict[str, Any]:
 def build_unified_enhancement_program_board(progress_payload: Mapping[str, Any] | None = None) -> dict[str, Any]:
     progress = _mapping(progress_payload)
     lane_progress = _mapping(progress.get("lane_progress"))
+    l5_governance = build_audit_compaction_governance_report()
+    l5_validation = validate_audit_compaction_governance_report(l5_governance)
     lanes: list[dict[str, Any]] = []
     for lane_id, lane in _lane_by_id().items():
         override = _mapping(lane_progress.get(lane_id))
         status = _text(override.get("status")) or _text(lane.get("stage")) or "active"
-        lanes.append(
-            {
-                **lane,
-                "status": status,
-                "commit": _text(override.get("commit")),
-                "verification": list(_list(override.get("verification"))),
-                "blocks_usable_target": status not in {"completed", "absorbed"},
+        item = {
+            **lane,
+            "status": status,
+            "commit": _text(override.get("commit")),
+            "verification": list(_list(override.get("verification"))),
+            "blocks_usable_target": status not in {"completed", "absorbed"},
+        }
+        if lane_id == "L5_natural_boundary_and_audit_compaction":
+            item["read_model"] = {
+                "surface": l5_governance["surface"],
+                "validation_surface": l5_validation["surface"],
+                "validation_ok": l5_validation["ok"],
+                "maintainability_only": l5_governance["maintainability_only"],
+                "worktree_bucket_counts": {
+                    bucket: len(l5_governance["worktree_ownership_audit"].get(bucket) or [])
+                    for bucket in (
+                        "main",
+                        "current_l5_worktree",
+                        "external_active_worktree",
+                        "unknown_owner",
+                    )
+                },
+                "structure_target_count": len(l5_governance["structure_target_list"].get("top_targets") or []),
+                "compaction_implementation_allowed": l5_governance["compaction_implementation_allowed"],
+                "compaction_gates": [
+                    gate["gate_id"]
+                    for gate in l5_governance["audit_compaction_pre_contract"].get("gates") or []
+                    if isinstance(gate, Mapping)
+                ],
             }
-        )
+        lanes.append(item)
     completed = [lane for lane in lanes if lane["status"] in {"completed", "absorbed"}]
     blocked = [lane for lane in lanes if lane["status"] == "blocked"]
     return {

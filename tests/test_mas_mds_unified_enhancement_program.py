@@ -100,6 +100,9 @@ def test_unified_enhancement_program_records_external_engineering_basis_and_para
 
     assert "吸收顺序固定为 `L1 -> L2 -> L3 -> L4 -> L5`" in doc
     assert "projection_pending_authority" in doc
+    assert "mas_l5_audit_compaction_governance" in doc
+    assert "maintainability_only" in doc
+    assert "不写 runtime/study/publication/delivery truth" in doc
 
 
 def test_unified_enhancement_program_is_linked_from_core_architecture_and_program_board() -> None:

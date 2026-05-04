@@ -133,6 +133,17 @@ Owner: `MedAutoScience maintainability`
 
 Authority boundary：结构治理不改变 study truth、publication truth、delivery truth 或 runtime action；它只降低维护成本和误读风险。
 
+当前可用 read model：`mas_l5_audit_compaction_governance`，由
+`med_autoscience.controllers.audit_compaction_governance` 暴露，状态为 `maintainability_only`。
+它只输出：
+
+- worktree ownership audit：按 main、本轮 L5 worktree、外部 active worktree、unknown owner 分桶；不自动清理 worktree。
+- structure top target list：从 Sentrux structure lane、line budget、boundary fitness 汇总自然边界拆分目标。
+- audit compaction pre-contract：restore、index、provenance 三个 gate 均存在且通过前，compaction implementation 保持 blocked。
+
+该 read model 不写 runtime/study/publication/delivery truth，不写 `study_runtime_status`、`runtime_watch`、
+`publication_eval/latest.json`、`controller_decisions/latest.json` 或 delivery artifact authority。
+
 ## 实施顺序
 
 第一批可并行推进：

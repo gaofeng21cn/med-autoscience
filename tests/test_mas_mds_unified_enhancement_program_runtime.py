@@ -38,6 +38,13 @@ def test_unified_enhancement_program_board_materializes_lanes_mapping_and_absorb
         "codex/mas-delivery-legacy-visibility",
         "codex/mas-structure-audit-compaction",
     ]
+    l5_lane = board["lanes"][4]
+    assert l5_lane["authority_mode"] == "maintainability_only"
+    assert l5_lane["read_model_surface"] == "mas_l5_audit_compaction_governance"
+    assert l5_lane["read_model"]["validation_ok"] is True
+    assert l5_lane["read_model"]["maintainability_only"] is True
+    assert l5_lane["read_model"]["compaction_gates"] == ["restore", "index", "provenance"]
+    assert l5_lane["read_model"]["compaction_implementation_allowed"] is False
     assert {item["basis_id"] for item in board["engineering_basis"]} == {
         "strangler_fig",
         "architecture_fitness_functions",
