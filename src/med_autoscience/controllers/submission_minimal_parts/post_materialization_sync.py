@@ -122,16 +122,11 @@ def replay_post_submission_minimal_sync(
 
     profile_path, profile = _resolve_profile_for_study_root(context.study_root)
     if profile is None:
-        return {
-            "status": "gate_replayed_profile_unresolved",
-            "quest_root": str(context.quest_root),
-            "study_root": str(context.study_root),
-            "gate_replay": gate_refresh,
-            "post_gate_delivery_sync": post_gate_delivery_sync,
-            "progress_refresh": {
-                "status": "skipped_profile_unresolved",
-            },
-        }
+        return _profile_unresolved_payload(
+            context=context,
+            gate_refresh=gate_refresh,
+            post_gate_delivery_sync=post_gate_delivery_sync,
+        )
 
     progress_payload = study_progress.read_study_progress(
         profile=profile,
@@ -139,13 +134,48 @@ def replay_post_submission_minimal_sync(
         study_id=context.study_id,
         study_root=context.study_root,
     )
-    refs = dict(progress_payload.get("refs") or {})
     controller_decision_refresh = study_outer_loop.refresh_parked_submission_milestone_controller_decision(
         profile=profile,
         study_id=context.study_id,
         study_root=context.study_root,
         source="submission-minimal-post-materialization",
     )
+    return _synced_payload(
+        context=context,
+        gate_refresh=gate_refresh,
+        post_gate_delivery_sync=post_gate_delivery_sync,
+        progress_payload=progress_payload,
+        controller_decision_refresh=controller_decision_refresh,
+    )
+
+
+def _profile_unresolved_payload(
+    *,
+    context: Any,
+    gate_refresh: Mapping[str, Any],
+    post_gate_delivery_sync: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    return {
+        "status": "gate_replayed_profile_unresolved",
+        "quest_root": str(context.quest_root),
+        "study_root": str(context.study_root),
+        "gate_replay": gate_refresh,
+        "post_gate_delivery_sync": post_gate_delivery_sync,
+        "progress_refresh": {
+            "status": "skipped_profile_unresolved",
+        },
+    }
+
+
+def _synced_payload(
+    *,
+    context: Any,
+    gate_refresh: Mapping[str, Any],
+    post_gate_delivery_sync: Mapping[str, Any] | None,
+    progress_payload: Mapping[str, Any],
+    controller_decision_refresh: Mapping[str, Any],
+) -> dict[str, Any]:
+    refs = dict(progress_payload.get("refs") or {})
     return {
         "status": "synced",
         "quest_root": str(context.quest_root),
