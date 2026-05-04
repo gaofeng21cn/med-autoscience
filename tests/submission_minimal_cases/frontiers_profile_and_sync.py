@@ -119,7 +119,8 @@ def test_create_submission_minimal_package_replays_post_materialization_sync_whe
     assert called["paper_root"] == paper_root
     assert called["publication_profile"] == "general_medical_journal"
     route_context = called["control_plane_route_context"]
-    assert paper_root / "submission_minimal" in route_context["paths"]
+    assert route_context["control_plane_snapshot"]["surface"] == "control_plane_snapshot"
+    assert manifest["control_plane_route_gate"]["authorized"] is True
     assert manifest["delivery_sync"] == {"stage": "submission_minimal"}
     assert manifest["post_materialization_sync"] == {
         "status": "synced",
