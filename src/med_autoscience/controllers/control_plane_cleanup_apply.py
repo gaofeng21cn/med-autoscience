@@ -241,9 +241,24 @@ def _plan_action(
     candidate_action = "audit-only" if "live_runtime_active" in blockers else action
     audit_payload = {
         "candidate_source": _text(action_payload.get("source")) or "cleanup_apply_contract",
-        "safe_cache_candidate_source_ref": dict(safe_cache_candidate),
+        "source_ref": _text(safe_cache_candidate.get("source_ref")),
+        "requested_action": action,
+        "candidate_action": candidate_action,
+        "artifact_role": artifact_role,
+        "workspace_root": str(workspace_root),
+        "target_path": str(target_path),
+        "workspace_relative_path": _workspace_relative_target(
+            workspace_root=workspace_root,
+            target_path=target_path,
+        ),
+        "safe_cache_candidate": dict(safe_cache_candidate),
         "blocked_reasons": list(blockers),
         "target_allowlist": dict(_mapping(action_payload.get("target_allowlist"))),
+        "control_plane_route_gate": {
+            "authorized": bool(control_plane_route_gate.get("authorized")),
+            "action": _text(control_plane_route_gate.get("action")),
+            "snapshot_ref": dict(_mapping(control_plane_route_gate.get("snapshot_ref"))),
+        },
     }
     return {
         "workspace_root": str(workspace_root),
@@ -389,6 +404,16 @@ def _report_status(
 def _apply_action(*, workspace_root: Path, action: Mapping[str, Any]) -> dict[str, Any]:
     target_path = Path(str(action["target_path"]))
     action_id = _text(action.get("action"))
+    blockers = _apply_action_blockers(workspace_root=workspace_root, target_path=target_path, action=action)
+    if blockers:
+        return {
+            "applied": False,
+            "action": action_id,
+            "target_path": str(target_path),
+            "workspace_root": str(workspace_root),
+            "reason": "apply_action_guard_blocked",
+            "blockers": blockers,
+        }
     if action_id == "delete-safe-cache":
         if target_path.is_dir():
             shutil.rmtree(target_path)
@@ -402,6 +427,35 @@ def _apply_action(*, workspace_root: Path, action: Mapping[str, Any]) -> dict[st
         "reason": "apply_action_not_implemented_for_non_delete_safe_cache",
         "workspace_root": str(workspace_root),
     }
+
+
+def _apply_action_blockers(
+    *,
+    workspace_root: Path,
+    target_path: Path,
+    action: Mapping[str, Any],
+) -> list[str]:
+    blockers: list[str] = []
+    if _text(action.get("action")) not in ALLOWED_PHYSICAL_ACTIONS:
+        blockers.append("action_not_allowlisted")
+    if action.get("eligible_for_apply") is not True:
+        blockers.append("action_not_eligible_for_apply")
+    blockers.extend(_target_path_blockers(workspace_root=workspace_root, target_path=target_path))
+    audit_payload = _mapping(action.get("audit_payload"))
+    if not audit_payload:
+        blockers.append("audit_payload_missing")
+    elif _text(audit_payload.get("requested_action")) != _text(action.get("action")):
+        blockers.append("audit_payload_action_mismatch")
+    if not _mapping(audit_payload.get("target_allowlist")):
+        blockers.append("audit_payload_target_allowlist_missing")
+    return _dedupe(blockers)
+
+
+def _workspace_relative_target(*, workspace_root: Path, target_path: Path) -> str | None:
+    try:
+        return target_path.relative_to(workspace_root.resolve()).as_posix()
+    except ValueError:
+        return None
 
 
 def _path_sha256(path: Path) -> str:

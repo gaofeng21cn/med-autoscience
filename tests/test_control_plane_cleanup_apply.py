@@ -200,6 +200,17 @@ def test_cleanup_apply_plans_safe_cache_candidate_from_retention_report(tmp_path
     assert retention_action["artifact_role"] == "safe_cache"
     assert retention_action["eligible_for_apply"] is True
     assert retention_action["audit_payload"]["candidate_source"] == "retention_report"
+    assert retention_action["audit_payload"]["requested_action"] == "delete-safe-cache"
+    assert retention_action["audit_payload"]["candidate_action"] == "delete-safe-cache"
+    assert retention_action["audit_payload"]["artifact_role"] == "safe_cache"
+    assert retention_action["audit_payload"]["workspace_relative_path"] == "scratch/cache"
+    assert retention_action["audit_payload"]["target_allowlist"]["source_ref"] == (
+        "workspaces[0].retention_plan.operation_sample[0]"
+    )
+    assert retention_action["audit_payload"]["safe_cache_candidate"]["cleanup_candidate_action"] == (
+        "delete-safe-cache"
+    )
+    assert retention_action["audit_payload"]["control_plane_route_gate"]["authorized"] is True
     assert retention_action["safe_cache_candidate"]["source_ref"] == (
         "workspaces[0].retention_plan.operation_sample[0]"
     )
@@ -226,6 +237,11 @@ def test_cleanup_apply_deletes_safe_cache_candidate_from_retention_report_after_
     assert report["workspaces"][0]["contract_present"] is True
     assert report["workspaces"][0]["retention_report_candidate_count"] == 1
     assert report["applied_actions"][0]["audit_payload"]["candidate_source"] == "retention_report"
+    assert report["applied_actions"][0]["apply_result"] == {
+        "applied": True,
+        "action": "delete-safe-cache",
+        "target_path": str(cache_root),
+    }
 
 
 def test_cleanup_apply_ignores_non_safe_cache_retention_report_candidates(tmp_path: Path) -> None:
@@ -249,6 +265,54 @@ def test_cleanup_apply_ignores_non_safe_cache_retention_report_candidates(tmp_pa
     assert cache_root.exists()
     assert report["action_counts"] == {"planned": 0, "blocked": 0, "applied": 0, "mutating": 0}
     assert report["apply_plan"] == []
+
+
+def test_cleanup_apply_blocks_retention_report_candidate_outside_workspace(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path)
+    _clear_contract_actions(workspace_root)
+    outside_cache = tmp_path / "outside-cache"
+    outside_cache.mkdir()
+    (outside_cache / "cache.tmp").write_text("outside\n", encoding="utf-8")
+    report_payload = _retention_report_fixture(workspace_root, cache_root)
+    operation = report_payload["workspaces"][0]["retention_plan"]["operation_sample"][0]
+    operation["path"] = str(outside_cache)
+    operation["workspace_relative_path"] = "../outside-cache"
+
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+        retention_report=report_payload,
+    )
+
+    assert report["status"] == "blocked"
+    assert cache_root.exists()
+    assert outside_cache.exists()
+    assert report["action_counts"] == {"planned": 0, "blocked": 1, "applied": 0, "mutating": 0}
+    assert report["apply_plan"][0]["audit_payload"]["candidate_source"] == "retention_report"
+    assert report["apply_plan"][0]["audit_payload"]["workspace_relative_path"] is None
+    assert "target_outside_workspace" in report["apply_plan"][0]["blockers"]
+
+
+def test_cleanup_apply_retention_report_candidate_live_runtime_is_audit_only(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path, runtime_status="running")
+    _clear_contract_actions(workspace_root)
+
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+        retention_report=_retention_report_fixture(workspace_root, cache_root),
+    )
+
+    assert report["status"] == "blocked"
+    assert cache_root.exists()
+    assert report["action_counts"] == {"planned": 0, "blocked": 1, "applied": 0, "mutating": 0}
+    assert report["apply_plan"][0]["candidate_action"] == "audit-only"
+    assert report["apply_plan"][0]["audit_payload"]["candidate_action"] == "audit-only"
+    assert "live_runtime_active" in report["apply_plan"][0]["blockers"]
 
 
 def test_cleanup_apply_true_deletes_safe_cache_after_all_gates(tmp_path: Path) -> None:

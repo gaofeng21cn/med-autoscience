@@ -150,3 +150,80 @@ def test_dm_cvd_and_nf_pitnet_storage_governance_soak_is_read_only(tmp_path: Pat
     assert "delete-safe-cache" in retention_plan["mutation_policy"]["allowed_physical_actions"]
     assert cleanup_plan["apply_plan"][0]["action"] == "delete-safe-cache"
     assert cleanup_plan["apply_plan"][0]["eligible_for_apply"] is True
+
+
+def test_lifecycle_retention_report_safe_cache_apply_path_is_approval_gated(
+    tmp_path: Path,
+) -> None:
+    cleanup = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root = fixtures.build_migration_audit_fixture_legacy_delivery_manifest_backfill(
+        tmp_path / "workspace"
+    )
+    _add_storage_growth_buckets(workspace_root)
+    cache_root = _add_safe_cache_cleanup_contract(workspace_root)
+    contract_path = workspace_root / "control_plane_cleanup_apply.json"
+    payload = json.loads(contract_path.read_text(encoding="utf-8"))
+    payload["actions"] = []
+    contract_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    retention_report = {
+        "surface": "control_plane_lifecycle_report",
+        "workspaces": [
+            {
+                "workspace_root": str(workspace_root),
+                "retention_plan": {
+                    "surface_kind": "artifact_retention_operations_plan",
+                    "operation_listing": "bounded",
+                    "operation_sample": [
+                        {
+                            "path": str(cache_root),
+                            "workspace_relative_path": ".cache/safe-cache",
+                            "role": "cache",
+                            "lifecycle": "cache_transient",
+                            "cleanup_candidate_action": "delete-safe-cache",
+                            "retention_action": "delete_safe_cache",
+                            "physical_delete_allowed": True,
+                        }
+                    ],
+                },
+            }
+        ],
+    }
+    before_plan = cleanup.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        retention_report=retention_report,
+    )
+    blocked_apply = cleanup.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        retention_report=retention_report,
+    )
+    applied = cleanup.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot={
+            "surface": "control_plane_snapshot",
+            "control_state": "ready",
+            "canonical_next_action": "cleanup_apply",
+            "authority_refs": {
+                "study_truth": {"epoch": "truth-1"},
+                "runtime_health": {"epoch": "health-1"},
+            },
+            "dispatch_gate": {"state": "open", "blocking_reasons": []},
+            "route_authorization": {
+                "cleanup_apply_allowed": True,
+                "authorized": True,
+            },
+        },
+        retention_report=retention_report,
+    )
+
+    assert before_plan["apply"] is False
+    assert before_plan["action_counts"] == {"planned": 1, "blocked": 0, "applied": 0, "mutating": 0}
+    assert before_plan["apply_plan"][0]["audit_payload"]["candidate_source"] == "retention_report"
+    assert blocked_apply["status"] == "blocked"
+    assert "control_plane_snapshot_missing" in blocked_apply["control_plane_route_gate"]["blocking_reasons"]
+    assert applied["status"] == "applied"
+    assert not cache_root.exists()
+    assert applied["action_counts"] == {"planned": 1, "blocked": 0, "applied": 1, "mutating": 1}
+    assert applied["applied_actions"][0]["audit_payload"]["workspace_relative_path"] == ".cache/safe-cache"
