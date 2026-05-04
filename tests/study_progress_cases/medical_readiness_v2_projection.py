@@ -128,6 +128,8 @@ def test_compact_mcp_progress_projection_preserves_v2_readiness_surface_details(
             "can_mutate_runtime": False,
             "can_authorize_quality": False,
             "can_authorize_submission": False,
+            "can_authorize_finalize": False,
+            "mechanical_projection_can_authorize_quality": False,
         },
     }
     command = literature_missing["guarded_operator_command"]

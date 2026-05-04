@@ -832,6 +832,9 @@ def build_product_frontdesk(
             "workspace_medical_paper_ops_health": dict(
                 workspace_cockpit.get("medical_paper_ops_health_state") or {}
             ),
+            "workspace_medical_paper_readiness": dict(
+                workspace_cockpit.get("medical_paper_readiness_state") or {}
+            ),
             "workspace_medical_paper_research_loop": _workspace_medical_paper_research_loop_manifest(
                 workspace_cockpit
             ),

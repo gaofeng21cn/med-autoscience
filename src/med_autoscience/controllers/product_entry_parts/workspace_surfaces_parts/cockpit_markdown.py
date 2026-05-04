@@ -605,5 +605,5 @@ def _readiness_action_card_label(card: Mapping[str, Any]) -> str:
         suffix = f" [{status} / {missing_reason}]"
     elif status:
         suffix = f" [{status}]"
-    label = card.get("label") or card.get("title")
+    label = card.get("display_label") or card.get("label") or card.get("title")
     return f"{label}{suffix}: {card.get('summary')}"

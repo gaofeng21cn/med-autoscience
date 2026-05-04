@@ -275,6 +275,7 @@ def _readiness_surface_action_cards(readiness: Mapping[str, Any]) -> list[dict[s
         for surface in readiness.get("capability_surfaces") or []
         if isinstance(surface, Mapping) and surface.get("status") != "present"
     ]
+    surfaces = sorted(surfaces, key=_readiness_action_surface_priority)
     literature_surfaces = [
         surface
         for surface in surfaces
@@ -287,10 +288,30 @@ def _readiness_surface_action_cards(readiness: Mapping[str, Any]) -> list[dict[s
     return []
 
 
+def _readiness_action_surface_priority(surface: Mapping[str, Any]) -> tuple[int, int, str]:
+    surface_key = _non_empty_text(surface.get("surface_key")) or ""
+    status = _non_empty_text(surface.get("status")) or "unknown"
+    family_priority = {
+        "literature_provider_runtime": 0,
+        "literature_scout": 0,
+        "statistical_discipline_operations": 1,
+        "route_decision_orchestrator": 2,
+        "stop_loss_memo": 3,
+        "revision_rebuttal_loop": 4,
+        "authoring_runtime_authorization": 5,
+        "real_workspace_soak_monitor": 6,
+    }.get(surface_key, 50)
+    status_priority = {"missing": 0, "blocked": 1, "partial": 2}.get(status, 9)
+    return family_priority, status_priority, surface_key
+
+
 def _readiness_all_surface_action_cards(readiness: Mapping[str, Any]) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for surface in readiness.get("capability_surfaces") or []:
+    surfaces = [
+        surface for surface in readiness.get("capability_surfaces") or [] if isinstance(surface, Mapping)
+    ]
+    for surface in sorted(surfaces, key=_readiness_action_surface_priority):
         card = _readiness_surface_action_card(surface)
         surface_key = _non_empty_text(card.get("surface_key")) if card else ""
         if card and surface_key not in seen:
@@ -366,7 +387,8 @@ def _readiness_action_card_workflow_step(
     surface_key = _non_empty_text(card.get("surface_key"))
     return {
         "step_id": action_id,
-        "title": _non_empty_text(card.get("label")) or "处理 Medical Paper Readiness 动作",
+        "title": _readiness_workflow_title(card),
+        "display_label": _readiness_workflow_display_label(card),
         "surface_kind": "medical_paper_readiness_action_card",
         "command": command,
         "summary": _non_empty_text(card.get("summary")) or "",
@@ -388,6 +410,21 @@ def _readiness_action_card_workflow_step(
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
     }
+
+
+def _readiness_workflow_title(card: Mapping[str, Any]) -> str:
+    surface_key = _non_empty_text(card.get("surface_key")) or ""
+    return {
+        "route_decision_orchestrator": "路线裁决",
+        "stop_loss_memo": "止损/换线",
+    }.get(surface_key, _non_empty_text(card.get("label")) or "处理 Medical Paper Readiness 动作")
+
+
+def _readiness_workflow_display_label(card: Mapping[str, Any]) -> str:
+    surface_key = _non_empty_text(card.get("surface_key")) or ""
+    return {
+        "stop_loss_memo": "止损/换线",
+    }.get(surface_key, _non_empty_text(card.get("label")) or _readiness_workflow_title(card))
 
 
 def _read_medical_paper_readiness_projection(*, study_root: Path) -> dict[str, Any]:
