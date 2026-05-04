@@ -108,6 +108,71 @@ def _write_open_auto_research_surfaces(study_root: Path) -> None:
     )
 
 
+def _write_dm002_like_open_auto_research_soak_surfaces(study_root: Path) -> None:
+    _write_open_auto_research_surfaces(study_root)
+    _write_json(
+        study_root / "artifacts" / "runtime" / "action_observation_trajectory" / "latest.json",
+        {
+            "surface": "action_observation_trajectory",
+            "schema_version": 1,
+            "active_run_id": "run-dm002-recovering",
+            "trajectory_role": {
+                "read_model_only": True,
+                "can_be_study_truth_owner": False,
+                "can_be_publication_quality_owner": False,
+            },
+            "steps": [
+                {
+                    "step_id": "step-publication-gate-blocked",
+                    "status": "blocked",
+                    "artifact_delta_refs": [
+                        "artifacts/publication_eval/latest.json",
+                        "artifacts/controller_decisions/latest.json",
+                    ],
+                    "replay_policy": "non_replayable",
+                }
+            ],
+            "replay_summary": {
+                "auto_replayable_step_count": 0,
+                "non_replayable_step_count": 1,
+                "blocked_replay_reasons": [
+                    {
+                        "step_id": "step-publication-gate-blocked",
+                        "code": "authority_surface_replay_blocked",
+                    }
+                ],
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "eval_hygiene" / "quality_regression_projection" / "latest.json",
+        {
+            "surface": "quality_regression_projection",
+            "schema_version": 1,
+            "authority": {
+                "owner": "MAS Evaluation OS",
+                "can_authorize_publication_quality": False,
+            },
+            "calibration_evidence": {
+                "rubric_tree": {
+                    "surface": "paperbench_style_hierarchical_rubric_tree",
+                    "role": "ai_reviewer_required",
+                    "can_authorize_publication_quality": False,
+                    "can_authorize_submission_readiness": False,
+                    "nodes": [{"node_id": "root.ai_reviewer"}],
+                }
+            },
+        },
+    )
+    route_path = study_root / "artifacts" / "medical_paper" / "route_decision_orchestrator.json"
+    route_payload = json.loads(route_path.read_text(encoding="utf-8"))
+    route_payload["status"] = "publication_gate_blocked"
+    route_payload["candidate_path_graph"]["decision"] = "human_gate"
+    route_payload["candidate_path_graph"]["selected_candidate_id"] = "candidate-human-gate"
+    route_payload["candidate_path_graph"]["candidates"][0]["candidate_id"] = "candidate-human-gate"
+    route_path.write_text(json.dumps(route_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def test_study_progress_projects_open_auto_research_capabilities_without_authority_takeover(
     monkeypatch,
     tmp_path: Path,
@@ -186,6 +251,7 @@ def test_study_progress_projects_open_auto_research_capabilities_without_authori
         "read_only": True,
         "can_mutate_runtime": False,
         "can_materialize_artifacts": False,
+        "can_replay_runtime": False,
         "can_authorize_publication_quality": False,
         "can_authorize_submission": False,
         "can_replace_controller_decision": False,
@@ -202,6 +268,8 @@ def test_open_auto_research_projection_does_not_export_materializer() -> None:
 
     assert not hasattr(module, "materialize_open_auto_research_projection")
     assert "materialize_open_auto_research_projection" not in module.__all__
+    assert "replay_open_auto_research_projection" not in module.__all__
+    assert not hasattr(module, "replay_open_auto_research_projection")
 
 
 def test_open_auto_research_projection_status_matrix_for_missing_and_review_surfaces(
@@ -263,6 +331,85 @@ def test_open_auto_research_projection_status_matrix_for_missing_and_review_surf
             "surface": "candidate_path_graph",
         },
     ]
+
+
+def test_dm002_like_open_auto_research_soak_matrix_blocks_authority_takeover_and_keeps_read_entry_non_materializing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "DM002-like")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-dm002"
+    _write_dm002_like_open_auto_research_soak_surfaces(study_root)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "DM002-like",
+            "study_root": str(study_root),
+            "quest_id": "quest-dm002",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "recovering",
+            "decision": "noop",
+            "reason": "publication_gate_blocked",
+            "active_run_id": "run-dm002-recovering",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "current_required_action": "return_to_ai_reviewer_workflow",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "blocked",
+                "reason": "ai_reviewer_required",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="DM002-like")
+    projection = result["open_auto_research_projection"]
+    projection_path = (
+        study_root / "artifacts" / "runtime" / "open_auto_research_projection" / "latest.json"
+    )
+
+    assert projection["status"] == "needs_review"
+    assert projection["counts"] == {"ready": 2, "blocked": 0, "needs_review": 2, "total": 4}
+    assert projection["authority"] == {
+        "read_only": True,
+        "can_mutate_runtime": False,
+        "can_materialize_artifacts": False,
+        "can_replay_runtime": False,
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission": False,
+        "can_replace_controller_decision": False,
+        "can_replace_study_truth": False,
+    }
+    assert projection["capabilities"]["evaluation_rubric_tree"]["status"] == "needs_review"
+    assert projection["capabilities"]["evaluation_rubric_tree"]["summary"] == (
+        "rubric_role_must_be_calibration_evidence_only"
+    )
+    assert projection["capabilities"]["runtime_trajectory_proof"]["status"] == "ready"
+    assert projection["capabilities"]["runtime_trajectory_proof"]["replay_summary"] == {
+        "auto_replayable_step_count": 0,
+        "non_replayable_step_count": 1,
+        "blocked_replay_reasons": [
+            {
+                "step_id": "step-publication-gate-blocked",
+                "code": "authority_surface_replay_blocked",
+            }
+        ],
+    }
+    assert projection["capabilities"]["candidate_path_graph"]["status"] == "needs_review"
+    assert projection["capabilities"]["candidate_path_graph"]["decision"] == "human_gate"
+    assert projection["capabilities"]["candidate_path_graph"]["selected_candidate_id"] == "candidate-human-gate"
+    assert result["refs"]["open_auto_research_projection_path"].endswith(
+        "artifacts/runtime/open_auto_research_projection/latest.json"
+    )
+    assert not projection_path.exists()
 
 
 def test_workspace_open_auto_research_projection_aggregates_multiple_studies() -> None:

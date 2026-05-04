@@ -19,6 +19,7 @@ AUTHORITY = {
     "read_only": True,
     "can_mutate_runtime": False,
     "can_materialize_artifacts": False,
+    "can_replay_runtime": False,
     "can_authorize_publication_quality": False,
     "can_authorize_submission": False,
     "can_replace_controller_decision": False,

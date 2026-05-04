@@ -21,6 +21,7 @@ from med_autoscience.controllers import (
     hermes_runtime_check,
     medical_literature_audit,
     medical_reporting_audit,
+    open_auto_research_soak,
     portfolio_memory,
     product_entry,
     runtime_watch,
@@ -35,8 +36,10 @@ from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile
 from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 from med_autoscience.mcp_server_parts.study_progress_projection import (
+    compact_open_auto_research_soak_for_mcp,
     compact_study_progress_projection,
     compact_study_runtime_result_for_mcp,
+    render_mcp_open_auto_research_soak_markdown,
     render_mcp_study_progress_markdown,
 )
 
@@ -225,6 +228,27 @@ def list_tools() -> list[dict[str, Any]]:
                     "study_id": {"type": "string"},
                     "study_root": {"type": "string"},
                     "entry_mode": {"type": "string"},
+                },
+                "required": ["profile_path"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "open_auto_research_soak",
+            "description": (
+                "Read DM002/Open Auto Research soak status as a compact read-only MCP surface. "
+                "Set allow_controller_writes only when a separate controller-authorized contract "
+                "allows controller writes; this tool never authorizes publication quality or "
+                "ad-hoc artifact mutation."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "profile_path": {"type": "string"},
+                    "study_id": {"type": "string"},
+                    "study_root": {"type": "string"},
+                    "entry_mode": {"type": "string"},
+                    "allow_controller_writes": {"type": "boolean"},
                 },
                 "required": ["profile_path"],
                 "additionalProperties": False,
@@ -425,6 +449,24 @@ def _call_study_progress(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(
         render_mcp_study_progress_markdown(result),
         structured=compact_study_progress_projection(result),
+    )
+
+
+def _call_open_auto_research_soak(arguments: dict[str, Any]) -> dict[str, Any]:
+    profile = load_profile(_require_string(arguments, "profile_path"))
+    result = open_auto_research_soak.run_open_auto_research_soak(
+        profile=profile,
+        study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
+        study_root=_optional_path(arguments, "study_root"),
+        entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
+        allow_controller_writes=_optional_bool(arguments, "allow_controller_writes"),
+    )
+    return _tool_text_result(
+        render_mcp_open_auto_research_soak_markdown(result),
+        structured=compact_open_auto_research_soak_for_mcp(
+            result,
+            allow_controller_writes=_optional_bool(arguments, "allow_controller_writes"),
+        ),
     )
 
 
@@ -737,6 +779,7 @@ TOOL_HANDLERS = {
     "research_assets": _call_research_assets,
     "study_runtime": _call_study_runtime,
     "study_progress": _call_study_progress,
+    "open_auto_research_soak": _call_open_auto_research_soak,
     "publication_status": _call_publication_status,
     "product_entry": _call_product_entry,
 }

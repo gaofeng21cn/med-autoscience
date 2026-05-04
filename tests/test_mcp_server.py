@@ -43,6 +43,7 @@ def test_mcp_server_lists_read_only_tools() -> None:
         "research_assets",
         "study_runtime",
         "study_progress",
+        "open_auto_research_soak",
         "publication_status",
         "product_entry",
     ]
@@ -355,6 +356,151 @@ def test_mcp_compacts_and_renders_open_auto_research_projection() -> None:
     assert "review_rubric_gaps" in markdown
     assert "inspect_trajectory" in markdown
     assert "refine_candidate_path" in markdown
+
+
+def test_mcp_server_exposes_open_auto_research_soak_contract() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
+
+    tool = tools["open_auto_research_soak"]
+    properties = tool["inputSchema"]["properties"]
+
+    assert "read-only" in tool["description"]
+    assert "allow_controller_writes" in tool["description"]
+    assert properties == {
+        "profile_path": {"type": "string"},
+        "study_id": {"type": "string"},
+        "study_root": {"type": "string"},
+        "entry_mode": {"type": "string"},
+        "allow_controller_writes": {"type": "boolean"},
+    }
+    assert tool["inputSchema"]["required"] == ["profile_path"]
+    assert tool["inputSchema"]["additionalProperties"] is False
+
+
+def test_mcp_server_can_call_open_auto_research_soak_compact_surface(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    captured: dict[str, object] = {}
+
+    def fake_run_open_auto_research_soak(**kwargs):
+        captured.update(kwargs)
+        return {
+            "surface": "open_auto_research_soak",
+            "study_id": "DM002",
+            "capability_results": {
+                "open_auto_research_projection": {
+                    "surface": "open_auto_research_projection",
+                    "schema_version": 1,
+                    "study_root": "/tmp/dm002",
+                    "status": "needs_review",
+                    "summary": "3 ready; 1 needs review; 0 blocked.",
+                    "counts": {"ready": 3, "needs_review": 1, "blocked": 0, "total": 4},
+                    "capabilities": {"large": {"omitted": True}},
+                    "actions": [
+                        {
+                            "action_id": "run_literature_evidence_graph",
+                            "status": "ready",
+                            "surface": "literature_intelligence_os",
+                            "large": "omit",
+                        },
+                        {
+                            "action_id": "review_rubric_gaps",
+                            "status": "needs_review",
+                            "surface": "paperbench_style_hierarchical_rubric_tree",
+                        },
+                    ],
+                    "authority": {
+                        "read_only": True,
+                        "can_mutate_runtime": False,
+                        "can_materialize_artifacts": False,
+                        "can_authorize_publication_quality": False,
+                    },
+                    "refs": {
+                        "projection_path": "/tmp/dm002/artifacts/runtime/open_auto_research_projection/latest.json",
+                        "runtime_trajectory_proof_path": "/tmp/dm002/artifacts/runtime/action_observation_trajectory/latest.json",
+                    },
+                },
+            },
+            "verdict": {"status": "blocked", "mode": "controller_authorized_soak"},
+            "remaining_gaps": ["cover_missing_archetypes"],
+            "authority_guard_results": {
+                "forbidden_surface_unchanged": True,
+                "authorized_writes_only": True,
+            },
+            "input_refs": {
+                "publication_eval_path": "/tmp/dm002/artifacts/publication_eval/latest.json",
+                "runtime_watch_report_path": "/tmp/dm002/artifacts/runtime/watch/latest.json",
+                "ignored_large_ref": "/tmp/dm002/large.json",
+            },
+        }
+
+    monkeypatch.setattr(
+        module.open_auto_research_soak,
+        "run_open_auto_research_soak",
+        fake_run_open_auto_research_soak,
+    )
+
+    result = module.call_tool(
+        "open_auto_research_soak",
+        {
+            "profile_path": str(profile_path),
+            "study_id": "DM002",
+            "allow_controller_writes": True,
+        },
+    )
+
+    assert result["isError"] is False
+    assert captured["allow_controller_writes"] is True
+    assert result["structuredContent"] == {
+        "status": "needs_review",
+        "counts": {"ready": 3, "needs_review": 1, "blocked": 0, "total": 4},
+        "actions": [
+            {
+                "action_id": "run_literature_evidence_graph",
+                "status": "ready",
+                "surface": "literature_intelligence_os",
+            },
+            {
+                "action_id": "review_rubric_gaps",
+                "status": "needs_review",
+                "surface": "paperbench_style_hierarchical_rubric_tree",
+            },
+        ],
+        "authority": {
+            "read_only": True,
+            "can_mutate_runtime": False,
+            "can_materialize_artifacts": False,
+            "can_authorize_publication_quality": False,
+            "allow_controller_writes": True,
+            "write_scope": "controller-authorized surfaces only",
+        },
+        "refs": {
+            "projection_path": "/tmp/dm002/artifacts/runtime/open_auto_research_projection/latest.json",
+            "runtime_trajectory_proof_path": "/tmp/dm002/artifacts/runtime/action_observation_trajectory/latest.json",
+            "publication_eval_path": "/tmp/dm002/artifacts/publication_eval/latest.json",
+            "runtime_watch_report_path": "/tmp/dm002/artifacts/runtime/watch/latest.json",
+        },
+        "soak_report_summary": {
+            "status": "blocked",
+            "mode": "controller_authorized_soak",
+            "remaining_gaps": ["cover_missing_archetypes"],
+            "forbidden_surface_unchanged": True,
+            "authorized_writes_only": True,
+        },
+        "mcp_projection": {
+            "surface_kind": "mcp_open_auto_research_soak",
+            "source_surface_kind": "open_auto_research_projection",
+            "compacted": True,
+        },
+    }
+    assert "Open Auto Research Soak" in result["content"][0]["text"]
+    assert "needs_review" in result["content"][0]["text"]
+    assert "cover_missing_archetypes" in result["content"][0]["text"]
 
 
 def test_mcp_server_study_runtime_status_prefers_progress_projection_markdown_when_available(

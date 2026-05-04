@@ -48,6 +48,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("study", "ensure-runtime"): "ensure-study-runtime",
     ("study", "pause-runtime"): "pause-study-runtime",
     ("study", "progress"): "study-progress",
+    ("study", "open-auto-research-soak"): "open-auto-research-soak",
     ("study", "reconcile-truth"): "reconcile-study-truth",
     ("study", "profile-cycle"): "study-profile-cycle",
     ("study", "quality-repair-batch"): "quality-repair-batch",

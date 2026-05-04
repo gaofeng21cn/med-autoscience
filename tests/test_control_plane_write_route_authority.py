@@ -484,6 +484,12 @@ def test_new_public_mutating_delivery_entries_must_be_explicitly_registered() ->
     assert actual_public_entries == expected_public_entries
 
 
+def test_open_auto_research_projection_exposes_no_public_write_or_replay_authority() -> None:
+    path = REPO_ROOT / "src/med_autoscience/controllers/open_auto_research_projection.py"
+
+    assert _public_mutating_entry_names(path) == set()
+
+
 def test_submission_minimal_post_materialization_replays_preserve_route_context() -> None:
     for path, function_name in ROUTE_CONTEXT_REPLAY_SURFACES:
         node = _function_node(path, function_name)

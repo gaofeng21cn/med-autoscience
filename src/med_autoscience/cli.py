@@ -78,6 +78,7 @@ control_plane_backfill_apply = _LazyModuleProxy(lambda: _load_controller("contro
 control_plane_cleanup_apply = _LazyModuleProxy(lambda: _load_controller("control_plane_cleanup_apply"))
 artifact_lifecycle_operations_report = _LazyModuleProxy(lambda: _load_controller("artifact_lifecycle_operations_report"))
 mainline_status = _LazyModuleProxy(lambda: _load_controller("mainline_status"))
+open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_research_soak"))
 portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
 product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
@@ -327,6 +328,23 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(study_progress.render_study_progress_markdown(result), end="")
+        return 0
+
+    if args.command == "open-auto-research-soak":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        result = open_auto_research_soak.run_open_auto_research_soak(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            entry_mode=args.entry_mode,
+            allow_controller_writes=args.allow_controller_writes,
+        )
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(open_auto_research_soak.render_open_auto_research_soak_markdown(result), end="")
         return 0
 
     if args.command == "reconcile-study-truth":
