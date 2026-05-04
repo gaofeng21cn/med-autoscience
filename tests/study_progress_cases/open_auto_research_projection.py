@@ -202,3 +202,109 @@ def test_open_auto_research_projection_does_not_export_materializer() -> None:
 
     assert not hasattr(module, "materialize_open_auto_research_projection")
     assert "materialize_open_auto_research_projection" not in module.__all__
+
+
+def test_open_auto_research_projection_status_matrix_for_missing_and_review_surfaces(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.open_auto_research_projection")
+    study_root = tmp_path / "study"
+    _write_open_auto_research_surfaces(study_root)
+    (study_root / "artifacts" / "runtime" / "action_observation_trajectory" / "latest.json").unlink()
+    _write_json(
+        study_root / "artifacts" / "eval_hygiene" / "quality_regression_projection" / "latest.json",
+        {
+            "surface": "quality_regression_projection",
+            "calibration_evidence": {
+                "rubric_tree": {
+                    "surface": "paperbench_style_hierarchical_rubric_tree",
+                    "role": "publication_authority",
+                    "can_authorize_publication_quality": True,
+                    "nodes": [{"node_id": "root"}],
+                }
+            },
+        },
+    )
+    route_path = study_root / "artifacts" / "medical_paper" / "route_decision_orchestrator.json"
+    route_payload = json.loads(route_path.read_text(encoding="utf-8"))
+    route_payload["candidate_path_graph"]["decision"] = "human_gate"
+    route_path.write_text(json.dumps(route_payload), encoding="utf-8")
+
+    projection = module.build_open_auto_research_projection(study_root=study_root)
+
+    assert projection["status"] == "blocked"
+    assert projection["counts"] == {"ready": 1, "blocked": 1, "needs_review": 2, "total": 4}
+    assert projection["capabilities"]["literature_evidence_graph"]["status"] == "ready"
+    assert projection["capabilities"]["evaluation_rubric_tree"]["status"] == "needs_review"
+    assert projection["capabilities"]["evaluation_rubric_tree"]["summary"] == (
+        "rubric_role_must_be_calibration_evidence_only"
+    )
+    assert projection["capabilities"]["runtime_trajectory_proof"]["status"] == "blocked"
+    assert projection["capabilities"]["candidate_path_graph"]["status"] == "needs_review"
+    assert projection["actions"] == [
+        {
+            "action_id": "run_literature_evidence_graph",
+            "status": "ready",
+            "surface": "literature_intelligence_os",
+        },
+        {
+            "action_id": "review_rubric_gaps",
+            "status": "needs_review",
+            "surface": "paperbench_style_hierarchical_rubric_tree",
+        },
+        {
+            "action_id": "inspect_trajectory",
+            "status": "blocked",
+            "surface": "action_observation_trajectory",
+        },
+        {
+            "action_id": "refine_candidate_path",
+            "status": "needs_review",
+            "surface": "candidate_path_graph",
+        },
+    ]
+
+
+def test_workspace_open_auto_research_projection_aggregates_multiple_studies() -> None:
+    module = importlib.import_module("med_autoscience.controllers.open_auto_research_projection")
+
+    workspace_projection = module.build_workspace_open_auto_research_projection(
+        studies=[
+            {
+                "study_id": "001-ready",
+                "open_auto_research_projection": {
+                    "study_id": "001-ready",
+                    "status": "ready",
+                    "counts": {"ready": 4, "blocked": 0, "needs_review": 0, "total": 4},
+                    "actions": [],
+                },
+            },
+            {
+                "study_id": "002-review",
+                "open_auto_research_projection": {
+                    "study_id": "002-review",
+                    "status": "needs_review",
+                    "counts": {"ready": 2, "blocked": 0, "needs_review": 2, "total": 4},
+                    "actions": [],
+                },
+            },
+            {
+                "study_id": "003-blocked",
+                "open_auto_research_projection": {
+                    "study_id": "003-blocked",
+                    "status": "blocked",
+                    "counts": {"ready": 1, "blocked": 2, "needs_review": 1, "total": 4},
+                    "actions": [],
+                },
+            },
+        ]
+    )
+
+    assert workspace_projection["status"] == "blocked"
+    assert workspace_projection["counts"] == {
+        "study_count": 3,
+        "projection_count": 3,
+        "ready": 7,
+        "blocked": 2,
+        "needs_review": 3,
+    }
