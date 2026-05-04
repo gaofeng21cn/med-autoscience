@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import subprocess
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile
@@ -441,7 +442,120 @@ def test_ensure_supervision_returns_portable_scheduler_install_instructions(tmp_
     ]
 
 
-def test_ensure_supervision_returns_cron_docker_and_launchd_scheduler_surfaces(tmp_path: Path) -> None:
+def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable_manager(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    profile = make_profile(tmp_path)
+    supervisor_scan = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+    supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
+    supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_scan.chmod(0o755)
+    service_template = (
+        profile.workspace_root
+        / "ops"
+        / "medautoscience"
+        / "supervisor"
+        / "systemd"
+        / "medautoscience-supervisor-scan.service"
+    )
+    timer_template = service_template.with_suffix(".timer")
+    service_template.parent.mkdir(parents=True, exist_ok=True)
+    service_template.write_text("[Service]\n", encoding="utf-8")
+    timer_template.write_text("[Timer]\n", encoding="utf-8")
+    automation_path = tmp_path / "home" / ".codex" / "automations" / "mas" / "automation.toml"
+    automation_path.parent.mkdir(parents=True, exist_ok=True)
+    automation_path.write_text(
+        'status = "ACTIVE"\n'
+        'prompt = """developer_apply_safe\n'
+        "supervisor-scan --apply-safe-actions\n"
+        "action_queue\n"
+        "why_not_applied\n"
+        '"""\n',
+        encoding="utf-8",
+    )
+
+    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        assert command == ["gh", "api", "user", "--jq", ".login"]
+        return subprocess.CompletedProcess(command, 0, stdout="gaofeng21cn\n", stderr="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    monkeypatch.setattr(module, "_codex_app_automation_path", lambda: automation_path)
+
+    result = module.ensure_supervision(profile=profile, manager="systemd", trigger_now=False)
+
+    assert result["mode"] == "developer_supervisor"
+    assert result["mode_source"] == "github_user_and_codex_app_automation_prompt"
+    assert result["developer_mode_enabled"] is True
+    assert result["github_user"]["login"] == "gaofeng21cn"
+    assert result["github_user"]["matches_expected"] is True
+    assert result["codex_app_heartbeat_required"] is False
+    assert result["codex_app_automation_prompt"]["active"] is True
+    assert result["codex_app_automation_prompt"]["missing_prompt_tokens"] == []
+    assert result["install_proof"]["status"] == "ready"
+    assert result["install_proof"]["status_check_commands"] == [
+        [str(supervisor_scan), "--apply-safe-actions"],
+        [str(supervisor_scan), "--status"],
+    ]
+    assert result["status_check_commands"] == result["install_proof"]["status_check_commands"]
+    assert result["expected_artifacts"] == result["install_proof"]["expected_artifacts"]
+    assert result["freshness"]["codex_app_heartbeat_required"] is False
+    assert result["freshness"]["max_expected_artifact_age_seconds"] == 600
+
+
+def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    profile = make_profile(tmp_path)
+    automation_path = tmp_path / "home" / ".codex" / "automations" / "mas" / "automation.toml"
+    automation_path.parent.mkdir(parents=True, exist_ok=True)
+    automation_path.write_text(
+        '[[automations]]\n'
+        'status = "ACTIVE"\n'
+        'prompt = "developer_apply_safe supervisor-scan --apply-safe-actions action_queue why_not_applied"\n',
+        encoding="utf-8",
+    )
+
+    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        assert command == ["gh", "api", "user", "--jq", ".login"]
+        return subprocess.CompletedProcess(command, 0, stdout="someone-else\n", stderr="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    monkeypatch.setattr(module, "_codex_app_automation_path", lambda: automation_path)
+
+    result = module.ensure_supervision(profile=profile, manager="cron", trigger_now=False)
+
+    assert result["mode"] == "portable_supervisor"
+    assert result["developer_mode_enabled"] is False
+    assert result["github_user"]["login"] == "someone-else"
+    assert result["github_user"]["matches_expected"] is False
+    assert result["install_proof"]["status"] == "developer_mode_disabled"
+    assert result["codex_app_heartbeat_required"] is False
+
+
+def test_codex_app_automation_prompt_check_reports_missing_tokens(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    automation_path = tmp_path / "automation.toml"
+    automation_path.write_text(
+        'status = "ACTIVE"\n'
+        'prompt = "developer_apply_safe supervisor-scan --apply-safe-actions"\n',
+        encoding="utf-8",
+    )
+
+    result = module._codex_app_automation_prompt_check(automation_path=automation_path)
+
+    assert result["status"] == "incomplete"
+    assert result["active"] is True
+    assert result["missing_prompt_tokens"] == ["action_queue", "why_not_applied"]
+
+
+def test_ensure_supervision_returns_cron_docker_and_launchd_scheduler_surfaces(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
     profile = make_profile(tmp_path)
     supervisor_scan = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
@@ -457,6 +571,16 @@ def test_ensure_supervision_returns_cron_docker_and_launchd_scheduler_surfaces(t
     ):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("template\n", encoding="utf-8")
+    monkeypatch.setattr(
+        module,
+        "_github_user_login_check",
+        lambda: {
+            "status": "failed",
+            "login": None,
+            "expected_login": "gaofeng21cn",
+            "matches_expected": False,
+        },
+    )
 
     cron_result = module.ensure_supervision(profile=profile, manager="cron", trigger_now=False)
     docker_result = module.ensure_supervision(profile=profile, manager="docker", trigger_now=False)

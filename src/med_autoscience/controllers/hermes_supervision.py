@@ -8,6 +8,7 @@ from pathlib import Path
 import platform
 import re
 import subprocess
+import tomllib
 from typing import Any, Iterable
 
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
@@ -40,6 +41,13 @@ _SILENT_PROMPT = (
 _SILENT_SUCCESS_RESPONSE = "[SILENT] Hermes-hosted MedAutoScience supervision tick completed."
 _LEGACY_WATCH_RUNTIME_COMMAND = "run_medautosci watch"
 _CURRENT_WATCH_RUNTIME_COMMAND = "run_medautosci runtime watch"
+_DEVELOPER_SUPERVISOR_GITHUB_LOGIN = "gaofeng21cn"
+_CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS = (
+    "developer_apply_safe",
+    "supervisor-scan --apply-safe-actions",
+    "action_queue",
+    "why_not_applied",
+)
 
 
 def _utc_now() -> str:
@@ -98,6 +106,10 @@ def _workspace_supervisor_scan_entry_path(profile: WorkspaceProfile) -> Path:
     return profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
 
 
+def _codex_app_automation_path() -> Path:
+    return Path.home() / ".codex" / "automations" / "mas" / "automation.toml"
+
+
 def _portable_supervisor_templates(profile: WorkspaceProfile) -> dict[str, Path]:
     templates_root = profile.workspace_root / "ops" / "medautoscience" / "supervisor"
     return {
@@ -107,6 +119,129 @@ def _portable_supervisor_templates(profile: WorkspaceProfile) -> dict[str, Path]
         "docker_one_shot": templates_root / "docker" / "supervisor-scan.oneshot.sh",
         "kubernetes_cronjob": templates_root / "kubernetes" / "supervisor-scan-cronjob.yaml",
         "launchd_instructions": templates_root / "launchd" / "README.md",
+    }
+
+
+def _string_values(value: object, *, key: str | None = None) -> Iterable[tuple[str | None, str]]:
+    if isinstance(value, str):
+        yield key, value
+    elif isinstance(value, dict):
+        for nested_key, nested_value in value.items():
+            yield from _string_values(nested_value, key=str(nested_key))
+    elif isinstance(value, list):
+        for item in value:
+            yield from _string_values(item, key=key)
+
+
+def _github_user_login_check() -> dict[str, Any]:
+    command = ["gh", "api", "user", "--jq", ".login"]
+    try:
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        return {
+            "command": command,
+            "status": "unavailable",
+            "login": None,
+            "expected_login": _DEVELOPER_SUPERVISOR_GITHUB_LOGIN,
+            "matches_expected": False,
+            "details": str(exc),
+        }
+    output = completed.stdout.strip() or completed.stderr.strip()
+    login = completed.stdout.strip() if completed.returncode == 0 else None
+    return {
+        "command": command,
+        "status": "ok" if completed.returncode == 0 and bool(login) else "failed",
+        "login": login,
+        "expected_login": _DEVELOPER_SUPERVISOR_GITHUB_LOGIN,
+        "matches_expected": login == _DEVELOPER_SUPERVISOR_GITHUB_LOGIN,
+        "details": output or None,
+    }
+
+
+def _codex_app_automation_prompt_check(*, automation_path: Path | None = None) -> dict[str, Any]:
+    path = automation_path or _codex_app_automation_path()
+    if not path.is_file():
+        return {
+            "path": str(path),
+            "status": "missing",
+            "active": False,
+            "prompt_contains_required_tokens": False,
+            "required_prompt_tokens": list(_CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS),
+            "missing_prompt_tokens": list(_CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS),
+        }
+    try:
+        payload = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        return {
+            "path": str(path),
+            "status": "invalid",
+            "active": False,
+            "prompt_contains_required_tokens": False,
+            "required_prompt_tokens": list(_CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS),
+            "missing_prompt_tokens": list(_CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS),
+            "details": str(exc),
+        }
+    status_values = [value.strip().upper() for key, value in _string_values(payload) if key == "status" and value.strip()]
+    prompt_text = "\n".join(value for key, value in _string_values(payload) if key == "prompt" and value.strip())
+    missing_tokens = [
+        token
+        for token in _CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS
+        if token not in prompt_text
+    ]
+    active = "ACTIVE" in status_values
+    return {
+        "path": str(path),
+        "status": "ok" if active and not missing_tokens else "incomplete",
+        "active": active,
+        "status_values": status_values,
+        "prompt_contains_required_tokens": not missing_tokens,
+        "required_prompt_tokens": list(_CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS),
+        "missing_prompt_tokens": missing_tokens,
+    }
+
+
+def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager: str, interval_seconds: int) -> dict[str, Any]:
+    github_user = _github_user_login_check()
+    codex_app_prompt = _codex_app_automation_prompt_check()
+    developer_mode_enabled = (
+        bool(github_user.get("matches_expected"))
+        and bool(codex_app_prompt.get("active"))
+        and bool(codex_app_prompt.get("prompt_contains_required_tokens"))
+    )
+    supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
+    expected_artifacts = [
+        str(profile.workspace_root / "ops" / "medautoscience" / "runtime" / "supervisor" / "latest.json"),
+        str(profile.workspace_root / "ops" / "medautoscience" / "runtime" / "supervisor" / "action_queue.json"),
+        str(profile.workspace_root / "ops" / "medautoscience" / "runtime" / "supervisor" / "why_not_applied.json"),
+    ]
+    status_check_commands = [
+        [str(supervisor_scan), "--apply-safe-actions"],
+        [str(supervisor_scan), "--status"],
+    ]
+    return {
+        "mode": "developer_supervisor" if developer_mode_enabled else "portable_supervisor",
+        "mode_source": "github_user_and_codex_app_automation_prompt",
+        "developer_mode_enabled": developer_mode_enabled,
+        "github_user": github_user,
+        "codex_app_automation_prompt": codex_app_prompt,
+        "codex_app_heartbeat_required": False,
+        "install_proof": {
+            "manager": manager,
+            "status": "ready" if developer_mode_enabled else "developer_mode_disabled",
+            "status_check_commands": status_check_commands,
+            "expected_artifacts": expected_artifacts,
+            "freshness": {
+                "projection": "portable_scheduler_tick_refreshes_supervisor_scan_artifacts",
+                "interval_seconds": interval_seconds,
+                "max_expected_artifact_age_seconds": interval_seconds * 2,
+                "codex_app_heartbeat_required": False,
+            },
+        },
     }
 
 
@@ -163,9 +298,18 @@ def _portable_supervisor_instruction(
     else:
         result_templates = {}
         install_commands = []
+    developer_supervisor_mode = _developer_supervisor_mode_projection(
+        profile=profile,
+        manager=manager_key,
+        interval_seconds=interval_seconds,
+    )
     return {
         "action": "portable_scheduler_instruction",
         "manager": manager_key,
+        "mode": developer_supervisor_mode["mode"],
+        "mode_source": developer_supervisor_mode["mode_source"],
+        "developer_mode_enabled": developer_supervisor_mode["developer_mode_enabled"],
+        "github_user": developer_supervisor_mode["github_user"],
         "installed": False,
         "profile": str(profile.workspace_root / "ops" / "medautoscience" / "profiles"),
         "interval_seconds": interval_seconds,
@@ -180,6 +324,12 @@ def _portable_supervisor_instruction(
         ],
         "templates": result_templates,
         "install_commands": install_commands,
+        "install_proof": developer_supervisor_mode["install_proof"],
+        "status_check_commands": developer_supervisor_mode["install_proof"]["status_check_commands"],
+        "expected_artifacts": developer_supervisor_mode["install_proof"]["expected_artifacts"],
+        "freshness": developer_supervisor_mode["install_proof"]["freshness"],
+        "developer_supervisor_mode": developer_supervisor_mode,
+        "codex_app_automation_prompt": developer_supervisor_mode["codex_app_automation_prompt"],
         "codex_app_heartbeat_required": False,
         "host_service_claim": "not_installed_by_mas",
         "docker_policy": "run supervisor-scan as a one-shot container from external cron or Kubernetes CronJob",
