@@ -216,6 +216,14 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     export_submission_targets_parser.add_argument("--study-root", type=str)
     export_submission_targets_parser.add_argument("--quest-root", type=str)
 
+    delivery_inspect_parser = subparsers.add_parser("delivery-inspect")
+    delivery_inspect_parser.add_argument("--profile", required=True)
+    delivery_inspect_study = delivery_inspect_parser.add_mutually_exclusive_group(required=True)
+    delivery_inspect_study.add_argument("--study-id", type=str)
+    delivery_inspect_study.add_argument("--study-root", type=str)
+    delivery_inspect_parser.add_argument("--publication-profile", type=str)
+    delivery_inspect_parser.add_argument("--format", choices=("json", "markdown"), default="json")
+
     gate_parser = subparsers.add_parser("publication-gate")
     gate_parser.add_argument("--quest-root", required=True)
     gate_parser.add_argument("--apply", action="store_true")

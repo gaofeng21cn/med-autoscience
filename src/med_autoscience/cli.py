@@ -58,6 +58,7 @@ data_assets = _LazyModuleProxy(lambda: _load_controller("data_assets"))
 data_asset_updates_controller = _LazyModuleProxy(lambda: _load_controller("data_asset_updates"))
 display_pack_surface_sync = _LazyModuleProxy(lambda: _load_controller("display_pack_surface_sync"))
 display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("display_surface_materialization"))
+delivery_inspector = _LazyModuleProxy(lambda: _load_controller("delivery_inspector"))
 hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime_check"))
 hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervision"))
 runtime_supervisor_consumer = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_consumer"))
@@ -943,6 +944,21 @@ def main(argv: list[str] | None = None) -> int:
             quest_root=Path(args.quest_root) if args.quest_root else None,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "delivery-inspect":
+        profile = load_profile(args.profile)
+        result = delivery_inspector.inspect_study_delivery(
+            profile=profile,
+            profile_ref=Path(args.profile),
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            publication_profile=args.publication_profile,
+        )
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(delivery_inspector.render_delivery_inspection_markdown(result), end="")
         return 0
 
     if args.command == "publication-gate":

@@ -173,6 +173,45 @@ def test_import_sidecar_command_dispatches_generic_controller(monkeypatch, tmp_p
     assert called["provider_id"] == "aris"
     assert called["instance_id"] == "F3C"
     assert '"imported"' in captured.out
+
+
+def test_delivery_inspect_command_dispatches_read_only_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_inspect(**kwargs) -> dict:
+        called.update(kwargs)
+        return {
+            "surface": "delivery_inspector",
+            "mutation_policy": {"read_only": True, "writes_package": False},
+            "freshness": {"verdict": "current"},
+        }
+
+    monkeypatch.setattr(cli.delivery_inspector, "inspect_study_delivery", fake_inspect)
+
+    exit_code = cli.main(
+        [
+            "publication",
+            "delivery-inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["study_id"] == "001-risk"
+    assert called["study_root"] is None
+    assert called["profile_ref"] == profile_path
+    payload = json.loads(captured.out)
+    assert payload["mutation_policy"]["read_only"] is True
+    assert payload["freshness"]["verdict"] == "current"
 def test_startup_data_readiness_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
