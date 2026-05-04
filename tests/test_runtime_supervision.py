@@ -366,8 +366,9 @@ def test_runtime_supervision_escalates_when_runtime_health_retry_budget_is_exhau
     assert payload is not None
     assert payload["health_status"] == "escalated"
     assert payload["runtime_liveness_status"] == "live"
-    assert payload["canonical_runtime_action"] == "escalate_runtime"
+    assert payload["canonical_runtime_action"] == "external_supervisor_required"
     assert payload["runtime_health_snapshot"]["retry_budget_remaining"] == 0
+    assert "runtime_recovery_retry_budget_exhausted" in payload["runtime_health_snapshot"]["blocking_reasons"]
     assert payload["needs_human_intervention"] is True
     assert payload["next_action"] == "manual_intervention_required"
     assert "人工介入" in payload["next_action_summary"]

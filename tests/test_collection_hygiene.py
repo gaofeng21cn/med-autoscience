@@ -313,4 +313,4 @@ def test_aggregate_collection_surfaces_hold_expected_collection_count() -> None:
         "tests/test_runtime_watch.py",
     )
 
-    assert len(collected_lines) == 137
+    assert len(collected_lines) == 139
