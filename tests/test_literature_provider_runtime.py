@@ -599,3 +599,166 @@ def test_provider_runtime_requires_provider_refs_and_screening_reasons() -> None
 
     assert projection["status"] == "blocked"
     assert projection["missing_reason"] == "missing_screening_decision_reason"
+
+
+def test_provider_health_read_model_projects_scheduled_checks_without_authority() -> None:
+    provider_runtime = importlib.import_module(
+        "med_autoscience.controllers.literature_provider_runtime"
+    )
+
+    projection = provider_runtime.build_literature_provider_runtime_projection(
+        _complete_provider_payload()
+    )
+
+    provider_health = projection["provider_health"]
+    assert provider_health["contract"] == "scheduled_provider_health_read_model"
+    assert provider_health["status"] == "ready"
+    assert provider_health["diagnostics"] == []
+    assert provider_health["checks"] == [
+        "credential_status",
+        "rate_limit_backoff",
+        "cache_age",
+        "query_fingerprint_drift",
+        "provider_response_ledger_completeness",
+        "citation_ledger_completeness",
+        "screening_reason_completeness",
+    ]
+    assert provider_health["credential_status"] == projection["credential_status"]
+    assert provider_health["rate_limit_status"] == projection["rate_limit_status"]
+    assert provider_health["backoff"] == projection["backoff"]
+    assert provider_health["cache_freshness"] == projection["cache_freshness"]
+    assert provider_health["cache_age"]["pubmed"] == {
+        "retrieved_at": "2026-05-03T08:00:00Z",
+        "checked_at": "2026-05-03T08:05:00Z",
+        "expires_at": "2026-05-04T08:05:00Z",
+        "status": "fresh",
+        "stale": False,
+    }
+    assert provider_health["provider_response_ledger"]["complete"] is True
+    assert provider_health["citation_ledger"]["complete"] is True
+    assert provider_health["screening_reasons"]["complete"] is True
+    assert provider_health["query_fingerprint_drift"] == {
+        "status": "stable",
+        "expected_query_fingerprint": "",
+        "actual_query_fingerprint": projection["query_fingerprint"],
+        "expected_provider_query_fingerprints": {},
+        "actual_provider_query_fingerprints": projection["provider_operations"][
+            "provider_query_fingerprints"
+        ],
+        "drifted_providers": [],
+    }
+    assert provider_health["authority_contract"] == {
+        "authority": "provider_health_read_model_only",
+        "read_model_only": True,
+        "can_authorize_quality": False,
+        "can_authorize_submission": False,
+        "can_authorize_finalize": False,
+    }
+    assert provider_health["health_can_authorize_quality"] is False
+    assert provider_health["health_can_authorize_submission"] is False
+    assert provider_health["health_can_authorize_finalize"] is False
+
+
+def test_provider_health_fails_closed_for_query_fingerprint_drift() -> None:
+    provider_runtime = importlib.import_module(
+        "med_autoscience.controllers.literature_provider_runtime"
+    )
+    baseline = provider_runtime.build_literature_provider_runtime_projection(
+        _complete_provider_payload()
+    )
+    payload = _complete_provider_payload()
+    providers = list(payload["providers"])  # type: ignore[arg-type]
+    pubmed = dict(providers[0])  # type: ignore[arg-type]
+    pubmed["query"] = "changed pituitary query"
+    providers[0] = pubmed
+    payload["providers"] = providers
+    payload["expected_query_fingerprint"] = baseline["query_fingerprint"]
+    payload["expected_provider_query_fingerprints"] = baseline["provider_operations"][
+        "provider_query_fingerprints"
+    ]
+
+    projection = provider_runtime.build_literature_provider_runtime_projection(payload)
+
+    assert projection["status"] == "blocked"
+    assert projection["missing_reason"] == "query_fingerprint_drift_pubmed"
+    provider_health = projection["provider_health"]
+    assert provider_health["status"] == "blocked"
+    assert provider_health["query_fingerprint_drift"]["status"] == "drifted"
+    assert provider_health["query_fingerprint_drift"]["drifted_providers"] == ["pubmed"]
+    assert provider_health["diagnostics"][0] == {
+        "reason_code": "query_fingerprint_drift_pubmed",
+        "severity": "blocking",
+        "provider_name": "pubmed",
+        "category": "query_fingerprint_drift",
+    }
+
+
+def test_provider_health_reports_stale_citation_and_missing_screening_reason_diagnostics() -> None:
+    provider_runtime = importlib.import_module(
+        "med_autoscience.controllers.literature_provider_runtime"
+    )
+    payload = _complete_provider_payload()
+    payload["citation_freshness"] = {
+        "status": "stale",
+        "stale_refs": ["paper/evidence_ledger.json#anchor-1"],
+        "checked_at": "2026-05-04T00:00:00Z",
+    }
+    payload["screening_decisions"] = [
+        {"ref": "pmid:anchor-1", "decision": "include", "reason": ""},
+    ]
+
+    projection = provider_runtime.build_literature_provider_runtime_projection(payload)
+
+    assert projection["status"] == "blocked"
+    assert projection["missing_reason"] == "stale_citation_ledger_refs"
+    provider_health = projection["provider_health"]
+    assert provider_health["citation_freshness"] == {
+        "status": "stale",
+        "stale": True,
+        "checked_at": "2026-05-04T00:00:00Z",
+        "stale_refs": ["paper/evidence_ledger.json#anchor-1"],
+    }
+    assert provider_health["screening_reasons"] == {
+        "complete": False,
+        "missing_refs": ["pmid:anchor-1"],
+    }
+    assert [item["reason_code"] for item in provider_health["diagnostics"]] == [
+        "stale_citation_ledger_refs",
+        "missing_screening_decision_reason",
+    ]
+
+
+def test_provider_health_fail_closed_for_partial_outage_and_ledger_gaps() -> None:
+    provider_runtime = importlib.import_module(
+        "med_autoscience.controllers.literature_provider_runtime"
+    )
+    payload = _complete_provider_payload()
+    providers = list(payload["providers"])  # type: ignore[arg-type]
+    crossref = dict(providers[1])  # type: ignore[arg-type]
+    crossref["response_status"] = "partial_outage"
+    crossref["provider_response_ledger_refs"] = []
+    crossref["items"] = [
+        {
+            "ref": "doi:10.1000/systematic-review",
+            "category": "systematic_reviews",
+            "title": "Systematic review of pituitary prediction models",
+        }
+    ]
+    providers[1] = crossref
+    payload["providers"] = providers
+
+    projection = provider_runtime.build_literature_provider_runtime_projection(payload)
+
+    assert projection["status"] == "blocked"
+    assert projection["missing_reason"] == "provider_partial_outage_crossref"
+    provider_health = projection["provider_health"]
+    assert provider_health["status"] == "blocked"
+    assert provider_health["provider_response_ledger"]["complete"] is False
+    assert provider_health["provider_response_ledger"]["missing_providers"] == ["crossref"]
+    assert provider_health["citation_ledger"]["complete"] is False
+    assert provider_health["citation_ledger"]["missing_providers"] == ["crossref"]
+    assert [item["reason_code"] for item in provider_health["diagnostics"]] == [
+        "provider_partial_outage_crossref",
+        "missing_provider_response_ledger_crossref",
+        "missing_provider_citation_ledger_refs_crossref",
+    ]
