@@ -1,6 +1,64 @@
 from __future__ import annotations
 
 
+WAIVER_MACHINE_CHECKABLE_FIELDS = (
+    "reason",
+    "claim_boundary",
+    "evidence_refs",
+    "reviewer_visible_artifact",
+)
+
+PLACEHOLDER_TERMS = (
+    "tbd",
+    "todo",
+    "pending",
+    "n/a",
+    "na",
+    "unknown",
+)
+
+NOMINAL_P_VALUE_TERMS = (
+    "nominal p-value",
+    "nominal p value",
+    "nominal pvalue",
+    "unadjusted p-value as primary",
+    "unadjusted p value as primary",
+    "p < 0.05 as primary",
+    "p<0.05 as primary",
+)
+
+METRIC_ONLY_PRIMARY_EVIDENCE_TERMS = {
+    "auc_only_primary_evidence": (
+        "auc-only",
+        "auc only",
+        "auc alone",
+        "auc as primary",
+        "auc is the primary evidence",
+        "auc is the core evidence",
+    ),
+    "cluster_separation_only_primary_evidence": (
+        "cluster separation-only",
+        "cluster separation only",
+        "cluster separation alone",
+        "cluster separation as primary",
+        "cluster separation is the primary evidence",
+        "cluster separation is the core evidence",
+    ),
+}
+
+PRIMARY_EVIDENCE_KEYS = (
+    "primary_evidence",
+    "primary_evidence_basis",
+    "primary_statistical_evidence",
+    "evidence_basis",
+    "core_evidence",
+    "core_evidence_basis",
+    "core_statistical_evidence",
+    "decision_reason",
+    "sensitivity_plan",
+)
+
+
 REVIEWER_TEMPLATE_CONCERNS = {
     "observational_real_world": {
         "missingness_plan": "Missing data could distort denominators, exposure ascertainment, endpoint capture, or site comparability.",
@@ -120,4 +178,12 @@ ARCHETYPE_DISCIPLINE: dict[str, dict[str, str]] = {
 }
 
 
-__all__ = ["ARCHETYPE_DISCIPLINE", "REVIEWER_TEMPLATE_CONCERNS"]
+__all__ = [
+    "ARCHETYPE_DISCIPLINE",
+    "METRIC_ONLY_PRIMARY_EVIDENCE_TERMS",
+    "NOMINAL_P_VALUE_TERMS",
+    "PLACEHOLDER_TERMS",
+    "PRIMARY_EVIDENCE_KEYS",
+    "REVIEWER_TEMPLATE_CONCERNS",
+    "WAIVER_MACHINE_CHECKABLE_FIELDS",
+]

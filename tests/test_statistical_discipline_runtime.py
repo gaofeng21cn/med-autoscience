@@ -9,6 +9,7 @@ from med_autoscience.controllers.statistical_discipline_runtime import (
     REQUIRED_STATISTICAL_REVIEWER_AUDIT_SECTIONS,
     REQUIRED_STATISTICAL_REVIEWER_TEMPLATE_FIELDS,
     STATISTICAL_DISCIPLINE_OPERATION_FIELDS,
+    WAIVER_MACHINE_CHECKABLE_FIELDS,
     SUPPORTED_STUDY_ARCHETYPES,
     build_statistical_reviewer_discipline_library,
     build_statistical_reviewer_template_projection,
@@ -18,6 +19,18 @@ from med_autoscience.controllers.statistical_discipline_runtime import (
     validate_statistical_discipline_contract,
     validate_statistical_reviewer_audit,
 )
+
+
+def _machine_checkable_waiver(field: str, **overrides: object) -> dict[str, object]:
+    waiver: dict[str, object] = {
+        "field": field,
+        "reason": "The active claim is explicitly bounded away from this evidence domain.",
+        "claim_boundary": "The manuscript states that this domain is outside the target claim.",
+        "evidence_refs": [f"methods/{field}_claim_boundary.json"],
+        "reviewer_visible_artifact": f"paper/{field}_claim_boundary.md",
+    }
+    waiver.update(overrides)
+    return waiver
 
 
 def _valid_candidate(**overrides: object) -> dict[str, object]:
@@ -95,7 +108,7 @@ def test_statistical_discipline_contract_blocks_when_external_validation_plan_mi
 def test_statistical_discipline_contract_allows_machine_checkable_waiver_for_operation_fields(field: str) -> None:
     contract = build_statistical_discipline_contract(study_archetype="prediction_model")
     del contract[field]
-    contract[f"{field}_waiver_reason"] = "The active claim is explicitly bounded away from this evidence domain."
+    contract["waivers"] = [_machine_checkable_waiver(field)]
 
     validation = validate_statistical_discipline_contract(contract)
 
@@ -141,6 +154,18 @@ def test_statistical_discipline_contract_blocks_nominal_p_value_primary_evidence
     assert validation == {"status": "blocked", "reason_code": "nominal_p_value_primary_evidence"}
 
 
+def test_statistical_discipline_contract_requires_machine_checkable_operation_waiver() -> None:
+    contract = build_statistical_discipline_contract(study_archetype="observational_real_world")
+    del contract["missingness_plan"]
+    contract["waivers"] = [
+        _machine_checkable_waiver("missingness_plan", evidence_refs=[]),
+    ]
+
+    validation = validate_statistical_discipline_contract(contract)
+
+    assert validation == {"status": "blocked", "reason_code": "incomplete_missingness_plan_waiver"}
+
+
 @pytest.mark.parametrize(
     ("primary_evidence_basis", "reason_code"),
     [
@@ -174,6 +199,43 @@ def test_metric_only_primary_evidence_blocks_contract_audit_and_candidate_board(
 
     candidate_validation = validate_bounded_analysis_candidate_board(
         {"candidates": [_valid_candidate(primary_evidence_basis=primary_evidence_basis)]}
+    )
+
+    assert candidate_validation == {"status": "blocked", "reason_code": f"candidate_{reason_code}"}
+
+
+@pytest.mark.parametrize(
+    ("core_evidence_basis", "reason_code"),
+    [
+        ("AUC is the core evidence for the clinical claim.", "auc_only_primary_evidence"),
+        (
+            "Cluster separation is the core evidence for durable subtype naming.",
+            "cluster_separation_only_primary_evidence",
+        ),
+    ],
+)
+def test_metric_only_core_evidence_blocks_contract_audit_and_candidate_board(
+    core_evidence_basis: str,
+    reason_code: str,
+) -> None:
+    contract = build_statistical_discipline_contract(study_archetype="subtype_reconstruction")
+    contract["core_evidence_basis"] = core_evidence_basis
+
+    assert validate_statistical_discipline_contract(contract) == {
+        "status": "blocked",
+        "reason_code": reason_code,
+    }
+
+    audit = _valid_statistical_reviewer_audit(
+        model_or_test_selection={"core_evidence_basis": core_evidence_basis}
+    )
+    assert validate_statistical_reviewer_audit(audit) == {
+        "status": "blocked",
+        "reason_code": f"model_or_test_selection_{reason_code}",
+    }
+
+    candidate_validation = validate_bounded_analysis_candidate_board(
+        {"candidates": [_valid_candidate(core_evidence_basis=core_evidence_basis)]}
     )
 
     assert candidate_validation == {"status": "blocked", "reason_code": f"candidate_{reason_code}"}
@@ -261,6 +323,14 @@ def test_statistical_reviewer_discipline_library_exposes_guideline_linked_eviden
             assert evidence_requirement["waiver_allowed"] is (
                 field not in FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS
             )
+            waiver_requirements = evidence_requirement["waiver_reason_requirements"]
+            assert waiver_requirements["waiver_allowed"] is evidence_requirement["waiver_allowed"]
+            if waiver_requirements["waiver_allowed"]:
+                assert waiver_requirements["machine_checkable_fields"] == list(
+                    WAIVER_MACHINE_CHECKABLE_FIELDS
+                )
+            else:
+                assert waiver_requirements["machine_checkable_fields"] == []
 
 
 def test_statistical_discipline_contract_carries_guideline_pack_without_quality_authority() -> None:
@@ -307,7 +377,7 @@ def test_statistical_reviewer_template_projection_blocks_nominal_primary_evidenc
     contract["endpoint_time_window_waiver_reason"] = "Endpoint timing is out of scope."
     contract["clinical_utility_plan_waiver_reason"] = "Clinical utility is out of scope."
     contract["sample_size_precision_plan"] = "Primary evidence will be a nominal p-value below 0.05."
-    contract["subgroup_plan_waiver_reason"] = "No clinically meaningful subgroup is defensible for this endpoint."
+    contract["waivers"] = [_machine_checkable_waiver("subgroup_plan")]
 
     projection = build_statistical_reviewer_template_projection(contract)
 
@@ -328,7 +398,7 @@ def test_statistical_reviewer_template_projection_blocks_nominal_primary_evidenc
     assert concerns["sample_size_precision_plan"]["status"] == "blocked"
     assert concerns["subgroup_plan"]["status"] == "waived"
     assert concerns["subgroup_plan"]["waiver_reason"] == (
-        "No clinically meaningful subgroup is defensible for this endpoint."
+        "The active claim is explicitly bounded away from this evidence domain."
     )
     assert concerns["endpoint_time_window"]["status"] == "blocked"
     assert concerns["endpoint_time_window"]["waiver_reason"] == ""
@@ -457,6 +527,24 @@ def test_bounded_analysis_candidate_board_blocks_primary_secondary_exploratory_c
     assert validation == {"status": "blocked", "reason_code": "candidate_forbidden_evidence_classification"}
 
 
+@pytest.mark.parametrize(
+    "field",
+    [
+        "target_claim",
+        "expected_evidence_gain",
+        "statistical_risk",
+        "clinical_interpretability",
+        "decision_reason",
+    ],
+)
+def test_bounded_analysis_candidate_board_blocks_placeholder_required_bindings(field: str) -> None:
+    candidate = _valid_candidate(**{field: "TBD"})
+
+    validation = validate_bounded_analysis_candidate_board({"candidates": [candidate]})
+
+    assert validation == {"status": "blocked", "reason_code": f"candidate_placeholder_{field}"}
+
+
 def test_bounded_analysis_candidate_board_blocks_unknown_decision() -> None:
     candidate = _valid_candidate(decision="continue")
 
@@ -469,7 +557,7 @@ def test_statistical_discipline_operations_projection_blocks_missing_and_nominal
     contract = build_statistical_discipline_contract(study_archetype="prediction_model")
     del contract["external_validation_plan"]
     contract["sample_size_precision_plan"] = "Primary evidence will be a nominal p-value below 0.05."
-    contract["subgroup_plan_waiver_reason"] = "No clinically meaningful subgroup is defensible for this endpoint."
+    contract["waivers"] = [_machine_checkable_waiver("subgroup_plan")]
 
     projection = build_statistical_discipline_operations_projection(contract)
 
@@ -497,7 +585,10 @@ def test_statistical_discipline_operations_projection_blocks_missing_and_nominal
     assert projection["waivers"] == [
         {
             "field": "subgroup_plan",
-            "reason": "No clinically meaningful subgroup is defensible for this endpoint.",
+            "reason": "The active claim is explicitly bounded away from this evidence domain.",
+            "claim_boundary": "The manuscript states that this domain is outside the target claim.",
+            "evidence_refs": ["methods/subgroup_plan_claim_boundary.json"],
+            "reviewer_visible_artifact": "paper/subgroup_plan_claim_boundary.md",
         }
     ]
     assert "missing_external_validation_plan" in projection["blockers"]
@@ -521,6 +612,20 @@ def test_statistical_discipline_operations_projection_blocks_precision_and_exter
     assert "external_validation_plan_waiver_not_allowed" in projection["blockers"]
     assert cards["sample_size_precision_plan"]["waiver_allowed"] is False
     assert cards["external_validation_plan"]["waiver_allowed"] is False
+
+
+def test_statistical_discipline_operations_projection_blocks_incomplete_operation_waiver() -> None:
+    contract = build_statistical_discipline_contract(study_archetype="observational_real_world")
+    del contract["sensitivity_plan"]
+    contract["waivers"] = [_machine_checkable_waiver("sensitivity_plan", reviewer_visible_artifact="")]
+
+    projection = build_statistical_discipline_operations_projection(contract)
+
+    cards = {card["field"]: card for card in projection["action_cards"]}
+    assert projection["status"] == "blocked"
+    assert "incomplete_sensitivity_plan_waiver" in projection["blockers"]
+    assert projection["waivers"] == []
+    assert cards["sensitivity_plan"]["status"] == "blocked"
 
 
 def test_statistical_discipline_operations_projection_blocks_weak_board_and_recommends_stop_switch() -> None:

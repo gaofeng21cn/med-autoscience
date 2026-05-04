@@ -5,7 +5,12 @@ from typing import Any
 
 from med_autoscience.controllers.statistical_discipline_runtime_parts.reference_data import (
     ARCHETYPE_DISCIPLINE as _ARCHETYPE_DISCIPLINE,
+    METRIC_ONLY_PRIMARY_EVIDENCE_TERMS as _METRIC_ONLY_PRIMARY_EVIDENCE_TERMS,
+    NOMINAL_P_VALUE_TERMS as _NOMINAL_P_VALUE_TERMS,
+    PLACEHOLDER_TERMS as _PLACEHOLDER_TERMS,
+    PRIMARY_EVIDENCE_KEYS as _PRIMARY_EVIDENCE_KEYS,
     REVIEWER_TEMPLATE_CONCERNS as _REVIEWER_TEMPLATE_CONCERNS,
+    WAIVER_MACHINE_CHECKABLE_FIELDS,
 )
 
 
@@ -94,42 +99,6 @@ REQUIRED_CANDIDATE_FIELDS = (
     "clinical_interpretability",
     "decision",
     "decision_reason",
-)
-
-_NOMINAL_P_VALUE_TERMS = (
-    "nominal p-value",
-    "nominal p value",
-    "nominal pvalue",
-    "unadjusted p-value as primary",
-    "unadjusted p value as primary",
-    "p < 0.05 as primary",
-    "p<0.05 as primary",
-)
-
-_METRIC_ONLY_PRIMARY_EVIDENCE_TERMS = {
-    "auc_only_primary_evidence": (
-        "auc-only",
-        "auc only",
-        "auc alone",
-        "auc as primary",
-        "auc is the primary evidence",
-    ),
-    "cluster_separation_only_primary_evidence": (
-        "cluster separation-only",
-        "cluster separation only",
-        "cluster separation alone",
-        "cluster separation as primary",
-        "cluster separation is the primary evidence",
-    ),
-}
-
-_PRIMARY_EVIDENCE_KEYS = (
-    "primary_evidence",
-    "primary_evidence_basis",
-    "primary_statistical_evidence",
-    "evidence_basis",
-    "decision_reason",
-    "sensitivity_plan",
 )
 
 _FORBIDDEN_EVIDENCE_CLASSIFICATIONS = (
@@ -370,6 +339,10 @@ def _has_text(value: object) -> bool:
     return bool(_text(value))
 
 
+def _has_placeholder_text(value: object) -> bool:
+    return _text(value).lower() in _PLACEHOLDER_TERMS
+
+
 def _sequence(value: object) -> Sequence[object]:
     if isinstance(value, list | tuple):
         return value
@@ -415,17 +388,72 @@ def _contains_forbidden_evidence_classification(payload: Mapping[str, Any]) -> b
 
 
 def _waiver_reason(payload: Mapping[str, Any], field: str) -> str:
+    waiver = _structured_waiver(payload, field)
+    if waiver:
+        return _text(waiver.get("reason"))
+    waivers = payload.get("waivers")
+    if isinstance(waivers, Mapping):
+        value = waivers.get(field)
+        if isinstance(value, Mapping):
+            return _text(value.get("reason"))
+        return _text(value)
     for key in (f"{field}_waiver_reason", f"waiver_reason_{field}"):
         reason = _text(payload.get(key))
         if reason:
             return reason
+    return ""
+
+
+def _structured_waiver(payload: Mapping[str, Any], field: str) -> Mapping[str, Any]:
     waivers = payload.get("waivers")
     if isinstance(waivers, Mapping):
-        return _text(waivers.get(field))
+        waiver = waivers.get(field)
+        return waiver if isinstance(waiver, Mapping) else {}
     for waiver in _sequence(waivers):
         if isinstance(waiver, Mapping) and _text(waiver.get("field")) == field:
-            return _text(waiver.get("reason"))
-    return ""
+            return waiver
+    return {}
+
+
+def _machine_checkable_waiver_payload(
+    payload: Mapping[str, Any],
+    field: str,
+) -> dict[str, object] | None:
+    waiver = _structured_waiver(payload, field)
+    if waiver:
+        return {
+            "field": field,
+            "reason": _text(waiver.get("reason")),
+            "claim_boundary": _text(waiver.get("claim_boundary")),
+            "evidence_refs": list(_sequence(waiver.get("evidence_refs"))),
+            "reviewer_visible_artifact": _text(waiver.get("reviewer_visible_artifact")),
+        }
+    reason = _waiver_reason(payload, field)
+    if reason:
+        return {
+            "field": field,
+            "reason": reason,
+            "claim_boundary": "",
+            "evidence_refs": [],
+            "reviewer_visible_artifact": "",
+        }
+    return None
+
+
+def _waiver_payload_complete(waiver: Mapping[str, object]) -> bool:
+    return all(
+        (
+            _has_text(waiver.get("reason")),
+            _has_text(waiver.get("claim_boundary")),
+            bool(_sequence(waiver.get("evidence_refs"))),
+            _has_text(waiver.get("reviewer_visible_artifact")),
+        )
+    )
+
+
+def _waiver_incomplete(payload: Mapping[str, Any], field: str) -> bool:
+    waiver = _machine_checkable_waiver_payload(payload, field)
+    return bool(waiver and not _waiver_payload_complete(waiver))
 
 
 def _operation_action_card(
@@ -468,10 +496,14 @@ def _operation_field_projection(
     field: str,
 ) -> tuple[list[str], dict[str, str] | None, dict[str, object]]:
     waiver_reason = _waiver_reason(contract, field)
+    waiver_payload = _machine_checkable_waiver_payload(contract, field)
+    waiver_incomplete = _waiver_incomplete(contract, field)
     value_present = _has_text(contract.get(field))
     nominal_primary_evidence = _contains_nominal_p_value(contract.get(field))
     waiver_allowed = field not in FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS
-    if value_present and not nominal_primary_evidence:
+    if waiver_incomplete:
+        status = "blocked"
+    elif value_present and not nominal_primary_evidence:
         status = "waived" if waiver_reason and waiver_allowed else "present"
     elif waiver_reason and waiver_allowed:
         status = "waived"
@@ -481,11 +513,17 @@ def _operation_field_projection(
     blockers = []
     if not value_present and (not waiver_reason or not waiver_allowed):
         blockers.append(f"missing_{field}")
+    if waiver_incomplete and waiver_allowed:
+        blockers.append(f"incomplete_{field}_waiver")
     if nominal_primary_evidence:
         blockers.append("nominal_p_value_primary_evidence")
     if waiver_reason and not waiver_allowed:
         blockers.append(f"{field}_waiver_not_allowed")
-    waiver = {"field": field, "reason": waiver_reason} if waiver_reason and waiver_allowed else None
+    waiver = (
+        {key: value for key, value in waiver_payload.items() if value is not None}
+        if waiver_payload and waiver_allowed and not waiver_incomplete
+        else None
+    )
     return blockers, waiver, _operation_action_card(
         action_id=f"resolve_{field}",
         label=_OPERATION_FIELD_LABELS[field],
@@ -546,7 +584,11 @@ def _bounded_board_candidate_projection(
         field for field in REQUIRED_CANDIDATE_FIELDS if not _has_text(candidate.get(field))
     ]
     blockers.extend(f"candidate_{index}_missing_{field}" for field in missing_required_fields)
-    if missing_required_fields:
+    placeholder_required_fields = [
+        field for field in REQUIRED_CANDIDATE_FIELDS if _has_placeholder_text(candidate.get(field))
+    ]
+    blockers.extend(f"candidate_{index}_placeholder_{field}" for field in placeholder_required_fields)
+    if missing_required_fields or placeholder_required_fields:
         action_cards.append(
             _bounded_board_action_card(
                 action_id=f"candidate_{index}_complete_required_bindings",
@@ -594,6 +636,7 @@ def _reviewer_waiver_requirements(field: str) -> dict[str, object]:
     if field in FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS:
         return {
             "waiver_allowed": False,
+            "machine_checkable_fields": [],
             "required_reason_components": [],
             "fail_closed_reason": (
                 "Precision, external validation, endpoint/time-window, and clinical-utility concerns "
@@ -603,6 +646,7 @@ def _reviewer_waiver_requirements(field: str) -> dict[str, object]:
         }
     return {
         "waiver_allowed": True,
+        "machine_checkable_fields": list(WAIVER_MACHINE_CHECKABLE_FIELDS),
         "required_reason_components": [
             "why this evidence domain is outside the active claim",
             "which manuscript claim boundary prevents overstatement",
@@ -669,6 +713,7 @@ def _evidence_contract(*, family: str) -> dict[str, dict[str, object]]:
             "blocker": f"missing_{field}",
             "required_evidence_refs": list(_REVIEWER_TEMPLATE_EVIDENCE_REFS[family][field]),
             "waiver_allowed": field not in FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS,
+            "waiver_reason_requirements": _reviewer_waiver_requirements(field),
         }
         for field in STATISTICAL_DISCIPLINE_OPERATION_FIELDS
     }
@@ -729,6 +774,7 @@ def build_statistical_reviewer_template_projection(contract: Mapping[str, Any]) 
     for field in STATISTICAL_DISCIPLINE_OPERATION_FIELDS:
         template = dict(_mapping(templates.get(field)))
         waiver_reason = _waiver_reason(contract, field)
+        waiver_incomplete = _waiver_incomplete(contract, field)
         waiver_requirements = _mapping(template.get("waiver_reason_requirements"))
         waiver_allowed = waiver_requirements.get("waiver_allowed") is True
         value_present = _has_text(contract.get(field))
@@ -738,7 +784,10 @@ def build_statistical_reviewer_template_projection(contract: Mapping[str, Any]) 
 
         if nominal_primary_evidence:
             field_blockers.append("nominal_p_value_primary_evidence")
-        if value_present and waiver_reason and waiver_allowed:
+        if waiver_incomplete and waiver_allowed:
+            status = "blocked"
+            field_blockers.append(f"incomplete_{field}_waiver")
+        elif value_present and waiver_reason and waiver_allowed:
             status = "waived"
         elif not value_present:
             if waiver_reason and waiver_allowed:
@@ -850,6 +899,8 @@ def validate_statistical_discipline_contract(payload: Mapping[str, Any]) -> dict
             return {"status": "blocked", "reason_code": f"missing_{field}"}
         if field in FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS and _waiver_reason(payload, field):
             return {"status": "blocked", "reason_code": f"{field}_waiver_not_allowed"}
+        if _waiver_incomplete(payload, field):
+            return {"status": "blocked", "reason_code": f"incomplete_{field}_waiver"}
         if not _has_text(payload.get(field)) and not _waiver_reason(payload, field):
             return {"status": "blocked", "reason_code": f"missing_{field}"}
     if _contains_forbidden_evidence_classification(payload):
@@ -926,6 +977,8 @@ def validate_bounded_analysis_candidate_board(payload: Mapping[str, Any]) -> dic
         for field in REQUIRED_CANDIDATE_FIELDS:
             if not _has_text(candidate.get(field)):
                 return {"status": "blocked", "reason_code": f"candidate_missing_{field}"}
+            if _has_placeholder_text(candidate.get(field)):
+                return {"status": "blocked", "reason_code": f"candidate_placeholder_{field}"}
         if _text(candidate.get("decision")) not in SUPPORTED_CANDIDATE_DECISIONS:
             return {"status": "blocked", "reason_code": "candidate_unsupported_decision"}
         if _contains_forbidden_evidence_classification(candidate):
