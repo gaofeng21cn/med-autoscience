@@ -4,6 +4,9 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.policies import DEFAULT_PUBLICATION_CRITIQUE_POLICY
+from med_autoscience.controllers.ai_reviewer_calibration import (
+    build_ai_reviewer_calibration_learning_read_model,
+)
 from med_autoscience.publication_eval_latest import (
     read_publication_eval_latest,
     stable_publication_eval_latest_path,
@@ -23,6 +26,7 @@ _POLICY_ID = DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"]
 _ACCEPTABLE_VERDICTS = frozenset({"promising"})
 _ACCEPTABLE_PRIMARY_CLAIM_STATUSES = frozenset({"supported"})
 _BLOCKING_GAP_SEVERITIES = frozenset({"must_fix", "important"})
+_CALIBRATION_LEARNING_PATH = Path("artifacts/publication_eval/ai_reviewer_calibration_learning.json")
 
 
 def _text(value: object) -> str:
@@ -43,6 +47,10 @@ def _text_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [_text(item) for item in value if _text(item)]
+
+
+def _calibration_case_id(ref: str) -> str:
+    return ref.rsplit("#", 1)[-1].strip()
 
 
 def _ai_reviewer_authority_blockers(publication_eval: Mapping[str, Any]) -> list[str]:
@@ -145,6 +153,20 @@ def _accept_blockers(publication_eval: Mapping[str, Any], authority_blockers: li
     if blocking_gaps:
         blockers.append("publication_eval_has_blocking_gaps")
     return blockers
+
+
+def _read_calibration_learning_model(study_root: Path) -> dict[str, Any]:
+    path = study_root / _CALIBRATION_LEARNING_PATH
+    if not path.exists():
+        return build_ai_reviewer_calibration_learning_read_model()
+    import json
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return build_ai_reviewer_calibration_learning_read_model(payload)
+
+
+def _required_calibration_ref_blockers(required_refs: list[str]) -> list[str]:
+    return [f"required_calibration_ref_missing:{_calibration_case_id(ref)}" for ref in required_refs]
 
 
 def _first_same_line_route_back(
@@ -313,8 +335,11 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
     resolved_study_root = Path(study_root).expanduser().resolve()
     publication_eval_path = stable_publication_eval_latest_path(study_root=resolved_study_root)
     publication_eval = read_publication_eval_latest(study_root=resolved_study_root)
+    calibration_learning = _read_calibration_learning_model(resolved_study_root)
+    required_calibration_refs = calibration_learning["required_calibration_refs"]
     authority_blockers = _ai_reviewer_authority_blockers(publication_eval)
     accept_blockers = _accept_blockers(publication_eval, authority_blockers)
+    accept_blockers.extend(_required_calibration_ref_blockers(required_calibration_refs))
     accepted = not accept_blockers
     route_back = None if accepted else _first_same_line_route_back(
         publication_eval=publication_eval,
@@ -348,6 +373,8 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
             "blockers": accept_blockers,
             "package_mutation_allowed": False,
         },
+        "required_calibration_refs": required_calibration_refs,
+        "calibration_learning": calibration_learning,
         "revert": {
             "required": not accepted,
             "strategy": "same_line_route_back" if not accepted else "none",
@@ -365,5 +392,8 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
             "accept_authority": "AI reviewer-backed artifacts/publication_eval/latest.json",
             "revert_authority": "same-line route-back decision surface",
             "direct_package_mutation_allowed": False,
+            "learning_can_authorize_quality": False,
+            "learning_can_authorize_submission": False,
+            "learning_can_authorize_finalize": False,
         },
     }

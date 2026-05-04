@@ -1,9 +1,22 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 
 SCHEMA_VERSION = 1
+LEARNING_SURFACE = "ai_reviewer_calibration_learning_read_model"
+REQUIRED_LEARNING_FAILURE_MODES = (
+    "claim_overreach",
+    "coverage_as_quality",
+    "mechanical_gate_misuse",
+    "missing_reviewer_trace",
+)
+FAILURE_MODE_CALIBRATION_REFS = {
+    "claim_overreach": "ai_reviewer_calibration_corpus#overstrong_claim",
+    "coverage_as_quality": "ai_reviewer_calibration_corpus#coverage_as_quality",
+    "mechanical_gate_misuse": "ai_reviewer_calibration_corpus#mechanical_gate_as_quality",
+    "missing_reviewer_trace": "ai_reviewer_calibration_corpus#missing_reviewer_trace",
+}
 AI_REVIEWER_PROVENANCE_REQUIREMENTS = {
     "assessment_provenance.owner": "ai_reviewer",
     "assessment_provenance.ai_reviewer_required": False,
@@ -130,6 +143,105 @@ CALIBRATION_CASES: tuple[dict[str, Any], ...] = (
         "reviewer_expectation": "block readiness until AI reviewer artifact owns the quality decision",
     },
 )
+
+
+def _text(value: object) -> str:
+    return str(value or "").strip()
+
+
+def _list_of_mappings(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]
+
+
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        return []
+    return [item for raw in value if (item := _text(raw))]
+
+
+def _normalize_learning_entry(entry: Mapping[str, Any]) -> dict[str, Any]:
+    failure_mode = _text(entry.get("failure_mode"))
+    if failure_mode not in FAILURE_MODE_CALIBRATION_REFS:
+        raise ValueError(f"unsupported AI reviewer calibration failure_mode: {failure_mode}")
+    normalized = {
+        "entry_id": _text(entry.get("entry_id")),
+        "source_outcome": _text(entry.get("source_outcome")),
+        "failure_mode": failure_mode,
+        "source_ref": _text(entry.get("source_ref")),
+        "issue_summary": _text(entry.get("issue_summary")),
+        "claim_refs": _text_list(entry.get("claim_refs")),
+        "evidence_refs": _text_list(entry.get("evidence_refs")),
+        "reviewer_trace_refs": _text_list(entry.get("reviewer_trace_refs")),
+        "calibration_ref": FAILURE_MODE_CALIBRATION_REFS[failure_mode],
+    }
+    missing = [
+        field
+        for field in ("entry_id", "source_outcome", "source_ref", "issue_summary")
+        if not normalized[field]
+    ]
+    if missing:
+        raise ValueError(f"AI reviewer calibration learning entry missing fields: {', '.join(missing)}")
+    if not normalized["evidence_refs"]:
+        raise ValueError("AI reviewer calibration learning entry requires evidence_refs")
+    if not normalized["reviewer_trace_refs"]:
+        raise ValueError("AI reviewer calibration learning entry requires reviewer_trace_refs")
+    return normalized
+
+
+def _learning_authority_contract() -> dict[str, Any]:
+    return {
+        "read_model_only": True,
+        "learning_can_authorize_quality": False,
+        "learning_can_authorize_submission": False,
+        "learning_can_authorize_finalize": False,
+        "required_calibration_refs_can_authorize_quality": False,
+    }
+
+
+def build_ai_reviewer_calibration_learning_read_model(
+    payload: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    source = dict(payload or {})
+    entries = [
+        _normalize_learning_entry(entry)
+        for entry in _list_of_mappings(source.get("learning_entries"))
+    ]
+    projected_required_refs = _text_list(source.get("required_calibration_refs"))
+    counts: dict[str, int] = {}
+    required_failure_modes: list[str] = []
+    required_refs: list[str] = []
+    for entry in entries:
+        failure_mode = entry["failure_mode"]
+        counts[failure_mode] = counts.get(failure_mode, 0) + 1
+        if failure_mode not in required_failure_modes:
+            required_failure_modes.append(failure_mode)
+        calibration_ref = entry["calibration_ref"]
+        if calibration_ref not in required_refs:
+            required_refs.append(calibration_ref)
+    for ref in projected_required_refs:
+        if ref not in required_refs:
+            required_refs.append(ref)
+    return {
+        "surface": LEARNING_SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "required_failure_modes": required_failure_modes,
+        "required_calibration_refs": required_refs,
+        "failure_mode_counts": counts,
+        "learning_entries": entries,
+        "authority_contract": _learning_authority_contract(),
+    }
+
+
+def append_ai_reviewer_calibration_learning_entry(
+    *,
+    existing_payload: Mapping[str, Any] | None,
+    learning_entry: Mapping[str, Any],
+) -> dict[str, Any]:
+    entries = _list_of_mappings(dict(existing_payload or {}).get("learning_entries"))
+    entries.append(dict(learning_entry))
+    return build_ai_reviewer_calibration_learning_read_model({"learning_entries": entries})
 
 
 def build_ai_reviewer_calibration_corpus() -> dict[str, Any]:

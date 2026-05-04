@@ -341,6 +341,59 @@ def test_reviewer_refinement_loop_fails_closed_for_non_ai_reviewer_projection(
     assert read_model["revert"]["route_back"]["action_type"] == "route_back_same_line"
 
 
+def test_reviewer_refinement_loop_projects_required_learning_calibration_refs(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
+    _write_json(study_root / "artifacts" / "publication_eval" / "ai_reviewer_calibration_learning.json", {
+        "surface": "ai_reviewer_calibration_learning_read_model",
+        "learning_entries": [
+            {
+                "entry_id": "learn::major-revision::coverage",
+                "source_outcome": "major_revision",
+                "failure_mode": "coverage_as_quality",
+                "source_ref": "reviews/round-1.md#editor",
+                "issue_summary": "Coverage was treated as quality.",
+                "claim_refs": [],
+                "evidence_refs": ["paper/reporting_guideline_checklist.json"],
+                "reviewer_trace_refs": ["paper/review/review_ledger.json#editor"],
+            },
+            {
+                "entry_id": "learn::major-revision::trace",
+                "source_outcome": "major_revision",
+                "failure_mode": "missing_reviewer_trace",
+                "source_ref": "reviews/round-1.md#trace",
+                "issue_summary": "Reviewer concern trace was missing.",
+                "claim_refs": ["paper/claim_evidence_map.json#claim-primary"],
+                "evidence_refs": ["paper/evidence_ledger.json#claim-primary"],
+                "reviewer_trace_refs": ["paper/review/review_ledger.json#trace"],
+            },
+        ],
+    })
+
+    read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
+
+    assert read_model["required_calibration_refs"] == [
+        "ai_reviewer_calibration_corpus#coverage_as_quality",
+        "ai_reviewer_calibration_corpus#missing_reviewer_trace",
+    ]
+    assert read_model["calibration_learning"]["failure_mode_counts"] == {
+        "coverage_as_quality": 1,
+        "missing_reviewer_trace": 1,
+    }
+    assert read_model["accept"]["accepted"] is False
+    assert "required_calibration_ref_missing:coverage_as_quality" in read_model["accept"]["blockers"]
+    assert "required_calibration_ref_missing:missing_reviewer_trace" in read_model["accept"]["blockers"]
+    assert read_model["revert"]["strategy"] == "same_line_route_back"
+    assert read_model["contract"]["read_model_only"] is True
+    assert read_model["contract"]["learning_can_authorize_quality"] is False
+    assert read_model["contract"]["learning_can_authorize_submission"] is False
+    assert read_model["contract"]["learning_can_authorize_finalize"] is False
+
+
 def test_revision_rebuttal_loop_projects_comment_action_matrix_and_repair_routes() -> None:
     module = importlib.import_module("med_autoscience.controllers.revision_rebuttal_loop")
 

@@ -89,6 +89,93 @@ def test_calibration_corpus_exposes_required_case_families_and_soak_matrix() -> 
     }
 
 
+def test_calibration_learning_read_model_appends_real_reviewer_outcomes() -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_calibration")
+
+    existing_payload = {
+        "surface": "ai_reviewer_calibration_learning_read_model",
+        "learning_entries": [
+            {
+                "entry_id": "learn::major-revision::claim",
+                "source_outcome": "major_revision",
+                "failure_mode": "claim_overreach",
+                "source_ref": "reviews/round-1.md#r1-c1",
+                "issue_summary": "Primary clinical claim exceeded the evidence ledger.",
+                "claim_refs": ["paper/claim_evidence_map.json#claim-primary"],
+                "evidence_refs": ["paper/evidence_ledger.json#claim-primary"],
+                "reviewer_trace_refs": ["paper/review/review_ledger.json#r1-c1"],
+            },
+            {
+                "entry_id": "learn::reject::coverage",
+                "source_outcome": "rejection",
+                "failure_mode": "coverage_as_quality",
+                "source_ref": "reviews/reject.md#editor",
+                "issue_summary": "Checklist completion was mistaken for publishable manuscript quality.",
+                "claim_refs": [],
+                "evidence_refs": ["paper/reporting_guideline_checklist.json"],
+                "reviewer_trace_refs": ["paper/review/review_ledger.json#editor"],
+            },
+            {
+                "entry_id": "learn::revision::mechanical",
+                "source_outcome": "reviewer_revision",
+                "failure_mode": "mechanical_gate_misuse",
+                "source_ref": "reviews/round-2.md#gate",
+                "issue_summary": "A controller gate was used as the quality decision.",
+                "claim_refs": [],
+                "evidence_refs": ["artifacts/publication_eval/latest.json"],
+                "reviewer_trace_refs": ["paper/review/review_ledger.json#gate"],
+            },
+        ],
+    }
+    projection = module.append_ai_reviewer_calibration_learning_entry(
+        existing_payload=existing_payload,
+        learning_entry={
+            "entry_id": "learn::revision::missing-trace",
+            "source_outcome": "major_revision",
+            "failure_mode": "missing_reviewer_trace",
+            "source_ref": "reviews/round-2.md#trace",
+            "issue_summary": "The revision lacked traceable AI reviewer concern provenance.",
+            "claim_refs": ["paper/claim_evidence_map.json#claim-secondary"],
+            "evidence_refs": ["paper/evidence_ledger.json#claim-secondary"],
+            "reviewer_trace_refs": ["paper/review/review_ledger.json#trace"],
+        },
+    )
+
+    assert projection["surface"] == "ai_reviewer_calibration_learning_read_model"
+    assert projection["schema_version"] == 1
+    assert [entry["failure_mode"] for entry in projection["learning_entries"]] == [
+        "claim_overreach",
+        "coverage_as_quality",
+        "mechanical_gate_misuse",
+        "missing_reviewer_trace",
+    ]
+    assert projection["required_failure_modes"] == [
+        "claim_overreach",
+        "coverage_as_quality",
+        "mechanical_gate_misuse",
+        "missing_reviewer_trace",
+    ]
+    assert projection["required_calibration_refs"] == [
+        "ai_reviewer_calibration_corpus#overstrong_claim",
+        "ai_reviewer_calibration_corpus#coverage_as_quality",
+        "ai_reviewer_calibration_corpus#mechanical_gate_as_quality",
+        "ai_reviewer_calibration_corpus#missing_reviewer_trace",
+    ]
+    assert projection["failure_mode_counts"] == {
+        "claim_overreach": 1,
+        "coverage_as_quality": 1,
+        "mechanical_gate_misuse": 1,
+        "missing_reviewer_trace": 1,
+    }
+    assert projection["authority_contract"] == {
+        "read_model_only": True,
+        "learning_can_authorize_quality": False,
+        "learning_can_authorize_submission": False,
+        "learning_can_authorize_finalize": False,
+        "required_calibration_refs_can_authorize_quality": False,
+    }
+
+
 def test_pre_draft_readiness_materializer_requires_ai_authorized_inputs() -> None:
     module = importlib.import_module("med_autoscience.controllers.ai_reviewer_calibration")
 

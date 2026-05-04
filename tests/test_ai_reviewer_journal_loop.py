@@ -174,6 +174,10 @@ def test_complete_ai_reviewer_authorizes_full_manuscript_drafting() -> None:
     assert projection["authorization_contract"]["required_inputs"][
         "publication_eval_ai_reviewer_provenance"
     ] == "ready"
+    assert projection["required_calibration_refs"] == [
+        "ai_reviewer_calibration_corpus#thin_first_draft",
+        "ai_reviewer_calibration_corpus#overstrong_claim",
+    ]
     assert projection["concern_linkage"] == [
         {
             "concern_id": "concern-overstrong-primary",
@@ -332,3 +336,44 @@ def test_full_drafting_requires_display_map_entries_with_claim_and_evidence_trac
     assert projection["mode"] == "pre_draft_planning_only"
     assert "display_to_claim_map_evidence_trace_missing:figure-1" in projection["blockers"]
     assert projection["authorization_contract"]["required_inputs"]["display_to_claim_map"] == "blocked"
+
+
+def test_authoring_loop_requires_learning_read_model_calibration_refs() -> None:
+    learning_projection = {
+        "surface": "ai_reviewer_calibration_learning_read_model",
+        "required_calibration_refs": [
+            "ai_reviewer_calibration_corpus#overstrong_claim",
+            "ai_reviewer_calibration_corpus#coverage_as_quality",
+            "ai_reviewer_calibration_corpus#missing_reviewer_trace",
+        ],
+        "authority_contract": {
+            "read_model_only": True,
+            "learning_can_authorize_quality": False,
+            "learning_can_authorize_submission": False,
+            "learning_can_authorize_finalize": False,
+        },
+    }
+
+    projection = _projection(
+        calibration_learning_projection=learning_projection,
+        calibration_case_refs=[
+            "ai_reviewer_calibration_corpus#thin_first_draft",
+            "ai_reviewer_calibration_corpus#overstrong_claim",
+        ],
+    )
+
+    assert projection["full_drafting_authorized"] is False
+    assert projection["mode"] == "pre_draft_planning_only"
+    assert projection["required_calibration_refs"] == [
+        "ai_reviewer_calibration_corpus#overstrong_claim",
+        "ai_reviewer_calibration_corpus#coverage_as_quality",
+        "ai_reviewer_calibration_corpus#missing_reviewer_trace",
+    ]
+    assert "required_calibration_ref_missing:coverage_as_quality" in projection["blockers"]
+    assert "required_calibration_ref_missing:missing_reviewer_trace" in projection["blockers"]
+    assert projection["authorization_contract"]["required_inputs"]["calibration_refs"] == "blocked"
+    assert projection["authorization_contract"]["authority_limits"] == {
+        "authorization_can_authorize_quality": False,
+        "authorization_can_authorize_submission": False,
+        "authorization_can_authorize_finalize": False,
+    }

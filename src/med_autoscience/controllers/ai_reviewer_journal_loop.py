@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
-from med_autoscience.controllers.ai_reviewer_calibration import build_ai_reviewer_calibration_corpus
+from med_autoscience.controllers.ai_reviewer_calibration import (
+    build_ai_reviewer_calibration_corpus,
+    build_ai_reviewer_calibration_learning_read_model,
+)
 from med_autoscience.publication_eval_reviewer_os import validate_ai_reviewer_operating_system_trace
 
 
@@ -240,19 +243,49 @@ def _required_ref_status(
 def _calibration_cases_status(
     *,
     calibration_case_refs: Sequence[str],
+    calibration_learning_projection: Mapping[str, Any] | None,
     blockers: list[str],
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], list[str]]:
     normalized_calibration_refs = _non_empty_sequence(calibration_case_refs)
     if normalized_calibration_refs is None:
         _add_blocker(blockers, "calibration_refs_missing")
-        return []
+        normalized_ref_texts: list[str] = []
+    else:
+        normalized_ref_texts = [str(ref) for ref in normalized_calibration_refs]
     applied_cases = _applied_calibration_cases(
-        calibration_case_refs=[str(ref) for ref in normalized_calibration_refs],
+        calibration_case_refs=normalized_ref_texts,
         blockers=blockers,
     )
     if not applied_cases:
         _add_blocker(blockers, "calibration_refs_missing")
-    return applied_cases
+    required_refs = _required_calibration_refs(
+        explicit_refs=normalized_ref_texts,
+        calibration_learning_projection=calibration_learning_projection,
+    )
+    supplied_case_ids = {_calibration_case_id(ref) for ref in normalized_ref_texts if _non_empty_ref(ref)}
+    for ref in required_refs:
+        case_id = _calibration_case_id(ref)
+        if case_id not in supplied_case_ids:
+            _add_blocker(blockers, f"required_calibration_ref_missing:{case_id}")
+    return applied_cases, required_refs
+
+
+def _required_calibration_refs(
+    *,
+    explicit_refs: Sequence[str],
+    calibration_learning_projection: Mapping[str, Any] | None,
+) -> list[str]:
+    required_refs: list[str] = []
+    learning_refs = []
+    if calibration_learning_projection is not None:
+        learning_model = build_ai_reviewer_calibration_learning_read_model(calibration_learning_projection)
+        learning_refs = learning_model["required_calibration_refs"]
+    source_refs = learning_refs or list(explicit_refs)
+    for raw_ref in source_refs:
+        ref = _non_empty_ref(raw_ref)
+        if ref is not None and ref not in required_refs:
+            required_refs.append(ref)
+    return required_refs
 
 
 def _concern_id(concern: Mapping[str, Any], index: int) -> str:
@@ -345,12 +378,21 @@ def _authorization_contract(blockers: Sequence[str]) -> dict[str, Any]:
                 "quality_claim",
                 "mechanical_projection",
             ),
-            "calibration_refs": _required_input_status(blockers, "calibration_"),
+            "calibration_refs": _required_input_status(
+                blockers,
+                "calibration_",
+                "required_calibration_",
+            ),
             "critique_trace": _required_input_status(
                 blockers,
                 "publication_critique_trace",
                 "critique_concern",
             ),
+        },
+        "authority_limits": {
+            "authorization_can_authorize_quality": False,
+            "authorization_can_authorize_submission": False,
+            "authorization_can_authorize_finalize": False,
         },
         "status": "blocked" if blockers else "authorized",
         "blockers": list(blockers),
@@ -367,6 +409,7 @@ def build_ai_reviewer_journal_writing_authorization(
     review_ledger_ref: str,
     publication_eval: Mapping[str, Any],
     calibration_case_refs: Sequence[str],
+    calibration_learning_projection: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     blockers: list[str] = []
     _validate_writing_layer_inputs(
@@ -383,8 +426,9 @@ def build_ai_reviewer_journal_writing_authorization(
         review_ledger_ref=review_ledger_ref,
         blockers=blockers,
     )
-    applied_cases = _calibration_cases_status(
+    applied_cases, required_calibration_refs = _calibration_cases_status(
         calibration_case_refs=calibration_case_refs,
+        calibration_learning_projection=calibration_learning_projection,
         blockers=blockers,
     )
 
@@ -412,6 +456,7 @@ def build_ai_reviewer_journal_writing_authorization(
             "review_ledger_ref": normalized_review_ref,
         },
         "calibration_cases_applied": applied_cases,
+        "required_calibration_refs": required_calibration_refs,
         "concern_linkage": concern_linkage,
         "authorization_contract": _authorization_contract(blockers),
     }
