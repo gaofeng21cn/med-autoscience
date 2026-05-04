@@ -185,6 +185,12 @@ def _normalized_text_list(value: Any) -> list[str]:
     return [text for item in value if (text := _non_empty_ref(item))]
 
 
+def _ref_targets_ledger(ref: str, ledger_ref: str | None) -> bool:
+    if ledger_ref is None:
+        return False
+    return ref == ledger_ref or ref.startswith(f"{ledger_ref}#")
+
+
 def _claim_entry_id(entry: Mapping[str, Any], index: int) -> str:
     return _non_empty_ref(entry.get("claim_id")) or f"claim[{index}]"
 
@@ -195,6 +201,9 @@ def _display_entry_id(entry: Mapping[str, Any], index: int) -> str:
 
 def _validate_claim_to_paragraph_trace(
     claim_to_paragraph_map: Mapping[str, Any],
+    *,
+    evidence_ledger_ref: str | None,
+    review_ledger_ref: str | None,
     blockers: list[str],
 ) -> None:
     normalized = _mapping_or_none(claim_to_paragraph_map)
@@ -204,14 +213,22 @@ def _validate_claim_to_paragraph_trace(
         claim_id = _claim_entry_id(entry, index)
         if _non_empty_ref(entry.get("paragraph_id")) is None:
             _add_blocker(blockers, f"claim_to_paragraph_map_paragraph_missing:{claim_id}")
-        if not _normalized_text_list(entry.get("evidence_refs")):
+        evidence_refs = _normalized_text_list(entry.get("evidence_refs"))
+        reviewer_concern_refs = _normalized_text_list(entry.get("reviewer_concern_refs"))
+        if not evidence_refs:
             _add_blocker(blockers, f"claim_to_paragraph_map_evidence_trace_missing:{claim_id}")
-        if not _normalized_text_list(entry.get("reviewer_concern_refs")):
+        elif any(not _ref_targets_ledger(ref, evidence_ledger_ref) for ref in evidence_refs):
+            _add_blocker(blockers, f"claim_to_paragraph_map_evidence_ref_outside_ledger:{claim_id}")
+        if not reviewer_concern_refs:
             _add_blocker(blockers, f"claim_to_paragraph_map_review_trace_missing:{claim_id}")
+        elif any(not _ref_targets_ledger(ref, review_ledger_ref) for ref in reviewer_concern_refs):
+            _add_blocker(blockers, f"claim_to_paragraph_map_review_ref_outside_ledger:{claim_id}")
 
 
 def _validate_display_to_claim_trace(
     display_to_claim_map: Mapping[str, Any],
+    *,
+    evidence_ledger_ref: str | None,
     blockers: list[str],
 ) -> None:
     normalized = _mapping_or_none(display_to_claim_map)
@@ -221,8 +238,11 @@ def _validate_display_to_claim_trace(
         display_id = _display_entry_id(entry, index)
         if not _normalized_text_list(entry.get("claim_ids")):
             _add_blocker(blockers, f"display_to_claim_map_claim_trace_missing:{display_id}")
-        if not _normalized_text_list(entry.get("evidence_refs")):
+        evidence_refs = _normalized_text_list(entry.get("evidence_refs"))
+        if not evidence_refs:
             _add_blocker(blockers, f"display_to_claim_map_evidence_trace_missing:{display_id}")
+        elif any(not _ref_targets_ledger(ref, evidence_ledger_ref) for ref in evidence_refs):
+            _add_blocker(blockers, f"display_to_claim_map_evidence_ref_outside_ledger:{display_id}")
 
 
 def _required_ref_status(
@@ -238,6 +258,29 @@ def _required_ref_status(
     if normalized_review_ref is None:
         _add_blocker(blockers, "review_ledger_ref_missing")
     return normalized_evidence_ref, normalized_review_ref
+
+
+def _validate_publication_eval_ledger_provenance(
+    *,
+    publication_eval: Mapping[str, Any] | None,
+    evidence_ledger_ref: str | None,
+    review_ledger_ref: str | None,
+    blockers: list[str],
+) -> None:
+    if publication_eval is None:
+        return
+    provenance = _mapping_or_none(publication_eval.get("assessment_provenance"))
+    if provenance is None:
+        return
+    source_refs = _normalized_text_list(provenance.get("source_refs"))
+    if evidence_ledger_ref is not None and not any(
+        _ref_targets_ledger(ref, evidence_ledger_ref) for ref in source_refs
+    ):
+        _add_blocker(blockers, "publication_eval_provenance_missing_evidence_ledger_ref")
+    if review_ledger_ref is not None and not any(
+        _ref_targets_ledger(ref, review_ledger_ref) for ref in source_refs
+    ):
+        _add_blocker(blockers, "publication_eval_provenance_missing_review_ledger_ref")
 
 
 def _calibration_cases_status(
@@ -449,11 +492,20 @@ def build_ai_reviewer_journal_writing_authorization(
         restrained_language_strategy=restrained_language_strategy,
         blockers=blockers,
     )
-    _validate_claim_to_paragraph_trace(claim_to_paragraph_map, blockers)
-    _validate_display_to_claim_trace(display_to_claim_map, blockers)
     normalized_evidence_ref, normalized_review_ref = _required_ref_status(
         evidence_ledger_ref=evidence_ledger_ref,
         review_ledger_ref=review_ledger_ref,
+        blockers=blockers,
+    )
+    _validate_claim_to_paragraph_trace(
+        claim_to_paragraph_map,
+        evidence_ledger_ref=normalized_evidence_ref,
+        review_ledger_ref=normalized_review_ref,
+        blockers=blockers,
+    )
+    _validate_display_to_claim_trace(
+        display_to_claim_map,
+        evidence_ledger_ref=normalized_evidence_ref,
         blockers=blockers,
     )
     applied_cases, required_calibration_refs = _calibration_cases_status(
@@ -465,6 +517,12 @@ def build_ai_reviewer_journal_writing_authorization(
     ai_reviewer_authorized, quality_claim_authorized = _publication_eval_authority(
         normalized_publication_eval := _mapping_or_none(publication_eval),
         blockers,
+    )
+    _validate_publication_eval_ledger_provenance(
+        publication_eval=normalized_publication_eval,
+        evidence_ledger_ref=normalized_evidence_ref,
+        review_ledger_ref=normalized_review_ref,
+        blockers=blockers,
     )
     concern_linkage = _critique_concern_linkage(normalized_publication_eval, blockers)
     calibration_judgment_trace = _calibration_judgment_trace(

@@ -224,7 +224,11 @@ def _authoring_inputs() -> dict[str, object]:
                 "owner": "ai_reviewer",
                 "source_kind": "publication_eval_ai_reviewer",
                 "policy_id": "medical_publication_critique_v1",
-                "source_refs": ["artifacts/publication_eval/latest.json"],
+                "source_refs": [
+                    "artifacts/publication_eval/latest.json",
+                    "paper/evidence_ledger.json",
+                    "paper/review/review_ledger.json",
+                ],
                 "ai_reviewer_required": False,
             },
             "reviewer_operating_system": _reviewer_operating_system(),

@@ -78,7 +78,11 @@ def _publication_eval() -> dict[str, Any]:
             "owner": "ai_reviewer",
             "source_kind": "publication_eval_ai_reviewer",
             "policy_id": "medical_publication_critique_v1",
-            "source_refs": ["artifacts/publication_eval/latest.json"],
+            "source_refs": [
+                "artifacts/publication_eval/latest.json",
+                "paper/evidence_ledger.json",
+                "paper/review/review_ledger.json",
+            ],
             "ai_reviewer_required": False,
         },
         "reviewer_operating_system": _reviewer_operating_system(),
@@ -247,6 +251,20 @@ def test_publication_eval_must_be_ai_reviewer_owned() -> None:
     assert "mechanical_projection_cannot_authorize_quality" in projection["blockers"]
 
 
+def test_missing_ai_reviewer_provenance_limits_authoring_to_pre_draft_planning() -> None:
+    publication_eval = _publication_eval()
+    publication_eval.pop("assessment_provenance")
+
+    projection = _projection(publication_eval=publication_eval)
+
+    assert projection["full_drafting_authorized"] is False
+    assert projection["mode"] == "pre_draft_planning_only"
+    assert "publication_eval_provenance_missing" in projection["blockers"]
+    assert projection["authorization_contract"]["required_inputs"][
+        "publication_eval_ai_reviewer_provenance"
+    ] == "blocked"
+
+
 def test_missing_reviewer_operating_system_trace_blocks_full_drafting() -> None:
     publication_eval = _publication_eval()
     publication_eval.pop("reviewer_operating_system")
@@ -398,6 +416,48 @@ def test_full_drafting_requires_display_map_entries_with_claim_and_evidence_trac
     assert projection["mode"] == "pre_draft_planning_only"
     assert "display_to_claim_map_evidence_trace_missing:figure-1" in projection["blockers"]
     assert projection["authorization_contract"]["required_inputs"]["display_to_claim_map"] == "blocked"
+
+
+def test_full_drafting_requires_maps_and_ai_reviewer_provenance_to_reference_authoring_ledgers() -> None:
+    publication_eval = _publication_eval()
+    publication_eval["assessment_provenance"]["source_refs"] = [
+        "artifacts/publication_eval/latest.json",
+        "paper/evidence_ledger.json",
+    ]
+
+    projection = _projection(
+        publication_eval=publication_eval,
+        claim_to_paragraph_map={
+            "claims": [
+                {
+                    "claim_id": "claim-primary",
+                    "paragraph_id": "results-p1",
+                    "evidence_refs": ["paper/evidence_ledger.json#claim-primary"],
+                    "reviewer_concern_refs": ["paper/other_review_ledger.json#concern-primary"],
+                }
+            ]
+        },
+        display_to_claim_map={
+            "links": [
+                {
+                    "display_id": "figure-1",
+                    "claim_ids": ["claim-primary"],
+                    "evidence_refs": ["paper/other_evidence_ledger.json#figure-1"],
+                }
+            ]
+        },
+    )
+
+    assert projection["full_drafting_authorized"] is False
+    assert projection["mode"] == "pre_draft_planning_only"
+    assert "publication_eval_provenance_missing_review_ledger_ref" in projection["blockers"]
+    assert "claim_to_paragraph_map_review_ref_outside_ledger:claim-primary" in projection[
+        "blockers"
+    ]
+    assert "display_to_claim_map_evidence_ref_outside_ledger:figure-1" in projection["blockers"]
+    assert projection["authorization_contract"]["required_inputs"][
+        "publication_eval_ai_reviewer_provenance"
+    ] == "blocked"
 
 
 def test_authoring_loop_requires_learning_read_model_calibration_refs() -> None:

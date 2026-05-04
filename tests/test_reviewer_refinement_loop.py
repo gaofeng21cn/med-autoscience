@@ -333,6 +333,28 @@ def test_reviewer_refinement_loop_maps_revert_to_same_line_route_back_without_pa
             str(study_root / "paper" / "review" / "review_ledger.json"),
         ],
     }
+    assert matrix_by_comment["publication_gap:claim-strength"]["action_type"] == "analysis_repair"
+    assert matrix_by_comment["publication_gap:claim-strength"]["work_units"]["analysis_repair"] == {
+        "work_unit_type": "analysis_repair",
+        "required": True,
+        "target_claim": None,
+        "target_section": "claim",
+        "ledger_refs": [
+            payload["runtime_context_refs"]["main_result_ref"],
+            str(study_root / "paper" / "review" / "review_ledger.json"),
+        ],
+    }
+    assert matrix_by_comment["publication_gap:claim-strength"]["work_units"][
+        "ai_reviewer_recheck"
+    ] == {
+        "work_unit_type": "ai_reviewer_recheck",
+        "required": True,
+        "reason": "analysis_repair_requires_ai_reviewer_recheck",
+        "ledger_refs": [
+            payload["runtime_context_refs"]["main_result_ref"],
+            str(study_root / "paper" / "review" / "review_ledger.json"),
+        ],
+    }
     assert matrix_by_comment["publication_gap:claim-strength"]["repair_routes"]["text_repair"][
         "required"
     ] is False

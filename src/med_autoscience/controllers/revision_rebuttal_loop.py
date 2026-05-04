@@ -115,6 +115,31 @@ def _repair_routes(
     }
 
 
+def _action_type(repair_type: str) -> str:
+    if repair_type == "analysis_repair":
+        return "analysis_repair"
+    if repair_type in {"claim_downgrade", "prose_revision"}:
+        return "text_repair"
+    if repair_type == "human_gate":
+        return "human_gate"
+    return "rebuttal_only"
+
+
+def _work_units(repair_routes: Mapping[str, Any], ledger_refs: list[str]) -> dict[str, Any]:
+    analysis_repair = dict(repair_routes["analysis_repair"])
+    text_repair = dict(repair_routes["text_repair"])
+    ai_reviewer_recheck = dict(repair_routes["ai_reviewer_recheck"])
+    analysis_repair["work_unit_type"] = "analysis_repair"
+    text_repair["work_unit_type"] = "text_repair"
+    ai_reviewer_recheck["work_unit_type"] = "ai_reviewer_recheck"
+    ai_reviewer_recheck["ledger_refs"] = ledger_refs
+    return {
+        "analysis_repair": analysis_repair,
+        "text_repair": text_repair,
+        "ai_reviewer_recheck": ai_reviewer_recheck,
+    }
+
+
 def _action_matrix_item(
     comment: Mapping[str, Any],
     *,
@@ -130,14 +155,17 @@ def _action_matrix_item(
         ledger_refs=required_surface_refs,
     )
     ai_reviewer_recheck_required = repair_routes["ai_reviewer_recheck"]["required"]
+    action_type = _action_type(repair_type)
     return {
         "comment_id": comment_id,
         "repair_type": repair_type,
+        "action_type": action_type,
         "required_surface_refs": required_surface_refs,
+        "work_units": _work_units(repair_routes, required_surface_refs),
         "repair_routes": repair_routes,
         "ai_reviewer_recheck_required": ai_reviewer_recheck_required,
         "response_letter_point": (
-            f"Response to {comment_id}: route to {repair_type} for the requested change; "
+            f"Response to {comment_id}: route to {action_type} for the requested change; "
             "cite the repaired surfaces before rebuttal closure."
         ),
     }

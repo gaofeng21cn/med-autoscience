@@ -66,10 +66,42 @@ def test_revision_rebuttal_loop_builds_canonical_projection() -> None:
     assert matrix[0] == {
         "comment_id": "R1-C1",
         "repair_type": "analysis_repair",
+        "action_type": "analysis_repair",
         "required_surface_refs": [
             "paper/evidence_ledger.json#revision-intake",
             "paper/review/review_ledger.json#reviewer-round-1",
         ],
+        "work_units": {
+            "analysis_repair": {
+                "work_unit_type": "analysis_repair",
+                "required": True,
+                "target_claim": "Subgroup effect is robust across centers.",
+                "target_section": None,
+                "ledger_refs": [
+                    "paper/evidence_ledger.json#revision-intake",
+                    "paper/review/review_ledger.json#reviewer-round-1",
+                ],
+            },
+            "text_repair": {
+                "work_unit_type": "text_repair",
+                "required": False,
+                "target_claim": "Subgroup effect is robust across centers.",
+                "target_section": None,
+                "ledger_refs": [
+                    "paper/evidence_ledger.json#revision-intake",
+                    "paper/review/review_ledger.json#reviewer-round-1",
+                ],
+            },
+            "ai_reviewer_recheck": {
+                "work_unit_type": "ai_reviewer_recheck",
+                "required": True,
+                "reason": "analysis_repair_requires_ai_reviewer_recheck",
+                "ledger_refs": [
+                    "paper/evidence_ledger.json#revision-intake",
+                    "paper/review/review_ledger.json#reviewer-round-1",
+                ],
+            },
+        },
         "repair_routes": {
             "analysis_repair": {
                 "required": True,
@@ -101,15 +133,19 @@ def test_revision_rebuttal_loop_builds_canonical_projection() -> None:
         ),
     }
     assert matrix[1]["repair_type"] == "claim_downgrade"
+    assert matrix[1]["action_type"] == "text_repair"
     assert matrix[1]["ai_reviewer_recheck_required"] is True
     assert matrix[1]["repair_routes"]["text_repair"]["required"] is True
+    assert matrix[1]["work_units"]["text_repair"]["required"] is True
     assert matrix[1]["repair_routes"]["ai_reviewer_recheck"] == {
         "required": True,
         "reason": "text_repair_requires_ai_reviewer_recheck",
     }
     assert matrix[2]["repair_type"] == "prose_revision"
+    assert matrix[2]["action_type"] == "text_repair"
     assert matrix[2]["ai_reviewer_recheck_required"] is True
     assert matrix[2]["repair_routes"]["text_repair"]["required"] is True
+    assert matrix[2]["work_units"]["ai_reviewer_recheck"]["work_unit_type"] == "ai_reviewer_recheck"
     assert matrix[2]["repair_routes"]["ai_reviewer_recheck"] == {
         "required": True,
         "reason": "text_repair_requires_ai_reviewer_recheck",
@@ -159,6 +195,21 @@ def test_revision_rebuttal_loop_blocks_comments_missing_required_fields() -> Non
     assert projection["status"] == "blocked"
     assert projection["blockers"] == ["reviewer_comment_missing_requested_change:R1-C1"]
     assert projection["action_matrix"] == []
+
+
+def test_revision_rebuttal_loop_requires_every_comment_to_route_to_repair_and_recheck() -> None:
+    module = importlib.import_module(MODULE_NAME)
+    projection = module.build_revision_rebuttal_loop_projection(_complete_payload())
+
+    for item in projection["comment_to_action_matrix"]:
+        assert item["action_type"] in {"analysis_repair", "text_repair", "human_gate", "rebuttal_only"}
+        assert item["work_units"]["ai_reviewer_recheck"]["required"] is True
+        assert item["work_units"]["ai_reviewer_recheck"]["work_unit_type"] == "ai_reviewer_recheck"
+        assert item["work_units"]["ai_reviewer_recheck"]["ledger_refs"] == item[
+            "required_surface_refs"
+        ]
+        assert item["work_units"]["analysis_repair"]["work_unit_type"] == "analysis_repair"
+        assert item["work_units"]["text_repair"]["work_unit_type"] == "text_repair"
 
 
 def test_revision_rebuttal_loop_requires_target_section_or_target_claim() -> None:
