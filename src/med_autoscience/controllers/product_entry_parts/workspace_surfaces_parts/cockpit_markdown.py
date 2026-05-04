@@ -101,10 +101,12 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             )
             if next_action.get("summary"):
                 lines.append(f"  下一步: {next_action.get('summary')}")
-            action_cards = [card for card in study.get("action_cards") or [] if isinstance(card, Mapping)]
-            if action_cards:
+            readiness_actions = [
+                item for item in study.get("workflow_steps") or study.get("action_cards") or [] if isinstance(item, Mapping)
+            ]
+            if readiness_actions:
                 labels = "；".join(
-                    _readiness_action_card_label(card) for card in action_cards if card.get("label")
+                    _readiness_action_card_label(item) for item in readiness_actions if item.get("label") or item.get("title")
                 )
                 if labels:
                     lines.append(f"  动作卡: {labels}")
@@ -594,10 +596,14 @@ def _render_portable_supervisor_queue_dashboard_lines(projection: object) -> lis
 
 def _readiness_action_card_label(card: Mapping[str, Any]) -> str:
     status = _non_empty_text(card.get("status"))
-    missing_reason = _non_empty_text(card.get("missing_reason"))
+    action_result = dict(card.get("action_result") or {})
+    missing_reason = _non_empty_text(card.get("missing_reason")) or _non_empty_text(
+        action_result.get("missing_reason")
+    )
     suffix = ""
     if status and missing_reason:
         suffix = f" [{status} / {missing_reason}]"
     elif status:
         suffix = f" [{status}]"
-    return f"{card.get('label')}{suffix}: {card.get('summary')}"
+    label = card.get("label") or card.get("title")
+    return f"{label}{suffix}: {card.get('summary')}"

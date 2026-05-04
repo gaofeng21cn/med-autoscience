@@ -270,7 +270,6 @@ def _medical_paper_readiness_action_cards(readiness: Mapping[str, Any]) -> list[
 
 
 def _readiness_surface_action_cards(readiness: Mapping[str, Any]) -> list[dict[str, Any]]:
-    cards_by_surface: dict[str, dict[str, Any]] = {}
     surfaces = [
         surface
         for surface in readiness.get("capability_surfaces") or []
@@ -284,13 +283,20 @@ def _readiness_surface_action_cards(readiness: Mapping[str, Any]) -> list[dict[s
     for surface in literature_surfaces[:1] or surfaces:
         card = _readiness_surface_action_card(surface)
         if card:
-            cards_by_surface[_non_empty_text(card.get("surface_key"))] = card
-    for surface in surfaces:
+            return [card]
+    return []
+
+
+def _readiness_all_surface_action_cards(readiness: Mapping[str, Any]) -> list[dict[str, Any]]:
+    cards: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for surface in readiness.get("capability_surfaces") or []:
         card = _readiness_surface_action_card(surface)
         surface_key = _non_empty_text(card.get("surface_key")) if card else ""
-        if card and surface_key not in cards_by_surface:
-            cards_by_surface[surface_key] = card
-    return list(cards_by_surface.values())
+        if card and surface_key not in seen:
+            cards.append(card)
+            seen.add(surface_key)
+    return cards
 
 
 def _readiness_surface_action_card(surface: object) -> dict[str, Any] | None:
@@ -364,6 +370,8 @@ def _readiness_action_card_workflow_step(
         "surface_kind": "medical_paper_readiness_action_card",
         "command": command,
         "summary": _non_empty_text(card.get("summary")) or "",
+        "status": _non_empty_text(card.get("status")) or "unknown",
+        "missing_reason": _non_empty_text(card.get("missing_reason")) or None,
         "requires": ["profile_ref", "study_id"],
         "guarded_operator_command": guarded_operator_command(
             action_id=action_id,
@@ -432,9 +440,12 @@ def _readiness_workflow_steps(
 ) -> list[dict[str, Any]]:
     commands = dict(item.get("commands") or {})
     command = commands.get("progress") or commands.get("status") or ""
+    cards = _readiness_all_surface_action_cards(readiness) or [
+        card for card in readiness.get("action_cards") or [] if isinstance(card, Mapping)
+    ]
     return [
         _readiness_action_card_workflow_step(card=dict(card), command=command)
-        for card in readiness.get("action_cards") or []
+        for card in cards
         if isinstance(card, Mapping)
     ]
 
