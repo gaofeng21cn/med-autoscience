@@ -775,6 +775,16 @@ def test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_sch
     supported_command_enum = set(
         schema["$defs"]["domainEntryContract"]["properties"]["supported_commands"]["items"]["enum"]
     )
+    catalog_commands = {spec.command for spec in CONTROL_PLANE_OPERATIONS_COMMANDS}
+    schema_control_plane_commands = {
+        command for command in supported_command_enum if command.startswith("control-plane-")
+    }
+
+    assert catalog_commands == schema_control_plane_commands, (
+        "control-plane command catalog/schema drift: "
+        f"missing_from_schema={sorted(catalog_commands - schema_control_plane_commands)} "
+        f"missing_from_catalog={sorted(schema_control_plane_commands - catalog_commands)}"
+    )
 
     for spec in CONTROL_PLANE_OPERATIONS_COMMANDS:
         assert f'add_parser("{spec.cli_command}")' in cli_parser
@@ -782,4 +792,3 @@ def test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_sch
         assert f'if mode == "{spec.mcp_mode}"' in mcp_server
         assert "CONTROL_PLANE_OPERATIONS_COMMANDS" in domain_entry_contract
         assert "item.command: item" in domain_entry_contract
-        assert spec.command in supported_command_enum
