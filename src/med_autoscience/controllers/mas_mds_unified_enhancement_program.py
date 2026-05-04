@@ -102,6 +102,12 @@ PROGRAM_LANES = (
         "owner": "MedAutoScience Observability OS",
         "authority_mode": "observability_only",
         "stage": "active",
+        "status_surface": "outcome_provider_ops_projection",
+        "stable_outputs": (
+            "outcome calibration intake projection",
+            "provider freshness, partial outage, and citation ledger drift projection",
+            "journal-family fixture matrix projection",
+        ),
         "primary_outputs": (
             "outcome calibration intake",
             "provider freshness and outage health projection",
@@ -285,7 +291,7 @@ def _lane_by_id() -> dict[str, dict[str, Any]]:
 
 def _materialize_lane(lane: Mapping[str, Any]) -> dict[str, Any]:
     materialized = dict(lane)
-    for key in ("primary_outputs", "compaction_gates"):
+    for key in ("primary_outputs", "stable_outputs", "compaction_gates"):
         if key in materialized:
             materialized[key] = list(materialized[key])
     return materialized

@@ -99,13 +99,13 @@ Owner: `MedAutoScience Observability OS`
 
 目的：把真实投稿结果、AI reviewer calibration、provider freshness、partial outage、citation drift、journal-family fixture matrix 放在同一条 observability lane，形成质量回归与运营健康投影。
 
+当前 status surface：`outcome_provider_ops_projection`。
+
 这条 lane 的输出包括：
 
-- desk reject / major revision / accept outcome intake
-- claim/统计/写作判断的过强/过弱 calibration
-- provider freshness / partial outage / citation ledger drift
-- journal-family writing pack fixture matrix
-- cover letter / checklist / supplement naming convention coverage
+- `outcome calibration intake projection`：吸收 desk reject / major revision / accept 等 outcome intake，并投影 claim、统计、写作判断的 calibration refs。
+- `provider freshness, partial outage, and citation ledger drift projection`：读取 `literature_provider_runtime` / `scheduled_provider_health_read_model`，合并 provider freshness、partial outage、provider response ledger 和 citation ledger drift。
+- `journal-family fixture matrix projection`：覆盖 journal-family writing pack fixture matrix，以及 cover letter / checklist / supplement naming convention coverage。
 
 Authority boundary：`L3` 只能更新 calibration inputs、health projection 和 regression evidence；不能绕过 AI reviewer 或 publication gate 直接让稿件 ready。
 

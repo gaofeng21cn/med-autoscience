@@ -38,6 +38,18 @@ def test_unified_enhancement_program_board_materializes_lanes_mapping_and_absorb
         "codex/mas-delivery-legacy-visibility",
         "codex/mas-structure-audit-compaction",
     ]
+    l3 = {
+        lane["lane_id"]: lane
+        for lane in board["lanes"]
+    }["L3_outcome_calibration_and_provider_ops"]
+    assert l3["authority_mode"] == "observability_only"
+    assert l3["status_surface"] == "outcome_provider_ops_projection"
+    assert l3["stable_outputs"] == [
+        "outcome calibration intake projection",
+        "provider freshness, partial outage, and citation ledger drift projection",
+        "journal-family fixture matrix projection",
+    ]
+    assert "cannot bypass AI reviewer or publication gate" in l3["authority_boundary"]
     assert {item["basis_id"] for item in board["engineering_basis"]} == {
         "strangler_fig",
         "architecture_fitness_functions",
