@@ -31,6 +31,10 @@ from med_autoscience.controllers.artifact_retention_operations_plan import (
     compact_artifact_retention_operations_plan,
     retention_policy_catalog,
 )
+from med_autoscience.controllers.control_plane_migration_audit import (
+    build_delivery_manifest_historical_backfill_plan,
+    summarize_delivery_manifests,
+)
 
 
 SCHEMA_VERSION = 1
@@ -115,6 +119,7 @@ def run_lifecycle_operations_report(
             workspaces=workspaces,
             mutation_policy=mutation_policy,
         ),
+        "historical_backfill_plan_count": _aggregate_historical_backfill_plan_count(workspaces),
         "workspaces": workspaces,
     }
 
@@ -159,6 +164,7 @@ def _workspace_report(workspace_root: Path, *, scan_policy: Mapping[str, Any]) -
         ),
         "retention_plan": compact_artifact_retention_operations_plan(retention_plan),
         "projection_completeness": _workspace_projection_completeness(studies),
+        "historical_backfill_plan_count": _historical_backfill_plan_count(studies),
         "studies": studies,
         "artifact_listing": "bounded",
         "artifact_sample": artifacts[:_DEFAULT_ARTIFACT_SAMPLE_LIMIT],
@@ -560,6 +566,13 @@ def _study_reports(
             if _is_relative_to(Path(str(item.get("path"))), study_root)
         ]
         surfaces = _projection_surfaces(study_artifacts)
+        manifest_paths = [
+            Path(str(item.get("path")))
+            for item in study_artifacts
+            if str(item.get("path") or "").endswith(("manifest.json", "manifest.yaml", "manifest.yml"))
+        ]
+        delivery_manifest_summary = summarize_delivery_manifests(manifest_paths)
+        historical_backfill_plan = build_delivery_manifest_historical_backfill_plan(delivery_manifest_summary)
         reports.append(
             {
                 "study_id": _study_id_for_root(study_root, workspace_root),
@@ -572,6 +585,8 @@ def _study_reports(
                 "cleanup_blocker_counts": _blocker_counts(study_artifacts, "cleanup_blockers"),
                 "projection_surfaces": surfaces,
                 "projection_completeness": _projection_completeness(surfaces),
+                "delivery_manifest_summary": delivery_manifest_summary,
+                "historical_backfill_plan": historical_backfill_plan,
             }
         )
     return reports
@@ -668,6 +683,14 @@ def _workspace_projection_completeness(studies: Iterable[Mapping[str, Any]]) -> 
         "incomplete_study_count": incomplete,
         "missing_surface_counts": missing_surface_counts,
     }
+
+
+def _historical_backfill_plan_count(studies: Iterable[Mapping[str, Any]]) -> int:
+    return sum(1 for study in studies if study.get("historical_backfill_plan") is not None)
+
+
+def _aggregate_historical_backfill_plan_count(workspaces: Iterable[Mapping[str, Any]]) -> int:
+    return sum(int(workspace.get("historical_backfill_plan_count") or 0) for workspace in workspaces)
 
 
 def _aggregate_projection_completeness(workspaces: Iterable[Mapping[str, Any]]) -> dict[str, Any]:

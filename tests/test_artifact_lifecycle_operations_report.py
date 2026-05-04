@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+from . import control_plane_fixtures as fixtures
+
 
 def _write(path: Path, text: str = "payload\n") -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -363,6 +365,52 @@ def test_lifecycle_operations_report_markdown_includes_operational_summary(
     assert "- projection regeneration candidates:" in markdown
     assert "`studies/001-risk/manuscript/current_package/manuscript.docx`" in markdown
     assert "- restore contract gaps: none" in markdown
+
+def test_lifecycle_operations_report_projects_delivery_manifest_historical_backfill_plan(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = fixtures.build_migration_audit_fixture_legacy_delivery_manifest_backfill(tmp_path)
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+
+    assert report["mutation_policy"]["read_only"] is True
+    assert report["mutation_policy"]["physical_cleanup_performed"] is False
+    assert report["historical_backfill_plan_count"] == 1
+    workspace = report["workspaces"][0]
+    assert workspace["historical_backfill_plan_count"] == 1
+    study = workspace["studies"][0]
+    assert study["delivery_manifest_summary"] == {
+        "delivery_manifest_count": 1,
+        "lifecycle_hook_present": False,
+        "source_signature_present": False,
+        "publication_refs_present": False,
+    }
+    assert study["historical_backfill_plan"] == {
+        "plan_type": "delivery_manifest_historical_backfill",
+        "read_only": True,
+        "missing_surfaces": [
+            "delivery_manifest_lifecycle_hook",
+            "source_signature",
+            "publication_refs",
+        ],
+        "missing_lifecycle_hook": True,
+        "missing_source_signature": True,
+        "missing_publication_refs": True,
+        "canonical_regeneration_path": [
+            "refresh_canonical_manuscript_sources",
+            "regenerate_delivery_manifest_lifecycle_hook",
+            "recompute_delivery_manifest_source_signature",
+            "relink_delivery_manifest_publication_refs",
+            "rerun_publication_gate",
+        ],
+        "mutation_policy": {
+            "read_only": True,
+            "writes_workspace": False,
+            "manual_patch_allowed": False,
+            "allowed_mutating_actions": [],
+        },
+    }
 
 
 def test_lifecycle_operations_report_markdown_is_renderable(tmp_path: Path) -> None:

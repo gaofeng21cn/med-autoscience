@@ -31,13 +31,16 @@ def test_migration_audit_dry_run_covers_dm_cvd_and_nf_pitnet_layouts(tmp_path: P
     assert report["apply_actions"] == []
     assert report["delete_actions"] == []
     assert report["write_actions"] == []
+    assert report["historical_backfill_plan_count"] == 0
     assert {workspace["workspace_style"] for workspace in report["workspaces"]} == {
         "dm_cvd",
         "nf_pitnet",
     }
+    assert all(workspace["historical_backfill_plan_count"] == 0 for workspace in report["workspaces"])
     assert all(study["current_package_count"] >= 1 for study in report["studies"])
     assert all(study["submission_minimal_count"] >= 1 for study in report["studies"])
     assert all(study["manifest_count"] >= 2 for study in report["studies"])
+    assert all(study["historical_backfill_plan"] is None for study in report["studies"])
 
 
 def test_migration_audit_projects_stable_ids_timestamps_and_fingerprints(tmp_path: Path) -> None:
@@ -127,6 +130,29 @@ def test_migration_audit_requires_delivery_manifest_lifecycle_hook_before_ready(
         "source_signature_present": True,
         "publication_refs_present": False,
     }
+    assert study["historical_backfill_plan"] == {
+        "plan_type": "delivery_manifest_historical_backfill",
+        "read_only": True,
+        "missing_surfaces": [
+            "delivery_manifest_lifecycle_hook",
+            "publication_refs",
+        ],
+        "missing_lifecycle_hook": True,
+        "missing_source_signature": False,
+        "missing_publication_refs": True,
+        "canonical_regeneration_path": [
+            "refresh_canonical_manuscript_sources",
+            "regenerate_delivery_manifest_lifecycle_hook",
+            "relink_delivery_manifest_publication_refs",
+            "rerun_publication_gate",
+        ],
+        "mutation_policy": {
+            "read_only": True,
+            "writes_workspace": False,
+            "manual_patch_allowed": False,
+            "allowed_mutating_actions": [],
+        },
+    }
     assert study["delivery_projection_completion_plan"] == {
         "plan_type": "delivery_manifest_lifecycle_backfill",
         "missing_surface": "delivery_manifest_lifecycle_hook_and_publication_refs",
@@ -139,6 +165,54 @@ def test_migration_audit_requires_delivery_manifest_lifecycle_hook_before_ready(
         ],
         "gate_status": "publication_gate_required_before_delivery_complete",
         "mutation_policy": "dry_run_projection_only",
+    }
+
+
+def test_migration_audit_projects_read_only_historical_backfill_plan_for_legacy_delivery_manifest(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
+    workspace_root = fixtures.build_migration_audit_fixture_legacy_delivery_manifest_backfill(tmp_path)
+    before = _regular_files(tmp_path)
+
+    report = module.run_migration_audit(workspace_roots=[workspace_root], dry_run=True)
+
+    assert _regular_files(tmp_path) == before
+    assert report["action_counts"]["mutating"] == 0
+    assert report["mutating_actions"] == []
+    assert report["historical_backfill_plan_count"] == 1
+    assert report["workspaces"][0]["historical_backfill_plan_count"] == 1
+    study = report["studies"][0]
+    assert study["delivery_manifest_summary"] == {
+        "delivery_manifest_count": 1,
+        "lifecycle_hook_present": False,
+        "source_signature_present": False,
+        "publication_refs_present": False,
+    }
+    assert study["historical_backfill_plan"] == {
+        "plan_type": "delivery_manifest_historical_backfill",
+        "read_only": True,
+        "missing_surfaces": [
+            "delivery_manifest_lifecycle_hook",
+            "source_signature",
+            "publication_refs",
+        ],
+        "missing_lifecycle_hook": True,
+        "missing_source_signature": True,
+        "missing_publication_refs": True,
+        "canonical_regeneration_path": [
+            "refresh_canonical_manuscript_sources",
+            "regenerate_delivery_manifest_lifecycle_hook",
+            "recompute_delivery_manifest_source_signature",
+            "relink_delivery_manifest_publication_refs",
+            "rerun_publication_gate",
+        ],
+        "mutation_policy": {
+            "read_only": True,
+            "writes_workspace": False,
+            "manual_patch_allowed": False,
+            "allowed_mutating_actions": [],
+        },
     }
 
 

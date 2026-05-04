@@ -492,3 +492,48 @@ def build_migration_audit_fixture_missing_delivery_lifecycle_hook(root: Path) ->
     _write_text(current_package.with_suffix(".zip"), "zip-placeholder\n")
     _write_text(submission_minimal / "paper.md", f"# {study_id} submission\n")
     return workspace_root
+
+
+def build_migration_audit_fixture_legacy_delivery_manifest_backfill(root: Path) -> Path:
+    workspace_root = root / "DM-CVD-Legacy-Delivery-Manifest"
+    study_id = "007-legacy-delivery-manifest-backfill"
+    study_root = workspace_root / "studies" / study_id
+    paper_root = study_root / "paper"
+    manuscript_root = study_root / "manuscript"
+    current_package = manuscript_root / "current_package"
+    submission_minimal = paper_root / "submission_minimal"
+
+    _write_json(
+        paper_root / "study_manifest.json",
+        {
+            "study_id": study_id,
+            "surface": "study_manifest",
+            "authority_owner": "controller",
+        },
+    )
+    _write_json(
+        manuscript_root / "delivery_manifest.json",
+        {
+            "study_id": study_id,
+            "surface": "delivery_manifest",
+            "authority_owner": "controller",
+            "surface_roles": {
+                "human_facing_current_package_root": str(current_package),
+                "human_facing_current_package_zip": str(current_package.with_suffix(".zip")),
+            },
+        },
+    )
+    _write_json(
+        submission_minimal / "submission_manifest.json",
+        {
+            "study_id": study_id,
+            "surface": "submission_minimal_manifest",
+            "authority_owner": "controller",
+            "source_signature": f"sig-{study_id}",
+            "authority_source_signature": f"sig-{study_id}",
+        },
+    )
+    _write_text(current_package / "README.md", f"# {study_id}\n")
+    _write_text(current_package.with_suffix(".zip"), "zip-placeholder\n")
+    _write_text(submission_minimal / "paper.md", f"# {study_id} submission\n")
+    return workspace_root

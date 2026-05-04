@@ -211,6 +211,49 @@ def _missing_delivery_manifest_surfaces(summary: Mapping[str, Any]) -> list[str]
     return missing
 
 
+def summarize_delivery_manifests(manifests: Iterable[Path]) -> dict[str, Any]:
+    return _delivery_manifest_summary(manifests)
+
+
+def build_delivery_manifest_historical_backfill_plan(
+    delivery_manifest_summary: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if int(delivery_manifest_summary.get("delivery_manifest_count") or 0) == 0:
+        return None
+    missing_lifecycle_hook = not bool(delivery_manifest_summary.get("lifecycle_hook_present"))
+    missing_source_signature = not bool(delivery_manifest_summary.get("source_signature_present"))
+    missing_publication_refs = not bool(delivery_manifest_summary.get("publication_refs_present"))
+    missing_surfaces: list[str] = []
+    canonical_regeneration_path = ["refresh_canonical_manuscript_sources"]
+    if missing_lifecycle_hook:
+        missing_surfaces.append("delivery_manifest_lifecycle_hook")
+        canonical_regeneration_path.append("regenerate_delivery_manifest_lifecycle_hook")
+    if missing_source_signature:
+        missing_surfaces.append("source_signature")
+        canonical_regeneration_path.append("recompute_delivery_manifest_source_signature")
+    if missing_publication_refs:
+        missing_surfaces.append("publication_refs")
+        canonical_regeneration_path.append("relink_delivery_manifest_publication_refs")
+    if not missing_surfaces:
+        return None
+    canonical_regeneration_path.append("rerun_publication_gate")
+    return {
+        "plan_type": "delivery_manifest_historical_backfill",
+        "read_only": True,
+        "missing_surfaces": missing_surfaces,
+        "missing_lifecycle_hook": missing_lifecycle_hook,
+        "missing_source_signature": missing_source_signature,
+        "missing_publication_refs": missing_publication_refs,
+        "canonical_regeneration_path": canonical_regeneration_path,
+        "mutation_policy": {
+            "read_only": True,
+            "writes_workspace": False,
+            "manual_patch_allowed": False,
+            "allowed_mutating_actions": [],
+        },
+    }
+
+
 def _study_id_from_manifest(path: Path, payload: Mapping[str, Any]) -> str | None:
     return _text(payload.get("study_id")) or _text(payload.get("study")) or _infer_study_id(path)
 
@@ -337,6 +380,7 @@ def _study_reports(workspace_root: Path, manifests: list[Path]) -> list[dict[str
             submission_minimal_count=submission_minimal_count,
             delivery_manifest_summary=delivery_manifest_summary,
         )
+        historical_backfill_plan = build_delivery_manifest_historical_backfill_plan(delivery_manifest_summary)
         reports.append(
             {
                 "study_id": study_id,
@@ -352,6 +396,7 @@ def _study_reports(workspace_root: Path, manifests: list[Path]) -> list[dict[str
                 ),
                 "delivery_projection_completeness_reason": completeness_reason,
                 "delivery_projection_completion_plan": completion_plan,
+                "historical_backfill_plan": historical_backfill_plan,
                 "delivery_manifest_summary": delivery_manifest_summary,
                 "authority_summary": {
                     "unclassified_authority_surface": unclassified,
@@ -393,6 +438,9 @@ def _workspace_report(workspace_root: Path) -> tuple[dict[str, Any], list[dict[s
         "study_count": len(studies),
         "current_package_count": len(_current_package_paths(workspace_root)),
         "submission_minimal_count": len(_submission_minimal_paths(workspace_root)),
+        "historical_backfill_plan_count": sum(
+            1 for study in studies if study["historical_backfill_plan"] is not None
+        ),
         "manifests": manifest_reports,
     }
     return workspace, studies, unclassified
@@ -438,6 +486,7 @@ def run_migration_audit(*, workspace_roots: Iterable[str | Path], dry_run: bool 
         [study["study_fingerprint"] for study in studies],
     )
     delivery_plan_count = sum(1 for study in studies if study["delivery_projection_completion_plan"] is not None)
+    historical_backfill_plan_count = sum(1 for study in studies if study["historical_backfill_plan"] is not None)
     report_payload = {
         "surface": "control_plane_migration_audit",
         "schema_version": 1,
@@ -448,6 +497,7 @@ def run_migration_audit(*, workspace_roots: Iterable[str | Path], dry_run: bool 
         "workspace_fingerprint": workspace_fingerprint,
         "study_fingerprint": study_fingerprint,
         "delivery_projection_completion_plan_count": delivery_plan_count,
+        "historical_backfill_plan_count": historical_backfill_plan_count,
         "workspaces": workspaces,
         "studies": studies,
     }
@@ -468,6 +518,7 @@ def run_migration_audit(*, workspace_roots: Iterable[str | Path], dry_run: bool 
         "workspace_fingerprint": workspace_fingerprint,
         "study_fingerprint": study_fingerprint,
         "delivery_projection_completion_plan_count": delivery_plan_count,
+        "historical_backfill_plan_count": historical_backfill_plan_count,
         "mutation_policy": {
             "dry_run_read_only": True,
             "cleanup_apply_supported": False,
