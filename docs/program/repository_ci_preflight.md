@@ -35,7 +35,7 @@
 - `ci-preflight`：目标是保持 push CI 可承受，只运行 change-aware preflight 与 build；耗时提醒用于判断 preflight contract 是否过宽，不额外触发重 lane。
 - `full`：目标是正式发布前完整覆盖，允许显著慢于 smoke / ci-preflight；耗时漂移通过 advisory / full summary 与 history summary 观察，不能替代质量失败或变成日常 push 门禁。
 
-`full` 同时调度 `regression`、`meta`、`display`、`submission` 与 `family`。为了避免聚合 lane 再叠加每个重 lane 的 `-n auto` 把本机或 runner 并发放大到不稳定，`scripts/run-parallel-test-lanes.sh full` 默认把子 lane 的 `MAS_PYTEST_WORKERS` 限为 `2`；单独运行 `scripts/verify.sh regression/display/submission` 仍保留 `auto`，需要更高并发预算时可显式设置 `MAS_FULL_PYTEST_WORKERS` 或 `MAS_PYTEST_WORKERS`。
+`full` 同时调度 `regression`、`meta`、`display`、`submission` 与 `family`。为了避免聚合 lane 再叠加每个重 lane 的 `-n auto` 把本机或 runner 并发放大到不稳定，`scripts/run-parallel-test-lanes.sh full` 默认把子 lane 的 `MAS_PYTEST_WORKERS` 限为 `4`；单独运行 `scripts/verify.sh regression/display/submission` 仍保留 `auto`，需要不同并发预算时可显式设置 `MAS_FULL_PYTEST_WORKERS` 或 `MAS_PYTEST_WORKERS`。
 
 重 lane 慢测试画像使用只读入口 `scripts/profile-heavy-test-lanes.py --print-only` 生成可复现的
 `pytest --durations` 命令；实际 profiling 由维护者显式运行，不进入 push CI。

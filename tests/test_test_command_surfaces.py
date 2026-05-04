@@ -782,7 +782,7 @@ def test_parallel_full_lane_script_covers_all_marker_groups() -> None:
         assert f'"{lane}"' in script
     assert 'make "${lane}"' in script
     assert "MAS_TEST_LANE_SUMMARY_PATH" in script
-    assert 'full_lane_pytest_workers="${MAS_FULL_PYTEST_WORKERS:-2}"' in script
+    assert 'full_lane_pytest_workers="${MAS_FULL_PYTEST_WORKERS:-4}"' in script
     assert 'MAS_PYTEST_WORKERS="${MAS_PYTEST_WORKERS:-${full_lane_pytest_workers}}" make "${lane}"' in script
 
 
@@ -821,7 +821,7 @@ def test_parallel_full_lane_script_writes_summary_and_invokes_make_lanes(tmp_pat
         PARALLEL_FULL_LANES
     )
     for lane in PARALLEL_FULL_LANES:
-        assert (capture_dir / f"{lane}.workers").read_text(encoding="utf-8").strip() == "2"
+        assert (capture_dir / f"{lane}.workers").read_text(encoding="utf-8").strip() == "4"
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     assert [lane["lane"] for lane in summary["lanes"]] == list(PARALLEL_FULL_LANES)
     for lane in summary["lanes"]:
@@ -874,7 +874,7 @@ def test_parallel_full_lane_script_waits_for_all_lanes_before_failing(tmp_path: 
         PARALLEL_FULL_LANES
     )
     for lane in PARALLEL_FULL_LANES:
-        assert (capture_dir / f"{lane}.workers").read_text(encoding="utf-8").strip() == "2"
+        assert (capture_dir / f"{lane}.workers").read_text(encoding="utf-8").strip() == "4"
     for lane in PARALLEL_FULL_LANES:
         assert f"[{lane}] fake make {lane}" in result.stdout
     summary = json.loads(summary_path.read_text(encoding="utf-8"))

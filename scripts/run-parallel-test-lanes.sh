@@ -14,7 +14,7 @@ lanes=(
   "test-family"
 )
 
-full_lane_pytest_workers="${MAS_FULL_PYTEST_WORKERS:-2}"
+full_lane_pytest_workers="${MAS_FULL_PYTEST_WORKERS:-4}"
 
 if [[ -n "${MAS_TEST_LANE_SUMMARY_PATH:-}" ]]; then
   summary_dir="$(dirname "${MAS_TEST_LANE_SUMMARY_PATH}")"
