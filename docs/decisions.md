@@ -19,6 +19,12 @@
 - 理由：恢复链路曾把 stale run handle、fresh supervisor tick、daemon probe 和 worker liveness 混成一类状态，容易无限 recovering 或误报 live。运行健康必须用 event history 和有限状态机收口。
 - 影响：`runtime watch --apply`、`runtime reconcile-health` 与 controller tick 才能 materialize health；runtime health 只能驱动 runtime action，不得反向覆盖 `StudyTruthKernel.canonical_next_action`、publication gate、package authority 或 delivery state。
 
+## 2026-05-05：Supervisor request ownership 与 submission milestone parking 收口到 request-only / controller-stop 边界
+
+- 决策：portable supervisor scan 可以生成外层可消费的 request packet，但 `publication_gate_specificity_required` 的 owner 固定为 `publication_gate`，`return_to_ai_reviewer_workflow` 的 owner 固定为 `ai_reviewer`，supervisor consumer 只写 owner handoff task 和 consumer packet。对 stopped submission/finalize milestone，supervisor 只能刷新 controller-owned parked decision、确认或停止 runtime 资源，并把 repair lifecycle 写成 `state=parked` / `authority=controller_stop`。
+- 理由：近期 supervisor parking 与 request queue 修复证明，如果外层 scan/consumer 直接推断 publication quality、AI reviewer judgement 或 paper package 状态，会重新制造第二 owner。外层工程代理需要的是清晰的 request owner、required output surface 和 forbidden surface，而不是替代 MAS quality/publication authority。
+- 影响：`runtime-supervisor-consume`、`artifacts/supervision/consumer/*` 与 `artifacts/supervision/requests/*` 都是 handoff/request surface；它们不得写 `publication_eval/latest.json`，不得修改 `paper/current_package` 或 `manuscript/current_package`，不得放宽 quality/publication gate。submission milestone parking 不授权人工 patch；后续稿件反馈仍必须走 durable revision intake 与 MAS/MDS relaunch/resume。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

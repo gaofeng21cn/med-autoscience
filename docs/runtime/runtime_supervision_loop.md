@@ -86,7 +86,27 @@ medautosci runtime supervisor-scan \
   --developer-supervisor-mode developer_apply_safe
 ```
 
-该入口写出 workspace-level `artifacts/supervision/hourly/latest.json`，只消费 MAS durable truth surfaces：`study_runtime_status`、`study_progress`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json` 与 AI repair lifecycle。它的职责是形成 `action_queue`、`why_not_applied` 与 `external_supervisor_required`，而不是直接修改 paper/current_package。
+该入口写出 workspace-level `artifacts/supervision/hourly/latest.json`，只消费 MAS durable truth surfaces：`study_runtime_status`、`study_progress`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json` 与 AI repair lifecycle。它的职责是形成 `action_queue`、`why_not_applied`、owner-visible request packet 与 `external_supervisor_required`，而不是直接修改 paper/current_package。
+
+当 `action_queue` 包含 `publication_gate_specificity_required` 或 `return_to_ai_reviewer_workflow` 时，supervisor scan 只能物化 request packet：
+
+- `publication_gate_specificity_required` 的 owner 是 `publication_gate`
+- `return_to_ai_reviewer_workflow` 的 owner 是 `ai_reviewer`
+- request packet 的 authority 是 `request_only`
+- 预期输出仍回到对应 owner 的 durable surface，例如 `publication_eval/latest.json`
+- supervisor 本身不得写 `publication_eval/latest.json`、不得放宽 quality/publication gate、不得改 `paper/current_package` 或 `manuscript/current_package`
+
+外层工程消费入口是：
+
+```bash
+medautosci runtime-supervisor-consume \
+  --profile <profile> \
+  --studies <study_id> <study_id> \
+  --developer-supervisor-mode developer_apply_safe \
+  --apply
+```
+
+该入口只把 scan queue 转成 owner handoff task，写入 workspace-level `artifacts/supervision/consumer/latest.json` / `history.jsonl` 以及 study-level consumer packet。它负责说明 `request_owner`、`required_output_surface`、`request_packet_ref`、forbidden surfaces 与 verification commands；它不执行 publication gate 或 AI reviewer 的专业判断，也不修改论文包。
 
 Developer Supervisor Mode 有三个正式模式：
 
@@ -189,6 +209,23 @@ medautosci runtime supervisor-scan \
 - 只有当显式 contract 表明确实需要 external secret / credential 或 controller 要求人工确认时，才允许保持 user-blocking
 - 否则这类 parking 必须被 MAS 自动吸收并恢复，不得把程序内 routing 判断抛给用户
 
+### 5.5 stopped submission milestone parking
+
+如果 quest 已经进入 `stopped`，但 MAS 的当前 controller truth 表明它只是 submission/finalize 里程碑停车，外环必须刷新 controller-owned parked decision，并把该状态写成正式停车，而不是把旧 stopped state 解释成可人工 patch 的许可。
+
+在 `developer_apply_safe` 且 GitHub gate 允许的前提下，supervisor scan 可以执行的动作只有：
+
+- 通过 runtime backend `stop_quest` 或 already-stopped 结果确认 runtime 资源已释放
+- 写 `artifacts/autonomy/repair_lifecycle/latest.json`
+- 标记 `authority = controller_stop`
+- 标记 `state = parked`
+- 明确 `paper_package_mutation_allowed = false`
+- 明确 `manual_study_patch_allowed = false`
+- 明确 `quality_gate_relaxation_allowed = false`
+- 明确 `medical_claim_authoring_allowed = false`
+
+这条规则只收口 runtime/resource 与 controller decision projection。后续如果用户、导师或审稿意见重新打开同一 paper line，仍必须走 durable revision intake 与 MAS/MDS relaunch/resume，再从 canonical paper authority 重新生成投影包。
+
 ## 6. durable surfaces
 
 这条链路当前正式落到下面几个稳定表面：
@@ -197,6 +234,11 @@ medautosci runtime supervisor-scan \
 - study-level `studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json`
 - study-level `studies/<study_id>/artifacts/autonomy/repair_lifecycle/latest.json`
 - workspace-level `artifacts/supervision/hourly/latest.json`
+- workspace-level `artifacts/supervision/consumer/latest.json`
+- workspace-level `artifacts/supervision/consumer/history.jsonl`
+- study-level `studies/<study_id>/artifacts/supervision/consumer/<action_type>.json`
+- study-level `studies/<study_id>/artifacts/supervision/requests/publication_gate_specificity/latest.json`
+- study-level `studies/<study_id>/artifacts/supervision/requests/ai_reviewer/latest.json`
 - quest-level `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
 - study-level `studies/<study_id>/artifacts/runtime/last_launch_report.json`
 - physician-facing projection `study_progress`
@@ -208,6 +250,8 @@ medautosci runtime supervisor-scan \
 - `runtime_supervision/latest.json` 负责 outer-loop supervision read model，并携带 `runtime_health_epoch`
 - `repair_lifecycle/latest.json` 负责投影 AI doctor repair 从 request、diagnosis、repair action 到 apply attempt 的生命周期
 - `artifacts/supervision/hourly/latest.json` 负责跨 study 巡检 action queue 与 why-not-applied 投影
+- `artifacts/supervision/consumer/latest.json` 与 study-level consumer packets 负责把外层 queue 消费成 request-owner handoff task
+- `artifacts/supervision/requests/*/latest.json` 负责保存 owner-visible request packet；它们是 request surface，不是 owner output surface
 - `study_progress` 负责把这些 truth 翻译成医生/PI 能看懂的前台进度
 
 不要把 runtime health truth 硬塞进：
