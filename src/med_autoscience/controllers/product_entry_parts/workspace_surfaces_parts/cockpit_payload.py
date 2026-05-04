@@ -270,7 +270,7 @@ def _medical_paper_readiness_action_cards(readiness: Mapping[str, Any]) -> list[
 
 
 def _readiness_surface_action_cards(readiness: Mapping[str, Any]) -> list[dict[str, Any]]:
-    cards: list[dict[str, Any]] = []
+    cards_by_surface: dict[str, dict[str, Any]] = {}
     surfaces = [
         surface
         for surface in readiness.get("capability_surfaces") or []
@@ -284,8 +284,13 @@ def _readiness_surface_action_cards(readiness: Mapping[str, Any]) -> list[dict[s
     for surface in literature_surfaces[:1] or surfaces:
         card = _readiness_surface_action_card(surface)
         if card:
-            cards.append(card)
-    return cards
+            cards_by_surface[_non_empty_text(card.get("surface_key"))] = card
+    for surface in surfaces:
+        card = _readiness_surface_action_card(surface)
+        surface_key = _non_empty_text(card.get("surface_key")) if card else ""
+        if card and surface_key not in cards_by_surface:
+            cards_by_surface[surface_key] = card
+    return list(cards_by_surface.values())
 
 
 def _readiness_surface_action_card(surface: object) -> dict[str, Any] | None:
