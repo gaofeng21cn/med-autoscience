@@ -131,8 +131,10 @@
               "submit-study-task",
               "build-product-entry",
               "control-plane-migration-audit",
+              "control-plane-governance-report",
               "control-plane-backfill-apply",
               "control-plane-cleanup-apply",
+              "control-plane-safe-cache-cleanup-apply",
               "control-plane-lifecycle-report"
             ]
           }
