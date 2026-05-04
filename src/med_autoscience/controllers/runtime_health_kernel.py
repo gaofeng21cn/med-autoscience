@@ -536,7 +536,7 @@ def _allowed_controller_actions(*, canonical_runtime_action: str) -> list[str]:
             "relaunch_runtime",
             "open_monitoring_entry",
         ]
-    if canonical_runtime_action == "escalate_runtime":
+    if canonical_runtime_action in {"escalate_runtime", "external_supervisor_required"}:
         return ["read_runtime_status", "open_monitoring_entry", "manual_runtime_review"]
     return list(_BASE_ALLOWED_ACTIONS)
 
@@ -572,8 +572,13 @@ def _snapshot_from_events(
     missing_live_session = worker_state["state"] == "missing_live_session"
     live_activity_timeout = worker_state["state"] == "activity_timeout"
     retry_budget_remaining = max(MAX_RECOVERY_ATTEMPTS - max(attempt_count, failed_attempts), 0)
+    retry_budget_exhausted = (
+        retry_budget_remaining == 0
+        and max(attempt_count, failed_attempts) >= MAX_RECOVERY_ATTEMPTS
+        and (missing_live_session or live_activity_timeout or worker_state["state"] == "unknown")
+    )
 
-    if escalation_event is not None or failed_attempts >= MAX_RECOVERY_ATTEMPTS:
+    if escalation_event is not None or failed_attempts >= MAX_RECOVERY_ATTEMPTS or retry_budget_exhausted:
         attempt_state = "escalated"
         canonical_runtime_action = "external_supervisor_required"
         retry_budget_remaining = 0

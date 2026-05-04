@@ -20,6 +20,26 @@ def test_supervisor_scan_queues_external_repair_for_retry_exhausted_no_live_work
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "003-dpcc-primary-care-phenotype-treatment-gap", quest_id="quest-dpcc")
     quest_root = profile.runtime_root / "quest-dpcc"
+    repair_actions = study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json"
+    _write_json(
+        repair_actions,
+        {
+            "surface": "autonomy_repair_orchestration",
+            "schema_version": 1,
+            "state": "ready_for_repair",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "quest-dpcc",
+            "actions": [
+                {
+                    "action_type": "controller_repair",
+                    "repair_kind": "runtime_recovery_redrive",
+                    "owner": "mas_controller",
+                    "risk": "medium",
+                    "auto_apply_allowed": True,
+                }
+            ],
+        },
+    )
 
     monkeypatch.setattr(
         module.study_runtime_router,
@@ -43,6 +63,9 @@ def test_supervisor_scan_queues_external_repair_for_retry_exhausted_no_live_work
                 "attempt_state": "escalated",
                 "retry_budget_remaining": 0,
                 "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "publication_eval": {
+                "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
             },
             "control_plane_snapshot": {
                 "control_state": "blocked_runtime_escalation",
@@ -75,12 +98,27 @@ def test_supervisor_scan_queues_external_repair_for_retry_exhausted_no_live_work
     study = result["studies"][0]
     assert study["external_supervisor_required"] is True
     assert study["action_queue"][0]["action_type"] == "runtime_platform_repair"
+    assert study["action_queue"][0]["action_id"] == (
+        "supervisor-action::003-dpcc-primary-care-phenotype-treatment-gap::runtime_platform_repair::runtime_recovery_retry_budget_exhausted"
+    )
     assert study["action_queue"][0]["authority"] == "external_supervisor"
+    assert study["action_queue"][0]["handoff_packet"]["packet_type"] == "external_supervisor_handoff"
+    assert study["action_queue"][0]["handoff_packet"]["recommended_owner"] == "external_engineering_agent"
     assert study["why_not_applied"] == "runtime_recovery_retry_budget_exhausted"
     assert study["escalation_reason"] == "runtime_recovery_retry_budget_exhausted"
+    assert study["why_not_applied_timeline"][-1]["reason"] == "runtime_recovery_retry_budget_exhausted"
+    assert study["scan_delta"]["previous_scan_seen"] is False
     assert study["gate_specificity"]["required"] is False
-    assert study["ai_reviewer_assessment"]["missing"] is False
+    assert study["ai_reviewer_assessment"]["missing"] is True
+    assert [item["action_type"] for item in study["action_queue"]] == [
+        "runtime_platform_repair",
+        "return_to_ai_reviewer_workflow",
+    ]
+    assert study["ai_repair_lifecycle"]["blocked_reason"] == "runtime_recovery_retry_budget_exhausted"
+    assert study["ai_repair_lifecycle"]["next_owner"] == "external_supervisor"
+    assert result["queue_history"]["latest_action_count"] == 2
     assert Path(result["refs"]["latest_path"]).is_file()
+    assert Path(result["refs"]["history_path"]).is_file()
 
 
 def test_supervisor_scan_queues_specificity_and_ai_reviewer_actions_without_quality_authority(
@@ -103,6 +141,11 @@ def test_supervisor_scan_queues_specificity_and_ai_reviewer_actions_without_qual
             "quest_status": "stopped",
             "decision": "blocked",
             "reason": "publication_gate_specificity_required",
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "none",
+                "attempt_state": "idle",
+                "retry_budget_remaining": 0,
+            },
             "execution_owner_guard": {"supervisor_only": True},
             "publication_eval": {
                 "current_required_action": "generic_blocker_repair",
@@ -122,9 +165,10 @@ def test_supervisor_scan_queues_specificity_and_ai_reviewer_actions_without_qual
             "quality_review_loop": {"closure_state": "open"},
             "control_plane_snapshot": {"blocking_reasons": ["publication_eval.ai_reviewer_required"]},
             "ai_repair_lifecycle": {
-                "state": "blocked",
-                "blocked_reason": "publication_gate_specificity_required",
+                "state": "external_supervisor_required",
+                "blocked_reason": "runtime_recovery_not_authorized",
                 "external_supervisor_required": True,
+                "projection_only": True,
             },
         },
     )
@@ -146,5 +190,103 @@ def test_supervisor_scan_queues_specificity_and_ai_reviewer_actions_without_qual
         "required": True,
         "missing": True,
     }
+    assert result["studies"][0]["why_not_applied"] == "publication_gate_specificity_required"
+    assert result["studies"][0]["blocked_reason"] == "publication_gate_specificity_required"
+    assert result["studies"][0]["next_owner"] == "publication_gate"
     assert result["studies"][0]["supervisor_only"] is True
     assert result["studies"][0]["paper_package_mutated"] is False
+
+
+def test_supervisor_scan_apply_safe_actions_materializes_stopped_dm002_lifecycle_and_request_packets(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-dm-cvd-mortality-risk", quest_id="quest-dm")
+    repair_actions = study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json"
+    _write_json(
+        repair_actions,
+        {
+            "surface": "autonomy_repair_orchestration",
+            "schema_version": 1,
+            "state": "ready_for_repair",
+            "study_id": "001-dm-cvd-mortality-risk",
+            "quest_id": "quest-dm",
+            "actions": [
+                {
+                    "action_type": "controller_repair",
+                    "repair_kind": "bounded_work_unit_redrive",
+                    "owner": "mas_controller",
+                    "risk": "medium",
+                    "auto_apply_allowed": True,
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-dm-cvd-mortality-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-dm",
+            "quest_status": "stopped",
+            "reason": "publication_gate_specificity_required",
+            "publication_eval": {
+                "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+                "recommended_actions": [
+                    {
+                        "action_id": "publication-eval-action::specificity",
+                        "action_type": "return_to_controller",
+                        "next_work_unit": {"unit_id": "gate_needs_specificity", "summary": "Name concrete targets."},
+                        "work_unit_fingerprint": "publication-blockers::same",
+                        "reason": "Publication gate needs specificity.",
+                    }
+                ],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": "001-dm-cvd-mortality-risk",
+            "current_stage": "publication_supervision",
+            "paper_stage": "bundle_stage_blocked",
+            "quality_review_loop": {"closure_state": "review_required"},
+            "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+            "ai_repair_lifecycle": {
+                "state": "external_supervisor_required",
+                "blocked_reason": "runtime_recovery_not_authorized",
+                "next_owner": "external_supervisor",
+                "external_supervisor_required": True,
+                "projection_only": True,
+            },
+        },
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=("001-dm-cvd-mortality-risk",),
+        apply_safe_actions=True,
+    )
+
+    lifecycle_path = study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json"
+    specificity_request_path = study_root / "artifacts" / "supervision" / "requests" / "publication_gate_specificity" / "latest.json"
+    ai_reviewer_request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    lifecycle = json.loads(lifecycle_path.read_text(encoding="utf-8"))
+    specificity_request = json.loads(specificity_request_path.read_text(encoding="utf-8"))
+    ai_reviewer_request = json.loads(ai_reviewer_request_path.read_text(encoding="utf-8"))
+
+    assert result["studies"][0]["ai_repair_lifecycle"]["blocked_reason"] == "publication_gate_specificity_required"
+    assert result["studies"][0]["next_owner"] == "publication_gate"
+    assert lifecycle["state"] == "blocked"
+    assert lifecycle["blocked_reason"] == "publication_gate_specificity_required"
+    assert lifecycle["next_owner"] == "publication_gate"
+    assert specificity_request["authority"] == "observability_only"
+    assert specificity_request["required_target_kinds"] == ["claim", "figure", "table", "metric", "source_path"]
+    assert ai_reviewer_request["authority"] == "observability_only"
+    assert ai_reviewer_request["target_assessment_owner"] == "ai_reviewer"
+    assert ai_reviewer_request["may_authorize_quality_gate"] is False

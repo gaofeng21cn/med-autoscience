@@ -99,6 +99,7 @@ def _study_item(
     product_recommended_flow = dict(progress_payload.get("product_recommended_flow") or {})
     paper_orchestra_operator_projection = dict(progress_payload.get("paper_orchestra_operator_projection") or {})
     open_auto_research_state = dict(progress_payload.get("open_auto_research_projection") or {})
+    portable_supervisor_dashboard = dict(progress_payload.get("portable_supervisor_dashboard") or {})
     medical_paper_readiness_surface = _normalized_medical_paper_readiness_projection(
         progress_payload.get("medical_paper_readiness")
     )
@@ -160,6 +161,7 @@ def _study_item(
         "product_recommended_flow": product_recommended_flow or None,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
         "open_auto_research_projection": open_auto_research_state or None,
+        "portable_supervisor_dashboard": portable_supervisor_dashboard or None,
         "medical_paper_readiness": medical_paper_readiness_surface or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
         "recovery_contract": recovery_contract or None,
@@ -471,6 +473,56 @@ def _workspace_medical_paper_readiness_state(*, studies: list[dict[str, Any]]) -
     }
 
 
+def _workspace_portable_supervisor_queue_dashboard(
+    *,
+    profile: WorkspaceProfile,
+    studies: list[dict[str, Any]],
+) -> dict[str, Any]:
+    source_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    projected_studies = [
+        dict(item.get("portable_supervisor_dashboard") or {})
+        for item in studies
+        if isinstance(item.get("portable_supervisor_dashboard"), Mapping)
+    ]
+    counts = {
+        "study_count": len(studies),
+        "projection_count": len(projected_studies),
+        "queued_action_count": 0,
+        "blocked": 0,
+        "external_supervisor_required": 0,
+    }
+    for item in projected_studies:
+        counts["queued_action_count"] += len(
+            [action for action in item.get("action_queue") or [] if isinstance(action, Mapping)]
+        )
+        if item.get("blocked_reason") or item.get("why_not_applied"):
+            counts["blocked"] += 1
+        if item.get("external_supervisor_required"):
+            counts["external_supervisor_required"] += 1
+    status = "not_available"
+    if projected_studies:
+        status = "blocked" if counts["blocked"] else "ready"
+    summary = (
+        "当前还没有 portable supervisor hourly projection。"
+        if not projected_studies
+        else (
+            f"{counts['projection_count']} 个 study 有 hourly supervisor queue projection；"
+            f"{counts['queued_action_count']} 个 queue action；"
+            f"{counts['external_supervisor_required']} 个需要 external supervisor。"
+        )
+    )
+    return {
+        "surface_kind": "portable_supervisor_queue_dashboard",
+        "read_model": "workspace_hourly_supervision_projection",
+        "authority": "observability_only",
+        "status": status,
+        "summary": summary,
+        "source_path": str(source_path),
+        "counts": counts,
+        "studies": projected_studies,
+    }
+
+
 def _truth_snapshot_summary(value: object) -> dict[str, Any] | None:
     if not isinstance(value, Mapping):
         return None
@@ -633,6 +685,10 @@ def read_workspace_cockpit(
     open_auto_research_state = open_auto_research_projection.build_workspace_open_auto_research_projection(
         studies=studies,
     )
+    portable_supervisor_queue_dashboard = _workspace_portable_supervisor_queue_dashboard(
+        profile=profile,
+        studies=studies,
+    )
     user_loop = _user_loop(profile=profile, profile_ref=profile_ref)
     operator_brief = _workspace_operator_brief(
         workspace_status=workspace_status,
@@ -662,6 +718,7 @@ def read_workspace_cockpit(
         "ai_first_cross_study_completion_projection": ai_first_cross_study_completion_projection,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection,
         "open_auto_research_projection": open_auto_research_state,
+        "portable_supervisor_queue_dashboard": portable_supervisor_queue_dashboard,
         "attention_queue": attention_queue,
         "operator_brief": operator_brief,
         "user_loop": user_loop,

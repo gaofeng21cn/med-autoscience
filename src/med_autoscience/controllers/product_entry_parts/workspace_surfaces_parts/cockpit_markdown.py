@@ -283,6 +283,7 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
     else:
         lines.append("- 当前还没有 cross-study completion projection。")
     lines.extend(render_paper_orchestra_operator_projection_lines(payload.get("paper_orchestra_operator_projection") or {}))
+    lines.extend(_render_portable_supervisor_queue_dashboard_lines(payload.get("portable_supervisor_queue_dashboard") or {}))
     lines.extend(
         [
             "",
@@ -474,6 +475,67 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         lines.append(f"- 启动命令: `{((item.get('commands') or {}).get('launch') or '')}`")
         lines.append("")
     return "\n".join(lines)
+
+
+def _render_portable_supervisor_queue_dashboard_lines(projection: object) -> list[str]:
+    if not isinstance(projection, Mapping) or not projection:
+        return []
+    counts = dict(projection.get("counts") or {})
+    lines = [
+        "",
+        "## Portable Supervisor Queue",
+        "",
+        "- surface: read-only hourly supervisor projection",
+        f"- authority: `{projection.get('authority') or 'observability_only'}`",
+        f"- 当前摘要: {projection.get('summary') or 'none'}",
+        (
+            "- 当前计数: "
+            f"study {counts.get('projection_count', 0)}；"
+            f"queue action {counts.get('queued_action_count', 0)}；"
+            f"blocked {counts.get('blocked', 0)}；"
+            f"external supervisor {counts.get('external_supervisor_required', 0)}"
+        ),
+    ]
+    for study in projection.get("studies") or []:
+        if not isinstance(study, Mapping):
+            continue
+        runtime_health = dict(study.get("runtime_health") or {})
+        artifact_delta = dict(study.get("artifact_delta") or {})
+        gate_specificity = dict(study.get("gate_specificity") or {})
+        ai_reviewer = dict(study.get("ai_reviewer_status") or {})
+        lines.append(
+            f"- `{study.get('study_id') or 'unknown-study'}` queue: "
+            f"quest `{study.get('quest_status') or 'unknown'}`；"
+            f"run `{study.get('active_run_id') or 'none'}`；"
+            f"health `{runtime_health.get('health_status') or 'unknown'}`；"
+            f"artifact `{artifact_delta.get('status') or 'unknown'}`；"
+            f"gate `{gate_specificity.get('status') or 'unknown'}`；"
+            f"AI reviewer `{ai_reviewer.get('status') or 'unknown'}`"
+        )
+        blocked_reason = (
+            _non_empty_text(study.get("blocked_reason"))
+            or _non_empty_text(gate_specificity.get("blocked_reason"))
+        )
+        if blocked_reason:
+            lines.append(f"  blocked_reason: `{blocked_reason}`")
+        for action in study.get("action_queue") or []:
+            if not isinstance(action, Mapping):
+                continue
+            lines.append(
+                f"  queue action: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
+                f"{action.get('summary') or ''}".rstrip()
+            )
+        why_not_applied = [
+            text for item in study.get("why_not_applied") or [] if (text := _non_empty_text(item)) is not None
+        ]
+        if why_not_applied:
+            lines.append("  why_not_applied: " + "；".join(f"`{item}`" for item in why_not_applied))
+        if study.get("next_owner") or study.get("external_supervisor_required") is not None:
+            lines.append(
+                f"  next_owner: `{study.get('next_owner') or 'unknown'}`；"
+                f"external_supervisor_required: `{study.get('external_supervisor_required')}`"
+            )
+    return lines
 
 
 def _readiness_action_card_label(card: Mapping[str, Any]) -> str:

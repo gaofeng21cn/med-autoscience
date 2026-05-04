@@ -58,6 +58,54 @@ def _manifest_open_auto_research_projection(value: object) -> dict[str, Any]:
     }
 
 
+def _manifest_portable_supervisor_queue_dashboard(value: object) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    projection = dict(value)
+    studies: list[dict[str, Any]] = []
+    for item in projection.get("studies") or []:
+        if not isinstance(item, Mapping):
+            continue
+        study: dict[str, Any] = {}
+        for key in (
+            "study_id",
+            "quest_status",
+            "active_run_id",
+            "runtime_health",
+            "artifact_delta",
+            "gate_specificity",
+            "ai_reviewer_status",
+            "blocked_reason",
+            "why_not_applied",
+            "next_owner",
+            "external_supervisor_required",
+        ):
+            if key in item:
+                study[key] = item[key]
+        actions = item.get("action_queue")
+        if isinstance(actions, list):
+            study["action_queue"] = [
+                {
+                    key: action[key]
+                    for key in ("action_type", "summary", "status", "owner", "surface", "action_id")
+                    if key in action
+                }
+                for action in actions
+                if isinstance(action, Mapping)
+            ][:6]
+        studies.append(study)
+    return {
+        "surface_kind": projection.get("surface_kind") or "portable_supervisor_queue_dashboard",
+        "read_model": "workspace_hourly_supervision_projection",
+        "authority": "observability_only",
+        "status": projection.get("status"),
+        "summary": projection.get("summary"),
+        "source_path": projection.get("source_path"),
+        "counts": dict(projection.get("counts") or {}),
+        "studies": studies,
+    }
+
+
 def build_product_entry_manifest(
     *,
     profile: WorkspaceProfile,
@@ -771,6 +819,9 @@ def build_product_frontdesk(
             ),
             "workspace_medical_paper_ops_health": dict(
                 workspace_cockpit.get("medical_paper_ops_health_state") or {}
+            ),
+            "workspace_portable_supervisor_queue_dashboard": _manifest_portable_supervisor_queue_dashboard(
+                workspace_cockpit.get("portable_supervisor_queue_dashboard")
             ),
             "workspace_ai_first_feedback_state": {
                 "surface_kind": "workspace_ai_first_feedback_state",

@@ -1,0 +1,112 @@
+from __future__ import annotations
+
+from typing import Any
+
+
+def _compact_record(value: Any, keys: tuple[str, ...]) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    compact: dict[str, Any] = {}
+    for key in keys:
+        if key in value:
+            compact[key] = value[key]
+    return compact or None
+
+
+def _compact_string_list(value: Any, *, limit: int = 12) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    items: list[str] = []
+    for item in value:
+        text = str(item).strip()
+        if text:
+            items.append(text)
+        if len(items) >= limit:
+            break
+    return items
+
+
+def compact_portable_supervisor_dashboard(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    compact = _compact_record(
+        value,
+        (
+            "surface_kind",
+            "read_model",
+            "authority",
+            "source_path",
+            "generated_at",
+            "study_id",
+            "quest_status",
+            "active_run_id",
+            "runtime_health",
+            "artifact_delta",
+            "gate_specificity",
+            "ai_reviewer_status",
+            "blocked_reason",
+            "next_owner",
+            "external_supervisor_required",
+        ),
+    )
+    if compact is None:
+        return None
+    action_queue = value.get("action_queue")
+    if isinstance(action_queue, list):
+        compact["action_queue"] = [
+            {
+                key: item[key]
+                for key in ("action_type", "summary", "status", "owner", "surface", "action_id")
+                if key in item
+            }
+            for item in action_queue
+            if isinstance(item, dict)
+        ][:6]
+    why_not_applied = _compact_string_list(value.get("why_not_applied"), limit=8)
+    if why_not_applied:
+        compact["why_not_applied"] = why_not_applied
+    return compact
+
+
+def render_mcp_progress_portable_supervisor_dashboard(compact: dict[str, Any]) -> list[str]:
+    dashboard = compact.get("portable_supervisor_dashboard")
+    if not isinstance(dashboard, dict):
+        return []
+    runtime_health = dashboard.get("runtime_health") if isinstance(dashboard.get("runtime_health"), dict) else {}
+    artifact_delta = dashboard.get("artifact_delta") if isinstance(dashboard.get("artifact_delta"), dict) else {}
+    gate_specificity = dashboard.get("gate_specificity") if isinstance(dashboard.get("gate_specificity"), dict) else {}
+    ai_reviewer = dashboard.get("ai_reviewer_status") if isinstance(dashboard.get("ai_reviewer_status"), dict) else {}
+    lines = [
+        "",
+        "## Portable Supervisor Queue",
+        (
+            f"- quest: `{dashboard.get('quest_status') or 'unknown'}`；"
+            f"run: `{dashboard.get('active_run_id') or 'none'}`；"
+            f"health: `{runtime_health.get('health_status') or 'unknown'}`"
+        ),
+        (
+            f"- artifact_delta: `{artifact_delta.get('status') or 'unknown'}`；"
+            f"gate_specificity: `{gate_specificity.get('status') or 'unknown'}`；"
+            f"ai_reviewer: `{ai_reviewer.get('status') or 'unknown'}`"
+        ),
+    ]
+    blocked_reason = str(dashboard.get("blocked_reason") or gate_specificity.get("blocked_reason") or "").strip()
+    if blocked_reason:
+        lines.append(f"- blocked_reason: `{blocked_reason}`")
+    for action in dashboard.get("action_queue") or []:
+        if not isinstance(action, dict):
+            continue
+        lines.append(
+            f"- queue action: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
+            f"{action.get('summary') or ''}".rstrip()
+        )
+    why_not_applied = _compact_string_list(dashboard.get("why_not_applied"), limit=8)
+    if why_not_applied:
+        lines.append("- why_not_applied: " + "；".join(f"`{item}`" for item in why_not_applied))
+    next_owner = str(dashboard.get("next_owner") or "").strip()
+    if next_owner or dashboard.get("external_supervisor_required") is not None:
+        lines.append(
+            f"- next_owner: `{next_owner or 'unknown'}`；"
+            f"external_supervisor_required: `{dashboard.get('external_supervisor_required')}`"
+        )
+    return lines

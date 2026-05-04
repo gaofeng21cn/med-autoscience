@@ -134,6 +134,45 @@ def test_runtime_health_recovery_budget_exhaustion_escalates(tmp_path: Path) -> 
     assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
 
 
+def test_runtime_health_zero_retry_budget_blocks_recover_runtime_even_without_failed_attempts(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "003-dpcc"
+    for sequence in range(1, 4):
+        module.append_runtime_health_event(
+            study_root=study_root,
+            study_id="003-dpcc",
+            quest_id="003-dpcc",
+            event_type="recover_attempt",
+            payload={"attempt_state": "requested", "decision": "resume", "reason": "quest_marked_running_but_no_live_session"},
+            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
+        )
+    module.append_runtime_health_event(
+        study_root=study_root,
+        study_id="003-dpcc",
+        quest_id="003-dpcc",
+        event_type="runtime_state_observed",
+        payload={
+            "quest_status": "active",
+            "runtime_liveness_status": "none",
+            "worker_running": False,
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+        },
+        recorded_at="2026-05-01T00:04:00+00:00",
+    )
+
+    snapshot = module.rebuild_runtime_health_snapshot(
+        study_root=study_root,
+        study_id="003-dpcc",
+        quest_id="003-dpcc",
+    )
+
+    assert snapshot["retry_budget_remaining"] == 0
+    assert snapshot["attempt_state"] == "escalated"
+    assert snapshot["canonical_runtime_action"] == "external_supervisor_required"
+    assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
+
+
 def test_runtime_health_stopped_quest_waits_for_explicit_resume_without_probe(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "004-dm-cvd"

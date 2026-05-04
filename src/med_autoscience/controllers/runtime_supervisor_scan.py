@@ -7,12 +7,14 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_progress, study_runtime_router
+from med_autoscience.controllers import supervisor_action_requests
 from med_autoscience.controllers.study_progress_parts.publication_runtime import _publication_eval_specificity_request
 from med_autoscience.profiles import WorkspaceProfile
 
 
 SCHEMA_VERSION = 1
 SUPERVISION_LATEST_RELATIVE_PATH = Path("artifacts/supervision/hourly/latest.json")
+SUPERVISION_HISTORY_RELATIVE_PATH = Path("artifacts/supervision/hourly/history.jsonl")
 
 
 def _utc_now() -> str:
@@ -41,9 +43,19 @@ def _latest_path(profile: WorkspaceProfile) -> Path:
     return profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH
 
 
+def _history_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / SUPERVISION_HISTORY_RELATIVE_PATH
+
+
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _append_json_line(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(dict(payload), ensure_ascii=False, sort_keys=True) + "\n")
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:
@@ -52,6 +64,21 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     except (OSError, json.JSONDecodeError):
         return None
     return dict(payload) if isinstance(payload, Mapping) else None
+
+
+def _read_last_json_line(path: Path) -> dict[str, Any] | None:
+    try:
+        lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    except OSError:
+        return None
+    for line in reversed(lines):
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(payload, Mapping):
+            return dict(payload)
+    return None
 
 
 def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:
@@ -102,11 +129,19 @@ def _blocking_reasons(status: Mapping[str, Any], progress: Mapping[str, Any]) ->
 def _retry_exhausted(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
     runtime_health = _mapping(status.get("runtime_health_snapshot"))
     reasons = set(_blocking_reasons(status, progress))
+    attempt_state = _text(runtime_health.get("attempt_state"))
+    canonical_runtime_action = _text(runtime_health.get("canonical_runtime_action"))
+    quest_status = _text(status.get("quest_status"))
+    zero_budget_in_recovery_context = runtime_health.get("retry_budget_remaining") == 0 and (
+        quest_status in {"active", "running"}
+        or attempt_state in {"recovering", "retrying", "probing", "relaunching", "escalated"}
+        or canonical_runtime_action in {"recover_runtime", "probe_runtime", "relaunch_runtime", "external_supervisor_required"}
+    )
     return (
         "runtime_recovery_retry_budget_exhausted" in reasons
         or _text(status.get("reason")) == "runtime_recovery_retry_budget_exhausted"
-        or _text(runtime_health.get("attempt_state")) == "escalated"
-        or runtime_health.get("retry_budget_remaining") == 0
+        or attempt_state == "escalated"
+        or zero_budget_in_recovery_context
     )
 
 
@@ -189,10 +224,54 @@ def _runtime_platform_repair_required(status: Mapping[str, Any], progress: Mappi
     }
 
 
+def _action_id(*, study_id: str, action_type: str, reason: str | None) -> str:
+    suffix = reason or action_type
+    return f"supervisor-action::{study_id}::{action_type}::{suffix}"
+
+
+def _handoff_packet(*, study_id: str, quest_id: str | None, action: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "packet_type": "external_supervisor_handoff",
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": _text(action.get("action_type")),
+        "reason": _text(action.get("reason")) or _text(action.get("action_type")),
+        "recommended_owner": (
+            "external_engineering_agent"
+            if _text(action.get("authority")) == "external_supervisor"
+            else _text(action.get("authority")) or "observability_only"
+        ),
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+    }
+
+
+def _decorate_action(
+    *,
+    study_id: str,
+    quest_id: str | None,
+    action: Mapping[str, Any],
+) -> dict[str, Any]:
+    decorated = dict(action)
+    action_type = _text(decorated.get("action_type")) or "unknown_action"
+    reason = _text(decorated.get("reason")) or action_type
+    decorated.setdefault("reason", reason)
+    decorated["action_id"] = _action_id(study_id=study_id, action_type=action_type, reason=reason)
+    decorated["handoff_packet"] = _handoff_packet(study_id=study_id, quest_id=quest_id, action=decorated)
+    decorated.setdefault("status", "queued")
+    decorated.setdefault("quality_gate_relaxation_allowed", False)
+    decorated.setdefault("paper_package_mutation_allowed", False)
+    return decorated
+
+
 def _action_queue(
     status: Mapping[str, Any],
     progress: Mapping[str, Any],
     *,
+    study_id: str,
+    quest_id: str | None,
     gate_specificity: Mapping[str, Any],
     ai_reviewer_assessment: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
@@ -203,6 +282,7 @@ def _action_queue(
                 "action_type": "runtime_platform_repair",
                 "authority": "external_supervisor",
                 "reason": "runtime_recovery_retry_budget_exhausted",
+                "summary": "Runtime recovery retry budget is exhausted and no live worker is attached.",
                 "paper_package_mutation_allowed": False,
             }
         )
@@ -211,6 +291,8 @@ def _action_queue(
             {
                 "action_type": "publication_gate_specificity_required",
                 "authority": "observability_only",
+                "reason": "publication_gate_specificity_required",
+                "summary": "Publication gate must name concrete claim/figure/table/metric/source_path targets.",
                 "required_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
                 "paper_package_mutation_allowed": False,
             }
@@ -220,10 +302,15 @@ def _action_queue(
             {
                 "action_type": "return_to_ai_reviewer_workflow",
                 "authority": "observability_only",
+                "reason": "ai_reviewer_assessment_required",
+                "summary": "Request an AI reviewer-owned publication_eval assessment.",
                 "paper_package_mutation_allowed": False,
             }
         )
-    return actions
+    return [
+        _decorate_action(study_id=study_id, quest_id=quest_id, action=action)
+        for action in actions
+    ]
 
 
 def _why_not_applied(
@@ -235,11 +322,188 @@ def _why_not_applied(
     lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
     if _retry_exhausted(status, progress):
         return "runtime_recovery_retry_budget_exhausted"
-    if text := _text(lifecycle.get("blocked_reason")):
-        return text
     if actions:
         return _text(actions[0].get("reason")) or _text(actions[0].get("action_type"))
+    if text := _text(lifecycle.get("blocked_reason")):
+        return text
     return None
+
+
+def _why_not_applied_timeline(reason: str | None) -> list[dict[str, Any]]:
+    if reason is None:
+        return []
+    return [{"reason": reason, "state": "blocked", "recorded_at": _utc_now()}]
+
+
+def _artifact_delta(progress: Mapping[str, Any]) -> dict[str, Any]:
+    last_delta = _text(progress.get("last_meaningful_progress_at"))
+    if last_delta is not None:
+        return {"status": "fresh", "latest_meaningful_delta_at": last_delta}
+    return {"status": "not_observed", "summary": "No meaningful artifact delta observed by supervisor scan."}
+
+
+def _gate_specificity_status(gate_specificity: Mapping[str, Any]) -> dict[str, Any]:
+    status = dict(gate_specificity)
+    status["status"] = "blocked" if gate_specificity.get("required") is True else "not_required"
+    if gate_specificity.get("required") is True:
+        status.setdefault("blocked_reason", "publication_gate_specificity_required")
+    return status
+
+
+def _ai_reviewer_status(ai_reviewer_assessment: Mapping[str, Any]) -> dict[str, Any]:
+    if ai_reviewer_assessment.get("present") is True:
+        status = "present"
+    elif ai_reviewer_assessment.get("missing") is True:
+        status = "trace_missing"
+    else:
+        status = "not_required"
+    return {
+        "status": status,
+        "owner": _text(ai_reviewer_assessment.get("owner")),
+        "trace_complete": ai_reviewer_assessment.get("present") is True,
+        "blocked_reason": "ai_reviewer_assessment_required" if ai_reviewer_assessment.get("missing") is True else None,
+    }
+
+
+def _repair_action_payload(*, study_root: Path) -> dict[str, Any] | None:
+    return _read_json_object(study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json")
+
+
+def _first_repair_action(repair_payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    if _text(repair_payload.get("state")) != "ready_for_repair":
+        return None
+    actions = repair_payload.get("actions")
+    if not isinstance(actions, list):
+        return None
+    for action in actions:
+        if isinstance(action, Mapping):
+            return dict(action)
+    return None
+
+
+def _blocked_lifecycle_from_repair(
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_id: str | None,
+    repair_payload: Mapping[str, Any],
+    blocked_reason: str,
+    next_owner: str,
+) -> dict[str, Any] | None:
+    action = _first_repair_action(repair_payload)
+    if action is None:
+        return None
+    payload = {
+        "surface": "ai_repair_lifecycle",
+        "schema_version": 1,
+        "study_id": _text(repair_payload.get("study_id")) or study_id,
+        "quest_id": _text(repair_payload.get("quest_id")) or quest_id,
+        "state": "blocked",
+        "top_action": action,
+        "auto_apply_allowed": bool(action.get("auto_apply_allowed")),
+        "last_apply_attempt_at": _utc_now(),
+        "applied_at": None,
+        "blocked_reason": blocked_reason,
+        "next_owner": next_owner,
+        "external_supervisor_required": True,
+        "quality_gate_relaxation_allowed": False,
+        "last_apply_attempt": {
+            "state": "blocked",
+            "dispatch_status": "not_dispatched",
+            "reason": blocked_reason,
+            "source": "runtime_supervisor_scan",
+        },
+        "refs": {
+            "repair_action_path": str(study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json"),
+        },
+    }
+    _write_json(study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json", payload)
+    return payload
+
+
+def _publication_eval_source_action(publication_eval_payload: Mapping[str, Any]) -> dict[str, Any]:
+    actions = publication_eval_payload.get("recommended_actions")
+    if isinstance(actions, list):
+        for action in actions:
+            if isinstance(action, Mapping):
+                return dict(action)
+    return {
+        "action_id": "publication-gate-specificity-required",
+        "next_work_unit": {"unit_id": "gate_needs_specificity"},
+        "work_unit_fingerprint": "publication-blockers::specificity_required",
+    }
+
+
+def _materialize_request_packets(
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_id: str | None,
+    publication_eval_payload: Mapping[str, Any],
+    actions: list[dict[str, Any]],
+) -> None:
+    action_types = {_text(action.get("action_type")) for action in actions}
+    if "publication_gate_specificity_required" in action_types:
+        packet = supervisor_action_requests.build_publication_gate_specificity_request(
+            study_id=study_id,
+            quest_id=quest_id,
+            source_surface="publication_eval/latest.json",
+            source_action=_publication_eval_source_action(publication_eval_payload),
+            blocking_gaps=[],
+        )
+        packet["required_target_kinds"] = list(packet.get("requested_target_types") or [])
+        _write_json(
+            study_root / "artifacts" / "supervision" / "requests" / "publication_gate_specificity" / "latest.json",
+            packet,
+        )
+    if "return_to_ai_reviewer_workflow" in action_types:
+        packet = supervisor_action_requests.build_ai_reviewer_publication_eval_request(
+            study_id=study_id,
+            quest_id=quest_id,
+            source_surface="runtime_supervisor_scan",
+            workflow_state={
+                "quality_authority": {
+                    "owner": _text(_mapping(publication_eval_payload.get("assessment_provenance")).get("owner")),
+                    "state": "projection_only",
+                },
+                "route_back": {
+                    "required": True,
+                    "target": "ai_reviewer",
+                },
+                "blockers": ["publication_eval_not_ai_reviewer_authority"],
+            },
+        )
+        packet["target_assessment_owner"] = "ai_reviewer"
+        packet["may_authorize_quality_gate"] = False
+        _write_json(study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json", packet)
+
+
+def _blocked_reason_from_scan(
+    *,
+    actions: list[dict[str, Any]],
+    gate_specificity: Mapping[str, Any],
+    ai_reviewer_assessment: Mapping[str, Any],
+) -> str | None:
+    for action in actions:
+        if _text(action.get("action_type")) in {
+            "runtime_platform_repair",
+            "publication_gate_specificity_required",
+            "return_to_ai_reviewer_workflow",
+        }:
+            return _text(action.get("reason")) or _text(action.get("action_type"))
+    if gate_specificity.get("required") is True:
+        return "publication_gate_specificity_required"
+    if ai_reviewer_assessment.get("missing") is True:
+        return "ai_reviewer_assessment_required"
+    return None
+
+
+def _next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
+    if blocked_reason == "publication_gate_specificity_required":
+        return "publication_gate"
+    if blocked_reason == "ai_reviewer_assessment_required":
+        return "ai_reviewer"
+    return "external_supervisor"
 
 
 def _study_projection(
@@ -253,6 +517,7 @@ def _study_projection(
     progress = study_progress.read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
     status_payload = _mapping(status)
     progress_payload = _mapping(progress)
+    resolved_quest_id = _text(status_payload.get("quest_id")) or _text(progress_payload.get("quest_id"))
     publication_eval_payload = _publication_eval_payload(status_payload, progress_payload)
     gate_specificity = _publication_gate_specificity_required(
         status_payload,
@@ -267,19 +532,62 @@ def _study_projection(
     actions = _action_queue(
         status_payload,
         progress_payload,
+        study_id=study_id,
+        quest_id=resolved_quest_id,
         gate_specificity=gate_specificity,
         ai_reviewer_assessment=ai_reviewer_assessment,
     )
     lifecycle = _mapping(progress_payload.get("ai_repair_lifecycle"))
+    blocked_reason_from_scan = _blocked_reason_from_scan(
+        actions=actions,
+        gate_specificity=gate_specificity,
+        ai_reviewer_assessment=ai_reviewer_assessment,
+    )
+    if apply_safe_actions and (
+        not lifecycle
+        or (
+            blocked_reason_from_scan is not None
+            and (
+                lifecycle.get("projection_only") is True
+                or _text(lifecycle.get("blocked_reason")) != blocked_reason_from_scan
+            )
+        )
+    ):
+        repair_payload = _repair_action_payload(study_root=study_root)
+        if repair_payload is not None:
+            if blocked_reason_from_scan is not None:
+                lifecycle = _blocked_lifecycle_from_repair(
+                    study_root=study_root,
+                    study_id=study_id,
+                    quest_id=resolved_quest_id,
+                    repair_payload=repair_payload,
+                    blocked_reason=blocked_reason_from_scan,
+                    next_owner=_next_owner_for_blocked_reason(blocked_reason_from_scan),
+                ) or {}
+    if apply_safe_actions:
+        _materialize_request_packets(
+            study_root=study_root,
+            study_id=study_id,
+            quest_id=resolved_quest_id,
+            publication_eval_payload=publication_eval_payload,
+            actions=actions,
+        )
+    why_not_applied = _why_not_applied(status=status_payload, progress=progress_payload, actions=actions)
+    if why_not_applied is None and lifecycle:
+        why_not_applied = _text(lifecycle.get("blocked_reason"))
     external_supervisor_required = bool(
         lifecycle.get("external_supervisor_required")
         or any(_text(action.get("authority")) == "external_supervisor" for action in actions)
     )
+    blocked_reason = _text(lifecycle.get("blocked_reason"))
+    if why_not_applied is not None and any(_text(action.get("reason")) == why_not_applied for action in actions):
+        blocked_reason = why_not_applied
+    next_owner = _next_owner_for_blocked_reason(blocked_reason) if blocked_reason else _text(lifecycle.get("next_owner"))
     supervision = _mapping(progress_payload.get("supervision"))
     return {
         "study_id": study_id,
         "study_root": str(study_root),
-        "quest_id": _text(status_payload.get("quest_id")) or _text(progress_payload.get("quest_id")),
+        "quest_id": resolved_quest_id,
         "quest_root": _text(status_payload.get("quest_root")) or _text(progress_payload.get("quest_root")),
         "quest_status": _text(status_payload.get("quest_status")),
         "current_stage": _text(progress_payload.get("current_stage")),
@@ -289,12 +597,17 @@ def _study_projection(
         "runtime_health": _mapping(status_payload.get("runtime_health_snapshot"))
         or _mapping(progress_payload.get("runtime_health_snapshot")),
         "meaningful_artifact_delta": bool(progress_payload.get("last_meaningful_progress_at")),
-        "gate_specificity": gate_specificity,
+        "artifact_delta": _artifact_delta(progress_payload),
+        "gate_specificity": _gate_specificity_status(gate_specificity),
         "ai_reviewer_assessment": ai_reviewer_assessment,
+        "ai_reviewer_status": _ai_reviewer_status(ai_reviewer_assessment),
         "ai_repair_lifecycle": lifecycle or None,
         "action_queue": actions,
-        "why_not_applied": _why_not_applied(status=status_payload, progress=progress_payload, actions=actions),
-        "escalation_reason": _why_not_applied(status=status_payload, progress=progress_payload, actions=actions),
+        "why_not_applied": why_not_applied,
+        "why_not_applied_timeline": _why_not_applied_timeline(why_not_applied),
+        "escalation_reason": why_not_applied,
+        "next_owner": next_owner or ("external_supervisor" if external_supervisor_required else None),
+        "blocked_reason": blocked_reason or why_not_applied,
         "external_supervisor_required": external_supervisor_required,
         "supervisor_only": _supervisor_only(status_payload, progress_payload),
         "paper_package_mutated": False,
@@ -310,11 +623,40 @@ def supervisor_scan(
 ) -> dict[str, Any]:
     resolved_study_ids = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
     generated_at = _utc_now()
+    latest_path = _latest_path(profile)
+    history_path = _history_path(profile)
+    previous_payload = _read_json_object(latest_path)
+    previous_action_ids = {
+        _text(action.get("action_id"))
+        for action in (_mapping(previous_payload).get("action_queue") if previous_payload is not None else []) or []
+        if isinstance(action, Mapping)
+    }
+    previous_action_ids.discard(None)
     studies = [
         _study_projection(profile=profile, study_id=study_id, apply_safe_actions=apply_safe_actions)
         for study_id in resolved_study_ids
     ]
-    latest_path = _latest_path(profile)
+    action_queue = [
+        {"study_id": study["study_id"], **action}
+        for study in studies
+        for action in study.get("action_queue", [])
+        if isinstance(action, Mapping)
+    ]
+    for study in studies:
+        study_actions = [
+            action
+            for action in study.get("action_queue", [])
+            if isinstance(action, Mapping) and _text(action.get("action_id")) is not None
+        ]
+        study["scan_delta"] = {
+            "previous_scan_seen": any(_text(action.get("action_id")) in previous_action_ids for action in study_actions),
+            "new_action_count": sum(_text(action.get("action_id")) not in previous_action_ids for action in study_actions),
+        }
+    queue_history = {
+        "history_path": str(history_path),
+        "latest_action_count": len(action_queue),
+        "previous_action_count": len(previous_action_ids),
+    }
     payload = {
         "surface": "portable_runtime_supervisor_scan",
         "schema_version": SCHEMA_VERSION,
@@ -326,15 +668,20 @@ def supervisor_scan(
         },
         "apply_safe_actions": apply_safe_actions,
         "studies": studies,
-        "action_queue": [
-            {"study_id": study["study_id"], **action}
-            for study in studies
-            for action in study.get("action_queue", [])
-            if isinstance(action, Mapping)
-        ],
-        "refs": {"latest_path": str(latest_path)},
+        "action_queue": action_queue,
+        "queue_history": queue_history,
+        "refs": {"latest_path": str(latest_path), "history_path": str(history_path)},
     }
     _write_json(latest_path, payload)
+    _append_json_line(
+        history_path,
+        {
+            "generated_at": generated_at,
+            "study_ids": list(resolved_study_ids),
+            "action_ids": [_text(action.get("action_id")) for action in action_queue],
+            "latest_action_count": len(action_queue),
+        },
+    )
     return payload
 
 

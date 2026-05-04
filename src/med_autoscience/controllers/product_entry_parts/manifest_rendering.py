@@ -160,6 +160,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     workspace_medical_paper_ops_health = dict(
         payload.get("workspace_medical_paper_ops_health") or {}
     )
+    workspace_portable_supervisor_queue_dashboard = dict(
+        payload.get("workspace_portable_supervisor_queue_dashboard") or {}
+    )
     lines = [
         "# Product Frontdesk",
         "",
@@ -301,6 +304,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
             )
     lines.extend(render_paper_orchestra_operator_projection_lines(workspace_paper_orchestra_operator_projection))
     lines.extend(_render_open_auto_research_projection_lines(workspace_open_auto_research_projection))
+    lines.extend(_render_portable_supervisor_queue_dashboard_lines(workspace_portable_supervisor_queue_dashboard))
     for item in payload.get("workspace_attention_queue_preview") or []:
         if not isinstance(item, dict):
             continue
@@ -459,6 +463,68 @@ def _render_open_auto_research_action_lines(actions: object) -> list[str]:
         lines.append(
             f"  {action.get('action_id') or 'unknown_action'}: "
             f"{action.get('status') or 'unknown'} ({action.get('surface') or 'unknown_surface'})"
+        )
+    return lines
+
+
+def _render_portable_supervisor_queue_dashboard_lines(projection: Mapping[str, Any]) -> list[str]:
+    if not projection:
+        return []
+    counts = dict(projection.get("counts") or {})
+    lines = [
+        "",
+        "## Portable Supervisor Queue",
+        "",
+        "- surface: read-only hourly supervisor projection",
+        f"- authority: `{projection.get('authority') or 'observability_only'}`",
+        f"- 当前摘要: {projection.get('summary') or 'none'}",
+        (
+            "- 当前计数: "
+            f"study {counts.get('projection_count', 0)}；"
+            f"queue action {counts.get('queued_action_count', 0)}；"
+            f"blocked {counts.get('blocked', 0)}；"
+            f"external supervisor {counts.get('external_supervisor_required', 0)}"
+        ),
+    ]
+    for study in projection.get("studies") or []:
+        if not isinstance(study, Mapping):
+            continue
+        runtime_health = dict(study.get("runtime_health") or {})
+        gate_specificity = dict(study.get("gate_specificity") or {})
+        lines.append(
+            f"- `{study.get('study_id') or 'unknown-study'}` queue: "
+            f"quest `{study.get('quest_status') or 'unknown'}`；"
+            f"run `{study.get('active_run_id') or 'none'}`；"
+            f"health `{runtime_health.get('health_status') or 'unknown'}`"
+        )
+        blocked_reason = (
+            _non_empty_text(study.get("blocked_reason"))
+            or _non_empty_text(gate_specificity.get("blocked_reason"))
+        )
+        if blocked_reason:
+            lines.append(f"  blocked_reason: `{blocked_reason}`")
+        lines.extend(_render_portable_supervisor_action_lines(study.get("action_queue") or []))
+        why_not_applied = [
+            text for item in study.get("why_not_applied") or [] if (text := _non_empty_text(item)) is not None
+        ]
+        if why_not_applied:
+            lines.append("  why_not_applied: " + "；".join(f"`{item}`" for item in why_not_applied))
+        if study.get("next_owner") or study.get("external_supervisor_required") is not None:
+            lines.append(
+                f"  next_owner: `{study.get('next_owner') or 'unknown'}`；"
+                f"external_supervisor_required: `{study.get('external_supervisor_required')}`"
+            )
+    return lines
+
+
+def _render_portable_supervisor_action_lines(actions: object) -> list[str]:
+    lines: list[str] = []
+    for action in actions if isinstance(actions, list) else []:
+        if not isinstance(action, Mapping):
+            continue
+        lines.append(
+            f"  queue action: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
+            f"{action.get('summary') or ''}".rstrip()
         )
     return lines
 

@@ -22,6 +22,11 @@ from .parked_projection import (
     projected_current_stage,
 )
 from .markdown_projection import render_study_progress_markdown
+from .supervisor_projection import (
+    build_readonly_ai_repair_lifecycle_projection as _build_readonly_ai_repair_lifecycle_projection,
+    portable_supervisor_study_projection as _portable_supervisor_study_projection,
+    read_ai_repair_lifecycle as _read_ai_repair_lifecycle,
+)
 from .task_intake_override import task_intake_override_superseded_by_gate_specificity
 from . import ai_first_default_entry as _ai_first_default_entry, operator_view as _operator_view, progress_freshness as _progress_freshness_parts, publication_runtime as _publication_runtime
 from . import progression as _progression, runtime_efficiency as _runtime_efficiency, shared as _shared
@@ -88,87 +93,6 @@ def _attach_existing_autonomy_slo_projection(
     )
     updated["refs"] = refs
     return updated
-
-
-def _read_ai_repair_lifecycle(*, study_root: Path) -> dict[str, Any] | None:
-    try:
-        from med_autoscience.controllers.runtime_watch_parts import autonomy_repair
-
-        return autonomy_repair.read_ai_repair_lifecycle(study_root=study_root)
-    except Exception:
-        return None
-
-
-def _projection_string_items(value: object) -> set[str]:
-    if isinstance(value, str):
-        text = value.strip()
-        return {text} if text else set()
-    if not isinstance(value, list | tuple | set):
-        return set()
-    return {text for item in value if (text := _non_empty_text(item)) is not None}
-
-
-def _build_readonly_ai_repair_lifecycle_projection(
-    *,
-    study_root: Path,
-    status_payload: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    try:
-        repair_path = autonomy_ai_doctor.repair_actions_root(study_root=study_root) / "latest.json"
-        repair_payload = _read_json_object(repair_path)
-    except Exception:
-        return None
-    if not isinstance(repair_payload, dict) or _non_empty_text(repair_payload.get("state")) != "ready_for_repair":
-        return None
-    actions = repair_payload.get("actions")
-    if not isinstance(actions, list):
-        return None
-    top_action = next((dict(item) for item in actions if isinstance(item, Mapping)), None)
-    if top_action is None:
-        return None
-    control_plane = _mapping_copy(status_payload.get("control_plane_snapshot"))
-    dispatch_gate = _mapping_copy(control_plane.get("dispatch_gate"))
-    route_authorization = _mapping_copy(control_plane.get("route_authorization"))
-    runtime_health = _mapping_copy(status_payload.get("runtime_health_snapshot"))
-    blocking_reasons = {
-        *_projection_string_items(control_plane.get("blocking_reasons")),
-        *_projection_string_items(dispatch_gate.get("blocking_reasons")),
-        *_projection_string_items(runtime_health.get("blocking_reasons")),
-    }
-    runtime_blocked = (
-        route_authorization.get("runtime_recovery_allowed") is False
-        or _non_empty_text(dispatch_gate.get("state")) == "blocked"
-        or "runtime_recovery_retry_budget_exhausted" in blocking_reasons
-        or _non_empty_text(runtime_health.get("attempt_state")) == "escalated"
-        or runtime_health.get("retry_budget_remaining") == 0
-    )
-    if runtime_blocked:
-        blocked_reason = "runtime_recovery_not_authorized"
-        next_owner = "external_supervisor"
-        external_supervisor_required = True
-        state = "external_supervisor_required"
-    else:
-        blocked_reason = "controller_repair_authorization_missing"
-        next_owner = "mas_controller"
-        external_supervisor_required = False
-        state = "blocked"
-    return {
-        "surface": "ai_repair_lifecycle",
-        "schema_version": 1,
-        "study_id": _non_empty_text(repair_payload.get("study_id")) or _non_empty_text(status_payload.get("study_id")),
-        "quest_id": _non_empty_text(repair_payload.get("quest_id")) or _non_empty_text(status_payload.get("quest_id")),
-        "state": state,
-        "top_action": top_action,
-        "auto_apply_allowed": bool(top_action.get("auto_apply_allowed")),
-        "last_apply_attempt_at": None,
-        "applied_at": None,
-        "blocked_reason": blocked_reason,
-        "next_owner": next_owner,
-        "external_supervisor_required": external_supervisor_required,
-        "quality_gate_relaxation_allowed": False,
-        "projection_only": True,
-        "refs": {"repair_action_path": str(repair_path)},
-    }
 
 
 def _autonomy_slo_observer_status(
@@ -673,6 +597,10 @@ def build_study_progress_projection(
         study_root=resolved_study_root,
         status_payload=status,
     )
+    portable_supervisor_dashboard = _portable_supervisor_study_projection(
+        profile=profile,
+        study_id=resolved_study_id,
+    )
     operator_status_card = _operator_status_card(
         study_id=resolved_study_id,
         current_stage=current_stage,
@@ -959,6 +887,7 @@ def build_study_progress_projection(
         "product_recommended_flow": submission_hygiene_truth.get("recommended_flow"),
         "research_runtime_control_projection": research_runtime_control_projection,
         "open_auto_research_projection": open_auto_research_state,
+        "portable_supervisor_dashboard": portable_supervisor_dashboard,
         "ai_first_default_entry_state": ai_first_default_entry_state,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
         "ai_first_observability_snapshots": ai_first_observability_snapshots,
@@ -1038,6 +967,11 @@ def build_study_progress_projection(
                 open_auto_research_projection.stable_open_auto_research_projection_path(
                     study_root=resolved_study_root,
                 )
+            ),
+            "portable_supervisor_hourly_path": (
+                portable_supervisor_dashboard.get("source_path")
+                if portable_supervisor_dashboard is not None
+                else None
             ),
             "artifact_runtime_proof_delivery_manifest_path": (
                 (artifact_runtime_proof_surface.get("refs") or {}).get("delivery_manifest_path")
