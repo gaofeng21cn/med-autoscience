@@ -13,6 +13,13 @@ from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
 CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY = (
     "control_plane_snapshot 已阻断外环 dispatch；runtime_watch 只记录审计和 ledger。"
 )
+FAIL_CLOSED_BLOCKING_REASONS = frozenset(
+    {
+        "study_truth_epoch_missing",
+        "runtime_health_epoch_missing",
+        "runtime_recovery_retry_budget_exhausted",
+    }
+)
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -80,6 +87,8 @@ def control_plane_dispatch_block(
         dispatch_blocked = True
         if not blocking_reasons:
             blocking_reasons.append("dispatch_gate_blocked")
+    if FAIL_CLOSED_BLOCKING_REASONS.intersection(blocking_reasons):
+        dispatch_blocked = True
     if route_payload.get("authorized") is False and "route_not_authorized" not in blocking_reasons:
         dispatch_blocked = True
         blocking_reasons.append("route_not_authorized")
@@ -202,6 +211,7 @@ def apply_control_plane_dispatch_block(
 
 __all__ = [
     "CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY",
+    "FAIL_CLOSED_BLOCKING_REASONS",
     "apply_control_plane_dispatch_block",
     "control_plane_dispatch_block",
     "runtime_recovery_blocked_by_control_plane",

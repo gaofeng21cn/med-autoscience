@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import autonomy_ai_doctor, study_runtime_router
+from med_autoscience.controllers import autonomy_ai_doctor
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -130,8 +130,42 @@ def _execution_owner_supervisor_only(status_payload: Mapping[str, Any]) -> bool:
 
 def _runtime_recovery_authorized(status_payload: Mapping[str, Any]) -> bool:
     control_plane = _mapping(status_payload.get("control_plane_snapshot"))
+    dispatch_gate = _mapping(control_plane.get("dispatch_gate"))
+    if dispatch_gate and (
+        _non_empty_text(dispatch_gate.get("state")) != "open"
+        or dispatch_gate.get("dispatch_allowed") is not True
+    ):
+        return False
     route_authorization = _mapping(control_plane.get("route_authorization"))
     return route_authorization.get("runtime_recovery_allowed") is True
+
+
+def _repair_authorization(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    for key in ("controller_repair_authorization", "controller_repair_authorization_ref"):
+        value = payload.get(key)
+        if isinstance(value, Mapping):
+            return value
+    control_plane = _mapping(payload.get("control_plane_snapshot"))
+    for key in ("controller_repair_authorization", "controller_repair_authorization_ref"):
+        value = control_plane.get(key)
+        if isinstance(value, Mapping):
+            return value
+    return {}
+
+
+def _repair_authorization_allows_runtime_recovery(payload: Mapping[str, Any]) -> bool:
+    authorization = _repair_authorization(payload)
+    if not authorization:
+        return False
+    if authorization.get("authorized") is not True:
+        return False
+    action = _non_empty_text(authorization.get("action"))
+    if action not in {"runtime_recovery", "ensure_study_runtime", "recover_runtime", "relaunch_runtime"}:
+        return False
+    work_unit_id = _non_empty_text(authorization.get("work_unit_id"))
+    if work_unit_id and work_unit_id != "runtime_recovery":
+        return False
+    return True
 
 
 def _has_controller_owned_runtime_recovery(status_payload: Mapping[str, Any]) -> bool:
@@ -156,6 +190,7 @@ def status_allows_ai_doctor_repair(status_payload: Mapping[str, Any]) -> bool:
     return (
         not _execution_owner_supervisor_only(status_payload)
         and _runtime_recovery_authorized(status_payload)
+        and _repair_authorization_allows_runtime_recovery(status_payload)
         and _has_controller_owned_runtime_recovery(status_payload)
     )
 
@@ -165,6 +200,8 @@ def _status_block_reason(status_payload: Mapping[str, Any]) -> str:
         return "execution_owner_guard_supervisor_only"
     if not _runtime_recovery_authorized(status_payload):
         return "runtime_recovery_not_authorized"
+    if not _repair_authorization_allows_runtime_recovery(status_payload):
+        return "controller_repair_authorization_missing"
     return "ai_doctor_repair_requires_controller_authorized_runtime_recovery"
 
 
@@ -279,27 +316,12 @@ def _apply_ai_doctor_repair_action(
             dispatch_status="not_dispatched",
             reason=_status_block_reason(status_payload),
         )
-
-    ensure_result = study_runtime_router.ensure_study_runtime(
-        profile=profile,
-        study_root=study_root,
-        allow_stopped_relaunch=True,
-        force=False,
-        source=AI_DOCTOR_REPAIR_SOURCE,
-    )
-    if not _runtime_recovery_executed(_mapping(ensure_result)):
-        return _serialize_ai_doctor_repair_result(
-            repair_payload=repair_payload,
-            action=action,
-            state="blocked",
-            dispatch_status="not_dispatched",
-            reason="ai_doctor_runtime_recovery_not_executed",
-        )
     return _serialize_ai_doctor_repair_result(
         repair_payload=repair_payload,
         action=action,
-        state="applied",
-        dispatch_status="executed",
+        state="blocked",
+        dispatch_status="not_dispatched",
+        reason="ai_doctor_repair_requires_executed_runtime_recovery_contract",
     )
 
 

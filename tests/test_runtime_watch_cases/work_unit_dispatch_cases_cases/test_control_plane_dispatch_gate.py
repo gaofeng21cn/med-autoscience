@@ -419,7 +419,7 @@ def test_watch_runtime_recovery_authorization_false_suppresses_runtime_recovery_
     ] is False
 
 
-def test_watch_runtime_dispatches_controller_authorized_recovery_after_runtime_retry_budget_exhausted(
+def test_watch_runtime_blocks_retry_budget_exhausted_even_if_snapshot_was_marked_open(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -511,6 +511,12 @@ def test_watch_runtime_dispatches_controller_authorized_recovery_after_runtime_r
         ensure_study_runtimes=True,
     )
 
-    assert dispatch_calls == ["runtime_watch_outer_loop_wakeup"]
-    assert len(result["managed_study_outer_loop_dispatches"]) == 1
-    assert result["managed_study_no_op_suppressions"] == []
+    wakeup_latest = json.loads(
+        (study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert dispatch_calls == []
+    assert result["managed_study_outer_loop_dispatches"] == []
+    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "control_plane_dispatch_blocked"
+    assert wakeup_latest["outcome"] == "control_plane_dispatch_blocked"
+    assert "runtime_recovery_retry_budget_exhausted" in wakeup_latest["control_plane_blocking_reasons"]

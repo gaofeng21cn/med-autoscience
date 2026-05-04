@@ -85,7 +85,7 @@ def test_control_plane_snapshot_blocks_paper_writes_for_supervisor_and_bundle_ga
     assert "direct_bundle_build" not in snapshot["allowed_controller_actions"]
 
 
-def test_control_plane_snapshot_allows_controller_recovery_when_no_live_retry_budget_exhausted() -> None:
+def test_control_plane_snapshot_blocks_recovery_when_retry_budget_exhausted() -> None:
     snapshot = _snapshot(
         {
             "study_id": "004-invasive",
@@ -107,10 +107,10 @@ def test_control_plane_snapshot_allows_controller_recovery_when_no_live_retry_bu
         }
     )
 
-    assert snapshot["control_state"] == "ready"
-    assert snapshot["canonical_runtime_action"] == "recover_runtime"
-    assert snapshot["dispatch_gate"]["state"] == "open"
-    assert snapshot["route_authorization"]["runtime_recovery_allowed"] is True
+    assert snapshot["control_state"] == "blocked_runtime_escalation"
+    assert snapshot["canonical_runtime_action"] == "escalate_runtime"
+    assert snapshot["dispatch_gate"]["state"] == "blocked"
+    assert snapshot["route_authorization"]["runtime_recovery_allowed"] is False
     assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
 
 
