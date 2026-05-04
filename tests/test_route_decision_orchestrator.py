@@ -183,3 +183,85 @@ def test_orchestrator_human_gates_candidate_path_graph_when_required_fields_are_
     assert graph["decision"] == "human_gate"
     assert "candidate_line-a_missing_expected_artifact" in projection["blockers"]
     assert graph["candidates"][0]["decision"] == "human_gate"
+
+
+def test_orchestrator_requires_bounded_repair_for_statistical_blockers(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+
+    projection = module.materialize_route_decision_orchestration(
+        study_root=tmp_path / "study",
+        candidates=[_candidate("line-a", 5)],
+        requested_action="select_line",
+        route_signals={
+            "statistical_blockers": ["missing_precision_statement", "external_validation_waiver_missing"],
+            "attempted_paths": ["primary_analysis"],
+            "evidence_gain_ceiling": "moderate_if_repaired",
+        },
+    )
+
+    decision_path = tmp_path / "study" / "artifacts" / "controller_decisions" / "latest.json"
+    assert projection["status"] == "ready"
+    assert projection["route_control_decision"] == "bounded_repair"
+    assert projection["next_action"] == "enter_bounded_analysis"
+    assert projection["route_control_memo"]["decision"] == "bounded_repair"
+    assert projection["controller_decision"]["route_control_decision"] == "bounded_repair"
+    assert projection["controller_decision"]["write_authorized"] is True
+    assert decision_path.is_file()
+
+
+def test_orchestrator_materializes_stop_loss_before_continuing_weak_route(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+
+    projection = module.materialize_route_decision_orchestration(
+        study_root=tmp_path / "study",
+        candidates=[_candidate("weak-line", 4)],
+        requested_action="select_line",
+        route_signals={
+            "evidence_state": "weak",
+            "stop_pressure": "high",
+            "attempted_paths": ["baseline", "bounded_analysis"],
+            "failure_reasons": ["no_external_transportability"],
+            "continuation_cost": {"review_cycles": 2},
+            "evidence_gain_ceiling": "low",
+            "alternative_routes": ["stronger-guideline-gap"],
+        },
+    )
+
+    stop_loss_path = tmp_path / "study" / "artifacts" / "medical_paper" / "stop_loss_memo.json"
+    decision_path = tmp_path / "study" / "artifacts" / "controller_decisions" / "latest.json"
+    assert projection["status"] == "ready"
+    assert projection["route_control_decision"] == "switch_line"
+    assert projection["route_decision"] == "switch_line"
+    assert projection["selected_line_id"] is None
+    assert projection["next_action"] == "switch_line"
+    assert projection["route_control_memo"]["decision"] == "switch_line"
+    assert projection["route_control_memo"]["materialized_paths"] == {"stop_loss_memo": str(stop_loss_path)}
+    assert stop_loss_path.is_file()
+    assert decision_path.is_file()
+    written = json.loads(decision_path.read_text(encoding="utf-8"))
+    assert written["route_control_decision"] == "switch_line"
+    assert written["write_authorized"] is True
+    assert written["quality_claim_authorized"] is False
+
+
+def test_orchestrator_blocks_continue_when_weak_route_has_no_alternative(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+
+    projection = module.materialize_route_decision_orchestration(
+        study_root=tmp_path / "study",
+        candidates=[_candidate("weak-line", 4)],
+        requested_action="select_line",
+        route_signals={
+            "evidence_state": "blocked",
+            "stop_pressure": "high",
+            "attempted_paths": ["baseline", "bounded_analysis"],
+            "failure_reasons": ["endpoint_unresolvable"],
+            "evidence_gain_ceiling": "low",
+        },
+    )
+
+    assert projection["status"] == "ready"
+    assert projection["route_control_decision"] == "stop_loss"
+    assert projection["route_decision"] == "return_to_scout"
+    assert projection["next_action"] == "stop_loss"
+    assert projection["controller_decision"]["write_authorized"] is True
