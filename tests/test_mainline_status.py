@@ -116,12 +116,12 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert {
         item["recommendation_id"] for item in payload["unified_enhancement_program"]["recommendation_rollup"]
     } == {
-        "auto_research_1",
-        "auto_research_2",
-        "auto_research_3",
-        "auto_research_4",
-        "auto_research_5",
-        "auto_research_6",
+        "automatic_research_1",
+        "automatic_research_2",
+        "automatic_research_3",
+        "automatic_research_4",
+        "automatic_research_5",
+        "automatic_research_6",
         "file_management_1",
         "file_management_2",
         "file_management_3",
@@ -132,7 +132,21 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "control_plane_3",
         "control_plane_4",
     }
+    assert payload["unified_enhancement_program"]["source_surfaces"] == [
+        "mas_mds_unified_enhancement_program_board",
+        "mas_mds_module_boundary_audit_report",
+    ]
+    assert {item["basis_id"] for item in payload["unified_enhancement_program"]["engineering_basis"]} == {
+        "strangler_fig",
+        "architecture_fitness_functions",
+        "team_topologies_cognitive_load",
+        "sre_toil_elimination_and_observability",
+        "owner_private_truth_surfaces",
+    }
     assert payload["unified_enhancement_program"]["module_boundary_audit"]["projection_only"] is True
+    assert payload["unified_enhancement_program"]["module_boundary_audit"]["source_surface"] == (
+        "mas_mds_module_boundary_audit_report"
+    )
     assert [item["boundary_id"] for item in payload["unified_enhancement_program"]["module_boundary_audit"]["boundaries"]] == [
         "study_truth",
         "runtime_truth",

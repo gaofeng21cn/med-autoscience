@@ -22,6 +22,49 @@ NO_LIVE_ARTIFACT_CONSTRAINTS = (
     "does_not_write_delivery_truth",
 )
 
+ENGINEERING_BASIS = (
+    {
+        "basis_id": "strangler_fig",
+        "source": "Martin Fowler, Original Strangler Fig Application",
+        "url": "https://martinfowler.com/bliki/OriginalStranglerFigApplication.html",
+        "project_application": (
+            "wrap, migrate, and absorb one capability surface at a time; do not big-bang rewrite MAS/MDS"
+        ),
+    },
+    {
+        "basis_id": "architecture_fitness_functions",
+        "source": "Evolutionary Architecture / architecture fitness functions",
+        "url": "https://www.thoughtworks.com/insights/books/building-evolutionary-architectures",
+        "project_application": (
+            "turn owner boundaries into executable checks through meta tests, boundary reports, line budget, and Sentrux"
+        ),
+    },
+    {
+        "basis_id": "team_topologies_cognitive_load",
+        "source": "Team Topologies, cognitive load and team APIs",
+        "url": "https://teamtopologies.com/",
+        "project_application": (
+            "reduce operator cognitive load by giving doctors one PI action projection and maintainers separate ledgers"
+        ),
+    },
+    {
+        "basis_id": "sre_toil_elimination_and_observability",
+        "source": "Google SRE Book, Eliminating Toil",
+        "url": "https://sre.google/sre-book/eliminating-toil/",
+        "project_application": (
+            "convert repeated status reading, provider freshness checks, delivery drift, and outcome feedback into stable projections"
+        ),
+    },
+    {
+        "basis_id": "owner_private_truth_surfaces",
+        "source": "MAS owner-boundary contract",
+        "url": "docs/architecture.md#masmds-owner-boundary-fitness-function",
+        "project_application": (
+            "authority owners write private truth surfaces; product, observability, delivery, and MDS layers consume projections"
+        ),
+    },
+)
+
 PROGRAM_LANES = (
     {
         "lane_id": "L1_real_workspace_longitudinal_soak",
@@ -288,6 +331,7 @@ def build_unified_enhancement_program_board(progress_payload: Mapping[str, Any] 
             "projection_can_write_submission_authority": False,
             "no_live_artifact_constraints": list(NO_LIVE_ARTIFACT_CONSTRAINTS),
         },
+        "engineering_basis": [dict(item) for item in ENGINEERING_BASIS],
         "lanes": lanes,
         "recommendation_mapping": [dict(item) for item in RECOMMENDATION_MAPPING],
         "parallel_worktree_landing": [dict(item) for item in PARALLEL_WORKTREE_LANDING],
@@ -379,6 +423,14 @@ def validate_unified_enhancement_program_board(board: Mapping[str, Any]) -> dict
     for constraint in NO_LIVE_ARTIFACT_CONSTRAINTS:
         if constraint not in no_live_constraints:
             issues.append({"code": "missing_no_live_artifact_constraint", "constraint": constraint})
+    basis_ids = {
+        str(item.get("basis_id"))
+        for item in _list(board.get("engineering_basis"))
+        if isinstance(item, Mapping) and _text(item.get("basis_id"))
+    }
+    for basis in ENGINEERING_BASIS:
+        if basis["basis_id"] not in basis_ids:
+            issues.append({"code": "missing_engineering_basis", "basis_id": basis["basis_id"]})
     return {
         "surface": "mas_mds_unified_enhancement_program_board_validation",
         "schema_version": SCHEMA_VERSION,

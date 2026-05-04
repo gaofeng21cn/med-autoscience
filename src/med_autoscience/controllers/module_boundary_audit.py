@@ -272,6 +272,34 @@ BOUNDARY_RULES: tuple[dict[str, Any], ...] = (
     },
 )
 
+TRUTH_BOUNDARIES: tuple[dict[str, Any], ...] = (
+    {
+        "boundary_id": "study_truth",
+        "authority_owner": "StudyTruthKernel",
+        "projection_consumers": ["study-progress", "workspace-cockpit", "product-frontdesk"],
+    },
+    {
+        "boundary_id": "runtime_truth",
+        "authority_owner": "RuntimeHealthKernel",
+        "projection_consumers": ["study_runtime_status", "runtime_watch", "mainline-status"],
+    },
+    {
+        "boundary_id": "quality_truth",
+        "authority_owner": "publication_eval/latest.json + publication_gate",
+        "projection_consumers": ["mainline-status", "AI reviewer calibration reports"],
+    },
+    {
+        "boundary_id": "delivery_truth",
+        "authority_owner": "controller-authorized artifact sync/apply",
+        "projection_consumers": ["delivery inspection", "legacy upgrade visibility"],
+    },
+    {
+        "boundary_id": "maintainability_truth",
+        "authority_owner": "Sentrux structure lane + line budget + owner-boundary tests",
+        "projection_consumers": ["module boundary audit", "structure target list"],
+    },
+)
+
 
 def build_module_boundary_audit_report() -> dict[str, Any]:
     return {
@@ -292,6 +320,7 @@ def build_module_boundary_audit_report() -> dict[str, Any]:
         },
         "module_groups": [dict(group) for group in MODULE_GROUPS],
         "boundary_rules": [dict(rule) for rule in BOUNDARY_RULES],
+        "truth_boundaries": [dict(boundary) for boundary in TRUTH_BOUNDARIES],
     }
 
 

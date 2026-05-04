@@ -26,6 +26,14 @@ Owner: `MedAutoScience`
 - `sre_toil_elimination_and_observability`：重复人工排查、重复返工和不可解释状态都是 toil；本项目中表现为 provider health、delivery traffic-light、legacy queue、outcome calibration 必须变成稳定投影，而不是临时说明。
 - `owner_private_truth_surfaces`：权威状态只能由 owner 写入、由 projection 消费；本项目中表现为 `study truth / quality truth / runtime truth / artifact truth` 不被 entry、observability、MDS oracle 或 file inspector 重写。
 
+可追溯参考：
+
+- Martin Fowler 的 Strangler Fig Application：`https://martinfowler.com/bliki/OriginalStranglerFigApplication.html`
+- Thoughtworks / Evolutionary Architecture fitness functions：`https://www.thoughtworks.com/insights/books/building-evolutionary-architectures`
+- Team Topologies 关于 team API 与认知负载的架构划分：`https://teamtopologies.com/`
+- Google SRE Book, Eliminating Toil：`https://sre.google/sre-book/eliminating-toil/`
+- 本仓库 owner-boundary fitness function：`docs/architecture.md#masmds-owner-boundary-fitness-function`
+
 ## 15 条建议归并评估
 
 | original | 判断 | 归并 lane | 处理方式 |

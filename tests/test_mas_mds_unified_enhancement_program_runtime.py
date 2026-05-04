@@ -38,6 +38,13 @@ def test_unified_enhancement_program_board_materializes_lanes_mapping_and_absorb
         "codex/mas-delivery-legacy-visibility",
         "codex/mas-structure-audit-compaction",
     ]
+    assert {item["basis_id"] for item in board["engineering_basis"]} == {
+        "strangler_fig",
+        "architecture_fitness_functions",
+        "team_topologies_cognitive_load",
+        "sre_toil_elimination_and_observability",
+        "owner_private_truth_surfaces",
+    }
     assert {item["recommendation_id"] for item in board["recommendation_mapping"]} == {
         "automatic_research_1",
         "automatic_research_2",
