@@ -105,7 +105,7 @@ def _workspace_plan(*, workspace_root: Path, route_gate: Mapping[str, Any]) -> d
     contract_path = workspace_root / CONTRACT_NAME
     contract = _read_json(contract_path)
     contract_actions = _contract_actions(contract)
-    delivery_manifest_paths = _delivery_manifest_paths(workspace_root)
+    delivery_manifest_paths = _delivery_manifest_paths(workspace_root=workspace_root, contract=contract)
     actions = [
         _plan_backfill_action(
             workspace_root=workspace_root,
@@ -209,7 +209,8 @@ def _field_paths_for_missing_surfaces(missing_surfaces: Iterable[str]) -> list[s
 
 def _apply_backfill_action(action: Mapping[str, Any]) -> dict[str, Any]:
     manifest_path = Path(str(action["delivery_manifest_path"]))
-    payload = dict(_read_json(manifest_path))
+    before_payload = dict(_read_json(manifest_path))
+    payload = dict(before_payload)
     missing_surfaces = [str(item) for item in action.get("missing_surfaces") or []]
     if "delivery_manifest_lifecycle_hook" in missing_surfaces:
         payload["artifact_lifecycle"] = _lifecycle_hook(manifest_path)
@@ -219,11 +220,20 @@ def _apply_backfill_action(action: Mapping[str, Any]) -> dict[str, Any]:
         payload["authority_source_signature"] = signature
     if "publication_refs" in missing_surfaces:
         payload["publication_refs"] = _publication_refs(manifest_path=manifest_path)
+    field_paths = _field_paths_for_missing_surfaces(missing_surfaces)
+    field_blockers = _field_write_blockers(before_payload=before_payload, after_payload=payload, field_paths=field_paths)
+    if field_blockers:
+        return {
+            "applied": False,
+            "delivery_manifest_path": str(manifest_path),
+            "field_paths": field_paths,
+            "blockers": field_blockers,
+        }
     manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {
         "applied": True,
         "delivery_manifest_path": str(manifest_path),
-        "field_paths": _field_paths_for_missing_surfaces(missing_surfaces),
+        "field_paths": field_paths,
     }
 
 
@@ -318,7 +328,10 @@ def _status(*, applied_count: int, blocked_count: int, plan_count: int, contract
     return "no_backfill_required"
 
 
-def _delivery_manifest_paths(workspace_root: Path) -> list[Path]:
+def _delivery_manifest_paths(*, workspace_root: Path, contract: Mapping[str, Any]) -> list[Path]:
+    contract_targets = _contract_delivery_manifest_paths(workspace_root=workspace_root, contract=contract)
+    if contract_targets:
+        return contract_targets
     if not workspace_root.exists():
         return []
     return sorted(
@@ -326,6 +339,20 @@ def _delivery_manifest_paths(workspace_root: Path) -> list[Path]:
         for path in workspace_root.rglob("delivery_manifest.json")
         if ".git" not in path.parts and ".ds" not in path.parts
     )
+
+
+def _contract_delivery_manifest_paths(*, workspace_root: Path, contract: Mapping[str, Any]) -> list[Path]:
+    paths: list[Path] = []
+    for target in _list(contract.get("targets")):
+        target_payload = _mapping(target)
+        manifest_ref = _text(target_payload.get("delivery_manifest_path"))
+        if manifest_ref is None:
+            continue
+        manifest_path = Path(manifest_ref).expanduser()
+        if not manifest_path.is_absolute():
+            manifest_path = workspace_root / manifest_path
+        paths.append(manifest_path.resolve())
+    return sorted(dict.fromkeys(paths))
 
 
 def _contract_actions(contract: Mapping[str, Any]) -> set[str]:
@@ -358,6 +385,10 @@ def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
+def _list(value: object) -> list[object]:
+    return value if isinstance(value, list) else []
+
+
 def _string_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
@@ -371,6 +402,21 @@ def _text(value: object) -> str | None:
 
 def _dedupe(values: Iterable[str]) -> list[str]:
     return list(dict.fromkeys(value for value in values if value))
+
+
+def _field_write_blockers(
+    *,
+    before_payload: Mapping[str, Any],
+    after_payload: Mapping[str, Any],
+    field_paths: Iterable[str],
+) -> list[str]:
+    allowed = set(field_paths)
+    changed = {
+        key
+        for key in set(before_payload) | set(after_payload)
+        if before_payload.get(key) != after_payload.get(key)
+    }
+    return [f"field_not_allowlisted:{key}" for key in sorted(changed - allowed)]
 
 
 __all__ = ["SCHEMA_VERSION", "SURFACE", "run_backfill_apply"]

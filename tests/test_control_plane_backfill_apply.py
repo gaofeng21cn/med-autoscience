@@ -27,12 +27,19 @@ def _snapshot(*, delivery_sync_allowed: bool = True, gate_state: str = "open") -
     }
 
 
-def _write_contract(workspace_root: Path, *, action_allowlist: list[str] | None = None) -> None:
+def _write_contract(
+    workspace_root: Path,
+    *,
+    action_allowlist: list[str] | None = None,
+    controller_decision: dict[str, object] | None = None,
+    targets: list[dict[str, object]] | None = None,
+) -> None:
     (workspace_root / "control_plane_backfill_apply.json").write_text(
         json.dumps(
             {
                 "surface": "control_plane_backfill_apply_contract",
-                "controller_decision": {
+                "controller_decision": controller_decision
+                or {
                     "decision": "approve_backfill_apply",
                     "apply_intent": True,
                 },
@@ -42,6 +49,7 @@ def _write_contract(workspace_root: Path, *, action_allowlist: list[str] | None 
                     "backfill_delivery_manifest_source_signature",
                     "backfill_delivery_manifest_publication_refs",
                 ],
+                **({"targets": targets} if targets is not None else {}),
             },
             ensure_ascii=False,
             indent=2,
@@ -114,6 +122,65 @@ def test_backfill_apply_true_fails_closed_when_delivery_sync_route_blocked(tmp_p
     assert report["action_counts"]["applied"] == 0
 
 
+def test_backfill_apply_true_fails_closed_when_controller_intent_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_backfill_apply")
+    workspace_root = fixtures.build_migration_audit_fixture_legacy_delivery_manifest_backfill(tmp_path)
+    _write_contract(
+        workspace_root,
+        controller_decision={"decision": "audit_backfill_apply", "apply_intent": False},
+    )
+    manifest_path = _delivery_manifest(workspace_root)
+    before = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    report = module.run_backfill_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
+
+    assert report["status"] == "blocked"
+    assert "controller_backfill_apply_intent_missing" in report["apply_plan"][0]["blockers"]
+    assert report["action_counts"]["applied"] == 0
+    assert json.loads(manifest_path.read_text(encoding="utf-8")) == before
+
+
+def test_backfill_apply_true_blocks_targets_outside_workspace_after_resolve(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_backfill_apply")
+    workspace_root = fixtures.build_migration_audit_fixture_legacy_delivery_manifest_backfill(tmp_path)
+    outside_root = tmp_path / "outside-study"
+    outside_manifest = outside_root / "manuscript" / "delivery_manifest.json"
+    outside_manifest.parent.mkdir(parents=True)
+    outside_manifest.write_text(
+        json.dumps(
+            {
+                "study_id": "outside-study",
+                "surface": "delivery_manifest",
+                "authority_owner": "controller",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_contract(
+        workspace_root,
+        targets=[{"delivery_manifest_path": "../outside-study/manuscript/delivery_manifest.json"}],
+    )
+    before = json.loads(outside_manifest.read_text(encoding="utf-8"))
+
+    report = module.run_backfill_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+    )
+
+    assert report["status"] == "blocked"
+    assert report["action_counts"]["applied"] == 0
+    assert "target_outside_workspace" in report["apply_plan"][0]["blockers"]
+    assert json.loads(outside_manifest.read_text(encoding="utf-8")) == before
+
+
 def test_backfill_apply_true_updates_only_delivery_manifest_when_authorized(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_backfill_apply")
     workspace_root = fixtures.build_migration_audit_fixture_legacy_delivery_manifest_backfill(tmp_path)
@@ -123,6 +190,7 @@ def test_backfill_apply_true_updates_only_delivery_manifest_when_authorized(tmp_
     submission_minimal = next(workspace_root.rglob("submission_minimal/paper.md"))
     current_package_before = current_package.read_text(encoding="utf-8")
     submission_minimal_before = submission_minimal.read_text(encoding="utf-8")
+    manifest_before = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     report = module.run_backfill_apply(
         workspace_roots=[workspace_root],
@@ -139,4 +207,15 @@ def test_backfill_apply_true_updates_only_delivery_manifest_when_authorized(tmp_
     assert "publication_gate" in payload["publication_refs"]
     assert current_package.read_text(encoding="utf-8") == current_package_before
     assert submission_minimal.read_text(encoding="utf-8") == submission_minimal_before
-
+    assert set(payload) == set(manifest_before) | {
+        "artifact_lifecycle",
+        "source_signature",
+        "authority_source_signature",
+        "publication_refs",
+    }
+    assert report["applied_actions"][0]["apply_result"]["field_paths"] == [
+        "artifact_lifecycle",
+        "source_signature",
+        "authority_source_signature",
+        "publication_refs",
+    ]
