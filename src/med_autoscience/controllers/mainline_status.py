@@ -19,6 +19,9 @@ from med_autoscience.controllers.mainline_status_parts.rendering import (
     render_mainline_phase_markdown,
     render_mainline_status_markdown,
 )
+from med_autoscience.controllers.mainline_status_parts.unified_enhancement import (
+    build_unified_enhancement_program_projection,
+)
 
 
 SCHEMA_VERSION = 1
@@ -809,6 +812,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
 
 def read_mainline_status() -> dict[str, Any]:
     phase_ladder = _phase_ladder()
+    unified_enhancement_program = build_unified_enhancement_program_projection()
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
@@ -866,6 +870,7 @@ def read_mainline_status() -> dict[str, Any]:
         "phase3_clearance_lane": _phase3_clearance_lane(),
         "phase4_backend_deconstruction": _phase4_backend_deconstruction(),
         "platform_target": _platform_target(),
+        "unified_enhancement_program": unified_enhancement_program,
         "phase_ladder": phase_ladder,
         "completed_tranches": [
             {
@@ -922,10 +927,12 @@ def read_mainline_status() -> dict[str, Any]:
             "docs/architecture.md",
             "docs/status.md",
             "docs/runtime/agent_runtime_interface.md",
+            "docs/program/mas_mds_unified_enhancement_program.md",
             "docs/references/lightweight_product_entry_and_opl_handoff.md",
         ],
         "commands": {
             "mainline_status": "uv run python -m med_autoscience.cli mainline-status",
+            "unified_enhancement_program": "uv run python -m med_autoscience.cli mainline-status --format json",
             "workspace_cockpit": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>",
             "study_progress": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>",
         },

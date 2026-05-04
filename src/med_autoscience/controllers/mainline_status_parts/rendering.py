@@ -124,6 +124,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
     platform_target = dict(payload.get("platform_target") or {})
+    unified_enhancement_program = dict(payload.get("unified_enhancement_program") or {})
     lines = [
         "# Mainline Status",
         "",
@@ -230,6 +231,49 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{item.get('capability_id')}`: {item.get('summary') or 'none'}")
+    module_boundary_audit = dict(unified_enhancement_program.get("module_boundary_audit") or {})
+    lines.extend(
+        [
+            "",
+            "## Unified Enhancement Program",
+            "",
+            f"- surface: `{unified_enhancement_program.get('surface_kind') or 'none'}`",
+            f"- status: `{unified_enhancement_program.get('status') or 'none'}`",
+            f"- source: `{unified_enhancement_program.get('source_doc') or 'none'}`",
+            f"- projection-only: {_bool_label(unified_enhancement_program.get('projection_only'))}",
+            f"- authority boundary: {unified_enhancement_program.get('authority_boundary') or 'none'}",
+        ]
+    )
+    for item in unified_enhancement_program.get("lanes") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"- enhancement lane `{item.get('lane_id')}` / `{item.get('boundary_kind')}`: {item.get('summary') or 'none'}"
+        )
+    for item in unified_enhancement_program.get("recommendation_rollup") or []:
+        if not isinstance(item, dict):
+            continue
+        lane_id = item.get("lane_id") or "none"
+        secondary_lane_id = item.get("secondary_lane_id")
+        if secondary_lane_id:
+            lane_id = f"{lane_id} + {secondary_lane_id}"
+        lines.append(f"- recommendation `{item.get('recommendation_id')}` -> `{lane_id}`: {item.get('summary') or 'none'}")
+    lines.extend(
+        [
+            "",
+            "## Module Boundary Audit",
+            "",
+            f"- projection-only: {_bool_label(module_boundary_audit.get('projection_only'))}",
+            f"- 当前摘要: {module_boundary_audit.get('summary') or 'none'}",
+        ]
+    )
+    for item in module_boundary_audit.get("boundaries") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"- audit boundary `{item.get('boundary_id')}` owner `{item.get('authority_owner')}`: "
+            f"{', '.join(item.get('projection_consumers') or []) or 'none'}"
+        )
     lines.extend(
         [
             "",
