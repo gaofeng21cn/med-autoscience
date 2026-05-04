@@ -854,6 +854,9 @@ def build_product_frontdesk(
             "workspace_medical_paper_research_loop": _workspace_medical_paper_research_loop_manifest(
                 workspace_cockpit
             ),
+            "workspace_delivery_inspection": dict(
+                workspace_cockpit.get("delivery_inspection_state") or {}
+            ),
             "workspace_portable_supervisor_queue_dashboard": _manifest_portable_supervisor_queue_dashboard(
                 workspace_cockpit.get("portable_supervisor_queue_dashboard")
             ),

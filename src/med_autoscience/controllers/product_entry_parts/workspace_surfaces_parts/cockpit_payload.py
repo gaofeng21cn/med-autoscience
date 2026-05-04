@@ -22,6 +22,9 @@ from med_autoscience.controllers.medical_paper_v4_operations import (
     build_v4_operations_dashboard,
     workspace_v4_operations_state,
 )
+from med_autoscience.controllers.delivery_visibility_projection import (
+    compact_delivery_inspection_projection,
+)
 
 try:
     _non_empty_text
@@ -101,6 +104,7 @@ def _study_item(
     publication_eval = dict(progress_payload.get("publication_eval") or {})
     artifact_runtime_proof_surface = dict(progress_payload.get("artifact_runtime_proof") or {})
     submission_hygiene_truth = dict(progress_payload.get("submission_hygiene_truth") or {})
+    delivery_inspection = compact_delivery_inspection_projection(progress_payload.get("delivery_inspection"))
     product_recommended_flow = dict(progress_payload.get("product_recommended_flow") or {})
     paper_orchestra_operator_projection = dict(progress_payload.get("paper_orchestra_operator_projection") or {})
     open_auto_research_state = dict(progress_payload.get("open_auto_research_projection") or {})
@@ -163,6 +167,7 @@ def _study_item(
         "publication_eval": publication_eval or None,
         "artifact_runtime_proof": artifact_runtime_proof_surface or None,
         "submission_hygiene_truth": submission_hygiene_truth or None,
+        "delivery_inspection": delivery_inspection,
         "product_recommended_flow": product_recommended_flow or None,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
         "open_auto_research_projection": open_auto_research_state or None,
@@ -541,6 +546,55 @@ def _workspace_medical_paper_readiness_state(*, studies: list[dict[str, Any]]) -
     }
 
 
+def _delivery_inspection_entries(studies: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    for item in studies:
+        projection = compact_delivery_inspection_projection(item.get("delivery_inspection"))
+        if projection is None:
+            continue
+        projection.setdefault("study_id", item.get("study_id"))
+        entries.append(projection)
+    return entries
+
+
+def _workspace_delivery_inspection_state(*, studies: list[dict[str, Any]]) -> dict[str, Any]:
+    entries = _delivery_inspection_entries(studies)
+    counts = {
+        "study_count": len(studies),
+        "projected_count": len(entries),
+        "attention_required": 0,
+        "legacy_layout_pending_sync": 0,
+    }
+    for entry in entries:
+        status = _non_empty_text(entry.get("status")) or "unknown"
+        if status == "legacy_layout_pending_sync":
+            counts["legacy_layout_pending_sync"] += 1
+            counts["attention_required"] += 1
+        elif status not in {"current", "ready"}:
+            counts["attention_required"] += 1
+    if not entries:
+        status = "not_available"
+        summary = "当前还没有 Delivery Inspection projection。"
+    elif counts["attention_required"]:
+        status = "attention_required"
+        summary = (
+            f"{counts['projected_count']} 个 study 已接入 Delivery Inspection；"
+            f"{counts['legacy_layout_pending_sync']} 个 legacy layout 等待下一次 authorized sync 升级。"
+        )
+    else:
+        status = "ready"
+        summary = f"{counts['projected_count']} 个 study 已接入 Delivery Inspection；delivery mirror 当前可见。"
+    return {
+        "surface_kind": "workspace_delivery_inspection_state",
+        "read_model": "delivery_inspection_read_model",
+        "authority": "observability_projection_only",
+        "status": status,
+        "summary": summary,
+        "counts": counts,
+        "studies": entries,
+    }
+
+
 def _workspace_portable_supervisor_queue_dashboard(
     *,
     profile: WorkspaceProfile,
@@ -776,6 +830,7 @@ def read_workspace_cockpit(
         profile=profile,
         studies=studies,
     )
+    delivery_inspection_state = _workspace_delivery_inspection_state(studies=studies)
     user_loop = _user_loop(profile=profile, profile_ref=profile_ref)
     operator_brief = _workspace_operator_brief(
         workspace_status=workspace_status,
@@ -807,6 +862,7 @@ def read_workspace_cockpit(
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection,
         "open_auto_research_projection": open_auto_research_state,
         "portable_supervisor_queue_dashboard": portable_supervisor_queue_dashboard,
+        "delivery_inspection_state": delivery_inspection_state,
         "attention_queue": attention_queue,
         "operator_brief": operator_brief,
         "user_loop": user_loop,

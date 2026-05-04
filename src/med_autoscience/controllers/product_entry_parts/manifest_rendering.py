@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from med_autoscience.controllers.medical_paper_research_loop import research_loop_markdown_lines
+from med_autoscience.controllers.delivery_visibility_projection import render_delivery_inspection_markdown_lines
 
 from .program_surfaces import _render_phase5_platform_target_markdown_lines
 from .paper_orchestra_operator import render_paper_orchestra_operator_projection_lines
@@ -162,6 +163,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     workspace_medical_paper_ops_health = dict(
         payload.get("workspace_medical_paper_ops_health") or {}
     )
+    workspace_delivery_inspection = dict(payload.get("workspace_delivery_inspection") or {})
     workspace_portable_supervisor_queue_dashboard = dict(
         payload.get("workspace_portable_supervisor_queue_dashboard") or {}
     )
@@ -307,6 +309,12 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     lines.extend(
         _medical_paper_research_loop_frontdesk_lines(
             payload.get("workspace_medical_paper_research_loop")
+        )
+    )
+    lines.extend(
+        render_delivery_inspection_markdown_lines(
+            workspace_delivery_inspection,
+            heading="## Delivery Inspection",
         )
     )
     lines.extend(render_paper_orchestra_operator_projection_lines(workspace_paper_orchestra_operator_projection))

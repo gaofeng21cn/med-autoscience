@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from med_autoscience.controllers.delivery_visibility_projection import (
+    compact_delivery_inspection_projection,
+    render_delivery_inspection_markdown_lines,
+)
 from med_autoscience.controllers.medical_paper_v3_action_truth import (
     ACTION_BY_SURFACE as READINESS_ACTION_BY_SURFACE,
     LITERATURE_SURFACE_KEYS,
@@ -429,6 +433,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "runtime_efficiency": _compact_runtime_efficiency,
         "module_surfaces": _compact_module_surfaces,
         "medical_paper_readiness": _compact_medical_paper_readiness,
+        "delivery_inspection": compact_delivery_inspection_projection,
         "open_auto_research_projection": compact_open_auto_research_projection,
         "portable_supervisor_dashboard": compact_portable_supervisor_dashboard,
         "study_truth_snapshot": _compact_study_truth_snapshot,
@@ -842,6 +847,12 @@ def render_mcp_study_progress_markdown(payload: dict[str, Any]) -> str:
     lines.extend(_render_mcp_progress_operator_and_action(compact))
     lines.extend(_render_mcp_progress_blockers(compact))
     lines.extend(_render_mcp_progress_medical_paper_readiness(compact))
+    lines.extend(
+        render_delivery_inspection_markdown_lines(
+            compact.get("delivery_inspection"),
+            heading="## Delivery Inspection",
+        )
+    )
     lines.extend(_render_mcp_progress_open_auto_research(compact))
     lines.extend(render_mcp_progress_portable_supervisor_dashboard(compact))
     lines.extend(_render_mcp_progress_refs(compact))

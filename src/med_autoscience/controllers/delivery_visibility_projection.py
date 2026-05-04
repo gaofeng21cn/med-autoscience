@@ -1,0 +1,160 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
+
+SUBMISSION_MINIMAL_LABEL = "controller-authorized source"
+CURRENT_PACKAGE_LABEL = "human-facing mirror"
+LEGACY_LAYOUT_UPGRADE_NOTE = "legacy layout 会在下一次 authorized sync 升级"
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _layout_pending_sync(inspection: Mapping[str, Any]) -> bool:
+    freshness = _mapping(inspection.get("freshness"))
+    if freshness.get("verdict") == "legacy":
+        return True
+    source_package = _mapping(inspection.get("source_package"))
+    human_package = _mapping(inspection.get("human_package"))
+    return "legacy" in {
+        str(source_package.get("layout_status") or "").strip(),
+        str(human_package.get("layout_status") or "").strip(),
+    }
+
+
+def _inspection_status(inspection: Mapping[str, Any]) -> str:
+    if _layout_pending_sync(inspection):
+        return "legacy_layout_pending_sync"
+    freshness = _mapping(inspection.get("freshness"))
+    verdict = str(freshness.get("verdict") or "").strip()
+    if verdict:
+        return verdict
+    delivery_status = str(freshness.get("delivery_status") or "").strip()
+    return delivery_status or str(inspection.get("status") or "unknown").strip() or "unknown"
+
+
+def _inspection_summary(inspection: Mapping[str, Any], *, status: str) -> str:
+    summary = str(inspection.get("summary") or "").strip()
+    if summary:
+        return summary
+    freshness = _mapping(inspection.get("freshness"))
+    delivery_status = str(freshness.get("delivery_status") or "").strip()
+    if status == "legacy_layout_pending_sync":
+        return LEGACY_LAYOUT_UPGRADE_NOTE
+    if delivery_status:
+        return f"delivery status: {delivery_status}"
+    return "Delivery inspection is available as a read-only projection."
+
+
+def compact_delivery_inspection_projection(value: object) -> dict[str, Any] | None:
+    inspection = _mapping(value)
+    if not inspection:
+        return None
+    status = _inspection_status(inspection)
+    compact: dict[str, Any] = {}
+    for key in (
+        "surface",
+        "surface_kind",
+        "schema_version",
+        "study_id",
+        "freshness",
+        "mutation_policy",
+        "source_package",
+        "human_package",
+        "zip",
+        "journal_package_count",
+        "next_sync_command",
+        "legacy_layout",
+    ):
+        if key in inspection:
+            compact[key] = inspection[key]
+    compact.setdefault("surface_kind", "study_delivery_inspection_projection")
+    compact["status"] = status
+    compact["summary"] = _inspection_summary(inspection, status=status)
+    compact["source_labels"] = {
+        "submission_minimal": SUBMISSION_MINIMAL_LABEL,
+        "current_package": CURRENT_PACKAGE_LABEL,
+    }
+    compact["legacy_layout_upgrade_note"] = LEGACY_LAYOUT_UPGRADE_NOTE
+    compact["authority"] = "observability_projection_only"
+    compact["can_authorize_submission"] = False
+    compact["can_authorize_publication_quality"] = False
+    compact["can_dispatch_delivery_sync"] = False
+    return compact
+
+
+def build_study_delivery_inspection_projection(
+    *,
+    profile: Any,
+    profile_ref: str | Path | None = None,
+    study_id: str | None = None,
+    study_root: Path | None = None,
+    publication_profile: str | None = None,
+) -> dict[str, Any] | None:
+    from med_autoscience.controllers.delivery_inspector import (
+        compact_delivery_inspection,
+        inspect_study_delivery,
+    )
+
+    inspection = inspect_study_delivery(
+        profile=profile,
+        profile_ref=Path(profile_ref).expanduser().resolve() if profile_ref is not None else None,
+        study_id=study_id,
+        study_root=study_root,
+        publication_profile=publication_profile,
+    )
+    if not isinstance(inspection, Mapping):
+        return None
+    compact = compact_delivery_inspection(inspection)
+    projection = compact_delivery_inspection_projection(compact)
+    if projection is None:
+        return None
+    if study_id is not None:
+        projection.setdefault("study_id", study_id)
+    elif study_root is not None:
+        projection.setdefault("study_id", Path(study_root).name)
+    if "legacy_layout" not in projection:
+        legacy_layout = _mapping(inspection.get("legacy_layout"))
+        if legacy_layout:
+            projection["legacy_layout"] = legacy_layout
+    return projection
+
+
+def render_delivery_inspection_markdown_lines(value: object, *, heading: str) -> list[str]:
+    projection = compact_delivery_inspection_projection(value)
+    if projection is None:
+        return []
+    lines = [
+        "",
+        heading,
+        "",
+        "- submission_minimal = controller-authorized source",
+        "- current_package = human-facing mirror",
+        f"- legacy layout: {LEGACY_LAYOUT_UPGRADE_NOTE}",
+        f"- 当前状态: `{projection.get('status') or 'unknown'}`",
+    ]
+    summary = str(projection.get("summary") or "").strip()
+    if summary:
+        lines.append(f"- 当前摘要: {summary}")
+    lines.append(
+        "- authority: "
+        f"`{projection.get('authority') or 'observability_projection_only'}`；"
+        "quality/submission/dispatch authorization: "
+        f"`{bool(projection.get('can_authorize_publication_quality'))}/"
+        f"{bool(projection.get('can_authorize_submission'))}/"
+        f"{bool(projection.get('can_dispatch_delivery_sync'))}`"
+    )
+    return lines
+
+
+__all__ = [
+    "CURRENT_PACKAGE_LABEL",
+    "LEGACY_LAYOUT_UPGRADE_NOTE",
+    "SUBMISSION_MINIMAL_LABEL",
+    "build_study_delivery_inspection_projection",
+    "compact_delivery_inspection_projection",
+    "render_delivery_inspection_markdown_lines",
+]

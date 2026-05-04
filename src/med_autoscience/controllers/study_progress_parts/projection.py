@@ -14,6 +14,9 @@ from med_autoscience.controllers import (
     runtime_health_kernel,
     study_truth_kernel,
 )
+from med_autoscience.controllers.delivery_visibility_projection import (
+    build_study_delivery_inspection_projection,
+)
 
 from .medical_writing_surfaces import medical_writing_quality_surface_status
 from .parked_projection import (
@@ -93,6 +96,25 @@ def _attach_existing_autonomy_slo_projection(
         autonomy_ai_doctor.stable_slo_status_path(study_root=study_root)
     )
     updated["refs"] = refs
+    return updated
+
+
+def _attach_delivery_inspection_projection(
+    payload: dict[str, Any],
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None,
+    study_root: Path,
+) -> dict[str, Any]:
+    delivery_inspection = build_study_delivery_inspection_projection(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_root=study_root,
+    )
+    if delivery_inspection is None:
+        return payload
+    updated = dict(payload)
+    updated["delivery_inspection"] = delivery_inspection
     return updated
 
 
@@ -217,7 +239,12 @@ def build_study_progress_projection(
         )
         normalized_existing.pop("publication_supervisor_state", None)
         return _attach_existing_autonomy_slo_projection(
-            normalized_existing,
+            _attach_delivery_inspection_projection(
+                normalized_existing,
+                profile=profile,
+                profile_ref=profile_ref,
+                study_root=study_root,
+            ),
             study_root=study_root,
         )
 
@@ -313,6 +340,11 @@ def build_study_progress_projection(
         artifact_runtime_proof=artifact_runtime_proof_surface,
         publication_eval_payload=publication_eval_payload,
         evaluation_summary_payload=evaluation_summary_payload,
+    )
+    delivery_inspection = build_study_delivery_inspection_projection(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_root=resolved_study_root,
     )
 
     publication_supervisor_state = (
@@ -932,6 +964,7 @@ def build_study_progress_projection(
         "medical_paper_ops_health": medical_paper_ops_health_surface,
         "artifact_runtime_proof": artifact_runtime_proof_surface,
         "submission_hygiene_truth": submission_hygiene_truth,
+        "delivery_inspection": delivery_inspection,
         "product_recommended_flow": submission_hygiene_truth.get("recommended_flow"),
         "research_runtime_control_projection": research_runtime_control_projection,
         "open_auto_research_projection": open_auto_research_state,

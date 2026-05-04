@@ -13,6 +13,9 @@ from med_autoscience.controllers.medical_paper_research_loop import (
     research_loop_markdown_lines,
 )
 from med_autoscience.controllers.medical_paper_v4_operations import build_v4_operations_dashboard
+from med_autoscience.controllers.delivery_visibility_projection import (
+    render_delivery_inspection_markdown_lines,
+)
 
 from .publication_runtime import *  # noqa: F403
 from .progression import *  # noqa: F403
@@ -176,6 +179,7 @@ def _build_markdown_context(payload: dict[str, Any]) -> dict[str, Any]:
         ],
         "module_surfaces": _mapping_copy(normalized_payload.get("module_surfaces")),
         "runtime_efficiency": _mapping_copy(normalized_payload.get("runtime_efficiency")),
+        "delivery_inspection": _mapping_copy(normalized_payload.get("delivery_inspection")),
     }
 
 
@@ -767,6 +771,15 @@ def _append_medical_paper_readiness(lines: list[str], payload: Mapping[str, Any]
     lines.extend(_medical_paper_ops_health_lines(ops_health))
 
 
+def _append_delivery_inspection(lines: list[str], delivery_inspection: Mapping[str, Any]) -> None:
+    lines.extend(
+        render_delivery_inspection_markdown_lines(
+            delivery_inspection,
+            heading="## Delivery Inspection",
+        )
+    )
+
+
 def _medical_paper_ops_health_lines(ops_health: Mapping[str, Any]) -> list[str]:
     lines = [
         "",
@@ -971,6 +984,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     _append_paper_orchestra_operator_projection(lines, ctx["paper_orchestra_operator_projection"])
     _append_ai_first_feedback_state(lines, ctx["ai_first_feedback_state"])
     _append_ai_first_action_dispatch_lifecycle(lines, ctx["ai_first_action_dispatch_lifecycle"])
+    _append_delivery_inspection(lines, ctx["delivery_inspection"])
     _append_quality_closure(lines, ctx)
     _append_quality_review_agenda(lines, ctx["quality_review_agenda"])
     _append_quality_review_loop(lines, ctx["quality_review_loop"])

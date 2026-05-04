@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.mcp_server_cases.delivery_inspection_visibility import *
 from tests.mcp_server_cases.open_auto_research_projection import *
 
 

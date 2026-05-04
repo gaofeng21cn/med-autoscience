@@ -4,6 +4,9 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.medical_paper_research_loop import research_loop_markdown_lines
+from med_autoscience.controllers.delivery_visibility_projection import (
+    render_delivery_inspection_markdown_lines,
+)
 from med_autoscience.controllers.product_entry_parts.paper_orchestra_operator import (
     render_paper_orchestra_operator_projection_lines,
 )
@@ -181,6 +184,7 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
     else:
         lines.append("- 当前还没有 v5 ops health projection。")
     lines.extend(_medical_paper_research_loop_cockpit_lines(payload.get("medical_paper_research_loop_state")))
+    lines.extend(_workspace_delivery_inspection_lines(payload.get("delivery_inspection_state")))
     lines.extend(["", "## AI-first Operations", ""])
     ai_first_operations_state = dict(payload.get("ai_first_operations_state") or {})
     if ai_first_operations_state:
@@ -490,6 +494,12 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
                         if card.get("label")
                     )
                 )
+        lines.extend(
+            render_delivery_inspection_markdown_lines(
+                item.get("delivery_inspection"),
+                heading="#### Delivery Inspection",
+            )
+        )
         lines.extend(_active_item_research_loop_lines(item.get("medical_paper_research_loop")))
         restore_point = dict(autonomy_contract.get("restore_point") or {})
         if restore_point.get("summary"):
@@ -505,6 +515,36 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         lines.append(f"- 启动命令: `{((item.get('commands') or {}).get('launch') or '')}`")
         lines.append("")
     return "\n".join(lines)
+
+
+def _workspace_delivery_inspection_lines(state: object) -> list[str]:
+    delivery_state = dict(state or {}) if isinstance(state, Mapping) else {}
+    if not delivery_state:
+        return []
+    counts = dict(delivery_state.get("counts") or {})
+    lines = [
+        "",
+        "## Delivery Inspection",
+        "",
+        "- submission_minimal = controller-authorized source",
+        "- current_package = human-facing mirror",
+        "- legacy layout: legacy layout 会在下一次 authorized sync 升级",
+        f"- 当前摘要: {delivery_state.get('summary') or 'none'}",
+        (
+            "- 当前计数: "
+            f"已接入 {counts.get('projected_count', 0)}；"
+            f"需要关注 {counts.get('attention_required', 0)}；"
+            f"legacy layout {counts.get('legacy_layout_pending_sync', 0)}"
+        ),
+    ]
+    for study in delivery_state.get("studies") or []:
+        if not isinstance(study, Mapping):
+            continue
+        lines.append(
+            f"- `{study.get('study_id') or 'unknown-study'}` delivery: "
+            f"`{study.get('status') or 'unknown'}`；{study.get('summary') or 'none'}"
+        )
+    return lines
 
 
 def _medical_paper_research_loop_cockpit_lines(state: object) -> list[str]:
