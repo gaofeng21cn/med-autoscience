@@ -511,6 +511,52 @@ def _stale_submission_delivery_sync_profile(*, state: GateState, report: dict[st
     return submission_minimal.GENERAL_MEDICAL_JOURNAL_PROFILE
 
 
+def _current_publication_eval_id(*, state: GateState) -> str | None:
+    study_root = getattr(state, "study_root", None)
+    if study_root is None:
+        return None
+    eval_path = Path(study_root) / "artifacts" / "publication_eval" / "latest.json"
+    if not eval_path.exists():
+        return None
+    try:
+        payload = load_json(eval_path)
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return _non_empty_text(payload.get("eval_id"))
+
+
+def _publication_gate_replay_delivery_route_context(
+    *,
+    state: GateState,
+    report: dict[str, Any],
+) -> dict[str, Any] | None:
+    blockers = {
+        str(item or "").strip()
+        for item in (report.get("blockers") or [])
+        if str(item or "").strip()
+    }
+    if "stale_study_delivery_mirror" not in blockers:
+        return None
+    if _non_empty_text(report.get("current_required_action")) not in {
+        "complete_bundle_stage",
+        "continue_bundle_stage",
+    }:
+        return None
+    return {
+        "controller_route_context": {
+            "control_surface": "gate_clearing_batch",
+            "controller_action_type": "run_gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+            "requires_human_confirmation": False,
+            "source_eval_id": _current_publication_eval_id(state=state),
+            "gate_fingerprint": _non_empty_text(report.get("gate_fingerprint")),
+            "work_unit_fingerprint": _non_empty_text(report.get("work_unit_fingerprint")),
+        }
+    }
+
+
 def run_controller(
     *,
     quest_root: Path,
@@ -560,12 +606,16 @@ def run_controller(
             "delivery_manifest_source_changed",
             "delivery_manifest_source_mismatch",
         }:
+            delivery_route_context = resolved_route_context or _publication_gate_replay_delivery_route_context(
+                state=state,
+                report=report,
+            )
             study_delivery_stale_sync = call_with_control_plane_route_context(
                 study_delivery_sync.sync_study_delivery,
                 paper_root=state.paper_root,
                 stage="submission_minimal",
                 publication_profile=_stale_submission_delivery_sync_profile(state=state, report=report),
-                control_plane_route_context=resolved_route_context,
+                control_plane_route_context=delivery_route_context,
             )
         else:
             study_delivery_stale_sync = call_with_control_plane_route_context(

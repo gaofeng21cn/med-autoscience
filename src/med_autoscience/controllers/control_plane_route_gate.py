@@ -86,8 +86,16 @@ def authorize_control_plane_route(
             snapshot=snapshot,
         )
 
-    if not snapshot:
+    if not snapshot and not bool(controller_route_gate.get("authorized")):
         blocking_reasons.append("control_plane_snapshot_missing")
+        return _controller_or_gate_payload(
+            controller_route_gate=controller_route_gate,
+            snapshot_blocking_reasons=blocking_reasons,
+            action=normalized_action,
+            projection_only=False,
+            snapshot=snapshot,
+        )
+    if not snapshot:
         return _controller_or_gate_payload(
             controller_route_gate=controller_route_gate,
             snapshot_blocking_reasons=blocking_reasons,

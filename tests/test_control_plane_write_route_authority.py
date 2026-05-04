@@ -332,6 +332,86 @@ def test_publication_gate_apply_true_passes_same_route_context_to_downstream_wri
     assert seen["journal_context"] is route_context
 
 
+def test_publication_gate_apply_derives_delivery_sync_controller_route_when_snapshot_absent(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate_parts.supervisor_and_cli")
+    paper_root = tmp_path / "study" / "paper"
+    study_root = tmp_path / "study"
+    quest_root = tmp_path / "runtime" / "quests" / "quest-001"
+    quest_root.mkdir(parents=True)
+    report_path = quest_root / "publication_gate_report.json"
+    markdown_path = quest_root / "publication_gate_report.md"
+    seen: dict[str, Any] = {}
+
+    class State:
+        pass
+
+    state = State()
+    state.paper_root = paper_root
+    state.quest_root = quest_root
+    state.study_root = study_root
+    state.runtime_state = {}
+    state.submission_minimal_manifest = {"publication_profile": "general_medical_journal"}
+
+    def build_report(_state: object) -> dict[str, Any]:
+        return {
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["stale_study_delivery_mirror"],
+            "missing_non_scalar_deliverables": [],
+            "submission_minimal_present": True,
+            "draft_handoff_delivery_required": False,
+            "draft_handoff_delivery_status": "not_required",
+            "draft_handoff_delivery_manifest_path": None,
+            "study_delivery_status": "stale_source_changed",
+            "study_delivery_stale_reason": "delivery_manifest_source_changed",
+            "study_delivery_missing_source_paths": [],
+            "submission_minimal_authority_status": "current",
+            "submission_minimal_evaluated_source_signature": "source::abc",
+            "submission_minimal_authority_source_signature": "source::abc",
+            "gate_fingerprint": "publication-gate::001",
+            "work_unit_fingerprint": "publication-blockers::001",
+            "bundle_tasks_downstream_only": False,
+            "supervisor_phase": "bundle_stage_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "current_required_action": "complete_bundle_stage",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "bundle-stage blockers are now on the critical path",
+        }
+
+    monkeypatch.setattr(module, "build_gate_state", lambda quest_root: state)
+    monkeypatch.setattr(module, "build_gate_report", build_report)
+    monkeypatch.setattr(module, "write_gate_files", lambda quest_root, report: (report_path, markdown_path))
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda paper_root: True)
+
+    def sync_study_delivery(**kwargs: Any) -> dict[str, str]:
+        seen["delivery_context"] = kwargs["control_plane_route_context"]
+        return {"status": "synced"}
+
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "sync_study_delivery",
+        sync_study_delivery,
+    )
+    monkeypatch.setattr(module, "_materialize_publication_eval_latest", lambda **kwargs: None)
+
+    result = module.run_controller(
+        quest_root=quest_root,
+        apply=True,
+        enqueue_intervention=False,
+    )
+
+    delivery_context = seen["delivery_context"]
+    assert result["study_delivery_stale_sync"]["status"] == "synced"
+    assert delivery_context["controller_route_context"]["work_unit_id"] == "publication_gate_replay"
+    assert delivery_context["controller_route_context"]["controller_action_type"] == "run_gate_clearing_batch"
+    assert delivery_context["controller_route_context"]["control_surface"] == "gate_clearing_batch"
+    assert delivery_context["controller_route_context"]["source_eval_id"] is None
+
+
 def test_quality_repair_batch_derives_route_context_from_runtime_status(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
