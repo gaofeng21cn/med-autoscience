@@ -106,7 +106,26 @@ def test_compact_mcp_progress_projection_preserves_v2_readiness_surface_details(
         "action_id": "run_provider_literature_scout",
         "action_label": "联网补文献",
         "action_summary": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
+        "semantic_label": "补文献",
+        "next_action_summary": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
+        "guarded_operator_command": {
+            "surface": "medical_paper_v3_guarded_operator_command",
+            "action_id": "run_provider_literature_scout",
+            "surface_key": "literature_provider_runtime",
+            "entrypoint": "product_entry.dispatch_guarded_medical_paper_operator_action",
+            "guard": "existing_product_entry_controller_guard",
+            "requires": ["profile_ref", "study_id", "operator_payload"],
+            "status": "guarded_pending",
+        },
+        "authority_contract": {
+            "can_mutate_runtime": False,
+            "can_authorize_quality": False,
+            "can_authorize_submission": False,
+        },
     }
+    assert readiness["v3_action_truth"][0]["surface_key"] == "literature_provider_runtime"
+    assert readiness["v3_action_truth"][0]["guarded_operator_command"]["status"] == "guarded_pending"
+    assert readiness["v3_action_truth"][0]["authority_contract"]["can_mutate_runtime"] is False
     assert missing["route_decision_orchestrator"]["action_label"] == "写入路线裁决"
     assert missing["statistical_discipline_operations"]["action_label"] == "处理统计 blocker"
     assert missing["revision_rebuttal_loop"]["action_label"] == "启动返修"
@@ -125,6 +144,8 @@ def test_mcp_study_progress_markdown_renders_v2_readiness_action_semantics() -> 
     assert "返修: 摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。" in markdown
     assert "写作授权: 检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。" in markdown
     assert "真实 soak: 从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。" in markdown
+    assert "guarded action: `run_provider_literature_scout`" in markdown
+    assert "authority: product-entry/controller guarded; quality authorization: false" in markdown
     assert "generic 缺失 surface" not in markdown
     assert "- quality_claim_authorized: `False`" in markdown
     assert "- mechanical_projection_can_authorize_quality: `False`" in markdown

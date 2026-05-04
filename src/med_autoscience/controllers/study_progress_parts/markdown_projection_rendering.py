@@ -2,65 +2,15 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.controllers.medical_paper_v3_action_truth import (
+    ACTION_BY_SURFACE as READINESS_ACTION_BY_SURFACE,
+    action_truth_for_surface,
+)
+
 from .publication_runtime import *  # noqa: F403
 from .progression import *  # noqa: F403
 from .runtime_efficiency import *  # noqa: F403
 from .shared import *  # noqa: F403
-
-READINESS_ACTION_BY_SURFACE: dict[str, dict[str, str]] = {
-    "literature_scout": {
-        "semantic_label": "补文献",
-        "action_summary": "补齐可审计文献 scout、检索日期、anchor papers、guideline 和近邻文献。",
-    },
-    "literature_provider_runtime": {
-        "semantic_label": "补文献",
-        "action_summary": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
-    },
-    "study_line_selection": {
-        "semantic_label": "路线裁决",
-        "action_summary": "重新比较候选切入点，并冻结最强 study line 与 stop threshold。",
-    },
-    "route_decision_orchestrator": {
-        "semantic_label": "路线裁决",
-        "action_summary": "把路线选择、route-back 或 switch-line 决策写入 controller decision 投影。",
-    },
-    "archetype_analysis_contract": {
-        "semantic_label": "统计 blocker",
-        "action_summary": "按 study archetype 冻结统计纪律合同和失败条件。",
-    },
-    "statistical_discipline_operations": {
-        "semantic_label": "统计 blocker",
-        "action_summary": "逐项处理缺失值、precision、外部验证、多重性、临床效用和敏感性分析 blocker/waiver。",
-    },
-    "bounded_analysis_candidate_board": {
-        "semantic_label": "统计 blocker",
-        "action_summary": "把补充分析绑定到 target claim、证据收益、统计风险和决策理由。",
-    },
-    "stop_loss_memo": {
-        "semantic_label": "路线裁决",
-        "action_summary": "写入 stop-loss memo，决定继续、route-back、止损或换线。",
-    },
-    "target_journal_writing_layer": {
-        "semantic_label": "写作授权",
-        "action_summary": "冻结目标期刊写作层并启动 AI reviewer 写作/质量闭环。",
-    },
-    "revision_rebuttal_loop": {
-        "semantic_label": "返修",
-        "action_summary": "摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。",
-    },
-    "authoring_runtime_authorization": {
-        "semantic_label": "写作授权",
-        "action_summary": "检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。",
-    },
-    "real_study_soak_matrix_evidence": {
-        "semantic_label": "真实 soak",
-        "action_summary": "补齐多 study soak proof 后从 canonical source 重建投稿包并审计。",
-    },
-    "real_workspace_soak_monitor": {
-        "semantic_label": "真实 soak",
-        "action_summary": "从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。",
-    },
-}
 
 
 def _progress_blocker_labels(payload: Mapping[str, Any]) -> list[str]:
@@ -793,6 +743,7 @@ def _append_medical_paper_readiness(lines: list[str], payload: Mapping[str, Any]
         lines.append(f"- 下一动作: {summary}")
     for item in _missing_required_medical_paper_surfaces(readiness):
         lines.append(_medical_paper_readiness_surface_action_line(item))
+        lines.extend(_medical_paper_readiness_guarded_action_lines(item))
     quality_authorized = "true" if readiness.get("quality_claim_authorized") is True else "false"
     lines.append(f"- 质量声明授权: `{quality_authorized}`")
 
@@ -835,6 +786,22 @@ def _medical_paper_readiness_surface_action_line(item: Mapping[str, Any]) -> str
         f"- {semantic_label}: {action_summary}"
         f"（surface: `{surface_key}`；status: `{status}`；reason: `{missing_reason}`{suffix}）"
     )
+
+
+def _medical_paper_readiness_guarded_action_lines(item: Mapping[str, Any]) -> list[str]:
+    truth = action_truth_for_surface(item)
+    if truth is None:
+        return []
+    command = dict(truth.get("guarded_operator_command") or {})
+    contract = dict(truth.get("authority_contract") or {})
+    action_id = str(command.get("action_id") or truth.get("action_id") or "").strip()
+    if not action_id:
+        return []
+    quality_authorized = str(bool(contract.get("can_authorize_quality"))).lower()
+    return [
+        f"  guarded action: `{action_id}`",
+        f"  authority: product-entry/controller guarded; quality authorization: {quality_authorized}",
+    ]
 
 
 def _medical_paper_readiness_surface_durable_ref(item: Mapping[str, Any]) -> str:

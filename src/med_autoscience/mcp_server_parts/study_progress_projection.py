@@ -2,86 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-READINESS_ACTION_BY_SURFACE: dict[str, dict[str, str]] = {
-    "literature_scout": {
-        "action_id": "complete_literature_scout",
-        "action_label": "补文献",
-        "semantic_label": "补文献",
-        "action_summary": "补齐可审计文献 scout、检索日期、anchor papers、guideline 和近邻文献。",
-    },
-    "literature_provider_runtime": {
-        "action_id": "run_provider_literature_scout",
-        "action_label": "联网补文献",
-        "semantic_label": "补文献",
-        "action_summary": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
-    },
-    "study_line_selection": {
-        "action_id": "rescore_study_line",
-        "action_label": "重评分路线",
-        "semantic_label": "路线裁决",
-        "action_summary": "重新比较候选切入点，并冻结最强 study line 与 stop threshold。",
-    },
-    "route_decision_orchestrator": {
-        "action_id": "materialize_route_decision",
-        "action_label": "写入路线裁决",
-        "semantic_label": "路线裁决",
-        "action_summary": "把路线选择、route-back 或 switch-line 决策写入 controller decision 投影。",
-    },
-    "archetype_analysis_contract": {
-        "action_id": "freeze_statistical_contract",
-        "action_label": "冻结分析合同",
-        "semantic_label": "统计 blocker",
-        "action_summary": "按 study archetype 冻结统计纪律合同和失败条件。",
-    },
-    "statistical_discipline_operations": {
-        "action_id": "resolve_statistical_blockers",
-        "action_label": "处理统计 blocker",
-        "semantic_label": "统计 blocker",
-        "action_summary": "逐项处理缺失值、precision、外部验证、多重性、临床效用和敏感性分析 blocker/waiver。",
-    },
-    "bounded_analysis_candidate_board": {
-        "action_id": "enter_bounded_analysis",
-        "action_label": "进入 bounded analysis",
-        "semantic_label": "统计 blocker",
-        "action_summary": "把补充分析绑定到 target claim、证据收益、统计风险和决策理由。",
-    },
-    "stop_loss_memo": {
-        "action_id": "decide_stop_loss_or_switch_line",
-        "action_label": "止损换线",
-        "semantic_label": "路线裁决",
-        "action_summary": "写入 stop-loss memo，决定继续、route-back、止损或换线。",
-    },
-    "target_journal_writing_layer": {
-        "action_id": "start_ai_reviewer_journal_loop",
-        "action_label": "启动 AI reviewer",
-        "semantic_label": "写作授权",
-        "action_summary": "冻结目标期刊写作层并启动 AI reviewer 写作/质量闭环。",
-    },
-    "revision_rebuttal_loop": {
-        "action_id": "start_revision_rebuttal_loop",
-        "action_label": "启动返修",
-        "semantic_label": "返修",
-        "action_summary": "摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。",
-    },
-    "authoring_runtime_authorization": {
-        "action_id": "authorize_manuscript_drafting",
-        "action_label": "授权写作",
-        "semantic_label": "写作授权",
-        "action_summary": "检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。",
-    },
-    "real_study_soak_matrix_evidence": {
-        "action_id": "rebuild_submission_package_after_soak",
-        "action_label": "重建投稿包",
-        "semantic_label": "真实 soak",
-        "action_summary": "补齐多 study soak proof 后从 canonical source 重建投稿包并审计。",
-    },
-    "real_workspace_soak_monitor": {
-        "action_id": "run_real_workspace_soak_monitor",
-        "action_label": "运行真实 soak",
-        "semantic_label": "真实 soak",
-        "action_summary": "从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。",
-    },
-}
+from med_autoscience.controllers.medical_paper_v3_action_truth import (
+    ACTION_BY_SURFACE as READINESS_ACTION_BY_SURFACE,
+    action_truths_for_readiness,
+    compact_missing_surface_with_action_truth,
+)
 
 
 def _compact_string_list(value: Any, *, limit: int = 12) -> list[str]:
@@ -252,26 +177,12 @@ def _compact_medical_paper_readiness(value: Any) -> dict[str, Any] | None:
         if missing is not None:
             missing_surfaces.append(missing)
     compact["missing_surfaces"] = missing_surfaces[:8]
+    compact["v3_action_truth"] = action_truths_for_readiness(value)
     return compact
 
 
 def _compact_readiness_missing_surface(item: dict[str, Any]) -> dict[str, Any] | None:
-    missing = _compact_record(
-        item,
-        ("surface_key", "status", "missing_reason", "artifact_path", "evidence_refs"),
-    )
-    if missing is None:
-        return None
-    action = READINESS_ACTION_BY_SURFACE.get(str(missing.get("surface_key") or "").strip())
-    if action:
-        missing.update(
-            {
-                "action_id": action["action_id"],
-                "action_label": action["action_label"],
-                "action_summary": action["action_summary"],
-            }
-        )
-    return missing
+    return compact_missing_surface_with_action_truth(item)
 
 
 def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]:
@@ -597,6 +508,7 @@ def _render_mcp_progress_medical_paper_readiness(compact: dict[str, Any]) -> lis
         lines.append(f"- 下一动作: {next_action_summary}")
     for item in _mcp_medical_paper_missing_surfaces(readiness):
         lines.append(_mcp_medical_paper_missing_surface_line(item))
+        lines.extend(_mcp_medical_paper_guarded_action_lines(item))
         lines.append(_mcp_medical_paper_missing_surface_compat_line(item))
     lines.append(f"- quality_claim_authorized: `{readiness.get('quality_claim_authorized')}`")
     lines.append(
@@ -645,6 +557,19 @@ def _mcp_medical_paper_missing_surface_line(item: dict[str, Any]) -> str:
         f"- {semantic_label}: {action_summary}"
         f"（surface: `{surface_key}`；status: `{status}`；reason: `{missing_reason}`{suffix}）"
     )
+
+
+def _mcp_medical_paper_guarded_action_lines(item: dict[str, Any]) -> list[str]:
+    command = item.get("guarded_operator_command") if isinstance(item.get("guarded_operator_command"), dict) else {}
+    contract = item.get("authority_contract") if isinstance(item.get("authority_contract"), dict) else {}
+    action_id = str((command or {}).get("action_id") or item.get("action_id") or "").strip()
+    if not action_id:
+        return []
+    quality_authorized = str(bool(contract.get("can_authorize_quality"))).lower()
+    return [
+        f"  guarded action: `{action_id}`",
+        f"  authority: product-entry/controller guarded; quality authorization: {quality_authorized}",
+    ]
 
 
 def _mcp_medical_paper_missing_surface_compat_line(item: dict[str, Any]) -> str:
