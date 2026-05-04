@@ -342,6 +342,59 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
     assert 'run_medautosci runtime remove-supervision --profile "${PROFILE_PATH}" "$@"' in uninstall_text
 
 
+def test_init_workspace_renders_portable_supervisor_scheduler_templates(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "supervisor-template-workspace"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="supervisor-template",
+        dry_run=False,
+        force=False,
+    )
+
+    templates_root = workspace_root / "ops" / "medautoscience" / "supervisor"
+    systemd_service = templates_root / "systemd" / "medautoscience-supervisor-scan.service"
+    systemd_timer = templates_root / "systemd" / "medautoscience-supervisor-scan.timer"
+    cron_template = templates_root / "cron" / "supervisor-scan.cron"
+    docker_template = templates_root / "docker" / "supervisor-scan.oneshot.sh"
+    k8s_template = templates_root / "kubernetes" / "supervisor-scan-cronjob.yaml"
+    launchd_instructions = templates_root / "launchd" / "README.md"
+
+    for path in (
+        systemd_service,
+        systemd_timer,
+        cron_template,
+        docker_template,
+        k8s_template,
+        launchd_instructions,
+    ):
+        assert path.is_file()
+
+    systemd_service_text = systemd_service.read_text(encoding="utf-8")
+    systemd_timer_text = systemd_timer.read_text(encoding="utf-8")
+    cron_text = cron_template.read_text(encoding="utf-8")
+    docker_text = docker_template.read_text(encoding="utf-8")
+    k8s_text = k8s_template.read_text(encoding="utf-8")
+    launchd_text = launchd_instructions.read_text(encoding="utf-8")
+
+    assert f"WorkingDirectory={workspace_root}" in systemd_service_text
+    assert f"ExecStart={workspace_root}/ops/medautoscience/bin/supervisor-scan --apply-safe-actions" in systemd_service_text
+    assert "OnCalendar=hourly" in systemd_timer_text
+    assert f"{workspace_root}/ops/medautoscience/bin/supervisor-scan --apply-safe-actions" in cron_text
+    assert "docker run --rm" in docker_text
+    assert "supervisor-scan --apply-safe-actions" in docker_text
+    assert "kind: CronJob" in k8s_text
+    assert "schedule: \"0 * * * *\"" in k8s_text
+    assert "supervisor-scan" in k8s_text
+    assert "launchd" in launchd_text
+    assert "install-watch-runtime-service --manager launchd" in launchd_text
+    assert "Codex App heartbeat" not in "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (systemd_service, systemd_timer, cron_template, docker_template, k8s_template)
+    )
+
+
 def test_init_workspace_upgrades_legacy_runtime_entry_scripts_without_force(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "legacy-workspace"

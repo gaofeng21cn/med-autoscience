@@ -165,6 +165,88 @@ def _render_supervisor_scan_script() -> str:
     )
 
 
+def _render_supervisor_systemd_service(*, workspace_root: Path) -> str:
+    supervisor_scan = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+    return (
+        "[Unit]\n"
+        "Description=MedAutoScience portable supervisor scan\n\n"
+        "[Service]\n"
+        "Type=oneshot\n"
+        f"WorkingDirectory={workspace_root}\n"
+        f"ExecStart={supervisor_scan} --apply-safe-actions\n"
+    )
+
+
+def _render_supervisor_systemd_timer() -> str:
+    return (
+        "[Unit]\n"
+        "Description=Run MedAutoScience portable supervisor scan hourly\n\n"
+        "[Timer]\n"
+        "OnCalendar=hourly\n"
+        "Persistent=true\n\n"
+        "[Install]\n"
+        "WantedBy=timers.target\n"
+    )
+
+
+def _render_supervisor_cron_template(*, workspace_root: Path) -> str:
+    supervisor_scan = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+    return f"0 * * * * {supervisor_scan} --apply-safe-actions\n"
+
+
+def _render_supervisor_docker_oneshot(*, workspace_root: Path) -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n\n"
+        f'WORKSPACE_ROOT="${{WORKSPACE_ROOT:-{workspace_root}}}"\n'
+        'MAS_IMAGE="${MAS_IMAGE:-medautoscience:latest}"\n\n'
+        "docker run --rm \\\n"
+        '  -v "${WORKSPACE_ROOT}:${WORKSPACE_ROOT}" \\\n'
+        '  -w "${WORKSPACE_ROOT}" \\\n'
+        '  "${MAS_IMAGE}" \\\n'
+        "  bash -lc './ops/medautoscience/bin/supervisor-scan --apply-safe-actions'\n"
+    )
+
+
+def _render_supervisor_kubernetes_cronjob(*, workspace_root: Path) -> str:
+    return (
+        "apiVersion: batch/v1\n"
+        "kind: CronJob\n"
+        "metadata:\n"
+        "  name: medautoscience-supervisor-scan\n"
+        "spec:\n"
+        '  schedule: "0 * * * *"\n'
+        "  jobTemplate:\n"
+        "    spec:\n"
+        "      template:\n"
+        "        spec:\n"
+        "          restartPolicy: OnFailure\n"
+        "          containers:\n"
+        "            - name: supervisor-scan\n"
+        "              image: medautoscience:latest\n"
+        "              workingDir: /workspace\n"
+        "              command:\n"
+        "                - /bin/bash\n"
+        "                - -lc\n"
+        "                - ./ops/medautoscience/bin/supervisor-scan --apply-safe-actions\n"
+        "              env:\n"
+        "                - name: MAS_WORKSPACE_ROOT\n"
+        f"                  value: {workspace_root}\n"
+    )
+
+
+def _render_supervisor_launchd_instructions() -> str:
+    return (
+        "# launchd Compatibility\n\n"
+        "macOS launchd remains a compatibility scheduler for the portable supervisor scan.\n\n"
+        "Install instructions:\n\n"
+        "```bash\n"
+        "ops/medautoscience/bin/install-watch-runtime-service --manager launchd\n"
+        "```\n\n"
+        "The command returns the template path and copy/load command. It does not claim a host service is installed.\n"
+    )
+
+
 def _render_install_watch_runtime_service_script() -> str:
     return (
         "#!/usr/bin/env bash\n"

@@ -89,6 +89,18 @@ medautosci runtime supervisor-scan \
 
 `Codex App heartbeat` 不是这条 contract 的依赖。Codex App 以后可以作为一个外部 scheduler 调用该入口，但 MAS 运行环境必须同样支持 Linux 与 Docker。
 
+workspace bootstrap 会渲染 portable scheduler entry 与示例模板：
+
+- `ops/medautoscience/bin/supervisor-scan`
+- `ops/medautoscience/supervisor/systemd/medautoscience-supervisor-scan.service`
+- `ops/medautoscience/supervisor/systemd/medautoscience-supervisor-scan.timer`
+- `ops/medautoscience/supervisor/cron/supervisor-scan.cron`
+- `ops/medautoscience/supervisor/docker/supervisor-scan.oneshot.sh`
+- `ops/medautoscience/supervisor/kubernetes/supervisor-scan-cronjob.yaml`
+- `ops/medautoscience/supervisor/launchd/README.md`
+
+`medautosci runtime ensure-supervision --manager systemd|cron|docker|launchd` 返回可复制的安装命令和模板路径，并验证当前 workspace 是否已有可执行的 `supervisor-scan` entry。这个接口只生成 scheduler instruction，不声称宿主 service 已安装；安装动作仍归属 host operator 或外部 scheduler。
+
 同时，外环还必须对“最近一次 supervisor tick 是否仍然新鲜”给出正式判断：
 
 - `fresh`

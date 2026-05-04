@@ -94,6 +94,98 @@ def _workspace_watch_runtime_entry_path(profile: WorkspaceProfile) -> Path:
     return profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
 
 
+def _workspace_supervisor_scan_entry_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+
+
+def _portable_supervisor_templates(profile: WorkspaceProfile) -> dict[str, Path]:
+    templates_root = profile.workspace_root / "ops" / "medautoscience" / "supervisor"
+    return {
+        "systemd_service": templates_root / "systemd" / "medautoscience-supervisor-scan.service",
+        "systemd_timer": templates_root / "systemd" / "medautoscience-supervisor-scan.timer",
+        "cron": templates_root / "cron" / "supervisor-scan.cron",
+        "docker_one_shot": templates_root / "docker" / "supervisor-scan.oneshot.sh",
+        "kubernetes_cronjob": templates_root / "kubernetes" / "supervisor-scan-cronjob.yaml",
+        "launchd_instructions": templates_root / "launchd" / "README.md",
+    }
+
+
+def _portable_supervisor_instruction(
+    *,
+    profile: WorkspaceProfile,
+    manager: str,
+    interval_seconds: int,
+) -> dict[str, Any]:
+    supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
+    templates = _portable_supervisor_templates(profile)
+    manager_key = manager.strip().lower()
+    user_systemd_root = Path.home() / ".config" / "systemd" / "user"
+    result_templates: dict[str, str]
+    install_commands: list[str]
+    if manager_key == "systemd":
+        service_template = templates["systemd_service"]
+        timer_template = templates["systemd_timer"]
+        result_templates = {
+            "service": str(service_template),
+            "timer": str(timer_template),
+        }
+        install_commands = [
+            f"mkdir -p {user_systemd_root}",
+            f"cp {service_template} {user_systemd_root / service_template.name}",
+            f"cp {timer_template} {user_systemd_root / timer_template.name}",
+            "systemctl --user daemon-reload",
+            f"systemctl --user enable --now {timer_template.name}",
+        ]
+    elif manager_key == "cron":
+        cron_template = templates["cron"]
+        result_templates = {"crontab": str(cron_template)}
+        install_commands = [
+            f"(crontab -l 2>/dev/null; cat {cron_template}) | crontab -",
+        ]
+    elif manager_key == "docker":
+        docker_template = templates["docker_one_shot"]
+        k8s_template = templates["kubernetes_cronjob"]
+        result_templates = {
+            "docker_one_shot": str(docker_template),
+            "kubernetes_cronjob": str(k8s_template),
+        }
+        install_commands = [
+            f"bash {docker_template}",
+            "docker run --rm -v <workspace_root>:<workspace_root> -w <workspace_root> medautoscience:latest "
+            "bash -lc './ops/medautoscience/bin/supervisor-scan --apply-safe-actions'",
+            f"kubectl apply -f {k8s_template}",
+        ]
+    elif manager_key == "launchd":
+        result_templates = {"instructions": str(templates["launchd_instructions"])}
+        install_commands = [
+            f"{profile.workspace_root}/ops/medautoscience/bin/install-watch-runtime-service --manager launchd",
+        ]
+    else:
+        result_templates = {}
+        install_commands = []
+    return {
+        "action": "portable_scheduler_instruction",
+        "manager": manager_key,
+        "installed": False,
+        "profile": str(profile.workspace_root / "ops" / "medautoscience" / "profiles"),
+        "interval_seconds": interval_seconds,
+        "supervisor_scan_entry": {
+            "path": str(supervisor_scan),
+            "exists": supervisor_scan.is_file(),
+            "executable": supervisor_scan.is_file() and os.access(supervisor_scan, os.X_OK),
+        },
+        "command": [
+            str(supervisor_scan),
+            "--apply-safe-actions",
+        ],
+        "templates": result_templates,
+        "install_commands": install_commands,
+        "codex_app_heartbeat_required": False,
+        "host_service_claim": "not_installed_by_mas",
+        "docker_policy": "run supervisor-scan as a one-shot container from external cron or Kubernetes CronJob",
+    }
+
+
 def _repair_legacy_workspace_watch_runtime_entry(profile: WorkspaceProfile) -> dict[str, Any]:
     path = _workspace_watch_runtime_entry_path(profile)
     result: dict[str, Any] = {
@@ -496,18 +588,11 @@ def ensure_supervision(
     manager: str = "hermes",
 ) -> dict[str, Any]:
     if manager != "hermes":
-        return {
-            "action": "portable_scheduler_instruction",
-            "manager": manager,
-            "profile": str(profile.workspace_root / "ops" / "medautoscience" / "profiles"),
-            "interval_seconds": interval_seconds,
-            "command": [
-                str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"),
-                "--apply-safe-actions",
-            ],
-            "codex_app_heartbeat_required": False,
-            "docker_policy": "run supervisor-scan as a one-shot container from external cron or Kubernetes CronJob",
-        }
+        return _portable_supervisor_instruction(
+            profile=profile,
+            manager=manager,
+            interval_seconds=interval_seconds,
+        )
     _ensure_script_file(profile, interval_seconds=interval_seconds)
     watch_runtime_repair = _repair_legacy_workspace_watch_runtime_entry(profile)
     before = read_supervision_status(profile=profile, interval_seconds=interval_seconds)

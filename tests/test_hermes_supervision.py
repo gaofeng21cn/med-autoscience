@@ -401,6 +401,84 @@ def test_ensure_supervision_repairs_legacy_watch_runtime_entry_before_triggering
     assert any(_command_contains(command, "cron", "run") for command in commands)
 
 
+def test_ensure_supervision_returns_portable_scheduler_install_instructions(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    profile = make_profile(tmp_path)
+    supervisor_scan = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+    supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
+    supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_scan.chmod(0o755)
+    service_template = (
+        profile.workspace_root
+        / "ops"
+        / "medautoscience"
+        / "supervisor"
+        / "systemd"
+        / "medautoscience-supervisor-scan.service"
+    )
+    timer_template = service_template.with_suffix(".timer")
+    service_template.parent.mkdir(parents=True, exist_ok=True)
+    service_template.write_text("[Service]\n", encoding="utf-8")
+    timer_template.write_text("[Timer]\n", encoding="utf-8")
+
+    result = module.ensure_supervision(profile=profile, manager="systemd", trigger_now=False)
+
+    assert result["action"] == "portable_scheduler_instruction"
+    assert result["manager"] == "systemd"
+    assert result["installed"] is False
+    assert result["codex_app_heartbeat_required"] is False
+    assert result["supervisor_scan_entry"]["exists"] is True
+    assert result["supervisor_scan_entry"]["executable"] is True
+    assert result["supervisor_scan_entry"]["path"] == str(supervisor_scan)
+    assert result["templates"]["service"] == str(service_template)
+    assert result["templates"]["timer"] == str(timer_template)
+    assert result["install_commands"] == [
+        f"mkdir -p {Path.home() / '.config' / 'systemd' / 'user'}",
+        f"cp {service_template} {Path.home() / '.config' / 'systemd' / 'user' / service_template.name}",
+        f"cp {timer_template} {Path.home() / '.config' / 'systemd' / 'user' / timer_template.name}",
+        "systemctl --user daemon-reload",
+        f"systemctl --user enable --now {timer_template.name}",
+    ]
+
+
+def test_ensure_supervision_returns_cron_docker_and_launchd_scheduler_surfaces(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    profile = make_profile(tmp_path)
+    supervisor_scan = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+    supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
+    supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_scan.chmod(0o755)
+    templates_root = profile.workspace_root / "ops" / "medautoscience" / "supervisor"
+    for path in (
+        templates_root / "cron" / "supervisor-scan.cron",
+        templates_root / "docker" / "supervisor-scan.oneshot.sh",
+        templates_root / "kubernetes" / "supervisor-scan-cronjob.yaml",
+        templates_root / "launchd" / "README.md",
+    ):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("template\n", encoding="utf-8")
+
+    cron_result = module.ensure_supervision(profile=profile, manager="cron", trigger_now=False)
+    docker_result = module.ensure_supervision(profile=profile, manager="docker", trigger_now=False)
+    launchd_result = module.ensure_supervision(profile=profile, manager="launchd", trigger_now=False)
+
+    assert cron_result["templates"]["crontab"] == str(templates_root / "cron" / "supervisor-scan.cron")
+    assert any("crontab" in command for command in cron_result["install_commands"])
+    assert docker_result["templates"]["docker_one_shot"] == str(templates_root / "docker" / "supervisor-scan.oneshot.sh")
+    assert docker_result["templates"]["kubernetes_cronjob"] == str(
+        templates_root / "kubernetes" / "supervisor-scan-cronjob.yaml"
+    )
+    assert any("docker run" in command for command in docker_result["install_commands"])
+    assert launchd_result["templates"]["instructions"] == str(templates_root / "launchd" / "README.md")
+    assert launchd_result["install_commands"] == [
+        f"{profile.workspace_root}/ops/medautoscience/bin/install-watch-runtime-service --manager launchd"
+    ]
+    for result in (cron_result, docker_result, launchd_result):
+        assert result["installed"] is False
+        assert result["supervisor_scan_entry"]["exists"] is True
+        assert result["codex_app_heartbeat_required"] is False
+
+
 def test_remove_supervision_removes_jobs_and_script(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
     profile = make_profile(tmp_path)

@@ -27,7 +27,13 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_med_deepscientist_show_config,
     _render_medautosci_shared,
     _render_profile_optional_forward_script,
+    _render_supervisor_cron_template,
+    _render_supervisor_docker_oneshot,
+    _render_supervisor_kubernetes_cronjob,
+    _render_supervisor_launchd_instructions,
     _render_supervisor_scan_script,
+    _render_supervisor_systemd_service,
+    _render_supervisor_systemd_timer,
     _render_watch_runtime_script,
     _render_watch_runtime_service_runner,
 )
@@ -639,6 +645,46 @@ def _rendered_files(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service",
             content=_render_forward_script("runtime remove-supervision", with_profile=True),
             executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root
+            / "ops"
+            / "medautoscience"
+            / "supervisor"
+            / "systemd"
+            / "medautoscience-supervisor-scan.service",
+            content=_render_supervisor_systemd_service(workspace_root=workspace_root),
+        ),
+        RenderedFile(
+            path=workspace_root
+            / "ops"
+            / "medautoscience"
+            / "supervisor"
+            / "systemd"
+            / "medautoscience-supervisor-scan.timer",
+            content=_render_supervisor_systemd_timer(),
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "supervisor" / "cron" / "supervisor-scan.cron",
+            content=_render_supervisor_cron_template(workspace_root=workspace_root),
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "supervisor" / "docker" / "supervisor-scan.oneshot.sh",
+            content=_render_supervisor_docker_oneshot(workspace_root=workspace_root),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root
+            / "ops"
+            / "medautoscience"
+            / "supervisor"
+            / "kubernetes"
+            / "supervisor-scan-cronjob.yaml",
+            content=_render_supervisor_kubernetes_cronjob(workspace_root=workspace_root),
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "supervisor" / "launchd" / "README.md",
+            content=_render_supervisor_launchd_instructions(),
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "publication-gate",
