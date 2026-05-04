@@ -35,9 +35,12 @@ def test_calibration_corpus_turns_repair_toil_into_ai_reviewer_regressions() -> 
         "reviewer_trace_missing",
         "thin_first_draft",
         "overstrong_claim",
+        "claim_overreach",
         "missing_reviewer_trace",
         "coverage_as_quality",
         "mechanical_gate_as_quality",
+        "weak_external_validation",
+        "statistical_discipline_waiver_misuse",
     }
     for case in corpus["cases"]:
         assert case["expected_route"] in {"return_to_ai_reviewer", "return_to_analysis_campaign", "return_to_write"}
@@ -55,9 +58,12 @@ def test_calibration_corpus_exposes_required_case_families_and_soak_matrix() -> 
     for required_case_id in (
         "thin_first_draft",
         "overstrong_claim",
+        "claim_overreach",
         "missing_reviewer_trace",
         "coverage_as_quality",
         "mechanical_gate_as_quality",
+        "weak_external_validation",
+        "statistical_discipline_waiver_misuse",
     ):
         case = cases[required_case_id]
         assert case["mechanical_facts_role"] == "evidence_only"
@@ -143,11 +149,24 @@ def test_calibration_learning_read_model_appends_real_reviewer_outcomes() -> Non
 
     assert projection["surface"] == "ai_reviewer_calibration_learning_read_model"
     assert projection["schema_version"] == 1
+    assert projection["supported_outcomes"] == [
+        "major_revision",
+        "reject",
+        "accept",
+        "editorial_desk_reject",
+        "post_review_repair",
+    ]
     assert [entry["failure_mode"] for entry in projection["learning_entries"]] == [
         "claim_overreach",
         "coverage_as_quality",
         "mechanical_gate_misuse",
         "missing_reviewer_trace",
+    ]
+    assert [entry["source_outcome"] for entry in projection["learning_entries"]] == [
+        "major_revision",
+        "reject",
+        "post_review_repair",
+        "major_revision",
     ]
     assert projection["required_failure_modes"] == [
         "claim_overreach",
@@ -156,7 +175,7 @@ def test_calibration_learning_read_model_appends_real_reviewer_outcomes() -> Non
         "missing_reviewer_trace",
     ]
     assert projection["required_calibration_refs"] == [
-        "ai_reviewer_calibration_corpus#overstrong_claim",
+        "ai_reviewer_calibration_corpus#claim_overreach",
         "ai_reviewer_calibration_corpus#coverage_as_quality",
         "ai_reviewer_calibration_corpus#mechanical_gate_as_quality",
         "ai_reviewer_calibration_corpus#missing_reviewer_trace",
@@ -167,13 +186,135 @@ def test_calibration_learning_read_model_appends_real_reviewer_outcomes() -> Non
         "mechanical_gate_misuse": 1,
         "missing_reviewer_trace": 1,
     }
+    assert projection["outcome_counts"] == {
+        "major_revision": 2,
+        "post_review_repair": 1,
+        "reject": 1,
+    }
+    assert projection["failure_mode_projection"] == [
+        {
+            "failure_mode": "claim_overreach",
+            "count": 1,
+            "calibration_ref": "ai_reviewer_calibration_corpus#claim_overreach",
+            "source_outcomes": ["major_revision"],
+        },
+        {
+            "failure_mode": "coverage_as_quality",
+            "count": 1,
+            "calibration_ref": "ai_reviewer_calibration_corpus#coverage_as_quality",
+            "source_outcomes": ["reject"],
+        },
+        {
+            "failure_mode": "mechanical_gate_misuse",
+            "count": 1,
+            "calibration_ref": "ai_reviewer_calibration_corpus#mechanical_gate_as_quality",
+            "source_outcomes": ["post_review_repair"],
+        },
+        {
+            "failure_mode": "missing_reviewer_trace",
+            "count": 1,
+            "calibration_ref": "ai_reviewer_calibration_corpus#missing_reviewer_trace",
+            "source_outcomes": ["major_revision"],
+        },
+    ]
     assert projection["authority_contract"] == {
         "read_model_only": True,
+        "outcome_intake_can_authorize_quality": False,
+        "outcome_intake_can_authorize_drafting": False,
         "learning_can_authorize_quality": False,
+        "learning_can_authorize_drafting": False,
         "learning_can_authorize_submission": False,
         "learning_can_authorize_finalize": False,
         "required_calibration_refs_can_authorize_quality": False,
     }
+
+
+def test_outcome_intake_appends_canonical_outcomes_and_required_regression_refs() -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_calibration")
+
+    payload: dict[str, object] = {}
+    for outcome_type, failure_mode in (
+        ("major_revision", "claim_overreach"),
+        ("reject", "missing_reviewer_trace"),
+        ("accept", "coverage_as_quality"),
+        ("editorial_desk_reject", "weak_external_validation"),
+        ("post_review_repair", "statistical_discipline_waiver_misuse"),
+    ):
+        payload = module.append_ai_reviewer_calibration_outcome_intake(
+            existing_payload=payload,
+            outcome_intake={
+                "outcome_id": f"outcome::{outcome_type}",
+                "outcome_type": outcome_type,
+                "failure_mode": failure_mode,
+                "outcome_ref": f"reviews/{outcome_type}.json",
+                "outcome_summary": f"{outcome_type} exposed {failure_mode}.",
+                "claim_refs": ["paper/claim_evidence_map.json#claim-primary"],
+                "evidence_refs": ["paper/evidence_ledger.json#claim-primary"],
+                "reviewer_trace_refs": ["paper/review/review_ledger.json#claim-primary"],
+            },
+        )
+
+    assert payload["outcome_counts"] == {
+        "accept": 1,
+        "editorial_desk_reject": 1,
+        "major_revision": 1,
+        "post_review_repair": 1,
+        "reject": 1,
+    }
+    assert payload["required_failure_modes"] == [
+        "claim_overreach",
+        "missing_reviewer_trace",
+        "coverage_as_quality",
+        "weak_external_validation",
+        "statistical_discipline_waiver_misuse",
+    ]
+    assert payload["required_calibration_refs"] == [
+        "ai_reviewer_calibration_corpus#claim_overreach",
+        "ai_reviewer_calibration_corpus#missing_reviewer_trace",
+        "ai_reviewer_calibration_corpus#coverage_as_quality",
+        "ai_reviewer_calibration_corpus#weak_external_validation",
+        "ai_reviewer_calibration_corpus#statistical_discipline_waiver_misuse",
+    ]
+    assert payload["authority_contract"]["outcome_intake_can_authorize_quality"] is False
+    assert payload["authority_contract"]["learning_can_authorize_drafting"] is False
+    regression = payload["outcome_learning_regression"]
+    assert regression["surface"] == "ai_reviewer_outcome_learning_regression"
+    assert regression["status"] == "ready"
+    assert regression["planning_mode"] == "calibration_regression_ready_for_authoring_review"
+    assert regression["missing_required_failure_modes"] == []
+    assert regression["required_calibration_refs"] == payload["required_calibration_refs"]
+    assert regression["full_drafting_allowed_without_required_refs"] is False
+    assert regression["repair_planning_allowed"] is True
+    assert regression["pre_draft_planning_allowed"] is True
+    assert regression["authority_contract"] == {
+        "read_model_only": True,
+        "can_authorize_quality": False,
+        "can_authorize_drafting": False,
+        "can_authorize_submission": False,
+        "can_authorize_finalize": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+
+
+def test_outcome_learning_regression_blocks_without_real_outcome_refs() -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_calibration")
+
+    regression = module.build_outcome_learning_calibration_regression()
+
+    assert regression["surface"] == "ai_reviewer_outcome_learning_regression"
+    assert regression["status"] == "blocked"
+    assert regression["planning_mode"] == "pre_draft_planning_only"
+    assert regression["required_calibration_refs"] == []
+    assert regression["missing_required_failure_modes"] == [
+        "claim_overreach",
+        "missing_reviewer_trace",
+        "coverage_as_quality",
+        "weak_external_validation",
+        "statistical_discipline_waiver_misuse",
+    ]
+    assert regression["full_drafting_allowed_without_required_refs"] is False
+    assert regression["repair_planning_allowed"] is False
+    assert regression["pre_draft_planning_allowed"] is True
 
 
 def test_pre_draft_readiness_materializer_requires_ai_authorized_inputs() -> None:

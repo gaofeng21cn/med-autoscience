@@ -5,17 +5,34 @@ from typing import Any, Mapping, Sequence
 
 SCHEMA_VERSION = 1
 LEARNING_SURFACE = "ai_reviewer_calibration_learning_read_model"
+OUTCOME_REGRESSION_SURFACE = "ai_reviewer_outcome_learning_regression"
+SUPPORTED_OUTCOME_TYPES = (
+    "major_revision",
+    "reject",
+    "accept",
+    "editorial_desk_reject",
+    "post_review_repair",
+)
+SOURCE_OUTCOME_ALIASES = {
+    "rejection": "reject",
+    "reviewer_revision": "post_review_repair",
+}
 REQUIRED_LEARNING_FAILURE_MODES = (
     "claim_overreach",
-    "coverage_as_quality",
-    "mechanical_gate_misuse",
     "missing_reviewer_trace",
+    "coverage_as_quality",
+    "weak_external_validation",
+    "statistical_discipline_waiver_misuse",
 )
 FAILURE_MODE_CALIBRATION_REFS = {
-    "claim_overreach": "ai_reviewer_calibration_corpus#overstrong_claim",
+    "claim_overreach": "ai_reviewer_calibration_corpus#claim_overreach",
     "coverage_as_quality": "ai_reviewer_calibration_corpus#coverage_as_quality",
     "mechanical_gate_misuse": "ai_reviewer_calibration_corpus#mechanical_gate_as_quality",
     "missing_reviewer_trace": "ai_reviewer_calibration_corpus#missing_reviewer_trace",
+    "weak_external_validation": "ai_reviewer_calibration_corpus#weak_external_validation",
+    "statistical_discipline_waiver_misuse": (
+        "ai_reviewer_calibration_corpus#statistical_discipline_waiver_misuse"
+    ),
 }
 AI_REVIEWER_PROVENANCE_REQUIREMENTS = {
     "assessment_provenance.owner": "ai_reviewer",
@@ -116,6 +133,15 @@ CALIBRATION_CASES: tuple[dict[str, Any], ...] = (
         "reviewer_expectation": "route back to restrained language strategy and claim-evidence alignment",
     },
     {
+        "case_id": "claim_overreach",
+        "failure_mode": "claim scope, causal language, or novelty framing overreaches the accepted evidence ledger",
+        "expected_route": "return_to_ai_reviewer",
+        "mechanical_facts_role": "evidence_only",
+        "quality_gate_relaxation_allowed": False,
+        "minimum_ai_reviewer_trace": AI_REVIEWER_PROVENANCE_REQUIREMENTS,
+        "reviewer_expectation": "require claim-level restraint before drafting, revision response, or final audit",
+    },
+    {
         "case_id": "missing_reviewer_trace",
         "failure_mode": "publication critique lacks reviewer operating system trace across route-back and final audit stages",
         "expected_route": "return_to_ai_reviewer",
@@ -142,6 +168,24 @@ CALIBRATION_CASES: tuple[dict[str, Any], ...] = (
         "minimum_ai_reviewer_trace": AI_REVIEWER_PROVENANCE_REQUIREMENTS,
         "reviewer_expectation": "block readiness until AI reviewer artifact owns the quality decision",
     },
+    {
+        "case_id": "weak_external_validation",
+        "failure_mode": "external validation, generalizability, or holdout evidence is too weak for the target claim",
+        "expected_route": "return_to_analysis_campaign",
+        "mechanical_facts_role": "evidence_only",
+        "quality_gate_relaxation_allowed": False,
+        "minimum_ai_reviewer_trace": AI_REVIEWER_PROVENANCE_REQUIREMENTS,
+        "reviewer_expectation": "route to bounded validation repair or narrow the claim before quality acceptance",
+    },
+    {
+        "case_id": "statistical_discipline_waiver_misuse",
+        "failure_mode": "statistical discipline waiver is used to bypass required model, subgroup, or sensitivity rigor",
+        "expected_route": "return_to_analysis_campaign",
+        "mechanical_facts_role": "evidence_only",
+        "quality_gate_relaxation_allowed": False,
+        "minimum_ai_reviewer_trace": AI_REVIEWER_PROVENANCE_REQUIREMENTS,
+        "reviewer_expectation": "require reviewer-traceable statistical rationale before waiving analysis repair",
+    },
 )
 
 
@@ -161,13 +205,20 @@ def _text_list(value: object) -> list[str]:
     return [item for raw in value if (item := _text(raw))]
 
 
+def _normalize_source_outcome(value: object) -> str:
+    outcome = SOURCE_OUTCOME_ALIASES.get(_text(value), _text(value))
+    if outcome not in SUPPORTED_OUTCOME_TYPES:
+        raise ValueError(f"unsupported AI reviewer calibration source_outcome: {outcome}")
+    return outcome
+
+
 def _normalize_learning_entry(entry: Mapping[str, Any]) -> dict[str, Any]:
     failure_mode = _text(entry.get("failure_mode"))
     if failure_mode not in FAILURE_MODE_CALIBRATION_REFS:
         raise ValueError(f"unsupported AI reviewer calibration failure_mode: {failure_mode}")
     normalized = {
         "entry_id": _text(entry.get("entry_id")),
-        "source_outcome": _text(entry.get("source_outcome")),
+        "source_outcome": _normalize_source_outcome(entry.get("source_outcome")),
         "failure_mode": failure_mode,
         "source_ref": _text(entry.get("source_ref")),
         "issue_summary": _text(entry.get("issue_summary")),
@@ -193,11 +244,55 @@ def _normalize_learning_entry(entry: Mapping[str, Any]) -> dict[str, Any]:
 def _learning_authority_contract() -> dict[str, Any]:
     return {
         "read_model_only": True,
+        "outcome_intake_can_authorize_quality": False,
+        "outcome_intake_can_authorize_drafting": False,
         "learning_can_authorize_quality": False,
+        "learning_can_authorize_drafting": False,
         "learning_can_authorize_submission": False,
         "learning_can_authorize_finalize": False,
         "required_calibration_refs_can_authorize_quality": False,
     }
+
+
+def _outcome_regression_authority_contract() -> dict[str, Any]:
+    return {
+        "read_model_only": True,
+        "can_authorize_quality": False,
+        "can_authorize_drafting": False,
+        "can_authorize_submission": False,
+        "can_authorize_finalize": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+
+
+def _failure_mode_projection(entries: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    projection: list[dict[str, Any]] = []
+    for failure_mode in FAILURE_MODE_CALIBRATION_REFS:
+        matching_entries = [entry for entry in entries if entry["failure_mode"] == failure_mode]
+        if not matching_entries:
+            continue
+        source_outcomes: list[str] = []
+        for entry in matching_entries:
+            source_outcome = str(entry["source_outcome"])
+            if source_outcome not in source_outcomes:
+                source_outcomes.append(source_outcome)
+        projection.append(
+            {
+                "failure_mode": failure_mode,
+                "count": len(matching_entries),
+                "calibration_ref": FAILURE_MODE_CALIBRATION_REFS[failure_mode],
+                "source_outcomes": source_outcomes,
+            }
+        )
+    return projection
+
+
+def _counts_by_field(entries: Sequence[Mapping[str, Any]], field: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for entry in entries:
+        value = str(entry[field])
+        counts[value] = counts.get(value, 0) + 1
+    return counts
 
 
 def build_ai_reviewer_calibration_learning_read_model(
@@ -226,9 +321,20 @@ def build_ai_reviewer_calibration_learning_read_model(
     return {
         "surface": LEARNING_SURFACE,
         "schema_version": SCHEMA_VERSION,
+        "supported_outcomes": list(SUPPORTED_OUTCOME_TYPES),
+        "regression_failure_modes": list(REQUIRED_LEARNING_FAILURE_MODES),
+        "regression_refs": [
+            FAILURE_MODE_CALIBRATION_REFS[failure_mode]
+            for failure_mode in REQUIRED_LEARNING_FAILURE_MODES
+        ],
         "required_failure_modes": required_failure_modes,
         "required_calibration_refs": required_refs,
         "failure_mode_counts": counts,
+        "outcome_counts": _counts_by_field(entries, "source_outcome"),
+        "failure_mode_projection": _failure_mode_projection(entries),
+        "outcome_learning_regression": build_outcome_learning_calibration_regression(
+            {"learning_entries": entries}
+        ),
         "learning_entries": entries,
         "authority_contract": _learning_authority_contract(),
     }
@@ -242,6 +348,67 @@ def append_ai_reviewer_calibration_learning_entry(
     entries = _list_of_mappings(dict(existing_payload or {}).get("learning_entries"))
     entries.append(dict(learning_entry))
     return build_ai_reviewer_calibration_learning_read_model({"learning_entries": entries})
+
+
+def append_ai_reviewer_calibration_outcome_intake(
+    *,
+    existing_payload: Mapping[str, Any] | None,
+    outcome_intake: Mapping[str, Any],
+) -> dict[str, Any]:
+    learning_entry = {
+        "entry_id": _text(outcome_intake.get("entry_id") or outcome_intake.get("outcome_id")),
+        "source_outcome": outcome_intake.get("source_outcome") or outcome_intake.get("outcome_type"),
+        "failure_mode": outcome_intake.get("failure_mode"),
+        "source_ref": outcome_intake.get("source_ref") or outcome_intake.get("outcome_ref"),
+        "issue_summary": outcome_intake.get("issue_summary") or outcome_intake.get("outcome_summary"),
+        "claim_refs": outcome_intake.get("claim_refs"),
+        "evidence_refs": outcome_intake.get("evidence_refs"),
+        "reviewer_trace_refs": outcome_intake.get("reviewer_trace_refs"),
+    }
+    return append_ai_reviewer_calibration_learning_entry(
+        existing_payload=existing_payload,
+        learning_entry=learning_entry,
+    )
+
+
+def build_outcome_learning_calibration_regression(
+    payload: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    entries = [
+        _normalize_learning_entry(entry)
+        for entry in _list_of_mappings(dict(payload or {}).get("learning_entries"))
+    ]
+    refs: list[str] = []
+    failure_modes: list[str] = []
+    for entry in entries:
+        if entry["failure_mode"] not in failure_modes:
+            failure_modes.append(entry["failure_mode"])
+        if entry["calibration_ref"] not in refs:
+            refs.append(entry["calibration_ref"])
+    missing_required_modes = [
+        mode for mode in REQUIRED_LEARNING_FAILURE_MODES if mode not in set(failure_modes)
+    ]
+    planning_mode = "repair_planning_only" if refs else "pre_draft_planning_only"
+    if not missing_required_modes and refs:
+        planning_mode = "calibration_regression_ready_for_authoring_review"
+    return {
+        "surface": OUTCOME_REGRESSION_SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "status": "ready" if refs else "blocked",
+        "planning_mode": planning_mode,
+        "supported_outcomes": list(SUPPORTED_OUTCOME_TYPES),
+        "required_failure_modes": list(REQUIRED_LEARNING_FAILURE_MODES),
+        "observed_failure_modes": failure_modes,
+        "missing_required_failure_modes": missing_required_modes,
+        "required_calibration_refs": refs,
+        "regression_refs": refs,
+        "outcome_counts": _counts_by_field(entries, "source_outcome"),
+        "failure_mode_projection": _failure_mode_projection(entries),
+        "full_drafting_allowed_without_required_refs": False,
+        "repair_planning_allowed": bool(refs),
+        "pre_draft_planning_allowed": True,
+        "authority_contract": _outcome_regression_authority_contract(),
+    }
 
 
 def build_ai_reviewer_calibration_corpus() -> dict[str, Any]:

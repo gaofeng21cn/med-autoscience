@@ -27,6 +27,8 @@ _ACCEPTABLE_VERDICTS = frozenset({"promising"})
 _ACCEPTABLE_PRIMARY_CLAIM_STATUSES = frozenset({"supported"})
 _BLOCKING_GAP_SEVERITIES = frozenset({"must_fix", "important"})
 _CALIBRATION_LEARNING_PATH = Path("artifacts/publication_eval/ai_reviewer_calibration_learning.json")
+_REPAIR_PLANNING_MODE = "repair_planning_only"
+_ACCEPTED_MODE = "accepted"
 
 
 def _text(value: object) -> str:
@@ -357,6 +359,7 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
         "surface": _SURFACE,
         "schema_version": _SCHEMA_VERSION,
         "study_root": str(resolved_study_root),
+        "mode": _ACCEPTED_MODE if accepted else _REPAIR_PLANNING_MODE,
         "snapshot": {
             "source_surface": "publication_eval/latest.json",
             "source_eval_id": _text(publication_eval.get("eval_id")),
@@ -389,9 +392,12 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
         ),
         "contract": {
             "read_model_only": True,
+            "mode_when_blocked": _REPAIR_PLANNING_MODE,
+            "required_calibration_refs_must_be_read_before_accept": True,
             "accept_authority": "AI reviewer-backed artifacts/publication_eval/latest.json",
             "revert_authority": "same-line route-back decision surface",
             "direct_package_mutation_allowed": False,
+            "learning_can_authorize_repair_completion": False,
             "learning_can_authorize_quality": False,
             "learning_can_authorize_submission": False,
             "learning_can_authorize_finalize": False,
