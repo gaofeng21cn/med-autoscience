@@ -339,3 +339,68 @@ def test_reviewer_refinement_loop_fails_closed_for_non_ai_reviewer_projection(
     assert read_model["revert"]["direct_package_mutation_allowed"] is False
     assert read_model["revert"]["route_back"]["route_target"] == "review"
     assert read_model["revert"]["route_back"]["action_type"] == "route_back_same_line"
+
+
+def test_revision_rebuttal_loop_projects_comment_action_matrix_and_repair_routes() -> None:
+    module = importlib.import_module("med_autoscience.controllers.revision_rebuttal_loop")
+
+    projection = module.build_revision_rebuttal_loop_projection(
+        {
+            "reviewer_comments": [
+                {
+                    "comment_id": "r1-c1",
+                    "source": "reviewer_1",
+                    "concern": "Sensitivity analysis is missing for the primary association.",
+                    "severity": "major",
+                    "requested_change": "Add additional analysis before rebuttal.",
+                    "target_section": "Results",
+                    "target_claim": "claim-primary",
+                },
+                {
+                    "comment_id": "r1-c2",
+                    "source": "reviewer_1",
+                    "concern": "Discussion wording is too strong for observational evidence.",
+                    "severity": "minor",
+                    "requested_change": "Revise text to restrained association language.",
+                    "target_section": "Discussion",
+                    "target_claim": "claim-discussion",
+                },
+            ],
+            "evidence_ledger_refs": ["paper/evidence_ledger.json"],
+            "review_ledger_refs": ["paper/review/review_ledger.json"],
+        }
+    )
+
+    assert projection["status"] == "ready"
+    assert projection["comment_to_action_matrix"] == projection["action_matrix"]
+    matrix_by_comment = {item["comment_id"]: item for item in projection["comment_to_action_matrix"]}
+    assert matrix_by_comment["r1-c1"]["repair_routes"] == {
+        "analysis_repair": {
+            "required": True,
+            "target_claim": "claim-primary",
+            "target_section": "Results",
+            "ledger_refs": ["paper/evidence_ledger.json", "paper/review/review_ledger.json"],
+        },
+        "text_repair": {
+            "required": False,
+            "target_claim": "claim-primary",
+            "target_section": "Results",
+            "ledger_refs": ["paper/evidence_ledger.json", "paper/review/review_ledger.json"],
+        },
+        "ai_reviewer_recheck": {
+            "required": True,
+            "reason": "analysis_repair_requires_ai_reviewer_recheck",
+        },
+    }
+    assert matrix_by_comment["r1-c2"]["repair_routes"]["analysis_repair"]["required"] is False
+    assert matrix_by_comment["r1-c2"]["repair_routes"]["text_repair"]["required"] is True
+    assert matrix_by_comment["r1-c2"]["repair_routes"]["ai_reviewer_recheck"] == {
+        "required": True,
+        "reason": "text_repair_requires_ai_reviewer_recheck",
+    }
+    assert projection["repair_plan"] == {
+        "analysis_repair_required": True,
+        "text_repair_required": True,
+        "ai_reviewer_recheck_required": True,
+        "mechanical_projection_can_authorize_quality": False,
+    }

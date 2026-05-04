@@ -78,6 +78,43 @@ def _repair_type(comment: Mapping[str, Any]) -> str:
     return "prose_revision"
 
 
+def _repair_routes(
+    comment: Mapping[str, Any],
+    *,
+    repair_type: str,
+    ledger_refs: list[str],
+) -> dict[str, Any]:
+    analysis_repair_required = repair_type == "analysis_repair"
+    text_repair_required = repair_type in {"claim_downgrade", "prose_revision"}
+    recheck_reason = (
+        "analysis_repair_requires_ai_reviewer_recheck"
+        if analysis_repair_required
+        else "text_repair_requires_ai_reviewer_recheck"
+        if text_repair_required
+        else "rebuttal_closure_requires_ai_reviewer_recheck"
+    )
+    target_claim = _text(comment.get("target_claim")) or None
+    target_section = _text(comment.get("target_section")) or None
+    return {
+        "analysis_repair": {
+            "required": analysis_repair_required,
+            "target_claim": target_claim,
+            "target_section": target_section,
+            "ledger_refs": ledger_refs,
+        },
+        "text_repair": {
+            "required": text_repair_required,
+            "target_claim": target_claim,
+            "target_section": target_section,
+            "ledger_refs": ledger_refs,
+        },
+        "ai_reviewer_recheck": {
+            "required": True,
+            "reason": recheck_reason,
+        },
+    }
+
+
 def _action_matrix_item(
     comment: Mapping[str, Any],
     *,
@@ -86,11 +123,18 @@ def _action_matrix_item(
 ) -> dict[str, Any]:
     comment_id = _text(comment.get("comment_id"))
     repair_type = _repair_type(comment)
-    ai_reviewer_recheck_required = repair_type == "analysis_repair"
+    required_surface_refs = _required_surface_refs(evidence_ledger_refs, review_ledger_refs)
+    repair_routes = _repair_routes(
+        comment,
+        repair_type=repair_type,
+        ledger_refs=required_surface_refs,
+    )
+    ai_reviewer_recheck_required = repair_routes["ai_reviewer_recheck"]["required"]
     return {
         "comment_id": comment_id,
         "repair_type": repair_type,
-        "required_surface_refs": _required_surface_refs(evidence_ledger_refs, review_ledger_refs),
+        "required_surface_refs": required_surface_refs,
+        "repair_routes": repair_routes,
         "ai_reviewer_recheck_required": ai_reviewer_recheck_required,
         "response_letter_point": (
             f"Response to {comment_id}: route to {repair_type} for the requested change; "
@@ -134,6 +178,20 @@ def _blockers(
     return blockers
 
 
+def _repair_plan(action_matrix: list[dict[str, Any]]) -> dict[str, bool]:
+    analysis_repair_required = any(
+        item["repair_routes"]["analysis_repair"]["required"] for item in action_matrix
+    )
+    text_repair_required = any(item["repair_routes"]["text_repair"]["required"] for item in action_matrix)
+    ai_reviewer_recheck_required = any(item["ai_reviewer_recheck_required"] for item in action_matrix)
+    return {
+        "analysis_repair_required": analysis_repair_required,
+        "text_repair_required": text_repair_required,
+        "ai_reviewer_recheck_required": ai_reviewer_recheck_required,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+
+
 def build_revision_rebuttal_loop_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     comments = _mapping_list(payload.get("reviewer_comments"))
     evidence_ledger_refs = _text_list(payload.get("evidence_ledger_refs"))
@@ -162,6 +220,8 @@ def build_revision_rebuttal_loop_projection(payload: Mapping[str, Any]) -> dict[
         "blockers": blockers,
         "reviewer_comment_count": len(comments),
         "action_matrix": action_matrix,
+        "comment_to_action_matrix": action_matrix,
+        "repair_plan": _repair_plan(action_matrix),
         "next_action": _next_action(blockers=blockers, action_matrix=action_matrix),
         "durable_refs": {
             "evidence_ledger_refs": evidence_ledger_refs,

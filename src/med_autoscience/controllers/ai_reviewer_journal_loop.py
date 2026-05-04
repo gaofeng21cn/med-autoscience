@@ -169,6 +169,59 @@ def _validate_non_empty_mapping_shape(
         _add_blocker(blockers, empty_blocker)
 
 
+def _mapping_entries(payload: Mapping[str, Any], field_name: str) -> list[dict[str, Any]]:
+    items = payload.get(field_name)
+    if not isinstance(items, Sequence) or isinstance(items, (str, bytes)):
+        return []
+    return [dict(item) for item in items if isinstance(item, Mapping)]
+
+
+def _normalized_text_list(value: Any) -> list[str]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        return []
+    return [text for item in value if (text := _non_empty_ref(item))]
+
+
+def _claim_entry_id(entry: Mapping[str, Any], index: int) -> str:
+    return _non_empty_ref(entry.get("claim_id")) or f"claim[{index}]"
+
+
+def _display_entry_id(entry: Mapping[str, Any], index: int) -> str:
+    return _non_empty_ref(entry.get("display_id")) or f"display[{index}]"
+
+
+def _validate_claim_to_paragraph_trace(
+    claim_to_paragraph_map: Mapping[str, Any],
+    blockers: list[str],
+) -> None:
+    normalized = _mapping_or_none(claim_to_paragraph_map)
+    if normalized is None:
+        return
+    for index, entry in enumerate(_mapping_entries(normalized, "claims")):
+        claim_id = _claim_entry_id(entry, index)
+        if _non_empty_ref(entry.get("paragraph_id")) is None:
+            _add_blocker(blockers, f"claim_to_paragraph_map_paragraph_missing:{claim_id}")
+        if not _normalized_text_list(entry.get("evidence_refs")):
+            _add_blocker(blockers, f"claim_to_paragraph_map_evidence_trace_missing:{claim_id}")
+        if not _normalized_text_list(entry.get("reviewer_concern_refs")):
+            _add_blocker(blockers, f"claim_to_paragraph_map_review_trace_missing:{claim_id}")
+
+
+def _validate_display_to_claim_trace(
+    display_to_claim_map: Mapping[str, Any],
+    blockers: list[str],
+) -> None:
+    normalized = _mapping_or_none(display_to_claim_map)
+    if normalized is None:
+        return
+    for index, entry in enumerate(_mapping_entries(normalized, "links")):
+        display_id = _display_entry_id(entry, index)
+        if not _normalized_text_list(entry.get("claim_ids")):
+            _add_blocker(blockers, f"display_to_claim_map_claim_trace_missing:{display_id}")
+        if not _normalized_text_list(entry.get("evidence_refs")):
+            _add_blocker(blockers, f"display_to_claim_map_evidence_trace_missing:{display_id}")
+
+
 def _required_ref_status(
     *,
     evidence_ledger_ref: str,
@@ -323,6 +376,8 @@ def build_ai_reviewer_journal_writing_authorization(
         restrained_language_strategy=restrained_language_strategy,
         blockers=blockers,
     )
+    _validate_claim_to_paragraph_trace(claim_to_paragraph_map, blockers)
+    _validate_display_to_claim_trace(display_to_claim_map, blockers)
     normalized_evidence_ref, normalized_review_ref = _required_ref_status(
         evidence_ledger_ref=evidence_ledger_ref,
         review_ledger_ref=review_ledger_ref,

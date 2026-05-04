@@ -113,6 +113,9 @@ def _complete_inputs() -> dict[str, Any]:
                     "claim_id": "claim-primary",
                     "paragraph_id": "results-p1",
                     "evidence_refs": ["paper/evidence_ledger.json#claim-primary"],
+                    "reviewer_concern_refs": [
+                        "paper/review/review_ledger.json#concern-overstrong-primary"
+                    ],
                 }
             ]
         },
@@ -292,3 +295,40 @@ def test_unlinked_publication_critique_concern_blocks_full_drafting() -> None:
     assert projection["authorization_contract"]["status"] == "blocked"
     assert "critique_concern_unlinked:concern-unlinked" in projection["blockers"]
     assert projection["authorization_contract"]["required_inputs"]["critique_trace"] == "blocked"
+
+
+def test_full_drafting_requires_claim_map_entries_with_paragraph_evidence_and_review_trace() -> None:
+    projection = _projection(
+        claim_to_paragraph_map={
+            "claims": [
+                {
+                    "claim_id": "claim-primary",
+                    "paragraph_id": "results-p1",
+                    "evidence_refs": ["paper/evidence_ledger.json#claim-primary"],
+                }
+            ]
+        },
+    )
+
+    assert projection["full_drafting_authorized"] is False
+    assert projection["mode"] == "pre_draft_planning_only"
+    assert "claim_to_paragraph_map_review_trace_missing:claim-primary" in projection["blockers"]
+    assert projection["authorization_contract"]["required_inputs"]["claim_to_paragraph_map"] == "blocked"
+
+
+def test_full_drafting_requires_display_map_entries_with_claim_and_evidence_trace() -> None:
+    projection = _projection(
+        display_to_claim_map={
+            "links": [
+                {
+                    "display_id": "figure-1",
+                    "claim_ids": ["claim-primary"],
+                }
+            ]
+        },
+    )
+
+    assert projection["full_drafting_authorized"] is False
+    assert projection["mode"] == "pre_draft_planning_only"
+    assert "display_to_claim_map_evidence_trace_missing:figure-1" in projection["blockers"]
+    assert projection["authorization_contract"]["required_inputs"]["display_to_claim_map"] == "blocked"
