@@ -22,6 +22,27 @@ def test_create_submission_minimal_package_creates_output_directory_and_copies_p
     assert manifest["output_root"] == "paper/submission_minimal"
 
 
+def test_create_submission_minimal_package_uses_delivery_layout_v2(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    assert manifest["delivery_layout"]["layout_version"] == "submission-package.v2"
+    assert manifest["delivery_layout"]["audit_root"] == "paper/submission_minimal/audit"
+    assert manifest["delivery_layout"]["reproducibility_root"] == "paper/submission_minimal/reproducibility"
+    assert not (submission_root / "submission_manifest.json").exists()
+    assert not (submission_root / "evidence_ledger.json").exists()
+    assert (submission_root / "audit" / "submission_manifest.json").exists()
+    assert (submission_root / "audit" / "evidence_ledger.json").exists()
+    assert (submission_root / "reproducibility" / "source_signature.json").exists()
+    assert (submission_root / "reproducibility" / "source_relative_paths.json").exists()
+
+
 def test_create_submission_minimal_package_route_gate_blocks_materialization(
     tmp_path: Path,
 ) -> None:
@@ -75,7 +96,7 @@ def test_create_submission_minimal_package_writes_manifest_and_docx_path(tmp_pat
     )
 
     submission_root = paper_root / "submission_minimal"
-    manifest_path = submission_root / "submission_manifest.json"
+    manifest_path = submission_root / "audit" / "submission_manifest.json"
     docx_path = submission_root / "manuscript.docx"
 
     assert manifest_path.exists()
@@ -171,7 +192,7 @@ def test_create_submission_minimal_package_preserves_existing_package_when_mater
     )
 
     submission_root = paper_root / "submission_minimal"
-    manifest_path = submission_root / "submission_manifest.json"
+    manifest_path = submission_root / "audit" / "submission_manifest.json"
     pdf_path = submission_root / "paper.pdf"
     docx_path = submission_root / "manuscript.docx"
 
@@ -231,7 +252,7 @@ def test_describe_submission_minimal_authority_detects_changed_compiled_markdown
     assert stale["blocking_artifact_refs"] == [
         {
             "blocker": "stale_submission_minimal_authority",
-            "artifact_path": str(paper_root / "submission_minimal" / "submission_manifest.json"),
+            "artifact_path": str(paper_root / "submission_minimal" / "audit" / "submission_manifest.json"),
             "artifact_role": "submission_minimal_authority",
             "stale_reason": "submission_source_signature_mismatch",
         }
@@ -246,6 +267,8 @@ def test_describe_submission_minimal_authority_flags_legacy_manifest_when_source
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
+    v2_manifest_path = paper_root / "submission_minimal" / "audit" / "submission_manifest.json"
+    v2_manifest_path.unlink()
     manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
     manifest.pop("source_signature", None)
     manifest.pop("source_contract", None)

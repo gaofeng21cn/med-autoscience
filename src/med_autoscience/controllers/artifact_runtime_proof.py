@@ -6,6 +6,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
+
 
 SCHEMA_VERSION = 1
 SURFACE = "artifact_runtime_proof"
@@ -247,7 +249,7 @@ def _status_from_bool(*, passed: bool | None, exists: bool = True) -> str:
 
 
 def _submission_minimal_truth(*, study_root: Path, manifest_payload: Mapping[str, Any] | None) -> dict[str, Any]:
-    manifest_path = study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+    manifest_path = resolve_submission_manifest_path(study_root / "paper" / "submission_minimal")
     manifest = _read_json_object(manifest_path)
     if manifest is None:
         manifest = dict(_mapping(manifest_payload.get("submission_minimal")) if manifest_payload is not None else {})
@@ -534,7 +536,7 @@ def build_submission_hygiene_truth(
                 resolved_study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
             ),
             "submission_manifest_path": str(
-                resolved_study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+                resolve_submission_manifest_path(resolved_study_root / "paper" / "submission_minimal")
             ),
         },
     }

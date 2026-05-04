@@ -26,6 +26,7 @@ from med_autoscience.runtime_protocol import (
     user_message,
 )
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
+from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 
 from .blocking_artifact_refs import build_blocking_artifact_refs
 from .deterministic_quality_gates import build_deterministic_quality_gate_projection_from_state
@@ -214,7 +215,7 @@ def _resolve_current_journal_source_manifest_path(
         )
     except ValueError:
         return None
-    manifest_path = source_root / "submission_manifest.json"
+    manifest_path = resolve_submission_manifest_path(source_root)
     return manifest_path.resolve() if manifest_path.exists() else None
 
 

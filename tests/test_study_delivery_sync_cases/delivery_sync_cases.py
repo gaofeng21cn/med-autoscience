@@ -25,8 +25,8 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
     manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
     assert manifest["quest_id"] == "002-early-residual-risk-managed-20260402"
     assert (study_root / "manuscript" / "paper.pdf").exists()
-    assert (study_root / "manuscript" / "evidence_ledger.json").exists()
-    assert (study_root / "manuscript" / "submission_manifest.json").exists()
+    assert (study_root / "manuscript" / "audit" / "evidence_ledger.json").exists()
+    assert (study_root / "manuscript" / "audit" / "submission_manifest.json").exists()
     assert (study_root / "manuscript" / "delivery_manifest.json").exists()
     assert "This directory: `manuscript/`" in (
         study_root / "manuscript" / "README.md"
@@ -39,7 +39,7 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
     assert not (study_root / "manuscript" / "submission_package").exists()
     assert not (study_root / "manuscript" / "submission_package.zip").exists()
     assert (study_root / "manuscript" / "current_package" / "figures" / "Figure1.pdf").exists()
-    assert (study_root / "manuscript" / "current_package" / "evidence_ledger.json").exists()
+    assert (study_root / "manuscript" / "current_package" / "audit" / "evidence_ledger.json").exists()
     assert (study_root / "manuscript" / "current_package" / "tables" / "Table1.csv").exists()
     assert (study_root / "manuscript" / "current_package.zip").exists()
     delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
@@ -53,6 +53,42 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
         "journal_submission_mirror_root": None,
     }
     assert "evidence_ledger.json" in delivery_manifest["source_relative_paths"]
+
+
+def test_sync_study_delivery_uses_delivery_layout_v2_for_current_package(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    manifest = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    current_package_root = study_root / "manuscript" / "current_package"
+    assert manifest["delivery_layout"]["layout_version"] == "submission-package.v2"
+    assert manifest["delivery_layout"]["human_package_root"] == str(current_package_root)
+    assert manifest["delivery_layout"]["audit_root"] == str(current_package_root / "audit")
+    assert manifest["delivery_layout"]["reproducibility_root"] == str(current_package_root / "reproducibility")
+    assert not (current_package_root / "submission_manifest.json").exists()
+    assert not (current_package_root / "evidence_ledger.json").exists()
+    assert not (current_package_root / "review" / "review_ledger.json").exists()
+    assert not (current_package_root / "controller" / "study_charter.json").exists()
+    assert (current_package_root / "audit" / "submission_manifest.json").exists()
+    assert (current_package_root / "audit" / "evidence_ledger.json").exists()
+    assert (current_package_root / "audit" / "review_ledger.json").exists()
+    assert (current_package_root / "audit" / "study_charter.json").exists()
+    assert (current_package_root / "reproducibility" / "source_signature.json").exists()
+    assert (current_package_root / "reproducibility" / "source_relative_paths.json").exists()
+    with zipfile.ZipFile(study_root / "manuscript" / "current_package.zip") as archive:
+        names = set(archive.namelist())
+    assert "submission_manifest.json" not in names
+    assert "evidence_ledger.json" not in names
+    assert "review/review_ledger.json" not in names
+    assert "controller/study_charter.json" not in names
+    assert "audit/submission_manifest.json" in names
+    assert "audit/evidence_ledger.json" in names
+    assert "audit/review_ledger.json" in names
+    assert "audit/study_charter.json" in names
 
 
 def test_sync_study_delivery_route_gate_blocks_current_package_projection(tmp_path: Path) -> None:
@@ -129,7 +165,7 @@ def test_sync_study_delivery_for_submission_minimal_mirrors_review_ledger(tmp_pa
     )
 
     mirrored_ledger_path = study_root / "manuscript" / "review" / "review_ledger.json"
-    current_package_ledger_path = study_root / "manuscript" / "current_package" / "review" / "review_ledger.json"
+    current_package_ledger_path = study_root / "manuscript" / "current_package" / "audit" / "review_ledger.json"
     source_payload = json.loads((paper_root / "review" / "review_ledger.json").read_text(encoding="utf-8"))
     mirrored_payload = json.loads(mirrored_ledger_path.read_text(encoding="utf-8"))
     current_package_payload = json.loads(current_package_ledger_path.read_text(encoding="utf-8"))
@@ -206,9 +242,9 @@ def test_sync_study_delivery_projects_charter_linkage_into_manifest_and_current_
     assert linkage["ledger_linkages"]["evidence_ledger"]["status"] == "linked"
     assert linkage["ledger_linkages"]["review_ledger"]["status"] == "linked"
     assert linkage["study_charter_ref"]["mirrored_artifact_path"] == str(
-        study_root / "manuscript" / "current_package" / "controller" / "study_charter.json"
+        study_root / "manuscript" / "current_package" / "audit" / "study_charter.json"
     )
-    assert (study_root / "manuscript" / "current_package" / "controller" / "study_charter.json").exists()
+    assert (study_root / "manuscript" / "current_package" / "audit" / "study_charter.json").exists()
     assert "Study charter contract" in readme_text
     assert "charter::002-early-residual-risk::v1" in readme_text
     assert "Mirrored study charter artifact" in readme_text
@@ -217,7 +253,7 @@ def test_sync_study_delivery_projects_charter_linkage_into_manifest_and_current_
 def test_sync_study_delivery_writes_submission_todo_for_pending_front_matter(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
-    manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
+    manifest_path = paper_root / "submission_minimal" / "audit" / "submission_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["front_matter_placeholders"] = {
         "authors": "pending",
@@ -246,7 +282,7 @@ def test_sync_study_delivery_writes_submission_todo_for_pending_front_matter(tmp
 def test_sync_study_delivery_writes_submission_todo_from_metadata_closeout_followups(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
-    manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
+    manifest_path = paper_root / "submission_minimal" / "audit" / "submission_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["metadata_closeout"] = {
         "status": "non_blocking_followup_only",
@@ -455,7 +491,7 @@ def test_materialize_submission_delivery_stale_notice_clears_stale_mirror_files(
     assert stale_sync["current_package_root"] == str(manuscript_root / "current_package")
     assert (manuscript_root / "manuscript.docx").exists()
     assert (manuscript_root / "paper.pdf").exists()
-    assert (manuscript_root / "submission_manifest.json").exists()
+    assert (manuscript_root / "audit" / "submission_manifest.json").exists()
     assert not (manuscript_root / "submission_package").exists()
     assert not (manuscript_root / "submission_package.zip").exists()
     assert (manuscript_root / "current_package" / "README.md").exists()

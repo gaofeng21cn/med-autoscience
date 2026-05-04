@@ -40,7 +40,9 @@
 - `study_root/paper/`
 - `study_root/paper/submission_minimal/`
 - `study_root/paper/journal_submissions/<publication_profile>/`
-- 上述 surface 上的 `paper_bundle_manifest.json`、`submission_manifest.json`、`compile_report.json`
+- 上述 surface 上的 `paper_bundle_manifest.json`、`audit/submission_manifest.json`、`compile_report.json`
+
+`submission_minimal/`、journal-specific package、`manuscript/current_package/` 采用 `submission-package.v2` layout：根目录保留 `manuscript.docx`、`paper.pdf`、`references.bib`、`figures/`、`tables/` 等人最常打开的投稿文件；`audit/` 放 `submission_manifest.json`、`evidence_ledger.json`、`review_ledger.json`、`study_charter.json`；`reproducibility/` 放 `source_signature.json`、`source_relative_paths.json` 和可选 `analysis_manifest.json`。根级 `submission_manifest.json` 只作为 legacy 输入识别，不再由新包重复生成。
 
 这些 surface 可以被：
 

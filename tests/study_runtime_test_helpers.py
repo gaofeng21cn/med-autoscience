@@ -7,6 +7,12 @@ import shutil
 
 import yaml
 
+from med_autoscience.controllers.study_delivery_sync_parts.delivery_descriptions import (
+    _submission_source_relative_paths,
+    _submission_source_signature,
+)
+from med_autoscience.controllers.submission_package_layout import submission_manifest_path
+
 
 def write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -322,7 +328,7 @@ def write_synced_submission_delivery(
     write_text(submission_root / "paper.pdf", "pdf placeholder")
     write_text(submission_root / "references.bib", "@article{ref1,title={Ref}}\n")
     write_text(
-        submission_root / "submission_manifest.json",
+        submission_manifest_path(submission_root),
         json.dumps(
             {
                 "schema_version": 1,
@@ -336,6 +342,12 @@ def write_synced_submission_delivery(
             indent=2,
         )
         + "\n",
+    )
+    source_relative_paths = _submission_source_relative_paths(paper_root=paper_root, source_root=submission_root)
+    source_signature = _submission_source_signature(
+        paper_root=paper_root,
+        source_root=submission_root,
+        relative_paths=source_relative_paths,
     )
 
     if current_package_root.exists():
@@ -369,6 +381,10 @@ def write_synced_submission_delivery(
                 "schema_version": 1,
                 "stage": "submission_minimal",
                 "publication_profile": "general_medical_journal",
+                "source_signature": source_signature,
+                "evaluated_source_signature": source_signature,
+                "authority_source_signature": source_signature,
+                "source_relative_paths": [path.as_posix() for path in source_relative_paths],
                 "source": {
                     "paper_root": str(paper_root.resolve()),
                     "package_source_root": str(submission_root.resolve()),

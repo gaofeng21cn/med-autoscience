@@ -381,7 +381,7 @@ def test_ensure_study_runtime_pauses_live_delivered_submission_package_milestone
     write_text(study_root / "manuscript" / "current_package" / "figures" / "Figure1.png", "figure placeholder")
     write_text(study_root / "manuscript" / "current_package" / "tables" / "Table1.md", "table placeholder")
     write_text(
-        study_root / "manuscript" / "current_package" / "submission_manifest.json",
+        study_root / "manuscript" / "current_package" / "audit" / "submission_manifest.json",
         json.dumps(
             {
                 "schema_version": 1,

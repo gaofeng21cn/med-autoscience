@@ -451,7 +451,7 @@ def test_fresh_snapshot_authorizes_submission_minimal_write(tmp_path: Path) -> N
     )
 
     assert result["control_plane_route_gate"]["allowed"] is True
-    assert (paper_root / "submission_minimal" / "submission_manifest.json").exists()
+    assert (paper_root / "submission_minimal" / "audit" / "submission_manifest.json").exists()
 
 
 def test_mutating_delivery_write_surfaces_are_registered_behind_control_plane_write_route() -> None:

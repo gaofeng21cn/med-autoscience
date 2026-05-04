@@ -24,6 +24,7 @@ from med_autoscience.controllers import (
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
 )
+from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 from med_autoscience.controllers.study_runtime_decision_parts import publication_stop_loss
 from med_autoscience.controllers.study_runtime_decision_parts.publication_eval_quality import (
     _publication_eval_gap_type,
@@ -627,7 +628,7 @@ def _materialize_publication_eval_from_gate_report(
     )
     submission_minimal_ref = (
         str(publication_gate_report.get("submission_minimal_manifest_path") or "").strip()
-        or str((Path(paper_root_ref).resolve() / "submission_minimal" / "submission_manifest.json"))
+        or str(resolve_submission_manifest_path(Path(paper_root_ref).resolve() / "submission_minimal"))
     )
     runtime_escalation_ref = str(
         (quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json").resolve()

@@ -12,6 +12,7 @@ from typing import Any
 
 from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync, submission_minimal
 from med_autoscience.controllers.control_plane_route_context_call import call_with_control_plane_route_context
+from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 from med_autoscience.journal_requirements import (
     describe_journal_submission_package,
     journal_requirements_json_path,
@@ -482,7 +483,7 @@ def _current_package_publication_profile(report: dict[str, Any]) -> str | None:
     current_package_root_text = _non_empty_text(report.get("study_delivery_current_package_root"))
     if current_package_root_text is None:
         return None
-    manifest_path = Path(current_package_root_text) / "submission_manifest.json"
+    manifest_path = resolve_submission_manifest_path(Path(current_package_root_text))
     if not manifest_path.exists():
         return None
     try:

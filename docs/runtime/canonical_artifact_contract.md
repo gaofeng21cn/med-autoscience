@@ -13,6 +13,8 @@ Artifact OS 的目标是让 manuscript、figures、tables 和 submission package
 
 `manuscript/current_package/`、`artifacts/final/`、`current_package.zip`、`submission_minimal/` 都不是 edit source，也不是 quality authority。任何 revision 或 reviewer feedback 必须回到 canonical sources 和 MAS quality/runtime chain，由 AI reviewer quality decision 重新授权后再生成派生产物。
 
+在 `submission-package.v2` layout 下，`audit/*` 与 `reproducibility/*` 是交付包内的 traceability projection，用于核查来源、审计和复现索引；它们不把交付包提升为 edit source、quality authority 或 dispatch authority。
+
 ## Rebuild Requirements
 
 - manuscript 必须从 canonical sources + AI reviewer quality decision 重建。

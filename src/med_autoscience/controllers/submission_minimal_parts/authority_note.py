@@ -9,6 +9,7 @@ from .shared import (
     remap_staging_path_to_target,
     write_text,
 )
+from med_autoscience.controllers.submission_package_layout import submission_manifest_path
 
 
 FORBIDDEN_STUDY_ANCHOR_PATTERNS = (
@@ -55,7 +56,7 @@ def write_submission_source_authority_note(
         workspace_root,
     )
     manifest_surface = (
-        f"{relpath_from_workspace(target_root / 'submission_manifest.json', workspace_root)}#source_signature"
+        f"{relpath_from_workspace(submission_manifest_path(target_root), workspace_root)}#source_signature"
     )
     write_text(
         output_path,

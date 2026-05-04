@@ -18,6 +18,15 @@ from med_autoscience.publication_profiles import (
 )
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
+from med_autoscience.controllers.submission_package_layout import (
+    SUBMISSION_PACKAGE_LAYOUT_VERSION,
+    build_analysis_manifest_document,
+    build_source_relative_paths_document,
+    build_source_signature_document,
+    audit_path,
+    reproducibility_path,
+    resolve_submission_manifest_path,
+)
 
 
 
@@ -359,7 +368,9 @@ def build_submission_package_readme(*, study_id: str, stage: str, publication_pr
             f"- Contents:\n"
             f"  - `manuscript.docx`\n"
             f"  - `paper.pdf`\n"
-            f"  - `submission_manifest.json`\n"
+            f"  - `audit/submission_manifest.json`\n"
+            f"  - `audit/evidence_ledger.json`\n"
+            f"  - `reproducibility/source_signature.json`\n"
             f"  - `figures/`\n"
             f"  - `tables/`\n\n"
             f"This directory is assembled automatically during study delivery sync so the manuscript and submission assets can be reviewed or handed off as one package.\n"
@@ -372,7 +383,9 @@ def build_submission_package_readme(*, study_id: str, stage: str, publication_pr
         f"- Contents:\n"
         f"  - `manuscript.docx`\n"
         f"  - `paper.pdf`\n"
-        f"  - `submission_manifest.json`\n"
+        f"  - `audit/submission_manifest.json`\n"
+        f"  - `audit/evidence_ledger.json`\n"
+        f"  - `reproducibility/source_signature.json`\n"
         f"  - `Supplementary_Material.docx` (when generated)\n"
         f"  - `figures/`\n"
         f"  - `tables/`\n\n"
@@ -542,7 +555,9 @@ def build_promoted_delivery_readme(*, study_id: str, publication_profile: str, s
         f"- Contents:\n"
         f"  - `manuscript.docx`\n"
         f"  - `paper.pdf`\n"
-        f"  - `submission_manifest.json`\n"
+        f"  - `audit/submission_manifest.json`\n"
+        f"  - `audit/evidence_ledger.json`\n"
+        f"  - `reproducibility/source_signature.json`\n"
         f"  - `Supplementary_Material.docx` (when generated)\n"
         f"  - `current_package/`\n"
         f"  - `current_package.zip`\n"
@@ -685,6 +700,9 @@ def build_current_package_readme(
         f"- Active sync stage: `{stage}`",
         f"- Status: {status_line}",
         f"- Controller-authorized source: `{source_relative_root}`",
+        f"- Delivery layout: `{SUBMISSION_PACKAGE_LAYOUT_VERSION}`",
+        "- Audit material: `audit/`",
+        "- Reproducibility material: `reproducibility/`",
         "- Canonical authority surface: `paper/`",
         "- This directory is the stable, stage-agnostic entry point for the latest human-facing package.",
         "- Target-journal exports under `submission_packages/<journal_slug>/` are derived projections and require explicit target confirmation before they are treated as final journal-ready formatting.",
@@ -746,6 +764,10 @@ def sync_current_package_projection(
         target_root=current_package_root,
         category="current_package",
         copied_files=copied_files,
+        ignore_filenames=(
+            "submission_manifest.json",
+            "evidence_ledger.json",
+        ),
     )
     if paper_root is not None:
         resolved_paper_root = Path(paper_root).expanduser().resolve()
@@ -755,14 +777,14 @@ def sync_current_package_projection(
                 continue
             copy_file(
                 source=source_path,
-                target=current_package_root / relative_path,
+                target=audit_path(current_package_root, "evidence_ledger"),
                 category="current_package",
                 copied_files=copied_files,
             )
     if review_ledger_source is not None and review_ledger_source.exists():
         copy_file(
             source=review_ledger_source,
-            target=current_package_root / "review" / review_ledger_source.name,
+            target=audit_path(current_package_root, "review_ledger"),
             category="current_package_review_surface",
             copied_files=copied_files,
         )
@@ -773,7 +795,7 @@ def sync_current_package_projection(
     if raw_charter_artifact_path:
         charter_artifact_path = Path(raw_charter_artifact_path).expanduser()
         if charter_artifact_path.exists():
-            mirrored_charter_path = current_package_root / "controller" / charter_artifact_path.name
+            mirrored_charter_path = audit_path(current_package_root, "study_charter")
             copy_file(
                 source=charter_artifact_path,
                 target=mirrored_charter_path,
@@ -781,9 +803,18 @@ def sync_current_package_projection(
                 copied_files=copied_files,
             )
             study_charter_ref["mirrored_artifact_path"] = str(
-                resolved_projected_current_package_root / "controller" / charter_artifact_path.name
+                audit_path(resolved_projected_current_package_root, "study_charter")
             )
             linkage_payload["study_charter_ref"] = study_charter_ref
+    source_manifest_path = resolve_submission_manifest_path(source_root)
+    if source_manifest_path.exists() and not audit_path(current_package_root, "submission_manifest").exists():
+        copy_file(
+            source=source_manifest_path,
+            target=audit_path(current_package_root, "submission_manifest"),
+            category="current_package_manifest",
+            copied_files=copied_files,
+        )
+
     readme_path = current_package_root / "README.md"
     write_text(
         readme_path,
@@ -802,7 +833,7 @@ def sync_current_package_projection(
         }
     )
     submission_todo = build_submission_todo_from_manifest(
-        manifest_path=current_package_root / "submission_manifest.json",
+        manifest_path=resolve_submission_manifest_path(current_package_root),
     )
     if submission_todo is not None:
         todo_path = current_package_root / "SUBMISSION_TODO.md"
@@ -813,6 +844,65 @@ def sync_current_package_projection(
                 "path": str(todo_path.resolve()),
             }
         )
+    source_signature_payload: dict[str, Any] = {}
+    if source_manifest_path.exists():
+        try:
+            source_manifest = json.loads(source_manifest_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            source_manifest = {}
+        if isinstance(source_manifest, dict):
+            source_contract = source_manifest.get("source_contract") if isinstance(source_manifest.get("source_contract"), dict) else {}
+            source_signature = str(source_manifest.get("source_signature") or source_contract.get("source_signature") or "").strip()
+            source_signature_payload = {
+                "source_signature": source_signature,
+                "source_contract": source_contract,
+                "source_paths": list(source_contract.get("source_paths") or []),
+                "source_files": list(source_contract.get("source_files") or []),
+            }
+    if not source_signature_payload.get("source_signature"):
+        source_signature_payload["source_signature"] = ""
+    dump_json(
+        reproducibility_path(current_package_root, "source_signature"),
+        build_source_signature_document(
+            source_signature=str(source_signature_payload.get("source_signature") or ""),
+            source_contract=dict(source_signature_payload.get("source_contract") or {}),
+            package_role="human_facing_mirror",
+        ),
+    )
+    generated_files.append(
+        {
+            "category": "current_package_reproducibility",
+            "path": str(reproducibility_path(current_package_root, "source_signature").resolve()),
+        }
+    )
+    dump_json(
+        reproducibility_path(current_package_root, "source_relative_paths"),
+        build_source_relative_paths_document(
+            source_relative_paths=source_signature_payload.get("source_paths") or [],
+            source_files=source_signature_payload.get("source_files") or [],
+            package_role="human_facing_mirror",
+        ),
+    )
+    generated_files.append(
+        {
+            "category": "current_package_reproducibility",
+            "path": str(reproducibility_path(current_package_root, "source_relative_paths").resolve()),
+        }
+    )
+    dump_json(
+        reproducibility_path(current_package_root, "analysis_manifest"),
+        build_analysis_manifest_document(
+            analysis_manifest_source=None,
+            analysis_manifest_present=False,
+            package_role="human_facing_mirror",
+        ),
+    )
+    generated_files.append(
+        {
+            "category": "current_package_reproducibility",
+            "path": str(reproducibility_path(current_package_root, "analysis_manifest").resolve()),
+        }
+    )
     build_zip_from_directory(source_root=current_package_root, output_path=current_package_zip)
     generated_files.append(
         {

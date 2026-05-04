@@ -367,7 +367,7 @@ Trigger this contract when finalize has already produced or refreshed all of:
 - `paper/finalize_resume_packet.md`
 - `paper/paper_bundle_manifest.json`
 - `paper/build/compile_report.json`
-- `paper/submission_minimal/submission_manifest.json`
+- `paper/submission_minimal/audit/submission_manifest.json`
 
 Required action:
 
@@ -396,7 +396,7 @@ Blocked handling for this contract:
 - if the sync command fails, record `final_delivery_sync_failed`
 - if the delivery manifest or copied shallow-path files are missing after the command, record `final_delivery_manifest_missing`
 
-Do not silently skip this promotion step when the finalized line includes a paper bundle plus `paper/submission_minimal/submission_manifest.json`.
+Do not silently skip this promotion step when the finalized line includes a paper bundle plus `paper/submission_minimal/audit/submission_manifest.json`.
 Manual repair is allowed only by rerunning the same workspace wrapper; a human reminder or prose note is not a substitute for the actual sync.
 
 ## Failure and blocked handling
@@ -443,6 +443,6 @@ For any submission-ready recommendation, also require:
 - `submission_minimal` is present and `passed`
 - terminology-redline compliance is explicitly marked as passed
 
-For any study-backed paper closure that already has `paper/submission_minimal/submission_manifest.json`, also require:
+For any study-backed paper closure that already has `paper/submission_minimal/audit/submission_manifest.json`, also require:
 
 - shallow-path study delivery sync has passed for `--stage finalize`

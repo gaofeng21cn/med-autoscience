@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
+
 from .discovery_and_drift import _non_empty_text
 
 
@@ -90,6 +92,7 @@ def build_blocking_artifact_refs(
             stale_reason=_non_empty_text(study_delivery.get("stale_reason")),
         )
     if paper_root is not None:
+        submission_minimal_authority_path = resolve_submission_manifest_path(paper_root / "submission_minimal")
         named_blocker_set = {
             str(item or "").strip()
             for item in medical_publication_surface_named_blockers
@@ -97,7 +100,10 @@ def build_blocking_artifact_refs(
         }
         for blocker in sorted(named_blocker_set):
             for relative_path, artifact_role in MEDICAL_SURFACE_BLOCKER_ARTIFACTS.get(blocker, ()):
-                artifact_path = str(paper_root / relative_path)
+                if relative_path == "submission_minimal/submission_manifest.json":
+                    artifact_path = str(submission_minimal_authority_path)
+                else:
+                    artifact_path = str(paper_root / relative_path)
                 _append_blocking_artifact_ref(
                     refs,
                     blocker=blocker,

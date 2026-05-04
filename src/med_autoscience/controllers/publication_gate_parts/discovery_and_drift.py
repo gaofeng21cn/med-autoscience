@@ -555,8 +555,12 @@ def load_submission_checklist(*, paper_root: Path | None) -> dict[str, Any] | No
 def resolve_submission_minimal_manifest(*, paper_root: Path | None) -> Path | None:
     if paper_root is None:
         return None
-    candidate = paper_root / "submission_minimal" / "submission_manifest.json"
-    return candidate if candidate.exists() else None
+    bundle_manifest_path = paper_root / "paper_bundle_manifest.json"
+    if bundle_manifest_path.exists():
+        candidate = paper_artifacts.resolve_submission_minimal_manifest(bundle_manifest_path)
+        if candidate is not None:
+            return candidate
+    return None
 
 
 def resolve_submission_minimal_output_paths(

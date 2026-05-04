@@ -26,6 +26,11 @@ from med_autoscience.publication_profiles import (
     normalize_publication_profile,
 )
 from med_autoscience.controllers import study_delivery_sync
+from med_autoscience.controllers.submission_package_layout import (
+    build_package_layout_block,
+    resolve_submission_manifest_path,
+    submission_manifest_path,
+)
 
 
 _USER_CONFIRMED_DECISION_SOURCES = {
@@ -223,7 +228,7 @@ def materialize_journal_package(
         paper_root=resolved_paper_root,
         publication_profile=resolved_profile,
     )
-    source_manifest_path = source_root / "submission_manifest.json"
+    source_manifest_path = resolve_submission_manifest_path(source_root)
     if not source_manifest_path.exists():
         raise FileNotFoundError(f"missing submission manifest: {source_manifest_path}")
 
@@ -302,7 +307,7 @@ def materialize_journal_package(
             f"- Source authority: `{source_authority['authority_kind']}`\n"
             "- Default human-facing package: `manuscript/current_package/`\n"
             "- This directory is a derived target-journal projection, not the default manuscript review entry.\n"
-            "- Do not call it final journal-ready formatting unless `submission_manifest.json` records a confirmed target and current requirements/QC.\n"
+            "- Do not call it final journal-ready formatting unless `audit/submission_manifest.json` records a confirmed target and current requirements/QC.\n"
         ),
     )
 
@@ -336,8 +341,18 @@ def materialize_journal_package(
             "title_page_markdown": str(package_root / "title_page.md") if requirements.title_page_required else None,
             "declarations_markdown": str(package_root / "declarations.md"),
         },
+        "delivery_layout": build_package_layout_block(
+            package_root=package_root,
+            source_package_root=source_root,
+            human_package_root=package_root,
+            source_signature=str(source_manifest.get("source_signature") or "").strip() or None,
+            package_role="journal_targeted_projection",
+            legacy_input_status="v2_generated",
+        ),
     }
-    (package_root / "submission_manifest.json").write_text(
+    package_manifest_path = submission_manifest_path(package_root)
+    package_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    package_manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
@@ -358,7 +373,7 @@ def materialize_journal_package(
         "source_authority_kind": source_authority["authority_kind"],
         "is_study_canonical_paper_root": source_authority["is_study_canonical_paper_root"],
         "package_root": str(package_root),
-        "submission_manifest_path": str(package_root / "submission_manifest.json"),
+        "submission_manifest_path": str(package_manifest_path),
         "zip_path": str(zip_path),
         "package_status": package_status["status"],
     }, control_plane_route_gate)

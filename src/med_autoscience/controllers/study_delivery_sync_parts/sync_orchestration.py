@@ -3,9 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
-import tempfile
-import zipfile
-from datetime import datetime, timezone
 from pathlib import Path
 from collections.abc import Mapping
 from typing import Any
@@ -16,8 +13,6 @@ from med_autoscience.publication_profiles import (
     is_supported_publication_profile,
     normalize_publication_profile,
 )
-from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
-from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
 from med_autoscience.controllers.artifact_lifecycle_inventory import build_study_delivery_lifecycle_hook
 from med_autoscience.controllers.control_plane_route_gate import (
     attach_control_plane_route_gate,
@@ -29,40 +24,27 @@ from med_autoscience.controllers.control_plane_write_route import (
 
 from .staging_and_sources import (
     SYNC_STAGES,
-    FORMAL_PAPER_DELIVERY_RELATIVE_PATHS,
     utc_now,
     dump_json,
-    _normalized_path,
-    _build_ledger_contract_linkage,
     build_charter_contract_linkage,
     write_text,
     reset_directory,
     remove_directory,
     create_staging_root,
-    remap_staging_path_string,
 )
 from .staging_and_sources import (
     remap_staging_file_records,
     replace_directory_atomically,
-    clear_directory_contents,
-    can_sync_study_delivery,
-    _resolve_study_owned_paper_context,
     _resolve_delivery_context,
     copy_file,
     copy_tree,
     build_submission_source_root,
     build_submission_package_readme,
     build_general_delivery_readme,
-    _submission_delivery_stale_reason_label,
 )
 from .staging_and_sources import (
-    build_unavailable_general_delivery_readme,
-    build_preview_general_delivery_readme,
-    build_manuscript_root_readme,
     build_artifacts_root_readme,
     build_artifacts_finalize_readme,
-    build_unavailable_submission_package_readme,
-    build_submission_package_audit_preview_readme,
     build_delivery_surface_roles,
     build_promoted_delivery_readme,
     ensure_manuscript_root_readme,
@@ -71,39 +53,24 @@ from .staging_and_sources import (
 )
 from .staging_and_sources import (
     build_authority_source_relative_root,
-    FRONT_MATTER_LABELS,
-    METADATA_CLOSEOUT_LABELS,
-    _humanize_submission_field,
-    _humanize_metadata_closeout_item,
-    _is_pending_submission_item,
-    build_submission_todo_from_manifest,
     build_current_package_readme,
     sync_current_package_projection,
+)
+from med_autoscience.controllers.submission_package_layout import (
+    audit_path,
+    build_submission_delivery_signature_block,
+    resolve_submission_manifest_path,
 )
 from .delivery_descriptions import (
     _copy_relative_files,
     copy_review_ledger_to_delivery_root,
-    _copy_optional_file,
-    _copy_optional_tree,
-    _iter_relative_files,
     _draft_handoff_source_relative_paths,
     _draft_handoff_source_signature,
-    _resolve_submission_source_path,
-    _hash_file_bytes,
-    CURRENT_PACKAGE_GENERATED_PROJECTION_RELATIVE_PATHS,
-    CURRENT_PACKAGE_JSON_VOLATILE_TOP_LEVEL_KEYS,
     _submission_source_relative_paths,
 )
 from .delivery_descriptions import (
     _submission_source_signature,
-    _load_json_file,
-    _normalize_projection_json_payload,
-    _submission_projection_file_matches_source,
-    _submission_projection_matches_source,
     build_draft_handoff_readme,
-    describe_draft_handoff_delivery,
-    describe_submission_delivery,
-    materialize_submission_delivery_stale_notice,
 )
 
 
@@ -269,8 +236,8 @@ def sync_general_delivery(
             copied_files=copied_files,
         )
         copy_file(
-            source=source_root / "submission_manifest.json",
-            target=staging_manuscript_root / "submission_manifest.json",
+            source=resolve_submission_manifest_path(source_root),
+            target=audit_path(staging_manuscript_root, "submission_manifest"),
             category="manifest",
             copied_files=copied_files,
         )
@@ -278,7 +245,7 @@ def sync_general_delivery(
         if evidence_ledger_source.exists():
             copy_file(
                 source=evidence_ledger_source,
-                target=staging_manuscript_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+                target=audit_path(staging_manuscript_root, "evidence_ledger"),
                 category="evidence_ledger",
                 copied_files=copied_files,
             )
@@ -407,13 +374,16 @@ def sync_general_delivery(
             "schema_version": 1,
             "generated_at": utc_now(),
             "stage": normalized_stage,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "publication_profile": "general_medical_journal",
-        "source_signature": source_signature,
-        "evaluated_source_signature": source_signature,
-        "authority_source_signature": source_signature,
-        "source_relative_paths": [path.as_posix() for path in source_relative_paths],
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "publication_profile": "general_medical_journal",
+            **build_submission_delivery_signature_block(
+                source_signature=source_signature,
+                source_relative_paths=source_relative_paths,
+                source_package_root=source_root,
+                human_package_root=manuscript_root / "current_package",
+                package_role="human_facing_mirror",
+            ),
             "source": {
                 "paper_root": str(paper_root),
                 "worktree_root": str(worktree_root),
@@ -514,8 +484,8 @@ def sync_journal_specific_delivery(
         copied_files=copied_files,
     )
     copy_file(
-        source=source_root / "submission_manifest.json",
-        target=journal_package_root / "submission_manifest.json",
+        source=resolve_submission_manifest_path(source_root),
+        target=audit_path(journal_package_root, "submission_manifest"),
         category="journal_submission_package",
         copied_files=copied_files,
     )
@@ -523,7 +493,7 @@ def sync_journal_specific_delivery(
     if evidence_ledger_source.exists():
         copy_file(
             source=evidence_ledger_source,
-            target=journal_package_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+            target=audit_path(journal_package_root, "evidence_ledger"),
             category="journal_submission_package",
             copied_files=copied_files,
         )
@@ -600,10 +570,13 @@ def sync_journal_specific_delivery(
         "study_id": study_id,
         "quest_id": quest_id,
         "publication_profile": publication_profile,
-        "source_signature": source_signature,
-        "evaluated_source_signature": source_signature,
-        "authority_source_signature": source_signature,
-        "source_relative_paths": [path.as_posix() for path in source_relative_paths],
+        **build_submission_delivery_signature_block(
+            source_signature=source_signature,
+            source_relative_paths=source_relative_paths,
+            source_package_root=source_root,
+            human_package_root=journal_package_root,
+            package_role="journal_submission_mirror",
+        ),
         "source": {
             "paper_root": str(paper_root),
             "worktree_root": str(worktree_root),
@@ -691,8 +664,8 @@ def sync_promoted_journal_delivery(
         copied_files=copied_files,
     )
     copy_file(
-        source=source_root / "submission_manifest.json",
-        target=manuscript_root / "submission_manifest.json",
+        source=resolve_submission_manifest_path(source_root),
+        target=audit_path(manuscript_root, "submission_manifest"),
         category="manifest",
         copied_files=copied_files,
     )
@@ -700,7 +673,7 @@ def sync_promoted_journal_delivery(
     if evidence_ledger_source.exists():
         copy_file(
             source=evidence_ledger_source,
-            target=manuscript_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+            target=audit_path(manuscript_root, "evidence_ledger"),
             category="evidence_ledger",
             copied_files=copied_files,
         )
@@ -809,7 +782,7 @@ def sync_promoted_journal_delivery(
     )
     copy_file(
         source=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
-        target=mirror_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+        target=audit_path(mirror_root, "evidence_ledger"),
         category="journal_submission_mirror",
         copied_files=copied_files,
     )
@@ -835,10 +808,13 @@ def sync_promoted_journal_delivery(
         "study_id": study_id,
         "quest_id": quest_id,
         "publication_profile": publication_profile,
-        "source_signature": source_signature,
-        "evaluated_source_signature": source_signature,
-        "authority_source_signature": source_signature,
-        "source_relative_paths": [path.as_posix() for path in source_relative_paths],
+        **build_submission_delivery_signature_block(
+            source_signature=source_signature,
+            source_relative_paths=source_relative_paths,
+            source_package_root=source_root,
+            human_package_root=mirror_root,
+            package_role="journal_submission_mirror",
+        ),
         "source": {
             "paper_root": str(paper_root),
             "package_source_root": str(source_root),
@@ -888,10 +864,13 @@ def sync_promoted_journal_delivery(
         "study_id": study_id,
         "quest_id": quest_id,
         "publication_profile": publication_profile,
-        "source_signature": source_signature,
-        "evaluated_source_signature": source_signature,
-        "authority_source_signature": source_signature,
-        "source_relative_paths": [path.as_posix() for path in source_relative_paths],
+        **build_submission_delivery_signature_block(
+            source_signature=source_signature,
+            source_relative_paths=source_relative_paths,
+            source_package_root=source_root,
+            human_package_root=current_package_root,
+            package_role="human_facing_mirror",
+        ),
         "source": {
             "paper_root": str(paper_root),
             "package_source_root": str(source_root),

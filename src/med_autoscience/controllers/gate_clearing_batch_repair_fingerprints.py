@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from med_autoscience.controllers import gate_clearing_batch_submission
+from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -174,7 +175,7 @@ def submission_minimal_fingerprint_payload(
         payload["submission_outputs"] = path_fingerprints(
             submission_root / "manuscript.docx",
             submission_root / "paper.pdf",
-            submission_root / "submission_manifest.json",
+            resolve_submission_manifest_path(submission_root),
             submission_root / "README.md",
         )
         excluded_compiled_source_roots = (
@@ -304,7 +305,7 @@ def repair_unit_fingerprint(
             ),
             "study_delivery_missing_source_paths": _string_list(gate_report.get("study_delivery_missing_source_paths")),
             "submission_minimal_manifest": path_fingerprint(
-                paper_root / "submission_minimal" / "submission_manifest.json"
+                resolve_submission_manifest_path(paper_root / "submission_minimal")
             ),
             "submission_minimal_assets": globbed_path_fingerprints(
                 paper_root / "submission_minimal",

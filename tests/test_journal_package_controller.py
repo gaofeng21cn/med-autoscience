@@ -101,10 +101,10 @@ def test_materialize_journal_package_writes_stable_shallow_package(tmp_path: Pat
     assert (package_root / "main_manuscript.docx").exists()
     assert (package_root / "main_manuscript.pdf").exists()
     assert (package_root / "journal_requirements_snapshot.json").exists()
-    assert (package_root / "submission_manifest.json").exists()
+    assert (package_root / "audit" / "submission_manifest.json").exists()
     assert (package_root / "SUBMISSION_TODO.md").exists()
     assert (package_root / "rheumatology-international_submission_package.zip").exists()
-    manifest = json.loads((package_root / "submission_manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((package_root / "audit" / "submission_manifest.json").read_text(encoding="utf-8"))
     assert manifest["package_role"] == "journal_targeted_projection"
     assert manifest["default_human_facing_package_root"] == str(study_root / "manuscript" / "current_package")
     assert manifest["source_authority"]["authority_kind"] == "study_canonical_paper"
@@ -242,5 +242,5 @@ def test_materialized_journal_package_survives_manuscript_delivery_sync_refresh(
     )
 
     assert (
-        study_root / "submission_packages" / "rheumatology-international" / "submission_manifest.json"
+        study_root / "submission_packages" / "rheumatology-international" / "audit" / "submission_manifest.json"
     ).exists()

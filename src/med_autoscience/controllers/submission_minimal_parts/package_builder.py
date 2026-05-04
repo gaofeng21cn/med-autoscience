@@ -10,6 +10,15 @@ from .profile_builders import *
 from .source_contract import build_submission_minimal_source_contract
 from collections.abc import Mapping
 import inspect
+from med_autoscience.controllers.submission_package_layout import (
+    build_analysis_manifest_document,
+    build_package_layout_block,
+    build_source_relative_paths_document,
+    build_source_signature_document,
+    audit_path,
+    reproducibility_path,
+    submission_manifest_path as layout_submission_manifest_path,
+)
 
 def create_submission_minimal_package(
     *,
@@ -329,6 +338,13 @@ def create_submission_minimal_package(
             "publication_profile": resolved_publication_profile,
             "citation_style": profile_config.citation_style,
             "output_root": relpath_from_workspace(target_submission_root, workspace_root),
+            "delivery_layout": build_package_layout_block(
+                package_root=target_submission_root,
+                workspace_root=workspace_root,
+                package_role="controller_authorized_package_source",
+                source_package_root=target_submission_root,
+                legacy_input_status="v2_generated",
+            ),
             "manuscript": {
                 "source_markdown_path": relpath_from_workspace(
                     remap_staging_path_to_target(
@@ -448,8 +464,11 @@ def create_submission_minimal_package(
             build_submission_minimal_readme(publication_profile=resolved_publication_profile),
         )
         manifest["readme_path"] = relpath_from_workspace(target_submission_root / "README.md", workspace_root)
-        submission_manifest_path = staging_submission_root / "submission_manifest.json"
+        submission_manifest_path = layout_submission_manifest_path(staging_submission_root)
         dump_json(submission_manifest_path, manifest)
+        evidence_ledger_source = paper_root / "evidence_ledger.json"
+        if evidence_ledger_source.exists():
+            shutil.copy2(evidence_ledger_source, audit_path(staging_submission_root, "evidence_ledger"))
         replace_directory_atomically(
             staging_root=staging_submission_root,
             target_root=target_submission_root,
@@ -458,7 +477,7 @@ def create_submission_minimal_package(
         shutil.rmtree(staging_submission_root, ignore_errors=True)
         raise
 
-    submission_manifest_path = target_submission_root / "submission_manifest.json"
+    submission_manifest_path = layout_submission_manifest_path(target_submission_root)
     post_replace_contract_markdown_path = remap_staging_path_to_target(
         path=source_contract_markdown_path,
         staging_root=staging_submission_root,
@@ -477,7 +496,39 @@ def create_submission_minimal_package(
     )
     manifest["source_signature"] = refreshed_source_contract["source_signature"]
     manifest["source_contract"] = refreshed_source_contract
+    manifest["delivery_layout"] = build_package_layout_block(
+        package_root=target_submission_root,
+        workspace_root=workspace_root,
+        package_role="controller_authorized_package_source",
+        source_package_root=target_submission_root,
+        source_signature=refreshed_source_contract["source_signature"],
+        legacy_input_status="v2_generated",
+    )
     dump_json(submission_manifest_path, manifest)
+    dump_json(
+        reproducibility_path(target_submission_root, "source_signature"),
+        build_source_signature_document(
+            source_signature=refreshed_source_contract["source_signature"],
+            source_contract=refreshed_source_contract,
+            package_role="controller_authorized_package_source",
+        ),
+    )
+    dump_json(
+        reproducibility_path(target_submission_root, "source_relative_paths"),
+        build_source_relative_paths_document(
+            source_relative_paths=refreshed_source_contract.get("source_paths") or [],
+            source_files=refreshed_source_contract.get("source_files") or [],
+            package_role="controller_authorized_package_source",
+        ),
+    )
+    dump_json(
+        reproducibility_path(target_submission_root, "analysis_manifest"),
+        build_analysis_manifest_document(
+            analysis_manifest_source=None,
+            analysis_manifest_present=False,
+            package_role="controller_authorized_package_source",
+        ),
+    )
     archived_surface_roots = materialize_archived_reference_only_submission_surface_manifests(
         paper_root,
         active_manifest_path=submission_manifest_path,
@@ -514,7 +565,31 @@ def create_submission_minimal_package(
         )
         manifest["source_signature"] = refreshed_source_contract["source_signature"]
         manifest["source_contract"] = refreshed_source_contract
+        manifest["delivery_layout"] = build_package_layout_block(
+            package_root=target_submission_root,
+            workspace_root=workspace_root,
+            package_role="controller_authorized_package_source",
+            source_package_root=target_submission_root,
+            source_signature=refreshed_source_contract["source_signature"],
+            legacy_input_status="v2_generated",
+        )
         dump_json(submission_manifest_path, manifest)
+        dump_json(
+            reproducibility_path(target_submission_root, "source_signature"),
+            build_source_signature_document(
+                source_signature=refreshed_source_contract["source_signature"],
+                source_contract=refreshed_source_contract,
+                package_role="controller_authorized_package_source",
+            ),
+        )
+        dump_json(
+            reproducibility_path(target_submission_root, "source_relative_paths"),
+            build_source_relative_paths_document(
+                source_relative_paths=refreshed_source_contract.get("source_paths") or [],
+                source_files=refreshed_source_contract.get("source_files") or [],
+                package_role="controller_authorized_package_source",
+            ),
+        )
     if delivery_sync_result is not None or post_materialization_sync_result is not None:
         result = dict(manifest)
         if delivery_sync_result is not None:

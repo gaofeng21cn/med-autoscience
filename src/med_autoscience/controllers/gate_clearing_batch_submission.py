@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from med_autoscience.controllers.gate_authority_currentness import resolve_gate_authority_currentness
+from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 
 
 BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
@@ -162,7 +163,7 @@ def current_package_authority_fingerprints(
     path_fingerprints: Callable[..., list[dict[str, Any]]],
 ) -> list[dict[str, Any]]:
     return path_fingerprints(
-        paper_root / "submission_minimal" / "submission_manifest.json",
+        resolve_submission_manifest_path(paper_root / "submission_minimal"),
         paper_root / "submission_minimal" / "manuscript.docx",
         paper_root / "submission_minimal" / "paper.pdf",
         paper_root / "submission_minimal" / "Supplementary_Material.docx",

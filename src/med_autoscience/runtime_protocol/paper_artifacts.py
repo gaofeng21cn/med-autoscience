@@ -6,6 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.artifact_lifecycle_authority_kernel import ArtifactLifecycleAuthorityKernel
+from med_autoscience.controllers.submission_package_layout import (
+    legacy_submission_manifest_path,
+    resolve_submission_manifest_path as resolve_package_submission_manifest_path,
+    submission_manifest_path as v2_submission_manifest_path,
+)
 from med_autoscience.publication_profiles import is_supported_publication_profile, normalize_publication_profile
 from med_autoscience.runtime_protocol.topology import resolve_study_root_from_quest_root
 
@@ -294,10 +299,9 @@ def resolve_paper_bundle_manifest(quest_root: Path) -> Path | None:
 def resolve_submission_minimal_manifest(paper_bundle_manifest_path: Path | None) -> Path | None:
     if paper_bundle_manifest_path is None:
         return None
-    candidate = (
+    candidate = resolve_package_submission_manifest_path(
         _resolve_authoritative_paper_root_from_bundle_manifest_path(paper_bundle_manifest_path)
         / "submission_minimal"
-        / "submission_manifest.json"
     )
     return candidate if candidate.exists() else None
 
@@ -352,7 +356,7 @@ def submission_checklist_requires_external_metadata(payload: dict[str, Any] | No
 
 
 def load_submission_surface_manifest(surface_root: Path) -> dict[str, Any] | None:
-    manifest_path = _resolve_path(surface_root) / "submission_manifest.json"
+    manifest_path = resolve_package_submission_manifest_path(_resolve_path(surface_root))
     if not manifest_path.exists():
         return None
     try:
@@ -383,7 +387,7 @@ def _is_path_within(root: Path, candidate: Path) -> bool:
 def resolve_managed_submission_manifest_paths(paper_root: Path) -> tuple[Path, ...]:
     manifest_paths: list[Path] = []
     for root in resolve_managed_submission_surface_roots(paper_root):
-        manifest_path = root / "submission_manifest.json"
+        manifest_path = resolve_package_submission_manifest_path(root)
         if manifest_path.exists():
             manifest_paths.append(manifest_path.resolve())
     return tuple(manifest_paths)
@@ -413,13 +417,14 @@ def is_archived_reference_only_submission_surface_manifest(
         return False
     if active_manifest_path not in set(resolve_managed_submission_manifest_paths(resolved_paper_root)):
         return False
-    active_manifest = load_submission_surface_manifest(active_manifest_path.parent)
+    active_surface_root = _surface_root_from_submission_manifest_path(active_manifest_path)
+    active_manifest = load_submission_surface_manifest(active_surface_root)
     if not isinstance(active_manifest, dict):
         return False
     active_publication_profile = str(active_manifest.get("publication_profile") or "").strip()
     if not is_supported_publication_profile(active_publication_profile):
         return False
-    return active_manifest_path.parent.resolve() != _resolve_path(surface_root)
+    return active_surface_root != _resolve_path(surface_root)
 
 
 def _workspace_relative_manifest_path(*, paper_root: Path, manifest_path: Path) -> str:
@@ -431,11 +436,32 @@ def _workspace_relative_manifest_path(*, paper_root: Path, manifest_path: Path) 
         return str(resolved_manifest_path)
 
 
+def _surface_root_from_submission_manifest_path(manifest_path: Path) -> Path:
+    resolved_manifest_path = _resolve_path(manifest_path)
+    if resolved_manifest_path.name == "submission_manifest.json" and resolved_manifest_path.parent.name == "audit":
+        return resolved_manifest_path.parent.parent.resolve()
+    return resolved_manifest_path.parent.resolve()
+
+
 def _prune_archived_reference_only_surface_root(*, surface_root: Path, manifest_path: Path) -> bool:
     pruned = False
     resolved_manifest_path = manifest_path.resolve()
     for child in sorted(surface_root.iterdir()):
-        if child.resolve() == resolved_manifest_path:
+        resolved_child = child.resolve()
+        if resolved_child == resolved_manifest_path:
+            continue
+        if child.is_dir() and _is_path_within(resolved_child, resolved_manifest_path):
+            for nested in sorted(child.rglob("*"), reverse=True):
+                if nested.resolve() == resolved_manifest_path:
+                    continue
+                if nested.is_dir():
+                    try:
+                        nested.rmdir()
+                    except OSError:
+                        pass
+                    continue
+                nested.unlink()
+                pruned = True
             continue
         if child.is_dir():
             shutil.rmtree(child)
@@ -481,9 +507,18 @@ def materialize_archived_reference_only_submission_surface_manifests(
         return tuple()
 
     if active_manifest_path is None:
-        preferred_manifest_path = (resolved_paper_root / "submission_minimal" / "submission_manifest.json").resolve()
+        preferred_manifest_path = v2_submission_manifest_path(resolved_paper_root / "submission_minimal").resolve()
+        legacy_preferred_manifest_path = legacy_submission_manifest_path(
+            resolved_paper_root / "submission_minimal"
+        ).resolve()
         resolved_active_manifest_path = (
-            preferred_manifest_path if preferred_manifest_path in managed_manifest_paths else sorted(managed_manifest_paths)[0]
+            preferred_manifest_path
+            if preferred_manifest_path in managed_manifest_paths
+            else (
+                legacy_preferred_manifest_path
+                if legacy_preferred_manifest_path in managed_manifest_paths
+                else sorted(managed_manifest_paths)[0]
+            )
         )
     else:
         resolved_active_manifest_path = _resolve_path(active_manifest_path)
@@ -491,7 +526,9 @@ def materialize_archived_reference_only_submission_surface_manifests(
     if resolved_active_manifest_path not in managed_manifest_paths:
         return tuple()
 
-    active_manifest = load_submission_surface_manifest(resolved_active_manifest_path.parent)
+    active_manifest = load_submission_surface_manifest(
+        _surface_root_from_submission_manifest_path(resolved_active_manifest_path)
+    )
     if not isinstance(active_manifest, dict):
         return tuple()
     active_publication_profile = str(active_manifest.get("publication_profile") or "").strip()
@@ -509,9 +546,9 @@ def materialize_archived_reference_only_submission_surface_manifests(
     }
     materialized_roots: list[Path] = []
     for surface_root in _iter_legacy_submission_surface_roots(resolved_paper_root):
-        if surface_root == resolved_active_manifest_path.parent.resolve():
+        if surface_root == _surface_root_from_submission_manifest_path(resolved_active_manifest_path):
             continue
-        manifest_path = surface_root / "submission_manifest.json"
+        manifest_path = v2_submission_manifest_path(surface_root)
         existing_manifest = load_submission_surface_manifest(surface_root)
         pruned_surface = _prune_archived_reference_only_surface_root(
             surface_root=surface_root,

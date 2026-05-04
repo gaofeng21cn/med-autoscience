@@ -419,7 +419,9 @@ def test_materializes_archived_reference_only_manifest_for_legacy_journal_surfac
     materialized = paper_artifacts.materialize_archived_reference_only_submission_surface_manifests(paper_root)
 
     assert materialized == (legacy_surface_root.resolve(),)
-    archived_manifest = json.loads((legacy_surface_root / "submission_manifest.json").read_text(encoding="utf-8"))
+    archived_manifest = json.loads(
+        (legacy_surface_root / "audit" / "submission_manifest.json").read_text(encoding="utf-8")
+    )
     assert archived_manifest == {
         "schema_version": 1,
         "surface_status": "archived_reference_only",
@@ -431,7 +433,7 @@ def test_materializes_archived_reference_only_manifest_for_legacy_journal_surfac
         for path in legacy_surface_root.rglob("*")
         if path.is_file()
     )
-    assert archived_files == ["submission_manifest.json"]
+    assert archived_files == ["audit/submission_manifest.json"]
     assert resolve_archived_submission_surface_roots(paper_root) == (legacy_surface_root.resolve(),)
     assert find_unmanaged_submission_surface_roots(paper_root) == ()
 

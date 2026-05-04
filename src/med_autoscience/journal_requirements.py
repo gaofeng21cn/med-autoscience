@@ -7,6 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.submission_package_layout import (
+    resolve_submission_manifest_path,
+    submission_manifest_path,
+)
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -82,7 +87,7 @@ def journal_submission_package_root(*, study_root: Path, journal_slug: str) -> P
 
 
 def journal_submission_manifest_path(*, study_root: Path, journal_slug: str) -> Path:
-    return journal_submission_package_root(study_root=study_root, journal_slug=journal_slug) / "submission_manifest.json"
+    return submission_manifest_path(journal_submission_package_root(study_root=study_root, journal_slug=journal_slug))
 
 
 def _serialize_requirements(requirements: JournalRequirements) -> dict[str, Any]:
@@ -188,7 +193,7 @@ def load_journal_requirements(*, study_root: Path, journal_slug: str) -> Journal
 
 def describe_journal_submission_package(*, study_root: Path, journal_slug: str) -> dict[str, Any]:
     package_root = journal_submission_package_root(study_root=study_root, journal_slug=journal_slug)
-    manifest_path = package_root / "submission_manifest.json"
+    manifest_path = resolve_submission_manifest_path(package_root)
     zip_path = package_root / f"{journal_slug}_submission_package.zip"
     if not package_root.exists() or not manifest_path.exists():
         return {

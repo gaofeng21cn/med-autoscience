@@ -35,6 +35,8 @@
 - `runtime_log`
 - `delivery_package`
 
+`delivery_package` 使用 `submission-package.v2` 时，inventory 应把 package root、`audit/` 和 `reproducibility/` 分开投影：根目录是人读投稿文件，`audit/` 是审计追踪材料，`reproducibility/` 是来源签名和复现索引。三者仍然都是 projection，不是新的 authority root。
+
 ## Projection 规则
 
 - `study-progress` 应优先展示当前 blocker / next action 相关 artifact。

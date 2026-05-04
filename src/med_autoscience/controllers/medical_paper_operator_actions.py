@@ -122,7 +122,6 @@ def guarded_pending_action_result(
     return {
         "status": "guarded_pending",
         "durable_ref": None,
-        "replay_ref": None,
         "missing_reason": missing_reason,
         "next_action": next_action,
         "authority_contract": guarded_operator_authority_contract(),

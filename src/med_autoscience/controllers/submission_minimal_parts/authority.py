@@ -1,5 +1,6 @@
 from .shared import *
 from .source_contract import build_submission_minimal_source_contract
+from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 
 def _resolve_authority_contract_markdown_path(
     *,
@@ -117,7 +118,7 @@ def describe_submission_minimal_authority(
         paper_root=resolved_paper_root,
         publication_profile=normalized_publication_profile,
     )
-    submission_manifest_path = submission_root / "submission_manifest.json"
+    submission_manifest_path = resolve_submission_manifest_path(submission_root)
     if not submission_manifest_path.exists():
         return {
             "applicable": True,

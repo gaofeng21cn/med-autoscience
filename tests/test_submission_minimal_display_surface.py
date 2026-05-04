@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import display_registry
+from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 from tests.submission_minimal_cases.shared import lightweight_submission_exports, real_submission_exports
 
 PNG_1X1_BASE64 = (
@@ -591,7 +592,7 @@ def test_create_submission_minimal_package_preserves_001_direct_migration_displa
 
     figures_by_id = {item["figure_id"]: item for item in manifest["figures"]}
     tables_by_id = {item["table_id"]: item for item in manifest["tables"]}
-    manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
+    manifest_path = resolve_submission_manifest_path(paper_root / "submission_minimal")
     manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     assert set(figures_by_id) == {"F1", "F2", "F3", "F4", "F5"}

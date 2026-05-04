@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.submission_package_layout import (
+    resolve_submission_manifest_path,
+    submission_manifest_path,
+)
+
 from . import shared as _shared
 
 globals().update({
@@ -75,7 +80,7 @@ def test_run_controller_refreshes_stale_journal_package_when_source_submission_m
         journal_slug=journal_slug,
         publication_profile="general_medical_journal",
     )
-    source_manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
+    source_manifest_path = resolve_submission_manifest_path(paper_root / "submission_minimal")
     source_manifest_payload = json.loads(source_manifest_path.read_text(encoding="utf-8"))
     source_manifest_payload["generated_at"] = "2026-04-06T00:00:01+00:00"
     source_manifest_path.write_text(
@@ -123,7 +128,7 @@ def test_run_controller_refreshes_stale_journal_package_when_source_submission_m
     assert journal_package_sync["publication_profile"] == "general_medical_journal"
     assert journal_package_sync["package_root"] == str((study_root / "submission_packages" / journal_slug).resolve())
     assert journal_package_sync["submission_manifest_path"] == str(
-        (study_root / "submission_packages" / journal_slug / "submission_manifest.json").resolve()
+        submission_manifest_path(study_root / "submission_packages" / journal_slug).resolve()
     )
     assert journal_package_sync["zip_path"] == str(
         (study_root / "submission_packages" / journal_slug / f"{journal_slug}_submission_package.zip").resolve()

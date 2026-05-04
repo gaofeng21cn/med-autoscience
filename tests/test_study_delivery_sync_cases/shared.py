@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import zipfile
 
 import pytest
 
@@ -123,7 +124,7 @@ def make_delivery_workspace(
     write_text(paper_root / "submission_minimal" / "manuscript.docx", "docx")
     write_text(paper_root / "submission_minimal" / "paper.pdf", "%PDF-1.4\n")
     dump_json(
-        paper_root / "submission_minimal" / "submission_manifest.json",
+        paper_root / "submission_minimal" / "audit" / "submission_manifest.json",
         {
             "schema_version": 1,
             "generated_at": "2026-03-29T04:16:28+00:00",
@@ -283,7 +284,7 @@ runtime_reentry_gate:
     write_text(paper_root / "submission_minimal" / "manuscript.docx", "docx")
     write_text(paper_root / "submission_minimal" / "paper.pdf", "%PDF-1.4\n")
     dump_json(
-        paper_root / "submission_minimal" / "submission_manifest.json",
+        paper_root / "submission_minimal" / "audit" / "submission_manifest.json",
         {
             "schema_version": 1,
             "generated_at": "2026-04-03T01:00:00+00:00",
@@ -344,8 +345,6 @@ def make_draft_handoff_workspace_with_quick_review(tmp_path: Path) -> tuple[Path
     write_text(paper_root / "manuscript.docx", "docx draft review manuscript")
     write_text(paper_root / "build" / "review_manuscript.md", "# Review Manuscript\n\nCurrent draft bundle.\n")
     return paper_root, study_root
-
-
 
 
 

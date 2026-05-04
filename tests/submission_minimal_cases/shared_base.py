@@ -211,6 +211,19 @@ Caption.
     write_text(paper_root / "tables" / "T1_summary.csv", "Characteristic,Value\nAge,52\n")
     write_text(paper_root / "tables" / "T1_summary.md", "| Characteristic | Value |\n| --- | --- |\n| Age | 52 |\n")
     write_text(paper_root / "paper.pdf", "%PDF-1.4\n%paper bundle\n")
+    dump_json(
+        paper_root / "evidence_ledger.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "C1",
+                    "status": "supported",
+                    "evidence": [{"source_paths": ["paper/figures/F1_main.png"]}],
+                }
+            ],
+        },
+    )
 
     dump_json(
         paper_root / "build" / "compile_report.json",
@@ -605,4 +618,3 @@ def make_authoritative_worktree_source_workspace(tmp_path: Path) -> Path:
         },
     )
     return paper_root
-

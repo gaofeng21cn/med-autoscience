@@ -23,6 +23,11 @@ from med_autoscience.controllers.control_plane_write_route import (
     blocked_control_plane_write_payload,
     resolve_control_plane_write_route_context,
 )
+from med_autoscience.controllers.submission_package_layout import (
+    audit_path,
+    reproducibility_path,
+    resolve_submission_manifest_path,
+)
 
 from .staging_and_sources import (
     SYNC_STAGES,
@@ -271,7 +276,26 @@ CURRENT_PACKAGE_GENERATED_PROJECTION_RELATIVE_PATHS = frozenset(
 
 CURRENT_PACKAGE_JSON_VOLATILE_TOP_LEVEL_KEYS: dict[Path, frozenset[str]] = {
     Path("evidence_ledger.json"): frozenset({"updated_at"}),
+    Path("audit/evidence_ledger.json"): frozenset({"updated_at"}),
 }
+
+
+def _submission_projection_target_path(*, relative_path: Path, current_package_root: Path) -> Path:
+    if relative_path == Path("submission_manifest.json"):
+        return audit_path(current_package_root, "submission_manifest")
+    if relative_path == Path("evidence_ledger.json"):
+        return audit_path(current_package_root, "evidence_ledger")
+    if relative_path == Path("review") / "review_ledger.json":
+        return audit_path(current_package_root, "review_ledger")
+    if relative_path == Path("controller") / "study_charter.json":
+        return audit_path(current_package_root, "study_charter")
+    if relative_path == Path("reproducibility") / "source_signature.json":
+        return reproducibility_path(current_package_root, "source_signature")
+    if relative_path == Path("reproducibility") / "source_relative_paths.json":
+        return reproducibility_path(current_package_root, "source_relative_paths")
+    if relative_path == Path("reproducibility") / "analysis_manifest.json":
+        return reproducibility_path(current_package_root, "analysis_manifest")
+    return current_package_root / relative_path
 
 
 def _submission_source_relative_paths(*, paper_root: Path, source_root: Path) -> tuple[Path, ...]:
@@ -366,7 +390,10 @@ def _submission_projection_matches_source(
             source_root=resolved_source_root,
             relative_path=relative_path,
         )
-        target = resolved_current_package_root / relative_path
+        target = _submission_projection_target_path(
+            relative_path=relative_path,
+            current_package_root=resolved_current_package_root,
+        )
         if not _submission_projection_file_matches_source(
             relative_path=relative_path,
             source=source,
@@ -628,7 +655,7 @@ def describe_submission_delivery(
         paper_root=resolved_paper_root,
         publication_profile=normalized_publication_profile,
     )
-    expected_manifest_path = expected_source_root / "submission_manifest.json"
+    expected_manifest_path = resolve_submission_manifest_path(expected_source_root)
     if not expected_manifest_path.exists():
         missing_source_paths = sorted(
             {
@@ -805,7 +832,7 @@ def materialize_submission_delivery_stale_notice(
         review_ledger_path=resolved_paper_root / "review" / "review_ledger.json",
     )
     preview_file_count = 0
-    for name in ("manuscript.docx", "paper.pdf", "submission_manifest.json"):
+    for name in ("manuscript.docx", "paper.pdf"):
         if _copy_optional_file(
             source=expected_source_root / name,
             target=manuscript_root / name,
@@ -819,6 +846,20 @@ def materialize_submission_delivery_stale_notice(
                 category="preview_current_package",
                 copied_files=copied_files,
             )
+    source_manifest_path = resolve_submission_manifest_path(expected_source_root)
+    if _copy_optional_file(
+        source=source_manifest_path,
+        target=audit_path(manuscript_root, "submission_manifest"),
+        category="preview_delivery_root",
+        copied_files=copied_files,
+    ):
+        preview_file_count += 1
+        copy_file(
+            source=audit_path(manuscript_root, "submission_manifest"),
+            target=audit_path(current_package_root, "submission_manifest"),
+            category="preview_current_package",
+            copied_files=copied_files,
+        )
     preview_file_count += int(
         _copy_optional_file(
             source=resolved_paper_root / "build" / "review_manuscript.md",

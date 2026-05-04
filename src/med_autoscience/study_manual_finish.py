@@ -9,6 +9,7 @@ from pathlib import Path
 import yaml
 
 from med_autoscience.controllers import study_delivery_sync
+from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.study_task_intake import (
     read_latest_task_intake,
@@ -55,7 +56,7 @@ _BUNDLE_ONLY_CURRENT_PACKAGE_REQUIRED_FILES = (
     "manuscript.docx",
     "paper.pdf",
     "references.bib",
-    "submission_manifest.json",
+    "audit/submission_manifest.json",
     "SUBMISSION_TODO.md",
 )
 _AUTONOMOUS_MANUAL_FINISH_SUMMARY = (
@@ -295,9 +296,9 @@ def _delivered_package_ready(
         return False
     if require_zip_path is not None and not require_zip_path.exists():
         return False
-    manifest_payload = _read_json_dict(package_root / "submission_manifest.json")
+    manifest_payload = _read_json_dict(resolve_submission_manifest_path(package_root))
     if not manifest_payload:
-        manifest_payload = _read_json_dict(study_root / "manuscript" / "submission_manifest.json")
+        manifest_payload = _read_json_dict(resolve_submission_manifest_path(study_root / "manuscript"))
     if not manifest_payload:
         return False
     if not _package_root_has_required_delivery_files(package_root):

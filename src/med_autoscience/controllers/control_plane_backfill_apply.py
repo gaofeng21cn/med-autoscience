@@ -11,6 +11,7 @@ from med_autoscience.controllers.control_plane_migration_audit import (
     summarize_delivery_manifests,
 )
 from med_autoscience.controllers.control_plane_route_gate import authorize_control_plane_route
+from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 
 
 SCHEMA_VERSION = 1
@@ -250,7 +251,7 @@ def _publication_refs(*, manifest_path: Path) -> dict[str, Any]:
     return {
         "publication_gate": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
         "paper_bundle_manifest": str(study_root / "paper" / "paper_bundle_manifest.json"),
-        "submission_minimal_manifest": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+        "submission_minimal_manifest": str(resolve_submission_manifest_path(study_root / "paper" / "submission_minimal")),
     }
 
 
@@ -341,7 +342,7 @@ def _read_json(path: Path) -> Mapping[str, Any]:
 
 def _study_root_for_manifest(manifest_path: Path) -> Path:
     candidate = manifest_path.parent
-    while candidate.name in {"manuscript", "current_package", "paper", "submission_minimal"}:
+    while candidate.name in {"manuscript", "current_package", "paper", "submission_minimal", "audit"}:
         candidate = candidate.parent
     return candidate
 
