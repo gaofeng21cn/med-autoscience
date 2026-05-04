@@ -19,7 +19,12 @@ def build_guarded_phase2_workflow_steps(*, workflow_command: str) -> list[dict[s
             command=workflow_command,
             requires=["profile_ref", "study_id"],
             guarded_operator_command=guarded_operator_command(action_id=step_id, surface_key=surface_key),
-            action_result=guarded_pending_action_result(missing_reason=None, next_action=summary),
+            action_result=guarded_pending_action_result(
+                action_id=step_id,
+                surface_key=surface_key,
+                missing_reason=None,
+                next_action=summary,
+            ),
             authority_contract=guarded_operator_authority_contract(),
             authority="observability_projection_only",
             quality_claim_authorized=False,

@@ -97,7 +97,23 @@ def test_compact_mcp_progress_projection_preserves_v2_readiness_surface_details(
     assert readiness["quality_claim_authorized"] is False
     assert readiness["mechanical_projection_can_authorize_quality"] is False
     missing = {item["surface_key"]: item for item in readiness["missing_surfaces"]}
-    assert missing["literature_provider_runtime"] == {
+    literature_missing = missing["literature_provider_runtime"]
+    assert {
+        key: literature_missing[key]
+        for key in (
+            "surface_key",
+            "status",
+            "missing_reason",
+            "artifact_path",
+            "evidence_refs",
+            "action_id",
+            "action_label",
+            "action_summary",
+            "semantic_label",
+            "next_action_summary",
+            "authority_contract",
+        )
+    } == {
         "surface_key": "literature_provider_runtime",
         "status": "missing",
         "missing_reason": "missing_provider_provenance",
@@ -108,21 +124,24 @@ def test_compact_mcp_progress_projection_preserves_v2_readiness_surface_details(
         "action_summary": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
         "semantic_label": "补文献",
         "next_action_summary": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
-        "guarded_operator_command": {
-            "surface": "medical_paper_v3_guarded_operator_command",
-            "action_id": "run_provider_literature_scout",
-            "surface_key": "literature_provider_runtime",
-            "entrypoint": "product_entry.dispatch_guarded_medical_paper_operator_action",
-            "guard": "existing_product_entry_controller_guard",
-            "requires": ["profile_ref", "study_id", "operator_payload"],
-            "status": "guarded_pending",
-        },
         "authority_contract": {
             "can_mutate_runtime": False,
             "can_authorize_quality": False,
             "can_authorize_submission": False,
         },
     }
+    command = literature_missing["guarded_operator_command"]
+    assert command["surface"] == "medical_paper_v3_guarded_operator_command"
+    assert command["schema_version"] == 1
+    assert command["action_id"] == "run_provider_literature_scout"
+    assert command["surface_key"] == "literature_provider_runtime"
+    assert command["entrypoint"] == "product_entry.dispatch_guarded_medical_paper_operator_action"
+    assert command["guard"] == "existing_product_entry_controller_guard"
+    assert command["requires"] == ["profile_ref", "study_id", "operator_payload"]
+    assert command["status"] == "guarded_pending"
+    assert command["action_instance_id"].startswith("guarded-operator-action::")
+    assert command["idempotency_key"].startswith("guarded-operator-action::sha256:")
+    assert command["input_digest"].startswith("sha256:")
     assert readiness["v3_action_truth"][0]["surface_key"] == "literature_provider_runtime"
     assert readiness["v3_action_truth"][0]["guarded_operator_command"]["status"] == "guarded_pending"
     assert readiness["v3_action_truth"][0]["authority_contract"]["can_mutate_runtime"] is False

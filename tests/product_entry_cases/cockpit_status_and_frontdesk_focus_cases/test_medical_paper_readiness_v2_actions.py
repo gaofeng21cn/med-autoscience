@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from tests.product_entry_cases.cockpit_status_and_frontdesk_focus_cases.test_medical_paper_readiness import (
     _base_progress_payload,
     _ready_doctor_report,
@@ -8,6 +10,29 @@ from tests.product_entry_cases.cockpit_status_and_frontdesk_focus_cases.test_med
     make_profile,
     write_study,
 )
+
+
+def _provider_payload(*, query: str = "diabetes mortality prediction") -> dict[str, object]:
+    return {
+        "search_strategy": {"query": query, "mesh_terms": ["Diabetes Mellitus"]},
+        "search_date": "2026-05-04",
+        "providers": [
+            {
+                "provider_name": "pubmed",
+                "query": query,
+                "retrieved_at": "2026-05-04T01:00:00+08:00",
+                "source_refs": ["pubmed:query:001"],
+                "items": [
+                    {"category": "anchor_papers", "ref": "pmid:1"},
+                    {"category": "guidelines", "ref": "guideline:tripod-ai"},
+                    {"category": "systematic_reviews", "ref": "pmid:review"},
+                    {"category": "journal_neighbor_refs", "ref": "journal:neighbor"},
+                ],
+            }
+        ],
+        "screening_decisions": [{"decision": "include", "reason": "same endpoint"}],
+        "citation_ledger_refs": ["paper/citation_ledger.json"],
+    }
 
 
 def _v2_workflow_readiness() -> dict[str, object]:
@@ -137,21 +162,27 @@ def test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards(
     assert [card["label"] for card in cards] == ["联网补文献", "启动返修", "运行真实 soak"]
     assert all(card["authority"] == "observability_projection_only" for card in cards)
     assert all(card["quality_claim_authorized"] is False for card in cards)
-    assert cards[0]["guarded_operator_command"] == {
-        "surface": "medical_paper_v3_guarded_operator_command",
-        "action_id": "run_provider_literature_scout",
-        "surface_key": "literature_provider_runtime",
-        "entrypoint": "product_entry.dispatch_guarded_medical_paper_operator_action",
-        "guard": "existing_product_entry_controller_guard",
-        "requires": ["profile_ref", "study_id", "operator_payload"],
-        "status": "guarded_pending",
-    }
-    assert cards[0]["action_result"] == {
+    command = cards[0]["guarded_operator_command"]
+    assert command["surface"] == "medical_paper_v3_guarded_operator_command"
+    assert command["action_id"] == "run_provider_literature_scout"
+    assert command["surface_key"] == "literature_provider_runtime"
+    assert command["entrypoint"] == "product_entry.dispatch_guarded_medical_paper_operator_action"
+    assert command["guard"] == "existing_product_entry_controller_guard"
+    assert command["requires"] == ["profile_ref", "study_id", "operator_payload"]
+    assert command["status"] == "guarded_pending"
+    assert command["action_instance_id"].startswith("guarded-operator-action::")
+    assert command["idempotency_key"].startswith("guarded-operator-action::sha256:")
+    assert command["input_digest"].startswith("sha256:")
+    action_result = cards[0]["action_result"]
+    assert action_result == {
         "status": "guarded_pending",
         "durable_ref": None,
         "missing_reason": "missing_provider_provenance",
         "next_action": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
         "authority_contract": cards[0]["authority_contract"],
+        "action_instance_id": command["action_instance_id"],
+        "idempotency_key": command["idempotency_key"],
+        "input_digest": command["input_digest"],
     }
     assert cards[0]["authority_contract"]["can_mutate_runtime"] is False
     assert cards[0]["authority_contract"]["can_authorize_quality"] is False
@@ -259,3 +290,104 @@ def test_guarded_operator_action_dispatch_fails_closed_without_payload(tmp_path)
     assert result["authority_contract"]["can_mutate_runtime"] is False
     assert result["authority_contract"]["can_authorize_quality"] is False
     assert result["quality_claim_authorized"] is False
+
+
+def test_guarded_operator_action_replays_duplicate_submit_without_rematerializing(tmp_path) -> None:
+    import importlib
+
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    study_root = tmp_path / "studies" / "001-risk"
+    payload = _provider_payload()
+
+    first = module.dispatch_guarded_medical_paper_operator_action(
+        study_root=study_root,
+        action_id="run_provider_literature_scout",
+        surface_key="literature_provider_runtime",
+        operator_payload=payload,
+    )
+    durable_path = study_root / "artifacts" / "medical_paper" / "literature_provider_runtime.json"
+    materialized = json.loads(durable_path.read_text(encoding="utf-8"))
+    materialized["duplicate_replay_sentinel"] = "preserved"
+    durable_path.write_text(json.dumps(materialized, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    replayed = module.dispatch_guarded_medical_paper_operator_action(
+        study_root=study_root,
+        action_id="run_provider_literature_scout",
+        surface_key="literature_provider_runtime",
+        operator_payload=payload,
+    )
+
+    assert first["status"] == "ready"
+    assert replayed["status"] == "ready"
+    assert replayed["duplicate_submit_detected"] is True
+    assert replayed["replay"] is True
+    assert replayed["reconciliation"] == "result_replayed"
+    assert replayed["idempotency_key"] == first["idempotency_key"]
+    assert replayed["input_digest"] == first["input_digest"]
+    assert replayed["durable_ref"] == first["durable_ref"]
+    assert "artifacts/medical_paper/actions/" in replayed["action_result_ref"]
+    persisted = json.loads(durable_path.read_text(encoding="utf-8"))
+    assert persisted["duplicate_replay_sentinel"] == "preserved"
+
+
+def test_guarded_operator_action_blocks_payload_drift_for_same_idempotency_key(tmp_path) -> None:
+    import importlib
+
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    study_root = tmp_path / "studies" / "001-risk"
+
+    first = module.dispatch_guarded_medical_paper_operator_action(
+        study_root=study_root,
+        action_id="run_provider_literature_scout",
+        surface_key="literature_provider_runtime",
+        operator_payload=_provider_payload(query="diabetes mortality prediction"),
+        action_instance_id="operator-session-001",
+        idempotency_key="operator-session-001-key",
+    )
+    drift = module.dispatch_guarded_medical_paper_operator_action(
+        study_root=study_root,
+        action_id="run_provider_literature_scout",
+        surface_key="literature_provider_runtime",
+        operator_payload=_provider_payload(query="changed query"),
+        action_instance_id="operator-session-001",
+        idempotency_key="operator-session-001-key",
+    )
+
+    assert first["status"] == "ready"
+    assert drift["status"] == "blocked"
+    assert drift["missing_reason"] == "input_digest_drift"
+    assert drift["expected_input_digest"] == first["input_digest"]
+    assert drift["observed_input_digest"] != first["input_digest"]
+    assert drift["durable_ref"] is None
+    durable_path = study_root / "artifacts" / "medical_paper" / "literature_provider_runtime.json"
+    persisted = json.loads(durable_path.read_text(encoding="utf-8"))
+    assert persisted["query"] == "diabetes mortality prediction"
+
+
+def test_guarded_operator_action_reconciles_missing_result_artifact_from_ledger(tmp_path) -> None:
+    import importlib
+
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    study_root = tmp_path / "studies" / "001-risk"
+    payload = _provider_payload()
+
+    first = module.dispatch_guarded_medical_paper_operator_action(
+        study_root=study_root,
+        action_id="run_provider_literature_scout",
+        surface_key="literature_provider_runtime",
+        operator_payload=payload,
+    )
+    result_path = first["action_result_ref"]
+    (study_root / result_path).unlink()
+
+    replayed = module.dispatch_guarded_medical_paper_operator_action(
+        study_root=study_root,
+        action_id="run_provider_literature_scout",
+        surface_key="literature_provider_runtime",
+        operator_payload=payload,
+    )
+
+    assert replayed["status"] == "ready"
+    assert replayed["duplicate_submit_detected"] is True
+    assert replayed["reconciliation"] == "result_recreated_from_ledger"
+    assert (study_root / result_path).is_file()

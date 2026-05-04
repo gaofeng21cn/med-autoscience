@@ -298,16 +298,19 @@ def _readiness_action_card_payload(
     status: str,
     missing_reason: str | None,
 ) -> dict[str, Any]:
+    action_id = _non_empty_text(card.get("action_id")) or "inspect_medical_paper_readiness"
     return {
         **dict(card),
         "surface_key": surface_key,
         "status": status,
         "missing_reason": missing_reason,
         "guarded_operator_command": guarded_operator_command(
-            action_id=_non_empty_text(card.get("action_id")) or "inspect_medical_paper_readiness",
+            action_id=action_id,
             surface_key=surface_key,
         ),
         "action_result": guarded_pending_action_result(
+            action_id=action_id,
+            surface_key=surface_key,
             missing_reason=missing_reason,
             next_action=_non_empty_text(card.get("summary")) or "",
         ),
@@ -323,18 +326,22 @@ def _readiness_action_card_workflow_step(
     card: Mapping[str, Any],
     command: str,
 ) -> dict[str, Any]:
+    action_id = _non_empty_text(card.get("action_id")) or "inspect_medical_paper_readiness"
+    surface_key = _non_empty_text(card.get("surface_key"))
     return {
-        "step_id": _non_empty_text(card.get("action_id")) or "inspect_medical_paper_readiness",
+        "step_id": action_id,
         "title": _non_empty_text(card.get("label")) or "处理 Medical Paper Readiness 动作",
         "surface_kind": "medical_paper_readiness_action_card",
         "command": command,
         "summary": _non_empty_text(card.get("summary")) or "",
         "requires": ["profile_ref", "study_id"],
         "guarded_operator_command": guarded_operator_command(
-            action_id=_non_empty_text(card.get("action_id")) or "inspect_medical_paper_readiness",
-            surface_key=_non_empty_text(card.get("surface_key")),
+            action_id=action_id,
+            surface_key=surface_key,
         ),
         "action_result": dict(card.get("action_result") or guarded_pending_action_result(
+            action_id=action_id,
+            surface_key=surface_key,
             missing_reason=_non_empty_text(card.get("missing_reason")),
             next_action=_non_empty_text(card.get("summary")) or "",
         )),

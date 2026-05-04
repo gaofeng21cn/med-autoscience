@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.controllers.medical_paper_operator_actions import (
+    guarded_operator_command as build_guarded_operator_command,
+)
+
 
 SCHEMA_VERSION = 1
 COMMAND_SURFACE = "medical_paper_v3_guarded_operator_command"
@@ -98,15 +102,7 @@ def compact_authority_contract() -> dict[str, bool]:
 
 
 def guarded_operator_command(*, action_id: str, surface_key: str) -> dict[str, Any]:
-    return {
-        "surface": COMMAND_SURFACE,
-        "action_id": action_id,
-        "surface_key": surface_key,
-        "entrypoint": "product_entry.dispatch_guarded_medical_paper_operator_action",
-        "guard": "existing_product_entry_controller_guard",
-        "requires": ["profile_ref", "study_id", "operator_payload"],
-        "status": "guarded_pending",
-    }
+    return build_guarded_operator_command(action_id=action_id, surface_key=surface_key)
 
 
 def action_truth_for_surface(surface: Mapping[str, Any]) -> dict[str, Any] | None:
