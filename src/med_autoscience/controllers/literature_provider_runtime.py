@@ -50,6 +50,111 @@ def _provider_refs(provider: Mapping[str, Any]) -> list[object]:
     return _list(provider.get("source_refs"))
 
 
+def _provider_items(provider: Mapping[str, Any]) -> list[object]:
+    for key in ("records", "items", "results"):
+        items = _list(provider.get(key))
+        if items:
+            return items
+    return []
+
+
+def _provider_request_ref(provider_name: str, provider: Mapping[str, Any]) -> list[str]:
+    explicit_refs = [str(item) for item in _provider_refs(provider) if _has_text(item)]
+    if explicit_refs:
+        return explicit_refs
+    for key in ("request_id", "search_id", "run_id"):
+        value = _text(provider.get(key))
+        if value:
+            return [f"{provider_name}:{value}"]
+    return []
+
+
+def _provider_item_ref(provider_name: str, item: Mapping[str, Any]) -> str:
+    explicit_ref = _text(item.get("ref"))
+    if explicit_ref:
+        return explicit_ref
+    if provider_name == "pubmed":
+        pmid = _text(item.get("pmid")) or _text(item.get("PMID"))
+        return f"pmid:{pmid}" if pmid else ""
+    if provider_name == "crossref":
+        doi = _text(item.get("doi")) or _text(item.get("DOI"))
+        return f"doi:{doi}" if doi else ""
+    if provider_name == "semantic_scholar":
+        paper_id = _text(item.get("paperId")) or _text(item.get("paper_id"))
+        return f"semantic_scholar:{paper_id}" if paper_id else ""
+    return ""
+
+
+def _provider_item_title(item: Mapping[str, Any]) -> str:
+    title = item.get("title")
+    if isinstance(title, list):
+        return _text(title[0]) if title else ""
+    return _text(title)
+
+
+def _provider_item_ledger_ref(item: Mapping[str, Any]) -> str:
+    explicit_ref = _text(item.get("citation_ledger_ref"))
+    if explicit_ref:
+        return explicit_ref
+    refs = [_text(ref) for ref in _list(item.get("citation_ledger_refs")) if _has_text(ref)]
+    return refs[0] if refs else ""
+
+
+def _normalize_provider_backed_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    raw_providers = [provider for provider in _list(payload.get("provider_payloads")) if isinstance(provider, Mapping)]
+    if not raw_providers:
+        return dict(payload)
+
+    providers: list[dict[str, Any]] = []
+    citation_ledger_refs: list[str] = []
+    missing_ledger_providers: list[str] = []
+    for raw_provider in raw_providers:
+        provider_name = _text(raw_provider.get("provider_name")) or _text(raw_provider.get("provider"))
+        source_refs = _provider_request_ref(provider_name, raw_provider)
+        normalized_items: list[dict[str, Any]] = []
+        provider_missing_ledger_ref = False
+        for raw_item in _provider_items(raw_provider):
+            item = _mapping(raw_item)
+            ref = _provider_item_ref(provider_name, item)
+            if not ref:
+                continue
+            ledger_ref = _provider_item_ledger_ref(item)
+            if not ledger_ref:
+                provider_missing_ledger_ref = True
+            else:
+                citation_ledger_refs.append(ledger_ref)
+            normalized_items.append(
+                {
+                    "ref": ref,
+                    "category": _text(item.get("category")),
+                    "title": _provider_item_title(item),
+                    "citation_ledger_ref": ledger_ref,
+                }
+            )
+        if provider_missing_ledger_ref and provider_name:
+            missing_ledger_providers.append(provider_name)
+        providers.append(
+            {
+                "provider_name": provider_name,
+                "query": _text(raw_provider.get("query")) or _text(payload.get("query")),
+                "retrieved_at": _text(raw_provider.get("retrieved_at")),
+                "source_refs": source_refs,
+                "response_status": _provider_response_status(raw_provider),
+                "items": normalized_items,
+            }
+        )
+
+    normalized = dict(payload)
+    normalized["providers"] = providers
+    normalized["citation_ledger_refs"] = list(dict.fromkeys(citation_ledger_refs))
+    normalized["_missing_provider_citation_ledger_refs"] = missing_ledger_providers
+    normalized["search_strategy"] = {
+        **dict(_mapping(payload.get("search_strategy"))),
+        "query": _text(_mapping(payload.get("search_strategy")).get("query")) or _text(payload.get("query")),
+    }
+    return normalized
+
+
 def _screening_decisions_are_complete(value: object) -> bool:
     decisions = [item for item in _list(value) if isinstance(item, Mapping)]
     if not decisions:
@@ -85,6 +190,9 @@ def _missing_reason(payload: Mapping[str, Any]) -> str:
             return f"missing_provider_retrieved_at_{name}"
         if not _has_ref_items(_provider_refs(provider)):
             return f"missing_provider_source_refs_{name}"
+    missing_ledger_providers = [_text(item) for item in _list(payload.get("_missing_provider_citation_ledger_refs"))]
+    if missing_ledger_providers:
+        return f"missing_provider_citation_ledger_refs_{missing_ledger_providers[0]}"
     if not _has_text(payload.get("search_date")):
         return "missing_search_date"
     if not _has_ref_items(payload.get("citation_ledger_refs")):
@@ -109,6 +217,19 @@ def _provider_source_refs(providers: list[Mapping[str, Any]]) -> list[object]:
     for provider in providers:
         refs.extend(_provider_refs(provider))
     return refs
+
+
+def _provider_provenance(providers: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "provider_name": _provider_name(provider),
+            "query": _text(provider.get("query")),
+            "retrieved_at": _text(provider.get("retrieved_at")),
+            "response_status": _provider_response_status(provider),
+            "source_refs": _provider_refs(provider),
+        }
+        for provider in providers
+    ]
 
 
 def _categorized_refs(providers: list[Mapping[str, Any]]) -> dict[str, list[object]]:
@@ -142,6 +263,7 @@ def _literature_intelligence_payload(
 
 
 def build_literature_provider_runtime_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
+    payload = _normalize_provider_backed_payload(payload)
     providers = _providers(payload)
     missing_reason = _missing_reason(payload)
     return {
@@ -150,6 +272,8 @@ def build_literature_provider_runtime_projection(payload: Mapping[str, Any]) -> 
         "status": "ready" if not missing_reason else "blocked",
         "missing_reason": missing_reason,
         "providers": [_provider_name(provider) for provider in providers],
+        "provider_provenance": _provider_provenance(providers),
+        "query": _text(payload.get("query")) or _text(_mapping(payload.get("search_strategy")).get("query")),
         "search_date": _text(payload.get("search_date")),
         "search_strategy": dict(_mapping(payload.get("search_strategy"))),
         "citation_ledger_refs": _list(payload.get("citation_ledger_refs")),
@@ -187,5 +311,7 @@ def materialize_literature_provider_runtime(
         "artifact_path": str(path),
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
+        "provider_provenance": projection["provider_provenance"],
+        "citation_ledger_refs": projection["citation_ledger_refs"],
         "literature_intelligence_payload": projection["literature_intelligence_payload"],
     }
