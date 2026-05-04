@@ -544,6 +544,9 @@ def _entry_projection_results(projection: Mapping[str, Any]) -> dict[str, Any]:
         "open_auto_research_status": projection.get("status"),
         "counts": counts,
         "actions": actions,
+        "delivery_journal_usability_guard": dict(
+            _mapping(projection.get("delivery_journal_usability_guard"))
+        ),
         "authority": dict(_mapping(projection.get("authority"))),
         "refs": dict(_mapping(projection.get("refs"))),
     }

@@ -18,7 +18,7 @@ def compact_open_auto_research_projection(value: object) -> dict[str, Any] | Non
         return None
     compact = _compact_record(
         value,
-        ("status", "counts", "actions", "authority", "refs"),
+        ("status", "counts", "actions", "delivery_journal_usability_guard", "authority", "refs"),
     )
     if compact is None:
         return None
@@ -33,6 +33,20 @@ def compact_open_auto_research_projection(value: object) -> dict[str, Any] | Non
             for item in actions
             if isinstance(item, dict)
         ][:4]
+    guard = value.get("delivery_journal_usability_guard")
+    if isinstance(guard, dict):
+        compact["delivery_journal_usability_guard"] = {
+            key: guard[key]
+            for key in (
+                "real_study_soak_role",
+                "delivery_journal_usability",
+                "submission_ready_authorized",
+                "can_authorize_publication_quality",
+                "next_required_action",
+                "authority_surfaces",
+            )
+            if key in guard
+        }
     return compact
 
 
@@ -48,7 +62,7 @@ def compact_open_auto_research_soak_for_mcp(
     projection = compact_open_auto_research_projection(raw_projection) or {}
     compact = {
         key: projection.get(key)
-        for key in ("status", "counts", "actions", "authority", "refs")
+        for key in ("status", "counts", "actions", "delivery_journal_usability_guard", "authority", "refs")
         if key in projection
     }
     authority = dict(compact.get("authority") or {})
@@ -140,6 +154,18 @@ def render_mcp_open_auto_research_soak_markdown(payload: dict[str, Any]) -> str:
             f"- authority: read_only `{authority.get('read_only')}`; "
             f"allow_controller_writes `{authority.get('allow_controller_writes')}`"
         )
+    guard = dict(compact.get("delivery_journal_usability_guard") or {})
+    if guard:
+        next_action = dict(guard.get("next_required_action") or {})
+        lines.append(
+            f"- delivery journal usability: `{guard.get('delivery_journal_usability') or 'unknown'}`; "
+            f"submission_ready_authorized `{bool(guard.get('submission_ready_authorized'))}`"
+        )
+        if next_action:
+            lines.append(
+                f"- next quality authority action: `{next_action.get('action_id') or 'unknown_action'}` "
+                f"({next_action.get('target_surface') or 'unknown_surface'})"
+            )
     soak_report = dict(compact.get("soak_report_summary") or {})
     if soak_report:
         lines.append(

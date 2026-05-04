@@ -406,6 +406,21 @@ def test_dm002_like_open_auto_research_soak_matrix_blocks_authority_takeover_and
     assert projection["capabilities"]["candidate_path_graph"]["status"] == "needs_review"
     assert projection["capabilities"]["candidate_path_graph"]["decision"] == "human_gate"
     assert projection["capabilities"]["candidate_path_graph"]["selected_candidate_id"] == "candidate-human-gate"
+    guard = projection["delivery_journal_usability_guard"]
+    assert guard["real_study_soak_role"] == "evidence_status_projection_only"
+    assert guard["delivery_journal_usability"] == "not_authorized_by_soak"
+    assert guard["submission_ready_authorized"] is False
+    assert guard["can_authorize_publication_quality"] is False
+    assert guard["next_required_action"] == {
+        "action_id": "return_to_ai_reviewer_workflow",
+        "target_surface": "artifacts/publication_eval/latest.json",
+        "authority_owner": "ai_reviewer",
+    }
+    assert guard["authority_surfaces"] == {
+        "publication_quality": "artifacts/publication_eval/latest.json",
+        "controller_decision": "artifacts/controller_decisions/latest.json",
+        "study_truth": "study_runtime_status",
+    }
     assert result["refs"]["open_auto_research_projection_path"].endswith(
         "artifacts/runtime/open_auto_research_projection/latest.json"
     )

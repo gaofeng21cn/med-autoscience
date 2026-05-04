@@ -198,17 +198,34 @@ def test_open_auto_research_soak_materializes_allowed_read_models_and_guard_repo
     assert result["verdict"]["mode"] == "controller_authorized_soak"
     assert result["live_runtime_context"]["current_stage"] == "managed_runtime_recovering"
     assert result["live_runtime_context"]["paper_stage"] == "publishability_gate_blocked"
-    assert result["capability_results"]["open_auto_research_projection"]["counts"] == {
+    projection = result["capability_results"]["open_auto_research_projection"]
+    guard = projection["delivery_journal_usability_guard"]
+    assert projection["counts"] == {
         "ready": 3,
         "blocked": 0,
         "needs_review": 1,
         "total": 4,
     }
-    assert result["capability_results"]["open_auto_research_projection"]["status"] == "needs_review"
+    assert projection["status"] == "needs_review"
+    assert guard["real_study_soak_role"] == "evidence_status_projection_only"
+    assert guard["delivery_journal_usability"] == "not_authorized_by_soak"
+    assert guard["submission_ready_authorized"] is False
+    assert guard["can_authorize_publication_quality"] is False
+    assert guard["next_required_action"]["action_id"] == "return_to_ai_reviewer_workflow"
+    assert guard["next_required_action"]["target_surface"] == "artifacts/publication_eval/latest.json"
+    assert guard["authority_surfaces"]["publication_quality"] == "artifacts/publication_eval/latest.json"
+    assert guard["authority_surfaces"]["controller_decision"] == "artifacts/controller_decisions/latest.json"
+    assert guard["authority_surfaces"]["study_truth"] == "study_runtime_status"
     assert result["authority_guard_results"]["forbidden_surface_unchanged"] is True
     assert result["authority_guard_results"]["authorized_writes_only"] is True
     assert result["authority_guard_results"]["forbidden_surface_hashes"]["changed"] == []
     assert result["entry_projection_results"]["study_progress"]["open_auto_research_status"] == "needs_review"
+    assert (
+        result["entry_projection_results"]["study_progress"]["delivery_journal_usability_guard"][
+            "submission_ready_authorized"
+        ]
+        is False
+    )
     assert result["entry_projection_results"]["mcp_compact"]["open_auto_research_status"] == "needs_review"
     assert "ai_reviewer_required" in result["remaining_gaps"]
     assert "publication_gate_blocked" in result["remaining_gaps"]

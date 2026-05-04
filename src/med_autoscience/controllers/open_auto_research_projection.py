@@ -72,6 +72,7 @@ def build_open_auto_research_projection(
         "counts": counts,
         "capabilities": capabilities,
         "actions": _actions(capabilities),
+        "delivery_journal_usability_guard": _delivery_journal_usability_guard(),
         "authority": dict(AUTHORITY),
         "refs": {
             "projection_path": str(stable_open_auto_research_projection_path(study_root=root)),
@@ -296,6 +297,25 @@ def _actions(capabilities: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
         action["status"] = _text(capability.get("status")) or "blocked"
         actions.append(action)
     return actions
+
+
+def _delivery_journal_usability_guard() -> dict[str, Any]:
+    return {
+        "real_study_soak_role": "evidence_status_projection_only",
+        "delivery_journal_usability": "not_authorized_by_soak",
+        "submission_ready_authorized": False,
+        "can_authorize_publication_quality": False,
+        "next_required_action": {
+            "action_id": "return_to_ai_reviewer_workflow",
+            "target_surface": "artifacts/publication_eval/latest.json",
+            "authority_owner": "ai_reviewer",
+        },
+        "authority_surfaces": {
+            "publication_quality": "artifacts/publication_eval/latest.json",
+            "controller_decision": "artifacts/controller_decisions/latest.json",
+            "study_truth": "study_runtime_status",
+        },
+    }
 
 
 def _workspace_status(counts: Mapping[str, int]) -> str:
