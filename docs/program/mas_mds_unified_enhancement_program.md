@@ -142,6 +142,7 @@ Authority boundary：结构治理不改变 study truth、publication truth、del
 ## 验收门槛
 
 - `make test-meta` 必须覆盖本 program 文档、15 条建议归并、5 条 lane、authority boundary 和并行吸收规则。
+- `mas_mds_module_boundary_audit_report` 是 5 条 lane 的模块分层与耦合 audit 入口，由 `med_autoscience.controllers.module_boundary_audit` 暴露机器可读 module group、allowed/forbidden dependency、writable authority 和 projection-only 约束。
 - `scripts/verify.sh structure` 或等价 Sentrux/line-budget lane 必须用于任何 `L5` 结构实现。
 - `L1` 完成前，不得宣称真实论文质量改善、submission readiness 或 AI-first Research OS fully proven。
 - `L2/L3/L4` 所有 projection 必须回指 MAS durable truth surface。
