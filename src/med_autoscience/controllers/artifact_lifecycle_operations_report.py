@@ -22,6 +22,9 @@ from med_autoscience.controllers.artifact_lifecycle_operations_report_parts.scan
 from med_autoscience.controllers.artifact_lifecycle_operations_report_parts.markdown import (
     render_lifecycle_operations_report_markdown,
 )
+from med_autoscience.controllers.artifact_lifecycle_operations_report_parts.operational_summary import (
+    build_lifecycle_operational_summary,
+)
 from med_autoscience.controllers.artifact_retention_operations_plan import (
     aggregate_artifact_retention_operations_plans,
     build_artifact_retention_operations_plan,
@@ -82,17 +85,16 @@ def run_lifecycle_operations_report(
     resolved_roots = sorted(_as_path(root) for root in workspace_roots)
     scan_policy = _scan_policy(deep=deep, max_files=max_files, max_seconds=max_seconds)
     workspaces = [_workspace_report(root, scan_policy=scan_policy) for root in resolved_roots]
+    mutation_policy = _mutation_policy()
+    summary = _aggregate_summary(workspaces)
+    source_totals = _aggregate_source_totals(workspaces)
+    retention_plan = _aggregate_retention_plan(workspaces)
     return {
         "surface": SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
         "report_kind": "artifact_lifecycle_operations_report",
         "workspace_count": len(workspaces),
-        "mutation_policy": {
-            "read_only": True,
-            "writes_workspace": False,
-            "cleanup_apply_supported": False,
-            "physical_cleanup_performed": False,
-        },
+        "mutation_policy": mutation_policy,
         "retention_policy_catalog": retention_policy_catalog(),
         "scan_policy": {
             "classified_scan_mode": CLASSIFIED_SCAN_MODE,
@@ -102,11 +104,27 @@ def run_lifecycle_operations_report(
             **scan_policy,
         },
         "projection_role_catalog": _projection_role_catalog(),
-        "summary": _aggregate_summary(workspaces),
-        "source_totals": _aggregate_source_totals(workspaces),
-        "retention_plan": _aggregate_retention_plan(workspaces),
+        "summary": summary,
+        "source_totals": source_totals,
+        "retention_plan": retention_plan,
         "projection_completeness": _aggregate_projection_completeness(workspaces),
+        "operational_summary": build_lifecycle_operational_summary(
+            summary=summary,
+            source_totals=source_totals,
+            retention_plan=retention_plan,
+            workspaces=workspaces,
+            mutation_policy=mutation_policy,
+        ),
         "workspaces": workspaces,
+    }
+
+
+def _mutation_policy() -> dict[str, Any]:
+    return {
+        "read_only": True,
+        "writes_workspace": False,
+        "cleanup_apply_supported": False,
+        "physical_cleanup_performed": False,
     }
 
 

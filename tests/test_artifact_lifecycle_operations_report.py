@@ -283,6 +283,88 @@ def test_lifecycle_operations_report_marks_incomplete_projection_surfaces(tmp_pa
     assert "missing_zip" in study["projection_completeness"]["blockers"]
 
 
+def test_lifecycle_operations_report_adds_compact_storage_budget_operational_summary(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    _write(study_root / "paper" / "source" / "manuscript_source.md", "source\n")
+    _write(study_root / "manuscript" / "current_package" / "manuscript.docx", "d" * 100)
+    _write(study_root / "manuscript" / "current_package.zip", "z" * 50)
+    _write(workspace_root / ".ds" / "runs" / "run-1" / "stdout.jsonl", "runtime\n")
+    _write(workspace_root / "datasets" / "release" / "dataset_manifest.yaml", "dataset\n")
+    _write(
+        workspace_root / "storage_audit" / "latest.json",
+        (
+            '{"source_totals": {'
+            '"runtime": {"bytes": 1200, "file_count": 12, "directory_count": 3}, '
+            '"dataset": {"bytes": 300, "file_count": 3, "directory_count": 1}'
+            "}}\n"
+        ),
+    )
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+    summary = report["operational_summary"]
+
+    assert summary["storage_budget"]["mode"] == "bounded_read_only"
+    assert summary["storage_budget"]["total_bytes"] == report["summary"]["total_bytes"]
+    assert summary["storage_budget"]["physical_cleanup_performed"] is False
+    growth_by_bucket = {item["source_bucket"]: item for item in summary["top_growth_buckets"]}
+    assert summary["top_growth_buckets"][0]["source_bucket"] == "runtime"
+    assert summary["top_growth_buckets"][0]["bytes"] == 1200
+    assert growth_by_bucket["dataset"]["bytes"] == 300
+    assert growth_by_bucket["delivery_projection"]["bytes"] == 150
+    blocked = {item["reason"]: item for item in summary["blocked_cleanup_reasons"]}
+    assert blocked["canonical_regeneration_required_before_projection_removal"]["count"] == 2
+    assert blocked["snapshot_reference_no_physical_cleanup_contract"]["count"] == 2
+    assert blocked["canonical_regeneration_required_before_projection_removal"]["actions"] == [
+        "regenerate_projection_then_remove_stale",
+    ]
+    projection_paths = {
+        item["workspace_relative_path"]
+        for item in summary["projection_regeneration_candidates"]
+    }
+    assert projection_paths == {
+        "studies/001-risk/manuscript/current_package/manuscript.docx",
+        "studies/001-risk/manuscript/current_package.zip",
+    }
+    assert all(
+        item["canonical_regeneration_gate"]["status"] == "required_before_physical_removal"
+        for item in summary["projection_regeneration_candidates"]
+    )
+    assert all(item["physical_delete_allowed"] is False for item in summary["projection_regeneration_candidates"])
+    assert summary["restore_contract_gaps"] == []
+
+
+def test_lifecycle_operations_report_markdown_includes_operational_summary(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    _write(study_root / "paper" / "source" / "manuscript_source.md", "source\n")
+    _write(study_root / "manuscript" / "current_package" / "manuscript.docx", "docx\n")
+    _write(workspace_root / ".ds" / "runs" / "run-1" / "stdout.jsonl", "runtime\n")
+    _write(
+        workspace_root / "storage_audit" / "latest.json",
+        '{"runtime": {"bytes": 1200, "file_count": 12, "directory_count": 3}}\n',
+    )
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+    markdown = module.render_lifecycle_operations_report_markdown(report)
+
+    assert "## Operational Summary" in markdown
+    assert f"- storage budget: `bounded_read_only`, bytes `{report['summary']['total_bytes']}`" in markdown
+    assert "`runtime` 1200 bytes" in markdown
+    assert "`delivery_projection` 5 bytes" in markdown
+    assert "- blocked cleanup reasons:" in markdown
+    assert "`canonical_regeneration_required_before_projection_removal` x1" in markdown
+    assert "- projection regeneration candidates:" in markdown
+    assert "`studies/001-risk/manuscript/current_package/manuscript.docx`" in markdown
+    assert "- restore contract gaps: none" in markdown
+
+
 def test_lifecycle_operations_report_markdown_is_renderable(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
     workspace_root = tmp_path / "workspace"

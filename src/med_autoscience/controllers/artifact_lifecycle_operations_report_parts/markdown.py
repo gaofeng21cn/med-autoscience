@@ -33,6 +33,7 @@ def _sequence_value(value: Any):
 
 def render_lifecycle_operations_report_markdown(report: Mapping[str, Any]) -> str:
     lines = _markdown_summary_lines(report)
+    lines.extend(_markdown_operational_summary_lines(report))
     lines.extend(_markdown_source_total_lines(report))
     lines.extend(_markdown_study_lines(report))
     lines.append("")
@@ -52,7 +53,6 @@ def _markdown_summary_lines(report: Mapping[str, Any]) -> list[str]:
         f"- statistical files: `{_mapping_value(summary, 'statistical_file_count', 0)}`",
     ]
     lines.extend(_markdown_projection_summary_lines(projection))
-    lines.extend(["", "## Bloat Sources", ""])
     return lines
 
 
@@ -63,8 +63,75 @@ def _markdown_projection_summary_lines(projection: Mapping[str, Any]) -> list[st
     ]
 
 
+def _markdown_operational_summary_lines(report: Mapping[str, Any]) -> list[str]:
+    operational_summary = report.get("operational_summary")
+    if not isinstance(operational_summary, Mapping):
+        return []
+    storage_budget = _mapping_value(operational_summary, "storage_budget", {})
+    storage_budget_mapping = storage_budget if isinstance(storage_budget, Mapping) else {}
+    lines = [
+        "",
+        "## Operational Summary",
+        "",
+        (
+            f"- storage budget: `{_mapping_value(storage_budget_mapping, 'mode', 'bounded_read_only')}`, "
+            f"bytes `{_mapping_value(storage_budget_mapping, 'total_bytes', 0)}`"
+        ),
+        f"- top growth buckets: {_markdown_top_growth_buckets(operational_summary)}",
+        f"- blocked cleanup reasons: {_markdown_blocked_cleanup_reasons(operational_summary)}",
+        f"- projection regeneration candidates: {_markdown_projection_candidates(operational_summary)}",
+        f"- restore contract gaps: {_markdown_restore_contract_gaps(operational_summary)}",
+    ]
+    lines.extend(["", "## Bloat Sources", ""])
+    return lines
+
+
+def _markdown_top_growth_buckets(operational_summary: Mapping[str, Any]) -> str:
+    buckets = _sequence_value(operational_summary.get("top_growth_buckets"))
+    text = "; ".join(
+        f"`{_mapping_value(_mapping_or_empty(bucket), 'source_bucket', 'other')}` "
+        f"{_mapping_value(_mapping_or_empty(bucket), 'bytes', 0)} bytes"
+        for bucket in buckets
+    )
+    return _display_value(text, "none")
+
+
+def _markdown_blocked_cleanup_reasons(operational_summary: Mapping[str, Any]) -> str:
+    reasons = _sequence_value(operational_summary.get("blocked_cleanup_reasons"))
+    text = "; ".join(
+        f"`{_mapping_value(_mapping_or_empty(reason), 'reason', 'unknown')}` "
+        f"x{_mapping_value(_mapping_or_empty(reason), 'count', 0)}"
+        for reason in reasons
+    )
+    return _display_value(text, "none")
+
+
+def _markdown_projection_candidates(operational_summary: Mapping[str, Any]) -> str:
+    candidates = _sequence_value(operational_summary.get("projection_regeneration_candidates"))
+    text = "; ".join(
+        f"`{_mapping_value(_mapping_or_empty(candidate), 'workspace_relative_path', 'unknown')}`"
+        for candidate in candidates
+    )
+    return _display_value(text, "none")
+
+
+def _markdown_restore_contract_gaps(operational_summary: Mapping[str, Any]) -> str:
+    gaps = _sequence_value(operational_summary.get("restore_contract_gaps"))
+    text = "; ".join(
+        f"`{_mapping_value(_mapping_or_empty(gap), 'workspace_relative_path', 'unknown')}`"
+        for gap in gaps
+    )
+    return _display_value(text, "none")
+
+
+def _mapping_or_empty(value: Any) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
 def _markdown_source_total_lines(report: Mapping[str, Any]) -> list[str]:
     lines = list(map(_markdown_source_total_line, _mapping_items(report.get("source_totals"))))
+    if "operational_summary" not in report:
+        lines = ["", "## Bloat Sources", "", *lines]
     lines.extend(["", "## Studies", ""])
     return lines
 
