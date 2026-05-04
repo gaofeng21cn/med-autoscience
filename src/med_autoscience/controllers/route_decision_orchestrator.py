@@ -125,12 +125,41 @@ def _evidence_basis(candidate: Mapping[str, Any]) -> list[str]:
     return [_text(item) for item in _list(candidate.get("evidence_refs")) if _text(item)]
 
 
+def _question(candidate: Mapping[str, Any]) -> str:
+    explicit = _text(candidate.get("question"))
+    if explicit:
+        return explicit
+    title = _text(candidate.get("title"))
+    if title:
+        return title
+    line_id = _text(candidate.get("line_id")) or _text(candidate.get("id"))
+    if line_id:
+        return f"Can {line_id} answer the locked research question?"
+    return ""
+
+
+def _expected_artifact(candidate: Mapping[str, Any]) -> str:
+    explicit = _text(candidate.get("expected_artifact"))
+    if explicit:
+        return explicit
+    if _text(candidate.get("question")):
+        return ""
+    line_id = _text(candidate.get("line_id")) or _text(candidate.get("id"))
+    if line_id:
+        return f"artifacts/medical_paper/candidate_paths/{line_id}.json"
+    return ""
+
+
 def _stop_rule(candidate: Mapping[str, Any], ranked_candidate: Mapping[str, Any]) -> str:
     explicit = _text(candidate.get("stop_rule"))
     if explicit:
         return explicit
     dimensions = _mapping(candidate.get("dimensions"))
     return _text(dimensions.get("stop_threshold")) or _text(ranked_candidate.get("stop_rule"))
+
+
+def _explicitly_blank(candidate: Mapping[str, Any], field: str) -> bool:
+    return field in candidate and not _text(candidate.get(field))
 
 
 def _candidate_path_required_blockers(
@@ -146,13 +175,13 @@ def _candidate_path_required_blockers(
         candidate_id = _text(ranked_candidate.get("line_id"))
         source = source_candidates.get(candidate_id, {})
         resolved_fields = {
-            "question": _text(source.get("question")) or _text(source.get("title")),
+            "question": _question(source),
             "evidence_basis": _evidence_basis(source),
-            "expected_artifact": _text(source.get("expected_artifact")),
+            "expected_artifact": _expected_artifact(source),
             "stop_rule": _stop_rule(source, ranked_candidate),
         }
         for field in CANDIDATE_PATH_REQUIRED_FIELDS:
-            if not resolved_fields[field]:
+            if _explicitly_blank(source, field) or not resolved_fields[field]:
                 blockers.append(f"candidate_{candidate_id}_missing_{field}")
     return blockers
 
@@ -208,9 +237,9 @@ def _build_candidate_path_graph(
         graph_candidates.append(
             {
                 "candidate_id": candidate_id,
-                "question": _text(source.get("question")) or _text(source.get("title")),
+                "question": _question(source),
                 "evidence_basis": _evidence_basis(source),
-                "expected_artifact": _text(source.get("expected_artifact")),
+                "expected_artifact": _expected_artifact(source),
                 "stop_rule": _stop_rule(source, ranked_candidate),
                 "decision": decision,
                 "controller_decision_ref": controller_decision_ref,

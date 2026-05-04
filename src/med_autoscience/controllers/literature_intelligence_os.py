@@ -114,7 +114,9 @@ def _missing_reason(payload: Mapping[str, Any]) -> str:
         return "missing_screening_decision_reason"
     if not _has_ref_items(payload.get("citation_ledger_refs")):
         return "missing_citation_ledger_refs"
-    if not _evidence_nodes_have_provenance(payload.get("evidence_nodes")):
+    if _evidence_nodes(payload.get("evidence_nodes")) and not _evidence_nodes_have_provenance(
+        payload.get("evidence_nodes")
+    ):
         return "missing_evidence_node_provenance"
     return ""
 
