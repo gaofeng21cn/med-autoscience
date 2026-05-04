@@ -26,6 +26,7 @@ PROFILE_LINES = [
     'legacy_code_execution_policy = "forbid_without_user_approval"',
     'public_data_discovery_policy = "required_for_scout_route_selection"',
     'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]',
+    'developer_supervisor_mode = "external_observe"',
     "",
     "[[default_submission_targets]]",
     'publication_profile = "frontiers_family_harvard"',
@@ -79,6 +80,8 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.legacy_code_execution_policy == "forbid_without_user_approval"
     assert profile.public_data_discovery_policy == "required_for_scout_route_selection"
     assert profile.startup_boundary_requirements == ("paper_framing", "journal_shortlist", "evidence_package")
+    assert profile.developer_supervisor_mode == "external_observe"
+    assert profile.developer_supervisor_mode_explicit is True
     assert len(profile.default_submission_targets) == 1
     assert profile.default_submission_targets[0]["publication_profile"] == "frontiers_family_harvard"
     assert profile.default_submission_targets[0]["primary"] is True
@@ -140,6 +143,8 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
     assert profile.legacy_code_execution_policy == "forbid_without_user_approval"
     assert profile.public_data_discovery_policy == "required_for_scout_route_selection"
     assert profile.startup_boundary_requirements == ("paper_framing", "journal_shortlist", "evidence_package")
+    assert profile.developer_supervisor_mode == "internal_only"
+    assert profile.developer_supervisor_mode_explicit is False
 
 
 def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> None:
@@ -189,6 +194,8 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert policy["legacy_code_execution_policy"] == profile.legacy_code_execution_policy
     assert policy["public_data_discovery_policy"] == profile.public_data_discovery_policy
     assert policy["startup_boundary_requirements"] == list(profile.startup_boundary_requirements)
+    assert policy["developer_supervisor_mode"] == "external_observe"
+    assert policy["developer_supervisor_mode_explicit"] is True
 
     archetype = contract["archetype"]
     assert archetype["preferred_study_archetypes"] == list(profile.preferred_study_archetypes)
@@ -427,4 +434,29 @@ def test_load_profile_rejects_invalid_legacy_code_execution_policy(tmp_path: Pat
 
     profiles = importlib.import_module("med_autoscience.profiles")
     with pytest.raises(TypeError, match="legacy_code_execution_policy"):
+        profiles.load_profile(profile_path)
+
+
+def test_load_profile_rejects_invalid_developer_supervisor_mode(tmp_path: Path) -> None:
+    profile_path = tmp_path / "invalid-developer-supervisor.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "invalid-dev-supervisor"',
+                'workspace_root = "/tmp/workspace"',
+                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
+                'studies_root = "/tmp/workspace/studies"',
+                'portfolio_root = "/tmp/workspace/portfolio"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+                'developer_supervisor_mode = "developer_supervisor"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    with pytest.raises(TypeError, match="developer_supervisor_mode"):
         profiles.load_profile(profile_path)

@@ -21,6 +21,7 @@ def _provider_payload(*, query: str = "diabetes mortality prediction") -> dict[s
         },
         "study_rationale": "A transportable mortality risk model addresses a clinically actionable prognostic gap.",
         "search_date": "2026-05-04",
+        "why_worth_doing": "Guideline-bound evidence and recent neighboring papers support the study question.",
         "providers": [
             {
                 "provider_name": "pubmed",

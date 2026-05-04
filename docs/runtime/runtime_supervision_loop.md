@@ -82,12 +82,21 @@ medautosci runtime watch \
 medautosci runtime supervisor-scan \
   --profile <profile> \
   --studies <study_id> <study_id> \
-  --apply-safe-actions
+  --apply-safe-actions \
+  --developer-supervisor-mode developer_apply_safe
 ```
 
 该入口写出 workspace-level `artifacts/supervision/hourly/latest.json`，只消费 MAS durable truth surfaces：`study_runtime_status`、`study_progress`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json` 与 AI repair lifecycle。它的职责是形成 `action_queue`、`why_not_applied` 与 `external_supervisor_required`，而不是直接修改 paper/current_package。
 
-`Codex App heartbeat` 不是这条 contract 的依赖。Codex App 以后可以作为一个外部 scheduler 调用该入口，但 MAS 运行环境必须同样支持 Linux 与 Docker。
+Developer Supervisor Mode 有三个正式模式：
+
+- `internal_only`：只运行 MAS 内部 AI doctor/self-healing；不启用外层工程代理。
+- `external_observe`：外层只读巡检，只投影 stale/blocked/why_not_applied，不生成可消费 safe-action request。
+- `developer_apply_safe`：开发环境模式，允许 `supervisor-scan --apply-safe-actions --developer-supervisor-mode developer_apply_safe` 写 supervision/control/autonomy request、handoff packet 与 action queue。
+
+`developer_apply_safe` 还受 GitHub 用户门控保护：本机 `gh api user --jq .login` 必须返回 `gaofeng21cn`，否则 effective mode 自动降级到 `external_observe`，并投影 `github_user_not_authorized_for_developer_supervisor_mode`。这个门控用于防止普通用户或生产研究环境意外获得 repo-level developer supervisor authority。
+
+`Codex App heartbeat` 不是这条 contract 的依赖。Codex App 可以作为本机开发环境的一个外部 scheduler 调用该入口，但 MAS 运行环境必须同样支持 Linux、cron、systemd、Docker one-shot 与 Kubernetes CronJob。
 
 workspace bootstrap 会渲染 portable scheduler entry 与示例模板：
 

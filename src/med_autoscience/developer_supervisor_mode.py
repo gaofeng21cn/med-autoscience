@@ -122,6 +122,8 @@ def current_github_user_gate(
 def _profile_mode(profile: object) -> str | None:
     if profile is None:
         return None
+    if getattr(profile, "developer_supervisor_mode_explicit", False) is not True:
+        return None
     return _text(getattr(profile, "developer_supervisor_mode", None))
 
 

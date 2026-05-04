@@ -3,6 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 
+DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --developer-supervisor-mode developer_apply_safe"
+
+
 def _render_behavior_equivalence_gate() -> str:
     return (
         "schema_version: v1\n"
@@ -150,7 +153,7 @@ def _render_watch_runtime_service_runner() -> str:
         '  echo "supervisor-scan entry is missing or not executable: ${SUPERVISOR_SCAN_SCRIPT}" >&2\n'
         "  exit 1\n"
         "fi\n\n"
-        'exec "${SUPERVISOR_SCAN_SCRIPT}" --apply-safe-actions "$@"\n'
+        f'exec "${{SUPERVISOR_SCAN_SCRIPT}}" {DEVELOPER_SUPERVISOR_MODE_ARGS} "$@"\n'
     )
 
 
@@ -173,7 +176,7 @@ def _render_supervisor_systemd_service(*, workspace_root: Path) -> str:
         "[Service]\n"
         "Type=oneshot\n"
         f"WorkingDirectory={workspace_root}\n"
-        f"ExecStart={supervisor_scan} --apply-safe-actions\n"
+        f"ExecStart={supervisor_scan} {DEVELOPER_SUPERVISOR_MODE_ARGS}\n"
     )
 
 
@@ -191,7 +194,7 @@ def _render_supervisor_systemd_timer() -> str:
 
 def _render_supervisor_cron_template(*, workspace_root: Path) -> str:
     supervisor_scan = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
-    return f"0 * * * * {supervisor_scan} --apply-safe-actions\n"
+    return f"0 * * * * {supervisor_scan} {DEVELOPER_SUPERVISOR_MODE_ARGS}\n"
 
 
 def _render_supervisor_docker_oneshot(*, workspace_root: Path) -> str:
@@ -204,7 +207,7 @@ def _render_supervisor_docker_oneshot(*, workspace_root: Path) -> str:
         '  -v "${WORKSPACE_ROOT}:${WORKSPACE_ROOT}" \\\n'
         '  -w "${WORKSPACE_ROOT}" \\\n'
         '  "${MAS_IMAGE}" \\\n'
-        "  bash -lc './ops/medautoscience/bin/supervisor-scan --apply-safe-actions'\n"
+        f"  bash -lc './ops/medautoscience/bin/supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}'\n"
     )
 
 
@@ -228,7 +231,7 @@ def _render_supervisor_kubernetes_cronjob(*, workspace_root: Path) -> str:
         "              command:\n"
         "                - /bin/bash\n"
         "                - -lc\n"
-        "                - ./ops/medautoscience/bin/supervisor-scan --apply-safe-actions\n"
+        f"                - ./ops/medautoscience/bin/supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}\n"
         "              env:\n"
         "                - name: MAS_WORKSPACE_ROOT\n"
         f"                  value: {workspace_root}\n"

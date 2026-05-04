@@ -45,10 +45,18 @@ _CURRENT_WATCH_RUNTIME_COMMAND = "run_medautosci runtime watch"
 _DEVELOPER_SUPERVISOR_GITHUB_LOGIN = "gaofeng21cn"
 _CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS = (
     "developer_apply_safe",
+    "mode=developer_apply_safe",
     "supervisor-scan --apply-safe-actions",
+    "--developer-supervisor-mode developer_apply_safe",
     "action_queue",
     "why_not_applied",
 )
+_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS = (
+    "--apply-safe-actions",
+    "--developer-supervisor-mode",
+    "developer_apply_safe",
+)
+_DEVELOPER_SUPERVISOR_SAFE_ACTION_TEXT = " ".join(_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS)
 
 
 def _utc_now() -> str:
@@ -192,11 +200,7 @@ def _codex_app_automation_prompt_check(*, automation_path: Path | None = None) -
 def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager: str, interval_seconds: int) -> dict[str, Any]:
     github_user = _github_user_login_check()
     codex_app_prompt = _codex_app_automation_prompt_check()
-    developer_mode_enabled = (
-        bool(github_user.get("matches_expected"))
-        and bool(codex_app_prompt.get("active"))
-        and bool(codex_app_prompt.get("prompt_contains_required_tokens"))
-    )
+    developer_mode_enabled = bool(github_user.get("matches_expected"))
     supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
     expected_artifacts = [
         str(profile.workspace_root / "ops" / "medautoscience" / "runtime" / "supervisor" / "latest.json"),
@@ -204,13 +208,13 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
         str(profile.workspace_root / "ops" / "medautoscience" / "runtime" / "supervisor" / "why_not_applied.json"),
     ]
     status_check_commands = [
-        [str(supervisor_scan), "--apply-safe-actions"],
+        [str(supervisor_scan), *_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS],
         [str(supervisor_scan), "--status"],
     ]
     return {
         "mode": "developer_apply_safe" if developer_mode_enabled else "external_observe",
         "requested_mode": "developer_apply_safe",
-        "mode_source": "github_user_and_codex_app_automation_prompt",
+        "mode_source": "github_user_gate",
         "developer_mode_enabled": developer_mode_enabled,
         "safe_actions_enabled": developer_mode_enabled,
         "repo_level_repair_authority": developer_mode_enabled,
@@ -276,7 +280,7 @@ def _portable_supervisor_instruction(
         install_commands = [
             f"bash {docker_template}",
             "docker run --rm -v <workspace_root>:<workspace_root> -w <workspace_root> medautoscience:latest "
-            "bash -lc './ops/medautoscience/bin/supervisor-scan --apply-safe-actions'",
+            f"bash -lc './ops/medautoscience/bin/supervisor-scan {_DEVELOPER_SUPERVISOR_SAFE_ACTION_TEXT}'",
             f"kubectl apply -f {k8s_template}",
         ]
     elif manager_key == "launchd":
@@ -314,7 +318,7 @@ def _portable_supervisor_instruction(
         },
         "command": [
             str(supervisor_scan),
-            "--apply-safe-actions",
+            *_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS,
         ],
         "templates": result_templates,
         "install_commands": install_commands,

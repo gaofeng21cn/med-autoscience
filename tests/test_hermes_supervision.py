@@ -469,7 +469,9 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
     automation_path.write_text(
         'status = "ACTIVE"\n'
         'prompt = """developer_apply_safe\n'
+        "mode=developer_apply_safe\n"
         "supervisor-scan --apply-safe-actions\n"
+        "--developer-supervisor-mode developer_apply_safe\n"
         "action_queue\n"
         "why_not_applied\n"
         '"""\n',
@@ -483,7 +485,7 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
 
     assert result["mode"] == "developer_apply_safe"
     assert result["requested_mode"] == "developer_apply_safe"
-    assert result["mode_source"] == "github_user_and_codex_app_automation_prompt"
+    assert result["mode_source"] == "github_user_gate"
     assert result["developer_mode_enabled"] is True
     assert result["safe_actions_enabled"] is True
     assert result["repo_level_repair_authority"] is True
@@ -496,7 +498,12 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
     assert result["codex_app_automation_prompt"]["missing_prompt_tokens"] == []
     assert result["install_proof"]["status"] == "ready"
     assert result["install_proof"]["status_check_commands"] == [
-        [str(supervisor_scan), "--apply-safe-actions"],
+        [
+            str(supervisor_scan),
+            "--apply-safe-actions",
+            "--developer-supervisor-mode",
+            "developer_apply_safe",
+        ],
         [str(supervisor_scan), "--status"],
     ]
     assert result["status_check_commands"] == result["install_proof"]["status_check_commands"]
@@ -516,7 +523,8 @@ def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
     automation_path.write_text(
         '[[automations]]\n'
         'status = "ACTIVE"\n'
-        'prompt = "developer_apply_safe supervisor-scan --apply-safe-actions action_queue why_not_applied"\n',
+        'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
+        '--developer-supervisor-mode developer_apply_safe action_queue why_not_applied"\n',
         encoding="utf-8",
     )
 
@@ -541,7 +549,8 @@ def test_codex_app_automation_prompt_check_reports_missing_tokens(tmp_path: Path
     automation_path = tmp_path / "automation.toml"
     automation_path.write_text(
         'status = "ACTIVE"\n'
-        'prompt = "developer_apply_safe supervisor-scan --apply-safe-actions"\n',
+        'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
+        '--developer-supervisor-mode developer_apply_safe"\n',
         encoding="utf-8",
     )
 

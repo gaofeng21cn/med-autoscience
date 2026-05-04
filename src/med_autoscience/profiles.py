@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import tomllib
 
+from med_autoscience.developer_supervisor_mode import SUPPORTED_DEVELOPER_SUPERVISOR_MODES
 from med_autoscience.overlay.constants import (
     DEFAULT_MEDICAL_OVERLAY_SKILL_IDS,
     SUPPORTED_MEDICAL_OVERLAY_BOOTSTRAP_MODES,
@@ -59,6 +60,8 @@ class WorkspaceProfile:
     legacy_code_execution_policy: str = "forbid_without_user_approval"
     public_data_discovery_policy: str = "required_for_scout_route_selection"
     startup_boundary_requirements: tuple[str, ...] = SUPPORTED_STARTUP_BOUNDARY_REQUIREMENTS
+    developer_supervisor_mode: str = "internal_only"
+    developer_supervisor_mode_explicit: bool = False
 
     @property
     def managed_runtime_home(self) -> Path:
@@ -157,6 +160,18 @@ def _optional_startup_boundary_requirements(payload: dict[str, object]) -> tuple
         supported = ", ".join(SUPPORTED_STARTUP_BOUNDARY_REQUIREMENTS)
         raise TypeError(f"startup_boundary_requirements items must be drawn from: {supported}")
     return requirements
+
+
+def _optional_developer_supervisor_mode(payload: dict[str, object]) -> str:
+    mode = _optional_string_with_default(
+        payload,
+        "developer_supervisor_mode",
+        default="internal_only",
+    )
+    if mode not in SUPPORTED_DEVELOPER_SUPERVISOR_MODES:
+        supported = ", ".join(SUPPORTED_DEVELOPER_SUPERVISOR_MODES)
+        raise TypeError(f"developer_supervisor_mode must be one of: {supported}")
+    return mode
 
 
 def _optional_managed_runtime_backend_id(payload: dict[str, object]) -> str:
@@ -262,6 +277,8 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
         legacy_code_execution_policy=_optional_legacy_code_execution_policy(payload),
         public_data_discovery_policy=_optional_public_data_discovery_policy(payload),
         startup_boundary_requirements=_optional_startup_boundary_requirements(payload),
+        developer_supervisor_mode=_optional_developer_supervisor_mode(payload),
+        developer_supervisor_mode_explicit="developer_supervisor_mode" in payload,
     )
 
 
@@ -295,6 +312,8 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
             "legacy_code_execution_policy": profile.legacy_code_execution_policy,
             "public_data_discovery_policy": profile.public_data_discovery_policy,
             "startup_boundary_requirements": list(profile.startup_boundary_requirements),
+            "developer_supervisor_mode": profile.developer_supervisor_mode,
+            "developer_supervisor_mode_explicit": profile.developer_supervisor_mode_explicit,
         },
         "archetype": {
             "preferred_study_archetypes": list(profile.preferred_study_archetypes),

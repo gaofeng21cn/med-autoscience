@@ -5,6 +5,9 @@ import os
 from pathlib import Path
 
 
+DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --developer-supervisor-mode developer_apply_safe"
+
+
 def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "lung-workspace"
@@ -30,7 +33,7 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
     assert 'SUPERVISOR_SCAN_INTERVAL_SECONDS="${SUPERVISOR_SCAN_INTERVAL_SECONDS:-3600}"' in runner_text
     assert 'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"' in runner_text
     assert 'SUPERVISOR_SCAN_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-scan"' in runner_text
-    assert 'exec "${SUPERVISOR_SCAN_SCRIPT}" --apply-safe-actions "$@"' in runner_text
+    assert f'exec "${{SUPERVISOR_SCAN_SCRIPT}}" {DEVELOPER_SUPERVISOR_MODE_ARGS} "$@"' in runner_text
 
     supervisor_scan = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
     assert supervisor_scan.is_file()
@@ -89,14 +92,17 @@ def test_init_workspace_renders_portable_supervisor_scheduler_templates(tmp_path
     launchd_text = launchd_instructions.read_text(encoding="utf-8")
 
     assert f"WorkingDirectory={workspace_root}" in systemd_service_text
-    assert f"ExecStart={workspace_root}/ops/medautoscience/bin/supervisor-scan --apply-safe-actions" in systemd_service_text
+    assert (
+        f"ExecStart={workspace_root}/ops/medautoscience/bin/supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}"
+        in systemd_service_text
+    )
     assert "OnCalendar=hourly" in systemd_timer_text
-    assert f"{workspace_root}/ops/medautoscience/bin/supervisor-scan --apply-safe-actions" in cron_text
+    assert f"{workspace_root}/ops/medautoscience/bin/supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}" in cron_text
     assert "docker run --rm" in docker_text
-    assert "supervisor-scan --apply-safe-actions" in docker_text
+    assert f"supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}" in docker_text
     assert "kind: CronJob" in k8s_text
     assert 'schedule: "0 * * * *"' in k8s_text
-    assert "supervisor-scan" in k8s_text
+    assert f"supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}" in k8s_text
     assert "launchd" in launchd_text
     assert "install-watch-runtime-service --manager launchd" in launchd_text
     assert "Codex App heartbeat" not in "\n".join(
