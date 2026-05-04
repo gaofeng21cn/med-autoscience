@@ -13,11 +13,20 @@ from med_autoscience.controllers.artifact_lifecycle_inventory import (
     lifecycle_for_role,
 )
 from med_autoscience.controllers.artifact_lifecycle_operations_report_parts.scan_policy import (
+    CLASSIFIED_SCAN_MODE as _CLASSIFIED_SCAN_MODE,
+    DEEP_STATISTICAL_SCAN_MODE as _DEEP_STATISTICAL_SCAN_MODE,
+    DEFAULT_ARTIFACT_SAMPLE_LIMIT as _DEFAULT_ARTIFACT_SAMPLE_LIMIT,
+    DEFAULT_MAX_FILES as _DEFAULT_MAX_FILES,
+    DEFAULT_MAX_SECONDS as _DEFAULT_MAX_SECONDS,
     HARD_SKIPPED_DIR_NAMES as _HARD_SKIPPED_DIR_NAMES,
+    NOISE_SCAN_MODE as _NOISE_SCAN_MODE,
+    SKIPPED_SCAN_MODE as _SKIPPED_SCAN_MODE,
+    SNAPSHOT_SCAN_MODE as _SNAPSHOT_SCAN_MODE,
     STATISTICAL_DIR_BUCKETS as _STATISTICAL_DIR_BUCKETS,
     STATISTICAL_RELATIVE_DIR_BUCKETS as _STATISTICAL_RELATIVE_DIR_BUCKETS,
     STATISTICAL_ROLE_LIFECYCLE_BY_BUCKET as _STATISTICAL_ROLE_LIFECYCLE_BY_BUCKET,
     STATISTICAL_STUDY_ARTIFACT_DIR_BUCKETS as _STATISTICAL_STUDY_ARTIFACT_DIR_BUCKETS,
+    build_scan_policy as _build_scan_policy,
 )
 from med_autoscience.controllers.artifact_lifecycle_operations_report_parts.markdown import (
     render_lifecycle_operations_report_markdown,
@@ -39,12 +48,6 @@ from med_autoscience.controllers.control_plane_migration_audit import (
 
 SCHEMA_VERSION = 1
 SURFACE_KIND = "control_plane_lifecycle_report"
-NOISE_SCAN_MODE = "statistical_only"
-CLASSIFIED_SCAN_MODE = "classified_files"
-SKIPPED_SCAN_MODE = "skipped"
-SNAPSHOT_SCAN_MODE = "snapshot_reference"
-DEEP_STATISTICAL_SCAN_MODE = "deep_statistical"
-
 _SOURCE_BUCKETS = (
     "runtime",
     "dataset",
@@ -56,28 +59,6 @@ _SOURCE_BUCKETS = (
     "other",
 )
 _PROJECTION_SURFACES = ("current_package", "submission_minimal", "docx", "pdf", "zip")
-_DEFAULT_ARTIFACT_SAMPLE_LIMIT = 50
-_DEFAULT_MAX_FILES = 1000
-_DEFAULT_MAX_SECONDS = 5.0
-
-
-def _scan_policy(*, deep: bool, max_files: int | None, max_seconds: float | None) -> dict[str, Any]:
-    resolved_max_files = _DEFAULT_MAX_FILES if max_files is None else int(max_files)
-    resolved_max_seconds = _DEFAULT_MAX_SECONDS if max_seconds is None else float(max_seconds)
-    if resolved_max_files < 1:
-        raise ValueError("max_files must be >= 1")
-    if resolved_max_seconds <= 0:
-        raise ValueError("max_seconds must be > 0")
-    return {
-        "deep_scan_enabled": bool(deep),
-        "artifact_listing": "bounded",
-        "artifact_sample_limit": _DEFAULT_ARTIFACT_SAMPLE_LIMIT,
-        "max_files": resolved_max_files,
-        "max_seconds": int(resolved_max_seconds)
-        if resolved_max_seconds.is_integer()
-        else resolved_max_seconds,
-    }
-
 
 def run_lifecycle_operations_report(
     *,
@@ -87,7 +68,7 @@ def run_lifecycle_operations_report(
     max_seconds: float | None = None,
 ) -> dict[str, Any]:
     resolved_roots = sorted(_as_path(root) for root in workspace_roots)
-    scan_policy = _scan_policy(deep=deep, max_files=max_files, max_seconds=max_seconds)
+    scan_policy = _build_scan_policy(deep=deep, max_files=max_files, max_seconds=max_seconds)
     workspaces = [_workspace_report(root, scan_policy=scan_policy) for root in resolved_roots]
     mutation_policy = _mutation_policy()
     summary = _aggregate_summary(workspaces)
@@ -101,8 +82,8 @@ def run_lifecycle_operations_report(
         "mutation_policy": mutation_policy,
         "retention_policy_catalog": retention_policy_catalog(),
         "scan_policy": {
-            "classified_scan_mode": CLASSIFIED_SCAN_MODE,
-            "noise_scan_mode": NOISE_SCAN_MODE,
+            "classified_scan_mode": _CLASSIFIED_SCAN_MODE,
+            "noise_scan_mode": _NOISE_SCAN_MODE,
             "hard_skipped_directories": sorted(_HARD_SKIPPED_DIR_NAMES),
             "statistical_directories": sorted(_STATISTICAL_DIR_BUCKETS),
             **scan_policy,
@@ -271,7 +252,7 @@ def _skipped_directory_report(directory: Path, *, workspace_root: Path) -> dict[
     return {
         "path": str(directory.resolve()),
         "workspace_relative_path": _rel(directory, workspace_root),
-        "scan_mode": SKIPPED_SCAN_MODE,
+        "scan_mode": _SKIPPED_SCAN_MODE,
         "source_bucket": "other",
         "reason": "noise_directory_skipped",
     }
@@ -366,7 +347,7 @@ def _classify_workspace_artifacts(
                 "study_root": str(study_root),
                 "study_id": _study_id_for_root(study_root, workspace_root),
                 "size_bytes": size_bytes,
-                "scan_mode": CLASSIFIED_SCAN_MODE,
+                "scan_mode": _CLASSIFIED_SCAN_MODE,
                 "source_bucket": _source_bucket_for_artifact(role=role, lifecycle=lifecycle, path=path),
             }
         )
@@ -393,7 +374,7 @@ def _statistical_directory_report(
             "source_bucket": source_bucket,
             "role": role,
             "lifecycle": lifecycle,
-            "scan_mode": SNAPSHOT_SCAN_MODE,
+            "scan_mode": _SNAPSHOT_SCAN_MODE,
             "source_snapshot": snapshot["source_snapshot"],
             "size_bytes": snapshot["bytes"],
             "file_count": snapshot["file_count"],
@@ -409,7 +390,7 @@ def _statistical_directory_report(
         max_files=int(scan_policy.get("max_files") or _DEFAULT_MAX_FILES),
         max_seconds=float(scan_policy.get("max_seconds") or _DEFAULT_MAX_SECONDS),
     )
-    scan_mode = DEEP_STATISTICAL_SCAN_MODE if bool(scan_policy.get("deep_scan_enabled")) else NOISE_SCAN_MODE
+    scan_mode = _DEEP_STATISTICAL_SCAN_MODE if bool(scan_policy.get("deep_scan_enabled")) else _NOISE_SCAN_MODE
     return {
         "path": str(directory.resolve()),
         "workspace_relative_path": _rel(directory, workspace_root),
@@ -768,7 +749,7 @@ def _workspace_source_totals(
             file_count=1,
             classified_count=1,
             statistical_count=0,
-            scan_mode=CLASSIFIED_SCAN_MODE,
+            scan_mode=_CLASSIFIED_SCAN_MODE,
         )
     for item in statistical_directories:
         bucket = str(item.get("source_bucket") or "other")
@@ -779,7 +760,7 @@ def _workspace_source_totals(
             file_count=int(item.get("file_count") or 0),
             classified_count=0,
             statistical_count=1,
-            scan_mode=str(item.get("scan_mode") or NOISE_SCAN_MODE),
+            scan_mode=str(item.get("scan_mode") or _NOISE_SCAN_MODE),
         )
     return totals
 
