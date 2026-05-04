@@ -4,6 +4,7 @@ from typing import Any
 
 from med_autoscience.controllers.medical_paper_v3_action_truth import (
     ACTION_BY_SURFACE as READINESS_ACTION_BY_SURFACE,
+    LITERATURE_SURFACE_KEYS,
     action_truths_for_readiness,
     compact_missing_surface_with_action_truth,
 )
@@ -183,7 +184,7 @@ def _compact_medical_paper_readiness(value: Any) -> dict[str, Any] | None:
     )
     if compact is None:
         return None
-    missing_surfaces: list[dict[str, Any]] = []
+    raw_missing_surfaces: list[dict[str, Any]] = []
     for item in value.get("capability_surfaces") or []:
         if not isinstance(item, dict):
             continue
@@ -191,7 +192,13 @@ def _compact_medical_paper_readiness(value: Any) -> dict[str, Any] | None:
             continue
         missing = _compact_readiness_missing_surface(item)
         if missing is not None:
-            missing_surfaces.append(missing)
+            raw_missing_surfaces.append(missing)
+    literature_missing_surfaces = [
+        item
+        for item in raw_missing_surfaces
+        if str(item.get("surface_key") or "").strip() in LITERATURE_SURFACE_KEYS
+    ]
+    missing_surfaces = literature_missing_surfaces[:1] or raw_missing_surfaces
     compact["missing_surfaces"] = missing_surfaces[:8]
     compact["v3_action_truth"] = action_truths_for_readiness(value)
     compact["v4_operations"] = _compact_medical_paper_v4_operations(

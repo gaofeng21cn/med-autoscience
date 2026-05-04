@@ -4,6 +4,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers.medical_paper_v3_action_truth import (
     ACTION_BY_SURFACE as READINESS_ACTION_BY_SURFACE,
+    LITERATURE_SURFACE_KEYS,
     action_truth_for_surface,
 )
 from med_autoscience.controllers.medical_paper_ops_health import build_medical_paper_ops_health
@@ -860,13 +861,19 @@ def _medical_paper_readiness_next_action_summary(readiness: Mapping[str, Any]) -
 
 
 def _missing_required_medical_paper_surfaces(readiness: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    return [
+    missing = [
         item
         for item in readiness.get("capability_surfaces") or []
         if isinstance(item, Mapping)
         and bool(item.get("required_for_ready"))
         and str(item.get("status") or "").strip() != "present"
     ]
+    literature_missing = [
+        item
+        for item in missing
+        if str(item.get("surface_key") or "").strip() in LITERATURE_SURFACE_KEYS
+    ]
+    return literature_missing[:1] or missing
 
 
 def _medical_paper_readiness_surface_action_line(item: Mapping[str, Any]) -> str:

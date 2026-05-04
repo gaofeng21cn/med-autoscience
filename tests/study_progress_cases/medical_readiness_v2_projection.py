@@ -148,18 +148,17 @@ def test_compact_mcp_progress_projection_preserves_v2_readiness_surface_details(
     assert readiness["v4_operations"]["surface"] == "medical_paper_v4_operations_dashboard"
     assert readiness["v4_operations"]["overall_status"] == "blocked"
     assert readiness["v4_operations"]["health"]["provider_health"]["status"] == "missing"
-    assert readiness["v4_operations"]["health"]["operator_action_health"]["pending_action_count"] == 6
+    assert readiness["v4_operations"]["health"]["operator_action_health"]["pending_action_count"] == 1
+    assert readiness["v4_operations"]["health"]["operator_action_health"]["action_ids"] == [
+        "run_provider_literature_scout"
+    ]
     assert readiness["v4_operations"]["health"]["statistical_blocker_health"]["status"] == "partial"
     assert readiness["v4_operations"]["health"]["soak_monitor_health"]["status"] == "partial"
     assert readiness["v4_operations"]["health"]["ai_reviewer_calibration_health"]["status"] == "blocked"
     assert readiness["v4_operations"]["authority_contract"]["can_authorize_quality"] is False
     assert readiness["v4_operations"]["authority_contract"]["can_authorize_submission"] is False
     assert readiness["v4_operations"]["authority_contract"]["can_authorize_finalize"] is False
-    assert missing["route_decision_orchestrator"]["action_label"] == "写入路线裁决"
-    assert missing["statistical_discipline_operations"]["action_label"] == "处理统计 blocker"
-    assert missing["revision_rebuttal_loop"]["action_label"] == "启动返修"
-    assert missing["authoring_runtime_authorization"]["action_label"] == "授权写作"
-    assert missing["real_workspace_soak_monitor"]["action_label"] == "运行真实 soak"
+    assert set(missing) == {"literature_provider_runtime"}
 
 
 def test_mcp_study_progress_markdown_renders_v2_readiness_action_semantics() -> None:
@@ -168,11 +167,11 @@ def test_mcp_study_progress_markdown_renders_v2_readiness_action_semantics() -> 
     markdown = module.render_mcp_study_progress_markdown(_progress_payload())
 
     assert "补文献: 运行 provider-backed 文献摄取" in markdown
-    assert "路线裁决: 把路线选择、route-back 或 switch-line 决策写入 controller decision 投影。" in markdown
-    assert "统计 blocker: 逐项处理缺失值、precision、外部验证、多重性、临床效用和敏感性分析 blocker/waiver。" in markdown
-    assert "返修: 摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。" in markdown
-    assert "写作授权: 检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。" in markdown
-    assert "真实 soak: 从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。" in markdown
+    assert "路线裁决: 把路线选择、route-back 或 switch-line 决策写入 controller decision 投影。" not in markdown
+    assert "统计 blocker: 逐项处理缺失值、precision、外部验证、多重性、临床效用和敏感性分析 blocker/waiver。" not in markdown
+    assert "返修: 摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。" not in markdown
+    assert "写作授权: 检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。" not in markdown
+    assert "真实 soak: 从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。" not in markdown
     assert "guarded action: `run_provider_literature_scout`" in markdown
     assert "authority: product-entry/controller guarded; quality authorization: false" in markdown
     assert "generic 缺失 surface" not in markdown
@@ -190,11 +189,11 @@ def test_study_progress_markdown_renders_v2_readiness_action_semantics() -> None
     markdown = module.render_study_progress_markdown(_progress_payload())
 
     assert "补文献: 运行 provider-backed 文献摄取" in markdown
-    assert "路线裁决: 把路线选择、route-back 或 switch-line 决策写入 controller decision 投影。" in markdown
-    assert "统计 blocker: 逐项处理缺失值、precision、外部验证、多重性、临床效用和敏感性分析 blocker/waiver。" in markdown
-    assert "返修: 摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。" in markdown
-    assert "写作授权: 检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。" in markdown
-    assert "真实 soak: 从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。" in markdown
+    assert "路线裁决: 把路线选择、route-back 或 switch-line 决策写入 controller decision 投影。" not in markdown
+    assert "统计 blocker: 逐项处理缺失值、precision、外部验证、多重性、临床效用和敏感性分析 blocker/waiver。" not in markdown
+    assert "返修: 摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。" not in markdown
+    assert "写作授权: 检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。" not in markdown
+    assert "真实 soak: 从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。" not in markdown
     assert "- 质量声明授权: `false`" in markdown
     assert "## v4 生产运行面 / Medical Paper Operations" in markdown
     assert "- provider_health: `missing`（missing_provider_provenance）" in markdown

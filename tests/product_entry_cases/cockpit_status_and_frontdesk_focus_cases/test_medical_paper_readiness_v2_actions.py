@@ -244,12 +244,8 @@ def test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards(
     cards = payload["studies"][0]["medical_paper_readiness"]["action_cards"]
     v4_operations = payload["studies"][0]["medical_paper_v4_operations"]
 
-    assert [card["action_id"] for card in cards] == [
-        "run_provider_literature_scout",
-        "start_revision_rebuttal_loop",
-        "run_real_workspace_soak_monitor",
-    ]
-    assert [card["label"] for card in cards] == ["联网补文献", "启动返修", "运行真实 soak"]
+    assert [card["action_id"] for card in cards] == ["run_provider_literature_scout"]
+    assert [card["label"] for card in cards] == ["联网补文献"]
     assert all(card["authority"] == "observability_projection_only" for card in cards)
     assert all(card["quality_claim_authorized"] is False for card in cards)
     command = cards[0]["guarded_operator_command"]
@@ -279,7 +275,10 @@ def test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards(
     assert v4_operations["surface"] == "medical_paper_v4_operations_dashboard"
     assert v4_operations["overall_status"] == "blocked"
     assert v4_operations["health"]["provider_health"]["missing_reason"] == "missing_provider_provenance"
-    assert v4_operations["health"]["operator_action_health"]["pending_action_count"] == 3
+    assert v4_operations["health"]["operator_action_health"]["pending_action_count"] == 1
+    assert v4_operations["health"]["operator_action_health"]["action_ids"] == [
+        "run_provider_literature_scout"
+    ]
     assert v4_operations["health"]["soak_monitor_health"]["status"] == "partial"
     assert v4_operations["authority_contract"]["can_authorize_quality"] is False
 

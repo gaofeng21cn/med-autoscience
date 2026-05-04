@@ -91,6 +91,7 @@ ACTION_BY_SURFACE: dict[str, dict[str, str]] = {
         "action_summary": "从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。",
     },
 }
+LITERATURE_SURFACE_KEYS = ("literature_provider_runtime", "literature_scout")
 
 
 def compact_authority_contract() -> dict[str, bool]:
@@ -137,17 +138,29 @@ def action_truth_for_surface(surface: Mapping[str, Any]) -> dict[str, Any] | Non
 
 def action_truths_for_readiness(readiness: Mapping[str, Any]) -> list[dict[str, Any]]:
     truths: list[dict[str, Any]] = []
-    for item in readiness.get("capability_surfaces") or []:
-        if (
-            not isinstance(item, Mapping)
-            or not bool(item.get("required_for_ready"))
-            or str(item.get("status") or "").strip() == "present"
-        ):
-            continue
+    actionable_surfaces = [
+        item
+        for item in readiness.get("capability_surfaces") or []
+        if _is_actionable_surface(item)
+    ]
+    literature_surfaces = [
+        item
+        for item in actionable_surfaces
+        if str(item.get("surface_key") or "").strip() in LITERATURE_SURFACE_KEYS
+    ]
+    for item in literature_surfaces[:1] or actionable_surfaces:
         truth = action_truth_for_surface(item)
         if truth is not None:
             truths.append(truth)
     return truths
+
+
+def _is_actionable_surface(item: object) -> bool:
+    return (
+        isinstance(item, Mapping)
+        and bool(item.get("required_for_ready"))
+        and str(item.get("status") or "").strip() != "present"
+    )
 
 
 def compact_missing_surface_with_action_truth(item: Mapping[str, Any]) -> dict[str, Any] | None:

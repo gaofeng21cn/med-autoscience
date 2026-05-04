@@ -205,6 +205,7 @@ def _complete_literature_provider_runtime_payload() -> dict[str, object]:
         ],
         "search_strategy": {
             "query": "diabetes mortality prediction",
+            "mesh_terms": ["Diabetes Mellitus"],
             "keywords": ["mortality", "risk prediction", "diabetes"],
         },
         "study_rationale": "A transportable mortality risk model addresses a clinically actionable prognostic gap.",
@@ -725,13 +726,53 @@ def test_medical_paper_readiness_surface_fails_closed_when_inputs_are_missing(tm
     assert readiness["mechanical_projection_can_authorize_quality"] is False
     assert readiness["next_action"] == {
         "action_id": "complete_medical_paper_readiness_surface",
-        "surface_key": "study_line_selection",
-        "summary": "补齐 Study Line Selection Scorecard 后再继续自动论文链路。",
+        "surface_key": "literature_provider_runtime",
+        "summary": "运行联网 literature provider runtime 并写入可审计来源后再继续。",
     }
     by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
     assert by_key["literature_scout"]["status"] == "present"
+    assert by_key["literature_provider_runtime"]["status"] == "missing"
+    assert by_key["literature_provider_runtime"]["missing_reason"] == "missing_canonical_artifact"
     assert by_key["study_line_selection"]["status"] == "missing"
     assert by_key["study_line_selection"]["missing_reason"] == "missing_canonical_artifact"
+
+
+def test_medical_paper_readiness_prioritizes_literature_action_when_provider_quality_is_blocked(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_paper_readiness")
+    study_root = tmp_path / "study"
+    _materialize_complete_readiness_inputs(module, study_root)
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "literature_provider_runtime.json",
+        {
+            "surface": "literature_provider_runtime",
+            "status": "blocked",
+            "missing_reason": "missing_search_strategy",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+            "authority_contract": {
+                "can_authorize_quality": False,
+                "can_authorize_submission": False,
+                "can_authorize_finalize": False,
+            },
+        },
+    )
+
+    readiness = module.build_medical_paper_readiness_surface(study_root=study_root)
+
+    assert readiness["overall_status"] == "blocked"
+    assert readiness["next_action"] == {
+        "action_id": "complete_medical_paper_readiness_surface",
+        "surface_key": "literature_provider_runtime",
+        "summary": "运行联网 literature provider runtime 并写入可审计来源后再继续。",
+    }
+    by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
+    assert by_key["literature_provider_runtime"]["status"] == "blocked"
+    assert by_key["literature_provider_runtime"]["missing_reason"] == "missing_search_strategy"
+    assert by_key["real_study_soak_matrix_evidence"]["status"] == "missing"
+    assert readiness["quality_claim_authorized"] is False
+    assert readiness["mechanical_projection_can_authorize_quality"] is False
 
 
 def test_medical_paper_readiness_materializer_rejects_incomplete_payload(tmp_path: Path) -> None:

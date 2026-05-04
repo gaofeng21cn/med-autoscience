@@ -695,6 +695,40 @@ def test_provider_runtime_fails_closed_when_literature_category_or_rationale_is_
     ]
 
 
+def test_provider_runtime_requires_search_strategy_query_and_mesh_terms() -> None:
+    provider_runtime = importlib.import_module(
+        "med_autoscience.controllers.literature_provider_runtime"
+    )
+    payload = _complete_provider_payload()
+    payload["search_strategy"] = {
+        "mesh_terms": ["Pituitary Neoplasms", "Biomarkers"],
+        "keywords": ["invasive architecture", "pituitary neuroendocrine tumor"],
+    }
+
+    projection = provider_runtime.build_literature_provider_runtime_projection(payload)
+
+    assert projection["status"] == "blocked"
+    assert projection["missing_reason"] == "missing_search_strategy"
+    assert projection["diagnostics"] == [
+        {
+            "reason_code": "missing_search_strategy",
+            "severity": "blocking",
+            "category": "literature_intelligence_readiness",
+        }
+    ]
+
+    payload = _complete_provider_payload()
+    payload["search_strategy"] = {
+        "query": "Pituitary neuroendocrine tumor invasive architecture",
+        "keywords": ["invasive architecture", "pituitary neuroendocrine tumor"],
+    }
+
+    projection = provider_runtime.build_literature_provider_runtime_projection(payload)
+
+    assert projection["status"] == "blocked"
+    assert projection["missing_reason"] == "missing_search_strategy"
+
+
 def test_provider_health_read_model_projects_scheduled_checks_without_authority() -> None:
     provider_runtime = importlib.import_module(
         "med_autoscience.controllers.literature_provider_runtime"

@@ -24,6 +24,7 @@ def _provider_payload() -> dict[str, object]:
     return {
         "search_strategy": {
             "query": "diabetes mortality prediction",
+            "mesh_terms": ["Diabetes Mellitus"],
             "keywords": ["mortality", "risk prediction", "diabetes"],
         },
         "study_rationale": "A transportable mortality risk model addresses a clinically actionable prognostic gap.",

@@ -320,6 +320,27 @@ def test_literature_intelligence_os_requires_provider_provenance_and_high_score_
     assert result["missing_reason"] == "missing_high_score_neighbor_refs"
 
 
+def test_literature_intelligence_os_requires_high_score_neighbor_scoring_provenance(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.literature_intelligence_os")
+    payload = _complete_payload()
+    payload["high_score_neighbor_refs"] = [
+        {
+            "ref": "journal-neighbor:clinical-endocrinology-2025",
+            "score": 0.91,
+        }
+    ]
+
+    result = module.materialize_literature_intelligence_os(
+        study_root=tmp_path / "study",
+        payload=payload,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["missing_reason"] == "missing_high_score_neighbor_refs"
+
+
 def test_literature_intelligence_os_requires_evidence_node_provenance(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.literature_intelligence_os")
     payload = _complete_payload()

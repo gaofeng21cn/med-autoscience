@@ -9,6 +9,7 @@ from med_autoscience.controllers.medical_paper_operator_actions import (
     guarded_operator_command,
     guarded_pending_action_result,
 )
+from med_autoscience.controllers.medical_paper_v3_action_truth import LITERATURE_SURFACE_KEYS
 from med_autoscience.controllers.medical_paper_ops_health import (
     build_medical_paper_ops_health,
     workspace_medical_paper_ops_health,
@@ -270,7 +271,17 @@ def _medical_paper_readiness_action_cards(readiness: Mapping[str, Any]) -> list[
 
 def _readiness_surface_action_cards(readiness: Mapping[str, Any]) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
-    for surface in readiness.get("capability_surfaces") or []:
+    surfaces = [
+        surface
+        for surface in readiness.get("capability_surfaces") or []
+        if isinstance(surface, Mapping) and surface.get("status") != "present"
+    ]
+    literature_surfaces = [
+        surface
+        for surface in surfaces
+        if _non_empty_text(surface.get("surface_key")) in LITERATURE_SURFACE_KEYS
+    ]
+    for surface in literature_surfaces[:1] or surfaces:
         card = _readiness_surface_action_card(surface)
         if card:
             cards.append(card)

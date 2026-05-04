@@ -44,6 +44,11 @@ def _keyword_terms_are_complete(payload: Mapping[str, Any]) -> bool:
     return _has_ref_items(strategy.get("keywords")) or _has_ref_items(payload.get("keywords"))
 
 
+def _search_strategy_is_complete(payload: Mapping[str, Any]) -> bool:
+    strategy = _mapping(payload.get("search_strategy"))
+    return _has_text(strategy.get("query")) and _has_ref_items(strategy.get("mesh_terms"))
+
+
 def _study_rationale(payload: Mapping[str, Any]) -> str:
     for key in ("why_worth_doing", "study_rationale", "research_rationale", "rationale"):
         value = _text(payload.get(key))
@@ -90,6 +95,8 @@ def _literature_intelligence_missing_reason(
     providers: list[Mapping[str, Any]],
 ) -> str:
     categorized = _categorized_refs(providers)
+    if not _search_strategy_is_complete(payload):
+        return "missing_search_strategy"
     if not _keyword_terms_are_complete(payload):
         return "missing_keyword_terms"
     if not _study_rationale(payload):
@@ -434,6 +441,7 @@ def _provider_health_diagnostic(
 
 def _provider_missing_reason_category(reason_code: str) -> str:
     if reason_code in {
+        "missing_search_strategy",
         "missing_keyword_terms",
         "missing_study_rationale",
         "missing_anchor_paper_refs",

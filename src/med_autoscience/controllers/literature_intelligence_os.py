@@ -31,6 +31,20 @@ def _has_ref_items(value: object) -> bool:
     return any(_has_text(item) or bool(_mapping(item).get("ref")) for item in _list(value))
 
 
+def _has_scored_ref_items(value: object) -> bool:
+    items = [item for item in _list(value) if isinstance(item, Mapping)]
+    if not items:
+        return False
+    for item in items:
+        if not _has_text(item.get("ref")):
+            return False
+        if item.get("score") is None:
+            return False
+        if not _has_text(item.get("score_source_ref")):
+            return False
+    return True
+
+
 def _dict_items(value: object) -> list[dict[str, Any]]:
     return [dict(item) for item in _list(value) if isinstance(item, Mapping)]
 
@@ -135,12 +149,13 @@ def _required_source_missing_reason(payload: Mapping[str, Any]) -> str:
         ("guidelines", "missing_guideline_refs"),
         ("systematic_reviews", "missing_systematic_review_refs"),
         ("journal_neighbor_refs", "missing_journal_neighbor_refs"),
-        ("high_score_neighbor_refs", "missing_high_score_neighbor_refs"),
         ("citation_ledger_refs", "missing_citation_ledger_refs"),
     )
     for key, reason in ordered_checks:
         if not _has_ref_items(payload.get(key)):
             return reason
+    if not _has_scored_ref_items(payload.get("high_score_neighbor_refs")):
+        return "missing_high_score_neighbor_refs"
     return ""
 
 

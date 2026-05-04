@@ -359,6 +359,15 @@ def _soak_matrix_payload(*, study_root: Path) -> Mapping[str, Any]:
 
 CAPABILITY_SPECS: tuple[dict[str, Any], ...] = (
     {
+        "surface_key": "literature_provider_runtime",
+        "surface": "literature_provider_runtime",
+        "label": "Literature Provider Runtime",
+        "path": literature_provider_runtime.ARTIFACT_RELATIVE_PATH,
+        "required_for_ready": True,
+        "next_action_summary": "运行联网 literature provider runtime 并写入可审计来源后再继续。",
+        "validator": _validate_literature_provider_runtime,
+    },
+    {
         "surface_key": "literature_scout",
         "surface": "literature_scout",
         "label": "Literature Scout OS",
@@ -420,15 +429,6 @@ CAPABILITY_SPECS: tuple[dict[str, Any], ...] = (
         "required_for_ready": True,
         "next_action_summary": "补齐真实 study soak evidence 后再声明自动论文链路可用。",
         "validator": _validate_soak_matrix,
-    },
-    {
-        "surface_key": "literature_provider_runtime",
-        "surface": "literature_provider_runtime",
-        "label": "Literature Provider Runtime",
-        "path": literature_provider_runtime.ARTIFACT_RELATIVE_PATH,
-        "required_for_ready": True,
-        "next_action_summary": "运行联网 literature provider runtime 并写入可审计来源后再继续。",
-        "validator": _validate_literature_provider_runtime,
     },
     {
         "surface_key": "route_decision_orchestrator",
