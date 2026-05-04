@@ -515,6 +515,7 @@ def _render_portable_supervisor_queue_dashboard_lines(projection: object) -> lis
         "",
         "- surface: read-only hourly supervisor projection",
         f"- authority: `{projection.get('authority') or 'observability_only'}`",
+        "- runtime boundary: Codex App heartbeat is an outer developer supervisor signal, not a MAS architecture dependency.",
         f"- 当前摘要: {projection.get('summary') or 'none'}",
         (
             "- 当前计数: "
@@ -524,6 +525,18 @@ def _render_portable_supervisor_queue_dashboard_lines(projection: object) -> lis
             f"external supervisor {counts.get('external_supervisor_required', 0)}"
         ),
     ]
+    supervisor_mode = dict(projection.get("supervisor_mode") or {})
+    if supervisor_mode:
+        lines.append(
+            "- developer supervisor mode: "
+            f"`{supervisor_mode.get('mode') or 'unknown'}`"
+            f" ({supervisor_mode.get('mode_label') or 'unlabeled'})；"
+            f"scheduler_owner `{supervisor_mode.get('scheduler_owner') or 'unknown'}`；"
+            f"Codex App heartbeat required `{supervisor_mode.get('codex_app_heartbeat_required')}`；"
+            f"safe actions `{supervisor_mode.get('safe_actions_enabled')}`；"
+            f"repo repair authority `{supervisor_mode.get('repo_level_repair_authority') or 'unknown'}`；"
+            f"GitHub user gate `{supervisor_mode.get('github_user_gate') or 'unknown'}`"
+        )
     for study in projection.get("studies") or []:
         if not isinstance(study, Mapping):
             continue

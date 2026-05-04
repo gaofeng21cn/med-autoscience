@@ -69,6 +69,13 @@ def _manifest_portable_supervisor_queue_dashboard(value: object) -> dict[str, An
         study: dict[str, Any] = {}
         for key in (
             "study_id",
+            "mode",
+            "mode_label",
+            "scheduler_owner",
+            "codex_app_heartbeat_required",
+            "safe_actions_enabled",
+            "repo_level_repair_authority",
+            "github_user_gate",
             "quest_status",
             "active_run_id",
             "runtime_health",
@@ -101,6 +108,7 @@ def _manifest_portable_supervisor_queue_dashboard(value: object) -> dict[str, An
         "status": projection.get("status"),
         "summary": projection.get("summary"),
         "source_path": projection.get("source_path"),
+        "supervisor_mode": dict(projection.get("supervisor_mode") or {}),
         "counts": dict(projection.get("counts") or {}),
         "studies": studies,
     }

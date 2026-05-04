@@ -38,6 +38,13 @@ def compact_portable_supervisor_dashboard(value: object) -> dict[str, Any] | Non
             "source_path",
             "generated_at",
             "study_id",
+            "mode",
+            "mode_label",
+            "scheduler_owner",
+            "codex_app_heartbeat_required",
+            "safe_actions_enabled",
+            "repo_level_repair_authority",
+            "github_user_gate",
             "quest_status",
             "active_run_id",
             "runtime_health",
@@ -79,6 +86,18 @@ def render_mcp_progress_portable_supervisor_dashboard(compact: dict[str, Any]) -
     lines = [
         "",
         "## Portable Supervisor Queue",
+        (
+            f"- developer supervisor mode: `{dashboard.get('mode') or 'unknown'}`"
+            f" ({dashboard.get('mode_label') or 'unlabeled'})；"
+            f"scheduler_owner: `{dashboard.get('scheduler_owner') or 'unknown'}`；"
+            f"Codex App heartbeat required: `{dashboard.get('codex_app_heartbeat_required')}`"
+        ),
+        (
+            f"- developer supervisor authority: safe_actions_enabled "
+            f"`{dashboard.get('safe_actions_enabled')}`；"
+            f"repo_level_repair_authority `{dashboard.get('repo_level_repair_authority') or 'unknown'}`；"
+            f"github_user_gate `{dashboard.get('github_user_gate') or 'unknown'}`"
+        ),
         (
             f"- quest: `{dashboard.get('quest_status') or 'unknown'}`；"
             f"run: `{dashboard.get('active_run_id') or 'none'}`；"

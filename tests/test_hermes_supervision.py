@@ -476,20 +476,21 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
         encoding="utf-8",
     )
 
-    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
-        assert command == ["gh", "api", "user", "--jq", ".login"]
-        return subprocess.CompletedProcess(command, 0, stdout="gaofeng21cn\n", stderr="")
-
-    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     monkeypatch.setattr(module, "_codex_app_automation_path", lambda: automation_path)
 
     result = module.ensure_supervision(profile=profile, manager="systemd", trigger_now=False)
 
-    assert result["mode"] == "developer_supervisor"
+    assert result["mode"] == "developer_apply_safe"
+    assert result["requested_mode"] == "developer_apply_safe"
     assert result["mode_source"] == "github_user_and_codex_app_automation_prompt"
     assert result["developer_mode_enabled"] is True
+    assert result["safe_actions_enabled"] is True
+    assert result["repo_level_repair_authority"] is True
+    assert result["scheduler_owner"] == "systemd_scheduler"
     assert result["github_user"]["login"] == "gaofeng21cn"
     assert result["github_user"]["matches_expected"] is True
+    assert result["github_user_gate"]["allowed"] is True
     assert result["codex_app_heartbeat_required"] is False
     assert result["codex_app_automation_prompt"]["active"] is True
     assert result["codex_app_automation_prompt"]["missing_prompt_tokens"] == []
@@ -519,19 +520,18 @@ def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
         encoding="utf-8",
     )
 
-    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
-        assert command == ["gh", "api", "user", "--jq", ".login"]
-        return subprocess.CompletedProcess(command, 0, stdout="someone-else\n", stderr="")
-
-    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "someone-else")
     monkeypatch.setattr(module, "_codex_app_automation_path", lambda: automation_path)
 
     result = module.ensure_supervision(profile=profile, manager="cron", trigger_now=False)
 
-    assert result["mode"] == "portable_supervisor"
+    assert result["mode"] == "external_observe"
     assert result["developer_mode_enabled"] is False
+    assert result["safe_actions_enabled"] is False
+    assert result["repo_level_repair_authority"] is False
     assert result["github_user"]["login"] == "someone-else"
     assert result["github_user"]["matches_expected"] is False
+    assert result["github_user_gate"]["allowed"] is False
     assert result["install_proof"]["status"] == "developer_mode_disabled"
     assert result["codex_app_heartbeat_required"] is False
 

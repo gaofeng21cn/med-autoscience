@@ -506,6 +506,19 @@ def _workspace_portable_supervisor_queue_dashboard(
     status = "not_available"
     if projected_studies:
         status = "blocked" if counts["blocked"] else "ready"
+    supervisor_mode: dict[str, Any] = {}
+    for item in projected_studies:
+        for key in (
+            "mode",
+            "mode_label",
+            "scheduler_owner",
+            "codex_app_heartbeat_required",
+            "safe_actions_enabled",
+            "repo_level_repair_authority",
+            "github_user_gate",
+        ):
+            if key in item and key not in supervisor_mode:
+                supervisor_mode[key] = item[key]
     summary = (
         "当前还没有 portable supervisor hourly projection。"
         if not projected_studies
@@ -522,6 +535,7 @@ def _workspace_portable_supervisor_queue_dashboard(
         "status": status,
         "summary": summary,
         "source_path": str(source_path),
+        "supervisor_mode": supervisor_mode,
         "counts": counts,
         "studies": projected_studies,
     }

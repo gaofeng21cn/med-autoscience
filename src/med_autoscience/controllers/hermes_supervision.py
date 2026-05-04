@@ -11,6 +11,7 @@ import subprocess
 import tomllib
 from typing import Any, Iterable
 
+from med_autoscience.developer_supervisor_mode import current_github_user_gate
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
 from opl_harness_shared.hermes_supervision import (
@@ -134,32 +135,15 @@ def _string_values(value: object, *, key: str | None = None) -> Iterable[tuple[s
 
 
 def _github_user_login_check() -> dict[str, Any]:
-    command = ["gh", "api", "user", "--jq", ".login"]
-    try:
-        completed = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-    except OSError as exc:
-        return {
-            "command": command,
-            "status": "unavailable",
-            "login": None,
-            "expected_login": _DEVELOPER_SUPERVISOR_GITHUB_LOGIN,
-            "matches_expected": False,
-            "details": str(exc),
-        }
-    output = completed.stdout.strip() or completed.stderr.strip()
-    login = completed.stdout.strip() if completed.returncode == 0 else None
+    gate = current_github_user_gate(expected_login=_DEVELOPER_SUPERVISOR_GITHUB_LOGIN)
     return {
-        "command": command,
-        "status": "ok" if completed.returncode == 0 and bool(login) else "failed",
-        "login": login,
-        "expected_login": _DEVELOPER_SUPERVISOR_GITHUB_LOGIN,
-        "matches_expected": login == _DEVELOPER_SUPERVISOR_GITHUB_LOGIN,
-        "details": output or None,
+        "command": ["gh", "api", "user", "--jq", ".login"],
+        "status": "ok" if gate.get("allowed") else "failed",
+        "login": gate.get("login"),
+        "expected_login": gate.get("expected_login"),
+        "matches_expected": gate.get("allowed") is True,
+        "details": gate.get("reason"),
+        "gate": gate,
     }
 
 
@@ -224,10 +208,15 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
         [str(supervisor_scan), "--status"],
     ]
     return {
-        "mode": "developer_supervisor" if developer_mode_enabled else "portable_supervisor",
+        "mode": "developer_apply_safe" if developer_mode_enabled else "external_observe",
+        "requested_mode": "developer_apply_safe",
         "mode_source": "github_user_and_codex_app_automation_prompt",
         "developer_mode_enabled": developer_mode_enabled,
+        "safe_actions_enabled": developer_mode_enabled,
+        "repo_level_repair_authority": developer_mode_enabled,
+        "scheduler_owner": f"{manager}_scheduler",
         "github_user": github_user,
+        "github_user_gate": github_user.get("gate"),
         "codex_app_automation_prompt": codex_app_prompt,
         "codex_app_heartbeat_required": False,
         "install_proof": {
@@ -307,9 +296,14 @@ def _portable_supervisor_instruction(
         "action": "portable_scheduler_instruction",
         "manager": manager_key,
         "mode": developer_supervisor_mode["mode"],
+        "requested_mode": developer_supervisor_mode["requested_mode"],
         "mode_source": developer_supervisor_mode["mode_source"],
         "developer_mode_enabled": developer_supervisor_mode["developer_mode_enabled"],
+        "safe_actions_enabled": developer_supervisor_mode["safe_actions_enabled"],
+        "repo_level_repair_authority": developer_supervisor_mode["repo_level_repair_authority"],
+        "scheduler_owner": developer_supervisor_mode["scheduler_owner"],
         "github_user": developer_supervisor_mode["github_user"],
+        "github_user_gate": developer_supervisor_mode["github_user_gate"],
         "installed": False,
         "profile": str(profile.workspace_root / "ops" / "medautoscience" / "profiles"),
         "interval_seconds": interval_seconds,

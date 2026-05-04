@@ -103,6 +103,46 @@ def _copy_mapping_keys(value: object, keys: tuple[str, ...]) -> dict[str, Any]:
     return {key: value[key] for key in keys if key in value}
 
 
+def _first_present_mapping_value(mappings: tuple[Mapping[str, Any], ...], key: str) -> Any:
+    for item in mappings:
+        if key in item:
+            return item[key]
+    return None
+
+
+def _portable_supervisor_mode_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
+    scheduler_contract = _mapping_copy(payload.get("scheduler_contract"))
+    developer_supervisor = _mapping_copy(payload.get("developer_supervisor"))
+    developer_supervisor_mode = _mapping_copy(payload.get("developer_supervisor_mode"))
+    supervisor_mode = _mapping_copy(payload.get("supervisor_mode"))
+    sources = (developer_supervisor, developer_supervisor_mode, supervisor_mode, scheduler_contract, payload)
+    projection: dict[str, Any] = {}
+    text_fields = (
+        "mode",
+        "mode_label",
+        "scheduler_owner",
+    )
+    for key in text_fields:
+        text = _non_empty_text(_first_present_mapping_value(sources, key))
+        if text is not None:
+            projection[key] = text
+    for key in ("codex_app_heartbeat_required", "safe_actions_enabled", "repo_level_repair_authority"):
+        for source in sources:
+            if key in source:
+                projection[key] = bool(source[key])
+                break
+    github_user_gate = _first_present_mapping_value(sources, "github_user_gate")
+    if isinstance(github_user_gate, Mapping):
+        projection["github_user_gate"] = dict(github_user_gate)
+    else:
+        text = _non_empty_text(github_user_gate)
+        if text is not None:
+            projection["github_user_gate"] = text
+    if "safe_actions_enabled" not in projection and "apply_safe_actions" in payload:
+        projection["safe_actions_enabled"] = bool(payload.get("apply_safe_actions"))
+    return projection
+
+
 def portable_supervisor_study_projection(
     *,
     profile: WorkspaceProfile,
@@ -129,7 +169,7 @@ def portable_supervisor_study_projection(
         for item in matching.get("why_not_applied") or []
         if (text := _non_empty_text(item)) is not None
     ]
-    return {
+    projection = {
         "surface_kind": "portable_supervisor_study_queue_dashboard",
         "read_model": "workspace_hourly_supervision_projection",
         "authority": "observability_only",
@@ -160,3 +200,5 @@ def portable_supervisor_study_projection(
         "external_supervisor_required": bool(matching.get("external_supervisor_required")),
         "blocked_reason": _non_empty_text(matching.get("blocked_reason")),
     }
+    projection.update(_portable_supervisor_mode_fields(payload))
+    return projection

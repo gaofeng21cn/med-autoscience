@@ -51,6 +51,15 @@ def test_workspace_cockpit_and_frontdesk_surface_portable_supervisor_queue_dashb
         "schema_version": 1,
         "generated_at": "2026-05-04T06:00:00+00:00",
         "authority": "observability_only",
+        "developer_supervisor_mode": {
+            "mode": "developer_apply_safe",
+            "mode_label": "Developer Supervisor Mode",
+            "scheduler_owner": "external_scheduler",
+            "codex_app_heartbeat_required": False,
+            "safe_actions_enabled": True,
+            "repo_level_repair_authority": True,
+            "github_user_gate": {"expected_login": "gaofeng21cn", "login": "gaofeng21cn", "allowed": True, "source": "env", "reason": None},
+        },
         "studies": [
             {
                 "study_id": "001-risk",
@@ -111,7 +120,10 @@ def test_workspace_cockpit_and_frontdesk_surface_portable_supervisor_queue_dashb
             "current_stage_summary": "Queue is blocked by runtime recovery.",
             "current_blockers": [],
             "next_system_action": "Inspect supervisor queue action.",
-            "portable_supervisor_dashboard": dict(hourly_payload["studies"][0]),
+            "portable_supervisor_dashboard": {
+                **dict(hourly_payload["studies"][0]),
+                **dict(hourly_payload["developer_supervisor_mode"]),
+            },
             "supervision": {"active_run_id": "run-001", "health_status": "external_supervisor_required"},
             "recommended_command": (
                 "uv run python -m med_autoscience.cli study-progress --profile "
@@ -208,14 +220,30 @@ def test_workspace_cockpit_and_frontdesk_surface_portable_supervisor_queue_dashb
     assert dashboard["surface_kind"] == "portable_supervisor_queue_dashboard"
     assert dashboard["authority"] == "observability_only"
     assert dashboard["source_path"] == str(hourly_path)
+    assert dashboard["supervisor_mode"] == {
+        "mode": "developer_apply_safe",
+        "mode_label": "Developer Supervisor Mode",
+        "scheduler_owner": "external_scheduler",
+        "codex_app_heartbeat_required": False,
+        "safe_actions_enabled": True,
+        "repo_level_repair_authority": True,
+        "github_user_gate": {"expected_login": "gaofeng21cn", "login": "gaofeng21cn", "allowed": True, "source": "env", "reason": None},
+    }
     assert dashboard["counts"]["external_supervisor_required"] == 1
+    assert dashboard["studies"][0]["mode"] == "developer_apply_safe"
+    assert dashboard["studies"][0]["github_user_gate"] == {"expected_login": "gaofeng21cn", "login": "gaofeng21cn", "allowed": True, "source": "env", "reason": None}
     assert dashboard["studies"][0]["blocked_reason"] == "runtime_recovery_not_authorized"
     assert dashboard["studies"][0]["action_queue"][0]["action_type"] == "publication_gate_specificity_required"
     assert frontdesk["workspace_portable_supervisor_queue_dashboard"]["studies"][0]["why_not_applied"] == [
         "runtime_recovery_retry_budget_exhausted"
     ]
+    assert frontdesk["workspace_portable_supervisor_queue_dashboard"]["supervisor_mode"]["mode"] == "developer_apply_safe"
     assert "Portable Supervisor Queue" in cockpit_markdown
+    assert "developer supervisor mode: `developer_apply_safe`" in cockpit_markdown
+    assert "Codex App heartbeat is an outer developer supervisor signal" in cockpit_markdown
     assert "publication_gate_specificity_required" in cockpit_markdown
     assert "runtime_recovery_not_authorized" in cockpit_markdown
     assert "Portable Supervisor Queue" in frontdesk_markdown
+    assert "developer supervisor mode: `developer_apply_safe`" in frontdesk_markdown
+    assert "Codex App heartbeat is an outer developer supervisor signal" in frontdesk_markdown
     assert "runtime_recovery_retry_budget_exhausted" in frontdesk_markdown
