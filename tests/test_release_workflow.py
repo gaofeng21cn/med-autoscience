@@ -188,10 +188,10 @@ def test_advisory_workflow_uploads_non_blocking_lane_summaries() -> None:
     assert "pattern: mas-test-lane-summary-*" in history_workflow
     assert "path: artifacts/mas-test-lane-summary-history" in history_workflow
     assert "merge-multiple: true" in history_workflow
-    assert (
-        "uv run python scripts/summarize-test-lane-history.py artifacts/mas-test-lane-summary-history"
-        in history_workflow
-    )
+    assert "artifacts/mas-test-lane-baseline.json" in history_workflow
+    assert "--baseline artifacts/mas-test-lane-baseline.json" in history_workflow
+    assert "uv run python scripts/summarize-test-lane-history.py \\" in history_workflow
+    assert "uv run python scripts/summarize-test-lane-history.py artifacts/mas-test-lane-summary-history" in history_workflow
 
     for job_id, lane in (
         ("regression", "regression"),
@@ -264,6 +264,8 @@ def _assert_docs_readmes_route_to_maintenance_docs(
     assert "`regression`、`display`、`submission`、`family` 与 `meta` lane 迁入 `macOS Advisory`" in preflight_doc
     assert "耗时预算只用于观察和提醒" in preflight_doc
     assert "不作为 push 阻塞条件" in preflight_doc
+    assert "`delta_from_baseline_percent`" in preflight_doc
+    assert "observability/advisory 信号" in preflight_doc
     assert "advisory run log" in preflight_doc
 
 

@@ -267,4 +267,11 @@ jobs:
       - name: Summarize advisory lane duration history
         if: always()
         continue-on-error: true
-        run: uv run python scripts/summarize-test-lane-history.py artifacts/mas-test-lane-summary-history
+        run: |
+          if [[ -f artifacts/mas-test-lane-baseline.json ]]; then
+            uv run python scripts/summarize-test-lane-history.py \
+              artifacts/mas-test-lane-summary-history \
+              --baseline artifacts/mas-test-lane-baseline.json
+          else
+            uv run python scripts/summarize-test-lane-history.py artifacts/mas-test-lane-summary-history
+          fi

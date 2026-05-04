@@ -35,7 +35,31 @@ def _format_median(values: list[int]) -> str:
     return f"{median:.1f}"
 
 
-def summarize_lane_history(summary_dir: Path) -> str:
+def _format_delta_percent(current: float, baseline: float | None) -> str:
+    if baseline is None or baseline <= 0:
+        return "null"
+    return f"{((current - baseline) / baseline) * 100:.1f}"
+
+
+def _baseline_durations(path: Path) -> dict[str, float]:
+    payload = _load_summary(path)
+    lane_durations: dict[str, list[int]] = {}
+    for lane in payload["lanes"]:
+        if not isinstance(lane, dict):
+            continue
+        lane_name = lane.get("lane")
+        duration_seconds = _lane_duration(lane)
+        if not isinstance(lane_name, str) or not lane_name or duration_seconds is None:
+            continue
+        lane_durations.setdefault(lane_name, []).append(duration_seconds)
+    return {
+        lane_name: statistics.median(durations)
+        for lane_name, durations in lane_durations.items()
+        if durations
+    }
+
+
+def summarize_lane_history(summary_dir: Path, baseline_path: Path | None = None) -> str:
     if not summary_dir.exists():
         return f"lane history summary empty: {summary_dir}"
     if not summary_dir.is_dir():
@@ -56,19 +80,27 @@ def summarize_lane_history(summary_dir: Path) -> str:
     if not lane_records:
         return f"lane history summary empty: {summary_dir}"
 
+    explicit_baselines = _baseline_durations(baseline_path) if baseline_path is not None else {}
     lines = [f"lane history summary: {summary_dir}"]
     for lane_name in sorted(lane_records):
         records = lane_records[lane_name]
         durations = [duration for duration, _path in records]
+        median = statistics.median(durations)
+        baseline_duration = explicit_baselines.get(lane_name)
+        if baseline_path is None and len(records) >= 2:
+            baseline_duration = records[0][0]
         slowest_duration, slowest_path = max(records, key=lambda record: record[0])
         lines.append(
             "lane={lane} samples={samples} median_seconds={median} max_seconds={maximum} "
-            "slowest_summary={slowest_summary}".format(
+            "slowest_seconds={slowest_seconds} slowest_summary={slowest_summary} "
+            "delta_from_baseline_percent={delta}".format(
                 lane=lane_name,
                 samples=len(records),
                 median=_format_median(durations),
                 maximum=max(durations),
+                slowest_seconds=slowest_duration,
                 slowest_summary=slowest_path,
+                delta=_format_delta_percent(median, baseline_duration),
             )
         )
         lines.append(
@@ -82,10 +114,19 @@ def summarize_lane_history(summary_dir: Path) -> str:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
-        print("Usage: scripts/summarize-test-lane-history.py <summary-dir>", file=sys.stderr)
+    baseline_path = None
+    if len(argv) == 2:
+        summary_dir = Path(argv[1])
+    elif len(argv) == 4 and argv[2] == "--baseline":
+        summary_dir = Path(argv[1])
+        baseline_path = Path(argv[3])
+    else:
+        print(
+            "Usage: scripts/summarize-test-lane-history.py <summary-dir> [--baseline <json>]",
+            file=sys.stderr,
+        )
         return 2
-    print(summarize_lane_history(Path(argv[1])))
+    print(summarize_lane_history(summary_dir, baseline_path))
     return 0
 
 

@@ -12,7 +12,7 @@
 - `macOS Advisory` 的 `submission-heavy` lane 承担 submission-facing DOCX/PDF 产物和投稿包相关回归，并显式准备 `pandoc` 与 `BasicTeX`
 - `macOS Advisory` 的 `family` lane 承担 OPL shared boundary / family shared modules 的跨仓合同提示
 - `macOS Advisory` 的 `meta` lane 承担 repo-tracked contract、docs、workflow 与入口面一致性提示
-- `macOS Advisory` 为重 lane 预留 `MAS_TEST_LANE_SUMMARY_PATH`，并以非阻塞 run log 摘要、artifact 上传 lane summary 和只读 history summary 观察 duration drift 与失败前后的耗时变化
+- `macOS Advisory` 为重 lane 预留 `MAS_TEST_LANE_SUMMARY_PATH`，并以非阻塞 run log 摘要、artifact 上传 lane summary 和只读 history summary 观察 duration drift、相对基线百分比变化与失败前后的耗时变化
 - `release/full` lane 继续保持严格，用来覆盖正式发布前的整条重型验证链路
 
 ## 验证职责
@@ -26,7 +26,7 @@
 
 ## 耗时预算
 
-耗时预算只用于观察和提醒，不作为 push 阻塞条件。预算漂移应该先进入 advisory run log、artifact、只读 history summary、run summary 或人工排查；除非另有 repo 决策，不能把 duration guard 回灌到 `macOS CI` 的 `quick-checks`。
+耗时预算只用于观察和提醒，不作为 push 阻塞条件。预算漂移应该先进入 advisory run log、artifact、只读 history summary、run summary 或人工排查；history summary 可以显示 `delta_from_baseline_percent`，但它仍是 observability/advisory 信号。除非另有 repo 决策，不能把 duration guard 回灌到 `macOS CI` 的 `quick-checks`。
 
 - `smoke`：目标是本地秒级到低分钟级反馈；超过预算时提醒维护者检查 fast tests、line budget 或基础 sanity 是否膨胀。
 - `ci-preflight`：目标是保持 push CI 可承受，只运行 change-aware preflight 与 build；耗时提醒用于判断 preflight contract 是否过宽，不额外触发重 lane。

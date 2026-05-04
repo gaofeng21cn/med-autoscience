@@ -390,9 +390,11 @@ def test_lane_duration_summary_script_reports_slowest_lane(tmp_path: Path) -> No
 
 def test_lane_duration_history_script_reports_per_lane_trends(tmp_path: Path) -> None:
     summary_dir = tmp_path / "history"
-    nested_dir = summary_dir / "older"
-    nested_dir.mkdir(parents=True)
-    (summary_dir / "current.json").write_text(
+    baseline_dir = summary_dir / "2026-01-01"
+    current_dir = summary_dir / "2026-01-02"
+    baseline_dir.mkdir(parents=True)
+    current_dir.mkdir()
+    (current_dir / "current.json").write_text(
         json.dumps(
             {
                 "lanes": [
@@ -403,7 +405,7 @@ def test_lane_duration_history_script_reports_per_lane_trends(tmp_path: Path) ->
         ),
         encoding="utf-8",
     )
-    (nested_dir / "previous.json").write_text(
+    (baseline_dir / "previous.json").write_text(
         json.dumps(
             {
                 "lanes": [
@@ -427,12 +429,141 @@ def test_lane_duration_history_script_reports_per_lane_trends(tmp_path: Path) ->
     assert result.returncode == 0, result.stdout + result.stderr
     assert f"lane history summary: {summary_dir}" in result.stdout
     assert (
-        f"lane=display samples=2 median_seconds=40 max_seconds=50 slowest_summary={nested_dir / 'previous.json'}"
+        f"lane=display samples=2 median_seconds=40 max_seconds=50 "
+        f"slowest_seconds=50 slowest_summary={baseline_dir / 'previous.json'} "
+        "delta_from_baseline_percent=-20.0"
         in result.stdout
     )
-    assert f"slowest_lane=display duration_seconds=50 summary={nested_dir / 'previous.json'}" in result.stdout
+    assert f"slowest_lane=display duration_seconds=50 summary={baseline_dir / 'previous.json'}" in result.stdout
     assert (
-        f"lane=regression samples=2 median_seconds=8 max_seconds=10 slowest_summary={summary_dir / 'current.json'}"
+        f"lane=regression samples=2 median_seconds=8 max_seconds=10 "
+        f"slowest_seconds=10 slowest_summary={current_dir / 'current.json'} "
+        "delta_from_baseline_percent=33.3"
+        in result.stdout
+    )
+
+
+def test_lane_duration_history_script_accepts_explicit_baseline(tmp_path: Path) -> None:
+    summary_dir = tmp_path / "history"
+    summary_dir.mkdir()
+    summary_path = summary_dir / "current.json"
+    summary_path.write_text(
+        json.dumps(
+            {
+                "lanes": [
+                    {"lane": "regression", "duration_seconds": 12},
+                    {"lane": "display", "duration_seconds": 36},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "lanes": [
+                    {"lane": "regression", "duration_seconds": 10},
+                    {"lane": "display", "duration_seconds": 40},
+                    {"lane": "missing-later", "duration_seconds": 20},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            "uv",
+            "run",
+            "python",
+            "scripts/summarize-test-lane-history.py",
+            str(summary_dir),
+            "--baseline",
+            str(baseline_path),
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert (
+        f"lane=display samples=1 median_seconds=36 max_seconds=36 slowest_seconds=36 "
+        f"slowest_summary={summary_path} "
+        "delta_from_baseline_percent=-10.0"
+        in result.stdout
+    )
+    assert (
+        f"lane=regression samples=1 median_seconds=12 max_seconds=12 slowest_seconds=12 "
+        f"slowest_summary={summary_path} "
+        "delta_from_baseline_percent=20.0"
+        in result.stdout
+    )
+
+
+def test_lane_duration_history_script_reports_null_delta_without_usable_baseline(tmp_path: Path) -> None:
+    summary_dir = tmp_path / "history"
+    summary_dir.mkdir()
+    summary_path = summary_dir / "current.json"
+    summary_path.write_text(
+        json.dumps({"lanes": [{"lane": "regression", "duration_seconds": 12}]}),
+        encoding="utf-8",
+    )
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(
+        json.dumps({"lanes": [{"lane": "regression", "duration_seconds": 0}]}),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            "uv",
+            "run",
+            "python",
+            "scripts/summarize-test-lane-history.py",
+            str(summary_dir),
+            "--baseline",
+            str(baseline_path),
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert (
+        f"lane=regression samples=1 median_seconds=12 max_seconds=12 slowest_seconds=12 "
+        f"slowest_summary={summary_path} "
+        "delta_from_baseline_percent=null"
+        in result.stdout
+    )
+
+
+def test_lane_duration_history_script_reports_null_delta_when_history_is_too_short(tmp_path: Path) -> None:
+    summary_dir = tmp_path / "history"
+    summary_dir.mkdir()
+    summary_path = summary_dir / "current.json"
+    summary_path.write_text(
+        json.dumps({"lanes": [{"lane": "regression", "duration_seconds": 12}]}),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["uv", "run", "python", "scripts/summarize-test-lane-history.py", str(summary_dir)],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert (
+        f"lane=regression samples=1 median_seconds=12 max_seconds=12 slowest_seconds=12 "
+        f"slowest_summary={summary_path} "
+        "delta_from_baseline_percent=null"
         in result.stdout
     )
 
