@@ -37,6 +37,19 @@ STATISTICAL_DISCIPLINE_OPERATION_FIELDS = (
     "sensitivity_plan",
 )
 
+FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS = (
+    "clinical_utility_plan",
+    "endpoint_time_window",
+)
+
+REQUIRED_STATISTICAL_REVIEWER_TEMPLATE_FIELDS = (
+    "reviewer_concern",
+    "target_blocker",
+    "required_evidence_refs",
+    "waiver_reason_requirements",
+    "manuscript_action",
+)
+
 REQUIRED_STATISTICAL_REVIEWER_AUDIT_SECTIONS = (
     "statistical_plan",
     "model_or_test_selection",
@@ -130,6 +143,213 @@ _OPERATION_FIELD_SUMMARIES = {
     "clinical_utility_plan": "Tie statistical evidence to an actionable clinical threshold, workflow, or care-pathway consequence.",
     "endpoint_time_window": "Lock endpoint definitions, index date, lookback, outcome window, and follow-up closure.",
     "sensitivity_plan": "Prespecify robustness checks that can falsify or qualify the target claim.",
+}
+
+_REVIEWER_TEMPLATE_FAMILIES = {
+    "observational_real_world": "observational_real_world",
+    "prediction_model": "prediction_external_validation",
+    "external_validation": "prediction_external_validation",
+    "subtype_reconstruction": "subtype_triage",
+    "gray_zone_triage": "subtype_triage",
+    "ai_clinical_task": "ai_clinical_task",
+}
+
+_REVIEWER_FAMILY_LABELS = {
+    "observational_real_world": "Observational real-world statistical reviewer",
+    "prediction_external_validation": "Prediction / external-validation statistical reviewer",
+    "subtype_triage": "Subtype / triage statistical reviewer",
+    "ai_clinical_task": "AI clinical-task statistical reviewer",
+}
+
+_REVIEWER_TEMPLATE_EVIDENCE_REFS = {
+    "observational_real_world": {
+        "missingness_plan": (
+            "analysis/missingness_by_cohort_endpoint_exposure_site",
+            "methods/missing_data_handling_plan",
+            "sensitivity/missingness_robustness_checks",
+        ),
+        "sample_size_precision_plan": (
+            "analysis/cohort_denominator_event_counts",
+            "analysis/effect_size_confidence_intervals_or_detectable_range",
+            "analysis/subgroup_support_table",
+        ),
+        "external_validation_plan": (
+            "analysis/temporal_or_site_holdout_transportability_check",
+            "methods/internal_only_claim_boundary_when_no_external_support",
+        ),
+        "subgroup_plan": (
+            "analysis/prespecified_clinical_strata_support",
+            "analysis/subgroup_estimates_with_uncertainty",
+        ),
+        "multiplicity_guardrail": (
+            "analysis/primary_endpoint_family_manifest",
+            "methods/multiplicity_or_estimation_guardrail",
+        ),
+        "clinical_utility_plan": (
+            "analysis/absolute_risk_or_effect_size_interpretability",
+            "clinical/guideline_or_care_pathway_action_threshold",
+        ),
+        "endpoint_time_window": (
+            "methods/index_date_exposure_lookback_outcome_window",
+            "analysis/follow_up_closure_and_censoring_manifest",
+        ),
+        "sensitivity_plan": (
+            "sensitivity/confounding_coding_drift_time_window_checks",
+            "sensitivity/site_support_and_missingness_checks",
+        ),
+    },
+    "prediction_external_validation": {
+        "missingness_plan": (
+            "analysis/predictor_missingness_train_validation_deployment",
+            "methods/imputation_unavailable_feature_routing",
+            "sensitivity/missing_predictor_behavior",
+        ),
+        "sample_size_precision_plan": (
+            "analysis/effective_sample_size_and_event_count",
+            "analysis/calibration_discrimination_precision",
+            "analysis/optimism_or_validation_uncertainty",
+        ),
+        "external_validation_plan": (
+            "analysis/locked_external_temporal_or_site_validation",
+            "analysis/calibration_transportability_and_case_mix_shift",
+            "methods/recalibration_policy",
+        ),
+        "subgroup_plan": (
+            "analysis/subgroup_discrimination_calibration_threshold_performance",
+            "analysis/minimum_support_for_clinical_slices",
+        ),
+        "multiplicity_guardrail": (
+            "methods/locked_primary_model_metric_manifest",
+            "analysis/threshold_scan_and_subgroup_family_boundary",
+        ),
+        "clinical_utility_plan": (
+            "analysis/net_benefit_decision_curve_or_threshold_impact",
+            "clinical/intended_use_and_actionability_manifest",
+        ),
+        "endpoint_time_window": (
+            "methods/prediction_origin_feature_lookback_horizon",
+            "methods/outcome_window_and_censoring_policy",
+        ),
+        "sensitivity_plan": (
+            "sensitivity/calibration_drift_threshold_outcome_definition",
+            "sensitivity/missing_predictor_and_recalibration_checks",
+        ),
+    },
+    "subtype_triage": {
+        "missingness_plan": (
+            "analysis/subtype_variable_or_gray_zone_marker_missingness",
+            "methods/inclusion_imputation_reference_standard_gap_policy",
+            "sensitivity/missing_marker_or_variable_retention_checks",
+        ),
+        "sample_size_precision_plan": (
+            "analysis/subtype_cluster_or_gray_zone_support",
+            "analysis/threshold_precision_or_cluster_stability_uncertainty",
+            "analysis/minimum_interpretable_slice_size",
+        ),
+        "external_validation_plan": (
+            "analysis/site_holdout_temporal_or_bootstrap_stability",
+            "analysis/external_threshold_or_subtype_transportability",
+        ),
+        "subgroup_plan": (
+            "analysis/clinically_interpretable_subtype_or_threshold_slices",
+            "analysis/treatment_outcome_or_reference_standard_gradients",
+        ),
+        "multiplicity_guardrail": (
+            "methods/discovery_vs_confirmatory_characterization_boundary",
+            "analysis/repeated_threshold_or_characterization_contrast_control",
+        ),
+        "clinical_utility_plan": (
+            "clinical/subtype_naming_or_triage_actionability_manifest",
+            "analysis/downstream_tradeoff_or_care_pathway_consequence",
+        ),
+        "endpoint_time_window": (
+            "methods/phenotype_measurement_or_index_assessment_window",
+            "methods/reference_standard_decision_and_outcome_timing",
+        ),
+        "sensitivity_plan": (
+            "sensitivity/algorithm_feature_scaling_threshold_perturbation",
+            "sensitivity/site_holdout_reference_standard_missingness_checks",
+        ),
+    },
+    "ai_clinical_task": {
+        "missingness_plan": (
+            "analysis/input_modality_annotation_prompt_context_missingness",
+            "methods/deployment_time_abstention_or_unavailable_input_policy",
+            "sensitivity/missing_modality_or_context_checks",
+        ),
+        "sample_size_precision_plan": (
+            "analysis/task_instance_patient_level_independence_counts",
+            "analysis/annotation_support_and_uncertainty",
+            "analysis/clinically_meaningful_performance_precision",
+        ),
+        "external_validation_plan": (
+            "analysis/locked_external_temporal_site_or_reader_environment_validation",
+            "analysis/site_shift_and_model_version_traceability",
+        ),
+        "subgroup_plan": (
+            "analysis/fairness_site_device_demographic_severity_slices",
+            "analysis/minimum_support_and_error_severity_by_slice",
+        ),
+        "multiplicity_guardrail": (
+            "methods/locked_model_prompt_evaluation_boundary",
+            "analysis/repeated_task_subgroup_or_prompt_comparison_control",
+        ),
+        "clinical_utility_plan": (
+            "analysis/workflow_effect_error_severity_human_ai_interaction",
+            "clinical/actionability_beyond_aggregate_accuracy",
+        ),
+        "endpoint_time_window": (
+            "methods/task_input_time_clinical_decision_point",
+            "methods/reference_label_timing_and_follow_up_window",
+        ),
+        "sensitivity_plan": (
+            "sensitivity/model_version_prompt_context_annotation_disagreement",
+            "sensitivity/site_shift_subgroup_performance_abstention_checks",
+        ),
+    },
+}
+
+_REVIEWER_TEMPLATE_CONCERNS = {
+    "observational_real_world": {
+        "missingness_plan": "Missing data could distort denominators, exposure ascertainment, endpoint capture, or site comparability.",
+        "sample_size_precision_plan": "The real-world estimate needs denominator, event-count, and interval precision support before reviewer-facing interpretation.",
+        "external_validation_plan": "A transportability claim needs temporal, site-held-out, or registry-held-out evidence; otherwise the manuscript must state an internal claim boundary.",
+        "subgroup_plan": "Subgroup language must be prespecified, clinically meaningful, and supported by interpretable uncertainty.",
+        "multiplicity_guardrail": "Repeated endpoints, exposures, and subgroup contrasts need a declared primary family and multiplicity interpretation rule.",
+        "clinical_utility_plan": "The estimate must map to absolute risk, guideline relevance, a decision threshold, or a care-pathway consequence.",
+        "endpoint_time_window": "Endpoint semantics require locked index date, lookback, ascertainment window, and follow-up closure before reviewer clearance.",
+        "sensitivity_plan": "Robustness to confounding, coding drift, missingness, time-window variation, and site support must be auditable.",
+    },
+    "prediction_external_validation": {
+        "missingness_plan": "Predictor missingness, unavailable features, and deployment-time missingness behavior must be reviewer-visible.",
+        "sample_size_precision_plan": "Performance claims need effective sample size, events, calibration precision, and uncertainty rather than nominal significance.",
+        "external_validation_plan": "Generalizable prediction or validation claims require locked external, temporal, or site-held-out validation and calibration evidence.",
+        "subgroup_plan": "Clinically important strata need discrimination, calibration, and threshold-performance support with uncertainty.",
+        "multiplicity_guardrail": "Model metrics, threshold scans, subgroup checks, and recalibration attempts must be separated from the locked primary claim.",
+        "clinical_utility_plan": "Performance metrics need intended-use, threshold, calibration, and net-benefit or decision-impact evidence.",
+        "endpoint_time_window": "Prediction origin, lookback, prediction horizon, outcome window, and censoring must match the target-use claim.",
+        "sensitivity_plan": "Optimism, calibration drift, threshold sensitivity, missing predictors, and outcome-definition robustness must be tested.",
+    },
+    "subtype_triage": {
+        "missingness_plan": "Subtype-defining variables, gray-zone markers, reference-standard gaps, and indeterminate outcomes need explicit handling.",
+        "sample_size_precision_plan": "Subtype or gray-zone claims need support, stability, threshold precision, and minimum interpretable slice size.",
+        "external_validation_plan": "Durable subtype labels or triage thresholds need held-out, temporal, bootstrap, or external stability evidence.",
+        "subgroup_plan": "Subtype and triage interpretations must map to prespecified clinical strata and avoid unsupported post-hoc naming.",
+        "multiplicity_guardrail": "Discovery, characterization, threshold searching, and confirmatory contrasts need separate reviewer-visible boundaries.",
+        "clinical_utility_plan": "Subtype names or triage rules must change diagnostic, prognostic, treatment-pattern, or workflow interpretation.",
+        "endpoint_time_window": "Phenotype measurement, index assessment, reference-standard timing, decision window, and outcome follow-up must be locked.",
+        "sensitivity_plan": "Algorithm, feature set, scaling, threshold perturbation, reference-standard uncertainty, and site support must be stress-tested.",
+    },
+    "ai_clinical_task": {
+        "missingness_plan": "Missing modalities, annotation gaps, prompt/context absence, and abstention behavior must be explicit.",
+        "sample_size_precision_plan": "AI task performance needs task-instance counts, patient-level independence, annotation support, and uncertainty.",
+        "external_validation_plan": "Broad AI clinical task claims need locked external, temporal, site, or reader-environment validation.",
+        "subgroup_plan": "Fairness, device, site, demographic, and severity slices need support and clinically interpretable error profiles.",
+        "multiplicity_guardrail": "Prompt/model iteration must be separated from locked evaluation and repeated task or subgroup comparisons.",
+        "clinical_utility_plan": "Aggregate accuracy must be tied to workflow impact, error severity, human-AI interaction, and clinical actionability.",
+        "endpoint_time_window": "Task input time, clinical decision point, reference label timing, and follow-up outcome window must be locked.",
+        "sensitivity_plan": "Model version, prompt/context variation, annotation disagreement, site shift, subgroup performance, and abstention rules must be checked.",
+    },
 }
 
 _ARCHETYPE_DISCIPLINE: dict[str, dict[str, str]] = {
@@ -299,26 +519,29 @@ def _operation_field_projection(
     waiver_reason = _waiver_reason(contract, field)
     value_present = _has_text(contract.get(field))
     nominal_primary_evidence = _contains_nominal_p_value(contract.get(field))
+    waiver_allowed = field not in FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS
     if value_present and not nominal_primary_evidence:
-        status = "waived" if waiver_reason else "present"
-    elif waiver_reason:
+        status = "waived" if waiver_reason and waiver_allowed else "present"
+    elif waiver_reason and waiver_allowed:
         status = "waived"
     else:
         status = "blocked"
 
     blockers = []
-    if not value_present and not waiver_reason:
+    if not value_present and (not waiver_reason or not waiver_allowed):
         blockers.append(f"missing_{field}")
     if nominal_primary_evidence:
         blockers.append("nominal_p_value_primary_evidence")
-    waiver = {"field": field, "reason": waiver_reason} if waiver_reason else None
+    if waiver_reason and not waiver_allowed:
+        blockers.append(f"{field}_waiver_not_allowed")
+    waiver = {"field": field, "reason": waiver_reason} if waiver_reason and waiver_allowed else None
     return blockers, waiver, _operation_action_card(
         action_id=f"resolve_{field}",
         label=_OPERATION_FIELD_LABELS[field],
         summary=_OPERATION_FIELD_SUMMARIES[field],
         field=field,
         status=status,
-        waiver_allowed=True,
+        waiver_allowed=waiver_allowed,
     )
 
 
@@ -411,6 +634,165 @@ def _bounded_board_candidate_projection(
     return blockers, action_cards
 
 
+def _reviewer_template_family(study_archetype: str) -> str:
+    return _REVIEWER_TEMPLATE_FAMILIES[study_archetype]
+
+
+def _reviewer_waiver_requirements(field: str) -> dict[str, object]:
+    if field in FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS:
+        return {
+            "waiver_allowed": False,
+            "required_reason_components": [],
+            "fail_closed_reason": (
+                "Endpoint/time-window and clinical-utility concerns cannot be waived because they "
+                "define the claim semantics and intended-use consequence."
+            ),
+        }
+    return {
+        "waiver_allowed": True,
+        "required_reason_components": [
+            "why this evidence domain is outside the active claim",
+            "which manuscript claim boundary prevents overstatement",
+            "which reviewer-visible artifact records the boundary",
+        ],
+    }
+
+
+def _reviewer_manuscript_action(*, family: str, field: str) -> str:
+    if field == "external_validation_plan" and family == "prediction_external_validation":
+        return (
+            "Add or preserve a reviewer-visible validation paragraph/table that binds the claim "
+            "to locked external, temporal, or site-held-out evidence; downgrade to internal-only "
+            "language when that evidence is absent."
+        )
+    if field == "clinical_utility_plan":
+        return (
+            "Bind Results and Discussion language to the clinical action, threshold, workflow, "
+            "or intended-use consequence supported by the evidence."
+        )
+    if field == "endpoint_time_window":
+        return (
+            "State the endpoint definition, index point, lookback/input window, outcome or label "
+            "timing, and follow-up closure in Methods before any reviewer-facing claim."
+        )
+    return (
+        f"Update Methods, Results, and limitations so {_OPERATION_FIELD_LABELS[field].lower()} "
+        "is visible as evidence, boundary, or waiver text."
+    )
+
+
+def _reviewer_template(
+    *,
+    family: str,
+    field: str,
+) -> dict[str, object]:
+    return {
+        "field": field,
+        "reviewer_concern": _REVIEWER_TEMPLATE_CONCERNS[family][field],
+        "target_blocker": f"missing_{field}",
+        "required_evidence_refs": list(_REVIEWER_TEMPLATE_EVIDENCE_REFS[family][field]),
+        "waiver_reason_requirements": _reviewer_waiver_requirements(field),
+        "manuscript_action": _reviewer_manuscript_action(family=family, field=field),
+    }
+
+
+def build_statistical_reviewer_discipline_library() -> dict[str, Any]:
+    archetypes: dict[str, dict[str, object]] = {}
+    for study_archetype in SUPPORTED_STUDY_ARCHETYPES:
+        family = _reviewer_template_family(study_archetype)
+        templates = {
+            field: _reviewer_template(family=family, field=field)
+            for field in STATISTICAL_DISCIPLINE_OPERATION_FIELDS
+        }
+        archetypes[study_archetype] = {
+            "study_archetype": study_archetype,
+            "template_family": family,
+            "label": _REVIEWER_FAMILY_LABELS[family],
+            "templates": templates,
+        }
+
+    return {
+        "surface": "statistical_reviewer_discipline_library",
+        "schema_version": 1,
+        "status": "ready",
+        "supported_study_archetypes": list(SUPPORTED_STUDY_ARCHETYPES),
+        "primary_evidence_rule": "Nominal p-value cannot be used as primary evidence.",
+        "fail_closed_fields": list(FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS),
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+        "archetypes": archetypes,
+    }
+
+
+def build_statistical_reviewer_template_projection(contract: Mapping[str, Any]) -> dict[str, Any]:
+    study_archetype = _text(contract.get("study_archetype"))
+    if study_archetype not in SUPPORTED_STUDY_ARCHETYPES:
+        return {
+            "surface": "statistical_reviewer_template_projection",
+            "schema_version": 1,
+            "status": "blocked",
+            "reason_code": "unsupported_study_archetype",
+            "study_archetype": study_archetype or None,
+            "supported_inputs": {"study_archetypes": list(SUPPORTED_STUDY_ARCHETYPES)},
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        }
+
+    library = build_statistical_reviewer_discipline_library()
+    archetype_library = _mapping(_mapping(library["archetypes"]).get(study_archetype))
+    templates = _mapping(archetype_library.get("templates"))
+    blockers: list[str] = []
+    concern_cards: list[dict[str, object]] = []
+
+    for field in STATISTICAL_DISCIPLINE_OPERATION_FIELDS:
+        template = dict(_mapping(templates.get(field)))
+        waiver_reason = _waiver_reason(contract, field)
+        waiver_requirements = _mapping(template.get("waiver_reason_requirements"))
+        waiver_allowed = waiver_requirements.get("waiver_allowed") is True
+        value_present = _has_text(contract.get(field))
+        nominal_primary_evidence = _contains_nominal_p_value(contract.get(field))
+        status = "present"
+        field_blockers: list[str] = []
+
+        if nominal_primary_evidence:
+            field_blockers.append("nominal_p_value_primary_evidence")
+        if value_present and waiver_reason and waiver_allowed:
+            status = "waived"
+        elif not value_present:
+            if waiver_reason and waiver_allowed:
+                status = "waived"
+            else:
+                status = "blocked"
+                field_blockers.append(f"missing_{field}")
+        if waiver_reason and not waiver_allowed:
+            status = "blocked"
+            field_blockers.append(f"{field}_waiver_not_allowed")
+        if nominal_primary_evidence:
+            status = "blocked"
+
+        blockers.extend(field_blockers)
+        template["status"] = status
+        template["required_for_ready"] = status == "blocked"
+        template["blockers"] = field_blockers
+        template["waiver_reason"] = waiver_reason if waiver_reason and waiver_allowed else ""
+        concern_cards.append(template)
+
+    unique_blockers = list(dict.fromkeys(blockers))
+    return {
+        "surface": "statistical_reviewer_template_projection",
+        "schema_version": 1,
+        "status": "blocked" if unique_blockers else "ready",
+        "study_archetype": study_archetype,
+        "template_family": archetype_library["template_family"],
+        "primary_evidence_rule": library["primary_evidence_rule"],
+        "fail_closed_fields": list(FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS),
+        "blockers": unique_blockers,
+        "reviewer_concerns": concern_cards,
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+
+
 def build_statistical_discipline_contract(*, study_archetype: str) -> dict[str, Any]:
     archetype = _text(study_archetype)
     if archetype not in SUPPORTED_STUDY_ARCHETYPES:
@@ -475,6 +857,10 @@ def validate_statistical_discipline_contract(payload: Mapping[str, Any]) -> dict
     if _text(payload.get("study_archetype")) not in SUPPORTED_STUDY_ARCHETYPES:
         return {"status": "blocked", "reason_code": "unsupported_study_archetype"}
     for field in REQUIRED_STATISTICAL_DISCIPLINE_FIELDS:
+        if field in FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS and not _has_text(payload.get(field)):
+            return {"status": "blocked", "reason_code": f"missing_{field}"}
+        if field in FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS and _waiver_reason(payload, field):
+            return {"status": "blocked", "reason_code": f"{field}_waiver_not_allowed"}
         if not _has_text(payload.get(field)) and not _waiver_reason(payload, field):
             return {"status": "blocked", "reason_code": f"missing_{field}"}
     if _contains_forbidden_evidence_classification(payload):

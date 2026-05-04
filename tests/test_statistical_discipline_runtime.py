@@ -3,10 +3,15 @@ from __future__ import annotations
 import pytest
 
 from med_autoscience.controllers.statistical_discipline_runtime import (
+    FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS,
     REQUIRED_CANDIDATE_FIELDS,
-    REQUIRED_STATISTICAL_REVIEWER_AUDIT_SECTIONS,
     REQUIRED_STATISTICAL_DISCIPLINE_FIELDS,
+    REQUIRED_STATISTICAL_REVIEWER_AUDIT_SECTIONS,
+    REQUIRED_STATISTICAL_REVIEWER_TEMPLATE_FIELDS,
+    STATISTICAL_DISCIPLINE_OPERATION_FIELDS,
     SUPPORTED_STUDY_ARCHETYPES,
+    build_statistical_reviewer_discipline_library,
+    build_statistical_reviewer_template_projection,
     build_statistical_discipline_operations_projection,
     build_statistical_discipline_contract,
     validate_bounded_analysis_candidate_board,
@@ -86,8 +91,6 @@ def test_statistical_discipline_contract_blocks_when_external_validation_plan_mi
         "external_validation_plan",
         "subgroup_plan",
         "multiplicity_guardrail",
-        "clinical_utility_plan",
-        "endpoint_time_window",
         "sensitivity_plan",
     ],
 )
@@ -99,6 +102,17 @@ def test_statistical_discipline_contract_allows_machine_checkable_waiver_for_ope
     validation = validate_statistical_discipline_contract(contract)
 
     assert validation == {"status": "present", "reason_code": ""}
+
+
+@pytest.mark.parametrize("field", FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS)
+def test_statistical_discipline_contract_blocks_fail_closed_waiver_fields(field: str) -> None:
+    contract = build_statistical_discipline_contract(study_archetype="prediction_model")
+    del contract[field]
+    contract[f"{field}_waiver_reason"] = "The active claim is explicitly bounded away from this evidence domain."
+
+    validation = validate_statistical_discipline_contract(contract)
+
+    assert validation == {"status": "blocked", "reason_code": f"missing_{field}"}
 
 
 def test_statistical_discipline_contract_blocks_nominal_p_value_primary_evidence() -> None:
@@ -117,6 +131,109 @@ def test_statistical_discipline_contract_blocks_primary_secondary_exploratory_cl
     validation = validate_statistical_discipline_contract(contract)
 
     assert validation == {"status": "blocked", "reason_code": "forbidden_evidence_classification"}
+
+
+def test_statistical_reviewer_discipline_library_projects_each_archetype_template() -> None:
+    library = build_statistical_reviewer_discipline_library()
+
+    assert library["surface"] == "statistical_reviewer_discipline_library"
+    assert library["schema_version"] == 1
+    assert library["status"] == "ready"
+    assert library["supported_study_archetypes"] == list(SUPPORTED_STUDY_ARCHETYPES)
+    assert library["primary_evidence_rule"] == "Nominal p-value cannot be used as primary evidence."
+    assert library["fail_closed_fields"] == list(FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS)
+    assert library["quality_claim_authorized"] is False
+    assert library["mechanical_projection_can_authorize_quality"] is False
+
+    for study_archetype in SUPPORTED_STUDY_ARCHETYPES:
+        archetype = library["archetypes"][study_archetype]
+        assert archetype["study_archetype"] == study_archetype
+        assert archetype["label"]
+        templates = archetype["templates"]
+        assert set(templates) == set(STATISTICAL_DISCIPLINE_OPERATION_FIELDS)
+        for field in STATISTICAL_DISCIPLINE_OPERATION_FIELDS:
+            template = templates[field]
+            for required_field in REQUIRED_STATISTICAL_REVIEWER_TEMPLATE_FIELDS:
+                assert template[required_field]
+            assert template["target_blocker"] == f"missing_{field}"
+            assert template["required_evidence_refs"]
+            waiver_requirements = template["waiver_reason_requirements"]
+            if field in FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS:
+                assert waiver_requirements["waiver_allowed"] is False
+                assert waiver_requirements["fail_closed_reason"]
+            else:
+                assert waiver_requirements["waiver_allowed"] is True
+                assert waiver_requirements["required_reason_components"]
+
+
+@pytest.mark.parametrize(
+    "study_archetype",
+    [
+        "prediction_model",
+        "external_validation",
+    ],
+)
+def test_statistical_reviewer_discipline_library_binds_prediction_validation_evidence(
+    study_archetype: str,
+) -> None:
+    library = build_statistical_reviewer_discipline_library()
+    archetype = library["archetypes"][study_archetype]
+
+    assert archetype["template_family"] == "prediction_external_validation"
+    external_validation = archetype["templates"]["external_validation_plan"]
+
+    assert external_validation["target_blocker"] == "missing_external_validation_plan"
+    assert "analysis/locked_external_temporal_or_site_validation" in external_validation[
+        "required_evidence_refs"
+    ]
+    assert "calibration" in external_validation["reviewer_concern"].lower()
+    assert "locked external" in external_validation["manuscript_action"]
+
+
+def test_statistical_reviewer_template_projection_blocks_nominal_primary_evidence_and_fail_closed_fields() -> None:
+    contract = build_statistical_discipline_contract(study_archetype="ai_clinical_task")
+    del contract["endpoint_time_window"]
+    del contract["clinical_utility_plan"]
+    contract["endpoint_time_window_waiver_reason"] = "Endpoint timing is out of scope."
+    contract["clinical_utility_plan_waiver_reason"] = "Clinical utility is out of scope."
+    contract["sample_size_precision_plan"] = "Primary evidence will be a nominal p-value below 0.05."
+    contract["subgroup_plan_waiver_reason"] = "No clinically meaningful subgroup is defensible for this endpoint."
+
+    projection = build_statistical_reviewer_template_projection(contract)
+
+    assert projection["surface"] == "statistical_reviewer_template_projection"
+    assert projection["schema_version"] == 1
+    assert projection["status"] == "blocked"
+    assert projection["study_archetype"] == "ai_clinical_task"
+    assert projection["template_family"] == "ai_clinical_task"
+    assert projection["quality_claim_authorized"] is False
+    assert projection["mechanical_projection_can_authorize_quality"] is False
+    assert "nominal_p_value_primary_evidence" in projection["blockers"]
+    assert "missing_endpoint_time_window" in projection["blockers"]
+    assert "endpoint_time_window_waiver_not_allowed" in projection["blockers"]
+    assert "missing_clinical_utility_plan" in projection["blockers"]
+    assert "clinical_utility_plan_waiver_not_allowed" in projection["blockers"]
+
+    concerns = {concern["field"]: concern for concern in projection["reviewer_concerns"]}
+    assert concerns["sample_size_precision_plan"]["status"] == "blocked"
+    assert concerns["subgroup_plan"]["status"] == "waived"
+    assert concerns["subgroup_plan"]["waiver_reason"] == (
+        "No clinically meaningful subgroup is defensible for this endpoint."
+    )
+    assert concerns["endpoint_time_window"]["status"] == "blocked"
+    assert concerns["endpoint_time_window"]["waiver_reason"] == ""
+    assert concerns["endpoint_time_window"]["waiver_reason_requirements"]["waiver_allowed"] is False
+    assert concerns["clinical_utility_plan"]["status"] == "blocked"
+    assert concerns["clinical_utility_plan"]["waiver_reason_requirements"]["waiver_allowed"] is False
+
+
+def test_statistical_reviewer_template_projection_rejects_unsupported_archetype() -> None:
+    projection = build_statistical_reviewer_template_projection({"study_archetype": "case_report"})
+
+    assert projection["status"] == "blocked"
+    assert projection["reason_code"] == "unsupported_study_archetype"
+    assert projection["quality_claim_authorized"] is False
+    assert projection["mechanical_projection_can_authorize_quality"] is False
 
 
 def test_statistical_reviewer_audit_accepts_complete_truth_contract() -> None:
