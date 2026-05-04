@@ -217,6 +217,7 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
             "docs/references/domain-harness-os-positioning.md",
             "docs/runtime/runtime_backend_interface_contract.md",
             "docs/runtime/runtime_handle_and_durable_surface_contract.md",
+            "docs/runtime/runtime_supervision_loop.md",
             "src/med_autoscience/profiles.py",
             "src/med_autoscience/runtime_backend.py",
             "src/med_autoscience/controllers/study_outer_loop.py",

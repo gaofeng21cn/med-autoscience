@@ -171,6 +171,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "tests/test_study_runtime_router.py",
         ),
         prefix_paths=(
+            "docs/runtime/",
             "src/med_autoscience/runtime_protocol/",
         ),
         commands=(
