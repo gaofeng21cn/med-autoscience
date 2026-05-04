@@ -4,6 +4,12 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.medical_paper_operator_actions import (
+    guarded_operator_authority_contract,
+    guarded_operator_command,
+    guarded_pending_action_result,
+)
+
 try:
     _non_empty_text
 except NameError:
@@ -295,6 +301,15 @@ def _readiness_action_card_payload(
         "surface_key": surface_key,
         "status": status,
         "missing_reason": missing_reason,
+        "guarded_operator_command": guarded_operator_command(
+            action_id=_non_empty_text(card.get("action_id")) or "inspect_medical_paper_readiness",
+            surface_key=surface_key,
+        ),
+        "action_result": guarded_pending_action_result(
+            missing_reason=missing_reason,
+            next_action=_non_empty_text(card.get("summary")) or "",
+        ),
+        "authority_contract": guarded_operator_authority_contract(),
         "authority": "observability_projection_only",
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
@@ -313,6 +328,15 @@ def _readiness_action_card_workflow_step(
         "command": command,
         "summary": _non_empty_text(card.get("summary")) or "",
         "requires": ["profile_ref", "study_id"],
+        "guarded_operator_command": guarded_operator_command(
+            action_id=_non_empty_text(card.get("action_id")) or "inspect_medical_paper_readiness",
+            surface_key=_non_empty_text(card.get("surface_key")),
+        ),
+        "action_result": dict(card.get("action_result") or guarded_pending_action_result(
+            missing_reason=_non_empty_text(card.get("missing_reason")),
+            next_action=_non_empty_text(card.get("summary")) or "",
+        )),
+        "authority_contract": guarded_operator_authority_contract(),
         "authority": "observability_projection_only",
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,

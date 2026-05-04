@@ -141,19 +141,34 @@ def test_workspace_cockpit_passes_through_medical_paper_readiness_from_study_pro
     assert payload["medical_paper_readiness_state"]["counts"]["attention_required"] == 1
     assert payload["medical_paper_readiness_state"]["studies"][0]["overall_status"] == "blocked"
     assert payload["medical_paper_readiness_state"]["studies"][0]["next_action"] == next_action
-    assert payload["medical_paper_readiness_state"]["studies"][0]["action_cards"] == [
-        {
-            "action_id": "complete_literature_scout",
-            "label": "补文献",
-            "summary": "补齐可审计文献 scout、检索日期、anchor papers、guideline 和近邻文献。",
-            "surface_key": "literature_scout",
-            "status": "missing",
-            "missing_reason": "missing_canonical_artifact",
-            "authority": "observability_projection_only",
-            "quality_claim_authorized": False,
-            "mechanical_projection_can_authorize_quality": False,
-        }
-    ]
+    action_card = payload["medical_paper_readiness_state"]["studies"][0]["action_cards"][0]
+    assert {
+        key: action_card[key]
+        for key in (
+            "action_id",
+            "label",
+            "summary",
+            "surface_key",
+            "status",
+            "missing_reason",
+            "authority",
+            "quality_claim_authorized",
+            "mechanical_projection_can_authorize_quality",
+        )
+    } == {
+        "action_id": "complete_literature_scout",
+        "label": "补文献",
+        "summary": "补齐可审计文献 scout、检索日期、anchor papers、guideline 和近邻文献。",
+        "surface_key": "literature_scout",
+        "status": "missing",
+        "missing_reason": "missing_canonical_artifact",
+        "authority": "observability_projection_only",
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+    assert action_card["guarded_operator_command"]["guard"] == "existing_product_entry_controller_guard"
+    assert action_card["authority_contract"]["can_mutate_runtime"] is False
+    assert action_card["authority_contract"]["can_authorize_quality"] is False
     attention = [item for item in payload["attention_queue"] if item["code"] == "medical_paper_readiness_gap"]
     assert attention
     assert attention[0]["study_id"] == "001-risk"

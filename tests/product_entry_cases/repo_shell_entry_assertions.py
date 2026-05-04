@@ -1,5 +1,31 @@
 from __future__ import annotations
 
+def _phase2_loop_without_guarded_fields(value: dict[str, object]) -> dict[str, object]:
+    normalized = dict(value)
+    workflow_steps = []
+    for item in normalized.get("workflow_steps") or []:
+        step = dict(item)
+        step.pop("guarded_operator_command", None)
+        step.pop("action_result", None)
+        step.pop("authority_contract", None)
+        workflow_steps.append(step)
+    normalized["workflow_steps"] = workflow_steps
+    return normalized
+
+
+def _assert_guarded_workflow_steps(value: dict[str, object]) -> None:
+    for step in value.get("workflow_steps") or []:
+        guarded_command = dict(step.get("guarded_operator_command") or {})
+        action_result = dict(step.get("action_result") or {})
+        authority_contract = dict(step.get("authority_contract") or {})
+        assert guarded_command["guard"] == "existing_product_entry_controller_guard"
+        assert guarded_command["status"] == "guarded_pending"
+        assert action_result["status"] == "guarded_pending"
+        assert authority_contract["can_mutate_runtime"] is False
+        assert authority_contract["can_authorize_quality"] is False
+        assert authority_contract["can_authorize_submission"] is False
+
+
 def _assert_artifact_inventory_surface(*, module, payload, profile, profile_ref) -> None:
     assert payload["artifact_inventory"]["summary"]["supporting_files_count"] == 12
     assert payload["artifact_inventory"]["summary"]["total_files_count"] == 12
@@ -343,7 +369,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
             "更多 workspace / host 的真实 clearance 与 study-local blocker 收口仍在继续。",
         ],
     }
-    assert payload["phase2_user_product_loop"] == {
+    assert _phase2_loop_without_guarded_fields(payload["phase2_user_product_loop"]) == {
         "surface_kind": "phase2_user_product_loop_lane",
         "summary": "把启动 MAS、给 study 下任务、续跑、持续看进度、处理恢复建议和人工 gate 收成同一条用户回路。",
         "recommended_step_id": "open_frontdesk",
@@ -570,6 +596,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
             },
         ],
     }
+    _assert_guarded_workflow_steps(payload["phase2_user_product_loop"])
 
 def assert_manifest_entry_and_lifecycle_surfaces(*, module, payload, profile, profile_ref) -> None:
     _assert_artifact_inventory_and_executor_defaults(module=module, payload=payload, profile=profile, profile_ref=profile_ref)

@@ -137,6 +137,24 @@ def test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards(
     assert [card["label"] for card in cards] == ["联网补文献", "启动返修", "运行真实 soak"]
     assert all(card["authority"] == "observability_projection_only" for card in cards)
     assert all(card["quality_claim_authorized"] is False for card in cards)
+    assert cards[0]["guarded_operator_command"] == {
+        "surface": "medical_paper_v3_guarded_operator_command",
+        "action_id": "run_provider_literature_scout",
+        "surface_key": "literature_provider_runtime",
+        "entrypoint": "product_entry.dispatch_guarded_medical_paper_operator_action",
+        "guard": "existing_product_entry_controller_guard",
+        "requires": ["profile_ref", "study_id", "operator_payload"],
+        "status": "guarded_pending",
+    }
+    assert cards[0]["action_result"] == {
+        "status": "guarded_pending",
+        "durable_ref": None,
+        "missing_reason": "missing_provider_provenance",
+        "next_action": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
+        "authority_contract": cards[0]["authority_contract"],
+    }
+    assert cards[0]["authority_contract"]["can_mutate_runtime"] is False
+    assert cards[0]["authority_contract"]["can_authorize_quality"] is False
 
 
 def test_product_frontdesk_promotes_v2_action_cards_to_workflow_steps(
@@ -182,6 +200,9 @@ def test_product_frontdesk_promotes_v2_action_cards_to_workflow_steps(
     assert all(step["authority"] == "observability_projection_only" for step in workflow_steps)
     assert all(step["quality_claim_authorized"] is False for step in workflow_steps)
     assert all(step["surface_kind"] == "medical_paper_readiness_action_card" for step in workflow_steps)
+    assert all(step["authority_contract"]["guard"] == "existing_product_entry_controller_guard" for step in workflow_steps)
+    assert workflow_steps[0]["guarded_operator_command"]["status"] == "guarded_pending"
+    assert workflow_steps[0]["action_result"]["status"] == "guarded_pending"
     assert workflow_steps[0]["command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
@@ -217,3 +238,24 @@ def test_workspace_cockpit_markdown_renders_v2_action_card_status_and_missing_re
     assert "写入路线裁决 [missing / missing_controller_decision_projection]" in markdown
     assert "处理统计 blocker [blocked / open_precision_and_validation_blockers]" in markdown
     assert "运行真实 soak [partial / missing_required_archetype]" in markdown
+
+
+def test_guarded_operator_action_dispatch_fails_closed_without_payload(tmp_path) -> None:
+    import importlib
+
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    study_root = tmp_path / "studies" / "001-risk"
+
+    result = module.dispatch_guarded_medical_paper_operator_action(
+        study_root=study_root,
+        action_id="run_provider_literature_scout",
+        surface_key="literature_provider_runtime",
+    )
+
+    assert result["status"] == "blocked"
+    assert result["missing_reason"] == "missing_operator_payload"
+    assert result["durable_ref"] is None
+    assert result["authority_contract"]["guard"] == "existing_product_entry_controller_guard"
+    assert result["authority_contract"]["can_mutate_runtime"] is False
+    assert result["authority_contract"]["can_authorize_quality"] is False
+    assert result["quality_claim_authorized"] is False
