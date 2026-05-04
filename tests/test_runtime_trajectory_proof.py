@@ -131,3 +131,53 @@ def test_validator_rejects_truth_or_quality_authority_overreach() -> None:
         {"code": "trajectory_claims_study_truth_authority"},
         {"code": "trajectory_claims_publication_quality_authority"},
     ]
+
+
+def test_authority_surface_delta_refs_are_non_replayable_even_with_idempotency_key() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_trajectory_proof")
+
+    proof = module.build_runtime_trajectory_proof(
+        active_run_id="run-trajectory-005",
+        steps=[
+            {
+                "step_id": "step-authority-surface",
+                "action_type": "artifact_write",
+                "action_ref": "runtime/events/step-authority-surface/action.json",
+                "observation_ref": "runtime/events/step-authority-surface/observation.json",
+                "artifact_delta_refs": [
+                    "artifacts/publication_eval/latest.json",
+                    "artifacts/controller_decisions/latest.json",
+                    "study_runtime_status",
+                    "study_truth",
+                    "submission_minimal/readiness",
+                ],
+                "side_effect_class": "artifact_write",
+                "idempotency_key": "study-001:step-authority-surface",
+                "replay_policy": "auto_replay_allowed",
+                "status": "observed",
+            }
+        ],
+    )
+
+    assert proof["authority_guard"] == {
+        "role": "observability_only",
+        "authority_surface_replay_policy": "non_replayable",
+        "guarded_refs": [
+            "artifacts/publication_eval/latest.json",
+            "artifacts/controller_decisions/latest.json",
+            "study_runtime_status",
+            "study_truth",
+            "submission readiness",
+        ],
+    }
+    assert proof["steps"][0]["replay_policy"] == "non_replayable"
+    assert proof["replay_summary"] == {
+        "auto_replayable_step_count": 0,
+        "non_replayable_step_count": 1,
+        "blocked_replay_reasons": [
+            {
+                "step_id": "step-authority-surface",
+                "code": "authority_surface_replay_blocked",
+            }
+        ],
+    }

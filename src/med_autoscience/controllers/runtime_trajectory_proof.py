@@ -21,6 +21,28 @@ _MUTATING_SIDE_EFFECT_CLASSES = frozenset(
         "external_write",
     }
 )
+_AUTHORITY_GUARDED_REFS: tuple[str, ...] = (
+    "artifacts/publication_eval/latest.json",
+    "artifacts/controller_decisions/latest.json",
+    "study_runtime_status",
+    "study_truth",
+    "submission readiness",
+)
+_AUTHORITY_GUARDED_REF_MATCHES: tuple[str, ...] = (
+    "artifacts/publication_eval/latest.json",
+    "publication_eval/latest.json",
+    "artifacts/controller_decisions/latest.json",
+    "controller_decisions/latest.json",
+    "study_runtime_status",
+    "study_truth",
+    "submission readiness",
+    "submission_minimal/readiness",
+)
+_AUTHORITY_GUARD = {
+    "role": "observability_only",
+    "authority_surface_replay_policy": "non_replayable",
+    "guarded_refs": list(_AUTHORITY_GUARDED_REFS),
+}
 
 
 def build_runtime_trajectory_proof(
@@ -35,6 +57,7 @@ def build_runtime_trajectory_proof(
         "schema_version": SCHEMA_VERSION,
         "active_run_id": run_id,
         "trajectory_role": dict(_TRAJECTORY_ROLE),
+        "authority_guard": dict(_AUTHORITY_GUARD),
         "steps": normalized_steps,
         "replay_summary": _replay_summary(normalized_steps),
     }
@@ -55,10 +78,12 @@ def _normalized_step(active_run_id: str, raw_step: Mapping[str, Any], index: int
     step = raw_step if isinstance(raw_step, Mapping) else {}
     side_effect_class = _text(step.get("side_effect_class")) or "none"
     idempotency_key = _text(step.get("idempotency_key"))
+    artifact_delta_refs = _text_list(step.get("artifact_delta_refs"))
     replay_policy = _replay_policy(
         requested_policy=_text(step.get("replay_policy")),
         side_effect_class=side_effect_class,
         idempotency_key=idempotency_key,
+        artifact_delta_refs=artifact_delta_refs,
     )
     return {
         "step_id": _required_text(step.get("step_id"), f"steps[{index}].step_id"),
@@ -66,7 +91,7 @@ def _normalized_step(active_run_id: str, raw_step: Mapping[str, Any], index: int
         "action_type": _required_text(step.get("action_type"), f"steps[{index}].action_type"),
         "action_ref": _required_text(step.get("action_ref"), f"steps[{index}].action_ref"),
         "observation_ref": _required_text(step.get("observation_ref"), f"steps[{index}].observation_ref"),
-        "artifact_delta_refs": _text_list(step.get("artifact_delta_refs")),
+        "artifact_delta_refs": artifact_delta_refs,
         "side_effect_class": side_effect_class,
         "idempotency_key": idempotency_key,
         "replay_policy": replay_policy,
@@ -79,7 +104,10 @@ def _replay_policy(
     requested_policy: str | None,
     side_effect_class: str,
     idempotency_key: str | None,
+    artifact_delta_refs: Sequence[str],
 ) -> str:
+    if _touches_guarded_authority_surface(artifact_delta_refs):
+        return "non_replayable"
     if side_effect_class == "none":
         return "observation_only"
     if side_effect_class in _MUTATING_SIDE_EFFECT_CLASSES and idempotency_key is None:
@@ -95,10 +123,15 @@ def _replay_summary(steps: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         replay_policy = step.get("replay_policy")
         if replay_policy == "non_replayable":
             non_replayable += 1
+            code = (
+                "authority_surface_replay_blocked"
+                if _touches_guarded_authority_surface(_text_list(step.get("artifact_delta_refs")))
+                else "side_effect_missing_idempotency_key"
+            )
             blocked_reasons.append(
                 {
                     "step_id": str(step.get("step_id")),
-                    "code": "side_effect_missing_idempotency_key",
+                    "code": code,
                 }
             )
         elif replay_policy in {"auto_replay_allowed", "idempotent_replay_allowed"}:
@@ -126,6 +159,14 @@ def _text_list(value: object) -> list[str]:
     if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
         return []
     return [text for item in value if (text := _text(item)) is not None]
+
+
+def _touches_guarded_authority_surface(refs: Sequence[str]) -> bool:
+    normalized_refs = [ref.replace("\\", "/").strip().lower() for ref in refs]
+    for ref in normalized_refs:
+        if any(match in ref for match in _AUTHORITY_GUARDED_REF_MATCHES):
+            return True
+    return False
 
 
 __all__ = [

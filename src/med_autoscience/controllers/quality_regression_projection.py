@@ -32,9 +32,19 @@ REAL_STUDY_SOAK_STAGES: tuple[str, ...] = (
 )
 AUTHORITY = {
     "owner": "MAS Evaluation OS",
+    "role": "observability_projection_only",
     "can_authorize_publication_quality": False,
+    "can_authorize_submission_readiness": False,
     "can_replace_ai_reviewer": False,
+    "can_replace_publication_eval_latest": False,
+    "can_replace_controller_decision_latest": False,
+    "can_replace_study_runtime_status": False,
+    "can_replace_study_truth": False,
     "publication_authority_surface": "artifacts/publication_eval/latest.json",
+    "controller_authority_surface": "artifacts/controller_decisions/latest.json",
+    "runtime_authority_surface": "study_runtime_status",
+    "study_truth_authority_surface": "StudyTruthKernel",
+    "submission_readiness_authority_surface": "submission readiness",
     "judge_score_role": "calibration_evidence_only",
 }
 
@@ -141,6 +151,7 @@ def _normalized_judge_scores(judge_scores: Sequence[Mapping[str, Any]]) -> list[
                 "role": "calibration_evidence_only",
                 "can_authorize_publication_quality": False,
                 "can_replace_ai_reviewer": False,
+                "can_authorize_submission_readiness": False,
             }
         )
     return normalized
@@ -185,6 +196,9 @@ def _normalized_rubric_tree(rubric_nodes: Sequence[Mapping[str, Any]]) -> dict[s
         "owner": "MAS Evaluation OS",
         "role": "calibration_evidence_only",
         "can_replace_publication_eval_latest": False,
+        "can_replace_controller_decision_latest": False,
+        "can_replace_study_runtime_status": False,
+        "can_replace_study_truth": False,
         "can_authorize_submission_readiness": False,
         "can_authorize_publication_quality": False,
         "publication_authority_surface": "artifacts/publication_eval/latest.json",

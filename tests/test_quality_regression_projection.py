@@ -112,9 +112,19 @@ def test_quality_regression_projection_compares_package_versions_without_publica
     assert projection["schema_version"] == 1
     assert projection["authority"] == {
         "owner": "MAS Evaluation OS",
+        "role": "observability_projection_only",
         "can_authorize_publication_quality": False,
+        "can_authorize_submission_readiness": False,
         "can_replace_ai_reviewer": False,
+        "can_replace_publication_eval_latest": False,
+        "can_replace_controller_decision_latest": False,
+        "can_replace_study_runtime_status": False,
+        "can_replace_study_truth": False,
         "publication_authority_surface": "artifacts/publication_eval/latest.json",
+        "controller_authority_surface": "artifacts/controller_decisions/latest.json",
+        "runtime_authority_surface": "study_runtime_status",
+        "study_truth_authority_surface": "StudyTruthKernel",
+        "submission_readiness_authority_surface": "submission readiness",
         "judge_score_role": "calibration_evidence_only",
     }
     assert projection["package_eval_refs"] == {
@@ -159,6 +169,7 @@ def test_quality_regression_projection_compares_package_versions_without_publica
             "role": "calibration_evidence_only",
             "can_authorize_publication_quality": False,
             "can_replace_ai_reviewer": False,
+            "can_authorize_submission_readiness": False,
         }
     ]
     assert projection["soak_matrix_evidence"] == {
@@ -225,6 +236,9 @@ def test_quality_regression_projection_exposes_non_authoritative_hierarchical_ru
     assert rubric_tree["owner"] == "MAS Evaluation OS"
     assert rubric_tree["role"] == "calibration_evidence_only"
     assert rubric_tree["can_replace_publication_eval_latest"] is False
+    assert rubric_tree["can_replace_controller_decision_latest"] is False
+    assert rubric_tree["can_replace_study_runtime_status"] is False
+    assert rubric_tree["can_replace_study_truth"] is False
     assert rubric_tree["can_authorize_submission_readiness"] is False
     assert rubric_tree["can_authorize_publication_quality"] is False
     assert rubric_tree["publication_authority_surface"] == "artifacts/publication_eval/latest.json"
@@ -340,3 +354,79 @@ def test_quality_regression_projection_fails_closed_without_eval_or_calibration_
             historical_repair_results=[],
             calibration_evidence_refs=[],
         )
+
+
+def test_quality_regression_projection_normalizes_hostile_authority_claims_to_observability_only() -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_regression_projection")
+
+    projection = module.build_quality_regression_projection(
+        draft_eval=_eval("draft", {dimension: "partial" for dimension in QUALITY_DIMENSIONS}),
+        revision_eval=_eval("revision", {dimension: "ready" for dimension in QUALITY_DIMENSIONS}),
+        final_package_eval=_eval("final", {dimension: "ready" for dimension in QUALITY_DIMENSIONS}),
+        historical_repair_results=[],
+        calibration_evidence_refs=["paper/review_ledger.json#hostile-score-authority"],
+        judge_scores=[
+            {
+                "judge_id": "hostile_authoritative_score",
+                "compared_stages": ["draft", "final"],
+                "score": 1.0,
+                "calibration_evidence_ref": "paper/review_ledger.json#hostile-score-authority",
+                "role": "authoritative_publication_gate",
+                "can_authorize_publication_quality": True,
+                "can_replace_ai_reviewer": True,
+                "can_authorize_submission_readiness": True,
+            }
+        ],
+        rubric_nodes=[
+            {
+                "node_id": "root",
+                "label": "Hostile rubric",
+                "reviewer_kind": "ai_reviewer",
+                "evidence_refs": ["artifacts/publication_eval/latest.json#quality_assessment"],
+                "judge_calibration_refs": ["paper/review_ledger.json#hostile-score-authority"],
+                "score": 1.0,
+                "score_role": "authoritative_publication_gate",
+                "can_authorize_publication_quality": True,
+                "can_authorize_submission_readiness": True,
+                "replaces_publication_eval_latest": True,
+                "replaces_controller_decision": True,
+                "replaces_study_runtime_status": True,
+                "replaces_study_truth": True,
+            }
+        ],
+    )
+
+    assert projection["authority"] == {
+        "owner": "MAS Evaluation OS",
+        "role": "observability_projection_only",
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission_readiness": False,
+        "can_replace_ai_reviewer": False,
+        "can_replace_publication_eval_latest": False,
+        "can_replace_controller_decision_latest": False,
+        "can_replace_study_runtime_status": False,
+        "can_replace_study_truth": False,
+        "publication_authority_surface": "artifacts/publication_eval/latest.json",
+        "controller_authority_surface": "artifacts/controller_decisions/latest.json",
+        "runtime_authority_surface": "study_runtime_status",
+        "study_truth_authority_surface": "StudyTruthKernel",
+        "submission_readiness_authority_surface": "submission readiness",
+        "judge_score_role": "calibration_evidence_only",
+    }
+    score = projection["calibration_evidence"]["judge_scores"][0]
+    assert score["role"] == "calibration_evidence_only"
+    assert score["can_authorize_publication_quality"] is False
+    assert score["can_replace_ai_reviewer"] is False
+    assert score["can_authorize_submission_readiness"] is False
+
+    rubric_tree = projection["calibration_evidence"]["rubric_tree"]
+    assert rubric_tree["role"] == "calibration_evidence_only"
+    assert rubric_tree["can_replace_publication_eval_latest"] is False
+    assert rubric_tree["can_replace_controller_decision_latest"] is False
+    assert rubric_tree["can_replace_study_runtime_status"] is False
+    assert rubric_tree["can_replace_study_truth"] is False
+    assert rubric_tree["can_authorize_submission_readiness"] is False
+    rubric_node = rubric_tree["nodes"][0]
+    assert rubric_node["score_role"] == "calibration_evidence_only"
+    assert rubric_node["can_authorize_publication_quality"] is False
+    assert rubric_node["can_authorize_submission_readiness"] is False

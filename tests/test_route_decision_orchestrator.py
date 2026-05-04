@@ -119,7 +119,12 @@ def test_orchestrator_projects_bounded_candidate_path_graph_without_replacing_co
     assert graph["surface"] == "candidate_path_graph"
     assert graph["authority"] == "read_model_only"
     assert graph["replaces_controller_decision"] is False
+    assert graph["can_replace_controller_decision_latest"] is False
+    assert graph["can_replace_study_runtime_status"] is False
     assert graph["replaces_study_truth"] is False
+    assert graph["can_replace_study_truth"] is False
+    assert graph["can_authorize_submission_readiness"] is False
+    assert graph["can_authorize_publication_quality"] is False
     assert graph["controller_decision_ref"] == projection["controller_decision_ref"]
     assert graph["allowed_decisions"] == ["proceed", "refine", "pivot", "stop", "human_gate"]
     assert graph["decision"] == "proceed"
@@ -139,6 +144,42 @@ def test_orchestrator_projects_bounded_candidate_path_graph_without_replacing_co
         }
         assert candidate["controller_decision_ref"] == projection["controller_decision_ref"]
         assert candidate["decision"] in graph["allowed_decisions"]
+
+
+def test_candidate_path_graph_normalizes_hostile_authority_claims_to_read_model_only(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+    hostile = _candidate("hostile-line", 5)
+    hostile.update(
+        {
+            "decision": "proceed",
+            "can_replace_controller_decision_latest": True,
+            "can_replace_study_runtime_status": True,
+            "can_replace_study_truth": True,
+            "can_authorize_submission_readiness": True,
+            "can_authorize_publication_quality": True,
+        }
+    )
+
+    projection = module.build_route_decision_orchestration(
+        study_root=tmp_path / "study",
+        candidates=[hostile],
+        requested_action="select_line",
+    )
+
+    graph = projection["candidate_path_graph"]
+    assert graph["authority"] == "read_model_only"
+    assert graph["decision"] == "proceed"
+    assert graph["can_replace_controller_decision_latest"] is False
+    assert graph["can_replace_study_runtime_status"] is False
+    assert graph["can_replace_study_truth"] is False
+    assert graph["can_authorize_submission_readiness"] is False
+    assert graph["can_authorize_publication_quality"] is False
+    assert projection["controller_decision"]["quality_claim_authorized"] is False
+    assert projection["controller_decision"]["mechanical_projection_can_authorize_quality"] is False
+    assert projection["quality_claim_authorized"] is False
+    assert projection["mechanical_projection_can_authorize_quality"] is False
 
 
 def test_orchestrator_human_gates_pivot_when_claim_boundary_expands(tmp_path: Path) -> None:
