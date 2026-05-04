@@ -34,11 +34,33 @@ def test_weak_result_cannot_continue() -> None:
         **_base_inputs(decision="continue", evidence_state="weak", stop_pressure="none")
     )
 
-    assert memo["decision"] == "continue"
+    assert memo["requested_decision"] == "continue"
+    assert memo["decision"] == "stop_loss"
     assert memo["decision_allowed"] is False
     assert memo["blocked"] is True
     assert memo["blockers"] == ["continue_blocked_by_weak_evidence"]
     assert memo["quality_claim_authorized"] is False
+
+
+def test_blocked_continue_suggests_stop_loss_route_with_durable_refs() -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_control_stoploss")
+
+    memo = module.build_route_control_stoploss_memo(
+        **_base_inputs(decision="continue", evidence_state="blocked", stop_pressure="high")
+    )
+
+    assert memo["requested_decision"] == "continue"
+    assert memo["decision"] == "stop_loss"
+    assert memo["decision_allowed"] is False
+    assert memo["route_recommendation"]["decision"] == "stop_loss"
+    assert memo["route_recommendation"]["recommended_route"] is None
+    assert memo["controller_decision_suggestion"]["suggested_payload"]["decision_type"] == "stop_loss"
+    assert memo["durable_refs"] == {
+        "stop_loss_memo": "artifacts/medical_paper/stop_loss_memo.json",
+        "controller_decision_suggestion": "artifacts/controller_decisions/latest.json",
+        "publication_quality_authority": "artifacts/publication_eval/latest.json",
+    }
+    assert memo["materialization"]["stop_loss_memo_required"] is True
 
 
 def test_stop_loss_memo_fields_complete(tmp_path: Path) -> None:

@@ -31,9 +31,16 @@ AUTHORITY = {
     "controller_decision_role": "route_recommendation_only",
 }
 
+DURABLE_REFS = {
+    "stop_loss_memo": str(STOP_LOSS_MEMO_PATH),
+    "controller_decision_suggestion": str(CONTROLLER_DECISION_SUGGESTION_PATH),
+    "publication_quality_authority": str(AUTHORITY["publication_authority_surface"]),
+}
+
 __all__ = [
     "AUTHORITY",
     "DECISIONS",
+    "DURABLE_REFS",
     "STOP_LOSS_MEMO_PATH",
     "build_route_control_stoploss_memo",
     "materialize_route_control_stoploss_memo",
@@ -72,6 +79,10 @@ def build_route_control_stoploss_memo(
         human_gate_question=normalized_question,
     )
     decision_allowed = not blockers
+    effective_decision = _effective_decision(
+        requested_decision=normalized_decision,
+        blockers=blockers,
+    )
 
     memo = {
         "surface": SURFACE,
@@ -80,10 +91,11 @@ def build_route_control_stoploss_memo(
         "quality_claim_authorized": False,
         "current_route": normalized_route,
         "requested_decision": normalized_decision,
-        "decision": normalized_decision,
+        "decision": effective_decision,
         "decision_allowed": decision_allowed,
         "blocked": not decision_allowed,
         "blockers": blockers,
+        "durable_refs": dict(DURABLE_REFS),
         "route_control_inputs": {
             "evidence_state": normalized_evidence_state,
             "stop_pressure": normalized_stop_pressure,
@@ -97,13 +109,14 @@ def build_route_control_stoploss_memo(
         },
         "route_recommendation": _route_recommendation(
             current_route=normalized_route,
-            decision=normalized_decision,
+            decision=effective_decision,
             decision_allowed=decision_allowed,
             alternative_routes=normalized_alternative_routes,
         ),
         "controller_decision_suggestion": _controller_decision_suggestion(
             current_route=normalized_route,
-            decision=normalized_decision,
+            requested_decision=normalized_decision,
+            decision=effective_decision,
             decision_allowed=decision_allowed,
             evidence_state=normalized_evidence_state,
             stop_pressure=normalized_stop_pressure,
@@ -111,12 +124,12 @@ def build_route_control_stoploss_memo(
             alternative_routes=normalized_alternative_routes,
         ),
         "materialization": {
-            "stop_loss_memo_required": normalized_decision in STOP_LOSS_MATERIALIZED_DECISIONS,
+            "stop_loss_memo_required": effective_decision in STOP_LOSS_MATERIALIZED_DECISIONS,
             "stop_loss_memo_path": str(STOP_LOSS_MEMO_PATH),
             "controller_decision_suggestion_path": str(CONTROLLER_DECISION_SUGGESTION_PATH),
         },
     }
-    if normalized_decision in STOP_LOSS_MATERIALIZED_DECISIONS:
+    if effective_decision in STOP_LOSS_MATERIALIZED_DECISIONS:
         memo["stop_loss_memo"] = _stop_loss_memo_payload(memo)
     return memo
 
@@ -184,6 +197,12 @@ def _decision_blockers(
     return blockers
 
 
+def _effective_decision(*, requested_decision: str, blockers: Sequence[str]) -> str:
+    if requested_decision == "continue" and blockers:
+        return "stop_loss"
+    return requested_decision
+
+
 def _route_recommendation(
     *,
     current_route: str,
@@ -217,6 +236,7 @@ def _route_recommendation(
 def _controller_decision_suggestion(
     *,
     current_route: str,
+    requested_decision: str,
     decision: str,
     decision_allowed: bool,
     evidence_state: str,
@@ -231,6 +251,7 @@ def _controller_decision_suggestion(
         "write_authorized": False,
         "suggested_payload": {
             "decision_type": decision,
+            "requested_decision": requested_decision,
             "current_route": current_route,
             "decision_allowed": decision_allowed,
             "evidence_state": evidence_state,
@@ -255,8 +276,10 @@ def _stop_loss_memo_payload(memo: Mapping[str, Any]) -> dict[str, Any]:
         "quality_claim_authorized": False,
         "current_route": memo["current_route"],
         "decision": memo["decision"],
+        "requested_decision": memo["requested_decision"],
         "decision_allowed": memo["decision_allowed"],
         "blockers": list(memo["blockers"]),
+        "durable_refs": dict(memo["durable_refs"]),
         "evidence_state": route_inputs["evidence_state"],
         "stop_pressure": route_inputs["stop_pressure"],
         "attempted_paths": list(route_inputs["attempted_paths"]),

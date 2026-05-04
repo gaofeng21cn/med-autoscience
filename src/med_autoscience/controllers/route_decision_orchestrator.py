@@ -135,6 +135,7 @@ def _controller_decision_payload(
             "evidence_state": _text(_mapping(memo.get("route_control_inputs")).get("evidence_state")),
             "stop_pressure": _text(_mapping(memo.get("route_control_inputs")).get("stop_pressure")),
         }
+        payload["route_control_durable_refs"] = dict(_mapping(memo.get("durable_refs")))
     return payload
 
 
@@ -473,7 +474,10 @@ def _route_control_projection(
     )
     if route_control_memo and route_control_memo.get("decision_allowed") is False:
         blockers.extend(str(item) for item in route_control_memo.get("blockers") or [] if _text(item))
-        projected_route_decision = "human_gate"
+        route_control_decision = _text(route_control_memo.get("decision")) or route_control_decision
+        projected_route_decision = _route_decision_from_control(route_control_decision, route_decision)
+        if route_control_decision == "switch_line":
+            projected_selected_line_id = None
 
     next_action = (
         NEXT_ACTION_BY_ROUTE_CONTROL.get(route_control_decision)

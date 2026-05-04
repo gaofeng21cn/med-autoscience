@@ -334,3 +334,44 @@ def test_orchestrator_blocks_continue_when_weak_route_has_no_alternative(tmp_pat
     assert projection["route_decision"] == "return_to_scout"
     assert projection["next_action"] == "stop_loss"
     assert projection["controller_decision"]["write_authorized"] is True
+
+
+def test_orchestrator_explicit_continue_is_not_allowed_under_high_stop_pressure(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+
+    projection = module.materialize_route_decision_orchestration(
+        study_root=tmp_path / "study",
+        candidates=[_candidate("weak-line", 4)],
+        requested_action="select_line",
+        route_signals={
+            "requested_route_control_decision": "continue",
+            "evidence_state": "weak",
+            "stop_pressure": "high",
+            "attempted_paths": ["baseline", "bounded_analysis"],
+            "failure_reasons": ["validation_not_transportable"],
+            "continuation_cost": {"runtime_hours": 8, "review_cycles": 2},
+            "evidence_gain_ceiling": "low",
+            "alternative_routes": ["stronger-line"],
+        },
+    )
+
+    stop_loss_path = tmp_path / "study" / "artifacts" / "medical_paper" / "stop_loss_memo.json"
+    decision_path = tmp_path / "study" / "artifacts" / "controller_decisions" / "latest.json"
+    assert projection["status"] == "blocked"
+    assert projection["route_control_decision"] == "stop_loss"
+    assert projection["route_decision"] == "return_to_scout"
+    assert projection["next_action"] == "stop_loss"
+    assert "continue_blocked_by_weak_evidence" in projection["blockers"]
+    assert "continue_blocked_by_high_stop_pressure" in projection["blockers"]
+    assert projection["route_control_memo"]["requested_decision"] == "continue"
+    assert projection["route_control_memo"]["decision"] == "stop_loss"
+    assert projection["route_control_memo"]["materialized_paths"] == {"stop_loss_memo": str(stop_loss_path)}
+    assert projection["route_control_memo"]["durable_refs"]["controller_decision_suggestion"] == (
+        "artifacts/controller_decisions/latest.json"
+    )
+    assert projection["controller_decision"]["write_authorized"] is False
+    assert projection["controller_decision"]["route_control_decision"] == "stop_loss"
+    assert stop_loss_path.is_file()
+    assert not decision_path.exists()
