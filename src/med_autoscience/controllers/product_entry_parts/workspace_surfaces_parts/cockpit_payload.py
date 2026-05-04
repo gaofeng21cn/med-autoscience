@@ -567,8 +567,9 @@ def _workspace_delivery_inspection_state(*, studies: list[dict[str, Any]]) -> di
     }
     for entry in entries:
         status = _non_empty_text(entry.get("status")) or "unknown"
-        if status == "legacy_layout_pending_sync":
+        if status == "legacy_layout_pending_sync" or bool(entry.get("legacy_layout_pending_sync")):
             counts["legacy_layout_pending_sync"] += 1
+        if status == "legacy_layout_pending_sync":
             counts["attention_required"] += 1
         elif status not in {"current", "ready"}:
             counts["attention_required"] += 1

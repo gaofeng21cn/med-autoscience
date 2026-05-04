@@ -14,6 +14,8 @@ def _mapping(value: object) -> dict[str, Any]:
 
 
 def _layout_pending_sync(inspection: Mapping[str, Any]) -> bool:
+    if bool(inspection.get("legacy_layout_pending_sync")):
+        return True
     freshness = _mapping(inspection.get("freshness"))
     if freshness.get("verdict") == "legacy":
         return True
@@ -29,13 +31,14 @@ def _inspection_status(inspection: Mapping[str, Any]) -> str:
     freshness = _mapping(inspection.get("freshness"))
     verdict = str(freshness.get("verdict") or "").strip()
     delivery_status = str(freshness.get("delivery_status") or "").strip()
+    incoming_status = str(inspection.get("status") or "").strip()
     if _layout_pending_sync(inspection) and not (
-        verdict == "stale" or delivery_status.startswith("stale")
+        verdict == "stale" or delivery_status.startswith("stale") or incoming_status.startswith("stale")
     ):
         return "legacy_layout_pending_sync"
     if verdict:
         return verdict
-    return delivery_status or str(inspection.get("status") or "unknown").strip() or "unknown"
+    return delivery_status or incoming_status or "unknown"
 
 
 def _inspection_summary(inspection: Mapping[str, Any], *, status: str) -> str:

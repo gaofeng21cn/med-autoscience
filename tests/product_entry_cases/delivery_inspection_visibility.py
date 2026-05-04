@@ -133,3 +133,51 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_frontdesk(
         assert "submission_minimal = controller-authorized source" in markdown
         assert "current_package = human-facing mirror" in markdown
         assert "legacy layout 会在下一次 authorized sync 升级" in markdown
+
+
+def test_product_entry_counts_legacy_layout_even_when_stale_status_is_primary(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    write_study(profile.workspace_root, "001-risk")
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: SimpleNamespace(
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            med_deepscientist_runtime_exists=True,
+            medical_overlay_ready=True,
+            external_runtime_contract={"ready": True},
+            workspace_supervision_contract={},
+        ),
+    )
+    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: {})
+    monkeypatch.setattr(module.mainline_status, "read_mainline_status", lambda: {})
+    stale_legacy_projection = _delivery_inspection("001-risk")
+    stale_legacy_projection["status"] = "stale"
+    stale_legacy_projection["summary"] = "delivery status: stale_source_changed"
+    stale_legacy_projection["legacy_layout_pending_sync"] = True
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **kwargs: {
+            "study_id": "001-risk",
+            "current_stage": "publication_supervision",
+            "current_blockers": [],
+            "delivery_inspection": stale_legacy_projection,
+            "recommended_commands": [],
+        },
+    )
+
+    cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+
+    counts = cockpit["delivery_inspection_state"]["counts"]
+    assert counts["attention_required"] == 1
+    assert counts["legacy_layout_pending_sync"] == 1
+    assert cockpit["delivery_inspection_state"]["studies"][0]["status"] == "stale"
