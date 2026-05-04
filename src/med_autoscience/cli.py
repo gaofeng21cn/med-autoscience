@@ -9,7 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from med_autoscience import dev_preflight
+from med_autoscience import dev_preflight, dev_preflight_contract
 from med_autoscience.agent_entry.renderers import render_entry_modes_payload, sync_agent_entry_assets
 from med_autoscience.cli_public_surface import (
     GROUPED_COMMAND_PROGS,
@@ -237,6 +237,11 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(dev_preflight.render_preflight_text(result), end="")
         return 0 if result.ok else 1
+
+    if args.command == "preflight-contract-report":
+        result = dev_preflight_contract.build_preflight_contract_report()
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
 
     if args.command == "backend-upgrade-check":
         profile = load_profile(args.profile)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 import shlex
 
@@ -58,6 +59,60 @@ def test_preflight_planned_pytest_paths_exist() -> None:
     ]
 
     assert missing_paths == []
+
+
+def test_preflight_contract_report_lists_categories_and_planned_commands() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    report = module.build_preflight_contract_report()
+    categories = {category["category_id"]: category for category in report["categories"]}
+
+    assert report["surface_kind"] == "preflight_contract_report"
+    assert set(categories) == {
+        *(spec.category_id for spec in module._CATEGORY_SPECS),
+        module.GENERIC_PYTHON_REGRESSION_CATEGORY,
+    }
+    public_doc = categories["public_doc_surface"]
+    assert "README.md" in public_doc["exact_paths"]
+    assert public_doc["prefix_paths"] == []
+    assert public_doc["commands"] == public_doc["planned_commands"]
+    assert "uv run pytest tests/test_dev_preflight_contract.py -q" in public_doc["planned_commands"]
+    generic = categories[module.GENERIC_PYTHON_REGRESSION_CATEGORY]
+    assert generic["exact_paths"] == []
+    assert generic["prefix_paths"] == ["src/med_autoscience/", "tests/"]
+    assert generic["planned_commands"] == ["make test-regression"]
+
+
+def test_preflight_contract_report_planned_pytest_paths_exist() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+    repo_root = Path(__file__).resolve().parents[1]
+    report = module.build_preflight_contract_report()
+
+    missing_paths = [
+        f"{category['category_id']}: {path}"
+        for category in report["categories"]
+        for command in category["planned_commands"]
+        for path in _planned_pytest_paths(str(command))
+        if not (repo_root / path).exists()
+    ]
+
+    assert missing_paths == []
+
+
+def test_preflight_contract_report_cli_is_read_only_json(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["doctor", "preflight-contract-report", "--format", "json"])
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert report["surface_kind"] == "preflight_contract_report"
+    assert any(category["category_id"] == "workflow_surface" for category in report["categories"])
+    assert any(
+        "uv run pytest tests/test_dev_preflight.py -q" in category["planned_commands"]
+        for category in report["categories"]
+    )
 
 
 def test_preflight_category_audit_keeps_spec_paths_explicit() -> None:

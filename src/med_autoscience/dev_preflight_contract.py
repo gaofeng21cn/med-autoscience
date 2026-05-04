@@ -499,3 +499,40 @@ def plan_commands_for_categories(categories: Iterable[str]) -> list[str]:
             if command not in planned_commands:
                 planned_commands.append(command)
     return planned_commands
+
+
+def build_preflight_contract_report() -> dict[str, object]:
+    categories: list[dict[str, object]] = []
+    for spec in _CATEGORY_SPECS:
+        commands = list(spec.commands)
+        categories.append(
+            {
+                "category_id": spec.category_id,
+                "exact_paths": list(spec.exact_paths),
+                "prefix_paths": list(spec.prefix_paths),
+                "commands": commands,
+                "planned_commands": commands,
+            }
+        )
+    generic_commands = list(_GENERIC_PYTHON_REGRESSION_COMMANDS)
+    categories.append(
+        {
+            "category_id": GENERIC_PYTHON_REGRESSION_CATEGORY,
+            "exact_paths": [],
+            "prefix_paths": list(_GENERIC_PYTHON_PREFIXES),
+            "commands": generic_commands,
+            "planned_commands": generic_commands,
+        }
+    )
+    return {
+        "surface_kind": "preflight_contract_report",
+        "categories": categories,
+        "fail_closed_families": [
+            {
+                "family_id": family.family_id,
+                "exact_paths": list(family.exact_paths),
+                "prefix_paths": list(family.prefix_paths),
+            }
+            for family in _DEFAULT_COVERAGE_PATH_FAMILIES
+        ],
+    }

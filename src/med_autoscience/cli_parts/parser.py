@@ -37,6 +37,9 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     preflight_sources.add_argument("--base-ref", type=str)
     preflight_parser.add_argument("--format", choices=("text", "json"), default="text")
 
+    preflight_contract_report_parser = subparsers.add_parser("preflight-contract-report")
+    preflight_contract_report_parser.add_argument("--format", choices=("json",), default="json")
+
     watch_parser = subparsers.add_parser("watch")
     watch_parser.add_argument("--quest-root", type=str)
     watch_parser.add_argument("--runtime-root", type=str)
