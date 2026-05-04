@@ -71,7 +71,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
 
     runtime_supervisor_scan_parser = subparsers.add_parser("runtime-supervisor-scan")
     runtime_supervisor_scan_parser.add_argument("--profile", required=True)
-    runtime_supervisor_scan_parser.add_argument("--studies", nargs="+", required=True)
+    runtime_supervisor_scan_parser.add_argument("--studies", nargs="+")
     runtime_supervisor_scan_parser.add_argument("--apply-safe-actions", action="store_true")
     runtime_supervisor_scan_parser.add_argument("--apply-runtime-platform-repair", action="store_true")
     runtime_supervisor_scan_parser.add_argument(

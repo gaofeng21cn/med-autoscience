@@ -680,7 +680,10 @@ def _rendered_files(
             / "supervisor"
             / "kubernetes"
             / "supervisor-scan-cronjob.yaml",
-            content=_render_supervisor_kubernetes_cronjob(workspace_root=workspace_root),
+            content=_render_supervisor_kubernetes_cronjob(
+                workspace_root=workspace_root,
+                profile_relpath=profile_relpath,
+            ),
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "supervisor" / "launchd" / "README.md",

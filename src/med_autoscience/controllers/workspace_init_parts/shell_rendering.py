@@ -27,6 +27,23 @@ def _render_medautosci_shared(profile_relpath: Path) -> str:
         "  # shellcheck disable=SC1090\n"
         '  source "${CONFIG_ENV_PATH}"\n'
         "fi\n\n"
+        'if [[ "${MED_AUTOSCIENCE_CONTAINER_MODE:-}" == "1" ]]; then\n'
+        '  if [[ "${MED_AUTOSCIENCE_REPO_CONTAINER+x}" == "x" ]]; then\n'
+        '    MED_AUTOSCIENCE_REPO="${MED_AUTOSCIENCE_REPO_CONTAINER}"\n'
+        "  fi\n"
+        '  if [[ "${MED_AUTOSCIENCE_PROFILE_CONTAINER+x}" == "x" ]]; then\n'
+        '    MED_AUTOSCIENCE_PROFILE="${MED_AUTOSCIENCE_PROFILE_CONTAINER}"\n'
+        "  fi\n"
+        '  if [[ "${MED_AUTOSCIENCE_UV_BIN_CONTAINER+x}" == "x" ]]; then\n'
+        '    MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN_CONTAINER}"\n'
+        "  fi\n"
+        '  if [[ "${MED_AUTOSCIENCE_NODE_BIN_CONTAINER+x}" == "x" ]]; then\n'
+        '    MED_AUTOSCIENCE_NODE_BIN="${MED_AUTOSCIENCE_NODE_BIN_CONTAINER}"\n'
+        "  fi\n"
+        '  if [[ "${MED_AUTOSCIENCE_RSCRIPT_BIN_CONTAINER+x}" == "x" ]]; then\n'
+        '    MED_AUTOSCIENCE_RSCRIPT_BIN="${MED_AUTOSCIENCE_RSCRIPT_BIN_CONTAINER}"\n'
+        "  fi\n"
+        "fi\n\n"
         'if [[ -n "${MED_AUTOSCIENCE_PROFILE:-}" ]]; then\n'
         '  PROFILE_PATH="${MED_AUTOSCIENCE_PROFILE}"\n'
         "else\n"
@@ -203,15 +220,54 @@ def _render_supervisor_docker_oneshot(*, workspace_root: Path) -> str:
         "set -euo pipefail\n\n"
         f'WORKSPACE_ROOT="${{WORKSPACE_ROOT:-{workspace_root}}}"\n'
         'MAS_IMAGE="${MAS_IMAGE:-medautoscience:latest}"\n\n'
+        'CONFIG_ENV_PATH="${WORKSPACE_ROOT}/ops/medautoscience/config.env"\n'
+        'if [[ -f "${CONFIG_ENV_PATH}" ]]; then\n'
+        "  # shellcheck disable=SC1090\n"
+        '  source "${CONFIG_ENV_PATH}"\n'
+        "fi\n\n"
+        'HOST_MAS_REPO="${MAS_REPO_ROOT:-${MED_AUTOSCIENCE_REPO:-}}"\n'
+        'if [[ -z "${HOST_MAS_REPO}" ]]; then\n'
+        '  echo "MAS_REPO_ROOT or MED_AUTOSCIENCE_REPO must point to the MedAutoScience repo." >&2\n'
+        "  exit 1\n"
+        "fi\n"
+        'if [[ ! -d "${WORKSPACE_ROOT}" ]]; then\n'
+        '  echo "WORKSPACE_ROOT does not exist: ${WORKSPACE_ROOT}" >&2\n'
+        "  exit 1\n"
+        "fi\n"
+        'if [[ ! -d "${HOST_MAS_REPO}" ]]; then\n'
+        '  echo "MedAutoScience repo does not exist: ${HOST_MAS_REPO}" >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
+        'WORKSPACE_CONTAINER_ROOT="${WORKSPACE_CONTAINER_ROOT:-${WORKSPACE_ROOT}}"\n'
+        'MAS_REPO_CONTAINER_ROOT="${MAS_REPO_CONTAINER_ROOT:-${HOST_MAS_REPO}}"\n'
+        'MED_AUTOSCIENCE_PROFILE_CONTAINER_DEFAULT=""\n'
+        'if [[ -n "${MED_AUTOSCIENCE_PROFILE:-}" && "${MED_AUTOSCIENCE_PROFILE}" == "${WORKSPACE_ROOT}/"* ]]; then\n'
+        '  MED_AUTOSCIENCE_PROFILE_CONTAINER_DEFAULT="${WORKSPACE_CONTAINER_ROOT}${MED_AUTOSCIENCE_PROFILE#${WORKSPACE_ROOT}}"\n'
+        "fi\n"
+        'MED_AUTOSCIENCE_PROFILE_CONTAINER="${MED_AUTOSCIENCE_PROFILE_CONTAINER:-${MED_AUTOSCIENCE_PROFILE_CONTAINER_DEFAULT}}"\n\n'
+        'docker_env=(\n'
+        '  -e MED_AUTOSCIENCE_CONTAINER_MODE=1\n'
+        '  -e "MED_AUTOSCIENCE_REPO_CONTAINER=${MAS_REPO_CONTAINER_ROOT}"\n'
+        '  -e "MED_AUTOSCIENCE_UV_BIN_CONTAINER=${MED_AUTOSCIENCE_UV_BIN_CONTAINER:-/usr/local/bin/uv}"\n'
+        '  -e "UV_PROJECT_ENVIRONMENT=${UV_PROJECT_ENVIRONMENT:-/tmp/med-autoscience-venv}"\n'
+        '  -e "MED_AUTOSCIENCE_NODE_BIN_CONTAINER=${MED_AUTOSCIENCE_NODE_BIN_CONTAINER-}"\n'
+        '  -e "MED_AUTOSCIENCE_RSCRIPT_BIN_CONTAINER=${MED_AUTOSCIENCE_RSCRIPT_BIN_CONTAINER-}"\n'
+        ")\n"
+        'if [[ -n "${MED_AUTOSCIENCE_PROFILE_CONTAINER}" ]]; then\n'
+        '  docker_env+=(-e "MED_AUTOSCIENCE_PROFILE_CONTAINER=${MED_AUTOSCIENCE_PROFILE_CONTAINER}")\n'
+        "fi\n\n"
         "docker run --rm \\\n"
-        '  -v "${WORKSPACE_ROOT}:${WORKSPACE_ROOT}" \\\n'
-        '  -w "${WORKSPACE_ROOT}" \\\n'
+        '  "${docker_env[@]}" \\\n'
+        '  -v "${WORKSPACE_ROOT}:${WORKSPACE_CONTAINER_ROOT}" \\\n'
+        '  -v "${HOST_MAS_REPO}:${MAS_REPO_CONTAINER_ROOT}" \\\n'
+        '  -w "${WORKSPACE_CONTAINER_ROOT}" \\\n'
         '  "${MAS_IMAGE}" \\\n'
         f"  bash -lc './ops/medautoscience/bin/supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}'\n"
     )
 
 
-def _render_supervisor_kubernetes_cronjob(*, workspace_root: Path) -> str:
+def _render_supervisor_kubernetes_cronjob(*, workspace_root: Path, profile_relpath: Path) -> str:
+    profile_path = workspace_root / profile_relpath
     return (
         "apiVersion: batch/v1\n"
         "kind: CronJob\n"
@@ -227,14 +283,38 @@ def _render_supervisor_kubernetes_cronjob(*, workspace_root: Path) -> str:
         "          containers:\n"
         "            - name: supervisor-scan\n"
         "              image: medautoscience:latest\n"
-        "              workingDir: /workspace\n"
+        f"              workingDir: {workspace_root}\n"
         "              command:\n"
         "                - /bin/bash\n"
         "                - -lc\n"
         f"                - ./ops/medautoscience/bin/supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}\n"
         "              env:\n"
-        "                - name: MAS_WORKSPACE_ROOT\n"
-        f"                  value: {workspace_root}\n"
+        "                - name: MED_AUTOSCIENCE_CONTAINER_MODE\n"
+        '                  value: "1"\n'
+        "                - name: MED_AUTOSCIENCE_REPO_CONTAINER\n"
+        "                  value: /opt/med-autoscience\n"
+        "                - name: MED_AUTOSCIENCE_PROFILE_CONTAINER\n"
+        f"                  value: {profile_path}\n"
+        "                - name: MED_AUTOSCIENCE_UV_BIN_CONTAINER\n"
+        "                  value: /usr/local/bin/uv\n"
+        "                - name: UV_PROJECT_ENVIRONMENT\n"
+        "                  value: /tmp/med-autoscience-venv\n"
+        "                - name: MED_AUTOSCIENCE_NODE_BIN_CONTAINER\n"
+        '                  value: ""\n'
+        "                - name: MED_AUTOSCIENCE_RSCRIPT_BIN_CONTAINER\n"
+        '                  value: ""\n'
+        "              volumeMounts:\n"
+        "                - name: workspace\n"
+        f"                  mountPath: {workspace_root}\n"
+        "                - name: medautoscience-repo\n"
+        "                  mountPath: /opt/med-autoscience\n"
+        "          volumes:\n"
+        "            - name: workspace\n"
+        "              persistentVolumeClaim:\n"
+        "                claimName: medautoscience-workspace\n"
+        "            - name: medautoscience-repo\n"
+        "              persistentVolumeClaim:\n"
+        "                claimName: medautoscience-repo\n"
     )
 
 

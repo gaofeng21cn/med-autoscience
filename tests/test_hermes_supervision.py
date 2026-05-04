@@ -679,6 +679,9 @@ def test_ensure_supervision_returns_cron_docker_and_launchd_scheduler_surfaces(
         templates_root / "kubernetes" / "supervisor-scan-cronjob.yaml"
     )
     assert any("docker run" in command for command in docker_result["install_commands"])
+    assert any("MED_AUTOSCIENCE_CONTAINER_MODE=1" in command for command in docker_result["install_commands"])
+    assert any("UV_PROJECT_ENVIRONMENT=/tmp/med-autoscience-venv" in command for command in docker_result["install_commands"])
+    assert any("<med_autoscience_repo>:/opt/med-autoscience" in command for command in docker_result["install_commands"])
     assert launchd_result["templates"]["instructions"] == str(templates_root / "launchd" / "README.md")
     assert launchd_result["install_commands"] == [
         f"{profile.workspace_root}/ops/medautoscience/bin/install-watch-runtime-service --manager launchd"

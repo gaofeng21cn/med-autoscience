@@ -25,13 +25,17 @@ _PROVIDER_ENV_KEYS = (
 
 
 def _run_command(*, command: list[str], cwd: Path | None = None) -> tuple[int, str]:
-    completed = subprocess.run(
-        command,
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        missing = exc.filename or (command[0] if command else "command")
+        return 127, f"command_not_found: {missing}"
     output = completed.stdout.strip() or completed.stderr.strip()
     return completed.returncode, output
 
@@ -112,13 +116,17 @@ def _inspect_gateway_service(*, hermes_home_root: Path) -> dict[str, Any]:
     if sys.platform.startswith("linux"):
         service_label = "hermes-gateway"
         service_file = Path.home() / ".config" / "systemd" / "user" / f"{service_label}.service"
-        exit_code, _ = _run_command(command=["systemctl", "--user", "is-active", service_label])
+        exit_code, output = _run_command(command=["systemctl", "--user", "is-active", service_label])
+        issues = [] if exit_code == 0 else ["external_runtime.gateway_service_not_loaded"]
+        if exit_code == 127:
+            issues.append("external_runtime.gateway_service_manager_unavailable")
         return {
             "manager": "systemd",
             "service_label": service_label,
             "service_file_exists": service_file.is_file(),
             "loaded": exit_code == 0,
-            "issues": [] if exit_code == 0 else ["external_runtime.gateway_service_not_loaded"],
+            "issues": issues,
+            "status_output": output,
         }
 
     return {

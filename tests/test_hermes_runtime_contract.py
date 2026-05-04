@@ -89,3 +89,24 @@ def test_inspect_hermes_runtime_contract_accepts_ready_external_runtime(monkeypa
     assert result["gateway_service_loaded"] is True
     assert result["ready"] is True
     assert result["issues"] == []
+
+
+def test_inspect_hermes_runtime_contract_fail_closed_when_systemd_missing(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.hermes_runtime_contract")
+
+    monkeypatch.setattr(module.sys, "platform", "linux")
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *_, **__: (_ for _ in ()).throw(FileNotFoundError("missing", "systemctl")),
+    )
+
+    result = module._inspect_gateway_service(hermes_home_root=tmp_path)
+
+    assert result["manager"] == "systemd"
+    assert result["loaded"] is False
+    assert result["status_output"] == "command_not_found: systemctl"
+    assert result["issues"] == [
+        "external_runtime.gateway_service_not_loaded",
+        "external_runtime.gateway_service_manager_unavailable",
+    ]

@@ -54,3 +54,50 @@ def test_runtime_supervisor_scan_command_dispatches_controller(monkeypatch, tmp_
     assert called["apply_runtime_platform_repair"] is True
     assert called["developer_supervisor_mode"] == "developer_apply_safe"
     assert json.loads(captured.out)["surface"] == "portable_runtime_supervisor_scan"
+
+
+def test_runtime_supervisor_scan_command_discovers_studies_when_not_explicit(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    studies_root = workspace_root / "studies"
+    for study_id in ("002-second", "001-first"):
+        study_root = studies_root / study_id
+        study_root.mkdir(parents=True)
+        (study_root / "study.yaml").write_text("study_id: test\n", encoding="utf-8")
+    (studies_root / "not-a-study").mkdir()
+    called: dict[str, object] = {}
+
+    def fake_supervisor_scan(
+        *,
+        profile,
+        study_ids,
+        apply_safe_actions: bool,
+        apply_runtime_platform_repair: bool = False,
+        developer_supervisor_mode: str | None = None,
+    ) -> dict[str, object]:
+        called["profile"] = profile
+        called["study_ids"] = study_ids
+        return {"surface": "portable_runtime_supervisor_scan", "study_count": len(study_ids)}
+
+    monkeypatch.setattr(cli.runtime_supervisor_scan, "supervisor_scan", fake_supervisor_scan)
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "supervisor-scan",
+            "--profile",
+            str(profile_path),
+            "--apply-safe-actions",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["study_ids"] == ("001-first", "002-second")
+    assert json.loads(captured.out)["study_count"] == 2

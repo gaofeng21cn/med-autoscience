@@ -688,9 +688,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "runtime-supervisor-scan":
         profile = load_profile(args.profile)
+        study_ids = tuple(args.studies or ()) or runtime_supervisor_scan.resolve_supervisor_scan_study_ids(profile)
         result = runtime_supervisor_scan.supervisor_scan(
             profile=profile,
-            study_ids=tuple(args.studies or []),
+            study_ids=study_ids,
             apply_safe_actions=bool(args.apply_safe_actions),
             apply_runtime_platform_repair=bool(args.apply_runtime_platform_repair),
             developer_supervisor_mode=args.developer_supervisor_mode,

@@ -99,9 +99,17 @@ def test_init_workspace_renders_portable_supervisor_scheduler_templates(tmp_path
     assert "OnCalendar=hourly" in systemd_timer_text
     assert f"{workspace_root}/ops/medautoscience/bin/supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}" in cron_text
     assert "docker run --rm" in docker_text
+    assert "-e MED_AUTOSCIENCE_CONTAINER_MODE=1" in docker_text
+    assert '-v "${HOST_MAS_REPO}:${MAS_REPO_CONTAINER_ROOT}"' in docker_text
+    assert "UV_PROJECT_ENVIRONMENT" in docker_text
+    assert "MED_AUTOSCIENCE_PROFILE_CONTAINER_DEFAULT" in docker_text
     assert f"supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}" in docker_text
     assert "kind: CronJob" in k8s_text
     assert 'schedule: "0 * * * *"' in k8s_text
+    assert "MED_AUTOSCIENCE_CONTAINER_MODE" in k8s_text
+    assert "MED_AUTOSCIENCE_REPO_CONTAINER" in k8s_text
+    assert "UV_PROJECT_ENVIRONMENT" in k8s_text
+    assert "medautoscience-repo" in k8s_text
     assert f"supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}" in k8s_text
     assert "launchd" in launchd_text
     assert "install-watch-runtime-service --manager launchd" in launchd_text

@@ -173,6 +173,47 @@ def test_runtime_health_zero_retry_budget_blocks_recover_runtime_even_without_fa
     assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
 
 
+def test_runtime_health_zero_retry_budget_escalates_stopped_controller_guard_recovery_path(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "001-dm-cvd"
+    for sequence in range(1, 4):
+        module.append_runtime_health_event(
+            study_root=study_root,
+            study_id="001-dm-cvd",
+            quest_id="001-dm-cvd",
+            event_type="recover_attempt",
+            payload={"attempt_state": "requested", "decision": "resume", "reason": "quest_stopped_by_controller_guard"},
+            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
+        )
+    module.append_runtime_health_event(
+        study_root=study_root,
+        study_id="001-dm-cvd",
+        quest_id="001-dm-cvd",
+        event_type="runtime_state_observed",
+        payload={
+            "quest_status": "stopped",
+            "runtime_liveness_status": "unknown",
+            "worker_running": False,
+            "decision": "resume",
+            "reason": "quest_stopped_by_controller_guard",
+        },
+        recorded_at="2026-05-01T00:04:00+00:00",
+    )
+
+    snapshot = module.rebuild_runtime_health_snapshot(
+        study_root=study_root,
+        study_id="001-dm-cvd",
+        quest_id="001-dm-cvd",
+    )
+
+    assert snapshot["worker_liveness_state"]["state"] == "not_live"
+    assert snapshot["retry_budget_remaining"] == 0
+    assert snapshot["attempt_state"] == "escalated"
+    assert snapshot["canonical_runtime_action"] == "external_supervisor_required"
+    assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
+    assert "recover_runtime" not in snapshot["allowed_controller_actions"]
+
+
 def test_runtime_health_stopped_quest_waits_for_explicit_resume_without_probe(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "004-dm-cvd"

@@ -59,6 +59,18 @@ def _string_items(value: object) -> list[str]:
     return list(dict.fromkeys(text for item in value if (text := _text(item)) is not None))
 
 
+def resolve_supervisor_scan_study_ids(profile: WorkspaceProfile) -> tuple[str, ...]:
+    if not profile.studies_root.is_dir():
+        return ()
+    study_ids: list[str] = []
+    for child in sorted(profile.studies_root.iterdir(), key=lambda item: item.name):
+        if not child.is_dir():
+            continue
+        if any((child / marker).is_file() for marker in ("study.yaml", "study.yml", "study.toml")):
+            study_ids.append(child.name)
+    return tuple(study_ids)
+
+
 def _latest_path(profile: WorkspaceProfile) -> Path:
     return profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH
 

@@ -326,7 +326,13 @@ def _portable_supervisor_instruction(
         }
         install_commands = [
             f"bash {docker_template}",
-            "docker run --rm -v <workspace_root>:<workspace_root> -w <workspace_root> medautoscience:latest "
+            "docker run --rm -e MED_AUTOSCIENCE_CONTAINER_MODE=1 "
+            "-e MED_AUTOSCIENCE_REPO_CONTAINER=/opt/med-autoscience "
+            "-e MED_AUTOSCIENCE_UV_BIN_CONTAINER=/usr/local/bin/uv "
+            "-e UV_PROJECT_ENVIRONMENT=/tmp/med-autoscience-venv "
+            "-v <workspace_root>:<workspace_root> "
+            "-v <med_autoscience_repo>:/opt/med-autoscience "
+            "-w <workspace_root> medautoscience:latest "
             f"bash -lc './ops/medautoscience/bin/supervisor-scan {_DEVELOPER_SUPERVISOR_SAFE_ACTION_TEXT}'",
             f"kubectl apply -f {k8s_template}",
         ]

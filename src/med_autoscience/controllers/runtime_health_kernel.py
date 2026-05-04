@@ -572,10 +572,16 @@ def _snapshot_from_events(
     missing_live_session = worker_state["state"] == "missing_live_session"
     live_activity_timeout = worker_state["state"] == "activity_timeout"
     retry_budget_remaining = max(MAX_RECOVERY_ATTEMPTS - max(attempt_count, failed_attempts), 0)
+    recovery_path_requested = decision in _RECOVERY_DECISIONS or bool(_events_for(events, _ATTEMPT_EVENT_TYPES))
     retry_budget_exhausted = (
         retry_budget_remaining == 0
         and max(attempt_count, failed_attempts) >= MAX_RECOVERY_ATTEMPTS
-        and (missing_live_session or live_activity_timeout or worker_state["state"] == "unknown")
+        and (
+            recovery_path_requested
+            or missing_live_session
+            or live_activity_timeout
+            or worker_state["state"] == "unknown"
+        )
     )
 
     if escalation_event is not None or failed_attempts >= MAX_RECOVERY_ATTEMPTS or retry_budget_exhausted:
