@@ -142,24 +142,7 @@ def _source_coverage(payload: Mapping[str, Any]) -> dict[str, int]:
     }
 
 
-def _required_source_missing_reason(payload: Mapping[str, Any]) -> str:
-    ordered_checks = (
-        ("searched_sources", "missing_searched_sources"),
-        ("anchor_papers", "missing_anchor_paper_refs"),
-        ("guidelines", "missing_guideline_refs"),
-        ("systematic_reviews", "missing_systematic_review_refs"),
-        ("journal_neighbor_refs", "missing_journal_neighbor_refs"),
-        ("citation_ledger_refs", "missing_citation_ledger_refs"),
-    )
-    for key, reason in ordered_checks:
-        if not _has_ref_items(payload.get(key)):
-            return reason
-    if not _has_scored_ref_items(payload.get("high_score_neighbor_refs")):
-        return "missing_high_score_neighbor_refs"
-    return ""
-
-
-def _missing_reason(payload: Mapping[str, Any]) -> str:
+def _required_input_missing_reason(payload: Mapping[str, Any]) -> str:
     if not _has_text(payload.get("search_date")):
         return "missing_search_date"
     if not _search_strategy_is_complete(payload):
@@ -170,9 +153,29 @@ def _missing_reason(payload: Mapping[str, Any]) -> str:
         return "missing_provider_provenance"
     if not _study_rationale(payload):
         return "missing_study_rationale"
-    missing_source_reason = _required_source_missing_reason(payload)
-    if missing_source_reason:
-        return missing_source_reason
+    return ""
+
+
+def _required_source_missing_reason(payload: Mapping[str, Any]) -> str:
+    for key, reason in (
+        ("searched_sources", "missing_searched_sources"),
+        ("anchor_papers", "missing_anchor_paper_refs"),
+        ("guidelines", "missing_guideline_refs"),
+        ("systematic_reviews", "missing_systematic_review_refs"),
+        ("journal_neighbor_refs", "missing_journal_neighbor_refs"),
+        ("citation_ledger_refs", "missing_citation_ledger_refs"),
+    ):
+        if not _has_ref_items(payload.get(key)):
+            return reason
+    if not _has_scored_ref_items(payload.get("high_score_neighbor_refs")):
+        return "missing_high_score_neighbor_refs"
+    return ""
+
+
+def _missing_reason(payload: Mapping[str, Any]) -> str:
+    missing_reason = _required_input_missing_reason(payload) or _required_source_missing_reason(payload)
+    if missing_reason:
+        return missing_reason
     if not _screening_decisions_are_complete(payload.get("screening_decisions")):
         return "missing_screening_decision_reason"
     if _evidence_nodes(payload.get("evidence_nodes")) and not _evidence_nodes_have_provenance(

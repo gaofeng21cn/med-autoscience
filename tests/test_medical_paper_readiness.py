@@ -131,6 +131,13 @@ def _reviewer_operating_system() -> dict[str, object]:
                 "ai_reviewer_calibration_corpus#thin_first_draft",
                 "ai_reviewer_calibration_corpus#overstrong_claim",
             ],
+            "calibration_judgment": {
+                "role": "required_authoring_judgment_input",
+                "refs": [
+                    "ai_reviewer_calibration_corpus#thin_first_draft",
+                    "ai_reviewer_calibration_corpus#overstrong_claim",
+                ],
+            },
         },
     }
 

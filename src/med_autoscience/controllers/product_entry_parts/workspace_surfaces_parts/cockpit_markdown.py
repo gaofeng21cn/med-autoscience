@@ -1,7 +1,27 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.medical_paper_research_loop import research_loop_markdown_lines
+from med_autoscience.controllers.product_entry_parts.paper_orchestra_operator import (
+    render_paper_orchestra_operator_projection_lines,
+)
+from med_autoscience.controllers.product_entry_parts.shared_base import (
+    _append_human_status_lines,
+    _gate_clearing_followthrough_preview,
+    _operator_handling_state_label,
+    _quality_repair_followthrough_preview,
+    _quality_review_followthrough_preview,
+    _quality_review_loop_preview,
+    _recovery_action_mode_label,
+    _same_line_route_truth_preview,
+)
+from med_autoscience.controllers.product_entry_parts.shared_labels import (
+    _non_empty_text,
+    _operator_verdict_label,
+    _workspace_status_label,
+)
 
 
 def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
