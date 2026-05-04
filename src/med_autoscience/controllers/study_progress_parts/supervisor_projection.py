@@ -160,7 +160,23 @@ def portable_supervisor_study_projection(
     if matching is None:
         return None
     action_queue = [
-        _copy_mapping_keys(item, ("action_type", "summary", "status", "owner", "surface", "action_id"))
+        _copy_mapping_keys(
+            item,
+            (
+                "action_type",
+                "summary",
+                "status",
+                "owner",
+                "surface",
+                "action_id",
+                "fingerprint",
+                "queue_age_hours",
+                "queued_first_seen_at",
+                "repeat_fingerprint",
+                "owner_pickup",
+                "consumption",
+            ),
+        )
         for item in matching.get("action_queue") or []
         if isinstance(item, Mapping)
     ]
@@ -193,6 +209,18 @@ def portable_supervisor_study_projection(
         "ai_reviewer_status": _copy_mapping_keys(
             matching.get("ai_reviewer_status"),
             ("status", "summary", "owner", "trace_complete", "blocked_reason"),
+        ),
+        "queue_slo": _copy_mapping_keys(
+            matching.get("queue_slo"),
+            (
+                "max_queue_age_hours",
+                "owner_pickup_overdue_count",
+                "developer_supervisor_attention_required_count",
+            ),
+        ),
+        "owner_pickup_overdue": bool(matching.get("owner_pickup_overdue")),
+        "developer_supervisor_attention_required": bool(
+            matching.get("developer_supervisor_attention_required")
         ),
         "action_queue": [item for item in action_queue if item],
         "why_not_applied": why_not_applied,

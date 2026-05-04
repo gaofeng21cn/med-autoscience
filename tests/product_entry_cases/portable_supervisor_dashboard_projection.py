@@ -79,8 +79,22 @@ def test_workspace_cockpit_and_frontdesk_surface_portable_supervisor_queue_dashb
                     {
                         "action_type": "publication_gate_specificity_required",
                         "summary": "Request gate specificity.",
+                        "fingerprint": "publication_gate_specificity_required::publication_gate_specificity_required",
+                        "queue_age_hours": 6.0,
+                        "owner_pickup": {"state": "overdue", "owner": "publication_gate", "pickup_overdue": True},
+                        "consumption": {
+                            "state": "attention_required",
+                            "developer_supervisor_attention_required": True,
+                        },
                     }
                 ],
+                "queue_slo": {
+                    "max_queue_age_hours": 6.0,
+                    "owner_pickup_overdue_count": 1,
+                    "developer_supervisor_attention_required_count": 1,
+                },
+                "owner_pickup_overdue": True,
+                "developer_supervisor_attention_required": True,
                 "why_not_applied": ["runtime_recovery_retry_budget_exhausted"],
                 "next_owner": "external_supervisor",
                 "external_supervisor_required": True,
@@ -234,6 +248,8 @@ def test_workspace_cockpit_and_frontdesk_surface_portable_supervisor_queue_dashb
     assert dashboard["studies"][0]["github_user_gate"] == {"expected_login": "gaofeng21cn", "login": "gaofeng21cn", "allowed": True, "source": "env", "reason": None}
     assert dashboard["studies"][0]["blocked_reason"] == "runtime_recovery_not_authorized"
     assert dashboard["studies"][0]["action_queue"][0]["action_type"] == "publication_gate_specificity_required"
+    assert dashboard["studies"][0]["queue_slo"]["developer_supervisor_attention_required_count"] == 1
+    assert dashboard["studies"][0]["action_queue"][0]["owner_pickup"]["state"] == "overdue"
     assert frontdesk["workspace_portable_supervisor_queue_dashboard"]["studies"][0]["why_not_applied"] == [
         "runtime_recovery_retry_budget_exhausted"
     ]
@@ -242,8 +258,11 @@ def test_workspace_cockpit_and_frontdesk_surface_portable_supervisor_queue_dashb
     assert "developer supervisor mode: `developer_apply_safe`" in cockpit_markdown
     assert "Codex App heartbeat is an outer developer supervisor signal" in cockpit_markdown
     assert "publication_gate_specificity_required" in cockpit_markdown
+    assert "owner_pickup `overdue`" in cockpit_markdown
+    assert "developer_supervisor_attention_required `True`" in cockpit_markdown
     assert "runtime_recovery_not_authorized" in cockpit_markdown
     assert "Portable Supervisor Queue" in frontdesk_markdown
     assert "developer supervisor mode: `developer_apply_safe`" in frontdesk_markdown
     assert "Codex App heartbeat is an outer developer supervisor signal" in frontdesk_markdown
+    assert "owner_pickup `overdue`" in frontdesk_markdown
     assert "runtime_recovery_retry_budget_exhausted" in frontdesk_markdown

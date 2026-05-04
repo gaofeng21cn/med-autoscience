@@ -105,8 +105,53 @@ def dm002_minimal_observation_progress_snapshot(tmp_path: Path) -> dict[str, obj
                 "observability_can_mutate_runtime": False,
             },
         },
+        "publication_gate_specificity_request": {
+            "surface": "study_progress_publication_gate_specificity_request_projection",
+            "authority": "observability_only",
+            "request_id": (
+                "publication_gate_specificity_required::"
+                "002-dm-china-us-mortality-attribution::002-dm-china-us-mortality-attribution"
+            ),
+            "request_owner": "controller",
+            "gate_owner": "publication_gate",
+            "missing_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+            "requested_target_types": ["claim", "figure", "table", "metric", "source_path"],
+            "owner_visible_checklist": [
+                {
+                    "check_id": "name_claim_target",
+                    "owner": "publication_gate",
+                    "status": "missing",
+                    "target_kind": "claim",
+                    "requirement": "Name the concrete DM002 claim blocked by the generic gate label.",
+                },
+                {
+                    "check_id": "name_source_path_target",
+                    "owner": "publication_gate",
+                    "status": "missing",
+                    "target_kind": "source_path",
+                    "requirement": "Name the exact DM002 source_path that carries the blocker evidence.",
+                },
+            ],
+            "next_controller_write": {
+                "surface": "publication_eval/latest.json",
+                "writer": "publication_gate_controller",
+                "materialization_mode": "controller_request_only",
+                "must_include_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+            },
+            "quality_gate_relaxation_allowed": False,
+            "paper_package_mutation_allowed": False,
+            "medical_claim_authoring_allowed": False,
+        },
         "refs": {
             "publication_eval_path": str(publication_eval_path),
             "ai_first_observability_delivery_manifest_path": str(delivery_manifest_path),
+            "publication_gate_specificity_request_path": str(
+                study_root
+                / "artifacts"
+                / "supervision"
+                / "requests"
+                / "publication_gate_specificity"
+                / "latest.json"
+            ),
         },
     }

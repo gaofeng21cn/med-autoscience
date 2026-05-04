@@ -581,6 +581,15 @@ def _render_portable_supervisor_queue_dashboard_lines(projection: object) -> lis
                 f"  queue action: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
                 f"{action.get('summary') or ''}".rstrip()
             )
+            owner_pickup = action.get("owner_pickup") if isinstance(action.get("owner_pickup"), Mapping) else {}
+            if owner_pickup:
+                lines.append(f"  owner_pickup `{owner_pickup.get('state') or 'unknown'}`")
+            consumption = action.get("consumption") if isinstance(action.get("consumption"), Mapping) else {}
+            if consumption:
+                lines.append(
+                    "  developer_supervisor_attention_required "
+                    f"`{consumption.get('developer_supervisor_attention_required')}`"
+                )
         why_not_applied = [
             text for item in study.get("why_not_applied") or [] if (text := _non_empty_text(item)) is not None
         ]

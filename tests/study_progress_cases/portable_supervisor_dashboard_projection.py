@@ -54,12 +54,32 @@ def test_study_progress_projects_workspace_hourly_supervisor_dashboard_and_mcp_m
                         {
                             "action_type": "publication_gate_specificity_required",
                             "summary": "Ask controller to specify the publication gate blocker.",
+                            "fingerprint": "publication_gate_specificity_required::publication_gate_specificity_required",
+                            "queue_age_hours": 6.0,
+                            "owner_pickup": {
+                                "state": "overdue",
+                                "owner": "publication_gate",
+                                "duration_hours": 6.0,
+                                "pickup_overdue": True,
+                            },
+                            "consumption": {
+                                "state": "attention_required",
+                                "unconsumed_duration_hours": 6.0,
+                                "developer_supervisor_attention_required": True,
+                            },
                         },
                         {
                             "action_type": "return_to_ai_reviewer_workflow",
                             "summary": "Return the package to AI reviewer after gate specificity.",
                         },
                     ],
+                    "queue_slo": {
+                        "max_queue_age_hours": 6.0,
+                        "owner_pickup_overdue_count": 1,
+                        "developer_supervisor_attention_required_count": 1,
+                    },
+                    "owner_pickup_overdue": True,
+                    "developer_supervisor_attention_required": True,
                     "why_not_applied": [
                         "runtime_recovery_retry_budget_exhausted",
                         "ai_reviewer_trace_missing",
@@ -108,6 +128,14 @@ def test_study_progress_projects_workspace_hourly_supervisor_dashboard_and_mcp_m
         "publication_gate_specificity_required",
         "return_to_ai_reviewer_workflow",
     ]
+    assert dashboard["queue_slo"]["max_queue_age_hours"] == 6.0
+    assert dashboard["owner_pickup_overdue"] is True
+    assert dashboard["developer_supervisor_attention_required"] is True
+    assert dashboard["action_queue"][0]["fingerprint"] == (
+        "publication_gate_specificity_required::publication_gate_specificity_required"
+    )
+    assert dashboard["action_queue"][0]["owner_pickup"]["state"] == "overdue"
+    assert dashboard["action_queue"][0]["consumption"]["developer_supervisor_attention_required"] is True
     assert dashboard["why_not_applied"] == [
         "runtime_recovery_retry_budget_exhausted",
         "ai_reviewer_trace_missing",
@@ -116,9 +144,13 @@ def test_study_progress_projects_workspace_hourly_supervisor_dashboard_and_mcp_m
     assert dashboard["external_supervisor_required"] is True
     assert result["refs"]["portable_supervisor_hourly_path"] == str(hourly_path)
     assert compact["portable_supervisor_dashboard"]["blocked_reason"] == "runtime_recovery_not_authorized"
+    assert compact["portable_supervisor_dashboard"]["queue_slo"]["owner_pickup_overdue_count"] == 1
+    assert compact["portable_supervisor_dashboard"]["action_queue"][0]["queue_age_hours"] == 6.0
     assert compact["portable_supervisor_dashboard"]["action_queue"][0]["action_type"] == (
         "publication_gate_specificity_required"
     )
     assert "Portable Supervisor Queue" in markdown
     assert "publication_gate_specificity_required" in markdown
+    assert "owner_pickup: `overdue`" in markdown
+    assert "developer_supervisor_attention_required: `True`" in markdown
     assert "runtime_recovery_retry_budget_exhausted" in markdown

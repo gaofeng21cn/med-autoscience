@@ -138,6 +138,146 @@ def test_supervisor_scan_queues_external_repair_for_retry_exhausted_no_live_work
     assert Path(result["refs"]["history_path"]).is_file()
 
 
+def test_supervisor_scan_aggregates_queue_slo_from_repeat_action_fingerprints(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-risk")
+    quest_root = profile.runtime_root / "quest-risk"
+
+    monkeypatch.setattr(
+        module,
+        "_utc_now",
+        lambda: "2026-05-04T06:00:00+00:00",
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "generated_at": "2026-05-04T00:00:00+00:00",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "action_queue": [
+                        {
+                            "action_id": (
+                                "supervisor-action::001-risk::"
+                                "publication_gate_specificity_required::"
+                                "publication_gate_specificity_required"
+                            ),
+                            "action_type": "publication_gate_specificity_required",
+                            "status": "queued",
+                            "fingerprint": "publication_gate_specificity_required::publication_gate_specificity_required",
+                            "queued_first_seen_at": "2026-05-04T00:00:00+00:00",
+                            "owner_pickup": {
+                                "state": "pending",
+                                "owner": "publication_gate",
+                                "first_seen_at": "2026-05-04T00:00:00+00:00",
+                                "pickup_overdue": True,
+                            },
+                            "consumption": {
+                                "state": "unconsumed",
+                                "first_seen_at": "2026-05-04T00:00:00+00:00",
+                            },
+                        }
+                    ],
+                }
+            ],
+            "action_queue": [
+                {
+                    "study_id": "001-risk",
+                    "action_id": (
+                        "supervisor-action::001-risk::"
+                        "publication_gate_specificity_required::"
+                        "publication_gate_specificity_required"
+                    ),
+                    "fingerprint": "publication_gate_specificity_required::publication_gate_specificity_required",
+                    "queued_first_seen_at": "2026-05-04T00:00:00+00:00",
+                    "status": "queued",
+                    "owner_pickup": {
+                        "state": "pending",
+                        "owner": "publication_gate",
+                        "first_seen_at": "2026-05-04T00:00:00+00:00",
+                        "pickup_overdue": True,
+                    },
+                    "consumption": {
+                        "state": "unconsumed",
+                        "first_seen_at": "2026-05-04T00:00:00+00:00",
+                    },
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-risk",
+            "quest_root": str(quest_root),
+            "quest_status": "stopped",
+            "decision": "blocked",
+            "reason": "publication_gate_specificity_required",
+            "execution_owner_guard": {"supervisor_only": True},
+            "publication_eval": {
+                "assessment_provenance": {"owner": "mechanical_gate"},
+                "blockers": ["generic blocker"],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": "001-risk",
+            "current_stage": "publication_supervision",
+            "paper_stage": "publishability_gate_blocked",
+            "current_blockers": ["generic blocker"],
+        },
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=("001-risk",),
+        apply_safe_actions=True,
+    )
+
+    study = result["studies"][0]
+    action = study["action_queue"][0]
+    assert action["fingerprint"] == "publication_gate_specificity_required::publication_gate_specificity_required"
+    assert action["queue_age_hours"] == 6.0
+    assert action["repeat_fingerprint"]["consecutive_scan_count"] == 2
+    assert action["repeat_fingerprint"]["duration_hours"] == 6.0
+    assert action["owner_pickup"] == {
+        "state": "overdue",
+        "owner": "publication_gate",
+        "first_seen_at": "2026-05-04T00:00:00+00:00",
+        "overdue_after_hours": 2,
+        "duration_hours": 6.0,
+        "pickup_overdue": True,
+    }
+    assert action["consumption"] == {
+        "state": "attention_required",
+        "first_seen_at": "2026-05-04T00:00:00+00:00",
+        "unconsumed_duration_hours": 6.0,
+        "attention_required_after_hours": 6,
+        "developer_supervisor_attention_required": True,
+    }
+    assert study["owner_pickup_overdue"] is True
+    assert study["developer_supervisor_attention_required"] is True
+    assert study["scan_delta"]["owner_pickup_overdue_count"] == 1
+    assert study["scan_delta"]["developer_supervisor_attention_required_count"] == 1
+    assert result["queue_history"]["owner_pickup_overdue_count"] == 1
+    assert result["queue_history"]["developer_supervisor_attention_required_count"] == 1
+    assert result["queue_history"]["repeat_fingerprints"][0]["fingerprint"] == action["fingerprint"]
+
+
 def test_supervisor_scan_does_not_apply_runtime_platform_repair_without_explicit_flag(
     monkeypatch,
     tmp_path: Path,
@@ -598,6 +738,20 @@ def test_supervisor_scan_queues_specificity_and_ai_reviewer_actions_without_qual
     assert {item["authority"] for item in result["studies"][0]["action_queue"]} == {"observability_only"}
     assert result["studies"][0]["current_stage"] == "publication_supervision"
     assert result["studies"][0]["gate_specificity"]["required"] is True
+    assert result["studies"][0]["gate_specificity"]["missing_target_kinds"] == [
+        "claim",
+        "figure",
+        "table",
+        "metric",
+        "source_path",
+    ]
+    assert result["studies"][0]["gate_specificity"]["gate_owner"] == "publication_gate"
+    assert result["studies"][0]["gate_specificity"]["next_controller_write"] == {
+        "surface": "publication_eval/latest.json",
+        "writer": "publication_gate_controller",
+        "materialization_mode": "controller_request_only",
+        "required_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+    }
     assert result["studies"][0]["ai_reviewer_assessment"] == {
         "present": False,
         "owner": "mechanical_gate",
@@ -714,6 +868,25 @@ def test_supervisor_scan_apply_safe_actions_materializes_stopped_dm002_lifecycle
     assert lifecycle["next_owner"] == "publication_gate"
     assert specificity_request["authority"] == "observability_only"
     assert specificity_request["required_target_kinds"] == ["claim", "figure", "table", "metric", "source_path"]
+    assert specificity_request["missing_target_kinds"] == ["claim", "figure", "table", "metric", "source_path"]
+    assert specificity_request["gate_owner"] == "publication_gate"
+    assert specificity_request["request_visibility"] == "owner_visible_checklist"
+    assert [item["target_kind"] for item in specificity_request["owner_visible_checklist"]] == [
+        "claim",
+        "figure",
+        "table",
+        "metric",
+        "source_path",
+    ]
+    assert specificity_request["next_controller_write"]["surface"] == "publication_eval/latest.json"
+    assert specificity_request["next_controller_write"]["writer"] == "publication_gate_controller"
+    assert specificity_request["next_controller_write"]["must_include_target_kinds"] == [
+        "claim",
+        "figure",
+        "table",
+        "metric",
+        "source_path",
+    ]
     assert ai_reviewer_request["authority"] == "observability_only"
     assert ai_reviewer_request["target_assessment_owner"] == "ai_reviewer"
     assert ai_reviewer_request["may_authorize_quality_gate"] is False

@@ -373,4 +373,104 @@ def test_gate_specificity_takes_priority_over_live_activity_timeout(
     assert "claim/figure/table/metric/source path" in result["operator_status_card"]["next_confirmation_signal"]
 
 
+def test_study_progress_reads_gate_specificity_request_surface(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-002")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    request_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "requests"
+        / "publication_gate_specificity"
+        / "latest.json"
+    )
+    _write_json(
+        request_path,
+        {
+            "surface": "supervisor_action_request",
+            "schema_version": 1,
+            "request_id": "publication_gate_specificity_required::002-risk::quest-002",
+            "request_kind": "publication_gate_specificity_required",
+            "study_id": "002-risk",
+            "quest_id": "quest-002",
+            "authority": "observability_only",
+            "request_owner": "controller",
+            "gate_owner": "publication_gate",
+            "requested_target_types": ["claim", "figure", "table", "metric", "source_path"],
+            "missing_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+            "requested_targets": [],
+            "owner_visible_checklist": [
+                {
+                    "check_id": "name_claim_target",
+                    "owner": "publication_gate",
+                    "status": "missing",
+                    "target_kind": "claim",
+                    "requirement": "Name at least one concrete claim target.",
+                }
+            ],
+            "next_controller_write": {
+                "surface": "publication_eval/latest.json",
+                "writer": "publication_gate_controller",
+                "materialization_mode": "controller_request_only",
+                "must_include_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+            },
+            "quality_gate_relaxation_allowed": False,
+            "paper_package_mutation_allowed": False,
+            "medical_claim_authoring_allowed": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "recommended_actions": [
+                {
+                    "action_id": "publication-eval-action::specificity",
+                    "action_type": "return_to_controller",
+                    "next_work_unit": {"unit_id": "gate_needs_specificity"},
+                }
+            ],
+        },
+    )
+    _write_runtime_watch(quest_root)
+    _write_bash_summary(quest_root)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "002-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-002",
+            "quest_root": str(quest_root),
+            "quest_status": "stopped",
+            "reason": "publication_gate_specificity_required",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "bundle_tasks_downstream_only": True,
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="002-risk")
+
+    request_projection = result["publication_gate_specificity_request"]
+    assert request_projection["authority"] == "observability_only"
+    assert request_projection["request_owner"] == "controller"
+    assert request_projection["gate_owner"] == "publication_gate"
+    assert request_projection["missing_target_kinds"] == ["claim", "figure", "table", "metric", "source_path"]
+    assert request_projection["owner_visible_checklist"][0]["target_kind"] == "claim"
+    assert request_projection["next_controller_write"]["writer"] == "publication_gate_controller"
+    assert request_projection["paper_package_mutation_allowed"] is False
+    assert request_projection["medical_claim_authoring_allowed"] is False
+    assert result["refs"]["publication_gate_specificity_request_path"] == str(request_path)
+
+
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

@@ -33,6 +33,23 @@ _REQUEST_AUTHORITY_CONTRACT = {
     ],
 }
 _SPECIFICITY_TARGET_TYPES = ("claim", "figure", "table", "metric", "source_path")
+_SPECIFICITY_NEXT_CONTROLLER_WRITE = {
+    "surface": "publication_eval/latest.json",
+    "writer": "publication_gate_controller",
+    "materialization_mode": "controller_request_only",
+    "required_fields": [
+        "recommended_actions[].specificity_targets[].target_kind",
+        "recommended_actions[].specificity_targets[].target_id",
+        "recommended_actions[].specificity_targets[].source_path",
+        "recommended_actions[].specificity_targets[].blocking_reason",
+    ],
+    "must_include_target_kinds": list(_SPECIFICITY_TARGET_TYPES),
+    "forbidden_materializations": [
+        "manuscript_patch",
+        "current_package_patch",
+        "paper_package_mutation",
+    ],
+}
 
 
 def _text(value: object) -> str | None:
@@ -182,15 +199,31 @@ def build_publication_gate_specificity_request(
     packet.update(
         {
             "request_owner": "controller",
+            "gate_owner": "publication_gate",
             "request_summary": (
                 "Publication gate must return concrete claim/figure/table/metric/source_path targets "
                 "before any repair or authoring worker can run."
             ),
             "requested_target_types": list(_SPECIFICITY_TARGET_TYPES),
+            "missing_target_kinds": list(_SPECIFICITY_TARGET_TYPES),
             "requested_targets": [],
             "target_requirements": {
                 f"{target_type}_targets_required": True for target_type in _SPECIFICITY_TARGET_TYPES
             },
+            "owner_visible_checklist": [
+                {
+                    "check_id": f"name_{target_type}_target",
+                    "owner": "publication_gate",
+                    "status": "missing",
+                    "target_kind": target_type,
+                    "requirement": (
+                        f"Name at least one concrete {target_type} target or explicitly justify why this "
+                        "target kind is not applicable for the current generic blocker."
+                    ),
+                }
+                for target_type in _SPECIFICITY_TARGET_TYPES
+            ],
+            "next_controller_write": dict(_SPECIFICITY_NEXT_CONTROLLER_WRITE),
             "source_action_ref": {
                 "action_id": _text(action.get("action_id")),
                 "work_unit_id": work_unit_id,

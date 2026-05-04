@@ -64,7 +64,35 @@ def test_publication_gate_specificity_request_packet_names_required_target_types
         "source_path_targets_required": True,
     }
     assert packet["requested_target_types"] == ["claim", "figure", "table", "metric", "source_path"]
+    assert packet["missing_target_kinds"] == ["claim", "figure", "table", "metric", "source_path"]
     assert packet["requested_targets"] == []
+    assert packet["gate_owner"] == "publication_gate"
+    assert packet["next_controller_write"] == {
+        "surface": "publication_eval/latest.json",
+        "writer": "publication_gate_controller",
+        "materialization_mode": "controller_request_only",
+        "required_fields": [
+            "recommended_actions[].specificity_targets[].target_kind",
+            "recommended_actions[].specificity_targets[].target_id",
+            "recommended_actions[].specificity_targets[].source_path",
+            "recommended_actions[].specificity_targets[].blocking_reason",
+        ],
+        "must_include_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+        "forbidden_materializations": [
+            "manuscript_patch",
+            "current_package_patch",
+            "paper_package_mutation",
+        ],
+    }
+    assert [item["target_kind"] for item in packet["owner_visible_checklist"]] == [
+        "claim",
+        "figure",
+        "table",
+        "metric",
+        "source_path",
+    ]
+    assert {item["owner"] for item in packet["owner_visible_checklist"]} == {"publication_gate"}
+    assert {item["status"] for item in packet["owner_visible_checklist"]} == {"missing"}
     assert packet["source_action_ref"] == {
         "action_id": "publication-eval-action::return_to_controller::publication-blockers::specificity",
         "work_unit_id": "gate_needs_specificity",

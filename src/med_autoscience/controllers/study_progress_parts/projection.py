@@ -156,6 +156,46 @@ def _read_or_materialize_autonomy_slo_status(
     )
 
 
+def _read_gate_specificity_request(
+    *,
+    study_root: Path,
+) -> tuple[Path, dict[str, Any] | None]:
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "publication_gate_specificity" / "latest.json"
+    payload = _read_json_object(request_path)
+    if payload is None or payload.get("surface") != "supervisor_action_request":
+        return request_path, None
+    if _non_empty_text(payload.get("request_kind")) != "publication_gate_specificity_required":
+        return request_path, None
+    return request_path, {
+        "surface": "study_progress_publication_gate_specificity_request_projection",
+        "authority": _non_empty_text(payload.get("authority")) or "observability_only",
+        "request_id": _non_empty_text(payload.get("request_id")),
+        "request_owner": _non_empty_text(payload.get("request_owner")),
+        "gate_owner": _non_empty_text(payload.get("gate_owner")),
+        "missing_target_kinds": [
+            item for item in (payload.get("missing_target_kinds") or [])
+            if _non_empty_text(item) is not None
+        ],
+        "requested_target_types": [
+            item for item in (payload.get("requested_target_types") or [])
+            if _non_empty_text(item) is not None
+        ],
+        "owner_visible_checklist": [
+            dict(item) for item in (payload.get("owner_visible_checklist") or [])
+            if isinstance(item, dict)
+        ],
+        "next_controller_write": (
+            dict(payload.get("next_controller_write"))
+            if isinstance(payload.get("next_controller_write"), dict)
+            else None
+        ),
+        "source_path": str(request_path),
+        "quality_gate_relaxation_allowed": bool(payload.get("quality_gate_relaxation_allowed")),
+        "paper_package_mutation_allowed": bool(payload.get("paper_package_mutation_allowed")),
+        "medical_claim_authoring_allowed": bool(payload.get("medical_claim_authoring_allowed")),
+    }
+
+
 def build_study_progress_projection(
     *,
     profile: WorkspaceProfile,
@@ -199,6 +239,9 @@ def build_study_progress_projection(
     runtime_watch_path = _latest_runtime_watch_report(quest_root)
     runtime_supervision_path = resolved_study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
     gate_clearing_batch_path = resolved_study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+    gate_specificity_request_path, gate_specificity_request = _read_gate_specificity_request(
+        study_root=resolved_study_root,
+    )
     bash_summary_path = quest_root / ".ds" / "bash_exec" / "summary.json" if quest_root is not None else None
     details_projection_path = quest_root / ".ds" / "projections" / "details.v1.json" if quest_root is not None else None
 
@@ -894,6 +937,7 @@ def build_study_progress_projection(
         "open_auto_research_projection": open_auto_research_state,
         "ai_reviewer_request_lifecycle": ai_reviewer_request_lifecycle,
         "portable_supervisor_dashboard": portable_supervisor_dashboard,
+        "publication_gate_specificity_request": gate_specificity_request,
         "ai_first_default_entry_state": ai_first_default_entry_state,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
         "ai_first_observability_snapshots": ai_first_observability_snapshots,
@@ -987,6 +1031,9 @@ def build_study_progress_projection(
                 portable_supervisor_dashboard.get("source_path")
                 if portable_supervisor_dashboard is not None
                 else None
+            ),
+            "publication_gate_specificity_request_path": (
+                str(gate_specificity_request_path) if gate_specificity_request is not None else None
             ),
             "artifact_runtime_proof_delivery_manifest_path": (
                 (artifact_runtime_proof_surface.get("refs") or {}).get("delivery_manifest_path")

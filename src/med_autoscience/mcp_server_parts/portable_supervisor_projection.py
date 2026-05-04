@@ -51,6 +51,9 @@ def compact_portable_supervisor_dashboard(value: object) -> dict[str, Any] | Non
             "artifact_delta",
             "gate_specificity",
             "ai_reviewer_status",
+            "queue_slo",
+            "owner_pickup_overdue",
+            "developer_supervisor_attention_required",
             "blocked_reason",
             "next_owner",
             "external_supervisor_required",
@@ -63,7 +66,20 @@ def compact_portable_supervisor_dashboard(value: object) -> dict[str, Any] | Non
         compact["action_queue"] = [
             {
                 key: item[key]
-                for key in ("action_type", "summary", "status", "owner", "surface", "action_id")
+                for key in (
+                    "action_type",
+                    "summary",
+                    "status",
+                    "owner",
+                    "surface",
+                    "action_id",
+                    "fingerprint",
+                    "queue_age_hours",
+                    "queued_first_seen_at",
+                    "repeat_fingerprint",
+                    "owner_pickup",
+                    "consumption",
+                )
                 if key in item
             }
             for item in action_queue
@@ -119,6 +135,15 @@ def render_mcp_progress_portable_supervisor_dashboard(compact: dict[str, Any]) -
             f"- queue action: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
             f"{action.get('summary') or ''}".rstrip()
         )
+        owner_pickup = action.get("owner_pickup") if isinstance(action.get("owner_pickup"), dict) else {}
+        if owner_pickup:
+            lines.append(f"  owner_pickup: `{owner_pickup.get('state') or 'unknown'}`")
+        consumption = action.get("consumption") if isinstance(action.get("consumption"), dict) else {}
+        if consumption:
+            lines.append(
+                "  developer_supervisor_attention_required: "
+                f"`{consumption.get('developer_supervisor_attention_required')}`"
+            )
     why_not_applied = _compact_string_list(dashboard.get("why_not_applied"), limit=8)
     if why_not_applied:
         lines.append("- why_not_applied: " + "；".join(f"`{item}`" for item in why_not_applied))

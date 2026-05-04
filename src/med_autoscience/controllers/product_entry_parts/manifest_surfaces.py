@@ -82,6 +82,9 @@ def _manifest_portable_supervisor_queue_dashboard(value: object) -> dict[str, An
             "artifact_delta",
             "gate_specificity",
             "ai_reviewer_status",
+            "queue_slo",
+            "owner_pickup_overdue",
+            "developer_supervisor_attention_required",
             "blocked_reason",
             "why_not_applied",
             "next_owner",
@@ -94,7 +97,20 @@ def _manifest_portable_supervisor_queue_dashboard(value: object) -> dict[str, An
             study["action_queue"] = [
                 {
                     key: action[key]
-                    for key in ("action_type", "summary", "status", "owner", "surface", "action_id")
+                    for key in (
+                        "action_type",
+                        "summary",
+                        "status",
+                        "owner",
+                        "surface",
+                        "action_id",
+                        "fingerprint",
+                        "queue_age_hours",
+                        "queued_first_seen_at",
+                        "repeat_fingerprint",
+                        "owner_pickup",
+                        "consumption",
+                    )
                     if key in action
                 }
                 for action in actions

@@ -220,6 +220,20 @@ def test_dm002_minimal_observation_fixture_builds_observability_only_feedback_st
     assert state["counts"]["open_route_back_count"] == 1
     assert state["counts"]["artifact_rebuild_pending_count"] == 1
     assert state["primary_feedback"]["category"] == "ai_reviewer_trace_gap"
+    assert progress["publication_gate_specificity_request"]["authority"] == "observability_only"
+    assert progress["publication_gate_specificity_request"]["missing_target_kinds"] == [
+        "claim",
+        "figure",
+        "table",
+        "metric",
+        "source_path",
+    ]
+    assert progress["publication_gate_specificity_request"]["gate_owner"] == "publication_gate"
+    assert progress["publication_gate_specificity_request"]["next_controller_write"]["writer"] == (
+        "publication_gate_controller"
+    )
+    assert progress["publication_gate_specificity_request"]["paper_package_mutation_allowed"] is False
+    assert progress["publication_gate_specificity_request"]["medical_claim_authoring_allowed"] is False
 
     rendered_state = str(state)
     assert "DM002_INTERNAL_PROMPT_SHOULD_NOT_LEAK" not in rendered_state

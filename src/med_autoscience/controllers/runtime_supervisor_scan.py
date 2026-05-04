@@ -19,6 +19,8 @@ from med_autoscience.profiles import WorkspaceProfile
 
 
 SCHEMA_VERSION = 1
+OWNER_PICKUP_OVERDUE_HOURS = 2
+DEVELOPER_SUPERVISOR_ATTENTION_HOURS = 6
 SUPERVISION_LATEST_RELATIVE_PATH = Path("artifacts/supervision/hourly/latest.json")
 SUPERVISION_HISTORY_RELATIVE_PATH = Path("artifacts/supervision/hourly/history.jsonl")
 SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES = ["artifacts/supervision/**"]
@@ -97,6 +99,27 @@ def _read_last_json_line(path: Path) -> dict[str, Any] | None:
         if isinstance(payload, Mapping):
             return dict(payload)
     return None
+
+
+def _parse_utc_datetime(value: object) -> datetime | None:
+    text = _text(value)
+    if text is None:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _duration_hours(*, start_at: object, end_at: object) -> float:
+    start = _parse_utc_datetime(start_at)
+    end = _parse_utc_datetime(end_at)
+    if start is None or end is None or end < start:
+        return 0.0
+    return round((end - start).total_seconds() / 3600, 3)
 
 
 def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:
@@ -205,6 +228,14 @@ def _publication_gate_specificity_required(
         "required": required,
         "request": specificity_request,
         "required_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+        "missing_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+        "gate_owner": "publication_gate",
+        "next_controller_write": {
+            "surface": "publication_eval/latest.json",
+            "writer": "publication_gate_controller",
+            "materialization_mode": "controller_request_only",
+            "required_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+        },
     }
 
 
@@ -318,6 +349,13 @@ def _action_queue(
             }
         )
     if gate_specificity.get("required") is True:
+        missing_target_kinds = _string_items(gate_specificity.get("missing_target_kinds")) or [
+            "claim",
+            "figure",
+            "table",
+            "metric",
+            "source_path",
+        ]
         actions.append(
             {
                 "action_type": "publication_gate_specificity_required",
@@ -325,6 +363,9 @@ def _action_queue(
                 "reason": "publication_gate_specificity_required",
                 "summary": "Publication gate must name concrete claim/figure/table/metric/source_path targets.",
                 "required_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+                "missing_target_kinds": missing_target_kinds,
+                "gate_owner": _text(gate_specificity.get("gate_owner")) or "publication_gate",
+                "next_controller_write": _mapping(gate_specificity.get("next_controller_write")),
                 "paper_package_mutation_allowed": False,
             }
         )
@@ -491,14 +532,19 @@ def _materialize_request_packets(
 ) -> None:
     action_types = {_text(action.get("action_type")) for action in actions}
     if "publication_gate_specificity_required" in action_types:
+        blocking_gaps = publication_eval_payload.get("gaps")
         packet = supervisor_action_requests.build_publication_gate_specificity_request(
             study_id=study_id,
             quest_id=quest_id,
             source_surface="publication_eval/latest.json",
             source_action=_publication_eval_source_action(publication_eval_payload),
-            blocking_gaps=[],
+            blocking_gaps=[
+                gap for gap in blocking_gaps
+                if isinstance(gap, Mapping)
+            ] if isinstance(blocking_gaps, list) else [],
         )
         packet["required_target_kinds"] = list(packet.get("requested_target_types") or [])
+        packet["request_visibility"] = "owner_visible_checklist"
         _write_json(
             study_root / "artifacts" / "supervision" / "requests" / "publication_gate_specificity" / "latest.json",
             packet,
@@ -557,6 +603,136 @@ def _next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
     if blocked_reason == "ai_reviewer_assessment_required":
         return "ai_reviewer"
     return "external_supervisor"
+
+
+def _action_fingerprint(action: Mapping[str, Any]) -> str:
+    explicit = _text(action.get("fingerprint"))
+    if explicit is not None:
+        return explicit
+    return "::".join(
+        item
+        for item in (
+            _text(action.get("action_type")) or "unknown_action",
+            _text(action.get("reason")),
+        )
+        if item
+    )
+
+
+def _prior_actions_by_fingerprint(previous_payload: Mapping[str, Any] | None) -> dict[str, dict[str, Any]]:
+    prior: dict[str, dict[str, Any]] = {}
+    if previous_payload is None:
+        return prior
+    for action in previous_payload.get("action_queue") or []:
+        if not isinstance(action, Mapping):
+            continue
+        fingerprint = _text(action.get("fingerprint")) or _action_fingerprint(action)
+        prior[fingerprint] = dict(action)
+    for study in previous_payload.get("studies") or []:
+        if not isinstance(study, Mapping):
+            continue
+        for action in study.get("action_queue") or []:
+            if not isinstance(action, Mapping):
+                continue
+            fingerprint = _text(action.get("fingerprint")) or _action_fingerprint(action)
+            prior.setdefault(fingerprint, dict(action))
+    return prior
+
+
+def _prior_first_seen_at(prior: Mapping[str, Any], key: str) -> str | None:
+    nested = _mapping(prior.get(key))
+    return (
+        _text(nested.get("first_seen_at"))
+        or _text(prior.get(f"{key}_first_seen_at"))
+        or _text(prior.get("queued_first_seen_at"))
+    )
+
+
+def _decorate_action_queue_slo(
+    *,
+    studies: list[dict[str, Any]],
+    previous_payload: Mapping[str, Any] | None,
+    generated_at: str,
+) -> dict[str, Any]:
+    prior_by_fingerprint = _prior_actions_by_fingerprint(previous_payload)
+    repeat_fingerprints: dict[str, dict[str, Any]] = {}
+    overdue_count = 0
+    attention_count = 0
+    max_queue_age_hours = 0.0
+    for study in studies:
+        study_overdue_count = 0
+        study_attention_count = 0
+        study_max_age = 0.0
+        for action in study.get("action_queue") or []:
+            if not isinstance(action, dict):
+                continue
+            fingerprint = _action_fingerprint(action)
+            prior = prior_by_fingerprint.get(fingerprint, {})
+            queued_first_seen_at = (
+                _text(prior.get("queued_first_seen_at"))
+                or _text(action.get("queued_first_seen_at"))
+                or generated_at
+            )
+            owner_first_seen_at = _prior_first_seen_at(prior, "owner_pickup") or queued_first_seen_at
+            consumption_first_seen_at = _prior_first_seen_at(prior, "consumption") or queued_first_seen_at
+            queue_age_hours = _duration_hours(start_at=queued_first_seen_at, end_at=generated_at)
+            owner_duration_hours = _duration_hours(start_at=owner_first_seen_at, end_at=generated_at)
+            unconsumed_duration_hours = _duration_hours(start_at=consumption_first_seen_at, end_at=generated_at)
+            prior_repeat = _mapping(prior.get("repeat_fingerprint"))
+            prior_count = prior_repeat.get("consecutive_scan_count", 1 if prior else 0)
+            try:
+                repeat_count = int(prior_count) + 1
+            except (TypeError, ValueError):
+                repeat_count = 1
+            owner_pickup_overdue = owner_duration_hours >= OWNER_PICKUP_OVERDUE_HOURS
+            attention_required = unconsumed_duration_hours >= DEVELOPER_SUPERVISOR_ATTENTION_HOURS
+            action["fingerprint"] = fingerprint
+            action["queued_first_seen_at"] = queued_first_seen_at
+            action["queue_age_hours"] = queue_age_hours
+            action["repeat_fingerprint"] = {
+                "fingerprint": fingerprint,
+                "consecutive_scan_count": repeat_count,
+                "first_seen_at": queued_first_seen_at,
+                "last_seen_at": generated_at,
+                "duration_hours": queue_age_hours,
+            }
+            action["owner_pickup"] = {
+                "state": "overdue" if owner_pickup_overdue else "pending",
+                "owner": _text(action.get("owner")) or _text(action.get("recommended_owner")) or study.get("next_owner"),
+                "first_seen_at": owner_first_seen_at,
+                "overdue_after_hours": OWNER_PICKUP_OVERDUE_HOURS,
+                "duration_hours": owner_duration_hours,
+                "pickup_overdue": owner_pickup_overdue,
+            }
+            action["consumption"] = {
+                "state": "attention_required" if attention_required else "unconsumed",
+                "first_seen_at": consumption_first_seen_at,
+                "unconsumed_duration_hours": unconsumed_duration_hours,
+                "attention_required_after_hours": DEVELOPER_SUPERVISOR_ATTENTION_HOURS,
+                "developer_supervisor_attention_required": attention_required,
+            }
+            repeat_fingerprints[fingerprint] = action["repeat_fingerprint"]
+            study_max_age = max(study_max_age, queue_age_hours)
+            max_queue_age_hours = max(max_queue_age_hours, queue_age_hours)
+            if owner_pickup_overdue:
+                overdue_count += 1
+                study_overdue_count += 1
+            if attention_required:
+                attention_count += 1
+                study_attention_count += 1
+        study["queue_slo"] = {
+            "max_queue_age_hours": study_max_age,
+            "owner_pickup_overdue_count": study_overdue_count,
+            "developer_supervisor_attention_required_count": study_attention_count,
+        }
+        study["owner_pickup_overdue"] = study_overdue_count > 0
+        study["developer_supervisor_attention_required"] = study_attention_count > 0
+    return {
+        "owner_pickup_overdue_count": overdue_count,
+        "developer_supervisor_attention_required_count": attention_count,
+        "max_queue_age_hours": max_queue_age_hours,
+        "repeat_fingerprints": list(repeat_fingerprints.values()),
+    }
 
 
 def _study_projection(
@@ -730,6 +906,11 @@ def supervisor_scan(
         )
         for study_id in resolved_study_ids
     ]
+    queue_slo = _decorate_action_queue_slo(
+        studies=studies,
+        previous_payload=previous_payload,
+        generated_at=generated_at,
+    )
     action_queue = [
         {"study_id": study["study_id"], **action}
         for study in studies
@@ -745,11 +926,16 @@ def supervisor_scan(
         study["scan_delta"] = {
             "previous_scan_seen": any(_text(action.get("action_id")) in previous_action_ids for action in study_actions),
             "new_action_count": sum(_text(action.get("action_id")) not in previous_action_ids for action in study_actions),
+            "owner_pickup_overdue_count": int(_mapping(study.get("queue_slo")).get("owner_pickup_overdue_count") or 0),
+            "developer_supervisor_attention_required_count": int(
+                _mapping(study.get("queue_slo")).get("developer_supervisor_attention_required_count") or 0
+            ),
         }
     queue_history = {
         "history_path": str(history_path),
         "latest_action_count": len(action_queue),
         "previous_action_count": len(previous_action_ids),
+        **queue_slo,
     }
     payload = {
         "surface": "portable_runtime_supervisor_scan",
