@@ -43,6 +43,10 @@ from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
     _should_hard_auto_recover_managed_study,
     _write_outer_loop_wakeup_audit,
 )
+from med_autoscience.controllers.runtime_watch_parts.autonomy_repair import (
+    apply_ready_ai_doctor_repair,
+    read_ready_ai_doctor_repair,
+)
 from med_autoscience.controllers.runtime_watch_parts.control_plane_gate import (
     CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY,
     apply_control_plane_dispatch_block,
@@ -625,6 +629,8 @@ def _materialize_managed_study_autonomy_slo(
     }
 
 
+
+
 def run_watch_for_quest(
     *,
     quest_root: Path,
@@ -757,6 +763,7 @@ def run_watch_for_runtime(
     managed_study_no_op_suppressions: list[dict[str, Any]] = []
     managed_study_alert_deliveries: list[dict[str, Any]] = []
     managed_study_autonomy_slo_statuses: list[dict[str, Any]] = []
+    managed_study_autonomy_repair_actions: list[dict[str, Any]] = []
     if ensure_study_runtimes:
         if profile is None:
             raise ValueError("profile is required when ensure_study_runtimes is enabled")
@@ -1281,12 +1288,27 @@ def run_watch_for_runtime(
                     recorded_at=utc_now(),
                 )
         if profile is not None:
+            ready_ai_doctor_repair = read_ready_ai_doctor_repair(study_root=study_root)
             managed_study_autonomy_slo_statuses.append(
                 _materialize_managed_study_autonomy_slo(
                     profile=profile,
                     study_root=study_root,
                 )
             )
+            if (
+                apply
+                and ready_ai_doctor_repair is not None
+                and not managed_study_outer_loop_dispatches
+                and not managed_study_action_overrides
+            ):
+                autonomy_repair = apply_ready_ai_doctor_repair(
+                    profile=profile,
+                    study_root=study_root,
+                    status_payload=status_payload,
+                    repair_payload=ready_ai_doctor_repair,
+                )
+                if autonomy_repair is not None:
+                    managed_study_autonomy_repair_actions.append(autonomy_repair)
     managed_study_actions = [
         _serialize_managed_study_action(
             managed_study_action_overrides.get(str(Path(managed_study_root).expanduser().resolve()), status_payload)
@@ -1307,6 +1329,7 @@ def run_watch_for_runtime(
         "managed_study_supervision": managed_study_supervision,
         "managed_study_alert_deliveries": managed_study_alert_deliveries,
         "managed_study_autonomy_slo_statuses": managed_study_autonomy_slo_statuses,
+        "managed_study_autonomy_repair_actions": managed_study_autonomy_repair_actions,
         "reports": reports,
     }
     _attach_family_companion_to_runtime_report(runtime_report, runtime_root=Path(runtime_root).expanduser().resolve())

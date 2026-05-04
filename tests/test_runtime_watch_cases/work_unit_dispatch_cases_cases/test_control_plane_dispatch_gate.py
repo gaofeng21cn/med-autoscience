@@ -417,3 +417,100 @@ def test_watch_runtime_recovery_authorization_false_suppresses_runtime_recovery_
     assert result["managed_study_actions"][0]["control_plane_snapshot"]["route_authorization"][
         "runtime_recovery_allowed"
     ] is False
+
+
+def test_watch_runtime_dispatches_controller_authorized_recovery_after_runtime_retry_budget_exhausted(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "quest-001"
+    recovery_work_unit = {
+        "unit_id": "runtime_recovery",
+        "lane": "runtime",
+        "summary": "Recover missing live worker.",
+    }
+    tick_request = {
+        "study_root": study_root,
+        "charter_ref": _write_charter(study_root),
+        "publication_eval_ref": _write_publication_eval(study_root, quest_root, action_type="bounded_analysis"),
+        "decision_type": "bounded_analysis",
+        "route_target": "runtime",
+        "route_key_question": "Recover the missing live worker before paper work continues.",
+        "route_rationale": "Runtime retry budget was exhausted, but MAS controller owns a bounded recovery action.",
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": "ensure_study_runtime",
+                "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            }
+        ],
+        "reason": "Recover the missing live worker.",
+        "work_unit_fingerprint": "runtime-recovery::retry-budget-exhausted",
+        "next_work_unit": recovery_work_unit,
+    }
+    status_payload = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="resume",
+            reason="quest_marked_running_but_no_live_session",
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+        "control_plane_snapshot": {
+            "schema_version": 1,
+            "surface": "control_plane_snapshot",
+            "control_state": "ready",
+            "canonical_next_action": "resume_same_study_line",
+            "canonical_runtime_action": "recover_runtime",
+            "dispatch_gate": {
+                "state": "open",
+                "dispatch_allowed": True,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "route_authorization": {
+                "authorized": True,
+                "paper_write_allowed": False,
+                "bundle_build_allowed": False,
+                "runtime_recovery_allowed": True,
+            },
+            "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+        },
+    }
+    dispatch_calls: list[str] = []
+
+    def fake_outer_loop_tick(**kwargs):
+        dispatch_calls.append(str(kwargs.get("source") or ""))
+        return {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "source": kwargs.get("source"),
+            "study_decision_ref": {
+                "artifact_path": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve())
+            },
+            "dispatch_status": "executed",
+            "executed_controller_action": {"action_type": "ensure_study_runtime", "result": {"status": "executed"}},
+        }
+
+    monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    assert dispatch_calls == ["runtime_watch_outer_loop_wakeup"]
+    assert len(result["managed_study_outer_loop_dispatches"]) == 1
+    assert result["managed_study_no_op_suppressions"] == []

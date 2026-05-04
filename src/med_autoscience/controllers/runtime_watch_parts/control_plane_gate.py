@@ -75,10 +75,13 @@ def control_plane_dispatch_block(
     ]
     gate_state = _non_empty_text(gate_payload.get("state"))
     dispatch_allowed = gate_payload.get("dispatch_allowed")
+    dispatch_blocked = False
     if gate_state != "open" or dispatch_allowed is not True:
+        dispatch_blocked = True
         if not blocking_reasons:
             blocking_reasons.append("dispatch_gate_blocked")
     if route_payload.get("authorized") is False and "route_not_authorized" not in blocking_reasons:
+        dispatch_blocked = True
         blocking_reasons.append("route_not_authorized")
     runtime_recovery_actions = {
         "ensure_study_runtime",
@@ -91,10 +94,11 @@ def control_plane_dispatch_block(
         route_payload.get("runtime_recovery_allowed") is False
         and _controller_action_types(tick_request) & runtime_recovery_actions
     ):
+        dispatch_blocked = True
         blocking_reasons.append("runtime_recovery_not_authorized")
 
     blocking_reasons = list(dict.fromkeys(blocking_reasons))
-    if not blocking_reasons:
+    if not dispatch_blocked:
         return None
     return {
         "outcome": "control_plane_dispatch_blocked",

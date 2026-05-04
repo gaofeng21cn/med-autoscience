@@ -45,6 +45,12 @@ BASE_ALLOWED_ACTIONS = (
     "open_monitoring_entry",
     "record_user_decision",
 )
+RECOVERY_BUDGET_REASONS = frozenset(
+    {
+        "quest_marked_running_but_no_live_session",
+        "runtime_recovery_retry_budget_exhausted",
+    }
+)
 
 
 def _mapping(value: object) -> dict[str, Any]:
@@ -102,7 +108,9 @@ def _ledger_lifecycle_state(payload: Mapping[str, Any], *keys: str) -> str | Non
     return None
 
 
-def _control_state(blocking_reasons: list[str], runtime_action: str) -> str:
+def _control_state(blocking_reasons: list[str], runtime_action: str, *, recovery_budget_only: bool = False) -> str:
+    if recovery_budget_only:
+        return "ready"
     if "publication_eval.ai_reviewer_required" in blocking_reasons:
         return "blocked_quality_review"
     if "runtime_recovery_retry_budget_exhausted" in blocking_reasons or runtime_action == "escalate_runtime":
@@ -123,6 +131,16 @@ def _control_state(blocking_reasons: list[str], runtime_action: str) -> str:
 
 def _dedupe_reasons(reasons: list[str]) -> list[str]:
     return list(dict.fromkeys(reason for reason in reasons if reason))
+
+
+def _runtime_recovery_budget_only(blocking_reasons: list[str], runtime_action: str, attempt_state: str | None) -> bool:
+    return (
+        attempt_state != "escalated"
+        and
+        runtime_action in {"recover_runtime", "relaunch_runtime", "probe_runtime_liveness"}
+        and set(blocking_reasons).issubset(RECOVERY_BUDGET_REASONS)
+        and "runtime_recovery_retry_budget_exhausted" in blocking_reasons
+    )
 
 
 def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -161,13 +179,13 @@ def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str,
             blocking_reasons.append(f"ledger.{ledger_name}.{state}")
 
     retry_budget = _int(health.get("retry_budget_remaining"))
+    attempt_state = _text(health.get("attempt_state"))
     if (
-        _text(health.get("attempt_state")) == "escalated"
+        attempt_state == "escalated"
         or retry_budget == 0
         and runtime_action in {"recover_runtime", "relaunch_runtime", "probe_runtime_liveness"}
     ):
         blocking_reasons.append("runtime_recovery_retry_budget_exhausted")
-        runtime_action = "escalate_runtime"
 
     if "execution_owner_guard.supervisor_only" in blocking_reasons:
         allowed_actions = [action for action in allowed_actions if action not in PAPER_WRITE_ACTIONS | BUNDLE_ACTIONS]
@@ -175,7 +193,10 @@ def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str,
         allowed_actions = [action for action in allowed_actions if action not in BUNDLE_ACTIONS]
 
     blocking_reasons = _dedupe_reasons(blocking_reasons)
-    dispatch_blocked = bool(blocking_reasons)
+    recovery_budget_only = _runtime_recovery_budget_only(blocking_reasons, runtime_action, attempt_state)
+    if not recovery_budget_only and "runtime_recovery_retry_budget_exhausted" in blocking_reasons:
+        runtime_action = "escalate_runtime"
+    dispatch_blocked = bool(blocking_reasons) and not recovery_budget_only
     if "study_truth_epoch_missing" in blocking_reasons or "runtime_health_epoch_missing" in blocking_reasons:
         truth_action = "read_runtime_status"
 
@@ -193,7 +214,7 @@ def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str,
         "surface": "control_plane_snapshot",
         "study_id": _text(payload.get("study_id")) or _text(truth.get("study_id")) or _text(health.get("study_id")),
         "quest_id": _text(payload.get("quest_id")) or _text(health.get("quest_id")),
-        "control_state": _control_state(blocking_reasons, runtime_action),
+        "control_state": _control_state(blocking_reasons, runtime_action, recovery_budget_only=recovery_budget_only),
         "canonical_next_action": truth_action,
         "canonical_runtime_action": runtime_action,
         "dispatch_gate": {
@@ -205,7 +226,8 @@ def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str,
             "authorized": not dispatch_blocked,
             "paper_write_allowed": paper_write_allowed,
             "bundle_build_allowed": bundle_build_allowed,
-            "runtime_recovery_allowed": runtime_action not in {"await_explicit_resume", "escalate_runtime"},
+            "runtime_recovery_allowed": recovery_budget_only
+            or runtime_action not in {"await_explicit_resume", "escalate_runtime"},
         },
         "blocking_reasons": blocking_reasons,
         "allowed_controller_actions": allowed_actions,
