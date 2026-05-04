@@ -7,6 +7,7 @@ from med_autoscience.controllers.medical_paper_v3_action_truth import (
     action_truths_for_readiness,
     compact_missing_surface_with_action_truth,
 )
+from med_autoscience.controllers.medical_paper_v4_operations import build_v4_operations_dashboard
 
 
 def _compact_string_list(value: Any, *, limit: int = 12) -> list[str]:
@@ -178,6 +179,39 @@ def _compact_medical_paper_readiness(value: Any) -> dict[str, Any] | None:
             missing_surfaces.append(missing)
     compact["missing_surfaces"] = missing_surfaces[:8]
     compact["v3_action_truth"] = action_truths_for_readiness(value)
+    compact["v4_operations"] = _compact_medical_paper_v4_operations(
+        build_v4_operations_dashboard(value)
+    )
+    return compact
+
+
+def _compact_medical_paper_v4_operations(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    compact = _compact_record(
+        value,
+        (
+            "surface",
+            "overall_status",
+            "summary",
+            "next_action",
+            "authority_contract",
+            "quality_claim_authorized",
+            "mechanical_projection_can_authorize_quality",
+        ),
+    )
+    if compact is None:
+        return None
+    health = value.get("health")
+    if isinstance(health, dict):
+        compact["health"] = {
+            key: _compact_record(
+                item,
+                ("surface_key", "status", "missing_reason", "next_action", "pending_action_count", "action_ids"),
+            )
+            for key, item in health.items()
+            if isinstance(item, dict)
+        }
     return compact
 
 
@@ -539,6 +573,46 @@ def _render_mcp_progress_medical_paper_readiness(compact: dict[str, Any]) -> lis
         "- mechanical_projection_can_authorize_quality: "
         f"`{readiness.get('mechanical_projection_can_authorize_quality')}`"
     )
+    lines.extend(_render_mcp_medical_paper_v4_operations(readiness.get("v4_operations")))
+    return lines
+
+
+def _render_mcp_medical_paper_v4_operations(value: object) -> list[str]:
+    if not isinstance(value, dict):
+        return []
+    lines = [
+        "",
+        "## Medical Paper v4 Operations",
+        f"- status: `{value.get('overall_status') or 'unknown'}`",
+    ]
+    summary = str(value.get("summary") or "").strip()
+    if summary:
+        lines.append(f"- summary: {summary}")
+    next_action = value.get("next_action") if isinstance(value.get("next_action"), dict) else {}
+    if next_action:
+        lines.append(f"- next_action: `{next_action.get('summary') or 'none'}`")
+    health = value.get("health") if isinstance(value.get("health"), dict) else {}
+    for key in (
+        "provider_health",
+        "operator_action_health",
+        "statistical_blocker_health",
+        "ai_reviewer_calibration_health",
+        "soak_monitor_health",
+    ):
+        item = health.get(key) if isinstance(health.get(key), dict) else {}
+        if item:
+            lines.append(
+                f"- {key}: `{item.get('status') or 'unknown'}` "
+                f"({item.get('missing_reason') or 'clear'})"
+            )
+    contract = value.get("authority_contract") if isinstance(value.get("authority_contract"), dict) else {}
+    if contract:
+        lines.append(
+            "- quality/submission/finalize authority: "
+            f"`{contract.get('can_authorize_quality')}/"
+            f"{contract.get('can_authorize_submission')}/"
+            f"{contract.get('can_authorize_finalize')}`"
+        )
     return lines
 
 

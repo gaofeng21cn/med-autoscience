@@ -105,6 +105,29 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             lines.append("  quality authorization: projection-only")
     else:
         lines.append("- 当前还没有 Medical Paper Readiness projection。")
+    lines.extend(["", "## v4 生产运行面 / Medical Paper Operations", ""])
+    v4_operations_state = dict(payload.get("medical_paper_v4_operations_state") or {})
+    if v4_operations_state:
+        counts = dict(v4_operations_state.get("counts") or {})
+        lines.append(f"- 当前 v4 operations 摘要: {v4_operations_state.get('summary') or 'none'}")
+        lines.append(
+            "- 当前计数: "
+            f"study {counts.get('study_count', 0)}；"
+            f"ready {counts.get('ready', 0)}；"
+            f"partial {counts.get('partial', 0)}；"
+            f"blocked {counts.get('blocked', 0)}"
+        )
+        for study in v4_operations_state.get("studies") or []:
+            if not isinstance(study, Mapping):
+                continue
+            next_action = dict(study.get("next_action") or {})
+            lines.append(
+                f"- `{study.get('study_id') or 'unknown-study'}` v4 operations: "
+                f"`{study.get('overall_status') or 'unknown'}`；"
+                f"下一步 `{next_action.get('summary') or 'none'}`"
+            )
+    else:
+        lines.append("- 当前还没有 v4 operations projection。")
     lines.extend(["", "## AI-first Operations", ""])
     ai_first_operations_state = dict(payload.get("ai_first_operations_state") or {})
     if ai_first_operations_state:

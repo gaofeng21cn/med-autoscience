@@ -9,6 +9,10 @@ from med_autoscience.controllers.medical_paper_operator_actions import (
     guarded_operator_command,
     guarded_pending_action_result,
 )
+from med_autoscience.controllers.medical_paper_v4_operations import (
+    build_v4_operations_dashboard,
+    workspace_v4_operations_state,
+)
 
 try:
     _non_empty_text
@@ -542,6 +546,9 @@ def _workspace_cockpit_study_snapshot(
     item = _study_item(progress_payload=progress_payload, profile_ref=profile_ref)
     if not item.get("medical_paper_readiness"):
         item["medical_paper_readiness"] = _read_medical_paper_readiness_projection(study_root=study_root) or None
+    item["medical_paper_v4_operations"] = build_v4_operations_dashboard(
+        item.get("medical_paper_readiness") if isinstance(item.get("medical_paper_readiness"), Mapping) else {}
+    )
     alerts = list(item["current_blockers"])
     progress_freshness = dict(item.get("progress_freshness") or {})
     progress_summary = _non_empty_text(progress_freshness.get("summary"))
@@ -611,6 +618,7 @@ def read_workspace_cockpit(
         commands=commands,
     )
     medical_paper_readiness_state = _workspace_medical_paper_readiness_state(studies=studies)
+    medical_paper_v4_operations_state = workspace_v4_operations_state(studies=studies)
     ai_first_operations_state = _workspace_ai_first_operations_state(studies=studies)
     ai_first_cross_study_completion_projection = _workspace_ai_first_cross_study_completion_projection(
         study_roots=study_roots,
@@ -643,6 +651,7 @@ def read_workspace_cockpit(
         "workspace_alerts": workspace_alerts,
         "workspace_supervision": workspace_supervision,
         "medical_paper_readiness_state": medical_paper_readiness_state,
+        "medical_paper_v4_operations_state": medical_paper_v4_operations_state,
         "ai_first_operations_state": ai_first_operations_state,
         "ai_first_cross_study_completion_projection": ai_first_cross_study_completion_projection,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection,

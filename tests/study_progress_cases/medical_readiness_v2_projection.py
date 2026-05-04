@@ -145,6 +145,16 @@ def test_compact_mcp_progress_projection_preserves_v2_readiness_surface_details(
     assert readiness["v3_action_truth"][0]["surface_key"] == "literature_provider_runtime"
     assert readiness["v3_action_truth"][0]["guarded_operator_command"]["status"] == "guarded_pending"
     assert readiness["v3_action_truth"][0]["authority_contract"]["can_mutate_runtime"] is False
+    assert readiness["v4_operations"]["surface"] == "medical_paper_v4_operations_dashboard"
+    assert readiness["v4_operations"]["overall_status"] == "blocked"
+    assert readiness["v4_operations"]["health"]["provider_health"]["status"] == "missing"
+    assert readiness["v4_operations"]["health"]["operator_action_health"]["pending_action_count"] == 6
+    assert readiness["v4_operations"]["health"]["statistical_blocker_health"]["status"] == "partial"
+    assert readiness["v4_operations"]["health"]["soak_monitor_health"]["status"] == "partial"
+    assert readiness["v4_operations"]["health"]["ai_reviewer_calibration_health"]["status"] == "blocked"
+    assert readiness["v4_operations"]["authority_contract"]["can_authorize_quality"] is False
+    assert readiness["v4_operations"]["authority_contract"]["can_authorize_submission"] is False
+    assert readiness["v4_operations"]["authority_contract"]["can_authorize_finalize"] is False
     assert missing["route_decision_orchestrator"]["action_label"] == "写入路线裁决"
     assert missing["statistical_discipline_operations"]["action_label"] == "处理统计 blocker"
     assert missing["revision_rebuttal_loop"]["action_label"] == "启动返修"
@@ -168,6 +178,10 @@ def test_mcp_study_progress_markdown_renders_v2_readiness_action_semantics() -> 
     assert "generic 缺失 surface" not in markdown
     assert "- quality_claim_authorized: `False`" in markdown
     assert "- mechanical_projection_can_authorize_quality: `False`" in markdown
+    assert "## Medical Paper v4 Operations" in markdown
+    assert "- provider_health: `missing` (missing_provider_provenance)" in markdown
+    assert "- operator_action_health: `blocked` (guarded_operator_actions_pending)" in markdown
+    assert "- quality/submission/finalize authority: `False/False/False`" in markdown
 
 
 def test_study_progress_markdown_renders_v2_readiness_action_semantics() -> None:
@@ -182,3 +196,6 @@ def test_study_progress_markdown_renders_v2_readiness_action_semantics() -> None
     assert "写作授权: 检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。" in markdown
     assert "真实 soak: 从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。" in markdown
     assert "- 质量声明授权: `false`" in markdown
+    assert "## v4 生产运行面 / Medical Paper Operations" in markdown
+    assert "- provider_health: `missing`（missing_provider_provenance）" in markdown
+    assert "- authority: projection-only；quality/submission/finalize authorization: `False/False/False`" in markdown

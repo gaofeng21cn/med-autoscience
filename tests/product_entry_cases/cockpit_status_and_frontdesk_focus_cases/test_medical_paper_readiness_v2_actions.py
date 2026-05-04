@@ -234,6 +234,7 @@ def test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards(
 
     payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
     cards = payload["studies"][0]["medical_paper_readiness"]["action_cards"]
+    v4_operations = payload["studies"][0]["medical_paper_v4_operations"]
 
     assert [card["action_id"] for card in cards] == [
         "run_provider_literature_scout",
@@ -267,6 +268,12 @@ def test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards(
     }
     assert cards[0]["authority_contract"]["can_mutate_runtime"] is False
     assert cards[0]["authority_contract"]["can_authorize_quality"] is False
+    assert v4_operations["surface"] == "medical_paper_v4_operations_dashboard"
+    assert v4_operations["overall_status"] == "blocked"
+    assert v4_operations["health"]["provider_health"]["missing_reason"] == "missing_provider_provenance"
+    assert v4_operations["health"]["operator_action_health"]["pending_action_count"] == 3
+    assert v4_operations["health"]["soak_monitor_health"]["status"] == "partial"
+    assert v4_operations["authority_contract"]["can_authorize_quality"] is False
 
 
 def test_product_frontdesk_promotes_v2_action_cards_to_workflow_steps(
@@ -350,6 +357,9 @@ def test_workspace_cockpit_markdown_renders_v2_action_card_status_and_missing_re
     assert "写入路线裁决 [missing / missing_controller_decision_projection]" in markdown
     assert "处理统计 blocker [blocked / open_precision_and_validation_blockers]" in markdown
     assert "运行真实 soak [partial / missing_required_archetype]" in markdown
+    assert "## v4 生产运行面 / Medical Paper Operations" in markdown
+    assert "当前 v4 operations 摘要: 1 study operations projected; ready 0, partial 0, blocked 1." in markdown
+    assert "`001-risk` v4 operations: `blocked`；下一步 `repair_provider_operations_before_literature_ready`" in markdown
 
 
 def test_guarded_operator_action_dispatch_fails_closed_without_payload(tmp_path) -> None:
