@@ -38,10 +38,8 @@ def test_unified_enhancement_program_board_materializes_lanes_mapping_and_absorb
         "codex/mas-delivery-legacy-visibility",
         "codex/mas-structure-audit-compaction",
     ]
-    l3 = {
-        lane["lane_id"]: lane
-        for lane in board["lanes"]
-    }["L3_outcome_calibration_and_provider_ops"]
+    lanes_by_id = {lane["lane_id"]: lane for lane in board["lanes"]}
+    l3 = lanes_by_id["L3_outcome_calibration_and_provider_ops"]
     assert l3["authority_mode"] == "observability_only"
     assert l3["status_surface"] == "outcome_provider_ops_projection"
     assert l3["stable_outputs"] == [
@@ -50,6 +48,13 @@ def test_unified_enhancement_program_board_materializes_lanes_mapping_and_absorb
         "journal-family fixture matrix projection",
     ]
     assert "cannot bypass AI reviewer or publication gate" in l3["authority_boundary"]
+    l5_lane = lanes_by_id["L5_natural_boundary_and_audit_compaction"]
+    assert l5_lane["authority_mode"] == "maintainability_only"
+    assert l5_lane["read_model_surface"] == "mas_l5_audit_compaction_governance"
+    assert l5_lane["read_model"]["validation_ok"] is True
+    assert l5_lane["read_model"]["maintainability_only"] is True
+    assert l5_lane["read_model"]["compaction_gates"] == ["restore", "index", "provenance"]
+    assert l5_lane["read_model"]["compaction_implementation_allowed"] is False
     assert {item["basis_id"] for item in board["engineering_basis"]} == {
         "strangler_fig",
         "architecture_fitness_functions",

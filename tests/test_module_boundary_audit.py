@@ -48,6 +48,7 @@ def test_module_boundary_audit_report_declares_layers_dependencies_and_authority
     assert "product_entry_projection" in by_group["mas_core"]["forbidden_dependencies"]
     assert "mds_backend_oracle" in by_group["quality_os"]["forbidden_dependencies"]
     assert "src/med_autoscience/controllers/study_progress.py" in by_group["product_entry_projection"]["repo_targets"]
+    assert "src/med_autoscience/controllers/audit_compaction_governance.py" in by_group["maintainability"]["repo_targets"]
     assert "src/med_autoscience/controllers/module_boundary_audit.py" in by_group["maintainability"]["repo_targets"]
     assert [item["boundary_id"] for item in report["truth_boundaries"]] == [
         "study_truth",

@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.controllers.audit_compaction_governance import (
+    build_audit_compaction_governance_report,
+    validate_audit_compaction_governance_report,
+)
 from med_autoscience.controllers.mas_mds_longitudinal_soak import (
     summarize_l1_longitudinal_outputs,
 )
@@ -139,6 +143,7 @@ PROGRAM_LANES = (
             "Sentrux and line-budget structure target list",
             "audit compaction pre-contract",
         ),
+        "read_model_surface": "mas_l5_audit_compaction_governance",
         "authority_boundary": "maintainability lane does not change study truth, publication truth, delivery truth, or runtime action",
         "compaction_gates": ("restore", "index", "provenance"),
     },
@@ -301,6 +306,8 @@ def build_unified_enhancement_program_board(progress_payload: Mapping[str, Any] 
     progress = _mapping(progress_payload)
     lane_progress = _mapping(progress.get("lane_progress"))
     l1_longitudinal_soak_proof = _mapping(progress.get("l1_longitudinal_soak_proof"))
+    l5_governance = build_audit_compaction_governance_report()
+    l5_validation = validate_audit_compaction_governance_report(l5_governance)
     lanes: list[dict[str, Any]] = []
     for lane_id, lane in _lane_by_id().items():
         override = _mapping(lane_progress.get(lane_id))
@@ -318,11 +325,32 @@ def build_unified_enhancement_program_board(progress_payload: Mapping[str, Any] 
             "verification": list(_list(override.get("verification"))),
             "blocks_usable_target": status not in {"completed", "absorbed"},
         }
+        if lane_id == "L5_natural_boundary_and_audit_compaction":
+            lane_item["read_model"] = {
+                "surface": l5_governance["surface"],
+                "validation_surface": l5_validation["surface"],
+                "validation_ok": l5_validation["ok"],
+                "maintainability_only": l5_governance["maintainability_only"],
+                "worktree_bucket_counts": {
+                    bucket: len(l5_governance["worktree_ownership_audit"].get(bucket) or [])
+                    for bucket in (
+                        "main",
+                        "current_l5_worktree",
+                        "external_active_worktree",
+                        "unknown_owner",
+                    )
+                },
+                "structure_target_count": len(l5_governance["structure_target_list"].get("top_targets") or []),
+                "compaction_implementation_allowed": l5_governance["compaction_implementation_allowed"],
+                "compaction_gates": [
+                    gate["gate_id"]
+                    for gate in l5_governance["audit_compaction_pre_contract"].get("gates") or []
+                    if isinstance(gate, Mapping)
+                ],
+            }
         if outputs is not None:
             lane_item["outputs"] = outputs
-        lanes.append(
-            lane_item
-        )
+        lanes.append(lane_item)
     completed = [lane for lane in lanes if lane["status"] in {"completed", "absorbed"}]
     blocked = [lane for lane in lanes if lane["status"] == "blocked"]
     status_summary: dict[str, Any] = {

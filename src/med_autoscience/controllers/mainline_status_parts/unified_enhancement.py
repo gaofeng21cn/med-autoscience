@@ -75,6 +75,7 @@ def _project_lane(lane: Mapping[str, Any]) -> dict[str, Any]:
         "boundary_kind": BOUNDARY_KIND_BY_AUTHORITY_MODE.get(authority_mode, "program_lane"),
         "status": lane.get("status"),
         "blocks_usable_target": lane.get("blocks_usable_target"),
+        "read_model": dict(lane.get("read_model") or {}),
     }
 
 

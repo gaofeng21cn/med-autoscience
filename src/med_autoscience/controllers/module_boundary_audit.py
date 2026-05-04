@@ -232,6 +232,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         "repo_targets": [
             "scripts/line_budget.py",
             "scripts/run-structure-quality-gate.sh",
+            "src/med_autoscience/controllers/audit_compaction_governance.py",
             "src/med_autoscience/controllers/boundary_fitness.py",
             "src/med_autoscience/controllers/module_boundary_audit.py",
         ],

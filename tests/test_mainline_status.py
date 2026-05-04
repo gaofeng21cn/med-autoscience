@@ -112,6 +112,12 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "L4_delivery_and_legacy_upgrade_visibility",
         "L5_natural_boundary_and_audit_compaction",
     ]
+    l5_lane = payload["unified_enhancement_program"]["lanes"][4]
+    assert l5_lane["authority_mode"] == "maintainability_only"
+    assert l5_lane["read_model"]["surface"] == "mas_l5_audit_compaction_governance"
+    assert l5_lane["read_model"]["validation_ok"] is True
+    assert l5_lane["read_model"]["compaction_gates"] == ["restore", "index", "provenance"]
+    assert l5_lane["read_model"]["compaction_implementation_allowed"] is False
     assert len(payload["unified_enhancement_program"]["recommendation_rollup"]) == 15
     assert {
         item["recommendation_id"] for item in payload["unified_enhancement_program"]["recommendation_rollup"]
