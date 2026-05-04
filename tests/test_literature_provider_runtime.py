@@ -10,7 +10,9 @@ def _complete_provider_payload() -> dict[str, object]:
         "search_strategy": {
             "query": "Pituitary neuroendocrine tumor invasive architecture",
             "mesh_terms": ["Pituitary Neoplasms", "Biomarkers"],
+            "keywords": ["invasive architecture", "pituitary neuroendocrine tumor"],
         },
+        "why_worth_doing": "Guideline-bound evidence and recent neighboring papers support the study question.",
         "providers": [
             {
                 "provider_name": "pubmed",
@@ -100,6 +102,8 @@ def _complete_provider_payload() -> dict[str, object]:
                         "ref": "journal-neighbor:clinical-endocrinology-2025",
                         "category": "journal_neighbor_refs",
                         "title": "Neighboring clinical endocrinology paper",
+                        "score": 0.91,
+                        "score_source_ref": "semantic-scholar:query-run-2026-05-03",
                         "citation_ledger_ref": "paper/evidence_ledger.json#journal-neighbor",
                     }
                 ],
@@ -127,8 +131,10 @@ def _provider_backed_intake_payload() -> dict[str, object]:
         "search_strategy": {
             "query": "Pituitary neuroendocrine tumor invasive architecture",
             "mesh_terms": ["Pituitary Neoplasms", "Biomarkers"],
+            "keywords": ["invasive architecture", "pituitary neuroendocrine tumor"],
         },
         "search_date": "2026-05-03",
+        "why_worth_doing": "Guideline-bound evidence and recent neighboring papers support the study question.",
         "provider_payloads": [
             {
                 "provider": "pubmed",
@@ -218,6 +224,8 @@ def _provider_backed_intake_payload() -> dict[str, object]:
                         "paperId": "SEMANTIC123",
                         "title": "Neighboring clinical endocrinology paper",
                         "category": "journal_neighbor_refs",
+                        "score": 0.91,
+                        "score_source_ref": "semantic-scholar:query-run-2026-05-03",
                         "citation_ledger_ref": "paper/evidence_ledger.json#semantic-SEMANTIC123",
                     }
                 ],
@@ -289,6 +297,15 @@ def test_provider_runtime_normalizes_provider_backed_intake_and_records_provenan
     assert literature_payload["systematic_reviews"] == ["doi:10.1000/systematic-review"]
     assert literature_payload["guidelines"] == ["doi:10.1000/tripod-ai"]
     assert literature_payload["journal_neighbor_refs"] == ["semantic_scholar:SEMANTIC123"]
+    assert literature_payload["high_score_neighbor_refs"] == [
+        {
+            "ref": "semantic_scholar:SEMANTIC123",
+            "score": 0.91,
+            "score_source_ref": "semantic-scholar:query-run-2026-05-03",
+        }
+    ]
+    assert literature_payload["provider_provenance"] == result["provider_provenance"]
+    assert literature_payload["why_worth_doing"] == payload["why_worth_doing"]
     assert literature_payload["searched_sources"] == [
         "pubmed:pubmed-run-2026-05-03",
         "crossref:crossref-run-2026-05-03",
@@ -399,6 +416,19 @@ def test_provider_runtime_projects_complete_payload_and_materializes_literature_
         "paper/evidence_ledger.json#systematic-review",
         "paper/evidence_ledger.json#tripod-ai",
         "paper/evidence_ledger.json#journal-neighbor",
+    ]
+    assert projection["literature_intelligence_payload"]["provider_provenance"] == projection[
+        "provider_provenance"
+    ]
+    assert projection["literature_intelligence_payload"]["why_worth_doing"] == payload[
+        "why_worth_doing"
+    ]
+    assert projection["literature_intelligence_payload"]["high_score_neighbor_refs"] == [
+        {
+            "ref": "journal-neighbor:clinical-endocrinology-2025",
+            "score": 0.91,
+            "score_source_ref": "semantic-scholar:query-run-2026-05-03",
+        }
     ]
     assert projection["screening_decisions"] == payload["screening_decisions"]
     assert projection["quality_claim_authorized"] is False
@@ -599,6 +629,70 @@ def test_provider_runtime_requires_provider_refs_and_screening_reasons() -> None
 
     assert projection["status"] == "blocked"
     assert projection["missing_reason"] == "missing_screening_decision_reason"
+
+
+def test_provider_runtime_fails_closed_when_literature_category_or_rationale_is_missing() -> None:
+    provider_runtime = importlib.import_module(
+        "med_autoscience.controllers.literature_provider_runtime"
+    )
+    payload = _complete_provider_payload()
+    providers = list(payload["providers"])  # type: ignore[arg-type]
+    crossref = dict(providers[1])  # type: ignore[arg-type]
+    crossref["items"] = [
+        {
+            "ref": "doi:10.1000/systematic-review",
+            "category": "systematic_reviews",
+            "title": "Systematic review of pituitary prediction models",
+            "citation_ledger_ref": "paper/evidence_ledger.json#systematic-review",
+        }
+    ]
+    providers[1] = crossref
+    payload["providers"] = providers
+
+    projection = provider_runtime.build_literature_provider_runtime_projection(payload)
+
+    assert projection["status"] == "blocked"
+    assert projection["missing_reason"] == "missing_guideline_refs"
+    assert projection["diagnostics"] == [
+        {
+            "reason_code": "missing_guideline_refs",
+            "severity": "blocking",
+            "category": "literature_intelligence_readiness",
+        }
+    ]
+
+    payload = _complete_provider_payload()
+    payload["why_worth_doing"] = ""
+
+    projection = provider_runtime.build_literature_provider_runtime_projection(payload)
+
+    assert projection["status"] == "blocked"
+    assert projection["missing_reason"] == "missing_study_rationale"
+    assert projection["diagnostics"] == [
+        {
+            "reason_code": "missing_study_rationale",
+            "severity": "blocking",
+            "category": "literature_intelligence_readiness",
+        }
+    ]
+
+    payload = _complete_provider_payload()
+    payload["search_strategy"] = {
+        "query": "Pituitary neuroendocrine tumor invasive architecture",
+        "mesh_terms": ["Pituitary Neoplasms", "Biomarkers"],
+    }
+
+    projection = provider_runtime.build_literature_provider_runtime_projection(payload)
+
+    assert projection["status"] == "blocked"
+    assert projection["missing_reason"] == "missing_keyword_terms"
+    assert projection["diagnostics"] == [
+        {
+            "reason_code": "missing_keyword_terms",
+            "severity": "blocking",
+            "category": "literature_intelligence_readiness",
+        }
+    ]
 
 
 def test_provider_health_read_model_projects_scheduled_checks_without_authority() -> None:

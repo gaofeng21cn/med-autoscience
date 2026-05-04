@@ -40,6 +40,37 @@ def _search_strategy_is_complete(payload: Mapping[str, Any]) -> bool:
     return _has_text(strategy.get("query")) and _has_ref_items(strategy.get("mesh_terms"))
 
 
+def _keyword_terms_are_complete(payload: Mapping[str, Any]) -> bool:
+    strategy = _mapping(payload.get("search_strategy"))
+    return _has_ref_items(strategy.get("keywords")) or _has_ref_items(payload.get("keywords"))
+
+
+def _study_rationale(payload: Mapping[str, Any]) -> str:
+    for key in ("why_worth_doing", "study_rationale", "research_rationale", "rationale"):
+        value = _text(payload.get(key))
+        if value:
+            return value
+    return ""
+
+
+def _provider_provenance_is_complete(value: object) -> bool:
+    providers = [item for item in _list(value) if isinstance(item, Mapping)]
+    if not providers:
+        return False
+    for provider in providers:
+        if not _has_text(provider.get("provider_name")):
+            return False
+        if not _has_text(provider.get("query")):
+            return False
+        if not _has_text(provider.get("retrieved_at")):
+            return False
+        if not _has_text(provider.get("response_status")):
+            return False
+        if not _has_ref_items(provider.get("source_refs")):
+            return False
+    return True
+
+
 def _screening_decisions_are_complete(value: object) -> bool:
     decisions = [item for item in _list(value) if isinstance(item, Mapping)]
     if not decisions:
@@ -84,10 +115,12 @@ def _authority() -> dict[str, Any]:
 def _source_coverage(payload: Mapping[str, Any]) -> dict[str, int]:
     return {
         "searched_source_count": len(_list(payload.get("searched_sources"))),
+        "provider_provenance_count": len(_list(payload.get("provider_provenance"))),
         "anchor_paper_count": len(_list(payload.get("anchor_papers"))),
         "guideline_count": len(_list(payload.get("guidelines"))),
         "systematic_review_count": len(_list(payload.get("systematic_reviews"))),
         "journal_neighbor_ref_count": len(_list(payload.get("journal_neighbor_refs"))),
+        "high_score_neighbor_ref_count": len(_list(payload.get("high_score_neighbor_refs"))),
         "citation_ledger_ref_count": len(_list(payload.get("citation_ledger_refs"))),
         "evidence_node_count": len(_evidence_nodes(payload.get("evidence_nodes"))),
         "perspective_question_count": len(_dict_items(payload.get("perspective_questions"))),
@@ -100,8 +133,14 @@ def _missing_reason(payload: Mapping[str, Any]) -> str:
         return "missing_search_date"
     if not _search_strategy_is_complete(payload):
         return "missing_search_strategy"
+    if not _keyword_terms_are_complete(payload):
+        return "missing_keyword_terms"
     if not _has_ref_items(payload.get("searched_sources")):
         return "missing_searched_sources"
+    if not _provider_provenance_is_complete(payload.get("provider_provenance")):
+        return "missing_provider_provenance"
+    if not _study_rationale(payload):
+        return "missing_study_rationale"
     if not _has_ref_items(payload.get("anchor_papers")):
         return "missing_anchor_paper_refs"
     if not _has_ref_items(payload.get("guidelines")):
@@ -110,6 +149,8 @@ def _missing_reason(payload: Mapping[str, Any]) -> str:
         return "missing_systematic_review_refs"
     if not _has_ref_items(payload.get("journal_neighbor_refs")):
         return "missing_journal_neighbor_refs"
+    if not _has_ref_items(payload.get("high_score_neighbor_refs")):
+        return "missing_high_score_neighbor_refs"
     if not _screening_decisions_are_complete(payload.get("screening_decisions")):
         return "missing_screening_decision_reason"
     if not _has_ref_items(payload.get("citation_ledger_refs")):
@@ -119,6 +160,44 @@ def _missing_reason(payload: Mapping[str, Any]) -> str:
     ):
         return "missing_evidence_node_provenance"
     return ""
+
+
+def _diagnostic_category(reason: str) -> str:
+    if reason == "missing_search_date" or reason == "missing_search_strategy" or reason == "missing_keyword_terms":
+        return "search_readiness"
+    if reason == "missing_searched_sources":
+        return "source_readiness"
+    if reason == "missing_provider_provenance":
+        return "provider_provenance_readiness"
+    if reason == "missing_study_rationale":
+        return "study_rationale_readiness"
+    if reason in {
+        "missing_anchor_paper_refs",
+        "missing_guideline_refs",
+        "missing_systematic_review_refs",
+        "missing_journal_neighbor_refs",
+        "missing_high_score_neighbor_refs",
+    }:
+        return "literature_intelligence_readiness"
+    if reason == "missing_screening_decision_reason":
+        return "screening_readiness"
+    if reason == "missing_citation_ledger_refs":
+        return "citation_readiness"
+    if reason == "missing_evidence_node_provenance":
+        return "evidence_provenance_readiness"
+    return "literature_intelligence_projection"
+
+
+def _diagnostics(missing_reason: str) -> list[dict[str, Any]]:
+    if not missing_reason:
+        return []
+    return [
+        {
+            "reason_code": missing_reason,
+            "severity": "blocking",
+            "category": _diagnostic_category(missing_reason),
+        }
+    ]
 
 
 def stable_literature_intelligence_os_path(*, study_root: Path) -> Path:
@@ -154,6 +233,7 @@ def _normalize_payload(*, study_root: Path, payload: Mapping[str, Any]) -> dict[
         "study_id": _text(payload.get("study_id")),
         "status": "ready" if not missing_reason else "blocked",
         "missing_reason": missing_reason,
+        "diagnostics": _diagnostics(missing_reason),
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
         "source_coverage": _source_coverage(payload),
@@ -162,10 +242,13 @@ def _normalize_payload(*, study_root: Path, payload: Mapping[str, Any]) -> dict[
         "search_strategy": dict(_mapping(payload.get("search_strategy"))),
         "search_date": _text(payload.get("search_date")),
         "searched_sources": _list(payload.get("searched_sources")),
+        "provider_provenance": _list(payload.get("provider_provenance")),
+        "why_worth_doing": _study_rationale(payload),
         "anchor_papers": _list(payload.get("anchor_papers")),
         "guidelines": _list(payload.get("guidelines")),
         "systematic_reviews": _list(payload.get("systematic_reviews")),
         "journal_neighbor_refs": _list(payload.get("journal_neighbor_refs")),
+        "high_score_neighbor_refs": _list(payload.get("high_score_neighbor_refs")),
         "screening_decisions": _list(payload.get("screening_decisions")),
         "citation_ledger_refs": _list(payload.get("citation_ledger_refs")),
     }
@@ -183,6 +266,7 @@ def materialize_literature_intelligence_os(
         "surface": SURFACE,
         "status": normalized["status"],
         "missing_reason": normalized["missing_reason"],
+        "diagnostics": normalized["diagnostics"],
         "artifact_path": str(path),
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
@@ -201,16 +285,19 @@ def build_literature_intelligence_os_summary(*, study_root: Path) -> dict[str, A
             "surface": SURFACE,
             "status": "blocked",
             "missing_reason": "missing_canonical_artifact",
+            "diagnostics": _diagnostics("missing_canonical_artifact"),
             "artifact_path": str(path),
             "quality_claim_authorized": False,
             "mechanical_projection_can_authorize_quality": False,
             "authority": _authority(),
             "coverage": {
                 "searched_source_count": 0,
+                "provider_provenance_count": 0,
                 "anchor_paper_count": 0,
                 "guideline_count": 0,
                 "systematic_review_count": 0,
                 "journal_neighbor_ref_count": 0,
+                "high_score_neighbor_ref_count": 0,
                 "screening_decision_count": 0,
                 "citation_ledger_ref_count": 0,
                 "evidence_node_count": 0,
@@ -223,6 +310,7 @@ def build_literature_intelligence_os_summary(*, study_root: Path) -> dict[str, A
         "surface": SURFACE,
         "status": _text(payload.get("status")) or "blocked",
         "missing_reason": _text(payload.get("missing_reason")),
+        "diagnostics": _list(payload.get("diagnostics")) or _diagnostics(_text(payload.get("missing_reason"))),
         "artifact_path": str(path),
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,

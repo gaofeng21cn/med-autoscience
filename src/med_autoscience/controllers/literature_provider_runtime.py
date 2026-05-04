@@ -239,6 +239,8 @@ def _normalize_provider_backed_payload(payload: Mapping[str, Any]) -> dict[str, 
                     "category": _text(item.get("category")),
                     "title": _provider_item_title(item),
                     "citation_ledger_ref": ledger_ref,
+                    "score": item.get("score"),
+                    "score_source_ref": _text(item.get("score_source_ref")),
                 }
             )
         if provider_missing_ledger_ref and provider_name:
@@ -321,6 +323,74 @@ def _providers(payload: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     return [provider for provider in _list(payload.get("providers")) if isinstance(provider, Mapping)]
 
 
+def _keyword_terms_are_complete(payload: Mapping[str, Any]) -> bool:
+    strategy = _mapping(payload.get("search_strategy"))
+    return _has_ref_items(strategy.get("keywords")) or _has_ref_items(payload.get("keywords"))
+
+
+def _study_rationale(payload: Mapping[str, Any]) -> str:
+    for key in ("why_worth_doing", "study_rationale", "research_rationale", "rationale"):
+        value = _text(payload.get(key))
+        if value:
+            return value
+    return ""
+
+
+def _categorized_refs(providers: list[Mapping[str, Any]]) -> dict[str, list[object]]:
+    categorized = {category: [] for category in LITERATURE_REF_CATEGORIES}
+    for provider in providers:
+        for item in _list(provider.get("items")):
+            source_item = _mapping(item)
+            category = _text(source_item.get("category"))
+            ref = source_item.get("ref")
+            if category in categorized and _has_text(ref):
+                categorized[category].append(ref)
+    return categorized
+
+
+def _high_score_neighbor_refs(providers: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    refs: list[dict[str, Any]] = []
+    for provider in providers:
+        for item in _list(provider.get("items")):
+            source_item = _mapping(item)
+            if _text(source_item.get("category")) != "journal_neighbor_refs":
+                continue
+            ref = _text(source_item.get("ref"))
+            score_source_ref = _text(source_item.get("score_source_ref"))
+            if not ref or source_item.get("score") is None or not score_source_ref:
+                continue
+            refs.append(
+                {
+                    "ref": ref,
+                    "score": source_item.get("score"),
+                    "score_source_ref": score_source_ref,
+                }
+            )
+    return refs
+
+
+def _literature_intelligence_missing_reason(
+    payload: Mapping[str, Any],
+    providers: list[Mapping[str, Any]],
+) -> str:
+    categorized = _categorized_refs(providers)
+    if not _keyword_terms_are_complete(payload):
+        return "missing_keyword_terms"
+    if not _study_rationale(payload):
+        return "missing_study_rationale"
+    if not _has_ref_items(categorized["anchor_papers"]):
+        return "missing_anchor_paper_refs"
+    if not _has_ref_items(categorized["guidelines"]):
+        return "missing_guideline_refs"
+    if not _has_ref_items(categorized["systematic_reviews"]):
+        return "missing_systematic_review_refs"
+    if not _has_ref_items(categorized["journal_neighbor_refs"]):
+        return "missing_journal_neighbor_refs"
+    if not _has_ref_items(_high_score_neighbor_refs(providers)):
+        return "missing_high_score_neighbor_refs"
+    return ""
+
+
 def _missing_reason(payload: Mapping[str, Any]) -> str:
     providers = _providers(payload)
     if not providers:
@@ -344,6 +414,9 @@ def _missing_reason(payload: Mapping[str, Any]) -> str:
         return query_drift_reason
     if not _has_text(payload.get("search_date")):
         return "missing_search_date"
+    literature_reason = _literature_intelligence_missing_reason(payload, providers)
+    if literature_reason:
+        return literature_reason
     if not _has_ref_items(payload.get("citation_ledger_refs")):
         return "missing_citation_ledger_refs"
     if _citation_freshness(payload)["stale"]:
@@ -643,6 +716,20 @@ def _provider_health_diagnostic(
     return diagnostic
 
 
+def _provider_missing_reason_category(reason_code: str) -> str:
+    if reason_code in {
+        "missing_keyword_terms",
+        "missing_study_rationale",
+        "missing_anchor_paper_refs",
+        "missing_guideline_refs",
+        "missing_systematic_review_refs",
+        "missing_journal_neighbor_refs",
+        "missing_high_score_neighbor_refs",
+    }:
+        return "literature_intelligence_readiness"
+    return "provider_health_projection"
+
+
 def _provider_health_diagnostics(
     *,
     payload: Mapping[str, Any],
@@ -794,7 +881,7 @@ def _provider_health_diagnostics(
         diagnostics.append(
             _provider_health_diagnostic(
                 missing_reason,
-                category="provider_health_projection",
+                category=_provider_missing_reason_category(missing_reason),
             )
         )
     return diagnostics
@@ -858,18 +945,6 @@ def _provider_provenance(providers: list[Mapping[str, Any]]) -> list[dict[str, A
     ]
 
 
-def _categorized_refs(providers: list[Mapping[str, Any]]) -> dict[str, list[object]]:
-    categorized = {category: [] for category in LITERATURE_REF_CATEGORIES}
-    for provider in providers:
-        for item in _list(provider.get("items")):
-            source_item = _mapping(item)
-            category = _text(source_item.get("category"))
-            ref = source_item.get("ref")
-            if category in categorized and _has_text(ref):
-                categorized[category].append(ref)
-    return categorized
-
-
 def _literature_intelligence_payload(
     payload: Mapping[str, Any],
     providers: list[Mapping[str, Any]],
@@ -879,10 +954,13 @@ def _literature_intelligence_payload(
         "search_strategy": dict(_mapping(payload.get("search_strategy"))),
         "search_date": _text(payload.get("search_date")),
         "searched_sources": _provider_source_refs(providers),
+        "provider_provenance": _provider_provenance(providers),
+        "why_worth_doing": _study_rationale(payload),
         "anchor_papers": categorized["anchor_papers"],
         "guidelines": categorized["guidelines"],
         "systematic_reviews": categorized["systematic_reviews"],
         "journal_neighbor_refs": categorized["journal_neighbor_refs"],
+        "high_score_neighbor_refs": _high_score_neighbor_refs(providers),
         "screening_decisions": _list(payload.get("screening_decisions")),
         "citation_ledger_refs": _list(payload.get("citation_ledger_refs")),
     }
@@ -918,6 +996,7 @@ def build_literature_provider_runtime_projection(payload: Mapping[str, Any]) -> 
         "source_response_digest": _source_response_digest(providers),
         "provider_operations": provider_operations,
         "provider_health": provider_health,
+        "diagnostics": provider_health["diagnostics"],
         "credential_status": provider_operations["credential_status"],
         "rate_limit_status": provider_operations["rate_limit_status"],
         "backoff": provider_operations["backoff"],
@@ -960,6 +1039,7 @@ def materialize_literature_provider_runtime(
         "provider_provenance": projection["provider_provenance"],
         "provider_operations": projection["provider_operations"],
         "provider_health": projection["provider_health"],
+        "diagnostics": projection["diagnostics"],
         "credential_status": projection["credential_status"],
         "rate_limit_status": projection["rate_limit_status"],
         "backoff": projection["backoff"],

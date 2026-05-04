@@ -10,13 +10,31 @@ def _complete_payload() -> dict[str, object]:
         "search_strategy": {
             "query": "Pituitary neuroendocrine tumor invasive architecture",
             "mesh_terms": ["Pituitary Neoplasms", "Biomarkers"],
+            "keywords": ["invasive architecture", "pituitary neuroendocrine tumor"],
         },
         "search_date": "2026-05-03",
         "searched_sources": ["pubmed:query-run-2026-05-03", "guideline:trpod-ai"],
+        "provider_provenance": [
+            {
+                "provider_name": "pubmed",
+                "query": "pituitary neuroendocrine tumor invasive architecture",
+                "retrieved_at": "2026-05-03T08:00:00Z",
+                "response_status": "ok",
+                "source_refs": ["pubmed:query-run-2026-05-03"],
+            }
+        ],
+        "why_worth_doing": "Guideline-bound evidence and recent neighboring papers support the study question.",
         "anchor_papers": ["pmid:anchor-1"],
         "guidelines": ["guideline:TRIPOD+AI"],
         "systematic_reviews": ["doi:10.1000/systematic-review"],
         "journal_neighbor_refs": ["journal-neighbor:clinical-endocrinology-2025"],
+        "high_score_neighbor_refs": [
+            {
+                "ref": "journal-neighbor:clinical-endocrinology-2025",
+                "score": 0.91,
+                "score_source_ref": "semantic-scholar:query-run-2026-05-03",
+            }
+        ],
         "screening_decisions": [
             {
                 "ref": "pmid:anchor-1",
@@ -95,10 +113,12 @@ def test_literature_intelligence_os_materializes_complete_ready_surface(tmp_path
     assert read_model["search_strategy"]["query"] == "Pituitary neuroendocrine tumor invasive architecture"
     assert read_model["source_coverage"] == {
         "searched_source_count": 2,
+        "provider_provenance_count": 1,
         "anchor_paper_count": 1,
         "guideline_count": 1,
         "systematic_review_count": 1,
         "journal_neighbor_ref_count": 1,
+        "high_score_neighbor_ref_count": 1,
         "citation_ledger_ref_count": 1,
         "evidence_node_count": 2,
         "perspective_question_count": 1,
@@ -122,10 +142,12 @@ def test_literature_intelligence_os_materializes_complete_ready_surface(tmp_path
     assert summary["status"] == "ready"
     assert summary["coverage"] == {
         "searched_source_count": 2,
+        "provider_provenance_count": 1,
         "anchor_paper_count": 1,
         "guideline_count": 1,
         "systematic_review_count": 1,
         "journal_neighbor_ref_count": 1,
+        "high_score_neighbor_ref_count": 1,
         "screening_decision_count": 2,
         "citation_ledger_ref_count": 1,
         "evidence_node_count": 2,
@@ -151,10 +173,41 @@ def test_literature_intelligence_os_fails_closed_when_network_sources_are_missin
 
     assert result["status"] == "blocked"
     assert result["missing_reason"] == "missing_searched_sources"
+    assert result["diagnostics"] == [
+        {
+            "reason_code": "missing_searched_sources",
+            "severity": "blocking",
+            "category": "source_readiness",
+        }
+    ]
     read_model = module.read_literature_intelligence_os(study_root=tmp_path / "study")
     assert read_model["status"] == "blocked"
+    assert read_model["diagnostics"] == result["diagnostics"]
     assert read_model["quality_claim_authorized"] is False
     assert read_model["mechanical_projection_can_authorize_quality"] is False
+
+
+def test_literature_intelligence_os_fails_closed_when_search_date_is_missing(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.literature_intelligence_os")
+    payload = _complete_payload()
+    payload["search_date"] = ""
+
+    result = module.materialize_literature_intelligence_os(
+        study_root=tmp_path / "study",
+        payload=payload,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["missing_reason"] == "missing_search_date"
+    assert result["diagnostics"] == [
+        {
+            "reason_code": "missing_search_date",
+            "severity": "blocking",
+            "category": "search_readiness",
+        }
+    ]
 
 
 def test_literature_intelligence_os_fails_closed_when_citation_refs_are_missing(
@@ -171,8 +224,16 @@ def test_literature_intelligence_os_fails_closed_when_citation_refs_are_missing(
 
     assert result["status"] == "blocked"
     assert result["missing_reason"] == "missing_citation_ledger_refs"
+    assert result["diagnostics"] == [
+        {
+            "reason_code": "missing_citation_ledger_refs",
+            "severity": "blocking",
+            "category": "citation_readiness",
+        }
+    ]
     summary = module.build_literature_intelligence_os_summary(study_root=tmp_path / "study")
     assert summary["status"] == "blocked"
+    assert summary["diagnostics"] == result["diagnostics"]
     assert summary["quality_claim_authorized"] is False
     assert summary["mechanical_projection_can_authorize_quality"] is False
 
@@ -191,8 +252,72 @@ def test_literature_intelligence_os_requires_screening_reason(tmp_path: Path) ->
 
     assert result["status"] == "blocked"
     assert result["missing_reason"] == "missing_screening_decision_reason"
+    assert result["diagnostics"] == [
+        {
+            "reason_code": "missing_screening_decision_reason",
+            "severity": "blocking",
+            "category": "screening_readiness",
+        }
+    ]
     read_model = module.read_literature_intelligence_os(study_root=tmp_path / "study")
     assert read_model["status"] == "blocked"
+
+
+def test_literature_intelligence_os_requires_keywords_and_study_rationale(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.literature_intelligence_os")
+    payload = _complete_payload()
+    payload["search_strategy"] = {
+        "query": "Pituitary neuroendocrine tumor invasive architecture",
+        "mesh_terms": ["Pituitary Neoplasms", "Biomarkers"],
+    }
+
+    result = module.materialize_literature_intelligence_os(
+        study_root=tmp_path / "study",
+        payload=payload,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["missing_reason"] == "missing_keyword_terms"
+
+    payload = _complete_payload()
+    payload["why_worth_doing"] = ""
+
+    result = module.materialize_literature_intelligence_os(
+        study_root=tmp_path / "study",
+        payload=payload,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["missing_reason"] == "missing_study_rationale"
+
+
+def test_literature_intelligence_os_requires_provider_provenance_and_high_score_neighbors(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.literature_intelligence_os")
+    payload = _complete_payload()
+    payload["provider_provenance"] = []
+
+    result = module.materialize_literature_intelligence_os(
+        study_root=tmp_path / "study",
+        payload=payload,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["missing_reason"] == "missing_provider_provenance"
+
+    payload = _complete_payload()
+    payload["high_score_neighbor_refs"] = []
+
+    result = module.materialize_literature_intelligence_os(
+        study_root=tmp_path / "study",
+        payload=payload,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["missing_reason"] == "missing_high_score_neighbor_refs"
 
 
 def test_literature_intelligence_os_requires_evidence_node_provenance(tmp_path: Path) -> None:
