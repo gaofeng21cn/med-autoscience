@@ -14,6 +14,8 @@ lanes=(
   "test-family"
 )
 
+full_lane_pytest_workers="${MAS_FULL_PYTEST_WORKERS:-2}"
+
 if [[ -n "${MAS_TEST_LANE_SUMMARY_PATH:-}" ]]; then
   summary_dir="$(dirname "${MAS_TEST_LANE_SUMMARY_PATH}")"
   mkdir -p "${summary_dir}"
@@ -75,7 +77,7 @@ for lane in "${lanes[@]}"; do
     echo "[${lane}] start"
     started_at="$(date +%s)"
     set +e
-    make "${lane}"
+    MAS_PYTEST_WORKERS="${MAS_PYTEST_WORKERS:-${full_lane_pytest_workers}}" make "${lane}"
     lane_exit_code="$?"
     set -e
     ended_at="$(date +%s)"

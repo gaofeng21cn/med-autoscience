@@ -782,6 +782,8 @@ def test_parallel_full_lane_script_covers_all_marker_groups() -> None:
         assert f'"{lane}"' in script
     assert 'make "${lane}"' in script
     assert "MAS_TEST_LANE_SUMMARY_PATH" in script
+    assert 'full_lane_pytest_workers="${MAS_FULL_PYTEST_WORKERS:-2}"' in script
+    assert 'MAS_PYTEST_WORKERS="${MAS_PYTEST_WORKERS:-${full_lane_pytest_workers}}" make "${lane}"' in script
 
 
 def test_parallel_full_lane_script_writes_summary_and_invokes_make_lanes(tmp_path: Path) -> None:
@@ -795,6 +797,7 @@ def test_parallel_full_lane_script_writes_summary_and_invokes_make_lanes(tmp_pat
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         "printf '%s\\n' \"$1\" >\"${MAS_TEST_CAPTURE_DIR}/$1\"\n"
+        "printf '%s\\n' \"$MAS_PYTEST_WORKERS\" >\"${MAS_TEST_CAPTURE_DIR}/$1.workers\"\n"
         "echo \"fake make $1\"\n",
         encoding="utf-8",
     )
@@ -814,7 +817,11 @@ def test_parallel_full_lane_script_writes_summary_and_invokes_make_lanes(tmp_pat
     )
 
     assert result.returncode == 0, result.stderr
-    assert sorted(path.name for path in capture_dir.iterdir()) == sorted(PARALLEL_FULL_LANES)
+    assert sorted(path.name for path in capture_dir.iterdir() if not path.name.endswith(".workers")) == sorted(
+        PARALLEL_FULL_LANES
+    )
+    for lane in PARALLEL_FULL_LANES:
+        assert (capture_dir / f"{lane}.workers").read_text(encoding="utf-8").strip() == "2"
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     assert [lane["lane"] for lane in summary["lanes"]] == list(PARALLEL_FULL_LANES)
     for lane in summary["lanes"]:
@@ -838,6 +845,7 @@ def test_parallel_full_lane_script_waits_for_all_lanes_before_failing(tmp_path: 
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         "printf '%s\\n' \"$1\" >\"${MAS_TEST_CAPTURE_DIR}/$1\"\n"
+        "printf '%s\\n' \"$MAS_PYTEST_WORKERS\" >\"${MAS_TEST_CAPTURE_DIR}/$1.workers\"\n"
         "echo \"fake make $1\"\n"
         "if [[ \"$1\" == \"${MAS_TEST_FAIL_LANE}\" ]]; then\n"
         "  echo \"failing $1\"\n"
@@ -862,7 +870,11 @@ def test_parallel_full_lane_script_waits_for_all_lanes_before_failing(tmp_path: 
     )
 
     assert result.returncode == 1
-    assert sorted(path.name for path in capture_dir.iterdir()) == sorted(PARALLEL_FULL_LANES)
+    assert sorted(path.name for path in capture_dir.iterdir() if not path.name.endswith(".workers")) == sorted(
+        PARALLEL_FULL_LANES
+    )
+    for lane in PARALLEL_FULL_LANES:
+        assert (capture_dir / f"{lane}.workers").read_text(encoding="utf-8").strip() == "2"
     for lane in PARALLEL_FULL_LANES:
         assert f"[{lane}] fake make {lane}" in result.stdout
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
