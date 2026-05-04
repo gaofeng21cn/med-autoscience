@@ -138,6 +138,9 @@ def _authoring_inputs() -> dict[str, object]:
                     "claim_id": "claim-primary",
                     "paragraph_id": "results-p1",
                     "evidence_refs": ["paper/evidence_ledger.json#claim-primary"],
+                    "reviewer_concern_refs": [
+                        "paper/review/review_ledger.json#concern-primary"
+                    ],
                 }
             ]
         },
