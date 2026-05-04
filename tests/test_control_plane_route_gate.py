@@ -168,6 +168,31 @@ def test_controller_owned_delivery_sync_route_allows_open_snapshot_with_repair_a
     assert gate["blocking_reasons"] == []
 
 
+def test_publication_gate_replay_route_authorizes_delivery_sync() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "delivery_sync",
+        {
+            "control_plane_snapshot": _snapshot(),
+            "controller_route_context": {
+                "control_surface": "gate_clearing_batch",
+                "controller_action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::003::latest",
+                "work_unit_fingerprint": "publication-blockers::003",
+            },
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["controller_route_gate"]["authorized"] is True
+    assert gate["controller_repair_authorization_ref"]["work_unit_id"] == "publication_gate_replay"
+    assert gate["controller_repair_authorization_ref"]["work_unit_fingerprint"] == "publication-blockers::003"
+    assert gate["blocking_reasons"] == []
+
+
 def test_controller_owned_route_does_not_authorize_unrelated_action() -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
 
