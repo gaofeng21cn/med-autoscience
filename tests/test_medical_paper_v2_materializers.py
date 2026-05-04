@@ -12,6 +12,7 @@ def _provider_payload() -> dict[str, object]:
             "mesh_terms": ["Diabetes Mellitus"],
             "keywords": ["diabetes mortality", "risk prediction", "transportability"],
         },
+        "study_rationale": "A transportable diabetes mortality model addresses a clinically actionable risk gap.",
         "search_date": "2026-05-04",
         "why_worth_doing": (
             "Provider-backed evidence supports a transportable diabetes mortality prediction line."

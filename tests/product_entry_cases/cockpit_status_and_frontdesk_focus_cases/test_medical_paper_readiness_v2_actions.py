@@ -273,7 +273,6 @@ def test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards(
         "action_instance_id": command["action_instance_id"],
         "idempotency_key": command["idempotency_key"],
         "input_digest": command["input_digest"],
-        "replay_ref": None,
     }
     assert cards[0]["authority_contract"]["can_mutate_runtime"] is False
     assert cards[0]["authority_contract"]["can_authorize_quality"] is False

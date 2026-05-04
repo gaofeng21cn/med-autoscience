@@ -20,6 +20,109 @@ from med_autoscience.controllers.submission_package_layout import (
     submission_manifest_path as layout_submission_manifest_path,
 )
 
+
+def _apply_controller_authorized_delivery_layout(
+    *,
+    manifest: dict[str, Any],
+    target_submission_root: Path,
+    workspace_root: Path,
+    source_contract: dict[str, Any],
+) -> None:
+    manifest["source_signature"] = source_contract["source_signature"]
+    manifest["source_contract"] = source_contract
+    manifest["delivery_layout"] = build_package_layout_block(
+        package_root=target_submission_root,
+        workspace_root=workspace_root,
+        package_role="controller_authorized_package_source",
+        source_package_root=target_submission_root,
+        source_signature=source_contract["source_signature"],
+        legacy_input_status="v2_generated",
+    )
+
+
+def _write_submission_reproducibility_documents(
+    *,
+    target_submission_root: Path,
+    source_contract: dict[str, Any],
+) -> None:
+    dump_json(
+        reproducibility_path(target_submission_root, "source_signature"),
+        build_source_signature_document(
+            source_signature=source_contract["source_signature"],
+            source_contract=source_contract,
+            package_role="controller_authorized_package_source",
+        ),
+    )
+    dump_json(
+        reproducibility_path(target_submission_root, "source_relative_paths"),
+        build_source_relative_paths_document(
+            source_relative_paths=source_contract.get("source_paths") or [],
+            source_files=source_contract.get("source_files") or [],
+            package_role="controller_authorized_package_source",
+        ),
+    )
+
+
+def _write_submission_analysis_manifest(*, target_submission_root: Path) -> None:
+    dump_json(
+        reproducibility_path(target_submission_root, "analysis_manifest"),
+        build_analysis_manifest_document(
+            analysis_manifest_source=None,
+            analysis_manifest_present=False,
+            package_role="controller_authorized_package_source",
+        ),
+    )
+
+
+def _journal_target_payload(profile_config: Any) -> dict[str, str] | None:
+    if profile_config.reference_doc_path is None:
+        return None
+    journal_target = {
+        "reference_doc_path": str(profile_config.reference_doc_path.resolve()),
+    }
+    optional_fields = (
+        ("journal_name", profile_config.journal_name),
+        ("journal_family", profile_config.journal_family),
+        ("reference_style_family", profile_config.reference_style_family),
+    )
+    for key, value in optional_fields:
+        if value is not None:
+            journal_target[key] = value
+    return journal_target
+
+
+def _supplementary_material_payload(
+    *,
+    supplementary_source_markdown_path: Path | None,
+    supplementary_output_docx_path: Path | None,
+    profile_config: Any,
+    staging_submission_root: Path,
+    target_submission_root: Path,
+    workspace_root: Path,
+) -> dict[str, str] | None:
+    if supplementary_source_markdown_path is None or supplementary_output_docx_path is None:
+        return None
+    return {
+        "source_markdown_path": relpath_from_workspace(
+            remap_staging_path_to_target(
+                path=supplementary_source_markdown_path,
+                staging_root=staging_submission_root,
+                target_root=target_submission_root,
+            ),
+            workspace_root,
+        ),
+        "docx_path": relpath_from_workspace(
+            remap_staging_path_to_target(
+                path=supplementary_output_docx_path,
+                staging_root=staging_submission_root,
+                target_root=target_submission_root,
+            ),
+            workspace_root,
+        ),
+        "reference_doc_path": str(profile_config.supplementary_reference_doc_path.resolve()),
+    }
+
+
 def create_submission_minimal_package(
     *,
     paper_root: Path,
@@ -426,37 +529,19 @@ def create_submission_minimal_package(
             manifest["pruned_legacy_paths"] = pruned_legacy_paths
         if requested_publication_profile != resolved_publication_profile:
             manifest["requested_publication_profile"] = requested_publication_profile
-        if profile_config.reference_doc_path is not None:
-            journal_target = {
-                "reference_doc_path": str(profile_config.reference_doc_path.resolve()),
-            }
-            if profile_config.journal_name is not None:
-                journal_target["journal_name"] = profile_config.journal_name
-            if profile_config.journal_family is not None:
-                journal_target["journal_family"] = profile_config.journal_family
-            if profile_config.reference_style_family is not None:
-                journal_target["reference_style_family"] = profile_config.reference_style_family
+        journal_target = _journal_target_payload(profile_config)
+        if journal_target is not None:
             manifest["journal_target"] = journal_target
-        if supplementary_source_markdown_path is not None and supplementary_output_docx_path is not None:
-            manifest["supplementary_material"] = {
-                "source_markdown_path": relpath_from_workspace(
-                    remap_staging_path_to_target(
-                        path=supplementary_source_markdown_path,
-                        staging_root=staging_submission_root,
-                        target_root=target_submission_root,
-                    ),
-                    workspace_root,
-                ),
-                "docx_path": relpath_from_workspace(
-                    remap_staging_path_to_target(
-                        path=supplementary_output_docx_path,
-                        staging_root=staging_submission_root,
-                        target_root=target_submission_root,
-                    ),
-                    workspace_root,
-                ),
-                "reference_doc_path": str(profile_config.supplementary_reference_doc_path.resolve()),
-            }
+        supplementary_material = _supplementary_material_payload(
+            supplementary_source_markdown_path=supplementary_source_markdown_path,
+            supplementary_output_docx_path=supplementary_output_docx_path,
+            profile_config=profile_config,
+            staging_submission_root=staging_submission_root,
+            target_submission_root=target_submission_root,
+            workspace_root=workspace_root,
+        )
+        if supplementary_material is not None:
+            manifest["supplementary_material"] = supplementary_material
 
         manifest["control_plane_route_gate"] = control_plane_route_gate
         write_text(
@@ -494,41 +579,18 @@ def create_submission_minimal_package(
         table_catalog=table_catalog,
         pack_lock_path=pack_lock_path,
     )
-    manifest["source_signature"] = refreshed_source_contract["source_signature"]
-    manifest["source_contract"] = refreshed_source_contract
-    manifest["delivery_layout"] = build_package_layout_block(
-        package_root=target_submission_root,
+    _apply_controller_authorized_delivery_layout(
+        manifest=manifest,
+        target_submission_root=target_submission_root,
         workspace_root=workspace_root,
-        package_role="controller_authorized_package_source",
-        source_package_root=target_submission_root,
-        source_signature=refreshed_source_contract["source_signature"],
-        legacy_input_status="v2_generated",
+        source_contract=refreshed_source_contract,
     )
     dump_json(submission_manifest_path, manifest)
-    dump_json(
-        reproducibility_path(target_submission_root, "source_signature"),
-        build_source_signature_document(
-            source_signature=refreshed_source_contract["source_signature"],
-            source_contract=refreshed_source_contract,
-            package_role="controller_authorized_package_source",
-        ),
+    _write_submission_reproducibility_documents(
+        target_submission_root=target_submission_root,
+        source_contract=refreshed_source_contract,
     )
-    dump_json(
-        reproducibility_path(target_submission_root, "source_relative_paths"),
-        build_source_relative_paths_document(
-            source_relative_paths=refreshed_source_contract.get("source_paths") or [],
-            source_files=refreshed_source_contract.get("source_files") or [],
-            package_role="controller_authorized_package_source",
-        ),
-    )
-    dump_json(
-        reproducibility_path(target_submission_root, "analysis_manifest"),
-        build_analysis_manifest_document(
-            analysis_manifest_source=None,
-            analysis_manifest_present=False,
-            package_role="controller_authorized_package_source",
-        ),
-    )
+    _write_submission_analysis_manifest(target_submission_root=target_submission_root)
     archived_surface_roots = materialize_archived_reference_only_submission_surface_manifests(
         paper_root,
         active_manifest_path=submission_manifest_path,
@@ -563,32 +625,16 @@ def create_submission_minimal_package(
             table_catalog=table_catalog,
             pack_lock_path=pack_lock_path,
         )
-        manifest["source_signature"] = refreshed_source_contract["source_signature"]
-        manifest["source_contract"] = refreshed_source_contract
-        manifest["delivery_layout"] = build_package_layout_block(
-            package_root=target_submission_root,
+        _apply_controller_authorized_delivery_layout(
+            manifest=manifest,
+            target_submission_root=target_submission_root,
             workspace_root=workspace_root,
-            package_role="controller_authorized_package_source",
-            source_package_root=target_submission_root,
-            source_signature=refreshed_source_contract["source_signature"],
-            legacy_input_status="v2_generated",
+            source_contract=refreshed_source_contract,
         )
         dump_json(submission_manifest_path, manifest)
-        dump_json(
-            reproducibility_path(target_submission_root, "source_signature"),
-            build_source_signature_document(
-                source_signature=refreshed_source_contract["source_signature"],
-                source_contract=refreshed_source_contract,
-                package_role="controller_authorized_package_source",
-            ),
-        )
-        dump_json(
-            reproducibility_path(target_submission_root, "source_relative_paths"),
-            build_source_relative_paths_document(
-                source_relative_paths=refreshed_source_contract.get("source_paths") or [],
-                source_files=refreshed_source_contract.get("source_files") or [],
-                package_role="controller_authorized_package_source",
-            ),
+        _write_submission_reproducibility_documents(
+            target_submission_root=target_submission_root,
+            source_contract=refreshed_source_contract,
         )
     if delivery_sync_result is not None or post_materialization_sync_result is not None:
         result = dict(manifest)

@@ -669,6 +669,10 @@ def build_skill_catalog(
     return skill_catalog
 
 
+def _workspace_medical_paper_research_loop_manifest(workspace_cockpit: Mapping[str, Any]) -> dict[str, Any]:
+    return dict(workspace_cockpit.get("medical_paper_research_loop_state") or {})
+
+
 def build_product_frontdesk(
     *,
     profile: WorkspaceProfile,
@@ -828,8 +832,8 @@ def build_product_frontdesk(
             "workspace_medical_paper_ops_health": dict(
                 workspace_cockpit.get("medical_paper_ops_health_state") or {}
             ),
-            "workspace_medical_paper_research_loop": dict(
-                workspace_cockpit.get("medical_paper_research_loop_state") or {}
+            "workspace_medical_paper_research_loop": _workspace_medical_paper_research_loop_manifest(
+                workspace_cockpit
             ),
             "workspace_portable_supervisor_queue_dashboard": _manifest_portable_supervisor_queue_dashboard(
                 workspace_cockpit.get("portable_supervisor_queue_dashboard")

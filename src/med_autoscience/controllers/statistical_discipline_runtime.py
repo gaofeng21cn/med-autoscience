@@ -12,6 +12,12 @@ from med_autoscience.controllers.statistical_discipline_runtime_parts.reference_
     REVIEWER_TEMPLATE_CONCERNS as _REVIEWER_TEMPLATE_CONCERNS,
     WAIVER_MACHINE_CHECKABLE_FIELDS,
 )
+from med_autoscience.controllers.statistical_discipline_runtime_parts.field_projection import (
+    operation_field_blockers as _operation_field_blockers,
+    operation_field_status as _operation_field_status,
+    reviewer_template_field_projection as _reviewer_template_field_projection_payload,
+    waiver_allowed_from_template as _waiver_allowed_from_template,
+)
 
 
 SUPPORTED_STUDY_ARCHETYPES = (
@@ -501,24 +507,21 @@ def _operation_field_projection(
     value_present = _has_text(contract.get(field))
     nominal_primary_evidence = _contains_nominal_p_value(contract.get(field))
     waiver_allowed = field not in FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS
-    if waiver_incomplete:
-        status = "blocked"
-    elif value_present and not nominal_primary_evidence:
-        status = "waived" if waiver_reason and waiver_allowed else "present"
-    elif waiver_reason and waiver_allowed:
-        status = "waived"
-    else:
-        status = "blocked"
-
-    blockers = []
-    if not value_present and (not waiver_reason or not waiver_allowed):
-        blockers.append(f"missing_{field}")
-    if waiver_incomplete and waiver_allowed:
-        blockers.append(f"incomplete_{field}_waiver")
-    if nominal_primary_evidence:
-        blockers.append("nominal_p_value_primary_evidence")
-    if waiver_reason and not waiver_allowed:
-        blockers.append(f"{field}_waiver_not_allowed")
+    status = _operation_field_status(
+        value_present=value_present,
+        nominal_primary_evidence=nominal_primary_evidence,
+        waiver_reason=waiver_reason,
+        waiver_allowed=waiver_allowed,
+        waiver_incomplete=waiver_incomplete,
+    )
+    blockers = _operation_field_blockers(
+        field=field,
+        value_present=value_present,
+        nominal_primary_evidence=nominal_primary_evidence,
+        waiver_reason=waiver_reason,
+        waiver_allowed=waiver_allowed,
+        waiver_incomplete=waiver_incomplete,
+    )
     waiver = (
         {key: value for key, value in waiver_payload.items() if value is not None}
         if waiver_payload and waiver_allowed and not waiver_incomplete
@@ -751,6 +754,25 @@ def build_statistical_reviewer_discipline_library() -> dict[str, Any]:
     }
 
 
+def _reviewer_template_field_projection(
+    *,
+    contract: Mapping[str, Any],
+    field: str,
+    template: dict[str, Any],
+) -> tuple[list[str], dict[str, object]]:
+    waiver_reason = _waiver_reason(contract, field)
+    waiver_incomplete = _waiver_incomplete(contract, field)
+    return _reviewer_template_field_projection_payload(
+        field=field,
+        template=template,
+        waiver_reason=waiver_reason,
+        waiver_incomplete=waiver_incomplete,
+        waiver_allowed=_waiver_allowed_from_template(template),
+        value_present=_has_text(contract.get(field)),
+        nominal_primary_evidence=_contains_nominal_p_value(contract.get(field)),
+    )
+
+
 def build_statistical_reviewer_template_projection(contract: Mapping[str, Any]) -> dict[str, Any]:
     study_archetype = _text(contract.get("study_archetype"))
     if study_archetype not in SUPPORTED_STUDY_ARCHETYPES:
@@ -773,40 +795,13 @@ def build_statistical_reviewer_template_projection(contract: Mapping[str, Any]) 
 
     for field in STATISTICAL_DISCIPLINE_OPERATION_FIELDS:
         template = dict(_mapping(templates.get(field)))
-        waiver_reason = _waiver_reason(contract, field)
-        waiver_incomplete = _waiver_incomplete(contract, field)
-        waiver_requirements = _mapping(template.get("waiver_reason_requirements"))
-        waiver_allowed = waiver_requirements.get("waiver_allowed") is True
-        value_present = _has_text(contract.get(field))
-        nominal_primary_evidence = _contains_nominal_p_value(contract.get(field))
-        status = "present"
-        field_blockers: list[str] = []
-
-        if nominal_primary_evidence:
-            field_blockers.append("nominal_p_value_primary_evidence")
-        if waiver_incomplete and waiver_allowed:
-            status = "blocked"
-            field_blockers.append(f"incomplete_{field}_waiver")
-        elif value_present and waiver_reason and waiver_allowed:
-            status = "waived"
-        elif not value_present:
-            if waiver_reason and waiver_allowed:
-                status = "waived"
-            else:
-                status = "blocked"
-                field_blockers.append(f"missing_{field}")
-        if waiver_reason and not waiver_allowed:
-            status = "blocked"
-            field_blockers.append(f"{field}_waiver_not_allowed")
-        if nominal_primary_evidence:
-            status = "blocked"
-
+        field_blockers, projected_template = _reviewer_template_field_projection(
+            contract=contract,
+            field=field,
+            template=template,
+        )
         blockers.extend(field_blockers)
-        template["status"] = status
-        template["required_for_ready"] = status == "blocked"
-        template["blockers"] = field_blockers
-        template["waiver_reason"] = waiver_reason if waiver_reason and waiver_allowed else ""
-        concern_cards.append(template)
+        concern_cards.append(projected_template)
 
     unique_blockers = list(dict.fromkeys(blockers))
     return {

@@ -162,9 +162,6 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     workspace_medical_paper_ops_health = dict(
         payload.get("workspace_medical_paper_ops_health") or {}
     )
-    workspace_medical_paper_research_loop = dict(
-        payload.get("workspace_medical_paper_research_loop") or {}
-    )
     workspace_portable_supervisor_queue_dashboard = dict(
         payload.get("workspace_portable_supervisor_queue_dashboard") or {}
     )
@@ -307,27 +304,11 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
                 f"{study.get('overall_status') or 'unknown'}；"
                 f"下一步 `{next_action.get('summary') or 'none'}`"
             )
-    if workspace_medical_paper_research_loop:
-        lines.append(
-            f"- Medical Paper Research Loop: {workspace_medical_paper_research_loop.get('summary') or 'none'}"
+    lines.extend(
+        _medical_paper_research_loop_frontdesk_lines(
+            payload.get("workspace_medical_paper_research_loop")
         )
-        counts = dict(workspace_medical_paper_research_loop.get("counts") or {})
-        lines.append(
-            "- Medical Paper Research Loop 计数: "
-            f"study {counts.get('study_count', 0)}；"
-            f"ready {counts.get('ready', 0)}；"
-            f"partial {counts.get('partial', 0)}；"
-            f"blocked {counts.get('blocked', 0)}"
-        )
-        lines.extend(research_loop_markdown_lines(workspace_medical_paper_research_loop, heading=False))
-        for study in workspace_medical_paper_research_loop.get("studies") or []:
-            if not isinstance(study, Mapping):
-                continue
-            lines.append(
-                f"- `{study.get('study_id') or 'unknown-study'}` research loop: "
-                f"{study.get('overall_status') or 'unknown'}"
-            )
-            lines.extend(research_loop_markdown_lines(study, heading=False))
+    )
     lines.extend(render_paper_orchestra_operator_projection_lines(workspace_paper_orchestra_operator_projection))
     lines.extend(_render_open_auto_research_projection_lines(workspace_open_auto_research_projection))
     lines.extend(_render_portable_supervisor_queue_dashboard_lines(workspace_portable_supervisor_queue_dashboard))
@@ -452,6 +433,33 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         lines.append(f"- `{name}`: `{item.get('command') or 'none'}`")
     lines.append("")
     return "\n".join(lines)
+
+
+def _medical_paper_research_loop_frontdesk_lines(state: object) -> list[str]:
+    research_loop = dict(state or {}) if isinstance(state, Mapping) else {}
+    if not research_loop:
+        return []
+    counts = dict(research_loop.get("counts") or {})
+    lines = [
+        f"- Medical Paper Research Loop: {research_loop.get('summary') or 'none'}",
+        (
+            "- Medical Paper Research Loop 计数: "
+            f"study {counts.get('study_count', 0)}；"
+            f"ready {counts.get('ready', 0)}；"
+            f"partial {counts.get('partial', 0)}；"
+            f"blocked {counts.get('blocked', 0)}"
+        ),
+    ]
+    lines.extend(research_loop_markdown_lines(research_loop, heading=False))
+    for study in research_loop.get("studies") or []:
+        if not isinstance(study, Mapping):
+            continue
+        lines.append(
+            f"- `{study.get('study_id') or 'unknown-study'}` research loop: "
+            f"{study.get('overall_status') or 'unknown'}"
+        )
+        lines.extend(research_loop_markdown_lines(study, heading=False))
+    return lines
 
 
 def _render_open_auto_research_projection_lines(projection: Mapping[str, Any]) -> list[str]:

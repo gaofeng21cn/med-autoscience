@@ -319,6 +319,7 @@ def _materialize_literature_evidence_graph(
             "Canonical evidence ledger and publication-eval signals support an Open Auto Research "
             "read-model check for transportability, reporting guidance, and runtime observability."
         ),
+        "study_rationale": "The evidence graph checks whether canonical sources support the current diabetes mortality research route.",
         "anchor_papers": anchor_refs,
         "guidelines": guideline_refs,
         "systematic_reviews": [
@@ -328,6 +329,7 @@ def _materialize_literature_evidence_graph(
         "high_score_neighbor_refs": [
             {
                 "ref": publication_eval_ref,
+                "score": 1.0,
                 "score_source_ref": f"{stable_open_auto_research_soak_path(study_root=study_root)}#publication-eval-signal",
             }
         ],

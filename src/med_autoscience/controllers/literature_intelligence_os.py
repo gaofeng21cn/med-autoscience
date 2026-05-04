@@ -128,6 +128,22 @@ def _source_coverage(payload: Mapping[str, Any]) -> dict[str, int]:
     }
 
 
+def _required_source_missing_reason(payload: Mapping[str, Any]) -> str:
+    ordered_checks = (
+        ("searched_sources", "missing_searched_sources"),
+        ("anchor_papers", "missing_anchor_paper_refs"),
+        ("guidelines", "missing_guideline_refs"),
+        ("systematic_reviews", "missing_systematic_review_refs"),
+        ("journal_neighbor_refs", "missing_journal_neighbor_refs"),
+        ("high_score_neighbor_refs", "missing_high_score_neighbor_refs"),
+        ("citation_ledger_refs", "missing_citation_ledger_refs"),
+    )
+    for key, reason in ordered_checks:
+        if not _has_ref_items(payload.get(key)):
+            return reason
+    return ""
+
+
 def _missing_reason(payload: Mapping[str, Any]) -> str:
     if not _has_text(payload.get("search_date")):
         return "missing_search_date"
@@ -135,26 +151,15 @@ def _missing_reason(payload: Mapping[str, Any]) -> str:
         return "missing_search_strategy"
     if not _keyword_terms_are_complete(payload):
         return "missing_keyword_terms"
-    if not _has_ref_items(payload.get("searched_sources")):
-        return "missing_searched_sources"
     if not _provider_provenance_is_complete(payload.get("provider_provenance")):
         return "missing_provider_provenance"
     if not _study_rationale(payload):
         return "missing_study_rationale"
-    if not _has_ref_items(payload.get("anchor_papers")):
-        return "missing_anchor_paper_refs"
-    if not _has_ref_items(payload.get("guidelines")):
-        return "missing_guideline_refs"
-    if not _has_ref_items(payload.get("systematic_reviews")):
-        return "missing_systematic_review_refs"
-    if not _has_ref_items(payload.get("journal_neighbor_refs")):
-        return "missing_journal_neighbor_refs"
-    if not _has_ref_items(payload.get("high_score_neighbor_refs")):
-        return "missing_high_score_neighbor_refs"
+    missing_source_reason = _required_source_missing_reason(payload)
+    if missing_source_reason:
+        return missing_source_reason
     if not _screening_decisions_are_complete(payload.get("screening_decisions")):
         return "missing_screening_decision_reason"
-    if not _has_ref_items(payload.get("citation_ledger_refs")):
-        return "missing_citation_ledger_refs"
     if _evidence_nodes(payload.get("evidence_nodes")) and not _evidence_nodes_have_provenance(
         payload.get("evidence_nodes")
     ):
