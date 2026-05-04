@@ -15,6 +15,7 @@ from med_autoscience.controllers import (
     control_plane_backfill_apply,
     control_plane_cleanup_apply,
     control_plane_migration_audit,
+    continuous_soak_summary,
     data_assets,
     med_deepscientist_upgrade_check,
     external_research,
@@ -276,7 +277,7 @@ def list_tools() -> list[dict[str, Any]]:
                 "Read MedAutoScience product-entry surfaces through one tool: "
                 f"{product_entry_description_modes_text()}. migration_audit is dry-run-only; governance_report is read-only; "
                 "backfill_apply and cleanup_apply are contract-gated; safe_cache_cleanup_apply is limited to allowlisted delete-safe-cache actions. "
-                "lifecycle_report is read-only unless a separate controller apply contract authorizes cleanup. "
+                "lifecycle_report and continuous_soak_summary are read-only unless a separate controller apply contract authorizes cleanup. "
                 "If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution."
             ),
             "inputSchema": {
@@ -660,6 +661,24 @@ def _call_governance_report(arguments: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _call_continuous_soak_summary(arguments: dict[str, Any]) -> dict[str, Any]:
+    workspace_roots = arguments.get("workspace_roots")
+    if not isinstance(workspace_roots, list) or not workspace_roots:
+        raise ValueError("workspace_roots must be a non-empty list for continuous_soak_summary")
+    resolved_roots: list[Path] = []
+    for value in workspace_roots:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("workspace_roots entries must be non-empty strings")
+        resolved_roots.append(Path(value))
+    result = continuous_soak_summary.build_continuous_soak_summary(
+        workspace_roots=resolved_roots,
+        deep=_optional_bool(arguments, "deep", default=False),
+        max_files=_optional_int(arguments, "max_files"),
+        max_seconds=_optional_float(arguments, "max_seconds"),
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
 def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
     mode = _require_string(arguments, "mode")
     if mode == "report":
@@ -770,6 +789,8 @@ def _call_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
         return _call_governance_report(arguments)
     if mode == "lifecycle_report":
         return _call_lifecycle_report(arguments)
+    if mode == "continuous_soak_summary":
+        return _call_continuous_soak_summary(arguments)
     raise ValueError(f"Unsupported product_entry mode: {mode}")
 
 

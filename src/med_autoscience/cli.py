@@ -78,6 +78,7 @@ control_plane_migration_audit = _LazyModuleProxy(lambda: _load_controller("contr
 control_plane_backfill_apply = _LazyModuleProxy(lambda: _load_controller("control_plane_backfill_apply"))
 control_plane_cleanup_apply = _LazyModuleProxy(lambda: _load_controller("control_plane_cleanup_apply"))
 artifact_lifecycle_operations_report = _LazyModuleProxy(lambda: _load_controller("artifact_lifecycle_operations_report"))
+continuous_soak_summary = _LazyModuleProxy(lambda: _load_controller("continuous_soak_summary"))
 mainline_status = _LazyModuleProxy(lambda: _load_controller("mainline_status"))
 open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_research_soak"))
 portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
@@ -1070,6 +1071,16 @@ def main(argv: list[str] | None = None) -> int:
             print(artifact_lifecycle_operations_report.render_lifecycle_operations_report_markdown(result))
         else:
             print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "control-plane-continuous-soak-summary":
+        result = continuous_soak_summary.build_continuous_soak_summary(
+            workspace_roots=[Path(root) for root in args.workspace_root],
+            deep=bool(args.deep),
+            max_files=args.max_files,
+            max_seconds=args.max_seconds,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "medical-publication-surface":

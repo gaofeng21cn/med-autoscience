@@ -135,7 +135,8 @@
               "control-plane-backfill-apply",
               "control-plane-cleanup-apply",
               "control-plane-safe-cache-cleanup-apply",
-              "control-plane-lifecycle-report"
+              "control-plane-lifecycle-report",
+              "control-plane-continuous-soak-summary"
             ]
           }
         },

@@ -59,6 +59,7 @@ def test_installed_medautosci_mcp_lists_storage_governance_surface_modes() -> No
             "storage_governance_report",
             "control_plane_backfill_apply",
             "control_plane_safe_cache_cleanup_apply",
+            "continuous_soak_summary",
         }
     }
 
@@ -66,6 +67,7 @@ def test_installed_medautosci_mcp_lists_storage_governance_surface_modes() -> No
         "governance_report",
         "backfill_apply",
         "safe_cache_cleanup_apply",
+        "continuous_soak_summary",
     }
     assert expected_modes.issubset(set(mode_schema["enum"]))
 
@@ -110,8 +112,81 @@ def test_installed_medautosci_cli_lists_storage_governance_commands() -> None:
             "storage_governance_report",
             "control_plane_backfill_apply",
             "control_plane_safe_cache_cleanup_apply",
+            "continuous_soak_summary",
         }
     }
 
     for command in expected_commands:
         assert command in result.stdout
+
+
+def test_installed_medautosci_mcp_calls_continuous_soak_summary(tmp_path) -> None:
+    executable = shutil.which("medautosci-mcp")
+    assert executable is not None
+
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = "src" + os.pathsep + environment.get("PYTHONPATH", "")
+    request = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+            "name": "product_entry",
+            "arguments": {
+                "mode": "continuous_soak_summary",
+                "workspace_roots": [str(workspace_root)],
+            },
+        },
+    }
+    result = subprocess.run(
+        [executable],
+        input=json.dumps(request) + "\n",
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=10,
+        env=environment,
+    )
+    payload = json.loads(result.stdout)
+    structured = payload["result"]["structuredContent"]
+
+    assert structured["surface"] == "continuous_soak_summary"
+    assert structured["mutating_actions"] == 0
+    assert structured["unclassified_authority_surface"] == 0
+    assert structured["writes_workspace"] is False
+    assert structured["read_only_contract"] == {
+        "dry_run": True,
+        "cleanup_apply": False,
+        "writes_workspace": False,
+    }
+
+
+def test_installed_medautosci_cli_calls_continuous_soak_summary(tmp_path) -> None:
+    executable = shutil.which("medautosci")
+    assert executable is not None
+
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = "src" + os.pathsep + environment.get("PYTHONPATH", "")
+    result = subprocess.run(
+        [
+            executable,
+            "control-plane-continuous-soak-summary",
+            "--workspace-root",
+            str(workspace_root),
+        ],
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=10,
+        env=environment,
+    )
+    payload = json.loads(result.stdout)
+
+    assert payload["surface"] == "continuous_soak_summary"
+    assert payload["mutating_actions"] == 0
+    assert payload["unclassified_authority_surface"] == 0
+    assert payload["writes_workspace"] is False

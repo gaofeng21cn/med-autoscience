@@ -86,6 +86,16 @@ CONTROL_PLANE_OPERATIONS_COMMANDS: tuple[ControlPlaneOperationsCommand, ...] = (
         required_fields=("workspace_roots",),
         optional_fields=("markdown", "deep", "max_files", "max_seconds"),
     ),
+    ControlPlaneOperationsCommand(
+        command="control-plane-continuous-soak-summary",
+        cli_command="control-plane-continuous-soak-summary",
+        mcp_mode="continuous_soak_summary",
+        surface="continuous_soak_summary",
+        description="Read-only installed smoke summary for migration, lifecycle, storage governance, and cleanup planning.",
+        required_fields=("workspace_roots",),
+        optional_fields=("deep", "max_files", "max_seconds"),
+        dry_run_only=True,
+    ),
 )
 
 CONTROL_PLANE_OPERATION_COMMANDS_BY_COMMAND = {

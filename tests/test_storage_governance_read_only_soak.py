@@ -95,6 +95,7 @@ def test_dm_cvd_and_nf_pitnet_storage_governance_soak_is_read_only(tmp_path: Pat
     lifecycle = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
     migration = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
     cleanup = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    summary = importlib.import_module("med_autoscience.controllers.continuous_soak_summary")
     workspaces = [
         fixtures.build_migration_audit_fixture_legacy_delivery_manifest_backfill(tmp_path / "dm"),
         fixtures.build_nf_pitnet_migration_audit_fixture(tmp_path / "nf"),
@@ -107,6 +108,7 @@ def test_dm_cvd_and_nf_pitnet_storage_governance_soak_is_read_only(tmp_path: Pat
     governance_report = lifecycle.run_lifecycle_operations_report(workspace_roots=workspaces)
     backfill_plan = migration.run_migration_audit(workspace_roots=workspaces, dry_run=True)
     cleanup_plan = cleanup.run_cleanup_apply(workspace_roots=workspaces, apply=False)
+    soak_summary = summary.build_continuous_soak_summary(workspace_roots=workspaces)
 
     assert _regular_files(tmp_path) == before
     assert cache_root.exists()
@@ -150,6 +152,40 @@ def test_dm_cvd_and_nf_pitnet_storage_governance_soak_is_read_only(tmp_path: Pat
     assert "delete-safe-cache" in retention_plan["mutation_policy"]["allowed_physical_actions"]
     assert cleanup_plan["apply_plan"][0]["action"] == "delete-safe-cache"
     assert cleanup_plan["apply_plan"][0]["eligible_for_apply"] is True
+    assert soak_summary["surface"] == "continuous_soak_summary"
+    assert soak_summary["mutating_actions"] == 0
+    assert soak_summary["unclassified_authority_surface"] == 0
+    assert soak_summary["writes_workspace"] is False
+    assert 1 <= len(soak_summary["top_growth_buckets"]) <= 5
+    assert [item["bytes"] for item in soak_summary["top_growth_buckets"]] == sorted(
+        [item["bytes"] for item in soak_summary["top_growth_buckets"]],
+        reverse=True,
+    )
+    assert all(item["bytes"] > 0 for item in soak_summary["top_growth_buckets"])
+    assert soak_summary["backfill_blockers"] == [
+        {
+            "workspace_style": "dm_cvd",
+            "study_id": "007-legacy-delivery-manifest-backfill",
+            "plan_type": "delivery_manifest_historical_backfill",
+            "missing_surfaces": [
+                "delivery_manifest_lifecycle_hook",
+                "source_signature",
+                "publication_refs",
+            ],
+            "writes_workspace": False,
+            "next_action": "rerun_publication_gate_after_canonical_regeneration",
+        }
+    ]
+    assert soak_summary["next_safe_action"] == {
+        "action": "regenerate_projection_before_cleanup_review",
+        "read_only": True,
+        "reason": "canonical_regeneration_required",
+    }
+    assert soak_summary["read_only_contract"] == {
+        "dry_run": True,
+        "cleanup_apply": False,
+        "writes_workspace": False,
+    }
 
 
 def test_lifecycle_retention_report_safe_cache_apply_path_is_approval_gated(
