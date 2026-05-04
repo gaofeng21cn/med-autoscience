@@ -53,6 +53,30 @@ def test_orchestrator_selects_line_and_materializes_controller_decision(tmp_path
     assert written["quality_claim_authorized"] is False
 
 
+def test_orchestrator_persists_line_decision_summary_in_controller_decision(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+    study_root = tmp_path / "study"
+
+    projection = module.materialize_route_decision_orchestration(
+        study_root=study_root,
+        candidates=[_candidate("baseline-line", 4), _candidate("validation-line", 5, risk_cost=2)],
+        requested_action="select_line",
+    )
+
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    written = json.loads(decision_path.read_text(encoding="utf-8"))
+    line_decision = written["study_line_decision"]
+
+    assert projection["study_line_decision"]["controller_decision_ref"] == str(decision_path.resolve())
+    assert line_decision["controller_decision_ref"] == str(decision_path.resolve())
+    assert line_decision["current_route"]["line_id"] == "validation-line"
+    assert line_decision["current_route"]["route_decision"] == "proceed_to_baseline"
+    assert line_decision["route_back"]["route_decision"] == "return_to_scout"
+    assert line_decision["switch_line"]["route_decision"] == "switch_line"
+    assert line_decision["human_gate"]["route_decision"] == "human_gate"
+    assert [route["line_id"] for route in line_decision["alternative_routes"]] == ["baseline-line"]
+
+
 def test_orchestrator_routes_back_to_scout_when_literature_is_blocked(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
 
@@ -274,6 +298,8 @@ def test_orchestrator_materializes_stop_loss_before_continuing_weak_route(tmp_pa
     assert projection["route_control_decision"] == "switch_line"
     assert projection["route_decision"] == "switch_line"
     assert projection["selected_line_id"] is None
+    assert projection["study_line_decision"]["selected_line_id"] is None
+    assert projection["study_line_decision"]["current_route"] is None
     assert projection["next_action"] == "switch_line"
     assert projection["route_control_memo"]["decision"] == "switch_line"
     assert projection["route_control_memo"]["materialized_paths"] == {"stop_loss_memo": str(stop_loss_path)}
@@ -281,6 +307,8 @@ def test_orchestrator_materializes_stop_loss_before_continuing_weak_route(tmp_pa
     assert decision_path.is_file()
     written = json.loads(decision_path.read_text(encoding="utf-8"))
     assert written["route_control_decision"] == "switch_line"
+    assert written["study_line_decision"]["selected_line_id"] is None
+    assert written["study_line_decision"]["current_route"] is None
     assert written["write_authorized"] is True
     assert written["quality_claim_authorized"] is False
 

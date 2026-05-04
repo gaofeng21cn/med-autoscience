@@ -82,6 +82,57 @@ def test_ranking_chooses_strongest_line(tmp_path: Path) -> None:
     ]
 
 
+def test_decision_engine_projects_current_route_alternatives_and_controller_actions(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_line_decision_engine")
+
+    result = module.build_study_line_decision(
+        study_root=tmp_path / "study",
+        candidates=[
+            _candidate(
+                "descriptive-table",
+                novelty=2,
+                clinical_relevance=3,
+                data_fit=5,
+                external_validation=2,
+                analysis_feasibility=5,
+                journal_fit=3,
+                risk_cost=1,
+            ),
+            _candidate(
+                "transportable-risk-model",
+                novelty=4,
+                clinical_relevance=5,
+                data_fit=5,
+                external_validation=4,
+                analysis_feasibility=4,
+                journal_fit=5,
+                risk_cost=2,
+            ),
+        ],
+        controller_decision_ref="artifacts/controller_decisions/latest.json",
+    )
+
+    assert result["current_route"]["line_id"] == "transportable-risk-model"
+    assert result["current_route"]["route_decision"] == "proceed_to_baseline"
+    assert result["current_route"]["controller_decision_ref"] == "artifacts/controller_decisions/latest.json"
+    assert result["current_route"]["dimensions"]["risk_cost"] == 2
+    assert result["current_route"]["stop_threshold"] == "stop if external validation is unavailable or calibration is poor"
+
+    assert [route["line_id"] for route in result["alternative_routes"]] == ["descriptive-table"]
+    alternative = result["alternative_routes"][0]
+    assert alternative["route_decision"] == "switch_line"
+    assert alternative["controller_decision_ref"] == "artifacts/controller_decisions/latest.json"
+    assert alternative["dimensions"]["novelty"] == 2
+    assert alternative["stop_threshold"] == "stop if external validation is unavailable or calibration is poor"
+
+    assert result["route_back"]["route_decision"] == "return_to_scout"
+    assert result["route_back"]["controller_decision_ref"] == "artifacts/controller_decisions/latest.json"
+    assert result["switch_line"]["route_decision"] == "switch_line"
+    assert result["switch_line"]["controller_decision_ref"] == "artifacts/controller_decisions/latest.json"
+    assert result["human_gate"]["route_decision"] == "human_gate"
+    assert result["human_gate"]["controller_decision_ref"] == "artifacts/controller_decisions/latest.json"
+
+
 def test_missing_dimension_blocked(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_line_decision_engine")
     candidate = _candidate(

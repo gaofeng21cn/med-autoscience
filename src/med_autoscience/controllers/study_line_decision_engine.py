@@ -9,6 +9,7 @@ SCHEMA_VERSION = 1
 SURFACE = "study_line_decision_engine"
 ARTIFACT_RELATIVE_PATH = Path("artifacts/medical_paper/study_line_decision.json")
 CONTROLLER_DECISION_REF = "controller_decisions/latest.json"
+_UNSET = object()
 
 REQUIRED_DIMENSIONS = (
     "novelty",
@@ -28,6 +29,16 @@ BENEFIT_DIMENSIONS = (
     "external_validation",
     "analysis_feasibility",
     "journal_fit",
+)
+
+ROUTE_COMPARISON_AXES = (
+    "novelty",
+    "clinical_relevance",
+    "data_fit",
+    "external_validation",
+    "journal_fit",
+    "cost_risk",
+    "stop_threshold",
 )
 
 ALLOWED_ROUTE_DECISIONS = {
@@ -141,6 +152,134 @@ def _rank_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
     )
 
 
+def _route_candidate_summary(
+    *,
+    candidate: Mapping[str, Any],
+    route_decision: str,
+    controller_decision_ref: str,
+) -> dict[str, Any]:
+    dimensions = _mapping(candidate.get("dimensions"))
+    dimension_scores = _mapping(candidate.get("dimension_scores"))
+    return {
+        "line_id": _text(candidate.get("line_id")),
+        "title": _text(candidate.get("title")),
+        "status": _text(candidate.get("status")),
+        "route_decision": route_decision,
+        "controller_decision_ref": controller_decision_ref,
+        "total_score": candidate.get("total_score"),
+        "comparison_axes": list(ROUTE_COMPARISON_AXES),
+        "dimensions": {key: dimensions.get(key) for key in REQUIRED_DIMENSIONS if key in dimensions},
+        "cost_risk": dimensions.get("risk_cost"),
+        "dimension_scores": {key: dimension_scores.get(key) for key in BENEFIT_DIMENSIONS + ("risk_cost",)},
+        "stop_threshold": _text(dimensions.get("stop_threshold")),
+        "evidence_refs": list(_durable_evidence_refs(candidate.get("evidence_refs"))),
+        "blockers": list(candidate.get("blockers") or []),
+    }
+
+
+def _route_action(
+    *,
+    route_decision: str,
+    controller_decision_ref: str,
+    selected_line_id: str | None = None,
+    alternative_line_ids: list[str] | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "route_decision": route_decision,
+        "controller_decision_ref": controller_decision_ref,
+        "requires_controller_decision_write": True,
+    }
+    if selected_line_id:
+        payload["selected_line_id"] = selected_line_id
+    if alternative_line_ids is not None:
+        payload["alternative_line_ids"] = list(alternative_line_ids)
+    if route_decision == "return_to_scout":
+        payload["route_target"] = "literature_scout"
+    if route_decision == "human_gate":
+        payload["requires_human_decision"] = True
+    return payload
+
+
+def _route_projection(
+    *,
+    ranked_candidates: list[dict[str, Any]],
+    selected_line_id: str | None,
+    route_decision: str,
+    controller_decision_ref: str,
+) -> dict[str, Any]:
+    current_candidate = next(
+        (candidate for candidate in ranked_candidates if _text(candidate.get("line_id")) == _text(selected_line_id)),
+        None,
+    )
+    current_route = (
+        _route_candidate_summary(
+            candidate=current_candidate,
+            route_decision=route_decision,
+            controller_decision_ref=controller_decision_ref,
+        )
+        if current_candidate
+        else None
+    )
+    alternatives = [
+        _route_candidate_summary(
+            candidate=candidate,
+            route_decision="switch_line",
+            controller_decision_ref=controller_decision_ref,
+        )
+        for candidate in ranked_candidates
+        if _text(candidate.get("status")) == "eligible" and _text(candidate.get("line_id")) != _text(selected_line_id)
+    ]
+    alternative_line_ids = [_text(candidate.get("line_id")) for candidate in alternatives if _text(candidate.get("line_id"))]
+    return {
+        "current_route": current_route,
+        "alternative_routes": alternatives,
+        "route_back": _route_action(
+            route_decision="return_to_scout",
+            controller_decision_ref=controller_decision_ref,
+        ),
+        "switch_line": _route_action(
+            route_decision="switch_line",
+            controller_decision_ref=controller_decision_ref,
+            alternative_line_ids=alternative_line_ids,
+        ),
+        "human_gate": _route_action(
+            route_decision="human_gate",
+            controller_decision_ref=controller_decision_ref,
+            selected_line_id=selected_line_id,
+        ),
+    }
+
+
+def summarize_study_line_decision(
+    *,
+    scorecard: Mapping[str, Any],
+    route_decision: str | None = None,
+    selected_line_id: object = _UNSET,
+    controller_decision_ref: str | None = None,
+) -> dict[str, Any]:
+    ranked_candidates = [dict(candidate) for candidate in scorecard.get("ranking") or [] if isinstance(candidate, Mapping)]
+    resolved_route_decision = _text(route_decision) or _text(scorecard.get("route_decision")) or "human_gate"
+    if selected_line_id is _UNSET:
+        resolved_selected_line_id = _text(scorecard.get("selected_line_id"))
+    else:
+        resolved_selected_line_id = _text(selected_line_id)
+    resolved_ref = _text(controller_decision_ref) or _text(scorecard.get("controller_decision_ref")) or CONTROLLER_DECISION_REF
+    return {
+        "surface": SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "status": _text(scorecard.get("status")),
+        "selected_line_id": resolved_selected_line_id or None,
+        "route_decision": resolved_route_decision,
+        "controller_decision_ref": resolved_ref,
+        **_route_projection(
+            ranked_candidates=ranked_candidates,
+            selected_line_id=resolved_selected_line_id or None,
+            route_decision=resolved_route_decision,
+            controller_decision_ref=resolved_ref,
+        ),
+    }
+
+
 def build_study_line_decision(
     *,
     study_root: Path,
@@ -171,6 +310,12 @@ def build_study_line_decision(
     if blockers:
         resolved_route_decision = "human_gate"
 
+    route_projection = _route_projection(
+        ranked_candidates=ranked_candidates,
+        selected_line_id=selected_line_id,
+        route_decision=resolved_route_decision,
+        controller_decision_ref=controller_decision_ref,
+    )
     discarded_lines = [
         {
             "line_id": candidate["line_id"],
@@ -192,6 +337,7 @@ def build_study_line_decision(
         "route_decision": resolved_route_decision,
         "controller_decision_ref": controller_decision_ref,
         "controller_decision_ref_suggestion": controller_decision_ref,
+        **route_projection,
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
         "ranking": ranked_candidates,

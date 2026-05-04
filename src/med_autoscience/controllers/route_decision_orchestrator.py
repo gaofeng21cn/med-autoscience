@@ -103,6 +103,7 @@ def _controller_decision_payload(
     selected_line_id: str | None,
     blockers: Sequence[str],
     route_control_memo: Mapping[str, Any] | None = None,
+    study_line_decision: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     write_authorized = not blockers and route_decision != "human_gate"
     payload: dict[str, Any] = {
@@ -120,6 +121,9 @@ def _controller_decision_payload(
         "study_root": str(study_root),
         "blockers": list(blockers),
     }
+    line_decision = _mapping(study_line_decision)
+    if line_decision:
+        payload["study_line_decision"] = dict(line_decision)
     memo = _mapping(route_control_memo)
     if memo:
         payload["route_control_memo_ref"] = _text(
@@ -530,6 +534,12 @@ def build_route_decision_orchestration(
     route_signals_payload = _mapping(route_control["route_signals"])
 
     controller_decision_ref = (root / CONTROLLER_DECISION_PATH).resolve()
+    study_line_decision = study_line_decision_engine.summarize_study_line_decision(
+        scorecard=scorecard,
+        route_decision=route_decision,
+        selected_line_id=selected_line_id,
+        controller_decision_ref=str(controller_decision_ref),
+    )
     controller_decision = _controller_decision_payload(
         study_root=root,
         requested_action=action,
@@ -538,6 +548,7 @@ def build_route_decision_orchestration(
         selected_line_id=selected_line_id,
         blockers=blockers,
         route_control_memo=route_control_memo,
+        study_line_decision=study_line_decision,
     )
     candidate_path_graph = _build_candidate_path_graph(
         scorecard=scorecard,
@@ -560,6 +571,7 @@ def build_route_decision_orchestration(
         "next_action": next_action,
         "controller_decision_ref": str(controller_decision_ref),
         "controller_decision": controller_decision,
+        "study_line_decision": study_line_decision,
         "candidate_path_graph": candidate_path_graph,
         "scorecard": dict(scorecard),
         "route_control_memo": route_control_memo,
