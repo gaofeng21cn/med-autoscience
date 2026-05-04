@@ -375,6 +375,165 @@ def test_supervisor_scan_explicit_runtime_platform_repair_clears_stale_specifici
     assert study["paper_package_mutated"] is False
 
 
+def test_supervisor_scan_runtime_platform_repair_allows_concrete_bundle_stage_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "003-endocrine-burden-followup", quest_id="quest-nf")
+    quest_root = profile.runtime_root / "quest-nf"
+    _write_json(
+        quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "blocked",
+            "blockers": ["stale_study_delivery_mirror"],
+            "current_required_action": "complete_bundle_stage",
+            "supervisor_phase": "bundle_stage_blocked",
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "recommended_actions": [
+                {
+                    "action_type": "continue_same_line",
+                    "route_target": "finalize",
+                    "route_rationale": "bundle-stage work is unlocked and can proceed on the critical path",
+                    "work_unit_fingerprint": "publication-blockers::new",
+                    "blocking_work_units": [
+                        {
+                            "unit_id": "submission_minimal_refresh",
+                            "lane": "finalize",
+                            "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
+                        }
+                    ],
+                    "next_work_unit": {
+                        "unit_id": "submission_minimal_refresh",
+                        "lane": "finalize",
+                        "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "current-gate-replay",
+            "study_id": "003-endocrine-burden-followup",
+            "quest_id": "quest-nf",
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+            "route_target": "finalize",
+            "route_rationale": "bundle-stage blockers are now on the critical path for this paper line",
+            "next_work_unit": {
+                "unit_id": "publication_gate_replay",
+                "lane": "controller",
+                "summary": "Replay the publication gate against current authority signatures before dispatching new work.",
+                "control_surface": "publication_gate",
+            },
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "status": "active",
+            "quest_id": "quest-nf",
+            "active_run_id": None,
+            "worker_running": False,
+            "pending_user_message_count": 0,
+            "pending_user_message_ids": [],
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "needs_specificity",
+            "same_fingerprint_auto_turn_count": 7,
+            "last_stage_fingerprint": "old-fingerprint",
+            "retry_state": {"terminal": True, "gate_needs_specificity": True},
+            "last_controller_decision_authorization": {
+                "decision_id": "old-specificity",
+                "route_target": "controller",
+                "work_unit_id": "gate_needs_specificity",
+                "work_unit_fingerprint": "publication-blockers::old",
+                "controller_work_unit_lifecycle": {
+                    "lifecycle_state": "needs_specificity",
+                    "latest_event_type": "needs_specificity",
+                    "delivery_blocked": True,
+                    "block_reason": "needs_specificity",
+                    "terminal_consumed": True,
+                },
+            },
+        },
+    )
+    ensure_calls: list[dict[str, object]] = []
+
+    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+        ensure_calls.append(dict(kwargs))
+        return {
+            "study_id": "003-endocrine-burden-followup",
+            "quest_id": "quest-nf",
+            "quest_status": "active",
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+        }
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "003-endocrine-burden-followup",
+            "study_root": str(study_root),
+            "quest_id": "quest-nf",
+            "quest_root": str(quest_root),
+            "quest_status": "active",
+            "reason": "runtime_recovery_retry_budget_exhausted",
+            "runtime_liveness_audit": {
+                "active_run_id": None,
+                "runtime_audit": {"worker_running": False, "active_run_id": None},
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": "003-endocrine-burden-followup",
+            "paper_stage": "write",
+            "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+            "supervision": {"active_run_id": None, "health_status": "recovering"},
+        },
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=("003-endocrine-burden-followup",),
+        apply_safe_actions=True,
+        apply_runtime_platform_repair=True,
+    )
+
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    study = result["studies"][0]
+    assert len(ensure_calls) == 1
+    assert "last_controller_decision_authorization" not in runtime_state
+    assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
+    assert study["runtime_platform_repair_apply"]["dispatch_status"] == "applied"
+    assert study["runtime_platform_repair_apply"]["gate_status"]["ready"] is True
+    assert study["runtime_platform_repair_apply"]["gate_status"]["blockers"] == ["stale_study_delivery_mirror"]
+    assert study["runtime_platform_repair_apply"]["stale_specificity_cleared"] is True
+    assert study["paper_package_mutated"] is False
+
+
 def test_supervisor_scan_queues_specificity_and_ai_reviewer_actions_without_quality_authority(
     monkeypatch,
     tmp_path: Path,

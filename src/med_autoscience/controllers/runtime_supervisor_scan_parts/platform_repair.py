@@ -36,6 +36,17 @@ RUNTIME_PLATFORM_REPAIR_RUNTIME_ACTIONS = {
     "run_quality_repair_batch",
 }
 SPECIFICITY_WORK_UNIT_IDS = {"gate_needs_specificity", "needs_specificity"}
+CONCRETE_BUNDLE_STAGE_REQUIRED_ACTIONS = {
+    "complete_bundle_stage",
+    "continue_bundle_stage",
+    "continue_write_stage",
+}
+CONCRETE_BUNDLE_STAGE_SUPERVISOR_PHASES = {
+    "bundle_stage_blocked",
+    "bundle_stage_ready",
+    "write_stage_ready",
+}
+REDRIVE_CONTROLLER_WORK_UNIT_IDS = {"publication_gate_replay"}
 
 
 def _utc_now() -> str:
@@ -119,22 +130,34 @@ def _runtime_state_has_stale_specificity_terminal(runtime_state: Mapping[str, An
     return any(marker in SPECIFICITY_WORK_UNIT_IDS for marker in markers)
 
 
-def _publication_gate_clear(quest_root: str | None) -> dict[str, Any]:
+def _publication_gate_ready_for_specificity_redrive(quest_root: str | None) -> dict[str, Any]:
     if quest_root is None:
-        return {"clear": False, "reason": "quest_root_missing"}
+        return {"ready": False, "clear": False, "reason": "quest_root_missing"}
     report_path = Path(quest_root).expanduser().resolve() / "artifacts" / "reports" / "publishability_gate" / "latest.json"
     payload = _read_json_object(report_path)
     if payload is None:
-        return {"clear": False, "reason": "publishability_gate_report_missing"}
+        return {"ready": False, "clear": False, "reason": "publishability_gate_report_missing"}
     blockers = _string_items(payload.get("blockers"))
     status = _text(payload.get("status"))
     clear = status == "clear" and not blockers
+    current_required_action = _text(payload.get("current_required_action"))
+    supervisor_phase = _text(payload.get("supervisor_phase"))
+    concrete_bundle_stage = (
+        bool(blockers)
+        and not any(blocker in SPECIFICITY_WORK_UNIT_IDS for blocker in blockers)
+        and current_required_action in CONCRETE_BUNDLE_STAGE_REQUIRED_ACTIONS
+        and supervisor_phase in CONCRETE_BUNDLE_STAGE_SUPERVISOR_PHASES
+    )
+    ready = clear or concrete_bundle_stage
     return {
+        "ready": ready,
         "clear": clear,
         "status": status,
         "blockers": blockers,
+        "current_required_action": current_required_action,
+        "supervisor_phase": supervisor_phase,
         "path": str(report_path),
-        "reason": None if clear else "publishability_gate_not_clear",
+        "reason": None if ready else "publishability_gate_not_ready_for_specificity_redrive",
     }
 
 
@@ -178,7 +201,7 @@ def _controller_decision_supersedes_specificity(
     if not (action_types & RUNTIME_PLATFORM_REPAIR_RUNTIME_ACTIONS):
         return {"supersedes": False, "reason": "controller_decision_runtime_action_missing", "path": str(decision_path)}
     route_target = _text(payload.get("route_target"))
-    if route_target in {"controller", "decision"}:
+    if route_target in {"controller", "decision"} and current_work_unit_id not in REDRIVE_CONTROLLER_WORK_UNIT_IDS:
         return {"supersedes": False, "reason": "controller_decision_still_terminal_controller_route", "path": str(decision_path)}
     return {
         "supersedes": True,
@@ -331,8 +354,8 @@ def apply_runtime_platform_repair(
     runtime_state = _read_json_object(runtime_path)
     if runtime_state is None:
         return {**base, "dispatch_status": "blocked", "reason": "runtime_state_missing_or_invalid"}
-    gate_status = _publication_gate_clear(quest_root)
-    if gate_status.get("clear") is not True:
+    gate_status = _publication_gate_ready_for_specificity_redrive(quest_root)
+    if gate_status.get("ready") is not True:
         return {**base, "dispatch_status": "blocked", "reason": _text(gate_status.get("reason")), "gate_status": gate_status}
     supersession = _controller_decision_supersedes_specificity(
         study_root=study_root,
