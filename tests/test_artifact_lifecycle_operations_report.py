@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 from . import control_plane_fixtures as fixtures
@@ -345,6 +346,50 @@ def test_lifecycle_operations_report_adds_compact_storage_budget_operational_sum
     assert governance["top_growth_buckets"][0]["source_bucket"] == "runtime"
     assert governance["recommended_operations"][0]["operation_type"] == "regenerate_projection_before_cleanup"
     assert governance["next_safe_action"]["action"] == "regenerate_projection_before_cleanup_review"
+
+
+def test_lifecycle_operations_report_projects_storage_governance_history_and_alerts(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    history_path = workspace_root / "artifacts" / "storage_governance" / "history.jsonl"
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    history_entries = [
+        {"observed_at": "2026-04-04T00:00:00Z", "total_bytes": 100},
+        {"observed_at": "2026-04-26T00:00:00Z", "total_bytes": 150},
+        {"observed_at": "2026-05-03T00:00:00Z", "total_bytes": 200},
+    ]
+    history_path.write_text(
+        "\n".join(json.dumps(entry) for entry in history_entries) + "\n",
+        encoding="utf-8",
+    )
+    _write(workspace_root / "studies" / "001-risk" / "paper" / "source" / "manuscript_source.md", "source\n")
+    _write(workspace_root / "storage_audit" / "latest.json", '{"runtime": {"bytes": 260, "file_count": 2}}\n')
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+    history = report["storage_governance_history"]
+    governance = report["storage_governance_policy"]
+
+    assert history["mutation_policy"] == {
+        "read_only": True,
+        "writes_workspace": False,
+        "recordable_entry_only": True,
+        "history_append_performed": False,
+    }
+    assert history["previous_snapshot"]["total_bytes"] == 200
+    assert history["recordable_entry"]["total_bytes"] == report["summary"]["total_bytes"]
+    assert history["history_entries"] == history_entries
+    assert governance["previous_snapshot"]["total_bytes"] == 200
+    assert governance["trend_summary"]["windows"]["7d"]["baseline_bytes"] == 150
+    assert governance["trend_summary"]["windows"]["30d"]["baseline_bytes"] == 100
+    assert governance["alert_status"]["status"] in {
+        "within_budget",
+        "warning",
+        "critical",
+        "blocked_restore_contract",
+        "safe_cache_candidate_pending_approval",
+    }
 
 
 def test_lifecycle_operations_report_markdown_includes_operational_summary(

@@ -49,6 +49,7 @@ from med_autoscience.controllers.artifact_retention_operations_plan import (
     retention_policy_catalog,
 )
 from med_autoscience.controllers.storage_governance_policy_kernel import build_storage_governance_policy_projection
+from med_autoscience.controllers.storage_governance_history import build_storage_governance_history_projection
 
 
 SCHEMA_VERSION = 1
@@ -108,6 +109,11 @@ def run_lifecycle_operations_report(
         "historical_backfill_plan_count": _aggregate_historical_backfill_plan_count(workspaces),
         "workspaces": workspaces,
     }
+    report["storage_governance_history"] = build_storage_governance_history_projection(
+        workspaces=workspaces,
+        summary=summary,
+        source_totals=source_totals,
+    )
     report["storage_governance_policy"] = build_storage_governance_policy_projection(lifecycle_report=report)
     return report
 

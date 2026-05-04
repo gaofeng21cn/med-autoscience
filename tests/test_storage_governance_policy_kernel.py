@@ -79,6 +79,65 @@ def test_storage_governance_kernel_projects_budget_status_and_trend_delta() -> N
     assert workspace["top_growth_buckets"][0]["source_bucket"] == "runtime"
 
 
+def test_storage_governance_kernel_reduces_history_into_7_and_30_day_trends() -> None:
+    module = importlib.import_module("med_autoscience.controllers.storage_governance_policy_kernel")
+
+    projection = module.build_storage_governance_policy_projection(
+        lifecycle_report={
+            **_report(total_bytes=1_400, previous_total_bytes=1_200),
+            "storage_governance_history": {
+                "previous_snapshot": {
+                    "observed_at": "2026-05-03T00:00:00Z",
+                    "total_bytes": 1_200,
+                },
+                "history_entries": [
+                    {"observed_at": "2026-04-01T00:00:00Z", "total_bytes": 700},
+                    {"observed_at": "2026-04-15T00:00:00Z", "total_bytes": 900},
+                    {"observed_at": "2026-04-28T00:00:00Z", "total_bytes": 1_000},
+                    {"observed_at": "2026-05-03T00:00:00Z", "total_bytes": 1_200},
+                ],
+                "recordable_entry": {
+                    "observed_at": "2026-05-04T00:00:00Z",
+                    "total_bytes": 1_400,
+                },
+            },
+        },
+        threshold_schema={"workspace": {"warning_bytes": 2_000, "critical_bytes": 3_000}},
+    )
+
+    assert projection["previous_snapshot"]["total_bytes"] == 1_200
+    assert projection["trend_summary"]["previous_snapshot"]["delta_bytes"] == 200
+    assert projection["trend_summary"]["windows"]["7d"] == {
+        "window_days": 7,
+        "sample_count": 3,
+        "baseline_bytes": 1_000,
+        "current_bytes": 1_400,
+        "delta_bytes": 400,
+        "delta_ratio": 0.4,
+        "growth_bucket": "growth",
+    }
+    assert projection["trend_summary"]["windows"]["30d"]["baseline_bytes"] == 900
+    assert projection["trend_summary"]["windows"]["30d"]["delta_bytes"] == 500
+
+
+def test_storage_governance_kernel_projects_alert_statuses() -> None:
+    module = importlib.import_module("med_autoscience.controllers.storage_governance_policy_kernel")
+
+    thresholds = {"workspace": {"warning_bytes": 1_000, "critical_bytes": 2_000}}
+    assert module.build_storage_governance_policy_projection(
+        lifecycle_report=_report(total_bytes=900),
+        threshold_schema=thresholds,
+    )["alert_status"]["status"] == "within_budget"
+    assert module.build_storage_governance_policy_projection(
+        lifecycle_report=_report(total_bytes=1_000),
+        threshold_schema=thresholds,
+    )["alert_status"]["status"] == "warning"
+    assert module.build_storage_governance_policy_projection(
+        lifecycle_report=_report(total_bytes=2_000),
+        threshold_schema=thresholds,
+    )["alert_status"]["status"] == "critical"
+
+
 def test_storage_governance_kernel_keeps_read_only_when_recommending_safe_cache() -> None:
     module = importlib.import_module("med_autoscience.controllers.storage_governance_policy_kernel")
     operations = [
@@ -101,6 +160,13 @@ def test_storage_governance_kernel_keeps_read_only_when_recommending_safe_cache(
     assert projection["recommended_operations"][0]["operation_type"] == "delete_safe_cache_candidate"
     assert projection["recommended_operations"][0]["read_only"] is True
     assert projection["recommended_operations"][0]["physical_apply_performed"] is False
+    assert projection["alert_status"] == {
+        "status": "safe_cache_candidate_pending_approval",
+        "severity": "warning",
+        "reason": "safe_cache_candidate_available",
+        "read_only": True,
+        "physical_apply_performed": False,
+    }
     assert projection["next_safe_action"] == {
         "action": "review_safe_cache_delete_candidate",
         "read_only": True,
@@ -141,9 +207,15 @@ def test_storage_governance_kernel_prioritizes_blocked_reason_and_restore_contra
         "ops/runtime/quest/.ds/cold_archive/payload.tar.gz"
     )
     assert projection["recommended_operations"][0]["operation_type"] == "restore_contract_gap"
+    assert projection["alert_status"] == {
+        "status": "blocked_restore_contract",
+        "severity": "blocked",
+        "reason": "restore_contract_gap",
+        "read_only": True,
+        "physical_apply_performed": False,
+    }
     assert projection["next_safe_action"] == {
         "action": "define_restore_contract_before_cleanup",
         "read_only": True,
         "reason": "restore_contract_gap",
     }
-
