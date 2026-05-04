@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
+import shlex
 from typing import Iterable, Sequence
 
 
@@ -319,6 +321,13 @@ _GENERIC_PYTHON_REGRESSION_COMMANDS = (
     "make test-regression",
 )
 
+_MATCHED_CATEGORY_FAIL_POLICY = "matched_paths_run_planned_commands"
+_GENERIC_PYTHON_FAIL_POLICY = "unknown_python_and_test_paths_route_to_regression"
+_UNKNOWN_PATH_POLICY = {
+    "python_and_test_paths": "regression",
+    "docs_workflow_config_paths": "fail-closed",
+}
+
 _DEFAULT_COVERAGE_PATH_FAMILIES: tuple[PreflightCoveragePathFamily, ...] = (
     PreflightCoveragePathFamily(
         family_id="source_root",
@@ -501,17 +510,68 @@ def plan_commands_for_categories(categories: Iterable[str]) -> list[str]:
     return planned_commands
 
 
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _planned_pytest_paths(command: str) -> tuple[str, ...]:
+    parts = shlex.split(command)
+    if len(parts) < 3 or parts[:3] != ["uv", "run", "pytest"]:
+        return ()
+    return tuple(part for part in parts[3:] if part.startswith("tests/"))
+
+
+def _planned_pytest_path_existence(commands: Sequence[str]) -> list[dict[str, object]]:
+    repo_root = _repo_root()
+    return [
+        {
+            "command": command,
+            "path": path,
+            "exists": (repo_root / path).exists(),
+        }
+        for command in commands
+        for path in _planned_pytest_paths(command)
+    ]
+
+
+def _owner_surface(*, exact_paths: Sequence[str], prefix_paths: Sequence[str]) -> dict[str, object]:
+    return {
+        "exact_paths": list(exact_paths),
+        "prefix_paths": list(prefix_paths),
+    }
+
+
+def _unknown_path_suggestions_for_category(spec: PreflightCategorySpec) -> list[str]:
+    suggestions = [
+        "Review unknown docs/workflow/config paths as fail-closed until this category owns them explicitly.",
+    ]
+    if any(path.startswith("tests/") for path in (*spec.exact_paths, *spec.prefix_paths)):
+        suggestions.append(
+            "Unknown tests/*.py paths route to generic_python_regression_surface unless added to an owner surface."
+        )
+    if any(path.startswith("src/med_autoscience/") for path in (*spec.exact_paths, *spec.prefix_paths)):
+        suggestions.append(
+            "Unknown src/med_autoscience/*.py paths route to generic_python_regression_surface unless added to an owner surface."
+        )
+    return suggestions
+
+
 def build_preflight_contract_report() -> dict[str, object]:
     categories: list[dict[str, object]] = []
     for spec in _CATEGORY_SPECS:
         commands = list(spec.commands)
+        owner_surface = _owner_surface(exact_paths=spec.exact_paths, prefix_paths=spec.prefix_paths)
         categories.append(
             {
                 "category_id": spec.category_id,
                 "exact_paths": list(spec.exact_paths),
                 "prefix_paths": list(spec.prefix_paths),
+                "owner_surface": owner_surface,
+                "fail_policy": _MATCHED_CATEGORY_FAIL_POLICY,
                 "commands": commands,
                 "planned_commands": commands,
+                "planned_pytest_path_existence": _planned_pytest_path_existence(commands),
+                "unknown_path_suggestions": _unknown_path_suggestions_for_category(spec),
             }
         )
     generic_commands = list(_GENERIC_PYTHON_REGRESSION_COMMANDS)
@@ -520,12 +580,21 @@ def build_preflight_contract_report() -> dict[str, object]:
             "category_id": GENERIC_PYTHON_REGRESSION_CATEGORY,
             "exact_paths": [],
             "prefix_paths": list(_GENERIC_PYTHON_PREFIXES),
+            "owner_surface": _owner_surface(exact_paths=(), prefix_paths=_GENERIC_PYTHON_PREFIXES),
+            "fail_policy": _GENERIC_PYTHON_FAIL_POLICY,
             "commands": generic_commands,
             "planned_commands": generic_commands,
+            "planned_pytest_path_existence": _planned_pytest_path_existence(generic_commands),
+            "unknown_path_suggestions": [
+                "Unknown src/med_autoscience/*.py paths route to generic_python_regression_surface.",
+                "Unknown tests/*.py paths route to generic_python_regression_surface.",
+                "Unknown docs/workflow/config paths remain fail-closed and must be added to an owner surface.",
+            ],
         }
     )
     return {
         "surface_kind": "preflight_contract_report",
+        "unknown_path_policy": dict(_UNKNOWN_PATH_POLICY),
         "categories": categories,
         "fail_closed_families": [
             {

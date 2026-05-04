@@ -75,12 +75,34 @@ def test_preflight_contract_report_lists_categories_and_planned_commands() -> No
     public_doc = categories["public_doc_surface"]
     assert "README.md" in public_doc["exact_paths"]
     assert public_doc["prefix_paths"] == []
+    assert public_doc["owner_surface"] == {
+        "exact_paths": public_doc["exact_paths"],
+        "prefix_paths": public_doc["prefix_paths"],
+    }
+    assert public_doc["fail_policy"] == "matched_paths_run_planned_commands"
     assert public_doc["commands"] == public_doc["planned_commands"]
     assert "uv run pytest tests/test_dev_preflight_contract.py -q" in public_doc["planned_commands"]
+    assert {
+        "command": "uv run pytest tests/test_dev_preflight_contract.py -q",
+        "path": "tests/test_dev_preflight_contract.py",
+        "exists": True,
+    } in public_doc["planned_pytest_path_existence"]
+    assert any("fail-closed" in suggestion for suggestion in public_doc["unknown_path_suggestions"])
     generic = categories[module.GENERIC_PYTHON_REGRESSION_CATEGORY]
     assert generic["exact_paths"] == []
     assert generic["prefix_paths"] == ["src/med_autoscience/", "tests/"]
+    assert generic["owner_surface"] == {
+        "exact_paths": [],
+        "prefix_paths": ["src/med_autoscience/", "tests/"],
+    }
+    assert generic["fail_policy"] == "unknown_python_and_test_paths_route_to_regression"
     assert generic["planned_commands"] == ["make test-regression"]
+    assert any("src/med_autoscience/" in suggestion for suggestion in generic["unknown_path_suggestions"])
+    assert any("tests/" in suggestion for suggestion in generic["unknown_path_suggestions"])
+    assert report["unknown_path_policy"] == {
+        "python_and_test_paths": "regression",
+        "docs_workflow_config_paths": "fail-closed",
+    }
 
 
 def test_preflight_contract_report_planned_pytest_paths_exist() -> None:
@@ -97,6 +119,31 @@ def test_preflight_contract_report_planned_pytest_paths_exist() -> None:
     ]
 
     assert missing_paths == []
+
+
+def test_preflight_contract_report_planned_pytest_path_statuses_exist() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+    report = module.build_preflight_contract_report()
+
+    missing_statuses = [
+        f"{category['category_id']}: {status['path']}"
+        for category in report["categories"]
+        for status in category["planned_pytest_path_existence"]
+        if status["exists"] is not True
+    ]
+
+    assert missing_statuses == []
+    for category in report["categories"]:
+        planned_statuses = {
+            (status["command"], status["path"])
+            for status in category["planned_pytest_path_existence"]
+        }
+        planned_paths = {
+            (command, path)
+            for command in category["planned_commands"]
+            for path in _planned_pytest_paths(str(command))
+        }
+        assert planned_statuses == planned_paths
 
 
 def test_preflight_contract_report_cli_is_read_only_json(capsys) -> None:

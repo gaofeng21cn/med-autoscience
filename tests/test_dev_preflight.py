@@ -50,6 +50,57 @@ def test_run_preflight_routes_unknown_python_changes_to_regression(monkeypatch, 
     assert calls == [["make", "test-regression"]]
 
 
+def test_run_preflight_routes_unknown_test_changes_to_regression(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight")
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        calls.append(list(command))
+
+        class Result:
+            returncode = 0
+            stdout = "ok\n"
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    result = module.run_preflight(
+        changed_files=["tests/test_new_controller.py"],
+        repo_root=tmp_path,
+    )
+
+    assert result.ok is True
+    assert result.matched_categories == ("generic_python_regression_surface",)
+    assert result.unclassified_changes == ()
+    assert result.planned_commands == ("make test-regression",)
+    assert calls == [["make", "test-regression"]]
+
+
+def test_run_preflight_keeps_unknown_workflow_config_fail_closed(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight")
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        calls.append(list(command))
+        raise AssertionError("unclassified workflow/config changes must not run commands")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    result = module.run_preflight(
+        changed_files=[".github/workflows/new-release.yml", "tox.ini"],
+        repo_root=tmp_path,
+    )
+
+    assert result.ok is False
+    assert result.matched_categories == ()
+    assert result.unclassified_changes == (".github/workflows/new-release.yml", "tox.ini")
+    assert result.planned_commands == ()
+    assert result.results == ()
+    assert calls == []
+
+
 def test_run_ci_preflight_runs_smoke_for_empty_diff(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.dev_preflight")
     calls: list[list[str]] = []
