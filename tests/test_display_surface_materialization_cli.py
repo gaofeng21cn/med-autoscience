@@ -3,7 +3,11 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
-import runpy
+
+from tests.display_surface_materialization_cases.layout_sidecar_fixtures import _minimal_layout_sidecar_for_template
+from tests.display_surface_materialization_cases.workspace_surface_fixtures import (
+    build_display_surface_workspace as build_registered_display_surface_workspace,
+)
 
 DISPLAY_SURFACE_COMMAND = ("publication", "materialize-display-surface")
 
@@ -106,6 +110,42 @@ def build_display_surface_workspace(tmp_path):
     return paper_root
 
 
+def fake_evidence_figure_renderer(
+    *,
+    template_id: str,
+    display_payload: dict[str, object],
+    output_png_path,
+    output_pdf_path,
+    layout_sidecar_path,
+    output_svg_path=None,
+) -> None:
+    output_png_path.parent.mkdir(parents=True, exist_ok=True)
+    output_png_path.write_text(f"PNG:{template_id}:{display_payload['display_id']}", encoding="utf-8")
+    output_pdf_path.write_text("%PDF", encoding="utf-8")
+    if output_svg_path is not None:
+        output_svg_path.write_text(f"<svg><title>{template_id}</title></svg>", encoding="utf-8")
+    layout_sidecar_path.write_text(
+        json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
+def patch_evidence_figure_renderer(controller_module, monkeypatch) -> None:
+    original_loader = controller_module.display_pack_runtime.load_python_plugin_callable
+
+    def load_python_plugin_callable(*args, **kwargs):
+        template_id = str(kwargs.get("template_id") or "").strip()
+        if controller_module.display_registry.is_evidence_figure_template(template_id):
+            return fake_evidence_figure_renderer
+        return original_loader(*args, **kwargs)
+
+    monkeypatch.setattr(
+        controller_module.display_pack_runtime,
+        "load_python_plugin_callable",
+        load_python_plugin_callable,
+    )
+
+
 def test_cli_materialize_display_surface_emits_result_json(tmp_path, capsys) -> None:
     module = importlib.import_module("med_autoscience.cli")
     paper_root = build_display_surface_workspace(tmp_path)
@@ -123,32 +163,8 @@ def test_cli_materialize_display_surface_emits_result_json(tmp_path, capsys) -> 
 def test_cli_materialize_display_surface_includes_registered_evidence_figures(tmp_path, monkeypatch, capsys) -> None:
     cli_module = importlib.import_module("med_autoscience.cli")
     controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
-    test_helpers = runpy.run_path(str(Path(__file__).with_name("test_display_surface_materialization.py")))
-    paper_root = test_helpers["build_display_surface_workspace"](tmp_path, include_evidence=True)
-    minimal_layout_sidecar_for_template = test_helpers["_minimal_layout_sidecar_for_template"]
-
-    def fake_render_r_evidence_figure(
-        *,
-        template_id: str,
-        display_payload: dict[str, object],
-        output_png_path,
-        output_pdf_path,
-        layout_sidecar_path,
-    ) -> None:
-        output_png_path.parent.mkdir(parents=True, exist_ok=True)
-        output_png_path.write_text(f"PNG:{template_id}:{display_payload['display_id']}", encoding="utf-8")
-        output_pdf_path.write_text("%PDF", encoding="utf-8")
-        layout_sidecar_path.write_text(
-            json.dumps(minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
-            encoding="utf-8",
-        )
-
-    monkeypatch.setattr(
-        controller_module,
-        "_render_r_evidence_figure",
-        fake_render_r_evidence_figure,
-        raising=False,
-    )
+    paper_root = build_registered_display_surface_workspace(tmp_path, include_evidence=True)
+    patch_evidence_figure_renderer(controller_module, monkeypatch)
 
     exit_code = cli_module.main([*DISPLAY_SURFACE_COMMAND, "--paper-root", str(paper_root)])
 
@@ -162,54 +178,8 @@ def test_cli_materialize_display_surface_includes_registered_evidence_figures(tm
 def test_cli_materialize_display_surface_includes_full_registered_template_set(tmp_path, monkeypatch, capsys) -> None:
     cli_module = importlib.import_module("med_autoscience.cli")
     controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
-    test_helpers = runpy.run_path(str(Path(__file__).with_name("test_display_surface_materialization.py")))
-    paper_root = test_helpers["build_display_surface_workspace"](tmp_path, include_extended_evidence=True)
-    minimal_layout_sidecar_for_template = test_helpers["_minimal_layout_sidecar_for_template"]
-
-    def fake_render_r_evidence_figure(
-        *,
-        template_id: str,
-        display_payload: dict[str, object],
-        output_png_path,
-        output_pdf_path,
-        layout_sidecar_path,
-    ) -> None:
-        output_png_path.parent.mkdir(parents=True, exist_ok=True)
-        output_png_path.write_text(f"PNG:{template_id}:{display_payload['display_id']}", encoding="utf-8")
-        output_pdf_path.write_text("%PDF", encoding="utf-8")
-        layout_sidecar_path.write_text(
-            json.dumps(minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
-            encoding="utf-8",
-        )
-
-    def fake_render_python_evidence_figure(
-        *,
-        template_id: str,
-        display_payload: dict[str, object],
-        output_png_path,
-        output_pdf_path,
-        layout_sidecar_path,
-    ) -> None:
-        output_png_path.parent.mkdir(parents=True, exist_ok=True)
-        output_png_path.write_text(f"PNG:{template_id}:{display_payload['display_id']}", encoding="utf-8")
-        output_pdf_path.write_text("%PDF", encoding="utf-8")
-        layout_sidecar_path.write_text(
-            json.dumps(minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
-            encoding="utf-8",
-        )
-
-    monkeypatch.setattr(
-        controller_module,
-        "_render_r_evidence_figure",
-        fake_render_r_evidence_figure,
-        raising=False,
-    )
-    monkeypatch.setattr(
-        controller_module,
-        "_render_python_evidence_figure",
-        fake_render_python_evidence_figure,
-        raising=False,
-    )
+    paper_root = build_registered_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    patch_evidence_figure_renderer(controller_module, monkeypatch)
 
     exit_code = cli_module.main([*DISPLAY_SURFACE_COMMAND, "--paper-root", str(paper_root)])
 
