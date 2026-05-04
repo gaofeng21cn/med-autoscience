@@ -154,6 +154,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     workspace_paper_orchestra_operator_projection = dict(
         payload.get("workspace_paper_orchestra_operator_projection") or {}
     )
+    workspace_open_auto_research_projection = dict(
+        payload.get("workspace_open_auto_research_projection") or {}
+    )
     lines = [
         "# Product Frontdesk",
         "",
@@ -269,6 +272,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
                     f"{dashboard.get('action_primary_summary')}"
                 )
     lines.extend(render_paper_orchestra_operator_projection_lines(workspace_paper_orchestra_operator_projection))
+    lines.extend(_render_open_auto_research_projection_lines(workspace_open_auto_research_projection))
     for item in payload.get("workspace_attention_queue_preview") or []:
         if not isinstance(item, dict):
             continue
@@ -390,6 +394,37 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         lines.append(f"- `{name}`: `{item.get('command') or 'none'}`")
     lines.append("")
     return "\n".join(lines)
+
+
+def _render_open_auto_research_projection_lines(projection: Mapping[str, Any]) -> list[str]:
+    if not projection:
+        return []
+    counts = dict(projection.get("counts") or {})
+    lines = [
+        "",
+        "## Open Auto Research",
+        "",
+        f"- 当前摘要: {projection.get('summary') or 'none'}",
+        (
+            "- 当前计数: "
+            f"study {counts.get('projection_count', 0)}；"
+            f"ready {counts.get('ready', 0)}；"
+            f"needs review {counts.get('needs_review', 0)}；"
+            f"blocked {counts.get('blocked', 0)}"
+        ),
+    ]
+    for study in projection.get("study_projections") or []:
+        if not isinstance(study, Mapping):
+            continue
+        lines.append(f"- `{study.get('study_id') or 'unknown-study'}` Open Auto Research: {study.get('status') or 'unknown'}")
+        for action in study.get("actions") or []:
+            if not isinstance(action, Mapping):
+                continue
+            lines.append(
+                f"  {action.get('action_id') or 'unknown_action'}: "
+                f"{action.get('status') or 'unknown'} ({action.get('surface') or 'unknown_surface'})"
+            )
+    return lines
 
 
 def render_product_entry_preflight_markdown(payload: dict[str, Any]) -> str:

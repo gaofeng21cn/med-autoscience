@@ -335,6 +335,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "runtime_efficiency": _compact_runtime_efficiency,
         "module_surfaces": _compact_module_surfaces,
         "medical_paper_readiness": _compact_medical_paper_readiness,
+        "open_auto_research_projection": _compact_open_auto_research_projection,
         "study_truth_snapshot": _compact_study_truth_snapshot,
         "runtime_health_snapshot": _compact_runtime_health_snapshot,
         "control_plane_snapshot": _compact_control_plane_snapshot,
@@ -349,6 +350,21 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "compacted": True,
         "full_detail_surface": "CLI study-progress --format json",
     }
+    return compact
+
+
+def _compact_open_auto_research_projection(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    compact = _compact_record(
+        value,
+        ("surface", "status", "summary", "counts", "actions", "authority"),
+    )
+    if compact is None:
+        return None
+    actions = value.get("actions")
+    if isinstance(actions, list):
+        compact["actions"] = [dict(item) for item in actions if isinstance(item, dict)][:4]
     return compact
 
 
@@ -518,6 +534,36 @@ def _render_mcp_progress_medical_paper_readiness(compact: dict[str, Any]) -> lis
     return lines
 
 
+def _render_mcp_progress_open_auto_research(compact: dict[str, Any]) -> list[str]:
+    projection = compact.get("open_auto_research_projection")
+    if not isinstance(projection, dict):
+        return []
+    counts = dict(projection.get("counts") or {})
+    lines = [
+        "",
+        "## Open Auto Research",
+        f"- status: `{projection.get('status') or 'unknown'}`；"
+        f"ready `{counts.get('ready', 0)}`；"
+        f"needs_review `{counts.get('needs_review', 0)}`；"
+        f"blocked `{counts.get('blocked', 0)}`",
+    ]
+    summary = str(projection.get("summary") or "").strip()
+    if summary:
+        lines.append(f"- summary: {summary}")
+    for action in projection.get("actions") or []:
+        if not isinstance(action, dict):
+            continue
+        lines.append(
+            f"- {action.get('action_id') or 'unknown_action'}: "
+            f"`{action.get('status') or 'unknown'}` "
+            f"({action.get('surface') or 'unknown_surface'})"
+        )
+    authority = dict(projection.get("authority") or {})
+    if authority:
+        lines.append(f"- read_only: `{authority.get('read_only')}`")
+    return lines
+
+
 def _medical_paper_readiness_payload(compact: dict[str, Any]) -> dict[str, Any]:
     return (
         compact.get("medical_paper_readiness")
@@ -617,5 +663,6 @@ def render_mcp_study_progress_markdown(payload: dict[str, Any]) -> str:
     lines.extend(_render_mcp_progress_operator_and_action(compact))
     lines.extend(_render_mcp_progress_blockers(compact))
     lines.extend(_render_mcp_progress_medical_paper_readiness(compact))
+    lines.extend(_render_mcp_progress_open_auto_research(compact))
     lines.extend(_render_mcp_progress_refs(compact))
     return "\n".join(lines) + "\n"

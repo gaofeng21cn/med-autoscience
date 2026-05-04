@@ -8,6 +8,7 @@ from med_autoscience.controllers import (
     artifact_runtime_proof,
     control_plane_facts,
     medical_paper_readiness,
+    open_auto_research_projection,
     runtime_health_kernel,
     study_truth_kernel,
 )
@@ -785,6 +786,16 @@ def build_study_progress_projection(
     paper_orchestra_operator_projection = _mapping_copy(
         ai_first_default_entry_state.get("paper_orchestra_operator_projection")
     )
+    current_active_run_id = _supervision_active_run_id(
+        status=status,
+        execution_owner_guard=execution_owner_guard,
+        autonomous_runtime_notice=autonomous_runtime_notice,
+        continuation_state=continuation_state,
+    )
+    open_auto_research_state = open_auto_research_projection.build_open_auto_research_projection(
+        study_root=resolved_study_root,
+        active_run_id=current_active_run_id,
+    )
     ai_first_operations_dashboard = ai_first_observability.build_ai_first_operations_dashboard_summary(
         drift_audit={"status": "not_run", "summary": {"fail_count": 0}},
         progress_snapshot={
@@ -855,6 +866,7 @@ def build_study_progress_projection(
         "submission_hygiene_truth": submission_hygiene_truth,
         "product_recommended_flow": submission_hygiene_truth.get("recommended_flow"),
         "research_runtime_control_projection": research_runtime_control_projection,
+        "open_auto_research_projection": open_auto_research_state,
         "ai_first_default_entry_state": ai_first_default_entry_state,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
         "ai_first_observability_snapshots": ai_first_observability_snapshots,
@@ -921,6 +933,11 @@ def build_study_progress_projection(
             "retrospective_medical_prose_audit_path": medical_writing_quality_surfaces["retrospective_audit"]["path"],
             "medical_paper_readiness_path": str(
                 medical_paper_readiness.stable_medical_paper_readiness_path(
+                    study_root=resolved_study_root,
+                )
+            ),
+            "open_auto_research_projection_path": str(
+                open_auto_research_projection.stable_open_auto_research_projection_path(
                     study_root=resolved_study_root,
                 )
             ),

@@ -90,6 +90,7 @@ def _study_item(
     submission_hygiene_truth = dict(progress_payload.get("submission_hygiene_truth") or {})
     product_recommended_flow = dict(progress_payload.get("product_recommended_flow") or {})
     paper_orchestra_operator_projection = dict(progress_payload.get("paper_orchestra_operator_projection") or {})
+    open_auto_research_state = dict(progress_payload.get("open_auto_research_projection") or {})
     medical_paper_readiness_surface = _normalized_medical_paper_readiness_projection(
         progress_payload.get("medical_paper_readiness")
     )
@@ -150,6 +151,7 @@ def _study_item(
         "submission_hygiene_truth": submission_hygiene_truth or None,
         "product_recommended_flow": product_recommended_flow or None,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
+        "open_auto_research_projection": open_auto_research_state or None,
         "medical_paper_readiness": medical_paper_readiness_surface or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
         "recovery_contract": recovery_contract or None,
@@ -608,6 +610,9 @@ def read_workspace_cockpit(
         studies=studies,
     )
     paper_orchestra_operator_projection = build_workspace_paper_orchestra_operator_projection(studies=studies)
+    open_auto_research_state = open_auto_research_projection.build_workspace_open_auto_research_projection(
+        studies=studies,
+    )
     user_loop = _user_loop(profile=profile, profile_ref=profile_ref)
     operator_brief = _workspace_operator_brief(
         workspace_status=workspace_status,
@@ -634,6 +639,7 @@ def read_workspace_cockpit(
         "ai_first_operations_state": ai_first_operations_state,
         "ai_first_cross_study_completion_projection": ai_first_cross_study_completion_projection,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection,
+        "open_auto_research_projection": open_auto_research_state,
         "attention_queue": attention_queue,
         "operator_brief": operator_brief,
         "user_loop": user_loop,

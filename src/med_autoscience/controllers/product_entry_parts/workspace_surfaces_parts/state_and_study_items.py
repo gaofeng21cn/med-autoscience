@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from med_autoscience.controllers import medical_paper_readiness
+from med_autoscience.controllers import medical_paper_readiness, open_auto_research_projection
 
 from .workspace_attention import (
     _attention_queue,

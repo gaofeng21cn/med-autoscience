@@ -256,6 +256,41 @@ def test_mcp_server_can_serialize_typed_study_runtime_status_result(monkeypatch,
     assert result["structuredContent"]["study_id"] == "001-risk"
 
 
+def test_mcp_compacts_and_renders_open_auto_research_projection() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    payload = {
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "current_stage": "publication_supervision",
+        "paper_stage": "write",
+        "open_auto_research_projection": {
+            "surface": "open_auto_research_projection",
+            "status": "needs_review",
+            "summary": "3 ready, 1 needs review.",
+            "counts": {"ready": 3, "blocked": 0, "needs_review": 1, "total": 4},
+            "actions": [
+                {
+                    "action_id": "review_rubric_gaps",
+                    "status": "needs_review",
+                    "surface": "paperbench_style_hierarchical_rubric_tree",
+                }
+            ],
+            "authority": {"read_only": True, "can_authorize_publication_quality": False},
+        },
+    }
+
+    compact = module.compact_study_progress_projection(payload)
+    markdown = module.render_mcp_study_progress_markdown(payload)
+
+    projection = compact["open_auto_research_projection"]
+    assert projection["status"] == "needs_review"
+    assert projection["counts"]["needs_review"] == 1
+    assert projection["actions"][0]["action_id"] == "review_rubric_gaps"
+    assert projection["authority"]["read_only"] is True
+    assert "Open Auto Research" in markdown
+    assert "review_rubric_gaps" in markdown
+
+
 def test_mcp_server_study_runtime_status_prefers_progress_projection_markdown_when_available(
     monkeypatch,
     tmp_path: Path,
