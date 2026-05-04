@@ -490,16 +490,13 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
             "scripts/prepare-sentrux-gitstats-clone.sh",
             "scripts/run-parallel-test-lanes.sh",
             "src/med_autoscience/controllers/workspace_init.py",
-            "src/med_autoscience/dev_preflight_contract.py",
-            "tests/test_dev_preflight.py",
-            "tests/test_dev_preflight_contract.py",
             "tests/test_workspace_init.py",
             "tests/test_integration_harness_activation_package.py",
             "tests/test_sentrux_gitstats_helper.py",
         ]
     )
 
-    assert result.matched_categories == ("integration_harness_surface", "family_shared_surface")
+    assert result.matched_categories == ("integration_harness_surface",)
     assert result.unclassified_changes == ()
 
 
@@ -523,7 +520,7 @@ def test_classify_changed_files_matches_family_shared_surface() -> None:
         ]
     )
 
-    assert result.matched_categories == ("workflow_surface", "family_shared_surface", "integration_harness_surface")
+    assert result.matched_categories == ("workflow_surface", "family_shared_surface")
     assert result.unclassified_changes == ()
 
 
