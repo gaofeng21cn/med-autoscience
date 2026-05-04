@@ -8,8 +8,10 @@ from typing import Any
 
 from med_autoscience.controllers import study_progress, study_runtime_router
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
+from med_autoscience.controllers.runtime_supervisor_scan_parts import queue_slo
 from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_parking
+from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_projection
 from med_autoscience.controllers.study_progress_parts.publication_runtime import _publication_eval_specificity_request
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
@@ -577,133 +579,151 @@ def _next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
     return "external_supervisor"
 
 
-def _action_fingerprint(action: Mapping[str, Any]) -> str:
-    explicit = _text(action.get("fingerprint"))
-    if explicit is not None:
-        return explicit
-    return "::".join(
-        item
-        for item in (
-            _text(action.get("action_type")) or "unknown_action",
-            _text(action.get("reason")),
-        )
-        if item
-    )
-
-
-def _prior_actions_by_fingerprint(previous_payload: Mapping[str, Any] | None) -> dict[str, dict[str, Any]]:
-    prior: dict[str, dict[str, Any]] = {}
-    if previous_payload is None:
-        return prior
-    for action in previous_payload.get("action_queue") or []:
-        if not isinstance(action, Mapping):
-            continue
-        fingerprint = _text(action.get("fingerprint")) or _action_fingerprint(action)
-        prior[fingerprint] = dict(action)
-    for study in previous_payload.get("studies") or []:
-        if not isinstance(study, Mapping):
-            continue
-        for action in study.get("action_queue") or []:
-            if not isinstance(action, Mapping):
-                continue
-            fingerprint = _text(action.get("fingerprint")) or _action_fingerprint(action)
-            prior.setdefault(fingerprint, dict(action))
-    return prior
-
-
-def _prior_first_seen_at(prior: Mapping[str, Any], key: str) -> str | None:
-    nested = _mapping(prior.get(key))
-    return (
-        _text(nested.get("first_seen_at"))
-        or _text(prior.get(f"{key}_first_seen_at"))
-        or _text(prior.get("queued_first_seen_at"))
-    )
-
-
-def _decorate_action_queue_slo(
+def _read_study_projection_inputs(
     *,
-    studies: list[dict[str, Any]],
-    previous_payload: Mapping[str, Any] | None,
-    generated_at: str,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+) -> tuple[dict[str, Any], dict[str, Any], str | None, dict[str, Any]]:
+    status = study_runtime_router.study_runtime_status(profile=profile, study_id=study_id, study_root=study_root)
+    progress = study_progress.read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
+    status_payload = _mapping(status)
+    progress_payload = _mapping(progress)
+    resolved_quest_id = _text(status_payload.get("quest_id")) or _text(progress_payload.get("quest_id"))
+    publication_eval_payload = _publication_eval_payload(status_payload, progress_payload)
+    return status_payload, progress_payload, resolved_quest_id, publication_eval_payload
+
+
+def _maybe_blocked_lifecycle_from_scan(
+    *,
+    developer_mode: DeveloperSupervisorMode,
+    lifecycle: Mapping[str, Any],
+    actions: list[dict[str, Any]],
+    gate_specificity: Mapping[str, Any],
+    ai_reviewer_assessment: Mapping[str, Any],
+    study_root: Path,
+    study_id: str,
+    quest_id: str | None,
+) -> Mapping[str, Any]:
+    blocked_reason = _blocked_reason_from_scan(
+        actions=actions,
+        gate_specificity=gate_specificity,
+        ai_reviewer_assessment=ai_reviewer_assessment,
+    )
+    if not _should_refresh_blocked_lifecycle(
+        developer_mode=developer_mode,
+        lifecycle=lifecycle,
+        blocked_reason=blocked_reason,
+    ):
+        return lifecycle
+    repair_payload = _repair_action_payload(study_root=study_root)
+    if repair_payload is None or blocked_reason is None:
+        return lifecycle
+    return _blocked_lifecycle_from_repair(
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        repair_payload=repair_payload,
+        blocked_reason=blocked_reason,
+        next_owner=_next_owner_for_blocked_reason(blocked_reason),
+    ) or {}
+
+
+def _should_refresh_blocked_lifecycle(
+    *,
+    developer_mode: DeveloperSupervisorMode,
+    lifecycle: Mapping[str, Any],
+    blocked_reason: str | None,
+) -> bool:
+    if not developer_mode.safe_actions_enabled:
+        return False
+    if not lifecycle:
+        return True
+    return bool(
+        blocked_reason is not None
+        and (
+            lifecycle.get("projection_only") is True
+            or _text(lifecycle.get("blocked_reason")) != blocked_reason
+        )
+    )
+
+
+def _apply_runtime_platform_repair_projection(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    quest_id: str | None,
+    status_payload: Mapping[str, Any],
+    progress_payload: Mapping[str, Any],
+    publication_eval_payload: Mapping[str, Any],
+    developer_mode: DeveloperSupervisorMode,
+    apply_runtime_platform_repair: bool,
+    submission_milestone_parked: bool,
+) -> tuple[dict[str, Any] | None, Mapping[str, Any] | None]:
+    apply_result = platform_repair.apply_runtime_platform_repair(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        status=status_payload,
+        progress=progress_payload,
+        publication_eval_payload=publication_eval_payload,
+        developer_mode=developer_mode,
+        enabled=apply_runtime_platform_repair,
+        repair_required=(
+            not submission_milestone_parked
+            and _runtime_platform_repair_required(status_payload, progress_payload)
+        ),
+    )
+    if apply_result is None:
+        return None, None
+    lifecycle = platform_repair.write_runtime_platform_repair_lifecycle(
+        study_root=study_root,
+        supervision_latest_relative_path=SUPERVISION_LATEST_RELATIVE_PATH,
+        study_id=study_id,
+        quest_id=quest_id,
+        apply_result=apply_result,
+    )
+    return apply_result, lifecycle
+
+
+def _resolve_why_not_applied(
+    *,
+    status_payload: Mapping[str, Any],
+    progress_payload: Mapping[str, Any],
+    actions: list[dict[str, Any]],
+    lifecycle: Mapping[str, Any],
+    runtime_platform_repair_apply: Mapping[str, Any] | None,
+    submission_milestone_parked: bool,
+) -> str | None:
+    why_not_applied = _why_not_applied(status=status_payload, progress=progress_payload, actions=actions)
+    if runtime_platform_repair_apply is not None and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied":
+        return None
+    if submission_milestone_parked:
+        return None
+    if why_not_applied is None and lifecycle:
+        return _text(lifecycle.get("blocked_reason"))
+    return why_not_applied
+
+
+def _projection_block_state(
+    *,
+    lifecycle: Mapping[str, Any],
+    actions: list[dict[str, Any]],
+    why_not_applied: str | None,
 ) -> dict[str, Any]:
-    prior_by_fingerprint = _prior_actions_by_fingerprint(previous_payload)
-    repeat_fingerprints: dict[str, dict[str, Any]] = {}
-    overdue_count = 0
-    attention_count = 0
-    max_queue_age_hours = 0.0
-    for study in studies:
-        study_overdue_count = 0
-        study_attention_count = 0
-        study_max_age = 0.0
-        for action in study.get("action_queue") or []:
-            if not isinstance(action, dict):
-                continue
-            fingerprint = _action_fingerprint(action)
-            prior = prior_by_fingerprint.get(fingerprint, {})
-            queued_first_seen_at = (
-                _text(prior.get("queued_first_seen_at"))
-                or _text(action.get("queued_first_seen_at"))
-                or generated_at
-            )
-            owner_first_seen_at = _prior_first_seen_at(prior, "owner_pickup") or queued_first_seen_at
-            consumption_first_seen_at = _prior_first_seen_at(prior, "consumption") or queued_first_seen_at
-            queue_age_hours = _duration_hours(start_at=queued_first_seen_at, end_at=generated_at)
-            owner_duration_hours = _duration_hours(start_at=owner_first_seen_at, end_at=generated_at)
-            unconsumed_duration_hours = _duration_hours(start_at=consumption_first_seen_at, end_at=generated_at)
-            prior_repeat = _mapping(prior.get("repeat_fingerprint"))
-            prior_count = prior_repeat.get("consecutive_scan_count", 1 if prior else 0)
-            try:
-                repeat_count = int(prior_count) + 1
-            except (TypeError, ValueError):
-                repeat_count = 1
-            owner_pickup_overdue = owner_duration_hours >= OWNER_PICKUP_OVERDUE_HOURS
-            attention_required = unconsumed_duration_hours >= DEVELOPER_SUPERVISOR_ATTENTION_HOURS
-            action["fingerprint"] = fingerprint
-            action["queued_first_seen_at"] = queued_first_seen_at
-            action["queue_age_hours"] = queue_age_hours
-            action["repeat_fingerprint"] = {
-                "fingerprint": fingerprint,
-                "consecutive_scan_count": repeat_count,
-                "first_seen_at": queued_first_seen_at,
-                "last_seen_at": generated_at,
-                "duration_hours": queue_age_hours,
-            }
-            action["owner_pickup"] = {
-                "state": "overdue" if owner_pickup_overdue else "pending",
-                "owner": _owner_from_action(action) or _text(study.get("next_owner")),
-                "first_seen_at": owner_first_seen_at,
-                "overdue_after_hours": OWNER_PICKUP_OVERDUE_HOURS,
-                "duration_hours": owner_duration_hours,
-                "pickup_overdue": owner_pickup_overdue,
-            }
-            action["consumption"] = {
-                "state": "attention_required" if attention_required else "unconsumed",
-                "first_seen_at": consumption_first_seen_at,
-                "unconsumed_duration_hours": unconsumed_duration_hours,
-                "attention_required_after_hours": DEVELOPER_SUPERVISOR_ATTENTION_HOURS,
-                "developer_supervisor_attention_required": attention_required,
-            }
-            repeat_fingerprints[fingerprint] = action["repeat_fingerprint"]
-            study_max_age = max(study_max_age, queue_age_hours)
-            max_queue_age_hours = max(max_queue_age_hours, queue_age_hours)
-            if owner_pickup_overdue:
-                overdue_count += 1
-                study_overdue_count += 1
-            if attention_required:
-                attention_count += 1
-                study_attention_count += 1
-        study["queue_slo"] = {
-            "max_queue_age_hours": study_max_age,
-            "owner_pickup_overdue_count": study_overdue_count,
-            "developer_supervisor_attention_required_count": study_attention_count,
-        }
-        study["owner_pickup_overdue"] = study_overdue_count > 0
-        study["developer_supervisor_attention_required"] = study_attention_count > 0
+    external_supervisor_required = bool(
+        lifecycle.get("external_supervisor_required")
+        or any(_text(action.get("authority")) == "external_supervisor" for action in actions)
+    )
+    blocked_reason = _text(lifecycle.get("blocked_reason"))
+    if why_not_applied is not None and any(_text(action.get("reason")) == why_not_applied for action in actions):
+        blocked_reason = why_not_applied
+    next_owner = _next_owner_for_blocked_reason(blocked_reason) if blocked_reason else _text(lifecycle.get("next_owner"))
     return {
-        "owner_pickup_overdue_count": overdue_count,
-        "developer_supervisor_attention_required_count": attention_count,
-        "max_queue_age_hours": max_queue_age_hours,
-        "repeat_fingerprints": list(repeat_fingerprints.values()),
+        "blocked_reason": blocked_reason,
+        "next_owner": next_owner,
+        "external_supervisor_required": external_supervisor_required,
     }
 
 
@@ -716,41 +736,39 @@ def _study_projection(
     developer_mode: DeveloperSupervisorMode,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
-    status = study_runtime_router.study_runtime_status(profile=profile, study_id=study_id, study_root=study_root)
-    progress = study_progress.read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
-    status_payload = _mapping(status)
-    progress_payload = _mapping(progress)
-    resolved_quest_id = _text(status_payload.get("quest_id")) or _text(progress_payload.get("quest_id"))
-    publication_eval_payload = _publication_eval_payload(status_payload, progress_payload)
-    submission_milestone_parked_refresh = None
-    if _runtime_platform_repair_required(status_payload, progress_payload):
-        submission_milestone_parked_refresh = submission_milestone_parking.refresh_submission_milestone_parking(
+    status_payload, progress_payload, resolved_quest_id, publication_eval_payload = _read_study_projection_inputs(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+    )
+    submission_milestone_parked_refresh = submission_milestone_projection.refresh_if_platform_repair_required(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        status_payload=status_payload,
+        developer_mode=developer_mode,
+        enabled=developer_mode.safe_actions_enabled,
+        runtime_platform_repair_required=_runtime_platform_repair_required(status_payload, progress_payload),
+    )
+    if submission_milestone_projection.applied(submission_milestone_parked_refresh):
+        status_payload, progress_payload, resolved_quest_id, publication_eval_payload = _read_study_projection_inputs(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
-            status=status_payload,
-            developer_mode=developer_mode,
-            enabled=developer_mode.safe_actions_enabled,
         )
-        if _text(_mapping(submission_milestone_parked_refresh).get("dispatch_status")) == "applied":
-            status = study_runtime_router.study_runtime_status(profile=profile, study_id=study_id, study_root=study_root)
-            progress = study_progress.read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
-            status_payload = _mapping(status)
-            progress_payload = _mapping(progress)
-            resolved_quest_id = _text(status_payload.get("quest_id")) or _text(progress_payload.get("quest_id"))
-            publication_eval_payload = _publication_eval_payload(status_payload, progress_payload)
     if submission_milestone_parked_refresh is None:
-        submission_milestone_parked_refresh = submission_milestone_parking.reconcile_stopped_submission_milestone_parking(
+        submission_milestone_parked_refresh = submission_milestone_projection.reconcile_stopped_parking(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
-            status=status_payload,
+            status_payload=status_payload,
             developer_mode=developer_mode,
             enabled=developer_mode.safe_actions_enabled,
         )
-        if _text(_mapping(submission_milestone_parked_refresh).get("dispatch_status")) == "applied":
-            progress = study_progress.read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
-            progress_payload = _mapping(progress)
+        if submission_milestone_projection.applied(submission_milestone_parked_refresh):
+            progress_payload = _mapping(
+                study_progress.read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
+            )
     gate_specificity = _publication_gate_specificity_required(
         status_payload,
         progress_payload,
@@ -772,32 +790,16 @@ def _study_projection(
     if developer_mode.mode == "external_observe":
         actions = []
     lifecycle = _mapping(progress_payload.get("ai_repair_lifecycle"))
-    blocked_reason_from_scan = _blocked_reason_from_scan(
+    lifecycle = _mapping(_maybe_blocked_lifecycle_from_scan(
+        developer_mode=developer_mode,
+        lifecycle=lifecycle,
         actions=actions,
         gate_specificity=gate_specificity,
         ai_reviewer_assessment=ai_reviewer_assessment,
-    )
-    if developer_mode.safe_actions_enabled and (
-        not lifecycle
-        or (
-            blocked_reason_from_scan is not None
-            and (
-                lifecycle.get("projection_only") is True
-                or _text(lifecycle.get("blocked_reason")) != blocked_reason_from_scan
-            )
-        )
-    ):
-        repair_payload = _repair_action_payload(study_root=study_root)
-        if repair_payload is not None:
-            if blocked_reason_from_scan is not None:
-                lifecycle = _blocked_lifecycle_from_repair(
-                    study_root=study_root,
-                    study_id=study_id,
-                    quest_id=resolved_quest_id,
-                    repair_payload=repair_payload,
-                    blocked_reason=blocked_reason_from_scan,
-                    next_owner=_next_owner_for_blocked_reason(blocked_reason_from_scan),
-                ) or {}
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=resolved_quest_id,
+    ))
     if developer_mode.safe_actions_enabled:
         request_packets.materialize_request_packets(
             study_root=study_root,
@@ -811,43 +813,33 @@ def _study_projection(
     )
     if submission_milestone_parked:
         lifecycle = _mapping(_mapping(submission_milestone_parked_refresh).get("repair_lifecycle"))
-    runtime_platform_repair_apply = platform_repair.apply_runtime_platform_repair(
+    runtime_platform_repair_apply, platform_lifecycle = _apply_runtime_platform_repair_projection(
         profile=profile,
         study_id=study_id,
         study_root=study_root,
-        status=status_payload,
-        progress=progress_payload,
+        quest_id=resolved_quest_id,
+        status_payload=status_payload,
+        progress_payload=progress_payload,
         publication_eval_payload=publication_eval_payload,
         developer_mode=developer_mode,
-        enabled=apply_runtime_platform_repair,
-        repair_required=(
-            not submission_milestone_parked
-            and _runtime_platform_repair_required(status_payload, progress_payload)
-        ),
+        apply_runtime_platform_repair=apply_runtime_platform_repair,
+        submission_milestone_parked=submission_milestone_parked,
     )
-    if runtime_platform_repair_apply is not None:
-        lifecycle = platform_repair.write_runtime_platform_repair_lifecycle(
-            study_root=study_root,
-            supervision_latest_relative_path=SUPERVISION_LATEST_RELATIVE_PATH,
-            study_id=study_id,
-            quest_id=resolved_quest_id,
-            apply_result=runtime_platform_repair_apply,
-        )
-    why_not_applied = _why_not_applied(status=status_payload, progress=progress_payload, actions=actions)
-    if runtime_platform_repair_apply is not None and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied":
-        why_not_applied = None
-    if submission_milestone_parked:
-        why_not_applied = None
-    if why_not_applied is None and lifecycle:
-        why_not_applied = _text(lifecycle.get("blocked_reason"))
-    external_supervisor_required = bool(
-        lifecycle.get("external_supervisor_required")
-        or any(_text(action.get("authority")) == "external_supervisor" for action in actions)
+    if platform_lifecycle is not None:
+        lifecycle = _mapping(platform_lifecycle)
+    why_not_applied = _resolve_why_not_applied(
+        status_payload=status_payload,
+        progress_payload=progress_payload,
+        actions=actions,
+        lifecycle=lifecycle,
+        runtime_platform_repair_apply=runtime_platform_repair_apply,
+        submission_milestone_parked=submission_milestone_parked,
     )
-    blocked_reason = _text(lifecycle.get("blocked_reason"))
-    if why_not_applied is not None and any(_text(action.get("reason")) == why_not_applied for action in actions):
-        blocked_reason = why_not_applied
-    next_owner = _next_owner_for_blocked_reason(blocked_reason) if blocked_reason else _text(lifecycle.get("next_owner"))
+    block_state = _projection_block_state(
+        lifecycle=lifecycle,
+        actions=actions,
+        why_not_applied=why_not_applied,
+    )
     supervision = _mapping(progress_payload.get("supervision"))
     return {
         "study_id": study_id,
@@ -873,9 +865,10 @@ def _study_projection(
         "why_not_applied": why_not_applied,
         "why_not_applied_timeline": _why_not_applied_timeline(why_not_applied),
         "escalation_reason": why_not_applied,
-        "next_owner": next_owner or ("external_supervisor" if external_supervisor_required else None),
-        "blocked_reason": blocked_reason or why_not_applied,
-        "external_supervisor_required": external_supervisor_required,
+        "next_owner": block_state["next_owner"]
+        or ("external_supervisor" if block_state["external_supervisor_required"] else None),
+        "blocked_reason": block_state["blocked_reason"] or why_not_applied,
+        "external_supervisor_required": block_state["external_supervisor_required"],
         "supervisor_only": _supervisor_only(status_payload, progress_payload),
         "paper_package_mutated": False,
         "apply_safe_actions": developer_mode.safe_actions_enabled,
@@ -918,7 +911,7 @@ def supervisor_scan(
         )
         for study_id in resolved_study_ids
     ]
-    queue_slo = _decorate_action_queue_slo(
+    queue_slo_payload = queue_slo.decorate_action_queue_slo(
         studies=studies,
         previous_payload=previous_payload,
         generated_at=generated_at,
@@ -947,7 +940,7 @@ def supervisor_scan(
         "history_path": str(history_path),
         "latest_action_count": len(action_queue),
         "previous_action_count": len(previous_action_ids),
-        **queue_slo,
+        **queue_slo_payload,
     }
     payload = {
         "surface": "portable_runtime_supervisor_scan",

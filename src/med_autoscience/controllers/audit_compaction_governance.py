@@ -79,6 +79,21 @@ def build_audit_compaction_governance_report(
 
 def validate_audit_compaction_governance_report(report: Mapping[str, Any]) -> dict[str, Any]:
     issues: list[dict[str, Any]] = []
+    _validate_l5_identity(report, issues)
+    _validate_l5_truth_boundaries(report, issues)
+    _validate_worktree_ownership_audit(report, issues)
+    _validate_structure_target_list(report, issues)
+    _validate_compaction_pre_contract(report, issues)
+    return {
+        "surface": "mas_l5_audit_compaction_governance_validation",
+        "schema_version": SCHEMA_VERSION,
+        "ok": not issues,
+        "issue_count": len(issues),
+        "issues": issues,
+    }
+
+
+def _validate_l5_identity(report: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
     if _text(report.get("surface")) != SURFACE:
         issues.append({"code": "invalid_surface"})
     if _text(report.get("lane_id")) != L5_LANE_ID:
@@ -87,6 +102,9 @@ def validate_audit_compaction_governance_report(report: Mapping[str, Any]) -> di
         issues.append({"code": "l5_claims_non_maintainability_authority"})
     if report.get("projection_only") is not True or report.get("maintainability_only") is not True:
         issues.append({"code": "l5_not_read_model_only"})
+
+
+def _validate_l5_truth_boundaries(report: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
     if _list(report.get("truth_writes")):
         issues.append({"code": "l5_declares_truth_writes", "truth_writes": list(_list(report.get("truth_writes")))})
 
@@ -95,6 +113,8 @@ def validate_audit_compaction_governance_report(report: Mapping[str, Any]) -> di
         if surface not in out_of_scope:
             issues.append({"code": "missing_truth_surface_exclusion", "surface": surface})
 
+
+def _validate_worktree_ownership_audit(report: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
     ownership_audit = _mapping(report.get("worktree_ownership_audit"))
     for bucket in ("main", "current_l5_worktree", "external_active_worktree", "unknown_owner"):
         if bucket not in ownership_audit:
@@ -106,6 +126,8 @@ def validate_audit_compaction_governance_report(report: Mapping[str, Any]) -> di
         if candidate.get("cleanup_allowed") is not False:
             issues.append({"code": "cleanup_allowed_without_absorb_authority", "path": candidate.get("path")})
 
+
+def _validate_structure_target_list(report: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
     target_list = _mapping(report.get("structure_target_list"))
     if _text(target_list.get("source")) != "Sentrux structure lane + line budget + boundary fitness":
         issues.append({"code": "invalid_structure_target_source"})
@@ -116,6 +138,8 @@ def validate_audit_compaction_governance_report(report: Mapping[str, Any]) -> di
         if _text(target.get("action_kind")) != "natural_boundary_split":
             issues.append({"code": "structure_target_not_natural_boundary", "path": target.get("path")})
 
+
+def _validate_compaction_pre_contract(report: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
     pre_contract = _mapping(report.get("audit_compaction_pre_contract"))
     gates = {_text(gate.get("gate_id")) for gate in _list(pre_contract.get("gates")) if isinstance(gate, Mapping)}
     for gate in REQUIRED_COMPACTION_GATES:
@@ -123,14 +147,6 @@ def validate_audit_compaction_governance_report(report: Mapping[str, Any]) -> di
             issues.append({"code": "missing_compaction_pre_contract_gate", "gate": gate})
     if report.get("compaction_implementation_allowed") is not False:
         issues.append({"code": "compaction_allowed_before_contract_passes"})
-
-    return {
-        "surface": "mas_l5_audit_compaction_governance_validation",
-        "schema_version": SCHEMA_VERSION,
-        "ok": not issues,
-        "issue_count": len(issues),
-        "issues": issues,
-    }
 
 
 def _worktree_records(

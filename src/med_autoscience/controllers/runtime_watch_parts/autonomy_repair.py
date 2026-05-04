@@ -494,56 +494,22 @@ def _apply_ai_doctor_repair_action(
 ) -> dict[str, Any]:
     if status_is_submission_milestone_parked(study_root=study_root, status_payload=status_payload):
         return _submission_milestone_park_result(repair_payload=repair_payload, action=action)
-    action_type = _non_empty_text(action.get("action_type"))
-    repair_kind = _non_empty_text(action.get("repair_kind"))
-    owner = _non_empty_text(action.get("owner"))
-    risk = _non_empty_text(action.get("risk")) or "medium"
-    auto_apply_allowed = action.get("auto_apply_allowed") is True
-    if not _repair_targets_status(repair_payload=repair_payload, status_payload=status_payload):
+    block_reason = _ai_doctor_repair_preflight_block_reason(
+        repair_payload=repair_payload,
+        status_payload=status_payload,
+        action=action,
+    )
+    if block_reason is not None:
         return _serialize_ai_doctor_repair_result(
             repair_payload=repair_payload,
             action=action,
             state="blocked",
             dispatch_status="not_dispatched",
-            reason="ai_doctor_repair_target_mismatch",
+            reason=block_reason,
         )
-    if action_type == "platform_repair":
-        return _serialize_ai_doctor_repair_result(
-            repair_payload=repair_payload,
-            action=action,
-            state="blocked",
-            dispatch_status="not_dispatched",
-            reason="ai_doctor_platform_repair_requires_repo_level_fix",
-        )
-    if not auto_apply_allowed or action.get("quality_gate_relaxation_allowed") is True:
-        return _serialize_ai_doctor_repair_result(
-            repair_payload=repair_payload,
-            action=action,
-            state="blocked",
-            dispatch_status="not_dispatched",
-            reason="ai_doctor_repair_not_auto_applicable",
-        )
-    if action_type != "controller_repair" or owner != "mas_controller":
-        return _serialize_ai_doctor_repair_result(
-            repair_payload=repair_payload,
-            action=action,
-            state="blocked",
-            dispatch_status="not_dispatched",
-            reason="ai_doctor_repair_requires_controller_owned_runtime_recovery",
-        )
-    if repair_kind not in AUTO_APPLY_CONTROLLER_REPAIR_KINDS or risk not in {"low", "medium"}:
-        return _serialize_ai_doctor_repair_result(
-            repair_payload=repair_payload,
-            action=action,
-            state="blocked",
-            dispatch_status="not_dispatched",
-            reason="ai_doctor_repair_action_not_in_runtime_recovery_allowlist",
-        )
-    if (
-        runtime_recovery_payload is not None
-        and _repair_targets_status(repair_payload=repair_payload, status_payload=runtime_recovery_payload)
-        and _runtime_recovery_executed(runtime_recovery_payload)
-        and status_allows_ai_doctor_repair(runtime_recovery_payload)
+    if _runtime_recovery_payload_satisfies_repair(
+        repair_payload=repair_payload,
+        runtime_recovery_payload=runtime_recovery_payload,
     ):
         return _serialize_ai_doctor_repair_result(
             repair_payload=repair_payload,
@@ -565,6 +531,43 @@ def _apply_ai_doctor_repair_action(
         state="blocked",
         dispatch_status="not_dispatched",
         reason="ai_doctor_repair_requires_executed_runtime_recovery_contract",
+    )
+
+
+def _ai_doctor_repair_preflight_block_reason(
+    *,
+    repair_payload: Mapping[str, Any],
+    status_payload: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> str | None:
+    action_type = _non_empty_text(action.get("action_type"))
+    repair_kind = _non_empty_text(action.get("repair_kind"))
+    owner = _non_empty_text(action.get("owner"))
+    risk = _non_empty_text(action.get("risk")) or "medium"
+    auto_apply_allowed = action.get("auto_apply_allowed") is True
+    if not _repair_targets_status(repair_payload=repair_payload, status_payload=status_payload):
+        return "ai_doctor_repair_target_mismatch"
+    if action_type == "platform_repair":
+        return "ai_doctor_platform_repair_requires_repo_level_fix"
+    if not auto_apply_allowed or action.get("quality_gate_relaxation_allowed") is True:
+        return "ai_doctor_repair_not_auto_applicable"
+    if action_type != "controller_repair" or owner != "mas_controller":
+        return "ai_doctor_repair_requires_controller_owned_runtime_recovery"
+    if repair_kind not in AUTO_APPLY_CONTROLLER_REPAIR_KINDS or risk not in {"low", "medium"}:
+        return "ai_doctor_repair_action_not_in_runtime_recovery_allowlist"
+    return None
+
+
+def _runtime_recovery_payload_satisfies_repair(
+    *,
+    repair_payload: Mapping[str, Any],
+    runtime_recovery_payload: Mapping[str, Any] | None,
+) -> bool:
+    return bool(
+        runtime_recovery_payload is not None
+        and _repair_targets_status(repair_payload=repair_payload, status_payload=runtime_recovery_payload)
+        and _runtime_recovery_executed(runtime_recovery_payload)
+        and status_allows_ai_doctor_repair(runtime_recovery_payload)
     )
 
 
