@@ -224,6 +224,8 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     cleanup_apply_parser.add_argument("--apply", action="store_true")
     cleanup_apply_parser.add_argument("--control-plane-snapshot-json")
     cleanup_apply_parser.add_argument("--control-plane-snapshot-file")
+    cleanup_apply_parser.add_argument("--retention-report-json")
+    cleanup_apply_parser.add_argument("--retention-report-file")
 
     lifecycle_report_parser = subparsers.add_parser("control-plane-lifecycle-report")
     lifecycle_report_parser.add_argument("--workspace-root", action="append", required=True)

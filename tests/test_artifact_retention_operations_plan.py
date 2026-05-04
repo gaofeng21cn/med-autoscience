@@ -164,6 +164,8 @@ def test_retention_plan_only_marks_safe_cache_as_applyable(tmp_path: Path) -> No
     assert plan["retention_policy_catalog"]["physical_apply_allowlist"] == ["delete-safe-cache"]
     assert plan["operations"][0]["retention_action"] == "delete_safe_cache"
     assert plan["operations"][0]["physical_delete_allowed"] is True
+    assert plan["operations"][0]["cleanup_candidate_action"] == "delete-safe-cache"
+    assert plan["operations"][0]["workspace_relative_path"] == ".pytest_cache/v/cache/nodeids"
     assert plan["operations"][1]["retention_action"] == "restore_contract_required"
     assert plan["operations"][1]["physical_delete_allowed"] is False
     assert plan["operations"][1]["restore_contract_gate"]["status"] == "required_before_cleanup"

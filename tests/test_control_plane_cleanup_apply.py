@@ -43,6 +43,7 @@ def _cleanup_apply_fixture(
         "action": action,
         "target_path": "scratch/cache",
         "artifact_role": artifact_role,
+        "target_allowlist": {"source": "test_fixture", "target_path": "scratch/cache"},
     }
     if include_restore_contract:
         cleanup_action["restore_contract"] = {
@@ -62,6 +63,39 @@ def _cleanup_apply_fixture(
         },
     )
     return workspace_root, cache_root
+
+
+def _clear_contract_actions(workspace_root: Path) -> None:
+    contract_path = workspace_root / "control_plane_cleanup_apply.json"
+    payload = json.loads(contract_path.read_text(encoding="utf-8"))
+    payload["actions"] = []
+    contract_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _retention_report_fixture(workspace_root: Path, cache_root: Path) -> dict[str, object]:
+    return {
+        "surface": "control_plane_lifecycle_report",
+        "workspaces": [
+            {
+                "workspace_root": str(workspace_root),
+                "retention_plan": {
+                    "surface_kind": "artifact_retention_operations_plan",
+                    "operation_listing": "bounded",
+                    "operation_sample": [
+                        {
+                            "path": str(cache_root),
+                            "workspace_relative_path": "scratch/cache",
+                            "role": "cache",
+                            "lifecycle": "cache_transient",
+                            "cleanup_candidate_action": "delete-safe-cache",
+                            "retention_action": "delete_safe_cache",
+                            "physical_delete_allowed": True,
+                        }
+                    ],
+                },
+            }
+        ],
+    }
 
 
 def _snapshot(*, cleanup_apply_allowed: bool = True, gate_state: str = "open") -> dict[str, object]:
@@ -147,6 +181,74 @@ def test_cleanup_apply_default_generates_plan_without_mutating(tmp_path: Path) -
     assert report["action_counts"] == {"planned": 1, "blocked": 0, "applied": 0, "mutating": 0}
     assert report["apply_plan"][0]["action"] == "delete-safe-cache"
     assert report["apply_plan"][0]["eligible_for_apply"] is True
+
+
+def test_cleanup_apply_plans_safe_cache_candidate_from_retention_report(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path)
+    _clear_contract_actions(workspace_root)
+
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        retention_report=_retention_report_fixture(workspace_root, cache_root),
+    )
+
+    retention_action = report["apply_plan"][0]
+    assert cache_root.exists()
+    assert report["action_counts"] == {"planned": 1, "blocked": 0, "applied": 0, "mutating": 0}
+    assert retention_action["action"] == "delete-safe-cache"
+    assert retention_action["artifact_role"] == "safe_cache"
+    assert retention_action["eligible_for_apply"] is True
+    assert retention_action["audit_payload"]["candidate_source"] == "retention_report"
+    assert retention_action["safe_cache_candidate"]["source_ref"] == (
+        "workspaces[0].retention_plan.operation_sample[0]"
+    )
+    assert retention_action["safe_cache_candidate"]["workspace_relative_path"] == "scratch/cache"
+
+
+def test_cleanup_apply_deletes_safe_cache_candidate_from_retention_report_after_gates(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path)
+    _clear_contract_actions(workspace_root)
+
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+        retention_report=_retention_report_fixture(workspace_root, cache_root),
+    )
+
+    assert report["status"] == "applied"
+    assert not cache_root.exists()
+    assert report["action_counts"] == {"planned": 1, "blocked": 0, "applied": 1, "mutating": 1}
+    assert report["workspaces"][0]["contract_present"] is True
+    assert report["workspaces"][0]["retention_report_candidate_count"] == 1
+    assert report["applied_actions"][0]["audit_payload"]["candidate_source"] == "retention_report"
+
+
+def test_cleanup_apply_ignores_non_safe_cache_retention_report_candidates(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path)
+    (workspace_root / "control_plane_cleanup_apply.json").unlink()
+    report_payload = _retention_report_fixture(workspace_root, cache_root)
+    operation = report_payload["workspaces"][0]["retention_plan"]["operation_sample"][0]
+    operation["retention_action"] = "archive_compress_candidate_blocked"
+    operation["cleanup_candidate_action"] = "archive-compress"
+    operation["physical_delete_allowed"] = False
+
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+        retention_report=report_payload,
+    )
+
+    assert report["status"] == "no_contract"
+    assert cache_root.exists()
+    assert report["action_counts"] == {"planned": 0, "blocked": 0, "applied": 0, "mutating": 0}
+    assert report["apply_plan"] == []
 
 
 def test_cleanup_apply_true_deletes_safe_cache_after_all_gates(tmp_path: Path) -> None:

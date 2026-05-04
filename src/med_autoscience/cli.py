@@ -957,16 +957,25 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "control-plane-cleanup-apply":
-        result = control_plane_cleanup_apply.run_cleanup_apply(
-            workspace_roots=[Path(root) for root in args.workspace_root],
-            apply=args.apply,
-            control_plane_snapshot=_load_optional_object_payload_from_args(
+        cleanup_apply_kwargs = {
+            "workspace_roots": [Path(root) for root in args.workspace_root],
+            "apply": args.apply,
+            "control_plane_snapshot": _load_optional_object_payload_from_args(
                 payload_file=args.control_plane_snapshot_file,
                 payload_json=args.control_plane_snapshot_json,
                 file_label="--control-plane-snapshot-file",
                 json_label="--control-plane-snapshot-json",
             ),
+        }
+        retention_report = _load_optional_object_payload_from_args(
+            payload_file=args.retention_report_file,
+            payload_json=args.retention_report_json,
+            file_label="--retention-report-file",
+            json_label="--retention-report-json",
         )
+        if retention_report is not None:
+            cleanup_apply_kwargs["retention_report"] = retention_report
+        result = control_plane_cleanup_apply.run_cleanup_apply(**cleanup_apply_kwargs)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

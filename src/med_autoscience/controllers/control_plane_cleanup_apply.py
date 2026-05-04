@@ -22,6 +22,7 @@ def run_cleanup_apply(
     workspace_roots: Iterable[str | Path],
     apply: bool = False,
     control_plane_snapshot: Mapping[str, Any] | None = None,
+    retention_report: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     workspaces: list[dict[str, Any]] = []
     apply_plan: list[dict[str, Any]] = []
@@ -45,6 +46,7 @@ def run_cleanup_apply(
         workspace_report = _workspace_plan(
             workspace_root=root,
             control_plane_route_gate=control_plane_route_gate,
+            retention_report=retention_report,
         )
         workspaces.append(workspace_report["workspace"])
         for action in workspace_report["actions"]:
@@ -94,6 +96,7 @@ def _workspace_plan(
     *,
     workspace_root: Path,
     control_plane_route_gate: Mapping[str, Any],
+    retention_report: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     contract_path = workspace_root / CONTRACT_NAME
     contract = _read_json(contract_path)
@@ -104,7 +107,7 @@ def _workspace_plan(
         for item in _list(contract.get("action_allowlist"))
         if (text := _text(item)) is not None
     }
-    actions = [
+    contract_actions = [
         _plan_action(
             workspace_root=workspace_root,
             runtime=runtime,
@@ -115,6 +118,21 @@ def _workspace_plan(
         )
         for item in _list(contract.get("actions"))
     ]
+    report_actions = [
+        _plan_action(
+            workspace_root=workspace_root,
+            runtime=runtime,
+            controller_decision=controller_decision,
+            allowlist=allowlist | ALLOWED_PHYSICAL_ACTIONS,
+            control_plane_route_gate=control_plane_route_gate,
+            action_payload=item,
+        )
+        for item in _retention_report_safe_cache_actions(
+            workspace_root=workspace_root,
+            retention_report=retention_report,
+        )
+    ]
+    actions = [*contract_actions, *report_actions]
     return {
         "workspace": {
             "workspace_root": str(workspace_root),
@@ -122,6 +140,7 @@ def _workspace_plan(
             "contract_present": contract_path.exists(),
             "runtime_status": _text(runtime.get("status")),
             "action_count": len(actions),
+            "retention_report_candidate_count": len(report_actions),
         },
         "actions": actions,
     }
@@ -171,7 +190,15 @@ def _target_path_blockers(*, workspace_root: Path, target_path: Path) -> list[st
     return []
 
 
+def _target_allowlist_blockers(action_payload: Mapping[str, Any]) -> list[str]:
+    if _mapping(action_payload.get("target_allowlist")):
+        return []
+    return ["target_allowlist_missing"]
+
+
 def _artifact_role_blockers(*, artifact_role: str, restore_contract: Mapping[str, Any]) -> list[str]:
+    if artifact_role == "safe_cache":
+        return []
     if artifact_role in {"data_release", "runtime_payload"} and not restore_contract:
         return ["missing_restore_contract"]
     return []
@@ -191,6 +218,7 @@ def _plan_action(
     target_path = (workspace_root / target_ref).resolve() if target_ref else workspace_root
     artifact_role = _text(action_payload.get("artifact_role")) or "unknown"
     restore_contract = _mapping(action_payload.get("restore_contract"))
+    safe_cache_candidate = _mapping(action_payload.get("safe_cache_candidate"))
     runtime_status = _text(runtime.get("status"))
     blockers = _dedupe(
         [
@@ -199,22 +227,32 @@ def _plan_action(
             *_controller_decision_blockers(controller_decision),
             *_action_allowlist_blockers(action=action, allowlist=allowlist),
             *_target_path_blockers(workspace_root=workspace_root, target_path=target_path),
+            *_target_allowlist_blockers(action_payload),
             *_restore_contract_blockers(
                 workspace_root=workspace_root,
                 target_path=target_path,
                 restore_contract=restore_contract,
+                restore_contract_required=artifact_role != "safe_cache",
             ),
             *_artifact_role_blockers(artifact_role=artifact_role, restore_contract=restore_contract),
         ]
     )
 
     candidate_action = "audit-only" if "live_runtime_active" in blockers else action
+    audit_payload = {
+        "candidate_source": _text(action_payload.get("source")) or "cleanup_apply_contract",
+        "safe_cache_candidate_source_ref": dict(safe_cache_candidate),
+        "blocked_reasons": list(blockers),
+        "target_allowlist": dict(_mapping(action_payload.get("target_allowlist"))),
+    }
     return {
         "workspace_root": str(workspace_root),
         "action": action,
         "candidate_action": candidate_action,
         "target_path": str(target_path),
         "artifact_role": artifact_role,
+        "safe_cache_candidate": dict(safe_cache_candidate),
+        "audit_payload": audit_payload,
         "eligible_for_apply": not blockers,
         "blockers": blockers,
         "control_plane_route_gate": dict(control_plane_route_gate),
@@ -228,9 +266,12 @@ def _restore_contract_blockers(
     workspace_root: Path,
     target_path: Path,
     restore_contract: Mapping[str, Any],
+    restore_contract_required: bool,
 ) -> list[str]:
     blockers: list[str] = []
     if not restore_contract:
+        if not restore_contract_required:
+            return []
         blockers.append("missing_restore_contract")
     restore_index = _text(restore_contract.get("restore_index_path") or restore_contract.get("restore_index"))
     checksum = _text(restore_contract.get("sha256") or restore_contract.get("checksum"))
@@ -246,6 +287,87 @@ def _restore_contract_blockers(
     if _text(rehydrate.get("status")) != "verified":
         blockers.append("missing_rehydrate_verification")
     return blockers
+
+
+def _retention_report_safe_cache_actions(
+    *,
+    workspace_root: Path,
+    retention_report: Mapping[str, Any] | None,
+) -> list[Mapping[str, Any]]:
+    if not retention_report:
+        return []
+    actions: list[Mapping[str, Any]] = []
+    for source_ref, operation in _iter_retention_operations(
+        workspace_root=workspace_root,
+        retention_report=retention_report,
+    ):
+        if not _is_delete_safe_cache_candidate(operation):
+            continue
+        target_ref = _text(operation.get("workspace_relative_path")) or _text(operation.get("path"))
+        if target_ref is None:
+            continue
+        actions.append(
+            {
+                "action": "delete-safe-cache",
+                "target_path": target_ref,
+                "artifact_role": "safe_cache",
+                "source": "retention_report",
+                "target_allowlist": {
+                    "source": "retention_report",
+                    "source_ref": source_ref,
+                    "target_path": target_ref,
+                },
+                "safe_cache_candidate": {
+                    "source": "retention_report",
+                    "source_ref": source_ref,
+                    "retention_action": _text(operation.get("retention_action")),
+                    "cleanup_candidate_action": _text(operation.get("cleanup_candidate_action")),
+                    "workspace_relative_path": _text(operation.get("workspace_relative_path")),
+                    "path": _text(operation.get("path")),
+                },
+            }
+        )
+    return actions
+
+
+def _iter_retention_operations(
+    *,
+    workspace_root: Path,
+    retention_report: Mapping[str, Any],
+) -> Iterable[tuple[str, Mapping[str, Any]]]:
+    if _workspace_matches(workspace_root, _text(retention_report.get("workspace_root"))):
+        plan = retention_report
+        for index, operation in enumerate(_plan_operations(plan)):
+            yield f"retention_report.operations[{index}]", operation
+
+    for workspace_index, workspace in enumerate(_list(retention_report.get("workspaces"))):
+        workspace_payload = _mapping(workspace)
+        if not _workspace_matches(workspace_root, _text(workspace_payload.get("workspace_root"))):
+            continue
+        plan = _mapping(workspace_payload.get("retention_plan"))
+        for index, operation in enumerate(_plan_operations(plan)):
+            yield f"workspaces[{workspace_index}].retention_plan.operation_sample[{index}]", operation
+
+
+def _plan_operations(plan: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    operations = _list(plan.get("operations"))
+    if not operations:
+        operations = _list(plan.get("operation_sample"))
+    return [_mapping(item) for item in operations if _mapping(item)]
+
+
+def _is_delete_safe_cache_candidate(operation: Mapping[str, Any]) -> bool:
+    return (
+        _text(operation.get("retention_action")) == "delete_safe_cache"
+        and _text(operation.get("cleanup_candidate_action")) == "delete-safe-cache"
+        and operation.get("physical_delete_allowed") is True
+    )
+
+
+def _workspace_matches(workspace_root: Path, candidate_root: str | None) -> bool:
+    if not candidate_root:
+        return False
+    return Path(candidate_root).expanduser().resolve() == workspace_root
 
 
 def _report_status(
