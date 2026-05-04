@@ -26,13 +26,15 @@ def _layout_pending_sync(inspection: Mapping[str, Any]) -> bool:
 
 
 def _inspection_status(inspection: Mapping[str, Any]) -> str:
-    if _layout_pending_sync(inspection):
-        return "legacy_layout_pending_sync"
     freshness = _mapping(inspection.get("freshness"))
     verdict = str(freshness.get("verdict") or "").strip()
+    delivery_status = str(freshness.get("delivery_status") or "").strip()
+    if _layout_pending_sync(inspection) and not (
+        verdict == "stale" or delivery_status.startswith("stale")
+    ):
+        return "legacy_layout_pending_sync"
     if verdict:
         return verdict
-    delivery_status = str(freshness.get("delivery_status") or "").strip()
     return delivery_status or str(inspection.get("status") or "unknown").strip() or "unknown"
 
 
@@ -74,6 +76,7 @@ def compact_delivery_inspection_projection(value: object) -> dict[str, Any] | No
     compact.setdefault("surface_kind", "study_delivery_inspection_projection")
     compact["status"] = status
     compact["summary"] = _inspection_summary(inspection, status=status)
+    compact["legacy_layout_pending_sync"] = _layout_pending_sync(inspection)
     compact["source_labels"] = {
         "submission_minimal": SUBMISSION_MINIMAL_LABEL,
         "current_package": CURRENT_PACKAGE_LABEL,

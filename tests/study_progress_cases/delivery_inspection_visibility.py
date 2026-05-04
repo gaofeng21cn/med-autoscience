@@ -127,3 +127,22 @@ def test_study_progress_projects_delivery_inspector_summary_without_authority_ch
     assert "submission_minimal = controller-authorized source" in markdown
     assert "current_package = human-facing mirror" in markdown
     assert "legacy layout 会在下一次 authorized sync 升级" in markdown
+
+
+def test_delivery_visibility_projection_keeps_stale_visible_for_legacy_layout() -> None:
+    module = importlib.import_module("med_autoscience.controllers.delivery_visibility_projection")
+
+    projection = module.compact_delivery_inspection_projection(
+        {
+            "surface": "delivery_inspector",
+            "study_id": "001-risk",
+            "mutation_policy": {"read_only": True, "writes_package": False},
+            "freshness": {"verdict": "stale", "delivery_status": "stale_source_changed"},
+            "source_package": {"layout_status": "legacy"},
+            "human_package": {"layout_status": "legacy"},
+        }
+    )
+
+    assert projection["status"] == "stale"
+    assert projection["legacy_layout_pending_sync"] is True
+    assert projection["summary"] == "delivery status: stale_source_changed"

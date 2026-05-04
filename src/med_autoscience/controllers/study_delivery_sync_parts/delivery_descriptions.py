@@ -277,6 +277,7 @@ CURRENT_PACKAGE_GENERATED_PROJECTION_RELATIVE_PATHS = frozenset(
 CURRENT_PACKAGE_JSON_VOLATILE_TOP_LEVEL_KEYS: dict[Path, frozenset[str]] = {
     Path("evidence_ledger.json"): frozenset({"updated_at"}),
     Path("audit/evidence_ledger.json"): frozenset({"updated_at"}),
+    **{Path("reproducibility") / name: frozenset({"package_role"}) for name in ("source_signature.json", "source_relative_paths.json", "analysis_manifest.json")},
 }
 
 

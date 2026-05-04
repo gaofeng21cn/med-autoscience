@@ -356,6 +356,11 @@ def test_delivery_manifest_records_lifecycle_authority_sync(tmp_path: Path) -> N
     assert lifecycle["authority_sync"]["direct_edit_allowed"] is False
     assert lifecycle["authority_sync"]["quality_authority_allowed"] is False
     assert lifecycle["lifecycle_roles"]["current_package"] == "derived_projection"
+    assert lifecycle["lifecycle_roles"]["submission_minimal"] == "controller_authorized_package_source"
+    assert lifecycle["delivery_package_roles"] == {
+        "submission_minimal": "controller_authorized_package_source",
+        "current_package": "human_facing_mirror",
+    }
 
 
 def test_v2_current_package_audit_manifest_is_projection_only_read_model(tmp_path: Path) -> None:

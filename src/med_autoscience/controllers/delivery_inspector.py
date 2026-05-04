@@ -201,14 +201,16 @@ def _freshness_verdict(
     human_package: Mapping[str, Any],
 ) -> str:
     package_statuses = {str(source_package.get("layout_status")), str(human_package.get("layout_status"))}
-    if "legacy" in package_statuses:
-        return "legacy"
     if delivery_status == "current":
+        if "legacy" in package_statuses:
+            return "legacy"
         return "current"
-    if delivery_status in {"missing", "not_applicable"} or "missing" in package_statuses:
-        return "missing"
     if delivery_status.startswith("stale") or delivery_status in {"invalid", "incomplete"}:
         return "stale"
+    if "legacy" in package_statuses and "missing" not in package_statuses:
+        return "legacy"
+    if delivery_status in {"missing", "not_applicable"} or "missing" in package_statuses:
+        return "missing"
     return "unknown"
 
 

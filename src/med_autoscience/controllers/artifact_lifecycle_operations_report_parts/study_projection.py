@@ -65,8 +65,9 @@ def projection_role_catalog() -> dict[str, dict[str, str]]:
             "lifecycle": lifecycle_for_role("derived_projection"),
         },
         "submission_minimal": {
-            "role": "human_handoff_mirror",
-            "lifecycle": lifecycle_for_role("human_handoff_mirror"),
+            "role": "derived_projection",
+            "lifecycle": lifecycle_for_role("derived_projection"),
+            "delivery_package_role": "controller_authorized_package_source",
         },
         "docx": {
             "role": "derived_projection",
@@ -157,8 +158,9 @@ def _projection_surfaces(artifacts: Iterable[Mapping[str, Any]]) -> dict[str, An
         ),
         "submission_minimal": _surface_report(
             name="submission_minimal",
-            role="human_handoff_mirror",
+            role="derived_projection",
             artifacts=[item for item in artifact_list if _path_has_part(item, "submission_minimal")],
+            delivery_package_role="controller_authorized_package_source",
         ),
         "docx": _surface_report(
             name="docx",
@@ -178,10 +180,16 @@ def _projection_surfaces(artifacts: Iterable[Mapping[str, Any]]) -> dict[str, An
     }
 
 
-def _surface_report(*, name: str, role: str, artifacts: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+def _surface_report(
+    *,
+    name: str,
+    role: str,
+    artifacts: Iterable[Mapping[str, Any]],
+    delivery_package_role: str | None = None,
+) -> dict[str, Any]:
     artifact_list = [dict(item) for item in artifacts]
     lifecycle = lifecycle_for_role(role)
-    return {
+    report = {
         "surface": name,
         "role": role,
         "lifecycle": lifecycle,
@@ -192,6 +200,9 @@ def _surface_report(*, name: str, role: str, artifacts: Iterable[Mapping[str, An
         "authority_blockers": _artifact_blocker_values(artifact_list, "authority_blockers"),
         "cleanup_blockers": _artifact_blocker_values(artifact_list, "cleanup_blockers"),
     }
+    if delivery_package_role is not None:
+        report["delivery_package_role"] = delivery_package_role
+    return report
 
 
 def _artifact_blocker_values(artifacts: Iterable[Mapping[str, Any]], key: str) -> list[str]:

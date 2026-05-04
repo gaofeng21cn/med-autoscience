@@ -155,10 +155,14 @@ def build_study_delivery_lifecycle_hook(
         "authority_sync": authority_sync,
         "lifecycle_roles": {
             "current_package": "derived_projection",
-            "submission_minimal": "human_handoff_mirror",
+            "submission_minimal": "controller_authorized_package_source",
             "zip": "derived_projection",
             "pdf": "derived_projection",
             "docx": "derived_projection",
+        },
+        "delivery_package_roles": {
+            "submission_minimal": "controller_authorized_package_source",
+            "current_package": "human_facing_mirror",
         },
     }
 

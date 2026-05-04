@@ -97,6 +97,18 @@ def test_delivery_inspector_marks_legacy_root_audit_files_without_mutation(tmp_p
     assert not (human_root / "audit").exists()
 
 
+def test_delivery_inspector_preserves_stale_verdict_for_legacy_layout(tmp_path: Path) -> None:
+    inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
+
+    verdict = inspector._freshness_verdict(
+        delivery_status="stale_source_changed",
+        source_package={"layout_status": "legacy"},
+        human_package={"layout_status": "legacy"},
+    )
+
+    assert verdict == "stale"
+
+
 def test_delivery_inspector_cli_supports_public_publication_alias_json(tmp_path: Path, capsys) -> None:
     sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     cli = importlib.import_module("med_autoscience.cli")

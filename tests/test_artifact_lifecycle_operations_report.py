@@ -67,7 +67,10 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
     study = report["workspaces"][0]["studies"][0]
     assert study["study_id"] == "001-risk"
     assert study["projection_surfaces"]["current_package"]["role"] == "derived_projection"
-    assert study["projection_surfaces"]["submission_minimal"]["role"] == "human_handoff_mirror"
+    assert study["projection_surfaces"]["submission_minimal"]["role"] == "derived_projection"
+    assert study["projection_surfaces"]["submission_minimal"]["delivery_package_role"] == (
+        "controller_authorized_package_source"
+    )
     assert study["projection_completeness"]["status"] == "complete"
     assert "missing_docx" not in study["projection_completeness"]["blockers"]
     assert "missing_pdf" not in study["projection_completeness"]["blockers"]
