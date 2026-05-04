@@ -58,10 +58,20 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_ensure_supervision_parser.add_argument("--profile", required=True)
     runtime_ensure_supervision_parser.add_argument("--interval-seconds", type=int, default=300)
     runtime_ensure_supervision_parser.add_argument("--no-trigger-now", action="store_true")
+    runtime_ensure_supervision_parser.add_argument(
+        "--manager",
+        choices=("hermes", "systemd", "cron", "docker", "launchd"),
+        default="hermes",
+    )
 
     runtime_remove_supervision_parser = subparsers.add_parser("runtime-remove-supervision")
     runtime_remove_supervision_parser.add_argument("--profile", required=True)
     runtime_remove_supervision_parser.add_argument("--interval-seconds", type=int, default=300)
+
+    runtime_supervisor_scan_parser = subparsers.add_parser("runtime-supervisor-scan")
+    runtime_supervisor_scan_parser.add_argument("--profile", required=True)
+    runtime_supervisor_scan_parser.add_argument("--studies", nargs="+", required=True)
+    runtime_supervisor_scan_parser.add_argument("--apply-safe-actions", action="store_true")
 
     register_runtime_storage_parsers(subparsers)
 

@@ -377,6 +377,22 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         item = builder(payload.get(key))
         if item is not None:
             compact[key] = item
+    ai_repair_lifecycle = _compact_record(
+        payload.get("ai_repair_lifecycle"),
+        (
+            "surface",
+            "state",
+            "top_action",
+            "auto_apply_allowed",
+            "last_apply_attempt_at",
+            "applied_at",
+            "blocked_reason",
+            "next_owner",
+            "external_supervisor_required",
+        ),
+    )
+    if ai_repair_lifecycle is not None:
+        compact["ai_repair_lifecycle"] = ai_repair_lifecycle
 
     compact["mcp_projection"] = {
         "surface_kind": "mcp_compacted_study_progress_projection",

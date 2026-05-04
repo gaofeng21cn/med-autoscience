@@ -108,7 +108,7 @@ def test_control_plane_snapshot_blocks_recovery_when_retry_budget_exhausted() ->
     )
 
     assert snapshot["control_state"] == "blocked_runtime_escalation"
-    assert snapshot["canonical_runtime_action"] == "escalate_runtime"
+    assert snapshot["canonical_runtime_action"] == "external_supervisor_required"
     assert snapshot["dispatch_gate"]["state"] == "blocked"
     assert snapshot["route_authorization"]["runtime_recovery_allowed"] is False
     assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
@@ -133,7 +133,7 @@ def test_control_plane_snapshot_escalates_when_non_recovery_retry_budget_exhaust
     )
 
     assert snapshot["control_state"] == "blocked_runtime_escalation"
-    assert snapshot["canonical_runtime_action"] == "escalate_runtime"
+    assert snapshot["canonical_runtime_action"] == "external_supervisor_required"
     assert snapshot["dispatch_gate"]["state"] == "blocked"
     assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
 

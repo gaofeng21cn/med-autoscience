@@ -38,6 +38,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("runtime", "supervision-status"): "runtime-supervision-status",
     ("runtime", "ensure-supervision"): "runtime-ensure-supervision",
     ("runtime", "remove-supervision"): "runtime-remove-supervision",
+    ("runtime", "supervisor-scan"): "runtime-supervisor-scan",
     ("runtime", "maintain-storage"): "runtime-maintain-storage",
     ("runtime", "storage-audit"): "workspace-storage-audit",
     ("runtime", "overlay-status"): "overlay-status",

@@ -138,13 +138,50 @@ def _render_watch_runtime_service_runner() -> str:
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS:-300}"\n'
+        'WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS:-3600}"\n'
+        'SUPERVISOR_SCAN_INTERVAL_SECONDS="${SUPERVISOR_SCAN_INTERVAL_SECONDS:-3600}"\n'
         'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"\n\n'
+        'SUPERVISOR_SCAN_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-scan"\n\n'
         'if [[ ! -x "${WATCH_RUNTIME_SCRIPT}" ]]; then\n'
         '  echo "watch-runtime entry is missing or not executable: ${WATCH_RUNTIME_SCRIPT}" >&2\n'
         "  exit 1\n"
         "fi\n\n"
-        'exec "${WATCH_RUNTIME_SCRIPT}" --interval-seconds "${WATCH_RUNTIME_INTERVAL_SECONDS}" "$@"\n'
+        'if [[ ! -x "${SUPERVISOR_SCAN_SCRIPT}" ]]; then\n'
+        '  echo "supervisor-scan entry is missing or not executable: ${SUPERVISOR_SCAN_SCRIPT}" >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
+        'exec "${SUPERVISOR_SCAN_SCRIPT}" --apply-safe-actions "$@"\n'
+    )
+
+
+def _render_supervisor_scan_script() -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'run_medautosci runtime supervisor-scan \\\n'
+        '  --profile "${PROFILE_PATH}" \\\n'
+        '  "$@"\n'
+    )
+
+
+def _render_install_watch_runtime_service_script() -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then\n'
+        '  cat <<'"'"'EOF'"'"'\n'
+        "Install portable MAS runtime supervision.\n\n"
+        "Supported managers:\n"
+        "  --manager systemd   Linux systemd --user service/timer\n"
+        "  --manager cron      plain host cron entry\n"
+        "  --manager docker    Docker one-shot command for external cron/Kubernetes CronJob\n"
+        "  --manager launchd   macOS compatibility path\n"
+        "EOF\n"
+        "  exit 0\n"
+        "fi\n\n"
+        'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"\n'
     )
 
 

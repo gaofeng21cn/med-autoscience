@@ -6,7 +6,7 @@
 
 - `MedAutoScience` 不是第二个 authority daemon
 - 但它必须拥有稳定的 `supervision tick`
-- 这个 tick 的长期托管 owner 应是 `Hermes-Agent gateway cron`
+- 这个 tick 的长期托管 owner 可以是 `Hermes-Agent gateway cron`、Linux `systemd --user`、宿主 `cron`、Docker/Kubernetes one-shot scheduler 或 macOS `launchd`
 - 这个 loop 的职责是持续发现掉线、执行 reconciliation、写出 durable supervision surface，并把结果翻译成前台可见的人话
 
 ## 1. 总目标
@@ -57,10 +57,10 @@
 
 当前正式 outer-loop tick 入口是：
 
-- `medautosci watch --runtime-root <runtime_root> --apply --ensure-study-runtimes --profile <profile>`
+- `medautosci runtime watch --runtime-root <runtime_root> --apply --ensure-study-runtimes --profile <profile>`
 
 ```bash
-medautosci watch \
+medautosci runtime watch \
   --runtime-root <runtime_root> \
   --apply \
   --ensure-study-runtimes \
@@ -75,6 +75,19 @@ medautosci watch \
 4. 必要时写出或刷新 `runtime_escalation_record.json`
 
 也就是说，外环的核心不是“循环本身”，而是单次 tick 的 controller contract。
+
+跨 study 的小时级巡检入口是 portable supervisor scan：
+
+```bash
+medautosci runtime supervisor-scan \
+  --profile <profile> \
+  --studies <study_id> <study_id> \
+  --apply-safe-actions
+```
+
+该入口写出 workspace-level `artifacts/supervision/hourly/latest.json`，只消费 MAS durable truth surfaces：`study_runtime_status`、`study_progress`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json` 与 AI repair lifecycle。它的职责是形成 `action_queue`、`why_not_applied` 与 `external_supervisor_required`，而不是直接修改 paper/current_package。
+
+`Codex App heartbeat` 不是这条 contract 的依赖。Codex App 以后可以作为一个外部 scheduler 调用该入口，但 MAS 运行环境必须同样支持 Linux 与 Docker。
 
 同时，外环还必须对“最近一次 supervisor tick 是否仍然新鲜”给出正式判断：
 
@@ -99,7 +112,7 @@ medautosci watch \
 
 - `recovering`
 - `degraded`
-- `escalated`
+- `external_supervisor_required`
 
 这就是 fail-closed 语义。
 
@@ -125,9 +138,10 @@ medautosci watch \
 ### 5.3 恢复连续失败
 
 - `consecutive_failure_count` 增长
-- 达到阈值后升级为 `escalated`
+- 达到阈值后升级为 `external_supervisor_required`
 - 写 `runtime_escalation_record.json`
-- 前台和 Gateway/MAS 都必须看到明确的人工介入信号
+- 前台和 Gateway/MAS 都必须看到明确的平台级 supervisor 介入信号
+- control plane 不得继续把该状态伪装成 recovering dispatch
 
 ### 5.4 controller-owned finalize parking
 
@@ -153,6 +167,8 @@ medautosci watch \
 
 - quest-level `runtime_watch/latest.json`
 - study-level `studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json`
+- study-level `studies/<study_id>/artifacts/autonomy/repair_lifecycle/latest.json`
+- workspace-level `artifacts/supervision/hourly/latest.json`
 - quest-level `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
 - study-level `studies/<study_id>/artifacts/runtime/last_launch_report.json`
 - physician-facing projection `study_progress`
@@ -162,6 +178,8 @@ medautosci watch \
 - `runtime_watch/latest.json` 负责 quest controller scan truth
 - `artifacts/runtime/health/latest.json` 负责 reducer-owned runtime health truth
 - `runtime_supervision/latest.json` 负责 outer-loop supervision read model，并携带 `runtime_health_epoch`
+- `repair_lifecycle/latest.json` 负责投影 AI doctor repair 从 request、diagnosis、repair action 到 apply attempt 的生命周期
+- `artifacts/supervision/hourly/latest.json` 负责跨 study 巡检 action queue 与 why-not-applied 投影
 - `study_progress` 负责把这些 truth 翻译成医生/PI 能看懂的前台进度
 
 不要把 runtime health truth 硬塞进：
@@ -179,7 +197,7 @@ medautosci watch \
 
 - `recovering`
 - `degraded`
-- `escalated`
+- `external_supervisor_required`
 
 前台就必须优先展示 runtime health，而不是被论文阶段覆盖。
 
@@ -191,6 +209,15 @@ medautosci watch \
 - 下一步系统准备做什么
 - 是否已经需要人工介入
 
+只要 AI repair 处于 `ready_for_repair` 但未 apply，前台必须展示：
+
+- `blocked_reason`
+- `next_owner`
+- `external_supervisor_required`
+- 最近一次 `last_apply_attempt_at`
+
+禁止只显示 `awaiting_ai_doctor` 或 `ready_for_repair` 而不解释为什么没有执行。
+
 ## 8. 与常驻 daemon 的关系
 
 从 contract 角度说，`MedAutoScience` 没有必要因为这个问题变成第二个 authority daemon。
@@ -198,12 +225,17 @@ medautosci watch \
 更合理的形态是：
 
 - 先把单次 `supervisor tick` 做严谨
-- 再由 `Hermes gateway cron` 周期调用它
+- 再由外部 scheduler 周期调用它
 
-换句话说：
+可接受的 scheduler 形态包括：
 
-- `Hermes` 负责“长期在线、每 5 分钟跑一次”
-- `MAS` 负责“这一跳应该怎么判、怎么恢复、怎么写 durable truth”
+- `Hermes gateway cron`
+- Linux `systemd --user`
+- 宿主 `cron`
+- Docker one-shot container，由外部 cron 或 Kubernetes CronJob 调度
+- macOS `launchd` 兼容路径
+
+MAS 负责“这一跳应该怎么判、怎么恢复、怎么写 durable truth”。scheduler 只负责按周期调用，不持有医学或 runtime authority。
 
 这能保证未来无论宿主变成 Codex、Gateway 还是 managed web runtime，合同都不漂。
 
@@ -214,7 +246,7 @@ medautosci watch \
 - 发现 live worker 掉线、finalize parking 或恢复失败
 - 通过 backend contract 请求 `ensure_study_runtime`、resume、relaunch 这类受控恢复
 - 把 `clinician_update`、`next_action_summary`、`needs_human_intervention` 写入 `runtime_supervision/latest.json`
-- 在连续失败后升级为 `escalated`，并把人工介入信号写到 `runtime_escalation_record.json` 与 `study_progress`
+- 在连续失败后升级为 `external_supervisor_required`，并把平台级 supervisor 介入信号写到 `runtime_escalation_record.json`、`repair_lifecycle/latest.json`、hourly supervision scan 与 `study_progress`
 
 但它当前还不能诚实宣称：
 

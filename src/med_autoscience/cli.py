@@ -60,6 +60,7 @@ display_pack_surface_sync = _LazyModuleProxy(lambda: _load_controller("display_p
 display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("display_surface_materialization"))
 hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime_check"))
 hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervision"))
+runtime_supervisor_scan = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_scan"))
 med_deepscientist_upgrade_check = _LazyModuleProxy(lambda: _load_controller("med_deepscientist_upgrade_check"))
 runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
 runtime_health_kernel = _LazyModuleProxy(lambda: _load_controller("runtime_health_kernel"))
@@ -639,6 +640,7 @@ def main(argv: list[str] | None = None) -> int:
             profile=profile,
             interval_seconds=int(args.interval_seconds),
             trigger_now=not bool(args.no_trigger_now),
+            manager=str(args.manager),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
@@ -648,6 +650,16 @@ def main(argv: list[str] | None = None) -> int:
         result = hermes_supervision.remove_supervision(
             profile=profile,
             interval_seconds=int(args.interval_seconds),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "runtime-supervisor-scan":
+        profile = load_profile(args.profile)
+        result = runtime_supervisor_scan.supervisor_scan(
+            profile=profile,
+            study_ids=tuple(args.studies or []),
+            apply_safe_actions=bool(args.apply_safe_actions),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

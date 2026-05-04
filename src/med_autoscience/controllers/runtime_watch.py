@@ -45,6 +45,7 @@ from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
 )
 from med_autoscience.controllers.runtime_watch_parts.autonomy_repair import (
     apply_ready_ai_doctor_repair,
+    read_ai_repair_lifecycle,
     read_ready_ai_doctor_repair,
 )
 from med_autoscience.controllers.runtime_watch_parts.control_plane_gate import (
@@ -1307,13 +1308,13 @@ def run_watch_for_runtime(
                     recorded_at=utc_now(),
                 )
         if profile is not None:
-            ready_ai_doctor_repair = read_ready_ai_doctor_repair(study_root=study_root)
             managed_study_autonomy_slo_statuses.append(
                 _materialize_managed_study_autonomy_slo(
                     profile=profile,
                     study_root=study_root,
                 )
             )
+            ready_ai_doctor_repair = read_ready_ai_doctor_repair(study_root=study_root)
             if (
                 apply
                 and ready_ai_doctor_repair is not None
@@ -1329,6 +1330,9 @@ def run_watch_for_runtime(
                 )
                 if autonomy_repair is not None:
                     managed_study_autonomy_repair_actions.append(autonomy_repair)
+            lifecycle = read_ai_repair_lifecycle(study_root=study_root)
+            if isinstance(lifecycle, Mapping):
+                status_payload["ai_repair_lifecycle"] = dict(lifecycle)
     managed_study_actions = [
         _serialize_managed_study_action(
             managed_study_action_overrides.get(str(Path(managed_study_root).expanduser().resolve()), status_payload)

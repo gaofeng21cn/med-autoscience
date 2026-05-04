@@ -32,6 +32,14 @@ RUNTIME_RECOVERY_REASONS = frozenset(
         "quest_stopped_by_controller_guard",
     }
 )
+REPAIR_LIFECYCLE_RELATIVE_PATH = Path("artifacts/autonomy/repair_lifecycle/latest.json")
+EXTERNAL_SUPERVISOR_BLOCK_REASONS = frozenset(
+    {
+        "ai_doctor_platform_repair_requires_repo_level_fix",
+        "runtime_recovery_not_authorized",
+        "publication_gate_specificity_required",
+    }
+)
 
 
 def utc_now() -> str:
@@ -59,6 +67,10 @@ def _latest_ai_doctor_repair_path(*, study_root: Path) -> Path:
     return autonomy_ai_doctor.repair_actions_root(study_root=study_root) / "latest.json"
 
 
+def ai_repair_lifecycle_path(*, study_root: Path) -> Path:
+    return Path(study_root).expanduser().resolve() / REPAIR_LIFECYCLE_RELATIVE_PATH
+
+
 def _first_ai_doctor_repair_action(repair_payload: Mapping[str, Any]) -> dict[str, Any] | None:
     if _non_empty_text(repair_payload.get("state")) != "ready_for_repair":
         return None
@@ -80,6 +92,10 @@ def read_ready_ai_doctor_repair(*, study_root: Path) -> dict[str, Any] | None:
     if _first_ai_doctor_repair_action(repair_payload) is None:
         return None
     return repair_payload
+
+
+def read_ai_repair_lifecycle(*, study_root: Path) -> dict[str, Any] | None:
+    return _read_json_object(ai_repair_lifecycle_path(study_root=study_root))
 
 
 def _serialize_ai_doctor_repair_result(
@@ -224,6 +240,90 @@ def _runtime_recovery_executed(payload: Mapping[str, Any]) -> bool:
     return _non_empty_text(payload.get("decision")) in EXECUTED_RUNTIME_RECOVERY_DECISIONS
 
 
+def _runtime_retry_exhausted(payload: Mapping[str, Any]) -> bool:
+    runtime_health = _mapping(payload.get("runtime_health_snapshot"))
+    control_plane = _mapping(payload.get("control_plane_snapshot"))
+    reasons = {
+        *_string_items(runtime_health.get("blocking_reasons")),
+        *_string_items(control_plane.get("blocking_reasons")),
+        *_string_items(_mapping(control_plane.get("dispatch_gate")).get("blocking_reasons")),
+    }
+    return (
+        "runtime_recovery_retry_budget_exhausted" in reasons
+        or _non_empty_text(runtime_health.get("attempt_state")) == "escalated"
+        or runtime_health.get("retry_budget_remaining") == 0
+    )
+
+
+def _repair_next_owner(*, result: Mapping[str, Any], action: Mapping[str, Any]) -> str | None:
+    reason = _non_empty_text(result.get("reason"))
+    if reason in EXTERNAL_SUPERVISOR_BLOCK_REASONS:
+        return "external_supervisor"
+    if reason == "controller_repair_authorization_missing":
+        return "mas_controller"
+    if reason == "execution_owner_guard_supervisor_only":
+        return "supervisor_only"
+    owner = _non_empty_text(action.get("owner"))
+    return owner or _non_empty_text(result.get("owner"))
+
+
+def _external_supervisor_required(
+    *,
+    result: Mapping[str, Any],
+    status_payload: Mapping[str, Any],
+    runtime_recovery_payload: Mapping[str, Any] | None,
+) -> bool:
+    if _non_empty_text(result.get("reason")) in EXTERNAL_SUPERVISOR_BLOCK_REASONS:
+        return True
+    if _runtime_retry_exhausted(status_payload):
+        return True
+    return bool(runtime_recovery_payload is not None and _runtime_retry_exhausted(runtime_recovery_payload))
+
+
+def _materialize_ai_repair_lifecycle(
+    *,
+    study_root: Path,
+    repair_payload: Mapping[str, Any],
+    action: Mapping[str, Any],
+    result: Mapping[str, Any],
+    status_payload: Mapping[str, Any],
+    runtime_recovery_payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    recorded_at = utc_now()
+    external_supervisor_required = _external_supervisor_required(
+        result=result,
+        status_payload=status_payload,
+        runtime_recovery_payload=runtime_recovery_payload,
+    )
+    result_state = _non_empty_text(result.get("state")) or "blocked"
+    state = "external_supervisor_required" if result_state == "blocked" and external_supervisor_required else result_state
+    payload = {
+        "surface": "ai_repair_lifecycle",
+        "schema_version": 1,
+        "study_id": _non_empty_text(repair_payload.get("study_id")) or _non_empty_text(result.get("study_id")),
+        "quest_id": _non_empty_text(repair_payload.get("quest_id")) or _non_empty_text(result.get("quest_id")),
+        "state": state,
+        "top_action": dict(action),
+        "auto_apply_allowed": bool(action.get("auto_apply_allowed")),
+        "last_apply_attempt_at": recorded_at,
+        "applied_at": recorded_at if result_state == "applied" else None,
+        "blocked_reason": _non_empty_text(result.get("reason")) if result_state != "applied" else None,
+        "next_owner": (
+            "external_supervisor"
+            if external_supervisor_required and result_state != "applied"
+            else _repair_next_owner(result=result, action=action)
+        ),
+        "external_supervisor_required": external_supervisor_required and result_state != "applied",
+        "quality_gate_relaxation_allowed": False,
+        "last_apply_attempt": dict(result),
+        "refs": {
+            "repair_action_path": str(_latest_ai_doctor_repair_path(study_root=study_root)),
+        },
+    }
+    _write_json_object(ai_repair_lifecycle_path(study_root=study_root), payload)
+    return payload
+
+
 def _mark_ai_doctor_repair_applied(
     *,
     repair_path: Path,
@@ -355,11 +455,22 @@ def apply_ready_ai_doctor_repair(
             action=action,
             result=result,
         )
+    _materialize_ai_repair_lifecycle(
+        study_root=study_root,
+        repair_payload=repair_payload,
+        action=action,
+        result=result,
+        status_payload=status_payload,
+        runtime_recovery_payload=runtime_recovery_payload,
+    )
     return result
 
 
 __all__ = [
     "AI_DOCTOR_REPAIR_SOURCE",
+    "REPAIR_LIFECYCLE_RELATIVE_PATH",
+    "ai_repair_lifecycle_path",
     "apply_ready_ai_doctor_repair",
+    "read_ai_repair_lifecycle",
     "read_ready_ai_doctor_repair",
 ]

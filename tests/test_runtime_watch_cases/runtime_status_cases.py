@@ -799,7 +799,8 @@ def test_watch_runtime_materializes_managed_study_autonomy_slo_status(tmp_path: 
     assert latest["state"] == "breach"
     assert latest["ai_doctor_state"] == "attempt_recorded"
     assert latest["ai_doctor_attempt"]["state"] == "repair_plan_recorded"
-    assert result["managed_study_autonomy_repair_actions"] == []
+    assert result["managed_study_autonomy_repair_actions"][0]["state"] == "blocked"
+    assert result["managed_study_autonomy_repair_actions"][0]["reason"] == "runtime_recovery_not_authorized"
     assert "read_churn_without_artifact_delta" in latest["breach_types"]
     assert latest["mds_progress_markers"]["read_churn_ratio"] == 0.8
     assert latest["quality_gate_relaxation_allowed"] is False

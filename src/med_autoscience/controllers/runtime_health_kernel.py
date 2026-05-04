@@ -575,7 +575,7 @@ def _snapshot_from_events(
 
     if escalation_event is not None or failed_attempts >= MAX_RECOVERY_ATTEMPTS:
         attempt_state = "escalated"
-        canonical_runtime_action = "escalate_runtime"
+        canonical_runtime_action = "external_supervisor_required"
         retry_budget_remaining = 0
         blocking_reasons.append("runtime_recovery_retry_budget_exhausted")
     elif live_activity_timeout:

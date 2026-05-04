@@ -129,7 +129,7 @@ def test_runtime_health_recovery_budget_exhaustion_escalates(tmp_path: Path) -> 
     )
 
     assert snapshot["attempt_state"] == "escalated"
-    assert snapshot["canonical_runtime_action"] == "escalate_runtime"
+    assert snapshot["canonical_runtime_action"] == "external_supervisor_required"
     assert snapshot["retry_budget_remaining"] == 0
     assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
 

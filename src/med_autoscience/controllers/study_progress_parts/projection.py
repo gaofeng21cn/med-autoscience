@@ -89,6 +89,87 @@ def _attach_existing_autonomy_slo_projection(
     return updated
 
 
+def _read_ai_repair_lifecycle(*, study_root: Path) -> dict[str, Any] | None:
+    try:
+        from med_autoscience.controllers.runtime_watch_parts import autonomy_repair
+
+        return autonomy_repair.read_ai_repair_lifecycle(study_root=study_root)
+    except Exception:
+        return None
+
+
+def _projection_string_items(value: object) -> set[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return {text} if text else set()
+    if not isinstance(value, list | tuple | set):
+        return set()
+    return {text for item in value if (text := _non_empty_text(item)) is not None}
+
+
+def _build_readonly_ai_repair_lifecycle_projection(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    try:
+        repair_path = autonomy_ai_doctor.repair_actions_root(study_root=study_root) / "latest.json"
+        repair_payload = _read_json_object(repair_path)
+    except Exception:
+        return None
+    if not isinstance(repair_payload, dict) or _non_empty_text(repair_payload.get("state")) != "ready_for_repair":
+        return None
+    actions = repair_payload.get("actions")
+    if not isinstance(actions, list):
+        return None
+    top_action = next((dict(item) for item in actions if isinstance(item, Mapping)), None)
+    if top_action is None:
+        return None
+    control_plane = _mapping_copy(status_payload.get("control_plane_snapshot"))
+    dispatch_gate = _mapping_copy(control_plane.get("dispatch_gate"))
+    route_authorization = _mapping_copy(control_plane.get("route_authorization"))
+    runtime_health = _mapping_copy(status_payload.get("runtime_health_snapshot"))
+    blocking_reasons = {
+        *_projection_string_items(control_plane.get("blocking_reasons")),
+        *_projection_string_items(dispatch_gate.get("blocking_reasons")),
+        *_projection_string_items(runtime_health.get("blocking_reasons")),
+    }
+    runtime_blocked = (
+        route_authorization.get("runtime_recovery_allowed") is False
+        or _non_empty_text(dispatch_gate.get("state")) == "blocked"
+        or "runtime_recovery_retry_budget_exhausted" in blocking_reasons
+        or _non_empty_text(runtime_health.get("attempt_state")) == "escalated"
+        or runtime_health.get("retry_budget_remaining") == 0
+    )
+    if runtime_blocked:
+        blocked_reason = "runtime_recovery_not_authorized"
+        next_owner = "external_supervisor"
+        external_supervisor_required = True
+        state = "external_supervisor_required"
+    else:
+        blocked_reason = "controller_repair_authorization_missing"
+        next_owner = "mas_controller"
+        external_supervisor_required = False
+        state = "blocked"
+    return {
+        "surface": "ai_repair_lifecycle",
+        "schema_version": 1,
+        "study_id": _non_empty_text(repair_payload.get("study_id")) or _non_empty_text(status_payload.get("study_id")),
+        "quest_id": _non_empty_text(repair_payload.get("quest_id")) or _non_empty_text(status_payload.get("quest_id")),
+        "state": state,
+        "top_action": top_action,
+        "auto_apply_allowed": bool(top_action.get("auto_apply_allowed")),
+        "last_apply_attempt_at": None,
+        "applied_at": None,
+        "blocked_reason": blocked_reason,
+        "next_owner": next_owner,
+        "external_supervisor_required": external_supervisor_required,
+        "quality_gate_relaxation_allowed": False,
+        "projection_only": True,
+        "refs": {"repair_action_path": str(repair_path)},
+    }
+
+
 def _autonomy_slo_observer_status(
     *,
     study_root: Path,
@@ -582,6 +663,12 @@ def build_study_progress_projection(
         }
     )
     repair_recommendation = _mapping_copy((autonomy_slo_status or {}).get("repair_recommendation"))
+    ai_repair_lifecycle = _read_ai_repair_lifecycle(
+        study_root=resolved_study_root
+    ) or _build_readonly_ai_repair_lifecycle_projection(
+        study_root=resolved_study_root,
+        status_payload=status,
+    )
     operator_status_card = _operator_status_card(
         study_id=resolved_study_id,
         current_stage=current_stage,
@@ -879,6 +966,7 @@ def build_study_progress_projection(
         "autonomy_slo": autonomy_slo_status,
         "ai_doctor_state": ai_doctor_state,
         "repair_recommendation": repair_recommendation or None,
+        "ai_repair_lifecycle": ai_repair_lifecycle,
         "last_meaningful_progress_at": (
             _non_empty_text((autonomy_slo_status or {}).get("last_meaningful_progress_at"))
             if autonomy_slo_status is not None
@@ -918,6 +1006,11 @@ def build_study_progress_projection(
             "autonomy_slo_status_path": (
                 str(autonomy_ai_doctor.stable_slo_status_path(study_root=resolved_study_root))
                 if autonomy_slo_status is not None
+                else None
+            ),
+            "ai_repair_lifecycle_path": (
+                str(resolved_study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json")
+                if ai_repair_lifecycle is not None
                 else None
             ),
             "evaluation_summary_path": (

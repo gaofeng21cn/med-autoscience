@@ -21,11 +21,13 @@ from med_autoscience.controllers.workspace_git_boundary import (
 from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_behavior_equivalence_gate,
     _render_forward_script,
+    _render_install_watch_runtime_service_script,
     _render_med_deepscientist_forward,
     _render_med_deepscientist_shared,
     _render_med_deepscientist_show_config,
     _render_medautosci_shared,
     _render_profile_optional_forward_script,
+    _render_supervisor_scan_script,
     _render_watch_runtime_script,
     _render_watch_runtime_service_runner,
 )
@@ -341,8 +343,11 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
             ):
                 return "legacy_watch_runtime_entry"
     if suffix == ("ops", "medautoscience", "bin", "install-watch-runtime-service"):
-        if "runtime ensure-supervision" not in existing_content:
+        if "runtime ensure-supervision" not in existing_content or "--manager docker" not in existing_content:
             return "legacy_watch_runtime_service_install"
+    if suffix == ("ops", "medautoscience", "bin", "supervisor-scan"):
+        if "runtime supervisor-scan" not in existing_content:
+            return "legacy_supervisor_scan_entry"
     if suffix == ("ops", "medautoscience", "bin", "watch-runtime-service-status"):
         if "runtime supervision-status" not in existing_content:
             return "legacy_watch_runtime_service_status"
@@ -601,6 +606,11 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan",
+            content=_render_supervisor_scan_script(),
+            executable=True,
+        ),
+        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "maintain-runtime-storage",
             content=_render_forward_script("runtime maintain-storage", with_profile=True),
             executable=True,
@@ -617,7 +627,7 @@ def _rendered_files(
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service",
-            content=_render_forward_script("runtime ensure-supervision", with_profile=True),
+            content=_render_install_watch_runtime_service_script(),
             executable=True,
         ),
         RenderedFile(

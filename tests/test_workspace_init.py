@@ -316,12 +316,24 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
         assert os.access(path, os.X_OK)
 
     runner_text = runner.read_text(encoding="utf-8")
-    assert 'WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS:-300}"' in runner_text
+    assert 'WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS:-3600}"' in runner_text
+    assert 'SUPERVISOR_SCAN_INTERVAL_SECONDS="${SUPERVISOR_SCAN_INTERVAL_SECONDS:-3600}"' in runner_text
     assert 'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"' in runner_text
-    assert 'exec "${WATCH_RUNTIME_SCRIPT}" --interval-seconds "${WATCH_RUNTIME_INTERVAL_SECONDS}" "$@"' in runner_text
+    assert 'SUPERVISOR_SCAN_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-scan"' in runner_text
+    assert 'exec "${SUPERVISOR_SCAN_SCRIPT}" --apply-safe-actions "$@"' in runner_text
+
+    supervisor_scan = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+    assert supervisor_scan.is_file()
+    assert os.access(supervisor_scan, os.X_OK)
+    supervisor_scan_text = supervisor_scan.read_text(encoding="utf-8")
+    assert "run_medautosci runtime supervisor-scan" in supervisor_scan_text
+    assert '--profile "${PROFILE_PATH}"' in supervisor_scan_text
 
     install_text = install_service.read_text(encoding="utf-8")
     assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
+    assert "--manager systemd" in install_text
+    assert "--manager cron" in install_text
+    assert "--manager docker" in install_text
 
     status_text = service_status.read_text(encoding="utf-8")
     assert 'run_medautosci runtime supervision-status --profile "${PROFILE_PATH}" "$@"' in status_text

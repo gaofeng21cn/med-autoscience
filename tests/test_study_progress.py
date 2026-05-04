@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from tests.study_progress_cases.runtime_projection_basics import *
 from tests.study_progress_cases.runtime_efficiency_operator_projection import *
+from tests.study_progress_cases.ai_repair_lifecycle_projection import *
 from tests.study_progress_cases.autonomy_quality_and_route_projection import *
 from tests.study_progress_cases.operator_status_and_eval_refresh import *
 from tests.study_progress_cases.operator_status_activity_timeout import *

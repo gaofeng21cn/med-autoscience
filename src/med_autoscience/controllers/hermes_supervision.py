@@ -493,7 +493,21 @@ def ensure_supervision(
     profile: WorkspaceProfile,
     interval_seconds: int = DEFAULT_INTERVAL_SECONDS,
     trigger_now: bool = True,
+    manager: str = "hermes",
 ) -> dict[str, Any]:
+    if manager != "hermes":
+        return {
+            "action": "portable_scheduler_instruction",
+            "manager": manager,
+            "profile": str(profile.workspace_root / "ops" / "medautoscience" / "profiles"),
+            "interval_seconds": interval_seconds,
+            "command": [
+                str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"),
+                "--apply-safe-actions",
+            ],
+            "codex_app_heartbeat_required": False,
+            "docker_policy": "run supervisor-scan as a one-shot container from external cron or Kubernetes CronJob",
+        }
     _ensure_script_file(profile, interval_seconds=interval_seconds)
     watch_runtime_repair = _repair_legacy_workspace_watch_runtime_entry(profile)
     before = read_supervision_status(profile=profile, interval_seconds=interval_seconds)

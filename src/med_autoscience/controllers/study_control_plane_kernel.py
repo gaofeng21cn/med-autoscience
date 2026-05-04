@@ -168,7 +168,7 @@ def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str,
         and runtime_action in {"recover_runtime", "relaunch_runtime", "probe_runtime_liveness"}
     ):
         blocking_reasons.append("runtime_recovery_retry_budget_exhausted")
-        runtime_action = "escalate_runtime"
+        runtime_action = "external_supervisor_required"
 
     if "execution_owner_guard.supervisor_only" in blocking_reasons:
         allowed_actions = [action for action in allowed_actions if action not in PAPER_WRITE_ACTIONS | BUNDLE_ACTIONS]
@@ -206,7 +206,11 @@ def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str,
             "authorized": not dispatch_blocked,
             "paper_write_allowed": paper_write_allowed,
             "bundle_build_allowed": bundle_build_allowed,
-            "runtime_recovery_allowed": runtime_action not in {"await_explicit_resume", "escalate_runtime"},
+            "runtime_recovery_allowed": runtime_action not in {
+                "await_explicit_resume",
+                "escalate_runtime",
+                "external_supervisor_required",
+            },
         },
         "blocking_reasons": blocking_reasons,
         "allowed_controller_actions": allowed_actions,
