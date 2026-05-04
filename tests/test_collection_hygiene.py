@@ -396,7 +396,7 @@ def test_representative_nested_case_modules_only_collect_through_aggregate_entry
         assert f"::{test_name}" in aggregate_output
 
 
-def test_aggregate_collection_surfaces_do_not_shrink_below_trend_floor() -> None:
+def test_aggregate_collection_surfaces_keep_collection_count_above_known_coverage_floor() -> None:
     collected_lines = _collectable_test_ids(
         "tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py",
         "tests/test_runtime_watch.py",
