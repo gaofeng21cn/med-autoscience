@@ -9,3 +9,4 @@ globals().update({
 })
 
 from .test_study_delivery_sync_cases.delivery_sync_cases import *  # noqa: F403,F401
+from .test_study_delivery_sync_cases.v2_layout_and_legacy_cases import *  # noqa: F403,F401

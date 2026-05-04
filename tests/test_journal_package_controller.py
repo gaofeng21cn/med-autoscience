@@ -4,6 +4,7 @@ import base64
 import importlib
 import json
 from pathlib import Path
+import zipfile
 
 
 PNG_1X1_BASE64 = (
@@ -341,3 +342,38 @@ def test_materialize_journal_package_reads_legacy_submission_manifest_without_re
         (package_root / "reproducibility" / "source_signature.json").read_text(encoding="utf-8")
     )
     assert source_signature["source_signature"] == "source::legacy-root"
+
+
+def test_materialize_journal_package_writes_shallow_zip_without_root_audit_manifest(
+    tmp_path: Path,
+) -> None:
+    package_module = importlib.import_module("med_autoscience.controllers.journal_package")
+    paper_root, study_root = make_package_workspace(tmp_path)
+    write_rheumatology_requirements(study_root)
+
+    result = package_module.materialize_journal_package(
+        paper_root=paper_root,
+        study_root=study_root,
+        journal_slug="rheumatology-international",
+        publication_profile="general_medical_journal",
+    )
+
+    package_root = study_root / "submission_packages" / "rheumatology-international"
+    manifest_path = package_root / "audit" / "submission_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    with zipfile.ZipFile(package_root / "rheumatology-international_submission_package.zip") as archive:
+        names = set(archive.namelist())
+
+    assert result["submission_manifest_path"] == str(manifest_path)
+    assert result["zip_path"] == str(package_root / "rheumatology-international_submission_package.zip")
+    assert result["status"] == "materialized"
+    assert manifest["delivery_layout"]["layout_version"] == "submission-package.v2"
+    assert manifest["delivery_layout"]["package_role"] == "journal_targeted_projection"
+    assert manifest["delivery_layout"]["human_package_root"] == str(package_root)
+    assert not (package_root / "submission_manifest.json").exists()
+    assert "audit/submission_manifest.json" in names
+    assert "audit/journal_requirements_snapshot.json" in names
+    assert "reproducibility/source_signature.json" in names
+    assert "submission_manifest.json" not in names
+    assert "journal_requirements_snapshot.json" not in names
+    assert not any(name.startswith(("rheumatology-international/", "submission_packages/")) for name in names)

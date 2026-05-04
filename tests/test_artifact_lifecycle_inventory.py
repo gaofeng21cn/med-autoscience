@@ -356,3 +356,91 @@ def test_delivery_manifest_records_lifecycle_authority_sync(tmp_path: Path) -> N
     assert lifecycle["authority_sync"]["direct_edit_allowed"] is False
     assert lifecycle["authority_sync"]["quality_authority_allowed"] is False
     assert lifecycle["lifecycle_roles"]["current_package"] == "derived_projection"
+
+
+def test_v2_current_package_audit_manifest_is_projection_only_read_model(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_inventory")
+    study_root = tmp_path / "studies" / "001-risk"
+    audit_manifest = _write(
+        study_root / "manuscript" / "current_package" / "audit" / "submission_manifest.json",
+        "{}\n",
+    )
+
+    artifact = module.classify_artifact(path=audit_manifest, study_root=study_root)
+
+    assert artifact["role"] == "derived_projection"
+    assert artifact["lifecycle"] == "rebuildable_projection"
+    assert artifact["projection_currentness"] == "projection_only"
+    assert artifact["authority_allowed"] == {"edit": False, "quality": False, "dispatch": False}
+    assert artifact["edit_source_allowed"] is False
+    assert artifact["quality_authority_allowed"] is False
+    assert artifact["dispatch_authority_allowed"] is False
+
+
+def test_submission_surface_docx_inspector_is_read_only_for_generated_projection(tmp_path: Path) -> None:
+    submission_minimal = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    docx_path = _write(tmp_path / "study" / "paper" / "submission_minimal" / "manuscript.docx", "not-a-zip\n")
+    before_bytes = docx_path.read_bytes()
+    before_mtime_ns = docx_path.stat().st_mtime_ns
+
+    first = submission_minimal.inspect_submission_docx_surface(docx_path)
+    second = submission_minimal.inspect_submission_docx_surface(docx_path)
+
+    assert first == second
+    assert first["exists"] is True
+    assert first["unreadable"] is True
+    assert docx_path.read_bytes() == before_bytes
+    assert docx_path.stat().st_mtime_ns == before_mtime_ns
+
+
+def test_delivery_inspector_reads_legacy_surface_without_materializing_v2_layout(tmp_path: Path) -> None:
+    inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "repo"
+    study_root = workspace_root / "studies" / "001-legacy-delivery"
+    source_root = study_root / "paper" / "submission_minimal"
+    human_root = study_root / "manuscript" / "current_package"
+    profile_path = tmp_path / "profile.local.toml"
+    _write(study_root / "study.yaml", "study_id: 001-legacy-delivery\n")
+    _write(source_root / "manuscript.docx", "docx\n")
+    _write(source_root / "paper.pdf", "%PDF-1.4\n")
+    _write(source_root / "submission_manifest.json", '{"schema_version":1,"source_signature":"legacy-source"}\n')
+    _write(human_root / "manuscript.docx", "docx\n")
+    _write(human_root / "paper.pdf", "%PDF-1.4\n")
+    _write(human_root / "submission_manifest.json", '{"schema_version":1,"source_signature":"legacy-mirror"}\n')
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "legacy-delivery"',
+                f'workspace_root = "{workspace_root}"',
+                f'runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
+                f'studies_root = "{workspace_root / "studies"}"',
+                f'portfolio_root = "{workspace_root / "portfolio"}"',
+                f'med_deepscientist_runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime"}"',
+                f'med_deepscientist_repo_root = "{workspace_root.parent / "med-deepscientist"}"',
+                f'hermes_agent_repo_root = "{workspace_root.parent / "_external" / "hermes-agent"}"',
+                'hermes_home_root = "~/.hermes"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+                "enable_medical_overlay = true",
+                'medical_overlay_scope = "workspace"',
+                'medical_overlay_skills = ["scout", "idea", "decision", "write", "finalize"]',
+                'medical_overlay_bootstrap_mode = "ensure_ready"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = inspector.inspect_study_delivery(
+        profile=profiles.load_profile(profile_path),
+        profile_ref=profile_path,
+        study_id=study_root.name,
+    )
+
+    assert result["mutation_policy"] == {"read_only": True, "writes_package": False}
+    assert result["freshness"]["verdict"] == "legacy"
+    assert result["source_package"]["layout_status"] == "legacy"
+    assert result["human_package"]["layout_status"] == "legacy"
+    assert not (source_root / "audit").exists()
+    assert not (human_root / "audit").exists()

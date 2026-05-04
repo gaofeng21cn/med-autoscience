@@ -14,10 +14,10 @@ from med_autoscience.controllers import (
     runtime_health_kernel,
     study_truth_kernel,
 )
-from med_autoscience.controllers.delivery_visibility_projection import (
-    build_study_delivery_inspection_projection,
+from .delivery_inspection import (
+    attach_delivery_inspection_projection as _attach_delivery_inspection_projection,
+    read_delivery_inspection_projection as _read_delivery_inspection_projection,
 )
-
 from .medical_writing_surfaces import medical_writing_quality_surface_status
 from .parked_projection import (
     build_progress_parked_projection,
@@ -96,25 +96,6 @@ def _attach_existing_autonomy_slo_projection(
         autonomy_ai_doctor.stable_slo_status_path(study_root=study_root)
     )
     updated["refs"] = refs
-    return updated
-
-
-def _attach_delivery_inspection_projection(
-    payload: dict[str, Any],
-    *,
-    profile: WorkspaceProfile,
-    profile_ref: str | Path | None,
-    study_root: Path,
-) -> dict[str, Any]:
-    delivery_inspection = build_study_delivery_inspection_projection(
-        profile=profile,
-        profile_ref=profile_ref,
-        study_root=study_root,
-    )
-    if delivery_inspection is None:
-        return payload
-    updated = dict(payload)
-    updated["delivery_inspection"] = delivery_inspection
     return updated
 
 
@@ -341,7 +322,7 @@ def build_study_progress_projection(
         publication_eval_payload=publication_eval_payload,
         evaluation_summary_payload=evaluation_summary_payload,
     )
-    delivery_inspection = build_study_delivery_inspection_projection(
+    delivery_inspection = _read_delivery_inspection_projection(
         profile=profile,
         profile_ref=profile_ref,
         study_root=resolved_study_root,
