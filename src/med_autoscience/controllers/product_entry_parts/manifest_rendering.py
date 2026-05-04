@@ -419,13 +419,19 @@ def _render_open_auto_research_projection_lines(projection: Mapping[str, Any]) -
         if not isinstance(study, Mapping):
             continue
         lines.append(f"- `{study.get('study_id') or 'unknown-study'}` Open Auto Research: {study.get('status') or 'unknown'}")
-        for action in study.get("actions") or []:
-            if not isinstance(action, Mapping):
-                continue
-            lines.append(
-                f"  {action.get('action_id') or 'unknown_action'}: "
-                f"{action.get('status') or 'unknown'} ({action.get('surface') or 'unknown_surface'})"
-            )
+        lines.extend(_render_open_auto_research_action_lines(study.get("actions") or []))
+    return lines
+
+
+def _render_open_auto_research_action_lines(actions: object) -> list[str]:
+    lines: list[str] = []
+    for action in actions if isinstance(actions, list) else []:
+        if not isinstance(action, Mapping):
+            continue
+        lines.append(
+            f"  {action.get('action_id') or 'unknown_action'}: "
+            f"{action.get('status') or 'unknown'} ({action.get('surface') or 'unknown_surface'})"
+        )
     return lines
 
 

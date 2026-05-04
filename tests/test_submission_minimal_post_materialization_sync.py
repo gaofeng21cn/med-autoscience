@@ -105,10 +105,15 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
         study_id="001-risk",
         study_root=tmp_path / "studies" / "001-risk",
     )
-    gate_calls: list[tuple[Path, bool, str, bool]] = []
+    gate_calls: list[tuple[Path, bool, str, bool, object]] = []
     progress_calls: list[tuple[object, Path, str, Path]] = []
     decision_refresh_calls: list[tuple[object, Path, str]] = []
-    sync_calls: list[tuple[Path, str, str]] = []
+    sync_calls: list[tuple[Path, str, str, object]] = []
+    route_context = {
+        "action": "delivery_sync",
+        "authorized": True,
+        "snapshot_ref": "/tmp/control-plane/latest.json",
+    }
 
     monkeypatch.setattr(module, "resolve_paper_root_context", lambda _paper_root: context)
     monkeypatch.setattr(
@@ -123,8 +128,9 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
         apply: bool,
         source: str,
         enqueue_intervention: bool,
+        control_plane_route_context: object,
     ) -> dict[str, object]:
-        gate_calls.append((quest_root, apply, source, enqueue_intervention))
+        gate_calls.append((quest_root, apply, source, enqueue_intervention, control_plane_route_context))
         return {
             "status": "clear",
             "allow_write": True,
@@ -160,8 +166,8 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
         "study_delivery_sync",
         SimpleNamespace(
             can_sync_study_delivery=lambda *, paper_root: True,
-            sync_study_delivery=lambda *, paper_root, stage, publication_profile: (
-                sync_calls.append((paper_root, stage, publication_profile)),
+            sync_study_delivery=lambda *, paper_root, stage, publication_profile, control_plane_route_context: (
+                sync_calls.append((paper_root, stage, publication_profile, control_plane_route_context)),
                 {"status": "synced", "stage": stage, "publication_profile": publication_profile},
             )[1],
         ),
@@ -181,7 +187,10 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
         )[1],
     )
 
-    result = module.replay_post_submission_minimal_sync(paper_root=paper_root)
+    result = module.replay_post_submission_minimal_sync(
+        paper_root=paper_root,
+        control_plane_route_context=route_context,
+    )
 
     assert gate_calls == [
         (
@@ -189,6 +198,7 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
             True,
             "submission-minimal-post-materialization",
             False,
+            route_context,
         )
     ]
     assert progress_calls == [
@@ -238,7 +248,7 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
             "route_target": "finalize",
         },
     }
-    assert sync_calls == [(context.paper_root, "submission_minimal", "general_medical_journal")]
+    assert sync_calls == [(context.paper_root, "submission_minimal", "general_medical_journal", route_context)]
 
 
 def test_replay_post_submission_minimal_sync_skips_progress_refresh_when_profile_is_unresolved(
@@ -263,7 +273,7 @@ def test_replay_post_submission_minimal_sync_skips_progress_refresh_when_profile
         "study_delivery_sync",
         SimpleNamespace(
             can_sync_study_delivery=lambda *, paper_root: True,
-            sync_study_delivery=lambda *, paper_root, stage, publication_profile: {
+            sync_study_delivery=lambda *, paper_root, stage, publication_profile, control_plane_route_context: {
                 "status": "synced",
                 "stage": stage,
                 "publication_profile": publication_profile,

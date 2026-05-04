@@ -422,7 +422,7 @@ def test_create_submission_minimal_package_authority_ignores_post_gate_evidence_
     monkeypatch.setattr(
         package_builder,
         "replay_post_submission_minimal_sync",
-        lambda *, paper_root, publication_profile: {"status": "synced"},
+        lambda *, paper_root, publication_profile, control_plane_route_context=None: {"status": "synced"},
     )
 
     manifest = module.create_submission_minimal_package(

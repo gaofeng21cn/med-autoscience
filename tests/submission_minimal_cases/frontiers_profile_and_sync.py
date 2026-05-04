@@ -95,9 +95,15 @@ def test_create_submission_minimal_package_replays_post_materialization_sync_whe
         lambda **_: {"stage": "submission_minimal"},
     )
 
-    def fake_replay(*, paper_root: Path, publication_profile: str) -> dict[str, object]:
+    def fake_replay(
+        *,
+        paper_root: Path,
+        publication_profile: str,
+        control_plane_route_context=None,
+    ) -> dict[str, object]:
         called["paper_root"] = paper_root
         called["publication_profile"] = publication_profile
+        called["control_plane_route_context"] = control_plane_route_context
         return {
             "status": "synced",
             "quest_root": "/tmp/runtime/quests/quest-001",
@@ -112,6 +118,8 @@ def test_create_submission_minimal_package_replays_post_materialization_sync_whe
 
     assert called["paper_root"] == paper_root
     assert called["publication_profile"] == "general_medical_journal"
+    route_context = called["control_plane_route_context"]
+    assert paper_root / "submission_minimal" in route_context["paths"]
     assert manifest["delivery_sync"] == {"stage": "submission_minimal"}
     assert manifest["post_materialization_sync"] == {
         "status": "synced",

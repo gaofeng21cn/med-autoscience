@@ -302,35 +302,17 @@ def _missing_reason(payload: Mapping[str, Any]) -> str:
     providers = _providers(payload)
     if not providers:
         return "missing_provider_sources"
-    for provider in providers:
-        name = _provider_name(provider)
-        if not name:
-            return "missing_provider_name"
-        if name not in SUPPORTED_PROVIDERS:
-            return f"unsupported_provider_{name}"
+    support_reason = _provider_support_missing_reason(providers)
+    if support_reason:
+        return support_reason
     provider_names = {_provider_name(provider) for provider in providers}
     for required_provider in REQUIRED_PROVIDERS:
         if required_provider not in provider_names:
             return f"missing_provider_sources_{required_provider}"
     for provider in providers:
-        name = _provider_name(provider)
-        if not _credential_status(provider)["ready"]:
-            return f"missing_credential_{name}"
-        status = _provider_response_status(provider)
-        if status in UNAVAILABLE_STATUSES:
-            return f"provider_unavailable_{name}"
-        if _rate_limit_status(provider)["limited"]:
-            return f"rate_limited_{name}"
-        if _cache_freshness(provider)["stale"]:
-            return f"stale_cache_{name}"
-        if not _has_text(provider.get("query")):
-            return f"missing_provider_query_{name}"
-        if not _has_text(provider.get("retrieved_at")):
-            return f"missing_provider_retrieved_at_{name}"
-        if not _has_ref_items(_provider_refs(provider)):
-            return f"missing_provider_source_refs_{name}"
-        if not _has_ref_items(_provider_response_ledger_refs(provider)):
-            return f"missing_provider_response_ledger_{name}"
+        runtime_reason = _provider_runtime_missing_reason(provider)
+        if runtime_reason:
+            return runtime_reason
     missing_ledger_providers = [_text(item) for item in _list(payload.get("_missing_provider_citation_ledger_refs"))]
     if missing_ledger_providers:
         return f"missing_provider_citation_ledger_refs_{missing_ledger_providers[0]}"
@@ -341,6 +323,38 @@ def _missing_reason(payload: Mapping[str, Any]) -> str:
     if not _screening_decisions_are_complete(payload.get("screening_decisions")):
         return "missing_screening_decision_reason"
     return ""
+
+
+def _provider_support_missing_reason(providers: Iterable[Mapping[str, Any]]) -> str | None:
+    for provider in providers:
+        name = _provider_name(provider)
+        if not name:
+            return "missing_provider_name"
+        if name not in SUPPORTED_PROVIDERS:
+            return f"unsupported_provider_{name}"
+    return None
+
+
+def _provider_runtime_missing_reason(provider: Mapping[str, Any]) -> str | None:
+    name = _provider_name(provider)
+    if not _credential_status(provider)["ready"]:
+        return f"missing_credential_{name}"
+    status = _provider_response_status(provider)
+    if status in UNAVAILABLE_STATUSES:
+        return f"provider_unavailable_{name}"
+    if _rate_limit_status(provider)["limited"]:
+        return f"rate_limited_{name}"
+    if _cache_freshness(provider)["stale"]:
+        return f"stale_cache_{name}"
+    if not _has_text(provider.get("query")):
+        return f"missing_provider_query_{name}"
+    if not _has_text(provider.get("retrieved_at")):
+        return f"missing_provider_retrieved_at_{name}"
+    if not _has_ref_items(_provider_refs(provider)):
+        return f"missing_provider_source_refs_{name}"
+    if not _has_ref_items(_provider_response_ledger_refs(provider)):
+        return f"missing_provider_response_ledger_{name}"
+    return None
 
 
 def _source_response_digest(providers: list[Mapping[str, Any]]) -> dict[str, Any]:
