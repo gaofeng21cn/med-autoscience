@@ -374,40 +374,47 @@ def _text_list(value: object) -> list[str]:
     return result
 
 
-def build_route_decision_orchestration(
+def _initial_route_state(
     *,
-    study_root: Path,
-    candidates: list[Mapping[str, Any]],
     requested_action: str,
-    readiness: Mapping[str, Any] | None = None,
-    alternative_line_id: str | None = None,
-    route_signals: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    root = Path(study_root).expanduser().resolve()
-    action = _text(requested_action)
-    route_decision = ACTION_TO_ROUTE_DECISION.get(action, "human_gate")
+    readiness: Mapping[str, Any] | None,
+) -> tuple[str, list[str], str]:
+    route_decision = ACTION_TO_ROUTE_DECISION.get(requested_action, "human_gate")
     blockers: list[str] = []
     if route_decision == "human_gate":
         blockers.append("unsupported_requested_action")
 
-    readiness_payload = _mapping(readiness)
-    literature_blocker = _literature_blocker(readiness_payload)
+    literature_blocker = _literature_blocker(_mapping(readiness))
     if literature_blocker:
         blockers.append(literature_blocker)
         route_decision = "return_to_scout"
+    return route_decision, blockers, literature_blocker
 
-    scorecard = study_line_decision_engine.build_study_line_decision(
-        study_root=root,
-        candidates=candidates,
-        route_decision=route_decision if route_decision != "human_gate" else None,
-    )
+
+def _scorecard_blockers(
+    *,
+    scorecard: Mapping[str, Any],
+    candidates: list[Mapping[str, Any]],
+) -> list[str]:
+    blockers: list[str] = []
     for blocker in scorecard.get("blockers") or []:
         if isinstance(blocker, Mapping):
             code = _text(blocker.get("code"))
             if code:
                 blockers.append(code)
     blockers.extend(_candidate_path_required_blockers(candidates=candidates, scorecard=scorecard))
+    return blockers
 
+
+def _selected_route_after_blockers(
+    *,
+    candidates: list[Mapping[str, Any]],
+    scorecard: Mapping[str, Any],
+    route_decision: str,
+    alternative_line_id: str | None,
+    literature_blocker: str,
+    blockers: list[str],
+) -> tuple[str, str | None]:
     selected_line_id = _selected_line_id(
         scorecard=scorecard,
         route_decision=route_decision,
@@ -421,20 +428,34 @@ def build_route_decision_orchestration(
     elif route_decision == "switch_line" and not _claim_boundary_allows_pivot(candidates, selected_line_id):
         blockers.append("pivot_requires_unchanged_claim_boundary")
         route_decision = "human_gate"
+    return route_decision, selected_line_id
 
+
+def _route_control_projection(
+    *,
+    root: Path,
+    route_decision: str,
+    selected_line_id: str | None,
+    route_signals: Mapping[str, Any] | None,
+    blockers: list[str],
+) -> dict[str, Any]:
     route_signals_payload = _mapping(route_signals)
     has_route_signals = bool(route_signals_payload)
     route_control_decision = _route_control_decision(
         route_decision=route_decision,
         route_signals=route_signals_payload,
     )
-    route_decision = _route_decision_from_control(route_control_decision, route_decision)
+    projected_route_decision = _route_decision_from_control(route_control_decision, route_decision)
+    projected_selected_line_id = selected_line_id
     if has_route_signals and route_control_decision == "switch_line":
-        selected_line_id = None
+        projected_selected_line_id = None
+
     route_control_memo = (
         _route_control_memo(
             root=root,
-            current_route=selected_line_id or _text(route_signals_payload.get("current_route")) or "unselected_route",
+            current_route=projected_selected_line_id
+            or _text(route_signals_payload.get("current_route"))
+            or "unselected_route",
             route_control_decision=route_control_decision,
             route_signals=route_signals_payload,
         )
@@ -443,13 +464,66 @@ def build_route_decision_orchestration(
     )
     if route_control_memo and route_control_memo.get("decision_allowed") is False:
         blockers.extend(str(item) for item in route_control_memo.get("blockers") or [] if _text(item))
-        route_decision = "human_gate"
+        projected_route_decision = "human_gate"
 
     next_action = (
         NEXT_ACTION_BY_ROUTE_CONTROL.get(route_control_decision)
         if has_route_signals
         else None
-    ) or NEXT_ACTION_BY_ROUTE.get(route_decision, "human_gate")
+    ) or NEXT_ACTION_BY_ROUTE.get(projected_route_decision, "human_gate")
+    return {
+        "route_decision": projected_route_decision,
+        "route_control_decision": route_control_decision,
+        "selected_line_id": projected_selected_line_id,
+        "next_action": next_action,
+        "route_control_memo": route_control_memo,
+        "route_signals": route_signals_payload,
+    }
+
+
+def build_route_decision_orchestration(
+    *,
+    study_root: Path,
+    candidates: list[Mapping[str, Any]],
+    requested_action: str,
+    readiness: Mapping[str, Any] | None = None,
+    alternative_line_id: str | None = None,
+    route_signals: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    root = Path(study_root).expanduser().resolve()
+    action = _text(requested_action)
+    route_decision, blockers, literature_blocker = _initial_route_state(
+        requested_action=action,
+        readiness=readiness,
+    )
+    scorecard = study_line_decision_engine.build_study_line_decision(
+        study_root=root,
+        candidates=candidates,
+        route_decision=route_decision if route_decision != "human_gate" else None,
+    )
+    blockers.extend(_scorecard_blockers(scorecard=scorecard, candidates=candidates))
+    route_decision, selected_line_id = _selected_route_after_blockers(
+        candidates=candidates,
+        scorecard=scorecard,
+        route_decision=route_decision,
+        alternative_line_id=alternative_line_id,
+        literature_blocker=literature_blocker,
+        blockers=blockers,
+    )
+    route_control = _route_control_projection(
+        root=root,
+        route_decision=route_decision,
+        selected_line_id=selected_line_id,
+        route_signals=route_signals,
+        blockers=blockers,
+    )
+    route_decision = str(route_control["route_decision"])
+    route_control_decision = str(route_control["route_control_decision"])
+    selected_line_id = route_control["selected_line_id"]
+    next_action = str(route_control["next_action"])
+    route_control_memo = _mapping(route_control["route_control_memo"])
+    route_signals_payload = _mapping(route_control["route_signals"])
+
     controller_decision_ref = (root / CONTROLLER_DECISION_PATH).resolve()
     controller_decision = _controller_decision_payload(
         study_root=root,
