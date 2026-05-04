@@ -138,6 +138,38 @@ def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
     assert "make test-display" not in advisory_workflow
 
 
+def test_ci_runs_medical_paper_ops_contract_guard_without_touching_live_workspaces() -> None:
+    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+    quick_checks = _workflow_job(ci_workflow, "quick-checks")
+    ops_guard_step = _workflow_step(quick_checks, "Run medical paper ops contract guard")
+
+    assert "make test-medical-paper-ops" in ops_guard_step
+    assert "scripts/verify.sh ci-preflight" in quick_checks
+    assert quick_checks.index("Run change-aware CI preflight") < quick_checks.index(
+        "Run medical paper ops contract guard"
+    )
+    assert quick_checks.index("Run medical paper ops contract guard") < quick_checks.index(
+        "Build sdist and wheel"
+    )
+
+    forbidden_live_workspace_fragments = (
+        "/Users/gaofeng/workspace/Yang/",
+        "workspace-cockpit --profile",
+        "product-frontdesk --profile",
+        "study-progress --profile",
+        "runtime watch",
+        "ensure-study-runtime",
+        "prepare-external-research",
+        "provider live refresh",
+        "live literature refresh",
+        "artifacts/medical_paper/literature_provider_runtime.json",
+        "artifacts/controller_decisions/latest.json",
+        "paper/submission_minimal",
+    )
+    for fragment in forbidden_live_workspace_fragments:
+        assert fragment not in ci_workflow
+
+
 def test_advisory_workflow_only_prepares_study_runtime_analysis_bundle_for_display_lane() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")

@@ -36,6 +36,9 @@ jobs:
       - name: Run change-aware CI preflight
         run: scripts/verify.sh ci-preflight "${{ github.event.before }}"
 
+      - name: Run medical paper ops contract guard
+        run: make test-medical-paper-ops
+
       - name: Build sdist and wheel
         run: uv run python -m build --sdist --wheel
 
