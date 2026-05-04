@@ -497,6 +497,15 @@ def _render_open_auto_research_projection_lines(projection: Mapping[str, Any]) -
         if not isinstance(study, Mapping):
             continue
         lines.append(f"- `{study.get('study_id') or 'unknown-study'}` Open Auto Research: {study.get('status') or 'unknown'}")
+        guard = dict(study.get("delivery_journal_usability_guard") or {})
+        if guard:
+            next_action = dict(guard.get("next_required_action") or {})
+            lines.append(
+                "- delivery journal guard: "
+                f"submission-ready authorized `{bool(guard.get('submission_ready_authorized'))}`; "
+                f"publication quality authority `{bool(guard.get('can_authorize_publication_quality'))}`; "
+                f"next `{next_action.get('action_id') or 'none'}`"
+            )
         lines.extend(_render_open_auto_research_action_lines(study.get("actions") or []))
     return lines
 

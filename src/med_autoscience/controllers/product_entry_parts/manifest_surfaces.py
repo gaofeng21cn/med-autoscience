@@ -32,7 +32,14 @@ def _manifest_open_auto_research_projection(value: object) -> dict[str, Any]:
         if not isinstance(item, Mapping):
             continue
         study: dict[str, Any] = {}
-        for key in ("study_id", "status", "counts", "authority", "refs"):
+        for key in (
+            "study_id",
+            "status",
+            "counts",
+            "delivery_journal_usability_guard",
+            "authority",
+            "refs",
+        ):
             if key in item:
                 study[key] = item[key]
         actions = item.get("actions")

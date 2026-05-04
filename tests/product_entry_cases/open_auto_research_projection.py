@@ -111,6 +111,22 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
                     "candidate_path_graph_path": "/tmp/study/artifacts/medical_paper/route_decision_orchestrator.json",
                 },
                 "authority": {"read_only": True, "can_authorize_publication_quality": False},
+                "delivery_journal_usability_guard": {
+                    "real_study_soak_role": "evidence_status_projection_only",
+                    "delivery_journal_usability": "not_authorized_by_soak",
+                    "submission_ready_authorized": False,
+                    "can_authorize_publication_quality": False,
+                    "next_required_action": {
+                        "action_id": "return_to_ai_reviewer_workflow",
+                        "target_surface": "artifacts/publication_eval/latest.json",
+                        "authority_owner": "ai_reviewer",
+                    },
+                    "authority_surfaces": {
+                        "publication_quality": "artifacts/publication_eval/latest.json",
+                        "controller_decision": "artifacts/controller_decisions/latest.json",
+                        "study_truth": "study_runtime_status",
+                    },
+                },
             },
             "recommended_command": (
                 "uv run python -m med_autoscience.cli study-progress --profile "
@@ -152,6 +168,10 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
     assert frontdesk_projection["read_model"] == "open_auto_research_projection_read_only_status_surface"
     assert frontdesk_projection["authority"] == "observability_only"
     assert "capabilities" not in frontdesk_projection["study_projections"][0]
+    guard = frontdesk_projection["study_projections"][0]["delivery_journal_usability_guard"]
+    assert guard["submission_ready_authorized"] is False
+    assert guard["can_authorize_publication_quality"] is False
+    assert guard["next_required_action"]["action_id"] == "return_to_ai_reviewer_workflow"
     assert [item["action_id"] for item in frontdesk_projection["study_projections"][0]["actions"]] == [
         "run_literature_evidence_graph",
         "review_rubric_gaps",
@@ -160,6 +180,8 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
     ]
     assert "Open Auto Research" in markdown
     assert "read-only status surface" in markdown
+    assert "submission-ready authorized `False`" in markdown
+    assert "return_to_ai_reviewer_workflow" in markdown
     assert "run_literature_evidence_graph" in markdown
     assert "review_rubric_gaps" in markdown
     assert "inspect_trajectory" in markdown
