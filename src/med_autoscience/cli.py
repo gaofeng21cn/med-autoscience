@@ -22,6 +22,7 @@ from med_autoscience.profiles import load_profile, profile_to_dict
 from med_autoscience.cli_parts.control_plane_operations import handle_control_plane_operation_command
 from med_autoscience.cli_parts.parser import build_parser as _build_cli_parser
 from med_autoscience.cli_parts.payloads import _load_optional_object_payload_from_args, _parse_key_value_pairs
+from med_autoscience.cli_parts.product_entry_commands import handle_product_entry_command
 from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
 
 @lru_cache(maxsize=None)
@@ -518,125 +519,14 @@ def main(argv: list[str] | None = None) -> int:
             print(product_entry.render_workspace_cockpit_markdown(result), end="")
         return 0
 
-    if args.command == "product-frontdesk":
-        profile = load_profile(args.profile)
-        result = product_entry.build_product_frontdesk(
-            profile=profile,
-            profile_ref=Path(args.profile),
-        )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(product_entry.render_product_frontdesk_markdown(result), end="")
-        return 0
-
-    if args.command == "product-preflight":
-        profile = load_profile(args.profile)
-        result = product_entry.build_product_entry_preflight(
-            profile=profile,
-            profile_ref=Path(args.profile),
-        )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(product_entry.render_product_entry_preflight_markdown(result), end="")
-        return 0
-
-    if args.command == "product-start":
-        profile = load_profile(args.profile)
-        result = product_entry.build_product_entry_start(
-            profile=profile,
-            profile_ref=Path(args.profile),
-        )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(product_entry.render_product_entry_start_markdown(result), end="")
-        return 0
-
-    if args.command == "product-entry-manifest":
-        profile = load_profile(args.profile)
-        result = product_entry.build_product_entry_manifest(
-            profile=profile,
-            profile_ref=Path(args.profile),
-        )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(product_entry.render_product_entry_manifest_markdown(result), end="")
-        return 0
-
-    if args.command == "skill-catalog":
-        profile = load_profile(args.profile)
-        result = product_entry.build_skill_catalog(
-            profile=profile,
-            profile_ref=Path(args.profile),
-        )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(product_entry.render_skill_catalog_markdown(result), end="")
-        return 0
-
-    if args.command == "build-product-entry":
-        if bool(args.study_id) == bool(args.study_root):
-            parser.error("Specify exactly one of --study-id or --study-root")
-        profile = load_profile(args.profile)
-        result = product_entry.build_product_entry(
-            profile=profile,
-            profile_ref=Path(args.profile),
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            direct_entry_mode=args.entry_mode,
-        )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(product_entry.render_build_product_entry_markdown(result), end="")
-        return 0
-
-    if args.command == "launch-study":
-        if bool(args.study_id) == bool(args.study_root):
-            parser.error("Specify exactly one of --study-id or --study-root")
-        profile = load_profile(args.profile)
-        result = product_entry.launch_study(
-            profile=profile,
-            profile_ref=Path(args.profile),
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            entry_mode=args.entry_mode,
-            allow_stopped_relaunch=bool(args.allow_stopped_relaunch),
-            force=bool(args.force),
-        )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(product_entry.render_launch_study_markdown(result), end="")
-        return 0
-
-    if args.command == "submit-study-task":
-        if bool(args.study_id) == bool(args.study_root):
-            parser.error("Specify exactly one of --study-id or --study-root")
-        profile = load_profile(args.profile)
-        result = product_entry.submit_study_task(
-            profile=profile,
-            profile_ref=Path(args.profile),
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            task_intent=args.task_intent,
-            entry_mode=args.entry_mode,
-            journal_target=args.journal_target,
-            constraints=tuple(args.constraint or []),
-            evidence_boundary=tuple(args.evidence_boundary or []),
-            trusted_inputs=tuple(args.trusted_input or []),
-            reference_papers=tuple(args.reference_paper or []),
-            first_cycle_outputs=tuple(args.first_cycle_output or []),
-        )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(product_entry.render_submit_study_task_markdown(result), end="")
-        return 0
+    product_entry_result = handle_product_entry_command(
+        args,
+        parser=parser,
+        product_entry=product_entry,
+        load_profile=load_profile,
+    )
+    if product_entry_result is not None:
+        return product_entry_result
 
     if args.command == "watch":
         if bool(args.quest_root) == bool(args.runtime_root):
