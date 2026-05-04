@@ -6,6 +6,10 @@ on:
       - main
       - development
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quick-checks:
     runs-on: macOS-latest
@@ -29,6 +33,11 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v8.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
 
       - name: Install dependencies
         run: uv sync --frozen --group dev
@@ -47,3 +56,4 @@ jobs:
         with:
           name: macos-dist
           path: dist
+          retention-days: 7

@@ -53,6 +53,16 @@ def test_ci_and_advisory_workflows_use_node24_ready_action_versions() -> None:
     assert "actions/setup-python@v6" in advisory_workflow
 
 
+def test_ci_and_advisory_workflows_cancel_superseded_same_ref_runs() -> None:
+    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    for workflow in (ci_workflow, advisory_workflow):
+        assert "concurrency:" in workflow
+        assert "group: ${{ github.workflow }}-${{ github.ref }}" in workflow
+        assert "cancel-in-progress: true" in workflow
+
+
 def test_sentrux_advisory_workflow_fetches_main_and_passes_opl_compare_ref() -> None:
     workflow = SENTRUX_ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
     structural_gate_job = _workflow_job(workflow, "structural-gate")
@@ -109,6 +119,13 @@ def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
 
     assert "uv sync --frozen --group dev" in ci_workflow
     assert "uv sync --frozen --group dev" in advisory_workflow
+    assert "enable-cache: true" in ci_workflow
+    assert "enable-cache: true" in advisory_workflow
+    assert ci_workflow.count("cache-dependency-glob: |") == 1
+    assert advisory_workflow.count("cache-dependency-glob: |") == 6
+    for workflow in (ci_workflow, advisory_workflow):
+        assert "uv.lock" in workflow
+        assert "pyproject.toml" in workflow
     assert 'scripts/verify.sh ci-preflight "${{ github.event.before }}"' in ci_workflow
     assert "scripts/verify.sh meta" not in ci_workflow
     assert re.search(r"run: scripts/verify\.sh\s*$", ci_workflow, flags=re.MULTILINE) is None
@@ -249,6 +266,30 @@ def test_advisory_workflow_uploads_non_blocking_lane_summaries() -> None:
         assert f"name: mas-test-lane-summary-{lane}" in upload_step
         assert "path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}" in upload_step
         assert "if-no-files-found: warn" in upload_step
+        assert "retention-days: 14" in upload_step
+
+
+def test_advisory_workflow_uploads_history_markdown_and_json_summaries() -> None:
+    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
+    history_workflow = _workflow_job(advisory_workflow, "duration-history")
+    history_step = _workflow_step(history_workflow, "Summarize advisory lane duration history")
+    upload_step = _workflow_step(history_workflow, "Upload advisory lane duration history")
+
+    assert "mkdir -p artifacts/mas-test-lane-summary-history-summary" in history_step
+    assert "history_text=artifacts/mas-test-lane-summary-history-summary/history.txt" in history_step
+    assert "history_json=artifacts/mas-test-lane-summary-history-summary/history.json" in history_step
+    assert "history_markdown=artifacts/mas-test-lane-summary-history-summary/history.md" in history_step
+    assert "uv run python scripts/summarize-test-lane-history.py \\" in history_step
+    assert "--format json >\"${history_json}\"" in history_step
+    assert "cat \"${history_text}\"" in history_step
+    assert "## Advisory lane duration history" in history_step
+    assert "median/max/slowest/delta" in history_step
+    assert "cat \"${history_markdown}\" >> \"${GITHUB_STEP_SUMMARY}\"" in history_step
+    assert "uses: actions/upload-artifact@v7" in upload_step
+    assert "name: mas-test-lane-history-summary" in upload_step
+    assert "path: artifacts/mas-test-lane-summary-history-summary" in upload_step
+    assert "if-no-files-found: warn" in upload_step
+    assert "retention-days: 14" in upload_step
 
 
 def _assert_public_readmes_are_user_entry_only(
@@ -304,6 +345,9 @@ def _assert_docs_readmes_route_to_maintenance_docs(
     assert "number-or-null" in preflight_doc
     assert "observability/advisory 信号" in preflight_doc
     assert "advisory run log" in preflight_doc
+    assert "`uv` dependency cache" in preflight_doc
+    assert "concurrency cancellation" in preflight_doc
+    assert "artifact retention" in preflight_doc
 
 
 def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:

@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: '0 20 * * *'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   regression:
     runs-on: macOS-latest
@@ -23,6 +27,11 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v8.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
 
       - name: Install dependencies
         run: uv sync --frozen --group dev
@@ -43,6 +52,7 @@ jobs:
           name: mas-test-lane-summary-regression
           path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}
           if-no-files-found: warn
+          retention-days: 14
 
   meta-contracts:
     runs-on: macOS-latest
@@ -61,6 +71,11 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v8.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
 
       - name: Install dependencies
         run: uv sync --frozen --group dev
@@ -81,6 +96,7 @@ jobs:
           name: mas-test-lane-summary-meta
           path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}
           if-no-files-found: warn
+          retention-days: 14
 
   family-shared:
     runs-on: macOS-latest
@@ -99,6 +115,11 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v8.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
 
       - name: Install dependencies
         run: uv sync --frozen --group dev
@@ -119,6 +140,7 @@ jobs:
           name: mas-test-lane-summary-family
           path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}
           if-no-files-found: warn
+          retention-days: 14
 
   submission-surface:
     runs-on: macOS-latest
@@ -137,6 +159,11 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v8.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
 
       - name: Install pandoc and BasicTeX
         run: |
@@ -167,6 +194,7 @@ jobs:
           name: mas-test-lane-summary-submission
           path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}
           if-no-files-found: warn
+          retention-days: 14
 
   display-surface:
     runs-on: macOS-latest
@@ -185,6 +213,11 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v8.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
 
       - name: Install pandoc, BasicTeX, graphviz, R, and R package build dependencies
         run: |
@@ -231,6 +264,7 @@ jobs:
           name: mas-test-lane-summary-display
           path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}
           if-no-files-found: warn
+          retention-days: 14
 
   duration-history:
     runs-on: macOS-latest
@@ -254,6 +288,11 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v8.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
 
       - name: Download advisory lane summaries
         if: always()
@@ -268,10 +307,44 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
+          mkdir -p artifacts/mas-test-lane-summary-history-summary
+          history_text=artifacts/mas-test-lane-summary-history-summary/history.txt
+          history_json=artifacts/mas-test-lane-summary-history-summary/history.json
+          history_markdown=artifacts/mas-test-lane-summary-history-summary/history.md
+
           if [[ -f artifacts/mas-test-lane-baseline.json ]]; then
             uv run python scripts/summarize-test-lane-history.py \
               artifacts/mas-test-lane-summary-history \
-              --baseline artifacts/mas-test-lane-baseline.json
+              --baseline artifacts/mas-test-lane-baseline.json >"${history_text}"
+            uv run python scripts/summarize-test-lane-history.py \
+              artifacts/mas-test-lane-summary-history \
+              --baseline artifacts/mas-test-lane-baseline.json \
+              --format json >"${history_json}"
           else
-            uv run python scripts/summarize-test-lane-history.py artifacts/mas-test-lane-summary-history
+            uv run python scripts/summarize-test-lane-history.py artifacts/mas-test-lane-summary-history >"${history_text}"
+            uv run python scripts/summarize-test-lane-history.py \
+              artifacts/mas-test-lane-summary-history \
+              --format json >"${history_json}"
           fi
+
+          cat "${history_text}"
+          {
+            echo "## Advisory lane duration history"
+            echo
+            echo "Fields: median/max/slowest/delta."
+            echo
+            echo '```text'
+            cat "${history_text}"
+            echo '```'
+          } >"${history_markdown}"
+          cat "${history_markdown}" >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload advisory lane duration history
+        if: always()
+        uses: actions/upload-artifact@v7
+        continue-on-error: true
+        with:
+          name: mas-test-lane-history-summary
+          path: artifacts/mas-test-lane-summary-history-summary
+          if-no-files-found: warn
+          retention-days: 14

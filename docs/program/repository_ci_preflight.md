@@ -13,6 +13,7 @@
 - `macOS Advisory` 的 `family` lane 承担 OPL shared boundary / family shared modules 的跨仓合同提示
 - `macOS Advisory` 的 `meta` lane 承担 repo-tracked contract、docs、workflow 与入口面一致性提示
 - `macOS Advisory` 为重 lane 预留 `MAS_TEST_LANE_SUMMARY_PATH`，并以非阻塞 run log 摘要、artifact 上传 lane summary 和只读 history summary 观察 duration drift、相对基线百分比变化与失败前后的耗时变化
+- GitHub Actions 只在执行环境层使用 `uv` dependency cache、同 ref 旧 run concurrency cancellation 与短期 artifact retention 控制成本；这些机制不改变 `ci-preflight`、advisory 或 full 的质量语义
 - `release/full` lane 继续保持严格，用来覆盖正式发布前的整条重型验证链路
 
 ## 验证职责
