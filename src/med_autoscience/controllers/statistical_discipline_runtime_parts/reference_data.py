@@ -8,6 +8,24 @@ WAIVER_MACHINE_CHECKABLE_FIELDS = (
     "reviewer_visible_artifact",
 )
 
+STATISTICAL_DISCIPLINE_OPERATION_FIELDS = (
+    "missingness_plan",
+    "sample_size_precision_plan",
+    "external_validation_plan",
+    "subgroup_plan",
+    "multiplicity_guardrail",
+    "clinical_utility_plan",
+    "endpoint_time_window",
+    "sensitivity_plan",
+)
+
+FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS = (
+    "sample_size_precision_plan",
+    "external_validation_plan",
+    "clinical_utility_plan",
+    "endpoint_time_window",
+)
+
 PLACEHOLDER_TERMS = (
     "tbd",
     "todo",
@@ -180,10 +198,12 @@ ARCHETYPE_DISCIPLINE: dict[str, dict[str, str]] = {
 
 __all__ = [
     "ARCHETYPE_DISCIPLINE",
+    "FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS",
     "METRIC_ONLY_PRIMARY_EVIDENCE_TERMS",
     "NOMINAL_P_VALUE_TERMS",
     "PLACEHOLDER_TERMS",
     "PRIMARY_EVIDENCE_KEYS",
     "REVIEWER_TEMPLATE_CONCERNS",
+    "STATISTICAL_DISCIPLINE_OPERATION_FIELDS",
     "WAIVER_MACHINE_CHECKABLE_FIELDS",
 ]

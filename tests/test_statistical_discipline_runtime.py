@@ -15,6 +15,7 @@ from med_autoscience.controllers.statistical_discipline_runtime import (
     build_statistical_reviewer_template_projection,
     build_statistical_discipline_operations_projection,
     build_statistical_discipline_contract,
+    build_statistical_field_projection,
     validate_bounded_analysis_candidate_board,
     validate_statistical_discipline_contract,
     validate_statistical_reviewer_audit,
@@ -525,6 +526,131 @@ def test_bounded_analysis_candidate_board_blocks_primary_secondary_exploratory_c
     validation = validate_bounded_analysis_candidate_board({"candidates": [candidate]})
 
     assert validation == {"status": "blocked", "reason_code": "candidate_forbidden_evidence_classification"}
+
+
+def test_statistical_field_projection_turns_blockers_and_waivers_into_scientific_questions() -> None:
+    contract = build_statistical_discipline_contract(study_archetype="prediction_model")
+    del contract["missingness_plan"]
+    del contract["external_validation_plan"]
+    contract["sample_size_precision_plan"] = "Primary evidence will be a nominal p-value below 0.05."
+    contract["core_evidence_basis"] = "AUC-only performance is the core evidence for the clinical claim."
+    contract["waivers"] = [_machine_checkable_waiver("subgroup_plan")]
+
+    projection = build_statistical_field_projection(contract)
+
+    assert projection["surface"] == "statistical_field_projection"
+    assert projection["schema_version"] == 1
+    assert projection["status"] == "blocked"
+    assert projection["quality_claim_authorized"] is False
+    assert projection["mechanical_projection_can_authorize_quality"] is False
+    assert "missing_missingness_plan" in projection["blockers"]
+    assert "missing_external_validation_plan" in projection["blockers"]
+    assert "nominal_p_value_primary_evidence" in projection["blockers"]
+    assert "auc_only_primary_evidence" in projection["blockers"]
+
+    questions = {question["field"]: question for question in projection["field_questions"]}
+    assert set(questions) == set(STATISTICAL_DISCIPLINE_OPERATION_FIELDS)
+    assert {question["question_key"] for question in questions.values()} == {
+        "missingness",
+        "precision_sample_size",
+        "external_validation",
+        "subgroup",
+        "multiplicity",
+        "clinical_utility",
+        "endpoint_time_window",
+        "sensitivity",
+    }
+    for question in questions.values():
+        assert question["question"]
+        assert "claim" in question["claim_impact"].lower()
+        assert question["quality_claim_authorized"] is False
+        assert question["mechanical_projection_can_authorize_quality"] is False
+
+    assert questions["missingness_plan"]["status"] == "blocked"
+    assert questions["missingness_plan"]["blocker_refs"] == [
+        {
+            "reason_code": "missing_missingness_plan",
+            "field": "missingness_plan",
+            "source": "statistical_discipline_contract",
+        }
+    ]
+    assert "missing data" in questions["missingness_plan"]["claim_impact"].lower()
+    assert questions["sample_size_precision_plan"]["status"] == "blocked"
+    assert questions["sample_size_precision_plan"]["blocker_refs"] == [
+        {
+            "reason_code": "nominal_p_value_primary_evidence",
+            "field": "sample_size_precision_plan",
+            "source": "statistical_discipline_contract",
+        }
+    ]
+    assert "nominal p-value" in questions["sample_size_precision_plan"]["claim_impact"]
+    assert questions["external_validation_plan"]["status"] == "blocked"
+    assert questions["external_validation_plan"]["blocker_refs"] == [
+        {
+            "reason_code": "missing_external_validation_plan",
+            "field": "external_validation_plan",
+            "source": "statistical_discipline_contract",
+        }
+    ]
+
+    subgroup = questions["subgroup_plan"]
+    assert subgroup["status"] == "waived"
+    assert subgroup["blocker_refs"] == []
+    assert subgroup["waiver_ref"] == {
+        "field": "subgroup_plan",
+        "reason": "The active claim is explicitly bounded away from this evidence domain.",
+        "claim_boundary": "The manuscript states that this domain is outside the target claim.",
+        "evidence_refs": ["methods/subgroup_plan_claim_boundary.json"],
+        "reviewer_visible_artifact": "paper/subgroup_plan_claim_boundary.md",
+        "source": "statistical_discipline_contract",
+    }
+    assert projection["waiver_refs"] == [subgroup["waiver_ref"]]
+
+    assert projection["core_evidence_blocker_refs"] == [
+        {
+            "reason_code": "auc_only_primary_evidence",
+            "field": "core_evidence_basis",
+            "source": "statistical_discipline_contract",
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("core_evidence_basis", "reason_code"),
+    [
+        (
+            "AUC-only performance is the core evidence for the clinical claim.",
+            "auc_only_primary_evidence",
+        ),
+        (
+            "Nominal p-value below 0.05 is the core evidence for the clinical claim.",
+            "nominal_p_value_primary_evidence",
+        ),
+        (
+            "Cluster separation-only is the core evidence for durable subtype naming.",
+            "cluster_separation_only_primary_evidence",
+        ),
+    ],
+)
+def test_statistical_field_projection_blocks_metric_or_nominal_core_evidence(
+    core_evidence_basis: str,
+    reason_code: str,
+) -> None:
+    contract = build_statistical_discipline_contract(study_archetype="subtype_reconstruction")
+    contract["core_evidence_basis"] = core_evidence_basis
+
+    projection = build_statistical_field_projection(contract)
+
+    assert projection["status"] == "blocked"
+    assert reason_code in projection["blockers"]
+    assert projection["core_evidence_blocker_refs"] == [
+        {
+            "reason_code": reason_code,
+            "field": "core_evidence_basis",
+            "source": "statistical_discipline_contract",
+        }
+    ]
+    assert "cannot be used as core evidence" in projection["core_evidence_rule"]
 
 
 @pytest.mark.parametrize(

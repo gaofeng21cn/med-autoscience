@@ -3,13 +3,18 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from med_autoscience.controllers.statistical_discipline_runtime_parts.field_projection import (
+    build_statistical_field_projection,
+)
 from med_autoscience.controllers.statistical_discipline_runtime_parts.reference_data import (
     ARCHETYPE_DISCIPLINE as _ARCHETYPE_DISCIPLINE,
+    FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS,
     METRIC_ONLY_PRIMARY_EVIDENCE_TERMS as _METRIC_ONLY_PRIMARY_EVIDENCE_TERMS,
     NOMINAL_P_VALUE_TERMS as _NOMINAL_P_VALUE_TERMS,
     PLACEHOLDER_TERMS as _PLACEHOLDER_TERMS,
     PRIMARY_EVIDENCE_KEYS as _PRIMARY_EVIDENCE_KEYS,
     REVIEWER_TEMPLATE_CONCERNS as _REVIEWER_TEMPLATE_CONCERNS,
+    STATISTICAL_DISCIPLINE_OPERATION_FIELDS,
     WAIVER_MACHINE_CHECKABLE_FIELDS,
 )
 from med_autoscience.controllers.statistical_discipline_runtime_parts.field_projection import (
@@ -40,24 +45,6 @@ REQUIRED_STATISTICAL_DISCIPLINE_FIELDS = (
     "endpoint_time_window",
     "sensitivity_plan",
     "failure_conditions",
-)
-
-STATISTICAL_DISCIPLINE_OPERATION_FIELDS = (
-    "missingness_plan",
-    "sample_size_precision_plan",
-    "external_validation_plan",
-    "subgroup_plan",
-    "multiplicity_guardrail",
-    "clinical_utility_plan",
-    "endpoint_time_window",
-    "sensitivity_plan",
-)
-
-FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS = (
-    "sample_size_precision_plan",
-    "external_validation_plan",
-    "clinical_utility_plan",
-    "endpoint_time_window",
 )
 
 REQUIRED_STATISTICAL_REVIEWER_TEMPLATE_FIELDS = (
