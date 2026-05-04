@@ -17,6 +17,7 @@ def test_supervisor_scan_queues_external_repair_for_retry_exhausted_no_live_work
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "003-dpcc-primary-care-phenotype-treatment-gap", quest_id="quest-dpcc")
     quest_root = profile.runtime_root / "quest-dpcc"
@@ -117,6 +118,10 @@ def test_supervisor_scan_queues_external_repair_for_retry_exhausted_no_live_work
     assert study["ai_repair_lifecycle"]["blocked_reason"] == "runtime_recovery_retry_budget_exhausted"
     assert study["ai_repair_lifecycle"]["next_owner"] == "external_supervisor"
     assert result["queue_history"]["latest_action_count"] == 2
+    assert result["developer_supervisor_mode"]["mode"] == "developer_apply_safe"
+    assert result["developer_supervisor_mode"]["developer_mode_enabled"] is True
+    assert result["developer_supervisor_mode"]["safe_actions_enabled"] is True
+    assert result["developer_supervisor_mode"]["github_user_gate"]["login"] == "gaofeng21cn"
     assert Path(result["refs"]["latest_path"]).is_file()
     assert Path(result["refs"]["history_path"]).is_file()
 
@@ -126,6 +131,7 @@ def test_supervisor_scan_queues_specificity_and_ai_reviewer_actions_without_qual
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-dm-cvd-mortality-risk", quest_id="quest-dm")
     quest_root = profile.runtime_root / "quest-dm"
@@ -202,6 +208,7 @@ def test_supervisor_scan_apply_safe_actions_materializes_stopped_dm002_lifecycle
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-dm-cvd-mortality-risk", quest_id="quest-dm")
     repair_actions = study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json"
@@ -290,3 +297,89 @@ def test_supervisor_scan_apply_safe_actions_materializes_stopped_dm002_lifecycle
     assert ai_reviewer_request["authority"] == "observability_only"
     assert ai_reviewer_request["target_assessment_owner"] == "ai_reviewer"
     assert ai_reviewer_request["may_authorize_quality_gate"] is False
+
+
+def test_supervisor_scan_downgrades_developer_mode_when_github_user_is_not_owner(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "someone-else")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "003-dpcc-primary-care-phenotype-treatment-gap", quest_id="quest-dpcc")
+    repair_actions = study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json"
+    _write_json(
+        repair_actions,
+        {
+            "surface": "autonomy_repair_orchestration",
+            "schema_version": 1,
+            "state": "ready_for_repair",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "quest-dpcc",
+            "actions": [
+                {
+                    "action_type": "controller_repair",
+                    "repair_kind": "runtime_recovery_redrive",
+                    "owner": "mas_controller",
+                    "risk": "medium",
+                    "auto_apply_allowed": True,
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "study_root": str(study_root),
+            "quest_id": "quest-dpcc",
+            "quest_status": "running",
+            "reason": "runtime_recovery_retry_budget_exhausted",
+            "runtime_liveness_audit": {
+                "active_run_id": None,
+                "runtime_audit": {"worker_running": False, "active_run_id": None},
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "paper_stage": "publication_supervision",
+            "ai_repair_lifecycle": {
+                "state": "external_supervisor_required",
+                "blocked_reason": "runtime_recovery_not_authorized",
+                "external_supervisor_required": True,
+            },
+        },
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=("003-dpcc-primary-care-phenotype-treatment-gap",),
+        apply_safe_actions=True,
+    )
+
+    study = result["studies"][0]
+    assert result["developer_supervisor_mode"]["mode"] == "external_observe"
+    assert result["developer_supervisor_mode"]["developer_mode_enabled"] is False
+    assert result["developer_supervisor_mode"]["safe_actions_enabled"] is False
+    assert result["developer_supervisor_mode"]["github_user_gate"] == {
+        "expected_login": "gaofeng21cn",
+        "login": "someone-else",
+        "allowed": False,
+        "source": "env",
+        "reason": "github_user_not_authorized_for_developer_supervisor_mode",
+    }
+    assert study["action_queue"] == []
+    assert study["why_not_applied"] == "runtime_recovery_retry_budget_exhausted"
+    assert not (study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json").exists()

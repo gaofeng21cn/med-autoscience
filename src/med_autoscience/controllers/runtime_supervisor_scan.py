@@ -9,6 +9,10 @@ from typing import Any
 from med_autoscience.controllers import study_progress, study_runtime_router
 from med_autoscience.controllers import supervisor_action_requests
 from med_autoscience.controllers.study_progress_parts.publication_runtime import _publication_eval_specificity_request
+from med_autoscience.developer_supervisor_mode import (
+    DeveloperSupervisorMode,
+    resolve_developer_supervisor_mode,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -511,6 +515,7 @@ def _study_projection(
     profile: WorkspaceProfile,
     study_id: str,
     apply_safe_actions: bool,
+    developer_mode: DeveloperSupervisorMode,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
     status = study_runtime_router.study_runtime_status(profile=profile, study_id=study_id, study_root=study_root)
@@ -537,13 +542,15 @@ def _study_projection(
         gate_specificity=gate_specificity,
         ai_reviewer_assessment=ai_reviewer_assessment,
     )
+    if developer_mode.mode == "external_observe":
+        actions = []
     lifecycle = _mapping(progress_payload.get("ai_repair_lifecycle"))
     blocked_reason_from_scan = _blocked_reason_from_scan(
         actions=actions,
         gate_specificity=gate_specificity,
         ai_reviewer_assessment=ai_reviewer_assessment,
     )
-    if apply_safe_actions and (
+    if developer_mode.safe_actions_enabled and (
         not lifecycle
         or (
             blocked_reason_from_scan is not None
@@ -564,7 +571,7 @@ def _study_projection(
                     blocked_reason=blocked_reason_from_scan,
                     next_owner=_next_owner_for_blocked_reason(blocked_reason_from_scan),
                 ) or {}
-    if apply_safe_actions:
+    if developer_mode.safe_actions_enabled:
         _materialize_request_packets(
             study_root=study_root,
             study_id=study_id,
@@ -611,7 +618,8 @@ def _study_projection(
         "external_supervisor_required": external_supervisor_required,
         "supervisor_only": _supervisor_only(status_payload, progress_payload),
         "paper_package_mutated": False,
-        "apply_safe_actions": apply_safe_actions,
+        "apply_safe_actions": developer_mode.safe_actions_enabled,
+        "developer_supervisor_mode": developer_mode.to_dict(),
     }
 
 
@@ -620,9 +628,16 @@ def supervisor_scan(
     profile: WorkspaceProfile,
     study_ids: Iterable[str],
     apply_safe_actions: bool = False,
+    developer_supervisor_mode: str | None = None,
 ) -> dict[str, Any]:
     resolved_study_ids = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
     generated_at = _utc_now()
+    developer_mode = resolve_developer_supervisor_mode(
+        profile=profile,
+        requested_mode=developer_supervisor_mode,
+        apply_safe_actions=apply_safe_actions,
+        scheduler_owner="portable_supervisor",
+    )
     latest_path = _latest_path(profile)
     history_path = _history_path(profile)
     previous_payload = _read_json_object(latest_path)
@@ -633,7 +648,12 @@ def supervisor_scan(
     }
     previous_action_ids.discard(None)
     studies = [
-        _study_projection(profile=profile, study_id=study_id, apply_safe_actions=apply_safe_actions)
+        _study_projection(
+            profile=profile,
+            study_id=study_id,
+            apply_safe_actions=apply_safe_actions,
+            developer_mode=developer_mode,
+        )
         for study_id in resolved_study_ids
     ]
     action_queue = [
@@ -665,8 +685,10 @@ def supervisor_scan(
         "scheduler_contract": {
             "codex_app_heartbeat_required": False,
             "supported_schedulers": ["systemd_user", "cron", "docker_one_shot", "launchd"],
+            "developer_supervisor_mode": developer_mode.to_dict(),
         },
-        "apply_safe_actions": apply_safe_actions,
+        "developer_supervisor_mode": developer_mode.to_dict(),
+        "apply_safe_actions": developer_mode.safe_actions_enabled,
         "studies": studies,
         "action_queue": action_queue,
         "queue_history": queue_history,

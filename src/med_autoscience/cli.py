@@ -679,6 +679,7 @@ def main(argv: list[str] | None = None) -> int:
             profile=profile,
             study_ids=tuple(args.studies or []),
             apply_safe_actions=bool(args.apply_safe_actions),
+            developer_supervisor_mode=args.developer_supervisor_mode,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

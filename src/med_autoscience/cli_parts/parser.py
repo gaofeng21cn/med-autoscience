@@ -72,6 +72,10 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_supervisor_scan_parser.add_argument("--profile", required=True)
     runtime_supervisor_scan_parser.add_argument("--studies", nargs="+", required=True)
     runtime_supervisor_scan_parser.add_argument("--apply-safe-actions", action="store_true")
+    runtime_supervisor_scan_parser.add_argument(
+        "--developer-supervisor-mode",
+        choices=("internal_only", "external_observe", "developer_apply_safe"),
+    )
 
     register_runtime_storage_parsers(subparsers)
 
