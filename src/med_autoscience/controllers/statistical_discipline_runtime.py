@@ -291,6 +291,126 @@ def _weak_or_blocked_status(payload: Mapping[str, Any]) -> str:
     return ""
 
 
+def _operation_field_projection(
+    *,
+    contract: Mapping[str, Any],
+    field: str,
+) -> tuple[list[str], dict[str, str] | None, dict[str, object]]:
+    waiver_reason = _waiver_reason(contract, field)
+    value_present = _has_text(contract.get(field))
+    nominal_primary_evidence = _contains_nominal_p_value(contract.get(field))
+    if value_present and not nominal_primary_evidence:
+        status = "waived" if waiver_reason else "present"
+    elif waiver_reason:
+        status = "waived"
+    else:
+        status = "blocked"
+
+    blockers = []
+    if not value_present and not waiver_reason:
+        blockers.append(f"missing_{field}")
+    if nominal_primary_evidence:
+        blockers.append("nominal_p_value_primary_evidence")
+    waiver = {"field": field, "reason": waiver_reason} if waiver_reason else None
+    return blockers, waiver, _operation_action_card(
+        action_id=f"resolve_{field}",
+        label=_OPERATION_FIELD_LABELS[field],
+        summary=_OPERATION_FIELD_SUMMARIES[field],
+        field=field,
+        status=status,
+        waiver_allowed=True,
+    )
+
+
+def _bounded_board_action_card(*, action_id: str, label: str, summary: str) -> dict[str, object]:
+    return _operation_action_card(
+        action_id=action_id,
+        label=label,
+        summary=summary,
+        field="bounded_board",
+        status="blocked",
+        waiver_allowed=False,
+    )
+
+
+def _bounded_board_top_level_projection(
+    bounded_board: Mapping[str, Any] | None,
+) -> tuple[list[str], list[dict[str, object]]]:
+    if not isinstance(bounded_board, Mapping):
+        return [], []
+    board_status = _weak_or_blocked_status(bounded_board)
+    if not board_status:
+        return [], []
+    return [f"bounded_board_{board_status}"], [
+        _bounded_board_action_card(
+            action_id="repair_bounded_board",
+            label="Bounded-board evidence repair",
+            summary="Repair weak or blocked bounded-board evidence before using board decisions.",
+        )
+    ]
+
+
+def _bounded_board_candidate_projection(
+    *,
+    index: int,
+    candidate: Mapping[str, Any],
+) -> tuple[list[str], list[dict[str, object]]]:
+    blockers: list[str] = []
+    action_cards: list[dict[str, object]] = []
+    board_status = _weak_or_blocked_status(candidate)
+    if board_status:
+        blockers.append(f"candidate_{index}_{board_status}_board")
+        action_cards.append(
+            _bounded_board_action_card(
+                action_id=f"candidate_{index}_repair_bounded_board",
+                label="Bounded-board evidence repair",
+                summary="Repair weak or blocked bounded-board evidence before using this candidate.",
+            )
+        )
+
+    missing_required_fields = [
+        field for field in REQUIRED_CANDIDATE_FIELDS if not _has_text(candidate.get(field))
+    ]
+    blockers.extend(f"candidate_{index}_missing_{field}" for field in missing_required_fields)
+    if missing_required_fields:
+        action_cards.append(
+            _bounded_board_action_card(
+                action_id=f"candidate_{index}_complete_required_bindings",
+                label="Bounded-board candidate binding",
+                summary="Bind the candidate to target claim, evidence gain, risk, interpretability, decision, and decision reason.",
+            )
+        )
+
+    if _contains_forbidden_evidence_classification(candidate):
+        blockers.append(f"candidate_{index}_forbidden_evidence_classification")
+    if _contains_nominal_p_value_primary_evidence(candidate):
+        blockers.append(f"candidate_{index}_nominal_p_value_primary_evidence")
+
+    decision = _text(candidate.get("decision"))
+    if decision not in SUPPORTED_CANDIDATE_DECISIONS:
+        blockers.append(f"candidate_{index}_unsupported_decision")
+        action_cards.append(
+            _bounded_board_action_card(
+                action_id=f"candidate_{index}_select_supported_decision",
+                label="Supported board decision",
+                summary="Set decision to explore, exploit, fusion, debug, or stop.",
+            )
+        )
+        return blockers, action_cards
+
+    if decision == "stop":
+        if not _has_text(candidate.get("decision_reason")):
+            blockers.append(f"candidate_{index}_missing_stop_reason")
+        action_cards.append(
+            _bounded_board_action_card(
+                action_id=f"candidate_{index}_stop_loss_switch_line",
+                label="Stop-loss / switch-line decision",
+                summary="Stop the current analysis line or switch line using the recorded decision reason.",
+            )
+        )
+    return blockers, action_cards
+
+
 def build_statistical_discipline_contract(*, study_archetype: str) -> dict[str, Any]:
     archetype = _text(study_archetype)
     if archetype not in SUPPORTED_STUDY_ARCHETYPES:
@@ -318,115 +438,23 @@ def build_statistical_discipline_operations_projection(
     action_cards: list[dict[str, object]] = []
 
     for field in STATISTICAL_DISCIPLINE_OPERATION_FIELDS:
-        waiver_reason = _waiver_reason(contract, field)
-        if waiver_reason:
-            waivers.append({"field": field, "reason": waiver_reason})
+        field_blockers, waiver, action_card = _operation_field_projection(contract=contract, field=field)
+        blockers.extend(field_blockers)
+        if waiver:
+            waivers.append(waiver)
+        action_cards.append(action_card)
 
-        value_present = _has_text(contract.get(field))
-        nominal_primary_evidence = _contains_nominal_p_value(contract.get(field))
-        if value_present and not nominal_primary_evidence:
-            status = "waived" if waiver_reason else "present"
-        elif waiver_reason:
-            status = "waived"
-        else:
-            status = "blocked"
-
-        if not value_present and not waiver_reason:
-            blockers.append(f"missing_{field}")
-        if nominal_primary_evidence:
-            blockers.append("nominal_p_value_primary_evidence")
-
-        action_cards.append(
-            _operation_action_card(
-                action_id=f"resolve_{field}",
-                label=_OPERATION_FIELD_LABELS[field],
-                summary=_OPERATION_FIELD_SUMMARIES[field],
-                field=field,
-                status=status,
-                waiver_allowed=True,
-            )
-        )
-
-    if isinstance(bounded_board, Mapping):
-        board_status = _weak_or_blocked_status(bounded_board)
-        if board_status:
-            blockers.append(f"bounded_board_{board_status}")
-            action_cards.append(
-                _operation_action_card(
-                    action_id="repair_bounded_board",
-                    label="Bounded-board evidence repair",
-                    summary="Repair weak or blocked bounded-board evidence before using board decisions.",
-                    field="bounded_board",
-                    status="blocked",
-                    waiver_allowed=False,
-                )
-            )
+    board_blockers, board_action_cards = _bounded_board_top_level_projection(bounded_board)
+    blockers.extend(board_blockers)
+    action_cards.extend(board_action_cards)
 
     for index, candidate in enumerate(_bounded_board_candidates(bounded_board)):
-        board_status = _weak_or_blocked_status(candidate)
-        if board_status:
-            blockers.append(f"candidate_{index}_{board_status}_board")
-            action_cards.append(
-                _operation_action_card(
-                    action_id=f"candidate_{index}_repair_bounded_board",
-                    label="Bounded-board evidence repair",
-                    summary="Repair weak or blocked bounded-board evidence before using this candidate.",
-                    field="bounded_board",
-                    status="blocked",
-                    waiver_allowed=False,
-                )
-            )
-
-        missing_required_fields = [
-            field for field in REQUIRED_CANDIDATE_FIELDS if not _has_text(candidate.get(field))
-        ]
-        for field in missing_required_fields:
-            blockers.append(f"candidate_{index}_missing_{field}")
-        if missing_required_fields:
-            action_cards.append(
-                _operation_action_card(
-                    action_id=f"candidate_{index}_complete_required_bindings",
-                    label="Bounded-board candidate binding",
-                    summary="Bind the candidate to target claim, evidence gain, risk, interpretability, decision, and decision reason.",
-                    field="bounded_board",
-                    status="blocked",
-                    waiver_allowed=False,
-                )
-            )
-
-        if _contains_forbidden_evidence_classification(candidate):
-            blockers.append(f"candidate_{index}_forbidden_evidence_classification")
-        if _contains_nominal_p_value_primary_evidence(candidate):
-            blockers.append(f"candidate_{index}_nominal_p_value_primary_evidence")
-
-        decision = _text(candidate.get("decision"))
-        if decision not in SUPPORTED_CANDIDATE_DECISIONS:
-            blockers.append(f"candidate_{index}_unsupported_decision")
-            action_cards.append(
-                _operation_action_card(
-                    action_id=f"candidate_{index}_select_supported_decision",
-                    label="Supported board decision",
-                    summary="Set decision to explore, exploit, fusion, debug, or stop.",
-                    field="bounded_board",
-                    status="blocked",
-                    waiver_allowed=False,
-                )
-            )
-            continue
-
-        if decision == "stop":
-            if not _has_text(candidate.get("decision_reason")):
-                blockers.append(f"candidate_{index}_missing_stop_reason")
-            action_cards.append(
-                _operation_action_card(
-                    action_id=f"candidate_{index}_stop_loss_switch_line",
-                    label="Stop-loss / switch-line decision",
-                    summary="Stop the current analysis line or switch line using the recorded decision reason.",
-                    field="bounded_board",
-                    status="blocked",
-                    waiver_allowed=False,
-                )
-            )
+        candidate_blockers, candidate_action_cards = _bounded_board_candidate_projection(
+            index=index,
+            candidate=candidate,
+        )
+        blockers.extend(candidate_blockers)
+        action_cards.extend(candidate_action_cards)
 
     unique_blockers = list(dict.fromkeys(blockers))
     return {
