@@ -11,6 +11,7 @@ from med_autoscience.controllers import (
     medical_paper_ops_health,
     medical_paper_readiness,
     open_auto_research_projection,
+    pi_action_projection,
     runtime_health_kernel,
     study_truth_kernel,
 )
@@ -1075,6 +1076,7 @@ def build_study_progress_projection(
             ],
         },
     }
+    payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
     ai_first_feedback_state = ai_first_feedback.materialize_ai_first_feedback_state(
         study_root=resolved_study_root,
         progress_snapshot=payload,
@@ -1118,8 +1120,6 @@ def build_study_progress_projection(
     payload["refs"]["ai_first_feedback_ledger_path"] = ai_first_feedback_state["ledger"]["path"]
     payload["refs"]["ai_first_action_dispatch_ledger_path"] = ai_first_action_dispatch_ledger["path"]
     return payload
-
-
 def read_study_progress(
     *,
     profile: WorkspaceProfile,
@@ -1150,6 +1150,4 @@ def read_study_progress(
         profile_ref=profile_ref,
         entry_mode=entry_mode,
     )
-
-
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

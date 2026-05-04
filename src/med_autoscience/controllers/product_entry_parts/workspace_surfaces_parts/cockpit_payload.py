@@ -22,6 +22,10 @@ from med_autoscience.controllers.medical_paper_v4_operations import (
     build_v4_operations_dashboard,
     workspace_v4_operations_state,
 )
+from med_autoscience.controllers.pi_action_projection import (
+    build_pi_action_projection,
+    compact_pi_action_projection,
+)
 from med_autoscience.controllers.delivery_visibility_projection import (
     compact_delivery_inspection_projection,
 )
@@ -109,6 +113,7 @@ def _study_item(
     paper_orchestra_operator_projection = dict(progress_payload.get("paper_orchestra_operator_projection") or {})
     open_auto_research_state = dict(progress_payload.get("open_auto_research_projection") or {})
     portable_supervisor_dashboard = dict(progress_payload.get("portable_supervisor_dashboard") or {})
+    pi_action_projection = _normalized_pi_action_projection(progress_payload)
     medical_paper_readiness_surface = _normalized_medical_paper_readiness_projection(
         progress_payload.get("medical_paper_readiness")
     )
@@ -172,6 +177,7 @@ def _study_item(
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
         "open_auto_research_projection": open_auto_research_state or None,
         "portable_supervisor_dashboard": portable_supervisor_dashboard or None,
+        "pi_action_projection": pi_action_projection,
         "medical_paper_readiness": medical_paper_readiness_surface or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
         "recovery_contract": recovery_contract or None,
@@ -182,6 +188,13 @@ def _study_item(
         "progress_freshness": progress_freshness or None,
         "commands": commands,
     }
+
+
+def _normalized_pi_action_projection(progress_payload: Mapping[str, Any]) -> dict[str, Any]:
+    compact = compact_pi_action_projection(progress_payload.get("pi_action_projection"))
+    if compact is not None:
+        return compact
+    return compact_pi_action_projection(build_pi_action_projection(progress_payload)) or {}
 
 
 def _normalized_medical_paper_readiness_projection(value: object) -> dict[str, Any]:
