@@ -7,8 +7,15 @@ from pathlib import Path
 
 def _provider_payload() -> dict[str, object]:
     return {
-        "search_strategy": {"query": "diabetes mortality prediction", "mesh_terms": ["Diabetes Mellitus"]},
+        "search_strategy": {
+            "query": "diabetes mortality prediction",
+            "mesh_terms": ["Diabetes Mellitus"],
+            "keywords": ["diabetes mortality", "risk prediction", "transportability"],
+        },
         "search_date": "2026-05-04",
+        "why_worth_doing": (
+            "Provider-backed evidence supports a transportable diabetes mortality prediction line."
+        ),
         "providers": [
             {
                 "provider_name": "pubmed",
@@ -65,6 +72,8 @@ def _provider_payload() -> dict[str, object]:
                     {
                         "category": "journal_neighbor_refs",
                         "ref": "journal:neighbor",
+                        "score": 0.91,
+                        "score_source_ref": "semantic_scholar:query:001",
                         "citation_ledger_ref": "paper/citation_ledger.json#neighbor",
                     },
                 ],

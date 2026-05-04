@@ -295,21 +295,41 @@ def _materialize_literature_evidence_graph(
     if not anchor_refs:
         anchor_refs = source_refs[:1]
     fallback_source = str(evidence_path) if evidence_path is not None else "missing:evidence_ledger"
+    publication_eval_ref = str(study_root / "artifacts" / "publication_eval" / "latest.json")
+    searched_sources = source_refs or [fallback_source]
     payload = {
         "study_id": study_id,
         "search_date": generated_at[:10],
         "search_strategy": {
             "query": "DM002 Open Auto Research soak evidence graph",
             "mesh_terms": ["Diabetes Mellitus", "Mortality", "Risk Assessment"],
+            "keywords": ["transportability", "diabetes mortality", "external validation"],
         },
-        "searched_sources": source_refs or [fallback_source],
+        "searched_sources": searched_sources,
+        "provider_provenance": [
+            {
+                "provider_name": "canonical_evidence_ledger",
+                "query": "DM002 Open Auto Research soak evidence graph",
+                "retrieved_at": generated_at,
+                "response_status": "ok" if evidence_path is not None else "missing",
+                "source_refs": searched_sources,
+            }
+        ],
+        "why_worth_doing": (
+            "Canonical evidence ledger and publication-eval signals support an Open Auto Research "
+            "read-model check for transportability, reporting guidance, and runtime observability."
+        ),
         "anchor_papers": anchor_refs,
         "guidelines": guideline_refs,
         "systematic_reviews": [
             source_refs[0] if source_refs else f"{fallback_source}#systematic_review_or_related_source"
         ],
-        "journal_neighbor_refs": [
-            str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        "journal_neighbor_refs": [publication_eval_ref],
+        "high_score_neighbor_refs": [
+            {
+                "ref": publication_eval_ref,
+                "score_source_ref": f"{stable_open_auto_research_soak_path(study_root=study_root)}#publication-eval-signal",
+            }
         ],
         "screening_decisions": [
             {
