@@ -551,6 +551,8 @@ def test_mainline_status_command_dispatches_controller(monkeypatch, capsys) -> N
     assert exit_code == 0
     assert called["read"] is True
     assert json.loads(captured.out)["current_stage"]["id"] == "f4_blocker_closeout"
+
+
 def test_mainline_phase_command_dispatches_controller(monkeypatch, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

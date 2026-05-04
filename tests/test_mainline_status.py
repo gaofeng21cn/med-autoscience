@@ -95,6 +95,54 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "eval_hygiene",
     ]
     assert payload["phase_ladder"][0]["capability_owner_boundary"]["owner"] == "MedAutoScience"
+    assert payload["unified_enhancement_program"]["surface_kind"] == (
+        "mas_mds_unified_enhancement_program_projection"
+    )
+    assert payload["unified_enhancement_program"]["projection_only"] is True
+    assert "does not become quality, submission, delivery, runtime, or controller authority" in (
+        payload["unified_enhancement_program"]["authority_boundary"]
+    )
+    assert payload["unified_enhancement_program"]["source_doc"] == (
+        "docs/program/mas_mds_unified_enhancement_program.md"
+    )
+    assert [item["lane_id"] for item in payload["unified_enhancement_program"]["lanes"]] == [
+        "L1_real_workspace_longitudinal_soak",
+        "L2_pi_action_projection",
+        "L3_outcome_calibration_and_provider_ops",
+        "L4_delivery_and_legacy_upgrade_visibility",
+        "L5_natural_boundary_and_audit_compaction",
+    ]
+    assert len(payload["unified_enhancement_program"]["recommendation_rollup"]) == 15
+    assert {
+        item["recommendation_id"] for item in payload["unified_enhancement_program"]["recommendation_rollup"]
+    } == {
+        "auto_research_1",
+        "auto_research_2",
+        "auto_research_3",
+        "auto_research_4",
+        "auto_research_5",
+        "auto_research_6",
+        "file_management_1",
+        "file_management_2",
+        "file_management_3",
+        "file_management_4",
+        "file_management_5",
+        "control_plane_1",
+        "control_plane_2",
+        "control_plane_3",
+        "control_plane_4",
+    }
+    assert payload["unified_enhancement_program"]["module_boundary_audit"]["projection_only"] is True
+    assert [item["boundary_id"] for item in payload["unified_enhancement_program"]["module_boundary_audit"]["boundaries"]] == [
+        "study_truth",
+        "runtime_truth",
+        "quality_truth",
+        "delivery_truth",
+        "maintainability_truth",
+    ]
+    assert payload["unified_enhancement_program"]["module_boundary_audit"]["boundaries"][0]["authority_owner"] == (
+        "StudyTruthKernel"
+    )
     assert payload["phase2_user_product_loop"]["surface_kind"] == "phase2_user_product_loop_lane"
     assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_frontdesk"
     assert payload["phase2_user_product_loop"]["recommended_command"] == (
@@ -195,6 +243,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "docs/architecture.md",
         "docs/status.md",
         "docs/runtime/agent_runtime_interface.md",
+        "docs/program/mas_mds_unified_enhancement_program.md",
         "docs/references/lightweight_product_entry_and_opl_handoff.md",
     ]
     assert payload["phase_ladder"][0]["phase_docs"] == [
@@ -252,6 +301,17 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "清障重点" in markdown
     assert "清障步骤 `refresh_supervision`" in markdown
     assert "Phase 4 Deconstruction" in markdown
+    assert "Unified Enhancement Program" in markdown
+    assert "projection-only: 是" in markdown
+    assert "authority boundary" in markdown
+    assert "does not become quality, submission, delivery, runtime, or controller authority" in markdown
+    assert "enhancement lane `L1_real_workspace_longitudinal_soak`" in markdown
+    assert "enhancement lane `L5_natural_boundary_and_audit_compaction`" in markdown
+    assert markdown.count("enhancement lane `") == 5
+    assert markdown.count("recommendation `") == 15
+    assert "Module Boundary Audit" in markdown
+    assert "audit boundary `study_truth` owner `StudyTruthKernel`" in markdown
+    assert "audit boundary `maintainability_truth`" in markdown
     assert "Remaining Gaps" in markdown
     assert "Next Focus" in markdown
     assert "docs/README.md" in markdown
