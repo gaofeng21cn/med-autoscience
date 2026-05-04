@@ -111,8 +111,30 @@ def test_workspace_cockpit_projects_v5_ops_health(monkeypatch, tmp_path) -> None
     workspace_loop = payload["medical_paper_research_loop_state"]
     assert workspace_loop["surface"] == "workspace_medical_paper_research_loop"
     assert workspace_loop["status"] == "blocked"
+    readiness_state = payload["medical_paper_readiness_state"]
+    study_readiness = readiness_state["studies"][0]
+    assert [card["label"] for card in study_readiness["action_cards"]] == ["处理统计 blocker"]
+    workflow_by_title = {step["title"]: step for step in study_readiness["workflow_steps"]}
+    assert {
+        "处理统计 blocker",
+        "运行真实 soak",
+        "路线裁决",
+        "止损/换线",
+        "启动返修",
+        "授权写作",
+    }.issubset(workflow_by_title)
+    assert workflow_by_title["路线裁决"]["status"] == "partial"
+    assert workflow_by_title["路线裁决"]["missing_reason"] == "switch_line_decision_pending"
+    assert workflow_by_title["止损/换线"]["status"] == "blocked"
+    assert workflow_by_title["启动返修"]["status"] == "partial"
+    assert workflow_by_title["授权写作"]["action_result"]["missing_reason"] == "ai_reviewer_provenance_missing"
     assert "## v5 运营健康闭环 / Medical Paper Ops Health" in markdown
     assert "## 自动论文科研闭环 / Medical Paper Research Loop" in markdown
+    assert "动作卡: 处理统计 blocker [blocked / missing_external_validation_plan]" in markdown
+    assert "路线裁决 [partial / switch_line_decision_pending]" in markdown
+    assert "止损/换线 [blocked / weak_result_requires_stop_loss]" in markdown
+    assert "启动返修 [partial / ai_reviewer_recheck_pending]" in markdown
+    assert "授权写作 [blocked / ai_reviewer_provenance_missing]" in markdown
     assert "文献缺口 / Literature: `ready`" in markdown
     assert "路线裁决 / Study Line Decision: `partial`" in markdown
     assert "统计 blocker / Statistical Discipline: `blocked`" in markdown
@@ -157,6 +179,13 @@ def test_product_frontdesk_projects_workspace_v5_ops_health(monkeypatch, tmp_pat
     assert research_loop["authority_contract"]["can_authorize_submission"] is False
     assert research_loop["authority_contract"]["can_authorize_finalize"] is False
     assert research_loop["authority_contract"]["mechanical_projection_can_authorize_quality"] is False
+    readiness = payload["workspace_medical_paper_readiness"]
+    workflow_steps = readiness["studies"][0]["workflow_steps"]
+    assert len(workflow_steps) >= 6
+    assert all(step["authority_contract"]["can_authorize_quality"] is False for step in workflow_steps)
+    assert {step["title"] for step in workflow_steps}.issuperset(
+        {"处理统计 blocker", "路线裁决", "止损/换线", "启动返修", "授权写作", "运行真实 soak"}
+    )
     assert "Medical paper ops health:" in markdown
     assert "Medical Paper Research Loop:" in markdown
     assert "`001-risk` research loop: blocked" in markdown
