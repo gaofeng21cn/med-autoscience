@@ -327,6 +327,9 @@ _UNKNOWN_PATH_POLICY = {
     "python_and_test_paths": "regression",
     "docs_workflow_config_paths": "fail-closed",
 }
+_UNKNOWN_DOCS_WORKFLOW_CONFIG_SUGGESTION = (
+    "Add the path to a reviewed owner surface before preflight can run commands."
+)
 
 _DEFAULT_COVERAGE_PATH_FAMILIES: tuple[PreflightCoveragePathFamily, ...] = (
     PreflightCoveragePathFamily(
@@ -534,6 +537,22 @@ def _planned_pytest_path_existence(commands: Sequence[str]) -> list[dict[str, ob
     ]
 
 
+def _missing_planned_pytest_paths(categories: Sequence[dict[str, object]]) -> list[dict[str, str]]:
+    missing: list[dict[str, str]] = []
+    for category in categories:
+        for status in category["planned_pytest_path_existence"]:
+            if status["exists"] is True:
+                continue
+            missing.append(
+                {
+                    "category": str(category["category"]),
+                    "command": str(status["command"]),
+                    "path": str(status["path"]),
+                }
+            )
+    return missing
+
+
 def _owner_surface(*, exact_paths: Sequence[str], prefix_paths: Sequence[str]) -> dict[str, object]:
     return {
         "exact_paths": list(exact_paths),
@@ -543,7 +562,7 @@ def _owner_surface(*, exact_paths: Sequence[str], prefix_paths: Sequence[str]) -
 
 def _unknown_path_suggestions_for_category(spec: PreflightCategorySpec) -> list[str]:
     suggestions = [
-        "Review unknown docs/workflow/config paths as fail-closed until this category owns them explicitly.",
+        f"Review unknown docs/workflow/config paths as fail-closed. {_UNKNOWN_DOCS_WORKFLOW_CONFIG_SUGGESTION}",
     ]
     if any(path.startswith("tests/") for path in (*spec.exact_paths, *spec.prefix_paths)):
         suggestions.append(
@@ -556,13 +575,34 @@ def _unknown_path_suggestions_for_category(spec: PreflightCategorySpec) -> list[
     return suggestions
 
 
+def _contract_hygiene(categories: Sequence[dict[str, object]]) -> dict[str, object]:
+    missing_pytest_paths = _missing_planned_pytest_paths(categories)
+    return {
+        "planned_pytest_paths_exist": not missing_pytest_paths,
+        "missing_planned_pytest_paths": missing_pytest_paths,
+        "unknown_python_and_test_paths": {
+            "category": GENERIC_PYTHON_REGRESSION_CATEGORY,
+            "planned_commands": list(_GENERIC_PYTHON_REGRESSION_COMMANDS),
+            "fail_policy": _GENERIC_PYTHON_FAIL_POLICY,
+        },
+        "unknown_docs_workflow_config_paths": {
+            "planned_commands": [],
+            "fail_policy": "fail-closed",
+            "suggestion": _UNKNOWN_DOCS_WORKFLOW_CONFIG_SUGGESTION,
+        },
+    }
+
+
 def build_preflight_contract_report() -> dict[str, object]:
     categories: list[dict[str, object]] = []
     for spec in _CATEGORY_SPECS:
         commands = list(spec.commands)
         owner_surface = _owner_surface(exact_paths=spec.exact_paths, prefix_paths=spec.prefix_paths)
+        pytest_path_existence = _planned_pytest_path_existence(commands)
+        unknown_path_suggestions = _unknown_path_suggestions_for_category(spec)
         categories.append(
             {
+                "category": spec.category_id,
                 "category_id": spec.category_id,
                 "exact_paths": list(spec.exact_paths),
                 "prefix_paths": list(spec.prefix_paths),
@@ -570,13 +610,22 @@ def build_preflight_contract_report() -> dict[str, object]:
                 "fail_policy": _MATCHED_CATEGORY_FAIL_POLICY,
                 "commands": commands,
                 "planned_commands": commands,
-                "planned_pytest_path_existence": _planned_pytest_path_existence(commands),
-                "unknown_path_suggestions": _unknown_path_suggestions_for_category(spec),
+                "pytest_path_existence": pytest_path_existence,
+                "planned_pytest_path_existence": pytest_path_existence,
+                "unknown_path_suggestion": unknown_path_suggestions[0],
+                "unknown_path_suggestions": unknown_path_suggestions,
             }
         )
     generic_commands = list(_GENERIC_PYTHON_REGRESSION_COMMANDS)
+    generic_unknown_path_suggestions = [
+        "Unknown src/med_autoscience/*.py paths route to generic_python_regression_surface and run make test-regression.",
+        "Unknown tests/*.py paths route to generic_python_regression_surface and run make test-regression.",
+        f"Unknown docs/workflow/config paths remain fail-closed. {_UNKNOWN_DOCS_WORKFLOW_CONFIG_SUGGESTION}",
+    ]
+    generic_pytest_path_existence = _planned_pytest_path_existence(generic_commands)
     categories.append(
         {
+            "category": GENERIC_PYTHON_REGRESSION_CATEGORY,
             "category_id": GENERIC_PYTHON_REGRESSION_CATEGORY,
             "exact_paths": [],
             "prefix_paths": list(_GENERIC_PYTHON_PREFIXES),
@@ -584,17 +633,16 @@ def build_preflight_contract_report() -> dict[str, object]:
             "fail_policy": _GENERIC_PYTHON_FAIL_POLICY,
             "commands": generic_commands,
             "planned_commands": generic_commands,
-            "planned_pytest_path_existence": _planned_pytest_path_existence(generic_commands),
-            "unknown_path_suggestions": [
-                "Unknown src/med_autoscience/*.py paths route to generic_python_regression_surface.",
-                "Unknown tests/*.py paths route to generic_python_regression_surface.",
-                "Unknown docs/workflow/config paths remain fail-closed and must be added to an owner surface.",
-            ],
+            "pytest_path_existence": generic_pytest_path_existence,
+            "planned_pytest_path_existence": generic_pytest_path_existence,
+            "unknown_path_suggestion": generic_unknown_path_suggestions[0],
+            "unknown_path_suggestions": generic_unknown_path_suggestions,
         }
     )
     return {
         "surface_kind": "preflight_contract_report",
         "unknown_path_policy": dict(_UNKNOWN_PATH_POLICY),
+        "contract_hygiene": _contract_hygiene(categories),
         "categories": categories,
         "fail_closed_families": [
             {

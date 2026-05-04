@@ -73,6 +73,7 @@ def test_preflight_contract_report_lists_categories_and_planned_commands() -> No
         module.GENERIC_PYTHON_REGRESSION_CATEGORY,
     }
     public_doc = categories["public_doc_surface"]
+    assert public_doc["category"] == "public_doc_surface"
     assert "README.md" in public_doc["exact_paths"]
     assert public_doc["prefix_paths"] == []
     assert public_doc["owner_surface"] == {
@@ -87,8 +88,11 @@ def test_preflight_contract_report_lists_categories_and_planned_commands() -> No
         "path": "tests/test_dev_preflight_contract.py",
         "exists": True,
     } in public_doc["planned_pytest_path_existence"]
+    assert public_doc["pytest_path_existence"] == public_doc["planned_pytest_path_existence"]
+    assert "fail-closed" in public_doc["unknown_path_suggestion"]
     assert any("fail-closed" in suggestion for suggestion in public_doc["unknown_path_suggestions"])
     generic = categories[module.GENERIC_PYTHON_REGRESSION_CATEGORY]
+    assert generic["category"] == module.GENERIC_PYTHON_REGRESSION_CATEGORY
     assert generic["exact_paths"] == []
     assert generic["prefix_paths"] == ["src/med_autoscience/", "tests/"]
     assert generic["owner_surface"] == {
@@ -97,6 +101,7 @@ def test_preflight_contract_report_lists_categories_and_planned_commands() -> No
     }
     assert generic["fail_policy"] == "unknown_python_and_test_paths_route_to_regression"
     assert generic["planned_commands"] == ["make test-regression"]
+    assert "make test-regression" in generic["unknown_path_suggestion"]
     assert any("src/med_autoscience/" in suggestion for suggestion in generic["unknown_path_suggestions"])
     assert any("tests/" in suggestion for suggestion in generic["unknown_path_suggestions"])
     assert report["unknown_path_policy"] == {
@@ -146,6 +151,26 @@ def test_preflight_contract_report_planned_pytest_path_statuses_exist() -> None:
         assert planned_statuses == planned_paths
 
 
+def test_preflight_contract_report_hygiene_documents_review_policies() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+    report = module.build_preflight_contract_report()
+
+    hygiene = report["contract_hygiene"]
+
+    assert hygiene["planned_pytest_paths_exist"] is True
+    assert hygiene["missing_planned_pytest_paths"] == []
+    assert hygiene["unknown_python_and_test_paths"] == {
+        "category": module.GENERIC_PYTHON_REGRESSION_CATEGORY,
+        "planned_commands": ["make test-regression"],
+        "fail_policy": "unknown_python_and_test_paths_route_to_regression",
+    }
+    assert hygiene["unknown_docs_workflow_config_paths"] == {
+        "planned_commands": [],
+        "fail_policy": "fail-closed",
+        "suggestion": "Add the path to a reviewed owner surface before preflight can run commands.",
+    }
+
+
 def test_preflight_contract_report_cli_is_read_only_json(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
@@ -155,7 +180,12 @@ def test_preflight_contract_report_cli_is_read_only_json(capsys) -> None:
 
     assert exit_code == 0
     assert report["surface_kind"] == "preflight_contract_report"
+    assert report["contract_hygiene"]["planned_pytest_paths_exist"] is True
     assert any(category["category_id"] == "workflow_surface" for category in report["categories"])
+    workflow = next(category for category in report["categories"] if category["category_id"] == "workflow_surface")
+    assert workflow["category"] == "workflow_surface"
+    assert workflow["pytest_path_existence"] == workflow["planned_pytest_path_existence"]
+    assert isinstance(workflow["unknown_path_suggestion"], str)
     assert any(
         "uv run pytest tests/test_dev_preflight.py -q" in category["planned_commands"]
         for category in report["categories"]
