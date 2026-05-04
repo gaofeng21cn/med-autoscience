@@ -5,6 +5,7 @@ from typing import Any
 
 from med_autoscience.controllers.delivery_visibility_projection import (
     build_study_delivery_inspection_projection,
+    render_delivery_inspection_markdown_lines,
 )
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -39,3 +40,15 @@ def attach_delivery_inspection_projection(
     updated = dict(payload)
     updated["delivery_inspection"] = delivery_inspection
     return updated
+
+
+def append_delivery_inspection_markdown(
+    lines: list[str],
+    delivery_inspection: dict[str, Any],
+) -> None:
+    lines.extend(
+        render_delivery_inspection_markdown_lines(
+            delivery_inspection,
+            heading="## Delivery Inspection",
+        )
+    )

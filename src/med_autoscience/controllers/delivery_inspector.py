@@ -375,6 +375,22 @@ def compact_delivery_inspection(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _journal_package_markdown_lines(payload: Mapping[str, Any]) -> list[str]:
+    journal_packages = payload.get("journal_packages") if isinstance(payload.get("journal_packages"), list) else []
+    lines: list[str] = []
+    if journal_packages:
+        lines.extend(["## Journal Packages", ""])
+    for package in journal_packages:
+        if not isinstance(package, dict):
+            continue
+        lines.append(
+            f"- `{package.get('journal_slug')}`: `{package.get('layout_status')}` at `{package.get('root')}`"
+        )
+    if lines:
+        lines.append("")
+    return lines
+
+
 def render_delivery_inspection_markdown(payload: Mapping[str, Any]) -> str:
     source_package = payload.get("source_package") if isinstance(payload.get("source_package"), dict) else {}
     human_package = payload.get("human_package") if isinstance(payload.get("human_package"), dict) else {}
@@ -412,14 +428,5 @@ def render_delivery_inspection_markdown(payload: Mapping[str, Any]) -> str:
         f"`{payload.get('next_sync_command')}`",
         "",
     ]
-    journal_packages = payload.get("journal_packages") if isinstance(payload.get("journal_packages"), list) else []
-    if journal_packages:
-        lines.extend(["## Journal Packages", ""])
-        for package in journal_packages:
-            if not isinstance(package, dict):
-                continue
-            lines.append(
-                f"- `{package.get('journal_slug')}`: `{package.get('layout_status')}` at `{package.get('root')}`"
-            )
-        lines.append("")
+    lines.extend(_journal_package_markdown_lines(payload))
     return "\n".join(lines)

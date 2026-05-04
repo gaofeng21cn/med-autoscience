@@ -13,10 +13,8 @@ from med_autoscience.controllers.medical_paper_research_loop import (
     research_loop_markdown_lines,
 )
 from med_autoscience.controllers.medical_paper_v4_operations import build_v4_operations_dashboard
-from med_autoscience.controllers.delivery_visibility_projection import (
-    render_delivery_inspection_markdown_lines,
-)
 
+from .delivery_inspection import append_delivery_inspection_markdown
 from .publication_runtime import *  # noqa: F403
 from .progression import *  # noqa: F403
 from .runtime_efficiency import *  # noqa: F403
@@ -91,6 +89,20 @@ def _followthrough_adjusted_summary(
     )
 
 
+def _next_step_summary(payload: Mapping[str, Any], status_human_view: Mapping[str, Any]) -> str:
+    return _non_empty_text(status_human_view.get("next_step")) or str(
+        payload.get("next_system_action") or ""
+    ).strip()
+
+
+def _progress_supervision_context(payload: Mapping[str, Any]) -> tuple[str, str]:
+    supervision = payload.get("supervision") or {}
+    return (
+        _runtime_health_label(supervision.get("health_status")) or "未知",
+        _supervisor_tick_status_label(supervision.get("supervisor_tick_status")) or "",
+    )
+
+
 def _build_markdown_context(payload: dict[str, Any]) -> dict[str, Any]:
     continuation_state = dict(payload.get("continuation_state") or {})
     manual_finish_contract = (
@@ -105,9 +117,7 @@ def _build_markdown_context(payload: dict[str, Any]) -> dict[str, Any]:
     )
     status_human_view = _status_narration_human_view(payload)
     current_stage, current_judgment = _current_stage_context(payload, status_human_view)
-    next_step_summary = _non_empty_text(status_human_view.get("next_step")) or str(
-        payload.get("next_system_action") or ""
-    ).strip()
+    next_step_summary = _next_step_summary(payload, status_human_view)
     normalized_payload = _normalize_study_progress_payload(payload)
     quality_review_followthrough = _mapping_copy(normalized_payload.get("quality_review_followthrough"))
     current_judgment, next_step_summary = _followthrough_adjusted_summary(
@@ -117,17 +127,15 @@ def _build_markdown_context(payload: dict[str, Any]) -> dict[str, Any]:
     )
     intervention_lane = _mapping_copy(normalized_payload.get("intervention_lane"))
     recovery_contract = _mapping_copy(normalized_payload.get("recovery_contract"))
+    runtime_health, supervisor_tick_status = _progress_supervision_context(payload)
     return {
         "latest_events": [dict(item) for item in (payload.get("latest_events") or []) if isinstance(item, dict)],
         "blockers": _progress_blocker_labels(payload),
         "runtime_decision": runtime_decision,
         "runtime_reason": runtime_reason,
         "continuation_reason": continuation_reason,
-        "runtime_health": _runtime_health_label(((payload.get("supervision") or {}).get("health_status"))) or "未知",
-        "supervisor_tick_status": _supervisor_tick_status_label(
-            ((payload.get("supervision") or {}).get("supervisor_tick_status"))
-        )
-        or "",
+        "runtime_health": runtime_health,
+        "supervisor_tick_status": supervisor_tick_status,
         "progress_freshness": dict(payload.get("progress_freshness") or {}),
         "task_intake": dict(payload.get("task_intake") or {}),
         "current_stage": current_stage,
@@ -771,15 +779,6 @@ def _append_medical_paper_readiness(lines: list[str], payload: Mapping[str, Any]
     lines.extend(_medical_paper_ops_health_lines(ops_health))
 
 
-def _append_delivery_inspection(lines: list[str], delivery_inspection: Mapping[str, Any]) -> None:
-    lines.extend(
-        render_delivery_inspection_markdown_lines(
-            delivery_inspection,
-            heading="## Delivery Inspection",
-        )
-    )
-
-
 def _medical_paper_ops_health_lines(ops_health: Mapping[str, Any]) -> list[str]:
     lines = [
         "",
@@ -984,7 +983,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     _append_paper_orchestra_operator_projection(lines, ctx["paper_orchestra_operator_projection"])
     _append_ai_first_feedback_state(lines, ctx["ai_first_feedback_state"])
     _append_ai_first_action_dispatch_lifecycle(lines, ctx["ai_first_action_dispatch_lifecycle"])
-    _append_delivery_inspection(lines, ctx["delivery_inspection"])
+    append_delivery_inspection_markdown(lines, ctx["delivery_inspection"])
     _append_quality_closure(lines, ctx)
     _append_quality_review_agenda(lines, ctx["quality_review_agenda"])
     _append_quality_review_loop(lines, ctx["quality_review_loop"])

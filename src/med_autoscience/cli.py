@@ -166,6 +166,35 @@ def _serialize_study_runtime_result(result: Any) -> dict[str, Any]:
     raise TypeError("study runtime controller result must be dict or StudyRuntimeStatus")
 
 
+def _handle_delivery_inspect_command(args: argparse.Namespace) -> int:
+    profile = load_profile(args.profile)
+    result = delivery_inspector.inspect_study_delivery(
+        profile=profile,
+        profile_ref=Path(args.profile),
+        study_id=args.study_id,
+        study_root=Path(args.study_root) if args.study_root else None,
+        publication_profile=args.publication_profile,
+    )
+    if args.format == "json":
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        print(delivery_inspector.render_delivery_inspection_markdown(result), end="")
+    return 0
+
+
+def _handle_submission_export_or_delivery_inspect_command(args: argparse.Namespace) -> int:
+    if args.command == "delivery-inspect":
+        return _handle_delivery_inspect_command(args)
+    result = submission_targets_controller.export_submission_targets(
+        paper_root=Path(args.paper_root) if args.paper_root else None,
+        profile_path=Path(args.profile) if args.profile else None,
+        study_root=Path(args.study_root) if args.study_root else None,
+        quest_root=Path(args.quest_root) if args.quest_root else None,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 
 def build_parser() -> argparse.ArgumentParser:
     return _build_cli_parser(study_cycle_profiler=study_cycle_profiler)
@@ -936,30 +965,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "export-submission-targets":
-        result = submission_targets_controller.export_submission_targets(
-            paper_root=Path(args.paper_root) if args.paper_root else None,
-            profile_path=Path(args.profile) if args.profile else None,
-            study_root=Path(args.study_root) if args.study_root else None,
-            quest_root=Path(args.quest_root) if args.quest_root else None,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "delivery-inspect":
-        profile = load_profile(args.profile)
-        result = delivery_inspector.inspect_study_delivery(
-            profile=profile,
-            profile_ref=Path(args.profile),
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            publication_profile=args.publication_profile,
-        )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(delivery_inspector.render_delivery_inspection_markdown(result), end="")
-        return 0
+    if args.command in {"export-submission-targets", "delivery-inspect"}:
+        return _handle_submission_export_or_delivery_inspect_command(args)
 
     if args.command == "publication-gate":
         result = publication_gate.run_controller(

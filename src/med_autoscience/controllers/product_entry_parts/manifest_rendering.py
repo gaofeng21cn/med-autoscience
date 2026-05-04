@@ -140,6 +140,10 @@ def render_skill_catalog_markdown(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _workspace_delivery_inspection_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return dict(payload.get("workspace_delivery_inspection") or {})
+
+
 def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     entry_surfaces = dict(payload.get("entry_surfaces") or {})
     gateway_interaction_contract = dict(payload.get("gateway_interaction_contract") or {})
@@ -163,7 +167,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     workspace_medical_paper_ops_health = dict(
         payload.get("workspace_medical_paper_ops_health") or {}
     )
-    workspace_delivery_inspection = dict(payload.get("workspace_delivery_inspection") or {})
+    workspace_delivery_inspection = _workspace_delivery_inspection_payload(payload)
     workspace_portable_supervisor_queue_dashboard = dict(
         payload.get("workspace_portable_supervisor_queue_dashboard") or {}
     )

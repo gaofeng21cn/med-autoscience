@@ -689,6 +689,10 @@ def _workspace_medical_paper_research_loop_manifest(workspace_cockpit: Mapping[s
     return dict(workspace_cockpit.get("medical_paper_research_loop_state") or {})
 
 
+def _workspace_delivery_inspection_manifest(workspace_cockpit: Mapping[str, Any]) -> dict[str, Any]:
+    return dict(workspace_cockpit.get("delivery_inspection_state") or {})
+
+
 def build_product_frontdesk(
     *,
     profile: WorkspaceProfile,
@@ -854,9 +858,7 @@ def build_product_frontdesk(
             "workspace_medical_paper_research_loop": _workspace_medical_paper_research_loop_manifest(
                 workspace_cockpit
             ),
-            "workspace_delivery_inspection": dict(
-                workspace_cockpit.get("delivery_inspection_state") or {}
-            ),
+            "workspace_delivery_inspection": _workspace_delivery_inspection_manifest(workspace_cockpit),
             "workspace_portable_supervisor_queue_dashboard": _manifest_portable_supervisor_queue_dashboard(
                 workspace_cockpit.get("portable_supervisor_queue_dashboard")
             ),
