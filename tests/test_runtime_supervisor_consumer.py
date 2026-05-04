@@ -233,10 +233,13 @@ def test_supervisor_consume_writes_request_handoff_for_publication_gate_and_ai_r
                     "quest_id": "quest-dm",
                     "action_type": "publication_gate_specificity_required",
                     "authority": "observability_only",
+                    "owner": "publication_gate",
+                    "recommended_owner": "publication_gate",
                     "reason": "publication_gate_specificity_required",
                     "handoff_packet": {
                         "request_kind": "publication_gate_specificity_required",
                         "authority": "observability_only",
+                        "request_owner": "publication_gate",
                         "paper_package_mutation_allowed": False,
                         "quality_gate_relaxation_allowed": False,
                     },
@@ -246,10 +249,14 @@ def test_supervisor_consume_writes_request_handoff_for_publication_gate_and_ai_r
                     "quest_id": "quest-dm",
                     "action_type": "return_to_ai_reviewer_workflow",
                     "authority": "observability_only",
+                    "owner": "ai_reviewer",
+                    "recommended_owner": "ai_reviewer",
                     "reason": "ai_reviewer_assessment_required",
+                    "required_output_surface": "artifacts/publication_eval/latest.json",
                     "handoff_packet": {
                         "request_kind": "return_to_ai_reviewer_workflow",
                         "authority": "observability_only",
+                        "request_owner": "ai_reviewer",
                         "paper_package_mutation_allowed": False,
                         "quality_gate_relaxation_allowed": False,
                     },
@@ -282,6 +289,13 @@ def test_supervisor_consume_writes_request_handoff_for_publication_gate_and_ai_r
     assert result["repair_tasks"] == []
     assert result["request_tasks"][0]["action_type"] == "publication_gate_specificity_required"
     assert result["request_tasks"][1]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert result["request_tasks"][0]["request_owner"] == "publication_gate"
+    assert result["request_tasks"][1]["request_owner"] == "ai_reviewer"
+    assert result["request_tasks"][0]["expected_owner"] == "publication_gate"
+    assert result["request_tasks"][1]["expected_owner"] == "ai_reviewer"
+    assert result["request_tasks"][0]["owner_pickup"]["owner"] == "publication_gate"
+    assert result["request_tasks"][1]["owner_pickup"]["owner"] == "ai_reviewer"
+    assert result["request_tasks"][1]["required_output_surface"] == "artifacts/publication_eval/latest.json"
     assert result["ignored_actions"] == []
     assert gate_packet_path.is_file()
     assert ai_packet_path.is_file()
@@ -289,6 +303,16 @@ def test_supervisor_consume_writes_request_handoff_for_publication_gate_and_ai_r
     ai_packet = json.loads(ai_packet_path.read_text(encoding="utf-8"))
     assert gate_packet["authority"] == "observability_only"
     assert ai_packet["authority"] == "observability_only"
+    assert gate_packet["request_owner"] == "publication_gate"
+    assert ai_packet["request_owner"] == "ai_reviewer"
+    assert gate_packet["next_executable_owner"] == "publication_gate"
+    assert ai_packet["next_executable_owner"] == "ai_reviewer"
+    assert gate_packet["owner_pickup"]["owner"] == "publication_gate"
+    assert ai_packet["owner_pickup"]["owner"] == "ai_reviewer"
+    assert ai_packet["required_output_surface"] == "artifacts/publication_eval/latest.json"
+    assert gate_packet["supervisor_authority_boundary"] == "request_only"
+    assert ai_packet["supervisor_authority_boundary"] == "request_only"
+    assert "publication_eval" in ai_packet["consumer_does_not_mutate"]
     assert gate_packet["paper_package_mutation_allowed"] is False
     assert ai_packet["quality_gate_relaxation_allowed"] is False
     assert (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()

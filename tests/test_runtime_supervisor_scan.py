@@ -190,8 +190,9 @@ def test_supervisor_scan_does_not_apply_runtime_platform_repair_without_explicit
             "quest_status": "active",
             "reason": "runtime_recovery_retry_budget_exhausted",
             "runtime_liveness_audit": {
+                "status": "none",
                 "active_run_id": None,
-                "runtime_audit": {"worker_running": False, "active_run_id": None},
+                "runtime_audit": {"status": "none", "worker_running": False, "active_run_id": None},
             },
             "runtime_health_snapshot": {
                 "canonical_runtime_action": "external_supervisor_required",
@@ -596,6 +597,15 @@ def test_supervisor_scan_queues_specificity_and_ai_reviewer_actions_without_qual
     action_types = [item["action_type"] for item in result["studies"][0]["action_queue"]]
     assert action_types == ["publication_gate_specificity_required", "return_to_ai_reviewer_workflow"]
     assert {item["authority"] for item in result["studies"][0]["action_queue"]} == {"observability_only"}
+    assert [item["owner"] for item in result["studies"][0]["action_queue"]] == ["publication_gate", "ai_reviewer"]
+    assert [item["recommended_owner"] for item in result["studies"][0]["action_queue"]] == [
+        "publication_gate",
+        "ai_reviewer",
+    ]
+    assert [item["owner_pickup"]["owner"] for item in result["studies"][0]["action_queue"]] == [
+        "publication_gate",
+        "ai_reviewer",
+    ]
     assert result["studies"][0]["current_stage"] == "publication_supervision"
     assert result["studies"][0]["gate_specificity"]["required"] is True
     assert result["studies"][0]["gate_specificity"]["missing_target_kinds"] == [
@@ -630,6 +640,10 @@ def test_supervisor_scan_queues_specificity_and_ai_reviewer_actions_without_qual
         assert action["manual_study_patch_allowed"] is False
         assert action["medical_claim_authoring_allowed"] is False
         assert action["handoff_packet"]["authority"] == "observability_only"
+        assert action["handoff_packet"]["request_owner"] == action["owner"]
+        assert action["handoff_packet"]["recommended_owner"] == action["owner"]
+        assert action["handoff_packet"]["next_executable_owner"] == action["owner"]
+        assert action["handoff_packet"]["supervisor_authority_boundary"] == "request_only"
         assert action["handoff_packet"]["quality_gate_relaxation_allowed"] is False
         assert action["handoff_packet"]["paper_package_mutation_allowed"] is False
         assert action["handoff_packet"]["manual_study_patch_allowed"] is False

@@ -208,6 +208,35 @@ def _request_owner_for_action_type(action_type: str) -> str:
     return "controller"
 
 
+def _owner_from_action(action: Mapping[str, Any], action_type: str) -> str:
+    handoff_packet = _mapping(action.get("handoff_packet"))
+    return (
+        _text(action.get("owner"))
+        or _text(action.get("request_owner"))
+        or _text(action.get("recommended_owner"))
+        or _text(handoff_packet.get("owner"))
+        or _text(handoff_packet.get("request_owner"))
+        or _text(handoff_packet.get("recommended_owner"))
+        or _request_owner_for_action_type(action_type)
+    )
+
+
+def _request_output_surface_for_action_type(action_type: str) -> str:
+    if action_type == "publication_gate_specificity_required":
+        return "artifacts/publication_eval/latest.json"
+    if action_type == "return_to_ai_reviewer_workflow":
+        return "artifacts/publication_eval/latest.json"
+    return "artifacts/supervision/requests"
+
+
+def _request_packet_ref_for_action_type(action_type: str) -> str:
+    if action_type == "publication_gate_specificity_required":
+        return "artifacts/supervision/requests/publication_gate_specificity/latest.json"
+    if action_type == "return_to_ai_reviewer_workflow":
+        return "artifacts/supervision/requests/ai_reviewer/latest.json"
+    return "artifacts/supervision/requests"
+
+
 def _request_task(
     *,
     profile: WorkspaceProfile,
@@ -227,6 +256,20 @@ def _request_task(
     blocked_reason = None if apply_allowed or not apply else _github_block_reason(developer_mode_payload)
     dispatch_status = "applied" if apply_allowed else "dry_run" if not apply else "blocked"
     authority = _text(action.get("authority")) or _text(handoff_packet.get("authority")) or "observability_only"
+    request_owner = _owner_from_action(action, action_type)
+    required_output_surface = (
+        _text(action.get("required_output_surface"))
+        or _text(handoff_packet.get("required_output_surface"))
+        or _request_output_surface_for_action_type(action_type)
+    )
+    request_packet_ref = _request_packet_ref_for_action_type(action_type)
+    owner_pickup = {
+        "owner": request_owner,
+        "state": "pending",
+        "required_output_surface": required_output_surface,
+        "request_packet_ref": request_packet_ref,
+        "supervisor_authority_boundary": "request_only",
+    }
     return {
         "surface": "supervisor_request_handoff_task",
         "schema_version": SCHEMA_VERSION,
@@ -236,7 +279,12 @@ def _request_task(
         "action_id": _text(action.get("action_id")),
         "reason": _text(action.get("reason")) or _text(handoff_packet.get("reason")),
         "authority": authority,
-        "request_owner": _request_owner_for_action_type(action_type),
+        "request_owner": request_owner,
+        "expected_owner": request_owner,
+        "next_executable_owner": request_owner,
+        "required_output_surface": required_output_surface,
+        "request_packet_ref": request_packet_ref,
+        "owner_pickup": owner_pickup,
         "dispatch_status": dispatch_status,
         "blocked_reason": blocked_reason,
         "dry_run": not apply,
@@ -260,7 +308,22 @@ def _request_task(
             "request_kind": _text(handoff_packet.get("request_kind")) or action_type,
             "action_type": action_type,
             "authority": authority,
-            "request_owner": _request_owner_for_action_type(action_type),
+            "request_owner": request_owner,
+            "expected_owner": request_owner,
+            "next_executable_owner": request_owner,
+            "required_output_surface": required_output_surface,
+            "request_packet_ref": request_packet_ref,
+            "owner_pickup": owner_pickup,
+            "supervisor_authority_boundary": "request_only",
+            "consumer_mutation_scope": "supervision_handoff_only",
+            "consumer_does_not_mutate": [
+                "paper",
+                "manuscript",
+                "current_package",
+                "submission_minimal",
+                "publication_eval",
+                "medical_claims",
+            ],
             "effective_mode": _text(developer_mode_payload.get("mode")),
             "paper_package_mutation_allowed": False,
             "quality_gate_relaxation_allowed": False,

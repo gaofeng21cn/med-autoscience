@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_progress, study_runtime_router
-from med_autoscience.controllers import supervisor_action_requests
-from med_autoscience.controllers import supervisor_action_request_lifecycle
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
+from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
+from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_parking
 from med_autoscience.controllers.study_progress_parts.publication_runtime import _publication_eval_specificity_request
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
@@ -290,8 +290,27 @@ def _action_id(*, study_id: str, action_type: str, reason: str | None) -> str:
     return f"supervisor-action::{study_id}::{action_type}::{suffix}"
 
 
+def _owner_from_action(action: Mapping[str, Any]) -> str | None:
+    handoff_packet = _mapping(action.get("handoff_packet"))
+    return (
+        _text(action.get("owner"))
+        or _text(action.get("request_owner"))
+        or _text(action.get("recommended_owner"))
+        or _text(handoff_packet.get("owner"))
+        or _text(handoff_packet.get("request_owner"))
+        or _text(handoff_packet.get("recommended_owner"))
+        or _text(handoff_packet.get("next_executable_owner"))
+    )
+
+
 def _handoff_packet(*, study_id: str, quest_id: str | None, action: Mapping[str, Any]) -> dict[str, Any]:
     authority = _text(action.get("authority")) or "observability_only"
+    owner = _owner_from_action(action)
+    recommended_owner = owner or (
+        "external_engineering_agent"
+        if authority == "external_supervisor"
+        else authority
+    )
     return {
         "packet_type": "external_supervisor_handoff",
         "schema_version": 1,
@@ -300,11 +319,11 @@ def _handoff_packet(*, study_id: str, quest_id: str | None, action: Mapping[str,
         "action_type": _text(action.get("action_type")),
         "reason": _text(action.get("reason")) or _text(action.get("action_type")),
         "authority": authority,
-        "recommended_owner": (
-            "external_engineering_agent"
-            if authority == "external_supervisor"
-            else authority
-        ),
+        "owner": owner,
+        "request_owner": _text(action.get("request_owner")) or owner,
+        "recommended_owner": recommended_owner,
+        "next_executable_owner": recommended_owner,
+        "supervisor_authority_boundary": "request_only" if authority == "observability_only" else "control_handoff",
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
@@ -355,6 +374,8 @@ def _action_queue(
             {
                 "action_type": "runtime_platform_repair",
                 "authority": "external_supervisor",
+                "owner": "external_engineering_agent",
+                "recommended_owner": "external_engineering_agent",
                 "reason": "runtime_recovery_retry_budget_exhausted",
                 "summary": "Runtime recovery retry budget is exhausted and no live worker is attached.",
                 "paper_package_mutation_allowed": False,
@@ -372,6 +393,9 @@ def _action_queue(
             {
                 "action_type": "publication_gate_specificity_required",
                 "authority": "observability_only",
+                "owner": "publication_gate",
+                "request_owner": "publication_gate",
+                "recommended_owner": "publication_gate",
                 "reason": "publication_gate_specificity_required",
                 "summary": "Publication gate must name concrete claim/figure/table/metric/source_path targets.",
                 "required_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
@@ -386,8 +410,12 @@ def _action_queue(
             {
                 "action_type": "return_to_ai_reviewer_workflow",
                 "authority": "observability_only",
+                "owner": "ai_reviewer",
+                "request_owner": "ai_reviewer",
+                "recommended_owner": "ai_reviewer",
                 "reason": "ai_reviewer_assessment_required",
                 "summary": "Request an AI reviewer-owned publication_eval assessment.",
+                "required_output_surface": "artifacts/publication_eval/latest.json",
                 "paper_package_mutation_allowed": False,
             }
         )
@@ -521,74 +549,6 @@ def _blocked_lifecycle_from_repair(
     return payload
 
 
-def _publication_eval_source_action(publication_eval_payload: Mapping[str, Any]) -> dict[str, Any]:
-    actions = publication_eval_payload.get("recommended_actions")
-    if isinstance(actions, list):
-        for action in actions:
-            if isinstance(action, Mapping):
-                return dict(action)
-    return {
-        "action_id": "publication-gate-specificity-required",
-        "next_work_unit": {"unit_id": "gate_needs_specificity"},
-        "work_unit_fingerprint": "publication-blockers::specificity_required",
-    }
-
-
-def _materialize_request_packets(
-    *,
-    study_root: Path,
-    study_id: str,
-    quest_id: str | None,
-    publication_eval_payload: Mapping[str, Any],
-    actions: list[dict[str, Any]],
-) -> None:
-    action_types = {_text(action.get("action_type")) for action in actions}
-    if "publication_gate_specificity_required" in action_types:
-        blocking_gaps = publication_eval_payload.get("gaps")
-        packet = supervisor_action_requests.build_publication_gate_specificity_request(
-            study_id=study_id,
-            quest_id=quest_id,
-            source_surface="publication_eval/latest.json",
-            source_action=_publication_eval_source_action(publication_eval_payload),
-            blocking_gaps=[
-                gap for gap in blocking_gaps
-                if isinstance(gap, Mapping)
-            ] if isinstance(blocking_gaps, list) else [],
-        )
-        packet["required_target_kinds"] = list(packet.get("requested_target_types") or [])
-        packet["request_visibility"] = "owner_visible_checklist"
-        _write_json(
-            study_root / "artifacts" / "supervision" / "requests" / "publication_gate_specificity" / "latest.json",
-            packet,
-        )
-    if "return_to_ai_reviewer_workflow" in action_types:
-        packet = supervisor_action_requests.build_ai_reviewer_publication_eval_request(
-            study_id=study_id,
-            quest_id=quest_id,
-            source_surface="runtime_supervisor_scan",
-            workflow_state={
-                "quality_authority": {
-                    "owner": _text(_mapping(publication_eval_payload.get("assessment_provenance")).get("owner")),
-                    "state": "projection_only",
-                },
-                "route_back": {
-                    "required": True,
-                    "target": "ai_reviewer",
-                },
-                "blockers": ["publication_eval_not_ai_reviewer_authority"],
-            },
-            input_refs=supervisor_action_request_lifecycle.default_ai_reviewer_request_input_refs(
-                study_root=study_root,
-            ),
-        )
-        packet["target_assessment_owner"] = "ai_reviewer"
-        packet["may_authorize_quality_gate"] = False
-        supervisor_action_request_lifecycle.materialize_ai_reviewer_request(
-            study_root=study_root,
-            packet=packet,
-        )
-
-
 def _blocked_reason_from_scan(
     *,
     actions: list[dict[str, Any]],
@@ -710,7 +670,7 @@ def _decorate_action_queue_slo(
             }
             action["owner_pickup"] = {
                 "state": "overdue" if owner_pickup_overdue else "pending",
-                "owner": _text(action.get("owner")) or _text(action.get("recommended_owner")) or study.get("next_owner"),
+                "owner": _owner_from_action(action) or _text(study.get("next_owner")),
                 "first_seen_at": owner_first_seen_at,
                 "overdue_after_hours": OWNER_PICKUP_OVERDUE_HOURS,
                 "duration_hours": owner_duration_hours,
@@ -762,6 +722,35 @@ def _study_projection(
     progress_payload = _mapping(progress)
     resolved_quest_id = _text(status_payload.get("quest_id")) or _text(progress_payload.get("quest_id"))
     publication_eval_payload = _publication_eval_payload(status_payload, progress_payload)
+    submission_milestone_parked_refresh = None
+    if _runtime_platform_repair_required(status_payload, progress_payload):
+        submission_milestone_parked_refresh = submission_milestone_parking.refresh_submission_milestone_parking(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            status=status_payload,
+            developer_mode=developer_mode,
+            enabled=developer_mode.safe_actions_enabled,
+        )
+        if _text(_mapping(submission_milestone_parked_refresh).get("dispatch_status")) == "applied":
+            status = study_runtime_router.study_runtime_status(profile=profile, study_id=study_id, study_root=study_root)
+            progress = study_progress.read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
+            status_payload = _mapping(status)
+            progress_payload = _mapping(progress)
+            resolved_quest_id = _text(status_payload.get("quest_id")) or _text(progress_payload.get("quest_id"))
+            publication_eval_payload = _publication_eval_payload(status_payload, progress_payload)
+    if submission_milestone_parked_refresh is None:
+        submission_milestone_parked_refresh = submission_milestone_parking.reconcile_stopped_submission_milestone_parking(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            status=status_payload,
+            developer_mode=developer_mode,
+            enabled=developer_mode.safe_actions_enabled,
+        )
+        if _text(_mapping(submission_milestone_parked_refresh).get("dispatch_status")) == "applied":
+            progress = study_progress.read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
+            progress_payload = _mapping(progress)
     gate_specificity = _publication_gate_specificity_required(
         status_payload,
         progress_payload,
@@ -810,13 +799,18 @@ def _study_projection(
                     next_owner=_next_owner_for_blocked_reason(blocked_reason_from_scan),
                 ) or {}
     if developer_mode.safe_actions_enabled:
-        _materialize_request_packets(
+        request_packets.materialize_request_packets(
             study_root=study_root,
             study_id=study_id,
             quest_id=resolved_quest_id,
             publication_eval_payload=publication_eval_payload,
             actions=actions,
         )
+    submission_milestone_parked = (
+        _text(_mapping(submission_milestone_parked_refresh).get("dispatch_status")) == "applied"
+    )
+    if submission_milestone_parked:
+        lifecycle = _mapping(_mapping(submission_milestone_parked_refresh).get("repair_lifecycle"))
     runtime_platform_repair_apply = platform_repair.apply_runtime_platform_repair(
         profile=profile,
         study_id=study_id,
@@ -826,7 +820,10 @@ def _study_projection(
         publication_eval_payload=publication_eval_payload,
         developer_mode=developer_mode,
         enabled=apply_runtime_platform_repair,
-        repair_required=_runtime_platform_repair_required(status_payload, progress_payload),
+        repair_required=(
+            not submission_milestone_parked
+            and _runtime_platform_repair_required(status_payload, progress_payload)
+        ),
     )
     if runtime_platform_repair_apply is not None:
         lifecycle = platform_repair.write_runtime_platform_repair_lifecycle(
@@ -838,6 +835,8 @@ def _study_projection(
         )
     why_not_applied = _why_not_applied(status=status_payload, progress=progress_payload, actions=actions)
     if runtime_platform_repair_apply is not None and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied":
+        why_not_applied = None
+    if submission_milestone_parked:
         why_not_applied = None
     if why_not_applied is None and lifecycle:
         why_not_applied = _text(lifecycle.get("blocked_reason"))
@@ -869,6 +868,7 @@ def _study_projection(
         "ai_reviewer_status": _ai_reviewer_status(ai_reviewer_assessment),
         "ai_repair_lifecycle": lifecycle or None,
         "action_queue": actions,
+        "submission_milestone_parked_refresh": submission_milestone_parked_refresh,
         "runtime_platform_repair_apply": runtime_platform_repair_apply,
         "why_not_applied": why_not_applied,
         "why_not_applied_timeline": _why_not_applied_timeline(why_not_applied),
