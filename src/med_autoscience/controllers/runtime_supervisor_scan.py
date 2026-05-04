@@ -8,6 +8,7 @@ from typing import Any
 
 from med_autoscience.controllers import study_progress, study_runtime_router
 from med_autoscience.controllers import supervisor_action_requests
+from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
 from med_autoscience.controllers.study_progress_parts.publication_runtime import _publication_eval_specificity_request
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
@@ -174,7 +175,7 @@ def _publication_eval_payload(status: Mapping[str, Any], progress: Mapping[str, 
 
 def _next_work_unit_needs_specificity(value: object) -> bool:
     next_work_unit = _mapping(value)
-    return _text(next_work_unit.get("unit_id")) in {"gate_needs_specificity", "needs_specificity"}
+    return _text(next_work_unit.get("unit_id")) in platform_repair.SPECIFICITY_WORK_UNIT_IDS
 
 
 def _publication_gate_specificity_required(
@@ -556,6 +557,7 @@ def _study_projection(
     profile: WorkspaceProfile,
     study_id: str,
     apply_safe_actions: bool,
+    apply_runtime_platform_repair: bool,
     developer_mode: DeveloperSupervisorMode,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
@@ -620,7 +622,28 @@ def _study_projection(
             publication_eval_payload=publication_eval_payload,
             actions=actions,
         )
+    runtime_platform_repair_apply = platform_repair.apply_runtime_platform_repair(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        status=status_payload,
+        progress=progress_payload,
+        publication_eval_payload=publication_eval_payload,
+        developer_mode=developer_mode,
+        enabled=apply_runtime_platform_repair,
+        repair_required=_runtime_platform_repair_required(status_payload, progress_payload),
+    )
+    if runtime_platform_repair_apply is not None:
+        lifecycle = platform_repair.write_runtime_platform_repair_lifecycle(
+            study_root=study_root,
+            supervision_latest_relative_path=SUPERVISION_LATEST_RELATIVE_PATH,
+            study_id=study_id,
+            quest_id=resolved_quest_id,
+            apply_result=runtime_platform_repair_apply,
+        )
     why_not_applied = _why_not_applied(status=status_payload, progress=progress_payload, actions=actions)
+    if runtime_platform_repair_apply is not None and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied":
+        why_not_applied = None
     if why_not_applied is None and lifecycle:
         why_not_applied = _text(lifecycle.get("blocked_reason"))
     external_supervisor_required = bool(
@@ -651,6 +674,7 @@ def _study_projection(
         "ai_reviewer_status": _ai_reviewer_status(ai_reviewer_assessment),
         "ai_repair_lifecycle": lifecycle or None,
         "action_queue": actions,
+        "runtime_platform_repair_apply": runtime_platform_repair_apply,
         "why_not_applied": why_not_applied,
         "why_not_applied_timeline": _why_not_applied_timeline(why_not_applied),
         "escalation_reason": why_not_applied,
@@ -669,6 +693,7 @@ def supervisor_scan(
     profile: WorkspaceProfile,
     study_ids: Iterable[str],
     apply_safe_actions: bool = False,
+    apply_runtime_platform_repair: bool = False,
     developer_supervisor_mode: str | None = None,
 ) -> dict[str, Any]:
     resolved_study_ids = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
@@ -693,6 +718,7 @@ def supervisor_scan(
             profile=profile,
             study_id=study_id,
             apply_safe_actions=apply_safe_actions,
+            apply_runtime_platform_repair=apply_runtime_platform_repair,
             developer_mode=developer_mode,
         )
         for study_id in resolved_study_ids
@@ -730,6 +756,7 @@ def supervisor_scan(
         },
         "developer_supervisor_mode": developer_mode.to_dict(),
         "apply_safe_actions": developer_mode.safe_actions_enabled,
+        "apply_runtime_platform_repair": bool(apply_runtime_platform_repair),
         "studies": studies,
         "action_queue": action_queue,
         "queue_history": queue_history,

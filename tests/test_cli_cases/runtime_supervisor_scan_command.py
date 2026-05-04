@@ -18,11 +18,13 @@ def test_runtime_supervisor_scan_command_dispatches_controller(monkeypatch, tmp_
         profile,
         study_ids,
         apply_safe_actions: bool,
+        apply_runtime_platform_repair: bool = False,
         developer_supervisor_mode: str | None = None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_ids"] = study_ids
         called["apply_safe_actions"] = apply_safe_actions
+        called["apply_runtime_platform_repair"] = apply_runtime_platform_repair
         called["developer_supervisor_mode"] = developer_supervisor_mode
         return {"surface": "portable_runtime_supervisor_scan", "study_count": len(study_ids)}
 
@@ -38,6 +40,7 @@ def test_runtime_supervisor_scan_command_dispatches_controller(monkeypatch, tmp_
             "NF003",
             "DM002",
             "--apply-safe-actions",
+            "--apply-runtime-platform-repair",
             "--developer-supervisor-mode",
             "developer_apply_safe",
         ]
@@ -48,5 +51,6 @@ def test_runtime_supervisor_scan_command_dispatches_controller(monkeypatch, tmp_
     assert called["profile"].name == "nfpitnet"
     assert called["study_ids"] == ("NF003", "DM002")
     assert called["apply_safe_actions"] is True
+    assert called["apply_runtime_platform_repair"] is True
     assert called["developer_supervisor_mode"] == "developer_apply_safe"
     assert json.loads(captured.out)["surface"] == "portable_runtime_supervisor_scan"
