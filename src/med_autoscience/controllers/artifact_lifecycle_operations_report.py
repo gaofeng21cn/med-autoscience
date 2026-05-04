@@ -40,6 +40,7 @@ from med_autoscience.controllers.artifact_retention_operations_plan import (
     compact_artifact_retention_operations_plan,
     retention_policy_catalog,
 )
+from med_autoscience.controllers.storage_governance_policy_kernel import build_storage_governance_policy_projection
 from med_autoscience.controllers.control_plane_migration_audit import (
     build_delivery_manifest_historical_backfill_plan,
     summarize_delivery_manifests,
@@ -74,7 +75,7 @@ def run_lifecycle_operations_report(
     summary = _aggregate_summary(workspaces)
     source_totals = _aggregate_source_totals(workspaces)
     retention_plan = _aggregate_retention_plan(workspaces)
-    return {
+    report = {
         "surface": SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
         "report_kind": "artifact_lifecycle_operations_report",
@@ -103,6 +104,8 @@ def run_lifecycle_operations_report(
         "historical_backfill_plan_count": _aggregate_historical_backfill_plan_count(workspaces),
         "workspaces": workspaces,
     }
+    report["storage_governance_policy"] = build_storage_governance_policy_projection(lifecycle_report=report)
+    return report
 
 
 def _mutation_policy() -> dict[str, Any]:
@@ -992,9 +995,4 @@ def _is_relative_to(path: Path, root: Path) -> bool:
     return True
 
 
-__all__ = [
-    "SCHEMA_VERSION",
-    "SURFACE_KIND",
-    "render_lifecycle_operations_report_markdown",
-    "run_lifecycle_operations_report",
-]
+__all__ = ["SCHEMA_VERSION", "SURFACE_KIND", "render_lifecycle_operations_report_markdown", "run_lifecycle_operations_report"]

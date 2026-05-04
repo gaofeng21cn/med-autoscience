@@ -337,6 +337,14 @@ def test_lifecycle_operations_report_adds_compact_storage_budget_operational_sum
     )
     assert all(item["physical_delete_allowed"] is False for item in summary["projection_regeneration_candidates"])
     assert summary["restore_contract_gaps"] == []
+    governance = report["storage_governance_policy"]
+    assert governance["surface_kind"] == "storage_governance_policy_projection"
+    assert governance["mutation_policy"]["read_only"] is True
+    assert governance["budget_status"]["total_bytes"] == report["summary"]["total_bytes"]
+    assert governance["trend_delta"]["growth_bucket"] == "baseline"
+    assert governance["top_growth_buckets"][0]["source_bucket"] == "runtime"
+    assert governance["recommended_operations"][0]["operation_type"] == "regenerate_projection_before_cleanup"
+    assert governance["next_safe_action"]["action"] == "regenerate_projection_before_cleanup_review"
 
 
 def test_lifecycle_operations_report_markdown_includes_operational_summary(
@@ -365,6 +373,11 @@ def test_lifecycle_operations_report_markdown_includes_operational_summary(
     assert "- projection regeneration candidates:" in markdown
     assert "`studies/001-risk/manuscript/current_package/manuscript.docx`" in markdown
     assert "- restore contract gaps: none" in markdown
+    assert "## Storage Governance" in markdown
+    assert "- budget status: `within_budget`" in markdown
+    assert "- trend delta: `baseline`" in markdown
+    assert "`regenerate_projection_before_cleanup` studies/001-risk/manuscript/current_package/manuscript.docx" in markdown
+    assert "- next safe action: `regenerate_projection_before_cleanup_review`" in markdown
 
 def test_lifecycle_operations_report_projects_delivery_manifest_historical_backfill_plan(
     tmp_path: Path,

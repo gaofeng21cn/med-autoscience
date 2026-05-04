@@ -34,6 +34,7 @@ def _sequence_value(value: Any):
 def render_lifecycle_operations_report_markdown(report: Mapping[str, Any]) -> str:
     lines = _markdown_summary_lines(report)
     lines.extend(_markdown_operational_summary_lines(report))
+    lines.extend(_markdown_storage_governance_lines(report))
     lines.extend(_markdown_source_total_lines(report))
     lines.extend(_markdown_study_lines(report))
     lines.append("")
@@ -120,6 +121,43 @@ def _markdown_restore_contract_gaps(operational_summary: Mapping[str, Any]) -> s
     text = "; ".join(
         f"`{_mapping_value(_mapping_or_empty(gap), 'workspace_relative_path', 'unknown')}`"
         for gap in gaps
+    )
+    return _display_value(text, "none")
+
+
+def _markdown_storage_governance_lines(report: Mapping[str, Any]) -> list[str]:
+    governance = report.get("storage_governance_policy")
+    if not isinstance(governance, Mapping):
+        return []
+    budget = _mapping_or_empty(governance.get("budget_status"))
+    trend = _mapping_or_empty(governance.get("trend_delta"))
+    next_safe_action = _mapping_or_empty(governance.get("next_safe_action"))
+    return [
+        "",
+        "## Storage Governance",
+        "",
+        (
+            f"- budget status: `{_mapping_value(budget, 'status', 'unknown')}`, "
+            f"bytes `{_mapping_value(budget, 'total_bytes', 0)}`"
+        ),
+        (
+            f"- trend delta: `{_mapping_value(trend, 'growth_bucket', 'unknown')}`, "
+            f"bytes `{_mapping_value(trend, 'delta_bytes', 0)}`"
+        ),
+        f"- recommended operations: {_markdown_recommended_operations(governance)}",
+        (
+            f"- next safe action: `{_mapping_value(next_safe_action, 'action', 'monitor_storage_governance_projection')}` "
+            f"({_mapping_value(next_safe_action, 'reason', 'no_safe_operation_candidate')})"
+        ),
+    ]
+
+
+def _markdown_recommended_operations(governance: Mapping[str, Any]) -> str:
+    operations = _sequence_value(governance.get("recommended_operations"))
+    text = "; ".join(
+        f"`{_mapping_value(_mapping_or_empty(operation), 'operation_type', 'unknown')}` "
+        f"{_mapping_value(_mapping_or_empty(operation), 'workspace_relative_path', 'unknown')}"
+        for operation in operations
     )
     return _display_value(text, "none")
 
