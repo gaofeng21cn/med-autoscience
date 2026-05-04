@@ -490,3 +490,130 @@ def test_continuous_real_workspace_monitor_cannot_be_ready_without_finalize_proo
     assert study["finalize_rebuild_seen"] is False
     assert "proof:finalize_rebuild" in study["missing_gaps"]
     assert study["next_action"] == "materialize_finalize_rebuild_proof"
+
+
+def test_continuous_real_workspace_monitor_materializer_appends_scan_history_and_last_green(
+    tmp_path: Path,
+) -> None:
+    roots = [
+        tmp_path / "history-risk",
+        tmp_path / "history-real-world",
+        tmp_path / "history-triage",
+    ]
+    for root, archetype in zip(
+        roots,
+        (
+            "prediction_model/external_validation",
+            "observational_real_world",
+            "subtype_or_triage",
+        ),
+        strict=True,
+    ):
+        _write_json(_matrix_path(root), _ready_matrix_payload(root.name, archetype))
+
+    ready_catalog = {
+        "catalog_id": "continuous-history-catalog",
+        "scan_id": "scan-001",
+        "scan_started_at": "2026-05-04T01:00:00Z",
+        "studies": [
+            {
+                "study_id": roots[0].name,
+                "study_root": str(roots[0]),
+                "previous_readiness_status": "partial",
+                "readiness_status": "ready",
+                "route_decision": {"action": "continue", "reason": "green proof restored"},
+                "revision_reopen_seen": True,
+                "runtime_recovery_seen": True,
+                "finalize_rebuild_seen": True,
+            },
+            {"study_id": roots[1].name, "study_root": str(roots[1]), "readiness_status": "ready"},
+            {"study_id": roots[2].name, "study_root": str(roots[2]), "readiness_status": "ready"},
+        ],
+    }
+
+    result = _module().materialize_real_workspace_soak_monitor(
+        study_roots=roots,
+        catalog_payload=ready_catalog,
+    )
+
+    monitor_path = Path(result["artifact_path"])
+    first = json.loads(monitor_path.read_text(encoding="utf-8"))
+    assert first["overall_status"] == "ready"
+    assert first["last_green_at"] == "2026-05-04T01:00:00Z"
+    assert first["last_green_scan_id"] == "scan-001"
+    assert first["drift_history"] == [
+        {
+            "scan_id": "scan-001",
+            "scan_started_at": "2026-05-04T01:00:00Z",
+            "overall_status": "ready",
+            "next_action": "continue_real_workspace_soak",
+            "drift_signals": [
+                {
+                    "study_id": "history-risk",
+                    "signals": ["readiness_status_changed:partial->ready"],
+                }
+            ],
+            "blocked_reason_summary": [],
+            "route_decision_summary": first["route_decision_summary"],
+            "stop_loss_triggered": False,
+            "revision_reopen_seen": True,
+            "runtime_recovery_seen": True,
+            "finalize_rebuild_seen": True,
+        }
+    ]
+
+    partial_catalog = {
+        "catalog_id": "continuous-history-catalog",
+        "scan_id": "scan-002",
+        "scan_started_at": "2026-05-04T01:05:00Z",
+        "studies": [
+            {
+                "study_id": roots[0].name,
+                "study_root": str(roots[0]),
+                "previous_readiness_status": "ready",
+                "readiness_status": "partial",
+                "blocked_reason": "finalize rebuild proof stale",
+                "route_action": "continue",
+                "finalize_rebuild_seen": False,
+            },
+            {
+                "study_id": roots[1].name,
+                "study_root": str(roots[1]),
+                "readiness_status": "ready",
+                "route_action": "stop_loss",
+                "stop_loss_triggered": True,
+            },
+            {"study_id": roots[2].name, "study_root": str(roots[2]), "readiness_status": "ready"},
+        ],
+    }
+
+    _module().materialize_real_workspace_soak_monitor(
+        study_roots=roots,
+        catalog_payload=partial_catalog,
+    )
+
+    second = json.loads(monitor_path.read_text(encoding="utf-8"))
+    assert second["overall_status"] == "partial"
+    assert second["last_green_at"] == "2026-05-04T01:00:00Z"
+    assert second["last_green_scan_id"] == "scan-001"
+    assert [entry["scan_id"] for entry in second["drift_history"]] == ["scan-001", "scan-002"]
+    assert second["drift_history"][1]["scan_started_at"] == "2026-05-04T01:05:00Z"
+    assert second["drift_history"][1]["overall_status"] == "partial"
+    assert second["drift_history"][1]["drift_signals"] == [
+        {
+            "study_id": "history-risk",
+            "signals": ["readiness_status_changed:ready->partial"],
+        }
+    ]
+    assert second["drift_history"][1]["blocked_reason_summary"] == [
+        {
+            "study_id": "history-risk",
+            "status": "partial",
+            "blocked_reason": "finalize rebuild proof stale",
+            "gaps": ["proof:finalize_rebuild"],
+        }
+    ]
+    assert second["drift_history"][1]["stop_loss_triggered"] is True
+    assert second["authority_contract"]["can_authorize_quality"] is False
+    assert second["authority_contract"]["can_authorize_submission"] is False
+    assert second["authority_contract"]["can_authorize_finalize"] is False

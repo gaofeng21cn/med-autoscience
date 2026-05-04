@@ -241,6 +241,20 @@ def _catalog_source(
     }
 
 
+def _scan_metadata(catalog_payload: Mapping[str, Any]) -> dict[str, Any]:
+    scan_id = _text(catalog_payload.get("scan_id"), "")
+    scan_started_at = _text(
+        catalog_payload.get("scan_started_at")
+        or catalog_payload.get("scanned_at")
+        or catalog_payload.get("generated_at"),
+        "",
+    )
+    return {
+        "scan_id": scan_id or "ad_hoc_scan",
+        "scan_started_at": scan_started_at,
+    }
+
+
 def _source_key(study: Mapping[str, Any]) -> tuple[str, str]:
     return (_text(study.get("study_id"), ""), _text(study.get("study_root"), ""))
 
@@ -683,6 +697,56 @@ def _action_cards(studies: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     return cards
 
 
+def _drift_history_entry(*, projection: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "scan_id": _text(projection.get("scan_id"), "ad_hoc_scan"),
+        "scan_started_at": _text(projection.get("scan_started_at"), ""),
+        "overall_status": _text(projection.get("overall_status")),
+        "next_action": _text(projection.get("next_action")),
+        "drift_signals": list(_sequence(projection.get("drift_signals"))),
+        "blocked_reason_summary": list(_sequence(projection.get("blocked_reason_summary"))),
+        "route_decision_summary": list(_sequence(projection.get("route_decision_summary"))),
+        "stop_loss_triggered": bool(projection.get("stop_loss_triggered")),
+        "revision_reopen_seen": bool(projection.get("revision_reopen_seen")),
+        "runtime_recovery_seen": bool(projection.get("runtime_recovery_seen")),
+        "finalize_rebuild_seen": bool(projection.get("finalize_rebuild_seen")),
+    }
+
+
+def _merged_drift_history(
+    *,
+    previous: Mapping[str, Any],
+    projection: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    history = [
+        dict(item)
+        for item in _sequence(previous.get("drift_history"))
+        if isinstance(item, Mapping)
+    ]
+    entry = _drift_history_entry(projection=projection)
+    if not history or history[-1].get("scan_id") != entry["scan_id"]:
+        history.append(entry)
+    else:
+        history[-1] = entry
+    return history[-25:]
+
+
+def _last_green_state(
+    *,
+    previous: Mapping[str, Any],
+    projection: Mapping[str, Any],
+) -> dict[str, str]:
+    if projection.get("overall_status") == "ready":
+        return {
+            "last_green_at": _text(projection.get("scan_started_at"), ""),
+            "last_green_scan_id": _text(projection.get("scan_id"), "ad_hoc_scan"),
+        }
+    return {
+        "last_green_at": _text(previous.get("last_green_at"), ""),
+        "last_green_scan_id": _text(previous.get("last_green_scan_id"), ""),
+    }
+
+
 def _study_items(
     *,
     source_studies: Sequence[Mapping[str, Any]],
@@ -756,11 +820,19 @@ def build_real_workspace_soak_monitor(
     )
 
     status = _overall_status(multistudy_projection, studies=study_items)
+    scan = _scan_metadata(catalog)
     return {
         "surface": SURFACE,
         "schema_version": SCHEMA_VERSION,
         "read_model": READ_MODEL,
         "monitor_mode": MONITOR_MODE,
+        "scheduler": {
+            "mode": "continuous_read_only",
+            "catalog_driven": bool(catalog),
+            "writes_runtime_owned_surfaces": False,
+        },
+        "scan_id": scan["scan_id"],
+        "scan_started_at": scan["scan_started_at"],
         "catalog_source": _catalog_source(
             catalog_payload=catalog,
             catalog_path=resolved_catalog_path,
@@ -816,6 +888,15 @@ def materialize_real_workspace_soak_monitor(
     if not roots:
         raise ValueError("study_roots or catalog studies must include at least one study root")
     path = roots[0] / MONITOR_REF
+    previous = _read_json(path)
+    history = _merged_drift_history(previous=previous, projection=projection)
+    green = _last_green_state(previous=previous, projection=projection)
+    projection = {
+        **projection,
+        "drift_history": history,
+        "last_green_at": green["last_green_at"],
+        "last_green_scan_id": green["last_green_scan_id"],
+    }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(projection, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {
@@ -824,6 +905,8 @@ def materialize_real_workspace_soak_monitor(
         "artifact_path": str(path.resolve()),
         "overall_status": projection["overall_status"],
         "next_action": projection["next_action"],
+        "last_green_at": projection["last_green_at"],
+        "last_green_scan_id": projection["last_green_scan_id"],
         "authority_contract": _authority_contract(),
         "read_only_monitor_contract": _read_only_monitor_contract(),
     }
