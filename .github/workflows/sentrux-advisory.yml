@@ -20,6 +20,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Ensure origin/main compare ref
+        shell: bash
+        run: git fetch --no-tags --prune origin main:refs/remotes/origin/main
 
       - name: Install Sentrux
         run: curl -fsSL https://sentrux.dev/install.sh | sh
@@ -55,6 +61,7 @@ jobs:
           root: .
           limit: '20'
           json-limit: '50'
+          compare-ref: origin/main
           output-dir: artifacts/opl-quality-details
 
       - name: Upload OPL quality details

@@ -63,8 +63,7 @@ test-control-plane:
 
 test-structure:
 	uv run python scripts/line_budget.py
-	sentrux gate
-	if [ -f .sentrux/rules.toml ]; then sentrux check; fi
+	scripts/run-structure-quality-gate.sh
 
 test-full:
 	./scripts/run-parallel-test-lanes.sh full

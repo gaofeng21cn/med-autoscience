@@ -11,6 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
 CI_WORKFLOW_PATH = WORKFLOW_DIR / "ci.yml"
 ADVISORY_WORKFLOW_PATH = WORKFLOW_DIR / "advisory.yml"
+SENTRUX_ADVISORY_WORKFLOW_PATH = WORKFLOW_DIR / "sentrux-advisory.yml"
 RELEASE_WORKFLOW_PATH = WORKFLOW_DIR / "release.yml"
 PYPROJECT_PATH = REPO_ROOT / "pyproject.toml"
 
@@ -43,11 +44,25 @@ def test_domain_repo_does_not_publish_github_releases() -> None:
 def test_ci_and_advisory_workflows_use_node24_ready_action_versions() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
+    sentrux_advisory_workflow = SENTRUX_ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
 
     assert "actions/checkout@v6" in ci_workflow
     assert "actions/checkout@v6" in advisory_workflow
+    assert "actions/checkout@v6" in sentrux_advisory_workflow
     assert "actions/setup-python@v6" in ci_workflow
     assert "actions/setup-python@v6" in advisory_workflow
+
+
+def test_sentrux_advisory_workflow_fetches_main_and_passes_opl_compare_ref() -> None:
+    workflow = SENTRUX_ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
+    structural_gate_job = _workflow_job(workflow, "structural-gate")
+    checkout_step = _workflow_step(structural_gate_job, "Checkout repository")
+    quality_details_step = _workflow_step(structural_gate_job, "Run OPL quality details")
+
+    assert "fetch-depth: 0" in checkout_step
+    assert "git fetch --no-tags --prune origin main:refs/remotes/origin/main" in structural_gate_job
+    assert "uses: gaofeng21cn/one-person-lab/.github/actions/quality-details@main" in quality_details_step
+    assert "compare-ref: origin/main" in quality_details_step
 
 
 def test_ci_and_advisory_workflows_track_python_312_minor_instead_of_exact_patch_file() -> None:
