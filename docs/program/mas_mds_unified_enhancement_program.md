@@ -75,6 +75,7 @@ Authority boundary：`L1` 只产生 proof/evidence；它不能直接改写 publi
 ### L2 PI action projection
 
 Owner: `MedAutoScience product entry`
+Status: `landed as projection-only read model`
 
 目的：把多个用户入口压缩成同一套 PI-readable next action，例如：
 
@@ -87,6 +88,8 @@ Owner: `MedAutoScience product entry`
 - 进入 submission package rebuild
 
 Authority boundary：`study-progress` 是源头投影，`workspace-cockpit` 和 `product-frontdesk` 只能消费同一 action payload。入口文案不得根据文件状态、provider 状态或 MDS oracle 另算下一步。
+
+落地面：`med_autoscience.controllers.pi_action_projection` 暴露单一 `pi_action_projection` read model；`study_progress` 负责生成 full payload，MCP compact study-progress surface 保留压缩后的同一投影，product-entry workspace study item 只透传/压缩该 payload。该 surface 固定 `projection_only=true`，`can_set_canonical_next_action=false`，`can_authorize_publication_readiness=false`，`can_authorize_submission=false`，不得成为 canonical next action、publication readiness 或 submission package authority。
 
 ### L3 outcome calibration and provider ops
 
@@ -158,4 +161,4 @@ Authority boundary：结构治理不改变 study truth、publication truth、del
 
 ## 当前落地范围
 
-本次落地只固定统一方案、owner 边界和 meta guard。真实 workspace 产物、`current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json`、delivery artifact 和 live runtime state 都不在本次直接修改范围内。
+本次落地已包含 `L2_pi_action_projection` 的可用 read model：医生入口能从 study-progress/operator/compact payload 读取补文献、改统计、降级 claim、重开同一论文线、换线、进入 AI reviewer、进入 submission package rebuild 七类 PI-readable 动作。真实 workspace 产物、`current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json`、delivery artifact 和 live runtime state 都不在本次直接修改范围内。

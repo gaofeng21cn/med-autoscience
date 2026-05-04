@@ -19,6 +19,7 @@ from med_autoscience.controllers.medical_paper_research_loop import (
     research_loop_markdown_lines,
 )
 from med_autoscience.controllers.medical_paper_v4_operations import build_v4_operations_dashboard
+from med_autoscience.controllers.pi_action_projection import compact_pi_action_projection
 from med_autoscience.mcp_server_parts.open_auto_research_projection import (
     compact_open_auto_research_projection,
     compact_open_auto_research_soak_for_mcp,
@@ -433,6 +434,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "runtime_efficiency": _compact_runtime_efficiency,
         "module_surfaces": _compact_module_surfaces,
         "medical_paper_readiness": _compact_medical_paper_readiness,
+        "pi_action_projection": compact_pi_action_projection,
         "delivery_inspection": compact_delivery_inspection_projection,
         "open_auto_research_projection": compact_open_auto_research_projection,
         "portable_supervisor_dashboard": compact_portable_supervisor_dashboard,
