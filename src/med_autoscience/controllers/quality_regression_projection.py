@@ -146,6 +146,61 @@ def _normalized_judge_scores(judge_scores: Sequence[Mapping[str, Any]]) -> list[
     return normalized
 
 
+def _normalized_rubric_node(raw_node: Mapping[str, Any], label: str) -> dict[str, Any]:
+    node = _mapping(raw_node, label)
+    reviewer_kind = _required_text(node, "reviewer_kind", label)
+    if reviewer_kind not in {"human_reviewer", "ai_reviewer"}:
+        raise ValueError(f"{label}.reviewer_kind must be one of: human_reviewer, ai_reviewer")
+    children = node.get("children", [])
+    if not isinstance(children, Sequence) or isinstance(children, (str, bytes)):
+        raise ValueError(f"{label}.children must be a list")
+    return {
+        "node_id": _required_text(node, "node_id", label),
+        "label": _required_text(node, "label", label),
+        "reviewer_kind": reviewer_kind,
+        "evidence_refs": _text_sequence(node.get("evidence_refs"), f"{label}.evidence_refs"),
+        "judge_calibration_refs": _text_sequence(
+            node.get("judge_calibration_refs"),
+            f"{label}.judge_calibration_refs",
+        ),
+        "score": node.get("score"),
+        "score_role": "calibration_evidence_only",
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission_readiness": False,
+        "children": [
+            _normalized_rubric_node(child, f"{label}.children[{index}]")
+            for index, child in enumerate(children)
+            if isinstance(child, Mapping)
+        ],
+    }
+
+
+def _normalized_rubric_tree(rubric_nodes: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
+    if not rubric_nodes:
+        return None
+    if not isinstance(rubric_nodes, Sequence) or isinstance(rubric_nodes, (str, bytes)):
+        raise ValueError("rubric_nodes must be a list")
+    return {
+        "surface": "paperbench_style_hierarchical_rubric_tree",
+        "owner": "MAS Evaluation OS",
+        "role": "calibration_evidence_only",
+        "can_replace_publication_eval_latest": False,
+        "can_authorize_submission_readiness": False,
+        "can_authorize_publication_quality": False,
+        "publication_authority_surface": "artifacts/publication_eval/latest.json",
+        "reviewer_distinction": {
+            "human_reviewer_role": "calibration_signal_only",
+            "ai_reviewer_role": "publication_eval_trace_evidence_only",
+            "rubric_can_replace_ai_reviewer": False,
+        },
+        "nodes": [
+            _normalized_rubric_node(node, f"rubric_nodes[{index}]")
+            for index, node in enumerate(rubric_nodes)
+            if isinstance(node, Mapping)
+        ],
+    }
+
+
 def build_quality_regression_projection(
     *,
     draft_eval: Mapping[str, Any],
@@ -154,6 +209,7 @@ def build_quality_regression_projection(
     historical_repair_results: Sequence[Mapping[str, Any]],
     calibration_evidence_refs: Sequence[str],
     judge_scores: Sequence[Mapping[str, Any]] = (),
+    rubric_nodes: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     draft_payload = _mapping(draft_eval, "draft_eval")
     revision_payload = _mapping(revision_eval, "revision_eval")
@@ -186,6 +242,13 @@ def build_quality_regression_projection(
     improved = sum(1 for item in dimension_comparisons if item["trajectory"] == "improved")
     regressed = sum(1 for item in dimension_comparisons if item["trajectory"] == "regressed")
     repair_count = sum(len(item["historical_repair_results"]) for item in dimension_comparisons)
+    calibration_evidence = {
+        "refs": calibration_refs,
+        "judge_scores": _normalized_judge_scores(judge_scores),
+    }
+    rubric_tree = _normalized_rubric_tree(rubric_nodes)
+    if rubric_tree is not None:
+        calibration_evidence["rubric_tree"] = rubric_tree
     return {
         "surface": SURFACE,
         "schema_version": SCHEMA_VERSION,
@@ -203,10 +266,7 @@ def build_quality_regression_projection(
             "historical_repair_results_compared": repair_count,
             "status": "regression_detected" if regressed else "no_regression_detected",
         },
-        "calibration_evidence": {
-            "refs": calibration_refs,
-            "judge_scores": _normalized_judge_scores(judge_scores),
-        },
+        "calibration_evidence": calibration_evidence,
         "soak_matrix_evidence": {
             "role": "soak_proof_only",
             "can_authorize_publication_quality": False,
