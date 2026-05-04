@@ -44,6 +44,15 @@
 
 `submission_minimal/`、journal-specific package、`manuscript/current_package/` 采用 `submission-package.v2` layout：根目录保留 `manuscript.docx`、`paper.pdf`、`references.bib`、`figures/`、`tables/` 等人最常打开的投稿文件；`audit/` 放 `submission_manifest.json`、`evidence_ledger.json`、`review_ledger.json`、`study_charter.json`；`reproducibility/` 放 `source_signature.json`、`source_relative_paths.json` 和可选 `analysis_manifest.json`。根级 `submission_manifest.json` 只作为 legacy 输入识别，不再由新包重复生成。
 
+用户视角的读取顺序固定如下：
+
+1. 打开投稿文件：优先打开 `submission_minimal/` 或 `manuscript/current_package/` 根目录下的 DOCX、PDF、BibTeX、figures 和 tables。
+2. 核查 audit/：在 v2 package 中读取 `audit/submission_manifest.json`、`audit/evidence_ledger.json`、`audit/review_ledger.json`、`audit/study_charter.json`；legacy package 只能把根级审计文件作为旧输入识别。
+3. 核查 reproducibility/：读取 `reproducibility/source_signature.json`、`reproducibility/source_relative_paths.json` 和可选 `reproducibility/analysis_manifest.json`。
+4. 遇到 `unknown` layout：只把已发现的 DOCX/PDF/ZIP 当作可打开文件，不把它解释成完整投稿包；需要由 controller 从 canonical sources 重新生成 v2 projection。
+
+上述文件都不是 edit source。人工或 reviewer 修改必须回到 `paper/` authority surface 与 MAS quality/runtime chain；`audit/`、`reproducibility/`、DOCX/PDF、zip、`current_package` 只能作为 projection、traceability 或 handoff。
+
 这些 surface 可以被：
 
 - `study_delivery_sync`

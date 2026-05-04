@@ -7,6 +7,11 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.artifact_lifecycle_inventory import (
+    DELIVERY_PACKAGE_LAYOUT_STATUSES,
+    classify_delivery_package_layout,
+)
+
 
 _AUTHORITY_OWNER_FIELDS = ("authority_owner", "owner", "authority")
 _MANIFEST_SUFFIXES = ("manifest.json", "manifest.yaml", "manifest.yml")
@@ -136,15 +141,49 @@ def _submission_minimal_paths(root: Path) -> list[Path]:
     return sorted(path for path in _iter_candidate_nodes(root) if path.name == "submission_minimal" and path.is_dir())
 
 
+def _generated_delivery_paths(root: Path) -> list[Path]:
+    if not root.exists():
+        return []
+    candidates: list[Path] = []
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        if any(part in _SKIPPED_DIR_NAMES for part in path.parts):
+            continue
+        if path.name == "current_package.zip":
+            continue
+        if path.suffix.lower() in {".docx", ".pdf", ".zip"}:
+            candidates.append(path)
+        elif path.name in {"submission_manifest.json", "evidence_ledger.json", "review_ledger.json", "study_charter.json"}:
+            candidates.append(path)
+        elif path.parent.name in {"audit", "reproducibility"}:
+            candidates.append(path)
+    return sorted(candidates)
+
+
+def _delivery_package_layout_completion_plan() -> dict[str, Any]:
+    return {
+        "plan_type": "delivery_package_layout_classification",
+        "missing_surface": "recognized_delivery_package_layout",
+        "manual_patch_allowed": False,
+        "canonical_regeneration_path": [
+            "refresh_canonical_manuscript_sources",
+            "regenerate_submission_package_v2_layout",
+            "rerun_publication_gate",
+        ],
+        "gate_status": "publication_gate_required_before_delivery_complete",
+        "mutation_policy": "dry_run_projection_only",
+    }
+
+
 def _delivery_projection_completion(
     *,
     current_package_count: int,
     submission_minimal_count: int,
     delivery_manifest_summary: Mapping[str, Any],
+    delivery_package_layout_status: str = "legacy",
 ) -> tuple[str, dict[str, Any] | None]:
     missing_delivery_surfaces = _missing_delivery_manifest_surfaces(delivery_manifest_summary)
-    if current_package_count > 0 and submission_minimal_count > 0 and not missing_delivery_surfaces:
-        return "current_package_and_submission_minimal_present", None
 
     missing_surfaces: list[str] = []
     regeneration_path = ["refresh_canonical_manuscript_sources"]
@@ -168,6 +207,12 @@ def _delivery_projection_completion(
                 "mutation_policy": "dry_run_projection_only",
             },
         )
+
+    if delivery_package_layout_status == "unknown":
+        return "unknown_delivery_package_layout", _delivery_package_layout_completion_plan()
+
+    if current_package_count > 0 and submission_minimal_count > 0 and not missing_delivery_surfaces:
+        return "current_package_and_submission_minimal_present", None
 
     for surface_name in missing_delivery_surfaces:
         regeneration_path.append(f"backfill_{surface_name}")
@@ -361,6 +406,114 @@ def _delivery_manifest_publication_refs_present(payload: Mapping[str, Any]) -> b
     return False
 
 
+def _delivery_package_layout_report(*, study_root: Path, workspace_root: Path) -> dict[str, Any]:
+    layouts = [
+        layout
+        for path in _generated_delivery_paths(study_root)
+        if (layout := _layout_with_path(path)) is not None
+    ]
+    by_root: dict[str, dict[str, Any]] = {}
+    for layout in layouts:
+        root = str(layout["package_root"])
+        existing = by_root.get(root)
+        if existing is None or _layout_status_rank(layout["status"]) > _layout_status_rank(existing["status"]):
+            by_root[root] = layout
+    root_layouts = [by_root[root] for root in sorted(by_root)]
+    statuses = {layout["status"] for layout in root_layouts}
+    if "unknown" in statuses:
+        status = "unknown"
+    elif "legacy" in statuses:
+        status = "legacy"
+    elif "v2" in statuses:
+        status = "v2"
+    else:
+        status = "unknown"
+    return {
+        "status": status,
+        "package_roots": _package_roots(root_layouts, workspace_root=workspace_root),
+        "open_submission_files": _layout_paths_by_section(
+            layouts=layouts,
+            workspace_root=workspace_root,
+            sections={"human_submission_files"},
+        ),
+        "audit_roots": _layout_roots_by_key(root_layouts, key="audit_root", workspace_root=workspace_root),
+        "reproducibility_roots": _layout_roots_by_key(
+            root_layouts,
+            key="reproducibility_root",
+            workspace_root=workspace_root,
+        ),
+        "legacy_root_audit_files": _layout_paths_by_section(
+            layouts=layouts,
+            workspace_root=workspace_root,
+            sections={"legacy_root_audit"},
+        ),
+        "unknown_generated_outputs": _layout_paths_by_section(
+            layouts=layouts,
+            workspace_root=workspace_root,
+            sections={"unknown_generated_output"},
+        ),
+        "edit_source_allowed": False,
+        "guidance": {
+            "open_submission_files": "open package-root DOCX/PDF/BIB/figures/tables files",
+            "audit": "inspect audit/ for submission_manifest/evidence_ledger/review_ledger/study_charter",
+            "reproducibility": "inspect reproducibility/ for source_signature/source_relative_paths/analysis_manifest",
+            "edit_source": "delivery package files are projections; edit canonical paper sources instead",
+        },
+    }
+
+
+def _layout_with_path(path: Path) -> dict[str, Any] | None:
+    layout = classify_delivery_package_layout(path)
+    if layout is None:
+        return None
+    return {**layout, "path": str(path)}
+
+
+def _layout_status_rank(status: object) -> int:
+    return {"v2": 0, "legacy": 1, "unknown": 2}.get(str(status), 2)
+
+
+def _package_roots(layouts: Iterable[Mapping[str, Any]], *, workspace_root: Path) -> list[str]:
+    return sorted({
+        _rel(Path(str(layout["package_root"])), workspace_root)
+        for layout in layouts
+        if _text(layout.get("package_root"))
+    })
+
+
+def _layout_roots_by_key(
+    layouts: Iterable[Mapping[str, Any]],
+    *,
+    key: str,
+    workspace_root: Path,
+) -> list[str]:
+    return sorted({
+        _rel(Path(value), workspace_root)
+        for layout in layouts
+        if (value := _text(layout.get(key))) is not None
+    })
+
+
+def _layout_paths_by_section(
+    *,
+    layouts: Iterable[Mapping[str, Any]],
+    workspace_root: Path,
+    sections: set[str],
+) -> list[str]:
+    return sorted({
+        _rel(Path(str(layout["path"])), workspace_root)
+        for layout in layouts
+        if layout.get("section") in sections and _text(layout.get("path"))
+    })
+
+
+def _delivery_package_layout_status_counts(studies: Iterable[Mapping[str, Any]]) -> dict[str, int]:
+    return {
+        status: sum(1 for study in studies if study.get("delivery_package_layout_status") == status)
+        for status in DELIVERY_PACKAGE_LAYOUT_STATUSES
+    }
+
+
 def _study_reports(workspace_root: Path, manifests: list[Path]) -> list[dict[str, Any]]:
     packages = _current_package_paths(workspace_root)
     submission_minimals = _submission_minimal_paths(workspace_root)
@@ -375,10 +528,15 @@ def _study_reports(workspace_root: Path, manifests: list[Path]) -> list[dict[str
         current_package_count = _count_under(packages, study_root)
         submission_minimal_count = _count_under(submission_minimals, study_root)
         delivery_manifest_summary = _delivery_manifest_summary(study_manifests)
+        delivery_package_layout_summary = _delivery_package_layout_report(
+            study_root=study_root,
+            workspace_root=workspace_root,
+        )
         completeness_reason, completion_plan = _delivery_projection_completion(
             current_package_count=current_package_count,
             submission_minimal_count=submission_minimal_count,
             delivery_manifest_summary=delivery_manifest_summary,
+            delivery_package_layout_status=delivery_package_layout_summary["status"],
         )
         historical_backfill_plan = build_delivery_manifest_historical_backfill_plan(delivery_manifest_summary)
         reports.append(
@@ -396,6 +554,8 @@ def _study_reports(workspace_root: Path, manifests: list[Path]) -> list[dict[str
                 ),
                 "delivery_projection_completeness_reason": completeness_reason,
                 "delivery_projection_completion_plan": completion_plan,
+                "delivery_package_layout_status": delivery_package_layout_summary["status"],
+                "delivery_package_layout_summary": delivery_package_layout_summary,
                 "historical_backfill_plan": historical_backfill_plan,
                 "delivery_manifest_summary": delivery_manifest_summary,
                 "authority_summary": {
@@ -431,6 +591,7 @@ def _workspace_report(workspace_root: Path) -> tuple[dict[str, Any], list[dict[s
         )
 
     studies = _study_reports(workspace_root, manifests)
+    layout_status_counts = _delivery_package_layout_status_counts(studies)
     workspace = {
         "workspace_root": str(workspace_root),
         "workspace_style": _workspace_style(workspace_root),
@@ -441,6 +602,7 @@ def _workspace_report(workspace_root: Path) -> tuple[dict[str, Any], list[dict[s
         "historical_backfill_plan_count": sum(
             1 for study in studies if study["historical_backfill_plan"] is not None
         ),
+        "delivery_package_layout_status_counts": layout_status_counts,
         "manifests": manifest_reports,
     }
     return workspace, studies, unclassified
@@ -487,6 +649,7 @@ def run_migration_audit(*, workspace_roots: Iterable[str | Path], dry_run: bool 
     )
     delivery_plan_count = sum(1 for study in studies if study["delivery_projection_completion_plan"] is not None)
     historical_backfill_plan_count = sum(1 for study in studies if study["historical_backfill_plan"] is not None)
+    layout_status_counts = _delivery_package_layout_status_counts(studies)
     report_payload = {
         "surface": "control_plane_migration_audit",
         "schema_version": 1,
@@ -498,6 +661,7 @@ def run_migration_audit(*, workspace_roots: Iterable[str | Path], dry_run: bool 
         "study_fingerprint": study_fingerprint,
         "delivery_projection_completion_plan_count": delivery_plan_count,
         "historical_backfill_plan_count": historical_backfill_plan_count,
+        "delivery_package_layout_status_counts": layout_status_counts,
         "workspaces": workspaces,
         "studies": studies,
     }
@@ -519,6 +683,7 @@ def run_migration_audit(*, workspace_roots: Iterable[str | Path], dry_run: bool 
         "study_fingerprint": study_fingerprint,
         "delivery_projection_completion_plan_count": delivery_plan_count,
         "historical_backfill_plan_count": historical_backfill_plan_count,
+        "delivery_package_layout_status_counts": layout_status_counts,
         "mutation_policy": {
             "dry_run_read_only": True,
             "cleanup_apply_supported": False,

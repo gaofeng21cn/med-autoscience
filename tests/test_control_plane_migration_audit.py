@@ -242,6 +242,83 @@ def test_migration_audit_report_projects_action_counts_and_study_classifications
     assert all(study["lifecycle_summary"]["current_package_count"] >= 1 for study in report["studies"])
 
 
+def test_migration_audit_reports_v2_legacy_and_unknown_delivery_package_layouts(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
+    workspace_root = fixtures.build_migration_audit_fixture_mixed_delivery_package_layouts(tmp_path)
+
+    report = module.run_migration_audit(workspace_roots=[workspace_root], dry_run=True)
+
+    assert report["delivery_package_layout_status_counts"] == {
+        "v2": 1,
+        "legacy": 1,
+        "unknown": 1,
+    }
+    workspace = report["workspaces"][0]
+    assert workspace["delivery_package_layout_status_counts"] == {
+        "v2": 1,
+        "legacy": 1,
+        "unknown": 1,
+    }
+    by_study = {study["study_id"]: study for study in report["studies"]}
+    assert by_study["008-v2-delivery-layout"]["delivery_package_layout_status"] == "v2"
+    assert by_study["008-v2-delivery-layout"]["delivery_package_layout_summary"] == {
+        "status": "v2",
+        "package_roots": [
+            "studies/008-v2-delivery-layout/manuscript/current_package",
+            "studies/008-v2-delivery-layout/paper/submission_minimal",
+        ],
+        "open_submission_files": [
+            "studies/008-v2-delivery-layout/manuscript/current_package/manuscript.docx",
+            "studies/008-v2-delivery-layout/paper/submission_minimal/manuscript.docx",
+            "studies/008-v2-delivery-layout/paper/submission_minimal/paper.pdf",
+        ],
+        "audit_roots": [
+            "studies/008-v2-delivery-layout/manuscript/current_package/audit",
+            "studies/008-v2-delivery-layout/paper/submission_minimal/audit",
+        ],
+        "reproducibility_roots": [
+            "studies/008-v2-delivery-layout/manuscript/current_package/reproducibility",
+            "studies/008-v2-delivery-layout/paper/submission_minimal/reproducibility",
+        ],
+        "legacy_root_audit_files": [],
+        "unknown_generated_outputs": [],
+        "edit_source_allowed": False,
+        "guidance": {
+            "open_submission_files": "open package-root DOCX/PDF/BIB/figures/tables files",
+            "audit": "inspect audit/ for submission_manifest/evidence_ledger/review_ledger/study_charter",
+            "reproducibility": "inspect reproducibility/ for source_signature/source_relative_paths/analysis_manifest",
+            "edit_source": "delivery package files are projections; edit canonical paper sources instead",
+        },
+    }
+    assert by_study["009-legacy-delivery-layout"]["delivery_package_layout_status"] == "legacy"
+    assert by_study["009-legacy-delivery-layout"]["delivery_package_layout_summary"][
+        "legacy_root_audit_files"
+    ] == [
+        "studies/009-legacy-delivery-layout/manuscript/current_package/submission_manifest.json",
+        "studies/009-legacy-delivery-layout/paper/submission_minimal/submission_manifest.json",
+    ]
+    assert by_study["010-unknown-delivery-layout"]["delivery_package_layout_status"] == "unknown"
+    assert by_study["010-unknown-delivery-layout"]["delivery_package_layout_summary"][
+        "unknown_generated_outputs"
+    ] == ["studies/010-unknown-delivery-layout/paper/build/paper.pdf"]
+    assert by_study["010-unknown-delivery-layout"]["lifecycle_classification"] == "delivery_projection_incomplete"
+    assert by_study["010-unknown-delivery-layout"]["delivery_projection_completeness_reason"] == (
+        "unknown_delivery_package_layout"
+    )
+    assert by_study["010-unknown-delivery-layout"]["delivery_projection_completion_plan"] == {
+        "plan_type": "delivery_package_layout_classification",
+        "missing_surface": "recognized_delivery_package_layout",
+        "manual_patch_allowed": False,
+        "canonical_regeneration_path": [
+            "refresh_canonical_manuscript_sources",
+            "regenerate_submission_package_v2_layout",
+            "rerun_publication_gate",
+        ],
+        "gate_status": "publication_gate_required_before_delivery_complete",
+        "mutation_policy": "dry_run_projection_only",
+    }
+
+
 def test_migration_audit_is_idempotent(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
     workspace_roots = [

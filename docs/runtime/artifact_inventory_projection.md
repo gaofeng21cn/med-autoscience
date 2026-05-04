@@ -37,6 +37,16 @@
 
 `delivery_package` 使用 `submission-package.v2` 时，inventory 应把 package root、`audit/` 和 `reproducibility/` 分开投影：根目录是人读投稿文件，`audit/` 是审计追踪材料，`reproducibility/` 是来源签名和复现索引。三者仍然都是 projection，不是新的 authority root。
 
+## delivery_package layout status
+
+Inventory 对 delivery package 统一投影三类 layout status：
+
+- `v2`：package root 下有 `audit/` 或 `reproducibility/`。用户打开投稿文件时看 package root 里的 `manuscript.docx`、`paper.pdf`、`references.bib`、`figures/`、`tables/`；核查 audit/ 时看 `submission_manifest.json`、`evidence_ledger.json`、`review_ledger.json`、`study_charter.json`；核查 reproducibility/ 时看 `source_signature.json`、`source_relative_paths.json` 和可选 `analysis_manifest.json`。
+- `legacy`：审计文件仍在 package root、`review/` 或 `controller/` 等旧位置。用户可以打开根目录投稿文件，但 audit/reproducibility 核查应先按 legacy root audit files 标记读取，并进入只读回填计划。
+- `unknown`：只发现 DOCX/PDF/ZIP 等生成输出，无法确认 package root、audit/ 或 reproducibility/ 边界。用户可以直接打开该文件检查内容，但必须把 layout 当作未分类投影处理，等待 controller 从 canonical sources 重新生成 v2 package。
+
+所有三类 delivery package 文件都不是 edit source。稿件修改、审稿意见吸收、质量关闭和投稿授权必须回到 controller-authorized `paper/` sources、evidence/review ledger、publication gate 与 controller decision，再重新生成 projection。
+
 ## Projection 规则
 
 - `study-progress` 应优先展示当前 blocker / next action 相关 artifact。

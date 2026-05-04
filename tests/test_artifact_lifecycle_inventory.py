@@ -193,6 +193,60 @@ def test_docx_pdf_and_zip_outputs_are_projection_only_even_outside_named_deliver
         ]
 
 
+def test_delivery_package_layout_projection_separates_v2_legacy_and_unknown_surfaces(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_inventory")
+    study_root = tmp_path / "studies" / "001-risk"
+    v2_root = study_root / "manuscript" / "current_package"
+    legacy_root = study_root / "paper" / "submission_minimal"
+    v2_docx = _write(v2_root / "manuscript.docx")
+    v2_audit = _write(v2_root / "audit" / "submission_manifest.json", "{}\n")
+    v2_reproducibility = _write(v2_root / "reproducibility" / "source_signature.json", "{}\n")
+    legacy_manifest = _write(legacy_root / "submission_manifest.json", "{}\n")
+    legacy_pdf = _write(legacy_root / "paper.pdf", "%PDF\n")
+    unknown_pdf = _write(study_root / "paper" / "build" / "paper.pdf", "%PDF\n")
+
+    inventory = module.build_artifact_lifecycle_inventory(
+        study_root=study_root,
+        paths=(v2_docx, v2_audit, v2_reproducibility, legacy_manifest, legacy_pdf, unknown_pdf),
+    )
+
+    by_path = {Path(item["path"]): item for item in inventory["artifacts"]}
+    assert inventory["summary"]["delivery_package_layout_status_counts"] == {
+        "v2": 3,
+        "legacy": 2,
+        "unknown": 1,
+    }
+    assert by_path[v2_docx.resolve()]["delivery_package_layout"] == {
+        "status": "v2",
+        "package_root": str(v2_root.resolve()),
+        "package_surface": "current_package",
+        "section": "human_submission_files",
+        "audit_root": str((v2_root / "audit").resolve()),
+        "reproducibility_root": str((v2_root / "reproducibility").resolve()),
+        "legacy_root_audit_files_present": False,
+        "open_guidance": "open_root_submission_files",
+        "audit_guidance": "inspect_audit_and_reproducibility_directories",
+        "edit_source_allowed": False,
+    }
+    assert by_path[v2_audit.resolve()]["delivery_package_layout"]["section"] == "audit"
+    assert by_path[v2_reproducibility.resolve()]["delivery_package_layout"]["section"] == "reproducibility"
+    assert by_path[legacy_manifest.resolve()]["delivery_package_layout"]["status"] == "legacy"
+    assert by_path[legacy_manifest.resolve()]["delivery_package_layout"]["section"] == "legacy_root_audit"
+    assert by_path[legacy_pdf.resolve()]["delivery_package_layout"]["section"] == "human_submission_files"
+    assert by_path[unknown_pdf.resolve()]["delivery_package_layout"] == {
+        "status": "unknown",
+        "package_root": str((study_root / "paper" / "build").resolve()),
+        "package_surface": "generated_output",
+        "section": "unknown_generated_output",
+        "audit_root": None,
+        "reproducibility_root": None,
+        "legacy_root_audit_files_present": False,
+        "open_guidance": "layout_unknown_inspect_file_directly",
+        "audit_guidance": "audit_and_reproducibility_locations_unknown",
+        "edit_source_allowed": False,
+    }
+
+
 def test_paper_artifact_resolver_exposes_projection_only_authority_for_submission_outputs(tmp_path: Path) -> None:
     paper_artifacts = importlib.import_module("med_autoscience.runtime_protocol.paper_artifacts")
     paper_bundle_manifest = tmp_path / "study" / "paper" / "paper_bundle_manifest.json"

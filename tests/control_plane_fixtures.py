@@ -537,3 +537,120 @@ def build_migration_audit_fixture_legacy_delivery_manifest_backfill(root: Path) 
     _write_text(current_package.with_suffix(".zip"), "zip-placeholder\n")
     _write_text(submission_minimal / "paper.md", f"# {study_id} submission\n")
     return workspace_root
+
+
+def build_migration_audit_fixture_mixed_delivery_package_layouts(root: Path) -> Path:
+    workspace_root = root / "DM-CVD-Mixed-Delivery-Layouts"
+    studies_root = workspace_root / "studies"
+    v2_study_id = "008-v2-delivery-layout"
+    legacy_study_id = "009-legacy-delivery-layout"
+    unknown_study_id = "010-unknown-delivery-layout"
+
+    v2_study_root = studies_root / v2_study_id
+    v2_paper_root = v2_study_root / "paper"
+    v2_manuscript_root = v2_study_root / "manuscript"
+    v2_current_package = v2_manuscript_root / "current_package"
+    v2_submission_minimal = v2_paper_root / "submission_minimal"
+    _write_json(
+        v2_paper_root / "study_manifest.json",
+        {"study_id": v2_study_id, "surface": "study_manifest", "authority_owner": "controller"},
+    )
+    _write_json(
+        v2_manuscript_root / "delivery_manifest.json",
+        {
+            "study_id": v2_study_id,
+            "surface": "delivery_manifest",
+            "authority_owner": "controller",
+            "source_signature": f"sig-{v2_study_id}",
+            "authority_source_signature": f"sig-{v2_study_id}",
+            "publication_refs": _delivery_manifest_publication_refs(
+                paper_root=v2_paper_root,
+                current_package=v2_current_package,
+                submission_minimal=v2_submission_minimal,
+            ),
+            "artifact_lifecycle": _delivery_manifest_lifecycle_hook(
+                study_root=v2_study_root,
+                current_package=v2_current_package,
+                submission_minimal=v2_submission_minimal,
+            ),
+        },
+    )
+    _write_json(
+        v2_submission_minimal / "audit" / "submission_manifest.json",
+        {"study_id": v2_study_id, "surface": "submission_minimal_manifest", "authority_owner": "controller"},
+    )
+    _write_json(
+        v2_submission_minimal / "reproducibility" / "source_signature.json",
+        {"layout_version": "submission-package.v2", "source_signature": f"sig-{v2_study_id}"},
+    )
+    _write_text(v2_submission_minimal / "manuscript.docx", "docx placeholder\n")
+    _write_text(v2_submission_minimal / "paper.pdf", "%PDF\n")
+    _write_json(v2_current_package / "audit" / "submission_manifest.json", {"study_id": v2_study_id})
+    _write_json(v2_current_package / "reproducibility" / "source_signature.json", {"source_signature": "sig"})
+    _write_text(v2_current_package / "manuscript.docx", "docx placeholder\n")
+
+    legacy_study_root = studies_root / legacy_study_id
+    legacy_paper_root = legacy_study_root / "paper"
+    legacy_manuscript_root = legacy_study_root / "manuscript"
+    legacy_current_package = legacy_manuscript_root / "current_package"
+    legacy_submission_minimal = legacy_paper_root / "submission_minimal"
+    _write_json(
+        legacy_paper_root / "study_manifest.json",
+        {"study_id": legacy_study_id, "surface": "study_manifest", "authority_owner": "controller"},
+    )
+    _write_json(
+        legacy_manuscript_root / "delivery_manifest.json",
+        {
+            "study_id": legacy_study_id,
+            "surface": "delivery_manifest",
+            "authority_owner": "controller",
+            "source_signature": f"sig-{legacy_study_id}",
+            "authority_source_signature": f"sig-{legacy_study_id}",
+            "publication_refs": _delivery_manifest_publication_refs(
+                paper_root=legacy_paper_root,
+                current_package=legacy_current_package,
+                submission_minimal=legacy_submission_minimal,
+            ),
+            "artifact_lifecycle": _delivery_manifest_lifecycle_hook(
+                study_root=legacy_study_root,
+                current_package=legacy_current_package,
+                submission_minimal=legacy_submission_minimal,
+            ),
+        },
+    )
+    _write_json(
+        legacy_submission_minimal / "submission_manifest.json",
+        {"study_id": legacy_study_id, "surface": "submission_minimal_manifest", "authority_owner": "controller"},
+    )
+    _write_text(legacy_submission_minimal / "paper.pdf", "%PDF\n")
+    _write_text(legacy_current_package / "submission_manifest.json", "{}\n")
+    _write_text(legacy_current_package / "manuscript.docx", "docx placeholder\n")
+
+    unknown_study_root = studies_root / unknown_study_id
+    unknown_paper_root = unknown_study_root / "paper"
+    unknown_current_package = unknown_study_root / "manuscript" / "current_package"
+    unknown_submission_minimal = unknown_paper_root / "submission_minimal"
+    _write_json(
+        unknown_paper_root / "study_manifest.json",
+        {"study_id": unknown_study_id, "surface": "study_manifest", "authority_owner": "controller"},
+    )
+    _write_json(
+        unknown_paper_root / "delivery_manifest.json",
+        {
+            "study_id": unknown_study_id,
+            "surface": "delivery_manifest",
+            "authority_owner": "controller",
+            "source_signature": f"sig-{unknown_study_id}",
+            "authority_source_signature": f"sig-{unknown_study_id}",
+            "publication_refs": {"paper_root_ref": str(unknown_paper_root)},
+            "artifact_lifecycle": {
+                "authority_sync": {"status": "projection_only"},
+                "lifecycle_roles": {"pdf": "derived_projection"},
+            },
+        },
+    )
+    _write_text(unknown_current_package / "README.md", "# Unknown current package\n")
+    _write_text(unknown_submission_minimal / "README.md", "# Unknown submission minimal\n")
+    _write_text(unknown_paper_root / "build" / "paper.pdf", "%PDF\n")
+
+    return workspace_root
