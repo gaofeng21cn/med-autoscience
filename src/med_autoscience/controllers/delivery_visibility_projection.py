@@ -4,6 +4,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.delivery_legacy_visibility import (
+    build_delivery_legacy_visibility_read_model,
+)
+
 SUBMISSION_MINIMAL_LABEL = "controller-authorized source"
 CURRENT_PACKAGE_LABEL = "human-facing mirror"
 LEGACY_LAYOUT_UPGRADE_NOTE = "legacy layout 会在下一次 authorized sync 升级"
@@ -85,7 +89,12 @@ def compact_delivery_inspection_projection(value: object) -> dict[str, Any] | No
         "current_package": CURRENT_PACKAGE_LABEL,
     }
     compact["legacy_layout_upgrade_note"] = LEGACY_LAYOUT_UPGRADE_NOTE
+    legacy_visibility = build_delivery_legacy_visibility_read_model(inspection)
+    if legacy_visibility is not None:
+        compact["legacy_visibility"] = legacy_visibility
     compact["authority"] = "observability_projection_only"
+    compact["read_model"] = "delivery_visibility_projection"
+    compact["projection_only"] = True
     compact["can_authorize_submission"] = False
     compact["can_authorize_publication_quality"] = False
     compact["can_dispatch_delivery_sync"] = False
@@ -145,6 +154,20 @@ def render_delivery_inspection_markdown_lines(value: object, *, heading: str) ->
     summary = str(projection.get("summary") or "").strip()
     if summary:
         lines.append(f"- 当前摘要: {summary}")
+    legacy_visibility = _mapping(projection.get("legacy_visibility"))
+    traffic_light = _mapping(legacy_visibility.get("traffic_light"))
+    if traffic_light:
+        lines.append(f"- delivery traffic-light: `{traffic_light.get('status') or 'missing'}`")
+    legacy_queue = legacy_visibility.get("legacy_upgrade_queue")
+    if isinstance(legacy_queue, list):
+        lines.append(f"- legacy upgrade queue: `{len(legacy_queue)}` item(s)")
+    blocker_report = _mapping(legacy_visibility.get("backfill_blocker_report"))
+    if blocker_report:
+        lines.append(
+            "- backfill blockers: "
+            f"`{blocker_report.get('status') or 'missing'}` "
+            f"({int(blocker_report.get('blocker_count') or 0)})"
+        )
     lines.append(
         "- authority: "
         f"`{projection.get('authority') or 'observability_projection_only'}`；"
