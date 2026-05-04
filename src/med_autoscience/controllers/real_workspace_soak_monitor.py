@@ -49,6 +49,23 @@ def _authority_contract() -> dict[str, Any]:
     }
 
 
+def _read_only_monitor_contract() -> dict[str, Any]:
+    return {
+        "mode": "read_only_monitor",
+        "writes_runtime_owned_surfaces": False,
+        "writable_surfaces": [SURFACE],
+        "prohibited_runtime_owned_surfaces": [
+            "study_runtime_status",
+            "runtime_watch",
+            "publication_eval/latest.json",
+            "runtime_escalation_record.json",
+            "controller_decisions/latest.json",
+            "quality_authorization",
+            "submission_authorization",
+        ],
+    }
+
+
 def _read_json(path: Path) -> Mapping[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -298,6 +315,7 @@ def build_real_workspace_soak_monitor(*, study_roots: Sequence[Path | str]) -> d
             if _text(ref, "")
         ],
         "authority_contract": _authority_contract(),
+        "read_only_monitor_contract": _read_only_monitor_contract(),
     }
 
 
@@ -319,4 +337,5 @@ def materialize_real_workspace_soak_monitor(
         "overall_status": projection["overall_status"],
         "next_action": projection["next_action"],
         "authority_contract": _authority_contract(),
+        "read_only_monitor_contract": _read_only_monitor_contract(),
     }

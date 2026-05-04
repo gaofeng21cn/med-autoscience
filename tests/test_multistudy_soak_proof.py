@@ -51,6 +51,24 @@ def test_complete_fixture_is_ready_across_required_archetypes_and_stages() -> No
     assert projection["overall_status"] == "ready"
     assert projection["next_action"] == "continue_multistudy_soak"
     assert projection["missing_archetypes"] == []
+    assert projection["coverage_manifest"] == {
+        "required_archetypes": [
+            "prediction_model/external_validation",
+            "observational_real_world",
+            "subtype_or_triage",
+        ],
+        "covered_archetypes": [
+            "observational_real_world",
+            "prediction_model/external_validation",
+            "subtype_or_triage",
+        ],
+        "required_stages": list(ALL_STAGES),
+        "covered_stage_matrix": {
+            "001-risk-model": list(ALL_STAGES),
+            "002-real-world": list(ALL_STAGES),
+            "003-triage": list(ALL_STAGES),
+        },
+    }
     assert projection["authority_contract"]["can_authorize_quality"] is False
     assert projection["authority_contract"]["can_authorize_finalize"] is False
     assert projection["authority_contract"]["can_authorize_submission"] is False

@@ -211,3 +211,23 @@ def test_real_workspace_soak_monitor_materializer_writes_only_monitor_artifact(
     persisted = json.loads(monitor_path.read_text(encoding="utf-8"))
     assert persisted["surface"] == "real_workspace_soak_monitor"
     assert persisted["authority_contract"]["can_mutate_runtime"] is False
+    assert persisted["read_only_monitor_contract"] == {
+        "mode": "read_only_monitor",
+        "writes_runtime_owned_surfaces": False,
+        "writable_surfaces": ["real_workspace_soak_monitor"],
+        "prohibited_runtime_owned_surfaces": [
+            "study_runtime_status",
+            "runtime_watch",
+            "publication_eval/latest.json",
+            "runtime_escalation_record.json",
+            "controller_decisions/latest.json",
+            "quality_authorization",
+            "submission_authorization",
+        ],
+    }
+    assert result["read_only_monitor_contract"] == persisted["read_only_monitor_contract"]
+    assert not (root / "study_runtime_status.json").exists()
+    assert not (root / "runtime_watch.json").exists()
+    assert not (root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (root / "runtime_escalation_record.json").exists()
+    assert not (root / "controller_decisions" / "latest.json").exists()

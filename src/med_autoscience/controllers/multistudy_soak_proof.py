@@ -179,6 +179,29 @@ def _build_study_projection(study: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _coverage_manifest(studies: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    return {
+        "required_archetypes": list(REQUIRED_ARCHETYPES),
+        "covered_archetypes": sorted(
+            {
+                _text(study.get("study_archetype"))
+                for study in studies
+                if _text(study.get("study_id")) != "multistudy_matrix"
+            }
+        ),
+        "required_stages": list(REQUIRED_STAGES),
+        "covered_stage_matrix": {
+            _text(study.get("study_id")): [
+                stage
+                for stage in REQUIRED_STAGES
+                if stage in set(str(item) for item in _sequence(study.get("present_stages")))
+            ]
+            for study in studies
+            if _text(study.get("study_id")) != "multistudy_matrix"
+        },
+    }
+
+
 def _overall_status(studies: Sequence[Mapping[str, Any]]) -> str:
     statuses = {_text(study.get("status")) for study in studies}
     if "blocked" in statuses:
@@ -234,6 +257,7 @@ def build_multistudy_soak_matrix_projection(
         "covered_archetypes": covered_archetypes,
         "missing_archetypes": missing_archetypes,
         "required_stages": list(REQUIRED_STAGES),
+        "coverage_manifest": _coverage_manifest(study_items),
         "studies": study_items,
         "authority_contract": _authority_contract(),
     }
