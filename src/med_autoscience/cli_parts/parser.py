@@ -213,6 +213,12 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     migration_audit_parser = subparsers.add_parser("control-plane-migration-audit")
     migration_audit_parser.add_argument("--workspace-root", action="append", required=True)
 
+    backfill_apply_parser = subparsers.add_parser("control-plane-backfill-apply")
+    backfill_apply_parser.add_argument("--workspace-root", action="append", required=True)
+    backfill_apply_parser.add_argument("--apply", action="store_true")
+    backfill_apply_parser.add_argument("--control-plane-snapshot-json")
+    backfill_apply_parser.add_argument("--control-plane-snapshot-file")
+
     cleanup_apply_parser = subparsers.add_parser("control-plane-cleanup-apply")
     cleanup_apply_parser.add_argument("--workspace-root", action="append", required=True)
     cleanup_apply_parser.add_argument("--apply", action="store_true")

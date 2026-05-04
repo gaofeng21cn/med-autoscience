@@ -50,7 +50,7 @@ def test_mcp_server_lists_read_only_tools() -> None:
 
 @pytest.mark.parametrize(
     "fragment",
-    ("migration_audit", "cleanup_apply", "lifecycle_report", "dry-run", "contract-gated"),
+    ("migration_audit", "backfill_apply", "cleanup_apply", "lifecycle_report", "dry-run", "contract-gated"),
 )
 def test_mcp_product_entry_description_documents_control_plane_operations_surfaces(fragment: str) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
@@ -551,6 +551,47 @@ def test_mcp_product_entry_can_call_cleanup_apply(monkeypatch, tmp_path: Path) -
     assert result["structuredContent"]["surface"] == "control_plane_cleanup_apply"
     assert result["structuredContent"]["action_counts"]["mutating"] == 0
     assert "control_plane_cleanup_apply" in result["content"][0]["text"]
+
+
+def test_mcp_product_entry_can_call_backfill_apply(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    captured: dict[str, object] = {}
+
+    def fake_run_backfill_apply(*, workspace_roots, apply: bool, control_plane_snapshot=None) -> dict[str, object]:
+        captured["workspace_roots"] = list(workspace_roots)
+        captured["apply"] = apply
+        captured["control_plane_snapshot"] = control_plane_snapshot
+        return {
+            "surface": "control_plane_backfill_apply",
+            "apply": apply,
+            "status": "planned",
+            "workspace_count": 1,
+            "action_counts": {"planned": 1, "blocked": 0, "applied": 0, "mutating": 0},
+            "apply_plan": [{"actions": ["backfill_delivery_manifest_lifecycle_hook"]}],
+            "applied_actions": [],
+        }
+
+    monkeypatch.setattr(module.control_plane_backfill_apply, "run_backfill_apply", fake_run_backfill_apply)
+
+    result = module.call_tool(
+        "product_entry",
+        {
+            "mode": "backfill_apply",
+            "workspace_roots": [str(tmp_path / "workspace")],
+            "apply": False,
+            "control_plane_snapshot": {"surface": "control_plane_snapshot"},
+        },
+    )
+
+    assert result["isError"] is False
+    assert captured == {
+        "workspace_roots": [tmp_path / "workspace"],
+        "apply": False,
+        "control_plane_snapshot": {"surface": "control_plane_snapshot"},
+    }
+    assert result["structuredContent"]["surface"] == "control_plane_backfill_apply"
+    assert result["structuredContent"]["action_counts"]["mutating"] == 0
+    assert "control_plane_backfill_apply" in result["content"][0]["text"]
 
 
 def test_mcp_product_entry_can_call_lifecycle_report_with_scan_options(monkeypatch, tmp_path: Path) -> None:

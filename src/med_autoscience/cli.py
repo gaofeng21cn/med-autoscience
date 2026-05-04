@@ -74,6 +74,7 @@ medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_li
 medical_publication_surface = _LazyModuleProxy(lambda: _load_controller("medical_publication_surface"))
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
 control_plane_migration_audit = _LazyModuleProxy(lambda: _load_controller("control_plane_migration_audit"))
+control_plane_backfill_apply = _LazyModuleProxy(lambda: _load_controller("control_plane_backfill_apply"))
 control_plane_cleanup_apply = _LazyModuleProxy(lambda: _load_controller("control_plane_cleanup_apply"))
 artifact_lifecycle_operations_report = _LazyModuleProxy(lambda: _load_controller("artifact_lifecycle_operations_report"))
 mainline_status = _LazyModuleProxy(lambda: _load_controller("mainline_status"))
@@ -937,6 +938,20 @@ def main(argv: list[str] | None = None) -> int:
         result = control_plane_migration_audit.run_migration_audit(
             workspace_roots=[Path(root) for root in args.workspace_root],
             dry_run=True,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "control-plane-backfill-apply":
+        result = control_plane_backfill_apply.run_backfill_apply(
+            workspace_roots=[Path(root) for root in args.workspace_root],
+            apply=args.apply,
+            control_plane_snapshot=_load_optional_object_payload_from_args(
+                payload_file=args.control_plane_snapshot_file,
+                payload_json=args.control_plane_snapshot_json,
+                file_label="--control-plane-snapshot-file",
+                json_label="--control-plane-snapshot-json",
+            ),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

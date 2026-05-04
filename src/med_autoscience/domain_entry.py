@@ -6,6 +6,7 @@ from typing import Any, Callable, Mapping
 from med_autoscience.control_plane_command_catalog import CONTROL_PLANE_OPERATION_COMMANDS_BY_COMMAND
 from med_autoscience.controllers import (
     artifact_lifecycle_operations_report,
+    control_plane_backfill_apply,
     control_plane_cleanup_apply,
     control_plane_migration_audit,
     product_entry,
@@ -210,6 +211,12 @@ def _dispatch_control_plane_operation(command: str, request: Mapping[str, Any]) 
         )
     if command == "control-plane-cleanup-apply":
         return control_plane_cleanup_apply.run_cleanup_apply(
+            workspace_roots=workspace_roots,
+            apply=_bool_value(request.get("apply")),
+            control_plane_snapshot=_optional_mapping_value(request.get("control_plane_snapshot")),
+        )
+    if command == "control-plane-backfill-apply":
+        return control_plane_backfill_apply.run_backfill_apply(
             workspace_roots=workspace_roots,
             apply=_bool_value(request.get("apply")),
             control_plane_snapshot=_optional_mapping_value(request.get("control_plane_snapshot")),

@@ -36,6 +36,17 @@ CONTROL_PLANE_OPERATIONS_COMMANDS: tuple[ControlPlaneOperationsCommand, ...] = (
         dry_run_only=True,
     ),
     ControlPlaneOperationsCommand(
+        command="control-plane-backfill-apply",
+        cli_command="control-plane-backfill-apply",
+        mcp_mode="backfill_apply",
+        surface="control_plane_backfill_apply",
+        description="Controller-gated delivery manifest backfill apply for lifecycle hook, source signature, and publication refs.",
+        required_fields=("workspace_roots",),
+        optional_fields=("apply", "control_plane_snapshot"),
+        contract_gated=True,
+        read_only=False,
+    ),
+    ControlPlaneOperationsCommand(
         command="control-plane-cleanup-apply",
         cli_command="control-plane-cleanup-apply",
         mcp_mode="cleanup_apply",

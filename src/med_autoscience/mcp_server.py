@@ -12,6 +12,7 @@ from med_autoscience.control_plane_command_catalog import (
 )
 from med_autoscience.controllers import (
     artifact_lifecycle_operations_report,
+    control_plane_backfill_apply,
     control_plane_cleanup_apply,
     control_plane_migration_audit,
     data_assets,
@@ -541,6 +542,23 @@ def _call_migration_audit(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_backfill_apply(arguments: dict[str, Any]) -> dict[str, Any]:
+    workspace_roots = arguments.get("workspace_roots")
+    if not isinstance(workspace_roots, list) or not workspace_roots:
+        raise ValueError("workspace_roots must be a non-empty list for backfill_apply")
+    resolved_roots: list[Path] = []
+    for value in workspace_roots:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("workspace_roots entries must be non-empty strings")
+        resolved_roots.append(Path(value))
+    result = control_plane_backfill_apply.run_backfill_apply(
+        workspace_roots=resolved_roots,
+        apply=_optional_bool(arguments, "apply", default=False),
+        control_plane_snapshot=_optional_mapping(arguments.get("control_plane_snapshot")),
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
 def _call_cleanup_apply(arguments: dict[str, Any]) -> dict[str, Any]:
     workspace_roots = arguments.get("workspace_roots")
     if not isinstance(workspace_roots, list) or not workspace_roots:
@@ -671,6 +689,8 @@ def _call_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
         return _call_build_product_entry(arguments)
     if mode == "migration_audit":
         return _call_migration_audit(arguments)
+    if mode == "backfill_apply":
+        return _call_backfill_apply(arguments)
     if mode == "cleanup_apply":
         return _call_cleanup_apply(arguments)
     if mode == "lifecycle_report":

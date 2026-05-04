@@ -235,6 +235,41 @@ def test_domain_entry_dispatches_cleanup_apply_control_plane_snapshot(monkeypatc
     assert payload["surface"] == "control_plane_cleanup_apply"
 
 
+def test_domain_entry_dispatches_backfill_apply_control_plane_snapshot(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.domain_entry")
+    workspace_root = tmp_path / "workspace"
+    snapshot = {"surface": "control_plane_snapshot"}
+    captured: dict[str, object] = {}
+
+    def fake_run_backfill_apply(*, workspace_roots, apply, control_plane_snapshot=None):
+        captured["workspace_roots"] = list(workspace_roots)
+        captured["apply"] = apply
+        captured["control_plane_snapshot"] = control_plane_snapshot
+        return {
+            "surface": "control_plane_backfill_apply",
+            "workspace_roots": [str(path) for path in workspace_roots],
+            "apply": apply,
+        }
+
+    monkeypatch.setattr(module.control_plane_backfill_apply, "run_backfill_apply", fake_run_backfill_apply)
+
+    payload = module.MedAutoScienceDomainEntry().dispatch(
+        {
+            "command": "control-plane-backfill-apply",
+            "workspace_roots": [str(workspace_root)],
+            "apply": True,
+            "control_plane_snapshot": snapshot,
+        }
+    )
+
+    assert captured == {
+        "workspace_roots": [workspace_root],
+        "apply": True,
+        "control_plane_snapshot": snapshot,
+    }
+    assert payload["surface"] == "control_plane_backfill_apply"
+
+
 def test_domain_entry_contract_exports_domain_agent_entry_spec_v1() -> None:
     module = importlib.import_module("med_autoscience.domain_entry_contract")
 
