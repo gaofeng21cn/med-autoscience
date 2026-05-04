@@ -8,6 +8,7 @@ from typing import Any, Mapping
 SCHEMA_VERSION = 1
 SURFACE = "literature_intelligence_os"
 ARTIFACT_RELATIVE_PATH = Path("artifacts/medical_paper/literature_intelligence_os.json")
+EVIDENCE_NODE_PROVENANCE_KEYS = ("pmid", "doi", "guideline_ref", "source_ref")
 
 
 def _text(value: object) -> str:
@@ -30,6 +31,10 @@ def _has_ref_items(value: object) -> bool:
     return any(_has_text(item) or bool(_mapping(item).get("ref")) for item in _list(value))
 
 
+def _dict_items(value: object) -> list[dict[str, Any]]:
+    return [dict(item) for item in _list(value) if isinstance(item, Mapping)]
+
+
 def _search_strategy_is_complete(payload: Mapping[str, Any]) -> bool:
     strategy = _mapping(payload.get("search_strategy"))
     return _has_text(strategy.get("query")) and _has_ref_items(strategy.get("mesh_terms"))
@@ -45,6 +50,49 @@ def _screening_decisions_are_complete(value: object) -> bool:
         if not _has_text(decision.get("reason")):
             return False
     return True
+
+
+def _evidence_nodes(value: object) -> list[dict[str, Any]]:
+    return _dict_items(value)
+
+
+def _evidence_node_has_provenance(node: Mapping[str, Any]) -> bool:
+    return any(_has_text(node.get(key)) for key in EVIDENCE_NODE_PROVENANCE_KEYS)
+
+
+def _evidence_nodes_have_provenance(value: object) -> bool:
+    nodes = _evidence_nodes(value)
+    return all(_evidence_node_has_provenance(node) for node in nodes)
+
+
+def _contradiction_flags(value: object) -> list[dict[str, Any]]:
+    flags = _dict_items(value)
+    for flag in flags:
+        flag["review_signal_only"] = True
+    return flags
+
+
+def _authority() -> dict[str, Any]:
+    return {
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission": False,
+        "can_authorize_finalize": False,
+        "contradiction_flags_authority": "evidence_review_signal_only",
+    }
+
+
+def _source_coverage(payload: Mapping[str, Any]) -> dict[str, int]:
+    return {
+        "searched_source_count": len(_list(payload.get("searched_sources"))),
+        "anchor_paper_count": len(_list(payload.get("anchor_papers"))),
+        "guideline_count": len(_list(payload.get("guidelines"))),
+        "systematic_review_count": len(_list(payload.get("systematic_reviews"))),
+        "journal_neighbor_ref_count": len(_list(payload.get("journal_neighbor_refs"))),
+        "citation_ledger_ref_count": len(_list(payload.get("citation_ledger_refs"))),
+        "evidence_node_count": len(_evidence_nodes(payload.get("evidence_nodes"))),
+        "perspective_question_count": len(_dict_items(payload.get("perspective_questions"))),
+        "contradiction_flag_count": len(_dict_items(payload.get("contradiction_flags"))),
+    }
 
 
 def _missing_reason(payload: Mapping[str, Any]) -> str:
@@ -66,6 +114,8 @@ def _missing_reason(payload: Mapping[str, Any]) -> str:
         return "missing_screening_decision_reason"
     if not _has_ref_items(payload.get("citation_ledger_refs")):
         return "missing_citation_ledger_refs"
+    if not _evidence_nodes_have_provenance(payload.get("evidence_nodes")):
+        return "missing_evidence_node_provenance"
     return ""
 
 
@@ -88,14 +138,25 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
 
 def _normalize_payload(*, study_root: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
     missing_reason = _missing_reason(payload)
+    normalized_graph = {
+        "evidence_nodes": _evidence_nodes(payload.get("evidence_nodes")),
+        "perspective_questions": _dict_items(payload.get("perspective_questions")),
+        "contradiction_flags": _contradiction_flags(payload.get("contradiction_flags")),
+        "metadata_quality": dict(_mapping(payload.get("metadata_quality"))),
+        "citation_grounding": dict(_mapping(payload.get("citation_grounding"))),
+    }
     return {
         "surface": SURFACE,
         "schema_version": SCHEMA_VERSION,
         "study_root": str(Path(study_root).expanduser().resolve()),
+        "study_id": _text(payload.get("study_id")),
         "status": "ready" if not missing_reason else "blocked",
         "missing_reason": missing_reason,
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
+        "source_coverage": _source_coverage(payload),
+        **normalized_graph,
+        "authority": _authority(),
         "search_strategy": dict(_mapping(payload.get("search_strategy"))),
         "search_date": _text(payload.get("search_date")),
         "searched_sources": _list(payload.get("searched_sources")),
@@ -141,6 +202,7 @@ def build_literature_intelligence_os_summary(*, study_root: Path) -> dict[str, A
             "artifact_path": str(path),
             "quality_claim_authorized": False,
             "mechanical_projection_can_authorize_quality": False,
+            "authority": _authority(),
             "coverage": {
                 "searched_source_count": 0,
                 "anchor_paper_count": 0,
@@ -149,8 +211,12 @@ def build_literature_intelligence_os_summary(*, study_root: Path) -> dict[str, A
                 "journal_neighbor_ref_count": 0,
                 "screening_decision_count": 0,
                 "citation_ledger_ref_count": 0,
+                "evidence_node_count": 0,
+                "perspective_question_count": 0,
+                "contradiction_flag_count": 0,
             },
         }
+    source_coverage = _source_coverage(payload)
     return {
         "surface": SURFACE,
         "status": _text(payload.get("status")) or "blocked",
@@ -158,13 +224,9 @@ def build_literature_intelligence_os_summary(*, study_root: Path) -> dict[str, A
         "artifact_path": str(path),
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
+        "authority": _authority(),
         "coverage": {
-            "searched_source_count": len(_list(payload.get("searched_sources"))),
-            "anchor_paper_count": len(_list(payload.get("anchor_papers"))),
-            "guideline_count": len(_list(payload.get("guidelines"))),
-            "systematic_review_count": len(_list(payload.get("systematic_reviews"))),
-            "journal_neighbor_ref_count": len(_list(payload.get("journal_neighbor_refs"))),
+            **source_coverage,
             "screening_decision_count": len(_list(payload.get("screening_decisions"))),
-            "citation_ledger_ref_count": len(_list(payload.get("citation_ledger_refs"))),
         },
     }

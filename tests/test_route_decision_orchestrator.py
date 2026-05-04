@@ -162,3 +162,24 @@ def test_orchestrator_human_gates_pivot_when_claim_boundary_expands(tmp_path: Pa
     assert "pivot_requires_unchanged_claim_boundary" in projection["blockers"]
     pivot_candidate = next(candidate for candidate in graph["candidates"] if candidate["candidate_id"] == "expanded-line")
     assert pivot_candidate["decision"] == "human_gate"
+
+
+def test_orchestrator_human_gates_candidate_path_graph_when_required_fields_are_missing(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+    incomplete = _candidate("line-a", 4)
+    incomplete.pop("expected_artifact")
+
+    projection = module.build_route_decision_orchestration(
+        study_root=tmp_path / "study",
+        candidates=[incomplete],
+        requested_action="select_line",
+    )
+
+    graph = projection["candidate_path_graph"]
+    assert projection["status"] == "blocked"
+    assert projection["route_decision"] == "human_gate"
+    assert graph["decision"] == "human_gate"
+    assert "candidate_line-a_missing_expected_artifact" in projection["blockers"]
+    assert graph["candidates"][0]["decision"] == "human_gate"

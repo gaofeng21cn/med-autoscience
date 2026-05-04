@@ -27,6 +27,9 @@ NEXT_ACTION_BY_ROUTE = {
     "human_gate": "human_gate",
 }
 
+CANDIDATE_PATH_DECISIONS = ("proceed", "refine", "pivot", "stop", "human_gate")
+CANDIDATE_PATH_REQUIRED_FIELDS = ("question", "evidence_basis", "expected_artifact", "stop_rule")
+
 
 def _text(value: object) -> str:
     return str(value or "").strip()
@@ -34,6 +37,10 @@ def _text(value: object) -> str:
 
 def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
+
+
+def _list(value: object) -> list[object]:
+    return list(value) if isinstance(value, list) else []
 
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
@@ -103,6 +110,141 @@ def _controller_decision_payload(
     return payload
 
 
+def _candidate_by_id(candidates: list[Mapping[str, Any]]) -> dict[str, Mapping[str, Any]]:
+    indexed = {}
+    for index, candidate in enumerate(candidates):
+        candidate_id = _text(candidate.get("line_id")) or _text(candidate.get("id")) or f"candidate_{index + 1}"
+        indexed[candidate_id] = candidate
+    return indexed
+
+
+def _evidence_basis(candidate: Mapping[str, Any]) -> list[str]:
+    evidence_basis = [_text(item) for item in _list(candidate.get("evidence_basis")) if _text(item)]
+    if evidence_basis:
+        return evidence_basis
+    return [_text(item) for item in _list(candidate.get("evidence_refs")) if _text(item)]
+
+
+def _stop_rule(candidate: Mapping[str, Any], ranked_candidate: Mapping[str, Any]) -> str:
+    explicit = _text(candidate.get("stop_rule"))
+    if explicit:
+        return explicit
+    dimensions = _mapping(candidate.get("dimensions"))
+    return _text(dimensions.get("stop_threshold")) or _text(ranked_candidate.get("stop_rule"))
+
+
+def _candidate_path_required_blockers(
+    *,
+    candidates: list[Mapping[str, Any]],
+    scorecard: Mapping[str, Any],
+) -> list[str]:
+    source_candidates = _candidate_by_id(candidates)
+    blockers = []
+    for ranked_candidate in scorecard.get("ranking") or []:
+        if not isinstance(ranked_candidate, Mapping):
+            continue
+        candidate_id = _text(ranked_candidate.get("line_id"))
+        source = source_candidates.get(candidate_id, {})
+        resolved_fields = {
+            "question": _text(source.get("question")) or _text(source.get("title")),
+            "evidence_basis": _evidence_basis(source),
+            "expected_artifact": _text(source.get("expected_artifact")),
+            "stop_rule": _stop_rule(source, ranked_candidate),
+        }
+        for field in CANDIDATE_PATH_REQUIRED_FIELDS:
+            if not resolved_fields[field]:
+                blockers.append(f"candidate_{candidate_id}_missing_{field}")
+    return blockers
+
+
+def _candidate_path_decision(
+    *,
+    route_decision: str,
+    candidate_id: str,
+    selected_line_id: str | None,
+    candidate_status: str,
+    blockers: Sequence[str],
+    candidate: Mapping[str, Any],
+) -> str:
+    if route_decision == "human_gate" and candidate_id == selected_line_id:
+        return "human_gate"
+    if candidate_status == "blocked":
+        return "stop"
+    if route_decision == "switch_line" and candidate_id == selected_line_id:
+        return "pivot"
+    if route_decision == "proceed_to_baseline" and candidate_id == selected_line_id:
+        return "proceed"
+    if route_decision == "return_to_scout" and candidate_id == selected_line_id:
+        return "refine"
+    if _text(candidate.get("decision")) in CANDIDATE_PATH_DECISIONS:
+        return _text(candidate.get("decision"))
+    return "refine" if not blockers else "human_gate"
+
+
+def _build_candidate_path_graph(
+    *,
+    scorecard: Mapping[str, Any],
+    candidates: list[Mapping[str, Any]],
+    route_decision: str,
+    selected_line_id: str | None,
+    controller_decision_ref: str,
+    blockers: Sequence[str],
+) -> dict[str, Any]:
+    source_candidates = _candidate_by_id(candidates)
+    graph_candidates = []
+    for ranked_candidate in scorecard.get("ranking") or []:
+        if not isinstance(ranked_candidate, Mapping):
+            continue
+        candidate_id = _text(ranked_candidate.get("line_id"))
+        source = source_candidates.get(candidate_id, {})
+        decision = _candidate_path_decision(
+            route_decision=route_decision,
+            candidate_id=candidate_id,
+            selected_line_id=selected_line_id,
+            candidate_status=_text(ranked_candidate.get("status")),
+            blockers=blockers,
+            candidate=source,
+        )
+        graph_candidates.append(
+            {
+                "candidate_id": candidate_id,
+                "question": _text(source.get("question")) or _text(source.get("title")),
+                "evidence_basis": _evidence_basis(source),
+                "expected_artifact": _text(source.get("expected_artifact")),
+                "stop_rule": _stop_rule(source, ranked_candidate),
+                "decision": decision,
+                "controller_decision_ref": controller_decision_ref,
+            }
+        )
+
+    graph_decision = "human_gate" if blockers else "stop"
+    for candidate in graph_candidates:
+        if candidate["candidate_id"] == selected_line_id:
+            graph_decision = str(candidate["decision"])
+            break
+
+    return {
+        "surface": "candidate_path_graph",
+        "schema_version": SCHEMA_VERSION,
+        "authority": "read_model_only",
+        "replaces_controller_decision": False,
+        "replaces_study_truth": False,
+        "allowed_decisions": list(CANDIDATE_PATH_DECISIONS),
+        "decision": graph_decision,
+        "selected_candidate_id": selected_line_id,
+        "controller_decision_ref": controller_decision_ref,
+        "candidates": graph_candidates,
+    }
+
+
+def _claim_boundary_allows_pivot(candidates: list[Mapping[str, Any]], selected_line_id: str | None) -> bool:
+    if not selected_line_id:
+        return False
+    candidate = _candidate_by_id(candidates).get(selected_line_id, {})
+    change = _text(candidate.get("claim_boundary_change")) or _text(candidate.get("claim_boundary_delta"))
+    return change in {"", "unchanged", "same", "within_boundary", "not_expanded"}
+
+
 def build_route_decision_orchestration(
     *,
     study_root: Path,
@@ -134,6 +276,7 @@ def build_route_decision_orchestration(
             code = _text(blocker.get("code"))
             if code:
                 blockers.append(code)
+    blockers.extend(_candidate_path_required_blockers(candidates=candidates, scorecard=scorecard))
 
     selected_line_id = _selected_line_id(
         scorecard=scorecard,
@@ -145,6 +288,9 @@ def build_route_decision_orchestration(
         route_decision = "human_gate"
     elif blockers and not literature_blocker:
         route_decision = "human_gate"
+    elif route_decision == "switch_line" and not _claim_boundary_allows_pivot(candidates, selected_line_id):
+        blockers.append("pivot_requires_unchanged_claim_boundary")
+        route_decision = "human_gate"
 
     controller_decision_ref = (root / CONTROLLER_DECISION_PATH).resolve()
     controller_decision = _controller_decision_payload(
@@ -152,6 +298,14 @@ def build_route_decision_orchestration(
         requested_action=action,
         route_decision=route_decision,
         selected_line_id=selected_line_id,
+        blockers=blockers,
+    )
+    candidate_path_graph = _build_candidate_path_graph(
+        scorecard=scorecard,
+        candidates=candidates,
+        route_decision=route_decision,
+        selected_line_id=selected_line_id,
+        controller_decision_ref=str(controller_decision_ref),
         blockers=blockers,
     )
 
@@ -166,6 +320,7 @@ def build_route_decision_orchestration(
         "next_action": NEXT_ACTION_BY_ROUTE.get(route_decision, "human_gate"),
         "controller_decision_ref": str(controller_decision_ref),
         "controller_decision": controller_decision,
+        "candidate_path_graph": candidate_path_graph,
         "scorecard": dict(scorecard),
         "blockers": blockers,
         "quality_claim_authorized": False,
