@@ -28,8 +28,6 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_medautosci_shared,
     _render_profile_optional_forward_script,
     _render_supervisor_cron_template,
-    _render_supervisor_docker_oneshot,
-    _render_supervisor_kubernetes_cronjob,
     _render_supervisor_launchd_instructions,
     _render_supervisor_scan_script,
     _render_supervisor_systemd_service,
@@ -349,7 +347,7 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
             ):
                 return "legacy_watch_runtime_entry"
     if suffix == ("ops", "medautoscience", "bin", "install-watch-runtime-service"):
-        if "runtime ensure-supervision" not in existing_content or "--manager docker" not in existing_content:
+        if "runtime ensure-supervision" not in existing_content or "--manager cron" not in existing_content:
             return "legacy_watch_runtime_service_install"
     if suffix == ("ops", "medautoscience", "bin", "supervisor-scan"):
         if "runtime supervisor-scan" not in existing_content:
@@ -667,23 +665,6 @@ def _rendered_files(
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "supervisor" / "cron" / "supervisor-scan.cron",
             content=_render_supervisor_cron_template(workspace_root=workspace_root),
-        ),
-        RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "supervisor" / "docker" / "supervisor-scan.oneshot.sh",
-            content=_render_supervisor_docker_oneshot(workspace_root=workspace_root),
-            executable=True,
-        ),
-        RenderedFile(
-            path=workspace_root
-            / "ops"
-            / "medautoscience"
-            / "supervisor"
-            / "kubernetes"
-            / "supervisor-scan-cronjob.yaml",
-            content=_render_supervisor_kubernetes_cronjob(
-                workspace_root=workspace_root,
-                profile_relpath=profile_relpath,
-            ),
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "supervisor" / "launchd" / "README.md",

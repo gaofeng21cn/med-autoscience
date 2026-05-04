@@ -638,7 +638,7 @@ def test_codex_app_automation_prompt_check_reports_missing_tokens(tmp_path: Path
     assert result["missing_prompt_tokens"] == ["action_queue", "why_not_applied"]
 
 
-def test_ensure_supervision_returns_cron_docker_and_launchd_scheduler_surfaces(
+def test_ensure_supervision_returns_cron_and_launchd_scheduler_surfaces(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -651,8 +651,6 @@ def test_ensure_supervision_returns_cron_docker_and_launchd_scheduler_surfaces(
     templates_root = profile.workspace_root / "ops" / "medautoscience" / "supervisor"
     for path in (
         templates_root / "cron" / "supervisor-scan.cron",
-        templates_root / "docker" / "supervisor-scan.oneshot.sh",
-        templates_root / "kubernetes" / "supervisor-scan-cronjob.yaml",
         templates_root / "launchd" / "README.md",
     ):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -669,27 +667,53 @@ def test_ensure_supervision_returns_cron_docker_and_launchd_scheduler_surfaces(
     )
 
     cron_result = module.ensure_supervision(profile=profile, manager="cron", trigger_now=False)
-    docker_result = module.ensure_supervision(profile=profile, manager="docker", trigger_now=False)
     launchd_result = module.ensure_supervision(profile=profile, manager="launchd", trigger_now=False)
 
     assert cron_result["templates"]["crontab"] == str(templates_root / "cron" / "supervisor-scan.cron")
     assert any("crontab" in command for command in cron_result["install_commands"])
-    assert docker_result["templates"]["docker_one_shot"] == str(templates_root / "docker" / "supervisor-scan.oneshot.sh")
-    assert docker_result["templates"]["kubernetes_cronjob"] == str(
-        templates_root / "kubernetes" / "supervisor-scan-cronjob.yaml"
-    )
-    assert any("docker run" in command for command in docker_result["install_commands"])
-    assert any("MED_AUTOSCIENCE_CONTAINER_MODE=1" in command for command in docker_result["install_commands"])
-    assert any("UV_PROJECT_ENVIRONMENT=/tmp/med-autoscience-venv" in command for command in docker_result["install_commands"])
-    assert any("<med_autoscience_repo>:/opt/med-autoscience" in command for command in docker_result["install_commands"])
     assert launchd_result["templates"]["instructions"] == str(templates_root / "launchd" / "README.md")
     assert launchd_result["install_commands"] == [
         f"{profile.workspace_root}/ops/medautoscience/bin/install-watch-runtime-service --manager launchd"
     ]
-    for result in (cron_result, docker_result, launchd_result):
+    for result in (cron_result, launchd_result):
         assert result["installed"] is False
         assert result["supervisor_scan_entry"]["exists"] is True
         assert result["codex_app_heartbeat_required"] is False
+
+
+def test_ensure_supervision_docker_manager_is_container_agnostic_fail_closed(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    profile = make_profile(tmp_path)
+    supervisor_scan = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+    supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
+    supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_scan.chmod(0o755)
+    monkeypatch.setattr(
+        module,
+        "_github_user_login_check",
+        lambda: {
+            "status": "ok",
+            "login": "gaofeng21cn",
+            "expected_login": "gaofeng21cn",
+            "matches_expected": True,
+            "gate": {"allowed": True, "login": "gaofeng21cn"},
+        },
+    )
+
+    result = module.ensure_supervision(profile=profile, manager="docker", trigger_now=False)
+
+    assert result["manager"] == "docker"
+    assert result["mode"] == "external_observe"
+    assert result["mode_source"] == "unsupported_container_scheduler"
+    assert result["scheduler_owner"] == "external_container_scheduler"
+    assert result["safe_actions_enabled"] is False
+    assert result["templates"] == {}
+    assert result["install_proof"]["status"] == "unsupported_container_scheduler"
+    assert "docker run" not in "\n".join(result["install_commands"])
+    assert "medautosci runtime supervisor-scan" in result["install_commands"][0]
 
 
 def test_remove_supervision_removes_jobs_and_script(monkeypatch, tmp_path: Path) -> None:

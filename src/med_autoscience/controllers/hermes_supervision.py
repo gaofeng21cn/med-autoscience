@@ -125,8 +125,6 @@ def _portable_supervisor_templates(profile: WorkspaceProfile) -> dict[str, Path]
         "systemd_service": templates_root / "systemd" / "medautoscience-supervisor-scan.service",
         "systemd_timer": templates_root / "systemd" / "medautoscience-supervisor-scan.timer",
         "cron": templates_root / "cron" / "supervisor-scan.cron",
-        "docker_one_shot": templates_root / "docker" / "supervisor-scan.oneshot.sh",
-        "kubernetes_cronjob": templates_root / "kubernetes" / "supervisor-scan-cronjob.yaml",
         "launchd_instructions": templates_root / "launchd" / "README.md",
     }
 
@@ -200,9 +198,15 @@ def _codex_app_automation_prompt_check(*, automation_path: Path | None = None) -
 def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager: str, interval_seconds: int) -> dict[str, Any]:
     github_user = _github_user_login_check()
     codex_app_prompt = _codex_app_automation_prompt_check()
-    developer_mode_enabled = bool(github_user.get("matches_expected"))
+    unsupported_manager = manager == "docker"
+    developer_mode_enabled = bool(github_user.get("matches_expected")) and not unsupported_manager
     supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
-    scheduler_owner = "codex_app_compat" if manager == "codex_app" else f"{manager}_scheduler"
+    if manager == "codex_app":
+        scheduler_owner = "codex_app_compat"
+    elif unsupported_manager:
+        scheduler_owner = "external_container_scheduler"
+    else:
+        scheduler_owner = f"{manager}_scheduler"
     expected_artifacts = [
         str(profile.workspace_root / "ops" / "medautoscience" / "runtime" / "supervisor" / "latest.json"),
         str(profile.workspace_root / "ops" / "medautoscience" / "runtime" / "supervisor" / "action_queue.json"),
@@ -215,7 +219,7 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
     return {
         "mode": "developer_apply_safe" if developer_mode_enabled else "external_observe",
         "requested_mode": "developer_apply_safe",
-        "mode_source": "github_user_gate",
+        "mode_source": "unsupported_container_scheduler" if unsupported_manager else "github_user_gate",
         "developer_mode_enabled": developer_mode_enabled,
         "safe_actions_enabled": developer_mode_enabled,
         "repo_level_repair_authority": developer_mode_enabled,
@@ -226,7 +230,9 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
         "codex_app_heartbeat_required": False,
         "install_proof": {
             "manager": manager,
-            "status": "ready" if developer_mode_enabled else "developer_mode_disabled",
+            "status": "unsupported_container_scheduler" if unsupported_manager else (
+                "ready" if developer_mode_enabled else "developer_mode_disabled"
+            ),
             "status_check_commands": status_check_commands,
             "expected_artifacts": expected_artifacts,
             "freshness": {
@@ -318,23 +324,10 @@ def _portable_supervisor_instruction(
             f"(crontab -l 2>/dev/null; cat {cron_template}) | crontab -",
         ]
     elif manager_key == "docker":
-        docker_template = templates["docker_one_shot"]
-        k8s_template = templates["kubernetes_cronjob"]
-        result_templates = {
-            "docker_one_shot": str(docker_template),
-            "kubernetes_cronjob": str(k8s_template),
-        }
+        result_templates = {}
         install_commands = [
-            f"bash {docker_template}",
-            "docker run --rm -e MED_AUTOSCIENCE_CONTAINER_MODE=1 "
-            "-e MED_AUTOSCIENCE_REPO_CONTAINER=/opt/med-autoscience "
-            "-e MED_AUTOSCIENCE_UV_BIN_CONTAINER=/usr/local/bin/uv "
-            "-e UV_PROJECT_ENVIRONMENT=/tmp/med-autoscience-venv "
-            "-v <workspace_root>:<workspace_root> "
-            "-v <med_autoscience_repo>:/opt/med-autoscience "
-            "-w <workspace_root> medautoscience:latest "
-            f"bash -lc './ops/medautoscience/bin/supervisor-scan {_DEVELOPER_SUPERVISOR_SAFE_ACTION_TEXT}'",
-            f"kubectl apply -f {k8s_template}",
+            "Run this MAS CLI entry from the container image or scheduler owned by OPL, Hermes, or the deployment platform: "
+            f"<container-entry> medautosci runtime supervisor-scan --profile <profile> {_DEVELOPER_SUPERVISOR_SAFE_ACTION_TEXT}"
         ]
     elif manager_key == "launchd":
         result_templates = {"instructions": str(templates["launchd_instructions"])}
@@ -400,7 +393,7 @@ def _portable_supervisor_instruction(
         "codex_app_automation_prompt": developer_supervisor_mode["codex_app_automation_prompt"],
         "codex_app_heartbeat_required": False,
         "host_service_claim": host_service_claim,
-        "docker_policy": "run supervisor-scan as a one-shot container from external cron or Kubernetes CronJob",
+        "container_policy": "MAS does not own a Docker image or Kubernetes CronJob; external OPL, Hermes, or deployment schedulers may call the MAS CLI entry.",
     }
 
 

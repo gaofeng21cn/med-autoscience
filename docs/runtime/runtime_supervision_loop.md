@@ -6,7 +6,7 @@
 
 - `MedAutoScience` 不是第二个 authority daemon
 - 但它必须拥有稳定的 `supervision tick`
-- 这个 tick 的长期托管 owner 可以是 `Hermes-Agent gateway cron`、Linux `systemd --user`、宿主 `cron`、Docker/Kubernetes one-shot scheduler 或 macOS `launchd`
+- 这个 tick 的长期托管 owner 可以是 `Hermes-Agent gateway cron`、Linux `systemd --user`、宿主 `cron`、macOS `launchd`，或由 OPL、Hermes、部署平台持有的外部容器环境调用 MAS CLI
 - 这个 loop 的职责是持续发现掉线、执行 reconciliation、写出 durable supervision surface，并把结果翻译成前台可见的人话
 
 ## 1. 总目标
@@ -96,7 +96,7 @@ Developer Supervisor Mode 有三个正式模式：
 
 `developer_apply_safe` 还受 GitHub 用户门控保护：本机 `gh api user --jq .login` 必须返回 `gaofeng21cn`，否则 effective mode 自动降级到 `external_observe`，并投影 `github_user_not_authorized_for_developer_supervisor_mode`。这个门控用于防止普通用户或生产研究环境意外获得 repo-level developer supervisor authority。
 
-`Codex App heartbeat` 不是这条 contract 的依赖。Codex App 可以作为本机开发环境的一个外部 scheduler 调用该入口，但 MAS 运行环境必须同样支持 Linux、cron、systemd、Docker one-shot 与 Kubernetes CronJob。
+`Codex App heartbeat` 不是这条 contract 的依赖。Codex App 可以作为本机开发环境的一个外部 scheduler 调用该入口，但 MAS 运行环境必须同样支持 Linux `systemd --user`、宿主 `cron`、macOS `launchd` 兼容路径，以及由 OPL、Hermes 或部署平台提供的容器环境。
 
 workspace bootstrap 会渲染 portable scheduler entry 与示例模板：
 
@@ -104,11 +104,18 @@ workspace bootstrap 会渲染 portable scheduler entry 与示例模板：
 - `ops/medautoscience/supervisor/systemd/medautoscience-supervisor-scan.service`
 - `ops/medautoscience/supervisor/systemd/medautoscience-supervisor-scan.timer`
 - `ops/medautoscience/supervisor/cron/supervisor-scan.cron`
-- `ops/medautoscience/supervisor/docker/supervisor-scan.oneshot.sh`
-- `ops/medautoscience/supervisor/kubernetes/supervisor-scan-cronjob.yaml`
 - `ops/medautoscience/supervisor/launchd/README.md`
 
-`medautosci runtime ensure-supervision --manager systemd|cron|docker|launchd` 返回可复制的安装命令和模板路径，并验证当前 workspace 是否已有可执行的 `supervisor-scan` entry。显式追加 `--write-install-proof` 时，它会写出 workspace-level `artifacts/supervision/install_proof/latest.json`，记录 manager、scheduler owner、安装命令、状态检查命令、预期产物、freshness、safe-action mode、GitHub gate 与 host service claim。这个接口只生成 scheduler instruction / install proof，不在没有真实宿主安装 evidence 时声称宿主 service 已安装；安装动作仍归属 host operator 或外部 scheduler。
+`medautosci runtime ensure-supervision --manager systemd|cron|launchd` 返回可复制的安装命令和模板路径，并验证当前 workspace 是否已有可执行的 `supervisor-scan` entry。显式追加 `--write-install-proof` 时，它会写出 workspace-level `artifacts/supervision/install_proof/latest.json`，记录 manager、scheduler owner、安装命令、状态检查命令、预期产物、freshness、safe-action mode、GitHub gate 与 host service claim。这个接口只生成 scheduler instruction / install proof，不在没有真实宿主安装 evidence 时声称宿主 service 已安装；安装动作仍归属 host operator 或外部 scheduler。
+
+容器环境不是 MAS-owned runtime。MAS 不维护 `medautoscience:latest` 镜像，也不生成 Kubernetes CronJob manifest。容器、volume、gateway、scheduler 与镜像发布由 OPL、Hermes 或部署平台持有；容器内只需要能调用 MAS CLI，例如：
+
+```bash
+medautosci runtime supervisor-scan \
+  --profile <profile> \
+  --apply-safe-actions \
+  --developer-supervisor-mode developer_apply_safe
+```
 
 同时，外环还必须对“最近一次 supervisor tick 是否仍然新鲜”给出正式判断：
 
@@ -253,7 +260,7 @@ workspace bootstrap 会渲染 portable scheduler entry 与示例模板：
 - `Hermes gateway cron`
 - Linux `systemd --user`
 - 宿主 `cron`
-- Docker one-shot container，由外部 cron 或 Kubernetes CronJob 调度
+- 外部 OPL、Hermes 或部署平台提供的容器环境，周期性调用 MAS CLI
 - macOS `launchd` 兼容路径
 
 MAS 负责“这一跳应该怎么判、怎么恢复、怎么写 durable truth”。scheduler 只负责按周期调用，不持有医学或 runtime authority。
