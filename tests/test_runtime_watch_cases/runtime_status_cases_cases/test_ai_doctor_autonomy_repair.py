@@ -85,6 +85,81 @@ def _runtime_recovery_status(
     return payload
 
 
+def _write_bundle_only_publication_surfaces(*, study_root: Path, quest_root: Path, study_id: str, quest_id: str) -> None:
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    dump_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": f"publication-eval::{study_id}::{quest_id}::ai-reviewer::2026-05-04T12:22:30+00:00",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "emitted_at": "2026-05-04T12:22:30+00:00",
+            "evaluation_scope": "publication",
+            "verdict": {
+                "overall_verdict": "promising",
+                "primary_claim_status": "supported",
+                "summary": "AI reviewer supports milestone package handoff.",
+                "stop_loss_pressure": "none",
+            },
+            "gaps": [
+                {
+                    "gap_id": "admin-metadata-closeout",
+                    "gap_type": "delivery",
+                    "severity": "important",
+                    "summary": "Author-confirmed title-page, declaration wording, and final submission metadata remain.",
+                    "evidence_refs": [str(study_root / "paper" / "review" / "review_ledger.json")],
+                },
+                {
+                    "gap_id": "final-provenance-proof",
+                    "gap_type": "reporting",
+                    "severity": "optional",
+                    "summary": "Final bundle proofing should confirm package provenance.",
+                    "evidence_refs": [str(publication_eval_path)],
+                },
+            ],
+            "quality_assessment": {
+                "human_review_readiness": {
+                    "status": "ready",
+                    "summary": "The human-facing current package is ready for review.",
+                    "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+                }
+            },
+            "recommended_actions": [
+                {
+                    "action_id": "milestone-package-handoff",
+                    "action_type": "continue_same_line",
+                    "priority": "now",
+                    "reason": "Only administrative metadata and bundle proofing remain.",
+                    "route_target": "finalize",
+                    "route_key_question": "Complete final bundle proofing and administrative submission metadata.",
+                    "route_rationale": "Scientific claims and prose quality are ready for human review.",
+                    "requires_controller_decision": True,
+                }
+            ],
+        },
+    )
+    dump_json(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
+        {
+            "schema_version": 1,
+            "summary_id": f"evaluation-summary::{study_id}::{quest_id}::2026-05-04T12:22:30+00:00",
+            "overall_verdict": "promising",
+            "quality_closure_truth": {
+                "state": "bundle_only_remaining",
+                "summary": "Core scientific quality is closed; only bundle/admin handoff remains.",
+                "current_required_action": "continue_bundle_stage",
+                "route_target": "finalize",
+            },
+            "quality_review_loop": {
+                "closure_state": "bundle_only_remaining",
+                "current_phase": "bundle_hardening",
+                "recommended_next_phase": "finalize",
+            },
+        },
+    )
+
+
 def test_watch_runtime_applies_ai_doctor_ready_recovery_action_for_no_live_runtime(
     tmp_path: Path,
     monkeypatch,
@@ -381,6 +456,85 @@ def test_watch_runtime_marks_retry_exhausted_ai_doctor_repair_as_external_superv
     assert lifecycle_latest["blocked_reason"] == "runtime_recovery_not_authorized"
     assert lifecycle_latest["external_supervisor_required"] is True
     assert lifecycle_latest["next_owner"] == "external_supervisor"
+
+
+def test_watch_runtime_keeps_submission_milestone_parked_instead_of_external_supervisor_lifecycle(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
+    quest_root = profile.runtime_root / "quest-001"
+    _write_bundle_only_publication_surfaces(
+        study_root=study_root,
+        quest_root=quest_root,
+        study_id="001-risk",
+        quest_id="quest-001",
+    )
+    dump_json(
+        study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json",
+        _ready_repair_payload(study_id="001-risk", quest_id="quest-001"),
+    )
+    status_payload = {
+        **_runtime_recovery_status(
+            study_root=study_root,
+            quest_root=quest_root,
+            study_id="001-risk",
+            quest_id="quest-001",
+            repair_authorized=True,
+        ),
+        "quest_status": "stopped",
+        "active_run_id": None,
+        "reason": "quest_stopped_requires_explicit_rerun",
+        "continuation_state": {
+            "quest_status": "stopped",
+            "active_run_id": None,
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "controller_work_unit_pending",
+        },
+        "control_plane_snapshot": {
+            "control_state": "ready",
+            "dispatch_gate": {"state": "open", "dispatch_allowed": True, "blocking_reasons": []},
+            "route_authorization": {"runtime_recovery_allowed": False},
+            "blocking_reasons": [],
+        },
+        "runtime_health_snapshot": {
+            "canonical_runtime_action": "await_explicit_resume",
+            "attempt_state": "awaiting_explicit_resume",
+            "retry_budget_remaining": 0,
+            "blocking_reasons": [],
+        },
+    }
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: None)
+    monkeypatch.setattr(module.study_cycle_profiler, "profile_study_cycle", lambda **_: {})
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    assert result["managed_study_autonomy_repair_actions"][0]["state"] == "parked"
+    assert result["managed_study_autonomy_repair_actions"][0]["reason"] == "submission_milestone_parked"
+    lifecycle_latest = json.loads(
+        (study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json").read_text(encoding="utf-8")
+    )
+    assert lifecycle_latest["state"] == "parked"
+    assert lifecycle_latest["blocked_reason"] is None
+    assert lifecycle_latest["external_supervisor_required"] is False
+    assert lifecycle_latest["next_owner"] is None
+    assert lifecycle_latest["paper_package_mutation_allowed"] is False
+    assert lifecycle_latest["manual_study_patch_allowed"] is False
+    assert lifecycle_latest["medical_claim_authoring_allowed"] is False
 
 
 def test_watch_runtime_blocks_ai_doctor_repair_under_supervisor_only(

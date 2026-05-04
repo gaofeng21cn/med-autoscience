@@ -40,6 +40,46 @@ EXTERNAL_SUPERVISOR_BLOCK_REASONS = frozenset(
         "publication_gate_specificity_required",
     }
 )
+SUBMISSION_HANDOFF_GAP_TYPES = frozenset({"delivery", "reporting", "package", "metadata", "administrative"})
+SUBMISSION_HANDOFF_TERMS = frozenset(
+    {
+        "admin",
+        "administrative",
+        "author",
+        "bundle",
+        "declaration",
+        "handoff",
+        "human review",
+        "metadata",
+        "package",
+        "proofing",
+        "provenance",
+        "submission",
+        "title-page",
+    }
+)
+SUBMISSION_HANDOFF_BLOCKING_TERMS = frozenset(
+    {
+        "analysis",
+        "calibration",
+        "claim",
+        "cohort",
+        "endpoint",
+        "evidence",
+        "evidence gap",
+        "external validation",
+        "figure",
+        "manuscript-body",
+        "method",
+        "model",
+        "result",
+        "scientific",
+        "statistical",
+        "data cleaning",
+        "table",
+        "validation",
+    }
+)
 
 
 def utc_now() -> str:
@@ -61,6 +101,10 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
 def _write_json_object(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _read_study_json_object(study_root: Path, relative_path: str) -> dict[str, Any] | None:
+    return _read_json_object(Path(study_root).expanduser().resolve() / relative_path)
 
 
 def _latest_ai_doctor_repair_path(*, study_root: Path) -> Path:
@@ -134,6 +178,98 @@ def _string_items(value: object) -> set[str]:
 
 def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
+
+
+def _quality_dimension_status(*, payload: Mapping[str, Any], dimension: str) -> str | None:
+    quality_assessment = _mapping(payload.get("quality_assessment"))
+    dimension_payload = _mapping(quality_assessment.get(dimension))
+    return _non_empty_text(dimension_payload.get("status"))
+
+
+def _submission_handoff_gap(gap: object) -> bool:
+    if not isinstance(gap, Mapping):
+        return False
+    severity = _non_empty_text(gap.get("severity"))
+    if severity == "optional":
+        return True
+    if severity != "important":
+        return False
+    gap_type = _non_empty_text(gap.get("gap_type"))
+    if gap_type not in SUBMISSION_HANDOFF_GAP_TYPES:
+        return False
+    text = " ".join(
+        str(value or "").strip().lower()
+        for value in (
+            gap.get("gap_id"),
+            gap.get("gap_type"),
+            gap.get("summary"),
+        )
+        if str(value or "").strip()
+    )
+    if any(term in text for term in SUBMISSION_HANDOFF_BLOCKING_TERMS):
+        return False
+    return any(term in text for term in SUBMISSION_HANDOFF_TERMS)
+
+
+def _publication_eval_has_only_submission_handoff_gaps(publication_eval: Mapping[str, Any]) -> bool:
+    gaps = publication_eval.get("gaps")
+    if not isinstance(gaps, list):
+        return False
+    return all(_submission_handoff_gap(gap) for gap in gaps)
+
+
+def status_is_submission_milestone_parked(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> bool:
+    quest_status = _non_empty_text(status_payload.get("quest_status"))
+    if quest_status not in {"stopped", "waiting_for_user", "paused"}:
+        return False
+    if _non_empty_text(status_payload.get("active_run_id")) is not None:
+        return False
+    continuation = _mapping(status_payload.get("continuation_state"))
+    if _non_empty_text(continuation.get("active_run_id")) is not None:
+        return False
+    publication_eval = _read_study_json_object(study_root, "artifacts/publication_eval/latest.json")
+    evaluation_summary = _read_study_json_object(study_root, "artifacts/eval_hygiene/evaluation_summary/latest.json")
+    if publication_eval is None or evaluation_summary is None:
+        return False
+    quality_closure_truth = _mapping(evaluation_summary.get("quality_closure_truth"))
+    quality_review_loop = _mapping(evaluation_summary.get("quality_review_loop"))
+    closure_state = (
+        _non_empty_text(quality_closure_truth.get("state"))
+        or _non_empty_text(quality_review_loop.get("closure_state"))
+    )
+    if closure_state != "bundle_only_remaining":
+        return False
+    route_target = _non_empty_text(quality_closure_truth.get("route_target"))
+    if route_target and route_target != "finalize":
+        return False
+    verdict = _mapping(publication_eval.get("verdict"))
+    if _non_empty_text(verdict.get("overall_verdict")) != "promising":
+        return False
+    human_review_status = (
+        _quality_dimension_status(payload=publication_eval, dimension="human_review_readiness")
+        or _quality_dimension_status(payload=evaluation_summary, dimension="human_review_readiness")
+    )
+    if human_review_status != "ready":
+        return False
+    return _publication_eval_has_only_submission_handoff_gaps(publication_eval)
+
+
+def _submission_milestone_park_result(
+    *,
+    repair_payload: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> dict[str, Any]:
+    return _serialize_ai_doctor_repair_result(
+        repair_payload=repair_payload,
+        action=action,
+        state="parked",
+        dispatch_status="not_dispatched",
+        reason="submission_milestone_parked",
+    )
 
 
 def _execution_owner_supervisor_only(status_payload: Mapping[str, Any]) -> bool:
@@ -273,6 +409,8 @@ def _external_supervisor_required(
     status_payload: Mapping[str, Any],
     runtime_recovery_payload: Mapping[str, Any] | None,
 ) -> bool:
+    if _non_empty_text(result.get("state")) == "parked":
+        return False
     if _non_empty_text(result.get("reason")) in EXTERNAL_SUPERVISOR_BLOCK_REASONS:
         return True
     if _runtime_retry_exhausted(status_payload):
@@ -307,14 +445,17 @@ def _materialize_ai_repair_lifecycle(
         "auto_apply_allowed": bool(action.get("auto_apply_allowed")),
         "last_apply_attempt_at": recorded_at,
         "applied_at": recorded_at if result_state == "applied" else None,
-        "blocked_reason": _non_empty_text(result.get("reason")) if result_state != "applied" else None,
+        "blocked_reason": _non_empty_text(result.get("reason")) if result_state not in {"applied", "parked"} else None,
         "next_owner": (
             "external_supervisor"
             if external_supervisor_required and result_state != "applied"
-            else _repair_next_owner(result=result, action=action)
+            else (None if result_state == "parked" else _repair_next_owner(result=result, action=action))
         ),
         "external_supervisor_required": external_supervisor_required and result_state != "applied",
         "quality_gate_relaxation_allowed": False,
+        "paper_package_mutation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
         "last_apply_attempt": dict(result),
         "refs": {
             "repair_action_path": str(_latest_ai_doctor_repair_path(study_root=study_root)),
@@ -351,6 +492,8 @@ def _apply_ai_doctor_repair_action(
     repair_payload: Mapping[str, Any],
     action: Mapping[str, Any],
 ) -> dict[str, Any]:
+    if status_is_submission_milestone_parked(study_root=study_root, status_payload=status_payload):
+        return _submission_milestone_park_result(repair_payload=repair_payload, action=action)
     action_type = _non_empty_text(action.get("action_type"))
     repair_kind = _non_empty_text(action.get("repair_kind"))
     owner = _non_empty_text(action.get("owner"))

@@ -343,8 +343,9 @@ def _recommended_submission_milestone_autopark_action(
     study_root: Path,
     status_payload: dict[str, Any],
     publication_eval_payload: dict[str, Any],
+    require_live_runtime: bool = True,
 ) -> dict[str, Any] | None:
-    if not _runtime_status_is_live(status_payload):
+    if require_live_runtime and not _runtime_status_is_live(status_payload):
         return None
     route_context = _submission_milestone_route_context(
         study_root=study_root,
@@ -523,16 +524,33 @@ def build_runtime_watch_outer_loop_tick_request(
             status_payload=status_payload,
         )
     else:
+        runtime_is_live = _runtime_status_is_live(status_payload)
+        submission_milestone_autopark_action = (
+            _recommended_submission_milestone_autopark_action(
+                study_root=resolved_study_root,
+                status_payload=status_payload,
+                publication_eval_payload=publication_eval_payload,
+                require_live_runtime=False,
+            )
+            if not runtime_is_live
+            else None
+        )
         task_intake_action = recommended_task_intake_action(
             study_root=resolved_study_root,
             publishability_gate_report=gate_report,
             evaluation_summary=evaluation_summary,
         )
-        recommended_action = task_intake_action or _recommended_submission_milestone_autopark_action(
-            study_root=resolved_study_root,
-            status_payload=status_payload,
-            publication_eval_payload=publication_eval_payload,
+        recommended_action = (
+            submission_milestone_autopark_action
+            if submission_milestone_autopark_action is not None
+            else task_intake_action
         )
+        if recommended_action is None:
+            recommended_action = _recommended_submission_milestone_autopark_action(
+                study_root=resolved_study_root,
+                status_payload=status_payload,
+                publication_eval_payload=publication_eval_payload,
+            )
         if recommended_action is None:
             recommended_action = _recommended_quality_review_loop_action(study_root=resolved_study_root)
         if recommended_action is None:
