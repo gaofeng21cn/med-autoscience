@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import time
 from collections.abc import Mapping
@@ -42,6 +41,9 @@ from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
     _serialize_managed_study_auto_recovery,
     _should_hard_auto_recover_managed_study,
     _write_outer_loop_wakeup_audit,
+)
+from med_autoscience.controllers.runtime_watch_parts.fingerprints import (
+    build_fingerprint,
 )
 from med_autoscience.controllers.runtime_watch_parts.autonomy_repair import (
     apply_ready_ai_doctor_repair,
@@ -384,75 +386,6 @@ def iter_ordered_controller_runners(
         else:
             ordered_unknown.append(entry)
     return [entry for _, entry in sorted(ordered_known, key=lambda item: item[0])] + ordered_unknown
-
-
-def build_fingerprint(controller_name: str, result: dict[str, Any]) -> str:
-    if controller_name == "publication_gate":
-        payload = {
-            "status": result.get("status"),
-            "allow_write": result.get("allow_write"),
-            "blockers": result.get("blockers") or [],
-            "missing_non_scalar_deliverables": result.get("missing_non_scalar_deliverables") or [],
-            "submission_minimal_present": result.get("submission_minimal_present"),
-            "draft_handoff_delivery_required": result.get("draft_handoff_delivery_required"),
-            "draft_handoff_delivery_status": result.get("draft_handoff_delivery_status"),
-            "supervisor_phase": result.get("supervisor_phase"),
-            "phase_owner": result.get("phase_owner"),
-            "upstream_scientific_anchor_ready": result.get("upstream_scientific_anchor_ready"),
-            "bundle_tasks_downstream_only": result.get("bundle_tasks_downstream_only"),
-            "current_required_action": result.get("current_required_action"),
-            "deferred_downstream_actions": result.get("deferred_downstream_actions") or [],
-            "controller_stage_note": result.get("controller_stage_note"),
-        }
-    elif controller_name == "medical_publication_surface":
-        top_hits = result.get("top_hits") or []
-        payload = {
-            "status": result.get("status"),
-            "blockers": result.get("blockers") or [],
-            "top_hits": [
-                {
-                    "path": item.get("path"),
-                    "location": item.get("location"),
-                    "phrase": item.get("phrase"),
-                }
-                for item in top_hits[:10]
-            ],
-        }
-    elif controller_name == "data_asset_gate":
-        payload = {
-            "status": result.get("status"),
-            "blockers": result.get("blockers") or [],
-            "advisories": result.get("advisories") or [],
-            "study_id": result.get("study_id"),
-            "outdated_dataset_ids": result.get("outdated_dataset_ids") or [],
-            "unresolved_dataset_ids": result.get("unresolved_dataset_ids") or [],
-            "public_support_dataset_ids": result.get("public_support_dataset_ids") or [],
-        }
-    elif controller_name == "figure_loop_guard":
-        payload = {
-            "status": result.get("status"),
-            "blockers": result.get("blockers") or [],
-            "dominant_figure_id": result.get("dominant_figure_id"),
-            "dominant_figure_mentions": result.get("dominant_figure_mentions"),
-            "reference_count": result.get("reference_count"),
-        }
-    elif controller_name == "medical_literature_audit":
-        payload = {
-            "status": result.get("status"),
-            "blockers": result.get("blockers") or [],
-            "action": result.get("action"),
-            "missing_pmids": result.get("missing_pmids") or [],
-        }
-    elif controller_name == "medical_reporting_audit":
-        payload = {
-            "status": result.get("status"),
-            "blockers": result.get("blockers") or [],
-            "action": result.get("action"),
-        }
-    else:
-        payload = result
-    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True)
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _publication_gate_ai_reviewer_eval_masks_return_to_gate(*, dry_run_result: dict[str, Any]) -> bool:

@@ -228,6 +228,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "docs/program/integration_harness_activation_package.md",
             "docs/program/med_deepscientist_deconstruction_map.md",
             "docs/program/merge_and_cutover_gates.md",
+            "docs/program/plan_completion_ledger.md",
             "docs/program/repository_ci_preflight.md",
             "docs/program/research_foundry_medical_execution_map.md",
             "docs/program/research_foundry_medical_mainline.md",
