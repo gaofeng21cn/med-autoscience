@@ -15,10 +15,18 @@ _REQUEST_AUTHORITY_CONTRACT = {
     "authoritative": False,
     "can_clear_quality_gate": False,
     "quality_gate_relaxation_allowed": False,
+    "paper_package_mutation_allowed": False,
     "manual_study_patch_allowed": False,
     "paper_patch_allowed": False,
     "current_package_patch_allowed": False,
+    "medical_claim_authoring_allowed": False,
     "medical_conclusion_allowed": False,
+    "forbidden_actions": [
+        "paper_package_mutation",
+        "manual_study_patch",
+        "quality_gate_relaxation",
+        "medical_claim_authoring",
+    ],
 }
 _SPECIFICITY_TARGET_TYPES = ("claim", "figure", "table", "metric", "source_path")
 

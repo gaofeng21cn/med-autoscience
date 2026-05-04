@@ -39,10 +39,19 @@ def test_publication_gate_specificity_request_packet_names_required_target_types
     assert packet["authority"] == "observability_only"
     assert packet["authoritative"] is False
     assert packet["can_clear_quality_gate"] is False
+    assert packet["quality_gate_relaxation_allowed"] is False
+    assert packet["paper_package_mutation_allowed"] is False
     assert packet["manual_study_patch_allowed"] is False
     assert packet["paper_patch_allowed"] is False
     assert packet["current_package_patch_allowed"] is False
+    assert packet["medical_claim_authoring_allowed"] is False
     assert packet["medical_conclusion_allowed"] is False
+    assert packet["forbidden_actions"] == [
+        "paper_package_mutation",
+        "manual_study_patch",
+        "quality_gate_relaxation",
+        "medical_claim_authoring",
+    ]
     assert packet["target_requirements"] == {
         "claim_targets_required": True,
         "figure_targets_required": True,
@@ -104,10 +113,19 @@ def test_ai_reviewer_publication_eval_request_packet_is_reviewer_owned_without_a
     assert packet["authority"] == "observability_only"
     assert packet["authoritative"] is False
     assert packet["can_clear_quality_gate"] is False
+    assert packet["quality_gate_relaxation_allowed"] is False
+    assert packet["paper_package_mutation_allowed"] is False
     assert packet["manual_study_patch_allowed"] is False
     assert packet["paper_patch_allowed"] is False
     assert packet["current_package_patch_allowed"] is False
+    assert packet["medical_claim_authoring_allowed"] is False
     assert packet["medical_conclusion_allowed"] is False
+    assert packet["forbidden_actions"] == [
+        "paper_package_mutation",
+        "manual_study_patch",
+        "quality_gate_relaxation",
+        "medical_claim_authoring",
+    ]
     assert packet["required_publication_eval_provenance"] == {
         "owner": "ai_reviewer",
         "source_kind": "publication_eval_ai_reviewer",

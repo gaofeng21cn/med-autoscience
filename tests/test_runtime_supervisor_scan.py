@@ -117,6 +117,18 @@ def test_supervisor_scan_queues_external_repair_for_retry_exhausted_no_live_work
     ]
     assert study["ai_repair_lifecycle"]["blocked_reason"] == "runtime_recovery_retry_budget_exhausted"
     assert study["ai_repair_lifecycle"]["next_owner"] == "external_supervisor"
+    assert study["ai_repair_lifecycle"]["authority"] == "external_supervisor"
+    assert study["ai_repair_lifecycle"]["allowed_write_surfaces"] == [
+        "artifacts/supervision/**",
+        "artifacts/autonomy/repair_lifecycle/latest.json",
+        "artifacts/autonomy/repair_actions/latest.json",
+    ]
+    assert study["ai_repair_lifecycle"]["forbidden_actions"] == [
+        "paper_package_mutation",
+        "manual_study_patch",
+        "quality_gate_relaxation",
+        "medical_claim_authoring",
+    ]
     assert result["queue_history"]["latest_action_count"] == 2
     assert result["developer_supervisor_mode"]["mode"] == "developer_apply_safe"
     assert result["developer_supervisor_mode"]["developer_mode_enabled"] is True
@@ -201,6 +213,18 @@ def test_supervisor_scan_queues_specificity_and_ai_reviewer_actions_without_qual
     assert result["studies"][0]["next_owner"] == "publication_gate"
     assert result["studies"][0]["supervisor_only"] is True
     assert result["studies"][0]["paper_package_mutated"] is False
+    for action in result["studies"][0]["action_queue"]:
+        assert action["authority"] == "observability_only"
+        assert action["quality_gate_relaxation_allowed"] is False
+        assert action["paper_package_mutation_allowed"] is False
+        assert action["manual_study_patch_allowed"] is False
+        assert action["medical_claim_authoring_allowed"] is False
+        assert action["handoff_packet"]["authority"] == "observability_only"
+        assert action["handoff_packet"]["quality_gate_relaxation_allowed"] is False
+        assert action["handoff_packet"]["paper_package_mutation_allowed"] is False
+        assert action["handoff_packet"]["manual_study_patch_allowed"] is False
+        assert action["handoff_packet"]["medical_claim_authoring_allowed"] is False
+        assert action["handoff_packet"]["allowed_write_surfaces"] == ["artifacts/supervision/**"]
 
 
 def test_supervisor_scan_apply_safe_actions_materializes_stopped_dm002_lifecycle_and_request_packets(
@@ -383,3 +407,108 @@ def test_supervisor_scan_downgrades_developer_mode_when_github_user_is_not_owner
     assert study["action_queue"] == []
     assert study["why_not_applied"] == "runtime_recovery_retry_budget_exhausted"
     assert not (study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json").exists()
+
+
+def test_supervisor_scan_apply_safe_actions_sanitizes_unsafe_repair_authority(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-risk")
+    repair_actions = study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json"
+    _write_json(
+        repair_actions,
+        {
+            "surface": "autonomy_repair_orchestration",
+            "schema_version": 1,
+            "state": "ready_for_repair",
+            "study_id": "002-risk",
+            "quest_id": "quest-risk",
+            "actions": [
+                {
+                    "action_type": "controller_repair",
+                    "repair_kind": "bounded_work_unit_redrive",
+                    "owner": "mas_controller",
+                    "risk": "medium",
+                    "auto_apply_allowed": True,
+                    "paper_package_mutation_allowed": True,
+                    "manual_study_patch_allowed": True,
+                    "quality_gate_relaxation_allowed": True,
+                    "medical_claim_authoring_allowed": True,
+                    "requested_write_surfaces": [
+                        "paper/submission_minimal/**",
+                        "artifacts/supervision/requests/ai_reviewer/latest.json",
+                    ],
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "002-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-risk",
+            "quest_status": "stopped",
+            "reason": "publication_gate_specificity_required",
+            "execution_owner_guard": {"supervisor_only": True},
+            "publication_eval": {
+                "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+                "recommended_actions": [
+                    {
+                        "action_id": "publication-eval-action::specificity",
+                        "next_work_unit": {"unit_id": "gate_needs_specificity"},
+                        "work_unit_fingerprint": "publication-blockers::specificity",
+                    }
+                ],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": "002-risk",
+            "current_stage": "publication_supervision",
+            "paper_stage": "publishability_gate_blocked",
+            "control_plane_snapshot": {"blocking_reasons": ["publication_eval.ai_reviewer_required"]},
+            "ai_repair_lifecycle": {
+                "state": "external_supervisor_required",
+                "blocked_reason": "runtime_recovery_not_authorized",
+                "external_supervisor_required": True,
+                "projection_only": True,
+            },
+        },
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=("002-risk",),
+        apply_safe_actions=True,
+    )
+
+    lifecycle_path = study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json"
+    lifecycle = json.loads(lifecycle_path.read_text(encoding="utf-8"))
+    top_action = lifecycle["top_action"]
+    assert result["studies"][0]["supervisor_only"] is True
+    assert lifecycle["authority"] == "observability_only"
+    assert lifecycle["allowed_write_surfaces"] == [
+        "artifacts/supervision/**",
+        "artifacts/autonomy/repair_lifecycle/latest.json",
+        "artifacts/autonomy/repair_actions/latest.json",
+    ]
+    assert lifecycle["forbidden_actions"] == [
+        "paper_package_mutation",
+        "manual_study_patch",
+        "quality_gate_relaxation",
+        "medical_claim_authoring",
+    ]
+    assert top_action["paper_package_mutation_allowed"] is False
+    assert top_action["manual_study_patch_allowed"] is False
+    assert top_action["quality_gate_relaxation_allowed"] is False
+    assert top_action["medical_claim_authoring_allowed"] is False
+    assert top_action["requested_write_surfaces"] == ["artifacts/supervision/**"]

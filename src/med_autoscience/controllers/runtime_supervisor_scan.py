@@ -19,6 +19,18 @@ from med_autoscience.profiles import WorkspaceProfile
 SCHEMA_VERSION = 1
 SUPERVISION_LATEST_RELATIVE_PATH = Path("artifacts/supervision/hourly/latest.json")
 SUPERVISION_HISTORY_RELATIVE_PATH = Path("artifacts/supervision/hourly/history.jsonl")
+SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES = ["artifacts/supervision/**"]
+SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES = [
+    "artifacts/supervision/**",
+    "artifacts/autonomy/repair_lifecycle/latest.json",
+    "artifacts/autonomy/repair_actions/latest.json",
+]
+SUPERVISION_FORBIDDEN_ACTIONS = [
+    "paper_package_mutation",
+    "manual_study_patch",
+    "quality_gate_relaxation",
+    "medical_claim_authoring",
+]
 
 
 def _utc_now() -> str:
@@ -234,6 +246,7 @@ def _action_id(*, study_id: str, action_type: str, reason: str | None) -> str:
 
 
 def _handoff_packet(*, study_id: str, quest_id: str | None, action: Mapping[str, Any]) -> dict[str, Any]:
+    authority = _text(action.get("authority")) or "observability_only"
     return {
         "packet_type": "external_supervisor_handoff",
         "schema_version": 1,
@@ -241,14 +254,22 @@ def _handoff_packet(*, study_id: str, quest_id: str | None, action: Mapping[str,
         "quest_id": quest_id,
         "action_type": _text(action.get("action_type")),
         "reason": _text(action.get("reason")) or _text(action.get("action_type")),
+        "authority": authority,
         "recommended_owner": (
             "external_engineering_agent"
-            if _text(action.get("authority")) == "external_supervisor"
-            else _text(action.get("authority")) or "observability_only"
+            if authority == "external_supervisor"
+            else authority
         ),
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+        "allowed_write_surfaces": (
+            list(SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES)
+            if authority == "external_supervisor"
+            else list(SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES)
+        ),
+        "forbidden_actions": list(SUPERVISION_FORBIDDEN_ACTIONS),
     }
 
 
@@ -267,6 +288,10 @@ def _decorate_action(
     decorated.setdefault("status", "queued")
     decorated.setdefault("quality_gate_relaxation_allowed", False)
     decorated.setdefault("paper_package_mutation_allowed", False)
+    decorated.setdefault("manual_study_patch_allowed", False)
+    decorated.setdefault("medical_claim_authoring_allowed", False)
+    decorated.setdefault("allowed_write_surfaces", list(SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES))
+    decorated.setdefault("forbidden_actions", list(SUPERVISION_FORBIDDEN_ACTIONS))
     return decorated
 
 
@@ -385,6 +410,17 @@ def _first_repair_action(repair_payload: Mapping[str, Any]) -> dict[str, Any] | 
     return None
 
 
+def _sanitize_repair_action_for_supervision(action: Mapping[str, Any]) -> dict[str, Any]:
+    sanitized = dict(action)
+    sanitized["paper_package_mutation_allowed"] = False
+    sanitized["manual_study_patch_allowed"] = False
+    sanitized["quality_gate_relaxation_allowed"] = False
+    sanitized["medical_claim_authoring_allowed"] = False
+    sanitized["requested_write_surfaces"] = list(SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES)
+    sanitized["forbidden_actions"] = list(SUPERVISION_FORBIDDEN_ACTIONS)
+    return sanitized
+
+
 def _blocked_lifecycle_from_repair(
     *,
     study_root: Path,
@@ -397,14 +433,19 @@ def _blocked_lifecycle_from_repair(
     action = _first_repair_action(repair_payload)
     if action is None:
         return None
+    safe_action = _sanitize_repair_action_for_supervision(action)
+    authority = "external_supervisor" if next_owner == "external_supervisor" else "observability_only"
     payload = {
         "surface": "ai_repair_lifecycle",
         "schema_version": 1,
         "study_id": _text(repair_payload.get("study_id")) or study_id,
         "quest_id": _text(repair_payload.get("quest_id")) or quest_id,
         "state": "blocked",
-        "top_action": action,
-        "auto_apply_allowed": bool(action.get("auto_apply_allowed")),
+        "authority": authority,
+        "allowed_write_surfaces": list(SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES),
+        "forbidden_actions": list(SUPERVISION_FORBIDDEN_ACTIONS),
+        "top_action": safe_action,
+        "auto_apply_allowed": bool(safe_action.get("auto_apply_allowed")),
         "last_apply_attempt_at": _utc_now(),
         "applied_at": None,
         "blocked_reason": blocked_reason,
