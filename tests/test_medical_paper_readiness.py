@@ -201,6 +201,7 @@ def _complete_authoring_runtime_authorization_inputs() -> dict[str, object]:
                     "claim_id": "claim-primary",
                     "paragraph_id": "results-p1",
                     "evidence_refs": ["paper/evidence_ledger.json#claim-primary"],
+                    "reviewer_concern_refs": ["paper/review/review_ledger.json#concern-primary"],
                 }
             ]
         },
@@ -388,7 +389,12 @@ def _materialize_complete_readiness_inputs(module: object, study_root: Path) -> 
                 "Discussion": "interpretation and limits",
             },
             "claim_to_paragraph_map": [
-                {"claim_id": "primary_claim", "section": "Results", "evidence_refs": ["evidence:primary"]}
+                {
+                    "claim_id": "primary_claim",
+                    "section": "Results",
+                    "evidence_refs": ["evidence:primary"],
+                    "reviewer_concern_refs": ["review:primary"],
+                }
             ],
             "display_to_claim_map": [{"display_id": "Table 2", "claim_id": "primary_claim"}],
             "restrained_language_strategy": {"required_claim_qualifiers": ["was associated with"]},
@@ -522,7 +528,12 @@ def test_medical_paper_readiness_consumes_long_horizon_canonical_surfaces(tmp_pa
                 "Discussion": "interpretation and limits",
             },
             "claim_to_paragraph_map": [
-                {"claim_id": "primary_claim", "section": "Results", "evidence_refs": ["evidence:primary"]}
+                {
+                    "claim_id": "primary_claim",
+                    "section": "Results",
+                    "evidence_refs": ["evidence:primary"],
+                    "reviewer_concern_refs": ["review:primary"],
+                }
             ],
             "display_to_claim_map": [{"display_id": "Table 2", "claim_id": "primary_claim"}],
             "restrained_language_strategy": {"required_claim_qualifiers": ["was associated with"]},

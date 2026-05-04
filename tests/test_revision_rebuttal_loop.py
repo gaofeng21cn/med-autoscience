@@ -70,6 +70,30 @@ def test_revision_rebuttal_loop_builds_canonical_projection() -> None:
             "paper/evidence_ledger.json#revision-intake",
             "paper/review/review_ledger.json#reviewer-round-1",
         ],
+        "repair_routes": {
+            "analysis_repair": {
+                "required": True,
+                "target_claim": "Subgroup effect is robust across centers.",
+                "target_section": None,
+                "ledger_refs": [
+                    "paper/evidence_ledger.json#revision-intake",
+                    "paper/review/review_ledger.json#reviewer-round-1",
+                ],
+            },
+            "text_repair": {
+                "required": False,
+                "target_claim": "Subgroup effect is robust across centers.",
+                "target_section": None,
+                "ledger_refs": [
+                    "paper/evidence_ledger.json#revision-intake",
+                    "paper/review/review_ledger.json#reviewer-round-1",
+                ],
+            },
+            "ai_reviewer_recheck": {
+                "required": True,
+                "reason": "analysis_repair_requires_ai_reviewer_recheck",
+            },
+        },
         "ai_reviewer_recheck_required": True,
         "response_letter_point": (
             "Response to R1-C1: route to analysis_repair for the requested change; "
@@ -77,9 +101,19 @@ def test_revision_rebuttal_loop_builds_canonical_projection() -> None:
         ),
     }
     assert matrix[1]["repair_type"] == "claim_downgrade"
-    assert matrix[1]["ai_reviewer_recheck_required"] is False
+    assert matrix[1]["ai_reviewer_recheck_required"] is True
+    assert matrix[1]["repair_routes"]["text_repair"]["required"] is True
+    assert matrix[1]["repair_routes"]["ai_reviewer_recheck"] == {
+        "required": True,
+        "reason": "text_repair_requires_ai_reviewer_recheck",
+    }
     assert matrix[2]["repair_type"] == "prose_revision"
-    assert matrix[2]["ai_reviewer_recheck_required"] is False
+    assert matrix[2]["ai_reviewer_recheck_required"] is True
+    assert matrix[2]["repair_routes"]["text_repair"]["required"] is True
+    assert matrix[2]["repair_routes"]["ai_reviewer_recheck"] == {
+        "required": True,
+        "reason": "text_repair_requires_ai_reviewer_recheck",
+    }
 
 
 def test_revision_rebuttal_loop_blocks_without_reviewer_comments() -> None:
