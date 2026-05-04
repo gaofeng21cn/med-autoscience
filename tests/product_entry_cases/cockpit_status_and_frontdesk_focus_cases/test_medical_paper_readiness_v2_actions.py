@@ -14,7 +14,12 @@ from tests.product_entry_cases.cockpit_status_and_frontdesk_focus_cases.test_med
 
 def _provider_payload(*, query: str = "diabetes mortality prediction") -> dict[str, object]:
     return {
-        "search_strategy": {"query": query, "mesh_terms": ["Diabetes Mellitus"]},
+        "search_strategy": {
+            "query": query,
+            "mesh_terms": ["Diabetes Mellitus"],
+            "keywords": ["mortality", "risk prediction", "diabetes"],
+        },
+        "study_rationale": "A transportable mortality risk model addresses a clinically actionable prognostic gap.",
         "search_date": "2026-05-04",
         "providers": [
             {
@@ -101,6 +106,8 @@ def _provider_payload(*, query: str = "diabetes mortality prediction") -> dict[s
                     {
                         "category": "journal_neighbor_refs",
                         "ref": "semantic_scholar:neighbor",
+                        "score": 0.91,
+                        "score_source_ref": "ops/literature_scores/neighbor.json",
                         "citation_ledger_ref": "paper/citation_ledger.json#journal-neighbor",
                     },
                 ],
