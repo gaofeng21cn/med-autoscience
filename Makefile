@@ -1,5 +1,9 @@
 .PHONY: test test-smoke test-regression test-ci-preflight test-fast test-meta test-display test-submission test-full test-family test-structure test-control-plane test-medical-paper-ops
 
+MAS_PYTEST_WORKERS ?= auto
+MAS_PYTEST_DIST ?= loadscope
+MAS_PYTEST_XDIST_ARGS := -n $(MAS_PYTEST_WORKERS) --dist=$(MAS_PYTEST_DIST)
+
 CONTROL_PLANE_TESTS := \
 	tests/test_control_plane_regression.py \
 	tests/test_control_plane_structure.py \
@@ -40,7 +44,7 @@ test-smoke:
 	uv run pytest tests/test_test_command_surfaces.py tests/test_line_budget.py -q
 
 test-regression:
-	uv run pytest -q -m "not meta and not display_heavy and not submission_heavy and not family"
+	uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m "not meta and not display_heavy and not submission_heavy and not family"
 
 test-ci-preflight:
 	@if [ -z "$${BASE_REF:-}" ]; then echo "BASE_REF is required, for example: BASE_REF=HEAD~1 make test-ci-preflight" >&2; exit 2; fi
@@ -52,10 +56,10 @@ test-meta:
 	uv run pytest -q -m meta
 
 test-display:
-	uv run pytest -q -m display_heavy
+	uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy
 
 test-submission:
-	uv run pytest -q -m submission_heavy
+	uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m submission_heavy
 
 test-family:
 	uv run pytest tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q

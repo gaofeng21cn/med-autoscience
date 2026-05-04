@@ -92,6 +92,9 @@ def _assert_mcp_modes_cover_catalog(*, expected: tuple[object, ...], actual_mode
 def test_makefile_exposes_layered_test_entrypoints() -> None:
     makefile = _read("Makefile")
 
+    assert "MAS_PYTEST_WORKERS ?= auto" in makefile
+    assert "MAS_PYTEST_DIST ?= loadscope" in makefile
+    assert "MAS_PYTEST_XDIST_ARGS := -n $(MAS_PYTEST_WORKERS) --dist=$(MAS_PYTEST_DIST)" in makefile
     assert "test-control-plane:" in makefile
     assert "CONTROL_PLANE_TESTS :=" in makefile
     for test_path in REQUIRED_CONTROL_PLANE_TESTS:
@@ -101,16 +104,19 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     assert "test-smoke:" in makefile
     assert "uv run pytest tests/test_test_command_surfaces.py tests/test_line_budget.py -q" in makefile
     assert "test-regression:" in makefile
-    assert 'uv run pytest -q -m "not meta and not display_heavy and not submission_heavy and not family"' in makefile
+    assert (
+        'uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) '
+        '-m "not meta and not display_heavy and not submission_heavy and not family"'
+    ) in makefile
     assert "test-ci-preflight:" in makefile
     assert 'uv run python -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"' in makefile
     assert "test-fast: test-regression" in makefile
     assert "test-meta:" in makefile
     assert "uv run pytest -q -m meta" in makefile
     assert "test-display:" in makefile
-    assert "uv run pytest -q -m display_heavy" in makefile
+    assert "uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy" in makefile
     assert "test-submission:" in makefile
-    assert "uv run pytest -q -m submission_heavy" in makefile
+    assert "uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m submission_heavy" in makefile
     assert "test-family:" in makefile
     assert (
         "uv run pytest tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py "
@@ -131,6 +137,35 @@ def test_structure_lane_keeps_line_budget_and_quality_gate_wrapper() -> None:
 
     assert "\tuv run python scripts/line_budget.py" in structure_block
     assert "\tscripts/run-structure-quality-gate.sh" in structure_block
+
+
+def test_only_heavy_make_lanes_use_xdist() -> None:
+    makefile = _read("Makefile")
+    lane_names = (
+        "test-smoke",
+        "test-regression",
+        "test-meta",
+        "test-display",
+        "test-submission",
+        "test-family",
+        "test-control-plane",
+        "test-medical-paper-ops",
+    )
+    lane_blocks = {
+        lane: makefile.split(f"{lane}:", maxsplit=1)[1].split("\ntest-", maxsplit=1)[0]
+        for lane in lane_names
+    }
+
+    for lane in ("test-regression", "test-display", "test-submission"):
+        assert "$(MAS_PYTEST_XDIST_ARGS)" in lane_blocks[lane]
+    for lane in (
+        "test-smoke",
+        "test-meta",
+        "test-family",
+        "test-control-plane",
+        "test-medical-paper-ops",
+    ):
+        assert "$(MAS_PYTEST_XDIST_ARGS)" not in lane_blocks[lane]
 
 
 def test_structure_quality_gate_wrapper_runs_sentrux_and_opl_compare_ref_on_failure() -> None:
@@ -247,6 +282,13 @@ def test_pyproject_registers_meta_display_and_submission_markers() -> None:
     assert "family: family shared boundary tests that depend on cross-repo shared-module topology" in markers
 
 
+def test_pyproject_dev_dependencies_include_xdist_for_heavy_lanes() -> None:
+    pyproject = tomllib.loads(_read("pyproject.toml"))
+    dev_dependencies = pyproject["dependency-groups"]["dev"]
+
+    assert "pytest-xdist>=3.6" in dev_dependencies
+
+
 def test_pyproject_pins_opl_harness_shared_to_a_full_commit() -> None:
     pyproject = tomllib.loads(_read("pyproject.toml"))
     dependency = next(
@@ -359,6 +401,21 @@ def test_verify_script_writes_single_lane_summary(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     fake_make.chmod(0o755)
+    fake_uv = fake_bin / "uv"
+    fake_uv.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "if [[ \"$1\" == \"run\" && \"$2\" == \"python\" && \"$3\" == \"scripts/line_budget.py\" ]]; then\n"
+        "  exit 0\n"
+        "fi\n"
+        "if [[ \"$1\" == \"run\" && \"$2\" == \"python\" && \"$3\" == \"-m\" && \"$4\" == \"py_compile\" ]]; then\n"
+        "  exit 0\n"
+        "fi\n"
+        "echo \"unexpected fake uv $*\" >&2\n"
+        "exit 2\n",
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
     summary_path = tmp_path / "summary" / "smoke.json"
     env = os.environ.copy()
     env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
