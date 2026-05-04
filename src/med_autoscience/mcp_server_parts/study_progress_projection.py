@@ -8,6 +8,11 @@ from med_autoscience.controllers.medical_paper_v3_action_truth import (
     compact_missing_surface_with_action_truth,
 )
 from med_autoscience.controllers.medical_paper_ops_health import build_medical_paper_ops_health
+from med_autoscience.controllers.medical_paper_research_loop import (
+    build_medical_paper_research_loop,
+    compact_medical_paper_research_loop,
+    research_loop_markdown_lines,
+)
 from med_autoscience.controllers.medical_paper_v4_operations import build_v4_operations_dashboard
 from med_autoscience.mcp_server_parts.open_auto_research_projection import (
     compact_open_auto_research_projection,
@@ -194,6 +199,9 @@ def _compact_medical_paper_readiness(value: Any) -> dict[str, Any] | None:
     )
     compact["ops_health"] = _compact_medical_paper_ops_health(
         build_medical_paper_ops_health(value)
+    )
+    compact["research_loop"] = compact_medical_paper_research_loop(
+        build_medical_paper_research_loop(value, ops_health=compact["ops_health"])
     )
     return compact
 
@@ -613,6 +621,7 @@ def _render_mcp_progress_medical_paper_readiness(compact: dict[str, Any]) -> lis
         f"`{readiness.get('mechanical_projection_can_authorize_quality')}`"
     )
     lines.extend(_render_mcp_medical_paper_v4_operations(readiness.get("v4_operations")))
+    lines.extend(research_loop_markdown_lines(readiness.get("research_loop") or {}))
     lines.extend(_render_mcp_medical_paper_ops_health(readiness.get("ops_health")))
     return lines
 

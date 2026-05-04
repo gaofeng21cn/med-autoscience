@@ -13,6 +13,10 @@ from med_autoscience.controllers.medical_paper_ops_health import (
     build_medical_paper_ops_health,
     workspace_medical_paper_ops_health,
 )
+from med_autoscience.controllers.medical_paper_research_loop import (
+    build_medical_paper_research_loop,
+    workspace_medical_paper_research_loop,
+)
 from med_autoscience.controllers.medical_paper_v4_operations import (
     build_v4_operations_dashboard,
     workspace_v4_operations_state,
@@ -605,6 +609,10 @@ def _workspace_cockpit_study_snapshot(
     readiness = item.get("medical_paper_readiness") if isinstance(item.get("medical_paper_readiness"), Mapping) else {}
     item["medical_paper_v4_operations"] = build_v4_operations_dashboard(readiness)
     item["medical_paper_ops_health"] = build_medical_paper_ops_health(readiness, progress_payload=item)
+    item["medical_paper_research_loop"] = build_medical_paper_research_loop(
+        readiness,
+        ops_health=item["medical_paper_ops_health"],
+    )
     alerts = list(item["current_blockers"])
     progress_freshness = dict(item.get("progress_freshness") or {})
     progress_summary = _non_empty_text(progress_freshness.get("summary"))
@@ -676,6 +684,7 @@ def read_workspace_cockpit(
     medical_paper_readiness_state = _workspace_medical_paper_readiness_state(studies=studies)
     medical_paper_v4_operations_state = workspace_v4_operations_state(studies=studies)
     medical_paper_ops_health_state = workspace_medical_paper_ops_health(studies=studies)
+    medical_paper_research_loop_state = workspace_medical_paper_research_loop(studies=studies)
     ai_first_operations_state = _workspace_ai_first_operations_state(studies=studies)
     ai_first_cross_study_completion_projection = _workspace_ai_first_cross_study_completion_projection(
         study_roots=study_roots,
@@ -714,6 +723,7 @@ def read_workspace_cockpit(
         "medical_paper_readiness_state": medical_paper_readiness_state,
         "medical_paper_v4_operations_state": medical_paper_v4_operations_state,
         "medical_paper_ops_health_state": medical_paper_ops_health_state,
+        "medical_paper_research_loop_state": medical_paper_research_loop_state,
         "ai_first_operations_state": ai_first_operations_state,
         "ai_first_cross_study_completion_projection": ai_first_cross_study_completion_projection,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection,

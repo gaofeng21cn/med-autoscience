@@ -16,6 +16,7 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_autonomy_runtime_control.py",
         "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_cross_study_completion.py",
         "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_gate_clearing_followthrough.py",
+        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_medical_paper_ops_health.py",
         "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_medical_paper_readiness.py",
         "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_medical_paper_readiness_v2_actions.py",
         "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_quality_lane.py",
@@ -313,4 +314,4 @@ def test_aggregate_collection_surfaces_hold_expected_collection_count() -> None:
         "tests/test_runtime_watch.py",
     )
 
-    assert len(collected_lines) == 139
+    assert len(collected_lines) == 141

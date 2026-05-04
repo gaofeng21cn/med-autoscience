@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 from tests.product_entry_cases.cockpit_status_and_frontdesk_focus_cases.test_medical_paper_readiness import (
     _base_progress_payload,
     _ready_doctor_report,
@@ -9,6 +11,51 @@ from tests.product_entry_cases.cockpit_status_and_frontdesk_focus_cases.test_med
     write_study,
 )
 from tests.test_medical_paper_ops_health import _readiness
+
+
+def _research_loop_readiness() -> dict[str, object]:
+    readiness = deepcopy(_readiness())
+    readiness["next_action"] = {
+        "summary": "处理统计 blocker 后决定 stop-loss/switch-line 或写作授权",
+        "action_id": "resolve_statistical_blockers",
+    }
+    readiness["capability_surfaces"].extend(
+        [
+            {
+                "surface_key": "route_decision_orchestrator",
+                "status": "partial",
+                "missing_reason": "switch_line_decision_pending",
+                "artifact_path": "artifacts/controller_decisions/latest.json",
+                "evidence_refs": ["artifacts/controller_decisions/latest.json"],
+                "required_for_ready": True,
+            },
+            {
+                "surface_key": "stop_loss_memo",
+                "status": "blocked",
+                "missing_reason": "weak_result_requires_stop_loss",
+                "artifact_path": "artifacts/medical_paper/stop_loss_memo.json",
+                "evidence_refs": ["artifacts/medical_paper/stop_loss_memo.json"],
+                "required_for_ready": True,
+            },
+            {
+                "surface_key": "revision_rebuttal_loop",
+                "status": "partial",
+                "missing_reason": "ai_reviewer_recheck_pending",
+                "artifact_path": "artifacts/medical_paper/revision_rebuttal_loop.json",
+                "evidence_refs": ["artifacts/medical_paper/revision_rebuttal_loop.json"],
+                "required_for_ready": True,
+            },
+            {
+                "surface_key": "authoring_runtime_authorization",
+                "status": "blocked",
+                "missing_reason": "ai_reviewer_provenance_missing",
+                "artifact_path": "artifacts/medical_paper/authoring_runtime_authorization.json",
+                "evidence_refs": ["artifacts/medical_paper/authoring_runtime_authorization.json"],
+                "required_for_ready": True,
+            },
+        ]
+    )
+    return readiness
 
 
 def _patch_ready_workspace(module, monkeypatch) -> None:
@@ -24,7 +71,7 @@ def test_workspace_cockpit_projects_v5_ops_health(monkeypatch, tmp_path) -> None
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
-    readiness = _readiness()
+    readiness = _research_loop_readiness()
 
     _patch_ready_workspace(module, monkeypatch)
     monkeypatch.setattr(
@@ -47,7 +94,33 @@ def test_workspace_cockpit_projects_v5_ops_health(monkeypatch, tmp_path) -> None
     assert workspace_health["status"] == "blocked"
     assert workspace_health["counts"] == {"study_count": 1, "ready": 0, "partial": 0, "blocked": 1}
     assert workspace_health["last_green_at"] == "2026-05-04T01:00:00Z"
+    research_loop = payload["studies"][0]["medical_paper_research_loop"]
+    assert research_loop["surface"] == "medical_paper_research_loop"
+    assert research_loop["facets"]["literature"]["status"] == "ready"
+    assert research_loop["facets"]["route_decision"]["status"] == "partial"
+    assert research_loop["facets"]["statistical_discipline"]["status"] == "blocked"
+    assert research_loop["facets"]["stop_loss_switch_line"]["durable_refs"] == [
+        "artifacts/medical_paper/stop_loss_memo.json"
+    ]
+    assert research_loop["facets"]["revision_authoring"]["status"] == "blocked"
+    assert research_loop["facets"]["real_soak"]["status"] == "partial"
+    assert research_loop["authority_contract"]["can_authorize_quality"] is False
+    assert research_loop["authority_contract"]["can_authorize_submission"] is False
+    assert research_loop["authority_contract"]["can_authorize_finalize"] is False
+    assert research_loop["authority_contract"]["mechanical_projection_can_authorize_quality"] is False
+    workspace_loop = payload["medical_paper_research_loop_state"]
+    assert workspace_loop["surface"] == "workspace_medical_paper_research_loop"
+    assert workspace_loop["status"] == "blocked"
     assert "## v5 运营健康闭环 / Medical Paper Ops Health" in markdown
+    assert "## 自动论文科研闭环 / Medical Paper Research Loop" in markdown
+    assert "文献缺口 / Literature: `ready`" in markdown
+    assert "路线裁决 / Study Line Decision: `partial`" in markdown
+    assert "统计 blocker / Statistical Discipline: `blocked`" in markdown
+    assert "止损/换线 / Stop-loss or Switch-line: `blocked`" in markdown
+    assert "返修/写作授权 / Revision and Authoring: `blocked`" in markdown
+    assert "真实 soak / Real Soak: `partial`" in markdown
+    assert "ref `artifacts/medical_paper/stop_loss_memo.json`" in markdown
+    assert "authority contract: quality/submission/finalize/mechanical-quality `False/False/False/False`" in markdown
     assert "`001-risk` ops health: `blocked`" in markdown
 
 
@@ -58,7 +131,7 @@ def test_product_frontdesk_projects_workspace_v5_ops_health(monkeypatch, tmp_pat
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
-    readiness = _readiness()
+    readiness = _research_loop_readiness()
 
     _patch_ready_workspace(module, monkeypatch)
     monkeypatch.setattr(
@@ -76,5 +149,16 @@ def test_product_frontdesk_projects_workspace_v5_ops_health(monkeypatch, tmp_pat
     assert ops_health["authority_contract"]["can_authorize_quality"] is False
     assert ops_health["authority_contract"]["can_authorize_submission"] is False
     assert ops_health["authority_contract"]["can_authorize_finalize"] is False
+    research_loop = payload["workspace_medical_paper_research_loop"]
+    assert research_loop["surface"] == "workspace_medical_paper_research_loop"
+    assert research_loop["status"] == "blocked"
+    assert research_loop["counts"] == {"study_count": 1, "ready": 0, "partial": 0, "blocked": 1}
+    assert research_loop["authority_contract"]["can_authorize_quality"] is False
+    assert research_loop["authority_contract"]["can_authorize_submission"] is False
+    assert research_loop["authority_contract"]["can_authorize_finalize"] is False
+    assert research_loop["authority_contract"]["mechanical_projection_can_authorize_quality"] is False
     assert "Medical paper ops health:" in markdown
+    assert "Medical Paper Research Loop:" in markdown
+    assert "`001-risk` research loop: blocked" in markdown
+    assert "authority contract: quality/submission/finalize/mechanical-quality `False/False/False/False`" in markdown
     assert "`001-risk` ops health: blocked" in markdown

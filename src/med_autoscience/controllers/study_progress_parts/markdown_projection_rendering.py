@@ -7,6 +7,10 @@ from med_autoscience.controllers.medical_paper_v3_action_truth import (
     action_truth_for_surface,
 )
 from med_autoscience.controllers.medical_paper_ops_health import build_medical_paper_ops_health
+from med_autoscience.controllers.medical_paper_research_loop import (
+    build_medical_paper_research_loop,
+    research_loop_markdown_lines,
+)
 from med_autoscience.controllers.medical_paper_v4_operations import build_v4_operations_dashboard
 
 from .publication_runtime import *  # noqa: F403
@@ -755,6 +759,10 @@ def _append_medical_paper_readiness(lines: list[str], payload: Mapping[str, Any]
     ops_health = payload.get("medical_paper_ops_health")
     if not isinstance(ops_health, Mapping):
         ops_health = build_medical_paper_ops_health(readiness, progress_payload=payload)
+    research_loop = payload.get("medical_paper_research_loop")
+    if not isinstance(research_loop, Mapping):
+        research_loop = build_medical_paper_research_loop(readiness, ops_health=ops_health)
+    lines.extend(research_loop_markdown_lines(research_loop))
     lines.extend(_medical_paper_ops_health_lines(ops_health))
 
 

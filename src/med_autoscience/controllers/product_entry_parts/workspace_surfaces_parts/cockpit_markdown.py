@@ -1,3 +1,9 @@
+from collections.abc import Mapping
+from typing import Any
+
+from med_autoscience.controllers.medical_paper_research_loop import research_loop_markdown_lines
+
+
 def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
     mainline_snapshot = dict(payload.get("mainline_snapshot") or {})
     workspace_supervision = dict(payload.get("workspace_supervision") or {})
@@ -152,6 +158,20 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             )
     else:
         lines.append("- 当前还没有 v5 ops health projection。")
+    research_loop_state = dict(payload.get("medical_paper_research_loop_state") or {})
+    if research_loop_state:
+        lines.extend(research_loop_markdown_lines(research_loop_state))
+        for study in research_loop_state.get("studies") or []:
+            if not isinstance(study, Mapping):
+                continue
+            lines.append(
+                f"- `{study.get('study_id') or 'unknown-study'}` research loop: "
+                f"`{study.get('overall_status') or 'unknown'}`"
+            )
+            lines.extend(research_loop_markdown_lines(study, heading=False))
+    else:
+        lines.extend(["", "## 自动论文科研闭环 / Medical Paper Research Loop", ""])
+        lines.append("- 当前还没有 Medical Paper Research Loop projection。")
     lines.extend(["", "## AI-first Operations", ""])
     ai_first_operations_state = dict(payload.get("ai_first_operations_state") or {})
     if ai_first_operations_state:
@@ -461,6 +481,14 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
                         if card.get("label")
                     )
                 )
+        research_loop = dict(item.get("medical_paper_research_loop") or {})
+        if research_loop:
+            lines.append(
+                "- Medical Paper Research Loop: "
+                f"overall_status `{research_loop.get('overall_status') or 'unknown'}`；"
+                f"下一步: {dict(research_loop.get('next_action') or {}).get('summary') or 'none'}；"
+                "authority contract: projection-only"
+            )
         restore_point = dict(autonomy_contract.get("restore_point") or {})
         if restore_point.get("summary"):
             lines.append(f"- 恢复点: {restore_point.get('summary')}")
