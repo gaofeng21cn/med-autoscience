@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -63,6 +64,58 @@ _GATE_NEEDS_SPECIFICITY_RATIONALE = (
     "Publication gate selected gate_needs_specificity because the current blocker is generic and lacks concrete "
     "claim, display, evidence, citation, metric, source path, package artifact, or provenance target details."
 )
+_SUBMISSION_HANDOFF_GAP_TYPES = frozenset({"delivery", "reporting"})
+_SUBMISSION_HANDOFF_TERMS = (
+    "admin metadata",
+    "administrative metadata",
+    "author metadata",
+    "author-confirmed",
+    "author confirmed",
+    "affiliation",
+    "corresponding author",
+    "title-page",
+    "title page",
+    "declaration",
+    "declarations",
+    "funding",
+    "conflict of interest",
+    "competing interest",
+    "ethics",
+    "consent",
+    "data availability",
+    "cover letter",
+    "submission metadata",
+    "submission-ready release",
+    "bundle proof",
+    "bundle proofing",
+    "final proofing",
+    "provenance proof",
+    "provenance surfaces",
+)
+_SUBMISSION_HANDOFF_BLOCKING_TERMS = (
+    "claim",
+    "evidence gap",
+    "external validation",
+    "analysis",
+    "model",
+    "sensitivity",
+    "subgroup",
+    "endpoint",
+    "cohort",
+    "method",
+    "methods",
+    "result",
+    "results",
+    "figure",
+    "table",
+    "metric",
+    "data cleaning",
+    "rerun",
+    "re-run",
+    "experiment",
+)
+_NON_LIVE_RUNTIME_STATUSES = frozenset({"none", "not_live", "missing", "missing_live_session"})
+_UNKNOWN_RUNTIME_STATUSES = frozenset({"unknown"})
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -112,9 +165,95 @@ def _publication_eval_has_only_optional_gaps(publication_eval_payload: dict[str,
     for gap in gaps:
         if not isinstance(gap, dict):
             return False
-        if str(gap.get("severity") or "").strip() != "optional":
+        if not _publication_eval_gap_is_submission_milestone_handoff(gap):
             return False
     return True
+
+
+def _publication_eval_gap_is_submission_milestone_handoff(gap: dict[str, Any]) -> bool:
+    severity = str(gap.get("severity") or "").strip()
+    if severity == "optional":
+        return True
+    if severity != "important":
+        return False
+    gap_type = str(gap.get("gap_type") or "").strip()
+    if gap_type not in _SUBMISSION_HANDOFF_GAP_TYPES:
+        return False
+    text = " ".join(
+        str(value or "").strip().lower()
+        for value in (
+            gap.get("gap_id"),
+            gap.get("gap_type"),
+            gap.get("summary"),
+        )
+        if str(value or "").strip()
+    )
+    if any(term in text for term in _SUBMISSION_HANDOFF_BLOCKING_TERMS):
+        return False
+    return any(term in text for term in _SUBMISSION_HANDOFF_TERMS)
+
+
+def _runtime_status_text(payload: dict[str, Any], *keys: str) -> str | None:
+    current: Any = payload
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    text = str(current or "").strip()
+    return text or None
+
+
+def _runtime_status_bool(payload: dict[str, Any], *keys: str) -> bool | None:
+    current: Any = payload
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current if isinstance(current, bool) else None
+
+
+def _runtime_status_has_active_run_id(status_payload: dict[str, Any]) -> bool:
+    candidate_paths = (
+        ("active_run_id",),
+        ("continuation_state", "active_run_id"),
+        ("runtime_liveness_audit", "active_run_id"),
+        ("runtime_liveness_audit", "runtime_audit", "active_run_id"),
+    )
+    return any(
+        _runtime_status_text(status_payload, *path) is not None
+        for path in candidate_paths
+    )
+
+
+def _runtime_status_has_explicit_no_live_worker(status_payload: dict[str, Any]) -> bool:
+    if _runtime_status_has_active_run_id(status_payload):
+        return False
+    liveness_statuses = {
+        status
+        for path in (
+            ("runtime_liveness_status",),
+            ("runtime_liveness_audit", "status"),
+            ("runtime_liveness_audit", "runtime_audit", "status"),
+        )
+        if (status := _runtime_status_text(status_payload, *path)) is not None
+    }
+    if "live" in liveness_statuses:
+        return False
+    worker_running_values = [
+        value
+        for path in (
+            ("worker_running",),
+            ("runtime_liveness_audit", "worker_running"),
+            ("runtime_liveness_audit", "runtime_audit", "worker_running"),
+        )
+        if (value := _runtime_status_bool(status_payload, *path)) is not None
+    ]
+    if True in worker_running_values:
+        return False
+    worker_explicitly_not_running = False in worker_running_values
+    if liveness_statuses & _NON_LIVE_RUNTIME_STATUSES:
+        return True
+    return bool(worker_explicitly_not_running and liveness_statuses & _UNKNOWN_RUNTIME_STATUSES)
 
 
 def _runtime_status_is_live(status_payload: dict[str, Any]) -> bool:
@@ -124,7 +263,9 @@ def _runtime_status_is_live(status_payload: dict[str, Any]) -> bool:
     runtime_liveness_audit = status_payload.get("runtime_liveness_audit")
     if isinstance(runtime_liveness_audit, dict) and str(runtime_liveness_audit.get("status") or "").strip() == "live":
         return True
-    return str(status_payload.get("quest_status") or "").strip() in {"active", "running"}
+    if str(status_payload.get("quest_status") or "").strip() in {"active", "running"}:
+        return not _runtime_status_has_explicit_no_live_worker(status_payload)
+    return False
 
 
 def _parked_submission_milestone_manual_finish(status_payload: dict[str, Any]) -> bool:

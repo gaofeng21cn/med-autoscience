@@ -212,15 +212,15 @@ def test_supervisor_consume_blocks_apply_for_non_developer_apply_safe_mode(
     assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
 
 
-def test_supervisor_consume_ignores_non_runtime_platform_repair_actions(
+def test_supervisor_consume_writes_request_handoff_for_publication_gate_and_ai_reviewer_actions(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_consumer")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
-    study_id = "003-endocrine-burden-followup"
-    write_study(profile.workspace_root, study_id, quest_id="quest-nf")
+    study_id = "001-dm-cvd-mortality-risk"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm")
     latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
     _write_json(
         latest_path,
@@ -230,9 +230,29 @@ def test_supervisor_consume_ignores_non_runtime_platform_repair_actions(
             "action_queue": [
                 {
                     "study_id": study_id,
+                    "quest_id": "quest-dm",
+                    "action_type": "publication_gate_specificity_required",
+                    "authority": "observability_only",
+                    "reason": "publication_gate_specificity_required",
+                    "handoff_packet": {
+                        "request_kind": "publication_gate_specificity_required",
+                        "authority": "observability_only",
+                        "paper_package_mutation_allowed": False,
+                        "quality_gate_relaxation_allowed": False,
+                    },
+                },
+                {
+                    "study_id": study_id,
+                    "quest_id": "quest-dm",
                     "action_type": "return_to_ai_reviewer_workflow",
                     "authority": "observability_only",
                     "reason": "ai_reviewer_assessment_required",
+                    "handoff_packet": {
+                        "request_kind": "return_to_ai_reviewer_workflow",
+                        "authority": "observability_only",
+                        "paper_package_mutation_allowed": False,
+                        "quality_gate_relaxation_allowed": False,
+                    },
                 }
             ],
         },
@@ -245,7 +265,30 @@ def test_supervisor_consume_ignores_non_runtime_platform_repair_actions(
         apply=True,
     )
 
+    gate_packet_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "publication_gate_specificity_required.json"
+    )
+    ai_packet_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "return_to_ai_reviewer_workflow.json"
+    )
     assert result["repair_tasks"] == []
-    assert result["ignored_actions"][0]["action_type"] == "return_to_ai_reviewer_workflow"
-    assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
-    assert not (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").exists()
+    assert result["request_tasks"][0]["action_type"] == "publication_gate_specificity_required"
+    assert result["request_tasks"][1]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert result["ignored_actions"] == []
+    assert gate_packet_path.is_file()
+    assert ai_packet_path.is_file()
+    gate_packet = json.loads(gate_packet_path.read_text(encoding="utf-8"))
+    ai_packet = json.loads(ai_packet_path.read_text(encoding="utf-8"))
+    assert gate_packet["authority"] == "observability_only"
+    assert ai_packet["authority"] == "observability_only"
+    assert gate_packet["paper_package_mutation_allowed"] is False
+    assert ai_packet["quality_gate_relaxation_allowed"] is False
+    assert (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()

@@ -11,6 +11,7 @@ _PARTS = (
     "controller_parking_cases.py",
     "interaction_arbitration_cases.py",
     "finalize_and_recovery_cases.py",
+    "submission_milestone_parking_cases.py",
     "startup_boundary_cases.py",
     "runtime_event_surface_cases.py",
     "overlay_audit_and_progress_cases.py",

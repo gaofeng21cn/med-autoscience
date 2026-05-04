@@ -27,7 +27,10 @@ def _controller_decision_requests_human_review_milestone_stop(*, study_root: Pat
     if "stop_runtime" not in action_types:
         return False
     reason = str(payload.get("reason") or "").strip().lower()
-    return "human-review milestone reached" in reason
+    return (
+        "human-review milestone reached" in reason
+        or "submission-package milestone remains parked" in reason
+    )
 
 
 def _evaluation_summary_reports_bundle_only_remaining(*, study_root: Path) -> bool:

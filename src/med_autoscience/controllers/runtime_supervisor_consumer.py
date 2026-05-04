@@ -18,6 +18,12 @@ RUNTIME_PLATFORM_REPAIR_PACKET_RELATIVE_PATH = Path(
     "artifacts/supervision/consumer/runtime_platform_repair.json"
 )
 SUPPORTED_ACTION_TYPE = "runtime_platform_repair"
+SUPPORTED_REQUEST_ACTION_TYPES = frozenset(
+    {
+        "publication_gate_specificity_required",
+        "return_to_ai_reviewer_workflow",
+    }
+)
 SUPPORTED_MODE = "developer_apply_safe"
 BRANCH_NAME = "codex/mas-supervisor-queue-consumer"
 OWNED_FILES = [
@@ -46,6 +52,8 @@ ALLOWED_WRITE_SURFACES = [
     "artifacts/supervision/consumer/latest.json",
     "artifacts/supervision/consumer/history.jsonl",
     "studies/<study_id>/artifacts/supervision/consumer/runtime_platform_repair.json",
+    "studies/<study_id>/artifacts/supervision/consumer/publication_gate_specificity_required.json",
+    "studies/<study_id>/artifacts/supervision/consumer/return_to_ai_reviewer_workflow.json",
 ]
 MERGE_CLEANUP_CHECKLIST = [
     "focused pytest green",
@@ -94,6 +102,12 @@ def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:
 
 def _packet_path(profile: WorkspaceProfile, study_id: str) -> Path:
     return _study_root(profile, study_id) / RUNTIME_PLATFORM_REPAIR_PACKET_RELATIVE_PATH
+
+
+def _request_packet_path(profile: WorkspaceProfile, study_id: str, action_type: str) -> Path:
+    if action_type not in SUPPORTED_REQUEST_ACTION_TYPES:
+        raise ValueError(f"unsupported supervisor request action_type: {action_type}")
+    return _study_root(profile, study_id) / "artifacts" / "supervision" / "consumer" / f"{action_type}.json"
 
 
 def _scan_latest_path(profile: WorkspaceProfile) -> Path:
@@ -186,6 +200,81 @@ def _repair_task(
     }
 
 
+def _request_owner_for_action_type(action_type: str) -> str:
+    if action_type == "publication_gate_specificity_required":
+        return "publication_gate"
+    if action_type == "return_to_ai_reviewer_workflow":
+        return "ai_reviewer"
+    return "controller"
+
+
+def _request_task(
+    *,
+    profile: WorkspaceProfile,
+    action: Mapping[str, Any],
+    developer_mode_payload: Mapping[str, Any],
+    apply: bool,
+) -> dict[str, Any]:
+    study_id = _text(action.get("study_id")) or "unknown-study"
+    action_type = _text(action.get("action_type")) or "unknown_action"
+    handoff_packet = _mapping(action.get("handoff_packet"))
+    packet_path = _request_packet_path(profile, study_id, action_type)
+    apply_allowed = (
+        apply
+        and _text(developer_mode_payload.get("mode")) == SUPPORTED_MODE
+        and developer_mode_payload.get("safe_actions_enabled") is True
+    )
+    blocked_reason = None if apply_allowed or not apply else _github_block_reason(developer_mode_payload)
+    dispatch_status = "applied" if apply_allowed else "dry_run" if not apply else "blocked"
+    authority = _text(action.get("authority")) or _text(handoff_packet.get("authority")) or "observability_only"
+    return {
+        "surface": "supervisor_request_handoff_task",
+        "schema_version": SCHEMA_VERSION,
+        "study_id": study_id,
+        "quest_id": _text(action.get("quest_id")) or _text(handoff_packet.get("quest_id")),
+        "action_type": action_type,
+        "action_id": _text(action.get("action_id")),
+        "reason": _text(action.get("reason")) or _text(handoff_packet.get("reason")),
+        "authority": authority,
+        "request_owner": _request_owner_for_action_type(action_type),
+        "dispatch_status": dispatch_status,
+        "blocked_reason": blocked_reason,
+        "dry_run": not apply,
+        "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+        "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
+        "github_gate": dict(_mapping(developer_mode_payload.get("github_user_gate"))),
+        "effective_mode": _text(developer_mode_payload.get("mode")),
+        "requested_mode": _text(developer_mode_payload.get("requested_mode")),
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+        "platform_code_mutation_allowed": False,
+        "source_action": dict(action),
+        "handoff_packet": {
+            **handoff_packet,
+            "surface": "supervisor_request_handoff_packet",
+            "schema_version": SCHEMA_VERSION,
+            "study_id": study_id,
+            "quest_id": _text(action.get("quest_id")) or _text(handoff_packet.get("quest_id")),
+            "request_kind": _text(handoff_packet.get("request_kind")) or action_type,
+            "action_type": action_type,
+            "authority": authority,
+            "request_owner": _request_owner_for_action_type(action_type),
+            "effective_mode": _text(developer_mode_payload.get("mode")),
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "manual_study_patch_allowed": False,
+            "medical_claim_authoring_allowed": False,
+            "platform_code_mutation_allowed": False,
+        },
+        "refs": {
+            "scan_latest": str(_scan_latest_path(profile)),
+            "request_packet_path": str(packet_path),
+        },
+    }
+
+
 def _ignored_action(action: Mapping[str, Any], reason: str) -> dict[str, Any]:
     return {
         "study_id": _text(action.get("study_id")),
@@ -199,13 +288,14 @@ def _selected_actions(
     *,
     scan_payload: Mapping[str, Any],
     study_ids: tuple[str, ...],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     selected: list[dict[str, Any]] = []
+    request_selected: list[dict[str, Any]] = []
     ignored: list[dict[str, Any]] = []
     allowed_studies = set(study_ids)
     actions = scan_payload.get("action_queue")
     if not isinstance(actions, list):
-        return selected, ignored
+        return selected, request_selected, ignored
     for action in actions:
         if not isinstance(action, Mapping):
             continue
@@ -213,11 +303,17 @@ def _selected_actions(
         if study_id not in allowed_studies:
             ignored.append(_ignored_action(action, "study_not_requested"))
             continue
-        if _text(action.get("action_type")) != SUPPORTED_ACTION_TYPE:
+        action_type = _text(action.get("action_type"))
+        if action_type == SUPPORTED_ACTION_TYPE:
+            selected.append(dict(action))
+            continue
+        if action_type in SUPPORTED_REQUEST_ACTION_TYPES:
+            request_selected.append(dict(action))
+            continue
+        else:
             ignored.append(_ignored_action(action, "unsupported_action_type"))
             continue
-        selected.append(dict(action))
-    return selected, ignored
+    return selected, request_selected, ignored
 
 
 def supervisor_consume(
@@ -237,7 +333,7 @@ def supervisor_consume(
     )
     developer_mode_payload = developer_mode.to_dict()
     scan_payload = _read_json_object(_scan_latest_path(profile)) or {}
-    selected_actions, ignored_actions = _selected_actions(
+    selected_actions, selected_request_actions, ignored_actions = _selected_actions(
         scan_payload=scan_payload,
         study_ids=resolved_study_ids,
     )
@@ -250,12 +346,28 @@ def supervisor_consume(
         )
         for action in selected_actions
     ]
+    request_tasks = [
+        _request_task(
+            profile=profile,
+            action=action,
+            developer_mode_payload=developer_mode_payload,
+            apply=apply,
+        )
+        for action in selected_request_actions
+    ]
     written_files: list[str] = []
     if apply and developer_mode.safe_actions_enabled:
         for task in repair_tasks:
             if _text(task.get("dispatch_status")) != "applied":
                 continue
             packet_path = Path(_mapping(task.get("refs")).get("repair_packet_path"))
+            packet = _mapping(task.get("handoff_packet"))
+            _write_json(packet_path, packet)
+            written_files.append(str(packet_path))
+        for task in request_tasks:
+            if _text(task.get("dispatch_status")) != "applied":
+                continue
+            packet_path = Path(_mapping(task.get("refs")).get("request_packet_path"))
             packet = _mapping(task.get("handoff_packet"))
             _write_json(packet_path, packet)
             written_files.append(str(packet_path))
@@ -275,6 +387,8 @@ def supervisor_consume(
         "apply_allowed": bool(apply and developer_mode.safe_actions_enabled),
         "repair_task_count": len(repair_tasks),
         "repair_tasks": repair_tasks,
+        "request_task_count": len(request_tasks),
+        "request_tasks": request_tasks,
         "ignored_actions": ignored_actions,
         "branch_name": BRANCH_NAME,
         "owned_files": list(OWNED_FILES),
@@ -288,7 +402,7 @@ def supervisor_consume(
             "history_path": str(_consumer_history_path(profile)),
         },
     }
-    if apply and developer_mode.safe_actions_enabled and repair_tasks:
+    if apply and developer_mode.safe_actions_enabled and (repair_tasks or request_tasks):
         written_files.append(str(_consumer_latest_path(profile)))
         payload["written_files"] = written_files
         _write_json(_consumer_latest_path(profile), payload)
@@ -298,6 +412,7 @@ def supervisor_consume(
                 "generated_at": generated_at,
                 "study_ids": list(resolved_study_ids),
                 "repair_task_count": len(repair_tasks),
+                "request_task_count": len(request_tasks),
                 "written_files": list(written_files),
                 "effective_mode": developer_mode.mode,
             },
@@ -311,6 +426,7 @@ __all__ = [
     "FORBIDDEN_SURFACES",
     "OWNED_FILES",
     "SCHEMA_VERSION",
+    "SUPPORTED_REQUEST_ACTION_TYPES",
     "VERIFICATION_COMMANDS",
     "supervisor_consume",
 ]
