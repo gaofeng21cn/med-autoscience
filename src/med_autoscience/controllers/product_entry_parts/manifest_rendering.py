@@ -404,6 +404,8 @@ def _render_open_auto_research_projection_lines(projection: Mapping[str, Any]) -
         "",
         "## Open Auto Research",
         "",
+        "- surface: read-only status surface",
+        f"- authority: `{projection.get('authority') or 'observability_only'}`",
         f"- 当前摘要: {projection.get('summary') or 'none'}",
         (
             "- 当前计数: "

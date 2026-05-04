@@ -86,11 +86,30 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
                 },
                 "actions": [
                     {
+                        "action_id": "run_literature_evidence_graph",
+                        "status": "ready",
+                        "surface": "literature_intelligence_os",
+                    },
+                    {
                         "action_id": "review_rubric_gaps",
                         "status": "needs_review",
                         "surface": "paperbench_style_hierarchical_rubric_tree",
-                    }
+                    },
+                    {
+                        "action_id": "inspect_trajectory",
+                        "status": "ready",
+                        "surface": "action_observation_trajectory",
+                    },
+                    {
+                        "action_id": "refine_candidate_path",
+                        "status": "ready",
+                        "surface": "candidate_path_graph",
+                    },
                 ],
+                "refs": {
+                    "projection_path": "/tmp/study/artifacts/runtime/open_auto_research_projection/latest.json",
+                    "candidate_path_graph_path": "/tmp/study/artifacts/medical_paper/route_decision_orchestrator.json",
+                },
                 "authority": {"read_only": True, "can_authorize_publication_quality": False},
             },
             "recommended_command": (
@@ -122,7 +141,26 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
         "blocked": 0,
         "needs_review": 1,
     }
-    assert workspace_projection["study_projections"][0]["actions"][0]["action_id"] == "review_rubric_gaps"
-    assert frontdesk["workspace_open_auto_research_projection"] == workspace_projection
+    assert [item["action_id"] for item in workspace_projection["study_projections"][0]["actions"]] == [
+        "run_literature_evidence_graph",
+        "review_rubric_gaps",
+        "inspect_trajectory",
+        "refine_candidate_path",
+    ]
+    frontdesk_projection = frontdesk["workspace_open_auto_research_projection"]
+    assert frontdesk_projection["surface_kind"] == "workspace_open_auto_research_projection"
+    assert frontdesk_projection["read_model"] == "open_auto_research_projection_read_only_status_surface"
+    assert frontdesk_projection["authority"] == "observability_only"
+    assert "capabilities" not in frontdesk_projection["study_projections"][0]
+    assert [item["action_id"] for item in frontdesk_projection["study_projections"][0]["actions"]] == [
+        "run_literature_evidence_graph",
+        "review_rubric_gaps",
+        "inspect_trajectory",
+        "refine_candidate_path",
+    ]
     assert "Open Auto Research" in markdown
+    assert "read-only status surface" in markdown
+    assert "run_literature_evidence_graph" in markdown
     assert "review_rubric_gaps" in markdown
+    assert "inspect_trajectory" in markdown
+    assert "refine_candidate_path" in markdown

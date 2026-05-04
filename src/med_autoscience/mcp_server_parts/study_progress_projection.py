@@ -358,13 +358,21 @@ def _compact_open_auto_research_projection(value: object) -> dict[str, Any] | No
         return None
     compact = _compact_record(
         value,
-        ("surface", "status", "summary", "counts", "actions", "authority"),
+        ("status", "counts", "actions", "authority", "refs"),
     )
     if compact is None:
         return None
     actions = value.get("actions")
     if isinstance(actions, list):
-        compact["actions"] = [dict(item) for item in actions if isinstance(item, dict)][:4]
+        compact["actions"] = [
+            {
+                key: item[key]
+                for key in ("action_id", "status", "surface")
+                if key in item
+            }
+            for item in actions
+            if isinstance(item, dict)
+        ][:4]
     return compact
 
 

@@ -268,14 +268,34 @@ def test_mcp_compacts_and_renders_open_auto_research_projection() -> None:
             "status": "needs_review",
             "summary": "3 ready, 1 needs review.",
             "counts": {"ready": 3, "blocked": 0, "needs_review": 1, "total": 4},
+            "capabilities": {
+                "literature_evidence_graph": {"status": "ready", "large": ["omit"]},
+            },
             "actions": [
+                {
+                    "action_id": "run_literature_evidence_graph",
+                    "status": "ready",
+                    "surface": "literature_intelligence_os",
+                    "large": {"omit": True},
+                },
                 {
                     "action_id": "review_rubric_gaps",
                     "status": "needs_review",
                     "surface": "paperbench_style_hierarchical_rubric_tree",
-                }
+                },
+                {
+                    "action_id": "inspect_trajectory",
+                    "status": "ready",
+                    "surface": "action_observation_trajectory",
+                },
+                {
+                    "action_id": "refine_candidate_path",
+                    "status": "ready",
+                    "surface": "candidate_path_graph",
+                },
             ],
             "authority": {"read_only": True, "can_authorize_publication_quality": False},
+            "refs": {"projection_path": "/tmp/projection.json"},
         },
     }
 
@@ -285,10 +305,21 @@ def test_mcp_compacts_and_renders_open_auto_research_projection() -> None:
     projection = compact["open_auto_research_projection"]
     assert projection["status"] == "needs_review"
     assert projection["counts"]["needs_review"] == 1
-    assert projection["actions"][0]["action_id"] == "review_rubric_gaps"
+    assert "capabilities" not in projection
+    assert "summary" not in projection
+    assert "surface" not in projection
+    assert projection["actions"][0] == {
+        "action_id": "run_literature_evidence_graph",
+        "status": "ready",
+        "surface": "literature_intelligence_os",
+    }
     assert projection["authority"]["read_only"] is True
+    assert projection["refs"] == {"projection_path": "/tmp/projection.json"}
     assert "Open Auto Research" in markdown
+    assert "run_literature_evidence_graph" in markdown
     assert "review_rubric_gaps" in markdown
+    assert "inspect_trajectory" in markdown
+    assert "refine_candidate_path" in markdown
 
 
 def test_mcp_server_study_runtime_status_prefers_progress_projection_markdown_when_available(

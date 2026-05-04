@@ -22,6 +22,42 @@ _module_reexport(_shared)
 _module_reexport(_program_surfaces)
 _module_reexport(_workspace_surfaces)
 
+
+def _manifest_open_auto_research_projection(value: object) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    projection = dict(value)
+    studies: list[dict[str, Any]] = []
+    for item in projection.get("study_projections") or []:
+        if not isinstance(item, Mapping):
+            continue
+        study: dict[str, Any] = {}
+        for key in ("study_id", "status", "counts", "authority", "refs"):
+            if key in item:
+                study[key] = item[key]
+        actions = item.get("actions")
+        if isinstance(actions, list):
+            study["actions"] = [
+                {
+                    key: action[key]
+                    for key in ("action_id", "status", "surface")
+                    if key in action
+                }
+                for action in actions
+                if isinstance(action, Mapping)
+            ][:4]
+        studies.append(study)
+    return {
+        "surface_kind": projection.get("surface_kind") or "workspace_open_auto_research_projection",
+        "read_model": "open_auto_research_projection_read_only_status_surface",
+        "authority": "observability_only",
+        "status": projection.get("status"),
+        "summary": projection.get("summary"),
+        "counts": dict(projection.get("counts") or {}),
+        "study_projections": studies,
+    }
+
+
 def build_product_entry_manifest(
     *,
     profile: WorkspaceProfile,
@@ -730,8 +766,8 @@ def build_product_frontdesk(
             "workspace_paper_orchestra_operator_projection": dict(
                 workspace_cockpit.get("paper_orchestra_operator_projection") or {}
             ),
-            "workspace_open_auto_research_projection": dict(
-                workspace_cockpit.get("open_auto_research_projection") or {}
+            "workspace_open_auto_research_projection": _manifest_open_auto_research_projection(
+                workspace_cockpit.get("open_auto_research_projection")
             ),
             "workspace_ai_first_feedback_state": {
                 "surface_kind": "workspace_ai_first_feedback_state",
