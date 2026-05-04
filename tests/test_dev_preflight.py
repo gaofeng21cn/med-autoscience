@@ -111,6 +111,36 @@ def test_run_preflight_executes_planned_commands(monkeypatch, tmp_path: Path) ->
     assert result.results[0].stdout == "ok\n"
 
 
+def test_render_preflight_text_includes_failed_command_output_tail() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight")
+
+    result = module.PreflightResult(
+        input_mode="ci-base_ref",
+        changed_files=("src/med_autoscience/controllers/example.py",),
+        matched_categories=("generic_python_regression_surface",),
+        unclassified_changes=(),
+        planned_commands=("make test-regression",),
+        results=(
+            module.CommandResult(
+                command="make test-regression",
+                returncode=2,
+                stdout="collected 2 items\nFAILED tests/test_example.py::test_contract\n",
+                stderr="pytest: error: unknown config option\n",
+            ),
+        ),
+        ok=False,
+    )
+
+    text = module.render_preflight_text(result)
+
+    assert "  - command: make test-regression" in text
+    assert "    returncode: 2" in text
+    assert "    stdout_tail:" in text
+    assert "      FAILED tests/test_example.py::test_contract" in text
+    assert "    stderr_tail:" in text
+    assert "      pytest: error: unknown config option" in text
+
+
 def test_run_preflight_executes_external_runtime_dependency_commands(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.dev_preflight")
     calls: list[list[str]] = []

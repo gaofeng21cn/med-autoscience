@@ -7,6 +7,8 @@ import subprocess
 
 from med_autoscience import dev_preflight_contract
 
+_FAILED_OUTPUT_TAIL_LINES = 80
+
 
 @dataclass(frozen=True)
 class CommandResult:
@@ -64,7 +66,24 @@ def render_preflight_text(result: PreflightResult) -> str:
         for item in result.results:
             lines.append(f"  - command: {item.command}")
             lines.append(f"    returncode: {item.returncode}")
+            if item.returncode != 0:
+                lines.extend(_render_failed_command_output(item))
     return "\n".join(lines) + "\n"
+
+
+def _render_failed_command_output(result: CommandResult) -> list[str]:
+    lines: list[str] = []
+    for stream_name, stream_value in (("stdout", result.stdout), ("stderr", result.stderr)):
+        stream_lines = [line.rstrip() for line in stream_value.splitlines()]
+        if not stream_lines:
+            continue
+        tail_lines = stream_lines[-_FAILED_OUTPUT_TAIL_LINES:]
+        omitted = len(stream_lines) - len(tail_lines)
+        lines.append(f"    {stream_name}_tail:")
+        if omitted > 0:
+            lines.append(f"      ... {omitted} earlier lines omitted")
+        lines.extend(f"      {line}" for line in tail_lines)
+    return lines
 
 
 def _normalize_changed_files(changed_files: list[str]) -> list[str]:
