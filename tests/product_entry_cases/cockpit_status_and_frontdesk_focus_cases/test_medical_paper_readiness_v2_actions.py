@@ -22,16 +22,97 @@ def _provider_payload(*, query: str = "diabetes mortality prediction") -> dict[s
                 "query": query,
                 "retrieved_at": "2026-05-04T01:00:00+08:00",
                 "source_refs": ["pubmed:query:001"],
+                "response_status": "ok",
+                "credential_status": {"status": "ready", "credential_ref": "env:PUBMED_API_KEY"},
+                "rate_limit_status": {
+                    "status": "ok",
+                    "remaining": 8,
+                    "reset_at": "2026-05-04T02:00:00+08:00",
+                    "backoff": {"policy": "exponential", "retry_after_seconds": 0},
+                },
+                "cache_freshness": {
+                    "status": "fresh",
+                    "checked_at": "2026-05-04T01:05:00+08:00",
+                    "expires_at": "2026-05-05T01:05:00+08:00",
+                },
+                "provider_response_ledger_refs": ["ops/provider_responses/pubmed-2026-05-04.json"],
                 "items": [
-                    {"category": "anchor_papers", "ref": "pmid:1"},
-                    {"category": "guidelines", "ref": "guideline:tripod-ai"},
-                    {"category": "systematic_reviews", "ref": "pmid:review"},
-                    {"category": "journal_neighbor_refs", "ref": "journal:neighbor"},
+                    {
+                        "category": "anchor_papers",
+                        "ref": "pmid:1",
+                        "citation_ledger_ref": "paper/citation_ledger.json#pmid-1",
+                    },
+                    {
+                        "category": "guidelines",
+                        "ref": "guideline:tripod-ai",
+                        "citation_ledger_ref": "paper/citation_ledger.json#tripod-ai",
+                    },
+                ],
+            },
+            {
+                "provider_name": "crossref",
+                "query": query,
+                "retrieved_at": "2026-05-04T01:01:00+08:00",
+                "source_refs": ["crossref:query:001"],
+                "response_status": "ok",
+                "credential_status": {"status": "ready", "credential_ref": "env:CROSSREF_MAILTO"},
+                "rate_limit_status": {
+                    "status": "ok",
+                    "remaining": 42,
+                    "reset_at": "2026-05-04T02:00:00+08:00",
+                    "backoff": {"policy": "exponential", "retry_after_seconds": 0},
+                },
+                "cache_freshness": {
+                    "status": "fresh",
+                    "checked_at": "2026-05-04T01:05:00+08:00",
+                    "expires_at": "2026-05-05T01:05:00+08:00",
+                },
+                "provider_response_ledger_refs": ["ops/provider_responses/crossref-2026-05-04.json"],
+                "items": [
+                    {
+                        "category": "systematic_reviews",
+                        "ref": "doi:10.1000/review",
+                        "citation_ledger_ref": "paper/citation_ledger.json#systematic-review",
+                    },
+                ],
+            },
+            {
+                "provider_name": "semantic_scholar",
+                "query": query,
+                "retrieved_at": "2026-05-04T01:02:00+08:00",
+                "source_refs": ["semantic-scholar:query:001"],
+                "response_status": "ok",
+                "credential_status": {"status": "ready", "credential_ref": "env:SEMANTIC_SCHOLAR_API_KEY"},
+                "rate_limit_status": {
+                    "status": "ok",
+                    "remaining": 12,
+                    "reset_at": "2026-05-04T02:00:00+08:00",
+                    "backoff": {"policy": "exponential", "retry_after_seconds": 0},
+                },
+                "cache_freshness": {
+                    "status": "fresh",
+                    "checked_at": "2026-05-04T01:05:00+08:00",
+                    "expires_at": "2026-05-05T01:05:00+08:00",
+                },
+                "provider_response_ledger_refs": [
+                    "ops/provider_responses/semantic-scholar-2026-05-04.json"
+                ],
+                "items": [
+                    {
+                        "category": "journal_neighbor_refs",
+                        "ref": "semantic_scholar:neighbor",
+                        "citation_ledger_ref": "paper/citation_ledger.json#journal-neighbor",
+                    },
                 ],
             }
         ],
         "screening_decisions": [{"decision": "include", "reason": "same endpoint"}],
-        "citation_ledger_refs": ["paper/citation_ledger.json"],
+        "citation_ledger_refs": [
+            "paper/citation_ledger.json#pmid-1",
+            "paper/citation_ledger.json#tripod-ai",
+            "paper/citation_ledger.json#systematic-review",
+            "paper/citation_ledger.json#journal-neighbor",
+        ],
     }
 
 
