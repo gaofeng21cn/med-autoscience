@@ -13,7 +13,11 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
 def _complete_surface_payloads() -> dict[str, dict[str, object]]:
     return {
         "literature_scout": {
-            "search_strategy": {"query": "diabetes mortality prediction", "mesh_terms": ["Diabetes Mellitus"]},
+            "search_strategy": {
+                "query": "diabetes mortality prediction",
+                "mesh_terms": ["Diabetes Mellitus"],
+                "keywords": ["mortality", "risk prediction", "diabetes"],
+            },
             "search_date": "2026-05-03",
             "anchor_papers": ["pmid:1"],
             "guidelines": ["TRIPOD+AI"],
@@ -188,12 +192,18 @@ def _complete_literature_provider_runtime_payload() -> dict[str, object]:
                     {
                         "category": "journal_neighbor_refs",
                         "ref": "paper:near-neighbor",
+                        "score": 0.91,
+                        "score_source_ref": "ops/literature_scores/near-neighbor.json",
                         "citation_ledger_ref": "paper/citation_ledger.json#near-neighbor",
                     },
                 ],
             },
         ],
-        "search_strategy": {"query": "diabetes mortality prediction"},
+        "search_strategy": {
+            "query": "diabetes mortality prediction",
+            "keywords": ["mortality", "risk prediction", "diabetes"],
+        },
+        "study_rationale": "A transportable mortality risk model addresses a clinically actionable prognostic gap.",
         "search_date": "2026-05-03",
         "citation_ledger_refs": ["paper/citation_ledger.json"],
         "screening_decisions": [{"decision": "include", "reason": "same endpoint"}],
@@ -498,13 +508,36 @@ def test_medical_paper_readiness_consumes_long_horizon_canonical_surfaces(tmp_pa
     literature_module.materialize_literature_intelligence_os(
         study_root=study_root,
         payload={
-            "search_strategy": {"query": "diabetes mortality prediction", "mesh_terms": ["Diabetes Mellitus"]},
+            "search_strategy": {
+                "query": "diabetes mortality prediction",
+                "mesh_terms": ["Diabetes Mellitus"],
+                "keywords": ["mortality", "risk prediction", "diabetes"],
+            },
             "search_date": "2026-05-03",
             "searched_sources": ["PubMed"],
+            "provider_provenance": [
+                {
+                    "provider_name": "pubmed",
+                    "query": "diabetes mortality prediction",
+                    "retrieved_at": "2026-05-03T00:00:00Z",
+                    "response_status": "ok",
+                    "source_refs": ["pubmed:search:1"],
+                }
+            ],
+            "study_rationale": (
+                "A transportable mortality risk model addresses a clinically actionable prognostic gap."
+            ),
             "anchor_papers": ["pmid:1"],
             "guidelines": ["TRIPOD+AI"],
             "systematic_reviews": ["pmid:review"],
             "journal_neighbor_refs": ["paper:near-neighbor"],
+            "high_score_neighbor_refs": [
+                {
+                    "ref": "paper:near-neighbor",
+                    "score": 0.91,
+                    "score_source_ref": "ops/literature_scores/near-neighbor.json",
+                }
+            ],
             "screening_decisions": [{"decision": "include", "reason": "same endpoint"}],
             "citation_ledger_refs": ["paper/citation_ledger.json"],
         },

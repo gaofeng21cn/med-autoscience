@@ -22,7 +22,11 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
 
 def _provider_payload() -> dict[str, object]:
     return {
-        "search_strategy": {"query": "diabetes mortality prediction"},
+        "search_strategy": {
+            "query": "diabetes mortality prediction",
+            "keywords": ["mortality", "risk prediction", "diabetes"],
+        },
+        "study_rationale": "A transportable mortality risk model addresses a clinically actionable prognostic gap.",
         "search_date": "2026-05-04",
         "providers": [
             {
@@ -80,6 +84,8 @@ def _provider_payload() -> dict[str, object]:
                     {
                         "category": "journal_neighbor_refs",
                         "ref": "journal:neighbor",
+                        "score": 0.91,
+                        "score_source_ref": "ops/literature_scores/neighbor.json",
                         "citation_ledger_ref": "paper/citation_ledger.json#neighbor",
                     },
                 ],
