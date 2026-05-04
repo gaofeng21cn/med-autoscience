@@ -27,6 +27,31 @@ _ACTION_AUTHORIZATION_FIELDS = {
     "cleanup_apply": "cleanup_apply_allowed",
 }
 
+_CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
+    "analysis_claim_evidence_repair": frozenset({"bundle_build"}),
+    "controller_owned_publication_repair": frozenset(
+        {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
+    ),
+    "display_reporting_contract_repair": frozenset({"bundle_build"}),
+    "figure_results_trace_repair": frozenset({"bundle_build"}),
+    "local_architecture_overview_repair": frozenset({"bundle_build"}),
+    "manuscript_story_repair": frozenset({"bundle_build"}),
+    "submission_delivery_sync_closure": frozenset(
+        {"bundle_build", "delivery_sync", "submission_notice_materialize"}
+    ),
+    "submission_minimal_refresh": frozenset(
+        {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
+    ),
+    "treatment_gap_reporting_repair": frozenset({"bundle_build"}),
+}
+_CONTROLLER_ROUTE_ACTION_TYPES = {
+    "run_gate_clearing_batch",
+    "run_quality_repair_batch",
+}
+_CONTROLLER_ROUTE_SURFACES = {
+    "gate_clearing_batch",
+    "quality_repair_batch",
+}
 _GENERATED_AUTHORITY_NAMES = {
     "current_package",
     "submission_minimal",
@@ -45,6 +70,7 @@ def authorize_control_plane_route(
     route_context = context if isinstance(context, Mapping) else {}
     projection_only = bool(route_context.get("projection_only"))
     snapshot = _mapping(route_context.get("control_plane_snapshot"))
+    controller_route_gate = _controller_route_gate(normalized_action, route_context)
     blocking_reasons: list[str] = []
 
     if projection_only:
@@ -59,11 +85,11 @@ def authorize_control_plane_route(
 
     if not snapshot:
         blocking_reasons.append("control_plane_snapshot_missing")
-        return _gate_payload(
+        return _controller_or_gate_payload(
+            controller_route_gate=controller_route_gate,
+            snapshot_blocking_reasons=blocking_reasons,
             action=normalized_action,
-            authorized=False,
             projection_only=False,
-            blocking_reasons=blocking_reasons,
             snapshot=snapshot,
         )
 
@@ -84,11 +110,11 @@ def authorize_control_plane_route(
     elif authorization_field not in route_authorization:
         blocking_reasons.append(f"{authorization_field}_missing")
 
-    return _gate_payload(
+    return _controller_or_gate_payload(
+        controller_route_gate=controller_route_gate,
+        snapshot_blocking_reasons=blocking_reasons,
         action=normalized_action,
-        authorized=not blocking_reasons,
         projection_only=False,
-        blocking_reasons=blocking_reasons,
         snapshot=snapshot,
     )
 
@@ -139,6 +165,81 @@ def _gate_payload(
             "generated_delivery_surfaces_can_be_dispatch_authority": False,
         },
     }
+
+
+def _controller_or_gate_payload(
+    *,
+    controller_route_gate: Mapping[str, Any],
+    snapshot_blocking_reasons: list[str],
+    action: str,
+    projection_only: bool,
+    snapshot: Mapping[str, Any],
+) -> dict[str, Any]:
+    if bool(controller_route_gate.get("authorized")):
+        payload = _gate_payload(
+            action=action,
+            authorized=True,
+            projection_only=projection_only,
+            blocking_reasons=[],
+            snapshot=snapshot,
+        )
+        payload["controller_route_gate"] = dict(controller_route_gate)
+        payload["controller_route_overrode_blocking_reasons"] = list(snapshot_blocking_reasons)
+        return payload
+    payload = _gate_payload(
+        action=action,
+        authorized=not snapshot_blocking_reasons,
+        projection_only=projection_only,
+        blocking_reasons=snapshot_blocking_reasons,
+        snapshot=snapshot,
+    )
+    if controller_route_gate.get("present"):
+        payload["controller_route_gate"] = dict(controller_route_gate)
+    return payload
+
+
+def _controller_route_gate(action: str, route_context: Mapping[str, Any]) -> dict[str, Any]:
+    controller_route = _controller_route_context(route_context)
+    if not controller_route:
+        return {"present": False, "authorized": False, "blocking_reasons": []}
+    blocking_reasons: list[str] = []
+    work_unit_id = _text(controller_route.get("work_unit_id"))
+    controller_action_type = _text(controller_route.get("controller_action_type"))
+    control_surface = _text(controller_route.get("control_surface"))
+    if bool(controller_route.get("requires_human_confirmation")):
+        blocking_reasons.append("controller_route_requires_human_confirmation")
+    if work_unit_id not in _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT:
+        blocking_reasons.append("controller_route_work_unit_unsupported")
+    elif action not in _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT[work_unit_id]:
+        blocking_reasons.append("controller_route_action_not_allowed_for_work_unit")
+    if controller_action_type not in _CONTROLLER_ROUTE_ACTION_TYPES:
+        blocking_reasons.append("controller_route_action_type_unsupported")
+    if control_surface not in _CONTROLLER_ROUTE_SURFACES:
+        blocking_reasons.append("controller_route_surface_unsupported")
+    return {
+        "present": True,
+        "surface": "controller_route_gate",
+        "schema_version": 1,
+        "authorized": not blocking_reasons,
+        "action": action,
+        "work_unit_id": work_unit_id,
+        "controller_action_type": controller_action_type,
+        "control_surface": control_surface,
+        "blocking_reasons": blocking_reasons,
+        "authority_ref": {
+            key: _text(controller_route.get(key))
+            for key in ("gate_fingerprint", "work_unit_fingerprint", "source_eval_id")
+            if _text(controller_route.get(key)) is not None
+        },
+    }
+
+
+def _controller_route_context(route_context: Mapping[str, Any]) -> Mapping[str, Any]:
+    for key in ("controller_route_context", "explicit_controller_route_context"):
+        value = route_context.get(key)
+        if isinstance(value, Mapping):
+            return value
+    return {}
 
 
 def _snapshot_ref(snapshot: Mapping[str, Any]) -> dict[str, Any] | None:

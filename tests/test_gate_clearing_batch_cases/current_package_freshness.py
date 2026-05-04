@@ -262,3 +262,50 @@ def test_explicit_gate_specificity_does_not_block_actionable_stale_delivery_sync
     assert [item["unit_id"] for item in result["unit_results"]] == ["sync_submission_minimal_delivery"]
     assert result["selected_publication_work_unit"]["unit_id"] == "submission_delivery_sync_closure"
     assert result["current_package_freshness_proof"]["status"] == "fresh"
+
+
+def test_blocked_delivery_sync_clears_stale_current_package_freshness_proof(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_package_freshness")
+    study_root = tmp_path / "study"
+    proof_path = module.stable_current_package_freshness_path(study_root=study_root)
+    _write_json(
+        proof_path,
+        {
+            "schema_version": 1,
+            "status": "fresh",
+            "source_eval_id": "publication-eval::old",
+            "source_unit_id": "sync_submission_minimal_delivery",
+            "unit_status": "skipped_matching_unit_fingerprint",
+            "submission_manifest_path": "/tmp/old/submission_manifest.json",
+            "current_package_zip": "/tmp/old/current_package.zip",
+            "source_signature": "source::old",
+            "authority_source_signature": "source::old",
+            "proof_path": str(proof_path),
+        },
+    )
+
+    proof = module.write_current_package_freshness_proof(
+        study_root=study_root,
+        source_eval_id="publication-eval::new",
+        gate_report={
+            "gate_fingerprint": "publication-gate::blocked-delivery",
+            "blockers": ["stale_study_delivery_mirror"],
+        },
+        unit_results=[
+            {
+                "unit_id": "sync_submission_minimal_delivery",
+                "status": "control_plane_route_blocked",
+                "result": {
+                    "status": "control_plane_route_blocked",
+                    "control_plane_route_gate": {
+                        "blocking_reasons": ["control_plane_snapshot_missing"],
+                    },
+                },
+            }
+        ],
+        clock=lambda: (0, "2026-05-03T16:40:00+00:00"),
+        schema_version=1,
+    )
+
+    assert proof is None
+    assert not proof_path.exists()

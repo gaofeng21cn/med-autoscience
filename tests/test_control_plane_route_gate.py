@@ -115,6 +115,56 @@ def test_route_gate_blocks_cleanup_apply_when_route_flag_false() -> None:
     assert "cleanup_apply_allowed_false" in gate["blocking_reasons"]
 
 
+def test_controller_owned_delivery_sync_route_can_override_supervisor_only_snapshot() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "delivery_sync",
+        {
+            "control_plane_snapshot": _snapshot(
+                gate_state="blocked",
+                bundle_build_allowed=False,
+            ),
+            "controller_route_context": {
+                "control_surface": "quality_repair_batch",
+                "controller_action_type": "run_quality_repair_batch",
+                "work_unit_id": "submission_delivery_sync_closure",
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::001::latest",
+            },
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["controller_route_gate"]["authorized"] is True
+    assert "dispatch_gate_blocked" in gate["controller_route_overrode_blocking_reasons"]
+    assert "bundle_build_allowed_false" in gate["controller_route_overrode_blocking_reasons"]
+
+
+def test_controller_owned_route_does_not_authorize_unrelated_action() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "cleanup_apply",
+        {
+            "control_plane_snapshot": _snapshot(
+                gate_state="blocked",
+                cleanup_apply_allowed=False,
+            ),
+            "controller_route_context": {
+                "control_surface": "quality_repair_batch",
+                "controller_action_type": "run_quality_repair_batch",
+                "work_unit_id": "submission_delivery_sync_closure",
+                "requires_human_confirmation": False,
+            },
+        },
+    )
+
+    assert gate["authorized"] is False
+    assert "cleanup_apply_allowed_false" in gate["blocking_reasons"]
+    assert "controller_route_action_not_allowed_for_work_unit" in gate["controller_route_gate"]["blocking_reasons"]
+
+
 def test_route_gate_projection_only_records_generated_surface_policy() -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
 

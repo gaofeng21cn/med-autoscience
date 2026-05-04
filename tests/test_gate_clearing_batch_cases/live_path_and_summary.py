@@ -450,6 +450,128 @@ def test_run_gate_clearing_batch_reruns_submission_refresh_when_previous_matchin
     assert rebuild_calls == [paper_root]
     assert result["unit_results"][0]["unit_id"] == "create_submission_minimal_package"
     assert result["unit_results"][0]["status"] == "ready"
+
+
+def test_run_gate_clearing_batch_reruns_delivery_sync_when_previous_matching_run_was_route_blocked(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    _write_submission_minimal_fingerprint_inputs(paper_root)
+    gate_report = {
+        "status": "blocked",
+        "blockers": ["stale_study_delivery_mirror"],
+        "current_required_action": "complete_bundle_stage",
+        "medical_publication_surface_status": "clear",
+        "study_delivery_status": "stale_source_changed",
+        "study_delivery_stale_reason": "delivery_manifest_source_changed",
+        "study_delivery_missing_source_paths": [],
+        "submission_minimal_present": True,
+        "submission_minimal_docx_present": True,
+        "submission_minimal_pdf_present": True,
+        "submission_minimal_manifest_path": str(paper_root / "submission_minimal" / "submission_manifest.json"),
+        "submission_minimal_authority_status": "current",
+        "submission_minimal_evaluated_source_signature": "source::abc",
+        "submission_minimal_authority_source_signature": "source::abc",
+        "study_delivery_manifest_path": str(study_root / "manuscript" / "delivery_manifest.json"),
+        "study_delivery_current_package_root": str(study_root / "manuscript" / "current_package"),
+        "study_delivery_current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
+        "gate_fingerprint": "publication-gate::delivery",
+    }
+    latest_record_path = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+    matching_fingerprint = module._repair_unit_fingerprint(
+        unit_id="sync_submission_minimal_delivery",
+        paper_root=paper_root,
+        gate_report=gate_report,
+        profile=profile,
+    )
+    _write_json(
+        latest_record_path,
+        {
+            "schema_version": 1,
+            "source_eval_id": "publication-eval::004-invasive-architecture::quest-004::2026-04-21T12:42:39+00:00",
+            "status": "executed",
+            "unit_results": [
+                {
+                    "unit_id": "sync_submission_minimal_delivery",
+                    "status": "control_plane_route_blocked",
+                    "last_success_status": "control_plane_route_blocked",
+                },
+            ],
+            "unit_fingerprints": {
+                "sync_submission_minimal_delivery": matching_fingerprint,
+            },
+        },
+    )
+    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
+    publication_eval_payload["eval_id"] = "publication-eval::004-invasive-architecture::quest-004::2026-04-22T12:42:39+00:00"
+    publication_eval_payload["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "submission_delivery_sync_closure",
+        "lane": "controller",
+        "summary": "Refresh the study delivery mirror from the current package, then replay the publication gate.",
+        "control_surface": "gate_clearing_batch",
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    sync_calls: list[Path] = []
+    monkeypatch.setattr(
+        module,
+        "_sync_submission_minimal_delivery",
+        lambda *, paper_root, profile: (
+            sync_calls.append(paper_root),
+            {
+                "status": "control_plane_route_blocked",
+                "control_plane_route_gate": {
+                    "blocking_reasons": ["control_plane_snapshot_missing"],
+                },
+            },
+        )[1],
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["stale_study_delivery_mirror"],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id="quest-004",
+        source="test-source",
+    )
+
+    delivery_result = next(
+        item for item in result["unit_results"] if item["unit_id"] == "sync_submission_minimal_delivery"
+    )
+    assert sync_calls == [paper_root]
+    assert delivery_result["status"] == "control_plane_route_blocked"
+    assert delivery_result.get("last_success_status") is None
+    assert "current_package_freshness_proof" not in result
 def test_run_gate_clearing_batch_reruns_submission_refresh_when_quality_inputs_change(
     monkeypatch,
     tmp_path: Path,

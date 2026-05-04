@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers import gate_clearing_batch
+from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.control_plane_route_gate import assert_control_plane_route_authorized
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.publication_eval_latest import read_publication_eval_latest
@@ -112,6 +113,62 @@ def _latest_batch_record(*, study_root: Path) -> dict[str, Any]:
     return _read_json_object(stable_quality_repair_batch_path(study_root=study_root))
 
 
+def _runtime_control_plane_route_context(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+) -> dict[str, Any] | None:
+    status_payload = study_runtime_router.study_runtime_status(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        entry_mode=None,
+        sync_runtime_summary=False,
+        include_progress_projection=False,
+    )
+    if not isinstance(status_payload, Mapping):
+        return None
+    control_plane_snapshot = status_payload.get("control_plane_snapshot")
+    if not isinstance(control_plane_snapshot, Mapping):
+        return None
+    return {"control_plane_snapshot": dict(control_plane_snapshot)}
+
+
+def _controller_route_context_for_gate(
+    *,
+    gate_report: Mapping[str, Any],
+    source_eval_id: str | None,
+) -> dict[str, Any] | None:
+    blockers = _gate_blockers(gate_report)
+    if "stale_study_delivery_mirror" not in blockers:
+        return None
+    if _non_empty_text(gate_report.get("current_required_action")) not in {
+        "complete_bundle_stage",
+        "continue_bundle_stage",
+    }:
+        return None
+    return {
+        "controller_route_context": {
+            "control_surface": "quality_repair_batch",
+            "controller_action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+            "work_unit_id": "submission_delivery_sync_closure",
+            "requires_human_confirmation": False,
+            "source_eval_id": source_eval_id,
+            "gate_fingerprint": _non_empty_text(gate_report.get("gate_fingerprint")),
+            "work_unit_fingerprint": _non_empty_text(gate_report.get("work_unit_fingerprint")),
+        }
+    }
+
+
+def _merge_route_contexts(*contexts: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    merged: dict[str, Any] = {}
+    for context in contexts:
+        if isinstance(context, Mapping):
+            merged.update(dict(context))
+    return merged or None
+
+
 def build_quality_repair_batch_recommended_action(
     *,
     profile: WorkspaceProfile,
@@ -187,15 +244,34 @@ def run_quality_repair_batch(
     route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
-    resolved_route_context = control_plane_route_context or route_context
+    resolved_route_context = (
+        control_plane_route_context
+        or route_context
+        or _runtime_control_plane_route_context(
+            profile=profile,
+            study_id=study_id,
+            study_root=resolved_study_root,
+        )
+    )
+    publication_eval_payload = read_publication_eval_latest(study_root=resolved_study_root)
+    current_eval_id = _non_empty_text(publication_eval_payload.get("eval_id"))
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / quest_id
+    gate_state = gate_clearing_batch.publication_gate.build_gate_state(quest_root)
+    gate_report = gate_clearing_batch.publication_gate.build_gate_report(gate_state)
+    controller_route_context = _controller_route_context_for_gate(
+        gate_report=gate_report,
+        source_eval_id=current_eval_id,
+    )
+    resolved_route_context = _merge_route_contexts(
+        resolved_route_context,
+        controller_route_context,
+    )
     control_plane_route_gate = assert_control_plane_route_authorized(
         "bundle_build",
         {"projection_only": True} if resolved_route_context is None else resolved_route_context,
     )
-    publication_eval_payload = read_publication_eval_latest(study_root=resolved_study_root)
     summary_payload = _read_quality_summary(study_root=resolved_study_root)
     quality_closure_truth, quality_execution_lane = _quality_repair_context(summary_payload)
-    current_eval_id = _non_empty_text(publication_eval_payload.get("eval_id"))
     source_summary_id = _non_empty_text(summary_payload.get("summary_id"))
     latest_batch = _latest_batch_record(study_root=resolved_study_root)
     if current_eval_id is not None and _non_empty_text(latest_batch.get("source_eval_id")) == current_eval_id:

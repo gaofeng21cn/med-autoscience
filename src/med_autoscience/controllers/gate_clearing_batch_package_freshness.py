@@ -98,6 +98,10 @@ def build_current_package_freshness_proof(
     return None
 
 
+def _delivery_sync_unit_present(unit_results: list[dict[str, Any]]) -> bool:
+    return any(_non_empty_text(item.get("unit_id")) == "sync_submission_minimal_delivery" for item in unit_results)
+
+
 def write_current_package_freshness_proof(
     *,
     study_root: Path,
@@ -116,6 +120,8 @@ def write_current_package_freshness_proof(
         schema_version=schema_version,
     )
     if proof is None:
+        if _delivery_sync_unit_present(unit_results):
+            stable_current_package_freshness_path(study_root=study_root).unlink(missing_ok=True)
         return None
     proof_path = stable_current_package_freshness_path(study_root=study_root)
     proof_path.parent.mkdir(parents=True, exist_ok=True)
