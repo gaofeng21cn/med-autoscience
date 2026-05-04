@@ -20,12 +20,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout MedDeepScientist sibling for AI-first drift audit
-        uses: actions/checkout@v6
-        with:
-          repository: gaofeng21cn/med-deepscientist
-          path: .ci/med-deepscientist
-
       - name: Set up Python 3.12
         uses: actions/setup-python@v6
         with:

@@ -99,6 +99,8 @@ def compact_authority_contract() -> dict[str, bool]:
         "can_mutate_runtime": False,
         "can_authorize_quality": False,
         "can_authorize_submission": False,
+        "can_authorize_finalize": False,
+        "mechanical_projection_can_authorize_quality": False,
     }
 
 

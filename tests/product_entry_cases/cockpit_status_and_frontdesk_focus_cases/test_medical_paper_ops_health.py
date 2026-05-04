@@ -10,7 +10,7 @@ from tests.product_entry_cases.cockpit_status_and_frontdesk_focus_cases.test_med
     make_profile,
     write_study,
 )
-from tests.test_medical_paper_ops_health import _readiness
+from tests.test_medical_paper_ops_health import _readiness, assert_projection_authority_false
 
 
 def _research_loop_readiness() -> dict[str, object]:
@@ -128,6 +128,10 @@ def test_workspace_cockpit_projects_v5_ops_health(monkeypatch, tmp_path) -> None
     assert workflow_by_title["止损/换线"]["status"] == "blocked"
     assert workflow_by_title["启动返修"]["status"] == "partial"
     assert workflow_by_title["授权写作"]["action_result"]["missing_reason"] == "ai_reviewer_provenance_missing"
+    assert_projection_authority_false(study_health)
+    assert_projection_authority_false(workspace_health)
+    assert_projection_authority_false(research_loop)
+    assert_projection_authority_false(workspace_loop)
     assert "## v5 运营健康闭环 / Medical Paper Ops Health" in markdown
     assert "## 自动论文科研闭环 / Medical Paper Research Loop" in markdown
     assert "动作卡: 处理统计 blocker [blocked / missing_external_validation_plan]" in markdown
@@ -186,6 +190,8 @@ def test_product_frontdesk_projects_workspace_v5_ops_health(monkeypatch, tmp_pat
     assert {step["title"] for step in workflow_steps}.issuperset(
         {"处理统计 blocker", "路线裁决", "止损/换线", "启动返修", "授权写作", "运行真实 soak"}
     )
+    assert_projection_authority_false(ops_health)
+    assert_projection_authority_false(research_loop)
     assert "Medical paper ops health:" in markdown
     assert "Medical Paper Research Loop:" in markdown
     assert "`001-risk` research loop: blocked" in markdown

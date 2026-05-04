@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 import importlib
 
-from tests.test_medical_paper_ops_health import _readiness
+from tests.test_medical_paper_ops_health import _readiness, assert_projection_authority_false
 
 
 def _research_loop_readiness() -> dict[str, object]:
@@ -89,6 +89,7 @@ def test_compact_mcp_progress_projection_preserves_v5_ops_health() -> None:
     assert research_loop["authority_contract"]["can_authorize_submission"] is False
     assert research_loop["authority_contract"]["can_authorize_finalize"] is False
     assert research_loop["authority_contract"]["mechanical_projection_can_authorize_quality"] is False
+    assert_projection_authority_false(compact["medical_paper_readiness"])
 
 
 def test_mcp_and_study_progress_markdown_render_v5_ops_health() -> None:

@@ -187,6 +187,35 @@ def test_ci_runs_medical_paper_ops_contract_guard_without_touching_live_workspac
         assert fragment not in ci_workflow
 
 
+def test_ci_boundary_guards_mas_repo_only_contract_regression() -> None:
+    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+    quick_checks = _workflow_job(ci_workflow, "quick-checks")
+
+    assert quick_checks.count("actions/checkout@v6") == 1
+    assert "repository:" not in quick_checks
+    assert "gaofeng21cn/med-deepscientist" not in ci_workflow
+    assert ".ci/med-deepscientist" not in ci_workflow
+
+    forbidden_fragments = (
+        "prepare-external-research",
+        "provider live refresh",
+        "live literature refresh",
+        "workspace-cockpit --profile",
+        "product-frontdesk --profile",
+        "study-progress --profile",
+        "ensure-study-runtime",
+        "runtime watch",
+        "artifacts/controller_decisions/latest.json",
+        "paper/submission_minimal",
+    )
+    for fragment in forbidden_fragments:
+        assert fragment not in quick_checks
+
+    assert "scripts/verify.sh ci-preflight" in quick_checks
+    assert "make test-medical-paper-ops" in quick_checks
+    assert "uv run python -m build --sdist --wheel" in quick_checks
+
+
 def test_advisory_workflow_only_prepares_study_runtime_analysis_bundle_for_display_lane() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")

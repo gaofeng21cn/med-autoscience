@@ -76,6 +76,17 @@ def _blocks_quality_authority(payload: Mapping[str, Any]) -> str:
     return ""
 
 
+def _readiness_authority_contract() -> dict[str, Any]:
+    return {
+        "authority": "observability_projection_only",
+        "read_model_only": True,
+        "can_authorize_quality": False,
+        "can_authorize_submission": False,
+        "can_authorize_finalize": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+
+
 def _validate_literature_scout(payload: Mapping[str, Any]) -> tuple[str, str]:
     if payload.get("surface") == literature_intelligence_os.SURFACE:
         if _text(payload.get("status")) == "ready":
@@ -516,14 +527,15 @@ def _normalize_materialized_payload(
 ) -> dict[str, Any]:
     spec = _spec_by_key(surface_key)
     return {
+        "status": status,
+        **dict(payload),
         "surface": spec["surface"],
         "schema_version": SCHEMA_VERSION,
         "surface_key": surface_key,
-        "status": status,
         "missing_reason": missing_reason,
+        "authority_contract": _readiness_authority_contract(),
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
-        **dict(payload),
     }
 
 
@@ -653,6 +665,7 @@ def build_medical_paper_readiness_surface(*, study_root: Path) -> dict[str, Any]
         "schema_version": SCHEMA_VERSION,
         "study_root": str(root),
         "overall_status": _overall_status(capability_surfaces),
+        "authority_contract": _readiness_authority_contract(),
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
         "ready_count": ready_count,

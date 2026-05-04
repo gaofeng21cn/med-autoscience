@@ -1,6 +1,34 @@
 from __future__ import annotations
 
 import importlib
+import json
+
+
+AUTHORITY_FALSE_KEYS = (
+    "can_authorize_quality",
+    "can_authorize_submission",
+    "can_authorize_finalize",
+    "mechanical_projection_can_authorize_quality",
+)
+
+
+def assert_projection_authority_false(payload: object, *, path: str = "payload") -> None:
+    if isinstance(payload, dict):
+        authority_contract = payload.get("authority_contract")
+        if isinstance(authority_contract, dict):
+            for key in AUTHORITY_FALSE_KEYS:
+                assert authority_contract.get(key) is False, f"{path}.authority_contract.{key}"
+        if "quality_claim_authorized" in payload:
+            assert payload["quality_claim_authorized"] is False, f"{path}.quality_claim_authorized"
+        if "mechanical_projection_can_authorize_quality" in payload:
+            assert payload["mechanical_projection_can_authorize_quality"] is False, (
+                f"{path}.mechanical_projection_can_authorize_quality"
+            )
+        for key, value in payload.items():
+            assert_projection_authority_false(value, path=f"{path}.{key}")
+    elif isinstance(payload, list):
+        for index, value in enumerate(payload):
+            assert_projection_authority_false(value, path=f"{path}[{index}]")
 
 
 def _readiness(*, provider_status: str = "present") -> dict[str, object]:
@@ -111,6 +139,7 @@ def test_medical_paper_ops_health_aggregates_v5_operational_truth_without_author
         "TRIPOD",
         "TRIPOD-AI",
     ]
+    assert_projection_authority_false(payload)
 
 
 def test_workspace_medical_paper_ops_health_counts_studies_and_preserves_last_green() -> None:
@@ -130,3 +159,51 @@ def test_workspace_medical_paper_ops_health_counts_studies_and_preserves_last_gr
     assert workspace["authority_contract"]["can_authorize_quality"] is False
     assert workspace["authority_contract"]["can_authorize_submission"] is False
     assert workspace["authority_contract"]["can_authorize_finalize"] is False
+    assert workspace["authority_contract"]["mechanical_projection_can_authorize_quality"] is False
+    assert_projection_authority_false(workspace)
+
+
+def test_readiness_materializer_cannot_persist_quality_authority_from_input_payload(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_paper_readiness")
+    study_root = tmp_path / "study"
+
+    result = module.materialize_medical_paper_readiness_surface(
+        study_root=study_root,
+        surface_key="target_journal_writing_layer",
+        payload={
+            "surface": "unsafe_input_surface",
+            "schema_version": 999,
+            "quality_claim_authorized": True,
+            "mechanical_projection_can_authorize_quality": True,
+            "authority_contract": {
+                "can_authorize_quality": True,
+                "can_authorize_submission": True,
+                "can_authorize_finalize": True,
+                "mechanical_projection_can_authorize_quality": True,
+            },
+        },
+    )
+    persisted = json.loads(
+        (
+            study_root
+            / "paper"
+            / "target_journal_writing_layer.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert result["surface"] == "target_journal_writing_layer"
+    assert result["status"] == "blocked"
+    assert result["quality_claim_authorized"] is False
+    assert result["mechanical_projection_can_authorize_quality"] is False
+    assert persisted["surface"] == "target_journal_writing_layer"
+    assert persisted["schema_version"] == 1
+    assert persisted["quality_claim_authorized"] is False
+    assert persisted["mechanical_projection_can_authorize_quality"] is False
+    assert persisted["authority_contract"] == {
+        "authority": "observability_projection_only",
+        "read_model_only": True,
+        "can_authorize_quality": False,
+        "can_authorize_submission": False,
+        "can_authorize_finalize": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
