@@ -769,6 +769,9 @@ def build_product_frontdesk(
             "workspace_open_auto_research_projection": _manifest_open_auto_research_projection(
                 workspace_cockpit.get("open_auto_research_projection")
             ),
+            "workspace_medical_paper_ops_health": dict(
+                workspace_cockpit.get("medical_paper_ops_health_state") or {}
+            ),
             "workspace_ai_first_feedback_state": {
                 "surface_kind": "workspace_ai_first_feedback_state",
                 "authority": "observability_only",

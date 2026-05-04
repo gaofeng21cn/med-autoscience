@@ -128,6 +128,30 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             )
     else:
         lines.append("- 当前还没有 v4 operations projection。")
+    lines.extend(["", "## v5 运营健康闭环 / Medical Paper Ops Health", ""])
+    ops_health_state = dict(payload.get("medical_paper_ops_health_state") or {})
+    if ops_health_state:
+        counts = dict(ops_health_state.get("counts") or {})
+        lines.append(f"- 当前 ops health 摘要: {ops_health_state.get('summary') or 'none'}")
+        lines.append(f"- last-green: `{ops_health_state.get('last_green_at') or 'none'}`")
+        lines.append(
+            "- 当前计数: "
+            f"study {counts.get('study_count', 0)}；"
+            f"ready {counts.get('ready', 0)}；"
+            f"partial {counts.get('partial', 0)}；"
+            f"blocked {counts.get('blocked', 0)}"
+        )
+        for study in ops_health_state.get("studies") or []:
+            if not isinstance(study, Mapping):
+                continue
+            next_action = dict(study.get("next_operator_action") or {})
+            lines.append(
+                f"- `{study.get('study_id') or 'unknown-study'}` ops health: "
+                f"`{study.get('overall_status') or 'unknown'}`；"
+                f"下一步 `{next_action.get('summary') or 'none'}`"
+            )
+    else:
+        lines.append("- 当前还没有 v5 ops health projection。")
     lines.extend(["", "## AI-first Operations", ""])
     ai_first_operations_state = dict(payload.get("ai_first_operations_state") or {})
     if ai_first_operations_state:

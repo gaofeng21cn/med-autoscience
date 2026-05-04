@@ -1,4 +1,4 @@
-.PHONY: test test-smoke test-regression test-ci-preflight test-fast test-meta test-display test-submission test-full test-family test-structure test-control-plane
+.PHONY: test test-smoke test-regression test-ci-preflight test-fast test-meta test-display test-submission test-full test-family test-structure test-control-plane test-medical-paper-ops
 
 CONTROL_PLANE_TESTS := \
 	tests/test_control_plane_regression.py \
@@ -62,6 +62,9 @@ test-family:
 
 test-control-plane:
 	PYTHONPATH=src uv run pytest -q $(CONTROL_PLANE_TESTS)
+
+test-medical-paper-ops:
+	PYTHONPATH=src uv run pytest -q tests/test_medical_paper_ops_health.py tests/study_progress_cases/medical_paper_ops_health_projection.py tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_medical_paper_ops_health.py
 
 test-structure:
 	uv run python scripts/line_budget.py

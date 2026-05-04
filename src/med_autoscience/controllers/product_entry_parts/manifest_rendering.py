@@ -157,6 +157,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     workspace_open_auto_research_projection = dict(
         payload.get("workspace_open_auto_research_projection") or {}
     )
+    workspace_medical_paper_ops_health = dict(
+        payload.get("workspace_medical_paper_ops_health") or {}
+    )
     lines = [
         "# Product Frontdesk",
         "",
@@ -271,6 +274,31 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
                     f"{dashboard.get('action_primary_status') or 'unknown'}；"
                     f"{dashboard.get('action_primary_summary')}"
                 )
+    if workspace_medical_paper_ops_health:
+        counts = dict(workspace_medical_paper_ops_health.get("counts") or {})
+        lines.append(
+            f"- Medical paper ops health: {workspace_medical_paper_ops_health.get('summary') or 'none'}"
+        )
+        lines.append(
+            "- Medical paper ops health last-green: "
+            f"`{workspace_medical_paper_ops_health.get('last_green_at') or 'none'}`"
+        )
+        lines.append(
+            "- Medical paper ops health 计数: "
+            f"study {counts.get('study_count', 0)}；"
+            f"ready {counts.get('ready', 0)}；"
+            f"partial {counts.get('partial', 0)}；"
+            f"blocked {counts.get('blocked', 0)}"
+        )
+        for study in workspace_medical_paper_ops_health.get("studies") or []:
+            if not isinstance(study, Mapping):
+                continue
+            next_action = dict(study.get("next_operator_action") or {})
+            lines.append(
+                f"- `{study.get('study_id') or 'unknown-study'}` ops health: "
+                f"{study.get('overall_status') or 'unknown'}；"
+                f"下一步 `{next_action.get('summary') or 'none'}`"
+            )
     lines.extend(render_paper_orchestra_operator_projection_lines(workspace_paper_orchestra_operator_projection))
     lines.extend(_render_open_auto_research_projection_lines(workspace_open_auto_research_projection))
     for item in payload.get("workspace_attention_queue_preview") or []:

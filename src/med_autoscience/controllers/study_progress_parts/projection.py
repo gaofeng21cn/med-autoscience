@@ -7,6 +7,7 @@ from med_autoscience.controllers import (
     autonomy_ai_doctor,
     artifact_runtime_proof,
     control_plane_facts,
+    medical_paper_ops_health,
     medical_paper_readiness,
     open_auto_research_projection,
     runtime_health_kernel,
@@ -332,6 +333,9 @@ def build_study_progress_projection(
     medical_writing_quality_surfaces = medical_writing_quality_surface_status(study_root=resolved_study_root)
     medical_paper_readiness_surface = medical_paper_readiness.build_medical_paper_readiness_surface(
         study_root=resolved_study_root,
+    )
+    medical_paper_ops_health_surface = medical_paper_ops_health.build_medical_paper_ops_health(
+        medical_paper_readiness_surface,
     )
     artifact_runtime_proof_surface = artifact_runtime_proof.build_artifact_runtime_proof(
         resolved_study_root,
@@ -949,6 +953,7 @@ def build_study_progress_projection(
         "quality_review_followthrough": quality_review_followthrough or None,
         "medical_writing_quality_surfaces": medical_writing_quality_surfaces,
         "medical_paper_readiness": medical_paper_readiness_surface,
+        "medical_paper_ops_health": medical_paper_ops_health_surface,
         "artifact_runtime_proof": artifact_runtime_proof_surface,
         "submission_hygiene_truth": submission_hygiene_truth,
         "product_recommended_flow": submission_hygiene_truth.get("recommended_flow"),

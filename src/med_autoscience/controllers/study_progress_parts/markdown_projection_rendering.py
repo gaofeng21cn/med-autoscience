@@ -6,6 +6,7 @@ from med_autoscience.controllers.medical_paper_v3_action_truth import (
     ACTION_BY_SURFACE as READINESS_ACTION_BY_SURFACE,
     action_truth_for_surface,
 )
+from med_autoscience.controllers.medical_paper_ops_health import build_medical_paper_ops_health
 from med_autoscience.controllers.medical_paper_v4_operations import build_v4_operations_dashboard
 
 from .publication_runtime import *  # noqa: F403
@@ -751,6 +752,50 @@ def _append_medical_paper_readiness(lines: list[str], payload: Mapping[str, Any]
     if not isinstance(operations, Mapping):
         operations = build_v4_operations_dashboard(readiness)
     lines.extend(_medical_paper_v4_operations_lines(operations))
+    ops_health = payload.get("medical_paper_ops_health")
+    if not isinstance(ops_health, Mapping):
+        ops_health = build_medical_paper_ops_health(readiness, progress_payload=payload)
+    lines.extend(_medical_paper_ops_health_lines(ops_health))
+
+
+def _medical_paper_ops_health_lines(ops_health: Mapping[str, Any]) -> list[str]:
+    lines = [
+        "",
+        "## v5 运营健康闭环 / Medical Paper Ops Health",
+        "",
+        f"- 当前状态: `{ops_health.get('overall_status') or 'unknown'}`",
+    ]
+    summary = _non_empty_text(ops_health.get("summary"))
+    if summary:
+        lines.append(f"- 摘要: {summary}")
+    next_action = ops_health.get("next_operator_action") if isinstance(ops_health.get("next_operator_action"), Mapping) else {}
+    if next_action:
+        lines.append(f"- 下一动作: {next_action.get('summary') or 'none'}")
+    if ops_health.get("last_green_at"):
+        lines.append(f"- last-green: `{ops_health.get('last_green_at')}`")
+    health = ops_health.get("health") if isinstance(ops_health.get("health"), Mapping) else {}
+    for key in (
+        "provider_health",
+        "operator_replay_health",
+        "soak_drift_health",
+        "outcome_learning_health",
+        "stat_guideline_health",
+    ):
+        item = health.get(key) if isinstance(health.get(key), Mapping) else {}
+        if item:
+            lines.append(
+                f"- {key}: `{item.get('status') or 'unknown'}`"
+                f"（{item.get('missing_reason') or 'clear'}）"
+            )
+    contract = ops_health.get("authority_contract") if isinstance(ops_health.get("authority_contract"), Mapping) else {}
+    if contract:
+        lines.append(
+            "- authority: projection-only；quality/submission/finalize authorization: "
+            f"`{bool(contract.get('can_authorize_quality'))}/"
+            f"{bool(contract.get('can_authorize_submission'))}/"
+            f"{bool(contract.get('can_authorize_finalize'))}`"
+        )
+    return lines
 
 
 def _medical_paper_v4_operations_lines(operations: Mapping[str, Any]) -> list[str]:

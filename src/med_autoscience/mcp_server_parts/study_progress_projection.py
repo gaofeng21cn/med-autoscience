@@ -7,6 +7,7 @@ from med_autoscience.controllers.medical_paper_v3_action_truth import (
     action_truths_for_readiness,
     compact_missing_surface_with_action_truth,
 )
+from med_autoscience.controllers.medical_paper_ops_health import build_medical_paper_ops_health
 from med_autoscience.controllers.medical_paper_v4_operations import build_v4_operations_dashboard
 
 
@@ -182,6 +183,41 @@ def _compact_medical_paper_readiness(value: Any) -> dict[str, Any] | None:
     compact["v4_operations"] = _compact_medical_paper_v4_operations(
         build_v4_operations_dashboard(value)
     )
+    compact["ops_health"] = _compact_medical_paper_ops_health(
+        build_medical_paper_ops_health(value)
+    )
+    return compact
+
+
+def _compact_medical_paper_ops_health(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    compact = _compact_record(
+        value,
+        (
+            "surface",
+            "overall_status",
+            "summary",
+            "counts",
+            "last_green_at",
+            "next_operator_action",
+            "authority_contract",
+            "quality_claim_authorized",
+            "mechanical_projection_can_authorize_quality",
+        ),
+    )
+    if compact is None:
+        return None
+    health = value.get("health")
+    if isinstance(health, dict):
+        compact["health"] = {
+            key: _compact_record(
+                item,
+                ("component", "status", "missing_reason", "next_action", "durable_refs"),
+            )
+            for key, item in health.items()
+            if isinstance(item, dict)
+        }
     return compact
 
 
@@ -672,6 +708,48 @@ def _render_mcp_progress_medical_paper_readiness(compact: dict[str, Any]) -> lis
         f"`{readiness.get('mechanical_projection_can_authorize_quality')}`"
     )
     lines.extend(_render_mcp_medical_paper_v4_operations(readiness.get("v4_operations")))
+    lines.extend(_render_mcp_medical_paper_ops_health(readiness.get("ops_health")))
+    return lines
+
+
+def _render_mcp_medical_paper_ops_health(value: object) -> list[str]:
+    if not isinstance(value, dict):
+        return []
+    lines = [
+        "",
+        "## Medical Paper v5 Ops Health",
+        f"- status: `{value.get('overall_status') or 'unknown'}`",
+    ]
+    summary = str(value.get("summary") or "").strip()
+    if summary:
+        lines.append(f"- summary: {summary}")
+    next_action = value.get("next_operator_action") if isinstance(value.get("next_operator_action"), dict) else {}
+    if next_action:
+        lines.append(f"- next_operator_action: `{next_action.get('summary') or 'none'}`")
+    if value.get("last_green_at"):
+        lines.append(f"- last_green: `{value.get('last_green_at')}`")
+    health = value.get("health") if isinstance(value.get("health"), dict) else {}
+    for key in (
+        "provider_health",
+        "operator_replay_health",
+        "soak_drift_health",
+        "outcome_learning_health",
+        "stat_guideline_health",
+    ):
+        item = health.get(key) if isinstance(health.get(key), dict) else {}
+        if item:
+            lines.append(
+                f"- {key}: `{item.get('status') or 'unknown'}` "
+                f"({item.get('missing_reason') or 'clear'})"
+            )
+    contract = value.get("authority_contract") if isinstance(value.get("authority_contract"), dict) else {}
+    if contract:
+        lines.append(
+            "- quality/submission/finalize authority: "
+            f"`{contract.get('can_authorize_quality')}/"
+            f"{contract.get('can_authorize_submission')}/"
+            f"{contract.get('can_authorize_finalize')}`"
+        )
     return lines
 
 
