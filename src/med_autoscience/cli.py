@@ -19,8 +19,9 @@ from med_autoscience.cli_public_surface import (
 from med_autoscience.figure_routes import supported_required_route_help
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile, profile_to_dict
+from med_autoscience.cli_parts.control_plane_operations import handle_control_plane_operation_command
 from med_autoscience.cli_parts.parser import build_parser as _build_cli_parser
-from med_autoscience.cli_parts.payloads import _parse_key_value_pairs
+from med_autoscience.cli_parts.payloads import _load_optional_object_payload_from_args, _parse_key_value_pairs
 from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
 
 @lru_cache(maxsize=None)
@@ -134,29 +135,6 @@ def _load_json_payload_from_args(args: argparse.Namespace) -> dict[str, object]:
     return payload
 
 
-def _load_optional_object_payload_from_args(
-    *,
-    payload_file: str | None,
-    payload_json: str | None,
-    file_label: str,
-    json_label: str,
-) -> dict[str, object] | None:
-    if not payload_file and not payload_json:
-        return None
-    if bool(payload_file) == bool(payload_json):
-        raise SystemExit(f"Specify exactly one of {file_label} or {json_label}")
-    payload: object
-    if payload_file:
-        payload = json.loads(Path(payload_file).read_text(encoding="utf-8"))
-    else:
-        payload = json.loads(str(payload_json))
-    if not isinstance(payload, dict):
-        raise SystemExit("JSON payload must be an object")
-    return payload
-
-
-
-
 def _serialize_study_runtime_result(result: Any) -> dict[str, Any]:
     if isinstance(result, dict):
         return dict(result)
@@ -207,6 +185,18 @@ def main(argv: list[str] | None = None) -> int:
         return help_result
     parser = build_parser()
     args = parser.parse_args(normalize_public_command_argv(resolved_argv))
+    control_plane_result = handle_control_plane_operation_command(
+        args,
+        controller_modules={
+            "artifact_lifecycle_operations_report": artifact_lifecycle_operations_report,
+            "control_plane_backfill_apply": control_plane_backfill_apply,
+            "control_plane_cleanup_apply": control_plane_cleanup_apply,
+            "control_plane_migration_audit": control_plane_migration_audit,
+            "continuous_soak_summary": continuous_soak_summary,
+        },
+    )
+    if control_plane_result is not None:
+        return control_plane_result
 
     if args.command == "doctor":
         profile = load_profile(args.profile)
@@ -988,120 +978,6 @@ def main(argv: list[str] | None = None) -> int:
         result = medical_reporting_audit.run_controller(
             quest_root=Path(args.quest_root),
             apply=args.apply,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "control-plane-governance-report":
-        result = artifact_lifecycle_operations_report.run_lifecycle_operations_report(
-            workspace_roots=[Path(root) for root in args.workspace_root],
-            deep=bool(args.deep),
-            max_files=args.max_files,
-            max_seconds=args.max_seconds,
-        )
-        result = {
-            **result,
-            "surface": "storage_governance_report",
-            "source_surface": result.get("surface"),
-        }
-        if args.markdown:
-            print(artifact_lifecycle_operations_report.render_lifecycle_operations_report_markdown(result))
-        else:
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "control-plane-safe-cache-cleanup-apply":
-        cleanup_apply_kwargs = {
-            "workspace_roots": [Path(root) for root in args.workspace_root],
-            "apply": args.apply,
-            "control_plane_snapshot": _load_optional_object_payload_from_args(
-                payload_file=args.control_plane_snapshot_file,
-                payload_json=args.control_plane_snapshot_json,
-                file_label="--control-plane-snapshot-file",
-                json_label="--control-plane-snapshot-json",
-            ),
-        }
-        retention_report = _load_optional_object_payload_from_args(
-            payload_file=args.retention_report_file,
-            payload_json=args.retention_report_json,
-            file_label="--retention-report-file",
-            json_label="--retention-report-json",
-        )
-        if retention_report is not None:
-            cleanup_apply_kwargs["retention_report"] = retention_report
-        result = control_plane_cleanup_apply.run_cleanup_apply(**cleanup_apply_kwargs)
-        result = {
-            **result,
-            "surface": "control_plane_safe_cache_cleanup_apply",
-            "source_surface": result.get("surface"),
-        }
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "control-plane-migration-audit":
-        result = control_plane_migration_audit.run_migration_audit(
-            workspace_roots=[Path(root) for root in args.workspace_root],
-            dry_run=True,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "control-plane-backfill-apply":
-        result = control_plane_backfill_apply.run_backfill_apply(
-            workspace_roots=[Path(root) for root in args.workspace_root],
-            apply=args.apply,
-            control_plane_snapshot=_load_optional_object_payload_from_args(
-                payload_file=args.control_plane_snapshot_file,
-                payload_json=args.control_plane_snapshot_json,
-                file_label="--control-plane-snapshot-file",
-                json_label="--control-plane-snapshot-json",
-            ),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "control-plane-cleanup-apply":
-        cleanup_apply_kwargs = {
-            "workspace_roots": [Path(root) for root in args.workspace_root],
-            "apply": args.apply,
-            "control_plane_snapshot": _load_optional_object_payload_from_args(
-                payload_file=args.control_plane_snapshot_file,
-                payload_json=args.control_plane_snapshot_json,
-                file_label="--control-plane-snapshot-file",
-                json_label="--control-plane-snapshot-json",
-            ),
-        }
-        retention_report = _load_optional_object_payload_from_args(
-            payload_file=args.retention_report_file,
-            payload_json=args.retention_report_json,
-            file_label="--retention-report-file",
-            json_label="--retention-report-json",
-        )
-        if retention_report is not None:
-            cleanup_apply_kwargs["retention_report"] = retention_report
-        result = control_plane_cleanup_apply.run_cleanup_apply(**cleanup_apply_kwargs)
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "control-plane-lifecycle-report":
-        result = artifact_lifecycle_operations_report.run_lifecycle_operations_report(
-            workspace_roots=[Path(root) for root in args.workspace_root],
-            deep=bool(args.deep),
-            max_files=args.max_files,
-            max_seconds=args.max_seconds,
-        )
-        if args.markdown:
-            print(artifact_lifecycle_operations_report.render_lifecycle_operations_report_markdown(result))
-        else:
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "control-plane-continuous-soak-summary":
-        result = continuous_soak_summary.build_continuous_soak_summary(
-            workspace_roots=[Path(root) for root in args.workspace_root],
-            deep=bool(args.deep),
-            max_files=args.max_files,
-            max_seconds=args.max_seconds,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

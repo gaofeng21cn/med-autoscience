@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from med_autoscience import __version__
 from med_autoscience.control_plane_command_catalog import (
+    CONTROL_PLANE_OPERATION_COMMANDS_BY_MCP_MODE,
     build_control_plane_product_entry_mode_schema,
     product_entry_description_modes_text,
 )
@@ -679,6 +680,40 @@ def _call_continuous_soak_summary(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_safe_cache_cleanup_apply(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = _call_cleanup_apply(arguments)
+    structured = result.get("structuredContent")
+    if isinstance(structured, dict):
+        projected = {
+            **structured,
+            "surface": "control_plane_safe_cache_cleanup_apply",
+            "source_surface": structured.get("surface"),
+        }
+        result["structuredContent"] = projected
+        if result["content"] and result["content"][0]["text"].lstrip().startswith("{"):
+            result["content"][0]["text"] = _json_text(projected)
+    return result
+
+
+_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
+    "migration_audit": _call_migration_audit,
+    "backfill_apply": _call_backfill_apply,
+    "cleanup_apply": _call_cleanup_apply,
+    "safe_cache_cleanup_apply": _call_safe_cache_cleanup_apply,
+    "governance_report": _call_governance_report,
+    "lifecycle_report": _call_lifecycle_report,
+    "continuous_soak_summary": _call_continuous_soak_summary,
+}
+_MISSING_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS = (
+    set(CONTROL_PLANE_OPERATION_COMMANDS_BY_MCP_MODE) - set(_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS)
+)
+if _MISSING_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS:
+    raise RuntimeError(
+        "control-plane MCP handler drift: "
+        f"missing_modes={sorted(_MISSING_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS)}"
+    )
+
+
 def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
     mode = _require_string(arguments, "mode")
     if mode == "report":
@@ -766,31 +801,9 @@ def _call_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
         return _call_product_manifest(arguments)
     if mode == "build_product_entry":
         return _call_build_product_entry(arguments)
-    if mode == "migration_audit":
-        return _call_migration_audit(arguments)
-    if mode == "backfill_apply":
-        return _call_backfill_apply(arguments)
-    if mode == "cleanup_apply":
-        return _call_cleanup_apply(arguments)
-    if mode == "safe_cache_cleanup_apply":
-        result = _call_cleanup_apply(arguments)
-        structured = result.get("structuredContent")
-        if isinstance(structured, dict):
-            projected = {
-                **structured,
-                "surface": "control_plane_safe_cache_cleanup_apply",
-                "source_surface": structured.get("surface"),
-            }
-            result["structuredContent"] = projected
-            if result["content"] and result["content"][0]["text"].lstrip().startswith("{"):
-                result["content"][0]["text"] = _json_text(projected)
-        return result
-    if mode == "governance_report":
-        return _call_governance_report(arguments)
-    if mode == "lifecycle_report":
-        return _call_lifecycle_report(arguments)
-    if mode == "continuous_soak_summary":
-        return _call_continuous_soak_summary(arguments)
+    control_plane_handler = _CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS.get(mode)
+    if control_plane_handler is not None:
+        return control_plane_handler(arguments)
     raise ValueError(f"Unsupported product_entry mode: {mode}")
 
 
