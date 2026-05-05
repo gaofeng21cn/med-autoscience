@@ -317,7 +317,7 @@ def sync_general_delivery(
                 }
             )
 
-        sync_current_package_projection(
+        current_package_readme_payload = sync_current_package_projection(
             paper_root=paper_root,
             source_root=source_root,
             current_package_root=current_package_root,
@@ -388,6 +388,7 @@ def sync_general_delivery(
                 "paper_root": str(paper_root),
                 "worktree_root": str(worktree_root),
             },
+            "controller_authorized_doctor_readme": current_package_readme_payload,
             "charter_contract_linkage": charter_contract_linkage,
             "surface_roles": build_delivery_surface_roles(
                 paper_root=paper_root,
@@ -542,7 +543,7 @@ def sync_journal_specific_delivery(
             "path": str(journal_package_zip.resolve()),
         }
     )
-    sync_current_package_projection(
+    current_package_readme_payload = sync_current_package_projection(
         paper_root=paper_root,
         source_root=journal_package_root,
         current_package_root=current_package_root,
@@ -582,6 +583,7 @@ def sync_journal_specific_delivery(
             "worktree_root": str(worktree_root),
             "package_source_root": str(source_root),
         },
+        "controller_authorized_doctor_readme": current_package_readme_payload,
         "charter_contract_linkage": charter_contract_linkage,
         "surface_roles": build_delivery_surface_roles(
             paper_root=paper_root,
@@ -752,7 +754,7 @@ def sync_promoted_journal_delivery(
             }
         )
 
-    sync_current_package_projection(
+    current_package_readme_payload = sync_current_package_projection(
         paper_root=paper_root,
         source_root=source_root,
         current_package_root=current_package_root,
@@ -819,6 +821,7 @@ def sync_promoted_journal_delivery(
             "paper_root": str(paper_root),
             "package_source_root": str(source_root),
         },
+        "controller_authorized_doctor_readme": current_package_readme_payload,
         "charter_contract_linkage": charter_contract_linkage,
         "surface_roles": build_delivery_surface_roles(
             paper_root=paper_root,

@@ -699,13 +699,26 @@ def build_current_package_readme(
         f"- Study: `{study_id}`",
         f"- Active sync stage: `{stage}`",
         f"- Status: {status_line}",
-        f"- Controller-authorized source: `{source_relative_root}`",
+        "- current_package/ is a human-facing mirror, not an edit source.",
+        "",
+        "## Submission files",
+        "",
+        "- Open this directory for the latest human-facing manuscript package.",
+        "- Expected primary files: `manuscript.docx`, `paper.pdf`, `figures/`, and `tables/` when present.",
+        "- Target-journal exports under `submission_packages/<journal_slug>/` are derived projections and require explicit target confirmation before final journal-ready use.",
+        "",
+        "## Audit and reproducibility",
+        "",
         f"- Delivery layout: `{SUBMISSION_PACKAGE_LAYOUT_VERSION}`",
         "- Audit material: `audit/`",
         "- Reproducibility material: `reproducibility/`",
         "- Canonical authority surface: `paper/`",
+        f"- Controller-authorized source: `{source_relative_root}`",
+        "",
+        "## Delivery status",
+        "",
         "- This directory is the stable, stage-agnostic entry point for the latest human-facing package.",
-        "- Target-journal exports under `submission_packages/<journal_slug>/` are derived projections and require explicit target confirmation before they are treated as final journal-ready formatting.",
+        "- Publication quality and submission readiness remain owned by MAS durable quality and controller surfaces.",
     ]
     linkage = charter_contract_linkage or {}
     study_charter_ref = linkage.get("study_charter_ref") or {}
@@ -728,6 +741,11 @@ def build_current_package_readme(
         )
     lines.extend(
         [
+            "",
+            "## Next controller-authorized sync",
+            "",
+            "- Refresh this mirror only through controller-authorized delivery sync/apply.",
+            "- Do not patch files in this directory as the source of truth.",
             "",
             "Use this directory when a human wants the latest readable package without first deciding which stage-specific mirror to open. "
             "Regenerate from the controller-authorized source, not from this projection.",
@@ -901,7 +919,7 @@ def sync_current_package_projection(
     generated_files: list[dict[str, str]],
     review_ledger_source: Path | None = None,
     charter_contract_linkage: dict[str, Any] | None = None,
-) -> None:
+) -> dict[str, Any]:
     reset_directory(current_package_root)
     resolved_projected_current_package_root = (
         Path(projected_current_package_root).expanduser().resolve()
@@ -940,6 +958,19 @@ def sync_current_package_projection(
         ),
     )
     _append_generated_file(generated_files, category="current_package", path=readme_path)
+    readme_payload = {
+        "authority": "controller_authorized_delivery_sync_apply_only",
+        "controller_authorized": True,
+        "readme_path": str((resolved_projected_current_package_root / "README.md").resolve()),
+        "written": True,
+        "sections": [
+            "Submission files",
+            "Audit and reproducibility",
+            "Delivery status",
+            "Next controller-authorized sync",
+        ],
+        "editable_source": False,
+    }
     submission_todo = build_submission_todo_from_manifest(
         manifest_path=resolve_submission_manifest_path(current_package_root),
     )
@@ -958,3 +989,4 @@ def sync_current_package_projection(
     )
     build_zip_from_directory(source_root=current_package_root, output_path=current_package_zip)
     _append_generated_file(generated_files, category="current_package", path=current_package_zip)
+    return readme_payload
