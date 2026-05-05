@@ -131,6 +131,46 @@ def _runtime_state_has_stale_specificity_terminal(runtime_state: Mapping[str, An
     return any(marker in SPECIFICITY_WORK_UNIT_IDS for marker in markers)
 
 
+def _resume_result_active_run_id(resume_result: Mapping[str, Any]) -> str | None:
+    runtime_liveness = _mapping(resume_result.get("runtime_liveness_audit"))
+    runtime_audit = _mapping(runtime_liveness.get("runtime_audit"))
+    snapshot = _mapping(resume_result.get("snapshot"))
+    for value in (
+        resume_result.get("active_run_id"),
+        runtime_liveness.get("active_run_id"),
+        runtime_audit.get("active_run_id"),
+        snapshot.get("active_run_id"),
+    ):
+        if text := _text(value):
+            return text
+    return None
+
+
+def _resume_result_worker_running(resume_result: Mapping[str, Any]) -> bool:
+    runtime_liveness = _mapping(resume_result.get("runtime_liveness_audit"))
+    runtime_audit = _mapping(runtime_liveness.get("runtime_audit"))
+    if runtime_audit.get("worker_running") is False:
+        return False
+    if runtime_liveness.get("worker_running") is False:
+        return False
+    return bool(runtime_audit.get("worker_running") or runtime_liveness.get("worker_running"))
+
+
+def _runtime_relaunch_postcondition_failure(resume_result: Mapping[str, Any]) -> dict[str, Any] | None:
+    postcondition = _mapping(resume_result.get("resume_postcondition"))
+    if postcondition and postcondition.get("effective") is not True:
+        return {
+            "reason": "runtime_relaunch_no_live_run_started",
+            "resume_postcondition": postcondition,
+        }
+    if _resume_result_active_run_id(resume_result) is None and not _resume_result_worker_running(resume_result):
+        return {
+            "reason": "runtime_relaunch_no_live_run_started",
+            "resume_postcondition": postcondition or None,
+        }
+    return None
+
+
 def _apply_abnormal_stopped_runtime_repair(
     *,
     profile: WorkspaceProfile,
@@ -154,12 +194,23 @@ def _apply_abnormal_stopped_runtime_repair(
             "repair_kind": repair_kind,
             "error": str(exc),
         }
+    resume_payload = dict(resume_result) if isinstance(resume_result, Mapping) else {}
+    postcondition_failure = _runtime_relaunch_postcondition_failure(resume_payload)
+    if postcondition_failure is not None:
+        return {
+            **dict(base),
+            "dispatch_status": "blocked",
+            "reason": _text(postcondition_failure.get("reason")),
+            "repair_kind": repair_kind,
+            "resume_result": resume_payload,
+            "resume_postcondition": postcondition_failure.get("resume_postcondition"),
+        }
     return {
         **dict(base),
         "dispatch_status": "applied",
         "reason": "abnormal_stopped_runtime_relaunch_requested",
         "repair_kind": repair_kind,
-        "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
+        "resume_result": resume_payload,
     }
 
 
