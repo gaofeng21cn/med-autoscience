@@ -94,6 +94,7 @@
 - [MAS/MDS 自治操作系统 program](program/mas_mds_autonomy_operating_system_program.md)
 - [MAS/MDS 统一增强 program](program/mas_mds_unified_enhancement_program.md)
 - [Runtime lifecycle SQLite 迁移 program](program/runtime_lifecycle_sqlite_migration_program.md)
+- [MAS 单项目 MDS 吸收 program](program/mas_single_project_mds_absorb_program.md)
 - [MAS 单项目质量与自治主线](program/mas_single_project_quality_and_autonomy_mainline.md)
 - [MedDeepScientist 解构地图](program/med_deepscientist_deconstruction_map.md)
 - [外部运行时依赖门禁](program/external_runtime_dependency_gate.md)
