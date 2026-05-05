@@ -108,7 +108,7 @@ def test_workspace_storage_audit_indexes_summary_in_workspace_lifecycle_store(tm
         row = conn.execute(
             """
             SELECT mode, study_count, estimated_release_bytes, actual_release_bytes,
-                   runtime_total_bytes, study_artifact_total_bytes, summary_json
+                   runtime_total_bytes, study_artifact_total_bytes, summary_json, payload_json
             FROM workspace_storage_audits
             WHERE workspace_root = ?
             """,
@@ -122,6 +122,10 @@ def test_workspace_storage_audit_indexes_summary_in_workspace_lifecycle_store(tm
     assert row[4] == result["summary"]["runtime_total_bytes"]
     assert row[5] == result["summary"]["study_artifact_total_bytes"]
     assert json.loads(row[6]) == result["summary"]
+    indexed_payload = json.loads(row[7])
+    assert indexed_payload["projection_policy"] == "compact_sqlite_index_full_report_in_file_authority"
+    assert indexed_payload["source_report_path"] == str(Path(result["report_path"]).resolve())
+    assert "categories" not in indexed_payload
     assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"] == {
         "watch_states": 0,
         "runtime_reports": 0,
@@ -130,6 +134,66 @@ def test_workspace_storage_audit_indexes_summary_in_workspace_lifecycle_store(tm
         "archive_refs": 0,
         "report_index": 1,
     }
+
+
+def test_workspace_storage_audit_indexes_compact_payload_for_large_reports(tmp_path: Path) -> None:
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    workspace_root = tmp_path / "workspace"
+    report_path = workspace_root / "storage_audit" / "20260505T000000Z.json"
+    latest_path = workspace_root / "storage_audit" / "latest.json"
+    large_report = {
+        "schema_version": 1,
+        "recorded_at": "2026-05-05T00:00:00+00:00",
+        "workspace_root": str(workspace_root),
+        "mode": "dry-run",
+        "selection": {"restore_proof_buckets": ["cold_archive"]},
+        "summary": {
+            "study_count": 1,
+            "estimated_release_bytes": 0,
+            "actual_release_bytes": 0,
+            "runtime_total_bytes": 1,
+            "study_artifact_total_bytes": 0,
+        },
+        "categories": {
+            "runtime": {
+                "category": "runtime",
+                "bytes": 1,
+                "candidate_action": "restore-proof-compaction",
+                "estimated_release_bytes": 0,
+                "actual_release_bytes": 0,
+                "studies": [
+                    {
+                        "study_id": "001-risk",
+                        "quest_id": "quest-001",
+                        "quest_root": str(workspace_root / "runtime" / "quests" / "quest-001"),
+                        "status": "audited",
+                        "quest_runtime": {"status": "paused", "active_run_id": None},
+                        "runtime": {
+                            "candidate_action": "restore-proof-compaction",
+                            "estimated_release_bytes": 0,
+                            "actual_release_bytes": 0,
+                            "huge_debug_blob": "x" * 1_000_000,
+                        },
+                    }
+                ],
+            }
+        },
+    }
+
+    lifecycle_store.record_workspace_storage_audit(
+        workspace_root=workspace_root,
+        report=large_report,
+        report_path=report_path,
+        latest_report_path=latest_path,
+    )
+
+    db_path = lifecycle_store.workspace_lifecycle_store_path(workspace_root)
+    with sqlite3.connect(db_path) as conn:
+        payload_json = conn.execute("SELECT payload_json FROM workspace_storage_audits").fetchone()[0]
+    indexed_payload = json.loads(payload_json)
+    assert len(payload_json) < 20_000
+    assert indexed_payload["runtime_projection"]["studies"][0]["study_id"] == "001-risk"
+    assert "huge_debug_blob" not in payload_json
 
 
 def test_lifecycle_store_fails_closed_when_sqlite_sidecar_is_git_tracked(tmp_path: Path) -> None:
@@ -153,6 +217,34 @@ def test_lifecycle_store_fails_closed_when_sqlite_sidecar_is_git_tracked(tmp_pat
         assert "artifacts/runtime/runtime_lifecycle.sqlite" in str(exc)
     else:
         raise AssertionError("tracked lifecycle DB sidecar must fail closed")
+
+
+def test_lifecycle_store_allows_ignored_untracked_sqlite_sidecar(tmp_path: Path) -> None:
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    repo_root = tmp_path / "workspace"
+    repo_root.mkdir()
+    subprocess.run(["git", "init"], cwd=repo_root, check=True, text=True, capture_output=True)
+    (repo_root / ".gitignore").write_text("*.sqlite\n*.sqlite-wal\n*.sqlite-shm\n", encoding="utf-8")
+    db_path = repo_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+
+    result = lifecycle_store.record_watch_state(
+        quest_root=repo_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "q001",
+        payload={"updated_at": "2026-05-05T00:00:00+00:00"},
+        db_path=db_path,
+    )
+
+    assert result["status"] == "indexed"
+    assert db_path.is_file()
+    assert subprocess.run(
+        ["git", "-C", str(repo_root), "check-ignore", "--quiet", str(db_path.relative_to(repo_root))],
+        check=False,
+    ).returncode == 0
+    assert subprocess.run(
+        ["git", "-C", str(repo_root), "ls-files", "--cached", "--error-unmatch", "--", str(db_path.relative_to(repo_root))],
+        check=False,
+        text=True,
+        capture_output=True,
+    ).returncode != 0
 
 
 def test_runtime_event_record_indexes_event_without_replacing_latest_authority(tmp_path: Path) -> None:

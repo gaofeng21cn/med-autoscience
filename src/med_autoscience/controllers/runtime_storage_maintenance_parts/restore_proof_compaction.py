@@ -15,6 +15,7 @@ SURFACE_KIND = "runtime_restore_proof_compaction"
 SCHEMA_VERSION = 1
 COLD_RUNTIME_STATUSES = frozenset({"completed", "failed", "terminated"})
 PARKED_CONTROLLER_STOP_STATUSES = frozenset({"paused", "stopped"})
+OPERATOR_CONFIRMED_PARKED_ACTIVE_STATUSES = frozenset({"active"})
 
 
 def compact_cold_runtime_buckets(
@@ -60,7 +61,7 @@ def compact_cold_runtime_buckets(
             "blockers": [{"reason": "symlink_in_source_bucket", "path": str(symlink)}],
         }
 
-    archive_root = ds_root / "cold_archive" / "restore_proof_compaction"
+    archive_root = ds_root / "restore_proof_archives" / "runtime_bucket_compaction"
     archive_root.mkdir(parents=True, exist_ok=True)
     slug = _artifact_slug(recorded_at)
     safe_quest_id = _safe_artifact_id(quest_id)
@@ -158,11 +159,14 @@ def restore_proof_compaction_blockers(
     snapshot: Mapping[str, Any],
     *,
     include_parked_controller_stop: bool = False,
+    include_operator_confirmed_parked_active: bool = False,
 ) -> list[str]:
     status = str(snapshot.get("status") or "").strip().lower()
     allowed_statuses = set(COLD_RUNTIME_STATUSES)
     if include_parked_controller_stop:
         allowed_statuses.update(PARKED_CONTROLLER_STOP_STATUSES)
+    if include_operator_confirmed_parked_active:
+        allowed_statuses.update(OPERATOR_CONFIRMED_PARKED_ACTIVE_STATUSES)
     blockers: list[str] = []
     if not bool(snapshot.get("quest_exists")):
         blockers.append("missing_quest_root")
@@ -180,11 +184,13 @@ def restore_proof_compaction_candidate(
     candidate: Mapping[str, Any],
     snapshot: Mapping[str, Any],
     include_parked_controller_stop: bool = False,
+    include_operator_confirmed_parked_active: bool = False,
 ) -> dict[str, Any]:
     result = dict(candidate)
     blockers = restore_proof_compaction_blockers(
         snapshot,
         include_parked_controller_stop=include_parked_controller_stop,
+        include_operator_confirmed_parked_active=include_operator_confirmed_parked_active,
     )
     result["restore_proof_compaction"] = {
         "enabled": True,
@@ -243,15 +249,32 @@ def _restore_proof(
     observed: dict[str, dict[str, Any]] = {}
     try:
         with tarfile.open(archive_path, "r:gz") as tar:
+            file_observations: dict[str, dict[str, Any]] = {}
+            hardlink_refs: list[tuple[str, str, int]] = []
             for member in tar.getmembers():
-                if not member.isfile():
+                if member.isfile():
+                    extracted = tar.extractfile(member)
+                    if extracted is None:
+                        errors.append({"path": member.name, "reason": "member_not_readable"})
+                        continue
+                    digest = hashlib.sha256(extracted.read()).hexdigest()
+                    payload = {"path": member.name, "size_bytes": member.size, "sha256": digest}
+                    observed[member.name] = payload
+                    file_observations[member.name] = payload
                     continue
-                extracted = tar.extractfile(member)
-                if extracted is None:
-                    errors.append({"path": member.name, "reason": "member_not_readable"})
+                if member.islnk():
+                    hardlink_refs.append((member.name, member.linkname, member.size))
                     continue
-                digest = hashlib.sha256(extracted.read()).hexdigest()
-                observed[member.name] = {"path": member.name, "size_bytes": member.size, "sha256": digest}
+            for member_name, link_name, member_size in hardlink_refs:
+                target = file_observations.get(link_name)
+                if target is None:
+                    errors.append({"path": member_name, "reason": "hardlink_target_missing", "target": link_name})
+                    continue
+                observed[member_name] = {
+                    "path": member_name,
+                    "size_bytes": member_size or int(target.get("size_bytes") or 0),
+                    "sha256": target.get("sha256"),
+                }
     except tarfile.TarError as exc:
         errors.append({"path": str(archive_path), "reason": "archive_not_readable", "error": str(exc)})
     missing = sorted(set(expected) - set(observed))

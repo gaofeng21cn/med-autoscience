@@ -483,6 +483,18 @@ def test_audit_workspace_storage_restore_proof_compaction_archives_and_prunes_co
     assert row[1] == compaction["archive_ref"]["archive_path"]
     assert row[2] == compaction["restore_proof_path"]
     assert json.loads(row[3])["sha256"] == compaction["archive_ref"]["sha256"]
+    workspace_db_path = profile.workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    with sqlite3.connect(workspace_db_path) as conn:
+        workspace_row = conn.execute(
+            "SELECT archive_id, archive_path, restore_proof_path, payload_json FROM archive_refs WHERE quest_root = ?",
+            (str(quest_root.resolve()),),
+        ).fetchone()
+    assert workspace_row is not None
+    assert workspace_row[0] == compaction["archive_ref"]["archive_id"]
+    assert workspace_row[1] == compaction["archive_ref"]["archive_path"]
+    assert workspace_row[2] == compaction["restore_proof_path"]
+    assert json.loads(workspace_row[3])["sha256"] == compaction["archive_ref"]["sha256"]
+    assert study_report["apply_result"]["runtime_lifecycle_workspace_archive_index"]["indexed_table"] == "archive_refs"
 
 
 @pytest.mark.parametrize(
@@ -559,6 +571,148 @@ def test_audit_workspace_storage_restore_proof_compaction_can_include_parked_con
     assert compaction["status"] == "compacted"
     assert compaction["restore_proof"]["status"] == "verified"
     assert not payload.exists()
+
+
+def test_audit_workspace_storage_restore_proof_compaction_can_include_operator_confirmed_parked_active(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    study_id = "001-stale-active"
+    _write_study(profile.studies_root / study_id, study_id=study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    _write_quest(quest_root, quest_id=study_id, status="active", active_run_id=None)
+    payload = quest_root / ".ds" / "runs" / "run-001" / "stdout.jsonl"
+    payload.parent.mkdir(parents=True, exist_ok=True)
+    payload.write_text("operator confirmed parked payload\n" * 4096, encoding="utf-8")
+
+    result = module.audit_workspace_storage(
+        profile=profile,
+        study_id=study_id,
+        all_studies=False,
+        apply=True,
+        restore_proof_compaction=True,
+        include_operator_confirmed_parked_active=True,
+    )
+
+    study_report = result["categories"]["runtime"]["studies"][0]
+    compaction = study_report["apply_result"]["restore_proof_compaction"]
+    assert study_report["status"] == "applied"
+    assert study_report["runtime"]["candidate_action"] == "restore-proof-compaction"
+    assert compaction["status"] == "compacted"
+    assert compaction["restore_proof"]["status"] == "verified"
+    assert not payload.exists()
+
+
+def test_audit_workspace_storage_restore_proof_compaction_can_explicitly_compact_cold_archive_bucket(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    study_id = "004-cold-archive"
+    _write_study(profile.studies_root / study_id, study_id=study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    _write_quest(quest_root, quest_id=study_id, status="stopped")
+    payload_paths = [
+        quest_root / ".ds" / "cold_archive" / "prior-run" / f"payload-{index:03d}.jsonl"
+        for index in range(18)
+    ]
+    for path in payload_paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("already cold payload\n" * 4096, encoding="utf-8")
+    file_count_before = sum(1 for path in (quest_root / ".ds").rglob("*") if path.is_file())
+
+    result = module.audit_workspace_storage(
+        profile=profile,
+        study_id=study_id,
+        all_studies=False,
+        apply=True,
+        restore_proof_compaction=True,
+        include_parked_controller_stop=True,
+        restore_proof_buckets=("cold_archive",),
+    )
+
+    study_report = result["categories"]["runtime"]["studies"][0]
+    compaction = study_report["apply_result"]["restore_proof_compaction"]
+    archive_path = Path(compaction["archive_ref"]["archive_path"])
+    assert study_report["status"] == "applied"
+    assert study_report["runtime"]["candidate_action"] == "restore-proof-compaction"
+    assert study_report["runtime"]["restore_proof_compaction"]["eligible"] is True
+    assert study_report["runtime"]["estimated_release_bytes"] == study_report["actual_runtime_release_bytes"]
+    assert compaction["status"] == "compacted"
+    assert compaction["source_buckets"] == ["cold_archive"]
+    assert compaction["restore_proof"]["status"] == "verified"
+    assert archive_path.is_file()
+    assert "/.ds/restore_proof_archives/" in archive_path.as_posix()
+    assert not (quest_root / ".ds" / "cold_archive").exists()
+    assert sum(1 for path in (quest_root / ".ds").rglob("*") if path.is_file()) < file_count_before
+
+
+def test_audit_workspace_storage_restore_proof_compaction_verifies_hardlinked_payloads(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    study_id = "004-hardlinks"
+    _write_study(profile.studies_root / study_id, study_id=study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    _write_quest(quest_root, quest_id=study_id, status="completed")
+    source = quest_root / ".ds" / "worktrees" / "lane-a" / ".codex" / "sessions" / "rollout.jsonl"
+    hardlink = quest_root / ".ds" / "worktrees" / "lane-b" / ".codex" / "sessions" / "rollout.jsonl"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    hardlink.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text("shared session payload\n" * 4096, encoding="utf-8")
+    os.link(source, hardlink)
+
+    result = module.audit_workspace_storage(
+        profile=profile,
+        study_id=study_id,
+        all_studies=False,
+        apply=True,
+        restore_proof_compaction=True,
+        restore_proof_buckets=("worktrees",),
+    )
+
+    study_report = result["categories"]["runtime"]["studies"][0]
+    compaction = study_report["apply_result"]["restore_proof_compaction"]
+    restore_proof = compaction["restore_proof"]
+    assert study_report["status"] == "applied"
+    assert compaction["status"] == "compacted"
+    assert restore_proof["status"] == "verified"
+    assert restore_proof["source_file_count"] == 2
+    assert restore_proof["verified_file_count"] == 2
+    assert restore_proof["errors"] == []
+    assert not (quest_root / ".ds" / "worktrees").exists()
+
+
+def test_maintain_quest_runtime_storage_compacts_legacy_unbound_quest(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    quest_root = profile.runtime_root / "legacy-quest"
+    _write_quest(quest_root, quest_id="legacy-quest", status="paused")
+    payload = quest_root / ".ds" / "runs" / "run-001" / "stdout.jsonl"
+    payload.parent.mkdir(parents=True, exist_ok=True)
+    payload.write_text("legacy payload\n" * 4096, encoding="utf-8")
+
+    result = module.maintain_quest_runtime_storage(
+        profile=profile,
+        quest_root=quest_root,
+        restore_proof_compaction=True,
+        restore_proof_buckets=("runs",),
+        include_parked_controller_stop=True,
+    )
+
+    compaction = result["restore_proof_compaction"]
+    assert result["status"] == "maintained"
+    assert result["study_id"] is None
+    assert result["study_root"] is None
+    assert result["orphan_quest_root_mode"] is True
+    assert compaction["status"] == "compacted"
+    assert compaction["restore_proof"]["status"] == "verified"
+    assert not (quest_root / ".ds" / "runs").exists()
+    assert Path(result["latest_report_path"]).is_file()
 
 
 def test_audit_workspace_storage_restore_proof_compaction_blocks_symlink_without_prune(tmp_path: Path) -> None:

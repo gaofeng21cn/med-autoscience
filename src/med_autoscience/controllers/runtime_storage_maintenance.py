@@ -5,13 +5,15 @@ import json
 import os
 from pathlib import Path
 import shutil
-import subprocess
-import sys
 from typing import Any, Mapping
 
 from med_autoscience.controllers import study_runtime_resolution
 from med_autoscience.controllers.artifact_lifecycle_inventory import build_study_artifact_lifecycle_registry
+from med_autoscience.controllers.runtime_storage_maintenance_parts import backend_maintenance
 from med_autoscience.controllers.runtime_storage_maintenance_parts import git_garbage
+from med_autoscience.controllers.runtime_storage_maintenance_parts.quest_root_maintenance import (
+    maintain_quest_runtime_storage,
+)
 from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof_compaction import (
     compact_cold_runtime_buckets,
     restore_proof_compaction_blockers,
@@ -118,20 +120,27 @@ def _directory_size_bytes(path: Path) -> int:
     return total
 
 
-def _size_summary(quest_root: Path) -> dict[str, Any]:
+def _size_summary(quest_root: Path, *, buckets: Iterable[str] | None = None) -> dict[str, Any]:
     ds_root = quest_root / ".ds"
-    buckets: dict[str, Any] = {}
-    for bucket_name in _PRIMARY_BUCKETS:
+    bucket_summaries: dict[str, Any] = {}
+    for bucket_name in _restore_proof_buckets(buckets):
         bucket_path = ds_root / bucket_name
-        buckets[bucket_name] = {
+        bucket_summaries[bucket_name] = {
             "path": str(bucket_path),
             "bytes": _directory_size_bytes(bucket_path),
         }
     return {
         "root": str(ds_root),
         "total_bytes": _directory_size_bytes(ds_root),
-        "buckets": buckets,
+        "buckets": bucket_summaries,
     }
+
+
+def _restore_proof_buckets(buckets: Iterable[str] | None) -> tuple[str, ...]:
+    if buckets is None:
+        return _PRIMARY_BUCKETS
+    selected = tuple(dict.fromkeys(str(bucket).strip() for bucket in buckets if str(bucket).strip()))
+    return selected or _PRIMARY_BUCKETS
 
 
 def _study_artifact_size_summary(study_root: Path) -> dict[str, Any]:
@@ -272,67 +281,6 @@ def _primary_runtime_bucket_bytes(size_summary: Mapping[str, Any]) -> int:
 
 def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
-
-
-def _backend_script_path(profile: WorkspaceProfile) -> Path | None:
-    repo_root = profile.med_deepscientist_repo_root
-    if repo_root is None:
-        return None
-    resolved_repo_root = Path(repo_root).expanduser().resolve()
-    script_path = resolved_repo_root / "scripts" / "maintain_quest_runtime_storage.py"
-    return script_path if script_path.is_file() else None
-
-
-def _pythonpath_env(repo_root: Path) -> str:
-    src_root = str((repo_root / "src").resolve())
-    existing = str(os.environ.get("PYTHONPATH") or "").strip()
-    if not existing:
-        return src_root
-    return os.pathsep.join([src_root, existing])
-
-
-def _build_command(
-    *,
-    script_path: Path,
-    quest_root: Path,
-    include_worktrees: bool,
-    older_than_seconds: int,
-    jsonl_max_mb: int,
-    text_max_mb: int,
-    event_segment_max_mb: int,
-    slim_jsonl_threshold_mb: int | None,
-    dedupe_worktree_min_mb: int | None,
-    head_lines: int,
-    tail_lines: int,
-) -> list[str]:
-    command = [
-        sys.executable,
-        str(script_path),
-        str(quest_root),
-        "--older-than-hours",
-        str(max(1, older_than_seconds // 3600)),
-        "--jsonl-max-mb",
-        str(max(1, jsonl_max_mb)),
-        "--text-max-mb",
-        str(max(1, text_max_mb)),
-        "--event-segment-max-mb",
-        str(max(1, event_segment_max_mb)),
-        "--head-lines",
-        str(max(1, head_lines)),
-        "--tail-lines",
-        str(max(1, tail_lines)),
-    ]
-    if not include_worktrees:
-        command.append("--no-worktrees")
-    if slim_jsonl_threshold_mb is None:
-        command.append("--no-slim-oversized-jsonl")
-    else:
-        command.extend(["--slim-jsonl-threshold-mb", str(max(1, slim_jsonl_threshold_mb))])
-    if dedupe_worktree_min_mb is None:
-        command.append("--no-dedupe-worktrees")
-    else:
-        command.extend(["--dedupe-worktree-min-mb", str(max(1, dedupe_worktree_min_mb))])
-    return command
 
 
 def _git_storage_audit(
@@ -516,51 +464,6 @@ def _path_is_inside_workspace(path: Path, workspace_root: Path) -> bool:
     return True
 
 
-def _run_backend_command(*, repo_root: Path, command: list[str]) -> dict[str, Any]:
-    env = dict(os.environ)
-    env["PYTHONPATH"] = _pythonpath_env(repo_root)
-    completed = subprocess.run(
-        command,
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-        check=False,
-        env=env,
-    )
-    stdout = completed.stdout.strip()
-    stderr = completed.stderr.strip()
-    payload_text = stdout or stderr
-    if completed.returncode != 0:
-        return {
-            "status": "backend_failed",
-            "returncode": completed.returncode,
-            "stdout": stdout,
-            "stderr": stderr,
-            "command": command,
-        }
-    try:
-        payload = json.loads(payload_text) if payload_text else {}
-    except json.JSONDecodeError:
-        return {
-            "status": "backend_output_invalid",
-            "returncode": completed.returncode,
-            "stdout": stdout,
-            "stderr": stderr,
-            "command": command,
-        }
-    if not isinstance(payload, dict):
-        return {
-            "status": "backend_output_invalid",
-            "returncode": completed.returncode,
-            "stdout": stdout,
-            "stderr": stderr,
-            "command": command,
-        }
-    payload["command"] = command
-    payload["returncode"] = completed.returncode
-    return payload
-
-
 def _skipped_storage_category(*, category: str, workspace_root: Path, reason: str) -> dict[str, Any]:
     return {
         "category": category,
@@ -608,10 +511,13 @@ def audit_workspace_storage(
     allow_live_runtime: bool = False,
     restore_proof_compaction: bool = False,
     include_parked_controller_stop: bool = False,
+    include_operator_confirmed_parked_active: bool = False,
+    restore_proof_buckets: Iterable[str] | None = None,
     reinitialize_empty_workspace_git: bool = False,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     workspace_root = profile.workspace_root.expanduser().resolve()
+    selected_restore_proof_buckets = _restore_proof_buckets(restore_proof_buckets)
     selected_roots = [] if git_only else _selected_study_roots(profile=profile, study_id=study_id, all_studies=all_studies)
     study_reports: list[dict[str, Any]] = []
     runtime_total_bytes = 0
@@ -641,13 +547,14 @@ def audit_workspace_storage(
             if cache_scan_roots is not None:
                 cache_scan_roots.extend([resolved_study_root, quest_root])
             snapshot = _quest_runtime_snapshot(quest_root)
-            size_before = _size_summary(quest_root)
+            size_before = _size_summary(quest_root, buckets=selected_restore_proof_buckets)
             candidate = _runtime_candidate(quest_root=quest_root, snapshot=snapshot, size_summary=size_before)
             if restore_proof_compaction:
                 candidate = restore_proof_compaction_candidate(
                     candidate=candidate,
                     snapshot=snapshot,
                     include_parked_controller_stop=include_parked_controller_stop,
+                    include_operator_confirmed_parked_active=include_operator_confirmed_parked_active,
                 )
             if stopped_only and str(snapshot.get("status") or "") not in _TERMINAL_RUNTIME_STATUSES:
                 runtime_report = dict(candidate)
@@ -685,8 +592,17 @@ def audit_workspace_storage(
                     allow_live_runtime=allow_live_runtime,
                     restore_proof_compaction=restore_proof_compaction,
                     include_parked_controller_stop=include_parked_controller_stop,
+                    include_operator_confirmed_parked_active=include_operator_confirmed_parked_active,
+                    restore_proof_buckets=selected_restore_proof_buckets,
                 )
-            size_after = _size_summary(quest_root)
+                workspace_archive_index = _record_workspace_archive_ref(
+                    workspace_root=workspace_root,
+                    quest_root=quest_root,
+                    apply_result=apply_result,
+                )
+                if workspace_archive_index:
+                    apply_result["runtime_lifecycle_workspace_archive_index"] = workspace_archive_index
+            size_after = _size_summary(quest_root, buckets=selected_restore_proof_buckets)
             actual_runtime_release_bytes = _actual_release_bytes(size_before, size_after) if apply else 0
             runtime_report = dict(candidate)
             runtime_estimated_release_bytes_for_report = (
@@ -781,6 +697,8 @@ def audit_workspace_storage(
             "allow_live_runtime": allow_live_runtime,
             "restore_proof_compaction": restore_proof_compaction,
             "include_parked_controller_stop": include_parked_controller_stop,
+            "include_operator_confirmed_parked_active": include_operator_confirmed_parked_active,
+            "restore_proof_buckets": list(selected_restore_proof_buckets),
             "git_only": git_only,
             "reinitialize_empty_workspace_git": reinitialize_empty_workspace_git,
         },
@@ -837,6 +755,25 @@ def audit_workspace_storage(
     return report
 
 
+def _record_workspace_archive_ref(
+    *,
+    workspace_root: Path,
+    quest_root: Path,
+    apply_result: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(apply_result, Mapping):
+        return {}
+    compaction = _mapping(apply_result.get("restore_proof_compaction"))
+    archive_ref = compaction.get("archive_ref")
+    if not isinstance(archive_ref, Mapping):
+        return {}
+    return runtime_lifecycle_store.record_archive_ref(
+        quest_root=quest_root,
+        archive_ref=archive_ref,
+        db_path=runtime_lifecycle_store.workspace_lifecycle_store_path(workspace_root),
+    )
+
+
 def maintain_runtime_storage(
     *,
     profile: WorkspaceProfile,
@@ -854,8 +791,11 @@ def maintain_runtime_storage(
     allow_live_runtime: bool = False,
     restore_proof_compaction: bool = False,
     include_parked_controller_stop: bool = False,
+    include_operator_confirmed_parked_active: bool = False,
+    restore_proof_buckets: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
+    selected_restore_proof_buckets = _restore_proof_buckets(restore_proof_buckets)
     resolved_study_id, resolved_study_root, study_payload = study_runtime_resolution._resolve_study(
         profile=profile,
         study_id=study_id,
@@ -885,9 +825,11 @@ def maintain_runtime_storage(
         "allow_live_runtime": allow_live_runtime,
         "restore_proof_compaction_enabled": restore_proof_compaction,
         "include_parked_controller_stop": include_parked_controller_stop,
+        "include_operator_confirmed_parked_active": include_operator_confirmed_parked_active,
+        "restore_proof_buckets": list(selected_restore_proof_buckets),
     }
     result["quest_runtime_before"] = _quest_runtime_snapshot(resolved_quest_root)
-    result["size_before"] = _size_summary(resolved_quest_root)
+    result["size_before"] = _size_summary(resolved_quest_root, buckets=selected_restore_proof_buckets)
 
     if not result["quest_runtime_before"]["quest_exists"]:
         result["status"] = "blocked_missing_quest_root"
@@ -896,6 +838,7 @@ def maintain_runtime_storage(
         blockers = restore_proof_compaction_blockers(
             result["quest_runtime_before"],
             include_parked_controller_stop=include_parked_controller_stop,
+            include_operator_confirmed_parked_active=include_operator_confirmed_parked_active,
         )
         if blockers:
             result["status"] = "blocked_restore_proof_compaction"
@@ -913,7 +856,7 @@ def maintain_runtime_storage(
                 quest_root=resolved_quest_root,
                 quest_id=quest_id,
                 recorded_at=recorded_at,
-                buckets=_PRIMARY_BUCKETS,
+                buckets=selected_restore_proof_buckets,
             )
             result["restore_proof_compaction"] = compaction_result
             archive_ref = compaction_result.get("archive_ref")
@@ -937,28 +880,23 @@ def maintain_runtime_storage(
         result["status"] = "blocked_live_runtime"
         result["summary"] = "quest 当前仍在 live runtime，storage maintenance 需要先停车或显式放行。"
     else:
-        script_path = _backend_script_path(profile)
-        if script_path is None or profile.med_deepscientist_repo_root is None:
+        backend_result = backend_maintenance.run_quest_storage_maintenance(
+            profile=profile,
+            quest_root=resolved_quest_root,
+            include_worktrees=include_worktrees,
+            older_than_seconds=older_than_seconds,
+            jsonl_max_mb=jsonl_max_mb,
+            text_max_mb=text_max_mb,
+            event_segment_max_mb=event_segment_max_mb,
+            slim_jsonl_threshold_mb=slim_jsonl_threshold_mb,
+            dedupe_worktree_min_mb=dedupe_worktree_min_mb,
+            head_lines=head_lines,
+            tail_lines=tail_lines,
+        )
+        if backend_result is None:
             result["status"] = "blocked_backend_unavailable"
             result["summary"] = "med-deepscientist runtime storage maintenance 脚本当前不可用。"
         else:
-            command = _build_command(
-                script_path=script_path,
-                quest_root=resolved_quest_root,
-                include_worktrees=include_worktrees,
-                older_than_seconds=older_than_seconds,
-                jsonl_max_mb=jsonl_max_mb,
-                text_max_mb=text_max_mb,
-                event_segment_max_mb=event_segment_max_mb,
-                slim_jsonl_threshold_mb=slim_jsonl_threshold_mb,
-                dedupe_worktree_min_mb=dedupe_worktree_min_mb,
-                head_lines=head_lines,
-                tail_lines=tail_lines,
-            )
-            backend_result = _run_backend_command(
-                repo_root=profile.med_deepscientist_repo_root.expanduser().resolve(),
-                command=command,
-            )
             result["maintenance"] = backend_result
             if backend_result.get("status") in {"backend_failed", "backend_output_invalid"}:
                 result["status"] = str(backend_result.get("status"))
@@ -968,7 +906,7 @@ def maintain_runtime_storage(
                 result["summary"] = "runtime storage maintenance 已完成。"
 
     result["quest_runtime_after"] = _quest_runtime_snapshot(resolved_quest_root)
-    result["size_after"] = _size_summary(resolved_quest_root)
+    result["size_after"] = _size_summary(resolved_quest_root, buckets=selected_restore_proof_buckets)
     report_path = _timestamped_report_path(resolved_study_root, recorded_at)
     latest_report_path = _latest_report_path(resolved_study_root)
     result["report_path"] = str(report_path)
