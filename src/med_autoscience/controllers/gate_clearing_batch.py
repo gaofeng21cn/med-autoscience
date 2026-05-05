@@ -15,8 +15,8 @@ from med_autoscience.profiles import WorkspaceProfile, load_profile
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.study_charter import materialize_study_charter
 from med_autoscience.controllers.gate_clearing_batch_blockers import (
-    REPAIRABLE_MEDICAL_SURFACE_BLOCKERS,
-    medical_surface_repair_blockers,
+    medical_surface_display_repair_requested,
+    repairable_medical_surface,
 )
 from med_autoscience.controllers.gate_clearing_batch_fingerprints import (
     globbed_path_fingerprints as _globbed_path_fingerprints,
@@ -392,6 +392,10 @@ def _latest_batch_record(*, study_root: Path) -> dict[str, Any]:
     return _read_json(stable_gate_clearing_batch_path(study_root=study_root))
 
 
+def _latest_batch_closed_for_eval(latest_batch: dict[str, Any], current_eval_id: str | None) -> bool:
+    return gate_clearing_batch_currentness.batch_closed_for_source_eval(latest_batch, source_eval_id=current_eval_id)
+
+
 def _recommended_action_by_type(
     *,
     publication_eval_payload: dict[str, Any],
@@ -474,11 +478,7 @@ def build_gate_clearing_batch_recommended_action(
         return None
     current_required_action = str(gate_report.get("current_required_action") or "").strip()
 
-    medical_surface_blockers = medical_surface_repair_blockers(gate_report)
-    repairable_surface = bool(
-        medical_surface_blockers & REPAIRABLE_MEDICAL_SURFACE_BLOCKERS
-        or "claim_evidence_consistency_failed" in medical_surface_blockers
-    )
+    repairable_surface = repairable_medical_surface(gate_report)
     stale_delivery = "stale_study_delivery_mirror" in gate_blockers
     bundle_stage_repair = gate_clearing_batch_submission.bundle_stage_repair_requested(gate_report=gate_report)
     quest_root = _quest_root(profile, quest_id=quest_id)
@@ -494,7 +494,7 @@ def build_gate_clearing_batch_recommended_action(
 
     latest_batch = _latest_batch_record(study_root=study_root)
     current_eval_id = str(publication_eval_payload.get("eval_id") or "").strip()
-    if str(latest_batch.get("source_eval_id") or "").strip() == current_eval_id:
+    if _latest_batch_closed_for_eval(latest_batch, current_eval_id):
         return None
 
     if anchor_repairable or repairable_surface:
@@ -858,7 +858,7 @@ def run_gate_clearing_batch(
     publication_eval_payload = read_publication_eval_latest(study_root=resolved_study_root)
     latest_batch = _latest_batch_record(study_root=resolved_study_root)
     current_eval_id = str(publication_eval_payload.get("eval_id") or "").strip()
-    if str(latest_batch.get("source_eval_id") or "").strip() == current_eval_id:
+    if _latest_batch_closed_for_eval(latest_batch, current_eval_id):
         return {
             "ok": True,
             "status": "skipped_duplicate_eval",
@@ -979,7 +979,10 @@ def run_gate_clearing_batch(
     display_repair_script_path = paper_root / "build" / "generate_display_exports.py"
     if (
         not authority_settle_delivery_redrive_requested
-        and str(gate_report.get("medical_publication_surface_status") or "").strip() == "blocked"
+        and medical_surface_display_repair_requested(
+            gate_report,
+            submission_minimal_repair_gate_blockers=gate_clearing_batch_submission.SUBMISSION_MINIMAL_REPAIR_GATE_BLOCKERS,
+        )
     ):
         repair_units.append(
             GateClearingRepairUnit(

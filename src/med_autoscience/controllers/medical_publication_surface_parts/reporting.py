@@ -313,6 +313,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         )
     )
     medical_journal_prose_hits = unique_hits(medical_journal_prose_hits)
+    medical_journal_prose_blocking_hits = [
+        hit
+        for hit in medical_journal_prose_hits
+        if str(hit.get("pattern_id") or "").strip()
+        in medical_surface_policy.medical_journal_prose_blocking_pattern_ids()
+    ]
     medical_journal_prose_quality = {}
     medical_journal_prose_ai_verdict = None
     medical_journal_prose_ai_route_back = None
@@ -478,7 +484,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("medical_manuscript_blueprint_missing_or_incomplete")
     if not medical_prose_review_valid:
         blockers.append("ai_medical_prose_review_missing_or_incomplete")
-    elif medical_journal_prose_ai_verdict in {"block", "revise"}:
+    elif medical_journal_prose_ai_verdict in {"block", "revise"} or medical_journal_prose_blocking_hits:
         blockers.append("medical_journal_prose_style_not_met")
     if not results_narrative_valid:
         blockers.append("results_narrative_map_missing_or_incomplete")
@@ -609,9 +615,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "medical_story_contract_valid": medical_story_contract_valid,
         "manuscript_rhetoric_medical_publication_native": not analysis_plane_jargon_hits,
         "medical_journal_prose_style_valid": (
-            medical_prose_review_valid and medical_journal_prose_ai_verdict == "clear"
+            medical_prose_review_valid
+            and medical_journal_prose_ai_verdict == "clear"
+            and not medical_journal_prose_blocking_hits
         ),
         "medical_journal_prose_mechanical_flag_count": len(medical_prose_reviewer_evidence_hits),
+        "medical_journal_prose_blocking_hit_count": len(medical_journal_prose_blocking_hits),
         "medical_prose_reviewer_evidence_hit_count": len(medical_prose_reviewer_evidence_hits),
         "medical_prose_review_mechanical_safety_flags": medical_prose_reviewer_evidence_hits,
         "results_display_surface_valid": not results_display_surface_hits,

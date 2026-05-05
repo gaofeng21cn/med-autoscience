@@ -221,3 +221,65 @@ The findings support restrained follow-up stratification language within the stu
     assert report["medical_journal_prose_ai_verdict"] == "clear"
     assert report["medical_journal_prose_mechanical_flag_count"] >= 1
     assert any(hit["pattern_id"] == "figure_table_subject_results_sentence" for hit in report["top_hits"])
+
+
+def test_build_report_blocks_engineering_style_residue_even_when_ai_reviewer_clears_prose(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True, medical_prose_review_verdict="clear")
+    paper_root = _paper_root_from_quest(quest_root)
+    engineering_style_text = """
+## Introduction
+
+Persistent postoperative endocrine dysfunction remains clinically important after first-surgery NF-PitNET.
+
+Existing studies describe endocrine outcomes and model comparisons, but a fixed 3-month follow-up stratifier remains incompletely defined.
+
+The remaining gap is a manuscript surface that avoids treating candidate packages, audit findings, or a clinical story as manuscript endpoints.
+
+## Materials and Methods
+
+### Study design and cohort
+
+The cohort included first-surgery NF-PitNET cases with complete landmark variables.
+
+### Variable definition and measurement
+
+The endpoint was persistent postoperative global hypopituitarism after the 3-month landmark.
+
+### Model building
+
+Candidate packages were compared to determine whether model complexity improved the clinical story.
+
+### Validation framework
+
+Repeated nested validation compared discrimination, calibration, Brier score, and decision-curve behavior.
+
+## Results
+
+### Cohort characteristics
+
+The analytic cohort included 357 first-surgery cases and 98 endpoint events.
+
+### Unified validation and clinical utility
+
+The simple score had the lowest Brier score and near-ideal calibration.
+
+## Discussion
+
+The complexity audit remained secondary because marginal discrimination gains did not improve the clinical story.
+"""
+    (paper_root / "draft.md").write_text(engineering_style_text, encoding="utf-8")
+    (paper_root / "build" / "review_manuscript.md").write_text(engineering_style_text, encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "medical_journal_prose_style_not_met" in report["blockers"]
+    assert report["medical_journal_prose_ai_verdict"] == "clear"
+    assert report["medical_journal_prose_style_valid"] is False
+    assert {
+        "engineering_manuscript_surface_residue",
+        "candidate_package_residue",
+        "complexity_audit_residue",
+        "clinical_story_residue",
+    }.issubset({hit["pattern_id"] for hit in report["top_hits"]})

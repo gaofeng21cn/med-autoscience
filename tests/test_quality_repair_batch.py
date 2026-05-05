@@ -135,6 +135,36 @@ def test_build_quality_repair_batch_action_for_general_quality_repair_lane(tmp_p
     )
 
 
+def test_quality_repair_batch_builds_controller_route_for_submission_minimal_refresh() -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+
+    context = module._controller_route_context_for_gate(
+        gate_report={
+            "status": "blocked",
+            "current_required_action": "complete_bundle_stage",
+            "blockers": [
+                "stale_submission_minimal_authority",
+                "submission_hardening_incomplete",
+            ],
+            "gate_fingerprint": "publication-gate::003",
+            "work_unit_fingerprint": "submission-minimal::003",
+        },
+        source_eval_id="publication-eval::003::latest",
+    )
+
+    assert context == {
+        "controller_route_context": {
+            "control_surface": "quality_repair_batch",
+            "controller_action_type": "run_quality_repair_batch",
+            "work_unit_id": "submission_minimal_refresh",
+            "requires_human_confirmation": False,
+            "source_eval_id": "publication-eval::003::latest",
+            "gate_fingerprint": "publication-gate::003",
+            "work_unit_fingerprint": "submission-minimal::003",
+        }
+    }
+
+
 def test_run_quality_repair_batch_wraps_gate_clearing_and_writes_record(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
     profile = make_profile(tmp_path)
@@ -198,6 +228,91 @@ def test_run_quality_repair_batch_wraps_gate_clearing_and_writes_record(monkeypa
     assert record["quality_closure_state"] == "quality_repair_required"
     assert record["quality_execution_lane_id"] == "general_quality_repair"
     assert record["gate_clearing_execution_summary"] == gate_result["execution_summary"]
+
+
+def test_run_quality_repair_batch_reruns_same_eval_after_failed_gate_clearing_batch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
+    _write_quality_summary(study_root)
+    _write_json(
+        module.stable_quality_repair_batch_path(study_root=study_root),
+        {
+            "schema_version": 1,
+            "source_eval_id": publication_eval_payload["eval_id"],
+            "status": "executed",
+            "ok": True,
+            "gate_clearing_batch": {
+                "schema_version": 1,
+                "source_eval_id": publication_eval_payload["eval_id"],
+                "status": "executed",
+                "unit_results": [
+                    {
+                        "unit_id": "repair_paper_live_paths",
+                        "status": "failed",
+                        "error": "[Errno 2] No such file or directory: '/ABS/PATH/TO/ds'",
+                    },
+                    {
+                        "unit_id": "create_submission_minimal_package",
+                        "status": "skipped_failed_dependency",
+                        "failed_dependencies": ["repair_paper_live_paths"],
+                    },
+                ],
+                "gate_replay": {
+                    "status": "blocked",
+                    "blockers": [
+                        "stale_submission_minimal_authority",
+                        "submission_hardening_incomplete",
+                    ],
+                },
+            },
+        },
+    )
+    gate_result = {
+        "ok": True,
+        "status": "executed",
+        "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+        "gate_replay": {
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+        },
+        "unit_results": [{"unit_id": "create_submission_minimal_package", "status": "ready"}],
+        "execution_summary": {
+            "parallel_wave_count": 0,
+            "parallel_unit_count": 0,
+            "sequential_unit_count": 1,
+            "skipped_dependency_unit_count": 0,
+        },
+    }
+    seen: dict[str, object] = {}
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **kwargs: (seen.setdefault("kwargs", kwargs), gate_result)[1],
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        quest_id="quest-001",
+        source="test-source",
+    )
+
+    assert seen["kwargs"]["study_id"] == "001-risk"
+    assert result["status"] == "executed"
+    assert result["gate_clearing_batch"]["gate_replay"]["status"] == "clear"
 
 
 def test_study_outer_loop_executes_quality_repair_batch_controller_action(monkeypatch, tmp_path: Path) -> None:

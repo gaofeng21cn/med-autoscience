@@ -770,7 +770,9 @@ def collect_submission_surface_qc_failures(
             paper_bundle_manifest_path
         )
         worktree_root = (
-            authoritative_submission_manifest_path.resolve().parent.parent.parent
+            paper_artifacts.surface_root_from_submission_manifest_path(
+                authoritative_submission_manifest_path
+            ).parent.parent
             if authoritative_submission_manifest_path is not None
             else (paper_bundle_manifest_path.resolve().parent.parent if paper_bundle_manifest_path else None)
         )

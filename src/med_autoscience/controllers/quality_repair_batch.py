@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers import gate_clearing_batch
+from med_autoscience.controllers import gate_clearing_batch_blockers
+from med_autoscience.controllers import gate_clearing_batch_currentness
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.control_plane_route_gate import assert_control_plane_route_authorized
 from med_autoscience.profiles import WorkspaceProfile
@@ -79,12 +81,7 @@ def _gate_blockers(gate_report: Mapping[str, Any]) -> set[str]:
 
 
 def _repairable_medical_surface(gate_report: Mapping[str, Any]) -> bool:
-    medical_surface_blockers = {
-        text
-        for item in (gate_report.get("medical_publication_surface_named_blockers") or [])
-        if (text := _non_empty_text(item)) is not None
-    }
-    return bool(medical_surface_blockers & gate_clearing_batch.REPAIRABLE_MEDICAL_SURFACE_BLOCKERS)
+    return gate_clearing_batch_blockers.repairable_medical_surface(dict(gate_report))
 
 
 def _repair_candidates(
@@ -141,18 +138,24 @@ def _controller_route_context_for_gate(
     source_eval_id: str | None,
 ) -> dict[str, Any] | None:
     blockers = _gate_blockers(gate_report)
-    if "stale_study_delivery_mirror" not in blockers:
-        return None
     if _non_empty_text(gate_report.get("current_required_action")) not in {
         "complete_bundle_stage",
         "continue_bundle_stage",
     }:
         return None
+    if gate_clearing_batch.gate_clearing_batch_submission.submission_minimal_refresh_requested(
+        gate_report=dict(gate_report)
+    ):
+        work_unit_id = "submission_minimal_refresh"
+    elif "stale_study_delivery_mirror" in blockers:
+        work_unit_id = "submission_delivery_sync_closure"
+    else:
+        return None
     return {
         "controller_route_context": {
             "control_surface": "quality_repair_batch",
             "controller_action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
-            "work_unit_id": "submission_delivery_sync_closure",
+            "work_unit_id": work_unit_id,
             "requires_human_confirmation": False,
             "source_eval_id": source_eval_id,
             "gate_fingerprint": _non_empty_text(gate_report.get("gate_fingerprint")),
@@ -192,7 +195,13 @@ def build_quality_repair_batch_recommended_action(
 
     current_eval_id = _non_empty_text(publication_eval_payload.get("eval_id"))
     latest_batch = _latest_batch_record(study_root=resolved_study_root)
-    if current_eval_id is not None and _non_empty_text(latest_batch.get("source_eval_id")) == current_eval_id:
+    nested_gate_batch = latest_batch.get("gate_clearing_batch")
+    if not isinstance(nested_gate_batch, dict):
+        nested_gate_batch = {}
+    if gate_clearing_batch_currentness.batch_closed_for_source_eval(
+        nested_gate_batch,
+        source_eval_id=current_eval_id,
+    ):
         return None
 
     candidates = _repair_candidates(
@@ -274,7 +283,13 @@ def run_quality_repair_batch(
     quality_closure_truth, quality_execution_lane = _quality_repair_context(summary_payload)
     source_summary_id = _non_empty_text(summary_payload.get("summary_id"))
     latest_batch = _latest_batch_record(study_root=resolved_study_root)
-    if current_eval_id is not None and _non_empty_text(latest_batch.get("source_eval_id")) == current_eval_id:
+    nested_gate_batch = latest_batch.get("gate_clearing_batch")
+    if not isinstance(nested_gate_batch, dict):
+        nested_gate_batch = {}
+    if gate_clearing_batch_currentness.batch_closed_for_source_eval(
+        nested_gate_batch,
+        source_eval_id=current_eval_id,
+    ):
         return {
             "ok": True,
             "status": "skipped_duplicate_eval",

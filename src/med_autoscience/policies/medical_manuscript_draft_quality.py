@@ -175,12 +175,48 @@ MEDICAL_JOURNAL_PROSE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
         re.IGNORECASE,
     ),
     (
+        "engineering_manuscript_surface_residue",
+        "manuscript surface",
+        r"\bmanuscript[\s-]+surface\b",
+        re.IGNORECASE,
+    ),
+    (
+        "candidate_package_residue",
+        "candidate packages",
+        r"\bcandidate[\s-]+packages?\b",
+        re.IGNORECASE,
+    ),
+    (
+        "complexity_audit_residue",
+        "complexity audit",
+        r"\bcomplexity[\s-]+audit\b",
+        re.IGNORECASE,
+    ),
+    (
+        "clinical_story_residue",
+        "clinical story",
+        r"\bclinical[\s-]+story\b",
+        re.IGNORECASE,
+    ),
+    (
         "weak_success_language",
         "worked well / ready for review",
         r"\b(?:worked well|ready for review|good performance|performed well)\b",
         re.IGNORECASE,
     ),
 ]
+
+MEDICAL_JOURNAL_PROSE_BLOCKING_PATTERN_IDS = frozenset(
+    {
+        "project_status_report_opening",
+        "controller_artifact_subject",
+        "tool_runtime_provenance_body",
+        "engineering_manuscript_surface_residue",
+        "candidate_package_residue",
+        "complexity_audit_residue",
+        "clinical_story_residue",
+    }
+)
 
 SOURCE_BASIS = (
     {

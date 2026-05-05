@@ -146,7 +146,7 @@ def make_quest(
             "## Introduction\n\n"
             "Persistent postoperative endocrine burden remains clinically relevant after surgery for clinically nonfunctioning pituitary tumors because surveillance intensity, hormone replacement planning, and long-horizon follow-up all depend on how residual endocrine risk is framed for the treating team.\n\n"
             "Recent postoperative endocrine and prediction studies have reported center-level outcomes, model comparisons, and recovery patterns, but they still leave a gap between broad outcome description and a narrow follow-up stratifier that can be read directly at a fixed postoperative landmark.\n\n"
-            "In this retrospective single-center cohort, we therefore evaluated whether a manuscript-safe postoperative model could support a narrow medical follow-up decision route by comparing calibration, prediction error, and clinical utility across prespecified candidate packages.\n\n"
+            "In this retrospective single-center cohort, we therefore evaluated whether a postoperative prediction model could support follow-up stratification by comparing calibration, prediction error, and clinical utility across prespecified model specifications.\n\n"
         )
         methods_section = (
             "## Materials and Methods\n\n"
@@ -157,7 +157,7 @@ def make_quest(
             "### Model building\n\n"
             "The manuscript-facing model registry defined the baseline package, the extended preoperative package, and the comparison rationale for each candidate model.\n\n"
             "### Validation framework\n\n"
-            "All candidate packages were evaluated under the shared calibration-first selection rule using repeated cross-validation, with discrimination, calibration, and decision utility reported together.\n\n"
+            "All prespecified model specifications were evaluated under the shared calibration-first selection rule using repeated cross-validation, with discrimination, calibration, and decision utility reported together.\n\n"
         )
         results_section = (
             "## Results\n\n"
@@ -166,7 +166,7 @@ def make_quest(
             "### Unified validation and clinical utility\n\n"
             "The extended preoperative model improved calibration and clinical utility in the primary comparison while preserving the intended medical interpretation boundary.\n\n"
             "### Added-value assessment of model complexity\n\n"
-            "The complexity audit showed that any gain in discrimination had to be judged alongside calibration and decision utility rather than in isolation.\n"
+            "Incremental gains in discrimination were interpreted alongside calibration and decision utility rather than in isolation.\n"
         )
         draft_text = "# Draft\n\n## Abstract\n\nWe assessed whether an extended preoperative model could improve residual-risk estimation.\n\n"
         review_text = "---\n" 'title: "Study title"\n' "---\n\n"

@@ -9,6 +9,7 @@ from med_autoscience.policies.medical_reporting_contract import display_story_ro
 from med_autoscience.policies.medical_manuscript_draft_quality import (
     ANALYSIS_PLANE_JARGON_PATTERN_SPECS,
     FORBIDDEN_PATTERN_SPECS,
+    MEDICAL_JOURNAL_PROSE_BLOCKING_PATTERN_IDS,
     METHOD_LABEL_PATTERN_SPECS,
     MEDICAL_JOURNAL_PROSE_PATTERN_SPECS,
     PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS,
@@ -99,6 +100,10 @@ def get_medical_journal_prose_patterns() -> list[tuple[str, str, re.Pattern[str]
         (pattern_id, phrase, re.compile(pattern, flags=flags))
         for pattern_id, phrase, pattern, flags in MEDICAL_JOURNAL_PROSE_PATTERN_SPECS
     ]
+
+
+def medical_journal_prose_blocking_pattern_ids() -> frozenset[str]:
+    return MEDICAL_JOURNAL_PROSE_BLOCKING_PATTERN_IDS
 
 
 def validate_medical_manuscript_blueprint(payload: object) -> list[str]:

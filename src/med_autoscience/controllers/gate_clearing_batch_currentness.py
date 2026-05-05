@@ -16,6 +16,15 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
 
 GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID = "gate_needs_specificity"
 ANALYSIS_CLAIM_EVIDENCE_REPAIR_WORK_UNIT_ID = "analysis_claim_evidence_repair"
+_BATCH_OPEN_UNIT_STATUSES = frozenset(
+    {
+        "control_plane_route_blocked",
+        "failed",
+        "missing",
+        "skipped_authority_not_settled",
+        "skipped_failed_dependency",
+    }
+)
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -217,6 +226,50 @@ def terminal_publication_work_unit(selection: dict[str, Any]) -> dict[str, Any]:
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _unit_results_have_open_failures(batch_payload: dict[str, Any]) -> bool:
+    unit_results = batch_payload.get("unit_results")
+    if not isinstance(unit_results, list):
+        return False
+    return any(
+        isinstance(item, dict) and _non_empty_text(item.get("status")) in _BATCH_OPEN_UNIT_STATUSES
+        for item in unit_results
+    )
+
+
+def _gate_replay_closed(batch_payload: dict[str, Any]) -> bool:
+    gate_replay = batch_payload.get("gate_replay")
+    if not isinstance(gate_replay, dict):
+        return False
+    return _non_empty_text(gate_replay.get("status")) == "clear" or gate_replay.get("allow_write") is True
+
+
+def _platform_terminal_closed(batch_payload: dict[str, Any]) -> bool:
+    if _non_empty_text(batch_payload.get("status")) != "platform_terminal":
+        return False
+    return batch_payload.get("platform_terminal") is True and (
+        _non_empty_text(batch_payload.get("terminal_state")) == GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID
+    )
+
+
+def _stale_gate_replay_marker_closed(batch_payload: dict[str, Any]) -> bool:
+    marker = batch_payload.get("stale_gate_replay_closure")
+    if not isinstance(marker, dict):
+        return False
+    return _non_empty_text(marker.get("status")) == "closed"
+
+
+def batch_closed_for_source_eval(batch_payload: dict[str, Any], *, source_eval_id: str | None) -> bool:
+    if source_eval_id is None or _non_empty_text(batch_payload.get("source_eval_id")) != source_eval_id:
+        return False
+    if _unit_results_have_open_failures(batch_payload):
+        return False
+    return (
+        _gate_replay_closed(batch_payload)
+        or _platform_terminal_closed(batch_payload)
+        or _stale_gate_replay_marker_closed(batch_payload)
+    )
 
 
 def write_gate_specificity_terminal_batch(

@@ -107,11 +107,18 @@ def authorize_control_plane_route(
     if not _has_authority_epoch(snapshot):
         blocking_reasons.append("control_plane_authority_epoch_missing")
     dispatch_gate = _mapping(snapshot.get("dispatch_gate"))
-    if dispatch_gate.get("state") != "open":
+    dispatch_gate_reasons = [
+        reason_text
+        for reason in _list(dispatch_gate.get("blocking_reasons"))
+        if (reason_text := _text(reason)) is not None
+    ]
+    if dispatch_gate.get("state") != "open" and not _controller_route_can_bypass_dispatch_reasons(
+        controller_route_gate,
+        dispatch_gate_reasons,
+    ):
         blocking_reasons.append("dispatch_gate_blocked")
-        for reason in _list(dispatch_gate.get("blocking_reasons")):
-            reason_text = _text(reason)
-            if reason_text and reason_text not in blocking_reasons:
+        for reason_text in dispatch_gate_reasons:
+            if reason_text not in blocking_reasons:
                 blocking_reasons.append(reason_text)
 
     route_authorization = _mapping(snapshot.get("route_authorization"))
@@ -249,6 +256,17 @@ def _controller_route_context(route_context: Mapping[str, Any]) -> Mapping[str, 
         if isinstance(value, Mapping):
             return value
     return {}
+
+
+def _controller_route_can_bypass_dispatch_reasons(
+    controller_route_gate: Mapping[str, Any],
+    dispatch_gate_reasons: list[str],
+) -> bool:
+    if not bool(controller_route_gate.get("authorized")):
+        return False
+    if not dispatch_gate_reasons:
+        return False
+    return set(dispatch_gate_reasons) <= {"runtime_recovery_retry_budget_exhausted"}
 
 
 def _controller_repair_authorization_ref(controller_route_gate: Mapping[str, Any]) -> dict[str, Any]:

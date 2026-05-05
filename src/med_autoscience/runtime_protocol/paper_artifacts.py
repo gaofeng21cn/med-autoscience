@@ -443,6 +443,10 @@ def _surface_root_from_submission_manifest_path(manifest_path: Path) -> Path:
     return resolved_manifest_path.parent.resolve()
 
 
+def surface_root_from_submission_manifest_path(manifest_path: Path) -> Path:
+    return _surface_root_from_submission_manifest_path(manifest_path)
+
+
 def _prune_archived_reference_only_surface_root(*, surface_root: Path, manifest_path: Path) -> bool:
     pruned = False
     resolved_manifest_path = manifest_path.resolve()

@@ -8,6 +8,7 @@ import pytest
 def _snapshot(
     *,
     gate_state: str = "open",
+    gate_blocking_reasons: list[str] | None = None,
     paper_write_allowed: bool = True,
     bundle_build_allowed: bool = True,
     runtime_recovery_allowed: bool = True,
@@ -23,7 +24,13 @@ def _snapshot(
         },
         "dispatch_gate": {
             "state": gate_state,
-            "blocking_reasons": ["supervisor_only"] if gate_state != "open" else [],
+            "blocking_reasons": (
+                list(gate_blocking_reasons)
+                if gate_blocking_reasons is not None
+                else ["supervisor_only"]
+                if gate_state != "open"
+                else []
+            ),
         },
         "route_authorization": {
             "paper_write_allowed": paper_write_allowed,
@@ -214,6 +221,33 @@ def test_publication_gate_replay_route_authorizes_delivery_sync_without_snapshot
     assert gate["snapshot_ref"] is None
     assert gate["controller_route_gate"]["authorized"] is True
     assert gate["controller_repair_authorization_ref"]["work_unit_id"] == "publication_gate_replay"
+    assert gate["blocking_reasons"] == []
+
+
+def test_controller_owned_submission_refresh_route_can_proceed_when_only_runtime_recovery_is_exhausted() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "submission_materialize",
+        {
+            "control_plane_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=["runtime_recovery_retry_budget_exhausted"],
+                runtime_recovery_allowed=False,
+            ),
+            "controller_route_context": {
+                "control_surface": "gate_clearing_batch",
+                "controller_action_type": "run_gate_clearing_batch",
+                "work_unit_id": "submission_minimal_refresh",
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::003::latest",
+                "work_unit_fingerprint": "submission-minimal::003",
+            },
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["controller_route_gate"]["authorized"] is True
     assert gate["blocking_reasons"] == []
 
 

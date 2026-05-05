@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from .shared import *
+from med_autoscience.controllers.medical_publication_surface_parts.shared_base import excerpt_around
+from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 
 
 def parse_independent_figure_legend_map(figure_legends_section: str) -> dict[str, str]:
@@ -66,6 +68,7 @@ def inspect_submission_source_markdown(source_markdown_path: Path) -> dict[str, 
     return {
         "exists": True,
         "mtime_ns": source_markdown_path.stat().st_mtime_ns,
+        "text": markdown_text,
         "figure_block_count": len(figure_blocks),
         "figure_blocks_with_images": figure_blocks_with_images,
         "figure_blocks_with_legends": figure_blocks_with_legends,
@@ -213,6 +216,38 @@ def _append_source_hygiene_failures(
     source_stats: dict[str, Any],
     source_markdown_path: Path,
 ) -> None:
+    patterns = (
+        medical_surface_policy.get_medical_journal_prose_patterns()
+        + medical_surface_policy.get_publication_surface_residue_patterns()
+        + medical_surface_policy.get_analysis_plane_jargon_patterns()
+    )
+    blocking_pattern_ids = medical_surface_policy.medical_journal_prose_blocking_pattern_ids()
+    text = str(source_stats.get("text") or "")
+    prose_hits: list[dict[str, Any]] = []
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        for pattern_id, phrase, compiled in patterns:
+            if pattern_id not in blocking_pattern_ids:
+                continue
+            for match in compiled.finditer(line):
+                prose_hits.append(
+                    {
+                        "path": str(source_markdown_path),
+                        "location": f"line {line_number}",
+                        "pattern_id": pattern_id,
+                        "phrase": phrase,
+                        "excerpt": excerpt_around(line, match.start(), match.end()),
+                    }
+                )
+    if prose_hits:
+        failures.append(
+            _failure_payload(
+                item_id="source_markdown",
+                descriptor=source_markdown_path.name,
+                failure_reason="submission_source_markdown_medical_journal_prose_residue",
+                audit_classes=["manuscript_surface", "medical_journal_prose"],
+                medical_journal_prose_hits=prose_hits,
+            )
+        )
     if source_stats["duplicate_major_sections"]:
         failures.append(
             _failure_payload(

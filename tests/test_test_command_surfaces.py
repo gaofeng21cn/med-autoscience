@@ -14,7 +14,7 @@ from med_autoscience.control_plane_command_catalog import CONTROL_PLANE_OPERATIO
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "9b02ce03bf079db0257959c3219a1fd2b1ad1364"
+REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "cd634e6406fa264274f01862a7bdc87f552fcb50"
 REQUIRED_CONTROL_PLANE_TESTS = (
     "tests/test_control_plane_regression.py",
     "tests/test_control_plane_structure.py",
