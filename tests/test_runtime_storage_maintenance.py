@@ -339,6 +339,50 @@ def test_audit_workspace_storage_apply_deletes_rebuildable_cache_candidates(tmp_
     assert not ds_store.exists()
 
 
+def test_audit_workspace_storage_study_id_scopes_cache_candidates_to_selected_study(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    _write_fake_mds_repo(profile.med_deepscientist_repo_root)
+    selected_study_id = "004-stopped"
+    live_study_id = "002-live"
+    _write_study(profile.studies_root / selected_study_id, study_id=selected_study_id, quest_id=selected_study_id)
+    _write_study(profile.studies_root / live_study_id, study_id=live_study_id, quest_id=live_study_id)
+    _write_quest(profile.runtime_root / selected_study_id, quest_id=selected_study_id, status="stopped")
+    _write_quest(profile.runtime_root / live_study_id, quest_id=live_study_id, status="running", active_run_id="run-live")
+
+    selected_study_cache = profile.studies_root / selected_study_id / ".cache" / "study.bin"
+    selected_quest_cache = profile.runtime_root / selected_study_id / ".ds" / "cache" / "quest.bin"
+    live_study_cache = profile.studies_root / live_study_id / ".cache" / "study.bin"
+    live_quest_cache = profile.runtime_root / live_study_id / ".ds" / "cache" / "quest.bin"
+    workspace_cache = profile.workspace_root / ".pytest_cache" / "workspace.bin"
+    for path in (selected_study_cache, selected_quest_cache, live_study_cache, live_quest_cache, workspace_cache):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"{path.name}\n", encoding="utf-8")
+    expected_selected_bytes = selected_study_cache.stat().st_size + selected_quest_cache.stat().st_size
+
+    dry_run = module.audit_workspace_storage(profile=profile, study_id=selected_study_id, all_studies=False, apply=False)
+
+    dry_run_candidate_paths = {Path(item["path"]) for item in dry_run["categories"]["cache"]["candidates"]}
+    assert dry_run["categories"]["cache"]["estimated_release_bytes"] == expected_selected_bytes
+    assert dry_run_candidate_paths == {selected_study_cache.parent, selected_quest_cache.parent}
+    assert live_study_cache.exists()
+    assert live_quest_cache.exists()
+    assert workspace_cache.exists()
+
+    result = module.audit_workspace_storage(profile=profile, study_id=selected_study_id, all_studies=False, apply=True)
+
+    cache_report = result["categories"]["cache"]
+    apply_deleted_paths = {Path(path) for path in cache_report["apply_result"]["deleted_paths"]}
+    assert cache_report["estimated_release_bytes"] == expected_selected_bytes
+    assert cache_report["actual_release_bytes"] == expected_selected_bytes
+    assert apply_deleted_paths == {selected_study_cache.parent, selected_quest_cache.parent}
+    assert not selected_study_cache.parent.exists()
+    assert not selected_quest_cache.parent.exists()
+    assert live_study_cache.exists()
+    assert live_quest_cache.exists()
+    assert workspace_cache.exists()
+
+
 def test_audit_workspace_storage_git_only_does_not_scan_cache(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -326,7 +326,12 @@ def _git_storage_audit(
     )
 
 
-def _delete_safe_candidates(workspace_root: Path, *, apply: bool = False) -> dict[str, Any]:
+def _delete_safe_candidates(
+    workspace_root: Path,
+    *,
+    apply: bool = False,
+    scan_roots: list[Path] | None = None,
+) -> dict[str, Any]:
     candidates: list[dict[str, Any]] = []
     if not workspace_root.exists():
         return {
@@ -343,34 +348,38 @@ def _delete_safe_candidates(workspace_root: Path, *, apply: bool = False) -> dic
             "skipped": [],
             "errors": [],
         }
-    for current_root, dirnames, filenames in os.walk(workspace_root):
-        current = Path(current_root)
-        dirnames[:] = [name for name in dirnames if name not in {".git", "storage_audit"}]
-        for dirname in list(dirnames):
-            if dirname not in _DELETE_SAFE_DIR_NAMES:
-                continue
-            candidate = current / dirname
-            candidate_bytes = _directory_size_bytes(candidate)
-            candidates.append(
-                {
-                    "path": str(candidate),
-                    "bytes": candidate_bytes,
-                    "candidate_action": "delete-safe",
-                    "risk": "rebuildable_process_cache",
-                }
-            )
-            dirnames.remove(dirname)
-        for filename in filenames:
-            if filename == ".DS_Store" or filename.endswith(_DELETE_SAFE_FILE_SUFFIXES):
-                candidate = current / filename
+    roots_to_scan = _cache_scan_roots(workspace_root=workspace_root, scan_roots=scan_roots)
+    for root in roots_to_scan:
+        if not root.exists():
+            continue
+        for current_root, dirnames, filenames in os.walk(root):
+            current = Path(current_root)
+            dirnames[:] = [name for name in dirnames if name not in {".git", "storage_audit"}]
+            for dirname in list(dirnames):
+                if dirname not in _DELETE_SAFE_DIR_NAMES:
+                    continue
+                candidate = current / dirname
+                candidate_bytes = _directory_size_bytes(candidate)
                 candidates.append(
                     {
                         "path": str(candidate),
-                        "bytes": _directory_size_bytes(candidate),
+                        "bytes": candidate_bytes,
                         "candidate_action": "delete-safe",
                         "risk": "rebuildable_process_cache",
                     }
                 )
+                dirnames.remove(dirname)
+            for filename in filenames:
+                if filename == ".DS_Store" or filename.endswith(_DELETE_SAFE_FILE_SUFFIXES):
+                    candidate = current / filename
+                    candidates.append(
+                        {
+                            "path": str(candidate),
+                            "bytes": _directory_size_bytes(candidate),
+                            "candidate_action": "delete-safe",
+                            "risk": "rebuildable_process_cache",
+                        }
+                    )
     total_bytes = sum(int(item["bytes"]) for item in candidates)
     apply_result = _apply_delete_safe_candidates(workspace_root=workspace_root, candidates=candidates) if apply else None
     deleted_bytes = int((apply_result or {}).get("deleted_bytes") or 0)
@@ -391,6 +400,22 @@ def _delete_safe_candidates(workspace_root: Path, *, apply: bool = False) -> dic
         "skipped": skipped,
         "errors": errors,
     }
+
+
+def _cache_scan_roots(*, workspace_root: Path, scan_roots: list[Path] | None) -> list[Path]:
+    if scan_roots is None:
+        return [workspace_root]
+    resolved_roots: list[Path] = []
+    seen: set[Path] = set()
+    for root in scan_roots:
+        resolved_root = root.expanduser().resolve()
+        if not _path_is_inside_workspace(resolved_root, workspace_root):
+            continue
+        if resolved_root in seen:
+            continue
+        seen.add(resolved_root)
+        resolved_roots.append(resolved_root)
+    return resolved_roots
 
 
 def _empty_cache_apply_result(status: str) -> dict[str, Any]:
@@ -567,6 +592,7 @@ def audit_workspace_storage(
     runtime_estimated_release_bytes = 0
     runtime_actual_release_bytes = 0
     artifact_total_bytes = 0
+    cache_scan_roots: list[Path] | None = [] if study_id and not git_only else None
     for selected_study_root in selected_roots:
         try:
             resolved_study_id, resolved_study_root, study_payload = study_runtime_resolution._resolve_study(
@@ -586,6 +612,8 @@ def audit_workspace_storage(
                 quest_id=quest_id,
             )
             quest_root = Path(runtime_paths["quest_root"]).expanduser().resolve()
+            if cache_scan_roots is not None:
+                cache_scan_roots.extend([resolved_study_root, quest_root])
             snapshot = _quest_runtime_snapshot(quest_root)
             size_before = _size_summary(quest_root)
             candidate = _runtime_candidate(quest_root=quest_root, snapshot=snapshot, size_summary=size_before)
@@ -663,6 +691,8 @@ def audit_workspace_storage(
                 }
             )
         except Exception as exc:
+            if cache_scan_roots is not None:
+                cache_scan_roots.append(selected_study_root)
             study_reports.append(
                 {
                     "study_root": str(selected_study_root),
@@ -686,7 +716,7 @@ def audit_workspace_storage(
     cache_report = (
         _skipped_storage_category(category="cache", workspace_root=workspace_root, reason="git_only")
         if git_only
-        else _delete_safe_candidates(workspace_root, apply=apply)
+        else _delete_safe_candidates(workspace_root, apply=apply, scan_roots=cache_scan_roots)
     )
     cache_actual_release_bytes = int(cache_report.get("actual_release_bytes") or 0)
     dataset_estimated_release_bytes = int(dataset_report.get("estimated_release_bytes") or 0)
