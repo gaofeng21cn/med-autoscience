@@ -83,6 +83,29 @@ def test_resolve_submission_targets_uses_profile_default_target_when_study_and_q
     assert contract.export_publication_profiles == ("general_medical_journal",)
 
 
+def test_resolve_submission_targets_accepts_jacs_workspace_profile(tmp_path: Path) -> None:
+    profiles = importlib.import_module("med_autoscience.profiles")
+    module = importlib.import_module("med_autoscience.submission_targets")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    profile_text = profile_path.read_text(encoding="utf-8")
+    profile_path.write_text(
+        profile_text.replace('default_publication_profile = "general_medical_journal"', 'default_publication_profile = "jacs"')
+        .replace('default_citation_style = "AMA"', 'default_citation_style = "ACS"')
+        .replace('publication_profile = "general_medical_journal"', 'publication_profile = "jacs"'),
+        encoding="utf-8",
+    )
+
+    contract = module.resolve_submission_target_contract(
+        profile=profiles.load_profile(profile_path),
+    )
+
+    assert contract.primary_target.publication_profile == "jacs"
+    assert contract.primary_target.citation_style == "ACS"
+    assert contract.primary_target.exporter_family == "acs_publication"
+    assert contract.export_publication_profiles == ("jacs",)
+
+
 def test_resolve_submission_targets_merges_profile_study_and_quest_targets(tmp_path: Path) -> None:
     profiles = importlib.import_module("med_autoscience.profiles")
     module = importlib.import_module("med_autoscience.submission_targets")

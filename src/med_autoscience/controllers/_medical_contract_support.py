@@ -7,6 +7,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.publication_profiles import (
     FRONTIERS_FAMILY_HARVARD_PROFILE,
     GENERAL_MEDICAL_JOURNAL_PROFILE,
+    JACS_PROFILE,
     normalize_publication_profile,
 )
 from med_autoscience.submission_targets import resolve_submission_target_contract
@@ -15,6 +16,7 @@ from med_autoscience.submission_targets import resolve_submission_target_contrac
 MEDICAL_SUBMISSION_TARGET_FAMILY_BY_PUBLICATION_PROFILE: dict[str, str] = {
     GENERAL_MEDICAL_JOURNAL_PROFILE: "general_medical_journal",
     FRONTIERS_FAMILY_HARVARD_PROFILE: "general_medical_journal",
+    JACS_PROFILE: "general_medical_journal",
 }
 RECOMMENDED_MANAGED_STUDY_FIELDS = (
     "study_archetype",

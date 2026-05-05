@@ -22,6 +22,7 @@ from med_autoscience.display_pack_resolver import get_pack_id
 from med_autoscience.publication_profiles import (
     FRONTIERS_FAMILY_HARVARD_PROFILE,
     GENERAL_MEDICAL_JOURNAL_PROFILE,
+    JACS_PROFILE,
     is_frontiers_family_harvard_profile,
     normalize_publication_profile,
 )
@@ -107,6 +108,10 @@ def default_ama_csl_path() -> Path:
 
 def default_frontiers_harvard_csl_path() -> Path:
     return STYLES_ROOT / "frontiers.csl"
+
+
+def default_acs_csl_path() -> Path:
+    return STYLES_ROOT / "american-chemical-society.csl"
 
 
 def frontiers_cache_dir() -> Path:
@@ -745,6 +750,25 @@ def resolve_publication_profile_config(
             supplementary_docx_name="Supplementary_Material.docx",
             journal_family="Frontiers",
             reference_style_family="FrontiersHarvard",
+        )
+
+    if normalized_publication_profile == JACS_PROFILE:
+        resolved_citation_style = "ACS" if normalized_citation_style in {"", "auto"} else normalized_citation_style
+        if resolved_citation_style != "ACS":
+            raise ValueError(
+                f"unsupported citation style for {normalized_publication_profile}: {resolved_citation_style}"
+            )
+        csl_path = default_acs_csl_path()
+        if not csl_path.exists():
+            raise FileNotFoundError(f"missing ACS CSL file: {csl_path}")
+        return PublicationProfileConfig(
+            publication_profile=normalized_publication_profile,
+            citation_style=resolved_citation_style,
+            csl_path=csl_path,
+            output_dir_rel=Path("journal_submissions") / normalized_publication_profile,
+            journal_name="Journal of the American Chemical Society",
+            journal_family="ACS",
+            reference_style_family="ACS",
         )
 
     raise ValueError(f"unsupported publication profile: {publication_profile}")

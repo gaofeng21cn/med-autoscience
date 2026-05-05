@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<style xmlns="http://purl.org/net/xbiblio/csl" class="in-text" default-locale="en-US" version="1.0">
+  <info>
+    <title>American Chemical Society</title>
+    <id>http://www.zotero.org/styles/american-chemical-society</id>
+    <link href="http://www.zotero.org/styles/american-chemical-society" rel="self"/>
+    <category citation-format="numeric"/>
+    <category field="chemistry"/>
+    <summary>Minimal ACS numeric style used by MedAutoScience JACS package exports.</summary>
+    <updated>2026-05-05T00:00:00+00:00</updated>
+  </info>
+  <macro name="author">
+    <names variable="author">
+      <name and="text" delimiter=", " initialize-with=". "/>
+    </names>
+  </macro>
+  <macro name="issued">
+    <date variable="issued">
+      <date-part name="year"/>
+    </date>
+  </macro>
+  <macro name="title">
+    <text variable="title"/>
+  </macro>
+  <macro name="container">
+    <group delimiter=" ">
+      <text variable="container-title" font-style="italic" form="short"/>
+      <text macro="issued" font-weight="bold"/>
+      <text variable="volume" font-style="italic"/>
+      <text variable="page"/>
+    </group>
+  </macro>
+  <citation collapse="citation-number">
+    <sort>
+      <key variable="citation-number"/>
+    </sort>
+    <layout delimiter="," prefix="[" suffix="]">
+      <text variable="citation-number"/>
+    </layout>
+  </citation>
+  <bibliography entry-spacing="0" second-field-align="flush">
+    <layout suffix=".">
+      <text variable="citation-number" suffix=". "/>
+      <group delimiter=". ">
+        <text macro="author"/>
+        <text macro="title"/>
+        <text macro="container"/>
+      </group>
+    </layout>
+  </bibliography>
+</style>

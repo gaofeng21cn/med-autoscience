@@ -102,6 +102,42 @@ def test_analysis_contract_for_study_uses_primary_submission_target_contract(tmp
     assert result["submission_target_family"] == "general_medical_journal"
 
 
+def test_analysis_contract_for_study_accepts_jacs_submission_profile(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
+    profile = make_profile(
+        tmp_path,
+        default_publication_profile="jacs",
+        default_citation_style="ACS",
+        default_submission_targets=(
+            {
+                "publication_profile": "jacs",
+                "primary": True,
+                "package_required": True,
+                "story_surface": "general_medical_journal",
+            },
+        ),
+    )
+    study_root = write_study(
+        profile.studies_root,
+        "001-chemistry",
+        {
+            "study_id": "001-chemistry",
+            "preferred_study_archetype": "clinical_classifier",
+            "endpoint_type": "binary",
+        },
+    )
+
+    result = module.resolve_medical_analysis_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+
+    assert result["status"] == "resolved"
+    assert result["publication_profile"] == "jacs"
+    assert result["submission_target_family"] == "general_medical_journal"
+
+
 def test_analysis_contract_for_study_rejects_unresolved_primary_publication_profile(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
     profile = make_profile(
