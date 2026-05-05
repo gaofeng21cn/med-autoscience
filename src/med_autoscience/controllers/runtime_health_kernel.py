@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.control_plane_facts import resolve_control_plane_facts
+from med_autoscience.controllers.runtime_health_kernel_parts import run_epoch_budget
 
 
 SCHEMA_VERSION = 1
@@ -365,25 +366,65 @@ def _latest_supervisor_state(events: list[dict[str, Any]]) -> tuple[dict[str, An
     }
 
 
-def _attempt_count(events: list[dict[str, Any]], runtime_payload: Mapping[str, Any]) -> int:
-    attempts = len(_events_for(events, _ATTEMPT_EVENT_TYPES))
+def _events_for_budget(
+    events: list[dict[str, Any]],
+    event_types: Iterable[str],
+    *,
+    active_run_id: str | None,
+) -> list[dict[str, Any]]:
+    return run_epoch_budget.events_for_budget(
+        events,
+        event_types,
+        active_run_id=active_run_id,
+        event_payload=_event_payload,
+        active_run_from_payload=_active_run_from_payload,
+    )
+
+
+def _attempt_events_for_budget(events: list[dict[str, Any]], *, active_run_id: str | None) -> list[dict[str, Any]]:
+    return _events_for_budget(events, _ATTEMPT_EVENT_TYPES, active_run_id=active_run_id)
+
+
+def _attempt_count(
+    events: list[dict[str, Any]],
+    runtime_payload: Mapping[str, Any],
+    *,
+    active_run_id: str | None = None,
+) -> int:
+    attempts = len(_attempt_events_for_budget(events, active_run_id=active_run_id))
     decision = _text(runtime_payload.get("decision"))
     if decision in _RECOVERY_DECISIONS and attempts == 0:
         attempts = 1
     return attempts
 
 
-def _failed_attempt_count(events: list[dict[str, Any]]) -> int:
+def _failed_attempt_count(events: list[dict[str, Any]], *, active_run_id: str | None = None) -> int:
     failed = 0
-    for event in _events_for(events, _ATTEMPT_EVENT_TYPES):
+    for event in _attempt_events_for_budget(events, active_run_id=active_run_id):
         state = _text(_event_payload(event).get("attempt_state"))
         if state in _FAILED_ATTEMPT_STATES:
             failed += 1
     return failed
 
 
-def _latest_failure_reason(events: list[dict[str, Any]], runtime_payload: Mapping[str, Any]) -> str | None:
-    for event in reversed(_events_for(events, _ATTEMPT_EVENT_TYPES | frozenset({"escalation_opened"}))):
+def _latest_escalation_event(events: list[dict[str, Any]], *, active_run_id: str | None) -> dict[str, Any] | None:
+    selected = _events_for_budget(events, ("escalation_opened",), active_run_id=active_run_id)
+    return selected[-1] if selected else None
+
+
+def _latest_failure_reason(
+    events: list[dict[str, Any]],
+    runtime_payload: Mapping[str, Any],
+    *,
+    active_run_id: str | None = None,
+) -> str | None:
+    for event in reversed(
+        _events_for_budget(
+            events,
+            _ATTEMPT_EVENT_TYPES | frozenset({"escalation_opened"}),
+            active_run_id=active_run_id,
+        )
+    ):
         payload = _event_payload(event)
         reason = _first_text(payload.get("failure_reason"), payload.get("reason"))
         if reason is not None:
@@ -485,12 +526,14 @@ def _dominant_event(
     missing_live_session: bool,
     failed_attempt_count: int,
     runtime_event: dict[str, Any] | None,
+    active_run_id: str | None,
 ) -> dict[str, Any] | None:
-    escalation = _latest_event(events, "escalation_opened")
+    escalation = _latest_escalation_event(events, active_run_id=active_run_id)
     if escalation is not None:
         return escalation
     if failed_attempt_count >= MAX_RECOVERY_ATTEMPTS:
-        return _events_for(events, _ATTEMPT_EVENT_TYPES)[-1]
+        attempts = _attempt_events_for_budget(events, active_run_id=active_run_id)
+        return attempts[-1] if attempts else None
     if missing_live_session and runtime_event is not None:
         return runtime_event
     if strict_live and runtime_event is not None:
@@ -566,9 +609,10 @@ def _snapshot_from_events(
         reason=reason,
         supervisor_status=_text(supervisor_state.get("status")),
     )
-    failed_attempts = _failed_attempt_count(events)
-    attempt_count = _attempt_count(events, runtime_payload)
-    escalation_event = _latest_event(events, "escalation_opened")
+    active_budget_run_id = observed_active_run_id if strict_live else None
+    failed_attempts = _failed_attempt_count(events, active_run_id=active_budget_run_id)
+    attempt_count = _attempt_count(events, runtime_payload, active_run_id=active_budget_run_id)
+    escalation_event = _latest_escalation_event(events, active_run_id=active_budget_run_id)
     missing_live_session = worker_state["state"] == "missing_live_session"
     live_activity_timeout = worker_state["state"] == "activity_timeout"
     retry_budget_remaining = max(MAX_RECOVERY_ATTEMPTS - max(attempt_count, failed_attempts), 0)
@@ -615,12 +659,13 @@ def _snapshot_from_events(
         missing_live_session=missing_live_session,
         failed_attempt_count=failed_attempts,
         runtime_event=runtime_event,
+        active_run_id=active_budget_run_id,
     )
     latest_event = events[-1] if events else None
     runtime_health_epoch = _text(dominant.get("event_id")) if dominant is not None else None
     active_run_id = observed_active_run_id if strict_live else None
     last_known_run_id = _last_known_run_id(events, strict_live=strict_live, active_run_id=observed_active_run_id)
-    failure_reason = _latest_failure_reason(events, runtime_payload)
+    failure_reason = _latest_failure_reason(events, runtime_payload, active_run_id=active_budget_run_id)
     blocking_reasons = list(dict.fromkeys(reason for reason in blocking_reasons if reason))
     return {
         "schema_version": SCHEMA_VERSION,
@@ -828,6 +873,7 @@ def _status_payload_runtime_health_events(
                     "attempt_state": "requested",
                     "decision": decision,
                     "reason": _text(status_payload.get("reason")),
+                    "active_run_id": facts.active_run_id if facts.strict_live else None,
                 },
                 recorded_at=recorded_at,
                 sequence=sequence,

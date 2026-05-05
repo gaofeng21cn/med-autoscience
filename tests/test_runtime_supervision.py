@@ -333,7 +333,11 @@ def test_runtime_supervision_escalates_when_runtime_health_retry_budget_is_exhau
             study_id="001-risk",
             quest_id="quest-001",
             event_type="recover_attempt",
-            payload={"attempt_state": "failed", "failure_reason": "no_live_session"},
+            payload={
+                "attempt_state": "failed",
+                "failure_reason": "no_live_session",
+                "active_run_id": "run-live-stale",
+            },
             recorded_at=f"2026-05-02T11:0{sequence}:00+00:00",
         )
 

@@ -373,6 +373,57 @@ def test_runtime_health_treats_strict_live_activity_timeout_as_recovery(tmp_path
     assert "read_churn_without_artifact_delta" in snapshot["blocking_reasons"]
 
 
+def test_runtime_health_live_new_run_does_not_inherit_stale_recovery_budget(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "001-dm-cvd"
+    for sequence in range(1, 4):
+        module.append_runtime_health_event(
+            study_root=study_root,
+            study_id="001-dm-cvd",
+            quest_id="001-dm-cvd",
+            event_type="recover_attempt",
+            payload={
+                "attempt_state": "failed",
+                "failure_reason": "quest_marked_running_but_no_live_session",
+                "active_run_id": "run-old",
+            },
+            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
+        )
+    module.append_runtime_health_event(
+        study_root=study_root,
+        study_id="001-dm-cvd",
+        quest_id="001-dm-cvd",
+        event_type="runtime_state_observed",
+        payload={
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "runtime_liveness_status": "live",
+            "worker_running": True,
+            "active_run_id": "run-new",
+            "autonomy_slo": {
+                "state": "breach",
+                "breach_types": ["same_fingerprint_loop"],
+            },
+        },
+        recorded_at="2026-05-01T00:05:00+00:00",
+    )
+
+    snapshot = module.rebuild_runtime_health_snapshot(
+        study_root=study_root,
+        study_id="001-dm-cvd",
+        quest_id="001-dm-cvd",
+    )
+
+    assert snapshot["active_run_id"] == "run-new"
+    assert snapshot["last_known_run_id"] == "run-new"
+    assert snapshot["worker_liveness_state"]["state"] == "activity_timeout"
+    assert snapshot["attempt_state"] == "recovering"
+    assert snapshot["canonical_runtime_action"] == "recover_runtime"
+    assert snapshot["retry_budget_remaining"] == 3
+    assert "runtime_recovery_retry_budget_exhausted" not in snapshot["blocking_reasons"]
+
+
 def test_runtime_health_reconcile_ignores_volatile_watchdog_seconds_for_deduplication(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "003-dm-cvd"

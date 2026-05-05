@@ -34,6 +34,8 @@ uv run python -m med_autoscience.cli runtime reconcile-health --profile <profile
 - fresh supervisor tick 只证明外环监管最近刷新，不能证明 worker live。
 - `last_launch_report` 只保留最近动作摘要；其 `active_run_id` 在新 liveness 观测不成立时只能降为 `last_known_run_id`。
 - `quest_marked_running_but_no_live_session` 必须进入有限状态机：probe / recover / relaunch / escalated，不能无限 recovering。
+- strict live worker 观测到新的 `active_run_id` 时，retry budget 必须按当前 run epoch 计算；旧 run 或无 run 归属的失败历史不能让新 live run 继承 `runtime_recovery_retry_budget_exhausted`。
+- 同一 active run epoch 内的 launch / recover / relaunch attempt 仍然消耗 retry budget；当前 run 自身耗尽预算后必须升级，不能无限恢复。
 - retry budget 耗尽后必须输出 `canonical_runtime_action=escalate_runtime`，并禁止继续伪装成自动恢复中。
 - runtime health 只能影响 runtime action；不得反向覆盖 `StudyTruthKernel.canonical_next_action`、publication gate、package authority 或 delivery state。
 
