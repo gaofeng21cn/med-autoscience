@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+import json
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import quote
@@ -17,6 +19,49 @@ from ..study_runtime_status import (
     StudyRuntimeStatus,
     _LIVE_QUEST_STATUSES,
 )
+
+
+def clear_stale_platform_repair_redrive_after_pause(
+    *,
+    quest_root: Path,
+    source: str,
+) -> dict[str, Any] | None:
+    runtime_state_path = Path(quest_root) / ".ds" / "runtime_state.json"
+    try:
+        runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(runtime_state, dict):
+        return None
+    if str(runtime_state.get("status") or "").strip().lower() != StudyRuntimeQuestStatus.PAUSED.value:
+        return None
+    if str(runtime_state.get("active_run_id") or "").strip():
+        return None
+    if bool(runtime_state.get("worker_running")):
+        return None
+    if str(runtime_state.get("continuation_reason") or "").strip() != "runtime_platform_repair_redrive":
+        return None
+    cleared = [
+        key
+        for key in ("continuation_policy", "continuation_anchor", "continuation_reason", "continuation_updated_at")
+        if key in runtime_state
+    ]
+    for key in cleared:
+        runtime_state.pop(key, None)
+    runtime_state["last_platform_repair_redrive_clearance"] = {
+        "source": source,
+        "cleared_keys": cleared,
+        "cleared_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+    }
+    runtime_state_path.write_text(
+        json.dumps(runtime_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "status": "cleared",
+        "runtime_state_path": str(runtime_state_path),
+        "cleared_keys": cleared,
+    }
 
 
 def managed_runtime_notice_reason(
@@ -374,4 +419,3 @@ def materialize_runtime_supervision(
         recorded_at=recorded_at,
         apply=True,
     )
-

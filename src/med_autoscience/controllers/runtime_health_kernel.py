@@ -640,7 +640,11 @@ def _snapshot_from_events(
         attempt_state = "live"
         canonical_runtime_action = "continue_supervising_runtime"
         retry_budget_remaining = MAX_RECOVERY_ATTEMPTS
-    elif reason == "quest_stopped_requires_explicit_rerun":
+    elif reason in {
+        "quest_stopped_requires_explicit_rerun",
+        "quest_waiting_for_submission_metadata",
+        "quest_waiting_for_submission_metadata_but_auto_resume_disabled",
+    }:
         attempt_state = "awaiting_explicit_resume"
         canonical_runtime_action = "await_explicit_resume"
     elif missing_live_session:

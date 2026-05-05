@@ -781,6 +781,12 @@ def _execute_pause_runtime_decision(
     status.update_quest_runtime(
         quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused"),
     )
+    clearance = _runtime_events.clear_stale_platform_repair_redrive_after_pause(
+        quest_root=context.quest_root,
+        source=context.source,
+    )
+    if clearance is not None:
+        status._record_dict_extra("platform_repair_redrive_clearance", clearance)
     return outcome
 
 
@@ -859,39 +865,6 @@ def _execute_runtime_decision(
     raise ValueError(f"unsupported study runtime decision: {status.decision}")
 
 
-def _managed_runtime_notice_reason(
-    *,
-    binding_last_action: StudyRuntimeBindingAction | None,
-    strict_live: bool,
-) -> str:
-    return _runtime_events.managed_runtime_notice_reason(
-        binding_last_action=binding_last_action,
-        strict_live=strict_live,
-    )
-
-
-def _should_record_autonomous_runtime_notice(status: StudyRuntimeStatus) -> bool:
-    return _runtime_events.should_record_autonomous_runtime_notice(
-        status=status,
-        router_module=_router_module,
-    )
-
-
-def _runtime_audit_worker_running(payload: dict[str, Any]) -> bool:
-    return _runtime_events.runtime_audit_worker_running(payload)
-
-
-def _is_strictly_live_runtime_notice(
-    *,
-    status: StudyRuntimeStatus,
-    active_run_id: str | None,
-) -> bool:
-    return _runtime_events.is_strictly_live_runtime_notice(
-        status=status,
-        active_run_id=active_run_id,
-    )
-
-
 def _record_autonomous_runtime_notice_if_required(
     *,
     status: StudyRuntimeStatus,
@@ -914,18 +887,6 @@ def _runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, obje
     return _runtime_events.runtime_event_status_snapshot(status)
 
 
-def _runtime_event_outer_loop_input(status: StudyRuntimeStatus) -> dict[str, object]:
-    return _runtime_events.runtime_event_outer_loop_input(status)
-
-
-def _post_transition_quest_status(
-    *,
-    status: StudyRuntimeStatus,
-    outcome: StudyRuntimeExecutionOutcome,
-) -> StudyRuntimeQuestStatus | None:
-    return _runtime_events.post_transition_quest_status(status=status, outcome=outcome)
-
-
 def _record_transition_runtime_event(
     *,
     status: StudyRuntimeStatus,
@@ -939,18 +900,6 @@ def _record_transition_runtime_event(
         router_module=_router_module,
         get_quest_session=_get_quest_session,
     )
-
-
-def _runtime_escalation_trigger_source(reason: StudyRuntimeReason | None) -> str:
-    return _runtime_events.runtime_escalation_trigger_source(reason)
-
-
-def _runtime_escalation_recommended_actions(reason: StudyRuntimeReason | None) -> tuple[str, ...]:
-    return _runtime_events.runtime_escalation_recommended_actions(reason)
-
-
-def _runtime_escalation_evidence_refs(status: StudyRuntimeStatus) -> tuple[str, ...]:
-    return _runtime_events.runtime_escalation_evidence_refs(status)
 
 
 def _maybe_emit_runtime_escalation_record(

@@ -74,6 +74,45 @@ def _is_human_review_milestone_parking(
     ) and _evaluation_summary_reports_bundle_only_remaining(study_root=study_root)
 
 
+def _platform_repair_redrive_without_live_worker(
+    status: StudyRuntimeStatus,
+    *,
+    audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
+) -> bool:
+    if audit_status is not None and audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
+        return False
+    try:
+        continuation_state = status.continuation_state
+    except KeyError:
+        return False
+    return (
+        continuation_state.active_run_id is None
+        and continuation_state.continuation_policy == "auto"
+        and continuation_state.continuation_anchor == "decision"
+        and continuation_state.continuation_reason == "runtime_platform_repair_redrive"
+    )
+
+
+def _has_delivered_human_package_surface(study_root: Path) -> bool:
+    manuscript_root = study_root / "manuscript"
+    current_package_root = manuscript_root / "current_package"
+    return (
+        (manuscript_root / "delivery_manifest.json").exists()
+        and (manuscript_root / "current_package.zip").exists()
+        and current_package_root.is_dir()
+        and (current_package_root / "manuscript.docx").exists()
+        and (current_package_root / "paper.pdf").exists()
+    )
+
+
+def _should_block_platform_repair_redrive_for_delivered_package(
+    status: StudyRuntimeStatus,
+    *,
+    study_root: Path,
+) -> bool:
+    return _has_delivered_human_package_surface(study_root) and _platform_repair_redrive_without_live_worker(status)
+
+
 def _controller_decision_requires_human_confirmation(*, study_root: Path) -> bool:
     decision_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
     summary_path = stable_controller_confirmation_summary_path(study_root=study_root)

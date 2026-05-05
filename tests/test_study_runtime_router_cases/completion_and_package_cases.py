@@ -810,6 +810,70 @@ def test_pause_study_runtime_records_takeover_and_persists_pause(monkeypatch, tm
     assert seen["persist_calls"][0]["daemon_result"]["status"] == "paused"
 
 
+def test_pause_study_runtime_clears_stale_platform_repair_redrive(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    transport = _managed_runtime_transport(module)
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "001-risk"
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        runtime_state_path,
+        json.dumps(
+            {
+                "status": "paused",
+                "active_run_id": None,
+                "worker_running": False,
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "runtime_platform_repair_redrive",
+                "pending_user_message_count": 0,
+            }
+        )
+        + "\n",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        transport,
+        "pause_quest",
+        lambda *, runtime_root, quest_id, source: {
+            "ok": True,
+            "status": "paused",
+            "snapshot": {"status": "paused", "active_run_id": None, "worker_running": False},
+        },
+    )
+
+    result = module.pause_study_runtime(
+        profile=profile,
+        study_root=study_root,
+        source="test-human-takeover",
+    )
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+
+    assert result["decision"] == "pause"
+    assert result["quest_status"] == "paused"
+    assert "continuation_policy" not in runtime_state
+    assert "continuation_anchor" not in runtime_state
+    assert "continuation_reason" not in runtime_state
+    assert runtime_state["last_platform_repair_redrive_clearance"]["source"] == "test-human-takeover"
+
+
 def test_ensure_study_runtime_persists_legacy_resume_daemon_result_shape(
     monkeypatch,
     tmp_path: Path,

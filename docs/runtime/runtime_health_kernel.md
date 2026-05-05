@@ -38,6 +38,8 @@ uv run python -m med_autoscience.cli runtime reconcile-health --profile <profile
 - strict live worker 观测到新的 `active_run_id` 时，retry budget 必须按当前 run epoch 计算；旧 run 或无 run 归属的失败历史不能让新 live run 继承 `runtime_recovery_retry_budget_exhausted`。
 - 同一 active run epoch 内的 launch / recover / relaunch attempt 仍然消耗 retry budget；当前 run 自身耗尽预算后必须升级，不能无限恢复。
 - retry budget 耗尽后必须输出 `canonical_runtime_action=escalate_runtime`，并禁止继续伪装成自动恢复中。
+- 已交付人审/投稿包的 study 如果没有 live worker，且 runtime state 只残留 `runtime_platform_repair_redrive`，必须投影为 `await_explicit_resume` / parked handoff，而不是重新解释成 writer。`delivery_manifest.json`、`manuscript/current_package/` 与 `manuscript/current_package.zip` 是 human-facing handoff 证据；它们不能成为 edit authority，但足以阻止平台 repair 自动重开 writer。
+- `pause-runtime` 成功后若 quest 已 paused、无 `active_run_id`、无 worker，必须清理 stale `runtime_platform_repair_redrive` continuation 三元组，避免下一次 status read 把人工/投稿停驻重新投影成自动恢复。
 - runtime health 只能影响 runtime action；不得反向覆盖 `StudyTruthKernel.canonical_next_action`、publication gate、package authority 或 delivery state。
 
 ## MDS 边界
