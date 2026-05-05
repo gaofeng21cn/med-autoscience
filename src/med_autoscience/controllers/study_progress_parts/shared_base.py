@@ -64,6 +64,7 @@ _PAPER_STAGE_LABELS = {
     "publishability_gate_blocked": "论文可发表性门控未放行",
     "bundle_stage_blocked": "投稿打包阶段存在硬阻塞",
     "bundle_stage_ready": "投稿打包阶段已放行",
+    "manual_hold": "手动停驻待新方案",
 }
 _CURRENT_STAGE_LABELS = {
     "study_completed": "研究已进入收尾/交付",
@@ -103,6 +104,7 @@ _REASON_LABELS = {
     "quest_stale_decision_after_write_stage_ready": "论文写作阶段已经放行，但运行时仍停在旧 decision，MAS 正在把它切回写作主线。",
     "quest_stopped_by_controller_guard": "运行时被 MAS 纠偏控制器短暂停下，MAS 将自动继续修复当前论文硬阻塞。",
     "quest_stopped_requires_explicit_rerun": "当前 quest 已停止；如需继续，必须显式 rerun 或 relaunch。",
+    "quest_waiting_for_explicit_wakeup_after_manual_hold": "当前论文线已按用户任务手动停驻；等待新方案和显式唤醒。",
     "study_completion_contract_not_ready": "study-level 完成声明已存在，但 final submission 证据还未补齐，当前不能按完成态收口。",
     "startup_boundary_not_ready_for_resume": "运行前置条件尚未满足，系统不能直接续跑。",
     "runtime_reentry_not_ready_for_resume": "运行重入条件尚未满足，系统不能直接续跑。",

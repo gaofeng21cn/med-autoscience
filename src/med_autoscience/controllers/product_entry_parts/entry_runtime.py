@@ -579,6 +579,7 @@ def submit_study_task(
     trusted_inputs: Iterable[object] = (),
     reference_papers: Iterable[object] = (),
     first_cycle_outputs: Iterable[object] = (),
+    task_intake_kind: str | None = None,
 ) -> dict[str, Any]:
     resolved_study_id, resolved_study_root, study_payload = _resolve_study(
         profile=profile,
@@ -599,6 +600,7 @@ def submit_study_task(
         trusted_inputs=_normalized_strings(trusted_inputs),
         reference_papers=_normalized_strings(reference_papers),
         first_cycle_outputs=_normalized_strings(first_cycle_outputs),
+        task_intake_kind=task_intake_kind,
     )
     layout = build_workspace_runtime_layout_for_profile(profile)
     startup_brief_path = layout.startup_brief_path(resolved_study_id)
@@ -629,6 +631,7 @@ def submit_study_task(
         "study_root": str(resolved_study_root),
         "task_id": latest_payload.get("task_id"),
         "entry_mode": latest_payload.get("entry_mode"),
+        "task_intake_kind": latest_payload.get("task_intake_kind"),
         "task_intent": latest_payload.get("task_intent"),
         "journal_target": latest_payload.get("journal_target"),
         "constraints": list(latest_payload.get("constraints") or []),
@@ -637,6 +640,7 @@ def submit_study_task(
         "reference_papers": list(latest_payload.get("reference_papers") or []),
         "first_cycle_outputs": list(latest_payload.get("first_cycle_outputs") or []),
         "revision_intake": latest_payload.get("revision_intake"),
+        "manual_hold_intake": latest_payload.get("manual_hold_intake"),
         "startup_brief_path": str(startup_brief_path),
         "artifacts": dict(payload.get("artifact_refs") or {}),
         "runtime_intervention": runtime_intervention,
@@ -649,6 +653,7 @@ def render_submit_study_task_markdown(payload: dict[str, Any]) -> str:
             "study_id": payload.get("study_id"),
             "emitted_at": _utc_now(),
             "entry_mode": payload.get("entry_mode"),
+            "task_intake_kind": payload.get("task_intake_kind"),
             "journal_target": payload.get("journal_target"),
             "task_intent": payload.get("task_intent"),
             "constraints": payload.get("constraints") or [],

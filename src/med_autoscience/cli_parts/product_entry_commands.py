@@ -129,6 +129,7 @@ def handle_product_entry_command(
             study_id=args.study_id,
             study_root=Path(args.study_root) if args.study_root else None,
             task_intent=args.task_intent,
+            task_intake_kind=args.task_intake_kind,
             entry_mode=args.entry_mode,
             journal_target=args.journal_target,
             constraints=tuple(args.constraint or []),

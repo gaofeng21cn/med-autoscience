@@ -325,28 +325,25 @@ def test_study_progress_projects_ai_reviewer_request_lifecycle(
         "med_autoscience.controllers.supervisor_action_request_lifecycle"
     )
     request_builder = importlib.import_module("med_autoscience.controllers.supervisor_action_requests")
+    request_lifecycle_support = importlib.import_module(
+        "med_autoscience.controllers.supervisor_action_request_lifecycle"
+    )
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
     quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
-    packet = request_builder.build_ai_reviewer_publication_eval_request(
-        study_id="001-risk",
-        quest_id="quest-001",
-        source_surface="ai_reviewer_runtime_workflow_state",
-        workflow_state={
-            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
-            "route_back": {"required": True, "target": "ai_reviewer"},
-            "blockers": ["publication_eval_not_ai_reviewer_authority"],
-        },
-        input_refs={
-            "manuscript": {"relative_path": "paper/manuscript.md"},
-            "evidence_ledger": {"relative_path": "paper/evidence_ledger.json"},
-            "review_ledger": {"relative_path": "paper/review/review_ledger.json"},
-            "study_charter": {"relative_path": "artifacts/controller/study_charter.json"},
-        },
-        lifecycle_state="assigned",
-        assigned_to="ai_reviewer",
+    _write_json(study_root / "paper" / "manuscript.md", {"body": "Draft manuscript."})
+    _write_json(study_root / "paper" / "evidence_ledger.json", {"items": []})
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"closures": []})
+    _write_json(study_root / "artifacts" / "controller" / "study_charter.json", {"charter_id": "charter::001-risk"})
+    _write_json(
+        study_root / "paper" / "medical_manuscript_blueprint.json",
+        {"surface": "medical_manuscript_blueprint", "status": "closed"},
     )
-    request_lifecycle.materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"claims": []})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "medical_prose_review.json",
+        {"surface": "medical_prose_review", "status": "ready"},
+    )
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
         {
@@ -358,6 +355,20 @@ def test_study_progress_projects_ai_reviewer_request_lifecycle(
             "verdict": {"overall_verdict": "mixed"},
         },
     )
+    packet = request_builder.build_ai_reviewer_publication_eval_request(
+        study_id="001-risk",
+        quest_id="quest-001",
+        source_surface="ai_reviewer_runtime_workflow_state",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+            "blockers": ["publication_eval_not_ai_reviewer_authority"],
+        },
+        input_refs=request_lifecycle_support.default_ai_reviewer_request_input_refs(study_root=study_root),
+        lifecycle_state="assigned",
+        assigned_to="ai_reviewer",
+    )
+    request_lifecycle.materialize_ai_reviewer_request(study_root=study_root, packet=packet)
     monkeypatch.setattr(
         module.study_runtime_router,
         "study_runtime_status",
@@ -396,6 +407,10 @@ def test_study_progress_projects_ai_reviewer_request_lifecycle(
         "evidence_ledger",
         "review_ledger",
         "study_charter",
+        "medical_manuscript_blueprint",
+        "claim_evidence_map",
+        "medical_prose_review",
+        "publication_gate_projection",
     ]
     assert lifecycle["required_output"]["surface"] == "publication_eval/latest.json"
     assert lifecycle["assessment_written"] is False

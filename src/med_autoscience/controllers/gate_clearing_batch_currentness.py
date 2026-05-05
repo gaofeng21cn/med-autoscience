@@ -418,9 +418,11 @@ def build_executed_batch_record(
     current_package_freshness_proof: dict[str, Any] | None,
     stale_gate_replay_closure: dict[str, Any] | None,
 ) -> dict[str, Any]:
+    work_unit_fingerprint = _non_empty_text(current_publication_work_unit_payload.get("fingerprint"))
     record = {
         "schema_version": schema_version,
         "source_eval_id": source_eval_id,
+        "source_work_unit_fingerprint": work_unit_fingerprint,
         "source_eval_artifact_path": str((study_root / "artifacts" / "publication_eval" / "latest.json").resolve()),
         "status": "executed",
         "quest_id": quest_id,
@@ -436,7 +438,7 @@ def build_executed_batch_record(
         "selected_publication_work_unit": selected_publication_work_unit,
         "explicit_publication_work_unit": explicit_publication_work_unit,
         "current_publication_work_unit": current_publication_work_unit_payload.get("next_work_unit"),
-        "work_unit_fingerprint": current_publication_work_unit_payload.get("fingerprint"),
+        "work_unit_fingerprint": work_unit_fingerprint,
         "work_unit_currentness": work_unit_currentness,
         "unit_results": unit_results,
         "unit_fingerprints": unit_fingerprints,
@@ -504,6 +506,7 @@ def gate_specificity_terminal_batch_record(
     terminal_reason: str,
     gate_replay_timing: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
+    work_unit_fingerprint = _non_empty_text(current_publication_work_unit_payload.get("fingerprint"))
     gate_replay = {
         "status": "not_run",
         "reason": terminal_reason,
@@ -535,6 +538,7 @@ def gate_specificity_terminal_batch_record(
     record = {
         "schema_version": schema_version,
         "source_eval_id": source_eval_id,
+        "source_work_unit_fingerprint": work_unit_fingerprint,
         "source_eval_artifact_path": str((study_root / "artifacts" / "publication_eval" / "latest.json").resolve()),
         "status": "platform_terminal",
         "terminal_state": GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID,
@@ -553,7 +557,7 @@ def gate_specificity_terminal_batch_record(
         "selected_publication_work_unit": selected_publication_work_unit,
         "explicit_publication_work_unit": explicit_publication_work_unit,
         "current_publication_work_unit": current_publication_work_unit_payload.get("next_work_unit"),
-        "work_unit_fingerprint": current_publication_work_unit_payload.get("fingerprint"),
+        "work_unit_fingerprint": work_unit_fingerprint,
         "work_unit_currentness": work_unit_currentness,
         "unit_results": [],
         "unit_fingerprints": {},

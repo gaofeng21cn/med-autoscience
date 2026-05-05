@@ -1,19 +1,19 @@
 # Runtime Lifecycle SQLite Migration Program
 
-Status: `current workspace restore-proof migration applied`
+Status: `current workspace restore-proof migration applied; DM002 live exception pending`
 Date: `2026-05-05`
 Owner: `MedAutoScience Runtime OS + MedDeepScientist backend`
 
 ## 2026-05-05 restore-proof closeout
 
-本轮在用户确认所有论文 runtime 已处于停止/暂停窗口后完成 current disease workspaces 的 runtime bucket compaction。迁移范围覆盖 NF-PitNET、DM-CVD / DPCC、AS biologics 的 eligible quest；DM002 与 DM003 的盘面 `runtime_state.status` 仍为 `active`，但 `active_run_id=null`，本轮按用户明确确认的 operator-confirmed parked active gate 处理。整个过程中没有 relaunch、resume 或 redrive 任一 study runtime。
+本轮在用户确认所有论文 runtime 已处于停止/暂停窗口后完成 current disease workspaces 的 runtime bucket compaction。迁移范围覆盖 NF-PitNET、DM-CVD / DPCC、AS biologics 的 eligible quest；当时 DM002 与 DM003 的盘面 `runtime_state.status` 仍为 `active`，但 `active_run_id=null`，本轮按用户明确确认的 operator-confirmed parked active gate 处理。整个过程中没有 relaunch、resume 或 redrive 任一 study runtime。
 
 本轮仍保留以下边界：
 
 - SQLite 是 runtime/state index layer，继续不替代 Git、paper authority、publication authority 或 artifact authority。
 - `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、DOCX/PDF/ZIP、dataset manifest 和 paper/manuscript/package surface 未被迁移过程手工 patch。
 - DM001 不应出现 live writer；本轮只迁移其 parked/reentry 与 legacy quest runtime payload。如果后续 MAS/MDS 对 DM001 再显示写入者或自动恢复意图，应归类为状态机问题，而不是迁移任务。
-- DM002/DM003 的 `active/null-run` 只因本轮用户确认进入可迁移窗口而放行；通用规则仍是 active quest 必须有 `active_run_id=null` 且显式传入 operator-confirmed gate，不能默认 destructive compaction。
+- DM002/DM003 的 `active/null-run` 只因本轮用户确认进入可迁移窗口而放行；通用规则仍是 active quest 必须有 `active_run_id=null` 且显式传入 operator-confirmed gate，不能默认 destructive compaction。2026-05-05 复核时 DM002 已重新 running（`active_run_id=run-e80aad6d`、`worker_running=true`），当前只能 audit/observe，不能做新增 payload 的 destructive compaction。
 - `/Users/gaofeng/workspace/Yang/无功能垂体瘤` 继续只是本机轻量中文 stale alias/scaffold，不作为独立 NF-PitNET workspace。
 
 本轮真实 workspace closeout ledger：
@@ -21,6 +21,20 @@ Owner: `MedAutoScience Runtime OS + MedDeepScientist backend`
 - `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/artifacts/runtime/lifecycle_migration/runtime-lifecycle-20260505-current-workspace-restore-proof-closeout.json`
 - `/Users/gaofeng/workspace/Yang/NF-PitNET/artifacts/runtime/lifecycle_migration/runtime-lifecycle-20260505-current-workspace-restore-proof-closeout.json`
 - `/Users/gaofeng/workspace/LinZM/as_biologics_workspace/artifacts/runtime/lifecycle_migration/runtime-lifecycle-20260505-current-workspace-restore-proof-closeout.json`
+
+## 2026-05-05 post-closeout drift note
+
+closeout ledger 证明的是当轮 eligible payload 已完成 restore-proof compaction，不代表之后 live runtime 不会再写入 `.ds`。本次复核的当前状态为：
+
+| study / quest | current runtime state | current `.ds` files | migration handling |
+| --- | --- | ---: | --- |
+| DM002 `002-dm-china-us-mortality-attribution` | `running`, `active_run_id=run-e80aad6d`, `worker_running=true` | 2,919 | live exception；只允许 audit/observe，等停止后迁移新增 payload。 |
+| DM003 `003-dpcc-primary-care-phenotype-treatment-gap` | `active`, `active_run_id=null`, `worker_running=false` | 3,127 | 已在 closeout 迁移过；closeout 后新增 payload 只能在再次 operator-confirmed parked gate 后 repeat compaction。 |
+| DPCC004 `004-dpcc-longitudinal-care-inertia-intensification-gap` | `active`, `active_run_id=null`, `worker_running=false` | drift observed: 16,436 -> 24,624 | 已在 closeout 迁移过；closeout 后新增 payload 仍在漂移，只能在再次 operator-confirmed parked gate 后 repeat compaction。 |
+| NF-PitNET managed 001-004 + legacy roots | paused/completed/null-run mix | 129 relevant files | 保持已处理状态；无需把中文 alias 作为独立 workspace。 |
+| AS001 `001-guideline-aligned-triple-trend` | `stopped`, `active_run_id=null`, `worker_running=false` | 56 | 保持已处理状态。 |
+
+因此，当前回答“除了 DM002 是否都处理过”时应区分两个口径：历史 closeout 已覆盖 NF-PitNET、DM-CVD / DPCC 和 AS biologics 的 eligible quest；当前盘面上 DM002 是 live 未处理新增 payload 的例外，DM003/DPCC004 是已处理但又产生 post-closeout drift 的 parked candidates。
 
 ## 结论
 

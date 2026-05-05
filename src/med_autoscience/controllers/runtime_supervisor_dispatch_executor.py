@@ -9,7 +9,9 @@ from typing import Any
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 
-from . import ai_reviewer_publication_eval_workflow, publication_gate, study_runtime_router
+from . import ai_reviewer_publication_eval_workflow, gate_clearing_batch, publication_gate, quest_hydration, study_runtime_router
+from .runtime_supervisor_scan import SUPERVISION_LATEST_RELATIVE_PATH
+from .runtime_supervisor_scan_parts import owner_route as owner_route_part
 from .supervisor_action_request_lifecycle import stable_ai_reviewer_request_path
 from .runtime_supervisor_consumer import (
     CONSUMER_LATEST_RELATIVE_PATH,
@@ -28,6 +30,8 @@ SUPPORTED_ACTION_TYPES = frozenset(
     {
         "runtime_platform_repair",
         "publication_gate_specificity_required",
+        "current_package_freshness_required",
+        "artifact_display_surface_materialization_required",
         "return_to_ai_reviewer_workflow",
     }
 )
@@ -77,6 +81,10 @@ def _consumer_latest_path(profile: WorkspaceProfile) -> Path:
     return profile.workspace_root / CONSUMER_LATEST_RELATIVE_PATH
 
 
+def _scan_latest_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH
+
+
 def _execution_latest_path(profile: WorkspaceProfile, study_id: str) -> Path:
     return _study_root(profile, study_id) / EXECUTION_LATEST_RELATIVE_PATH
 
@@ -98,6 +106,8 @@ def _current_consumer_dispatch_files(profile: WorkspaceProfile, study_id: str) -
     for dispatch in latest.get("default_executor_dispatches") or []:
         payload = _mapping(dispatch)
         if _text(payload.get("study_id")) != study_id:
+            continue
+        if _text(payload.get("dispatch_status")) != "ready":
             continue
         refs = _mapping(payload.get("refs"))
         dispatch_path = _text(refs.get("dispatch_path"))
@@ -181,6 +191,34 @@ def _contract_guard(dispatch: Mapping[str, Any]) -> tuple[bool, str | None]:
     if not set(FORBIDDEN_SURFACES).issubset(forbidden):
         return False, "forbidden_surfaces_incomplete"
     return True, None
+
+
+def _current_owner_route(profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
+    latest = _read_json_object(_scan_latest_path(profile))
+    if latest is None:
+        return None
+    for study in latest.get("studies") or []:
+        payload = _mapping(study)
+        if _text(payload.get("study_id")) == study_id:
+            route = _mapping(payload.get("owner_route"))
+            return route or None
+    return None
+
+
+def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    return _mapping(dispatch.get("owner_route")) or _mapping(_mapping(dispatch.get("prompt_contract")).get("owner_route"))
+
+
+def _owner_route_block_reason(*, dispatch: Mapping[str, Any], current_route: Mapping[str, Any] | None) -> str | None:
+    if not _dispatch_owner_route(dispatch):
+        return "owner_route_missing"
+    if current_route is None:
+        return "current_owner_route_missing"
+    if not owner_route_part.owner_route_matches(dispatch=dispatch, current_route=current_route):
+        return "owner_route_stale"
+    if not owner_route_part.route_allows_action(action=dispatch, owner_route=current_route):
+        return "owner_route_next_owner_mismatch"
+    return None
 
 
 def _quest_root_from_status(profile: WorkspaceProfile, study_id: str) -> Path | None:
@@ -281,6 +319,109 @@ def _execute_runtime_platform_repair(
         "blocked_reason": None if executed else _text(apply_result.get("reason")) or "runtime_platform_repair_not_applied",
         "owner_callable_surface": "runtime_supervisor_scan.supervisor_scan(apply_runtime_platform_repair=True)",
         "owner_result": apply_result or result,
+    }
+
+
+def _execute_current_package_freshness(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+) -> dict[str, Any]:
+    quest_root = _quest_root_from_status(profile, study_id)
+    if quest_root is None:
+        return {"execution_status": "blocked", "blocked_reason": "quest_root_missing", "owner_callable_surface": None}
+    study_root = _study_root(profile, study_id)
+    if not apply:
+        return {
+            "execution_status": "dry_run",
+            "blocked_reason": None,
+            "owner_callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
+            "quest_root": str(quest_root),
+        }
+    try:
+        owner_result = gate_clearing_batch.run_gate_clearing_batch(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            quest_id=quest_root.name,
+            source="runtime_supervisor_dispatch_executor",
+            control_plane_route_context={
+                "controller_route_context": {
+                    "control_surface": "gate_clearing_batch",
+                    "controller_action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "submission_minimal_refresh",
+                    "requires_human_confirmation": False,
+                }
+            },
+        )
+    except (OSError, TypeError, ValueError, RuntimeError) as exc:
+        return {
+            "execution_status": "blocked",
+            "blocked_reason": "current_package_freshness_workflow_failed",
+            "owner_callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
+            "next_owner": "artifact_os",
+            "error": str(exc),
+            "quest_root": str(quest_root),
+        }
+    executed = bool(owner_result.get("ok")) if isinstance(owner_result, Mapping) else False
+    return {
+        "execution_status": "executed" if executed else "blocked",
+        "blocked_reason": None if executed else _text(_mapping(owner_result).get("status")) or "gate_clearing_batch_not_applied",
+        "owner_callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
+        "owner_result": dict(owner_result) if isinstance(owner_result, Mapping) else owner_result,
+        "quest_root": str(quest_root),
+    }
+
+
+def _execute_artifact_display_materialization(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+) -> dict[str, Any]:
+    study_root = _study_root(profile, study_id)
+    paper_root = study_root / "paper"
+    reporting_contract_path = paper_root / "medical_reporting_contract.json"
+    if not reporting_contract_path.exists():
+        return {
+            "execution_status": "blocked" if apply else "dry_run",
+            "blocked_reason": "medical_reporting_contract_missing",
+            "owner_callable_surface": "quest_hydration.materialize_display_contract_stubs",
+            "next_owner": "artifact_os",
+            "required_input_surface": str(reporting_contract_path),
+        }
+    if not apply:
+        return {
+            "execution_status": "dry_run",
+            "blocked_reason": None,
+            "owner_callable_surface": "quest_hydration.materialize_display_contract_stubs+gate_clearing_batch.run_gate_clearing_batch",
+            "paper_root": str(paper_root),
+        }
+    try:
+        stub_result = quest_hydration.materialize_display_contract_stubs(paper_root=paper_root)
+    except (OSError, TypeError, ValueError, RuntimeError) as exc:
+        return {
+            "execution_status": "blocked",
+            "blocked_reason": "display_contract_stub_materialization_failed",
+            "owner_callable_surface": "quest_hydration.materialize_display_contract_stubs",
+            "next_owner": "artifact_os",
+            "error": str(exc),
+            "paper_root": str(paper_root),
+        }
+    gate_result = _execute_current_package_freshness(profile=profile, study_id=study_id, apply=apply)
+    owner_result = _mapping(gate_result.get("owner_result"))
+    executed = gate_result.get("execution_status") == "executed"
+    return {
+        **gate_result,
+        "execution_status": "executed" if executed else "blocked",
+        "blocked_reason": None if executed else gate_result.get("blocked_reason"),
+        "owner_callable_surface": "quest_hydration.materialize_display_contract_stubs+gate_clearing_batch.run_gate_clearing_batch",
+        "owner_result": {
+            "display_contract_stubs": stub_result,
+            "gate_clearing_batch": owner_result or gate_result.get("owner_result"),
+        },
+        "paper_root": str(paper_root),
     }
 
 
@@ -400,11 +541,21 @@ def _execute_dispatch(
         }
     action_type = _text(dispatch.get("action_type")) or "unknown_action"
     guard_ok, guard_reason = _contract_guard(dispatch)
+    current_route = _current_owner_route(profile, study_id)
+    owner_route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
     if not guard_ok:
         execution = {
             "execution_status": "blocked",
             "blocked_reason": guard_reason,
             "owner_callable_surface": None,
+        }
+    elif owner_route_block_reason is not None:
+        execution = {
+            "execution_status": "blocked",
+            "blocked_reason": owner_route_block_reason,
+            "owner_callable_surface": None,
+            "owner_route_current": False,
+            "current_owner_route": current_route,
         }
     elif apply and (
         _text(developer_mode_payload.get("mode")) != SUPPORTED_MODE
@@ -419,6 +570,10 @@ def _execute_dispatch(
         execution = _execute_publication_gate_specificity(profile=profile, study_id=study_id, apply=apply)
     elif action_type == "runtime_platform_repair":
         execution = _execute_runtime_platform_repair(profile=profile, study_id=study_id, apply=apply)
+    elif action_type == "current_package_freshness_required":
+        execution = _execute_current_package_freshness(profile=profile, study_id=study_id, apply=apply)
+    elif action_type == "artifact_display_surface_materialization_required":
+        execution = _execute_artifact_display_materialization(profile=profile, study_id=study_id, apply=apply)
     elif action_type == "return_to_ai_reviewer_workflow":
         execution = _execute_ai_reviewer_workflow(profile=profile, study_id=study_id, apply=apply)
     else:
@@ -440,6 +595,9 @@ def _execute_dispatch(
         "dispatch_path": str(dispatch_path),
         "dispatch_contract_valid": guard_ok,
         "dispatch_contract_blocked_reason": guard_reason,
+        "owner_route": _dispatch_owner_route(dispatch) or None,
+        "owner_route_current": owner_route_block_reason is None if guard_ok else None,
+        "current_owner_route": current_route,
         "dry_run": not apply,
         "developer_supervisor_mode": dict(developer_mode_payload),
         "paper_package_mutation_allowed": False,

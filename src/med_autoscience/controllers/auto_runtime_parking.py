@@ -13,6 +13,7 @@ REOPEN_POLICY = "user_feedback_first"
 PARKED_STATES = (
     "package_ready_handoff",
     "publishability_stop_loss",
+    "manual_hold",
     "external_metadata_pending",
     "waiting_user_decision",
     "external_input_pending",
@@ -101,6 +102,7 @@ _PLATFORM_REPAIR_REASONS = frozenset(
 _STATE_LABELS = {
     "package_ready_handoff": "投稿包/人审包交付停驻",
     "publishability_stop_loss": "发表价值止损停题",
+    "manual_hold": "手动停驻待新方案",
     "external_metadata_pending": "外部投稿元数据待补",
     "waiting_user_decision": "等待用户判断",
     "external_input_pending": "等待外部输入",
@@ -120,6 +122,7 @@ _STATE_SUMMARIES = {
         "当前论文线已触发发表价值止损；MAS/MDS 已释放自动运行资源，除非重新定义独立研究问题、"
         "study charter 与证据边界，否则不再继续打磨投稿包。"
     ),
+    "manual_hold": "当前论文线已按用户任务进入手动停驻；形成新方案并显式唤醒前，MAS/MDS 不会自动恢复写入。",
     "external_metadata_pending": (
         "外部投稿元数据待补；稿件主体和投稿包骨架已生成，当前只差作者、单位、伦理、基金、COI、通讯作者等"
         "MAS/MDS 不能自行决定的外部投稿事实。"
@@ -146,6 +149,7 @@ _STATE_SUMMARIES = {
 _NEXT_ACTIONS = {
     "package_ready_handoff": "等待用户审阅或显式恢复；如收到大修意见，重新进入同一论文线修订。",
     "publishability_stop_loss": "保持当前论文线停题；未来只有形成新的研究问题和 study charter 后再新开或重启。",
+    "manual_hold": "等待新方案和显式唤醒；随后再由 controller 重新判断是否重启。",
     "external_metadata_pending": "等待用户补齐外部投稿元数据；补齐后再恢复投稿包同步与 QC。",
     "waiting_user_decision": "等待用户给出明确判断；收到新意见后按用户反馈优先重新进入修订线。",
     "external_input_pending": "等待外部输入可用后再恢复运行。",
@@ -159,6 +163,7 @@ _NEXT_ACTIONS = {
 _OWNER_BY_STATE = {
     "package_ready_handoff": "user",
     "publishability_stop_loss": "user",
+    "manual_hold": "user",
     "external_metadata_pending": "user",
     "waiting_user_decision": "user",
     "external_input_pending": "user",
@@ -173,6 +178,7 @@ _AUTO_EXECUTION_COMPLETE_STATES = frozenset(
     {
         "package_ready_handoff",
         "publishability_stop_loss",
+        "manual_hold",
         "external_metadata_pending",
     }
 )
@@ -248,6 +254,8 @@ def _state_from_reason(
         return "external_metadata_pending"
     if reason == "publishability_stop_loss_recommended":
         return "publishability_stop_loss"
+    if reason == "quest_waiting_for_explicit_wakeup_after_manual_hold":
+        return "manual_hold"
     if reason == "quest_waiting_for_external_input":
         return "external_input_pending"
     if _text(interaction_arbitration.get("classification")) == "external_input_required":
@@ -316,6 +324,7 @@ def _awaiting_explicit_wakeup(state: str, classification: Mapping[str, Any]) -> 
     return state in {
         "package_ready_handoff",
         "publishability_stop_loss",
+        "manual_hold",
         "external_metadata_pending",
         "waiting_user_decision",
         "external_input_pending",

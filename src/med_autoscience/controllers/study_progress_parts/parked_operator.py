@@ -6,6 +6,7 @@ from typing import Any
 PARKED_HANDLING_STATES = frozenset(
     {
         "package_ready_handoff",
+        "manual_hold",
         "external_metadata_pending",
         "waiting_user_decision",
         "external_input_pending",
@@ -70,6 +71,7 @@ def parked_human_surface_summary(handling_state: str) -> tuple[str, str] | None:
 def parked_status_verdict(handling_state: str) -> str | None:
     return {
         "package_ready_handoff": "MAS/MDS 已到投稿包/人审包交付节点，当前停驻等待用户审阅或显式恢复。",
+        "manual_hold": "MAS/MDS 已按用户任务手动停驻，等待新方案和显式唤醒。",
         "external_metadata_pending": "MAS/MDS 已释放自动运行资源，当前等待外部投稿元数据。",
         "waiting_user_decision": "MAS/MDS 已停在需要用户判断的节点，用户反馈会优先重新打开修订线。",
         "external_input_pending": "MAS/MDS 正在等待外部输入，不会用本机自动运行空转替代。",

@@ -7,6 +7,7 @@ _PARTS = (
     "publication_owner_currentness.py",
     "manual_finish_dominance.py",
     "runtime_events.py",
+    "supervisor_state_overrides.py",
     "runtime_health_dominance.py",
     "status_and_decision.py",
 )

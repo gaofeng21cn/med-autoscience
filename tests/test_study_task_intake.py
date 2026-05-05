@@ -148,6 +148,7 @@ def test_publishability_stop_loss_intake_preempts_reviewer_revision_route() -> N
 
     payload = {
         "task_id": "study-task::004-invasive-architecture::20260429T020000Z",
+        "task_intake_kind": "publishability_stop_loss",
         "task_intent": (
             "临床专家反馈：垂体瘤004没有什么临床意义，Knosp分型的目的就是看侵袭性，"
             "当前结果没有新结论，论文不成立。请及时终止，建立早期止损机制。"
@@ -180,6 +181,7 @@ def test_publishability_stop_loss_task_intake_recommends_stop_runtime_action(tmp
         intake_module.latest_task_intake_json_path(study_root=study_root),
         {
             "task_id": "study-task::004-invasive-architecture::20260429T020000Z",
+            "task_intake_kind": "publishability_stop_loss",
             "task_intent": (
                 "这篇论文没有临床意义；Knosp 本来就是看侵袭性，当前队列没有新结论，"
                 "继续包装会浪费 token，应触发 publishability stop-loss。"
@@ -195,6 +197,70 @@ def test_publishability_stop_loss_task_intake_recommends_stop_runtime_action(tmp
     assert action["route_target"] == "stop"
     assert action["controller_action_type"] == "stop_runtime"
     assert action["requires_controller_decision"] is True
+
+
+def test_publishability_stop_loss_requires_structured_task_intake_contract() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "task_id": "study-task::004-invasive-architecture::20260429T020000Z",
+        "task_intent": (
+            "用户在背景里提到这条线可能没有临床意义、发不了论文，但没有给出 "
+            "task_intake_kind=publishability_stop_loss。"
+        ),
+        "constraints": ["不要用自由文本关键词推断 runtime truth。"],
+    }
+
+    assert module.task_intake_requests_publishability_stop_loss(payload) is False
+    assert module.build_publishability_stop_loss_intake(payload) is None
+    assert module.build_publishability_stop_loss_progress_override(payload) is None
+
+
+def test_manual_hold_intake_blocks_auto_recovery_without_stop_loss() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "task_id": "study-task::004-dpcc::20260505T130334Z",
+        "task_intake_kind": "manual_hold",
+        "task_intent": (
+            "用户确认糖尿病004已经到达里程碑投稿包后手动停止；当前结果没有达到预期，"
+            "暂不应由 MAS/MDS 自动恢复写入，等待形成新方案后再显式唤醒大改。"
+        ),
+        "constraints": [
+            "保持当前论文线停驻；不得由 runtime_platform_repair 或 supervisor redrive 自动恢复写入。",
+            "未来若重启必须先形成新的方案和显式 wakeup。",
+        ],
+    }
+
+    override = module.build_task_intake_progress_override(payload)
+    summary = module.summarize_task_intake(payload)
+
+    assert module.task_intake_requests_manual_hold(payload) is True
+    assert module.task_intake_overrides_auto_manual_finish(payload) is True
+    assert "stop_loss_intake" not in summary
+    assert summary["manual_hold_intake"]["kind"] == "manual_hold"
+    assert summary["manual_hold_intake"]["auto_recovery_allowed"] is False
+    assert override["current_required_action"] == "hold_until_explicit_wakeup"
+    assert override["paper_stage"] == "manual_hold"
+    assert override["quality_closure_truth"]["state"] == "manual_hold"
+    assert override["quality_execution_lane"]["lane_id"] == "manual_hold"
+
+
+def test_manual_hold_requires_structured_task_intake_contract() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "task_id": "study-task::004-dpcc::20260505T130334Z",
+        "task_intent": (
+            "用户描述历史上曾经手动停止，并讨论未来是否需要新方案；这只是说明背景，"
+            "没有给出 task_intake_kind=manual_hold。"
+        ),
+        "constraints": ["不要用自由文本关键词推断 runtime truth。"],
+    }
+
+    assert module.task_intake_requests_manual_hold(payload) is False
+    assert module.build_manual_hold_intake(payload) is None
+    assert module.build_manual_hold_progress_override(payload) is None
 
 
 def test_reviewer_task_intake_preserves_publication_gate_work_unit_identity(tmp_path: Path) -> None:

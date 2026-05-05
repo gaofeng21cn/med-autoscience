@@ -1,7 +1,16 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any
+
+
+def _content_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def path_fingerprint(path: Path | None) -> dict[str, Any] | None:
@@ -11,10 +20,18 @@ def path_fingerprint(path: Path | None) -> dict[str, Any] | None:
     if not resolved.exists():
         return {"path": str(resolved), "exists": False}
     stat = resolved.stat()
+    if resolved.is_dir():
+        return {
+            "path": str(resolved),
+            "exists": True,
+            "is_dir": True,
+            "mtime_ns": stat.st_mtime_ns,
+        }
     return {
         "path": str(resolved),
         "exists": True,
         "size": stat.st_size,
+        "content_sha256": _content_sha256(resolved),
         "mtime_ns": stat.st_mtime_ns,
     }
 

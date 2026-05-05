@@ -74,6 +74,26 @@ def _is_human_review_milestone_parking(
     ) and _evaluation_summary_reports_bundle_only_remaining(study_root=study_root)
 
 
+def _is_delivered_human_review_milestone_without_live_worker(
+    status: StudyRuntimeStatus,
+    *,
+    study_root: Path,
+) -> bool:
+    if status.quest_status not in _LIVE_QUEST_STATUSES and status.quest_status not in _RESUMABLE_QUEST_STATUSES:
+        return False
+    try:
+        continuation_state = status.continuation_state
+    except KeyError:
+        return False
+    if continuation_state.active_run_id is not None:
+        return False
+    if not (_has_delivered_human_package_surface(study_root) or _has_current_human_facing_delivery_manifest(study_root)):
+        return False
+    return _controller_decision_requests_human_review_milestone_stop(
+        study_root=study_root,
+    )
+
+
 def _platform_repair_redrive_without_live_worker(
     status: StudyRuntimeStatus,
     *,
@@ -95,6 +115,19 @@ def _platform_repair_redrive_without_live_worker(
 
 def _has_delivered_human_package_surface(study_root: Path) -> bool:
     return resolve_delivered_submission_package_manual_finish_contract(study_root=study_root) is not None
+
+
+def _has_current_human_facing_delivery_manifest(study_root: Path) -> bool:
+    manifest = _load_json_dict(study_root / "manuscript" / "delivery_manifest.json")
+    if not manifest:
+        return False
+    stage = str(manifest.get("stage") or "").strip()
+    source_signature = str(manifest.get("source_signature") or "").strip()
+    authority_signature = str(manifest.get("authority_source_signature") or "").strip()
+    evaluated_signature = str(manifest.get("evaluated_source_signature") or "").strip()
+    if stage != "submission_minimal" or not source_signature:
+        return False
+    return source_signature == authority_signature == evaluated_signature
 
 
 def _should_block_platform_repair_redrive_for_delivered_package(

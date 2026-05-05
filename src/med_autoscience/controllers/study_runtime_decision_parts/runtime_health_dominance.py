@@ -5,6 +5,8 @@ from pathlib import Path
 
 from med_autoscience.controllers import runtime_health_kernel
 from med_autoscience.controllers.study_runtime_types import (
+    StudyRuntimeDecision,
+    StudyRuntimeReason,
     StudyRuntimeAuditStatus,
     StudyRuntimeStatus,
     _LIVE_QUEST_STATUSES,
@@ -111,11 +113,16 @@ def _record_runtime_health_dominance(
         recorded_at=recorded_at,
     )
     if _runtime_health_requires_live_recovery(status=status, runtime_health_snapshot=runtime_health_snapshot):
-        status.set_decision(
-            StudyRuntimeDecision.RESUME,
-            StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION,
-        )
-        _record_runtime_recovery_lifecycle_if_required(status)
+        try:
+            runtime_liveness = status.runtime_liveness_audit_record
+        except KeyError:
+            runtime_liveness = None
+        if runtime_liveness is None or runtime_liveness.status is not StudyRuntimeAuditStatus.LIVE:
+            status.set_decision(
+                StudyRuntimeDecision.RESUME,
+                StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION,
+            )
+            _record_runtime_recovery_lifecycle_if_required(status)
         runtime_health_snapshot = _derive_runtime_health_snapshot_for_status(
             status=status,
             study_root=study_root,

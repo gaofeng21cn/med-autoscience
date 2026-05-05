@@ -3,68 +3,37 @@ from __future__ import annotations
 from typing import Any
 
 
-PUBLISHABILITY_STOP_LOSS_MARKERS = (
-    "publishability stop-loss",
-    "publishability stop loss",
-    "stop-loss",
-    "stop loss",
-    "early stop",
-    "terminate the paper",
-    "terminate this paper",
-    "stop the paper",
-    "not publishable",
-    "cannot publish",
-    "paper is not viable",
-    "no clinical significance",
-    "no clinical meaning",
-    "no new conclusion",
-    "no meaningful novelty",
-    "及时终止",
-    "早期止损",
-    "主动止损",
-    "止损机制",
-    "止损停题",
-    "发不了论文",
-    "不能发表",
-    "无法发表",
-    "没有临床意义",
-    "没有什么临床意义",
-    "没有新结论",
-    "论文不成立",
-    "稿件不成立",
-    "不是可投稿论文",
-    "不建议继续投稿",
-    "不值得继续写",
-    "继续包装",
-    "浪费token",
-    "knosp本来就是看侵袭性",
-    "knosp 本来就是看侵袭性",
-    "knosp分型的目的就是看侵袭性",
-    "knosp 分型的目的就是看侵袭性",
-)
+PUBLISHABILITY_STOP_LOSS_KINDS = frozenset({"publishability_stop_loss", "stop_loss"})
+PUBLISHABILITY_STOP_LOSS_ACTIONS = frozenset({"stop_runtime", "stop_loss"})
 
 
-def _task_intake_text_corpus(payload: dict[str, Any] | None) -> tuple[str, ...]:
-    if not isinstance(payload, dict):
-        return ()
-    texts: list[str] = []
-    for key in ("task_intent", "journal_target"):
-        value = payload.get(key)
-        if isinstance(value, str) and value.strip():
-            texts.append(value.strip())
-    for key in ("constraints", "evidence_boundary", "trusted_inputs", "reference_papers", "first_cycle_outputs"):
-        value = payload.get(key)
-        if isinstance(value, list):
-            texts.extend(str(item).strip() for item in value if str(item).strip())
-    return tuple(texts)
+def _non_empty_text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}
 
 
 def task_intake_requests_publishability_stop_loss(payload: dict[str, Any] | None) -> bool:
-    corpus = _task_intake_text_corpus(payload)
-    if not corpus:
+    if not isinstance(payload, dict):
         return False
-    haystack = "\n".join(corpus).lower()
-    return any(marker in haystack for marker in PUBLISHABILITY_STOP_LOSS_MARKERS)
+    if (_non_empty_text(payload.get("task_intake_kind")) or _non_empty_text(payload.get("intake_kind"))) in PUBLISHABILITY_STOP_LOSS_KINDS:
+        return True
+    stop_loss = _mapping(payload.get("stop_loss_intake"))
+    if stop_loss:
+        return (
+            _non_empty_text(stop_loss.get("kind")) in PUBLISHABILITY_STOP_LOSS_KINDS
+            or _non_empty_text(stop_loss.get("route")) == "stop_loss"
+            or _non_empty_text(_mapping(stop_loss.get("decision_policy")).get("controller_action"))
+            in PUBLISHABILITY_STOP_LOSS_ACTIONS
+        )
+    quality_closure_truth = _mapping(payload.get("quality_closure_truth"))
+    if _non_empty_text(quality_closure_truth.get("state")) == "stop_loss_recommended":
+        return True
+    current_required_action = _non_empty_text(payload.get("current_required_action"))
+    return current_required_action in PUBLISHABILITY_STOP_LOSS_ACTIONS
 
 
 def build_publishability_stop_loss_intake(payload: dict[str, Any] | None) -> dict[str, Any] | None:

@@ -35,6 +35,8 @@ def build_progress_parked_projection(
         )
         if str(quality_closure_truth.get("state") or "").strip() == "stop_loss_recommended":
             return projection
+        if str(quality_closure_truth.get("state") or "").strip() == "manual_hold":
+            return projection
         return {
             **projection,
             "parked": False,

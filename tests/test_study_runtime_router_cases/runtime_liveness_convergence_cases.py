@@ -356,6 +356,7 @@ def test_supervisor_status_preserves_preinspected_liveness_and_worker_activity(
 
     assert result["decision"] == "lightweight"
     assert result["reason"] == "entry_mode_not_managed"
+    assert result["active_run_id"] == "run-live"
     assert result["runtime_liveness_audit"]["status"] == "live"
     assert result["runtime_liveness_audit"]["active_run_id"] == "run-live"
     assert result["mds_worker_activity"]["activity_state"] == "running"
@@ -476,10 +477,14 @@ def test_live_worker_with_stale_artifact_delta_is_recovery_despite_live_audit(mo
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
     assert result["runtime_liveness_audit"]["status"] == "live"
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_marked_running_but_no_live_session"
+    assert result["decision"] == "noop"
+    assert result["reason"] == "quest_already_running"
     assert result["runtime_health_snapshot"]["worker_liveness_state"]["state"] == "activity_timeout"
     assert result["runtime_health_snapshot"]["canonical_runtime_action"] == "recover_runtime"
+    assert result["control_plane_snapshot"]["canonical_runtime_action"] == "continue_supervising_runtime"
+    assert result["control_plane_snapshot"]["route_authorization"]["runtime_recovery_allowed"] is False
+    assert result["control_plane_snapshot"]["activity_timeout_owner_action"] == "request_owner_progress"
+    assert "recover_runtime" not in result["control_plane_snapshot"]["allowed_controller_actions"]
     assert result["progress_projection"]["current_stage"] == "managed_runtime_recovering"
     assert result["progress_projection"]["runtime_health_snapshot"]["canonical_runtime_action"] == "recover_runtime"
 

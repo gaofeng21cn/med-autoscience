@@ -35,6 +35,18 @@ def _gate_blockers(gate_report: dict[str, Any]) -> set[str]:
     }
 
 
+def _without_observed_time(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _without_observed_time(item)
+            for key, item in value.items()
+            if key != "mtime_ns"
+        }
+    if isinstance(value, list):
+        return [_without_observed_time(item) for item in value]
+    return value
+
+
 def catalog_asset_fingerprints(
     *,
     workspace_root: Path,
@@ -257,6 +269,7 @@ def repair_unit_fingerprint(
                 "results/*.json",
             ),
         }
+        payload = _without_observed_time(payload)
     elif unit_id == "workspace_display_repair_script":
         payload = {
             "unit_id": unit_id,

@@ -662,6 +662,30 @@ def test_submit_study_task_projects_reviewer_revision_intake(tmp_path: Path) -> 
     assert "旧 stopped/submission-ready/finalize 状态不能作为前台直接修改" in latest_markdown_text
 
 
+def test_submit_study_task_writes_structured_manual_hold_intake(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "004-risk")
+
+    payload = module.submit_study_task(
+        profile=profile,
+        study_id="004-risk",
+        task_intake_kind="manual_hold",
+        task_intent="保持当前论文线停驻，等待新方案和显式唤醒。",
+        constraints=("不得由 runtime_platform_repair 或 supervisor redrive 自动恢复写入。",),
+    )
+
+    latest_json = Path(payload["artifacts"]["latest_json"])
+    latest_markdown = Path(payload["artifacts"]["latest_markdown"])
+    written_payload = json.loads(latest_json.read_text(encoding="utf-8"))
+
+    assert written_payload["task_intake_kind"] == "manual_hold"
+    assert written_payload["manual_hold_intake"]["kind"] == "manual_hold"
+    assert written_payload["manual_hold_intake"]["auto_recovery_allowed"] is False
+    assert payload["manual_hold_intake"]["runtime_platform_repair_redrive_allowed"] is False
+    assert "Manual Hold Intake" in latest_markdown.read_text(encoding="utf-8")
+
+
 def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelope(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)

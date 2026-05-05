@@ -366,6 +366,29 @@ def _seed_publication_display_contracts(*, paper_root: Path) -> list[str]:
     return publication_display_contract.seed_publication_display_contracts_if_missing(paper_root=paper_root)
 
 
+def materialize_display_contract_stubs(*, paper_root: Path, reporting_contract: dict[str, object] | None = None) -> dict[str, object]:
+    resolved_paper_root = Path(paper_root).expanduser().resolve()
+    resolved_reporting_contract = (
+        dict(reporting_contract)
+        if isinstance(reporting_contract, dict)
+        else _read_json_dict(resolved_paper_root / "medical_reporting_contract.json")
+    )
+    written_files = [
+        *_write_display_surface_stubs(
+            paper_root=resolved_paper_root,
+            reporting_contract=resolved_reporting_contract,
+        ),
+        *_seed_publication_display_contracts(paper_root=resolved_paper_root),
+    ]
+    return {
+        "status": "materialized",
+        "paper_root": str(resolved_paper_root),
+        "reporting_contract_path": str(resolved_paper_root / "medical_reporting_contract.json"),
+        "display_registry_path": str(resolved_paper_root / "display_registry.json"),
+        "written_files": written_files,
+    }
+
+
 def _resolve_hydration_paper_roots(*, quest_root: Path) -> tuple[Path, ...]:
     roots: list[Path] = [(quest_root / "paper").resolve()]
     try:

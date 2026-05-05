@@ -6,6 +6,7 @@ from med_autoscience.study_task_intake_stop_loss import (
     build_publishability_stop_loss_intake,
     task_intake_requests_publishability_stop_loss,
 )
+from med_autoscience.submission_revision_operating_contract import build_submission_revision_operating_contract
 
 DIRECT_FINALIZE_DOWNGRADE_MARKERS = (
     "不能按已达投稿包里程碑直接收口",
@@ -124,3 +125,62 @@ def submission_revision_operating_state(payload: dict[str, Any] | None) -> str |
     if task_intake_requests_submission_package_refresh(payload):
         return "submission_package_refresh"
     return None
+
+
+def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not task_intake_is_reviewer_revision(payload):
+        return None
+    revision_payload = {
+        "kind": "reviewer_revision",
+        "status": "active",
+        "checklist": [item_id for item_id, _, _ in REVISION_INTAKE_CHECKLIST],
+        "checklist_items": [
+            {"id": item_id, "label": label, "status": "pending", "requirement": requirement}
+            for item_id, label, requirement in REVISION_INTAKE_CHECKLIST
+        ],
+        "handoff_required": True,
+        "reactivation_required": True,
+        "reactivation_policy": {
+            "same_study_line": True,
+            "stopped_milestone_reopens_same_line": True,
+            "required_sequence": [
+                "submit durable reviewer_revision task intake",
+                "reactivate the same study through MAS/MDS launch or resume",
+                "apply revisions to controller-authorized canonical paper sources",
+                "regenerate manuscript/current_package from canonical authority",
+            ],
+        },
+        "current_package_edit_policy": {
+            "surface_kind": "human_facing_projection",
+            "direct_current_package_edit_allowed": False,
+            "emergency_overlay_only": True,
+            "completion_claim_allowed": False,
+        },
+        "submission_revision_operating_contract": build_submission_revision_operating_contract(
+            "reviewer_revision",
+            trigger="reviewer_revision_task_intake",
+        ),
+        "handoff_evidence_surface": {
+            "required": True,
+            "read_before_mds_resume": True,
+            "minimum_fields": [
+                "data sources",
+                "script entrypoints",
+                "changed tables/figures",
+                "change scope",
+                "claim guardrails",
+                "canonical source reconciliation status",
+                "next owner: MAS controller or MDS paper surface",
+            ],
+        },
+    }
+    fast_lane = _build_manuscript_fast_lane_contract(payload)
+    if fast_lane is not None:
+        revision_payload["manuscript_fast_lane"] = fast_lane
+    return revision_payload
+
+
+def _build_manuscript_fast_lane_contract(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    from med_autoscience.study_task_intake_fast_lane import build_manuscript_fast_lane_contract
+
+    return build_manuscript_fast_lane_contract(payload)

@@ -112,6 +112,24 @@ MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 poli
 - 预期输出仍回到对应 owner 的 durable surface，例如 `publication_eval/latest.json`
 - supervisor 本身不得写 `publication_eval/latest.json`、不得放宽 quality/publication gate、不得改 `paper/current_package` 或 `manuscript/current_package`
 
+每个 study scan 还必须生成同一个 `owner_route`，并把它复制进 action、handoff packet、consumer dispatch 与 executor prompt contract。`owner_route` 是 `scan -> consume -> execute-dispatch -> rescan` 的路由票据，字段至少包括：
+
+- `route_epoch`：来自 `StudyTruthKernel` 的 truth/authority epoch；缺失时用当前 status source 派生。
+- `source_fingerprint`：当前 truth/status/progress/action 的稳定指纹。
+- `current_owner` 与 `next_owner`：当前写入 owner 与下一可执行 owner。
+- `owner_reason`：本轮路由原因，例如 `ai_reviewer_assessment_required`、`publication_gate_specificity_required` 或 runtime repair reason。
+- `allowed_actions` / `blocked_actions`：本轮允许执行和明确禁止执行的 supervisor action。
+- `idempotency_key`：由 study、epoch、fingerprint、owner、reason 和 action 集合派生；用于拒绝旧 dispatch。
+
+consumer 只能传播该 route，不能重新解释 owner。executor 执行前必须把 dispatch 中的 route 与最新 `hourly/latest.json` 的 route 对齐；如果 epoch、fingerprint、owner 或 reason 已变化，执行器必须写 `blocked_reason=owner_route_stale`，等待下一轮 consume 生成新 dispatch。
+
+同一轮 owner action 必须满足幂等合同。`route_epoch` 和 `source_fingerprint` 决定本轮 owner routing，具体 repo-side owner 还必须给自己的 work unit 写稳定 fingerprint：
+
+- fingerprint 只表达语义输入，不表达普通观测时间；内容相同的 JSON/资产被同一 owner 重写后，不能因为 `mtime` 变化制造新 work unit。
+- 对 package/submission authoring 类 repair，失败可在同 fingerprint 下重跑，因为缺失输出可能由同一 owner 重新生成。
+- 对 non-authoring artifact input failure，例如 display input payload 缺必要字段，重复执行不会产生新信息；同 fingerprint、同 blocking artifact 的失败必须复用为稳定 blocked truth，并继续把具体 `blocking_artifact_refs` 暴露给 scan / progress / owner route。
+- 因此 `scan -> consume -> execute-dispatch -> rescan` 的收敛结果应是“owner 前进或具体 blocker 稳定”，不能是同一 action 无限重放。
+
 外层工程消费入口是：
 
 ```bash

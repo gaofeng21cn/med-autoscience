@@ -45,6 +45,11 @@ BASE_ALLOWED_ACTIONS = (
     "open_monitoring_entry",
     "record_user_decision",
 )
+OWNER_PROGRESS_ACTIONS = (
+    "read_runtime_status",
+    "open_monitoring_entry",
+    "request_owner_progress",
+)
 
 
 def _mapping(value: object) -> dict[str, Any]:
@@ -130,6 +135,7 @@ def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str,
     truth = _mapping(payload.get("study_truth_snapshot"))
     health = _mapping(payload.get("runtime_health_snapshot"))
     publication_eval = _publication_eval_payload(payload)
+    worker_liveness = _mapping(health.get("worker_liveness_state"))
     truth_epoch = _text(truth.get("truth_epoch") or truth.get("authority_epoch"))
     health_epoch = _text(health.get("runtime_health_epoch"))
     truth_action = _text(truth.get("canonical_next_action")) or _text(payload.get("canonical_next_action")) or "observe"
@@ -162,6 +168,15 @@ def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str,
 
     retry_budget = _int(health.get("retry_budget_remaining"))
     attempt_state = _text(health.get("attempt_state"))
+    activity_timeout_owner_action = None
+    if (
+        runtime_action == "recover_runtime"
+        and _text(worker_liveness.get("state")) == "activity_timeout"
+        and _text(worker_liveness.get("active_run_id")) is not None
+    ):
+        runtime_action = "continue_supervising_runtime"
+        allowed_actions = list(OWNER_PROGRESS_ACTIONS)
+        activity_timeout_owner_action = "request_owner_progress"
     if (
         attempt_state == "escalated"
         or retry_budget == 0
@@ -197,6 +212,7 @@ def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str,
         "control_state": _control_state(blocking_reasons, runtime_action),
         "canonical_next_action": truth_action,
         "canonical_runtime_action": runtime_action,
+        "activity_timeout_owner_action": activity_timeout_owner_action,
         "dispatch_gate": {
             "state": "blocked" if dispatch_blocked else "open",
             "dispatch_allowed": not dispatch_blocked,
@@ -206,11 +222,15 @@ def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str,
             "authorized": not dispatch_blocked,
             "paper_write_allowed": paper_write_allowed,
             "bundle_build_allowed": bundle_build_allowed,
-            "runtime_recovery_allowed": runtime_action not in {
-                "await_explicit_resume",
-                "escalate_runtime",
-                "external_supervisor_required",
-            },
+            "runtime_recovery_allowed": (
+                activity_timeout_owner_action is None
+                and runtime_action
+                not in {
+                    "await_explicit_resume",
+                    "escalate_runtime",
+                    "external_supervisor_required",
+                }
+            ),
         },
         "blocking_reasons": blocking_reasons,
         "allowed_controller_actions": allowed_actions,

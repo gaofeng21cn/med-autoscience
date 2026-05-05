@@ -157,7 +157,26 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         if self.reason is not None:
             payload["reason"] = self.reason.value
         payload.update(self.extras)
+        if "active_run_id" not in payload:
+            active_run_id = self._resolved_active_run_id()
+            if active_run_id is not None:
+                payload["active_run_id"] = active_run_id
         return payload
+
+    def _resolved_active_run_id(self) -> str | None:
+        for payload in (
+            self.extras.get("runtime_liveness_audit"),
+            (self.extras.get("runtime_liveness_audit") or {}).get("runtime_audit")
+            if isinstance(self.extras.get("runtime_liveness_audit"), dict)
+            else None,
+            self.extras.get("autonomous_runtime_notice"),
+            self.extras.get("execution_owner_guard"),
+        ):
+            if isinstance(payload, dict):
+                active_run_id = str(payload.get("active_run_id") or "").strip()
+                if active_run_id:
+                    return active_run_id
+        return None
 
     @staticmethod
     def _normalize_decision_field(value: Any) -> StudyRuntimeDecision | None:

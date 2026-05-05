@@ -25,8 +25,15 @@ from med_autoscience.study_task_intake_stop_loss import (
     render_publishability_stop_loss_runtime_context_lines,
     task_intake_requests_publishability_stop_loss,
 )
+from med_autoscience.study_task_intake_manual_hold import (
+    build_manual_hold_intake,
+    build_manual_hold_progress_override,
+    render_manual_hold_markdown_lines,
+    render_manual_hold_runtime_context_lines,
+    task_intake_requests_manual_hold,
+)
 from med_autoscience.study_task_intake_revision import (
-    REVISION_INTAKE_CHECKLIST,
+    build_reviewer_revision_intake,
     submission_revision_operating_state,
     task_intake_is_reviewer_revision,
     task_intake_requests_submission_package_refresh,
@@ -58,7 +65,6 @@ _DETERMINISTIC_SUBMISSION_CLOSEOUT_BLOCKERS = frozenset({
     "submission_surface_qc_failure_present",
     "submission_hardening_incomplete",
 })
-
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -154,6 +160,9 @@ def summarize_task_intake(payload: dict[str, Any] | None) -> dict[str, Any] | No
     stop_loss_intake = build_publishability_stop_loss_intake(payload)
     if stop_loss_intake is not None:
         summary["stop_loss_intake"] = stop_loss_intake
+    manual_hold_intake = build_manual_hold_intake(payload)
+    if manual_hold_intake is not None:
+        summary["manual_hold_intake"] = manual_hold_intake
     revision_intake = build_reviewer_revision_intake(payload)
     if revision_intake is not None:
         summary["revision_intake"] = revision_intake
@@ -193,62 +202,11 @@ def _task_intake_contains_any(payload: dict[str, Any] | None, markers: tuple[str
     return False
 
 
-def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, Any] | None:
-    if not task_intake_is_reviewer_revision(payload):
-        return None
-    revision_payload = {
-        "kind": "reviewer_revision",
-        "status": "active",
-        "checklist": [item_id for item_id, _, _ in REVISION_INTAKE_CHECKLIST],
-        "checklist_items": [
-            {"id": item_id, "label": label, "status": "pending", "requirement": requirement}
-            for item_id, label, requirement in REVISION_INTAKE_CHECKLIST
-        ],
-        "handoff_required": True,
-        "reactivation_required": True,
-        "reactivation_policy": {
-            "same_study_line": True,
-            "stopped_milestone_reopens_same_line": True,
-            "required_sequence": [
-                "submit durable reviewer_revision task intake",
-                "reactivate the same study through MAS/MDS launch or resume",
-                "apply revisions to controller-authorized canonical paper sources",
-                "regenerate manuscript/current_package from canonical authority",
-            ],
-        },
-        "current_package_edit_policy": {
-            "surface_kind": "human_facing_projection",
-            "direct_current_package_edit_allowed": False,
-            "emergency_overlay_only": True,
-            "completion_claim_allowed": False,
-        },
-        "submission_revision_operating_contract": build_submission_revision_operating_contract(
-            "reviewer_revision", trigger="reviewer_revision_task_intake"
-        ),
-        "handoff_evidence_surface": {
-            "required": True,
-            "read_before_mds_resume": True,
-            "minimum_fields": [
-                "data sources",
-                "script entrypoints",
-                "changed tables/figures",
-                "change scope",
-                "claim guardrails",
-                "canonical source reconciliation status",
-                "next owner: MAS controller or MDS paper surface",
-            ],
-        },
-    }
-    manuscript_fast_lane = build_manuscript_fast_lane_contract(payload)
-    if manuscript_fast_lane is not None:
-        revision_payload["manuscript_fast_lane"] = manuscript_fast_lane
-    return revision_payload
-
-
 def task_intake_overrides_auto_manual_finish(payload: dict[str, Any] | None) -> bool:
     # 这里只接受 durable task intake 中明确写出的强语义，不做泛化 NLP 推断。
     return (
         task_intake_requests_publishability_stop_loss(payload)
+        or task_intake_requests_manual_hold(payload)
         or task_intake_is_reviewer_revision(payload)
         or task_intake_requests_manuscript_fast_lane(payload)
         or task_intake_requests_submission_package_refresh(payload)
@@ -689,6 +647,9 @@ def build_task_intake_progress_override(
     stop_loss_override = build_publishability_stop_loss_progress_override(payload)
     if stop_loss_override is not None:
         return stop_loss_override
+    manual_hold_override = build_manual_hold_progress_override(payload)
+    if manual_hold_override is not None:
+        return manual_hold_override
     if task_intake_yields_to_deterministic_submission_closeout(
         payload,
         study_root=study_root,
@@ -830,6 +791,7 @@ def render_task_intake_markdown(payload: dict[str, Any]) -> str:
         lines.append("- None")
     revision_intake = build_reviewer_revision_intake(payload)
     lines.extend(render_publishability_stop_loss_markdown_lines(payload))
+    lines.extend(render_manual_hold_markdown_lines(payload))
     if revision_intake is not None:
         lines.extend(["", "## Revision Intake Checklist", ""])
         for item in revision_intake["checklist_items"]:
@@ -886,6 +848,7 @@ def render_task_intake_runtime_context(payload: dict[str, Any]) -> str:
                 "Regenerate manuscript/current_package from canonical authority after revision.",
             ]
         )
+    lines.extend(render_manual_hold_runtime_context_lines(payload))
     lines.extend(render_publishability_stop_loss_runtime_context_lines(payload))
     lines.extend(render_manuscript_fast_lane_runtime_context_lines(payload))
     return "\n".join(lines)
@@ -928,6 +891,7 @@ def write_task_intake(
     trusted_inputs: Iterable[object] = (),
     reference_papers: Iterable[object] = (),
     first_cycle_outputs: Iterable[object] = (),
+    task_intake_kind: str | None = None,
 ) -> dict[str, Any]:
     emitted_at = _utc_now()
     slug = _timestamp_slug()
@@ -939,6 +903,7 @@ def write_task_intake(
         "study_id": study_id,
         "study_root": str(resolved_study_root),
         "entry_mode": _non_empty_text(entry_mode) or "full_research",
+        "task_intake_kind": _non_empty_text(task_intake_kind),
         "task_intent": _non_empty_text(task_intent) or "",
         "journal_target": _non_empty_text(journal_target),
         "constraints": _normalized_strings(constraints),
@@ -973,6 +938,9 @@ def write_task_intake(
     stop_loss_intake = build_publishability_stop_loss_intake(payload)
     if stop_loss_intake is not None:
         payload["stop_loss_intake"] = stop_loss_intake
+    manual_hold_intake = build_manual_hold_intake(payload)
+    if manual_hold_intake is not None:
+        payload["manual_hold_intake"] = manual_hold_intake
     revision_intake = build_reviewer_revision_intake(payload)
     if revision_intake is not None:
         payload["revision_intake"] = revision_intake

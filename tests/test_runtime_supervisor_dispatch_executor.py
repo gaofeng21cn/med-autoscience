@@ -4,56 +4,13 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.runtime_supervisor_dispatch_executor_helpers import (
+    dispatch as _dispatch,
+    write_current_dispatch as _write_current_dispatch,
+    write_json as _write_json,
+    write_scan_latest as _write_scan_latest,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
-
-
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def _dispatch(
-    *,
-    study_id: str,
-    action_type: str,
-    owner: str,
-    required_output_surface: str,
-) -> dict[str, object]:
-    return {
-        "surface": "default_executor_dispatch_request",
-        "schema_version": 1,
-        "executor_kind": "codex_cli_default",
-        "executor_name": "Codex CLI",
-        "executor_mode": "autonomous_agent_loop",
-        "chat_completion_only_executor_forbidden": True,
-        "dispatch_status": "ready",
-        "study_id": study_id,
-        "quest_id": f"quest-{study_id}",
-        "action_type": action_type,
-        "action_id": f"dispatch::{study_id}::{action_type}",
-        "next_executable_owner": owner,
-        "required_output_surface": required_output_surface,
-        "prompt_contract": {
-            "study_id": study_id,
-            "quest_id": f"quest-{study_id}",
-            "action_type": action_type,
-            "next_executable_owner": owner,
-            "required_output_surface": required_output_surface,
-            "forbidden_surfaces": [
-                "paper/**",
-                "manuscript/**",
-                "current_package/**",
-                "paper/current_package/**",
-                "manuscript/current_package/**",
-                "src/med_autoscience/platform/**",
-            ],
-            "allowed_write_surfaces": ["artifacts/supervision/**"],
-            "paper_package_mutation_allowed": False,
-            "quality_gate_relaxation_allowed": False,
-            "manual_study_patch_allowed": False,
-            "medical_claim_authoring_allowed": False,
-        },
-    }
 
 
 def test_execute_dispatch_blocks_ai_reviewer_when_request_missing(
@@ -73,14 +30,16 @@ def test_execute_dispatch_blocks_ai_reviewer_when_request_missing(
         / "default_executor_dispatches"
         / "return_to_ai_reviewer_workflow.json"
     )
-    _write_json(
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+    )
+    _write_current_dispatch(
         dispatch_path,
-        _dispatch(
-            study_id=study_id,
-            action_type="return_to_ai_reviewer_workflow",
-            owner="ai_reviewer",
-            required_output_surface="artifacts/publication_eval/latest.json",
-        ),
+        profile,
+        dispatch,
     )
 
     result = module.execute_default_executor_dispatches(
@@ -112,6 +71,47 @@ def test_execute_dispatch_blocks_ai_reviewer_when_request_missing(
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "paper").exists()
     assert not (study_root / "manuscript").exists()
+
+
+def test_execute_dispatch_blocks_dispatch_without_owner_route(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "001-dm-cvd-mortality-risk"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+    )
+    route = dict(dispatch["owner_route"])
+    del dispatch["owner_route"]
+    del dispatch["prompt_contract"]["owner_route"]
+    del dispatch["prompt_contract"]["idempotency_key"]
+    _write_json(dispatch_path, dispatch)
+    _write_scan_latest(profile, study_id, route)
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["blocked_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "owner_route_missing"
 
 
 def test_execute_dispatch_blocks_ai_reviewer_when_record_payload_missing(
@@ -161,14 +161,16 @@ def test_execute_dispatch_blocks_ai_reviewer_when_record_payload_missing(
         / "default_executor_dispatches"
         / "return_to_ai_reviewer_workflow.json"
     )
-    _write_json(
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+    )
+    _write_current_dispatch(
         dispatch_path,
-        _dispatch(
-            study_id=study_id,
-            action_type="return_to_ai_reviewer_workflow",
-            owner="ai_reviewer",
-            required_output_surface="artifacts/publication_eval/latest.json",
-        ),
+        profile,
+        dispatch,
     )
 
     result = module.execute_default_executor_dispatches(
@@ -254,14 +256,16 @@ def test_execute_dispatch_runs_ai_reviewer_owner_workflow(monkeypatch, tmp_path:
         / "default_executor_dispatches"
         / "return_to_ai_reviewer_workflow.json"
     )
-    _write_json(
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+    )
+    _write_current_dispatch(
         dispatch_path,
-        _dispatch(
-            study_id=study_id,
-            action_type="return_to_ai_reviewer_workflow",
-            owner="ai_reviewer",
-            required_output_surface="artifacts/publication_eval/latest.json",
-        ),
+        profile,
+        dispatch,
     )
     called: dict[str, object] = {}
 
@@ -310,6 +314,77 @@ def test_execute_dispatch_runs_ai_reviewer_owner_workflow(monkeypatch, tmp_path:
     }
     assert called["record"]["study_id"] == study_id
     assert (study_root / "artifacts" / "publication_eval" / "latest.json").is_file()
+
+
+def test_execute_dispatch_runs_current_package_freshness_owner_workflow(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "001-dm-cvd-mortality-risk"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    quest_root = profile.runtime_root / f"quest-{study_id}"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "current_package_freshness_required.json"
+    )
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="current_package_freshness_required",
+        owner="artifact_os",
+        required_output_surface="artifacts/controller/gate_clearing_batch/latest.json",
+    )
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        dispatch,
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": f"quest-{study_id}",
+            "quest_root": str(quest_root),
+        },
+    )
+    called: dict[str, object] = {}
+
+    def fake_run_gate_clearing_batch(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+        }
+
+    monkeypatch.setattr(module.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("current_package_freshness_required",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "executed"
+    assert execution["blocked_reason"] is None
+    assert execution["owner_callable_surface"] == "gate_clearing_batch.run_gate_clearing_batch"
+    assert called["profile"] == profile
+    assert called["study_id"] == study_id
+    assert called["study_root"] == study_root
+    assert called["quest_id"] == f"quest-{study_id}"
+    assert called["source"] == "runtime_supervisor_dispatch_executor"
+    route_context = called["control_plane_route_context"]["controller_route_context"]
+    assert route_context["control_surface"] == "gate_clearing_batch"
+    assert route_context["controller_action_type"] == "run_gate_clearing_batch"
+    assert route_context["work_unit_id"] == "submission_minimal_refresh"
 
 
 def test_execute_dispatch_uses_existing_publication_eval_for_ai_reviewer_record(
@@ -377,19 +452,24 @@ def test_execute_dispatch_uses_existing_publication_eval_for_ai_reviewer_record(
             "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
         },
     )
-    _write_json(
+    dispatch_path = (
         study_root
         / "artifacts"
         / "supervision"
         / "consumer"
         / "default_executor_dispatches"
-        / "return_to_ai_reviewer_workflow.json",
-        _dispatch(
-            study_id=study_id,
-            action_type="return_to_ai_reviewer_workflow",
-            owner="ai_reviewer",
-            required_output_surface="artifacts/publication_eval/latest.json",
-        ),
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+    )
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        dispatch,
     )
     called: dict[str, object] = {}
 
@@ -504,19 +584,24 @@ def test_execute_dispatch_prefers_current_publication_eval_over_stale_request_re
             ],
         },
     )
-    _write_json(
+    dispatch_path = (
         study_root
         / "artifacts"
         / "supervision"
         / "consumer"
         / "default_executor_dispatches"
-        / "return_to_ai_reviewer_workflow.json",
-        _dispatch(
-            study_id=study_id,
-            action_type="return_to_ai_reviewer_workflow",
-            owner="ai_reviewer",
-            required_output_surface="artifacts/publication_eval/latest.json",
-        ),
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+    )
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        dispatch,
     )
     called: dict[str, object] = {}
 
@@ -566,14 +651,16 @@ def test_execute_dispatch_runs_publication_gate_owner_surface(monkeypatch, tmp_p
         / "default_executor_dispatches"
         / "publication_gate_specificity_required.json"
     )
-    _write_json(
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="publication_gate_specificity_required",
+        owner="publication_gate",
+        required_output_surface="artifacts/publication_eval/latest.json",
+    )
+    _write_current_dispatch(
         dispatch_path,
-        _dispatch(
-            study_id=study_id,
-            action_type="publication_gate_specificity_required",
-            owner="publication_gate",
-            required_output_surface="artifacts/publication_eval/latest.json",
-        ),
+        profile,
+        dispatch,
     )
     monkeypatch.setattr(
         module.study_runtime_router,
@@ -700,6 +787,7 @@ def test_execute_dispatch_defaults_to_current_consumer_dispatches(
     )
     current_dispatch["refs"] = {"dispatch_path": str(current_dispatch_path)}
     _write_json(current_dispatch_path, current_dispatch)
+    _write_scan_latest(profile, study_id, dict(current_dispatch["owner_route"]))
     _write_json(
         stale_ai_dispatch_path,
         _dispatch(
@@ -811,6 +899,12 @@ def test_runtime_platform_repair_dispatch_uses_non_persistent_scan(monkeypatch, 
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
     latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="runtime_platform_repair",
+        owner="external_engineering_agent",
+        required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
+    )
     _write_json(
         latest_path,
         {
@@ -818,7 +912,7 @@ def test_runtime_platform_repair_dispatch_uses_non_persistent_scan(monkeypatch, 
             "generated_at": "2026-05-05T00:00:00+00:00",
             "studies": [
                 {"study_id": "001-dm-cvd-mortality-risk"},
-                {"study_id": study_id},
+                {"study_id": study_id, "owner_route": dispatch["owner_route"]},
             ],
         },
     )
@@ -830,12 +924,7 @@ def test_runtime_platform_repair_dispatch_uses_non_persistent_scan(monkeypatch, 
         / "consumer"
         / "default_executor_dispatches"
         / "runtime_platform_repair.json",
-        _dispatch(
-            study_id=study_id,
-            action_type="runtime_platform_repair",
-            owner="external_engineering_agent",
-            required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
-        ),
+        dispatch,
     )
     called: dict[str, object] = {}
 

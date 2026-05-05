@@ -49,6 +49,12 @@ CONCRETE_BUNDLE_STAGE_SUPERVISOR_PHASES = {
     "write_stage_ready",
 }
 REDRIVE_CONTROLLER_WORK_UNIT_IDS = {"publication_gate_replay"}
+PACKAGE_FRESHNESS_TERMINAL_REASONS = {
+    "current_package_freshness_required",
+    "stale_submission_minimal_authority",
+    "submission_minimal_refresh",
+    "publication_gate_replay",
+}
 
 
 def _utc_now() -> str:
@@ -180,6 +186,11 @@ def _runtime_relaunch_postcondition_failure(resume_result: Mapping[str, Any]) ->
     if any(marker in SPECIFICITY_WORK_UNIT_IDS for marker in terminal_markers):
         return {
             "reason": "publication_gate_specificity_required",
+            "resume_postcondition": postcondition or None,
+        }
+    if any(marker in PACKAGE_FRESHNESS_TERMINAL_REASONS for marker in terminal_markers):
+        return {
+            "reason": "current_package_freshness_required",
             "resume_postcondition": postcondition or None,
         }
     if postcondition and postcondition.get("effective") is not True:
@@ -431,14 +442,20 @@ def write_runtime_platform_repair_lifecycle(
     state = "applied" if dispatch_status == "applied" else "blocked"
     repair_kind = _text(apply_result.get("repair_kind")) or "stale_specificity_terminal_gate_redrive"
     blocked_reason = None if state == "applied" else _text(apply_result.get("reason"))
-    next_owner = "publication_gate" if blocked_reason == "publication_gate_specificity_required" else "external_supervisor"
+    next_owner = (
+        "publication_gate"
+        if blocked_reason == "publication_gate_specificity_required"
+        else "artifact_os"
+        if blocked_reason == "current_package_freshness_required"
+        else "external_supervisor"
+    )
     payload = {
         "surface": "ai_repair_lifecycle",
         "schema_version": 1,
         "study_id": study_id,
         "quest_id": quest_id,
         "state": state,
-        "authority": "external_supervisor",
+        "authority": "observability_only" if next_owner in {"publication_gate", "artifact_os"} else "external_supervisor",
         "allowed_write_surfaces": list(RUNTIME_PLATFORM_REPAIR_ALLOWED_WRITE_SURFACES),
         "forbidden_actions": list(SUPERVISION_FORBIDDEN_ACTIONS),
         "top_action": {
@@ -456,7 +473,7 @@ def write_runtime_platform_repair_lifecycle(
         "applied_at": _utc_now() if state == "applied" else None,
         "blocked_reason": blocked_reason,
         "next_owner": None if state == "applied" else next_owner,
-        "external_supervisor_required": state != "applied",
+        "external_supervisor_required": state != "applied" and next_owner == "external_supervisor",
         "quality_gate_relaxation_allowed": False,
         "dispatch_status": dispatch_status,
         "last_apply_attempt": dict(apply_result),

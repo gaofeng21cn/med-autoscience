@@ -443,11 +443,10 @@ def test_ensure_study_runtime_keeps_human_review_milestone_parked_when_live_work
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
     assert result["decision"] == "blocked"
-    assert result["reason"] == "quest_parked_on_unchanged_finalize_state"
+    assert result["reason"] == "quest_parked_on_unchanged_finalize_state", result
     assert result["runtime_liveness_audit"]["status"] == "none"
     assert result["continuation_state"]["continuation_policy"] == "wait_for_user_or_resume"
     assert result["continuation_state"]["continuation_reason"] == "unchanged_publication_gate_state"
-
 
 def test_ensure_study_runtime_rehydrates_no_live_session_recovery_when_runtime_reentry_requires_startup_hydration(
     monkeypatch,

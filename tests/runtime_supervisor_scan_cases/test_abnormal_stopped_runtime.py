@@ -668,6 +668,8 @@ def test_supervisor_scan_runtime_repair_routes_controller_gate_skip_to_publicati
     assert apply_result["reason"] == "publication_gate_specificity_required"
     assert apply_result["repair_kind"] == "active_runtime_no_live_worker_relaunch"
     assert apply_result["resume_postcondition"]["terminal_reason"] == "gate_needs_specificity"
+    assert [item["action_type"] for item in study["action_queue"]] == ["publication_gate_specificity_required"]
+    assert study["action_queue"][0]["owner"] == "publication_gate"
     assert study["ai_repair_lifecycle"]["state"] == "blocked"
     assert study["ai_repair_lifecycle"]["blocked_reason"] == "publication_gate_specificity_required"
     assert study["ai_repair_lifecycle"]["next_owner"] == "publication_gate"

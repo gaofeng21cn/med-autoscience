@@ -114,6 +114,7 @@ class StudyRuntimeReason(StrEnum):
     QUEST_WAITING_FOR_SUBMISSION_METADATA_BUT_AUTO_RESUME_DISABLED = (
         "quest_waiting_for_submission_metadata_but_auto_resume_disabled"
     )
+    QUEST_WAITING_FOR_EXPLICIT_WAKEUP_AFTER_MANUAL_HOLD = "quest_waiting_for_explicit_wakeup_after_manual_hold"
     QUEST_STOPPED_BY_CONTROLLER_GUARD = "quest_stopped_by_controller_guard"
     QUEST_PAUSED = "quest_paused"
     QUEST_STOPPED = "quest_stopped"

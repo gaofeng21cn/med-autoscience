@@ -88,8 +88,42 @@ def can_skip_repair_unit(
     return latest_unit_success_status(latest_batch, unit_id=unit_id) is not None
 
 
+def _matching_display_materialization_failure(
+    latest_batch: dict[str, Any],
+    *,
+    unit_id: str,
+    unit_fingerprint: str | None,
+) -> dict[str, Any] | None:
+    if unit_id != "materialize_display_surface" or unit_fingerprint is None:
+        return None
+    previous_fingerprint = latest_unit_fingerprint(latest_batch, unit_id=unit_id)
+    if previous_fingerprint != unit_fingerprint:
+        return None
+    previous = latest_unit_result(latest_batch, unit_id=unit_id)
+    if previous is None or _non_empty_text(previous.get("status")) != "failed":
+        return None
+    blocking_refs = previous.get("blocking_artifact_refs")
+    if not isinstance(blocking_refs, list) or not blocking_refs:
+        return None
+    for ref in blocking_refs:
+        if not isinstance(ref, dict):
+            continue
+        if _non_empty_text(ref.get("blocker")) != "display_surface_materialization_failed":
+            continue
+        artifact_role = _non_empty_text(ref.get("artifact_role"))
+        if artifact_role == "display_input_payload":
+            return previous
+    return None
+
+
 def unit_status_blocks_dependents(status: str | None) -> bool:
-    return status in {"failed", "missing", "skipped_failed_dependency", "skipped_authority_not_settled"}
+    return status in {
+        "failed",
+        "missing",
+        "skipped_failed_dependency",
+        "skipped_authority_not_settled",
+        "blocked_matching_failed_unit_fingerprint",
+    }
 
 
 def existing_dependency_ids(
@@ -113,13 +147,14 @@ def _display_materialization_failure_refs(*, paper_root: Path, error: str) -> li
             payload_path = payload_path.resolve()
         except OSError:
             payload_path = payload_path.expanduser()
-        if not payload_path.exists():
+        if not payload_path.exists() and payload_path.name != "display_registry.json":
             continue
+        artifact_role = "display_registry" if payload_path.name == "display_registry.json" else "display_input_payload"
         refs.append(
             {
                 "blocker": "display_surface_materialization_failed",
                 "artifact_path": str(payload_path),
-                "artifact_role": "display_input_payload",
+                "artifact_role": artifact_role,
                 "failure_reason": error,
                 "terminal_state": "gate_needs_specificity",
             }
@@ -181,6 +216,32 @@ def run_repair_unit(
         }
         if last_success_status is not None:
             item["last_success_status"] = last_success_status
+    elif previous_failure := _matching_display_materialization_failure(
+        latest_batch,
+        unit_id=unit.unit_id,
+        unit_fingerprint=unit_fingerprint,
+    ):
+        previous_status = latest_unit_status(latest_batch, unit_id=unit.unit_id)
+        item = {
+            "unit_id": unit.unit_id,
+            "label": unit.label,
+            "parallel_safe": unit.parallel_safe,
+            "status": "blocked_matching_failed_unit_fingerprint",
+            "previous_status": previous_status,
+            "previous_failure_reused": True,
+            **publication_work_unit_lifecycle.instant_timing(clock=clock_snapshot),
+        }
+        error = _non_empty_text(previous_failure.get("error"))
+        if error is not None:
+            item["error"] = error
+        blocking_refs = previous_failure.get("blocking_artifact_refs")
+        if isinstance(blocking_refs, list) and blocking_refs:
+            item["blocking_artifact_refs"] = [
+                dict(ref) for ref in blocking_refs if isinstance(ref, dict)
+            ]
+            item["terminal_state"] = (
+                _non_empty_text(previous_failure.get("terminal_state")) or "gate_needs_specificity"
+            )
     else:
         started_ns, started_at = clock_snapshot()
         try:

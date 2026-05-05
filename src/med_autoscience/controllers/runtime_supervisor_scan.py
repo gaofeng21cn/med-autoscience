@@ -10,7 +10,11 @@ from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_re
 from med_autoscience.controllers import study_progress, study_runtime_router
 from med_autoscience.controllers.runtime_supervisor_scan_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
+from med_autoscience.controllers.runtime_supervisor_scan_parts import action_decorators
+from med_autoscience.controllers.runtime_supervisor_scan_parts import artifact_freshness
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
+from med_autoscience.controllers.runtime_supervisor_scan_parts import publication_gate_actions
+from med_autoscience.controllers.runtime_supervisor_scan_parts import owner_route as owner_route_part
 from med_autoscience.controllers.runtime_supervisor_scan_parts import queue_slo
 from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
 from med_autoscience.controllers.runtime_supervisor_scan_parts import status_projection
@@ -276,78 +280,20 @@ def _runtime_platform_repair_reason(status: Mapping[str, Any], progress: Mapping
     return "runtime_recovery_retry_budget_exhausted"
 
 
-def _action_id(*, study_id: str, action_type: str, reason: str | None) -> str:
-    suffix = reason or action_type
-    return f"supervisor-action::{study_id}::{action_type}::{suffix}"
-
-
-def _owner_from_action(action: Mapping[str, Any]) -> str | None:
-    handoff_packet = _mapping(action.get("handoff_packet"))
-    return (
-        _text(action.get("owner"))
-        or _text(action.get("request_owner"))
-        or _text(action.get("recommended_owner"))
-        or _text(handoff_packet.get("owner"))
-        or _text(handoff_packet.get("request_owner"))
-        or _text(handoff_packet.get("recommended_owner"))
-        or _text(handoff_packet.get("next_executable_owner"))
-    )
-
-
-def _handoff_packet(*, study_id: str, quest_id: str | None, action: Mapping[str, Any]) -> dict[str, Any]:
-    authority = _text(action.get("authority")) or "observability_only"
-    owner = _owner_from_action(action)
-    recommended_owner = owner or (
-        "external_engineering_agent"
-        if authority == "external_supervisor"
-        else authority
-    )
-    return {
-        "packet_type": "external_supervisor_handoff",
-        "schema_version": 1,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "action_type": _text(action.get("action_type")),
-        "reason": _text(action.get("reason")) or _text(action.get("action_type")),
-        "authority": authority,
-        "owner": owner,
-        "request_owner": _text(action.get("request_owner")) or owner,
-        "recommended_owner": recommended_owner,
-        "next_executable_owner": recommended_owner,
-        "supervisor_authority_boundary": "request_only" if authority == "observability_only" else "control_handoff",
-        "paper_package_mutation_allowed": False,
-        "quality_gate_relaxation_allowed": False,
-        "manual_study_patch_allowed": False,
-        "medical_claim_authoring_allowed": False,
-        "allowed_write_surfaces": (
-            list(SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES)
-            if authority == "external_supervisor"
-            else list(SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES)
-        ),
-        "forbidden_actions": list(SUPERVISION_FORBIDDEN_ACTIONS),
-    }
-
-
 def _decorate_action(
     *,
     study_id: str,
     quest_id: str | None,
     action: Mapping[str, Any],
 ) -> dict[str, Any]:
-    decorated = dict(action)
-    action_type = _text(decorated.get("action_type")) or "unknown_action"
-    reason = _text(decorated.get("reason")) or action_type
-    decorated.setdefault("reason", reason)
-    decorated["action_id"] = _action_id(study_id=study_id, action_type=action_type, reason=reason)
-    decorated["handoff_packet"] = _handoff_packet(study_id=study_id, quest_id=quest_id, action=decorated)
-    decorated.setdefault("status", "queued")
-    decorated.setdefault("quality_gate_relaxation_allowed", False)
-    decorated.setdefault("paper_package_mutation_allowed", False)
-    decorated.setdefault("manual_study_patch_allowed", False)
-    decorated.setdefault("medical_claim_authoring_allowed", False)
-    decorated.setdefault("allowed_write_surfaces", list(SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES))
-    decorated.setdefault("forbidden_actions", list(SUPERVISION_FORBIDDEN_ACTIONS))
-    return decorated
+    return action_decorators.decorate_action(
+        study_id=study_id,
+        quest_id=quest_id,
+        action=action,
+        request_allowed_write_surfaces=list(SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES),
+        control_allowed_write_surfaces=list(SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES),
+        forbidden_actions=list(SUPERVISION_FORBIDDEN_ACTIONS),
+    )
 
 
 def _action_queue(
@@ -378,29 +324,7 @@ def _action_queue(
             }
         )
     if gate_specificity.get("required") is True:
-        missing_target_kinds = _string_items(gate_specificity.get("missing_target_kinds")) or [
-            "claim",
-            "figure",
-            "table",
-            "metric",
-            "source_path",
-        ]
-        actions.append(
-            {
-                "action_type": "publication_gate_specificity_required",
-                "authority": "observability_only",
-                "owner": "publication_gate",
-                "request_owner": "publication_gate",
-                "recommended_owner": "publication_gate",
-                "reason": "publication_gate_specificity_required",
-                "summary": "Publication gate must name concrete claim/figure/table/metric/source_path targets.",
-                "required_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
-                "missing_target_kinds": missing_target_kinds,
-                "gate_owner": _text(gate_specificity.get("gate_owner")) or "publication_gate",
-                "next_controller_write": _mapping(gate_specificity.get("next_controller_write")),
-                "paper_package_mutation_allowed": False,
-            }
-        )
+        actions.append(publication_gate_actions.action_payload(gate_specificity=gate_specificity))
     if ai_reviewer_assessment.get("missing") is True:
         actions.append(
             {
@@ -419,6 +343,10 @@ def _action_queue(
         _decorate_action(study_id=study_id, quest_id=quest_id, action=action)
         for action in actions
     ]
+
+
+def _remove_action_type(actions: list[dict[str, Any]], action_type: str) -> list[dict[str, Any]]:
+    return [action for action in actions if _text(action.get("action_type")) != action_type]
 
 
 def _why_not_applied(
@@ -556,6 +484,7 @@ def _blocked_reason_from_scan(
         if _text(action.get("action_type")) in {
             "runtime_platform_repair",
             "publication_gate_specificity_required",
+            "current_package_freshness_required",
             "return_to_ai_reviewer_workflow",
         }:
             return _text(action.get("reason")) or _text(action.get("action_type"))
@@ -569,6 +498,10 @@ def _blocked_reason_from_scan(
 def _next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
     if blocked_reason == "publication_gate_specificity_required":
         return "publication_gate"
+    if blocked_reason == "current_package_freshness_required":
+        return "artifact_os"
+    if blocked_reason == "display_surface_materialization_failed":
+        return "artifact_os"
     if blocked_reason == "ai_reviewer_assessment_required":
         return "ai_reviewer"
     return "external_supervisor"
@@ -703,7 +636,12 @@ def _projection_block_state(
         lifecycle.get("external_supervisor_required")
         or any(_text(action.get("authority")) == "external_supervisor" for action in actions)
     )
-    if blocked_reason in {"publication_gate_specificity_required", "ai_reviewer_assessment_required"}:
+    if blocked_reason in {
+        "publication_gate_specificity_required",
+        "current_package_freshness_required",
+        "display_surface_materialization_failed",
+        "ai_reviewer_assessment_required",
+    }:
         external_supervisor_required = any(
             _text(action.get("authority")) == "external_supervisor"
             and _text(action.get("reason")) == blocked_reason
@@ -776,6 +714,22 @@ def _study_projection(
         gate_specificity=gate_specificity,
         ai_reviewer_assessment=ai_reviewer_assessment,
     )
+    artifact_blocked_action = artifact_freshness.blocked_action_from_gate_clearing(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if artifact_blocked_action is not None:
+        actions = _remove_action_type(actions, "runtime_platform_repair")
+        actions = _remove_action_type(actions, "current_package_freshness_required")
+        actions = _remove_action_type(actions, "return_to_ai_reviewer_workflow")
+        actions.insert(
+            0,
+            _decorate_action(
+                study_id=study_id,
+                quest_id=resolved_quest_id,
+                action=artifact_blocked_action,
+            ),
+        )
     if developer_mode.mode == "external_observe":
         actions = []
     lifecycle = _mapping(progress_payload.get("ai_repair_lifecycle"))
@@ -821,11 +775,35 @@ def _study_projection(
         runtime_platform_repair_apply is not None
         and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied"
     ):
-        actions = [
-            action
-            for action in actions
-            if _text(action.get("action_type")) != "runtime_platform_repair"
-        ]
+        actions = _remove_action_type(actions, "runtime_platform_repair")
+    if (
+        runtime_platform_repair_apply is not None
+        and _text(runtime_platform_repair_apply.get("dispatch_status")) == "blocked"
+        and _text(runtime_platform_repair_apply.get("reason")) == "publication_gate_specificity_required"
+    ):
+        actions = _remove_action_type(actions, "runtime_platform_repair")
+        if not any(_text(action.get("action_type")) == "publication_gate_specificity_required" for action in actions):
+            actions.insert(
+                0,
+                _decorate_action(
+                    study_id=study_id,
+                    quest_id=resolved_quest_id,
+                    action=publication_gate_actions.action_payload(gate_specificity=gate_specificity),
+                ),
+            )
+    if artifact_freshness.route_required(runtime_platform_repair_apply):
+        actions = artifact_freshness.remove_runtime_platform_repair(actions)
+        if any(_text(action.get("action_type")) == "artifact_display_surface_materialization_required" for action in actions):
+            actions = _remove_action_type(actions, "current_package_freshness_required")
+        elif not any(_text(action.get("action_type")) == "current_package_freshness_required" for action in actions):
+            actions.insert(
+                0,
+                _decorate_action(
+                    study_id=study_id,
+                    quest_id=resolved_quest_id,
+                    action=artifact_freshness.action_payload(),
+                ),
+            )
     why_not_applied = status_projection.resolve_why_not_applied(
         default_why_not_applied=_why_not_applied(
             status=status_payload,
@@ -842,6 +820,18 @@ def _study_projection(
         lifecycle=lifecycle,
         actions=actions,
         why_not_applied=why_not_applied,
+    )
+    next_owner = block_state["next_owner"] or ("external_supervisor" if block_state["external_supervisor_required"] else None)
+    blocked_reason = block_state["blocked_reason"] or why_not_applied
+    owner_route, actions = owner_route_part.route_and_decorate_actions(
+        study_id=study_id,
+        quest_id=resolved_quest_id,
+        status=status_payload,
+        progress=progress_payload,
+        actions=actions,
+        blocked_reason=blocked_reason,
+        next_owner=next_owner,
+        active_run_id=_active_run_id(status_payload, progress_payload),
     )
     supervision = _mapping(progress_payload.get("supervision"))
     return {
@@ -865,12 +855,12 @@ def _study_projection(
         "action_queue": actions,
         "submission_milestone_parked_refresh": submission_milestone_parked_refresh,
         "runtime_platform_repair_apply": runtime_platform_repair_apply,
+        "owner_route": owner_route,
         "why_not_applied": why_not_applied,
         "why_not_applied_timeline": _why_not_applied_timeline(why_not_applied),
         "escalation_reason": why_not_applied,
-        "next_owner": block_state["next_owner"]
-        or ("external_supervisor" if block_state["external_supervisor_required"] else None),
-        "blocked_reason": block_state["blocked_reason"] or why_not_applied,
+        "next_owner": next_owner,
+        "blocked_reason": blocked_reason,
         "external_supervisor_required": block_state["external_supervisor_required"],
         "supervisor_only": _supervisor_only(status_payload, progress_payload),
         "paper_package_mutated": False,

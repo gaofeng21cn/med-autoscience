@@ -14,7 +14,12 @@ def resolve_why_not_applied(
 ) -> str | None:
     if actions:
         top_action_reason = _text(actions[0].get("reason")) or _text(actions[0].get("action_type"))
-        if top_action_reason in {"publication_gate_specificity_required", "ai_reviewer_assessment_required"}:
+        if top_action_reason in {
+            "publication_gate_specificity_required",
+            "current_package_freshness_required",
+            "display_surface_materialization_failed",
+            "ai_reviewer_assessment_required",
+        }:
             return top_action_reason
     if runtime_platform_repair_apply is not None and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied":
         if actions:
@@ -22,7 +27,7 @@ def resolve_why_not_applied(
         return None
     if runtime_platform_repair_apply is not None:
         apply_reason = _text(runtime_platform_repair_apply.get("reason"))
-        if apply_reason == "publication_gate_specificity_required":
+        if apply_reason in {"publication_gate_specificity_required", "current_package_freshness_required"}:
             return apply_reason
     if submission_milestone_parked:
         return None

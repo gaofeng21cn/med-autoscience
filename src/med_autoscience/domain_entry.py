@@ -114,6 +114,7 @@ def _dispatch_profile_command(
             profile_ref=profile_ref,
             study_id=str(request["study_id"]),
             task_intent=str(request["task_intent"]),
+            task_intake_kind=_optional_text(request.get("task_intake_kind")),
             entry_mode=_optional_text(request.get("entry_mode")),
             journal_target=_optional_text(request.get("journal_target")),
             constraints=_sequence_value(request.get("constraints")),

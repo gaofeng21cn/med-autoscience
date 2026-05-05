@@ -45,6 +45,7 @@ def register_product_entry_parsers(subparsers: argparse._SubParsersAction) -> No
     submit_study_task_parser.add_argument("--study-id", type=str)
     submit_study_task_parser.add_argument("--study-root", type=str)
     submit_study_task_parser.add_argument("--task-intent", required=True)
+    submit_study_task_parser.add_argument("--task-intake-kind", type=str)
     submit_study_task_parser.add_argument("--entry-mode", type=str)
     submit_study_task_parser.add_argument("--journal-target", type=str)
     submit_study_task_parser.add_argument("--constraint", action="append", default=[])

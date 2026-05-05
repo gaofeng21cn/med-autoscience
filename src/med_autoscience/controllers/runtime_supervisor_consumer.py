@@ -11,6 +11,7 @@ from med_autoscience.controllers.runtime_ai_repair_policy import (
     two_layer_ai_repair_policy_payload,
 )
 from med_autoscience.controllers.runtime_supervisor_scan import SUPERVISION_LATEST_RELATIVE_PATH
+from med_autoscience.controllers.runtime_supervisor_scan_parts import owner_route as owner_route_part
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -28,6 +29,8 @@ SUPPORTED_ACTION_TYPE = "runtime_platform_repair"
 SUPPORTED_REQUEST_ACTION_TYPES = frozenset(
     {
         "publication_gate_specificity_required",
+        "current_package_freshness_required",
+        "artifact_display_surface_materialization_required",
         "return_to_ai_reviewer_workflow",
     }
 )
@@ -60,6 +63,8 @@ ALLOWED_WRITE_SURFACES = [
     "artifacts/supervision/consumer/history.jsonl",
     "studies/<study_id>/artifacts/supervision/consumer/runtime_platform_repair.json",
     "studies/<study_id>/artifacts/supervision/consumer/publication_gate_specificity_required.json",
+    "studies/<study_id>/artifacts/supervision/consumer/current_package_freshness_required.json",
+    "studies/<study_id>/artifacts/supervision/consumer/artifact_display_surface_materialization_required.json",
     "studies/<study_id>/artifacts/supervision/consumer/return_to_ai_reviewer_workflow.json",
     "studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/*.json",
 ]
@@ -215,6 +220,10 @@ def _repair_task(
 def _request_owner_for_action_type(action_type: str) -> str:
     if action_type == "publication_gate_specificity_required":
         return "publication_gate"
+    if action_type == "current_package_freshness_required":
+        return "artifact_os"
+    if action_type == "artifact_display_surface_materialization_required":
+        return "artifact_os"
     if action_type == "return_to_ai_reviewer_workflow":
         return "ai_reviewer"
     return "controller"
@@ -236,6 +245,10 @@ def _owner_from_action(action: Mapping[str, Any], action_type: str) -> str:
 def _request_output_surface_for_action_type(action_type: str) -> str:
     if action_type == "publication_gate_specificity_required":
         return "artifacts/publication_eval/latest.json"
+    if action_type == "current_package_freshness_required":
+        return "artifacts/controller/gate_clearing_batch/latest.json"
+    if action_type == "artifact_display_surface_materialization_required":
+        return "artifacts/controller/gate_clearing_batch/latest.json"
     if action_type == "return_to_ai_reviewer_workflow":
         return "artifacts/publication_eval/latest.json"
     return "artifacts/supervision/requests"
@@ -244,6 +257,10 @@ def _request_output_surface_for_action_type(action_type: str) -> str:
 def _request_packet_ref_for_action_type(action_type: str) -> str:
     if action_type == "publication_gate_specificity_required":
         return "artifacts/supervision/requests/publication_gate_specificity/latest.json"
+    if action_type == "current_package_freshness_required":
+        return "artifacts/supervision/requests/current_package_freshness/latest.json"
+    if action_type == "artifact_display_surface_materialization_required":
+        return "artifacts/supervision/requests/artifact_display_materialization/latest.json"
     if action_type == "return_to_ai_reviewer_workflow":
         return "artifacts/supervision/requests/ai_reviewer/latest.json"
     return "artifacts/supervision/requests"
@@ -304,12 +321,16 @@ def _default_executor_dispatch(
     study_id = _text(action.get("study_id")) or "unknown-study"
     dispatch_path = _default_executor_dispatch_path(profile, study_id, action_type)
     executor_policy = default_executor_policy()
+    owner_route = _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
+    idempotency_key = _text(owner_route.get("idempotency_key"))
     prompt_contract = {
         "study_id": study_id,
         "quest_id": _text(action.get("quest_id")) or _text(_mapping(action.get("handoff_packet")).get("quest_id")),
         "action_type": action_type,
         "next_executable_owner": next_executable_owner,
         "required_output_surface": required_output_surface,
+        "owner_route": owner_route or None,
+        "idempotency_key": idempotency_key,
         "request_packet_ref": _request_packet_ref_for_dispatch(action_type),
         "source_scan_latest": str(_scan_latest_path(profile)),
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
@@ -324,9 +345,28 @@ def _default_executor_dispatch(
         if apply
         and _text(developer_mode_payload.get("mode")) == SUPPORTED_MODE
         and developer_mode_payload.get("safe_actions_enabled") is True
+        and owner_route_part.route_allows_action(
+            action={
+                **dict(action),
+                "next_executable_owner": next_executable_owner,
+                "action_type": action_type,
+            },
+            owner_route=owner_route,
+        )
         else "dry_run" if not apply else "blocked"
     )
-    blocked_reason = None if dispatch_status != "blocked" else _github_block_reason(developer_mode_payload)
+    blocked_reason = None
+    if dispatch_status == "blocked":
+        blocked_reason = _github_block_reason(developer_mode_payload)
+        if blocked_reason is None and not owner_route_part.route_allows_action(
+            action={
+                **dict(action),
+                "next_executable_owner": next_executable_owner,
+                "action_type": action_type,
+            },
+            owner_route=owner_route,
+        ):
+            blocked_reason = "owner_route_next_owner_mismatch"
     return {
         "surface": "default_executor_dispatch_request",
         "schema_version": SCHEMA_VERSION,
@@ -337,6 +377,8 @@ def _default_executor_dispatch(
         "action_id": _text(action.get("action_id")),
         "next_executable_owner": next_executable_owner,
         "required_output_surface": required_output_surface,
+        "owner_route": owner_route or None,
+        "idempotency_key": idempotency_key,
         "dispatch_status": dispatch_status,
         "blocked_reason": blocked_reason,
         "consumer_mutation_scope": "executor_dispatch_request_only",
@@ -383,10 +425,14 @@ def _request_task(
     request_owner = _owner_from_action(action, action_type)
     required_output_surface = _required_output_surface(action, action_type)
     request_packet_ref = _request_packet_ref_for_action_type(action_type)
+    owner_route = _mapping(action.get("owner_route")) or _mapping(handoff_packet.get("owner_route"))
+    idempotency_key = _text(owner_route.get("idempotency_key"))
     owner_pickup = {
         "owner": request_owner,
         "state": "pending",
         "required_output_surface": required_output_surface,
+        "owner_route": owner_route or None,
+        "idempotency_key": idempotency_key,
         "request_packet_ref": request_packet_ref,
         "supervisor_authority_boundary": "request_only",
     }
@@ -432,6 +478,8 @@ def _request_task(
             "expected_owner": request_owner,
             "next_executable_owner": request_owner,
             "required_output_surface": required_output_surface,
+            "owner_route": owner_route or None,
+            "idempotency_key": idempotency_key,
             "request_packet_ref": request_packet_ref,
             "owner_pickup": owner_pickup,
             "supervisor_authority_boundary": "request_only",

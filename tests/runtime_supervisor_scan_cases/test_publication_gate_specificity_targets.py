@@ -531,6 +531,103 @@ def test_publication_gate_materialization_preserves_current_ai_reviewer_eval_ove
     assert record["eval_id"] == "publication-eval::new-ai-reviewer"
 
 
+def test_publication_gate_materialization_preserves_current_ai_reviewer_eval_over_return_to_publishability_gate(
+    tmp_path: Path,
+) -> None:
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
+    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
+    eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
+    charter_path.parent.mkdir(parents=True)
+    charter_path.write_text(
+        (
+            "{"
+            '"charter_id":"charter-dm",'
+            '"publication_objective":"Test publication objective."'
+            "}"
+        ),
+        encoding="utf-8",
+    )
+    eval_path.parent.mkdir(parents=True)
+    eval_path.write_text(
+        __import__("json").dumps(
+            {
+                "eval_id": "publication-eval::dm002-ai-reviewer-current",
+                "study_id": "001-dm-cvd-mortality-risk",
+                "quest_id": "quest-dm",
+                "emitted_at": "2026-05-05T08:00:00+00:00",
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "ai_reviewer_required": False,
+                },
+                "quality_assessment": {
+                    "medical_journal_prose_quality": {
+                        "status": "underdefined",
+                        "summary": "AI reviewer evaluated the current publishability gate work unit.",
+                    }
+                },
+                "delivery_context_refs": {
+                    "paper_root_ref": str(study_root / "paper"),
+                },
+                "recommended_actions": [
+                    {
+                        "action_id": "publication-eval-action::return_to_controller::publication-blockers::9ca1d64e0d39136a",
+                        "action_type": "return_to_controller",
+                        "priority": "now",
+                        "reason": "AI reviewer evaluated the same publishability gate work-unit fingerprint.",
+                        "evidence_refs": [
+                            str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
+                        ],
+                        "requires_controller_decision": True,
+                        "work_unit_fingerprint": "publication-blockers::9ca1d64e0d39136a",
+                        "specificity_targets": _complete_specificity_targets(),
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    report = {
+        "gate_kind": "publishability_control",
+        "generated_at": "2026-05-05T08:01:00+00:00",
+        "status": "blocked",
+        "blockers": [
+            "stale_submission_minimal_authority",
+            "medical_publication_surface_blocked",
+            "submission_hardening_incomplete",
+        ],
+        "quest_id": "quest-dm",
+        "paper_root": str(study_root / "paper"),
+        "latest_gate_path": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        "main_result_path": None,
+        "submission_minimal_manifest_path": str(
+            study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+        ),
+        "current_required_action": "return_to_publishability_gate",
+        "supervisor_phase": "publishability_gate_blocked",
+        "medical_publication_surface_route_back_recommendation": "return_to_analysis_campaign",
+        "controller_stage_note": "Return to publishability gate with concrete blockers.",
+    }
+
+    result = decision_module._materialize_publication_eval_from_gate_report(
+        study_root=study_root,
+        study_id="001-dm-cvd-mortality-risk",
+        quest_root=quest_root,
+        quest_id="quest-dm",
+        publication_gate_report=report,
+    )
+
+    assert result == {"eval_id": "publication-eval::dm002-ai-reviewer-current", "artifact_path": str(eval_path)}
+    record = __import__("json").loads(eval_path.read_text(encoding="utf-8"))
+    assert record["assessment_provenance"]["owner"] == "ai_reviewer"
+    assert record["eval_id"] == "publication-eval::dm002-ai-reviewer-current"
+
+
 def test_publication_gate_materialization_force_refreshes_specificity_targets_over_ai_reviewer_eval(
     tmp_path: Path,
 ) -> None:

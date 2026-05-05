@@ -63,8 +63,9 @@ def _current_ai_reviewer_publication_eval_ref(
         for item in (publication_gate_report.get("blockers") or [])
         if str(item).strip()
     ]
-    if gate_required_action == "return_to_publishability_gate" or gate_supervisor_phase == "publishability_gate_blocked":
-        return None
+    gate_blocks_current_owner = gate_required_action == "return_to_publishability_gate" or (
+        gate_supervisor_phase == "publishability_gate_blocked" and gate_status == "blocked"
+    )
     latest_path = stable_publication_eval_latest_path(study_root=study_root)
     if not latest_path.exists():
         return None
@@ -101,11 +102,12 @@ def _current_ai_reviewer_publication_eval_ref(
             and eval_paper_root != gate_paper_root
         ):
             return None
-    if (
-        gate_status == "blocked"
-        and gate_required_action in {"complete_bundle_stage", "continue_bundle_stage"}
-        and gate_supervisor_phase == "bundle_stage_blocked"
-        and gate_blockers
+    if gate_status == "blocked" and gate_blockers and (
+        gate_blocks_current_owner
+        or (
+            gate_required_action in {"complete_bundle_stage", "continue_bundle_stage"}
+            and gate_supervisor_phase == "bundle_stage_blocked"
+        )
     ):
         gate_fingerprint = _report_work_unit_fingerprint(publication_gate_report)
         eval_fingerprints = _publication_eval_work_unit_fingerprints(payload)

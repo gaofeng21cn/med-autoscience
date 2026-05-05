@@ -9,6 +9,8 @@ def _derive_manual_finish_dominance_state(
     quest_root: Path,
     publication_gate_report: dict[str, object] | None,
 ) -> dict[str, bool]:
+    task_intake_payload = read_latest_task_intake(study_root=study_root)
+    manual_hold_task_intake = task_intake_requests_manual_hold(task_intake_payload)
     task_intake_overrides_auto_manual_finish = _task_intake_overrides_auto_manual_finish_active(
         study_root=study_root,
     )
@@ -37,7 +39,7 @@ def _derive_manual_finish_dominance_state(
             study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
         )
         task_intake_yields_to_submission_closeout = task_intake_yields_to_deterministic_submission_closeout(
-            read_latest_task_intake(study_root=study_root),
+            task_intake_payload,
             publishability_gate_report=None,
             evaluation_summary=summary_payload,
         )
@@ -87,6 +89,7 @@ def _derive_manual_finish_dominance_state(
         "task_intake_releases_manual_finish_parking": task_intake_releases_manual_finish_parking,
         "submission_metadata_only_manual_finish": submission_metadata_only_manual_finish,
         "task_intake_yields_to_submission_closeout": task_intake_yields_to_submission_closeout,
+        "manual_hold_task_intake": manual_hold_task_intake,
         "bundle_only_manual_finish": bundle_only_manual_finish,
         "delivered_package_manual_finish": delivered_package_manual_finish,
         "explicit_manual_finish_compatibility_guard": explicit_manual_finish_compatibility_guard,
