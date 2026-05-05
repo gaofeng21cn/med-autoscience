@@ -158,6 +158,17 @@ def _resume_result_worker_running(resume_result: Mapping[str, Any]) -> bool:
 
 def _runtime_relaunch_postcondition_failure(resume_result: Mapping[str, Any]) -> dict[str, Any] | None:
     postcondition = _mapping(resume_result.get("resume_postcondition"))
+    terminal_markers = {
+        _text(resume_result.get("blocked_reason")),
+        _text(resume_result.get("terminal_reason")),
+        _text(postcondition.get("blocked_reason")),
+        _text(postcondition.get("terminal_reason")),
+    }
+    if any(marker in SPECIFICITY_WORK_UNIT_IDS for marker in terminal_markers):
+        return {
+            "reason": "publication_gate_specificity_required",
+            "resume_postcondition": postcondition or None,
+        }
     if postcondition and postcondition.get("effective") is not True:
         return {
             "reason": "runtime_relaunch_no_live_run_started",
@@ -386,6 +397,8 @@ def write_runtime_platform_repair_lifecycle(
     dispatch_status = _text(apply_result.get("dispatch_status")) or "blocked"
     state = "applied" if dispatch_status == "applied" else "blocked"
     repair_kind = _text(apply_result.get("repair_kind")) or "stale_specificity_terminal_gate_redrive"
+    blocked_reason = None if state == "applied" else _text(apply_result.get("reason"))
+    next_owner = "publication_gate" if blocked_reason == "publication_gate_specificity_required" else "external_supervisor"
     payload = {
         "surface": "ai_repair_lifecycle",
         "schema_version": 1,
@@ -408,8 +421,8 @@ def write_runtime_platform_repair_lifecycle(
         "auto_apply_allowed": True,
         "last_apply_attempt_at": _utc_now(),
         "applied_at": _utc_now() if state == "applied" else None,
-        "blocked_reason": None if state == "applied" else _text(apply_result.get("reason")),
-        "next_owner": None if state == "applied" else "external_supervisor",
+        "blocked_reason": blocked_reason,
+        "next_owner": None if state == "applied" else next_owner,
         "external_supervisor_required": state != "applied",
         "quality_gate_relaxation_allowed": False,
         "dispatch_status": dispatch_status,

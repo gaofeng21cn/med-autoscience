@@ -416,7 +416,7 @@ def _resume_postcondition_payload(
             action = str(interaction_arbitration.get("action") or "").strip()
             if snapshot_status == "waiting_for_user" and action == StudyRuntimeDecision.RESUME.value:
                 failure_mode = "waiting_state_preserved"
-    return {
+    payload = {
         "effective": effective,
         "failure_mode": failure_mode,
         "snapshot_status": snapshot_status,
@@ -425,6 +425,11 @@ def _resume_postcondition_payload(
         "started": started,
         "queued": queued,
     }
+    for key in ("blocked_reason", "terminal_reason", "terminal_source"):
+        value = str(resume_result.get(key) or "").strip()
+        if value:
+            payload[key] = value
+    return payload
 
 
 def _apply_resume_postcondition(
