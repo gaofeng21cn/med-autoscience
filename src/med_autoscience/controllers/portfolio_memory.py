@@ -11,6 +11,20 @@ from med_autoscience.controllers import workspace_literature as workspace_litera
 PORTFOLIO_MEMORY_SCHEMA_VERSION = 1
 PORTFOLIO_MEMORY_LAYER = "portfolio_research_memory"
 ASSET_STATUSES = {"stub", "seeded", "mature"}
+SUMMARY_RECALL_ASSET_ID = "study_recall_index"
+PORTFOLIO_MEMORY_AUTHORITY_BOUNDARY = {
+    "role": "cross_study_recall_handoff_aid",
+    "owns": [
+        "canonical_current_state_summaries",
+        "resume_anchors",
+        "failed_path_lessons",
+    ],
+    "does_not_own": [
+        "publication_quality_authority",
+        "controller_decision_authority",
+        "study_truth_authority",
+    ],
+}
 
 
 @dataclass(frozen=True)
@@ -50,6 +64,16 @@ def _default_assets() -> list[dict[str, str]]:
             "status": "stub",
             "purpose": "journal neighborhood and evidence-backed venue memory across studies",
         },
+        {
+            "asset_id": SUMMARY_RECALL_ASSET_ID,
+            "title": "Study Recall Index",
+            "path": "study_recall_index.md",
+            "status": "stub",
+            "purpose": (
+                "cross-study recall and handoff guidance for canonical current-state summaries, "
+                "resume anchors, and failed-path lessons"
+            ),
+        },
     ]
 
 
@@ -84,6 +108,7 @@ def _render_readme() -> str:
         "- `topic_landscape.md`\n"
         "- `dataset_question_map.md`\n"
         "- `venue_intelligence.md`\n"
+        "- `study_recall_index.md`\n"
         "- `literature/`\n"
         "- `registry.yaml`\n\n"
         "可选增强目录：\n\n"
@@ -92,6 +117,7 @@ def _render_readme() -> str:
         "更新原则：\n\n"
         "- 只有跨 study 仍然可复用的内容，才写回这里\n"
         "- 单篇论文专属的 framing、shortlist、baseline 结果，仍留在对应 `study/`\n"
+        "- `study_recall_index.md` 只服务跨 study recall 与 handoff，不替代 publication quality、controller decision 或 study truth authority\n"
         "- 外部调研如果形成稳定结论，应优先回写到这里，而不是只留在 transient chat\n"
         "- `prompts/` 和 `external_reports/` 只是 optional enrichment surface，不是 startup gate\n"
     )
@@ -138,6 +164,21 @@ def _render_venue_intelligence_stub() -> str:
     )
 
 
+def _render_study_recall_index_stub() -> str:
+    return (
+        "# Study Recall Index\n\n"
+        "## 用途\n\n"
+        "记录同一 disease workspace 中跨 study 可复用的 current-state summary、resume anchor 与 failed-path lesson。\n\n"
+        "## 权限边界\n\n"
+        "这是 cross-study recall / handoff aid。它不作为 publication quality authority、controller decision authority 或 study truth authority。\n\n"
+        "## 推荐结构\n\n"
+        "1. Canonical current-state summaries\n"
+        "2. Resume anchors\n"
+        "3. Failed-path lessons\n"
+        "4. 可复用条件与失效条件\n"
+    )
+
+
 def render_portfolio_memory_files(*, workspace_root: Path) -> list[PortfolioMemoryFile]:
     root = _portfolio_memory_root(workspace_root)
     return [
@@ -146,6 +187,7 @@ def render_portfolio_memory_files(*, workspace_root: Path) -> list[PortfolioMemo
         PortfolioMemoryFile(path=root / "topic_landscape.md", content=_render_topic_landscape_stub()),
         PortfolioMemoryFile(path=root / "dataset_question_map.md", content=_render_dataset_question_map_stub()),
         PortfolioMemoryFile(path=root / "venue_intelligence.md", content=_render_venue_intelligence_stub()),
+        PortfolioMemoryFile(path=root / "study_recall_index.md", content=_render_study_recall_index_stub()),
     ]
 
 
@@ -158,9 +200,11 @@ def _load_registry_payload(workspace_root: Path) -> dict[str, object]:
 
 
 def _normalize_assets(raw_assets: object) -> list[dict[str, str]]:
+    default_assets = _default_assets()
     if not isinstance(raw_assets, list):
         return _default_assets()
     normalized: list[dict[str, str]] = []
+    seen_asset_ids: set[str] = set()
     for item in raw_assets:
         if not isinstance(item, dict):
             continue
@@ -182,7 +226,13 @@ def _normalize_assets(raw_assets: object) -> list[dict[str, str]]:
                 "purpose": purpose,
             }
         )
-    return normalized or _default_assets()
+        seen_asset_ids.add(asset_id)
+    if not normalized:
+        return default_assets
+    if SUMMARY_RECALL_ASSET_ID not in seen_asset_ids:
+        summary_recall_asset = next(item for item in default_assets if item["asset_id"] == SUMMARY_RECALL_ASSET_ID)
+        normalized.append(summary_recall_asset)
+    return normalized
 
 
 def init_portfolio_memory(*, workspace_root: Path) -> dict[str, object]:
@@ -243,5 +293,10 @@ def portfolio_memory_status(*, workspace_root: Path) -> dict[str, object]:
         "asset_count": len(asset_rows),
         "existing_asset_count": existing_asset_count,
         "seeded_asset_count": seeded_asset_count,
+        "summary_recall_asset": next(
+            (item for item in asset_rows if item["asset_id"] == SUMMARY_RECALL_ASSET_ID),
+            None,
+        ),
+        "authority_boundary": PORTFOLIO_MEMORY_AUTHORITY_BOUNDARY,
         "assets": asset_rows,
     }
