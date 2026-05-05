@@ -38,6 +38,7 @@
 - 产物证明采用 canonical-source-first：manuscript、figures、tables 和 package 都应能从 canonical source 重建后再作为交付证据。
 - 真实论文 soak 仍是 AI-first 线的主要证据缺口；文档应明确这个缺口，不把目标层能力写成已经全部证明的当前事实。
 - Workspace Git/storage 边界已经进入当前维护合同：外层 workspace Git 保持轻量，generated/runtime artifacts 明确排除，storage-audit repair 按实际 apply strategy 报告释放量。
+- Runtime lifecycle 历史与索引进入 SQLite sidecar 方向；SQLite 负责 report/state/storage audit 的索引、历史、摘要与游标，authority surface、restore metadata 和论文交付产物继续保持文件形态。
 - 历史迁移术语和旧命名继续留在参考层或历史层。
 
 ## 技术工作集

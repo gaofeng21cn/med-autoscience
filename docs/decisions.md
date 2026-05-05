@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-05：Runtime lifecycle 历史与索引采用 SQLite sidecar，authority surface 继续保留文件形态
+
+- 决策：MAS/MDS 的 runtime lifecycle、storage audit、watch state、run/report history 与 retention ledger 进入 SQLite sidecar 方向；SQLite 只持有可索引历史、摘要、游标、路径引用、checksum 与投影缓存，不替代 `publication_eval/latest.json`、`controller_decisions/latest.json`、`study_runtime_status`、`runtime_binding.yaml`、dataset manifest、restore index、paper/manuscript/current_package 等 authority 或交付产物。
+- 理由：真实 `.ds` 膨胀来自运行态 mirror、日志、run/codex home/history/worktree 与 audit 历史产生的大量小文件，而不是 Git 源码仓本身。SQLite 官方把应用状态文件格式、pile-of-files 替代、事务更新、并发读取与小对象聚合列为成熟适用场景；Git 的 `untracked-cache`、`fsmonitor`、`sparse-index` 只能改善 Git working tree/index 扫描，不能解决 MAS/MDS 自己生成的 runtime 小文件生命周期。
+- 影响：新增 runtime/storage/history 能力时，默认把“latest / canonical authority / human delivery”继续写成可恢复文件，把“append-heavy telemetry / historical report index / retention ledger / cursor pagination / compact projection”写入 SQLite sidecar。SQLite 文件必须是可重建或可导出索引层；任何需要医学质量、publication readiness、artifact authority 或 restore safety 的判断仍回到 MAS durable truth surface 和 MDS restore contract。
+- 参考：SQLite Application File Format、SQLite WAL、SQLite Archive / SQLAR、SQLite small-blob filesystem benchmark；Git `update-index` 的 untracked-cache/fsmonitor 与 sparse-checkout sparse-index 文档。
+
 ## 2026-05-02：MAS AI-first Research OS 成为长线目标架构
 
 - 决策：长线目标固定为 `MAS AI-first Research OS`。MAS 作为唯一 research / quality / publication / artifact / user-visible truth owner；MDS 收敛为 replaceable backend、behavior oracle 与 upstream intake buffer。机械系统只负责 evidence、status、completeness、blocker、projection 与 replay；AI reviewer workflow 持有科学质量、医学写作质量、publishability 与 submission-facing readiness。

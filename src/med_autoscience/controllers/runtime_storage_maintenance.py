@@ -22,6 +22,7 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.dataset_reten
     superseded_release_index as _superseded_release_index,
 )
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol import runtime_lifecycle_store
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol.study_runtime import resolve_study_runtime_paths
 
@@ -754,6 +755,14 @@ def audit_workspace_storage(
     latest_path = audit_root / "latest.json"
     report["report_path"] = str(report_path)
     report["latest_report_path"] = str(latest_path)
+    _write_json(report_path, report)
+    _write_json(latest_path, report)
+    report["runtime_lifecycle_index"] = runtime_lifecycle_store.record_workspace_storage_audit(
+        workspace_root=workspace_root,
+        report=report,
+        report_path=report_path,
+        latest_report_path=latest_path,
+    )
     _write_json(report_path, report)
     _write_json(latest_path, report)
     return report
