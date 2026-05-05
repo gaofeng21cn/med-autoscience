@@ -15,6 +15,7 @@ from .runtime_lifecycle_contract import (
     SURFACE_KIND,
 )
 
+
 def quest_lifecycle_store_path(quest_root: Path) -> Path:
     return Path(quest_root).expanduser().resolve() / "artifacts" / "runtime" / DEFAULT_DB_FILENAME
 
@@ -110,6 +111,20 @@ def record_runtime_report(
                 _utc_now(),
             ),
         )
+        _record_report_index_row(
+            conn,
+            object_root=str(resolved_quest_root),
+            object_scope="quest",
+            report_group=_require_text("report_group", report_group),
+            timestamp=_require_text("timestamp", timestamp),
+            status=status,
+            json_path=str(Path(json_path).expanduser().resolve()),
+            md_path=str(Path(md_path).expanduser().resolve()),
+            latest_json_path=str(latest_json_path.expanduser().resolve()),
+            latest_md_path=str(latest_md_path.expanduser().resolve()),
+            payload_json=payload_json,
+            recorded_at=_utc_now(),
+        )
     return _index_result(
         db_path=resolved_db_path,
         indexed_table="runtime_reports",
@@ -173,11 +188,92 @@ def record_workspace_storage_audit(
                 payload_json,
             ),
         )
+        _record_report_index_row(
+            conn,
+            object_root=str(resolved_workspace_root),
+            object_scope="workspace",
+            report_group="workspace_storage_audit",
+            timestamp=recorded_at,
+            status=_text(report.get("mode")) or "unknown",
+            json_path=str(Path(report_path).expanduser().resolve()),
+            md_path=None,
+            latest_json_path=str(Path(latest_report_path).expanduser().resolve()),
+            latest_md_path=None,
+            payload_json=payload_json,
+            recorded_at=recorded_at,
+        )
     return _index_result(
         db_path=resolved_db_path,
         indexed_table="workspace_storage_audits",
         indexed_count=1,
         scope="workspace",
+    )
+
+
+def record_runtime_event(
+    *,
+    quest_root: Path,
+    event: Mapping[str, Any],
+    artifact_path: Path,
+    latest_path: Path,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    resolved_db_path = _resolve_db_path(db_path, default=quest_lifecycle_store_path(resolved_quest_root))
+    payload_json = _stable_json(event)
+    emitted_at = _require_text("event.emitted_at", event.get("emitted_at"))
+    event_id = _require_text("event.event_id", event.get("event_id"))
+    status_snapshot = _mapping(event.get("status_snapshot"))
+    outer_loop_input = _mapping(event.get("outer_loop_input"))
+    with _connect(resolved_db_path) as conn:
+        _ensure_schema(conn)
+        conn.execute(
+            """
+            INSERT INTO runtime_events(
+                quest_root, event_id, quest_id, study_id, emitted_at, event_source,
+                event_kind, status, active_run_id, summary_ref, artifact_path,
+                latest_path, cursor, payload_sha256, payload_json, recorded_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(quest_root, event_id) DO UPDATE SET
+                quest_id=excluded.quest_id,
+                study_id=excluded.study_id,
+                emitted_at=excluded.emitted_at,
+                event_source=excluded.event_source,
+                event_kind=excluded.event_kind,
+                status=excluded.status,
+                active_run_id=excluded.active_run_id,
+                summary_ref=excluded.summary_ref,
+                artifact_path=excluded.artifact_path,
+                latest_path=excluded.latest_path,
+                cursor=excluded.cursor,
+                payload_sha256=excluded.payload_sha256,
+                payload_json=excluded.payload_json,
+                recorded_at=excluded.recorded_at
+            """,
+            (
+                str(resolved_quest_root),
+                event_id,
+                _require_text("event.quest_id", event.get("quest_id")),
+                _text(event.get("study_id")),
+                emitted_at,
+                _require_text("event.event_source", event.get("event_source")),
+                _require_text("event.event_kind", event.get("event_kind")),
+                _event_status(status_snapshot=status_snapshot, outer_loop_input=outer_loop_input),
+                _event_active_run_id(status_snapshot=status_snapshot, outer_loop_input=outer_loop_input),
+                _require_text("event.summary_ref", event.get("summary_ref")),
+                str(Path(artifact_path).expanduser().resolve()),
+                str(Path(latest_path).expanduser().resolve()),
+                _event_cursor(emitted_at=emitted_at, event_id=event_id),
+                _sha256(payload_json),
+                payload_json,
+                _utc_now(),
+            ),
+        )
+    return _index_result(
+        db_path=resolved_db_path,
+        indexed_table="runtime_events",
+        indexed_count=1,
+        scope="quest",
     )
 
 
@@ -195,7 +291,13 @@ def inspect_lifecycle_store(db_path: Path) -> dict[str, Any]:
         _ensure_schema(conn)
         tables = {
             table: _table_count(conn, table)
-            for table in ("watch_states", "runtime_reports", "workspace_storage_audits")
+            for table in (
+                "watch_states",
+                "runtime_reports",
+                "workspace_storage_audits",
+                "runtime_events",
+                "report_index",
+            )
         }
     return {
         "surface_kind": SURFACE_KIND,
@@ -323,6 +425,48 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         """
     )
     conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS runtime_events(
+            quest_root TEXT NOT NULL,
+            event_id TEXT NOT NULL,
+            quest_id TEXT NOT NULL,
+            study_id TEXT NOT NULL,
+            emitted_at TEXT NOT NULL,
+            event_source TEXT NOT NULL,
+            event_kind TEXT NOT NULL,
+            status TEXT NOT NULL,
+            active_run_id TEXT,
+            summary_ref TEXT NOT NULL,
+            artifact_path TEXT NOT NULL,
+            latest_path TEXT NOT NULL,
+            cursor TEXT NOT NULL,
+            payload_sha256 TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            PRIMARY KEY (quest_root, event_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS report_index(
+            object_root TEXT NOT NULL,
+            object_scope TEXT NOT NULL,
+            report_group TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            status TEXT NOT NULL,
+            json_path TEXT NOT NULL,
+            md_path TEXT,
+            latest_json_path TEXT NOT NULL,
+            latest_md_path TEXT,
+            payload_sha256 TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            PRIMARY KEY (object_root, object_scope, report_group, timestamp)
+        )
+        """
+    )
+    conn.execute(
         "INSERT OR REPLACE INTO lifecycle_metadata(key, value) VALUES ('schema_version', ?)",
         (str(SCHEMA_VERSION),),
     )
@@ -335,6 +479,54 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
 def _table_count(conn: sqlite3.Connection, table: str) -> int:
     row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
     return int(row[0]) if row else 0
+
+
+def _record_report_index_row(
+    conn: sqlite3.Connection,
+    *,
+    object_root: str,
+    object_scope: str,
+    report_group: str,
+    timestamp: str,
+    status: str,
+    json_path: str,
+    md_path: str | None,
+    latest_json_path: str,
+    latest_md_path: str | None,
+    payload_json: str,
+    recorded_at: str,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO report_index(
+            object_root, object_scope, report_group, timestamp, status, json_path,
+            md_path, latest_json_path, latest_md_path, payload_sha256, payload_json, recorded_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(object_root, object_scope, report_group, timestamp) DO UPDATE SET
+            status=excluded.status,
+            json_path=excluded.json_path,
+            md_path=excluded.md_path,
+            latest_json_path=excluded.latest_json_path,
+            latest_md_path=excluded.latest_md_path,
+            payload_sha256=excluded.payload_sha256,
+            payload_json=excluded.payload_json,
+            recorded_at=excluded.recorded_at
+        """,
+        (
+            object_root,
+            object_scope,
+            report_group,
+            timestamp,
+            status,
+            json_path,
+            md_path,
+            latest_json_path,
+            latest_md_path,
+            _sha256(payload_json),
+            payload_json,
+            recorded_at,
+        ),
+    )
 
 
 def _index_result(*, db_path: Path, indexed_table: str, indexed_count: int, scope: str) -> dict[str, Any]:
@@ -359,6 +551,27 @@ def _report_status(report: Mapping[str, Any]) -> str:
         if value:
             return value
     return "unknown"
+
+
+def _event_status(*, status_snapshot: Mapping[str, Any], outer_loop_input: Mapping[str, Any]) -> str:
+    for payload in (status_snapshot, outer_loop_input):
+        for key in ("quest_status", "display_status", "status"):
+            value = _text(payload.get(key))
+            if value:
+                return value
+    return "unknown"
+
+
+def _event_active_run_id(*, status_snapshot: Mapping[str, Any], outer_loop_input: Mapping[str, Any]) -> str | None:
+    for payload in (status_snapshot, outer_loop_input):
+        value = _text(payload.get("active_run_id"))
+        if value:
+            return value
+    return None
+
+
+def _event_cursor(*, emitted_at: str, event_id: str) -> str:
+    return f"{emitted_at}::{event_id}"
 
 
 def _stable_json(payload: object) -> str:
@@ -403,6 +616,7 @@ __all__ = [
     "SURFACE_KIND",
     "inspect_lifecycle_store",
     "quest_lifecycle_store_path",
+    "record_runtime_event",
     "record_runtime_report",
     "record_watch_state",
     "record_workspace_storage_audit",

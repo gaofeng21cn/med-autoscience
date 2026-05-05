@@ -59,7 +59,28 @@ def test_report_store_indexes_watch_state_and_reports_without_changing_file_surf
         "watch_states": 1,
         "runtime_reports": 1,
         "workspace_storage_audits": 0,
+        "runtime_events": 0,
+        "report_index": 1,
     }
+    with sqlite3.connect(db_path) as conn:
+        report_index_row = conn.execute(
+            """
+            SELECT object_scope, report_group, timestamp, status, json_path, latest_json_path, latest_md_path
+            FROM report_index
+            WHERE object_root = ?
+            """,
+            (str(quest_root.resolve()),),
+        ).fetchone()
+
+    assert report_index_row == (
+        "quest",
+        "runtime_watch",
+        "2026-05-05T00:00:00+00:00",
+        "running",
+        str(json_path.resolve()),
+        str((quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json").resolve()),
+        str((quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.md").resolve()),
+    )
 
 
 def test_workspace_storage_audit_indexes_summary_in_workspace_lifecycle_store(tmp_path: Path) -> None:
@@ -100,6 +121,13 @@ def test_workspace_storage_audit_indexes_summary_in_workspace_lifecycle_store(tm
     assert row[4] == result["summary"]["runtime_total_bytes"]
     assert row[5] == result["summary"]["study_artifact_total_bytes"]
     assert json.loads(row[6]) == result["summary"]
+    assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"] == {
+        "watch_states": 0,
+        "runtime_reports": 0,
+        "workspace_storage_audits": 1,
+        "runtime_events": 0,
+        "report_index": 1,
+    }
 
 
 def test_lifecycle_store_fails_closed_when_sqlite_sidecar_is_git_tracked(tmp_path: Path) -> None:
@@ -123,3 +151,82 @@ def test_lifecycle_store_fails_closed_when_sqlite_sidecar_is_git_tracked(tmp_pat
         assert "artifacts/runtime/runtime_lifecycle.sqlite" in str(exc)
     else:
         raise AssertionError("tracked lifecycle DB sidecar must fail closed")
+
+
+def test_runtime_event_record_indexes_event_without_replacing_latest_authority(tmp_path: Path) -> None:
+    record_module = importlib.import_module("med_autoscience.runtime_event_record")
+    protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    quest_root = tmp_path / "runtime" / "quests" / "quest-001"
+    launch_report_path = tmp_path / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
+    record = record_module.RuntimeEventRecord(
+        schema_version=1,
+        event_id="runtime-event::001-risk::quest-001::status_observed::2026-05-05T00:00:00+00:00",
+        study_id="001-risk",
+        quest_id="quest-001",
+        emitted_at="2026-05-05T00:00:00+00:00",
+        event_source="study_runtime_status",
+        event_kind="status_observed",
+        summary_ref=str(launch_report_path),
+        status_snapshot={
+            "quest_status": "running",
+            "decision": "continue",
+            "reason": "runtime_watch",
+            "active_run_id": "run-001",
+            "runtime_liveness_status": "live",
+            "worker_running": True,
+            "continuation_policy": "auto",
+            "continuation_reason": "runtime_watch",
+            "supervisor_tick_status": "fresh",
+            "controller_owned_finalize_parking": False,
+            "runtime_escalation_ref": None,
+        },
+        outer_loop_input={
+            "quest_status": "running",
+            "decision": "continue",
+            "reason": "runtime_watch",
+            "active_run_id": "run-001",
+            "runtime_liveness_status": "live",
+            "worker_running": True,
+            "supervisor_tick_status": "fresh",
+            "controller_owned_finalize_parking": False,
+            "interaction_action": None,
+            "interaction_requires_user_input": False,
+            "runtime_escalation_ref": None,
+        },
+    )
+
+    written = protocol.write_runtime_event_record(quest_root=quest_root, record=record)
+
+    event_path = Path(written.artifact_path)
+    latest_path = event_path.parent / "latest.json"
+    latest_payload = json.loads(latest_path.read_text(encoding="utf-8"))
+    assert latest_payload == written.to_dict()
+    db_path = lifecycle_store.quest_lifecycle_store_path(quest_root)
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            """
+            SELECT event_id, quest_id, study_id, emitted_at, event_source, event_kind,
+                   status, active_run_id, summary_ref, artifact_path, latest_path, cursor, payload_json
+            FROM runtime_events
+            WHERE quest_root = ?
+            """,
+            (str(quest_root.resolve()),),
+        ).fetchone()
+
+    assert row[:-1] == (
+        record.event_id,
+        "quest-001",
+        "001-risk",
+        "2026-05-05T00:00:00+00:00",
+        "study_runtime_status",
+        "status_observed",
+        "running",
+        "run-001",
+        str(launch_report_path),
+        str(event_path.resolve()),
+        str(latest_path.resolve()),
+        f"2026-05-05T00:00:00+00:00::{record.event_id}",
+    )
+    assert json.loads(row[-1]) == latest_payload
+    assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"]["runtime_events"] == 1
