@@ -8,11 +8,11 @@ from pathlib import Path
 import sqlite3
 from typing import Any
 
-
-SCHEMA_VERSION = 1
-SURFACE_KIND = "runtime_lifecycle_sqlite_index"
-DEFAULT_DB_FILENAME = "runtime_lifecycle.sqlite"
-
+from .runtime_lifecycle_contract import (
+    DEFAULT_DB_FILENAME,
+    SCHEMA_VERSION,
+    SURFACE_KIND,
+)
 
 def quest_lifecycle_store_path(quest_root: Path) -> Path:
     return Path(quest_root).expanduser().resolve() / "artifacts" / "runtime" / DEFAULT_DB_FILENAME

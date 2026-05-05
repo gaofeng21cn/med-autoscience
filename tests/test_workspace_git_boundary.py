@@ -5,6 +5,18 @@ from pathlib import Path
 import subprocess
 
 
+def test_workspace_gitignore_excludes_sqlite_runtime_sidecars() -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_git_boundary")
+
+    gitignore_text = module.render_workspace_gitignore()
+
+    assert "*.sqlite" in gitignore_text
+    assert "*.sqlite-wal" in gitignore_text
+    assert "*.sqlite-shm" in gitignore_text
+    assert "*.db-wal" in gitignore_text
+    assert "*.db-shm" in gitignore_text
+
+
 def test_workspace_gitignore_declares_lightweight_study_artifact_boundary() -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_git_boundary")
 
@@ -263,6 +275,29 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
         capture_output=True,
     )
     assert check_local_runtime_config.returncode == 0
+
+    runtime_lifecycle_db = workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    runtime_lifecycle_db.parent.mkdir(parents=True, exist_ok=True)
+    runtime_lifecycle_db.write_text("sqlite placeholder\n", encoding="utf-8")
+    check_runtime_lifecycle_db = subprocess.run(
+        ["git", "check-ignore", str(runtime_lifecycle_db.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_runtime_lifecycle_db.returncode == 0
+
+    runtime_lifecycle_wal = workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite-wal"
+    runtime_lifecycle_wal.write_text("wal placeholder\n", encoding="utf-8")
+    check_runtime_lifecycle_wal = subprocess.run(
+        ["git", "check-ignore", str(runtime_lifecycle_wal.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_runtime_lifecycle_wal.returncode == 0
 
     portfolio_evidence_table = workspace_root / "portfolio" / "legacy_audit" / "evidence" / "metrics.csv"
     portfolio_evidence_table.parent.mkdir(parents=True, exist_ok=True)
