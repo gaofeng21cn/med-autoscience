@@ -528,6 +528,39 @@ def test_audit_workspace_storage_restore_proof_compaction_blocks_non_cold_runtim
     assert payload.exists()
 
 
+@pytest.mark.parametrize("status", ["paused", "stopped"])
+def test_audit_workspace_storage_restore_proof_compaction_can_include_parked_controller_stop(
+    tmp_path: Path,
+    status: str,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    study_id = "004-parked"
+    _write_study(profile.studies_root / study_id, study_id=study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    _write_quest(quest_root, quest_id=study_id, status=status)
+    payload = quest_root / ".ds" / "runs" / "run-001" / "stdout.jsonl"
+    payload.parent.mkdir(parents=True, exist_ok=True)
+    payload.write_text("parked payload\n" * 4096, encoding="utf-8")
+
+    result = module.audit_workspace_storage(
+        profile=profile,
+        study_id=study_id,
+        all_studies=False,
+        apply=True,
+        restore_proof_compaction=True,
+        include_parked_controller_stop=True,
+    )
+
+    study_report = result["categories"]["runtime"]["studies"][0]
+    compaction = study_report["apply_result"]["restore_proof_compaction"]
+    assert study_report["status"] == "applied"
+    assert study_report["runtime"]["candidate_action"] == "restore-proof-compaction"
+    assert compaction["status"] == "compacted"
+    assert compaction["restore_proof"]["status"] == "verified"
+    assert not payload.exists()
+
+
 def test_audit_workspace_storage_restore_proof_compaction_blocks_symlink_without_prune(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
     profile = make_profile(tmp_path)

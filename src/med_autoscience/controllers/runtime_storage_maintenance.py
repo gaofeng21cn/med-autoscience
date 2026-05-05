@@ -607,6 +607,7 @@ def audit_workspace_storage(
     tail_lines: int = 200,
     allow_live_runtime: bool = False,
     restore_proof_compaction: bool = False,
+    include_parked_controller_stop: bool = False,
     reinitialize_empty_workspace_git: bool = False,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
@@ -643,7 +644,11 @@ def audit_workspace_storage(
             size_before = _size_summary(quest_root)
             candidate = _runtime_candidate(quest_root=quest_root, snapshot=snapshot, size_summary=size_before)
             if restore_proof_compaction:
-                candidate = restore_proof_compaction_candidate(candidate=candidate, snapshot=snapshot)
+                candidate = restore_proof_compaction_candidate(
+                    candidate=candidate,
+                    snapshot=snapshot,
+                    include_parked_controller_stop=include_parked_controller_stop,
+                )
             if stopped_only and str(snapshot.get("status") or "") not in _TERMINAL_RUNTIME_STATUSES:
                 runtime_report = dict(candidate)
                 if apply:
@@ -679,6 +684,7 @@ def audit_workspace_storage(
                     tail_lines=tail_lines,
                     allow_live_runtime=allow_live_runtime,
                     restore_proof_compaction=restore_proof_compaction,
+                    include_parked_controller_stop=include_parked_controller_stop,
                 )
             size_after = _size_summary(quest_root)
             actual_runtime_release_bytes = _actual_release_bytes(size_before, size_after) if apply else 0
@@ -774,6 +780,7 @@ def audit_workspace_storage(
             "stopped_only": stopped_only,
             "allow_live_runtime": allow_live_runtime,
             "restore_proof_compaction": restore_proof_compaction,
+            "include_parked_controller_stop": include_parked_controller_stop,
             "git_only": git_only,
             "reinitialize_empty_workspace_git": reinitialize_empty_workspace_git,
         },
@@ -846,6 +853,7 @@ def maintain_runtime_storage(
     tail_lines: int = 200,
     allow_live_runtime: bool = False,
     restore_proof_compaction: bool = False,
+    include_parked_controller_stop: bool = False,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     resolved_study_id, resolved_study_root, study_payload = study_runtime_resolution._resolve_study(
@@ -876,6 +884,7 @@ def maintain_runtime_storage(
         "include_worktrees": include_worktrees,
         "allow_live_runtime": allow_live_runtime,
         "restore_proof_compaction_enabled": restore_proof_compaction,
+        "include_parked_controller_stop": include_parked_controller_stop,
     }
     result["quest_runtime_before"] = _quest_runtime_snapshot(resolved_quest_root)
     result["size_before"] = _size_summary(resolved_quest_root)
@@ -884,7 +893,10 @@ def maintain_runtime_storage(
         result["status"] = "blocked_missing_quest_root"
         result["summary"] = "quest root 尚未就绪，当前无法执行 runtime storage maintenance。"
     elif restore_proof_compaction:
-        blockers = restore_proof_compaction_blockers(result["quest_runtime_before"])
+        blockers = restore_proof_compaction_blockers(
+            result["quest_runtime_before"],
+            include_parked_controller_stop=include_parked_controller_stop,
+        )
         if blockers:
             result["status"] = "blocked_restore_proof_compaction"
             result["summary"] = "quest 未达到 stopped-cold restore-proof compaction 条件。"

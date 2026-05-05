@@ -80,6 +80,7 @@ def test_workspace_storage_audit_apply_without_git_only_keeps_default_study_scan
     assert runtime_storage.audit_kwargs["apply"] is True
     assert runtime_storage.audit_kwargs["all_studies"] is True
     assert runtime_storage.audit_kwargs["restore_proof_compaction"] is False
+    assert runtime_storage.audit_kwargs["include_parked_controller_stop"] is False
     assert '"status": "ok"' in capsys.readouterr().out
 
 
@@ -96,6 +97,7 @@ def test_workspace_storage_audit_restore_proof_compaction_requires_apply_and_not
             "004-completed",
             "--apply",
             "--restore-proof-compaction",
+            "--include-parked-controller-stop",
         ]
     )
     runtime_storage = _RuntimeStorageMaintenanceStub()
@@ -112,6 +114,7 @@ def test_workspace_storage_audit_restore_proof_compaction_requires_apply_and_not
     assert runtime_storage.audit_kwargs["study_id"] == "004-completed"
     assert runtime_storage.audit_kwargs["apply"] is True
     assert runtime_storage.audit_kwargs["restore_proof_compaction"] is True
+    assert runtime_storage.audit_kwargs["include_parked_controller_stop"] is True
     assert '"status": "ok"' in capsys.readouterr().out
 
 
@@ -172,6 +175,27 @@ def test_workspace_storage_audit_restore_proof_compaction_requires_apply_without
             "--profile",
             "workspace.toml",
             *args_without_required_gate,
+        ]
+    )
+
+    with pytest.raises(SystemExit):
+        handle_runtime_storage_command(
+            args,
+            parser=parser,
+            load_profile=lambda profile: {"profile": profile},
+            runtime_storage_maintenance=_RuntimeStorageMaintenanceStub(),
+        )
+
+
+def test_workspace_storage_audit_parked_controller_stop_requires_restore_proof_compaction() -> None:
+    parser = _parser()
+    args = parser.parse_args(
+        [
+            "workspace-storage-audit",
+            "--profile",
+            "workspace.toml",
+            "--apply",
+            "--include-parked-controller-stop",
         ]
     )
 

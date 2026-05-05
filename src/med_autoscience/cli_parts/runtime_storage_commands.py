@@ -39,6 +39,8 @@ def handle_runtime_storage_command(
             parser.error("Specify exactly one of --study-id or --study-root")
         if bool(args.restore_proof_compaction) and bool(args.allow_live_runtime):
             parser.error("--restore-proof-compaction cannot be combined with --allow-live-runtime")
+        if bool(args.include_parked_controller_stop) and not bool(args.restore_proof_compaction):
+            parser.error("--include-parked-controller-stop requires --restore-proof-compaction")
         result = runtime_storage_maintenance.maintain_runtime_storage(
             profile=load_profile(args.profile),
             study_id=args.study_id,
@@ -55,6 +57,8 @@ def handle_runtime_storage_command(
             parser.error("--reinitialize-empty-workspace-git requires --git-only --apply")
         if bool(args.restore_proof_compaction) and (not bool(args.apply) or bool(args.git_only)):
             parser.error("--restore-proof-compaction requires --apply and cannot be combined with --git-only")
+        if bool(args.include_parked_controller_stop) and not bool(args.restore_proof_compaction):
+            parser.error("--include-parked-controller-stop requires --restore-proof-compaction")
         if bool(args.study_id) and bool(args.all_studies):
             parser.error("Specify at most one of --study-id or --all-studies")
         result = runtime_storage_maintenance.audit_workspace_storage(
@@ -87,6 +91,7 @@ def _add_storage_cleanup_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--tail-lines", type=int, default=200)
     parser.add_argument("--allow-live-runtime", action="store_true")
     parser.add_argument("--restore-proof-compaction", action="store_true")
+    parser.add_argument("--include-parked-controller-stop", action="store_true")
 
 
 def _storage_cleanup_options_from_args(args: argparse.Namespace) -> dict[str, object]:
@@ -106,6 +111,7 @@ def _storage_cleanup_options_from_args(args: argparse.Namespace) -> dict[str, ob
         "tail_lines": _positive_int(args.tail_lines),
         "allow_live_runtime": bool(args.allow_live_runtime),
         "restore_proof_compaction": bool(args.restore_proof_compaction),
+        "include_parked_controller_stop": bool(args.include_parked_controller_stop),
     }
 
 

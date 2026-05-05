@@ -14,6 +14,7 @@ ARCHIVE_FORMAT = "tar.gz"
 SURFACE_KIND = "runtime_restore_proof_compaction"
 SCHEMA_VERSION = 1
 COLD_RUNTIME_STATUSES = frozenset({"completed", "failed", "terminated"})
+PARKED_CONTROLLER_STOP_STATUSES = frozenset({"paused", "stopped"})
 
 
 def compact_cold_runtime_buckets(
@@ -153,8 +154,15 @@ def compact_cold_runtime_buckets(
     }
 
 
-def restore_proof_compaction_blockers(snapshot: Mapping[str, Any]) -> list[str]:
+def restore_proof_compaction_blockers(
+    snapshot: Mapping[str, Any],
+    *,
+    include_parked_controller_stop: bool = False,
+) -> list[str]:
     status = str(snapshot.get("status") or "").strip().lower()
+    allowed_statuses = set(COLD_RUNTIME_STATUSES)
+    if include_parked_controller_stop:
+        allowed_statuses.update(PARKED_CONTROLLER_STOP_STATUSES)
     blockers: list[str] = []
     if not bool(snapshot.get("quest_exists")):
         blockers.append("missing_quest_root")
@@ -162,7 +170,7 @@ def restore_proof_compaction_blockers(snapshot: Mapping[str, Any]) -> list[str]:
         blockers.append("runtime_state_unreadable")
     if snapshot.get("active_run_id"):
         blockers.append("active_run_id_present")
-    if status not in COLD_RUNTIME_STATUSES:
+    if status not in allowed_statuses:
         blockers.append(f"not_stopped_cold:{status or 'missing'}")
     return blockers
 
@@ -171,9 +179,13 @@ def restore_proof_compaction_candidate(
     *,
     candidate: Mapping[str, Any],
     snapshot: Mapping[str, Any],
+    include_parked_controller_stop: bool = False,
 ) -> dict[str, Any]:
     result = dict(candidate)
-    blockers = restore_proof_compaction_blockers(snapshot)
+    blockers = restore_proof_compaction_blockers(
+        snapshot,
+        include_parked_controller_stop=include_parked_controller_stop,
+    )
     result["restore_proof_compaction"] = {
         "enabled": True,
         "eligible": not blockers,
@@ -326,6 +338,7 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
 __all__ = [
     "ARCHIVE_FORMAT",
     "COLD_RUNTIME_STATUSES",
+    "PARKED_CONTROLLER_STOP_STATUSES",
     "SURFACE_KIND",
     "compact_cold_runtime_buckets",
     "restore_proof_compaction_blockers",

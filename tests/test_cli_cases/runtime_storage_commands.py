@@ -30,6 +30,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         tail_lines: int,
         allow_live_runtime: bool,
         restore_proof_compaction: bool,
+        include_parked_controller_stop: bool,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -45,6 +46,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         called["tail_lines"] = tail_lines
         called["allow_live_runtime"] = allow_live_runtime
         called["restore_proof_compaction"] = restore_proof_compaction
+        called["include_parked_controller_stop"] = include_parked_controller_stop
         return {"status": "maintained", "quest_id": "quest-001"}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "maintain_runtime_storage", fake_maintain_runtime_storage)
@@ -94,6 +96,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
     assert called["tail_lines"] == 120
     assert called["allow_live_runtime"] is True
     assert called["restore_proof_compaction"] is False
+    assert called["include_parked_controller_stop"] is False
     assert json.loads(captured.out)["status"] == "maintained"
 
 
@@ -123,6 +126,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         tail_lines: int,
         allow_live_runtime: bool,
         restore_proof_compaction: bool,
+        include_parked_controller_stop: bool,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -142,6 +146,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         called["tail_lines"] = tail_lines
         called["allow_live_runtime"] = allow_live_runtime
         called["restore_proof_compaction"] = restore_proof_compaction
+        called["include_parked_controller_stop"] = include_parked_controller_stop
         return {"mode": "apply", "latest_report_path": "storage_audit/latest.json"}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "audit_workspace_storage", fake_audit_workspace_storage)
@@ -194,6 +199,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
     assert called["tail_lines"] == 120
     assert called["allow_live_runtime"] is True
     assert called["restore_proof_compaction"] is False
+    assert called["include_parked_controller_stop"] is False
     assert json.loads(captured.out)["latest_report_path"] == "storage_audit/latest.json"
 
 
@@ -227,11 +233,13 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         tail_lines: int,
         allow_live_runtime: bool,
         restore_proof_compaction: bool,
+        include_parked_controller_stop: bool,
     ) -> dict[str, object]:
         called["study_id"] = study_id
         called["apply"] = apply
         called["git_only"] = git_only
         called["restore_proof_compaction"] = restore_proof_compaction
+        called["include_parked_controller_stop"] = include_parked_controller_stop
         return {"mode": "apply", "restore_proof_compaction": restore_proof_compaction}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "audit_workspace_storage", fake_audit_workspace_storage)
@@ -246,6 +254,7 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
             "004-completed",
             "--apply",
             "--restore-proof-compaction",
+            "--include-parked-controller-stop",
         ]
     )
     captured = capsys.readouterr()
@@ -256,6 +265,7 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         "apply": True,
         "git_only": False,
         "restore_proof_compaction": True,
+        "include_parked_controller_stop": True,
     }
     assert json.loads(captured.out)["restore_proof_compaction"] is True
 
