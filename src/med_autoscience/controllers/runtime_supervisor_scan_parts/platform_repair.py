@@ -137,6 +137,7 @@ def _apply_abnormal_stopped_runtime_repair(
     study_id: str,
     study_root: Path,
     base: Mapping[str, Any],
+    repair_kind: str,
 ) -> dict[str, Any]:
     try:
         resume_result = study_runtime_router.ensure_study_runtime(
@@ -150,14 +151,14 @@ def _apply_abnormal_stopped_runtime_repair(
             **dict(base),
             "dispatch_status": "blocked",
             "reason": "abnormal_stopped_runtime_relaunch_failed",
-            "repair_kind": "abnormal_stopped_runtime_relaunch",
+            "repair_kind": repair_kind,
             "error": str(exc),
         }
     return {
         **dict(base),
         "dispatch_status": "applied",
         "reason": "abnormal_stopped_runtime_relaunch_requested",
-        "repair_kind": "abnormal_stopped_runtime_relaunch",
+        "repair_kind": repair_kind,
         "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
     }
 
@@ -243,6 +244,24 @@ def _controller_decision_supersedes_specificity(
         "controller_actions": sorted(action_types),
         "path": str(decision_path),
     }
+
+
+def _stale_specificity_redrive_can_apply(
+    *,
+    study_root: Path,
+    quest_root: str | None,
+    runtime_state: Mapping[str, Any],
+    publication_eval_payload: Mapping[str, Any],
+) -> tuple[bool, dict[str, Any], dict[str, Any]]:
+    gate_status = _publication_gate_ready_for_specificity_redrive(quest_root)
+    if gate_status.get("ready") is not True:
+        return False, gate_status, {}
+    supersession = _controller_decision_supersedes_specificity(
+        study_root=study_root,
+        runtime_state=runtime_state,
+        publication_eval_payload=publication_eval_payload,
+    )
+    return supersession.get("supersedes") is True, gate_status, supersession
 
 
 def _clear_stale_specificity_runtime_state(
@@ -380,13 +399,6 @@ def apply_runtime_platform_repair(
         return None
     if not developer_mode.safe_actions_enabled:
         return {**base, "dispatch_status": "blocked", "reason": "developer_supervisor_safe_actions_not_enabled"}
-    if abnormal_stopped_runtime.repair_required(status, progress):
-        return _apply_abnormal_stopped_runtime_repair(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            base=base,
-        )
     quest_root = _text(status.get("quest_root")) or _text(progress.get("quest_root"))
     runtime_path = _runtime_state_path(quest_root)
     if runtime_path is None:
@@ -394,6 +406,22 @@ def apply_runtime_platform_repair(
     runtime_state = _read_json_object(runtime_path)
     if runtime_state is None:
         return {**base, "dispatch_status": "blocked", "reason": "runtime_state_missing_or_invalid"}
+    abnormal_repair_kind = abnormal_stopped_runtime.repair_kind(status, progress)
+    if abnormal_repair_kind is not None:
+        stale_redrive_can_apply, _, _ = _stale_specificity_redrive_can_apply(
+            study_root=study_root,
+            quest_root=quest_root,
+            runtime_state=runtime_state,
+            publication_eval_payload=publication_eval_payload,
+        )
+        if not stale_redrive_can_apply:
+            return _apply_abnormal_stopped_runtime_repair(
+                profile=profile,
+                study_id=study_id,
+                study_root=study_root,
+                base=base,
+                repair_kind=abnormal_repair_kind,
+            )
     gate_status = _publication_gate_ready_for_specificity_redrive(quest_root)
     if gate_status.get("ready") is not True:
         return {**base, "dispatch_status": "blocked", "reason": _text(gate_status.get("reason")), "gate_status": gate_status}

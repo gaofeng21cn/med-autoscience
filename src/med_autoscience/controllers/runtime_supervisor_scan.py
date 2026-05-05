@@ -203,14 +203,18 @@ def _retry_exhausted(status: Mapping[str, Any], progress: Mapping[str, Any]) -> 
 
 
 def _publication_eval_payload(status: Mapping[str, Any], progress: Mapping[str, Any]) -> dict[str, Any]:
+    refs = _mapping(progress.get("refs"))
+    publication_eval_path = _text(refs.get("publication_eval_path"))
+    if publication_eval_path is not None:
+        from_path = _read_json_object(Path(publication_eval_path)) or {}
+        if _text(_mapping(from_path.get("assessment_provenance")).get("owner")) == "ai_reviewer":
+            return from_path
     from_status = _mapping(status.get("publication_eval"))
     if from_status:
         return from_status
-    refs = _mapping(progress.get("refs"))
-    publication_eval_path = _text(refs.get("publication_eval_path"))
-    if publication_eval_path is None:
-        return {}
-    return _read_json_object(Path(publication_eval_path)) or {}
+    if publication_eval_path is not None:
+        return _read_json_object(Path(publication_eval_path)) or {}
+    return {}
 
 
 def _next_work_unit_needs_specificity(value: object) -> bool:
@@ -265,8 +269,8 @@ def _runtime_platform_repair_required(status: Mapping[str, Any], progress: Mappi
 
 
 def _runtime_platform_repair_reason(status: Mapping[str, Any], progress: Mapping[str, Any]) -> str:
-    if abnormal_stopped_runtime.repair_required(status, progress):
-        return abnormal_stopped_runtime.REPAIR_REASON
+    if reason := abnormal_stopped_runtime.repair_reason(status, progress):
+        return reason
     return "runtime_recovery_retry_budget_exhausted"
 
 
