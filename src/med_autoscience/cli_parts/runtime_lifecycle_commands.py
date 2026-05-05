@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.runtime_protocol.runtime_lifecycle_contract import MIGRATION_RUN_MODES, WORKSPACE_CLASSIFICATIONS
+
 
 def register_runtime_lifecycle_parsers(subparsers: argparse._SubParsersAction) -> None:
     inventory_parser = subparsers.add_parser("runtime-lifecycle-inventory")
@@ -20,11 +22,23 @@ def register_runtime_lifecycle_parsers(subparsers: argparse._SubParsersAction) -
     export_parser.add_argument("--format", choices=("json", "markdown"), default="json")
     export_parser.add_argument("--output-path", type=str)
 
+    ledger_parser = subparsers.add_parser("runtime-lifecycle-ledger")
+    ledger_parser.add_argument("--workspace-root", required=True, type=str)
+    ledger_parser.add_argument("--mode", choices=MIGRATION_RUN_MODES, default="dry_run")
+    ledger_parser.add_argument("--workspace-classification", choices=WORKSPACE_CLASSIFICATIONS, required=True)
+    ledger_parser.add_argument("--migration-run-id", type=str)
+    ledger_parser.add_argument("--skipped-reason", action="append", default=[])
+    ledger_parser.add_argument("--next-required-action", type=str)
+    ledger_parser.add_argument("--output-root", type=str)
+    ledger_parser.add_argument("--write", action="store_true")
+    ledger_parser.add_argument("--write-compat-export", action="store_true")
+
 
 def handle_runtime_lifecycle_command(
     args: argparse.Namespace,
     *,
     runtime_lifecycle_read_model: Any,
+    runtime_lifecycle_migration: Any,
 ) -> int | None:
     if args.command == "runtime-lifecycle-inventory":
         result = runtime_lifecycle_read_model.build_lifecycle_inventory(**_scope_kwargs(args))
@@ -47,6 +61,21 @@ def handle_runtime_lifecycle_command(
             report_group=args.report_group,
             output_path=Path(args.output_path) if args.output_path else None,
             **_scope_kwargs(args),
+        )
+        _print_json(result)
+        return 0
+
+    if args.command == "runtime-lifecycle-ledger":
+        result = runtime_lifecycle_migration.build_migration_ledger(
+            workspace_root=Path(args.workspace_root),
+            mode=args.mode,
+            workspace_classification=args.workspace_classification,
+            migration_run_id=args.migration_run_id,
+            skipped_reasons=tuple(args.skipped_reason or ()),
+            next_required_action=args.next_required_action,
+            output_root=Path(args.output_root) if args.output_root else None,
+            write=bool(args.write),
+            write_compat_export=bool(args.write_compat_export),
         )
         _print_json(result)
         return 0
