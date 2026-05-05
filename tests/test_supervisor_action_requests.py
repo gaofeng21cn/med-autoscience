@@ -116,12 +116,27 @@ def test_ai_reviewer_default_input_refs_use_existing_draft_manuscript_source(tmp
     paper_root = study_root / "paper"
     paper_root.mkdir(parents=True)
     (paper_root / "draft.md").write_text("# Draft\n\nCurrent canonical manuscript.\n", encoding="utf-8")
+    (paper_root / "medical_manuscript_blueprint.json").write_text('{"schema_version":1}\n', encoding="utf-8")
+    (paper_root / "claim_evidence_map.json").write_text('{"claims":[]}\n', encoding="utf-8")
+    (study_root / "artifacts" / "publication_eval").mkdir(parents=True)
+    (study_root / "artifacts" / "publication_eval" / "medical_prose_review.json").write_text(
+        '{"schema_version":1}\n',
+        encoding="utf-8",
+    )
+    (study_root / "artifacts" / "publication_eval" / "latest.json").write_text(
+        '{"schema_version":1}\n',
+        encoding="utf-8",
+    )
 
     refs = default_ai_reviewer_request_input_refs(study_root=study_root)
 
     assert refs["manuscript"]["relative_path"] == "paper/draft.md"
     assert refs["manuscript"]["present"] is True
     assert refs["manuscript"]["valid"] is True
+    assert refs["medical_manuscript_blueprint"]["relative_path"] == "paper/medical_manuscript_blueprint.json"
+    assert refs["claim_evidence_map"]["relative_path"] == "paper/claim_evidence_map.json"
+    assert refs["medical_prose_review"]["relative_path"] == "artifacts/publication_eval/medical_prose_review.json"
+    assert refs["publication_gate_projection"]["relative_path"] == "artifacts/publication_eval/latest.json"
 
 
 def test_ai_reviewer_publication_eval_request_packet_is_reviewer_owned_without_authority() -> None:
@@ -194,6 +209,10 @@ def test_ai_reviewer_publication_eval_request_packet_is_reviewer_owned_without_a
         "evidence_ledger",
         "review_ledger",
         "study_charter",
+        "medical_manuscript_blueprint",
+        "claim_evidence_map",
+        "medical_prose_review",
+        "publication_gate_projection",
     ]
     assert packet["input_contract"]["all_required_refs_present"] is False
     assert packet["required_output"] == {
@@ -238,6 +257,10 @@ def test_ai_reviewer_request_accepts_required_input_refs_and_lifecycle_assignmen
             "evidence_ledger": {"relative_path": "paper/evidence_ledger.json"},
             "review_ledger": {"relative_path": "paper/review/review_ledger.json"},
             "study_charter": {"relative_path": "artifacts/controller/study_charter.json"},
+            "medical_manuscript_blueprint": {"relative_path": "paper/medical_manuscript_blueprint.json"},
+            "claim_evidence_map": {"relative_path": "paper/claim_evidence_map.json"},
+            "medical_prose_review": {"relative_path": "artifacts/publication_eval/medical_prose_review.json"},
+            "publication_gate_projection": {"relative_path": "artifacts/publication_eval/latest.json"},
         },
         lifecycle_state="assigned",
         assigned_to="ai_reviewer",
@@ -252,6 +275,10 @@ def test_ai_reviewer_request_accepts_required_input_refs_and_lifecycle_assignmen
         "evidence_ledger",
         "review_ledger",
         "study_charter",
+        "medical_manuscript_blueprint",
+        "claim_evidence_map",
+        "medical_prose_review",
+        "publication_gate_projection",
     }
     assert packet["authority"] == "observability_only"
     assert packet["can_clear_quality_gate"] is False

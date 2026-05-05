@@ -22,6 +22,7 @@ SCHEMA_VERSION = 1
 EXECUTION_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_execution")
 EXECUTION_LATEST_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "latest.json"
 EXECUTION_HISTORY_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "history.jsonl"
+PUBLICATION_EVAL_LATEST_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
 SUPPORTED_ACTION_TYPES = frozenset(
     {
         "runtime_platform_repair",
@@ -77,6 +78,10 @@ def _execution_latest_path(profile: WorkspaceProfile, study_id: str) -> Path:
 
 def _execution_history_path(profile: WorkspaceProfile, study_id: str) -> Path:
     return _study_root(profile, study_id) / EXECUTION_HISTORY_RELATIVE_PATH
+
+
+def _publication_eval_latest_path(study_root: Path) -> Path:
+    return study_root / PUBLICATION_EVAL_LATEST_RELATIVE_PATH
 
 
 def _dispatch_files(profile: WorkspaceProfile, study_id: str, action_types: tuple[str, ...]) -> list[Path]:
@@ -262,6 +267,8 @@ def _execute_ai_reviewer_workflow(
         }
     record = _mapping(request.get("ai_reviewer_record") or request.get("publication_eval_record") or request.get("record"))
     if not record:
+        record = _mapping(_read_json_object(_publication_eval_latest_path(study_root)))
+    if not record:
         return {
             "execution_status": "blocked" if apply else "dry_run",
             "blocked_reason": "ai_reviewer_record_missing",
@@ -271,7 +278,16 @@ def _execute_ai_reviewer_workflow(
         }
     required_refs = {
         surface: _ref_path(request, surface)
-        for surface in ("manuscript", "evidence_ledger", "review_ledger", "study_charter")
+        for surface in (
+            "manuscript",
+            "evidence_ledger",
+            "review_ledger",
+            "study_charter",
+            "medical_manuscript_blueprint",
+            "claim_evidence_map",
+            "medical_prose_review",
+            "publication_gate_projection",
+        )
     }
     missing_refs = [surface for surface, ref in required_refs.items() if ref is None]
     if missing_refs:
@@ -298,7 +314,12 @@ def _execute_ai_reviewer_workflow(
             review_ref=required_refs["review_ledger"],
             charter_ref=required_refs["study_charter"],
             record=record,
-            additional_refs=_mapping(request.get("additional_refs")),
+            additional_refs={
+                surface: ref
+                for surface, ref in required_refs.items()
+                if surface not in {"manuscript", "evidence_ledger", "review_ledger", "study_charter"}
+                and ref is not None
+            },
         )
     except (OSError, TypeError, ValueError, RuntimeError) as exc:
         return {

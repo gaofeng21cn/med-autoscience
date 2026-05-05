@@ -11,6 +11,10 @@ AI_REVIEWER_REQUIRED_INPUT_SURFACES = (
     "evidence_ledger",
     "review_ledger",
     "study_charter",
+    "medical_manuscript_blueprint",
+    "claim_evidence_map",
+    "medical_prose_review",
+    "publication_gate_projection",
 )
 AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES = (
     Path("paper/draft.md"),
@@ -73,6 +77,26 @@ def default_ai_reviewer_request_input_refs(*, study_root: str | Path) -> dict[st
             study_root=resolved_study_root,
             surface="study_charter",
             relative_path=Path("artifacts/controller/study_charter.json"),
+        ),
+        "medical_manuscript_blueprint": _ref_payload(
+            study_root=resolved_study_root,
+            surface="medical_manuscript_blueprint",
+            relative_path=Path("paper/medical_manuscript_blueprint.json"),
+        ),
+        "claim_evidence_map": _ref_payload(
+            study_root=resolved_study_root,
+            surface="claim_evidence_map",
+            relative_path=Path("paper/claim_evidence_map.json"),
+        ),
+        "medical_prose_review": _ref_payload(
+            study_root=resolved_study_root,
+            surface="medical_prose_review",
+            relative_path=Path("artifacts/publication_eval/medical_prose_review.json"),
+        ),
+        "publication_gate_projection": _ref_payload(
+            study_root=resolved_study_root,
+            surface="publication_gate_projection",
+            relative_path=Path("artifacts/publication_eval/latest.json"),
         ),
     }
 
