@@ -166,7 +166,8 @@ publication gate 与 AI reviewer 的 currentness 使用 work-unit fingerprint，
 
 runtime repair 与 publication gate 的 owner routing 使用 controller terminal 证据，而不是泛化的 gate blocker：
 
-- `gate_specificity.required=true` 本身不足以阻止 runtime relaunch；异常 stopped、active/running 但无 live worker、retry budget exhausted 仍必须进入 runtime platform repair。
+- `gate_specificity.required=true` 本身不足以阻止 runtime relaunch；异常 stopped、paused/resume 无 live worker、active/running 但无 live worker、retry budget exhausted 仍必须进入 runtime platform repair。
+- 已交付人审/投稿包且无 live worker 的 parked handoff 是例外：当 `auto_runtime_parked` 或 delivery/current_package handoff 证据成立时，平台 repair redrive 不能自动重开 writer，只能等待显式 resume / revision intake。
 - 只有 resume/postcondition 或 runtime status 明确给出 `gate_needs_specificity` / `needs_specificity` / `publication_gate_specificity_required`，并且来源是 controller work-unit authorization 时，supervisor 才把 no-live-worker relaunch 转交给 publication gate。
 - 若 stale specificity terminal 已被带完整 targets 的 publication eval 证明满足，platform repair 可以清掉旧 terminal，并把队列推进到下一 owner；已 applied 的 runtime repair 不应继续留在当次 action queue。
 

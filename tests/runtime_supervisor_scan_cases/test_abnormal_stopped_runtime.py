@@ -391,6 +391,110 @@ def test_supervisor_scan_blocks_runtime_platform_repair_when_relaunch_starts_no_
     assert study["paper_package_mutated"] is False
 
 
+def test_supervisor_scan_queues_runtime_repair_for_paused_resume_without_live_worker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-dm-cvd-mortality-risk", quest_id="quest-dm")
+    quest_root = profile.runtime_root / "quest-dm"
+    publication_eval = {
+        "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::return_to_controller::publication-blockers::dm002",
+                "action_type": "return_to_controller",
+                "work_unit_fingerprint": "publication-blockers::dm002",
+                "specificity_targets": [
+                    {
+                        "target_kind": "claim",
+                        "target_id": "claim_evidence_map",
+                        "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                    {
+                        "target_kind": "figure",
+                        "target_id": "figure_catalog",
+                        "source_path": str(study_root / "paper" / "figures" / "figure_catalog.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                    {
+                        "target_kind": "table",
+                        "target_id": "submission_minimal_authority",
+                        "source_path": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                    {
+                        "target_kind": "metric",
+                        "target_id": "main_result_metrics",
+                        "source_path": str(quest_root / "artifacts" / "results" / "main_result.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                    {
+                        "target_kind": "source_path",
+                        "target_id": "publication_gate_source_path",
+                        "source_path": str(quest_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                ],
+            }
+        ],
+    }
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-dm-cvd-mortality-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-dm",
+            "quest_root": str(quest_root),
+            "quest_status": "paused",
+            "decision": "resume",
+            "reason": "quest_paused",
+            "runtime_liveness_audit": {
+                "active_run_id": None,
+                "runtime_audit": {"worker_running": False, "active_run_id": None},
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "publication_eval": publication_eval,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": "001-dm-cvd-mortality-risk",
+            "current_stage": "managed_runtime_escalated",
+            "paper_stage": "bundle_stage_blocked",
+            "auto_runtime_parked": {"parked": False, "auto_execution_complete": False},
+            "supervision": {"active_run_id": None, "health_status": "escalated"},
+        },
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=("001-dm-cvd-mortality-risk",),
+        apply_safe_actions=True,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["runtime_platform_repair"]
+    assert study["why_not_applied"] == "abnormal_stopped_runtime_resume_required"
+    assert study["blocked_reason"] == "abnormal_stopped_runtime_resume_required"
+    assert study["next_owner"] == "external_supervisor"
+    assert study["external_supervisor_required"] is True
+    assert study["gate_specificity"]["status"] == "not_required"
+    assert study["ai_reviewer_assessment"]["present"] is True
+    assert study["paper_package_mutated"] is False
+
+
 def test_supervisor_scan_runtime_repair_routes_controller_gate_skip_to_publication_gate(
     monkeypatch,
     tmp_path: Path,

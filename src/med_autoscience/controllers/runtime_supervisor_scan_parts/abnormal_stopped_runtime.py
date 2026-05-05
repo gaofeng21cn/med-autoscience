@@ -16,6 +16,7 @@ RESUME_REQUIRED_DECISIONS = {
 
 REPAIR_REASON = "abnormal_stopped_runtime_resume_required"
 LIVE_QUEST_STATUSES = {"active", "running"}
+PAUSED_QUEST_STATUSES = {"paused"}
 
 
 def _text(value: object) -> str | None:
@@ -98,6 +99,44 @@ def _live_status_no_worker_repair_required(status: Mapping[str, Any], progress: 
     )
 
 
+def _paused_resume_no_worker_repair_required(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    if _text(status.get("quest_status")) not in PAUSED_QUEST_STATUSES:
+        return False
+    if _active_run_id(status, progress) or _worker_running(status):
+        return False
+    if _auto_completion_parked(progress):
+        return False
+    decision = _text(status.get("decision")) or _text(status.get("runtime_decision"))
+    runtime_health = _mapping(status.get("runtime_health_snapshot"))
+    blocking_reasons = {
+        item
+        for source in (
+            status.get("blocking_reasons"),
+            runtime_health.get("blocking_reasons"),
+            _mapping(status.get("control_plane_snapshot")).get("blocking_reasons"),
+            _mapping(_mapping(status.get("control_plane_snapshot")).get("dispatch_gate")).get("blocking_reasons"),
+            _mapping(progress.get("control_plane_snapshot")).get("blocking_reasons"),
+            progress.get("current_blockers"),
+        )
+        for item in _string_items(source)
+    }
+    attempt_state = _text(runtime_health.get("attempt_state"))
+    canonical_runtime_action = _text(runtime_health.get("canonical_runtime_action"))
+    return bool(
+        decision in RESUME_REQUIRED_DECISIONS
+        and (
+            "runtime_recovery_retry_budget_exhausted" in blocking_reasons
+            or attempt_state == "escalated"
+            or canonical_runtime_action in {
+                "recover_runtime",
+                "probe_runtime",
+                "relaunch_runtime",
+                "external_supervisor_required",
+            }
+        )
+    )
+
+
 def _string_items(value: object) -> list[str]:
     if isinstance(value, str):
         text = value.strip()
@@ -110,6 +149,8 @@ def _string_items(value: object) -> list[str]:
 def repair_kind(status: Mapping[str, Any], progress: Mapping[str, Any]) -> str | None:
     if _live_status_no_worker_repair_required(status, progress):
         return "active_runtime_no_live_worker_relaunch"
+    if _paused_resume_no_worker_repair_required(status, progress):
+        return "abnormal_stopped_runtime_relaunch"
     if _text(status.get("quest_status")) != "stopped":
         return None
     if _active_run_id(status, progress) or _worker_running(status):
