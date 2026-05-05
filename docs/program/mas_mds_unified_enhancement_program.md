@@ -105,7 +105,7 @@ Owner: `MedAutoScience Observability OS`
 
 - `outcome calibration intake projection`：吸收 desk reject / major revision / accept 等 outcome intake，并投影 claim、统计、写作判断的 calibration refs。
 - `provider freshness, partial outage, and citation ledger drift projection`：读取 `literature_provider_runtime` / `scheduled_provider_health_read_model`，合并 provider freshness、partial outage、provider response ledger 和 citation ledger drift。
-- `journal-family fixture matrix projection`：覆盖 journal-family writing pack fixture matrix，以及 cover letter / checklist / supplement naming convention coverage。
+- `journal-family fixture matrix projection`：覆盖 journal-family writing pack fixture matrix，以及 cover letter / checklist / supplement naming convention coverage；matrix 现在要求每个 journal family 同时暴露 `cover_letter_template_ref`、`submission_checklist_ref` 与 `supplement_naming_convention_ref`，缺任一 ref 都 fail closed 为 blocked。
 
 Authority boundary：`L3` 只能更新 calibration inputs、health projection 和 regression evidence；不能绕过 AI reviewer 或 publication gate 直接让稿件 ready。
 
@@ -130,6 +130,7 @@ Authority boundary：legacy upgrade queue、delivery traffic-light、backfill bl
 - `src/med_autoscience/controllers/delivery_legacy_visibility.py` 暴露统一 `delivery_legacy_visibility_read_model`。
 - `legacy_upgrade_queue` 汇总 controller-authorized source、human-facing mirror 和 zip 中仍需升级的 legacy root audit layout。
 - `doctor_readme_structure_projection` 固定医生友好 README 四段结构：投稿文件、audit/reproducibility、delivery 状态、next controller-authorized sync；全部声明为非 edit source。
+- controller-authorized delivery sync/apply 现在会把这四段结构写入真实 `manuscript/current_package/README.md`，并在 delivery manifest 中记录 `controller_authorized_doctor_readme` payload；普通 inspect/read model 仍保持 projection-only，不写 delivery truth。
 - `traffic_light.status` 仅允许 `current`、`stale`、`legacy_pending`、`missing`。
 - `backfill_blocker_report` 汇总 missing、stale、legacy upgrade 和 audit/reproducibility incomplete blocker。
 - authority 固定为 `read_model/projection_only`，`can_write_delivery_truth=false`；delivery truth 只能由 controller-authorized sync/apply 写入。
