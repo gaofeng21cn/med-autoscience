@@ -365,6 +365,109 @@ def test_ensure_study_runtime_keeps_completion_blocked_when_publishability_gate_
     assert result["study_completion_contract"]["ready"] is True
 
 
+def test_study_runtime_status_completed_quest_completion_contract_preempts_stale_gate_and_task_intake(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-risk",
+        study_status="completed",
+        quest_id="002-risk-managed",
+        study_completion={
+            "status": "completed",
+            "summary": "Study-level finalized delivery is complete.",
+            "evidence_paths": [
+                "notes/revision_status.md",
+                "manuscript/submission_package.zip",
+            ],
+        },
+        submission_targets=[
+            {
+                "publication_profile": "general_medical_journal",
+                "package_required": True,
+                "primary": True,
+            }
+        ],
+    )
+    write_text(study_root / "notes" / "revision_status.md", "# Revision\n")
+    write_text(study_root / "manuscript" / "general_medical_journal_submission_package.zip", "zip placeholder\n")
+    write_text(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "study_id": "002-risk",
+                "emitted_at": "2026-04-26T07:18:05+00:00",
+                "entry_mode": "full_research",
+                "task_intent": "Resume completed paper line for user-visible manuscript revision.",
+                "constraints": [
+                    "Treat this as a historical task intake unless a newer authorized revision epoch exists.",
+                ],
+                "first_cycle_outputs": ["revision notes"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+
+    monkeypatch.setattr(
+        module.quest_state,
+        "inspect_quest_runtime",
+        lambda quest_root: module.quest_state.QuestRuntimeSnapshot(
+            quest_exists=True,
+            quest_status="completed",
+            bash_session_audit=None,
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "002-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "blocked",
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": False,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": ["finalize_paper_line"],
+            "controller_stage_note": "stale gate report from a pre-completion revision pass",
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="002-risk")
+
+    assert result["quest_status"] == "completed"
+    assert result["decision"] == "completed"
+    assert result["reason"] == "quest_already_completed"
+    assert result["study_completion_contract"]["ready"] is True
+    assert result["progress_projection"]["current_stage"] == "study_completed"
+    assert result["progress_projection"]["intervention_lane"]["lane_id"] != "quality_floor_blocker"
+    assert result["progress_projection"]["operator_status_card"]["handling_state"] == "monitor_only"
+    assert result["progress_projection"]["current_blockers"] == []
+    assert "task intake" not in result["progress_projection"]["next_system_action"]
+
+
 def test_sync_study_completion_rejects_program_human_confirmation_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     completion_module = importlib.import_module("med_autoscience.study_completion")

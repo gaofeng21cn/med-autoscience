@@ -27,12 +27,16 @@ def build_owner_route(
     active_run_id: str | None,
 ) -> dict[str, Any]:
     normalized_actions = [dict(action) for action in actions]
+    owner = next_owner or _owner_from_actions(normalized_actions)
     allowed_actions = [
         action_type
         for action_type in ROUTED_ACTION_TYPES
-        if any(_text(action.get("action_type")) == action_type for action in normalized_actions)
+        if any(
+            _text(action.get("action_type")) == action_type
+            and _action_owner(action) == owner
+            for action in normalized_actions
+        )
     ]
-    owner = next_owner or _owner_from_actions(normalized_actions)
     owner_reason = blocked_reason or _reason_from_actions(normalized_actions)
     truth = _mapping(status.get("study_truth_snapshot")) or _mapping(progress.get("study_truth_snapshot"))
     route_epoch = _text(truth.get("truth_epoch")) or _text(truth.get("authority_epoch")) or _fallback_epoch(
@@ -153,13 +157,19 @@ def route_allows_action(*, action: Mapping[str, Any], owner_route: Mapping[str, 
 
 def _owner_from_actions(actions: list[Mapping[str, Any]]) -> str | None:
     for action in actions:
-        for key in ("owner", "request_owner", "recommended_owner"):
-            if text := _text(action.get(key)):
-                return text
-        handoff = _mapping(action.get("handoff_packet"))
-        for key in ("owner", "request_owner", "recommended_owner", "next_executable_owner"):
-            if text := _text(handoff.get(key)):
-                return text
+        if text := _action_owner(action):
+            return text
+    return None
+
+
+def _action_owner(action: Mapping[str, Any]) -> str | None:
+    for key in ("owner", "request_owner", "recommended_owner"):
+        if text := _text(action.get(key)):
+            return text
+    handoff = _mapping(action.get("handoff_packet"))
+    for key in ("owner", "request_owner", "recommended_owner", "next_executable_owner"):
+        if text := _text(handoff.get(key)):
+            return text
     return None
 
 

@@ -364,3 +364,264 @@ def test_owner_route_fallback_source_fingerprint_tracks_action_payload_targets()
     assert claim_route["route_epoch"] == metric_route["route_epoch"]
     assert claim_route["source_fingerprint"] != metric_route["source_fingerprint"]
     assert claim_route["idempotency_key"] != metric_route["idempotency_key"]
+
+
+def test_supervisor_scan_routes_incomplete_completion_contract_to_completion_evidence_owner(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-002")
+
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (
+            {
+                "study_id": "002-risk",
+                "study_root": str(study_root),
+                "quest_id": "quest-002",
+                "quest_root": str(profile.med_deepscientist_runtime_root / "quests" / "quest-002"),
+                "quest_status": "completed",
+                "decision": "blocked",
+                "reason": "study_completion_contract_not_ready",
+                "study_completion_contract": {
+                    "ready": False,
+                    "status": "incomplete",
+                    "completion_status": "completed",
+                    "summary": "Study delivery declared complete.",
+                    "missing_evidence_paths": ["manuscript/submission_package.zip"],
+                },
+            },
+            {
+                "study_id": "002-risk",
+                "quest_id": "quest-002",
+                "current_stage": "runtime_blocked",
+                "intervention_lane": {
+                    "lane_id": "completion_evidence_required",
+                    "recommended_action_id": "sync_completion_evidence",
+                },
+                "current_blockers": ["study-level 完成声明已存在，但 final submission 证据还未补齐。"],
+                "study_completion_contract": {
+                    "ready": False,
+                    "status": "incomplete",
+                    "missing_evidence_paths": ["manuscript/submission_package.zip"],
+                },
+            },
+            "quest-002",
+            {},
+        ),
+    )
+
+    result = scan.supervisor_scan(
+        profile=profile,
+        study_ids=["002-risk"],
+        developer_supervisor_mode="developer_apply_safe",
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["next_owner"] == "completion_evidence"
+    assert study["blocked_reason"] == "study_completion_contract_not_ready"
+    assert study["external_supervisor_required"] is False
+    assert study["action_queue"] == []
+    assert study["owner_route"]["next_owner"] == "completion_evidence"
+    assert study["owner_route"]["owner_reason"] == "study_completion_contract_not_ready"
+
+
+def test_supervisor_scan_completed_truth_suppresses_stale_repair_lifecycle(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-002")
+
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (
+            {
+                "study_id": "002-risk",
+                "study_root": str(study_root),
+                "quest_id": "quest-002",
+                "quest_root": str(profile.med_deepscientist_runtime_root / "quests" / "quest-002"),
+                "quest_status": "completed",
+                "decision": "completed",
+                "reason": "quest_already_completed",
+                "study_completion_contract": {
+                    "ready": True,
+                    "status": "resolved",
+                    "completion_status": "completed",
+                    "summary": "Study delivery declared complete.",
+                    "missing_evidence_paths": [],
+                },
+                "study_truth_snapshot": {
+                    "truth_epoch": "truth-epoch-completed",
+                    "source_signature": "completion-source",
+                },
+            },
+            {
+                "study_id": "002-risk",
+                "quest_id": "quest-002",
+                "current_stage": "study_completed",
+                "intervention_lane": {
+                    "lane_id": "completed",
+                    "recommended_action_id": "inspect_progress",
+                },
+                "ai_repair_lifecycle": {
+                    "state": "blocked",
+                    "blocked_reason": "runtime_recovery_not_authorized",
+                    "next_owner": "external_supervisor",
+                    "external_supervisor_required": True,
+                },
+                "quality_review_loop": {
+                    "closure_state": "quality_repair_required",
+                },
+            },
+            "quest-002",
+            {
+                "assessment_provenance": {
+                    "owner": "mechanical_projection",
+                    "ai_reviewer_required": True,
+                },
+            },
+        ),
+    )
+
+    result = scan.supervisor_scan(
+        profile=profile,
+        study_ids=["002-risk"],
+        developer_supervisor_mode="developer_apply_safe",
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["action_queue"] == []
+    assert study["next_owner"] is None
+    assert study["blocked_reason"] is None
+    assert study["external_supervisor_required"] is False
+    assert study["owner_route"]["next_owner"] is None
+    assert study["owner_route"]["owner_reason"] is None
+
+
+def test_supervisor_scan_routes_no_live_current_controller_work_unit_without_external_supervisor(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / study_id
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": f"publication-eval::{study_id}::current",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "work_unit_fingerprint": "publication-blockers::current",
+                "next_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                },
+                "specificity_targets": _specificity_targets(study_root),
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": f"study-decision::{study_id}::bounded_analysis",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "ensure_study_runtime"}],
+            "route_target": "analysis-campaign",
+            "work_unit_fingerprint": "publication-blockers::current",
+            "next_work_unit": {
+                "unit_id": "analysis_claim_evidence_repair",
+                "lane": "analysis-campaign",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (
+            {
+                "study_id": study_id,
+                "study_root": str(study_root),
+                "quest_id": study_id,
+                "quest_root": str(quest_root),
+                "quest_status": "active",
+                "decision": "resume",
+                "reason": "quest_marked_running_but_no_live_session",
+                "active_run_id": None,
+                "runtime_liveness_audit": {
+                    "status": "none",
+                    "active_run_id": None,
+                    "runtime_audit": {"worker_running": False, "active_run_id": None},
+                },
+                "runtime_health_snapshot": {
+                    "canonical_runtime_action": "external_supervisor_required",
+                    "attempt_state": "escalated",
+                    "retry_budget_remaining": 0,
+                    "blocking_reasons": [
+                        "quest_marked_running_but_no_live_session",
+                        "runtime_recovery_retry_budget_exhausted",
+                    ],
+                },
+                "publication_eval": publication_eval,
+                "study_truth_snapshot": {
+                    "truth_epoch": "truth-epoch-current-work-unit",
+                    "source_signature": "truth-source-current-work-unit",
+                },
+            },
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "current_stage": "managed_runtime_escalated",
+                "paper_stage": "publishability_gate_blocked",
+                "supervision": {"active_run_id": None, "health_status": "escalated"},
+                "quality_review_loop": {"closure_state": "review_required"},
+                "ai_repair_lifecycle": {
+                    "state": "blocked",
+                    "blocked_reason": "runtime_recovery_retry_budget_exhausted",
+                    "next_owner": "external_supervisor",
+                    "external_supervisor_required": True,
+                },
+                "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+            },
+            study_id,
+            publication_eval,
+        ),
+    )
+
+    result = scan.supervisor_scan(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == [
+        "runtime_platform_repair",
+        "return_to_ai_reviewer_workflow",
+    ]
+    assert study["action_queue"][0]["authority"] == "observability_only"
+    assert study["action_queue"][0]["owner"] == "mas_controller"
+    assert study["action_queue"][0]["reason"] == "runtime_controller_redrive_required"
+    assert study["next_owner"] == "mas_controller"
+    assert study["blocked_reason"] == "runtime_controller_redrive_required"
+    assert study["external_supervisor_required"] is False
+    assert study["owner_route"]["next_owner"] == "mas_controller"
+    assert study["owner_route"]["owner_reason"] == "runtime_controller_redrive_required"
+    assert study["owner_route"]["allowed_actions"] == ["runtime_platform_repair"]

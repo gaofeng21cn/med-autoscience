@@ -123,6 +123,19 @@ MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 poli
 
 consumer 只能传播该 route，不能重新解释 owner。executor 执行前必须把 dispatch 中的 route 与最新 `hourly/latest.json` 的 route 对齐；如果 epoch、fingerprint、owner 或 reason 已变化，执行器必须写 `blocked_reason=owner_route_stale`，等待下一轮 consume 生成新 dispatch。
 
+`allowed_actions` 只表达当前 `next_owner` 可以执行的动作，不是 action queue 的全集。scan 可以同时暴露后续 owner 的观测动作，例如 AI reviewer request；但本轮 dispatch executor 只能执行 owner_route 允许的动作。这样 runtime liveness 的 retry/exhausted 噪声、publication gate 的 blocker、AI reviewer 的质量判断和 artifact freshness 的修复任务不会在同一个 tick 互相抢 owner。
+
+当 no-live / retry-exhausted 与当前 controller decision 同时存在时，scan 必须先做 current truth 对齐：
+
+- `controller_decisions/latest.json` 的 action 必须是 runtime redrive 类 action；
+- `controller_decisions/latest.json` 的 work-unit fingerprint 必须出现在当前 `publication_eval/latest.json`；
+- next work unit 不能只是 `gate_needs_specificity` / `needs_specificity` terminal；
+- 满足以上条件时，`runtime_platform_repair` 的 owner 是 `mas_controller`，authority 是 `observability_only`，reason 是 `runtime_controller_redrive_required`；
+- relaunch 前必须把当前 controller decision 与 publication eval 中同 fingerprint 的具体 `specificity_targets` / actionable target 写入 runtime state 的 controller authorization；没有可执行 target 时不能把 no-live 状态误判成可恢复 runtime；
+- 只有没有当前 controller route 或当前 route 已不对齐时，retry budget exhausted 才能升级为 external supervisor handoff。
+
+完成态与停驻态也属于 current truth。若 `study_runtime_status` / `study_progress` 已经给出 `quest_status=completed` 且 completion contract resolved，或 `auto_runtime_parked.parked=true` / `canonical_runtime_action=await_explicit_resume` 且没有 live worker，scan 必须清空 stale lifecycle、不给 AI reviewer 或 external supervisor 排队，并把 `owner_route.current_owner` 投为 `controller_stop` 或 completed truth。manual hold、publishability stop-loss、package-ready handoff 和 external metadata pending 都只能等待显式 resume / revision intake，不能被 no-live 噪声、旧 publication gate 或旧 AI reviewer required 重新打开 writer。
+
 同一轮 owner action 必须满足幂等合同。`route_epoch` 和 `source_fingerprint` 决定本轮 owner routing，具体 repo-side owner 还必须给自己的 work unit 写稳定 fingerprint：
 
 - fingerprint 只表达语义输入，不表达普通观测时间；内容相同的 JSON/资产被同一 owner 重写后，不能因为 `mtime` 变化制造新 work unit。

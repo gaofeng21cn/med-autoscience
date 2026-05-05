@@ -10,6 +10,7 @@ from tests.study_progress_cases.abnormal_stopped_runtime_projection import *
 from tests.study_progress_cases.gate_specificity_projection import *
 from tests.study_progress_cases.milestone_parking_projection import *
 from tests.study_progress_cases.supervision_blockers_and_task_reopen import *
+from tests.study_progress_cases.completion_evidence_projection import *
 from tests.study_progress_cases.runtime_liveness_convergence import *
 from tests.study_progress_cases.reviewer_handoff_quality_closure import *
 from tests.study_progress_cases.markdown_and_followthrough_projection import *

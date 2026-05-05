@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
@@ -150,6 +151,26 @@ def _runtime_state_has_stale_specificity_terminal(runtime_state: Mapping[str, An
     return any(marker in SPECIFICITY_WORK_UNIT_IDS for marker in markers)
 
 
+def _runtime_state_has_controller_terminal(runtime_state: Mapping[str, Any]) -> bool:
+    authorization = _mapping(runtime_state.get("last_controller_decision_authorization"))
+    lifecycle = _mapping(authorization.get("controller_work_unit_lifecycle"))
+    retry_state = _mapping(runtime_state.get("retry_state"))
+    markers = {
+        _text(runtime_state.get("continuation_reason")),
+        _text(authorization.get("work_unit_id")),
+        _text(lifecycle.get("lifecycle_state")),
+        _text(lifecycle.get("latest_event_type")),
+        _text(lifecycle.get("block_reason")),
+    }
+    terminal_markers = set(SPECIFICITY_WORK_UNIT_IDS) | set(PACKAGE_FRESHNESS_TERMINAL_REASONS)
+    return (
+        any(marker in terminal_markers for marker in markers)
+        or retry_state.get("terminal") is True
+        or lifecycle.get("terminal_consumed") is True
+        or lifecycle.get("delivery_blocked") is True
+    )
+
+
 def _resume_result_active_run_id(resume_result: Mapping[str, Any]) -> str | None:
     runtime_liveness = _mapping(resume_result.get("runtime_liveness_audit"))
     runtime_audit = _mapping(runtime_liveness.get("runtime_audit"))
@@ -249,6 +270,48 @@ def _apply_abnormal_stopped_runtime_repair(
     }
 
 
+def _apply_current_controller_runtime_redrive(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    runtime_state_path: Path,
+    quest_id: str | None,
+    publication_eval_payload: Mapping[str, Any],
+    base: Mapping[str, Any],
+    repair_kind: str,
+) -> dict[str, Any]:
+    authorization = _write_current_controller_authorization(
+        runtime_state_path=runtime_state_path,
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if authorization is not None and authorization.get("written") is not True:
+        return {
+            **dict(base),
+            "dispatch_status": "blocked",
+            "reason": _text(authorization.get("reason")) or "current_controller_authorization_not_written",
+            "repair_kind": repair_kind,
+            "current_controller_authorization": authorization,
+        }
+    apply_result = _apply_abnormal_stopped_runtime_repair(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        base=base,
+        repair_kind=repair_kind,
+    )
+    if authorization is not None:
+        return {
+            **apply_result,
+            "current_controller_authorization": authorization,
+            "current_controller_authorization_written": authorization.get("written") is True,
+        }
+    return apply_result
+
+
 def _publication_gate_ready_for_specificity_redrive(quest_root: str | None) -> dict[str, Any]:
     if quest_root is None:
         return {"ready": False, "clear": False, "reason": "quest_root_missing"}
@@ -293,6 +356,174 @@ def _controller_action_types(payload: Mapping[str, Any]) -> set[str]:
         elif (text := _text(action)) is not None:
             action_types.add(text)
     return action_types
+
+
+def _mapping_has_actionable_controller_target(payload: Mapping[str, Any]) -> bool:
+    actionable_keys = {
+        "claim_id",
+        "claim_ref",
+        "figure_id",
+        "figure_ref",
+        "table_id",
+        "table_ref",
+        "metric_id",
+        "metric_ref",
+        "citation_id",
+        "citation_ref",
+        "evidence_row_id",
+        "evidence_row_ref",
+        "package_artifact",
+        "artifact_path",
+        "source_path",
+    }
+    if any(_text(payload.get(key)) for key in actionable_keys):
+        return True
+    for key in (
+        "blocking_artifact_refs",
+        "blocker_details",
+        "gate_blocker_details",
+        "specificity_targets",
+        "work_unit_targets",
+        "gaps",
+    ):
+        value = payload.get(key)
+        if isinstance(value, Mapping) and _mapping_has_actionable_controller_target(value):
+            return True
+        if isinstance(value, list):
+            for item in value:
+                if isinstance(item, Mapping) and _mapping_has_actionable_controller_target(item):
+                    return True
+    return False
+
+
+def _publication_action_for_work_unit(
+    *,
+    publication_eval_payload: Mapping[str, Any],
+    work_unit_fingerprint: str | None,
+) -> dict[str, Any] | None:
+    if work_unit_fingerprint is None:
+        return None
+    actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return None
+    for action in actions:
+        if not isinstance(action, Mapping):
+            continue
+        next_work_unit = _mapping(action.get("next_work_unit"))
+        action_fingerprint = _text(action.get("work_unit_fingerprint")) or _text(next_work_unit.get("fingerprint"))
+        if action_fingerprint == work_unit_fingerprint and _mapping_has_actionable_controller_target(action):
+            return dict(action)
+    return None
+
+
+def _current_controller_authorization_payload(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    route = current_truth_owner.current_controller_runtime_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if route is None:
+        return None
+    decision = _read_json_object(Path(str(route["decision_path"])))
+    if decision is None:
+        return None
+    work_unit = _mapping(decision.get("next_work_unit"))
+    work_unit_fingerprint = _text(route.get("work_unit_fingerprint"))
+    publication_action = _publication_action_for_work_unit(
+        publication_eval_payload=publication_eval_payload,
+        work_unit_fingerprint=work_unit_fingerprint,
+    )
+    if publication_action is None:
+        return None
+    authorization: dict[str, Any] = {
+        "decision_id": _text(decision.get("decision_id")),
+        "route_target": _text(decision.get("route_target")),
+        "work_unit_id": _text(work_unit.get("unit_id")),
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "next_work_unit": dict(work_unit),
+        "controller_actions": sorted(_controller_action_types(decision)),
+        "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
+        "authorized_at": _utc_now(),
+    }
+    for key in (
+        "specificity_targets",
+        "work_unit_targets",
+        "blocking_artifact_refs",
+        "blocker_details",
+        "gate_blocker_details",
+        "gaps",
+        "source_path",
+    ):
+        if key in publication_action:
+            authorization[key] = publication_action[key]
+    return authorization
+
+
+def _write_current_controller_authorization(
+    *,
+    runtime_state_path: Path,
+    study_root: Path,
+    study_id: str,
+    quest_id: str | None,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    authorization = _current_controller_authorization_payload(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if authorization is None:
+        return None
+    runtime_state = _read_json_object(runtime_state_path)
+    if runtime_state is None:
+        return {"written": False, "reason": "runtime_state_missing_or_invalid", "path": str(runtime_state_path)}
+    if int(runtime_state.get("pending_user_message_count") or 0) > 0:
+        return {"written": False, "reason": "pending_user_messages_present", "path": str(runtime_state_path)}
+    runtime_state["quest_id"] = _text(runtime_state.get("quest_id")) or quest_id
+    runtime_state["active_run_id"] = None
+    runtime_state["worker_running"] = False
+    runtime_state["continuation_policy"] = "auto"
+    runtime_state["continuation_anchor"] = "decision"
+    runtime_state["continuation_reason"] = "controller_work_unit_pending"
+    runtime_state["continuation_updated_at"] = _utc_now()
+    runtime_state["same_fingerprint_auto_turn_count"] = 0
+    runtime_state["last_controller_decision_authorization"] = authorization
+    for key in ("retry_state", "last_stage_fingerprint", "last_stage_fingerprint_at"):
+        runtime_state.pop(key, None)
+    runtime_state["last_runtime_platform_repair"] = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
+        "clear_reason": "current_controller_authorization",
+        "applied_at": _utc_now(),
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+    }
+    _write_json(runtime_state_path, runtime_state)
+    _append_json_line(
+        runtime_state_path.parent / "events.jsonl",
+        {
+            "event_id": f"mas-runtime-platform-repair::{study_id}::{_utc_now()}",
+            "type": "mas.current_controller_authorization",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
+            "work_unit_id": authorization.get("work_unit_id"),
+            "work_unit_fingerprint": authorization.get("work_unit_fingerprint"),
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "created_at": _utc_now(),
+        },
+    )
+    return {
+        "written": True,
+        "path": str(runtime_state_path),
+        "decision_id": authorization.get("decision_id"),
+        "work_unit_id": authorization.get("work_unit_id"),
+        "work_unit_fingerprint": authorization.get("work_unit_fingerprint"),
+    }
 
 
 def _controller_decision_supersedes_specificity(
@@ -370,19 +601,20 @@ def _stale_specificity_redrive_can_apply(
     return supersession.get("supersedes") is True, gate_status, supersession
 
 
-def _clear_stale_specificity_runtime_state(
+def _clear_stale_controller_runtime_state(
     *,
     runtime_state_path: Path,
     study_id: str,
     quest_id: str | None,
+    clear_reason: str,
 ) -> dict[str, Any]:
     runtime_state = _read_json_object(runtime_state_path)
     if runtime_state is None:
         return {"cleared": False, "reason": "runtime_state_missing_or_invalid", "path": str(runtime_state_path)}
     if int(runtime_state.get("pending_user_message_count") or 0) > 0:
         return {"cleared": False, "reason": "pending_user_messages_present", "path": str(runtime_state_path)}
-    if not _runtime_state_has_stale_specificity_terminal(runtime_state):
-        return {"cleared": False, "reason": "stale_specificity_terminal_gate_not_found", "path": str(runtime_state_path)}
+    if not _runtime_state_has_controller_terminal(runtime_state):
+        return {"cleared": False, "reason": "stale_controller_terminal_not_found", "path": str(runtime_state_path)}
     cleared_keys: list[str] = []
     for key in (
         "last_controller_decision_authorization",
@@ -407,6 +639,7 @@ def _clear_stale_specificity_runtime_state(
         "study_id": study_id,
         "quest_id": quest_id,
         "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
+        "clear_reason": clear_reason,
         "cleared_keys": cleared_keys,
         "applied_at": _utc_now(),
         "paper_package_mutation_allowed": False,
@@ -421,6 +654,7 @@ def _clear_stale_specificity_runtime_state(
             "study_id": study_id,
             "quest_id": quest_id,
             "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
+            "clear_reason": clear_reason,
             "cleared_keys": cleared_keys,
             "paper_package_mutation_allowed": False,
             "quality_gate_relaxation_allowed": False,
@@ -428,6 +662,62 @@ def _clear_stale_specificity_runtime_state(
         },
     )
     return {"cleared": True, "cleared_keys": cleared_keys, "path": str(runtime_state_path)}
+
+
+def _clear_stale_specificity_runtime_state(
+    *,
+    runtime_state_path: Path,
+    study_id: str,
+    quest_id: str | None,
+) -> dict[str, Any]:
+    runtime_state = _read_json_object(runtime_state_path)
+    if runtime_state is None:
+        return {"cleared": False, "reason": "runtime_state_missing_or_invalid", "path": str(runtime_state_path)}
+    if not _runtime_state_has_stale_specificity_terminal(runtime_state):
+        return {"cleared": False, "reason": "stale_specificity_terminal_gate_not_found", "path": str(runtime_state_path)}
+    return _clear_stale_controller_runtime_state(
+        runtime_state_path=runtime_state_path,
+        study_id=study_id,
+        quest_id=quest_id,
+        clear_reason="stale_specificity_terminal",
+    )
+
+
+def _clear_stale_controller_terminal_for_current_route(
+    *,
+    runtime_state_path: Path,
+    study_root: Path,
+    study_id: str,
+    quest_id: str | None,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    runtime_state = _read_json_object(runtime_state_path)
+    if runtime_state is None or not _runtime_state_has_controller_terminal(runtime_state):
+        return None
+    route = current_truth_owner.current_controller_runtime_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if route is None:
+        return None
+    authorization = _mapping(runtime_state.get("last_controller_decision_authorization"))
+    if (
+        _text(authorization.get("decision_id")) == _text(route.get("decision_id"))
+        and _text(authorization.get("work_unit_id")) == _text(route.get("work_unit_id"))
+    ):
+        return None
+    clear_result = _clear_stale_controller_runtime_state(
+        runtime_state_path=runtime_state_path,
+        study_id=study_id,
+        quest_id=quest_id,
+        clear_reason="current_controller_runtime_route",
+    )
+    return {
+        "cleared": clear_result.get("cleared") is True,
+        "reason": _text(clear_result.get("reason")),
+        "clear_result": clear_result,
+        "controller_route": route,
+    }
 
 
 def write_runtime_platform_repair_lifecycle(
@@ -529,10 +819,36 @@ def apply_runtime_platform_repair(
             publication_eval_payload=publication_eval_payload,
         )
         if not stale_redrive_can_apply:
-            return _apply_abnormal_stopped_runtime_repair(
+            stale_controller_clear = _clear_stale_controller_terminal_for_current_route(
+                runtime_state_path=runtime_path,
+                study_root=study_root,
+                study_id=study_id,
+                quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
+                publication_eval_payload=publication_eval_payload,
+            )
+            if stale_controller_clear is not None and stale_controller_clear.get("cleared") is True:
+                apply_result = _apply_current_controller_runtime_redrive(
+                    profile=profile,
+                    study_id=study_id,
+                    study_root=study_root,
+                    runtime_state_path=runtime_path,
+                    quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
+                    publication_eval_payload=publication_eval_payload,
+                    base=base,
+                    repair_kind=abnormal_repair_kind,
+                )
+                return {
+                    **apply_result,
+                    "stale_controller_terminal_clear": stale_controller_clear,
+                    "stale_controller_terminal_cleared": True,
+                }
+            return _apply_current_controller_runtime_redrive(
                 profile=profile,
                 study_id=study_id,
                 study_root=study_root,
+                runtime_state_path=runtime_path,
+                quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
+                publication_eval_payload=publication_eval_payload,
                 base=base,
                 repair_kind=abnormal_repair_kind,
             )

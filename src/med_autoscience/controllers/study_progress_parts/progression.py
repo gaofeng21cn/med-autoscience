@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from .activity_timeout_lane import activity_timeout_lane, activity_timeout_state
+from .completion_evidence import (
+    append_completion_blocker,
+    completion_intervention_lane,
+    completion_next_action_or_reason,
+    completion_progress_freshness_required,
+    completion_stage_summary_or_reason,
+)
 from .milestone_parking import finalize_milestone_parking_active, finalize_milestone_parking_summary
 from .parked_progression import parked_intervention_lane, publication_supervisor_blocks_handoff, task_intake_quality_lane
-from .gate_clearing_progress import append_gate_clearing_batch_progress_signal, append_progress_signal
 from .runtime_liveness_projection import live_managed_runtime_present, runtime_recovery_pending_from_status
 from .specificity_lane import specificity_intervention_lane, specificity_next_system_action, specificity_stage_summary
 from .stage_state import current_stage_from_runtime_attempt_state, progress_freshness_required
+from .base_progress_freshness import _progress_freshness
 from . import shared as _shared
 from . import publication_runtime as _publication_runtime
 from .quality_review_loop import quality_review_loop_action_required
@@ -56,137 +63,6 @@ def _progress_freshness_status_label(status: object) -> str | None:
     if text is None:
         return None
     return _PROGRESS_FRESHNESS_STATUS_LABELS.get(text, _humanize_token(text))
-
-
-def _latest_progress_signal(
-    *,
-    bash_summary_payload: dict[str, Any] | None,
-    details_projection_payload: dict[str, Any] | None,
-    controller_decision_payload: dict[str, Any] | None,
-    publication_eval_payload: dict[str, Any] | None,
-    gate_clearing_batch_payload: dict[str, Any] | None,
-    gate_clearing_batch_path: Path | None,
-) -> dict[str, Any] | None:
-    signals: list[dict[str, Any]] = []
-    latest_session = (bash_summary_payload or {}).get("latest_session")
-    if isinstance(latest_session, dict):
-        last_progress = latest_session.get("last_progress")
-        if isinstance(last_progress, dict):
-            append_progress_signal(
-                signals=signals,
-                timestamp=_non_empty_text(last_progress.get("ts")) or _non_empty_text(latest_session.get("updated_at")),
-                source="bash_summary",
-                summary=_non_empty_text(last_progress.get("message")) or _non_empty_text(last_progress.get("step")),
-            )
-    if details_projection_payload is not None:
-        append_progress_signal(
-            signals=signals,
-            timestamp=_non_empty_text(((details_projection_payload.get("summary") or {}).get("updated_at")))
-            or _non_empty_text((details_projection_payload or {}).get("generated_at")),
-            source="details_projection",
-            summary=_non_empty_text(((details_projection_payload.get("summary") or {}).get("status_line"))),
-        )
-    if controller_decision_payload is not None:
-        decision_type = _decision_type_label(controller_decision_payload.get("decision_type")) or "形成控制面决定"
-        reason = _display_text(controller_decision_payload.get("reason"))
-        summary = f"控制面正式决定：{decision_type}。"
-        if reason:
-            summary += f" 原因：{reason}"
-        append_progress_signal(
-            signals=signals,
-            timestamp=controller_decision_payload.get("emitted_at"),
-            source="controller_decision",
-            summary=summary,
-        )
-    if publication_eval_payload is not None:
-        verdict = (publication_eval_payload.get("verdict") or {}) if isinstance(publication_eval_payload, dict) else {}
-        append_progress_signal(
-            signals=signals,
-            timestamp=publication_eval_payload.get("emitted_at"),
-            source="publication_eval",
-            summary=_non_empty_text(verdict.get("summary")) or "发表评估已更新。",
-        )
-    append_gate_clearing_batch_progress_signal(
-        signals=signals,
-        gate_clearing_batch_payload=gate_clearing_batch_payload,
-        gate_clearing_batch_path=gate_clearing_batch_path,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if not signals:
-        return None
-    return max(signals, key=lambda item: item["timestamp"])
-
-
-def _progress_freshness(
-    *,
-    current_stage: str,
-    bash_summary_payload: dict[str, Any] | None,
-    details_projection_payload: dict[str, Any] | None,
-    controller_decision_payload: dict[str, Any] | None,
-    publication_eval_payload: dict[str, Any] | None,
-    gate_clearing_batch_payload: dict[str, Any] | None,
-    gate_clearing_batch_path: Path | None,
-) -> dict[str, Any]:
-    required = progress_freshness_required(current_stage)
-    latest_signal = _latest_progress_signal(
-        bash_summary_payload=bash_summary_payload,
-        details_projection_payload=details_projection_payload,
-        controller_decision_payload=controller_decision_payload,
-        publication_eval_payload=publication_eval_payload,
-        gate_clearing_batch_payload=gate_clearing_batch_payload,
-        gate_clearing_batch_path=gate_clearing_batch_path,
-    )
-    if not required:
-        summary = "当前阶段以人工判断或收尾为主，不要求系统继续产出新的自动推进信号。"
-        return {
-            "status": "not_required",
-            "required": False,
-            "summary": summary,
-            "stale_after_seconds": _PROGRESS_STALE_AFTER_SECONDS,
-            "latest_progress_at": latest_signal.get("timestamp") if latest_signal else None,
-            "latest_progress_time_label": latest_signal.get("time_label") if latest_signal else None,
-            "latest_progress_source": latest_signal.get("source") if latest_signal else None,
-            "latest_progress_summary": latest_signal.get("summary") if latest_signal else None,
-            "seconds_since_latest_progress": None,
-        }
-    if latest_signal is None:
-        return {
-            "status": "missing",
-            "required": True,
-            "summary": "当前还没有看到明确的研究推进记录，用户现在只能看到监管或状态面。",
-            "stale_after_seconds": _PROGRESS_STALE_AFTER_SECONDS,
-            "latest_progress_at": None,
-            "latest_progress_time_label": None,
-            "latest_progress_source": None,
-            "latest_progress_summary": None,
-            "seconds_since_latest_progress": None,
-        }
-
-    progress_freshness_now = _controller_override("_progress_freshness_now", _progress_freshness_now)
-    age_seconds = max(
-        0,
-        int((progress_freshness_now() - datetime.fromisoformat(str(latest_signal["timestamp"]))).total_seconds()),
-    )
-    if age_seconds > _PROGRESS_STALE_AFTER_SECONDS:
-        summary = (
-            f"距离上一次明确研究推进已经超过 {_duration_hours_label(_PROGRESS_STALE_AFTER_SECONDS)}，"
-            "当前要重点排查是否卡住或空转。"
-        )
-        status = "stale"
-    else:
-        summary = f"最近 {_duration_hours_label(_PROGRESS_STALE_AFTER_SECONDS)}内仍有明确研究推进记录。"
-        status = "fresh"
-    return {
-        "status": status,
-        "required": True,
-        "summary": summary,
-        "stale_after_seconds": _PROGRESS_STALE_AFTER_SECONDS,
-        "latest_progress_at": latest_signal["timestamp"],
-        "latest_progress_time_label": latest_signal["time_label"],
-        "latest_progress_source": latest_signal["source"],
-        "latest_progress_summary": latest_signal["summary"],
-        "seconds_since_latest_progress": age_seconds,
-    }
 
 
 def _current_stage(
@@ -373,9 +249,12 @@ def _stage_summary(
             summary += f" 最近一次可见推进是：{latest_progress_message}"
         return summary
     if current_stage == "runtime_blocked":
-        reason = _reason_label(status.get("reason"))
-        if reason is not None:
-            return reason
+        if summary := completion_stage_summary_or_reason(
+            status,
+            current_stage=current_stage,
+            reason_label=_reason_label,
+        ):
+            return summary
         return "自动推进已被硬阻断，需要先补齐前置条件后才能继续。"
     return "研究运行仍处在准备或轻量评估阶段。"
 
@@ -567,6 +446,11 @@ def _next_system_action(
             _non_empty_text((manual_finish_contract or {}).get("next_action_summary"))
             or "继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。"
         )
+    if _non_empty_text(status.get("decision")) == "completed" or (
+        _non_empty_text(status.get("quest_status")) == "completed"
+        and _non_empty_text(status.get("reason")) == "quest_already_completed"
+    ):
+        return "保持 completed truth；不派发 runtime repair、publication gate 或 AI reviewer owner。"
     if task_intake_progress_override:
         return (
             _non_empty_text(task_intake_progress_override.get("next_system_action"))
@@ -601,9 +485,12 @@ def _next_system_action(
     ):
         return runtime_next_action
     if decision == "blocked":
-        reason = _reason_label(status.get("reason"))
-        if reason is not None:
-            return reason
+        if action := completion_next_action_or_reason(
+            status,
+            decision=decision,
+            reason_label=_reason_label,
+        ):
+            return action
     publication_action_key = _non_empty_text((publication_supervisor_state or {}).get("current_required_action"))
     specificity_request = _publication_eval_specificity_request(publication_eval_payload)
     if specificity_request is not None:
@@ -664,6 +551,13 @@ def _current_blockers(
     evaluation_summary_payload: dict[str, Any] | None,
 ) -> list[str]:
     blockers: list[str] = []
+    if _non_empty_text(status.get("decision")) == "completed":
+        return blockers
+    if (
+        _non_empty_text(status.get("quest_status")) == "completed"
+        and _non_empty_text(status.get("reason")) == "quest_already_completed"
+    ):
+        return blockers
     manual_finish_active = _manual_finish_active(manual_finish_contract)
     if manual_finish_active or finalize_milestone_parking_active(status):
         return blockers
@@ -678,10 +572,11 @@ def _current_blockers(
             _non_empty_text((supervisor_tick_audit or {}).get("summary")),
         )
     if _non_empty_text((progress_freshness or {}).get("status")) in {"stale", "missing"}:
-        _append_unique(
-            blockers,
-            _non_empty_text((progress_freshness or {}).get("summary")),
-        )
+        if completion_progress_freshness_required(status):
+            _append_unique(
+                blockers,
+                _non_empty_text((progress_freshness or {}).get("summary")),
+            )
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
     if runtime_health_status in {"degraded", "escalated"}:
         _append_unique(
@@ -711,6 +606,7 @@ def _current_blockers(
             blockers,
             _reason_label(status.get("reason")) or _non_empty_text(status.get("reason")),
         )
+    append_completion_blocker(blockers, status, _append_unique)
     if _controller_confirmation_pending(
         controller_confirmation_summary=controller_confirmation_summary,
         controller_decision_payload=controller_decision_payload,
@@ -811,6 +707,14 @@ def _intervention_lane(
     )
     handoff_blocked_by_supervisor = publication_supervisor_blocks_handoff(_mapping_copy(status.get("publication_supervisor_state")))
 
+    if current_stage == "study_completed":
+        return {
+            "lane_id": "completed",
+            "title": "研究已结题",
+            "severity": "observe",
+            "summary": current_stage_summary or "研究主线已经进入结题/交付阶段，系统不会继续自动实验。",
+            "recommended_action_id": "inspect_progress",
+        }
     specificity_request = _publication_eval_specificity_request(publication_eval_payload)
     if specificity_request is not None:
         return specificity_intervention_lane(specificity_request)
@@ -877,6 +781,9 @@ def _intervention_lane(
     )
     if lane is not None:
         return lane
+    completion_lane = completion_intervention_lane(status)
+    if completion_lane is not None:
+        return completion_lane
     if _supervisor_tick_gap_present(supervisor_tick_audit):
         return {
             "lane_id": "workspace_supervision_gap",

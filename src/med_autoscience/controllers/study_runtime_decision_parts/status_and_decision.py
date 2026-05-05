@@ -404,6 +404,12 @@ def _status_state(
                 StudyRuntimeReason.STUDY_COMPLETION_REQUIRES_PROGRAM_HUMAN_CONFIRMATION,
             )
             return _finalize_result()
+        if quest_exists and quest_status == StudyRuntimeQuestStatus.COMPLETED:
+            result.set_decision(
+                StudyRuntimeDecision.COMPLETED,
+                StudyRuntimeReason.QUEST_ALREADY_COMPLETED,
+            )
+            return _finalize_result()
         if publication_gate_report is not None and str(publication_gate_report.get("status") or "").strip() != "clear":
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
@@ -414,12 +420,6 @@ def _status_state(
             result.set_decision(
                 StudyRuntimeDecision.COMPLETED,
                 StudyRuntimeReason.STUDY_COMPLETION_DECLARED_WITHOUT_MANAGED_QUEST,
-            )
-            return _finalize_result()
-        if quest_status == StudyRuntimeQuestStatus.COMPLETED:
-            result.set_decision(
-                StudyRuntimeDecision.COMPLETED,
-                StudyRuntimeReason.QUEST_ALREADY_COMPLETED,
             )
             return _finalize_result()
         if quest_status in _LIVE_QUEST_STATUSES:

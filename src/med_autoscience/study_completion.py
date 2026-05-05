@@ -7,6 +7,8 @@ from typing import Any
 
 import yaml
 
+from med_autoscience.publication_profiles import is_supported_publication_profile, normalize_publication_profile
+
 
 class StudyCompletionContractStatus(StrEnum):
     COMPLETED = "completed"
@@ -197,6 +199,32 @@ def _string_list(raw_value: object, *, field_name: str) -> tuple[str, ...]:
     return _string_tuple(raw_value, field_name=field_name, allow_empty=False)
 
 
+def _primary_publication_profiles(payload: dict[str, Any]) -> tuple[str, ...]:
+    raw_targets = payload.get("submission_targets")
+    if not isinstance(raw_targets, list):
+        return ()
+    profiles: list[str] = []
+    for item in raw_targets:
+        if not isinstance(item, dict) or item.get("package_required") is False:
+            continue
+        profile = normalize_publication_profile(str(item.get("publication_profile") or ""))
+        if profile and is_supported_publication_profile(profile):
+            if item.get("primary") is True:
+                profiles.insert(0, profile)
+            else:
+                profiles.append(profile)
+    return tuple(dict.fromkeys(profiles))
+
+
+def _evidence_path_exists(study_root: Path, relative_path: str, *, publication_profiles: tuple[str, ...]) -> bool:
+    if (study_root / relative_path).resolve().exists():
+        return True
+    if relative_path != "manuscript/submission_package.zip":
+        return False
+    manuscript_root = study_root / "manuscript"
+    return any((manuscript_root / f"{profile}_submission_package.zip").resolve().exists() for profile in publication_profiles)
+
+
 def resolve_study_completion_contract(*, study_root: Path | None) -> StudyCompletionContract | None:
     if study_root is None:
         return None
@@ -213,10 +241,15 @@ def resolve_study_completion_contract(*, study_root: Path | None) -> StudyComple
         supported = ", ".join(item.value for item in StudyCompletionContractStatus)
         raise ValueError(f"study_completion.status must be one of: {supported}")
     evidence_paths = _string_list(raw_completion.get("evidence_paths"), field_name="study_completion.evidence_paths")
+    publication_profiles = _primary_publication_profiles(payload)
     missing_evidence_paths = tuple(
         relative
         for relative in evidence_paths
-        if not (resolved_study_root / relative).resolve().exists()
+        if not _evidence_path_exists(
+            resolved_study_root,
+            relative,
+            publication_profiles=publication_profiles,
+        )
     )
     return StudyCompletionContract(
         study_root=resolved_study_root,

@@ -90,6 +90,39 @@ def test_resolve_study_completion_contract_reports_missing_evidence(tmp_path: Pa
     assert contract.missing_evidence_paths == ("notes/revision_status.md",)
 
 
+def test_resolve_study_completion_contract_accepts_profile_named_submission_package_zip_alias(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_completion")
+    study_root = tmp_path / "study"
+    write_text(
+        study_root / "study.yaml",
+        "\n".join(
+            [
+                "study_id: 002-risk",
+                "submission_targets:",
+                "  - publication_profile: frontiers_family_harvard",
+                "    primary: true",
+                "    package_required: true",
+                "study_completion:",
+                "  status: completed",
+                "  summary: Study is done.",
+                "  user_approval_text: 同意",
+                "  evidence_paths:",
+                "    - manuscript/submission_package.zip",
+                "",
+            ]
+        ),
+    )
+    write_text(study_root / "manuscript" / "frontiers_family_harvard_submission_package.zip", "zip\n")
+
+    contract = module.resolve_study_completion_contract(study_root=study_root)
+
+    assert contract is not None
+    assert contract.ready is True
+    assert contract.missing_evidence_paths == ()
+
+
 def test_resolve_study_completion_state_wraps_invalid_contract_as_invalid_state(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.study_completion")
     study_root = tmp_path / "study"

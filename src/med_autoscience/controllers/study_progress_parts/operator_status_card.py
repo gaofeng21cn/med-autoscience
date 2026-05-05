@@ -46,6 +46,8 @@ def _operator_status_handling_state(
         return "runtime_supervision_recovering"
     if lane_id == "publication_gate_specificity_required":
         return "publication_gate_specificity_required"
+    if lane_id == "completion_evidence_required":
+        return "completion_evidence_required"
     if needs_physician_decision or is_user_decision_lane(lane_id):
         return "waiting_user_decision"
     if any(str(item or "").strip() in _HUMAN_SURFACE_REFRESH_BLOCKER_LABELS for item in current_blockers):
@@ -142,6 +144,8 @@ def _operator_status_human_surface_summary(handling_state: str) -> tuple[str, st
         return "stale", "给人看的投稿包镜像仍落后于当前论文真相；没有 freshness proof 前不得视为投稿包可用。"
     if handling_state == "publication_gate_specificity_required":
         return "stale", "publication gate 还没有给出具体 blocker 对象；current_package 不能作为投稿可用包判断。"
+    if handling_state == "completion_evidence_required":
+        return "stale", "completed study 的 completion evidence 合同还未闭环；不能重开写作或 runtime repair。"
     if handling_state == "waiting_user_decision":
         return "pending_decision", "当前主要等待人工判断，给人看的稿件状态以论文门控为准。"
     if handling_state in {"runtime_supervision_recovering", "runtime_recovering"}:
@@ -161,6 +165,8 @@ def _operator_status_verdict(handling_state: str) -> str:
         return "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
     if handling_state == "publication_gate_specificity_required":
         return "MAS 已阻止普通分析/写作重跑，当前等待 publication gate 给出具体 blocker 对象。"
+    if handling_state == "completion_evidence_required":
+        return "MAS 已把 completed study 停在 completion evidence 补齐面，当前不应恢复自动写入。"
     if handling_state == "scientific_or_quality_repair_in_progress":
         return "MAS 正在处理论文可发表性硬阻塞，给人看的稿件还没到放行状态。"
     if handling_state == "waiting_user_decision":
@@ -180,6 +186,8 @@ def _operator_status_owner_summary(handling_state: str) -> str:
         return "MAS 正在根据 publication gate 真相刷新给人看的投稿包镜像。"
     if handling_state == "publication_gate_specificity_required":
         return "MAS 正在要求 publication gate 产出具体 claim、figure、table、metric 或 source path 后再派发修复。"
+    if handling_state == "completion_evidence_required":
+        return "MAS 正在等待交付/导出控制面补齐 study completion evidence。"
     if handling_state == "scientific_or_quality_repair_in_progress":
         return "MAS 正在收口论文可发表性与质量硬阻塞。"
     if handling_state == "waiting_user_decision":
@@ -221,6 +229,11 @@ def _operator_status_focus_summary(
             _non_empty_text((intervention_lane or {}).get("summary"))
             or "等待 publication gate 写出具体 claim/figure/table/metric/source path；没有具体对象前不派普通 repair worker。"
         )
+    if handling_state == "completion_evidence_required":
+        return (
+            _non_empty_text((intervention_lane or {}).get("summary"))
+            or "study-level 完成声明已存在，但 final submission 证据还未补齐。"
+        )
     if handling_state == "scientific_or_quality_repair_in_progress":
         route_summary = _non_empty_text((intervention_lane or {}).get("route_summary"))
         if route_summary is not None:
@@ -244,6 +257,8 @@ def _operator_status_next_confirmation_signal(handling_state: str, intervention_
         return "看 artifacts/controller/current_package_freshness/latest.json 是否写出 fresh proof，再看 current_package 和 submission_minimal 是否同步到同一 authority signature。"
     if handling_state == "publication_gate_specificity_required":
         return "看 publication_eval/latest.json 是否写出具体 claim/figure/table/metric/source path；同时确认 current_package_freshness/latest.json 存在 fresh proof 后再判断投稿包可用。"
+    if handling_state == "completion_evidence_required":
+        return "看 study_completion.missing_evidence_paths 是否清空，并确认 quest 同步到 completed。"
     if handling_state == "scientific_or_quality_repair_in_progress":
         route_label = _non_empty_text((intervention_lane or {}).get("route_target_label"))
         key_question = _non_empty_text((intervention_lane or {}).get("route_key_question"))
