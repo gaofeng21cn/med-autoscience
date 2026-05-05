@@ -97,12 +97,15 @@ preflight 不是启发式脚本。
 它只按照仓库内的 checked-in contract 分类改动面，并展开对应命令：
 
 - `workflow_surface`
-- `codex_plugin_docs_surface`
+- `documentation_review_only`
+- `codex_plugin_surface`
 - `display_publication_surface`
 - `runtime_contract_surface`
 - `integration_harness_surface`
 
-如果你的改动不在当前 contract 覆盖范围内，结果会显式返回 `unclassified_changes`。
+`documentation_review_only` 覆盖 repo-tracked Markdown / README prose。它不会规划 pytest 命令，文档变更由人工/Agent review 负责，不再通过脚本锁定措辞、标题、链接或段落锚点。
+
+如果你的非文档改动不在当前 contract 覆盖范围内，结果会显式返回 `unclassified_changes`。
 
 这不是 bug，也不是降级兜底，而是在提醒：
 
@@ -114,8 +117,10 @@ preflight 不是启发式脚本。
 正确处理方式是：
 
 1. 确认这批改动是否属于一个新的高风险改动面
-2. 如果是，就把对应路径和命令补进 `src/med_autoscience/dev_preflight_contract.py`
+2. 如果是代码、workflow、配置或 contract 行为面，就把对应路径和命令补进 `src/med_autoscience/dev_preflight_contract.py`
 3. 同步补测试，再继续使用 preflight
+
+如果只是 Markdown prose，保持 `documentation_review_only`，不要新增 pytest wording anchor。
 
 不要：
 

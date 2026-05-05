@@ -71,26 +71,21 @@ def test_preflight_contract_report_lists_categories_and_planned_commands() -> No
     assert set(categories) == {
         *(spec.category_id for spec in module._CATEGORY_SPECS),
         module.GENERIC_PYTHON_REGRESSION_CATEGORY,
+        module.DOCUMENTATION_REVIEW_CATEGORY,
     }
-    public_doc = categories["public_doc_surface"]
-    assert public_doc["category"] == "public_doc_surface"
-    assert "README.md" in public_doc["exact_paths"]
-    assert public_doc["prefix_paths"] == []
-    assert public_doc["owner_surface"] == {
-        "exact_paths": public_doc["exact_paths"],
-        "prefix_paths": public_doc["prefix_paths"],
+    doc_review = categories[module.DOCUMENTATION_REVIEW_CATEGORY]
+    assert doc_review["category"] == module.DOCUMENTATION_REVIEW_CATEGORY
+    assert "README.md" in doc_review["exact_paths"]
+    assert "docs/program/" in doc_review["prefix_paths"]
+    assert doc_review["owner_surface"] == {
+        "exact_paths": doc_review["exact_paths"],
+        "prefix_paths": doc_review["prefix_paths"],
     }
-    assert public_doc["fail_policy"] == "matched_paths_run_planned_commands"
-    assert public_doc["commands"] == public_doc["planned_commands"]
-    assert "uv run pytest tests/test_dev_preflight_contract.py -q" in public_doc["planned_commands"]
-    assert {
-        "command": "uv run pytest tests/test_dev_preflight_contract.py -q",
-        "path": "tests/test_dev_preflight_contract.py",
-        "exists": True,
-    } in public_doc["planned_pytest_path_existence"]
-    assert public_doc["pytest_path_existence"] == public_doc["planned_pytest_path_existence"]
-    assert "fail-closed" in public_doc["unknown_path_suggestion"]
-    assert any("fail-closed" in suggestion for suggestion in public_doc["unknown_path_suggestions"])
+    assert doc_review["fail_policy"] == "documentation_review_only_no_pytest"
+    assert doc_review["commands"] == []
+    assert doc_review["planned_commands"] == []
+    assert doc_review["pytest_path_existence"] == []
+    assert doc_review["planned_pytest_path_existence"] == []
     generic = categories[module.GENERIC_PYTHON_REGRESSION_CATEGORY]
     assert generic["category"] == module.GENERIC_PYTHON_REGRESSION_CATEGORY
     assert generic["exact_paths"] == []
@@ -106,7 +101,8 @@ def test_preflight_contract_report_lists_categories_and_planned_commands() -> No
     assert any("tests/" in suggestion for suggestion in generic["unknown_path_suggestions"])
     assert report["unknown_path_policy"] == {
         "python_and_test_paths": "regression",
-        "docs_workflow_config_paths": "fail-closed",
+        "documentation_paths": "review-only",
+        "workflow_config_paths": "fail-closed",
     }
 
 
@@ -164,10 +160,15 @@ def test_preflight_contract_report_hygiene_documents_review_policies() -> None:
         "planned_commands": ["make test-regression"],
         "fail_policy": "unknown_python_and_test_paths_route_to_regression",
     }
-    assert hygiene["unknown_docs_workflow_config_paths"] == {
+    assert hygiene["unknown_documentation_paths"] == {
+        "planned_commands": [],
+        "fail_policy": "review-only",
+        "suggestion": "Review documentation manually; no pytest command is planned for doc prose.",
+    }
+    assert hygiene["unknown_workflow_config_paths"] == {
         "planned_commands": [],
         "fail_policy": "fail-closed",
-        "suggestion": "Add the path to a reviewed owner surface before preflight can run commands.",
+        "suggestion": "Add workflow/config paths to a reviewed owner surface before preflight can run commands.",
     }
 
 
@@ -230,18 +231,17 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
             "src/med_autoscience/runtime_transport/med_deepscientist.py",
             "tests/test_profiles.py",
             "tests/test_runtime_backend.py",
-            "tests/test_work_unit_runtime_contract.py",
             "tests/test_runtime_protocol_layout.py",
             "tests/test_runtime_transport_hermes.py",
             "tests/test_runtime_watch.py",
         ]
     )
 
-    assert result.matched_categories == ("runtime_contract_surface",)
+    assert result.matched_categories == ("documentation_review_only", "runtime_contract_surface")
     assert result.unclassified_changes == ()
 
 
-def test_classify_changed_files_matches_display_surface_exact_guide() -> None:
+def test_classify_changed_files_routes_display_docs_to_review_only() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
@@ -250,7 +250,7 @@ def test_classify_changed_files_matches_display_surface_exact_guide() -> None:
         ]
     )
 
-    assert result.matched_categories == ("display_publication_surface",)
+    assert result.matched_categories == ("documentation_review_only",)
     assert result.unclassified_changes == ()
 
 
@@ -263,8 +263,8 @@ def test_classify_changed_files_flags_unclassified_paths() -> None:
         ]
     )
 
-    assert result.matched_categories == ()
-    assert result.unclassified_changes == ("docs/program/untracked_runtime_contract.md",)
+    assert result.matched_categories == ("documentation_review_only",)
+    assert result.unclassified_changes == ()
 
 
 def test_classify_changed_files_routes_unknown_python_to_generic_regression() -> None:
@@ -287,8 +287,8 @@ def test_classify_changed_files_keeps_unknown_docs_fail_closed() -> None:
 
     result = module.classify_changed_files(["docs/program/new_runtime_contract.md"])
 
-    assert result.matched_categories == ()
-    assert result.unclassified_changes == ("docs/program/new_runtime_contract.md",)
+    assert result.matched_categories == ("documentation_review_only",)
+    assert result.unclassified_changes == ()
 
 
 def test_audit_preflight_contract_coverage_identifies_explicit_classification() -> None:
@@ -350,7 +350,7 @@ def test_audit_preflight_contract_coverage_marks_generic_python_fallback() -> No
     )
 
 
-def test_audit_preflight_contract_coverage_keeps_unknown_non_python_fail_closed() -> None:
+def test_audit_preflight_contract_coverage_keeps_docs_review_only_and_workflow_fail_closed() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     audit = module.audit_preflight_contract_coverage(
@@ -373,14 +373,13 @@ def test_audit_preflight_contract_coverage_keeps_unknown_non_python_fail_closed(
         ),
     )
 
-    assert audit.explicit_classified_paths == ()
+    assert audit.explicit_classified_paths == ("docs/program/new_runtime_contract.md",)
     assert audit.generic_python_regression_paths == ()
     assert audit.fail_closed_paths == (
-        "docs/program/new_runtime_contract.md",
         ".github/workflows/new-release.yml",
         "tox.ini",
     )
-    assert audit.fail_closed_families == ("program_docs", "workflow_config")
+    assert audit.fail_closed_families == ("workflow_config",)
 
 
 def test_classify_changed_files_matches_control_plane_surface() -> None:
@@ -435,11 +434,11 @@ def test_classify_changed_files_matches_external_runtime_dependency_surface() ->
         ]
     )
 
-    assert result.matched_categories == ("external_runtime_dependency_surface",)
+    assert result.matched_categories == ("documentation_review_only", "external_runtime_dependency_surface")
     assert result.unclassified_changes == ()
 
 
-def test_classify_changed_files_matches_public_doc_surface() -> None:
+def test_classify_changed_files_routes_public_docs_to_review_only() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
@@ -457,7 +456,7 @@ def test_classify_changed_files_matches_public_doc_surface() -> None:
         ]
     )
 
-    assert result.matched_categories == ("public_doc_surface",)
+    assert result.matched_categories == ("documentation_review_only",)
     assert result.unclassified_changes == ()
 
 
@@ -491,12 +490,11 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
             "scripts/run-parallel-test-lanes.sh",
             "src/med_autoscience/controllers/workspace_init.py",
             "tests/test_workspace_init.py",
-            "tests/test_integration_harness_activation_package.py",
             "tests/test_sentrux_gitstats_helper.py",
         ]
     )
 
-    assert result.matched_categories == ("integration_harness_surface",)
+    assert result.matched_categories == ("documentation_review_only", "integration_harness_surface")
     assert result.unclassified_changes == ()
 
 
@@ -541,23 +539,19 @@ def test_plan_commands_for_categories_deduplicates_results() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     commands = module.plan_commands_for_categories(
-        ("workflow_surface", "workflow_surface", "codex_plugin_docs_surface")
+        ("workflow_surface", "workflow_surface", "codex_plugin_surface")
     )
 
     assert commands.count("uv run pytest tests/test_release_workflow.py -q") == 1
     assert "uv run pytest tests/test_codex_plugin.py -q" in commands
 
 
-def test_plan_commands_for_public_doc_surface_stay_lightweight() -> None:
+def test_plan_commands_for_documentation_review_only_do_not_run_pytest() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
-    commands = module.plan_commands_for_categories(("public_doc_surface",))
+    commands = module.plan_commands_for_categories((module.DOCUMENTATION_REVIEW_CATEGORY,))
 
-    assert commands == [
-        "uv run pytest tests/test_dev_preflight_contract.py -q",
-        "uv run pytest tests/test_dev_preflight.py -q",
-        "make test-meta",
-    ]
+    assert commands == []
 
 
 def test_plan_commands_for_external_runtime_dependency_surface_include_gate_proofs() -> None:
@@ -579,7 +573,6 @@ def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proo
 
     assert "uv run pytest tests/test_dev_preflight_contract.py -q" in commands
     assert "uv run pytest tests/test_dev_preflight.py -q" in commands
-    assert "uv run pytest tests/test_integration_harness_activation_package.py -q" in commands
     assert "uv run pytest tests/test_workspace_init.py -q" in commands
     assert "make test-meta" in commands
     assert "uv run pytest tests/test_work_unit_runtime_contract.py -q" not in commands
@@ -595,7 +588,7 @@ def test_plan_commands_for_runtime_contract_surface_include_hermes_and_doc_proof
     assert "uv run pytest tests/test_profiles.py -q" in commands
     assert "uv run pytest tests/test_runtime_protocol_layout.py -q" in commands
     assert "uv run pytest tests/test_runtime_transport_hermes.py -q" in commands
-    assert "uv run pytest tests/test_work_unit_runtime_contract.py -q" in commands
+    assert "uv run pytest tests/test_work_unit_runtime_contract.py -q" not in commands
     assert "make test-meta" in commands
 
 

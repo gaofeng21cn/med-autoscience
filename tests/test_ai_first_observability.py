@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import importlib
-from pathlib import Path
 import json
+from pathlib import Path
 
 import pytest
 
@@ -262,13 +262,3 @@ def test_doctor_report_renders_ai_first_observability_contract(tmp_path: Path) -
     assert '"surface": "ai_first_observability_summary"' in rendered
     assert '"observability_can_authorize_quality": false' in rendered
     assert '"authority": "observability_only"' in rendered
-
-
-def test_runtime_doc_records_operations_dashboard_contract() -> None:
-    doc = Path("docs/runtime/ai_first_observability.md").read_text(encoding="utf-8")
-
-    assert "build_ai_first_operations_dashboard_summary()" in doc
-    assert "ai_first_operations_dashboard_read_model" in doc
-    assert "product_frontdesk" in doc
-    assert "workspace_cockpit" in doc
-    assert "study_progress" in doc

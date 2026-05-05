@@ -80,12 +80,9 @@
 - `tests/test_runtime_protocol_layout.py`
 - `tests/test_runtime_protocol_study_runtime.py`
 - `tests/test_study_runtime_router.py`
-- `tests/test_work_unit_runtime_contract.py`
 - `tests/test_dev_preflight_contract.py`
 
-如果当前改动同时触及 integration-harness wording，还要继续补跑：
-
-- `tests/test_integration_harness_activation_package.py`
+如果当前改动只触及 continuation / integration-harness wording，走人工/Agent documentation review，不再用 pytest 锁定 Markdown 措辞。
 
 ## 6. Promotion 口径
 

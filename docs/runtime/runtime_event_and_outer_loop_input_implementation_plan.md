@@ -22,7 +22,8 @@
 **Files:**
 - Modify: `./runtime_core_convergence_and_controlled_cutover.md`
 - Modify: `./runtime_core_convergence_and_controlled_cutover_implementation_plan.md`
-- Test: `tests/test_work_unit_runtime_contract.py`
+- Test: `tests/test_runtime_protocol_study_runtime.py`
+- Test: `tests/test_study_runtime_router.py`
 
 - [ ] 明确写下 cross-repo parity gate 的通过标准
 - [ ] 明确切分“全局 P0/P1/P2”与“局部 runtime cutover gate”，避免编号冲突

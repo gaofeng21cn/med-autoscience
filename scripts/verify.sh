@@ -14,6 +14,9 @@ run_sanity_checks() {
 
   local -a python_files=()
   while IFS= read -r python_file; do
+    if [[ ! -f "${python_file}" ]]; then
+      continue
+    fi
     python_files+=("${python_file}")
   done < <(git ls-files '*.py')
 

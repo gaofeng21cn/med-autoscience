@@ -83,7 +83,6 @@
 - `tests/test_runtime_protocol_layout.py`
 - `tests/test_runtime_protocol_study_runtime.py`
 - `tests/test_study_runtime_router.py`
-- `tests/test_work_unit_runtime_contract.py`
 - `tests/test_dev_preflight_contract.py`
 
 ## 7. 与 external gate 的关系

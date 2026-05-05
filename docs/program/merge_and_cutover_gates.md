@@ -63,9 +63,7 @@
 - `tests/test_runtime_protocol_layout.py`
 - `tests/test_runtime_protocol_study_runtime.py`
 - `tests/test_study_runtime_router.py`
-- `tests/test_work_unit_runtime_contract.py`
 - `tests/test_dev_preflight_contract.py`
-- `tests/test_integration_harness_activation_package.py`
 - `make test-meta`
 
 如果当前改动同时触及 activation wording / preflight surface，继续补跑：
@@ -73,6 +71,8 @@
 - `tests/test_dev_preflight.py`
 - `tests/test_runtime_watch.py`
 - `tests/test_study_delivery_sync.py`
+
+纯 Markdown wording / integration-harness 文案变更只需要人工/Agent documentation review，不再通过 pytest 锁定具体措辞。
 - `tests/test_publication_gate.py`
 
 ### 4. wording / artifact / preflight audit 一致

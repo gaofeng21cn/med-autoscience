@@ -8,7 +8,7 @@ import pytest
 pytestmark = pytest.mark.family
 
 
-def test_run_preflight_reports_unclassified_changes_without_running_commands(tmp_path: Path) -> None:
+def test_run_preflight_treats_docs_as_review_only_without_running_commands(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.dev_preflight")
 
     result = module.run_preflight(
@@ -16,8 +16,9 @@ def test_run_preflight_reports_unclassified_changes_without_running_commands(tmp
         repo_root=tmp_path,
     )
 
-    assert result.ok is False
-    assert result.unclassified_changes == ("docs/program/untracked_runtime_contract.md",)
+    assert result.ok is True
+    assert result.matched_categories == ("documentation_review_only",)
+    assert result.unclassified_changes == ()
     assert result.results == ()
     assert result.planned_commands == ()
 
@@ -151,15 +152,11 @@ def test_run_preflight_executes_planned_commands(monkeypatch, tmp_path: Path) ->
     )
 
     assert result.ok is True
-    assert result.matched_categories == ("public_doc_surface",)
+    assert result.matched_categories == ("documentation_review_only",)
     assert result.unclassified_changes == ()
-    assert result.planned_commands == (
-        "uv run pytest tests/test_dev_preflight_contract.py -q",
-        "uv run pytest tests/test_dev_preflight.py -q",
-        "make test-meta",
-    )
-    assert calls[0] == ["uv", "run", "pytest", "tests/test_dev_preflight_contract.py", "-q"]
-    assert result.results[0].stdout == "ok\n"
+    assert result.planned_commands == ()
+    assert result.results == ()
+    assert calls == []
 
 
 def test_render_preflight_text_includes_failed_command_output_tail() -> None:
@@ -214,11 +211,11 @@ def test_run_preflight_executes_external_runtime_dependency_commands(monkeypatch
     )
 
     assert result.ok is True
-    assert result.matched_categories == ("external_runtime_dependency_surface",)
+    assert result.matched_categories == ("documentation_review_only",)
     assert result.unclassified_changes == ()
-    assert "uv run pytest tests/test_hermes_runtime_contract.py -q" in result.planned_commands
-    assert "uv run pytest tests/test_hermes_runtime_check.py -q" in result.planned_commands
-    assert calls[0] == ["uv", "run", "pytest", "tests/test_med_deepscientist_repo_manifest.py", "-q"]
+    assert result.planned_commands == ()
+    assert result.results == ()
+    assert calls == []
 
 
 def test_run_preflight_executes_integration_harness_commands(monkeypatch, tmp_path: Path) -> None:
@@ -243,12 +240,11 @@ def test_run_preflight_executes_integration_harness_commands(monkeypatch, tmp_pa
     )
 
     assert result.ok is True
-    assert result.matched_categories == ("integration_harness_surface",)
+    assert result.matched_categories == ("documentation_review_only",)
     assert result.unclassified_changes == ()
-    assert "uv run pytest tests/test_integration_harness_activation_package.py -q" in result.planned_commands
-    assert "uv run pytest tests/test_workspace_init.py -q" in result.planned_commands
-    assert "uv run pytest tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q" not in result.planned_commands
-    assert calls[0] == ["uv", "run", "pytest", "tests/test_dev_preflight_contract.py", "-q"]
+    assert result.planned_commands == ()
+    assert result.results == ()
+    assert calls == []
 
 
 def test_run_preflight_executes_family_shared_lane(monkeypatch, tmp_path: Path) -> None:

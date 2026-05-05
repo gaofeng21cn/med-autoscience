@@ -60,9 +60,6 @@
 
 - `tests/test_hermes_runtime_contract.py`
 - `tests/test_hermes_runtime_check.py`
-- `tests/test_work_unit_runtime_contract.py`
-- `tests/test_runtime_supervision_docs.py`
-- `tests/test_study_progress_docs.py`
 - `tests/test_runtime_protocol_study_runtime.py`
 - `tests/test_study_runtime_router.py`
 - `tests/test_publication_eval_latest.py`

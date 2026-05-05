@@ -95,9 +95,10 @@ study_runtime_status / ensure_study_runtime
 - `tests/test_runtime_watch.py`
 - `tests/test_study_delivery_sync.py`
 - `tests/test_publication_gate.py`
-- `tests/test_integration_harness_activation_package.py`
 - `tests/test_dev_preflight_contract.py`
 - `tests/test_dev_preflight.py`
+
+这份 Markdown 本身作为人工/Agent review 材料维护，不再由 pytest 锁定措辞。
 
 其中：
 

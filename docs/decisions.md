@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-05：Repo Markdown / README prose 不再由 pytest 锁定措辞
+
+- 决策：repo-tracked Markdown / README prose 进入 `documentation_review_only` 分类，由人工/Agent review 负责，不再用 pytest 脚本读取文档并断言标题、链接、段落、固定短语或 intake 表格内容。preflight 对 docs-only 变更不规划 pytest 命令；workflow、配置、源码、测试、JSON/YAML/TOML contract、生成器输出、运行时模板和生成产物行为仍按对应 owner surface 验证。
+- 理由：文档是接力和审阅材料，脚本锁措辞会把表达、锚点和链接变成伪 contract，导致小文案变更触发无关失败，也会诱导后续 Agent 为了测试去 patch 文档。真正需要机器门禁的是可执行行为、schema、CLI/MCP/API、reader/export/restore contract 和 runtime/product surface。
+- 影响：退役现有纯 Markdown/README wording tests；`dev_preflight_contract` 保留 `documentation_review_only` 分类以显式识别 docs-only 变更，但其 planned commands 为空。后续新增测试不得重新引入 repo docs wording anchors；若文档内容需要可验证约束，应先把约束上升为结构化 contract、代码生成器、schema 或运行时资产，再测试该 contract/生成结果。
+
 ## 2026-05-05：Runtime lifecycle 历史与索引采用 SQLite sidecar，authority surface 继续保留文件形态
 
 - 决策：MAS/MDS 的 runtime lifecycle、storage audit、watch state、run/report history 与 retention ledger 进入 SQLite sidecar 方向；SQLite 只持有可索引历史、摘要、游标、路径引用、checksum 与投影缓存，不替代 `publication_eval/latest.json`、`controller_decisions/latest.json`、`study_runtime_status`、`runtime_binding.yaml`、dataset manifest、restore index、paper/manuscript/current_package 等 authority 或交付产物。
