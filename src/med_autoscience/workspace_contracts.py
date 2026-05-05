@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -8,10 +9,12 @@ import yaml
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.med_deepscientist_repo_manifest import inspect_med_deepscientist_repo_manifest
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_transport.med_deepscientist_parts.daemon_launcher import _read_optional_config_env_value
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 
 
 _REQUIRED_OVERRIDE_FIELDS = ("id", "source_path", "status", "target_surface")
+_PLACEHOLDER_LAUNCHER_MARKERS = ("ABS/PATH", "PATH/TO")
 
 
 def _collect_check_issues(checks: dict[str, bool], *, prefix: str) -> list[str]:
@@ -33,6 +36,46 @@ def _normalize_override(item: object) -> tuple[dict[str, str] | None, list[str]]
     if issues:
         return None, issues
     return normalized, []
+
+
+def _inspect_launcher_path(config_env_path: Path) -> dict[str, object]:
+    launcher_value: str | None = None
+    config_error: str | None = None
+    config_parseable = False
+    if config_env_path.is_file():
+        try:
+            launcher_value = _read_optional_config_env_value(
+                path=config_env_path,
+                key="MED_DEEPSCIENTIST_LAUNCHER",
+            )
+            config_parseable = True
+        except (OSError, ValueError) as exc:
+            config_error = str(exc)
+
+    configured = bool(launcher_value)
+    launcher_path = Path(str(launcher_value)).expanduser() if configured else None
+    absolute = bool(launcher_path and launcher_path.is_absolute())
+    resolved_launcher_path = str(launcher_path.resolve(strict=False)) if launcher_path else None
+    not_placeholder = bool(
+        resolved_launcher_path
+        and not any(marker in resolved_launcher_path for marker in _PLACEHOLDER_LAUNCHER_MARKERS)
+    )
+    exists = bool(launcher_path and launcher_path.exists())
+    executable = bool(launcher_path and os.access(launcher_path, os.X_OK))
+
+    return {
+        "checks": {
+            "med_deepscientist_launcher_config_parseable": config_parseable,
+            "med_deepscientist_launcher_configured": configured,
+            "med_deepscientist_launcher_absolute": absolute,
+            "med_deepscientist_launcher_not_placeholder": not_placeholder,
+            "med_deepscientist_launcher_exists": exists,
+            "med_deepscientist_launcher_executable": executable,
+        },
+        "configured_launcher_value": launcher_value,
+        "resolved_launcher_path": resolved_launcher_path,
+        "config_error": config_error,
+    }
 
 
 def inspect_behavior_equivalence_gate(gate_path: Path) -> dict[str, object]:
@@ -165,24 +208,32 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
     med_deepscientist_config_env = layout.config_env_path
     med_deepscientist_bin_dir = layout.bin_root
     manifest_info = inspect_med_deepscientist_repo_manifest(profile.med_deepscientist_repo_root)
+    launcher_path_info = _inspect_launcher_path(med_deepscientist_config_env)
     launcher_checks: dict[str, bool] = {
         "medautoscience_config_env_exists": medautoscience_config_env.is_file(),
         "med_deepscientist_config_env_exists": med_deepscientist_config_env.is_file(),
         "med_deepscientist_bin_dir_exists": med_deepscientist_bin_dir.is_dir(),
         "med_deepscientist_repo_root_configured": profile.med_deepscientist_repo_root is not None,
     }
+    launcher_checks.update(launcher_path_info["checks"])
     manifest_checks: dict[str, bool] = {
         "manifest_found": manifest_info["manifest_found"],
         "manifest_parsable": manifest_info["manifest_parsable"],
     }
+    launcher_issues = _collect_check_issues(launcher_checks, prefix="launcher_contract")
+    config_error = launcher_path_info["config_error"]
+    if isinstance(config_error, str) and config_error.strip():
+        launcher_issues.append(f"launcher_contract.med_deepscientist_launcher_config_error:{config_error}")
     launcher_contract = {
         "ready": all(launcher_checks.values()),
         "checks": launcher_checks,
-        "issues": _collect_check_issues(launcher_checks, prefix="launcher_contract"),
+        "issues": launcher_issues,
         "medautoscience_config_env": str(medautoscience_config_env),
         "med_deepscientist_config_env": str(med_deepscientist_config_env),
         "med_deepscientist_bin_dir": str(med_deepscientist_bin_dir),
         "med_deepscientist_repo_root": str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None,
+        "configured_launcher_value": launcher_path_info["configured_launcher_value"],
+        "resolved_launcher_path": launcher_path_info["resolved_launcher_path"],
         "repo_manifest": manifest_info,
         "manifest_checks": manifest_checks,
     }

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 from pathlib import Path
 
 
@@ -30,6 +31,14 @@ def make_profile(tmp_path: Path):
     )
 
 
+def make_executable_launcher(tmp_path: Path) -> Path:
+    launcher_path = tmp_path / "launcher" / "ds"
+    launcher_path.parent.mkdir(parents=True, exist_ok=True)
+    launcher_path.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    launcher_path.chmod(0o755)
+    return launcher_path
+
+
 def test_inspect_workspace_contracts_reports_missing_items(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.workspace_contracts")
     profile = make_profile(tmp_path)
@@ -45,6 +54,10 @@ def test_inspect_workspace_contracts_reports_missing_items(tmp_path: Path) -> No
     assert result["launcher_contract"]["checks"]["med_deepscientist_config_env_exists"] is False
     assert result["launcher_contract"]["checks"]["med_deepscientist_bin_dir_exists"] is False
     assert result["launcher_contract"]["checks"]["med_deepscientist_repo_root_configured"] is True
+    assert result["launcher_contract"]["checks"]["med_deepscientist_launcher_configured"] is False
+    assert result["launcher_contract"]["checks"]["med_deepscientist_launcher_absolute"] is False
+    assert result["launcher_contract"]["checks"]["med_deepscientist_launcher_exists"] is False
+    assert result["launcher_contract"]["checks"]["med_deepscientist_launcher_executable"] is False
     assert result["launcher_contract"]["ready"] is False
 
     assert result["behavior_gate"]["checks"]["gate_file_exists"] is False
@@ -64,7 +77,11 @@ def test_inspect_workspace_contracts_accepts_phase_25_ready_gate(tmp_path: Path)
 
     deepscientist_root = profile.workspace_root / "ops" / "med-deepscientist"
     deepscientist_root.mkdir(parents=True, exist_ok=True)
-    (deepscientist_root / "config.env").write_text("DEEPSCIENTIST_PROFILE=nfpitnet\n", encoding="utf-8")
+    launcher_path = make_executable_launcher(tmp_path)
+    (deepscientist_root / "config.env").write_text(
+        f'DEEPSCIENTIST_PROFILE=nfpitnet\nMED_DEEPSCIENTIST_LAUNCHER="{launcher_path}"\n',
+        encoding="utf-8",
+    )
     (deepscientist_root / "bin").mkdir(parents=True, exist_ok=True)
     (deepscientist_root / "behavior_equivalence_gate.yaml").write_text(
         "\n".join(
@@ -86,6 +103,7 @@ def test_inspect_workspace_contracts_accepts_phase_25_ready_gate(tmp_path: Path)
 
     assert result["runtime_contract"]["ready"] is True
     assert result["launcher_contract"]["ready"] is True
+    assert result["launcher_contract"]["resolved_launcher_path"] == str(launcher_path)
     assert result["behavior_gate"]["checks"]["schema_version_present"] is True
     assert result["behavior_gate"]["checks"]["phase_25_ready_is_bool"] is True
     assert result["behavior_gate"]["checks"]["critical_overrides_valid"] is True
@@ -113,7 +131,11 @@ def test_inspect_workspace_contracts_rejects_invalid_override_shape(tmp_path: Pa
 
     deepscientist_root = profile.workspace_root / "ops" / "med-deepscientist"
     deepscientist_root.mkdir(parents=True, exist_ok=True)
-    (deepscientist_root / "config.env").write_text("DEEPSCIENTIST_PROFILE=nfpitnet\n", encoding="utf-8")
+    launcher_path = make_executable_launcher(tmp_path)
+    (deepscientist_root / "config.env").write_text(
+        f'DEEPSCIENTIST_PROFILE=nfpitnet\nMED_DEEPSCIENTIST_LAUNCHER="{launcher_path}"\n',
+        encoding="utf-8",
+    )
     (deepscientist_root / "bin").mkdir(parents=True, exist_ok=True)
     (deepscientist_root / "behavior_equivalence_gate.yaml").write_text(
         "\n".join(
@@ -135,6 +157,50 @@ def test_inspect_workspace_contracts_rejects_invalid_override_shape(tmp_path: Pa
     assert result["behavior_gate"]["checks"]["critical_overrides_valid"] is False
     assert result["behavior_gate"]["phase_25_ready"] is True
     assert result["behavior_gate"]["ready"] is False
+
+
+def test_inspect_workspace_contracts_rejects_placeholder_launcher_path(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.workspace_contracts")
+    profile = make_profile(tmp_path)
+    profile.runtime_root.mkdir(parents=True)
+    profile.med_deepscientist_runtime_root.mkdir(parents=True, exist_ok=True)
+
+    medautosci_config = profile.workspace_root / "ops" / "medautoscience" / "config.env"
+    medautosci_config.parent.mkdir(parents=True, exist_ok=True)
+    medautosci_config.write_text("MEDAUTOSCI_PROFILE=nfpitnet\n", encoding="utf-8")
+
+    deepscientist_root = profile.workspace_root / "ops" / "med-deepscientist"
+    deepscientist_root.mkdir(parents=True, exist_ok=True)
+    (deepscientist_root / "config.env").write_text(
+        'DEEPSCIENTIST_PROFILE=nfpitnet\nMED_DEEPSCIENTIST_LAUNCHER="/ABS/PATH/TO/ds"\n',
+        encoding="utf-8",
+    )
+    (deepscientist_root / "bin").mkdir(parents=True, exist_ok=True)
+    (deepscientist_root / "behavior_equivalence_gate.yaml").write_text(
+        "\n".join(
+            [
+                "schema_version: v1",
+                "phase_25_ready: true",
+                "critical_overrides:",
+                "  - id: no_degrade_runtime_watch",
+                "    source_path: ops/med-deepscientist/policies/runtime_watch.md",
+                "    status: approved",
+                "    target_surface: runtime_watch",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = module.inspect_workspace_contracts(profile)
+
+    assert result["launcher_contract"]["ready"] is False
+    assert result["launcher_contract"]["resolved_launcher_path"] == "/ABS/PATH/TO/ds"
+    assert result["launcher_contract"]["checks"]["med_deepscientist_launcher_configured"] is True
+    assert result["launcher_contract"]["checks"]["med_deepscientist_launcher_absolute"] is True
+    assert result["launcher_contract"]["checks"]["med_deepscientist_launcher_exists"] is False
+    assert result["launcher_contract"]["checks"]["med_deepscientist_launcher_executable"] is False
+    assert "launcher_contract.med_deepscientist_launcher_exists" in result["launcher_contract"]["issues"]
 
 
 def test_doctor_report_renders_auditable_contract_sections(tmp_path: Path) -> None:
