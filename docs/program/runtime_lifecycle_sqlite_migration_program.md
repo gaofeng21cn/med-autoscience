@@ -87,6 +87,13 @@ SQLite sidecar 只能持有 `index/history/retention/cursor sidecar` 内容：
 - 原始 terminal/stdout/Codex session payload 的 gzip/tar/cold archive。
 - Git-tracked 源码、测试、文档、合同与配置。
 
+和 L5 audit compaction 的关系：
+
+- 本 program 落地 runtime lifecycle 的 SQLite index、retention ledger、archive refs、compatibility export 和 restore proof；这些是 `L5_natural_boundary_and_audit_compaction` 的前置证据来源之一。
+- 本 program 不替代 `mas_l5_audit_compaction_governance`，也不把 maintainability read model 提升为 runtime / study / publication / delivery truth writer。
+- 本文里的 stopped/cold `archive compaction` 只指 runtime payload 迁移动作，不等同于 audit_log 大桶治理、结构拆分或 worktree cleanup。
+- 若同一 workspace 同时进入 SQLite migration 和 audit compaction，执行顺序固定为 migration ledger / restore proof / compatibility export 先成立，再由 L5 maintainability lane 判断是否允许压缩旧 audit bucket。
+
 禁止事项：
 
 - 不把 SQLite 写成 publication readiness、scientific quality、submission authority 或 artifact authority。
