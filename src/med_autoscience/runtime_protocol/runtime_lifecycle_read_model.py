@@ -1,0 +1,494 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from datetime import UTC, datetime
+import hashlib
+import json
+from pathlib import Path
+import sqlite3
+from typing import Any
+
+from . import runtime_lifecycle_store
+
+
+SURFACE_KIND = "runtime_lifecycle_compatibility_read_model"
+EXPORT_SURFACE_KIND = "runtime_lifecycle_compatibility_export"
+SUPPORTED_SURFACES = frozenset({"watch_state", "runtime_report", "workspace_storage_audit"})
+
+
+def build_lifecycle_inventory(
+    *,
+    quest_root: Path | None = None,
+    workspace_root: Path | None = None,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    resolved_db_path = _resolve_lifecycle_db_path(quest_root=quest_root, workspace_root=workspace_root, db_path=db_path)
+    scope = _scope(quest_root=quest_root, workspace_root=workspace_root)
+    if not resolved_db_path.exists():
+        return {
+            "surface_kind": SURFACE_KIND,
+            "schema_version": runtime_lifecycle_store.SCHEMA_VERSION,
+            "mode": "inventory",
+            "scope": scope,
+            "db_path": str(resolved_db_path),
+            "status": "missing",
+            "read_only": True,
+            "compatibility_fallback_used": True,
+            "available_surfaces": [],
+            "missing_reason": "runtime_lifecycle_sqlite_missing",
+        }
+
+    with _connect_readonly(resolved_db_path) as conn:
+        tables = {
+            table: _table_count_if_present(conn, table)
+            for table in (
+                "watch_states",
+                "runtime_reports",
+                "workspace_storage_audits",
+                "runtime_events",
+                "report_index",
+            )
+        }
+        available_surfaces = _available_surfaces(conn)
+        latest_refs = _latest_refs(conn)
+
+    return {
+        "surface_kind": SURFACE_KIND,
+        "schema_version": runtime_lifecycle_store.SCHEMA_VERSION,
+        "mode": "inventory",
+        "scope": scope,
+        "db_path": str(resolved_db_path),
+        "status": "ready",
+        "read_only": True,
+        "compatibility_fallback_used": False,
+        "tables": tables,
+        "available_surfaces": available_surfaces,
+        "latest_refs": latest_refs,
+    }
+
+
+def read_compatibility_projection(
+    *,
+    surface: str,
+    quest_root: Path | None = None,
+    workspace_root: Path | None = None,
+    report_group: str = "runtime_watch",
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    normalized_surface = _require_surface(surface)
+    resolved_db_path = _resolve_lifecycle_db_path(quest_root=quest_root, workspace_root=workspace_root, db_path=db_path)
+    fallback = _legacy_fallback_projection(
+        surface=normalized_surface,
+        quest_root=quest_root,
+        workspace_root=workspace_root,
+        report_group=report_group,
+        db_path=resolved_db_path,
+    )
+    if not resolved_db_path.exists():
+        return fallback
+
+    with _connect_readonly(resolved_db_path) as conn:
+        if normalized_surface == "watch_state":
+            projection = _read_watch_state_projection(conn=conn, quest_root=quest_root, db_path=resolved_db_path)
+        elif normalized_surface == "runtime_report":
+            projection = _read_runtime_report_projection(
+                conn=conn,
+                quest_root=quest_root,
+                report_group=report_group,
+                db_path=resolved_db_path,
+            )
+        else:
+            projection = _read_workspace_storage_audit_projection(
+                conn=conn,
+                workspace_root=workspace_root,
+                db_path=resolved_db_path,
+            )
+    return projection if projection is not None else fallback
+
+
+def export_compatibility_projection(
+    *,
+    surface: str,
+    export_format: str,
+    quest_root: Path | None = None,
+    workspace_root: Path | None = None,
+    report_group: str = "runtime_watch",
+    output_path: Path | None = None,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    normalized_format = _require_export_format(export_format)
+    projection = read_compatibility_projection(
+        surface=surface,
+        quest_root=quest_root,
+        workspace_root=workspace_root,
+        report_group=report_group,
+        db_path=db_path,
+    )
+    source_payload = projection.get("payload") if isinstance(projection.get("payload"), Mapping) else {}
+    exported_at = _utc_now()
+    rendered = (
+        _render_markdown_export(projection=projection, exported_at=exported_at)
+        if normalized_format == "markdown"
+        else _render_json_export(projection=projection, exported_at=exported_at)
+    )
+    export_payload = {
+        "surface_kind": EXPORT_SURFACE_KIND,
+        "schema_version": runtime_lifecycle_store.SCHEMA_VERSION,
+        "surface": projection["surface"],
+        "export_format": normalized_format,
+        "exported_at": exported_at,
+        "source_query": projection["source_query"],
+        "source_db_path": projection["db_path"],
+        "source_payload_sha256": _sha256(_stable_json(source_payload)),
+        "compatibility_fallback_used": bool(projection.get("compatibility_fallback_used")),
+        "output_path": str(Path(output_path).expanduser().resolve()) if output_path is not None else None,
+        "payload": source_payload,
+    }
+    if output_path is not None:
+        resolved_output_path = Path(output_path).expanduser().resolve()
+        resolved_output_path.parent.mkdir(parents=True, exist_ok=True)
+        resolved_output_path.write_text(rendered, encoding="utf-8")
+    return export_payload
+
+
+def _read_watch_state_projection(
+    *,
+    conn: sqlite3.Connection,
+    quest_root: Path | None,
+    db_path: Path,
+) -> dict[str, Any] | None:
+    resolved_quest_root = _require_root("quest_root", quest_root)
+    row = conn.execute(
+        """
+        SELECT updated_at, payload_json, payload_sha256
+        FROM watch_states
+        WHERE quest_root = ?
+        """,
+        (str(resolved_quest_root),),
+    ).fetchone()
+    if row is None:
+        return None
+    return _projection(
+        surface="watch_state",
+        db_path=db_path,
+        source_query="SELECT updated_at, payload_json, payload_sha256 FROM watch_states WHERE quest_root = ?",
+        payload=json.loads(row["payload_json"]),
+        payload_sha256=str(row["payload_sha256"]),
+        compatibility_fallback_used=False,
+        source_paths=[],
+    )
+
+
+def _read_runtime_report_projection(
+    *,
+    conn: sqlite3.Connection,
+    quest_root: Path | None,
+    report_group: str,
+    db_path: Path,
+) -> dict[str, Any] | None:
+    resolved_quest_root = _require_root("quest_root", quest_root)
+    row = conn.execute(
+        """
+        SELECT report_group, timestamp, status, json_path, md_path, latest_json_path,
+               latest_md_path, payload_sha256, payload_json
+        FROM runtime_reports
+        WHERE quest_root = ? AND report_group = ?
+        ORDER BY timestamp DESC
+        LIMIT 1
+        """,
+        (str(resolved_quest_root), _require_text("report_group", report_group)),
+    ).fetchone()
+    if row is None:
+        return None
+    return _projection(
+        surface="runtime_report",
+        db_path=db_path,
+        source_query=(
+            "SELECT report_group, timestamp, status, json_path, md_path, latest_json_path, "
+            "latest_md_path, payload_sha256, payload_json FROM runtime_reports "
+            "WHERE quest_root = ? AND report_group = ? ORDER BY timestamp DESC LIMIT 1"
+        ),
+        payload=json.loads(row["payload_json"]),
+        payload_sha256=str(row["payload_sha256"]),
+        compatibility_fallback_used=False,
+        source_paths=[
+            str(row["json_path"]),
+            str(row["md_path"]),
+            str(row["latest_json_path"]),
+            str(row["latest_md_path"]),
+        ],
+    )
+
+
+def _read_workspace_storage_audit_projection(
+    *,
+    conn: sqlite3.Connection,
+    workspace_root: Path | None,
+    db_path: Path,
+) -> dict[str, Any] | None:
+    resolved_workspace_root = _require_root("workspace_root", workspace_root)
+    row = conn.execute(
+        """
+        SELECT recorded_at, mode, report_path, latest_report_path, payload_sha256, payload_json
+        FROM workspace_storage_audits
+        WHERE workspace_root = ?
+        ORDER BY recorded_at DESC
+        LIMIT 1
+        """,
+        (str(resolved_workspace_root),),
+    ).fetchone()
+    if row is None:
+        return None
+    return _projection(
+        surface="workspace_storage_audit",
+        db_path=db_path,
+        source_query=(
+            "SELECT recorded_at, mode, report_path, latest_report_path, payload_sha256, payload_json "
+            "FROM workspace_storage_audits WHERE workspace_root = ? ORDER BY recorded_at DESC LIMIT 1"
+        ),
+        payload=json.loads(row["payload_json"]),
+        payload_sha256=str(row["payload_sha256"]),
+        compatibility_fallback_used=False,
+        source_paths=[str(row["report_path"]), str(row["latest_report_path"])],
+    )
+
+
+def _legacy_fallback_projection(
+    *,
+    surface: str,
+    quest_root: Path | None,
+    workspace_root: Path | None,
+    report_group: str,
+    db_path: Path,
+) -> dict[str, Any]:
+    if surface == "watch_state":
+        root = _require_root("quest_root", quest_root)
+        source_path = root / "artifacts" / "reports" / "runtime_watch" / "state.json"
+    elif surface == "runtime_report":
+        root = _require_root("quest_root", quest_root)
+        source_path = root / "artifacts" / "reports" / _require_text("report_group", report_group) / "latest.json"
+    else:
+        root = _require_root("workspace_root", workspace_root)
+        source_path = root / "storage_audit" / "latest.json"
+
+    payload = _read_json_mapping(source_path) if source_path.exists() else {}
+    return _projection(
+        surface=surface,
+        db_path=db_path,
+        source_query=f"legacy file fallback: {source_path}",
+        payload=payload,
+        payload_sha256=_sha256(_stable_json(payload)),
+        compatibility_fallback_used=True,
+        source_paths=[str(source_path)],
+        status="fallback" if source_path.exists() else "missing",
+        missing_reason=None if source_path.exists() else "sqlite_projection_and_legacy_latest_missing",
+    )
+
+
+def _projection(
+    *,
+    surface: str,
+    db_path: Path,
+    source_query: str,
+    payload: Mapping[str, Any],
+    payload_sha256: str,
+    compatibility_fallback_used: bool,
+    source_paths: list[str],
+    status: str = "ready",
+    missing_reason: str | None = None,
+) -> dict[str, Any]:
+    result = {
+        "surface_kind": SURFACE_KIND,
+        "schema_version": runtime_lifecycle_store.SCHEMA_VERSION,
+        "surface": surface,
+        "status": status,
+        "read_only": True,
+        "db_path": str(db_path),
+        "source_query": source_query,
+        "source_paths": source_paths,
+        "payload_sha256": payload_sha256,
+        "compatibility_fallback_used": compatibility_fallback_used,
+        "payload": dict(payload),
+    }
+    if missing_reason is not None:
+        result["missing_reason"] = missing_reason
+    return result
+
+
+def _available_surfaces(conn: sqlite3.Connection) -> list[str]:
+    surfaces: list[str] = []
+    if _table_count_if_present(conn, "watch_states") > 0:
+        surfaces.append("watch_state")
+    if _table_count_if_present(conn, "runtime_reports") > 0:
+        surfaces.append("runtime_report")
+    if _table_count_if_present(conn, "workspace_storage_audits") > 0:
+        surfaces.append("workspace_storage_audit")
+    return surfaces
+
+
+def _latest_refs(conn: sqlite3.Connection) -> dict[str, Any]:
+    refs: dict[str, Any] = {}
+    if _table_exists(conn, "watch_states"):
+        row = conn.execute(
+            "SELECT quest_root, updated_at FROM watch_states ORDER BY updated_at DESC LIMIT 1"
+        ).fetchone()
+        if row is not None:
+            refs["watch_state"] = {"quest_root": row["quest_root"], "updated_at": row["updated_at"]}
+    if _table_exists(conn, "runtime_reports"):
+        row = conn.execute(
+            """
+            SELECT quest_root, report_group, timestamp, latest_json_path, latest_md_path
+            FROM runtime_reports
+            ORDER BY timestamp DESC
+            LIMIT 1
+            """
+        ).fetchone()
+        if row is not None:
+            refs["runtime_report"] = {
+                "quest_root": row["quest_root"],
+                "report_group": row["report_group"],
+                "timestamp": row["timestamp"],
+                "latest_json_path": row["latest_json_path"],
+                "latest_md_path": row["latest_md_path"],
+            }
+    if _table_exists(conn, "workspace_storage_audits"):
+        row = conn.execute(
+            """
+            SELECT workspace_root, recorded_at, latest_report_path
+            FROM workspace_storage_audits
+            ORDER BY recorded_at DESC
+            LIMIT 1
+            """
+        ).fetchone()
+        if row is not None:
+            refs["workspace_storage_audit"] = {
+                "workspace_root": row["workspace_root"],
+                "recorded_at": row["recorded_at"],
+                "latest_report_path": row["latest_report_path"],
+            }
+    return refs
+
+
+def _render_json_export(*, projection: Mapping[str, Any], exported_at: str) -> str:
+    payload = projection.get("payload") if isinstance(projection.get("payload"), Mapping) else {}
+    return json.dumps(dict(payload), ensure_ascii=False, indent=2) + "\n"
+
+
+def _render_markdown_export(*, projection: Mapping[str, Any], exported_at: str) -> str:
+    payload = projection.get("payload") if isinstance(projection.get("payload"), Mapping) else {}
+    lines = [
+        "# Runtime Lifecycle Compatibility Export",
+        "",
+        f"- surface: `{projection.get('surface')}`",
+        f"- exported_at: `{exported_at}`",
+        f"- schema_version: `{runtime_lifecycle_store.SCHEMA_VERSION}`",
+        f"- compatibility_fallback_used: `{bool(projection.get('compatibility_fallback_used'))}`",
+        f"- source_query: `{projection.get('source_query')}`",
+        f"- payload_sha256: `{projection.get('payload_sha256')}`",
+        "",
+        "```json",
+        json.dumps(dict(payload), ensure_ascii=False, indent=2),
+        "```",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _resolve_lifecycle_db_path(
+    *,
+    quest_root: Path | None,
+    workspace_root: Path | None,
+    db_path: Path | None,
+) -> Path:
+    if db_path is not None:
+        return Path(db_path).expanduser().resolve()
+    if quest_root is not None:
+        return runtime_lifecycle_store.quest_lifecycle_store_path(Path(quest_root))
+    if workspace_root is not None:
+        return runtime_lifecycle_store.workspace_lifecycle_store_path(Path(workspace_root))
+    raise ValueError("Specify one of quest_root, workspace_root, or db_path")
+
+
+def _scope(*, quest_root: Path | None, workspace_root: Path | None) -> str:
+    if quest_root is not None:
+        return "quest"
+    if workspace_root is not None:
+        return "workspace"
+    return "db"
+
+
+def _connect_readonly(db_path: Path) -> sqlite3.Connection:
+    conn = sqlite3.connect(f"file:{Path(db_path).as_posix()}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _table_count_if_present(conn: sqlite3.Connection, table: str) -> int:
+    if not _table_exists(conn, table):
+        return 0
+    row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+    return int(row[0]) if row is not None else 0
+
+
+def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    return (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+            (table,),
+        ).fetchone()
+        is not None
+    )
+
+
+def _read_json_mapping(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return dict(payload) if isinstance(payload, Mapping) else {}
+
+
+def _require_surface(surface: str) -> str:
+    normalized = str(surface or "").strip()
+    if normalized not in SUPPORTED_SURFACES:
+        raise ValueError(f"unsupported runtime lifecycle surface: {surface!r}")
+    return normalized
+
+
+def _require_export_format(export_format: str) -> str:
+    normalized = str(export_format or "").strip()
+    if normalized not in {"json", "markdown"}:
+        raise ValueError(f"unsupported runtime lifecycle export format: {export_format!r}")
+    return normalized
+
+
+def _require_root(label: str, value: Path | None) -> Path:
+    if value is None:
+        raise ValueError(f"{label} is required for this runtime lifecycle surface")
+    return Path(value).expanduser().resolve()
+
+
+def _require_text(label: str, value: object) -> str:
+    text = str(value or "").strip()
+    if not text:
+        raise ValueError(f"{label} must be a non-empty string")
+    return text
+
+
+def _stable_json(payload: object) -> str:
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+
+
+def _sha256(payload: str) -> str:
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _utc_now() -> str:
+    return datetime.now(UTC).replace(microsecond=0).isoformat()
+
+
+__all__ = [
+    "EXPORT_SURFACE_KIND",
+    "SUPPORTED_SURFACES",
+    "SURFACE_KIND",
+    "build_lifecycle_inventory",
+    "export_compatibility_projection",
+    "read_compatibility_projection",
+]

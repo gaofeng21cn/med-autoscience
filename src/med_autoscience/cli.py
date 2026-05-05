@@ -23,6 +23,7 @@ from med_autoscience.cli_parts.control_plane_operations import handle_control_pl
 from med_autoscience.cli_parts.parser import build_parser as _build_cli_parser
 from med_autoscience.cli_parts.payloads import _load_optional_object_payload_from_args, _parse_key_value_pairs
 from med_autoscience.cli_parts.product_entry_commands import handle_product_entry_command
+from med_autoscience.cli_parts.runtime_lifecycle_commands import handle_runtime_lifecycle_command
 from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
 
 @lru_cache(maxsize=None)
@@ -67,6 +68,7 @@ runtime_supervisor_consumer = _LazyModuleProxy(lambda: _load_controller("runtime
 runtime_supervisor_dispatch_executor = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_dispatch_executor"))
 runtime_supervisor_scan = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_scan"))
 med_deepscientist_upgrade_check = _LazyModuleProxy(lambda: _load_controller("med_deepscientist_upgrade_check"))
+runtime_lifecycle_read_model = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model"))
 runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
 runtime_health_kernel = _LazyModuleProxy(lambda: _load_controller("runtime_health_kernel"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
@@ -622,6 +624,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+
+    lifecycle_exit_code = handle_runtime_lifecycle_command(
+        args,
+        runtime_lifecycle_read_model=runtime_lifecycle_read_model,
+    )
+    if lifecycle_exit_code is not None:
+        return lifecycle_exit_code
 
     storage_exit_code = handle_runtime_storage_command(
         args,

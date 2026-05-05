@@ -4,6 +4,7 @@ import argparse
 
 from med_autoscience.cli_public_surface import GROUPED_COMMAND_PROGS
 from med_autoscience.cli_parts.product_entry_parsers import register_product_entry_parsers
+from med_autoscience.cli_parts.runtime_lifecycle_commands import register_runtime_lifecycle_parsers
 from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_storage_parsers
 from med_autoscience.figure_routes import supported_required_route_help
 
@@ -105,6 +106,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_supervisor_execute_dispatch_apply.add_argument("--dry-run", action="store_true")
     runtime_supervisor_execute_dispatch_apply.add_argument("--apply", action="store_true")
 
+    register_runtime_lifecycle_parsers(subparsers)
     register_runtime_storage_parsers(subparsers)
 
     init_data_assets_parser = subparsers.add_parser("init-data-assets")

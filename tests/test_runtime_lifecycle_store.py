@@ -230,3 +230,96 @@ def test_runtime_event_record_indexes_event_without_replacing_latest_authority(t
     )
     assert json.loads(row[-1]) == latest_payload
     assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"]["runtime_events"] == 1
+
+
+def test_lifecycle_read_model_exports_sqlite_runtime_report_without_touching_latest_files(tmp_path: Path) -> None:
+    report_store = importlib.import_module("med_autoscience.runtime_protocol.report_store")
+    read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    report = {
+        "schema_version": 1,
+        "scanned_at": "2026-05-05T00:00:00+00:00",
+        "quest_status": "running",
+    }
+    report_store.write_timestamped_report(
+        quest_root=quest_root,
+        report_group="runtime_watch",
+        timestamp="2026-05-05T00:00:00+00:00",
+        report=report,
+        markdown="# Runtime Watch\n",
+    )
+    latest_json = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    latest_mtime = latest_json.stat().st_mtime_ns
+
+    projection = read_model.read_compatibility_projection(
+        surface="runtime_report",
+        quest_root=quest_root,
+        report_group="runtime_watch",
+    )
+    export_path = tmp_path / "exports" / "runtime_watch_latest.json"
+    export = read_model.export_compatibility_projection(
+        surface="runtime_report",
+        quest_root=quest_root,
+        report_group="runtime_watch",
+        export_format="json",
+        output_path=export_path,
+    )
+
+    assert projection["surface_kind"] == "runtime_lifecycle_compatibility_read_model"
+    assert projection["payload"] == report
+    assert projection["compatibility_fallback_used"] is False
+    assert projection["read_only"] is True
+    assert "ORDER BY timestamp DESC LIMIT 1" in projection["source_query"]
+    assert export["surface_kind"] == "runtime_lifecycle_compatibility_export"
+    assert export["compatibility_fallback_used"] is False
+    assert export["output_path"] == str(export_path.resolve())
+    assert json.loads(export_path.read_text(encoding="utf-8")) == report
+    assert latest_json.stat().st_mtime_ns == latest_mtime
+
+
+def test_lifecycle_read_model_marks_legacy_fallback_and_read_does_not_create_files(tmp_path: Path) -> None:
+    read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    legacy_latest.parent.mkdir(parents=True, exist_ok=True)
+    legacy_payload = {"schema_version": 1, "quest_status": "stopped"}
+    legacy_latest.write_text(json.dumps(legacy_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    db_path = quest_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+
+    projection = read_model.read_compatibility_projection(
+        surface="runtime_report",
+        quest_root=quest_root,
+    )
+    inventory = read_model.build_lifecycle_inventory(quest_root=quest_root)
+
+    assert projection["status"] == "fallback"
+    assert projection["payload"] == legacy_payload
+    assert projection["compatibility_fallback_used"] is True
+    assert projection["source_paths"] == [str(legacy_latest)]
+    assert inventory["status"] == "missing"
+    assert inventory["compatibility_fallback_used"] is True
+    assert not db_path.exists()
+
+
+def test_lifecycle_inventory_lists_workspace_storage_audit_from_sqlite(tmp_path: Path) -> None:
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
+    runtime_storage = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = importlib.import_module("tests.study_runtime_test_helpers").make_profile(tmp_path)
+
+    runtime_storage.audit_workspace_storage(profile=profile, all_studies=True, apply=False)
+
+    db_path = lifecycle_store.workspace_lifecycle_store_path(profile.workspace_root)
+    inventory = read_model.build_lifecycle_inventory(workspace_root=profile.workspace_root)
+    projection = read_model.read_compatibility_projection(
+        surface="workspace_storage_audit",
+        workspace_root=profile.workspace_root,
+    )
+
+    assert inventory["status"] == "ready"
+    assert inventory["db_path"] == str(db_path)
+    assert inventory["available_surfaces"] == ["workspace_storage_audit"]
+    assert inventory["tables"]["workspace_storage_audits"] == 1
+    assert inventory["tables"]["report_index"] == 1
+    assert projection["compatibility_fallback_used"] is False
+    assert projection["payload"]["workspace_root"] == str(profile.workspace_root.resolve())

@@ -189,3 +189,105 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
     assert called["tail_lines"] == 120
     assert called["allow_live_runtime"] is True
     assert json.loads(captured.out)["latest_report_path"] == "storage_audit/latest.json"
+
+
+def test_runtime_lifecycle_export_command_dispatches_read_model(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    output_path = tmp_path / "exports" / "watch.md"
+    called: dict[str, object] = {}
+
+    def fake_export_compatibility_projection(
+        *,
+        surface: str,
+        export_format: str,
+        quest_root: Path | None,
+        workspace_root: Path | None,
+        report_group: str,
+        output_path: Path | None,
+        db_path: Path | None,
+    ) -> dict[str, object]:
+        called["surface"] = surface
+        called["export_format"] = export_format
+        called["quest_root"] = quest_root
+        called["workspace_root"] = workspace_root
+        called["report_group"] = report_group
+        called["output_path"] = output_path
+        called["db_path"] = db_path
+        return {
+            "surface_kind": "runtime_lifecycle_compatibility_export",
+            "compatibility_fallback_used": False,
+            "output_path": str(output_path),
+        }
+
+    monkeypatch.setattr(
+        cli.runtime_lifecycle_read_model,
+        "export_compatibility_projection",
+        fake_export_compatibility_projection,
+    )
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "lifecycle-export",
+            "--quest-root",
+            str(quest_root),
+            "--surface",
+            "runtime_report",
+            "--format",
+            "markdown",
+            "--report-group",
+            "runtime_watch",
+            "--output-path",
+            str(output_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {
+        "surface": "runtime_report",
+        "export_format": "markdown",
+        "quest_root": quest_root,
+        "workspace_root": None,
+        "report_group": "runtime_watch",
+        "output_path": output_path,
+        "db_path": None,
+    }
+    payload = json.loads(captured.out)
+    assert payload["surface_kind"] == "runtime_lifecycle_compatibility_export"
+    assert payload["compatibility_fallback_used"] is False
+
+
+def test_runtime_lifecycle_inventory_command_is_read_only(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    called: dict[str, object] = {}
+
+    def fake_build_lifecycle_inventory(
+        *,
+        quest_root: Path | None,
+        workspace_root: Path | None,
+        db_path: Path | None,
+    ) -> dict[str, object]:
+        called["quest_root"] = quest_root
+        called["workspace_root"] = workspace_root
+        called["db_path"] = db_path
+        return {
+            "surface_kind": "runtime_lifecycle_compatibility_read_model",
+            "mode": "inventory",
+            "status": "missing",
+            "read_only": True,
+            "compatibility_fallback_used": True,
+        }
+
+    monkeypatch.setattr(cli.runtime_lifecycle_read_model, "build_lifecycle_inventory", fake_build_lifecycle_inventory)
+
+    exit_code = cli.main(["runtime", "lifecycle-inventory", "--workspace-root", str(workspace_root)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {"quest_root": None, "workspace_root": workspace_root, "db_path": None}
+    payload = json.loads(captured.out)
+    assert payload["read_only"] is True
+    assert payload["compatibility_fallback_used"] is True
