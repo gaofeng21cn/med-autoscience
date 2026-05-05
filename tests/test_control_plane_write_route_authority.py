@@ -520,9 +520,29 @@ def test_quality_repair_batch_derives_route_context_from_runtime_status(
     assert result["control_plane_route_gate"]["snapshot_ref"]["surface"] == "control_plane_snapshot"
 
 
-def test_fresh_snapshot_authorizes_submission_minimal_write(tmp_path: Path) -> None:
+def test_fresh_snapshot_authorizes_submission_minimal_write(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    package_builder = importlib.import_module(
+        "med_autoscience.controllers.submission_minimal_parts.package_builder"
+    )
     paper_root = make_paper_workspace(tmp_path)
+
+    def write_placeholder_export(
+        *,
+        output_docx_path: Path | None = None,
+        output_pdf_path: Path | None = None,
+        **_: Any,
+    ) -> None:
+        output_path = output_docx_path or output_pdf_path
+        assert output_path is not None
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(b"test export placeholder")
+
+    monkeypatch.setattr(package_builder, "export_docx", write_placeholder_export)
+    monkeypatch.setattr(package_builder, "export_pdf", write_placeholder_export)
 
     result = module.create_submission_minimal_package(
         paper_root=paper_root,

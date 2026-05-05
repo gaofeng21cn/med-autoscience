@@ -644,6 +644,7 @@ def test_submit_study_task_command_dispatches_product_entry_controller(monkeypat
         study_id: str | None,
         study_root: Path | None,
         task_intent: str,
+        task_intake_kind: str | None,
         entry_mode: str | None,
         journal_target: str | None,
         constraints: tuple[str, ...],
@@ -657,6 +658,7 @@ def test_submit_study_task_command_dispatches_product_entry_controller(monkeypat
         called["study_id"] = study_id
         called["study_root"] = study_root
         called["task_intent"] = task_intent
+        called["task_intake_kind"] = task_intake_kind
         called["entry_mode"] = entry_mode
         called["journal_target"] = journal_target
         called["constraints"] = constraints
@@ -708,6 +710,7 @@ def test_submit_study_task_command_dispatches_product_entry_controller(monkeypat
     assert called["study_id"] == "001-risk"
     assert called["study_root"] is None
     assert called["task_intent"] == "持续推进到投稿态"
+    assert called["task_intake_kind"] is None
     assert called["entry_mode"] == "full_research"
     assert called["journal_target"] == "JAMA"
     assert called["constraints"] == ("中文汇报",)

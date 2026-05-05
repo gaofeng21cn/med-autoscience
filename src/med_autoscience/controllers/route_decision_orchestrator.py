@@ -369,6 +369,7 @@ def _route_control_memo(
         alternative_routes=_text_list(route_signals.get("alternative_routes")),
         human_gate_question=_text(route_signals.get("human_gate_question")) or None,
         evidence_refs=_text_list(route_signals.get("evidence_refs")),
+        exploration_depth_review=_mapping(route_signals.get("exploration_depth_review")),
     )
 
 

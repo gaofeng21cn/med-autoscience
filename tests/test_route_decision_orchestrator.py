@@ -26,6 +26,16 @@ def _candidate(line_id: str, score: float, *, risk_cost: float = 1.0) -> dict[st
     }
 
 
+def _complete_exploration_depth_review() -> dict[str, dict[str, object]]:
+    return {
+        "subgroup": {"sufficient": True, "finding": "No subgroup route rescued the blocked endpoint."},
+        "alternative_endpoint": {"sufficient": True, "finding": "Alternative endpoints did not preserve the claim."},
+        "data_quality": {"sufficient": True, "finding": "Data limits were audited against the negative route."},
+        "statistical_power": {"sufficient": True, "finding": "Power ceiling made bounded repair non-transportable."},
+        "mechanism_plausibility": {"sufficient": True, "finding": "No mechanism-supported route remained."},
+    }
+
+
 def test_orchestrator_selects_line_and_materializes_controller_decision(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
     study_root = tmp_path / "study"
@@ -326,6 +336,7 @@ def test_orchestrator_blocks_continue_when_weak_route_has_no_alternative(tmp_pat
             "attempted_paths": ["baseline", "bounded_analysis"],
             "failure_reasons": ["endpoint_unresolvable"],
             "evidence_gain_ceiling": "low",
+            "exploration_depth_review": _complete_exploration_depth_review(),
         },
     )
 

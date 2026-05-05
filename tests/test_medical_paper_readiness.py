@@ -10,6 +10,16 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _complete_exploration_depth_review() -> dict[str, dict[str, object]]:
+    return {
+        "subgroup": {"sufficient": True, "finding": "No subgroup route rescued the weak result."},
+        "alternative_endpoint": {"sufficient": True, "finding": "Alternative endpoints did not preserve the claim."},
+        "data_quality": {"sufficient": True, "finding": "Source-data limitations were audited."},
+        "statistical_power": {"sufficient": True, "finding": "Power ceiling made bounded repair non-transportable."},
+        "mechanism_plausibility": {"sufficient": True, "finding": "No mechanism-supported route remained."},
+    }
+
+
 def _complete_surface_payloads() -> dict[str, dict[str, object]]:
     return {
         "literature_scout": {
@@ -610,6 +620,7 @@ def test_medical_paper_readiness_consumes_long_horizon_canonical_surfaces(tmp_pa
         evidence_gain_ceiling="low",
         alternative_routes=["external-validation-only"],
         evidence_refs=["artifacts/publication_eval/latest.json"],
+        exploration_depth_review=_complete_exploration_depth_review(),
     )
     _write_json(
         study_root / "paper" / "target_journal_writing_layer.json",
