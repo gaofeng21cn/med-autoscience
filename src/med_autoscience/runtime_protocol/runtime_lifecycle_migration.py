@@ -378,7 +378,10 @@ def _write_ledger(*, ledger_root: Path, payload: Mapping[str, Any]) -> dict[str,
     ledger_root.mkdir(parents=True, exist_ok=True)
     run_path = ledger_root / f"{payload['migration_run_id']}.json"
     latest_path = ledger_root / "latest.json"
-    _write_json(run_path, payload)
+    ledger_paths = {"ledger_path": str(run_path), "latest_path": str(latest_path)}
+    run_payload = dict(payload)
+    run_payload["ledger_paths"] = ledger_paths
+    _write_json(run_path, run_payload)
     latest_pointer = {
         "surface_kind": LATEST_SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
@@ -388,7 +391,7 @@ def _write_ledger(*, ledger_root: Path, payload: Mapping[str, Any]) -> dict[str,
         "finished_at": payload["finished_at"],
     }
     _write_json(latest_path, latest_pointer)
-    return {"ledger_path": str(run_path), "latest_path": str(latest_path)}
+    return ledger_paths
 
 
 def _default_next_required_action(*, skipped_items: list[dict[str, Any]], inventory: Mapping[str, Any]) -> str:
