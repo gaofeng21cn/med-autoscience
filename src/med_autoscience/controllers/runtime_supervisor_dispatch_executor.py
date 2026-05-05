@@ -221,6 +221,7 @@ def _execute_runtime_platform_repair(
         apply_safe_actions=True,
         apply_runtime_platform_repair=True,
         developer_supervisor_mode=SUPPORTED_MODE,
+        persist_surfaces=False,
     )
     study_payload = next(
         (study for study in result.get("studies", []) if isinstance(study, Mapping) and _text(study.get("study_id")) == study_id),

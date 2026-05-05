@@ -856,6 +856,7 @@ def supervisor_scan(
     apply_safe_actions: bool = False,
     apply_runtime_platform_repair: bool = False,
     developer_supervisor_mode: str | None = None,
+    persist_surfaces: bool = True,
 ) -> dict[str, Any]:
     resolved_study_ids = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
     generated_at = _utc_now()
@@ -934,16 +935,17 @@ def supervisor_scan(
         "queue_history": queue_history,
         "refs": {"latest_path": str(latest_path), "history_path": str(history_path)},
     }
-    _write_json(latest_path, payload)
-    _append_json_line(
-        history_path,
-        {
-            "generated_at": generated_at,
-            "study_ids": list(resolved_study_ids),
-            "action_ids": [_text(action.get("action_id")) for action in action_queue],
-            "latest_action_count": len(action_queue),
-        },
-    )
+    if persist_surfaces:
+        _write_json(latest_path, payload)
+        _append_json_line(
+            history_path,
+            {
+                "generated_at": generated_at,
+                "study_ids": list(resolved_study_ids),
+                "action_ids": [_text(action.get("action_id")) for action in action_queue],
+                "latest_action_count": len(action_queue),
+            },
+        )
     return payload
 
 
