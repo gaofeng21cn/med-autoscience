@@ -86,7 +86,7 @@ def test_execute_dispatch_blocks_ai_reviewer_when_request_missing(
     result = module.execute_default_executor_dispatches(
         profile=profile,
         study_ids=(study_id,),
-        action_types=(),
+        action_types=("return_to_ai_reviewer_workflow",),
         mode="developer_apply_safe",
         apply=True,
     )
@@ -429,6 +429,128 @@ def test_execute_dispatch_uses_existing_publication_eval_for_ai_reviewer_record(
     assert called["additional_refs"]["publication_gate_projection"] == input_refs["publication_gate_projection"]["path"]
 
 
+def test_execute_dispatch_prefers_current_publication_eval_over_stale_request_record(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "001-dm-cvd-mortality-risk"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    input_refs = {
+        "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
+        "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
+        "review_ledger": {
+            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+            "present": True,
+            "valid": True,
+        },
+        "study_charter": {
+            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            "present": True,
+            "valid": True,
+        },
+        "medical_manuscript_blueprint": {
+            "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+            "present": True,
+            "valid": True,
+        },
+        "claim_evidence_map": {
+            "path": str(study_root / "paper" / "claim_evidence_map.json"),
+            "present": True,
+            "valid": True,
+        },
+        "medical_prose_review": {
+            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+            "present": True,
+            "valid": True,
+        },
+        "publication_gate_projection": {
+            "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "present": True,
+            "valid": True,
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "supervisor_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {"required_refs": input_refs},
+            "ai_reviewer_record": {
+                "eval_id": "publication-eval::stale-request-record",
+                "study_id": study_id,
+                "quest_id": f"quest-{study_id}",
+                "recommended_actions": [{"specificity_targets": [{"target_kind": "claim"}]}],
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "publication-eval::current-projection",
+            "study_id": study_id,
+            "quest_id": f"quest-{study_id}",
+            "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
+            "recommended_actions": [
+                {
+                    "specificity_targets": [
+                        {"target_kind": "claim"},
+                        {"target_kind": "metric"},
+                    ]
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json",
+        _dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
+        ),
+    )
+    called: dict[str, object] = {}
+
+    def fake_run_ai_reviewer_publication_eval_workflow(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "surface": "ai_reviewer_publication_eval_workflow",
+            "status": "materialized",
+            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "eval_id": "publication-eval::current-projection",
+        }
+
+    monkeypatch.setattr(
+        module.ai_reviewer_publication_eval_workflow,
+        "run_ai_reviewer_publication_eval_workflow",
+        fake_run_ai_reviewer_publication_eval_workflow,
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    assert called["record"]["eval_id"] == "publication-eval::current-projection"
+    assert called["record"]["recommended_actions"][0]["specificity_targets"] == [
+        {"target_kind": "claim"},
+        {"target_kind": "metric"},
+    ]
+
+
 def test_execute_dispatch_runs_publication_gate_owner_surface(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
@@ -557,6 +679,95 @@ def test_execute_dispatch_runs_publication_gate_owner_surface(monkeypatch, tmp_p
     assert (study_root / "artifacts" / "publication_eval" / "latest.json").is_file()
 
 
+def test_execute_dispatch_defaults_to_current_consumer_dispatches(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "001-dm-cvd-mortality-risk"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    dispatch_dir = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches"
+    current_dispatch_path = dispatch_dir / "publication_gate_specificity_required.json"
+    stale_ai_dispatch_path = dispatch_dir / "return_to_ai_reviewer_workflow.json"
+    stale_runtime_dispatch_path = dispatch_dir / "runtime_platform_repair.json"
+    current_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="publication_gate_specificity_required",
+        owner="publication_gate",
+        required_output_surface="artifacts/publication_eval/latest.json",
+    )
+    current_dispatch["refs"] = {"dispatch_path": str(current_dispatch_path)}
+    _write_json(current_dispatch_path, current_dispatch)
+    _write_json(
+        stale_ai_dispatch_path,
+        _dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
+        ),
+    )
+    _write_json(
+        stale_runtime_dispatch_path,
+        _dispatch(
+            study_id=study_id,
+            action_type="runtime_platform_repair",
+            owner="external_engineering_agent",
+            required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
+        ),
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "runtime_supervisor_consumer",
+            "default_executor_dispatch_count": 1,
+            "default_executor_dispatches": [current_dispatch],
+        },
+    )
+    executed_action_types: list[str] = []
+
+    def fake_publication_gate_specificity(**kwargs) -> dict[str, object]:
+        executed_action_types.append("publication_gate_specificity_required")
+        return {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "publication_gate.write_gate_files+_materialize_publication_eval_latest",
+        }
+
+    def fail_stale_dispatch(**kwargs) -> dict[str, object]:
+        raise AssertionError("stale dispatch should not execute")
+
+    monkeypatch.setattr(module, "_execute_publication_gate_specificity", fake_publication_gate_specificity)
+    monkeypatch.setattr(module, "_execute_ai_reviewer_workflow", fail_stale_dispatch)
+    monkeypatch.setattr(module, "_execute_runtime_platform_repair", fail_stale_dispatch)
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert executed_action_types == ["publication_gate_specificity_required"]
+    latest = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "consumer"
+            / "default_executor_execution"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert [item["action_type"] for item in latest["executions"]] == ["publication_gate_specificity_required"]
+
+
 def test_execute_dispatch_rejects_incomplete_forbidden_surface_contract(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
@@ -583,7 +794,7 @@ def test_execute_dispatch_rejects_incomplete_forbidden_surface_contract(monkeypa
     result = module.execute_default_executor_dispatches(
         profile=profile,
         study_ids=(study_id,),
-        action_types=(),
+        action_types=("runtime_platform_repair",),
         mode="developer_apply_safe",
         apply=True,
     )

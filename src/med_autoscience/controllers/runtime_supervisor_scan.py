@@ -13,6 +13,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_s
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
 from med_autoscience.controllers.runtime_supervisor_scan_parts import queue_slo
 from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
+from med_autoscience.controllers.runtime_supervisor_scan_parts import status_projection
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_parking
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_projection
 from med_autoscience.developer_supervisor_mode import (
@@ -258,7 +259,9 @@ def _supervisor_only(status: Mapping[str, Any], progress: Mapping[str, Any]) -> 
 def _runtime_platform_repair_required(
     status: Mapping[str, Any], progress: Mapping[str, Any], *, gate_specificity: Mapping[str, Any] | None = None
 ) -> bool:
-    if gate_specificity_part.should_defer_runtime_platform_repair(gate_specificity):
+    if gate_specificity_part.should_defer_runtime_platform_repair(
+        gate_specificity
+    ) and gate_specificity_part.controller_specificity_terminal(status):
         return False
     active_run_id = _active_run_id(status, progress)
     no_live_worker = not active_run_id or not _worker_running(status)
@@ -686,31 +689,6 @@ def _apply_runtime_platform_repair_projection(
     return apply_result, lifecycle
 
 
-def _resolve_why_not_applied(
-    *,
-    status_payload: Mapping[str, Any],
-    progress_payload: Mapping[str, Any],
-    actions: list[dict[str, Any]],
-    gate_specificity: Mapping[str, Any],
-    lifecycle: Mapping[str, Any],
-    runtime_platform_repair_apply: Mapping[str, Any] | None,
-    submission_milestone_parked: bool,
-) -> str | None:
-    why_not_applied = _why_not_applied(
-        status=status_payload,
-        progress=progress_payload,
-        actions=actions,
-        gate_specificity=gate_specificity,
-    )
-    if runtime_platform_repair_apply is not None and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied":
-        return None
-    if submission_milestone_parked:
-        return None
-    if why_not_applied is None and lifecycle:
-        return _text(lifecycle.get("blocked_reason"))
-    return why_not_applied
-
-
 def _projection_block_state(
     *,
     lifecycle: Mapping[str, Any],
@@ -839,11 +817,23 @@ def _study_projection(
     )
     if platform_lifecycle is not None:
         lifecycle = _mapping(platform_lifecycle)
-    why_not_applied = _resolve_why_not_applied(
-        status_payload=status_payload,
-        progress_payload=progress_payload,
+    if (
+        runtime_platform_repair_apply is not None
+        and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied"
+    ):
+        actions = [
+            action
+            for action in actions
+            if _text(action.get("action_type")) != "runtime_platform_repair"
+        ]
+    why_not_applied = status_projection.resolve_why_not_applied(
+        default_why_not_applied=_why_not_applied(
+            status=status_payload,
+            progress=progress_payload,
+            actions=actions,
+            gate_specificity=gate_specificity,
+        ),
         actions=actions,
-        gate_specificity=gate_specificity,
         lifecycle=lifecycle,
         runtime_platform_repair_apply=runtime_platform_repair_apply,
         submission_milestone_parked=submission_milestone_parked,

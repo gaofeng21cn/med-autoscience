@@ -155,6 +155,21 @@ medautosci runtime supervisor-execute-dispatch \
 - `runtime_platform_repair`：调用已有 runtime supervisor scan 的 safe platform repair path。
 - `return_to_ai_reviewer_workflow`：如果没有结构化 AI reviewer record，不生成评审结论，写 `blocked_reason=owner_callable_surface_missing` 与 `required_repo_surface=structured_ai_reviewer_default_executor_workflow`。
 
+执行器的默认读取权威是 workspace-level `artifacts/supervision/consumer/latest.json`。当调用方未显式传 action type 时，`runtime supervisor-execute-dispatch` 只能执行 consumer latest 当前列出的 dispatch；study-level `default_executor_dispatches/*.json` 目录里的旧文件只能在显式 action type 调用时作为调试/重放输入。这样可以避免旧 `runtime_platform_repair` 或旧 `return_to_ai_reviewer_workflow` dispatch 在下一轮 scan/consume 已经改判 owner 后继续执行。
+
+publication gate 与 AI reviewer 的 currentness 使用 work-unit fingerprint，而不是最近生成时间：
+
+- gate report 每次重放都可能生成新的 `generated_at`，这个时间戳不能单独使 AI reviewer-backed `publication_eval/latest.json` 过期。
+- AI reviewer-backed eval 只有在 `study_id`、`quest_id`、`paper_root` 匹配，并且推荐动作携带同一个 publication work-unit fingerprint 时，才能覆盖同语义 gate 重放。
+- 对 `bundle_stage_blocked` 的 specificity gate，AI reviewer eval 还必须携带完整 `claim/figure/table/metric/source_path` specificity targets；否则 publication gate 必须刷新 mechanical projection，补齐当前阻断目标，并重新要求 AI reviewer workflow。
+- mechanical projection 只能具体化 blocker 和 owner handoff，不能关闭 AI reviewer 质量判断；AI reviewer output 也不能用缺 target 的旧记录阻止 publication gate 更新当前 blocker targets。
+
+runtime repair 与 publication gate 的 owner routing 使用 controller terminal 证据，而不是泛化的 gate blocker：
+
+- `gate_specificity.required=true` 本身不足以阻止 runtime relaunch；异常 stopped、active/running 但无 live worker、retry budget exhausted 仍必须进入 runtime platform repair。
+- 只有 resume/postcondition 或 runtime status 明确给出 `gate_needs_specificity` / `needs_specificity` / `publication_gate_specificity_required`，并且来源是 controller work-unit authorization 时，supervisor 才把 no-live-worker relaunch 转交给 publication gate。
+- 若 stale specificity terminal 已被带完整 targets 的 publication eval 证明满足，platform repair 可以清掉旧 terminal，并把队列推进到下一 owner；已 applied 的 runtime repair 不应继续留在当次 action queue。
+
 第二层 Developer Supervisor Mode 的时间策略固定为：
 
 - scheduler/heartbeat：每 `3600` 秒一次

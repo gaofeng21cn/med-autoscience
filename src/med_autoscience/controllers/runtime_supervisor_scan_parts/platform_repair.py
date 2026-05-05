@@ -9,6 +9,7 @@ from typing import Any
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -106,6 +107,18 @@ def _recommended_actions_need_specificity(value: object) -> bool:
             return True
         blocking_units = action.get("blocking_work_units")
         if isinstance(blocking_units, list) and any(_next_work_unit_needs_specificity(item) for item in blocking_units):
+            return True
+    return False
+
+
+def _publication_eval_specificity_targets_complete(publication_eval_payload: Mapping[str, Any]) -> bool:
+    actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return False
+    for action in actions:
+        if not isinstance(action, Mapping) or "specificity_targets" not in action:
+            continue
+        if specificity_target_status(action.get("specificity_targets")).get("complete") is True:
             return True
     return False
 
@@ -286,13 +299,33 @@ def _controller_decision_supersedes_specificity(
     current_decision_id = _text(payload.get("decision_id"))
     old_decision_id = _text(_mapping(runtime_state.get("last_controller_decision_authorization")).get("decision_id"))
     if current_decision_id is not None and old_decision_id is not None and current_decision_id == old_decision_id:
-        return {"supersedes": False, "reason": "controller_decision_not_superseded", "path": str(decision_path)}
+        if not (
+            _runtime_state_has_stale_specificity_terminal(runtime_state)
+            and _publication_eval_specificity_targets_complete(publication_eval_payload)
+        ):
+            return {"supersedes": False, "reason": "controller_decision_not_superseded", "path": str(decision_path)}
     current_work_unit_id = _text(_mapping(payload.get("next_work_unit")).get("unit_id"))
-    if current_work_unit_id in SPECIFICITY_WORK_UNIT_IDS:
-        return {"supersedes": False, "reason": "controller_decision_still_needs_specificity", "path": str(decision_path)}
-    if _recommended_actions_need_specificity(publication_eval_payload.get("recommended_actions")):
-        return {"supersedes": False, "reason": "publication_eval_still_needs_specificity", "path": str(decision_path)}
     action_types = _controller_action_types(payload)
+    if current_work_unit_id in SPECIFICITY_WORK_UNIT_IDS:
+        if (
+            _runtime_state_has_stale_specificity_terminal(runtime_state)
+            and _publication_eval_specificity_targets_complete(publication_eval_payload)
+        ):
+            return {
+                "supersedes": True,
+                "reason": "publication_eval_specificity_targets_complete",
+                "decision_id": current_decision_id,
+                "work_unit_id": current_work_unit_id,
+                "route_target": _text(payload.get("route_target")),
+                "controller_actions": sorted(action_types),
+                "path": str(decision_path),
+            }
+        return {"supersedes": False, "reason": "controller_decision_still_needs_specificity", "path": str(decision_path)}
+    if (
+        _recommended_actions_need_specificity(publication_eval_payload.get("recommended_actions"))
+        and not _publication_eval_specificity_targets_complete(publication_eval_payload)
+    ):
+        return {"supersedes": False, "reason": "publication_eval_still_needs_specificity", "path": str(decision_path)}
     if not (action_types & RUNTIME_PLATFORM_REPAIR_RUNTIME_ACTIONS):
         return {"supersedes": False, "reason": "controller_decision_runtime_action_missing", "path": str(decision_path)}
     route_target = _text(payload.get("route_target"))
@@ -537,7 +570,11 @@ def apply_runtime_platform_repair(
     return {
         **base,
         "dispatch_status": "applied",
-        "reason": "stale_specificity_terminal_gate_cleared",
+        "reason": (
+            "stale_specificity_terminal_targets_resolved"
+            if _text(supersession.get("reason")) == "publication_eval_specificity_targets_complete"
+            else "stale_specificity_terminal_gate_cleared"
+        ),
         "controller_supersession": supersession,
         "gate_status": gate_status,
         "stale_specificity_clear": clear_result,

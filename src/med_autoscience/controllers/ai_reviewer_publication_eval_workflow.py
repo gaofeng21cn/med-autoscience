@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -47,6 +48,10 @@ def _mapping(value: object) -> Mapping[str, Any]:
 
 def _list(value: object) -> list[object]:
     return value if isinstance(value, list) else []
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
 def _record_payload(record: PublicationEvalRecord | Mapping[str, Any]) -> dict[str, Any]:
@@ -210,14 +215,23 @@ def _record_with_trace(
     *,
     record: PublicationEvalRecord | Mapping[str, Any],
     trace: Mapping[str, Any],
+    emitted_at: str | None = None,
 ) -> dict[str, Any]:
     payload = _record_payload(record)
+    if emitted_at is not None:
+        payload["emitted_at"] = emitted_at
     payload["reviewer_operating_system"] = dict(trace)
     provenance = dict(_mapping(payload.get("assessment_provenance")))
     provenance["owner"] = "ai_reviewer"
     provenance["policy_id"] = DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"]
     provenance["ai_reviewer_required"] = False
     payload["assessment_provenance"] = provenance
+    workflow_ref = _mapping(payload.get("reviewer_operating_system")).get("input_bundle")
+    publication_gate_projection_ref = _text(_mapping(workflow_ref).get("publication_gate_projection"))
+    if publication_gate_projection_ref:
+        provenance["source_refs"] = list(
+            dict.fromkeys([*(_list(provenance.get("source_refs"))), publication_gate_projection_ref])
+        )
     return payload
 
 
@@ -242,7 +256,7 @@ def run_ai_reviewer_publication_eval_workflow(
     )
     materialized = materialize_ai_reviewer_publication_eval_latest(
         study_root=resolved_study_root,
-        record=_record_with_trace(record=record, trace=trace),
+        record=_record_with_trace(record=record, trace=trace, emitted_at=_utc_now()),
     )
     return {
         "surface": _SURFACE,

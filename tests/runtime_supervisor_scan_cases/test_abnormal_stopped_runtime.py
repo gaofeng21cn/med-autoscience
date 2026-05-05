@@ -487,6 +487,203 @@ def test_supervisor_scan_runtime_repair_routes_controller_gate_skip_to_publicati
     assert study["ai_repair_lifecycle"]["state"] == "blocked"
     assert study["ai_repair_lifecycle"]["blocked_reason"] == "publication_gate_specificity_required"
     assert study["ai_repair_lifecycle"]["next_owner"] == "publication_gate"
+    assert study["why_not_applied"] == "publication_gate_specificity_required"
+    assert study["blocked_reason"] == "publication_gate_specificity_required"
+    assert study["next_owner"] == "publication_gate"
+    assert study["external_supervisor_required"] is False
+    assert study["paper_package_mutated"] is False
+
+
+def test_supervisor_scan_clears_stale_specificity_terminal_when_targets_are_complete(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-dm-cvd-mortality-risk", quest_id="quest-dm")
+    quest_root = profile.runtime_root / "quest-dm"
+    _write_json(
+        quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "blocked",
+            "blockers": [
+                "stale_submission_minimal_authority",
+                "medical_publication_surface_blocked",
+                "submission_hardening_incomplete",
+            ],
+            "current_required_action": "complete_bundle_stage",
+            "supervisor_phase": "bundle_stage_blocked",
+        },
+    )
+    publication_eval = {
+        "schema_version": 1,
+        "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::return_to_controller::publication-blockers::dm002",
+                "action_type": "return_to_controller",
+                "next_work_unit": {"unit_id": "gate_needs_specificity"},
+                "specificity_targets": [
+                    {
+                        "target_kind": "claim",
+                        "target_id": "claim_evidence_map",
+                        "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                    {
+                        "target_kind": "figure",
+                        "target_id": "figure_catalog",
+                        "source_path": str(study_root / "paper" / "figures" / "figure_catalog.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                    {
+                        "target_kind": "table",
+                        "target_id": "submission_minimal_authority",
+                        "source_path": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                    {
+                        "target_kind": "metric",
+                        "target_id": "main_result_metrics",
+                        "source_path": str(quest_root / "artifacts" / "results" / "main_result.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                    {
+                        "target_kind": "source_path",
+                        "target_id": "publication_gate_source_path",
+                        "source_path": str(quest_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                ],
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "old-specificity",
+            "study_id": "001-dm-cvd-mortality-risk",
+            "quest_id": "quest-dm",
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "request_gate_specificity"}],
+            "route_target": "controller",
+            "next_work_unit": {"unit_id": "gate_needs_specificity"},
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "status": "active",
+            "quest_id": "quest-dm",
+            "active_run_id": None,
+            "worker_running": False,
+            "pending_user_message_count": 0,
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "needs_specificity",
+            "same_fingerprint_auto_turn_count": 11,
+            "retry_state": {"terminal": True, "gate_needs_specificity": True},
+            "last_controller_decision_authorization": {
+                "decision_id": "old-specificity",
+                "route_target": "controller",
+                "work_unit_id": "gate_needs_specificity",
+                "work_unit_fingerprint": "publication-blockers::old",
+                "controller_work_unit_lifecycle": {
+                    "lifecycle_state": "needs_specificity",
+                    "latest_event_type": "needs_specificity",
+                    "delivery_blocked": True,
+                    "block_reason": "needs_specificity",
+                    "terminal_consumed": True,
+                },
+            },
+        },
+    )
+    ensure_calls: list[dict[str, object]] = []
+
+    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+        ensure_calls.append(dict(kwargs))
+        return {
+            "study_id": "001-dm-cvd-mortality-risk",
+            "quest_id": "quest-dm",
+            "quest_status": "active",
+            "decision": "resume",
+            "runtime_liveness_audit": {
+                "active_run_id": "run-dm-recovered",
+                "runtime_audit": {"worker_running": True, "active_run_id": "run-dm-recovered"},
+            },
+        }
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-dm-cvd-mortality-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-dm",
+            "quest_root": str(quest_root),
+            "quest_status": "active",
+            "reason": "runtime_recovery_retry_budget_exhausted",
+            "runtime_liveness_audit": {
+                "active_run_id": None,
+                "runtime_audit": {"worker_running": False, "active_run_id": None},
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "resume_postcondition": {
+                "effective": False,
+                "blocked_reason": "needs_specificity",
+                "terminal_reason": "needs_specificity",
+                "terminal_source": "controller_work_unit_authorization",
+            },
+            "publication_eval": publication_eval,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": "001-dm-cvd-mortality-risk",
+            "current_stage": "managed_runtime_escalated",
+            "paper_stage": "bundle_stage_blocked",
+            "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+            "supervision": {"active_run_id": None, "health_status": "recovering"},
+            "quality_review_loop": {"closure_state": "review_required"},
+        },
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=("001-dm-cvd-mortality-risk",),
+        apply_safe_actions=True,
+        apply_runtime_platform_repair=True,
+    )
+
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    study = result["studies"][0]
+    assert len(ensure_calls) == 1
+    assert "last_controller_decision_authorization" not in runtime_state
+    assert "retry_state" not in runtime_state
+    assert runtime_state["same_fingerprint_auto_turn_count"] == 0
+    assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
+    assert study["gate_specificity"]["status"] == "specific_targets_present"
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    assert study["runtime_platform_repair_apply"]["dispatch_status"] == "applied"
+    assert study["runtime_platform_repair_apply"]["reason"] == "stale_specificity_terminal_targets_resolved"
+    assert study["runtime_platform_repair_apply"]["stale_specificity_cleared"] is True
+    assert study["runtime_platform_repair_apply"]["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-dm-recovered"
+    assert study["why_not_applied"] == "ai_reviewer_assessment_required"
+    assert study["blocked_reason"] == "ai_reviewer_assessment_required"
+    assert study["next_owner"] == "ai_reviewer"
+    assert study["external_supervisor_required"] is False
     assert study["paper_package_mutated"] is False
 
 

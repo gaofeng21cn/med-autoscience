@@ -100,6 +100,26 @@ def should_defer_runtime_platform_repair(gate_specificity: Mapping[str, Any] | N
     )
 
 
+def controller_specificity_terminal(status: Mapping[str, Any]) -> bool:
+    resume_postcondition = _mapping(status.get("resume_postcondition"))
+    specificity_markers = {
+        "gate_needs_specificity",
+        "needs_specificity",
+        "publication_gate_specificity_required",
+    }
+    terminal_markers = {
+        _text(resume_postcondition.get("blocked_reason")),
+        _text(resume_postcondition.get("terminal_reason")),
+        _text(status.get("blocked_reason")),
+        _text(status.get("terminal_reason")),
+        _text(status.get("reason")),
+    }
+    if not any(marker in specificity_markers for marker in terminal_markers):
+        return False
+    terminal_source = _text(resume_postcondition.get("terminal_source")) or _text(status.get("terminal_source"))
+    return bool(resume_postcondition or terminal_source == "controller_work_unit_authorization")
+
+
 def _publication_eval_specificity_target_status(publication_eval_payload: Mapping[str, Any]) -> dict[str, Any]:
     actions = publication_eval_payload.get("recommended_actions")
     if not isinstance(actions, list):

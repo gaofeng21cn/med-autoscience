@@ -48,6 +48,7 @@ from med_autoscience.publication_eval_latest import (
     materialize_publication_eval_latest,
     stable_publication_eval_latest_path,
 )
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.publication_eval_record import (
     PublicationEvalAssessmentProvenance,
     PublicationEvalCharterContextRef,
@@ -653,6 +654,41 @@ def _normalized_path_text(value: object) -> str | None:
         return text
 
 
+def _publication_eval_work_unit_fingerprints(payload: dict[str, object]) -> set[str]:
+    fingerprints: set[str] = set()
+    actions = payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return fingerprints
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        text = str(action.get("work_unit_fingerprint") or "").strip()
+        if text:
+            fingerprints.add(text)
+    return fingerprints
+
+
+def _publication_eval_specificity_targets_complete(payload: dict[str, object]) -> bool:
+    actions = payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return False
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        if specificity_target_status(action.get("specificity_targets")).get("complete") is True:
+            return True
+    return False
+
+
+def _report_work_unit_fingerprint(publication_gate_report: dict[str, object]) -> str | None:
+    try:
+        work_unit_payload = publication_work_units.derive_publication_work_units(publication_gate_report)
+    except (TypeError, ValueError):
+        return None
+    text = str(work_unit_payload.get("fingerprint") or "").strip()
+    return text or None
+
+
 def _current_ai_reviewer_publication_eval_ref(
     *,
     study_root: Path,
@@ -660,8 +696,16 @@ def _current_ai_reviewer_publication_eval_ref(
     resolved_quest_id: str,
     publication_gate_report: dict[str, object],
 ) -> dict[str, str] | None:
+    if publication_gate_report.get("force_publication_gate_specificity_refresh") is True:
+        return None
     gate_required_action = str(publication_gate_report.get("current_required_action") or "").strip()
     gate_supervisor_phase = str(publication_gate_report.get("supervisor_phase") or "").strip()
+    gate_status = str(publication_gate_report.get("status") or "").strip()
+    gate_blockers = [
+        str(item).strip()
+        for item in (publication_gate_report.get("blockers") or [])
+        if str(item).strip()
+    ]
     if gate_required_action == "return_to_publishability_gate" or gate_supervisor_phase == "publishability_gate_blocked":
         return None
     latest_path = stable_publication_eval_latest_path(study_root=study_root)
@@ -699,6 +743,20 @@ def _current_ai_reviewer_publication_eval_ref(
             and gate_paper_root is not None
             and eval_paper_root != gate_paper_root
         ):
+            return None
+    if (
+        gate_status == "blocked"
+        and gate_required_action in {"complete_bundle_stage", "continue_bundle_stage"}
+        and gate_supervisor_phase == "bundle_stage_blocked"
+        and gate_blockers
+    ):
+        gate_fingerprint = _report_work_unit_fingerprint(publication_gate_report)
+        eval_fingerprints = _publication_eval_work_unit_fingerprints(payload)
+        if gate_fingerprint is None or gate_fingerprint not in eval_fingerprints:
+            return None
+        if not _publication_eval_specificity_targets_complete(payload):
+            return None
+        if not str(payload.get("emitted_at") or "").strip():
             return None
     eval_id = str(payload.get("eval_id") or "").strip()
     if not eval_id:
@@ -755,6 +813,13 @@ def _materialize_publication_eval_from_gate_report(
         str(publication_gate_report.get("submission_minimal_manifest_path") or "").strip()
         or str(resolve_submission_manifest_path(Path(paper_root_ref).resolve() / "submission_minimal"))
     )
+    publication_gate_report_with_defaults = {
+        **publication_gate_report,
+        "latest_gate_path": latest_gate_path,
+        "main_result_path": main_result_ref,
+        "paper_root": paper_root_ref,
+        "submission_minimal_manifest_path": submission_minimal_ref,
+    }
     runtime_escalation_ref = str(
         (quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json").resolve()
     )
@@ -791,16 +856,16 @@ def _materialize_publication_eval_from_gate_report(
             source_refs=evidence_refs,
             ai_reviewer_required=True,
         ),
-        verdict=_publication_eval_verdict(publication_gate_report),
+        verdict=_publication_eval_verdict(publication_gate_report_with_defaults),
         quality_assessment=publication_eval_quality_assessment(
-            report=publication_gate_report,
+            report=publication_gate_report_with_defaults,
             charter_payload=charter_payload,
             evidence_refs=evidence_refs,
         ),
-        gaps=_publication_eval_gaps(report=publication_gate_report, evidence_refs=evidence_refs),
+        gaps=_publication_eval_gaps(report=publication_gate_report_with_defaults, evidence_refs=evidence_refs),
         recommended_actions=(
             _publication_eval_action(
-                report=publication_gate_report,
+                report=publication_gate_report_with_defaults,
                 generated_at=generated_at,
                 evidence_refs=evidence_refs,
             ),

@@ -12,6 +12,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from . import ai_reviewer_publication_eval_workflow, publication_gate, study_runtime_router
 from .supervisor_action_request_lifecycle import stable_ai_reviewer_request_path
 from .runtime_supervisor_consumer import (
+    CONSUMER_LATEST_RELATIVE_PATH,
     DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
     FORBIDDEN_SURFACES,
     SUPPORTED_MODE,
@@ -72,6 +73,10 @@ def _dispatch_dir(profile: WorkspaceProfile, study_id: str) -> Path:
     return _study_root(profile, study_id) / DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT
 
 
+def _consumer_latest_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / CONSUMER_LATEST_RELATIVE_PATH
+
+
 def _execution_latest_path(profile: WorkspaceProfile, study_id: str) -> Path:
     return _study_root(profile, study_id) / EXECUTION_LATEST_RELATIVE_PATH
 
@@ -84,13 +89,34 @@ def _publication_eval_latest_path(study_root: Path) -> Path:
     return study_root / PUBLICATION_EVAL_LATEST_RELATIVE_PATH
 
 
+def _current_consumer_dispatch_files(profile: WorkspaceProfile, study_id: str) -> list[Path]:
+    latest = _read_json_object(_consumer_latest_path(profile))
+    if latest is None:
+        return []
+    files: list[Path] = []
+    seen: set[Path] = set()
+    for dispatch in latest.get("default_executor_dispatches") or []:
+        payload = _mapping(dispatch)
+        if _text(payload.get("study_id")) != study_id:
+            continue
+        refs = _mapping(payload.get("refs"))
+        dispatch_path = _text(refs.get("dispatch_path"))
+        if dispatch_path is None:
+            continue
+        path = Path(dispatch_path).expanduser().resolve()
+        if path.is_file() and path not in seen:
+            files.append(path)
+            seen.add(path)
+    return files
+
+
 def _dispatch_files(profile: WorkspaceProfile, study_id: str, action_types: tuple[str, ...]) -> list[Path]:
     root = _dispatch_dir(profile, study_id)
     if not root.is_dir():
         return []
     if action_types:
         return [root / f"{action_type}.json" for action_type in action_types if (root / f"{action_type}.json").is_file()]
-    return sorted(root.glob("*.json"), key=lambda item: item.name)
+    return _current_consumer_dispatch_files(profile, study_id)
 
 
 def _resolve_study_ids(profile: WorkspaceProfile, study_ids: Iterable[str]) -> tuple[str, ...]:
@@ -186,13 +212,28 @@ def _execute_publication_gate_specificity(
     state = publication_gate.build_gate_state(quest_root)
     report = publication_gate.build_gate_report(state)
     json_path, _ = publication_gate.write_gate_files(quest_root, report)
-    materialized = publication_gate._materialize_publication_eval_latest(
-        state=state,
-        report={
-            **report,
-            "latest_gate_path": str(json_path),
-        },
-    )
+    report_with_refs = {
+        **report,
+        "latest_gate_path": str(json_path),
+        "main_result_path": str(state.main_result_path) if getattr(state, "main_result_path", None) else None,
+        "paper_root": str(state.paper_root) if getattr(state, "paper_root", None) else None,
+        "submission_minimal_manifest_path": (
+            str(state.submission_minimal_manifest_path)
+            if getattr(state, "submission_minimal_manifest_path", None)
+            else None
+        ),
+        "force_publication_gate_specificity_refresh": True,
+    }
+    materialized = publication_gate._materialize_publication_eval_latest(state=state, report=report_with_refs)
+    if materialized is None and getattr(state, "study_root", None) is not None:
+        decision_module = publication_gate.import_module("med_autoscience.controllers.study_runtime_decision")
+        materialized = decision_module._materialize_publication_eval_from_gate_report(
+            study_root=state.study_root,
+            study_id=study_id,
+            quest_root=quest_root,
+            quest_id=quest_root.name,
+            publication_gate_report=report_with_refs,
+        )
     return {
         "execution_status": "executed",
         "blocked_reason": None,
@@ -265,9 +306,9 @@ def _execute_ai_reviewer_workflow(
             "next_owner": "ai_reviewer",
             "required_input_surface": str(request_path),
         }
-    record = _mapping(request.get("ai_reviewer_record") or request.get("publication_eval_record") or request.get("record"))
+    record = _mapping(_read_json_object(_publication_eval_latest_path(study_root)))
     if not record:
-        record = _mapping(_read_json_object(_publication_eval_latest_path(study_root)))
+        record = _mapping(request.get("ai_reviewer_record") or request.get("publication_eval_record") or request.get("record"))
     if not record:
         return {
             "execution_status": "blocked" if apply else "dry_run",
