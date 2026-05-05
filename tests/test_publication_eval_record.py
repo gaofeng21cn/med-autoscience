@@ -241,6 +241,64 @@ def test_publication_eval_record_round_trips_reviewer_operating_system_trace() -
     assert record.to_dict()["reviewer_operating_system"] == payload["reviewer_operating_system"]
 
 
+def test_publication_eval_record_round_trips_specificity_targets() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["recommended_actions"][0]["specificity_targets"] = [
+        {
+            "target_kind": "claim",
+            "target_id": "primary_mortality_risk_claim",
+            "source_path": "paper/claim_evidence_map.json",
+            "blocking_reason": "Primary claim needs the exact unsupported endpoint named.",
+        },
+        {
+            "target_kind": "figure",
+            "target_id": "figure_2",
+            "source_path": "paper/figures/figure_2.png",
+            "blocking_reason": "Figure 2 legend and modeled endpoint are not aligned.",
+        },
+        {
+            "target_kind": "table",
+            "target_id": "table_1",
+            "source_path": "paper/tables/table_1.csv",
+            "blocking_reason": "Table 1 denominators are not traceable to the cohort definition.",
+        },
+        {
+            "target_kind": "metric",
+            "target_id": "c_statistic",
+            "source_path": "artifacts/results/model_performance.json",
+            "blocking_reason": "Discrimination metric is cited without a source path.",
+        },
+        {
+            "target_kind": "source_path",
+            "target_id": "external_validation_dataset",
+            "source_path": "artifacts/results/external_validation.json",
+            "blocking_reason": "External validation source path is missing from the gate blocker.",
+        },
+    ]
+
+    record = module.PublicationEvalRecord.from_payload(payload)
+
+    assert record.to_dict()["recommended_actions"][0]["specificity_targets"] == (
+        payload["recommended_actions"][0]["specificity_targets"]
+    )
+
+
+def test_publication_eval_record_rejects_incomplete_specificity_target() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["recommended_actions"][0]["specificity_targets"] = [
+        {
+            "target_kind": "claim",
+            "target_id": "primary_mortality_risk_claim",
+            "blocking_reason": "Primary claim needs the exact unsupported endpoint named.",
+        }
+    ]
+
+    with pytest.raises(ValueError, match="publication eval specificity target source_path must be non-empty"):
+        module.PublicationEvalRecord.from_payload(payload)
+
+
 @pytest.mark.parametrize("missing_field", ["verdict", "gaps", "recommended_actions"])
 def test_publication_eval_record_rejects_missing_required_fields(missing_field: str) -> None:
     module = _load_module()

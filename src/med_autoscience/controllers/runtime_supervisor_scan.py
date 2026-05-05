@@ -8,12 +8,12 @@ from typing import Any
 
 from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
 from med_autoscience.controllers import study_progress, study_runtime_router
+from med_autoscience.controllers.runtime_supervisor_scan_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
 from med_autoscience.controllers.runtime_supervisor_scan_parts import queue_slo
 from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_parking
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_projection
-from med_autoscience.controllers.study_progress_parts.publication_runtime import _publication_eval_specificity_request
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
     resolve_developer_supervisor_mode,
@@ -222,36 +222,12 @@ def _publication_gate_specificity_required(
     progress: Mapping[str, Any],
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
-    reasons = set(_blocking_reasons(status, progress))
-    if _text(status.get("reason")) == "publication_gate_specificity_required":
-        reasons.add("publication_gate_specificity_required")
-    if _text(_mapping(progress.get("ai_repair_lifecycle")).get("blocked_reason")) == "publication_gate_specificity_required":
-        reasons.add("publication_gate_specificity_required")
-    operator_status = _mapping(progress.get("operator_status_card"))
-    no_op_suppression = _mapping(operator_status.get("no_op_suppression"))
-    specificity_request = _publication_eval_specificity_request(dict(publication_eval_payload) or None)
-    required = (
-        "publication_gate_specificity_required" in reasons
-        or _text(_mapping(progress.get("intervention_lane")).get("lane_id")) == "publication_gate_specificity_required"
-        or _text(_mapping(progress.get("operator_verdict")).get("lane_id")) == "publication_gate_specificity_required"
-        or _text(operator_status.get("handling_state")) == "publication_gate_specificity_required"
-        or _text(no_op_suppression.get("outcome")) == "needs_specificity"
-        or _next_work_unit_needs_specificity(no_op_suppression.get("next_work_unit"))
-        or specificity_request is not None
+    return gate_specificity_part.publication_gate_specificity_required(
+        status=status,
+        progress=progress,
+        publication_eval_payload=publication_eval_payload,
+        blocking_reasons=_blocking_reasons(status, progress),
     )
-    return {
-        "required": required,
-        "request": specificity_request,
-        "required_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
-        "missing_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
-        "gate_owner": "publication_gate",
-        "next_controller_write": {
-            "surface": "publication_eval/latest.json",
-            "writer": "publication_gate_controller",
-            "materialization_mode": "controller_request_only",
-            "required_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
-        },
-    }
 
 
 def _ai_reviewer_assessment(
@@ -458,11 +434,7 @@ def _artifact_delta(progress: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _gate_specificity_status(gate_specificity: Mapping[str, Any]) -> dict[str, Any]:
-    status = dict(gate_specificity)
-    status["status"] = "blocked" if gate_specificity.get("required") is True else "not_required"
-    if gate_specificity.get("required") is True:
-        status.setdefault("blocked_reason", "publication_gate_specificity_required")
-    return status
+    return gate_specificity_part.gate_specificity_status(gate_specificity)
 
 
 def _ai_reviewer_status(ai_reviewer_assessment: Mapping[str, Any]) -> dict[str, Any]:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from med_autoscience import publication_eval_specificity_targets as _specificity_targets
 from med_autoscience.publication_eval_record_provenance import PublicationEvalAssessmentProvenance
 
 
@@ -61,6 +62,7 @@ _RECOMMENDED_ACTION_ALLOWED_FIELDS = frozenset(
         "work_unit_fingerprint",
         "blocking_work_units",
         "next_work_unit",
+        "specificity_targets",
     }
 )
 _ALLOWED_OVERALL_VERDICTS = frozenset({"promising", "mixed", "weak", "blocked"})
@@ -631,6 +633,7 @@ class PublicationEvalRecommendedAction:
     work_unit_fingerprint: str | None = None
     blocking_work_units: tuple[dict[str, str], ...] = ()
     next_work_unit: dict[str, str] | None = None
+    specificity_targets: tuple[object, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "action_id", _require_text("publication eval recommended action", "action_id", self.action_id))
@@ -726,6 +729,7 @@ class PublicationEvalRecommendedAction:
             ),
         )
         object.__setattr__(self, "next_work_unit", _optional_publication_work_unit(self.next_work_unit))
+        object.__setattr__(self, "specificity_targets", _specificity_targets.normalize_publication_eval_specificity_targets(list(self.specificity_targets)))
 
     def to_dict(self) -> dict[str, object]:
         payload: dict[str, object] = {
@@ -746,6 +750,8 @@ class PublicationEvalRecommendedAction:
             payload["blocking_work_units"] = list(self.blocking_work_units)
         if self.next_work_unit is not None:
             payload["next_work_unit"] = self.next_work_unit
+        if self.specificity_targets:
+            payload["specificity_targets"] = _specificity_targets.to_payload_list(self.specificity_targets)
         return payload
 
     @classmethod
@@ -797,6 +803,7 @@ class PublicationEvalRecommendedAction:
             ),
             blocking_work_units=_optional_publication_work_units(payload.get("blocking_work_units")),
             next_work_unit=_optional_publication_work_unit(payload.get("next_work_unit")),
+            specificity_targets=_specificity_targets.normalize_publication_eval_specificity_targets(payload.get("specificity_targets")),
         )
 
 
