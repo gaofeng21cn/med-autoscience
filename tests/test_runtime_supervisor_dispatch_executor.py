@@ -56,7 +56,7 @@ def _dispatch(
     }
 
 
-def test_execute_dispatch_blocks_ai_reviewer_without_owner_callable_surface(
+def test_execute_dispatch_blocks_ai_reviewer_when_request_missing(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -95,9 +95,9 @@ def test_execute_dispatch_blocks_ai_reviewer_without_owner_callable_surface(
     assert result["blocked_count"] == 1
     execution = result["executions"][0]
     assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "owner_callable_surface_missing"
-    assert execution["next_owner"] == "repo_platform"
-    assert execution["required_repo_surface"] == "structured_ai_reviewer_default_executor_workflow"
+    assert execution["blocked_reason"] == "ai_reviewer_request_missing"
+    assert execution["owner_callable_surface"] == "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+    assert execution["next_owner"] == "ai_reviewer"
     latest = json.loads(
         (
             study_root
@@ -112,6 +112,178 @@ def test_execute_dispatch_blocks_ai_reviewer_without_owner_callable_surface(
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "paper").exists()
     assert not (study_root / "manuscript").exists()
+
+
+def test_execute_dispatch_blocks_ai_reviewer_when_record_payload_missing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "001-dm-cvd-mortality-risk"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "supervisor_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {
+                "required_refs": {
+                    "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
+                    "evidence_ledger": {
+                        "path": str(study_root / "paper" / "evidence_ledger.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "review_ledger": {
+                        "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "study_charter": {
+                        "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                },
+                "all_required_refs_present": True,
+                "missing_or_invalid_refs": [],
+            },
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_json(
+        dispatch_path,
+        _dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
+        ),
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["blocked_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "ai_reviewer_record_missing"
+    assert execution["owner_callable_surface"] == "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+    assert execution["next_owner"] == "ai_reviewer"
+
+
+def test_execute_dispatch_runs_ai_reviewer_owner_workflow(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "001-dm-cvd-mortality-risk"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    input_refs = {
+        "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
+        "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
+        "review_ledger": {
+            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+            "present": True,
+            "valid": True,
+        },
+        "study_charter": {
+            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            "present": True,
+            "valid": True,
+        },
+    }
+    _write_json(
+        request_path,
+        {
+            "surface": "supervisor_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {
+                "required_refs": input_refs,
+                "all_required_refs_present": True,
+                "missing_or_invalid_refs": [],
+            },
+            "ai_reviewer_record": {
+                "eval_id": "publication-eval::001::quest::2026-05-05T00:00:00+00:00",
+                "study_id": study_id,
+                "quest_id": f"quest-{study_id}",
+            },
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_json(
+        dispatch_path,
+        _dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
+        ),
+    )
+    called: dict[str, object] = {}
+
+    def fake_run_ai_reviewer_publication_eval_workflow(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        _write_json(
+            study_root / "artifacts" / "publication_eval" / "latest.json",
+            {"assessment_provenance": {"owner": "ai_reviewer"}},
+        )
+        return {
+            "surface": "ai_reviewer_publication_eval_workflow",
+            "status": "materialized",
+            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "eval_id": "publication-eval::001::quest::2026-05-05T00:00:00+00:00",
+        }
+
+    monkeypatch.setattr(
+        module.ai_reviewer_publication_eval_workflow,
+        "run_ai_reviewer_publication_eval_workflow",
+        fake_run_ai_reviewer_publication_eval_workflow,
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "executed"
+    assert execution["blocked_reason"] is None
+    assert execution["owner_callable_surface"] == "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+    assert called["study_root"] == study_root
+    assert called["manuscript_ref"] == input_refs["manuscript"]["path"]
+    assert called["evidence_ref"] == input_refs["evidence_ledger"]["path"]
+    assert called["review_ref"] == input_refs["review_ledger"]["path"]
+    assert called["charter_ref"] == input_refs["study_charter"]["path"]
+    assert called["record"]["study_id"] == study_id
+    assert (study_root / "artifacts" / "publication_eval" / "latest.json").is_file()
 
 
 def test_execute_dispatch_runs_publication_gate_owner_surface(monkeypatch, tmp_path: Path) -> None:

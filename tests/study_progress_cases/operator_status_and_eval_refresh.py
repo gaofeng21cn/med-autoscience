@@ -658,6 +658,7 @@ def test_study_progress_prefers_live_runtime_truth_over_recovering_health_hint(
     assert result["current_stage"] == "publication_supervision"
     assert result["current_stage_summary"] == "投稿打包阶段已被全局门控放行，可以进入关键路径。"
     assert result["next_system_action"] == "继续当前投稿打包阶段。"
+    assert result["active_run_id"] == "run-live-002"
     assert result["intervention_lane"]["lane_id"] == "monitor_only"
     assert result["operator_status_card"]["handling_state"] == "monitor_only"
     assert result["operator_status_card"]["user_visible_verdict"] == "MAS 正在持续监管当前 study。"

@@ -909,6 +909,7 @@ def build_study_progress_projection(
         "latest_events": latest_events,
         "current_blockers": current_blockers,
         "next_system_action": next_system_action,
+        "active_run_id": current_active_run_id,
         **parked_progress_fields(auto_runtime_parked),
         "intervention_lane": intervention_lane,
         "operator_verdict": operator_verdict,

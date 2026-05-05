@@ -9,7 +9,8 @@ from typing import Any
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 
-from . import publication_gate, study_runtime_router
+from . import ai_reviewer_publication_eval_workflow, publication_gate, study_runtime_router
+from .supervisor_action_request_lifecycle import stable_ai_reviewer_request_path
 from .runtime_supervisor_consumer import (
     DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
     FORBIDDEN_SURFACES,
@@ -237,14 +238,83 @@ def _execute_runtime_platform_repair(
     }
 
 
-def _execute_ai_reviewer_workflow(*, apply: bool) -> dict[str, Any]:
+def _ref_path(packet: Mapping[str, Any], surface: str) -> str | None:
+    ref = _mapping(_mapping(_mapping(packet.get("input_contract")).get("required_refs")).get(surface))
+    return _text(ref.get("path")) or _text(ref.get("ref")) or _text(ref.get("relative_path"))
+
+
+def _execute_ai_reviewer_workflow(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+) -> dict[str, Any]:
+    study_root = _study_root(profile, study_id)
+    request_path = stable_ai_reviewer_request_path(study_root=study_root)
+    request = _read_json_object(request_path)
+    if request is None:
+        return {
+            "execution_status": "blocked" if apply else "dry_run",
+            "blocked_reason": "ai_reviewer_request_missing",
+            "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+            "next_owner": "ai_reviewer",
+            "required_input_surface": str(request_path),
+        }
+    record = _mapping(request.get("ai_reviewer_record") or request.get("publication_eval_record") or request.get("record"))
+    if not record:
+        return {
+            "execution_status": "blocked" if apply else "dry_run",
+            "blocked_reason": "ai_reviewer_record_missing",
+            "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+            "next_owner": "ai_reviewer",
+            "required_input_surface": str(request_path),
+        }
+    required_refs = {
+        surface: _ref_path(request, surface)
+        for surface in ("manuscript", "evidence_ledger", "review_ledger", "study_charter")
+    }
+    missing_refs = [surface for surface, ref in required_refs.items() if ref is None]
+    if missing_refs:
+        return {
+            "execution_status": "blocked" if apply else "dry_run",
+            "blocked_reason": "ai_reviewer_required_refs_missing",
+            "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+            "next_owner": "ai_reviewer",
+            "missing_refs": missing_refs,
+            "required_input_surface": str(request_path),
+        }
+    if not apply:
+        return {
+            "execution_status": "dry_run",
+            "blocked_reason": None,
+            "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+            "request_path": str(request_path),
+        }
+    try:
+        owner_result = ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow(
+            study_root=study_root,
+            manuscript_ref=required_refs["manuscript"],
+            evidence_ref=required_refs["evidence_ledger"],
+            review_ref=required_refs["review_ledger"],
+            charter_ref=required_refs["study_charter"],
+            record=record,
+            additional_refs=_mapping(request.get("additional_refs")),
+        )
+    except (OSError, TypeError, ValueError, RuntimeError) as exc:
+        return {
+            "execution_status": "blocked",
+            "blocked_reason": "ai_reviewer_workflow_failed",
+            "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+            "next_owner": "ai_reviewer",
+            "error": str(exc),
+            "request_path": str(request_path),
+        }
     return {
-        "execution_status": "blocked" if apply else "dry_run",
-        "blocked_reason": "owner_callable_surface_missing",
-        "owner_callable_surface": None,
-        "next_owner": "repo_platform",
-        "required_repo_surface": "structured_ai_reviewer_default_executor_workflow",
-        "authority_note": "Default executor cannot synthesize AI reviewer-owned publication_eval without a structured reviewer record.",
+        "execution_status": "executed",
+        "blocked_reason": None,
+        "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+        "owner_result": owner_result,
+        "request_path": str(request_path),
     }
 
 
@@ -288,7 +358,7 @@ def _execute_dispatch(
     elif action_type == "runtime_platform_repair":
         execution = _execute_runtime_platform_repair(profile=profile, study_id=study_id, apply=apply)
     elif action_type == "return_to_ai_reviewer_workflow":
-        execution = _execute_ai_reviewer_workflow(apply=apply)
+        execution = _execute_ai_reviewer_workflow(profile=profile, study_id=study_id, apply=apply)
     else:
         execution = {
             "execution_status": "blocked",
