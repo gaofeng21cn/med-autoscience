@@ -176,55 +176,6 @@ def _status_state(
         enforce_startup_hydration=quest_status in _LIVE_QUEST_STATUSES,
     )
     completion_state = router._study_completion_state(study_root=study_root)
-    task_intake_overrides_auto_manual_finish = _task_intake_overrides_auto_manual_finish_active(
-        study_root=study_root,
-    )
-    submission_metadata_only_manual_finish = (
-        quest_exists
-        and not task_intake_overrides_auto_manual_finish
-        and _submission_metadata_only_manual_finish_active(
-            study_root=study_root,
-            quest_root=quest_root,
-        )
-    )
-    task_intake_yields_to_submission_closeout = False
-    bundle_only_manual_finish = (
-        quest_exists
-        and _bundle_only_submission_ready_manual_finish_active(
-            study_root=study_root,
-            quest_root=quest_root,
-        )
-    )
-    delivered_package_manual_finish = quest_exists and _delivered_submission_package_manual_finish_active(
-        study_root=study_root,
-    )
-    if task_intake_overrides_auto_manual_finish and bundle_only_manual_finish:
-        summary_payload = _load_json_dict(
-            study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
-        )
-        task_intake_yields_to_submission_closeout = task_intake_yields_to_deterministic_submission_closeout(
-            read_latest_task_intake(study_root=study_root),
-            publishability_gate_report=None,
-            evaluation_summary=summary_payload,
-        )
-        if not task_intake_yields_to_submission_closeout:
-            bundle_only_manual_finish = False
-    explicit_manual_finish_compatibility_guard = _explicit_manual_finish_compatibility_guard_active(
-        study_root=study_root,
-    )
-    manual_finish_compatibility_guard = (
-        explicit_manual_finish_compatibility_guard
-        or submission_metadata_only_manual_finish
-        or bundle_only_manual_finish
-        or delivered_package_manual_finish
-    )
-    submission_metadata_only_wait = (
-        quest_exists
-        and quest_status == StudyRuntimeQuestStatus.WAITING_FOR_USER
-        and not task_intake_overrides_auto_manual_finish
-        and _waiting_submission_metadata_only(quest_root)
-    )
-
     result = StudyRuntimeStatus(
         schema_version=1,
         study_id=study_id,
@@ -261,6 +212,13 @@ def _status_state(
             _task_intake_publication_supervisor_state(task_intake_progress_override)
             or publication_gate_controller.extract_publication_supervisor_state(publication_gate_report)
         )
+        manual_finish_state = _derive_manual_finish_dominance_state(
+            quest_exists=quest_exists,
+            quest_status=quest_status,
+            study_root=study_root,
+            quest_root=quest_root,
+            publication_gate_report=publication_gate_report,
+        )
         _materialize_publication_eval_from_gate_report(
             study_root=study_root,
             study_id=study_id,
@@ -270,10 +228,19 @@ def _status_state(
         )
     else:
         publication_gate_report = None
-    task_intake_yields_to_submission_closeout = task_intake_yields_to_submission_closeout or _task_intake_yields_to_submission_closeout_active(
-        study_root=study_root,
-        publication_gate_report=publication_gate_report,
-    )
+        manual_finish_state = _derive_manual_finish_dominance_state(
+            quest_exists=quest_exists,
+            quest_status=quest_status,
+            study_root=study_root,
+            quest_root=quest_root,
+            publication_gate_report=publication_gate_report,
+        )
+    task_intake_releases_manual_finish_parking = manual_finish_state["task_intake_releases_manual_finish_parking"]
+    submission_metadata_only_manual_finish = manual_finish_state["submission_metadata_only_manual_finish"]
+    task_intake_yields_to_submission_closeout = manual_finish_state["task_intake_yields_to_submission_closeout"]
+    bundle_only_manual_finish = manual_finish_state["bundle_only_manual_finish"]
+    manual_finish_compatibility_guard = manual_finish_state["manual_finish_compatibility_guard"]
+    submission_metadata_only_wait = manual_finish_state["submission_metadata_only_wait"]
     _record_continuation_state_if_present(status=result, quest_root=quest_root)
     _record_pending_user_interaction_if_required(
         status=result,
@@ -545,7 +512,7 @@ def _status_state(
 
     if (
         manual_finish_compatibility_guard
-        and (not task_intake_overrides_auto_manual_finish or task_intake_yields_to_submission_closeout)
+        and (not task_intake_releases_manual_finish_parking or task_intake_yields_to_submission_closeout)
         and quest_status not in _LIVE_QUEST_STATUSES
     ):
         result.set_decision(
@@ -602,7 +569,7 @@ def _status_state(
             return _finalize_result()
         if audit_status is quest_state.QuestRuntimeLivenessStatus.UNKNOWN:
             if manual_finish_compatibility_guard and (
-                not task_intake_overrides_auto_manual_finish or task_intake_yields_to_submission_closeout
+                not task_intake_releases_manual_finish_parking or task_intake_yields_to_submission_closeout
             ):
                 result.set_decision(
                     StudyRuntimeDecision.BLOCKED,
@@ -620,7 +587,7 @@ def _status_state(
                 )
         elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
             if manual_finish_compatibility_guard and (
-                not task_intake_overrides_auto_manual_finish or task_intake_yields_to_submission_closeout
+                not task_intake_releases_manual_finish_parking or task_intake_yields_to_submission_closeout
             ):
                 result.set_decision(
                     StudyRuntimeDecision.PAUSE,
@@ -734,7 +701,7 @@ def _status_state(
         return _finalize_result()
 
     if quest_status in _RESUMABLE_QUEST_STATUSES:
-        if _should_park_delivered_package_without_live_worker(result, study_root=study_root) and not task_intake_overrides_auto_manual_finish:
+        if _should_park_delivered_package_without_live_worker(result, study_root=study_root) and not task_intake_releases_manual_finish_parking:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
@@ -742,7 +709,7 @@ def _status_state(
             return _finalize_result()
         if (
             (submission_metadata_only_manual_finish or bundle_only_manual_finish)
-            and not task_intake_overrides_auto_manual_finish
+            and not task_intake_releases_manual_finish_parking
         ):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
@@ -894,7 +861,7 @@ def _status_state(
                 )
             return _finalize_result()
         if (
-            task_intake_overrides_auto_manual_finish
+            task_intake_releases_manual_finish_parking
             and not task_intake_yields_to_submission_closeout
             and _task_intake_override_allows_stopped_auto_resume(
             quest_root=quest_root

@@ -4,6 +4,8 @@ from pathlib import Path as _Path
 
 _PARTS = (
     "publication_and_submission.py",
+    "publication_owner_currentness.py",
+    "manual_finish_dominance.py",
     "runtime_events.py",
     "runtime_health_dominance.py",
     "status_and_decision.py",

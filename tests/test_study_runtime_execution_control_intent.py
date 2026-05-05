@@ -34,6 +34,9 @@ def _write_controller_decision_authorization(
     study_root: Path,
     *,
     action_type: str = "ensure_study_runtime",
+    next_work_unit: dict[str, object] | None = None,
+    blocking_work_units: list[dict[str, object]] | None = None,
+    work_unit_fingerprint: str | None = None,
 ) -> None:
     decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     decision_path.parent.mkdir(parents=True, exist_ok=True)
@@ -67,6 +70,9 @@ def _write_controller_decision_authorization(
                     "revision checklist mapping each user comment to manuscript/table/figure/reference changes"
                 ),
                 "route_rationale": "The revision line needs a bounded quality pass under the same manuscript route.",
+                **({"work_unit_fingerprint": work_unit_fingerprint} if work_unit_fingerprint else {}),
+                **({"next_work_unit": next_work_unit} if next_work_unit else {}),
+                **({"blocking_work_units": blocking_work_units} if blocking_work_units else {}),
             },
             ensure_ascii=False,
             indent=2,
@@ -178,6 +184,48 @@ def test_controller_authorization_prefers_publication_work_unit_over_stale_route
         authorization_context["control_intent_identity"]["blocker_authority_fingerprint"]
         == "publication-blockers::claim-story-figure"
     )
+
+
+def test_controller_authorization_prefers_current_decision_work_unit_over_stale_publication_eval(
+    tmp_path: Path,
+) -> None:
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_controller_decision_authorization(
+        study_root,
+        action_type="run_gate_clearing_batch",
+        work_unit_fingerprint="publication-blockers::current",
+        next_work_unit={
+            "unit_id": "submission_minimal_refresh",
+            "lane": "finalize",
+            "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
+        },
+        blocking_work_units=[
+            {
+                "unit_id": "manuscript_story_repair",
+                "lane": "write",
+                "summary": "Repair the paper story around the current evidence and claim boundary.",
+            },
+            {
+                "unit_id": "submission_minimal_refresh",
+                "lane": "finalize",
+                "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
+            },
+        ],
+    )
+    _write_publication_eval_work_unit_authority(study_root)
+
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+
+    assert authorization_context is not None
+    assert authorization_context["work_unit_id"] == "submission_minimal_refresh"
+    assert authorization_context["work_unit_fingerprint"] == "publication-blockers::current"
+    assert authorization_context["route_target"] == "finalize"
+    assert authorization_context["next_work_unit"]["unit_id"] == "submission_minimal_refresh"
+    assert authorization_context["blocking_work_units"][0]["unit_id"] == "manuscript_story_repair"
+    assert authorization_context["control_intent_identity"]["work_unit_id"] == "submission_minimal_refresh"
 
 
 def test_execute_noop_runtime_decision_defers_long_authorization_while_awaiting_artifact_delta(

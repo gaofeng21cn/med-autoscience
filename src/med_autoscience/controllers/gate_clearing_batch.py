@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import json
 from importlib import import_module
-import shutil
 import subprocess
-import sys
 from pathlib import Path
 from typing import Any, Callable
 
@@ -36,6 +34,8 @@ from med_autoscience.controllers import gate_clearing_batch_transportability
 from med_autoscience.controllers import gate_clearing_batch_time_to_event_grouped
 from med_autoscience.controllers import gate_clearing_batch_authority_redrive
 from med_autoscience.controllers import publication_shell_sync
+from med_autoscience.controllers.gate_clearing_batch_parts import execution_helpers
+from med_autoscience.controllers.gate_clearing_batch_parts import startup_freshness
 from med_autoscience.controllers.gate_clearing_batch_execution import GateClearingRepairUnit
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     filter_repair_units_for_publication_work_unit,
@@ -121,30 +121,7 @@ def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _parse_json_object_from_cli_stdout(stdout: str) -> dict[str, Any]:
-    text = (stdout or "").strip()
-    if not text:
-        return {}
-    try:
-        payload = json.loads(text)
-    except json.JSONDecodeError:
-        decoder = json.JSONDecoder()
-        payload = None
-        for index, char in enumerate(text):
-            if char != "{":
-                continue
-            try:
-                candidate, consumed = decoder.raw_decode(text[index:])
-            except json.JSONDecodeError:
-                continue
-            if text[index + consumed :].strip():
-                continue
-            payload = candidate
-            break
-        if payload is None:
-            raise
-    if not isinstance(payload, dict):
-        raise RuntimeError("CLI returned a non-object JSON payload")
-    return payload
+    return execution_helpers.parse_json_object_from_cli_stdout(stdout)
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -449,6 +426,7 @@ def build_gate_clearing_batch_recommended_action(
     quest_id: str,
     publication_eval_payload: dict[str, Any],
     gate_report: dict[str, Any],
+    prefer_startup_freshness_work_unit: bool = False,
 ) -> dict[str, Any] | None:
     verdict = publication_eval_payload.get("verdict")
     if not isinstance(verdict, dict) or str(verdict.get("overall_verdict") or "").strip() != "blocked":
@@ -474,7 +452,17 @@ def build_gate_clearing_batch_recommended_action(
     if not gate_blockers:
         return None
     publication_work_unit_payload = publication_work_units.derive_publication_work_units(gate_report)
-    if publication_work_unit_payload.get("actionability_status") == "blocked_by_non_actionable_gate":
+    if prefer_startup_freshness_work_unit:
+        publication_work_unit_payload = startup_freshness.apply_startup_freshness_work_unit(
+            publication_work_unit_payload=publication_work_unit_payload,
+            submission_minimal_refresh_requested=gate_clearing_batch_submission.submission_minimal_refresh_requested(
+                gate_report=gate_report
+            ),
+        )
+    if (
+        publication_work_unit_payload.get("actionability_status") == "blocked_by_non_actionable_gate"
+        and not prefer_startup_freshness_work_unit
+    ):
         return None
     current_required_action = str(gate_report.get("current_required_action") or "").strip()
 
@@ -489,7 +477,11 @@ def build_gate_clearing_batch_recommended_action(
     anchor_repairable = bool(mapping_payload)
     if not any((repairable_surface, stale_delivery, anchor_repairable, bundle_stage_repair)):
         return None
-    if (repairable_surface or anchor_repairable) and bounded_analysis_action is None:
+    if (
+        (repairable_surface or anchor_repairable)
+        and bounded_analysis_action is None
+        and not prefer_startup_freshness_work_unit
+    ):
         return None
 
     latest_batch = _latest_batch_record(study_root=study_root)
@@ -497,7 +489,12 @@ def build_gate_clearing_batch_recommended_action(
     if _latest_batch_closed_for_eval(latest_batch, current_eval_id):
         return None
 
-    if anchor_repairable or repairable_surface:
+    if prefer_startup_freshness_work_unit and bundle_stage_repair:
+        selected_action = gate_clearing_batch_submission.bundle_stage_batch_action(
+            source_action=same_line_action or controller_return_action,
+            gate_report=gate_report,
+        )
+    elif anchor_repairable or repairable_surface:
         selected_action = dict(bounded_analysis_action or {})
     elif bundle_stage_repair:
         selected_action = gate_clearing_batch_submission.bundle_stage_batch_action(
@@ -812,25 +809,7 @@ def _legacy_direct_migration_feature_shift_payload_present(
 
 
 def _run_workspace_display_repair_script(*, paper_root: Path) -> dict[str, Any]:
-    script_path = paper_root / "build" / "generate_display_exports.py"
-    if not script_path.exists():
-        return {
-            "status": "missing",
-            "script_path": str(script_path),
-        }
-    completed = subprocess.run(
-        [shutil.which("python3") or sys.executable, str(script_path)],
-        cwd=str(paper_root.parent),
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return {
-        "status": "updated",
-        "script_path": str(script_path),
-        "stdout": completed.stdout,
-        "stderr": completed.stderr,
-    }
+    return execution_helpers.run_workspace_display_repair_script(paper_root=paper_root)
 
 
 def _create_submission_minimal_package(**kwargs: Any) -> dict[str, Any]:
@@ -858,6 +837,12 @@ def run_gate_clearing_batch(
     publication_eval_payload = read_publication_eval_latest(study_root=resolved_study_root)
     latest_batch = _latest_batch_record(study_root=resolved_study_root)
     current_eval_id = str(publication_eval_payload.get("eval_id") or "").strip()
+    controller_decision_work_unit = gate_clearing_batch_currentness.controller_decision_publication_work_unit(
+        study_root=resolved_study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        source_eval_id=current_eval_id,
+    )
     if _latest_batch_closed_for_eval(latest_batch, current_eval_id):
         return {
             "ok": True,
@@ -909,12 +894,19 @@ def run_gate_clearing_batch(
         gate_report=gate_report,
         authority_settle_delivery_redrive_requested=authority_settle_delivery_redrive_requested,
         direct_submission_delivery_sync_requested=direct_submission_delivery_sync_requested,
+        controller_decision_work_unit=controller_decision_work_unit,
     )
     explicit_next_work_unit = work_unit_selection["explicit_next_work_unit"]
     current_publication_work_unit_payload = work_unit_selection["current_publication_work_unit_payload"]
     selected_publication_work_unit = work_unit_selection["selected_publication_work_unit"]
     work_unit_currentness = work_unit_selection["work_unit_currentness"]
     terminal_reason = work_unit_selection["terminal_reason"]
+    selected_work_unit_id = _non_empty_text(
+        selected_publication_work_unit.get("unit_id") if isinstance(selected_publication_work_unit, dict) else None
+    )
+    controller_decision_work_unit_id = _non_empty_text(
+        controller_decision_work_unit.get("unit_id") if isinstance(controller_decision_work_unit, dict) else None
+    )
     if terminal_reason is not None:
         return gate_clearing_batch_currentness.write_gate_specificity_terminal_batch(
             record_path=stable_gate_clearing_batch_path(study_root=resolved_study_root),
@@ -1135,17 +1127,25 @@ def run_gate_clearing_batch(
             )
         )
     if bundle_stage_repair and submission_minimal_refresh_requested:
+        submission_refresh_dependencies = (
+            ()
+            if (
+                selected_work_unit_id == "submission_minimal_refresh"
+                and controller_decision_work_unit_id == "submission_minimal_refresh"
+            )
+            else _existing_dependency_ids(
+                repair_units,
+                "repair_paper_live_paths",
+                "workspace_display_repair_script",
+                "materialize_display_surface",
+            )
+        )
         repair_units.append(
             GateClearingRepairUnit(
                 unit_id="create_submission_minimal_package",
                 label="Regenerate submission-minimal assets before gate replay",
                 parallel_safe=False,
-                depends_on=_existing_dependency_ids(
-                    repair_units,
-                    "repair_paper_live_paths",
-                    "workspace_display_repair_script",
-                    "materialize_display_surface",
-                ),
+                depends_on=submission_refresh_dependencies,
                 run=lambda: _route_call(_create_submission_minimal_package, paper_root=paper_root, profile=profile, control_plane_route_context=resolved_route_context),
             )
         )

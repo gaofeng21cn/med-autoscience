@@ -35,6 +35,10 @@ from med_autoscience.controllers.study_outer_loop_parts.runtime_refs import (
     _runtime_status_active_run_id,
     _runtime_status_summary,
 )
+from med_autoscience.controllers.study_outer_loop_parts.owner_priority import (
+    gate_clearing_preempts_task_intake,
+    startup_freshness_requires_gate_clearing,
+)
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.controllers.study_outer_loop_task_intake import recommended_task_intake_action
 from med_autoscience.controller_confirmation_summary import (
@@ -540,22 +544,9 @@ def build_runtime_watch_outer_loop_tick_request(
             publishability_gate_report=gate_report,
             evaluation_summary=evaluation_summary,
         )
-        recommended_action = (
-            submission_milestone_autopark_action
-            if submission_milestone_autopark_action is not None
-            else task_intake_action
-        )
-        if recommended_action is None:
-            recommended_action = _recommended_submission_milestone_autopark_action(
-                study_root=resolved_study_root,
-                status_payload=status_payload,
-                publication_eval_payload=publication_eval_payload,
-            )
-        if recommended_action is None:
-            recommended_action = _recommended_quality_review_loop_action(study_root=resolved_study_root)
-        if recommended_action is None:
-            recommended_action = _recommended_publication_eval_action(publication_eval_payload)
-        if profile is not None and task_intake_action is None:
+        batch_action = None
+        startup_freshness_gate = startup_freshness_requires_gate_clearing(status_payload)
+        if profile is not None and (task_intake_action is None or startup_freshness_gate):
             batch_action = quality_repair_batch.build_quality_repair_batch_recommended_action(
                 profile=profile,
                 study_root=resolved_study_root,
@@ -570,7 +561,32 @@ def build_runtime_watch_outer_loop_tick_request(
                     quest_id=quest_id,
                     publication_eval_payload=publication_eval_payload,
                     gate_report=gate_report,
+                    prefer_startup_freshness_work_unit=startup_freshness_gate,
                 )
+        if gate_clearing_preempts_task_intake(
+            status_payload=status_payload,
+            batch_action=batch_action,
+        ):
+            task_intake_action = None
+        if startup_freshness_gate and batch_action is not None:
+            recommended_action = batch_action
+        else:
+            recommended_action = (
+                submission_milestone_autopark_action
+                if submission_milestone_autopark_action is not None
+                else task_intake_action
+            )
+        if recommended_action is None:
+            recommended_action = _recommended_submission_milestone_autopark_action(
+                study_root=resolved_study_root,
+                status_payload=status_payload,
+                publication_eval_payload=publication_eval_payload,
+            )
+        if recommended_action is None:
+            recommended_action = _recommended_quality_review_loop_action(study_root=resolved_study_root)
+        if recommended_action is None:
+            recommended_action = _recommended_publication_eval_action(publication_eval_payload)
+        if profile is not None and task_intake_action is None:
             if batch_action is not None:
                 recommended_action = batch_action
     if recommended_action is None:

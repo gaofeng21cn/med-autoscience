@@ -12,6 +12,7 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
     explicit_next_publication_work_unit,
     submission_delivery_sync_closure_work_unit,
 )
+from med_autoscience.study_decision_record import StudyDecisionRecord
 
 
 GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID = "gate_needs_specificity"
@@ -32,6 +33,14 @@ def _non_empty_text(value: object) -> str | None:
         return None
     text = value.strip()
     return text or None
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
 
 
 def publication_work_unit_id(value: object) -> str | None:
@@ -136,6 +145,47 @@ def publication_work_unit_currentness(
     }
 
 
+def _compact_work_unit_payload(value: object) -> dict[str, str] | None:
+    if not isinstance(value, dict):
+        return None
+    unit_id = _non_empty_text(value.get("unit_id"))
+    if unit_id is None:
+        return None
+    payload = {"unit_id": unit_id}
+    for key in ("lane", "summary", "control_surface", "user_feedback_priority"):
+        text = _non_empty_text(value.get(key))
+        if text is not None:
+            payload[key] = text
+    return payload
+
+
+def controller_decision_publication_work_unit(
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_id: str,
+    source_eval_id: str | None,
+) -> dict[str, str] | None:
+    decision_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
+    payload = _read_json(decision_path)
+    if not payload:
+        return None
+    try:
+        record = StudyDecisionRecord.from_payload(payload)
+    except (TypeError, ValueError):
+        return None
+    if record.study_id != study_id or record.quest_id != quest_id:
+        return None
+    if record.requires_human_confirmation:
+        return None
+    action_types = {action.action_type.value for action in record.controller_actions}
+    if "run_gate_clearing_batch" not in action_types:
+        return None
+    if source_eval_id and record.publication_eval_ref.eval_id != source_eval_id:
+        return None
+    return _compact_work_unit_payload(record.next_work_unit)
+
+
 def gate_specificity_terminal_reason(
     *,
     explicit_publication_work_unit: dict[str, Any] | None,
@@ -165,11 +215,12 @@ def publication_work_unit_selection(
     gate_report: dict[str, Any],
     authority_settle_delivery_redrive_requested: bool,
     direct_submission_delivery_sync_requested: bool = False,
+    controller_decision_work_unit: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     explicit_next_work_unit = explicit_next_publication_work_unit(publication_eval_payload)
     current_publication_work_unit_payload = publication_work_units.derive_publication_work_units(gate_report)
     current_next_work_unit = current_publication_work_unit_payload.get("next_work_unit")
-    selected_publication_work_unit = explicit_next_work_unit or (
+    selected_publication_work_unit = controller_decision_work_unit or explicit_next_work_unit or (
         current_next_work_unit if isinstance(current_next_work_unit, dict) else derived_next_publication_work_unit(gate_report)
     )
     if (
@@ -201,6 +252,7 @@ def publication_work_unit_selection(
         )
     return {
         "explicit_next_work_unit": explicit_next_work_unit,
+        "controller_decision_work_unit": controller_decision_work_unit,
         "current_publication_work_unit_payload": current_publication_work_unit_payload,
         "current_next_work_unit": current_next_work_unit,
         "selected_publication_work_unit": selected_publication_work_unit,

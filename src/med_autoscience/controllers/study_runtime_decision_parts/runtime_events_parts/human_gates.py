@@ -94,15 +94,7 @@ def _platform_repair_redrive_without_live_worker(
 
 
 def _has_delivered_human_package_surface(study_root: Path) -> bool:
-    manuscript_root = study_root / "manuscript"
-    current_package_root = manuscript_root / "current_package"
-    return (
-        (manuscript_root / "delivery_manifest.json").exists()
-        and (manuscript_root / "current_package.zip").exists()
-        and current_package_root.is_dir()
-        and (current_package_root / "manuscript.docx").exists()
-        and (current_package_root / "paper.pdf").exists()
-    )
+    return resolve_delivered_submission_package_manual_finish_contract(study_root=study_root) is not None
 
 
 def _should_block_platform_repair_redrive_for_delivered_package(

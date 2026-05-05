@@ -415,6 +415,165 @@ def test_analysis_repair_refreshes_submission_minimal_when_materialization_leave
     assert result["current_package_freshness_proof"]["status"] == "fresh"
 
 
+def test_current_controller_decision_work_unit_preempts_stale_publication_eval_selection(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-dm-china-us-mortality-attribution",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-002")
+    publication_eval_payload["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "manuscript_story_repair",
+        "lane": "write",
+        "summary": "Repair the paper story around the current evidence and claim boundary.",
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    _write_json(
+        decision_path,
+        {
+            "schema_version": 1,
+            "decision_id": "decision::002::startup-freshness",
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "quest-002",
+            "emitted_at": "2026-05-05T06:00:00+00:00",
+            "decision_type": "route_back_same_line",
+            "charter_ref": {
+                "charter_id": "charter::002-dm-china-us-mortality-attribution::v1",
+                "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            },
+            "runtime_escalation_ref": {
+                "record_id": "runtime-escalation::002::startup-freshness",
+                "artifact_path": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
+                "summary_ref": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
+            },
+            "publication_eval_ref": {
+                "eval_id": publication_eval_payload["eval_id"],
+                "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            },
+            "requires_human_confirmation": False,
+            "controller_actions": [
+                {
+                    "action_type": "run_gate_clearing_batch",
+                    "payload_ref": str(decision_path),
+                }
+            ],
+            "reason": "Startup freshness gate must refresh submission_minimal before writer resume.",
+            "route_target": "finalize",
+            "route_key_question": "submission_minimal_refresh",
+            "route_rationale": "The current package freshness precondition is blocking runtime startup.",
+            "work_unit_fingerprint": "publication-blockers::startup-freshness",
+            "next_work_unit": {
+                "unit_id": "submission_minimal_refresh",
+                "lane": "finalize",
+                "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
+            },
+            "blocking_work_units": [
+                {
+                    "unit_id": "manuscript_story_repair",
+                    "lane": "write",
+                    "summary": "The stale publication eval still points at paper story repair.",
+                },
+                {
+                    "unit_id": "submission_minimal_refresh",
+                    "lane": "finalize",
+                    "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
+                },
+            ],
+        },
+    )
+
+    gate_report = {
+        "status": "blocked",
+        "blockers": [
+            "medical_publication_surface_blocked",
+            "stale_submission_minimal_authority",
+            "submission_surface_qc_failure_present",
+        ],
+        "current_required_action": "complete_bundle_stage",
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
+        "study_delivery_status": "stale_source_changed",
+        "study_delivery_stale_reason": "delivery_manifest_source_changed",
+        "blocking_artifact_refs": [
+            {
+                "blocker": "claim_evidence_consistency_failed",
+                "source_path": "paper/claim_evidence_map.json",
+            }
+        ],
+    }
+
+    monkeypatch.setattr(module, "CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS", 0)
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(module, "_repair_paper_live_paths", lambda **_: {"status": "updated", "repaired_files": []})
+    monkeypatch.setattr(
+        module,
+        "_materialize_display_surface",
+        lambda *, paper_root: (_ for _ in ()).throw(
+            AssertionError("startup freshness must not follow stale manuscript_story_repair")
+        ),
+    )
+    create_calls: list[Path] = []
+    sync_calls: list[Path] = []
+
+    def fake_create(*, paper_root: Path, profile) -> dict[str, object]:
+        create_calls.append(paper_root)
+        _write_text(paper_root / "submission_minimal" / "manuscript.docx", "fresh docx")
+        _write_text(paper_root / "submission_minimal" / "paper.pdf", "%PDF-1.4\n")
+        _write_json(paper_root / "submission_minimal" / "submission_manifest.json", {"schema_version": 1})
+        return {"status": "ready"}
+
+    monkeypatch.setattr(module, "_create_submission_minimal_package", fake_create)
+    monkeypatch.setattr(
+        module,
+        "_sync_submission_minimal_delivery",
+        lambda *, paper_root, profile: (sync_calls.append(paper_root), {"status": "synced"})[1],
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="002-dm-china-us-mortality-attribution",
+        study_root=study_root,
+        quest_id="quest-002",
+        source="test-source",
+    )
+
+    assert create_calls == [paper_root]
+    assert sync_calls == [paper_root]
+    assert result["selected_publication_work_unit"]["unit_id"] == "submission_minimal_refresh"
+    assert result["explicit_publication_work_unit"]["unit_id"] == "manuscript_story_repair"
+    assert [item["unit_id"] for item in result["unit_results"]] == [
+        "create_submission_minimal_package",
+        "sync_submission_minimal_delivery",
+    ]
+
+
 def test_gate_clearing_batch_records_display_materialization_failure_refs(
     monkeypatch,
     tmp_path: Path,

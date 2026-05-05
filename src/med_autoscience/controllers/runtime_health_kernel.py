@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.control_plane_facts import resolve_control_plane_facts
-from med_autoscience.controllers.runtime_health_kernel_parts import run_epoch_budget
+from med_autoscience.controllers.runtime_health_kernel_parts import explicit_resume, run_epoch_budget
 
 
 SCHEMA_VERSION = 1
@@ -617,6 +617,7 @@ def _snapshot_from_events(
     live_activity_timeout = worker_state["state"] == "activity_timeout"
     retry_budget_remaining = max(MAX_RECOVERY_ATTEMPTS - max(attempt_count, failed_attempts), 0)
     recovery_path_requested = decision in _RECOVERY_DECISIONS or bool(_events_for(events, _ATTEMPT_EVENT_TYPES))
+    awaiting_explicit_resume_reason = explicit_resume.reason_requires_explicit_resume(reason)
     retry_budget_exhausted = (
         retry_budget_remaining == 0
         and max(attempt_count, failed_attempts) >= MAX_RECOVERY_ATTEMPTS
@@ -628,7 +629,11 @@ def _snapshot_from_events(
         )
     )
 
-    if escalation_event is not None or failed_attempts >= MAX_RECOVERY_ATTEMPTS or retry_budget_exhausted:
+    if awaiting_explicit_resume_reason:
+        attempt_state = "awaiting_explicit_resume"
+        canonical_runtime_action = "await_explicit_resume"
+        blocking_reasons = []
+    elif escalation_event is not None or failed_attempts >= MAX_RECOVERY_ATTEMPTS or retry_budget_exhausted:
         attempt_state = "escalated"
         canonical_runtime_action = "external_supervisor_required"
         retry_budget_remaining = 0
@@ -640,13 +645,6 @@ def _snapshot_from_events(
         attempt_state = "live"
         canonical_runtime_action = "continue_supervising_runtime"
         retry_budget_remaining = MAX_RECOVERY_ATTEMPTS
-    elif reason in {
-        "quest_stopped_requires_explicit_rerun",
-        "quest_waiting_for_submission_metadata",
-        "quest_waiting_for_submission_metadata_but_auto_resume_disabled",
-    }:
-        attempt_state = "awaiting_explicit_resume"
-        canonical_runtime_action = "await_explicit_resume"
     elif missing_live_session:
         attempt_state = "recovering"
         canonical_runtime_action = "recover_runtime"

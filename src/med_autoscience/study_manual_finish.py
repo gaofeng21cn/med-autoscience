@@ -342,6 +342,23 @@ def _delivered_submission_package_ready(*, study_root: Path) -> bool:
     return False
 
 
+def _publication_eval_allows_delivered_package_parking(*, study_root: Path) -> bool:
+    payload = _read_json_dict(study_root / "artifacts" / "publication_eval" / "latest.json")
+    if not payload:
+        return True
+    provenance = payload.get("assessment_provenance")
+    provenance_payload = provenance if isinstance(provenance, dict) else {}
+    owner = str(provenance_payload.get("owner") or "").strip()
+    if owner == "mechanical_projection" and provenance_payload.get("ai_reviewer_required") is True:
+        return False
+    quality_closure_truth = payload.get("quality_closure_truth")
+    closure_payload = quality_closure_truth if isinstance(quality_closure_truth, dict) else {}
+    closure_state = str(closure_payload.get("state") or "").strip()
+    if closure_state == "quality_repair_required":
+        return False
+    return True
+
+
 def _submission_minimal_controller():
     return import_module("med_autoscience.controllers.submission_minimal")
 
@@ -437,6 +454,8 @@ def resolve_delivered_submission_package_manual_finish_contract(
         return None
     resolved_study_root = Path(study_root).expanduser().resolve()
     if not _delivered_submission_package_ready(study_root=resolved_study_root):
+        return None
+    if not _publication_eval_allows_delivered_package_parking(study_root=resolved_study_root):
         return None
     return StudyManualFinishContract(
         study_root=resolved_study_root,

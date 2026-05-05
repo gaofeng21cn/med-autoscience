@@ -134,6 +134,48 @@ def test_runtime_health_recovery_budget_exhaustion_escalates(tmp_path: Path) -> 
     assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
 
 
+def test_runtime_health_submission_metadata_parking_dominates_stale_recovery_budget(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "001-dm-cvd"
+    for sequence in range(1, 4):
+        module.append_runtime_health_event(
+            study_root=study_root,
+            study_id="001-dm-cvd",
+            quest_id="001-dm-cvd-reentry",
+            event_type="recover_attempt",
+            payload={
+                "attempt_state": "failed",
+                "failure_reason": "quest_marked_running_but_no_live_session",
+            },
+            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
+        )
+    module.append_runtime_health_event(
+        study_root=study_root,
+        study_id="001-dm-cvd",
+        quest_id="001-dm-cvd-reentry",
+        event_type="runtime_state_observed",
+        payload={
+            "quest_status": "paused",
+            "decision": "blocked",
+            "reason": "quest_waiting_for_submission_metadata",
+            "runtime_liveness_status": "unknown",
+            "worker_running": False,
+        },
+        recorded_at="2026-05-01T00:04:00+00:00",
+    )
+
+    snapshot = module.rebuild_runtime_health_snapshot(
+        study_root=study_root,
+        study_id="001-dm-cvd",
+        quest_id="001-dm-cvd-reentry",
+    )
+
+    assert snapshot["worker_liveness_state"]["state"] == "not_live"
+    assert snapshot["attempt_state"] == "awaiting_explicit_resume"
+    assert snapshot["canonical_runtime_action"] == "await_explicit_resume"
+    assert "runtime_recovery_retry_budget_exhausted" not in snapshot["blocking_reasons"]
+
+
 def test_runtime_health_zero_retry_budget_blocks_recover_runtime_even_without_failed_attempts(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "003-dpcc"

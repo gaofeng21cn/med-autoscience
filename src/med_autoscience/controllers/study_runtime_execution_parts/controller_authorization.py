@@ -132,6 +132,30 @@ def _publication_eval_work_unit_context(publication_eval_payload: dict[str, Any]
     return {}
 
 
+def _record_work_unit_context(record: StudyDecisionRecord) -> dict[str, Any]:
+    next_work_unit = _compact_work_unit_payload(record.next_work_unit)
+    if next_work_unit is None:
+        return {}
+    unit_id = next_work_unit["unit_id"]
+    unit_summary = _text(next_work_unit.get("summary"))
+    route_key_question = f"{unit_id}: {unit_summary}" if unit_summary else unit_id
+    blocking_work_units = [
+        compact
+        for item in record.blocking_work_units
+        if (compact := _compact_work_unit_payload(item)) is not None
+    ]
+    return {
+        "work_unit_id": unit_id,
+        "work_unit_fingerprint": record.work_unit_fingerprint,
+        "next_work_unit": next_work_unit,
+        "blocking_work_units": blocking_work_units,
+        "route_target": _text(next_work_unit.get("lane")) or record.route_target,
+        "route_key_question": route_key_question,
+        "route_rationale": record.route_rationale,
+        "source_route_key_question": record.route_key_question,
+    }
+
+
 def _stable_publication_authority_fingerprint(
     *,
     study_root: Path,
@@ -141,7 +165,7 @@ def _stable_publication_authority_fingerprint(
         study_root=study_root,
         artifact_path=record.publication_eval_ref.artifact_path,
     )
-    work_unit_context = _publication_eval_work_unit_context(publication_eval_payload)
+    work_unit_context = _record_work_unit_context(record) or _publication_eval_work_unit_context(publication_eval_payload)
     canonical_payload: dict[str, Any] = {
         "gate_fingerprint": _text(publication_eval_payload.get("gate_fingerprint")),
         "work_unit_fingerprint": _text(work_unit_context.get("work_unit_fingerprint")),
@@ -208,7 +232,7 @@ def _load_controller_decision_authorization_context(*, study_root: Path) -> dict
         study_root=resolved_study_root,
         artifact_path=record.publication_eval_ref.artifact_path,
     )
-    work_unit_context = _publication_eval_work_unit_context(publication_eval_payload)
+    work_unit_context = _record_work_unit_context(record) or _publication_eval_work_unit_context(publication_eval_payload)
     route_target = str(work_unit_context.get("route_target") or record.route_target or "").strip()
     route_key_question = str(work_unit_context.get("route_key_question") or record.route_key_question or "").strip()
     route_rationale = str(work_unit_context.get("route_rationale") or record.route_rationale or "").strip()
