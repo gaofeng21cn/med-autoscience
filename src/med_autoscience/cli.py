@@ -64,6 +64,7 @@ delivery_inspector = _LazyModuleProxy(lambda: _load_controller("delivery_inspect
 hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime_check"))
 hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervision"))
 runtime_supervisor_consumer = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_consumer"))
+runtime_supervisor_dispatch_executor = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_dispatch_executor"))
 runtime_supervisor_scan = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_scan"))
 med_deepscientist_upgrade_check = _LazyModuleProxy(lambda: _load_controller("med_deepscientist_upgrade_check"))
 runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
@@ -358,6 +359,18 @@ def main(argv: list[str] | None = None) -> int:
         result = runtime_supervisor_consumer.supervisor_consume(
             profile=profile,
             study_ids=tuple(args.studies or ()),
+            mode=args.mode,
+            apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "runtime-supervisor-execute-dispatch":
+        profile = load_profile(args.profile)
+        result = runtime_supervisor_dispatch_executor.execute_default_executor_dispatches(
+            profile=profile,
+            study_ids=tuple(args.studies or ()),
+            action_types=tuple(args.action_types or ()),
             mode=args.mode,
             apply=bool(args.apply),
         )

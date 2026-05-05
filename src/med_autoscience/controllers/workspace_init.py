@@ -29,6 +29,7 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_profile_optional_forward_script,
     _render_supervisor_cron_template,
     _render_supervisor_consume_script,
+    _render_supervisor_execute_dispatch_script,
     _render_supervisor_launchd_instructions,
     _render_supervisor_scan_script,
     _render_supervisor_systemd_service,
@@ -356,6 +357,12 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
     if suffix == ("ops", "medautoscience", "bin", "supervisor-consume"):
         if "runtime supervisor-consume" not in existing_content or "--mode developer_apply_safe" not in existing_content:
             return "legacy_supervisor_consume_entry"
+    if suffix == ("ops", "medautoscience", "bin", "supervisor-execute-dispatch"):
+        if (
+            "runtime supervisor-execute-dispatch" not in existing_content
+            or "--mode developer_apply_safe" not in existing_content
+        ):
+            return "legacy_supervisor_execute_dispatch_entry"
     if suffix == ("ops", "medautoscience", "bin", "watch-runtime-service-status"):
         if "runtime supervision-status" not in existing_content:
             return "legacy_watch_runtime_service_status"
@@ -621,6 +628,11 @@ def _rendered_files(
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume",
             content=_render_supervisor_consume_script(),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-execute-dispatch",
+            content=_render_supervisor_execute_dispatch_script(),
             executable=True,
         ),
         RenderedFile(

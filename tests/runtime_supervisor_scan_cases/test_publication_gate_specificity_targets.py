@@ -183,3 +183,74 @@ def test_supervisor_scan_keeps_specificity_queued_when_targets_lack_source_paths
         "publication eval specificity target source_path must be non-empty"
     )
     assert study["action_queue"][0]["action_type"] == "publication_gate_specificity_required"
+
+
+def test_publication_gate_materialization_adds_concrete_specificity_targets(tmp_path: Path) -> None:
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
+    (study_root / "artifacts" / "controller").mkdir(parents=True)
+    (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
+    (study_root / "artifacts" / "controller" / "study_charter.json").write_text(
+        (
+            '{'
+            '"charter_id":"charter-dm",'
+            '"publication_objective":"Test publication objective."'
+            '}'
+        ),
+        encoding="utf-8",
+    )
+    report = {
+        "gate_kind": "publishability_control",
+        "generated_at": "2026-05-05T00:00:00+00:00",
+        "status": "blocked",
+        "blockers": [
+            "medical_publication_surface_blocked",
+            "claim_evidence_consistency_failed",
+            "figure_semantics_manifest_missing_or_incomplete",
+            "submission_hardening_incomplete",
+        ],
+        "quest_id": "quest-dm",
+        "paper_root": str(study_root / "paper"),
+        "latest_gate_path": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        "main_result_path": str(quest_root / "artifacts" / "results" / "main_result.json"),
+        "medical_publication_surface_report_path": str(study_root / "paper" / "medical_publication_surface.json"),
+        "submission_minimal_manifest_path": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+        "current_required_action": "return_to_publishability_gate",
+        "controller_stage_note": "Publication gate must name concrete blockers.",
+        "blocking_artifact_refs": [
+            {
+                "blocker": "claim_evidence_consistency_failed",
+                "artifact_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                "artifact_role": "claim_evidence_map",
+                "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+            },
+            {
+                "blocker": "figure_semantics_manifest_missing_or_incomplete",
+                "artifact_path": str(study_root / "paper" / "figures" / "figure_catalog.json"),
+                "artifact_role": "figure_catalog",
+                "source_path": str(study_root / "paper" / "figures" / "figure_catalog.json"),
+            },
+        ],
+    }
+
+    result = decision_module._materialize_publication_eval_from_gate_report(
+        study_root=study_root,
+        study_id="001-dm-cvd-mortality-risk",
+        quest_root=quest_root,
+        quest_id="quest-dm",
+        publication_gate_report=report,
+    )
+
+    assert result is not None
+    payload = (study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8")
+    record = __import__("json").loads(payload)
+    targets = record["recommended_actions"][0]["specificity_targets"]
+    assert [item["target_kind"] for item in targets] == [
+        "claim",
+        "figure",
+        "table",
+        "metric",
+        "source_path",
+    ]
+    assert all(item["source_path"] for item in targets)

@@ -92,6 +92,19 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_supervisor_consume_apply.add_argument("--dry-run", action="store_true")
     runtime_supervisor_consume_apply.add_argument("--apply", action="store_true")
 
+    runtime_supervisor_execute_dispatch_parser = subparsers.add_parser("runtime-supervisor-execute-dispatch")
+    runtime_supervisor_execute_dispatch_parser.add_argument("--profile", required=True)
+    runtime_supervisor_execute_dispatch_parser.add_argument("--studies", nargs="+")
+    runtime_supervisor_execute_dispatch_parser.add_argument("--action-types", nargs="+")
+    runtime_supervisor_execute_dispatch_parser.add_argument(
+        "--mode",
+        choices=("developer_apply_safe",),
+        required=True,
+    )
+    runtime_supervisor_execute_dispatch_apply = runtime_supervisor_execute_dispatch_parser.add_mutually_exclusive_group(required=True)
+    runtime_supervisor_execute_dispatch_apply.add_argument("--dry-run", action="store_true")
+    runtime_supervisor_execute_dispatch_apply.add_argument("--apply", action="store_true")
+
     register_runtime_storage_parsers(subparsers)
 
     init_data_assets_parser = subparsers.add_parser("init-data-assets")

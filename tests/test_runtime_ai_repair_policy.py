@@ -19,6 +19,8 @@ def test_two_layer_ai_repair_policy_freezes_intervals_and_escalation_thresholds(
     assert payload["developer_supervisor"]["same_tick_actions"] == [
         "runtime supervisor-scan --apply-safe-actions --developer-supervisor-mode developer_apply_safe",
         "runtime supervisor-consume --mode developer_apply_safe --apply",
+        "runtime supervisor-execute-dispatch --mode developer_apply_safe --apply",
     ]
+    assert "execute_ready_default_executor_dispatches" in payload["developer_supervisor"]["repair_principles"]
     assert payload["guardrails"]["paper_package_mutation_allowed"] is False
     assert payload["guardrails"]["quality_gate_relaxation_allowed"] is False

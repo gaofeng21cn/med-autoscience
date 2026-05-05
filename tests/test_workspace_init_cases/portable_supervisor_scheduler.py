@@ -23,8 +23,9 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
     install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
     service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
     uninstall_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
+    supervisor_execute_dispatch = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-execute-dispatch"
 
-    for path in (runner, install_service, service_status, uninstall_service):
+    for path in (runner, install_service, service_status, uninstall_service, supervisor_execute_dispatch):
         assert path.is_file()
         assert os.access(path, os.X_OK)
 
@@ -34,8 +35,13 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
     assert 'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"' in runner_text
     assert 'SUPERVISOR_SCAN_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-scan"' in runner_text
     assert 'SUPERVISOR_CONSUME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-consume"' in runner_text
+    assert (
+        'SUPERVISOR_EXECUTE_DISPATCH_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-execute-dispatch"'
+        in runner_text
+    )
     assert f'"${{SUPERVISOR_SCAN_SCRIPT}}" {DEVELOPER_SUPERVISOR_MODE_ARGS} "$@"' in runner_text
     assert '"${SUPERVISOR_CONSUME_SCRIPT}" --mode developer_apply_safe --apply "$@"' in runner_text
+    assert '"${SUPERVISOR_EXECUTE_DISPATCH_SCRIPT}" --mode developer_apply_safe --apply "$@"' in runner_text
 
     supervisor_scan = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
     assert supervisor_scan.is_file()
@@ -52,6 +58,12 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
     assert '--profile "${PROFILE_PATH}"' in supervisor_consume_text
     assert "--mode developer_apply_safe" in supervisor_consume_text
     assert "--apply" in supervisor_consume_text
+
+    supervisor_execute_dispatch_text = supervisor_execute_dispatch.read_text(encoding="utf-8")
+    assert "run_medautosci runtime supervisor-execute-dispatch" in supervisor_execute_dispatch_text
+    assert '--profile "${PROFILE_PATH}"' in supervisor_execute_dispatch_text
+    assert "--mode developer_apply_safe" in supervisor_execute_dispatch_text
+    assert "--apply" in supervisor_execute_dispatch_text
 
     install_text = install_service.read_text(encoding="utf-8")
     assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text

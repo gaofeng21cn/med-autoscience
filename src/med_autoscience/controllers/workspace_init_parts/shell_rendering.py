@@ -5,6 +5,7 @@ from pathlib import Path
 
 DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --developer-supervisor-mode developer_apply_safe"
 DEVELOPER_SUPERVISOR_CONSUME_ARGS = "--mode developer_apply_safe --apply"
+DEVELOPER_SUPERVISOR_EXECUTE_DISPATCH_ARGS = "--mode developer_apply_safe --apply"
 
 
 def _render_behavior_equivalence_gate() -> str:
@@ -147,6 +148,7 @@ def _render_watch_runtime_service_runner() -> str:
         'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"\n\n'
         'SUPERVISOR_SCAN_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-scan"\n\n'
         'SUPERVISOR_CONSUME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-consume"\n\n'
+        'SUPERVISOR_EXECUTE_DISPATCH_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-execute-dispatch"\n\n'
         'if [[ ! -x "${WATCH_RUNTIME_SCRIPT}" ]]; then\n'
         '  echo "watch-runtime entry is missing or not executable: ${WATCH_RUNTIME_SCRIPT}" >&2\n'
         "  exit 1\n"
@@ -159,8 +161,13 @@ def _render_watch_runtime_service_runner() -> str:
         '  echo "supervisor-consume entry is missing or not executable: ${SUPERVISOR_CONSUME_SCRIPT}" >&2\n'
         "  exit 1\n"
         "fi\n\n"
+        'if [[ ! -x "${SUPERVISOR_EXECUTE_DISPATCH_SCRIPT}" ]]; then\n'
+        '  echo "supervisor-execute-dispatch entry is missing or not executable: ${SUPERVISOR_EXECUTE_DISPATCH_SCRIPT}" >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
         f'"${{SUPERVISOR_SCAN_SCRIPT}}" {DEVELOPER_SUPERVISOR_MODE_ARGS} "$@"\n'
-        f'exec "${{SUPERVISOR_CONSUME_SCRIPT}}" {DEVELOPER_SUPERVISOR_CONSUME_ARGS} "$@"\n'
+        f'"${{SUPERVISOR_CONSUME_SCRIPT}}" {DEVELOPER_SUPERVISOR_CONSUME_ARGS} "$@"\n'
+        f'exec "${{SUPERVISOR_EXECUTE_DISPATCH_SCRIPT}}" {DEVELOPER_SUPERVISOR_EXECUTE_DISPATCH_ARGS} "$@"\n'
     )
 
 
@@ -183,6 +190,18 @@ def _render_supervisor_consume_script() -> str:
         'run_medautosci runtime supervisor-consume \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         f"  {DEVELOPER_SUPERVISOR_CONSUME_ARGS} \\\n"
+        '  "$@"\n'
+    )
+
+
+def _render_supervisor_execute_dispatch_script() -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'run_medautosci runtime supervisor-execute-dispatch \\\n'
+        '  --profile "${PROFILE_PATH}" \\\n'
+        f"  {DEVELOPER_SUPERVISOR_EXECUTE_DISPATCH_ARGS} \\\n"
         '  "$@"\n'
     )
 

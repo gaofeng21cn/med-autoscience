@@ -124,7 +124,7 @@ medautosci runtime-supervisor-consume \
 
 该入口只把 scan queue 转成 owner handoff task，写入 workspace-level `artifacts/supervision/consumer/latest.json` / `history.jsonl` 以及 study-level consumer packet。它负责说明 `request_owner`、`required_output_surface`、`request_packet_ref`、forbidden surfaces 与 verification commands；它不执行 publication gate 或 AI reviewer 的专业判断，也不修改论文包。
 
-从 2026-05-05 起，developer scheduler 的正式同 tick 行为是 `scan -> consume`：
+从 2026-05-05 起，developer scheduler 的正式同 tick 行为是 `scan -> consume -> execute-dispatch`：
 
 ```bash
 medautosci runtime supervisor-scan \
@@ -136,6 +136,11 @@ medautosci runtime supervisor-consume \
   --profile <profile> \
   --mode developer_apply_safe \
   --apply
+
+medautosci runtime supervisor-execute-dispatch \
+  --profile <profile> \
+  --mode developer_apply_safe \
+  --apply
 ```
 
 如果未显式传 `--studies`，`supervisor-consume` 从最新 `hourly/latest.json` 的 `action_queue` 推导需要消费的 study 列表。consumer 会额外写出 study-level default executor dispatch request：
@@ -144,14 +149,20 @@ medautosci runtime supervisor-consume \
 
 这个 dispatch request 是“把问题交给默认 Codex CLI 执行器”的机器可读派单面，包含 owner、输入 surface、必需输出 surface、forbidden surfaces 与 prompt contract。它不等同于 owner output；例如 AI reviewer 的 output 仍必须由 AI reviewer workflow 写回 owner-authorized durable surface，consumer 本身不得写 `publication_eval/latest.json`。
 
+`runtime supervisor-execute-dispatch` 是第三步执行/落账面。它读取 `default_executor_dispatches/*`，校验 forbidden surfaces 和 prompt contract 后，只调用 owner 授权的 repo surface，或写出 `blocked_reason`。当前允许行为是：
+
+- `publication_gate_specificity_required`：重放 `publication_gate` owner 的 gate report，并只物化 controller-owned `publication_eval/latest.json`，要求推荐动作带具体 `claim/figure/table/metric/source_path` targets。
+- `runtime_platform_repair`：调用已有 runtime supervisor scan 的 safe platform repair path。
+- `return_to_ai_reviewer_workflow`：如果没有结构化 AI reviewer record，不生成评审结论，写 `blocked_reason=owner_callable_surface_missing` 与 `required_repo_surface=structured_ai_reviewer_default_executor_workflow`。
+
 第二层 Developer Supervisor Mode 的时间策略固定为：
 
 - scheduler/heartbeat：每 `3600` 秒一次
 - owner request `2` 小时未被 pickup，标记 `owner_pickup_overdue`
 - action queue `6` 小时仍未被消费或仍无进展，标记 `developer_supervisor_attention_required`
-- developer heartbeat 必须评估内置 AI monitoring/repair 是否失效，并在 `developer_apply_safe` 与 GitHub gate 通过时消费队列、写 default executor dispatch request，或明确 blocked reason / next owner
+- developer heartbeat 必须评估内置 AI monitoring/repair 是否失效，并在 `developer_apply_safe` 与 GitHub gate 通过时消费队列、写 default executor dispatch request、执行 ready dispatch，或明确 blocked reason / next owner
 
-这解释了之前的故障模式：heartbeat 只运行 `supervisor-scan` 时，系统能准确报告 `AI reviewer queue` 或 `publication_gate_specificity_required` 积压，但没有运行 `supervisor-consume`，也没有生成默认 Codex executor dispatch request，所以“AI 监测发现问题”与“AI 修复真正被派单执行”之间断开。
+这解释了之前的故障模式：heartbeat 只运行 `supervisor-scan` 时，系统能准确报告 `AI reviewer queue` 或 `publication_gate_specificity_required` 积压，但没有运行 `supervisor-consume`，也没有生成默认 Codex executor dispatch request，所以“AI 监测发现问题”与“AI 修复真正被派单执行”之间断开。后续如果只运行到 `supervisor-consume`，也只能得到 `dispatch_status=ready`；必须同 tick 运行 `supervisor-execute-dispatch`，才能把 ready dispatch 推进为 `executed` 或明确 blocked。
 
 Developer Supervisor Mode 有三个正式模式：
 
@@ -167,13 +178,14 @@ workspace bootstrap 会渲染 portable scheduler entry 与示例模板：
 
 - `ops/medautoscience/bin/supervisor-scan`
 - `ops/medautoscience/bin/supervisor-consume`
+- `ops/medautoscience/bin/supervisor-execute-dispatch`
 - `ops/medautoscience/bin/watch-runtime-service-runner`
 - `ops/medautoscience/supervisor/systemd/medautoscience-supervisor-scan.service`
 - `ops/medautoscience/supervisor/systemd/medautoscience-supervisor-scan.timer`
 - `ops/medautoscience/supervisor/cron/supervisor-scan.cron`
 - `ops/medautoscience/supervisor/launchd/README.md`
 
-`systemd` 与 `cron` 模板调用 `watch-runtime-service-runner`，由 runner 在同一小时级 tick 内先执行 `supervisor-scan`，再执行 `supervisor-consume`。Codex App heartbeat 仍只是本机兼容 scheduler；MAS 架构依赖的是 portable scheduler entry 和这些 durable surfaces。
+`systemd` 与 `cron` 模板调用 `watch-runtime-service-runner`，由 runner 在同一小时级 tick 内依次执行 `supervisor-scan`、`supervisor-consume`、`supervisor-execute-dispatch`。Codex App heartbeat 仍只是本机兼容 scheduler；MAS 架构依赖的是 portable scheduler entry 和这些 durable surfaces。
 
 `medautosci runtime ensure-supervision --manager systemd|cron|launchd` 返回可复制的安装命令和模板路径，并验证当前 workspace 是否已有可执行的 `supervisor-scan` entry。显式追加 `--write-install-proof` 时，它会写出 workspace-level `artifacts/supervision/install_proof/latest.json`，记录 manager、scheduler owner、安装命令、状态检查命令、预期产物、freshness、safe-action mode、GitHub gate 与 host service claim。这个接口只生成 scheduler instruction / install proof，不在没有真实宿主安装 evidence 时声称宿主 service 已安装；安装动作仍归属 host operator 或外部 scheduler。
 
@@ -287,6 +299,7 @@ medautosci runtime supervisor-scan \
 - workspace-level `artifacts/supervision/consumer/history.jsonl`
 - study-level `studies/<study_id>/artifacts/supervision/consumer/<action_type>.json`
 - study-level `studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/<action_type>.json`
+- study-level `studies/<study_id>/artifacts/supervision/consumer/default_executor_execution/latest.json`
 - study-level `studies/<study_id>/artifacts/supervision/requests/publication_gate_specificity/latest.json`
 - study-level `studies/<study_id>/artifacts/supervision/requests/ai_reviewer/latest.json`
 - quest-level `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
@@ -302,6 +315,7 @@ medautosci runtime supervisor-scan \
 - `artifacts/supervision/hourly/latest.json` 负责跨 study 巡检 action queue 与 why-not-applied 投影
 - `artifacts/supervision/consumer/latest.json` 与 study-level consumer packets 负责把外层 queue 消费成 request-owner handoff task
 - `default_executor_dispatches/*` 负责把未被 owner 接手的 queue 转成默认 Codex CLI 执行器派单，不承担 publication/AI reviewer output authority
+- `default_executor_execution/latest.json` 负责记录 ready dispatch 的执行尝试、owner callable surface、blocked reason 与 written execution ledger
 - `artifacts/supervision/requests/*/latest.json` 负责保存 owner-visible request packet；它们是 request surface，不是 owner output surface
 - `study_progress` 负责把这些 truth 翻译成医生/PI 能看懂的前台进度
 

@@ -50,10 +50,12 @@ def two_layer_ai_repair_policy_payload() -> dict[str, Any]:
             "same_tick_actions": [
                 "runtime supervisor-scan --apply-safe-actions --developer-supervisor-mode developer_apply_safe",
                 "runtime supervisor-consume --mode developer_apply_safe --apply",
+                "runtime supervisor-execute-dispatch --mode developer_apply_safe --apply",
             ],
             "repair_principles": [
                 "consume_unowned_or_overdue_action_queue",
                 "dispatch_default_codex_executor_request",
+                "execute_ready_default_executor_dispatches",
                 "preserve_owner_output_authority",
                 "escalate_when_internal_ai_repair_did_not_apply",
             ],

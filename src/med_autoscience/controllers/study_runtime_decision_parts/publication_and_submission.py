@@ -366,6 +366,130 @@ def _publication_eval_gaps(
     )
 
 
+def _publication_eval_specificity_targets(report: dict[str, object]) -> tuple[dict[str, str], ...]:
+    blockers = [str(item).strip() for item in (report.get("blockers") or []) if str(item).strip()]
+    if not blockers:
+        return ()
+
+    def _text(value: object) -> str | None:
+        text = str(value or "").strip()
+        return text or None
+
+    def _source_path_from_ref(ref: object) -> str | None:
+        if not isinstance(ref, dict):
+            return None
+        return _text(ref.get("source_path")) or _text(ref.get("artifact_path"))
+
+    def _target_id_from_ref(ref: dict[str, object], fallback: str) -> str:
+        for key in (
+            "target_id",
+            "claim_id",
+            "figure_id",
+            "table_id",
+            "metric_id",
+            "display_id",
+            "artifact_role",
+            "blocker",
+        ):
+            if text := _text(ref.get(key)):
+                return text
+        return fallback
+
+    def _kind_from_ref(ref: dict[str, object]) -> str | None:
+        haystack = " ".join(
+            str(ref.get(key) or "")
+            for key in ("target_kind", "artifact_role", "blocker", "artifact_path", "source_path")
+        ).lower()
+        if "claim" in haystack or "evidence" in haystack or "story" in haystack or "review_ledger" in haystack:
+            return "claim"
+        if "figure" in haystack or "display" in haystack:
+            return "figure"
+        if "table" in haystack or "submission" in haystack:
+            return "table"
+        if "metric" in haystack or "result" in haystack or "analysis" in haystack:
+            return "metric"
+        if "source" in haystack or "path" in haystack:
+            return "source_path"
+        return None
+
+    def _fallback_path(kind: str) -> str | None:
+        paper_root = _text(report.get("paper_root"))
+        if kind == "claim" and paper_root is not None:
+            return str(Path(paper_root) / "claim_evidence_map.json")
+        if kind == "figure" and paper_root is not None:
+            return str(Path(paper_root) / "figures" / "figure_catalog.json")
+        if kind == "table":
+            return _text(report.get("submission_minimal_manifest_path")) or (
+                str(Path(paper_root) / "tables" / "table_catalog.json") if paper_root is not None else None
+            )
+        if kind == "metric":
+            return _text(report.get("main_result_path"))
+        return (
+            _text(report.get("medical_publication_surface_report_path"))
+            or _text(report.get("latest_gate_path"))
+            or _text(report.get("main_result_path"))
+            or paper_root
+        )
+
+    def _append_target(
+        targets: list[dict[str, str]],
+        *,
+        kind: str,
+        target_id: str,
+        source_path: str | None,
+        blocking_reason: str,
+    ) -> None:
+        if kind in {item["target_kind"] for item in targets}:
+            return
+        if source_path is None:
+            source_path = _fallback_path(kind)
+        if source_path is None:
+            return
+        targets.append(
+            {
+                "target_kind": kind,
+                "target_id": target_id,
+                "source_path": source_path,
+                "blocking_reason": blocking_reason,
+            }
+        )
+
+    targets: list[dict[str, str]] = []
+    blocking_refs = report.get("blocking_artifact_refs")
+    if isinstance(blocking_refs, list):
+        for ref in blocking_refs:
+            if not isinstance(ref, dict):
+                continue
+            kind = _kind_from_ref(ref)
+            if kind is None:
+                continue
+            blocker = _text(ref.get("blocker")) or blockers[0]
+            _append_target(
+                targets,
+                kind=kind,
+                target_id=_target_id_from_ref(ref, f"{kind}_publication_gate_target"),
+                source_path=_source_path_from_ref(ref),
+                blocking_reason=blocker,
+            )
+
+    defaults = {
+        "claim": "claim_evidence_map",
+        "figure": "figure_catalog",
+        "table": "submission_table_or_manifest",
+        "metric": "main_result_metrics",
+        "source_path": "publication_gate_source_path",
+    }
+    for kind, target_id in defaults.items():
+        _append_target(
+            targets,
+            kind=kind,
+            target_id=target_id,
+            source_path=_fallback_path(kind),
+            blocking_reason=blockers[0],
+        )
+    return tuple(targets)
+
+
 def _publication_eval_action(
     *,
     report: dict[str, object],
@@ -500,6 +624,7 @@ def _publication_eval_action(
         work_unit_fingerprint=work_unit_fingerprint or None,
         blocking_work_units=tuple(work_unit_payload.get("blocking_work_units") or ()),
         next_work_unit=work_unit_payload.get("next_work_unit") if isinstance(work_unit_payload.get("next_work_unit"), dict) else None,
+        specificity_targets=_publication_eval_specificity_targets(report),
     )
 
 
