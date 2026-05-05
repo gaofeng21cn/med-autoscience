@@ -371,6 +371,7 @@ def test_supervisor_scan_routes_incomplete_completion_contract_to_completion_evi
     tmp_path: Path,
 ) -> None:
     scan = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-002")
 
@@ -511,6 +512,7 @@ def test_supervisor_scan_routes_no_live_current_controller_work_unit_without_ext
     tmp_path: Path,
 ) -> None:
     scan = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
