@@ -6,6 +6,7 @@ from .parked_progression import parked_intervention_lane, publication_supervisor
 from .gate_clearing_progress import append_gate_clearing_batch_progress_signal, append_progress_signal
 from .runtime_liveness_projection import live_managed_runtime_present, runtime_recovery_pending_from_status
 from .specificity_lane import specificity_intervention_lane, specificity_next_system_action, specificity_stage_summary
+from .stage_state import current_stage_from_runtime_attempt_state, progress_freshness_required
 from . import shared as _shared
 from . import publication_runtime as _publication_runtime
 from .quality_review_loop import quality_review_loop_action_required
@@ -55,16 +56,6 @@ def _progress_freshness_status_label(status: object) -> str | None:
     if text is None:
         return None
     return _PROGRESS_FRESHNESS_STATUS_LABELS.get(text, _humanize_token(text))
-
-
-def _progress_freshness_required(current_stage: str) -> bool:
-    return current_stage not in {
-        "study_completed",
-        "manual_finishing",
-        "waiting_physician_decision",
-        "waiting_user_decision",
-        "auto_runtime_parked",
-    }
 
 
 def _latest_progress_signal(
@@ -136,7 +127,7 @@ def _progress_freshness(
     gate_clearing_batch_payload: dict[str, Any] | None,
     gate_clearing_batch_path: Path | None,
 ) -> dict[str, Any]:
-    required = _progress_freshness_required(current_stage)
+    required = progress_freshness_required(current_stage)
     latest_signal = _latest_progress_signal(
         bash_summary_payload=bash_summary_payload,
         details_projection_payload=details_projection_payload,
@@ -236,6 +227,9 @@ def _current_stage(
         return "manual_finishing"
     if runtime_health_action == "recover_runtime" or runtime_health_attempt_state == "recovering":
         return "managed_runtime_recovering"
+    attempt_stage = current_stage_from_runtime_attempt_state(runtime_health_attempt_state)
+    if attempt_stage is not None:
+        return attempt_stage
     if runtime_health_status == "recovering" and not live_managed_runtime:
         return "managed_runtime_recovering"
     if runtime_recovery_pending_from_status(

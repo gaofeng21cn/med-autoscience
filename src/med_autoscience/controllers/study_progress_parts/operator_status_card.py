@@ -25,11 +25,19 @@ def _operator_status_handling_state(
 ) -> str:
     lane_id = _non_empty_text((intervention_lane or {}).get("lane_id")) or "monitor_only"
     activity_timeout = (intervention_lane or {}).get("activity_timeout")
+    runtime_unhealthy_stage = current_stage in {
+        "managed_runtime_recovering",
+        "managed_runtime_degraded",
+        "managed_runtime_escalated",
+        "runtime_blocked",
+    }
     if lane_id == "runtime_recovery_required" and isinstance(activity_timeout, dict):
         if _non_empty_text(activity_timeout.get("state")) == "timed_out":
             return "runtime_recovering"
     if bool((auto_runtime_parked or {}).get("parked")):
         return _non_empty_text((auto_runtime_parked or {}).get("parked_state")) or "auto_runtime_parked"
+    if lane_id in {"runtime_recovery_required", "runtime_blocker"} or runtime_unhealthy_stage:
+        return "runtime_recovering"
     if _manual_finish_active(manual_finish_contract):
         return "package_ready_handoff"
     if lane_id == "manual_finishing":
@@ -38,13 +46,6 @@ def _operator_status_handling_state(
         return "runtime_supervision_recovering"
     if lane_id == "publication_gate_specificity_required":
         return "publication_gate_specificity_required"
-    if lane_id in {"runtime_recovery_required", "runtime_blocker"} or current_stage in {
-        "managed_runtime_recovering",
-        "managed_runtime_degraded",
-        "managed_runtime_escalated",
-        "runtime_blocked",
-    }:
-        return "runtime_recovering"
     if needs_physician_decision or is_user_decision_lane(lane_id):
         return "waiting_user_decision"
     if any(str(item or "").strip() in _HUMAN_SURFACE_REFRESH_BLOCKER_LABELS for item in current_blockers):

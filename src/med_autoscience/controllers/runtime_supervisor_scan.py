@@ -9,6 +9,7 @@ from typing import Any
 from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
 from med_autoscience.controllers import study_progress, study_runtime_router
 from med_autoscience.controllers.runtime_supervisor_scan_parts import gate_specificity as gate_specificity_part
+from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
 from med_autoscience.controllers.runtime_supervisor_scan_parts import queue_slo
 from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
@@ -258,10 +259,15 @@ def _supervisor_only(status: Mapping[str, Any], progress: Mapping[str, Any]) -> 
 def _runtime_platform_repair_required(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
     active_run_id = _active_run_id(status, progress)
     no_live_worker = not active_run_id or not _worker_running(status)
-    return _retry_exhausted(status, progress) and no_live_worker and _text(status.get("quest_status")) in {
-        "active",
-        "running",
-    }
+    if no_live_worker and abnormal_stopped_runtime.repair_required(status, progress):
+        return True
+    return _retry_exhausted(status, progress) and no_live_worker and _text(status.get("quest_status")) in {"active", "running"}
+
+
+def _runtime_platform_repair_reason(status: Mapping[str, Any], progress: Mapping[str, Any]) -> str:
+    if abnormal_stopped_runtime.repair_required(status, progress):
+        return abnormal_stopped_runtime.REPAIR_REASON
+    return "runtime_recovery_retry_budget_exhausted"
 
 
 def _action_id(*, study_id: str, action_type: str, reason: str | None) -> str:
@@ -349,14 +355,19 @@ def _action_queue(
 ) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
     if _runtime_platform_repair_required(status, progress):
+        reason = _runtime_platform_repair_reason(status, progress)
         actions.append(
             {
                 "action_type": "runtime_platform_repair",
                 "authority": "external_supervisor",
                 "owner": "external_engineering_agent",
                 "recommended_owner": "external_engineering_agent",
-                "reason": "runtime_recovery_retry_budget_exhausted",
-                "summary": "Runtime recovery retry budget is exhausted and no live worker is attached.",
+                "reason": reason,
+                "summary": (
+                    "Quest is stopped with controller/runtime facts requiring resume and no live worker is attached."
+                    if reason == "abnormal_stopped_runtime_resume_required"
+                    else "Runtime recovery retry budget is exhausted and no live worker is attached."
+                ),
                 "paper_package_mutation_allowed": False,
             }
         )
@@ -411,6 +422,8 @@ def _why_not_applied(
     actions: list[dict[str, Any]],
 ) -> str | None:
     lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
+    if _runtime_platform_repair_required(status, progress):
+        return _runtime_platform_repair_reason(status, progress)
     if _retry_exhausted(status, progress):
         return "runtime_recovery_retry_budget_exhausted"
     if actions:

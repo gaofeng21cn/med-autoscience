@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 from med_autoscience.profiles import WorkspaceProfile
@@ -128,6 +129,37 @@ def _runtime_state_has_stale_specificity_terminal(runtime_state: Mapping[str, An
         _text(lifecycle.get("block_reason")),
     }
     return any(marker in SPECIFICITY_WORK_UNIT_IDS for marker in markers)
+
+
+def _apply_abnormal_stopped_runtime_repair(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    base: Mapping[str, Any],
+) -> dict[str, Any]:
+    try:
+        resume_result = study_runtime_router.ensure_study_runtime(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            source=RUNTIME_PLATFORM_REPAIR_SOURCE,
+        )
+    except Exception as exc:
+        return {
+            **dict(base),
+            "dispatch_status": "blocked",
+            "reason": "abnormal_stopped_runtime_relaunch_failed",
+            "repair_kind": "abnormal_stopped_runtime_relaunch",
+            "error": str(exc),
+        }
+    return {
+        **dict(base),
+        "dispatch_status": "applied",
+        "reason": "abnormal_stopped_runtime_relaunch_requested",
+        "repair_kind": "abnormal_stopped_runtime_relaunch",
+        "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
+    }
 
 
 def _publication_gate_ready_for_specificity_redrive(quest_root: str | None) -> dict[str, Any]:
@@ -283,6 +315,7 @@ def write_runtime_platform_repair_lifecycle(
 ) -> dict[str, Any]:
     dispatch_status = _text(apply_result.get("dispatch_status")) or "blocked"
     state = "applied" if dispatch_status == "applied" else "blocked"
+    repair_kind = _text(apply_result.get("repair_kind")) or "stale_specificity_terminal_gate_redrive"
     payload = {
         "surface": "ai_repair_lifecycle",
         "schema_version": 1,
@@ -294,7 +327,7 @@ def write_runtime_platform_repair_lifecycle(
         "forbidden_actions": list(SUPERVISION_FORBIDDEN_ACTIONS),
         "top_action": {
             "action_type": "runtime_platform_repair",
-            "repair_kind": "stale_specificity_terminal_gate_redrive",
+            "repair_kind": repair_kind,
             "owner": "mas_controller",
             "auto_apply_allowed": True,
             "paper_package_mutation_allowed": False,
@@ -347,6 +380,13 @@ def apply_runtime_platform_repair(
         return None
     if not developer_mode.safe_actions_enabled:
         return {**base, "dispatch_status": "blocked", "reason": "developer_supervisor_safe_actions_not_enabled"}
+    if abnormal_stopped_runtime.repair_required(status, progress):
+        return _apply_abnormal_stopped_runtime_repair(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            base=base,
+        )
     quest_root = _text(status.get("quest_root")) or _text(progress.get("quest_root"))
     runtime_path = _runtime_state_path(quest_root)
     if runtime_path is None:

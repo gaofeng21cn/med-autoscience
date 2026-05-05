@@ -6,6 +6,7 @@ from tests.study_progress_cases.ai_repair_lifecycle_projection import *
 from tests.study_progress_cases.autonomy_quality_and_route_projection import *
 from tests.study_progress_cases.operator_status_and_eval_refresh import *
 from tests.study_progress_cases.operator_status_activity_timeout import *
+from tests.study_progress_cases.abnormal_stopped_runtime_projection import *
 from tests.study_progress_cases.gate_specificity_projection import *
 from tests.study_progress_cases.milestone_parking_projection import *
 from tests.study_progress_cases.supervision_blockers_and_task_reopen import *
