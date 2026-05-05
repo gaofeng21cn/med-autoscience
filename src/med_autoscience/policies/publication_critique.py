@@ -30,6 +30,12 @@ TARGET_JOURNAL_WRITING_LAYER_REQUIRED_FIELDS = (
     "display_to_claim_map",
     "restrained_language_strategy",
 )
+FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS = (
+    "limitation",
+    "impact_on_claim",
+    "required_future_analysis_data_or_design",
+    "current_manuscript_wording_must_be_restrained",
+)
 TARGET_JOURNAL_WRITING_LAYER_RELATIVE_PATH = Path("paper/target_journal_writing_layer.json")
 
 
@@ -98,7 +104,20 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
             "decision_matrix",
             "provenance_checks",
             "route_back_decision",
+            "future_facing_limitations_plan",
         ],
+        "future_facing_limitations_plan": {
+            "surface": "future_facing_limitations_plan",
+            "role": "prescriptive_limitations_review_contract",
+            "mechanical_projection_can_authorize_quality": False,
+            "required_fields": list(FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS),
+            "discipline": {
+                "requires_limitation_to_claim_impact_mapping": True,
+                "requires_future_analysis_data_or_design": True,
+                "requires_current_manuscript_restraint_decision": True,
+                "forbids_weakness_disclosure_only": True,
+            },
+        },
         "required_provenance": {
             "assessment_owner": "ai_reviewer",
             "policy_id": "medical_publication_critique_v1",
@@ -112,6 +131,7 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
         {"field": "top_priority_issue", "description": "the single issue that should be repaired first"},
         {"field": "style_diagnosis", "description": "diagnosis of whether the manuscript voice reads as a medical journal article rather than a work report"},
         {"field": "revision_items", "description": "ordered revision items with explicit done criteria"},
+        {"field": "future_facing_limitations_plan", "description": "limitations mapped to claim impact, required future analysis/data/design, and current wording restraint"},
         {"field": "next_review_focus", "description": "what the next re-review pass must verify"},
     ],
     "executable_revision_action_types": [
@@ -154,9 +174,11 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
         "decision_matrix",
         "provenance_checks",
         "route_back_decision",
+        "future_facing_limitations_plan",
     ):
         if required_field not in normalized_trace_fields:
             raise ValueError(f"AI reviewer operating system 缺少 trace 字段: {required_field}")
+    _require_future_facing_limitations_output(policy)
 
     provenance = contract.get("required_provenance")
     if not isinstance(provenance, dict):
@@ -186,6 +208,35 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
     if missing_writing_fields:
         raise ValueError("target_journal_writing_layer 缺少字段: " + ", ".join(missing_writing_fields))
 
+    future_limitations_plan = contract.get("future_facing_limitations_plan")
+    if not isinstance(future_limitations_plan, dict):
+        raise ValueError("AI reviewer operating system 缺少 future_facing_limitations_plan。")
+    if future_limitations_plan.get("mechanical_projection_can_authorize_quality") is not False:
+        raise ValueError("future_facing_limitations_plan 必须禁止 mechanical projection 授权质量。")
+    future_limitations_fields = future_limitations_plan.get("required_fields")
+    if not isinstance(future_limitations_fields, list):
+        raise ValueError("future_facing_limitations_plan required_fields 必须是列表。")
+    normalized_future_limitations_fields = tuple(
+        _require_non_empty_text(item, "future_facing_limitations_plan.required_fields")
+        for item in future_limitations_fields
+    )
+    missing_future_limitations_fields = sorted(
+        set(FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS) - set(normalized_future_limitations_fields)
+    )
+    if missing_future_limitations_fields:
+        raise ValueError("future_facing_limitations_plan 缺少字段: " + ", ".join(missing_future_limitations_fields))
+    future_limitations_discipline = future_limitations_plan.get("discipline")
+    if not isinstance(future_limitations_discipline, dict):
+        raise ValueError("future_facing_limitations_plan discipline 必须是 object。")
+    for discipline_field in (
+        "requires_limitation_to_claim_impact_mapping",
+        "requires_future_analysis_data_or_design",
+        "requires_current_manuscript_restraint_decision",
+        "forbids_weakness_disclosure_only",
+    ):
+        if future_limitations_discipline.get(discipline_field) is not True:
+            raise ValueError(f"future_facing_limitations_plan discipline 必须启用 {discipline_field}。")
+
     return {
         **contract,
         "required_input_surfaces": list(normalized_inputs),
@@ -196,7 +247,25 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
             **writing_layer,
             "required_fields": list(normalized_writing_layer_fields),
         },
+        "future_facing_limitations_plan": {
+            **future_limitations_plan,
+            "required_fields": list(normalized_future_limitations_fields),
+            "discipline": dict(future_limitations_discipline),
+        },
     }
+
+
+def _require_future_facing_limitations_output(policy: dict[str, Any]) -> None:
+    required_outputs = policy.get("required_outputs")
+    if not isinstance(required_outputs, list):
+        raise ValueError("publication critique policy required_outputs 必须是列表。")
+    output_fields: list[str] = []
+    for item in required_outputs:
+        if not isinstance(item, dict):
+            raise ValueError("publication critique policy required_outputs 必须是 object 列表。")
+        output_fields.append(_require_non_empty_text(item.get("field"), "required_outputs.field"))
+    if "future_facing_limitations_plan" not in output_fields:
+        raise ValueError("publication critique policy 缺少 required output: future_facing_limitations_plan。")
 
 
 def _require_non_empty_text(value: Any, field_name: str) -> str:

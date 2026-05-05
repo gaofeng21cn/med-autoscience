@@ -80,6 +80,74 @@ def test_publication_critique_policy_exposes_target_journal_writing_layer() -> N
     }
 
 
+def test_publication_critique_policy_requires_future_facing_limitations_plan() -> None:
+    from med_autoscience.policies.publication_critique import (
+        DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+        build_ai_reviewer_operating_system_contract,
+    )
+
+    contract = build_ai_reviewer_operating_system_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+
+    assert "future_facing_limitations_plan" in contract["required_trace_fields"]
+    assert contract["future_facing_limitations_plan"] == {
+        "surface": "future_facing_limitations_plan",
+        "role": "prescriptive_limitations_review_contract",
+        "mechanical_projection_can_authorize_quality": False,
+        "required_fields": [
+            "limitation",
+            "impact_on_claim",
+            "required_future_analysis_data_or_design",
+            "current_manuscript_wording_must_be_restrained",
+        ],
+        "discipline": {
+            "requires_limitation_to_claim_impact_mapping": True,
+            "requires_future_analysis_data_or_design": True,
+            "requires_current_manuscript_restraint_decision": True,
+            "forbids_weakness_disclosure_only": True,
+        },
+    }
+    assert "future_facing_limitations_plan" in [
+        item["field"]
+        for item in DEFAULT_PUBLICATION_CRITIQUE_POLICY["required_outputs"]
+    ]
+
+
+def test_ai_reviewer_contract_fails_closed_without_future_facing_limitations_plan() -> None:
+    import pytest
+
+    from med_autoscience.policies.publication_critique import (
+        DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+        build_ai_reviewer_operating_system_contract,
+    )
+
+    policy = dict(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+    ai_reviewer_os = dict(DEFAULT_PUBLICATION_CRITIQUE_POLICY["ai_reviewer_operating_system"])
+    ai_reviewer_os.pop("future_facing_limitations_plan", None)
+    policy["ai_reviewer_operating_system"] = ai_reviewer_os
+
+    with pytest.raises(ValueError, match="future_facing_limitations_plan"):
+        build_ai_reviewer_operating_system_contract(policy)
+
+
+def test_ai_reviewer_contract_fails_closed_without_future_facing_limitations_output() -> None:
+    import pytest
+
+    from med_autoscience.policies.publication_critique import (
+        DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+        build_ai_reviewer_operating_system_contract,
+    )
+
+    policy = dict(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+    policy["required_outputs"] = [
+        item
+        for item in DEFAULT_PUBLICATION_CRITIQUE_POLICY["required_outputs"]
+        if item["field"] != "future_facing_limitations_plan"
+    ]
+
+    with pytest.raises(ValueError, match="future_facing_limitations_plan"):
+        build_ai_reviewer_operating_system_contract(policy)
+
+
 def test_target_journal_writing_layer_can_be_materialized_as_first_class_surface(tmp_path: Path) -> None:
     from med_autoscience.policies.publication_critique import (
         materialize_target_journal_writing_layer,
