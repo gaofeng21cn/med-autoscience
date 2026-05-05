@@ -22,6 +22,13 @@ DECISIONS: tuple[str, ...] = (
 EVIDENCE_STATES = frozenset({"strong", "weak", "blocked"})
 STOP_PRESSURES = frozenset({"none", "watch", "high"})
 STOP_LOSS_MATERIALIZED_DECISIONS = frozenset({"stop_loss", "switch_line", "human_gate"})
+EXPLORATION_DEPTH_CHECKS: tuple[str, ...] = (
+    "subgroup",
+    "alternative_endpoint",
+    "data_quality",
+    "statistical_power",
+    "mechanism_plausibility",
+)
 
 AUTHORITY = {
     "owner": "MAS Route Control",
@@ -41,6 +48,7 @@ __all__ = [
     "AUTHORITY",
     "DECISIONS",
     "DURABLE_REFS",
+    "EXPLORATION_DEPTH_CHECKS",
     "STOP_LOSS_MEMO_PATH",
     "build_route_control_stoploss_memo",
     "materialize_route_control_stoploss_memo",
@@ -60,6 +68,8 @@ def build_route_control_stoploss_memo(
     alternative_routes: Sequence[str],
     human_gate_question: str | None = None,
     evidence_refs: Sequence[str] = (),
+    exploration_depth: Mapping[str, Any] | None = None,
+    exploration_depth_review: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     normalized_route = _required_text(current_route, "current_route")
     normalized_decision = _required_choice(decision, "decision", DECISIONS)
@@ -70,6 +80,9 @@ def build_route_control_stoploss_memo(
     normalized_alternative_routes = _text_sequence(alternative_routes, "alternative_routes")
     normalized_evidence_refs = _text_sequence(evidence_refs, "evidence_refs")
     normalized_question = _optional_text(human_gate_question)
+    normalized_exploration_depth_review = _exploration_depth_review(
+        exploration_depth_review if exploration_depth_review is not None else exploration_depth
+    )
 
     blockers = _decision_blockers(
         decision=normalized_decision,
@@ -77,6 +90,7 @@ def build_route_control_stoploss_memo(
         stop_pressure=normalized_stop_pressure,
         alternative_routes=normalized_alternative_routes,
         human_gate_question=normalized_question,
+        exploration_depth_review=normalized_exploration_depth_review,
     )
     decision_allowed = not blockers
     effective_decision = _effective_decision(
@@ -107,6 +121,7 @@ def build_route_control_stoploss_memo(
             "human_gate_question": normalized_question,
             "evidence_refs": normalized_evidence_refs,
         },
+        "exploration_depth_review": normalized_exploration_depth_review,
         "route_recommendation": _route_recommendation(
             current_route=normalized_route,
             decision=effective_decision,
@@ -148,6 +163,8 @@ def materialize_route_control_stoploss_memo(
     alternative_routes: Sequence[str],
     human_gate_question: str | None = None,
     evidence_refs: Sequence[str] = (),
+    exploration_depth: Mapping[str, Any] | None = None,
+    exploration_depth_review: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     memo = build_route_control_stoploss_memo(
         current_route=current_route,
@@ -161,6 +178,8 @@ def materialize_route_control_stoploss_memo(
         alternative_routes=alternative_routes,
         human_gate_question=human_gate_question,
         evidence_refs=evidence_refs,
+        exploration_depth=exploration_depth,
+        exploration_depth_review=exploration_depth_review,
     )
     materialized_paths: dict[str, str] = {}
     if memo["materialization"]["stop_loss_memo_required"]:
@@ -184,6 +203,7 @@ def _decision_blockers(
     stop_pressure: str,
     alternative_routes: Sequence[str],
     human_gate_question: str | None,
+    exploration_depth_review: Mapping[str, Any],
 ) -> list[str]:
     blockers: list[str] = []
     if decision == "continue" and evidence_state in {"weak", "blocked"}:
@@ -194,12 +214,24 @@ def _decision_blockers(
         blockers.append("switch_line_requires_alternative_route")
     if decision == "human_gate" and human_gate_question is None:
         blockers.append("human_gate_question_required")
+    if (
+        decision == "stop_loss"
+        and evidence_state in {"weak", "blocked"}
+        and not exploration_depth_review.get("sufficient")
+    ):
+        missing_checks = exploration_depth_review.get("missing_checks")
+        if exploration_depth_review.get("provided") and missing_checks:
+            blockers.extend(f"exploration_depth_{check}_required_before_stop_loss" for check in missing_checks)
+        else:
+            blockers.append("exploration_depth_review_required_before_stop_loss")
     return blockers
 
 
 def _effective_decision(*, requested_decision: str, blockers: Sequence[str]) -> str:
     if requested_decision == "continue" and blockers:
         return "stop_loss"
+    if requested_decision == "stop_loss" and blockers:
+        return "bounded_repair"
     return requested_decision
 
 
@@ -289,12 +321,41 @@ def _stop_loss_memo_payload(memo: Mapping[str, Any]) -> dict[str, Any]:
         "alternative_routes": list(route_inputs["alternative_routes"]),
         "human_gate_question": route_inputs["human_gate_question"],
         "evidence_refs": list(route_inputs["evidence_refs"]),
+        "exploration_depth_review": dict(_mapping(memo.get("exploration_depth_review"))),
         "controller_decision_suggestion": dict(memo["controller_decision_suggestion"]),
     }
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
+
+
+def _exploration_depth_review(value: object) -> dict[str, Any]:
+    review = _mapping(value)
+    normalized_checks: dict[str, dict[str, Any]] = {}
+    missing_checks: list[str] = []
+    insufficient_checks: list[str] = []
+    for check in EXPLORATION_DEPTH_CHECKS:
+        entry = _mapping(review.get(check))
+        sufficient = entry.get("sufficient") is True
+        finding = _optional_text(entry.get("finding"))
+        normalized_checks[check] = {
+            "sufficient": sufficient,
+            "finding": finding,
+        }
+        if check not in review:
+            missing_checks.append(check)
+        elif not sufficient:
+            insufficient_checks.append(check)
+
+    return {
+        "required_checks": list(EXPLORATION_DEPTH_CHECKS),
+        "provided": bool(review),
+        "sufficient": not missing_checks and not insufficient_checks,
+        "missing_checks": missing_checks,
+        "insufficient_checks": insufficient_checks,
+        "checks": normalized_checks,
+    }
 
 
 def _required_choice(value: str, label: str, choices: Sequence[str] | frozenset[str]) -> str:

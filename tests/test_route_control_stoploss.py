@@ -22,6 +22,28 @@ def _base_inputs(**overrides: Any) -> dict[str, Any]:
             "paper/evidence_ledger.json#endpoint_semantics",
             "artifacts/publication_eval/latest.json#publishability",
         ],
+        "exploration_depth_review": {
+            "subgroup": {
+                "sufficient": True,
+                "finding": "All prespecified subgroup checks were negative or non-transportable.",
+            },
+            "alternative_endpoint": {
+                "sufficient": True,
+                "finding": "No defensible alternative endpoint preserved publishable signal.",
+            },
+            "data_quality": {
+                "sufficient": True,
+                "finding": "Source-data limitations were audited against the negative result.",
+            },
+            "statistical_power": {
+                "sufficient": True,
+                "finding": "Power ceiling was judged insufficient for further bounded repair.",
+            },
+            "mechanism_plausibility": {
+                "sufficient": True,
+                "finding": "No plausible mechanism-supported route remained.",
+            },
+        },
     }
     payload.update(overrides)
     return payload
@@ -63,6 +85,45 @@ def test_blocked_continue_suggests_stop_loss_route_with_durable_refs() -> None:
     assert memo["materialization"]["stop_loss_memo_required"] is True
 
 
+def test_stop_loss_requires_exploration_depth_review_for_weak_or_blocked_evidence() -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_control_stoploss")
+
+    memo = module.build_route_control_stoploss_memo(**_base_inputs(exploration_depth_review=None))
+
+    assert memo["requested_decision"] == "stop_loss"
+    assert memo["decision"] == "bounded_repair"
+    assert memo["decision_allowed"] is False
+    assert memo["blocked"] is True
+    assert memo["blockers"] == ["exploration_depth_review_required_before_stop_loss"]
+    assert memo["exploration_depth_review"]["sufficient"] is False
+    assert memo["route_recommendation"]["decision"] == "bounded_repair"
+    assert memo["route_recommendation"]["recommended_route"] == "dpcc-003.primary-care-risk"
+    assert memo["route_recommendation"]["repair_scope"] == "bounded"
+    assert memo["materialization"]["stop_loss_memo_required"] is False
+    assert memo["quality_claim_authorized"] is False
+
+
+def test_stop_loss_allowed_after_complete_exploration_depth_review() -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_control_stoploss")
+
+    memo = module.build_route_control_stoploss_memo(**_base_inputs())
+
+    assert memo["requested_decision"] == "stop_loss"
+    assert memo["decision"] == "stop_loss"
+    assert memo["decision_allowed"] is True
+    assert memo["blocked"] is False
+    assert memo["blockers"] == []
+    assert memo["exploration_depth_review"]["required_checks"] == [
+        "subgroup",
+        "alternative_endpoint",
+        "data_quality",
+        "statistical_power",
+        "mechanism_plausibility",
+    ]
+    assert memo["exploration_depth_review"]["sufficient"] is True
+    assert memo["quality_claim_authorized"] is False
+
+
 def test_stop_loss_memo_fields_complete(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.route_control_stoploss")
 
@@ -85,6 +146,10 @@ def test_stop_loss_memo_fields_complete(tmp_path: Path) -> None:
         "paper/evidence_ledger.json#endpoint_semantics",
         "artifacts/publication_eval/latest.json#publishability",
     ]
+    assert written["exploration_depth_review"]["sufficient"] is True
+    assert written["exploration_depth_review"]["missing_checks"] == []
+    assert written["authority"] == module.AUTHORITY
+    assert written["quality_claim_authorized"] is False
     assert written["controller_decision_suggestion"]["target_path"] == "artifacts/controller_decisions/latest.json"
 
 
