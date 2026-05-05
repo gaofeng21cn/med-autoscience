@@ -23,7 +23,8 @@
 - Modify: `../program/research_foundry_medical_execution_map.md`
 - Add: `../program/hermes_backend_continuation_board.md`
 - Add: `../program/hermes_backend_activation_package.md`
-- Test: `tests/test_work_unit_runtime_contract.py`
+- Test: `../../tests/test_runtime_protocol_study_runtime.py`
+- Test: `../../tests/test_study_runtime_router.py`
 
 - [ ] 把 `Hermes` backend continuation 写成当前 repo-side 允许继续推进的 P2 子位置
 - [ ] 写清目标、边界、验证、promotion invariants、excluded scope、真实 blocker
@@ -52,7 +53,7 @@
 - Modify: `../program/merge_and_cutover_gates.md`
 - Modify: `../../src/med_autoscience/dev_preflight_contract.py`
 - Test: `../../tests/test_dev_preflight_contract.py`
-- Test: `../../tests/test_integration_harness_activation_package.py`
+- Review: integration-harness Markdown wording by human/Agent documentation review only; do not add pytest wording anchors.
 
 - [ ] 明确 repo-side `Hermes` continuation 与 broader cutover blocker 的关系
 - [ ] 保证新增 docs / tests / transport file 不会在 preflight 中被误判为 unclassified

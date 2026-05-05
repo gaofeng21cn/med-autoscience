@@ -324,37 +324,6 @@ def _copy_materialized_abh_paper_proven_fixture(
     return paper_root, dict(result)
 
 
-def test_abh_golden_regression_tracked_docs_track_current_suite() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
-    docs_root = repo_root / "docs" / "capabilities" / "medical-display"
-    text = "\n".join(
-        (
-            (docs_root / "medical_display_template_catalog.md").read_text(encoding="utf-8"),
-            (docs_root / "medical_display_audit_guide.md").read_text(encoding="utf-8"),
-        )
-    )
-
-    for token in (
-        "binary_calibration_decision_curve_panel",
-        "time_to_event_discrimination_calibration_panel",
-        "time_to_event_risk_group_summary",
-        "time_to_event_decision_curve",
-        "multicenter_generalizability_overview",
-        "submission_graphical_abstract",
-    ):
-        assert token in text
-    for token in (
-        "title policy",
-        "annotation placement",
-        "panel-label/header-band anchoring",
-        "graphical-abstract arrow lanes",
-        "axis-window fit",
-        "grouped-separation readability",
-        "landmark/time-slice regression semantics",
-    ):
-        assert token in text
-
-
 def test_materialize_display_surface_preserves_ab_golden_regression_invariants(
     tmp_path: Path,
     materialized_abh_paper_proven_fixture: tuple[Path, dict[str, object]],

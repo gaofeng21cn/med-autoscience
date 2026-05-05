@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 import importlib
-from pathlib import Path
-
 import pytest
 
 
 pytestmark = pytest.mark.meta
-REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_architecture_owner_boundary_report_confirms_and_guards_duplicate_authority_risk() -> None:
@@ -77,19 +74,3 @@ def test_architecture_owner_boundary_validation_fails_closed_on_owner_drift() ->
         "mds_can_replace_authority",
         "mas_authority_layer_missing_authority",
     }
-
-
-def test_architecture_owner_boundary_docs_and_meta_gate_are_visible() -> None:
-    architecture = (REPO_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
-    invariants = (REPO_ROOT / "docs" / "invariants.md").read_text(encoding="utf-8")
-    plan = (REPO_ROOT / "docs" / "program" / "mas_mds_owner_boundary_refactor_plan.md").read_text(
-        encoding="utf-8"
-    )
-    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
-
-    assert "mas_mds_architecture_owner_boundary_report" in architecture
-    assert "architecture owner boundary fitness function" in invariants
-    assert "结构性重复 authority 风险已经确认" in plan
-    assert "strangler" in plan.lower()
-    assert "architecture_fitness_functions" in plan
-    assert "tests/test_architecture_owner_boundary.py" in makefile

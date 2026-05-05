@@ -20,7 +20,8 @@
 **Files:**
 - Modify: `./workspace_knowledge_and_literature_contract.md`
 - Modify: `../program/project_repair_priority_map.md`
-- Test: `tests/test_work_unit_runtime_contract.py`
+- Test: `../../tests/test_workspace_literature.py`
+- Test: `../../tests/test_study_runtime_router.py`
 
 - [ ] 明确写下 `P1` 已完成，避免再次把它写成待办
 - [ ] 明确 physical cutover 期间不得回退 workspace-first owner

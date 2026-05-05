@@ -286,9 +286,9 @@ def test_preflight_changes_command_outputs_json(monkeypatch, capsys) -> None:
         lambda **kwargs: cli.dev_preflight.PreflightResult(
             input_mode="files",
             changed_files=("README.md",),
-            matched_categories=("codex_plugin_docs_surface",),
+            matched_categories=("documentation_review_only",),
             unclassified_changes=(),
-            planned_commands=("uv run pytest tests/test_codex_plugin.py -q",),
+            planned_commands=(),
             results=(),
             ok=True,
         ),
@@ -301,7 +301,7 @@ def test_preflight_changes_command_outputs_json(monkeypatch, capsys) -> None:
     payload = json.loads(captured.out)
     assert payload["ok"] is True
     assert payload["changed_files"] == ["README.md"]
-    assert payload["matched_categories"] == ["codex_plugin_docs_surface"]
+    assert payload["matched_categories"] == ["documentation_review_only"]
 
 
 def test_preflight_base_ref_command_uses_ci_preflight(monkeypatch, capsys) -> None:

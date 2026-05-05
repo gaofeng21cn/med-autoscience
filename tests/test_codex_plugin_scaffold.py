@@ -8,7 +8,6 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_ROOT = REPO_ROOT / "plugins" / "mas"
 PLUGIN_MANIFEST_PATH = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
-PLUGIN_SKILL_PATH = PLUGIN_ROOT / "skills" / "mas" / "SKILL.md"
 PLUGIN_MCP_PATH = PLUGIN_ROOT / ".mcp.json"
 MARKETPLACE_PATH = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
 
@@ -16,14 +15,12 @@ MARKETPLACE_PATH = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
 def test_codex_plugin_scaffold_exists_and_points_to_repo_local_plugin() -> None:
     manifest = json.loads(PLUGIN_MANIFEST_PATH.read_text(encoding="utf-8"))
     marketplace = json.loads(MARKETPLACE_PATH.read_text(encoding="utf-8"))
-    skill_text = PLUGIN_SKILL_PATH.read_text(encoding="utf-8")
 
     assert PLUGIN_ROOT.is_dir()
     assert manifest["name"] == "mas"
     assert manifest["skills"] == "./skills/"
     assert manifest["mcpServers"] == "./.mcp.json"
     assert manifest["interface"]["displayName"] == "Med Auto Science"
-    assert "medautosci" in skill_text
     assert json.loads(PLUGIN_MCP_PATH.read_text(encoding="utf-8"))["mcpServers"]["med-autoscience"]["command"] == (
         "medautosci-mcp"
     )

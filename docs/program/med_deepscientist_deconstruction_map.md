@@ -97,7 +97,8 @@
 - `docs/runtime/runtime_handle_and_durable_surface_contract.md`
 - `docs/program/merge_and_cutover_gates.md`
 - `docs/program/external_runtime_dependency_gate.md`
-- `tests/test_work_unit_runtime_contract.py`
+- `tests/test_runtime_protocol_study_runtime.py`
+- `tests/test_study_runtime_router.py`
 - `make test-meta`
 
 `merge_and_cutover_gates` 负责定义什么时候某个 tranche 可以吸收、什么时候运行面可以继续 cutover；这份文档负责定义新任务的默认主体和 `MedDeepScientist` 的迁移期角色。两者一起使用，才能保持“目标主线明确”和“迁移顺序受控”同时成立。

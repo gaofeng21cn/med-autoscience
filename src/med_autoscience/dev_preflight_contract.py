@@ -47,6 +47,44 @@ class PreflightCoverageAudit:
 
 
 GENERIC_PYTHON_REGRESSION_CATEGORY = "generic_python_regression_surface"
+DOCUMENTATION_REVIEW_CATEGORY = "documentation_review_only"
+
+_DOC_ONLY_EXACT_PATHS = (
+    "README.md",
+    "README.zh-CN.md",
+    "docs/README.md",
+    "docs/README.zh-CN.md",
+    "docs/architecture.md",
+    "docs/decisions.md",
+    "docs/invariants.md",
+    "docs/project.md",
+    "docs/references/series-doc-governance-checklist.md",
+    "docs/status.md",
+    "docs/references/domain-harness-os-positioning.md",
+    "docs/references/disease_workspace_quickstart.md",
+    "docs/references/workspace_architecture.md",
+    "docs/runtime/agent_runtime_interface.md",
+    "docs/runtime/runtime_backend_interface_contract.md",
+    "docs/runtime/runtime_core_convergence_and_controlled_cutover.md",
+    "docs/runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md",
+    "docs/runtime/runtime_handle_and_durable_surface_contract.md",
+    "docs/runtime/runtime_boundary.md",
+    "docs/program/external_runtime_dependency_gate.md",
+    "docs/program/hermes_backend_activation_package.md",
+    "docs/program/hermes_backend_continuation_board.md",
+    "docs/program/integration_harness_activation_package.md",
+    "docs/program/manual_runtime_stabilization_checklist.md",
+    "docs/program/mas_mds_unified_enhancement_program.md",
+    "docs/program/med_deepscientist_deconstruction_map.md",
+    "docs/program/merge_and_cutover_gates.md",
+    "docs/program/plan_completion_ledger.md",
+    "docs/program/repository_ci_preflight.md",
+    "docs/program/research_foundry_medical_execution_map.md",
+    "docs/program/research_foundry_medical_mainline.md",
+    "docs/program/runtime_lifecycle_sqlite_migration_program.md",
+    "docs/program/upstream_intake.md",
+    "docs/references/research_foundry_medical_phase_ladder.md",
+)
 
 
 _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
@@ -57,7 +95,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             ".github/workflows/ci.yml",
             ".github/workflows/release.yml",
             ".github/workflows/sentrux-advisory.yml",
-            ".github/release-notes.md",
             "pyproject.toml",
             "scripts/install-macos.sh",
             "tests/test_release_metadata.py",
@@ -73,31 +110,8 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
-        category_id="public_doc_surface",
+        category_id="codex_plugin_surface",
         exact_paths=(
-            "README.md",
-            "README.zh-CN.md",
-            "docs/README.md",
-            "docs/README.zh-CN.md",
-            "docs/architecture.md",
-            "docs/decisions.md",
-            "docs/invariants.md",
-            "docs/project.md",
-            "docs/references/series-doc-governance-checklist.md",
-            "docs/status.md",
-        ),
-        prefix_paths=(),
-        commands=(
-            "uv run pytest tests/test_dev_preflight_contract.py -q",
-            "uv run pytest tests/test_dev_preflight.py -q",
-            "make test-meta",
-        ),
-    ),
-    PreflightCategorySpec(
-        category_id="codex_plugin_docs_surface",
-        exact_paths=(
-            "docs/references/codex_plugin.md",
-            "docs/references/codex_plugin_release.md",
             "scripts/install-codex-plugin.sh",
             "src/med_autoscience/codex_plugin_installer.py",
             "tests/test_codex_plugin.py",
@@ -114,8 +128,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="display_publication_surface",
         exact_paths=(
-            "docs/capabilities/medical-display/medical_display_audit_guide.md",
-            "docs/capabilities/medical-display/medical_display_template_catalog.md",
             "src/med_autoscience/display_registry.py",
             "src/med_autoscience/display_schema_contract.py",
             "src/med_autoscience/display_template_catalog.py",
@@ -142,11 +154,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="runtime_contract_surface",
         exact_paths=(
-            "docs/references/domain-harness-os-positioning.md",
-            "docs/runtime/runtime_backend_interface_contract.md",
-            "docs/runtime/runtime_core_convergence_and_controlled_cutover.md",
-            "docs/runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md",
-            "docs/runtime/runtime_handle_and_durable_surface_contract.md",
             "src/med_autoscience/controllers/study_outer_loop.py",
             "src/med_autoscience/controllers/study_runtime_execution.py",
             "src/med_autoscience/runtime_backend.py",
@@ -161,7 +168,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/runtime_transport/med_deepscientist.py",
             "tests/test_profiles.py",
             "tests/test_runtime_backend.py",
-            "tests/test_work_unit_runtime_contract.py",
             "tests/test_runtime_protocol_layout.py",
             "tests/test_runtime_protocol_runtime_watch.py",
             "tests/test_runtime_protocol_study_runtime.py",
@@ -171,13 +177,11 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "tests/test_study_runtime_router.py",
         ),
         prefix_paths=(
-            "docs/runtime/",
             "src/med_autoscience/runtime_protocol/",
         ),
         commands=(
             "uv run pytest tests/test_runtime_backend.py -q",
             "uv run pytest tests/test_profiles.py -q",
-            "uv run pytest tests/test_work_unit_runtime_contract.py -q",
             "uv run pytest tests/test_runtime_protocol_layout.py -q",
             "uv run pytest tests/test_runtime_watch.py -q",
             "uv run pytest tests/test_study_runtime_router.py -q",
@@ -191,14 +195,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="external_runtime_dependency_surface",
         exact_paths=(
-            "docs/references/disease_workspace_quickstart.md",
-            "docs/references/workspace_architecture.md",
-            "docs/runtime/agent_runtime_interface.md",
-            "docs/program/external_runtime_dependency_gate.md",
-            "docs/program/manual_runtime_stabilization_checklist.md",
-            "docs/program/merge_and_cutover_gates.md",
-            "docs/runtime/runtime_boundary.md",
-            "docs/program/upstream_intake.md",
             "src/med_autoscience/controllers/med_deepscientist_upgrade_check.py",
             "src/med_autoscience/controllers/hermes_runtime_check.py",
             "src/med_autoscience/doctor.py",
@@ -223,21 +219,9 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="integration_harness_surface",
         exact_paths=(
-            "docs/runtime/agent_runtime_interface.md",
-            "docs/program/hermes_backend_activation_package.md",
-            "docs/program/hermes_backend_continuation_board.md",
-            "docs/program/integration_harness_activation_package.md",
-            "docs/program/med_deepscientist_deconstruction_map.md",
-            "docs/program/merge_and_cutover_gates.md",
-            "docs/program/plan_completion_ledger.md",
-            "docs/program/repository_ci_preflight.md",
-            "docs/program/research_foundry_medical_execution_map.md",
-            "docs/program/research_foundry_medical_mainline.md",
-            "docs/references/research_foundry_medical_phase_ladder.md",
             "scripts/prepare-sentrux-gitstats-clone.sh",
             "scripts/run-parallel-test-lanes.sh",
             "src/med_autoscience/controllers/workspace_init.py",
-            "tests/test_integration_harness_activation_package.py",
             "tests/test_sentrux_gitstats_helper.py",
             "tests/test_workspace_init.py",
         ),
@@ -245,7 +229,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         commands=(
             "uv run pytest tests/test_dev_preflight_contract.py -q",
             "uv run pytest tests/test_dev_preflight.py -q",
-            "uv run pytest tests/test_integration_harness_activation_package.py -q",
             "uv run pytest tests/test_workspace_init.py -q",
             "make test-meta",
         ),
@@ -325,10 +308,14 @@ _MATCHED_CATEGORY_FAIL_POLICY = "matched_paths_run_planned_commands"
 _GENERIC_PYTHON_FAIL_POLICY = "unknown_python_and_test_paths_route_to_regression"
 _UNKNOWN_PATH_POLICY = {
     "python_and_test_paths": "regression",
-    "docs_workflow_config_paths": "fail-closed",
+    "documentation_paths": "review-only",
+    "workflow_config_paths": "fail-closed",
 }
-_UNKNOWN_DOCS_WORKFLOW_CONFIG_SUGGESTION = (
-    "Add the path to a reviewed owner surface before preflight can run commands."
+_UNKNOWN_DOCUMENTATION_SUGGESTION = (
+    "Review documentation manually; no pytest command is planned for doc prose."
+)
+_UNKNOWN_WORKFLOW_CONFIG_SUGGESTION = (
+    "Add workflow/config paths to a reviewed owner surface before preflight can run commands."
 )
 
 _DEFAULT_COVERAGE_PATH_FAMILIES: tuple[PreflightCoveragePathFamily, ...] = (
@@ -402,6 +389,10 @@ def classify_changed_files(changed_files: Sequence[str]) -> ClassificationResult
             matched_here = True
             if GENERIC_PYTHON_REGRESSION_CATEGORY not in matched_categories:
                 matched_categories.append(GENERIC_PYTHON_REGRESSION_CATEGORY)
+        if not matched_here and is_documentation_review_only_change(normalized_path):
+            matched_here = True
+            if DOCUMENTATION_REVIEW_CATEGORY not in matched_categories:
+                matched_categories.append(DOCUMENTATION_REVIEW_CATEGORY)
         if not matched_here and normalized_path not in unclassified_changes:
             unclassified_changes.append(normalized_path)
 
@@ -416,12 +407,28 @@ def is_generic_python_change(path: str) -> bool:
     return normalized_path.endswith(".py") and normalized_path.startswith(_GENERIC_PYTHON_PREFIXES)
 
 
+def is_documentation_review_only_change(path: str) -> bool:
+    normalized_path = _normalize_changed_file(path)
+    return (
+        normalized_path in _DOC_ONLY_EXACT_PATHS
+        or normalized_path.startswith("docs/program/")
+        or normalized_path.startswith("docs/runtime/")
+        or normalized_path.startswith("docs/policies/")
+        or normalized_path.startswith("docs/references/")
+        or normalized_path.startswith("docs/capabilities/")
+        or normalized_path.startswith("docs/history/")
+    ) and normalized_path.endswith(".md")
+
+
 def _explicit_categories_for_path(normalized_path: str) -> tuple[str, ...]:
-    return tuple(
+    categories = [
         spec.category_id
         for spec in _CATEGORY_SPECS
         if _matches_spec(normalized_path=normalized_path, spec=spec)
-    )
+    ]
+    if not categories and is_documentation_review_only_change(normalized_path):
+        categories.append(DOCUMENTATION_REVIEW_CATEGORY)
+    return tuple(categories)
 
 
 def _append_unique(values: list[str], candidates: Iterable[str]) -> None:
@@ -463,6 +470,9 @@ def audit_preflight_contract_coverage(
                 explicit_classified_paths.append(path)
             elif is_generic_python_change(path):
                 generic_python_regression_paths.append(path)
+            elif is_documentation_review_only_change(path):
+                _append_unique(explicit_categories, (DOCUMENTATION_REVIEW_CATEGORY,))
+                explicit_classified_paths.append(path)
             else:
                 fail_closed_paths.append(path)
 
@@ -562,7 +572,7 @@ def _owner_surface(*, exact_paths: Sequence[str], prefix_paths: Sequence[str]) -
 
 def _unknown_path_suggestions_for_category(spec: PreflightCategorySpec) -> list[str]:
     suggestions = [
-        f"Review unknown docs/workflow/config paths as fail-closed. {_UNKNOWN_DOCS_WORKFLOW_CONFIG_SUGGESTION}",
+        f"Review unknown docs paths manually. {_UNKNOWN_DOCUMENTATION_SUGGESTION}",
     ]
     if any(path.startswith("tests/") for path in (*spec.exact_paths, *spec.prefix_paths)):
         suggestions.append(
@@ -585,10 +595,15 @@ def _contract_hygiene(categories: Sequence[dict[str, object]]) -> dict[str, obje
             "planned_commands": list(_GENERIC_PYTHON_REGRESSION_COMMANDS),
             "fail_policy": _GENERIC_PYTHON_FAIL_POLICY,
         },
-        "unknown_docs_workflow_config_paths": {
+        "unknown_documentation_paths": {
+            "planned_commands": [],
+            "fail_policy": "review-only",
+            "suggestion": _UNKNOWN_DOCUMENTATION_SUGGESTION,
+        },
+        "unknown_workflow_config_paths": {
             "planned_commands": [],
             "fail_policy": "fail-closed",
-            "suggestion": _UNKNOWN_DOCS_WORKFLOW_CONFIG_SUGGESTION,
+            "suggestion": _UNKNOWN_WORKFLOW_CONFIG_SUGGESTION,
         },
     }
 
@@ -620,7 +635,8 @@ def build_preflight_contract_report() -> dict[str, object]:
     generic_unknown_path_suggestions = [
         "Unknown src/med_autoscience/*.py paths route to generic_python_regression_surface and run make test-regression.",
         "Unknown tests/*.py paths route to generic_python_regression_surface and run make test-regression.",
-        f"Unknown docs/workflow/config paths remain fail-closed. {_UNKNOWN_DOCS_WORKFLOW_CONFIG_SUGGESTION}",
+        f"Unknown docs paths are review-only. {_UNKNOWN_DOCUMENTATION_SUGGESTION}",
+        f"Unknown workflow/config paths remain fail-closed. {_UNKNOWN_WORKFLOW_CONFIG_SUGGESTION}",
     ]
     generic_pytest_path_existence = _planned_pytest_path_existence(generic_commands)
     categories.append(
@@ -637,6 +653,40 @@ def build_preflight_contract_report() -> dict[str, object]:
             "planned_pytest_path_existence": generic_pytest_path_existence,
             "unknown_path_suggestion": generic_unknown_path_suggestions[0],
             "unknown_path_suggestions": generic_unknown_path_suggestions,
+        }
+    )
+    documentation_commands: list[str] = []
+    categories.append(
+        {
+            "category": DOCUMENTATION_REVIEW_CATEGORY,
+            "category_id": DOCUMENTATION_REVIEW_CATEGORY,
+            "exact_paths": list(_DOC_ONLY_EXACT_PATHS),
+            "prefix_paths": [
+                "docs/program/",
+                "docs/runtime/",
+                "docs/policies/",
+                "docs/references/",
+                "docs/capabilities/",
+                "docs/history/",
+            ],
+            "owner_surface": _owner_surface(
+                exact_paths=_DOC_ONLY_EXACT_PATHS,
+                prefix_paths=(
+                    "docs/program/",
+                    "docs/runtime/",
+                    "docs/policies/",
+                    "docs/references/",
+                    "docs/capabilities/",
+                    "docs/history/",
+                ),
+            ),
+            "fail_policy": "documentation_review_only_no_pytest",
+            "commands": documentation_commands,
+            "planned_commands": documentation_commands,
+            "pytest_path_existence": [],
+            "planned_pytest_path_existence": [],
+            "unknown_path_suggestion": _UNKNOWN_DOCUMENTATION_SUGGESTION,
+            "unknown_path_suggestions": [_UNKNOWN_DOCUMENTATION_SUGGESTION],
         }
     )
     return {

@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 import importlib
-from pathlib import Path
-
 import pytest
 
 
 pytestmark = pytest.mark.meta
-REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_module_boundary_audit_report_declares_layers_dependencies_and_authority_boundaries() -> None:
@@ -117,12 +114,3 @@ def test_module_boundary_audit_validation_fails_closed_on_authority_and_control_
         "unknown_authority_surface",
         "acceptance_flag_not_fail_closed",
     }
-
-
-def test_module_boundary_audit_docs_are_visible_from_unified_program() -> None:
-    program = (REPO_ROOT / "docs" / "program" / "mas_mds_unified_enhancement_program.md").read_text(
-        encoding="utf-8"
-    )
-
-    assert "mas_mds_module_boundary_audit_report" in program
-    assert "module_boundary_audit" in program

@@ -10,26 +10,6 @@ from med_autoscience.runtime_protocol.user_message import enqueue_user_message
 
 pytestmark = pytest.mark.meta
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-
-
-def _read(relative_path: str) -> str:
-    return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
-
-
-def test_runtime_control_surface_defines_mailbox_and_takeover_semantics() -> None:
-    doc = _read("docs/runtime/study_runtime_control_surface.md")
-
-    assert "## 6. takeover / mailbox semantics" in doc
-    assert "新的用户消息不启动第二个 runner" in doc
-    assert "新用户消息必须优先于 retry / backoff 计时" in doc
-    assert "preempt retry/backoff" in doc
-    assert "pending_user_message_count" in doc
-    assert "queued user messages 不得被静默 replay" in doc
-    assert "人工接管不是本地文件旁路写入" in doc
-    assert "memory` 不得替代 baseline、analysis、paper state 或 publication gate 的主记录" in doc
-
-
 def test_enqueue_user_message_records_mailbox_state_and_interaction_journal(tmp_path: Path) -> None:
     quest_root = tmp_path / "quests" / "001-risk"
     state_path = quest_root / ".ds" / "runtime_state.json"
