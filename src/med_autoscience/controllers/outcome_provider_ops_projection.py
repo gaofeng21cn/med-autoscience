@@ -14,6 +14,11 @@ REQUIRED_JOURNAL_FIXTURE_COVERAGE = (
     "submission_checklist",
     "supplement_naming",
 )
+REQUIRED_JOURNAL_FIXTURE_REFS = (
+    "cover_letter_template_ref",
+    "submission_checklist_ref",
+    "supplement_naming_convention_ref",
+)
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -119,6 +124,7 @@ def _journal_family_fixture_matrix(fixtures: object) -> dict[str, Any]:
     entries = _dict_list(fixtures)
     normalized_entries: list[dict[str, Any]] = []
     missing_coverage: dict[str, list[str]] = {}
+    missing_fixture_refs: dict[str, list[str]] = {}
     diagnostics: list[dict[str, Any]] = []
     for index, entry in enumerate(entries):
         family = _text(entry.get("journal_family")) or f"journal_family:{index}"
@@ -137,11 +143,28 @@ def _journal_family_fixture_matrix(fixtures: object) -> dict[str, Any]:
                         "journal_family": family,
                     }
                 )
+        missing_refs = [key for key in REQUIRED_JOURNAL_FIXTURE_REFS if not _text(entry.get(key))]
+        if missing_refs:
+            missing_fixture_refs[family] = missing_refs
+            for key in missing_refs:
+                diagnostics.append(
+                    {
+                        "reason_code": f"journal_family_fixture_missing_{key}",
+                        "severity": "blocking",
+                        "category": "journal_family_fixture_matrix",
+                        "journal_family": family,
+                    }
+                )
         normalized_entries.append(
             {
                 "journal_family": family,
                 "fixture_ref": _text(entry.get("fixture_ref")),
                 "profile_ref": _text(entry.get("profile_ref")),
+                "cover_letter_template_ref": _text(entry.get("cover_letter_template_ref")),
+                "submission_checklist_ref": _text(entry.get("submission_checklist_ref")),
+                "supplement_naming_convention_ref": _text(
+                    entry.get("supplement_naming_convention_ref")
+                ),
                 "coverage": {
                     key: coverage.get(key) is True
                     for key in REQUIRED_JOURNAL_FIXTURE_COVERAGE
@@ -150,12 +173,18 @@ def _journal_family_fixture_matrix(fixtures: object) -> dict[str, Any]:
         )
     return {
         "surface": "journal_family_fixture_matrix",
-        "status": "ready" if entries and not missing_coverage else "blocked",
+        "status": "ready"
+        if entries and not missing_coverage and not missing_fixture_refs
+        else "blocked",
         "required_coverage": list(REQUIRED_JOURNAL_FIXTURE_COVERAGE),
         "covered_families": sorted(
-            entry["journal_family"] for entry in normalized_entries if not missing_coverage.get(entry["journal_family"])
+            entry["journal_family"]
+            for entry in normalized_entries
+            if not missing_coverage.get(entry["journal_family"])
+            and not missing_fixture_refs.get(entry["journal_family"])
         ),
         "missing_coverage": missing_coverage,
+        "missing_fixture_refs": missing_fixture_refs,
         "fixtures": normalized_entries,
         "diagnostics": diagnostics,
         "authority_contract": _authority_contract(),
