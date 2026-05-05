@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import quote
 
+from med_autoscience.controllers import auto_runtime_parking
 from med_autoscience.controllers import runtime_supervision as runtime_supervision_controller
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
@@ -62,6 +63,33 @@ def clear_stale_platform_repair_redrive_after_pause(
         "runtime_state_path": str(runtime_state_path),
         "cleared_keys": cleared,
     }
+
+
+def has_delivered_human_package_surface(study_root: Path) -> bool:
+    manuscript_root = Path(study_root) / "manuscript"
+    current_package_root = manuscript_root / "current_package"
+    return (
+        (manuscript_root / "delivery_manifest.json").exists()
+        and (manuscript_root / "current_package.zip").exists()
+        and current_package_root.is_dir()
+        and (current_package_root / "manuscript.docx").exists()
+        and (current_package_root / "paper.pdf").exists()
+    )
+
+
+def record_auto_runtime_parked_projection(status: StudyRuntimeStatus) -> None:
+    projection = auto_runtime_parking.build_auto_runtime_parked_projection(status.to_dict())
+    status["auto_runtime_parked"] = projection
+    for field_name in (
+        "parked_state",
+        "parked_owner",
+        "resource_release_expected",
+        "awaiting_explicit_wakeup",
+        "auto_execution_complete",
+        "reopen_policy",
+        "legacy_current_stage",
+    ):
+        status[field_name] = projection.get(field_name)
 
 
 def managed_runtime_notice_reason(

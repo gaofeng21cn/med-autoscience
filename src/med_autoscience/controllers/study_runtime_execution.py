@@ -308,6 +308,18 @@ def _run_runtime_preflight(
     context: StudyRuntimeExecutionContext,
 ) -> None:
     router = _router_module()
+    if (
+        status.decision == StudyRuntimeDecision.RESUME
+        and context.source == "runtime_platform_repair"
+        and status.quest_status is StudyRuntimeQuestStatus.PAUSED
+        and _runtime_events.has_delivered_human_package_surface(context.study_root)
+    ):
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+        )
+        _runtime_events.record_auto_runtime_parked_projection(status)
+        return
     if status.decision in {
         StudyRuntimeDecision.CREATE_AND_START,
         StudyRuntimeDecision.CREATE_ONLY,

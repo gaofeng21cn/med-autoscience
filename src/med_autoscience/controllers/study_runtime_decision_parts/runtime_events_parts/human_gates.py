@@ -113,6 +113,42 @@ def _should_block_platform_repair_redrive_for_delivered_package(
     return _has_delivered_human_package_surface(study_root) and _platform_repair_redrive_without_live_worker(status)
 
 
+def _should_park_delivered_package_without_live_worker(
+    status: StudyRuntimeStatus,
+    *,
+    study_root: Path,
+    audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
+) -> bool:
+    if not _has_delivered_human_package_surface(study_root):
+        return False
+    if audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
+        return False
+    if status.quest_status not in _LIVE_QUEST_STATUSES and status.quest_status not in _RESUMABLE_QUEST_STATUSES:
+        return False
+    try:
+        continuation_state = status.continuation_state
+    except KeyError:
+        return True
+    return continuation_state.active_run_id is None
+
+
+def _should_park_delivered_or_redriven_package_without_live_worker(
+    status: StudyRuntimeStatus,
+    *,
+    study_root: Path,
+    audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
+    manual_finish_compatibility_guard: bool = False,
+) -> bool:
+    return (
+        manual_finish_compatibility_guard
+        and _platform_repair_redrive_without_live_worker(status, audit_status=audit_status)
+    ) or _should_park_delivered_package_without_live_worker(
+        status,
+        study_root=study_root,
+        audit_status=audit_status,
+    )
+
+
 def _controller_decision_requires_human_confirmation(*, study_root: Path) -> bool:
     decision_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
     summary_path = stable_controller_confirmation_summary_path(study_root=study_root)

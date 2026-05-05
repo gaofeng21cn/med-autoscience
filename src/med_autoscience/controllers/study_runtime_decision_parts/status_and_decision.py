@@ -586,9 +586,8 @@ def _status_state(
                 StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN,
             )
             return _finalize_result()
-        if (
-            (manual_finish_compatibility_guard or _has_delivered_human_package_surface(study_root))
-            and _platform_repair_redrive_without_live_worker(result, audit_status=audit_status)
+        if _should_park_delivered_or_redriven_package_without_live_worker(
+            result, study_root=study_root, audit_status=audit_status, manual_finish_compatibility_guard=manual_finish_compatibility_guard
         ):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
@@ -735,7 +734,7 @@ def _status_state(
         return _finalize_result()
 
     if quest_status in _RESUMABLE_QUEST_STATUSES:
-        if _should_block_platform_repair_redrive_for_delivered_package(result, study_root=study_root):
+        if _should_park_delivered_package_without_live_worker(result, study_root=study_root) and not task_intake_overrides_auto_manual_finish:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
