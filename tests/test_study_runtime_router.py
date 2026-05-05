@@ -7,6 +7,7 @@ _PARTS = (
     "creation_and_profile_cases.py",
     "overlay_and_resume_cases.py",
     "completion_and_package_cases.py",
+    "resume_postcondition_cases.py",
     "pause_postcondition_cases.py",
     "controller_parking_cases.py",
     "interaction_arbitration_cases.py",

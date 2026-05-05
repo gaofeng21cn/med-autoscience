@@ -399,13 +399,19 @@ def _resume_postcondition_payload(
     scheduled = bool(resume_result.get("scheduled"))
     started = bool(resume_result.get("started"))
     queued = bool(resume_result.get("queued"))
+    has_runtime_launch_signals = any(key in resume_result for key in ("scheduled", "started", "queued"))
     effective = (
         active_run_id is not None
-        or snapshot_status in {"running", "retrying", "active"}
+        or started
+        or queued
+        or snapshot_status in {"running", "retrying"}
+        or (snapshot_status == "active" and not has_runtime_launch_signals)
     )
     failure_mode = None
     if not effective:
         failure_mode = "no_effect"
+        if has_runtime_launch_signals and snapshot_status == "active":
+            failure_mode = "no_live_run_started"
         if isinstance(interaction_arbitration, dict):
             action = str(interaction_arbitration.get("action") or "").strip()
             if snapshot_status == "waiting_for_user" and action == StudyRuntimeDecision.RESUME.value:

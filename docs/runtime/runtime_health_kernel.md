@@ -33,6 +33,7 @@ uv run python -m med_autoscience.cli runtime reconcile-health --profile <profile
 - live worker 必须同时满足 `runtime_liveness_audit.status=live`、`worker_running=true`、`active_run_id!=null`。
 - fresh supervisor tick 只证明外环监管最近刷新，不能证明 worker live。
 - `last_launch_report` 只保留最近动作摘要；其 `active_run_id` 在新 liveness 观测不成立时只能降为 `last_known_run_id`。
+- 新式 resume result 一旦携带 `scheduled` / `started` / `queued` 字段，`status=active` 只表示 quest 仍为 active，不能证明 worker live。恢复后置条件必须要求 `active_run_id`、`started=true`、`queued=true` 或 `running` / `retrying` 快照；`scheduled=true` 但未 started、未 queued、无 `active_run_id` 必须 fail closed 为 `no_live_run_started`。
 - `quest_marked_running_but_no_live_session` 必须进入有限状态机：probe / recover / relaunch / escalated，不能无限 recovering。
 - strict live worker 观测到新的 `active_run_id` 时，retry budget 必须按当前 run epoch 计算；旧 run 或无 run 归属的失败历史不能让新 live run 继承 `runtime_recovery_retry_budget_exhausted`。
 - 同一 active run epoch 内的 launch / recover / relaunch attempt 仍然消耗 retry budget；当前 run 自身耗尽预算后必须升级，不能无限恢复。
