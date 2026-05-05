@@ -130,6 +130,9 @@ def test_supervisor_scan_queues_external_repair_for_retry_exhausted_no_live_work
         "medical_claim_authoring",
     ]
     assert result["queue_history"]["latest_action_count"] == 2
+    assert result["two_layer_ai_repair_policy"]["internal_ai_repair"]["monitor_interval_seconds"] == 300
+    assert result["two_layer_ai_repair_policy"]["developer_supervisor"]["heartbeat_interval_seconds"] == 3600
+    assert result["two_layer_ai_repair_policy"]["developer_supervisor"]["developer_attention_after_hours"] == 6
     assert result["developer_supervisor_mode"]["mode"] == "developer_apply_safe"
     assert result["developer_supervisor_mode"]["developer_mode_enabled"] is True
     assert result["developer_supervisor_mode"]["safe_actions_enabled"] is True

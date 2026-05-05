@@ -6,6 +6,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.runtime_ai_repair_policy import (
+    default_executor_policy,
+    two_layer_ai_repair_policy_payload,
+)
 from med_autoscience.controllers.runtime_supervisor_scan import SUPERVISION_LATEST_RELATIVE_PATH
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
@@ -16,6 +20,9 @@ CONSUMER_LATEST_RELATIVE_PATH = Path("artifacts/supervision/consumer/latest.json
 CONSUMER_HISTORY_RELATIVE_PATH = Path("artifacts/supervision/consumer/history.jsonl")
 RUNTIME_PLATFORM_REPAIR_PACKET_RELATIVE_PATH = Path(
     "artifacts/supervision/consumer/runtime_platform_repair.json"
+)
+DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT = Path(
+    "artifacts/supervision/consumer/default_executor_dispatches"
 )
 SUPPORTED_ACTION_TYPE = "runtime_platform_repair"
 SUPPORTED_REQUEST_ACTION_TYPES = frozenset(
@@ -54,6 +61,7 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/consumer/runtime_platform_repair.json",
     "studies/<study_id>/artifacts/supervision/consumer/publication_gate_specificity_required.json",
     "studies/<study_id>/artifacts/supervision/consumer/return_to_ai_reviewer_workflow.json",
+    "studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/*.json",
 ]
 MERGE_CLEANUP_CHECKLIST = [
     "focused pytest green",
@@ -108,6 +116,10 @@ def _request_packet_path(profile: WorkspaceProfile, study_id: str, action_type: 
     if action_type not in SUPPORTED_REQUEST_ACTION_TYPES:
         raise ValueError(f"unsupported supervisor request action_type: {action_type}")
     return _study_root(profile, study_id) / "artifacts" / "supervision" / "consumer" / f"{action_type}.json"
+
+
+def _default_executor_dispatch_path(profile: WorkspaceProfile, study_id: str, action_type: str) -> Path:
+    return _study_root(profile, study_id) / DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT / f"{action_type}.json"
 
 
 def _scan_latest_path(profile: WorkspaceProfile) -> Path:
@@ -237,6 +249,118 @@ def _request_packet_ref_for_action_type(action_type: str) -> str:
     return "artifacts/supervision/requests"
 
 
+def _request_packet_ref_for_dispatch(action_type: str) -> str | None:
+    if action_type in SUPPORTED_REQUEST_ACTION_TYPES:
+        return _request_packet_ref_for_action_type(action_type)
+    return None
+
+
+def _next_executable_owner_for_runtime_repair(action: Mapping[str, Any]) -> str:
+    handoff_packet = _mapping(action.get("handoff_packet"))
+    return (
+        _text(action.get("recommended_owner"))
+        or _text(action.get("owner"))
+        or _text(handoff_packet.get("recommended_owner"))
+        or _text(handoff_packet.get("owner"))
+        or "external_engineering_agent"
+    )
+
+
+def _required_output_surface(action: Mapping[str, Any], action_type: str) -> str:
+    handoff_packet = _mapping(action.get("handoff_packet"))
+    return (
+        _text(action.get("required_output_surface"))
+        or _text(handoff_packet.get("required_output_surface"))
+        or _request_output_surface_for_action_type(action_type)
+    )
+
+
+def _executor_prompt(
+    *,
+    action_type: str,
+    study_id: str,
+    next_executable_owner: str,
+    required_output_surface: str,
+) -> str:
+    return (
+        "Use Codex CLI as the default MAS/MDS repair executor. "
+        f"Handle action `{action_type}` for study `{study_id}` as owner `{next_executable_owner}`. "
+        f"Read the referenced MAS durable truth surfaces and write only the owner-authorized output `{required_output_surface}` "
+        "or the supervision handoff surfaces listed in this dispatch. Do not patch paper/current_package, "
+        "manuscript/current_package, publication gates, or medical conclusions outside the owner workflow."
+    )
+
+
+def _default_executor_dispatch(
+    *,
+    profile: WorkspaceProfile,
+    action: Mapping[str, Any],
+    action_type: str,
+    next_executable_owner: str,
+    required_output_surface: str,
+    apply: bool,
+    developer_mode_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    study_id = _text(action.get("study_id")) or "unknown-study"
+    dispatch_path = _default_executor_dispatch_path(profile, study_id, action_type)
+    executor_policy = default_executor_policy()
+    prompt_contract = {
+        "study_id": study_id,
+        "quest_id": _text(action.get("quest_id")) or _text(_mapping(action.get("handoff_packet")).get("quest_id")),
+        "action_type": action_type,
+        "next_executable_owner": next_executable_owner,
+        "required_output_surface": required_output_surface,
+        "request_packet_ref": _request_packet_ref_for_dispatch(action_type),
+        "source_scan_latest": str(_scan_latest_path(profile)),
+        "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+        "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+    }
+    dispatch_status = (
+        "ready"
+        if apply
+        and _text(developer_mode_payload.get("mode")) == SUPPORTED_MODE
+        and developer_mode_payload.get("safe_actions_enabled") is True
+        else "dry_run" if not apply else "blocked"
+    )
+    blocked_reason = None if dispatch_status != "blocked" else _github_block_reason(developer_mode_payload)
+    return {
+        "surface": "default_executor_dispatch_request",
+        "schema_version": SCHEMA_VERSION,
+        **executor_policy,
+        "study_id": study_id,
+        "quest_id": prompt_contract["quest_id"],
+        "action_type": action_type,
+        "action_id": _text(action.get("action_id")),
+        "next_executable_owner": next_executable_owner,
+        "required_output_surface": required_output_surface,
+        "dispatch_status": dispatch_status,
+        "blocked_reason": blocked_reason,
+        "consumer_mutation_scope": "executor_dispatch_request_only",
+        "default_executor_policy": executor_policy,
+        "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
+        "prompt_contract": prompt_contract,
+        "executor_prompt": _executor_prompt(
+            action_type=action_type,
+            study_id=study_id,
+            next_executable_owner=next_executable_owner,
+            required_output_surface=required_output_surface,
+        ),
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+        "source_action": dict(action),
+        "refs": {
+            "scan_latest": str(_scan_latest_path(profile)),
+            "dispatch_path": str(dispatch_path),
+        },
+    }
+
+
 def _request_task(
     *,
     profile: WorkspaceProfile,
@@ -257,11 +381,7 @@ def _request_task(
     dispatch_status = "applied" if apply_allowed else "dry_run" if not apply else "blocked"
     authority = _text(action.get("authority")) or _text(handoff_packet.get("authority")) or "observability_only"
     request_owner = _owner_from_action(action, action_type)
-    required_output_surface = (
-        _text(action.get("required_output_surface"))
-        or _text(handoff_packet.get("required_output_surface"))
-        or _request_output_surface_for_action_type(action_type)
-    )
+    required_output_surface = _required_output_surface(action, action_type)
     request_packet_ref = _request_packet_ref_for_action_type(action_type)
     owner_pickup = {
         "owner": request_owner,
@@ -379,6 +499,20 @@ def _selected_actions(
     return selected, request_selected, ignored
 
 
+def _resolve_study_ids_from_scan(scan_payload: Mapping[str, Any], study_ids: Iterable[str]) -> tuple[str, ...]:
+    explicit = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
+    if explicit:
+        return explicit
+    resolved: list[str] = []
+    for action in scan_payload.get("action_queue") or []:
+        if isinstance(action, Mapping) and (study_id := _text(action.get("study_id"))) is not None:
+            resolved.append(study_id)
+    for study in scan_payload.get("studies") or []:
+        if isinstance(study, Mapping) and (study_id := _text(study.get("study_id"))) is not None:
+            resolved.append(study_id)
+    return tuple(dict.fromkeys(resolved))
+
+
 def supervisor_consume(
     *,
     profile: WorkspaceProfile,
@@ -386,7 +520,6 @@ def supervisor_consume(
     mode: str,
     apply: bool,
 ) -> dict[str, Any]:
-    resolved_study_ids = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
     generated_at = _utc_now()
     developer_mode = resolve_developer_supervisor_mode(
         profile=profile,
@@ -396,6 +529,7 @@ def supervisor_consume(
     )
     developer_mode_payload = developer_mode.to_dict()
     scan_payload = _read_json_object(_scan_latest_path(profile)) or {}
+    resolved_study_ids = _resolve_study_ids_from_scan(scan_payload, study_ids)
     selected_actions, selected_request_actions, ignored_actions = _selected_actions(
         scan_payload=scan_payload,
         study_ids=resolved_study_ids,
@@ -418,6 +552,29 @@ def supervisor_consume(
         )
         for action in selected_request_actions
     ]
+    default_executor_dispatches = [
+        _default_executor_dispatch(
+            profile=profile,
+            action=action,
+            action_type=SUPPORTED_ACTION_TYPE,
+            next_executable_owner=_next_executable_owner_for_runtime_repair(action),
+            required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
+            apply=apply,
+            developer_mode_payload=developer_mode_payload,
+        )
+        for action in selected_actions
+    ] + [
+        _default_executor_dispatch(
+            profile=profile,
+            action=action,
+            action_type=_text(action.get("action_type")) or "unknown_action",
+            next_executable_owner=_owner_from_action(action, _text(action.get("action_type")) or "unknown_action"),
+            required_output_surface=_required_output_surface(action, _text(action.get("action_type")) or "unknown_action"),
+            apply=apply,
+            developer_mode_payload=developer_mode_payload,
+        )
+        for action in selected_request_actions
+    ]
     written_files: list[str] = []
     if apply and developer_mode.safe_actions_enabled:
         for task in repair_tasks:
@@ -427,6 +584,12 @@ def supervisor_consume(
             packet = _mapping(task.get("handoff_packet"))
             _write_json(packet_path, packet)
             written_files.append(str(packet_path))
+        for dispatch in default_executor_dispatches:
+            if _text(dispatch.get("dispatch_status")) != "ready":
+                continue
+            dispatch_path = Path(_mapping(dispatch.get("refs")).get("dispatch_path"))
+            _write_json(dispatch_path, dispatch)
+            written_files.append(str(dispatch_path))
         for task in request_tasks:
             if _text(task.get("dispatch_status")) != "applied":
                 continue
@@ -452,7 +615,10 @@ def supervisor_consume(
         "repair_tasks": repair_tasks,
         "request_task_count": len(request_tasks),
         "request_tasks": request_tasks,
+        "default_executor_dispatch_count": len(default_executor_dispatches),
+        "default_executor_dispatches": default_executor_dispatches,
         "ignored_actions": ignored_actions,
+        "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
         "branch_name": BRANCH_NAME,
         "owned_files": list(OWNED_FILES),
         "verification_commands": list(VERIFICATION_COMMANDS),

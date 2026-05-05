@@ -33,7 +33,9 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
     assert 'SUPERVISOR_SCAN_INTERVAL_SECONDS="${SUPERVISOR_SCAN_INTERVAL_SECONDS:-3600}"' in runner_text
     assert 'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"' in runner_text
     assert 'SUPERVISOR_SCAN_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-scan"' in runner_text
-    assert f'exec "${{SUPERVISOR_SCAN_SCRIPT}}" {DEVELOPER_SUPERVISOR_MODE_ARGS} "$@"' in runner_text
+    assert 'SUPERVISOR_CONSUME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-consume"' in runner_text
+    assert f'"${{SUPERVISOR_SCAN_SCRIPT}}" {DEVELOPER_SUPERVISOR_MODE_ARGS} "$@"' in runner_text
+    assert '"${SUPERVISOR_CONSUME_SCRIPT}" --mode developer_apply_safe --apply "$@"' in runner_text
 
     supervisor_scan = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
     assert supervisor_scan.is_file()
@@ -41,6 +43,15 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
     supervisor_scan_text = supervisor_scan.read_text(encoding="utf-8")
     assert "run_medautosci runtime supervisor-scan" in supervisor_scan_text
     assert '--profile "${PROFILE_PATH}"' in supervisor_scan_text
+
+    supervisor_consume = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
+    assert supervisor_consume.is_file()
+    assert os.access(supervisor_consume, os.X_OK)
+    supervisor_consume_text = supervisor_consume.read_text(encoding="utf-8")
+    assert "run_medautosci runtime supervisor-consume" in supervisor_consume_text
+    assert '--profile "${PROFILE_PATH}"' in supervisor_consume_text
+    assert "--mode developer_apply_safe" in supervisor_consume_text
+    assert "--apply" in supervisor_consume_text
 
     install_text = install_service.read_text(encoding="utf-8")
     assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
@@ -89,12 +100,9 @@ def test_init_workspace_renders_portable_supervisor_scheduler_templates(tmp_path
     launchd_text = launchd_instructions.read_text(encoding="utf-8")
 
     assert f"WorkingDirectory={workspace_root}" in systemd_service_text
-    assert (
-        f"ExecStart={workspace_root}/ops/medautoscience/bin/supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}"
-        in systemd_service_text
-    )
+    assert f"ExecStart={workspace_root}/ops/medautoscience/bin/watch-runtime-service-runner" in systemd_service_text
     assert "OnCalendar=hourly" in systemd_timer_text
-    assert f"{workspace_root}/ops/medautoscience/bin/supervisor-scan {DEVELOPER_SUPERVISOR_MODE_ARGS}" in cron_text
+    assert f"{workspace_root}/ops/medautoscience/bin/watch-runtime-service-runner" in cron_text
     assert "launchd" in launchd_text
     assert "install-watch-runtime-service --manager launchd" in launchd_text
     assert "Codex App heartbeat" not in "\n".join(

@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --developer-supervisor-mode developer_apply_safe"
+DEVELOPER_SUPERVISOR_CONSUME_ARGS = "--mode developer_apply_safe --apply"
 
 
 def _render_behavior_equivalence_gate() -> str:
@@ -145,6 +146,7 @@ def _render_watch_runtime_service_runner() -> str:
         'SUPERVISOR_SCAN_INTERVAL_SECONDS="${SUPERVISOR_SCAN_INTERVAL_SECONDS:-3600}"\n'
         'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"\n\n'
         'SUPERVISOR_SCAN_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-scan"\n\n'
+        'SUPERVISOR_CONSUME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-consume"\n\n'
         'if [[ ! -x "${WATCH_RUNTIME_SCRIPT}" ]]; then\n'
         '  echo "watch-runtime entry is missing or not executable: ${WATCH_RUNTIME_SCRIPT}" >&2\n'
         "  exit 1\n"
@@ -153,7 +155,12 @@ def _render_watch_runtime_service_runner() -> str:
         '  echo "supervisor-scan entry is missing or not executable: ${SUPERVISOR_SCAN_SCRIPT}" >&2\n'
         "  exit 1\n"
         "fi\n\n"
-        f'exec "${{SUPERVISOR_SCAN_SCRIPT}}" {DEVELOPER_SUPERVISOR_MODE_ARGS} "$@"\n'
+        'if [[ ! -x "${SUPERVISOR_CONSUME_SCRIPT}" ]]; then\n'
+        '  echo "supervisor-consume entry is missing or not executable: ${SUPERVISOR_CONSUME_SCRIPT}" >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
+        f'"${{SUPERVISOR_SCAN_SCRIPT}}" {DEVELOPER_SUPERVISOR_MODE_ARGS} "$@"\n'
+        f'exec "${{SUPERVISOR_CONSUME_SCRIPT}}" {DEVELOPER_SUPERVISOR_CONSUME_ARGS} "$@"\n'
     )
 
 
@@ -168,15 +175,27 @@ def _render_supervisor_scan_script() -> str:
     )
 
 
+def _render_supervisor_consume_script() -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'run_medautosci runtime supervisor-consume \\\n'
+        '  --profile "${PROFILE_PATH}" \\\n'
+        f"  {DEVELOPER_SUPERVISOR_CONSUME_ARGS} \\\n"
+        '  "$@"\n'
+    )
+
+
 def _render_supervisor_systemd_service(*, workspace_root: Path) -> str:
-    supervisor_scan = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+    supervisor_runner = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner"
     return (
         "[Unit]\n"
-        "Description=MedAutoScience portable supervisor scan\n\n"
+        "Description=MedAutoScience portable supervisor scan and consume\n\n"
         "[Service]\n"
         "Type=oneshot\n"
         f"WorkingDirectory={workspace_root}\n"
-        f"ExecStart={supervisor_scan} {DEVELOPER_SUPERVISOR_MODE_ARGS}\n"
+        f"ExecStart={supervisor_runner}\n"
     )
 
 
@@ -193,8 +212,8 @@ def _render_supervisor_systemd_timer() -> str:
 
 
 def _render_supervisor_cron_template(*, workspace_root: Path) -> str:
-    supervisor_scan = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
-    return f"0 * * * * {supervisor_scan} {DEVELOPER_SUPERVISOR_MODE_ARGS}\n"
+    supervisor_runner = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner"
+    return f"0 * * * * {supervisor_runner}\n"
 
 
 def _render_supervisor_launchd_instructions() -> str:

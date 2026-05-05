@@ -48,6 +48,7 @@ _CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS = (
     "mode=developer_apply_safe",
     "supervisor-scan --apply-safe-actions",
     "--developer-supervisor-mode developer_apply_safe",
+    "supervisor-consume --mode developer_apply_safe --apply",
     "action_queue",
     "why_not_applied",
 )
@@ -113,6 +114,10 @@ def _workspace_watch_runtime_entry_path(profile: WorkspaceProfile) -> Path:
 
 def _workspace_supervisor_scan_entry_path(profile: WorkspaceProfile) -> Path:
     return profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+
+
+def _workspace_supervisor_consume_entry_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
 
 
 def _codex_app_automation_path() -> Path:
@@ -201,6 +206,7 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
     unsupported_manager = manager == "docker"
     developer_mode_enabled = bool(github_user.get("matches_expected")) and not unsupported_manager
     supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
+    supervisor_consume = _workspace_supervisor_consume_entry_path(profile)
     if manager == "codex_app":
         scheduler_owner = "codex_app_compat"
     elif unsupported_manager:
@@ -208,12 +214,13 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
     else:
         scheduler_owner = f"{manager}_scheduler"
     expected_artifacts = [
-        str(profile.workspace_root / "ops" / "medautoscience" / "runtime" / "supervisor" / "latest.json"),
-        str(profile.workspace_root / "ops" / "medautoscience" / "runtime" / "supervisor" / "action_queue.json"),
-        str(profile.workspace_root / "ops" / "medautoscience" / "runtime" / "supervisor" / "why_not_applied.json"),
+        str(profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"),
+        str(profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json"),
+        str(profile.workspace_root / "artifacts" / "supervision" / "consumer" / "history.jsonl"),
     ]
     status_check_commands = [
         [str(supervisor_scan), *_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS],
+        [str(supervisor_consume), "--mode", "developer_apply_safe", "--apply"],
         [str(supervisor_scan), "--status"],
     ]
     return {
@@ -298,6 +305,7 @@ def _portable_supervisor_instruction(
     write_install_proof: bool = False,
 ) -> dict[str, Any]:
     supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
+    supervisor_consume = _workspace_supervisor_consume_entry_path(profile)
     templates = _portable_supervisor_templates(profile)
     manager_key = manager.strip().lower()
     user_systemd_root = Path.home() / ".config" / "systemd" / "user"
@@ -377,6 +385,11 @@ def _portable_supervisor_instruction(
             "path": str(supervisor_scan),
             "exists": supervisor_scan.is_file(),
             "executable": supervisor_scan.is_file() and os.access(supervisor_scan, os.X_OK),
+        },
+        "supervisor_consume_entry": {
+            "path": str(supervisor_consume),
+            "exists": supervisor_consume.is_file(),
+            "executable": supervisor_consume.is_file() and os.access(supervisor_consume, os.X_OK),
         },
         "command": [
             str(supervisor_scan),

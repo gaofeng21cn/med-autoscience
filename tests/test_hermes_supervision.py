@@ -409,6 +409,12 @@ def test_ensure_supervision_returns_portable_scheduler_install_instructions(tmp_
     supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
     supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_scan.chmod(0o755)
+    supervisor_consume = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
+    supervisor_consume.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_consume.chmod(0o755)
+    supervisor_consume = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
+    supervisor_consume.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_consume.chmod(0o755)
     service_template = (
         profile.workspace_root
         / "ops"
@@ -431,6 +437,9 @@ def test_ensure_supervision_returns_portable_scheduler_install_instructions(tmp_
     assert result["supervisor_scan_entry"]["exists"] is True
     assert result["supervisor_scan_entry"]["executable"] is True
     assert result["supervisor_scan_entry"]["path"] == str(supervisor_scan)
+    assert result["supervisor_consume_entry"]["exists"] is True
+    assert result["supervisor_consume_entry"]["executable"] is True
+    assert result["supervisor_consume_entry"]["path"] == str(supervisor_consume)
     assert result["templates"]["service"] == str(service_template)
     assert result["templates"]["timer"] == str(timer_template)
     assert result["install_commands"] == [
@@ -452,6 +461,9 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
     supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
     supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_scan.chmod(0o755)
+    supervisor_consume = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
+    supervisor_consume.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_consume.chmod(0o755)
     service_template = (
         profile.workspace_root
         / "ops"
@@ -472,6 +484,7 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
         "mode=developer_apply_safe\n"
         "supervisor-scan --apply-safe-actions\n"
         "--developer-supervisor-mode developer_apply_safe\n"
+        "supervisor-consume --mode developer_apply_safe --apply\n"
         "action_queue\n"
         "why_not_applied\n"
         '"""\n',
@@ -504,6 +517,12 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
             "--developer-supervisor-mode",
             "developer_apply_safe",
         ],
+        [
+            str(supervisor_consume),
+            "--mode",
+            "developer_apply_safe",
+            "--apply",
+        ],
         [str(supervisor_scan), "--status"],
     ]
     assert result["status_check_commands"] == result["install_proof"]["status_check_commands"]
@@ -522,6 +541,9 @@ def test_ensure_supervision_writes_portable_install_proof_when_explicitly_reques
     supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
     supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_scan.chmod(0o755)
+    supervisor_consume = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
+    supervisor_consume.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_consume.chmod(0o755)
     cron_template = (
         profile.workspace_root
         / "ops"
@@ -570,12 +592,16 @@ def test_ensure_supervision_projects_codex_app_heartbeat_as_compat_owner(
     supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
     supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_scan.chmod(0o755)
+    supervisor_consume = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
+    supervisor_consume.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_consume.chmod(0o755)
     automation_path = tmp_path / "home" / ".codex" / "automations" / "mas" / "automation.toml"
     automation_path.parent.mkdir(parents=True, exist_ok=True)
     automation_path.write_text(
         'status = "ACTIVE"\n'
         'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
-        '--developer-supervisor-mode developer_apply_safe action_queue why_not_applied"\n',
+        '--developer-supervisor-mode developer_apply_safe supervisor-consume --mode developer_apply_safe --apply '
+        'action_queue why_not_applied"\n',
         encoding="utf-8",
     )
 
@@ -601,7 +627,8 @@ def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
         '[[automations]]\n'
         'status = "ACTIVE"\n'
         'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
-        '--developer-supervisor-mode developer_apply_safe action_queue why_not_applied"\n',
+        '--developer-supervisor-mode developer_apply_safe supervisor-consume --mode developer_apply_safe --apply '
+        'action_queue why_not_applied"\n',
         encoding="utf-8",
     )
 
@@ -635,7 +662,11 @@ def test_codex_app_automation_prompt_check_reports_missing_tokens(tmp_path: Path
 
     assert result["status"] == "incomplete"
     assert result["active"] is True
-    assert result["missing_prompt_tokens"] == ["action_queue", "why_not_applied"]
+    assert result["missing_prompt_tokens"] == [
+        "supervisor-consume --mode developer_apply_safe --apply",
+        "action_queue",
+        "why_not_applied",
+    ]
 
 
 def test_ensure_supervision_returns_cron_and_launchd_scheduler_surfaces(
@@ -648,6 +679,9 @@ def test_ensure_supervision_returns_cron_and_launchd_scheduler_surfaces(
     supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
     supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_scan.chmod(0o755)
+    supervisor_consume = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
+    supervisor_consume.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_consume.chmod(0o755)
     templates_root = profile.workspace_root / "ops" / "medautoscience" / "supervisor"
     for path in (
         templates_root / "cron" / "supervisor-scan.cron",
@@ -678,6 +712,7 @@ def test_ensure_supervision_returns_cron_and_launchd_scheduler_surfaces(
     for result in (cron_result, launchd_result):
         assert result["installed"] is False
         assert result["supervisor_scan_entry"]["exists"] is True
+        assert result["supervisor_consume_entry"]["exists"] is True
         assert result["codex_app_heartbeat_required"] is False
 
 

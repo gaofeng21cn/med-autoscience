@@ -88,6 +88,22 @@ medautosci runtime supervisor-scan \
 
 该入口写出 workspace-level `artifacts/supervision/hourly/latest.json`，只消费 MAS durable truth surfaces：`study_runtime_status`、`study_progress`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json` 与 AI repair lifecycle。它的职责是形成 `action_queue`、`why_not_applied`、owner-visible request packet 与 `external_supervisor_required`，而不是直接修改 paper/current_package。
 
+MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 policy：
+
+- `executor_kind = codex_cli_default`
+- `executor_name = Codex CLI`
+- model、reasoning effort 与本机 Codex 配置保持继承
+- chat-completion-only executor 禁止作为 repair executor
+
+第一层的时间策略固定为：
+
+- 内置 MAS AI 监测 tick：每 `300` 秒一次
+- 无 meaningful artifact/progress 后 `1800` 秒进入 AI repair 判断
+- AI doctor request 写出后 `900` 秒仍未被处理，升级为 timeout/platform repair
+- 触发信号包括 `no_meaningful_progress`、`same_fingerprint_loop`、`read_churn_without_artifact_delta`、`stale_truth_surface` 与 `runtime_recovery_retry_budget_exhausted`
+
+这些策略同时投影到 `two_layer_ai_repair_policy`，由 `runtime supervisor-scan` 和 `runtime supervisor-consume` 输出。这样前台看到“AI reviewer 队列积压”时，能同时看到内置 AI repair 是否已接上、是否超时，以及下一层开发者 supervisor 是否已到接手阈值。
+
 当 `action_queue` 包含 `publication_gate_specificity_required` 或 `return_to_ai_reviewer_workflow` 时，supervisor scan 只能物化 request packet：
 
 - `publication_gate_specificity_required` 的 owner 是 `publication_gate`
@@ -108,6 +124,35 @@ medautosci runtime-supervisor-consume \
 
 该入口只把 scan queue 转成 owner handoff task，写入 workspace-level `artifacts/supervision/consumer/latest.json` / `history.jsonl` 以及 study-level consumer packet。它负责说明 `request_owner`、`required_output_surface`、`request_packet_ref`、forbidden surfaces 与 verification commands；它不执行 publication gate 或 AI reviewer 的专业判断，也不修改论文包。
 
+从 2026-05-05 起，developer scheduler 的正式同 tick 行为是 `scan -> consume`：
+
+```bash
+medautosci runtime supervisor-scan \
+  --profile <profile> \
+  --apply-safe-actions \
+  --developer-supervisor-mode developer_apply_safe
+
+medautosci runtime supervisor-consume \
+  --profile <profile> \
+  --mode developer_apply_safe \
+  --apply
+```
+
+如果未显式传 `--studies`，`supervisor-consume` 从最新 `hourly/latest.json` 的 `action_queue` 推导需要消费的 study 列表。consumer 会额外写出 study-level default executor dispatch request：
+
+- `studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/<action_type>.json`
+
+这个 dispatch request 是“把问题交给默认 Codex CLI 执行器”的机器可读派单面，包含 owner、输入 surface、必需输出 surface、forbidden surfaces 与 prompt contract。它不等同于 owner output；例如 AI reviewer 的 output 仍必须由 AI reviewer workflow 写回 owner-authorized durable surface，consumer 本身不得写 `publication_eval/latest.json`。
+
+第二层 Developer Supervisor Mode 的时间策略固定为：
+
+- scheduler/heartbeat：每 `3600` 秒一次
+- owner request `2` 小时未被 pickup，标记 `owner_pickup_overdue`
+- action queue `6` 小时仍未被消费或仍无进展，标记 `developer_supervisor_attention_required`
+- developer heartbeat 必须评估内置 AI monitoring/repair 是否失效，并在 `developer_apply_safe` 与 GitHub gate 通过时消费队列、写 default executor dispatch request，或明确 blocked reason / next owner
+
+这解释了之前的故障模式：heartbeat 只运行 `supervisor-scan` 时，系统能准确报告 `AI reviewer queue` 或 `publication_gate_specificity_required` 积压，但没有运行 `supervisor-consume`，也没有生成默认 Codex executor dispatch request，所以“AI 监测发现问题”与“AI 修复真正被派单执行”之间断开。
+
 Developer Supervisor Mode 有三个正式模式：
 
 - `internal_only`：只运行 MAS 内部 AI doctor/self-healing；不启用外层工程代理。
@@ -121,10 +166,14 @@ Developer Supervisor Mode 有三个正式模式：
 workspace bootstrap 会渲染 portable scheduler entry 与示例模板：
 
 - `ops/medautoscience/bin/supervisor-scan`
+- `ops/medautoscience/bin/supervisor-consume`
+- `ops/medautoscience/bin/watch-runtime-service-runner`
 - `ops/medautoscience/supervisor/systemd/medautoscience-supervisor-scan.service`
 - `ops/medautoscience/supervisor/systemd/medautoscience-supervisor-scan.timer`
 - `ops/medautoscience/supervisor/cron/supervisor-scan.cron`
 - `ops/medautoscience/supervisor/launchd/README.md`
+
+`systemd` 与 `cron` 模板调用 `watch-runtime-service-runner`，由 runner 在同一小时级 tick 内先执行 `supervisor-scan`，再执行 `supervisor-consume`。Codex App heartbeat 仍只是本机兼容 scheduler；MAS 架构依赖的是 portable scheduler entry 和这些 durable surfaces。
 
 `medautosci runtime ensure-supervision --manager systemd|cron|launchd` 返回可复制的安装命令和模板路径，并验证当前 workspace 是否已有可执行的 `supervisor-scan` entry。显式追加 `--write-install-proof` 时，它会写出 workspace-level `artifacts/supervision/install_proof/latest.json`，记录 manager、scheduler owner、安装命令、状态检查命令、预期产物、freshness、safe-action mode、GitHub gate 与 host service claim。这个接口只生成 scheduler instruction / install proof，不在没有真实宿主安装 evidence 时声称宿主 service 已安装；安装动作仍归属 host operator 或外部 scheduler。
 
@@ -237,6 +286,7 @@ medautosci runtime supervisor-scan \
 - workspace-level `artifacts/supervision/consumer/latest.json`
 - workspace-level `artifacts/supervision/consumer/history.jsonl`
 - study-level `studies/<study_id>/artifacts/supervision/consumer/<action_type>.json`
+- study-level `studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/<action_type>.json`
 - study-level `studies/<study_id>/artifacts/supervision/requests/publication_gate_specificity/latest.json`
 - study-level `studies/<study_id>/artifacts/supervision/requests/ai_reviewer/latest.json`
 - quest-level `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
@@ -251,6 +301,7 @@ medautosci runtime supervisor-scan \
 - `repair_lifecycle/latest.json` 负责投影 AI doctor repair 从 request、diagnosis、repair action 到 apply attempt 的生命周期
 - `artifacts/supervision/hourly/latest.json` 负责跨 study 巡检 action queue 与 why-not-applied 投影
 - `artifacts/supervision/consumer/latest.json` 与 study-level consumer packets 负责把外层 queue 消费成 request-owner handoff task
+- `default_executor_dispatches/*` 负责把未被 owner 接手的 queue 转成默认 Codex CLI 执行器派单，不承担 publication/AI reviewer output authority
 - `artifacts/supervision/requests/*/latest.json` 负责保存 owner-visible request packet；它们是 request surface，不是 owner output surface
 - `study_progress` 负责把这些 truth 翻译成医生/PI 能看懂的前台进度
 

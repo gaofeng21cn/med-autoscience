@@ -82,7 +82,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
 
     runtime_supervisor_consume_parser = subparsers.add_parser("runtime-supervisor-consume")
     runtime_supervisor_consume_parser.add_argument("--profile", required=True)
-    runtime_supervisor_consume_parser.add_argument("--studies", nargs="+", required=True)
+    runtime_supervisor_consume_parser.add_argument("--studies", nargs="+")
     runtime_supervisor_consume_parser.add_argument(
         "--mode",
         choices=("developer_apply_safe",),

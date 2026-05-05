@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
 from med_autoscience.controllers import study_progress, study_runtime_router
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
 from med_autoscience.controllers.runtime_supervisor_scan_parts import queue_slo
@@ -955,6 +956,7 @@ def supervisor_scan(
         "developer_supervisor_mode": developer_mode.to_dict(),
         "apply_safe_actions": developer_mode.safe_actions_enabled,
         "apply_runtime_platform_repair": bool(apply_runtime_platform_repair),
+        "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
         "studies": studies,
         "action_queue": action_queue,
         "queue_history": queue_history,
