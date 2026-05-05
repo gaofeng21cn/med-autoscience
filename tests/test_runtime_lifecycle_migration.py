@@ -20,22 +20,23 @@ def test_runtime_lifecycle_migration_ledger_is_contract_valid_and_writes_pointer
         "schema_version": 1,
         "recorded_at": "2026-05-05T00:00:00+00:00",
         "workspace_root": str(workspace_root),
-        "mode": "dry-run",
+        "mode": "apply",
         "summary": {
             "study_count": 1,
             "estimated_release_bytes": 2048,
             "actual_release_bytes": 0,
             "runtime_total_bytes": 4096,
             "runtime_estimated_release_bytes": 2048,
+            "runtime_actual_release_bytes": 1024,
             "study_artifact_total_bytes": 128,
         },
         "categories": {
             "runtime": {
                 "category": "runtime",
                 "bytes": 4096,
-                "candidate_action": "compress-online",
+                "candidate_action": "restore-proof-compaction",
                 "estimated_release_bytes": 2048,
-                "actual_release_bytes": 0,
+                "actual_release_bytes": 1024,
                 "studies": [
                     {
                         "study_id": "001-risk",
@@ -45,9 +46,44 @@ def test_runtime_lifecycle_migration_ledger_is_contract_valid_and_writes_pointer
                         "quest_runtime": {"status": "completed", "active_run_id": None},
                         "runtime": {
                             "bytes": 4096,
-                            "candidate_action": "compress-online",
+                            "candidate_action": "restore-proof-compaction",
                             "estimated_release_bytes": 2048,
-                            "actual_release_bytes": 0,
+                            "actual_release_bytes": 1024,
+                        },
+                        "restore_proof_compaction": {
+                            "status": "compacted",
+                            "restore_proof_path": str(
+                                workspace_root
+                                / "ops"
+                                / "runtime"
+                                / "quests"
+                                / "quest-001"
+                                / ".ds"
+                                / "cold_archive"
+                                / "restore_proof_compaction"
+                                / "quest-001.restore_proof.json"
+                            ),
+                            "archive_ref": {
+                                "archive_path": str(
+                                    workspace_root
+                                    / "ops"
+                                    / "runtime"
+                                    / "quests"
+                                    / "quest-001"
+                                    / ".ds"
+                                    / "cold_archive"
+                                    / "restore_proof_compaction"
+                                    / "quest-001.tar.gz"
+                                ),
+                                "sha256": "abc123",
+                                "source_file_count": 12,
+                            },
+                            "restore_proof": {
+                                "status": "verified",
+                                "archive_sha256": "abc123",
+                                "source_file_count": 12,
+                                "verified_file_count": 12,
+                            },
                         },
                     }
                 ],
@@ -88,6 +124,40 @@ def test_runtime_lifecycle_migration_ledger_is_contract_valid_and_writes_pointer
     assert ledger["bucket_baseline"]["summary"]["runtime_total_bytes"] == 4096
     assert ledger["quest_classifications"][0]["classification"] == "stopped_cold"
     assert ledger["planned_actions"][0]["bucket_name"] == "cache"
+    assert ledger["applied_actions"][0]["bucket_name"] == "runtime"
+    assert ledger["restore_proofs"] == [
+        {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "quest_root": str(workspace_root / "ops" / "runtime" / "quests" / "quest-001"),
+            "status": "verified",
+            "restore_proof_path": str(
+                workspace_root
+                / "ops"
+                / "runtime"
+                / "quests"
+                / "quest-001"
+                / ".ds"
+                / "cold_archive"
+                / "restore_proof_compaction"
+                / "quest-001.restore_proof.json"
+            ),
+            "archive_path": str(
+                workspace_root
+                / "ops"
+                / "runtime"
+                / "quests"
+                / "quest-001"
+                / ".ds"
+                / "cold_archive"
+                / "restore_proof_compaction"
+                / "quest-001.tar.gz"
+            ),
+            "archive_sha256": "abc123",
+            "source_file_count": 12,
+            "verified_file_count": 12,
+        }
+    ]
     assert ledger["git_tracking_check"]["sidecar_gitignore_ok"] is True
     assert ledger["compatibility_exports"][0]["compatibility_fallback_used"] is False
     run_path = Path(ledger["ledger_paths"]["ledger_path"])

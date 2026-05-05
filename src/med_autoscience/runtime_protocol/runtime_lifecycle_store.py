@@ -277,6 +277,66 @@ def record_runtime_event(
     )
 
 
+def record_archive_ref(
+    *,
+    quest_root: Path,
+    archive_ref: Mapping[str, Any],
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    resolved_db_path = _resolve_db_path(db_path, default=quest_lifecycle_store_path(resolved_quest_root))
+    archive_id = _require_text("archive_ref.archive_id", archive_ref.get("archive_id"))
+    archive_path = Path(_require_text("archive_ref.archive_path", archive_ref.get("archive_path"))).expanduser().resolve()
+    source_manifest_path = _text(archive_ref.get("source_manifest_path"))
+    restore_proof_path = _text(archive_ref.get("restore_proof_path"))
+    archived_at = _text(archive_ref.get("archived_at")) or _utc_now()
+    payload_json = _stable_json(archive_ref)
+    with _connect(resolved_db_path) as conn:
+        _ensure_schema(conn)
+        conn.execute(
+            """
+            INSERT INTO archive_refs(
+                quest_root, archive_id, archived_at, archive_path, archive_format,
+                sha256, bytes, source_manifest_path, restore_proof_path,
+                source_buckets_json, payload_sha256, payload_json, recorded_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(quest_root, archive_id) DO UPDATE SET
+                archived_at=excluded.archived_at,
+                archive_path=excluded.archive_path,
+                archive_format=excluded.archive_format,
+                sha256=excluded.sha256,
+                bytes=excluded.bytes,
+                source_manifest_path=excluded.source_manifest_path,
+                restore_proof_path=excluded.restore_proof_path,
+                source_buckets_json=excluded.source_buckets_json,
+                payload_sha256=excluded.payload_sha256,
+                payload_json=excluded.payload_json,
+                recorded_at=excluded.recorded_at
+            """,
+            (
+                str(resolved_quest_root),
+                archive_id,
+                archived_at,
+                str(archive_path),
+                _text(archive_ref.get("archive_format")) or "unknown",
+                _require_text("archive_ref.sha256", archive_ref.get("sha256")),
+                _int(archive_ref.get("bytes")),
+                str(Path(source_manifest_path).expanduser().resolve()) if source_manifest_path else None,
+                str(Path(restore_proof_path).expanduser().resolve()) if restore_proof_path else None,
+                _stable_json(archive_ref.get("source_buckets") if isinstance(archive_ref.get("source_buckets"), list) else []),
+                _sha256(payload_json),
+                payload_json,
+                _utc_now(),
+            ),
+        )
+    return _index_result(
+        db_path=resolved_db_path,
+        indexed_table="archive_refs",
+        indexed_count=1,
+        scope="quest",
+    )
+
+
 def inspect_lifecycle_store(db_path: Path) -> dict[str, Any]:
     resolved_db_path = Path(db_path).expanduser().resolve()
     if not resolved_db_path.exists():
@@ -296,6 +356,7 @@ def inspect_lifecycle_store(db_path: Path) -> dict[str, Any]:
                 "runtime_reports",
                 "workspace_storage_audits",
                 "runtime_events",
+                "archive_refs",
                 "report_index",
             )
         }
@@ -444,6 +505,26 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             payload_json TEXT NOT NULL,
             recorded_at TEXT NOT NULL,
             PRIMARY KEY (quest_root, event_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS archive_refs(
+            quest_root TEXT NOT NULL,
+            archive_id TEXT NOT NULL,
+            archived_at TEXT NOT NULL,
+            archive_path TEXT NOT NULL,
+            archive_format TEXT NOT NULL,
+            sha256 TEXT NOT NULL,
+            bytes INTEGER NOT NULL,
+            source_manifest_path TEXT,
+            restore_proof_path TEXT,
+            source_buckets_json TEXT NOT NULL,
+            payload_sha256 TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            PRIMARY KEY (quest_root, archive_id)
         )
         """
     )
@@ -618,6 +699,7 @@ __all__ = [
     "quest_lifecycle_store_path",
     "record_runtime_event",
     "record_runtime_report",
+    "record_archive_ref",
     "record_watch_state",
     "record_workspace_storage_audit",
     "workspace_lifecycle_store_path",

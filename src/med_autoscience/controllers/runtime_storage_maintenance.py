@@ -12,6 +12,11 @@ from typing import Any, Mapping
 from med_autoscience.controllers import study_runtime_resolution
 from med_autoscience.controllers.artifact_lifecycle_inventory import build_study_artifact_lifecycle_registry
 from med_autoscience.controllers.runtime_storage_maintenance_parts import git_garbage
+from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof_compaction import (
+    compact_cold_runtime_buckets,
+    restore_proof_compaction_blockers,
+    restore_proof_compaction_candidate,
+)
 from med_autoscience.controllers.runtime_storage_maintenance_parts.dataset_retention import (
     audit_dataset_retention as _dataset_retention_audit,
     dataset_release_blockers as _dataset_release_blockers,
@@ -148,11 +153,17 @@ def _study_artifact_size_summary(study_root: Path) -> dict[str, Any]:
 
 
 def _quest_runtime_snapshot(quest_root: Path) -> dict[str, Any]:
-    runtime_state = quest_state.load_runtime_state(quest_root)
+    runtime_state: dict[str, Any] = {}
+    runtime_state_error: str | None = None
+    try:
+        runtime_state = quest_state.load_runtime_state(quest_root)
+    except (OSError, json.JSONDecodeError) as exc:
+        runtime_state_error = f"{type(exc).__name__}: {exc}"
     return {
         "quest_exists": (quest_root / "quest.yaml").exists(),
         "status": str(runtime_state.get("status") or "").strip().lower() or None,
         "active_run_id": str(runtime_state.get("active_run_id") or "").strip() or None,
+        "runtime_state_error": runtime_state_error,
     }
 
 
@@ -191,6 +202,15 @@ def _runtime_candidate(
             candidate_action="blocked-missing-quest",
             estimated_release_bytes=0,
             blockers=["missing_quest_root"],
+        )
+    if snapshot.get("runtime_state_error"):
+        return _runtime_candidate_payload(
+            quest_root=quest_root,
+            size_summary=size_summary,
+            risk="runtime_state_unreadable",
+            candidate_action="audit-only",
+            estimated_release_bytes=0,
+            blockers=["runtime_state_unreadable"],
         )
     if status in _LIVE_RUNTIME_STATUSES and active_run_id is not None:
         return _runtime_candidate_payload(
@@ -248,6 +268,10 @@ def _primary_runtime_bucket_bytes(size_summary: Mapping[str, Any]) -> int:
         for name, bucket in dict(size_summary.get("buckets") or {}).items()
         if name in _PRIMARY_BUCKETS
     )
+
+
+def _mapping(value: object) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
 
 
 def _backend_script_path(profile: WorkspaceProfile) -> Path | None:
@@ -582,6 +606,7 @@ def audit_workspace_storage(
     head_lines: int = 200,
     tail_lines: int = 200,
     allow_live_runtime: bool = False,
+    restore_proof_compaction: bool = False,
     reinitialize_empty_workspace_git: bool = False,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
@@ -617,6 +642,8 @@ def audit_workspace_storage(
             snapshot = _quest_runtime_snapshot(quest_root)
             size_before = _size_summary(quest_root)
             candidate = _runtime_candidate(quest_root=quest_root, snapshot=snapshot, size_summary=size_before)
+            if restore_proof_compaction:
+                candidate = restore_proof_compaction_candidate(candidate=candidate, snapshot=snapshot)
             if stopped_only and str(snapshot.get("status") or "") not in _TERMINAL_RUNTIME_STATUSES:
                 runtime_report = dict(candidate)
                 if apply:
@@ -651,6 +678,7 @@ def audit_workspace_storage(
                     head_lines=head_lines,
                     tail_lines=tail_lines,
                     allow_live_runtime=allow_live_runtime,
+                    restore_proof_compaction=restore_proof_compaction,
                 )
             size_after = _size_summary(quest_root)
             actual_runtime_release_bytes = _actual_release_bytes(size_before, size_after) if apply else 0
@@ -687,6 +715,9 @@ def audit_workspace_storage(
                     "size_after": size_after,
                     "study_artifacts": artifact_summary,
                     "apply_result": apply_result,
+                    "restore_proof_compaction": _mapping(apply_result.get("restore_proof_compaction"))
+                    if isinstance(apply_result, Mapping)
+                    else {},
                     "actual_runtime_release_bytes": actual_runtime_release_bytes,
                 }
             )
@@ -742,6 +773,7 @@ def audit_workspace_storage(
             "all_studies": all_studies,
             "stopped_only": stopped_only,
             "allow_live_runtime": allow_live_runtime,
+            "restore_proof_compaction": restore_proof_compaction,
             "git_only": git_only,
             "reinitialize_empty_workspace_git": reinitialize_empty_workspace_git,
         },
@@ -813,6 +845,7 @@ def maintain_runtime_storage(
     head_lines: int = 200,
     tail_lines: int = 200,
     allow_live_runtime: bool = False,
+    restore_proof_compaction: bool = False,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     resolved_study_id, resolved_study_root, study_payload = study_runtime_resolution._resolve_study(
@@ -842,6 +875,7 @@ def maintain_runtime_storage(
         "quest_root": str(resolved_quest_root),
         "include_worktrees": include_worktrees,
         "allow_live_runtime": allow_live_runtime,
+        "restore_proof_compaction_enabled": restore_proof_compaction,
     }
     result["quest_runtime_before"] = _quest_runtime_snapshot(resolved_quest_root)
     result["size_before"] = _size_summary(resolved_quest_root)
@@ -849,6 +883,40 @@ def maintain_runtime_storage(
     if not result["quest_runtime_before"]["quest_exists"]:
         result["status"] = "blocked_missing_quest_root"
         result["summary"] = "quest root 尚未就绪，当前无法执行 runtime storage maintenance。"
+    elif restore_proof_compaction:
+        blockers = restore_proof_compaction_blockers(result["quest_runtime_before"])
+        if blockers:
+            result["status"] = "blocked_restore_proof_compaction"
+            result["summary"] = "quest 未达到 stopped-cold restore-proof compaction 条件。"
+            result["restore_proof_compaction"] = {
+                "surface_kind": "runtime_restore_proof_compaction",
+                "status": "blocked_not_stopped_cold",
+                "quest_id": quest_id,
+                "quest_root": str(resolved_quest_root),
+                "actual_release_bytes": 0,
+                "blockers": blockers,
+            }
+        else:
+            compaction_result = compact_cold_runtime_buckets(
+                quest_root=resolved_quest_root,
+                quest_id=quest_id,
+                recorded_at=recorded_at,
+                buckets=_PRIMARY_BUCKETS,
+            )
+            result["restore_proof_compaction"] = compaction_result
+            archive_ref = compaction_result.get("archive_ref")
+            if isinstance(archive_ref, Mapping):
+                result["runtime_lifecycle_archive_index"] = runtime_lifecycle_store.record_archive_ref(
+                    quest_root=resolved_quest_root,
+                    archive_ref=archive_ref,
+                )
+            status = str(compaction_result.get("status") or "")
+            if status in {"compacted", "nothing_to_archive"}:
+                result["status"] = "maintained"
+                result["summary"] = "stopped-cold runtime restore-proof compaction 已完成。"
+            else:
+                result["status"] = status or "blocked_restore_proof_compaction"
+                result["summary"] = "stopped-cold runtime restore-proof compaction 未完成。"
     elif (
         not allow_live_runtime
         and result["quest_runtime_before"]["status"] in _LIVE_RUNTIME_STATUSES

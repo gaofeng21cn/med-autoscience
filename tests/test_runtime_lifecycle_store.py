@@ -60,6 +60,7 @@ def test_report_store_indexes_watch_state_and_reports_without_changing_file_surf
         "runtime_reports": 1,
         "workspace_storage_audits": 0,
         "runtime_events": 0,
+        "archive_refs": 0,
         "report_index": 1,
     }
     with sqlite3.connect(db_path) as conn:
@@ -126,6 +127,7 @@ def test_workspace_storage_audit_indexes_summary_in_workspace_lifecycle_store(tm
         "runtime_reports": 0,
         "workspace_storage_audits": 1,
         "runtime_events": 0,
+        "archive_refs": 0,
         "report_index": 1,
     }
 
@@ -230,6 +232,57 @@ def test_runtime_event_record_indexes_event_without_replacing_latest_authority(t
     )
     assert json.loads(row[-1]) == latest_payload
     assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"]["runtime_events"] == 1
+
+
+def test_lifecycle_store_records_archive_refs_without_replacing_restore_authority(tmp_path: Path) -> None:
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    quest_root = tmp_path / "runtime" / "quests" / "quest-001"
+    archive_path = quest_root / ".ds" / "cold_archive" / "restore-proof" / "quest-001.tar.gz"
+    manifest_path = archive_path.with_suffix(".manifest.json")
+    proof_path = archive_path.with_suffix(".restore_proof.json")
+    for path, content in (
+        (archive_path, "archive bytes"),
+        (manifest_path, "{}\n"),
+        (proof_path, "{}\n"),
+    ):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    archive_ref = {
+        "surface_kind": "runtime_archive_ref",
+        "schema_version": 1,
+        "archive_id": "runtime-restore-proof-compaction::quest-001::20260505T000000Z",
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "archived_at": "2026-05-05T00:00:00+00:00",
+        "archive_path": str(archive_path),
+        "archive_format": "tar.gz",
+        "sha256": "abc123",
+        "bytes": archive_path.stat().st_size,
+        "source_manifest_path": str(manifest_path),
+        "restore_proof_path": str(proof_path),
+        "source_buckets": ["runs"],
+    }
+
+    result = lifecycle_store.record_archive_ref(quest_root=quest_root, archive_ref=archive_ref)
+
+    assert result["indexed_table"] == "archive_refs"
+    db_path = lifecycle_store.quest_lifecycle_store_path(quest_root)
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            """
+            SELECT archive_id, archive_path, restore_proof_path, source_buckets_json, payload_json
+            FROM archive_refs
+            WHERE quest_root = ?
+            """,
+            (str(quest_root.resolve()),),
+        ).fetchone()
+
+    assert row[0] == archive_ref["archive_id"]
+    assert row[1] == str(archive_path.resolve())
+    assert row[2] == str(proof_path.resolve())
+    assert json.loads(row[3]) == ["runs"]
+    assert json.loads(row[4]) == archive_ref
+    assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"]["archive_refs"] == 1
 
 
 def test_lifecycle_read_model_exports_sqlite_runtime_report_without_touching_latest_files(tmp_path: Path) -> None:

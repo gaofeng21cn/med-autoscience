@@ -29,6 +29,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         head_lines: int,
         tail_lines: int,
         allow_live_runtime: bool,
+        restore_proof_compaction: bool,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -43,6 +44,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         called["head_lines"] = head_lines
         called["tail_lines"] = tail_lines
         called["allow_live_runtime"] = allow_live_runtime
+        called["restore_proof_compaction"] = restore_proof_compaction
         return {"status": "maintained", "quest_id": "quest-001"}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "maintain_runtime_storage", fake_maintain_runtime_storage)
@@ -91,6 +93,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
     assert called["head_lines"] == 100
     assert called["tail_lines"] == 120
     assert called["allow_live_runtime"] is True
+    assert called["restore_proof_compaction"] is False
     assert json.loads(captured.out)["status"] == "maintained"
 
 
@@ -105,12 +108,12 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         profile,
         study_id: str | None,
         all_studies: bool,
-            stopped_only: bool,
-            apply: bool,
-            git_only: bool,
-            reinitialize_empty_workspace_git: bool,
-            include_worktrees: bool,
-            older_than_seconds: int,
+        stopped_only: bool,
+        apply: bool,
+        git_only: bool,
+        reinitialize_empty_workspace_git: bool,
+        include_worktrees: bool,
+        older_than_seconds: int,
         jsonl_max_mb: int,
         text_max_mb: int,
         event_segment_max_mb: int,
@@ -119,6 +122,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         head_lines: int,
         tail_lines: int,
         allow_live_runtime: bool,
+        restore_proof_compaction: bool,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -137,6 +141,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         called["head_lines"] = head_lines
         called["tail_lines"] = tail_lines
         called["allow_live_runtime"] = allow_live_runtime
+        called["restore_proof_compaction"] = restore_proof_compaction
         return {"mode": "apply", "latest_report_path": "storage_audit/latest.json"}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "audit_workspace_storage", fake_audit_workspace_storage)
@@ -188,7 +193,71 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
     assert called["head_lines"] == 100
     assert called["tail_lines"] == 120
     assert called["allow_live_runtime"] is True
+    assert called["restore_proof_compaction"] is False
     assert json.loads(captured.out)["latest_report_path"] == "storage_audit/latest.json"
+
+
+def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_audit_workspace_storage(
+        *,
+        profile,
+        study_id: str | None,
+        all_studies: bool,
+        stopped_only: bool,
+        apply: bool,
+        git_only: bool,
+        reinitialize_empty_workspace_git: bool,
+        include_worktrees: bool,
+        older_than_seconds: int,
+        jsonl_max_mb: int,
+        text_max_mb: int,
+        event_segment_max_mb: int,
+        slim_jsonl_threshold_mb: int | None,
+        dedupe_worktree_min_mb: int | None,
+        head_lines: int,
+        tail_lines: int,
+        allow_live_runtime: bool,
+        restore_proof_compaction: bool,
+    ) -> dict[str, object]:
+        called["study_id"] = study_id
+        called["apply"] = apply
+        called["git_only"] = git_only
+        called["restore_proof_compaction"] = restore_proof_compaction
+        return {"mode": "apply", "restore_proof_compaction": restore_proof_compaction}
+
+    monkeypatch.setattr(cli.runtime_storage_maintenance, "audit_workspace_storage", fake_audit_workspace_storage)
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "storage-audit",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "004-completed",
+            "--apply",
+            "--restore-proof-compaction",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {
+        "study_id": "004-completed",
+        "apply": True,
+        "git_only": False,
+        "restore_proof_compaction": True,
+    }
+    assert json.loads(captured.out)["restore_proof_compaction"] is True
 
 
 def test_runtime_lifecycle_export_command_dispatches_read_model(monkeypatch, tmp_path: Path, capsys) -> None:

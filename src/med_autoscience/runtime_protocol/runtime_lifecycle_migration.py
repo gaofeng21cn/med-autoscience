@@ -84,7 +84,7 @@ def build_migration_ledger(
         "applied_actions": _applied_actions(storage_audit),
         "skipped_items": skipped_items,
         "compatibility_exports": compatibility_exports,
-        "restore_proofs": [],
+        "restore_proofs": _restore_proofs(storage_audit),
         "git_tracking_check": git_tracking_check,
         "authority_surfaces_checked": authority_surfaces,
         "errors": errors,
@@ -205,6 +205,39 @@ def _applied_actions(storage_audit: Mapping[str, Any]) -> list[dict[str, Any]]:
             }
         )
     return actions
+
+
+def _restore_proofs(storage_audit: Mapping[str, Any]) -> list[dict[str, Any]]:
+    runtime_category = _mapping(_mapping(storage_audit.get("categories")).get("runtime"))
+    studies = runtime_category.get("studies")
+    if not isinstance(studies, list):
+        return []
+    proofs: list[dict[str, Any]] = []
+    for study in studies:
+        if not isinstance(study, Mapping):
+            continue
+        compaction = _mapping(study.get("restore_proof_compaction"))
+        if not compaction:
+            compaction = _mapping(_mapping(study.get("apply_result")).get("restore_proof_compaction"))
+        restore_proof = _mapping(compaction.get("restore_proof"))
+        archive_ref = _mapping(compaction.get("archive_ref"))
+        restore_proof_path = str(compaction.get("restore_proof_path") or archive_ref.get("restore_proof_path") or "").strip()
+        if not restore_proof_path and not restore_proof:
+            continue
+        proofs.append(
+            {
+                "study_id": study.get("study_id"),
+                "quest_id": study.get("quest_id"),
+                "quest_root": study.get("quest_root"),
+                "status": restore_proof.get("status") or compaction.get("status") or "unknown",
+                "restore_proof_path": restore_proof_path or None,
+                "archive_path": archive_ref.get("archive_path") or restore_proof.get("archive_path"),
+                "archive_sha256": archive_ref.get("sha256") or restore_proof.get("archive_sha256"),
+                "source_file_count": _int(archive_ref.get("source_file_count") or restore_proof.get("source_file_count")),
+                "verified_file_count": _int(restore_proof.get("verified_file_count")),
+            }
+        )
+    return proofs
 
 
 def _quest_classifications(storage_audit: Mapping[str, Any]) -> list[dict[str, Any]]:

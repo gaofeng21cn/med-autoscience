@@ -37,6 +37,8 @@ def handle_runtime_storage_command(
     if args.command == "runtime-maintain-storage":
         if bool(args.study_id) == bool(args.study_root):
             parser.error("Specify exactly one of --study-id or --study-root")
+        if bool(args.restore_proof_compaction) and bool(args.allow_live_runtime):
+            parser.error("--restore-proof-compaction cannot be combined with --allow-live-runtime")
         result = runtime_storage_maintenance.maintain_runtime_storage(
             profile=load_profile(args.profile),
             study_id=args.study_id,
@@ -51,6 +53,8 @@ def handle_runtime_storage_command(
             parser.error("--git-only cannot be combined with --study-id or --all-studies")
         if bool(args.reinitialize_empty_workspace_git) and (not bool(args.git_only) or not bool(args.apply)):
             parser.error("--reinitialize-empty-workspace-git requires --git-only --apply")
+        if bool(args.restore_proof_compaction) and (not bool(args.apply) or bool(args.git_only)):
+            parser.error("--restore-proof-compaction requires --apply and cannot be combined with --git-only")
         if bool(args.study_id) and bool(args.all_studies):
             parser.error("Specify at most one of --study-id or --all-studies")
         result = runtime_storage_maintenance.audit_workspace_storage(
@@ -82,6 +86,7 @@ def _add_storage_cleanup_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--head-lines", type=int, default=200)
     parser.add_argument("--tail-lines", type=int, default=200)
     parser.add_argument("--allow-live-runtime", action="store_true")
+    parser.add_argument("--restore-proof-compaction", action="store_true")
 
 
 def _storage_cleanup_options_from_args(args: argparse.Namespace) -> dict[str, object]:
@@ -100,6 +105,7 @@ def _storage_cleanup_options_from_args(args: argparse.Namespace) -> dict[str, ob
         "head_lines": _positive_int(args.head_lines),
         "tail_lines": _positive_int(args.tail_lines),
         "allow_live_runtime": bool(args.allow_live_runtime),
+        "restore_proof_compaction": bool(args.restore_proof_compaction),
     }
 
 

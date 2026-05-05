@@ -4,6 +4,7 @@ import importlib
 import json
 import os
 from pathlib import Path
+import sqlite3
 import time
 
 import pytest
@@ -425,6 +426,136 @@ def test_audit_workspace_storage_apply_uses_actual_runtime_release_for_estimate(
     assert result["summary"]["runtime_actual_release_bytes"] == 0
     assert study_report["runtime"]["estimated_release_bytes"] == 0
     assert study_report["actual_runtime_release_bytes"] == 0
+
+
+def test_audit_workspace_storage_restore_proof_compaction_archives_and_prunes_cold_runtime_buckets(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    study_id = "004-completed"
+    _write_study(profile.studies_root / study_id, study_id=study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    _write_quest(quest_root, quest_id=study_id, status="completed")
+    payload_paths = [
+        *(quest_root / ".ds" / "runs" / f"run-{index:03d}" / "stdout.jsonl" for index in range(12)),
+        *(quest_root / ".ds" / "bash_exec" / f"bash-{index:03d}" / "terminal.log" for index in range(12)),
+        *(quest_root / ".ds" / "codex_history" / f"events-{index:03d}.jsonl" for index in range(12)),
+    ]
+    for path in payload_paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(("runtime payload\n" * 4096), encoding="utf-8")
+    file_count_before = sum(1 for path in (quest_root / ".ds").rglob("*") if path.is_file())
+
+    result = module.audit_workspace_storage(
+        profile=profile,
+        study_id=study_id,
+        all_studies=False,
+        apply=True,
+        restore_proof_compaction=True,
+    )
+
+    study_report = result["categories"]["runtime"]["studies"][0]
+    compaction = study_report["apply_result"]["restore_proof_compaction"]
+    assert study_report["status"] == "applied"
+    assert compaction["status"] == "compacted"
+    assert compaction["restore_proof"]["status"] == "verified"
+    assert compaction["files_before"] == len(payload_paths)
+    assert study_report["runtime"]["candidate_action"] == "restore-proof-compaction"
+    assert study_report["actual_runtime_release_bytes"] > 0
+    assert result["summary"]["actual_release_bytes"] >= study_report["actual_runtime_release_bytes"]
+    assert not (quest_root / ".ds" / "runs").exists()
+    assert not (quest_root / ".ds" / "bash_exec").exists()
+    assert not (quest_root / ".ds" / "codex_history").exists()
+    assert Path(compaction["archive_ref"]["archive_path"]).is_file()
+    assert Path(compaction["source_manifest_path"]).is_file()
+    assert Path(compaction["restore_proof_path"]).is_file()
+    assert sum(1 for path in (quest_root / ".ds").rglob("*") if path.is_file()) < file_count_before
+
+    db_path = quest_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT archive_id, archive_path, restore_proof_path, payload_json FROM archive_refs WHERE quest_root = ?",
+            (str(quest_root.resolve()),),
+        ).fetchone()
+    assert row is not None
+    assert row[0] == compaction["archive_ref"]["archive_id"]
+    assert row[1] == compaction["archive_ref"]["archive_path"]
+    assert row[2] == compaction["restore_proof_path"]
+    assert json.loads(row[3])["sha256"] == compaction["archive_ref"]["sha256"]
+
+
+@pytest.mark.parametrize(
+    ("status", "active_run_id", "expected_blocker"),
+    [
+        ("running", "run-live", "active_run_id_present"),
+        ("paused", None, "not_stopped_cold:paused"),
+        ("stopped", None, "not_stopped_cold:stopped"),
+        ("", None, "not_stopped_cold:missing"),
+    ],
+)
+def test_audit_workspace_storage_restore_proof_compaction_blocks_non_cold_runtime(
+    tmp_path: Path,
+    status: str,
+    active_run_id: str | None,
+    expected_blocker: str,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    study_id = "004-noncold"
+    _write_study(profile.studies_root / study_id, study_id=study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    _write_quest(quest_root, quest_id=study_id, status=status, active_run_id=active_run_id)
+    payload = quest_root / ".ds" / "runs" / "run-001" / "stdout.jsonl"
+    payload.parent.mkdir(parents=True, exist_ok=True)
+    payload.write_text('{"line":"stdout"}\n', encoding="utf-8")
+
+    result = module.audit_workspace_storage(
+        profile=profile,
+        study_id=study_id,
+        all_studies=False,
+        apply=True,
+        restore_proof_compaction=True,
+    )
+
+    study_report = result["categories"]["runtime"]["studies"][0]
+    compaction = study_report["apply_result"]["restore_proof_compaction"]
+    assert study_report["status"] == "audited"
+    assert study_report["runtime"]["candidate_action"] == "audit-only"
+    assert study_report["actual_runtime_release_bytes"] == 0
+    assert compaction["status"] == "blocked_not_stopped_cold"
+    assert expected_blocker in compaction["blockers"]
+    assert payload.exists()
+
+
+def test_audit_workspace_storage_restore_proof_compaction_blocks_symlink_without_prune(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    study_id = "004-completed"
+    _write_study(profile.studies_root / study_id, study_id=study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    _write_quest(quest_root, quest_id=study_id, status="completed")
+    payload = quest_root / ".ds" / "runs" / "run-001" / "stdout.jsonl"
+    payload.parent.mkdir(parents=True, exist_ok=True)
+    payload.write_text('{"line":"stdout"}\n', encoding="utf-8")
+    outside = tmp_path / "outside.txt"
+    outside.write_text("outside\n", encoding="utf-8")
+    (quest_root / ".ds" / "runs" / "run-001" / "outside-link").symlink_to(outside)
+
+    result = module.audit_workspace_storage(
+        profile=profile,
+        study_id=study_id,
+        all_studies=False,
+        apply=True,
+        restore_proof_compaction=True,
+    )
+
+    study_report = result["categories"]["runtime"]["studies"][0]
+    compaction = study_report["apply_result"]["restore_proof_compaction"]
+    assert study_report["status"] == "audited"
+    assert compaction["status"] == "blocked_symlink_in_source_bucket"
+    assert study_report["actual_runtime_release_bytes"] == 0
+    assert payload.exists()
 
 
 def test_audit_workspace_storage_apply_does_not_count_offline_dataset_candidates_as_release(
