@@ -1,6 +1,9 @@
 .pytest_cache/
 __pycache__/
 *.pyc
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 .DS_Store
 .venv/
 .worktree/

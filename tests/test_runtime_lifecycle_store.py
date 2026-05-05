@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 import sqlite3
+import subprocess
 
 
 def test_report_store_indexes_watch_state_and_reports_without_changing_file_surfaces(tmp_path: Path) -> None:
@@ -99,3 +100,26 @@ def test_workspace_storage_audit_indexes_summary_in_workspace_lifecycle_store(tm
     assert row[4] == result["summary"]["runtime_total_bytes"]
     assert row[5] == result["summary"]["study_artifact_total_bytes"]
     assert json.loads(row[6]) == result["summary"]
+
+
+def test_lifecycle_store_fails_closed_when_sqlite_sidecar_is_git_tracked(tmp_path: Path) -> None:
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    repo_root = tmp_path / "workspace"
+    repo_root.mkdir()
+    subprocess.run(["git", "init"], cwd=repo_root, check=True, text=True, capture_output=True)
+    db_path = repo_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    db_path.write_text("tracked placeholder\n", encoding="utf-8")
+    subprocess.run(["git", "add", str(db_path.relative_to(repo_root))], cwd=repo_root, check=True, text=True)
+
+    try:
+        lifecycle_store.record_watch_state(
+            quest_root=repo_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "q001",
+            payload={"updated_at": "2026-05-05T00:00:00+00:00"},
+            db_path=db_path,
+        )
+    except RuntimeError as exc:
+        assert "runtime lifecycle SQLite sidecar must not be tracked by Git" in str(exc)
+        assert "artifacts/runtime/runtime_lifecycle.sqlite" in str(exc)
+    else:
+        raise AssertionError("tracked lifecycle DB sidecar must fail closed")
