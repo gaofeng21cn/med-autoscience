@@ -33,6 +33,9 @@ SUPPORTED_STARTUP_BOUNDARY_REQUIREMENTS = (
     "journal_shortlist",
     "evidence_package",
 )
+NFPITNET_PROFILE_NAME = "nfpitnet"
+NFPITNET_CANONICAL_WORKSPACE_ROOT = Path("/Users/gaofeng/workspace/Yang/NF-PitNET")
+NFPITNET_STALE_ALIAS_WORKSPACE_ROOT = Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
 
 
 @dataclass(frozen=True)
@@ -231,16 +234,28 @@ def _resolve_profile_path(raw_path: str, *, profile_dir: Path) -> Path:
     return candidate.resolve()
 
 
+def _reject_stale_workspace_alias(*, profile_name: str, workspace_root: Path) -> None:
+    if profile_name == NFPITNET_PROFILE_NAME and workspace_root == NFPITNET_STALE_ALIAS_WORKSPACE_ROOT:
+        raise ValueError(
+            "nfpitnet workspace_root points to stale local alias/scaffold "
+            f"{NFPITNET_STALE_ALIAS_WORKSPACE_ROOT}; use canonical workspace "
+            f"{NFPITNET_CANONICAL_WORKSPACE_ROOT}"
+        )
+
+
 def load_profile(path: str | Path) -> WorkspaceProfile:
     profile_path = Path(path).expanduser().resolve()
     payload = tomllib.loads(profile_path.read_text(encoding="utf-8"))
     profile_dir = profile_path.parent
+    profile_name = _require_string(payload, "name")
+    workspace_root = _resolve_profile_path(_require_string(payload, "workspace_root"), profile_dir=profile_dir)
+    _reject_stale_workspace_alias(profile_name=profile_name, workspace_root=workspace_root)
     med_deepscientist_repo_root = _optional_path(payload, "med_deepscientist_repo_root", profile_dir=profile_dir)
     hermes_agent_repo_root = _optional_path(payload, "hermes_agent_repo_root", profile_dir=profile_dir)
     hermes_home_root = _optional_path(payload, "hermes_home_root", profile_dir=profile_dir)
     return WorkspaceProfile(
-        name=_require_string(payload, "name"),
-        workspace_root=_resolve_profile_path(_require_string(payload, "workspace_root"), profile_dir=profile_dir),
+        name=profile_name,
+        workspace_root=workspace_root,
         runtime_root=_resolve_profile_path(_require_string(payload, "runtime_root"), profile_dir=profile_dir),
         studies_root=_resolve_profile_path(_require_string(payload, "studies_root"), profile_dir=profile_dir),
         portfolio_root=_resolve_profile_path(_require_string(payload, "portfolio_root"), profile_dir=profile_dir),

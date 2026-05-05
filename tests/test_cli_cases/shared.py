@@ -26,7 +26,7 @@ from med_autoscience.figure_routes import (
 def write_profile(
     path: Path,
     *,
-    workspace_root: Path | str = "/Users/gaofeng/workspace/Yang/无功能垂体瘤",
+    workspace_root: Path | str = "/Users/gaofeng/workspace/Yang/NF-PitNET",
     med_deepscientist_repo_root: Path | str = "/Users/gaofeng/workspace/med-deepscientist",
     hermes_agent_repo_root: Path | str = "/Users/gaofeng/workspace/_external/hermes-agent",
 ) -> None:
@@ -64,7 +64,6 @@ def write_profile(
         + "\n",
         encoding="utf-8",
     )
-
 
 
 

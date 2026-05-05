@@ -741,7 +741,7 @@ def test_overlay_status_command_dispatches_profile_overlay(monkeypatch, tmp_path
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert called["quest_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
+    assert called["quest_root"] == Path("/Users/gaofeng/workspace/Yang/NF-PitNET")
     assert called["med_deepscientist_repo_root"] == Path("/Users/gaofeng/workspace/med-deepscientist")
     assert called["skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
     assert called["policy_id"] == "high_plasticity_medical"

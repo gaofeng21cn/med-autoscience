@@ -4,13 +4,16 @@ import importlib
 from pathlib import Path
 import pytest
 
+CANONICAL_NFPITNET_WORKSPACE_ROOT = Path("/Users/gaofeng/workspace/Yang/NF-PitNET")
+STALE_NFPITNET_ALIAS_WORKSPACE_ROOT = Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
+
 PROFILE_LINES = [
     'name = "nfpitnet"',
-    'workspace_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤"',
-    'runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime/quests"',
-    'studies_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/studies"',
-    'portfolio_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/portfolio"',
-    'med_deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime"',
+    f'workspace_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT}"',
+    f'runtime_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
+    f'studies_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "studies"}"',
+    f'portfolio_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "portfolio"}"',
+    f'med_deepscientist_runtime_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "ops" / "med-deepscientist" / "runtime"}"',
     'med_deepscientist_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
     'hermes_agent_repo_root = "/Users/gaofeng/workspace/_external/hermes-agent"',
     'hermes_home_root = "~/.hermes"',
@@ -56,7 +59,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     profile = load_profile(profile_path)
 
     assert profile.name == "nfpitnet"
-    assert profile.workspace_root == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
+    assert profile.workspace_root == CANONICAL_NFPITNET_WORKSPACE_ROOT
     assert profile.med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/med-deepscientist")
     assert profile.hermes_agent_repo_root == Path("/Users/gaofeng/workspace/_external/hermes-agent")
     assert profile.hermes_home_root == Path.home() / ".hermes"
@@ -85,6 +88,26 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert len(profile.default_submission_targets) == 1
     assert profile.default_submission_targets[0]["publication_profile"] == "frontiers_family_harvard"
     assert profile.default_submission_targets[0]["primary"] is True
+
+
+def test_load_profile_rejects_nfpitnet_stale_local_alias_scaffold(tmp_path: Path) -> None:
+    profile_path = tmp_path / "nfpitnet.local.toml"
+    stale_lines = [
+        'name = "nfpitnet"',
+        f'workspace_root = "{STALE_NFPITNET_ALIAS_WORKSPACE_ROOT}"',
+        f'runtime_root = "{STALE_NFPITNET_ALIAS_WORKSPACE_ROOT / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
+        f'studies_root = "{STALE_NFPITNET_ALIAS_WORKSPACE_ROOT / "studies"}"',
+        f'portfolio_root = "{STALE_NFPITNET_ALIAS_WORKSPACE_ROOT / "portfolio"}"',
+        f'med_deepscientist_runtime_root = "{STALE_NFPITNET_ALIAS_WORKSPACE_ROOT / "ops" / "med-deepscientist" / "runtime"}"',
+        'default_publication_profile = "general_medical_journal"',
+        'default_citation_style = "AMA"',
+    ]
+    profile_path.write_text("\n".join(stale_lines) + "\n", encoding="utf-8")
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+
+    with pytest.raises(ValueError, match="stale local alias/scaffold"):
+        profiles.load_profile(profile_path)
 
 
 def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: Path) -> None:

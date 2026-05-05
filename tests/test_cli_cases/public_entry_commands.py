@@ -26,7 +26,7 @@ def test_doctor_command_reports_profile_and_paths(tmp_path: Path, capsys) -> Non
 
     assert exit_code == 0
     assert "profile: nfpitnet" in captured.out
-    assert "workspace_root: /Users/gaofeng/workspace/Yang/无功能垂体瘤" in captured.out
+    assert "workspace_root: /Users/gaofeng/workspace/Yang/NF-PitNET" in captured.out
     assert "hermes_agent_repo_root: /Users/gaofeng/workspace/_external/hermes-agent" in captured.out
     assert "default_publication_profile: general_medical_journal" in captured.out
     assert "autofigure" not in captured.out.lower()
@@ -106,7 +106,7 @@ def test_show_profile_json_exports_machine_readable_contract(tmp_path: Path, cap
     assert exit_code == 0
     payload = json.loads(captured.out)
     assert payload["name"] == "nfpitnet"
-    assert payload["workspace_root"] == "/Users/gaofeng/workspace/Yang/无功能垂体瘤"
+    assert payload["workspace_root"] == "/Users/gaofeng/workspace/Yang/NF-PitNET"
     assert payload["publication"]["default_publication_profile"] == "general_medical_journal"
     assert payload["publication"]["default_citation_style"] == "AMA"
     assert payload["publication"]["default_submission_targets"][0]["publication_profile"] == "frontiers_family_harvard"

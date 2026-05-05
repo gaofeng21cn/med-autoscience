@@ -14,11 +14,11 @@ def write_profile(path: Path) -> None:
         "\n".join(
             [
                 'name = "nfpitnet"',
-                'workspace_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤"',
-                'runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime/quests"',
-                'studies_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/studies"',
-                'portfolio_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/portfolio"',
-                'med_deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime"',
+                'workspace_root = "/Users/gaofeng/workspace/Yang/NF-PitNET"',
+                'runtime_root = "/Users/gaofeng/workspace/Yang/NF-PitNET/ops/med-deepscientist/runtime/quests"',
+                'studies_root = "/Users/gaofeng/workspace/Yang/NF-PitNET/studies"',
+                'portfolio_root = "/Users/gaofeng/workspace/Yang/NF-PitNET/portfolio"',
+                'med_deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/NF-PitNET/ops/med-deepscientist/runtime"',
                 'med_deepscientist_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
