@@ -63,4 +63,5 @@
 - 统一验证入口：`scripts/verify.sh`。
 - 默认最小验证：`scripts/verify.sh`（内部运行 `make test-fast`）。
 - full lane：`scripts/verify.sh full`（内部运行 `make test-full`）。
-- 修改 docs/contract surface 或运行语义时，至少补跑 `make test-meta`。
+- 修改 machine-readable contract surface、测试入口或运行语义时，至少补跑 `make test-meta`；纯叙述性 docs-only 变更按 `documentation_review_only` 处理。
+- 叙述性 `README*`、`docs/**` 和参考文档不作为脚本/测试的断言对象；可以测试 machine-readable contract、schema、CLI/API 行为、生成产物结构与路径，但不要用测试固定文档措辞、章节或状态文案。
