@@ -170,3 +170,56 @@ def test_inspect_delivery_legacy_visibility_reports_legacy_backfill_without_muta
     assert read_model["backfill_blocker_report"]["status"] == "blocked"
     assert not (source_root / "audit").exists()
     assert not (human_root / "audit").exists()
+
+
+def test_delivery_read_model_does_not_write_readme_and_authorized_sync_does(tmp_path: Path) -> None:
+    sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    module = importlib.import_module("med_autoscience.controllers.delivery_legacy_visibility")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile_for_workspace(profile_path, workspace_root=tmp_path / "repo")
+    current_package_readme = study_root / "manuscript" / "current_package" / "README.md"
+
+    read_model = module.build_delivery_legacy_visibility_read_model(
+        {
+            **_legacy_inspection(),
+            "study_id": study_root.name,
+            "human_package": {
+                **_legacy_inspection()["human_package"],
+                "root": str(study_root / "manuscript" / "current_package"),
+                "exists": False,
+                "layout_status": "missing",
+            },
+        }
+    )
+    inspected = module.inspect_delivery_legacy_visibility(
+        profile=profiles.load_profile(profile_path),
+        profile_ref=profile_path,
+        study_id=study_root.name,
+    )
+
+    assert read_model["projection_only"] is True
+    assert inspected["projection_only"] is True
+    assert not current_package_readme.exists()
+
+    sync_manifest = sync_module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        route_context=writable_route_context(),
+    )
+
+    readme_text = current_package_readme.read_text(encoding="utf-8")
+    section_order = [
+        readme_text.index("## Submission files"),
+        readme_text.index("## Audit and reproducibility"),
+        readme_text.index("## Delivery status"),
+        readme_text.index("## Next controller-authorized sync"),
+    ]
+    assert section_order == sorted(section_order)
+    assert "current_package/ is a human-facing mirror, not an edit source" in readme_text
+    readme_apply = sync_manifest["controller_authorized_doctor_readme"]
+    assert readme_apply["authority"] == "controller_authorized_delivery_sync_apply_only"
+    assert readme_apply["controller_authorized"] is True
+    assert readme_apply["readme_path"] == str(current_package_readme.resolve())
+    assert readme_apply["written"] is True

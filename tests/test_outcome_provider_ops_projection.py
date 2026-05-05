@@ -132,6 +132,9 @@ def _journal_fixture_matrix() -> list[dict[str, object]]:
             "journal_family": "general_internal_medicine",
             "fixture_ref": "fixtures/journals/general_internal_medicine.json",
             "profile_ref": "paper/journal_requirements/general_internal_medicine.json",
+            "cover_letter_template_ref": "fixtures/journals/general_internal_medicine/cover_letter.md",
+            "submission_checklist_ref": "fixtures/journals/general_internal_medicine/submission_checklist.json",
+            "supplement_naming_convention_ref": "fixtures/journals/general_internal_medicine/supplement_naming.json",
             "coverage": {
                 "cover_letter": True,
                 "submission_checklist": True,
@@ -142,6 +145,22 @@ def _journal_fixture_matrix() -> list[dict[str, object]]:
             "journal_family": "clinical_endocrinology",
             "fixture_ref": "fixtures/journals/clinical_endocrinology.json",
             "profile_ref": "paper/journal_requirements/clinical_endocrinology.json",
+            "cover_letter_template_ref": "fixtures/journals/clinical_endocrinology/cover_letter.md",
+            "submission_checklist_ref": "fixtures/journals/clinical_endocrinology/submission_checklist.json",
+            "supplement_naming_convention_ref": "fixtures/journals/clinical_endocrinology/supplement_naming.json",
+            "coverage": {
+                "cover_letter": True,
+                "submission_checklist": True,
+                "supplement_naming": True,
+            },
+        },
+        {
+            "journal_family": "frontiers_family_harvard",
+            "fixture_ref": "fixtures/journals/frontiers_family_harvard.json",
+            "profile_ref": "paper/journal_requirements/frontiers_family_harvard.json",
+            "cover_letter_template_ref": "fixtures/journals/frontiers_family_harvard/cover_letter.md",
+            "submission_checklist_ref": "fixtures/journals/frontiers_family_harvard/submission_checklist.json",
+            "supplement_naming_convention_ref": "fixtures/journals/frontiers_family_harvard/supplement_naming.json",
             "coverage": {
                 "cover_letter": True,
                 "submission_checklist": True,
@@ -198,12 +217,54 @@ def test_outcome_provider_ops_projection_merges_l3_inputs_without_authority() ->
     assert projection["journal_family_fixture_matrix"]["status"] == "ready"
     assert projection["journal_family_fixture_matrix"]["covered_families"] == [
         "clinical_endocrinology",
+        "frontiers_family_harvard",
         "general_internal_medicine",
     ]
     assert projection["journal_family_fixture_matrix"]["required_coverage"] == [
         "cover_letter",
         "submission_checklist",
         "supplement_naming",
+    ]
+    assert projection["journal_family_fixture_matrix"]["fixtures"] == [
+        {
+            "journal_family": "general_internal_medicine",
+            "fixture_ref": "fixtures/journals/general_internal_medicine.json",
+            "profile_ref": "paper/journal_requirements/general_internal_medicine.json",
+            "cover_letter_template_ref": "fixtures/journals/general_internal_medicine/cover_letter.md",
+            "submission_checklist_ref": "fixtures/journals/general_internal_medicine/submission_checklist.json",
+            "supplement_naming_convention_ref": "fixtures/journals/general_internal_medicine/supplement_naming.json",
+            "coverage": {
+                "cover_letter": True,
+                "submission_checklist": True,
+                "supplement_naming": True,
+            },
+        },
+        {
+            "journal_family": "clinical_endocrinology",
+            "fixture_ref": "fixtures/journals/clinical_endocrinology.json",
+            "profile_ref": "paper/journal_requirements/clinical_endocrinology.json",
+            "cover_letter_template_ref": "fixtures/journals/clinical_endocrinology/cover_letter.md",
+            "submission_checklist_ref": "fixtures/journals/clinical_endocrinology/submission_checklist.json",
+            "supplement_naming_convention_ref": "fixtures/journals/clinical_endocrinology/supplement_naming.json",
+            "coverage": {
+                "cover_letter": True,
+                "submission_checklist": True,
+                "supplement_naming": True,
+            },
+        },
+        {
+            "journal_family": "frontiers_family_harvard",
+            "fixture_ref": "fixtures/journals/frontiers_family_harvard.json",
+            "profile_ref": "paper/journal_requirements/frontiers_family_harvard.json",
+            "cover_letter_template_ref": "fixtures/journals/frontiers_family_harvard/cover_letter.md",
+            "submission_checklist_ref": "fixtures/journals/frontiers_family_harvard/submission_checklist.json",
+            "supplement_naming_convention_ref": "fixtures/journals/frontiers_family_harvard/supplement_naming.json",
+            "coverage": {
+                "cover_letter": True,
+                "submission_checklist": True,
+                "supplement_naming": True,
+            },
+        },
     ]
     assert projection["quality_claim_authorized"] is False
     assert projection["submission_ready_authorized"] is False
@@ -232,6 +293,9 @@ def test_outcome_provider_ops_projection_surfaces_provider_drift_without_bypassi
             {
                 "journal_family": "general_internal_medicine",
                 "fixture_ref": "fixtures/journals/general_internal_medicine.json",
+                "cover_letter_template_ref": "fixtures/journals/general_internal_medicine/cover_letter.md",
+                "submission_checklist_ref": "fixtures/journals/general_internal_medicine/submission_checklist.json",
+                "supplement_naming_convention_ref": "fixtures/journals/general_internal_medicine/supplement_naming.json",
                 "coverage": {"cover_letter": True, "submission_checklist": True},
             }
         ],
@@ -258,3 +322,61 @@ def test_outcome_provider_ops_projection_surfaces_provider_drift_without_bypassi
     assert projection["authority_contract"]["can_bypass_publication_gate"] is False
     assert projection["quality_claim_authorized"] is False
     assert projection["submission_ready_authorized"] is False
+
+
+def test_outcome_provider_ops_projection_blocks_journal_fixtures_missing_specific_refs() -> None:
+    module = importlib.import_module("med_autoscience.controllers.outcome_provider_ops_projection")
+
+    projection = module.build_outcome_provider_ops_projection(
+        outcome_calibration_payload=_outcome_payload(),
+        provider_runtime_payload=_provider_payload(),
+        journal_family_fixture_matrix=[
+            {
+                "journal_family": "frontiers_family_harvard",
+                "fixture_ref": "fixtures/journals/frontiers_family_harvard.json",
+                "profile_ref": "paper/journal_requirements/frontiers_family_harvard.json",
+                "cover_letter_template_ref": "fixtures/journals/frontiers_family_harvard/cover_letter.md",
+                "coverage": {
+                    "cover_letter": True,
+                    "submission_checklist": True,
+                    "supplement_naming": True,
+                },
+            }
+        ],
+    )
+
+    assert projection["status"] == "blocked"
+    assert projection["journal_family_fixture_matrix"]["status"] == "blocked"
+    assert projection["journal_family_fixture_matrix"]["missing_fixture_refs"] == {
+        "frontiers_family_harvard": [
+            "submission_checklist_ref",
+            "supplement_naming_convention_ref",
+        ],
+    }
+    assert projection["journal_family_fixture_matrix"]["fixtures"] == [
+        {
+            "journal_family": "frontiers_family_harvard",
+            "fixture_ref": "fixtures/journals/frontiers_family_harvard.json",
+            "profile_ref": "paper/journal_requirements/frontiers_family_harvard.json",
+            "cover_letter_template_ref": "fixtures/journals/frontiers_family_harvard/cover_letter.md",
+            "submission_checklist_ref": "",
+            "supplement_naming_convention_ref": "",
+            "coverage": {
+                "cover_letter": True,
+                "submission_checklist": True,
+                "supplement_naming": True,
+            },
+        }
+    ]
+    assert [
+        item["reason_code"]
+        for item in projection["journal_family_fixture_matrix"]["diagnostics"]
+    ] == [
+        "journal_family_fixture_missing_submission_checklist_ref",
+        "journal_family_fixture_missing_supplement_naming_convention_ref",
+    ]
+    assert projection["authority_contract"]["observability_only"] is True
+    assert projection["authority_contract"]["can_authorize_quality"] is False
+    assert projection["authority_contract"]["can_authorize_submission"] is False
+    assert projection["authority_contract"]["can_bypass_ai_reviewer"] is False
+    assert projection["authority_contract"]["can_bypass_publication_gate"] is False
