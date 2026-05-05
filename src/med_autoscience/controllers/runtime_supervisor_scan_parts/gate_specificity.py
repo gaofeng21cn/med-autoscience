@@ -87,6 +87,19 @@ def gate_specificity_status(gate_specificity: Mapping[str, Any]) -> dict[str, An
     return status
 
 
+def should_defer_runtime_platform_repair(gate_specificity: Mapping[str, Any] | None) -> bool:
+    if not gate_specificity or gate_specificity.get("required") is not True:
+        return False
+    status = _text(gate_specificity.get("status"))
+    blocked_reason = _text(gate_specificity.get("blocked_reason"))
+    request = _mapping(gate_specificity.get("request"))
+    return bool(
+        status == "blocked"
+        or blocked_reason == "publication_gate_specificity_required"
+        or _text(request.get("work_unit_id")) in platform_repair.SPECIFICITY_WORK_UNIT_IDS
+    )
+
+
 def _publication_eval_specificity_target_status(publication_eval_payload: Mapping[str, Any]) -> dict[str, Any]:
     actions = publication_eval_payload.get("recommended_actions")
     if not isinstance(actions, list):

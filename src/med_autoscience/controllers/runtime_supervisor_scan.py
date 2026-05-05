@@ -217,11 +217,6 @@ def _publication_eval_payload(status: Mapping[str, Any], progress: Mapping[str, 
     return {}
 
 
-def _next_work_unit_needs_specificity(value: object) -> bool:
-    next_work_unit = _mapping(value)
-    return _text(next_work_unit.get("unit_id")) in platform_repair.SPECIFICITY_WORK_UNIT_IDS
-
-
 def _publication_gate_specificity_required(
     status: Mapping[str, Any],
     progress: Mapping[str, Any],
@@ -260,7 +255,11 @@ def _supervisor_only(status: Mapping[str, Any], progress: Mapping[str, Any]) -> 
     return "execution_owner_guard.supervisor_only" in set(_blocking_reasons(status, progress))
 
 
-def _runtime_platform_repair_required(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+def _runtime_platform_repair_required(
+    status: Mapping[str, Any], progress: Mapping[str, Any], *, gate_specificity: Mapping[str, Any] | None = None
+) -> bool:
+    if gate_specificity_part.should_defer_runtime_platform_repair(gate_specificity):
+        return False
     active_run_id = _active_run_id(status, progress)
     no_live_worker = not active_run_id or not _worker_running(status)
     if no_live_worker and abnormal_stopped_runtime.repair_required(status, progress):
@@ -358,7 +357,7 @@ def _action_queue(
     ai_reviewer_assessment: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
-    if _runtime_platform_repair_required(status, progress):
+    if _runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
         reason = _runtime_platform_repair_reason(status, progress)
         actions.append(
             {
@@ -424,11 +423,14 @@ def _why_not_applied(
     status: Mapping[str, Any],
     progress: Mapping[str, Any],
     actions: list[dict[str, Any]],
+    gate_specificity: Mapping[str, Any],
 ) -> str | None:
     lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
-    if _runtime_platform_repair_required(status, progress):
+    if _runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
         return _runtime_platform_repair_reason(status, progress)
     if _retry_exhausted(status, progress):
+        if gate_specificity.get("required") is True:
+            return "publication_gate_specificity_required"
         return "runtime_recovery_retry_budget_exhausted"
     if actions:
         return _text(actions[0].get("reason")) or _text(actions[0].get("action_type"))
@@ -525,7 +527,7 @@ def _blocked_lifecycle_from_repair(
         "applied_at": None,
         "blocked_reason": blocked_reason,
         "next_owner": next_owner,
-        "external_supervisor_required": True,
+        "external_supervisor_required": authority == "external_supervisor",
         "quality_gate_relaxation_allowed": False,
         "last_apply_attempt": {
             "state": "blocked",
@@ -634,6 +636,14 @@ def _should_refresh_blocked_lifecycle(
         and (
             lifecycle.get("projection_only") is True
             or _text(lifecycle.get("blocked_reason")) != blocked_reason
+            or (
+                blocked_reason == "publication_gate_specificity_required"
+                and (
+                    lifecycle.get("external_supervisor_required") is True
+                    or _text(lifecycle.get("authority")) == "external_supervisor"
+                    or _text(lifecycle.get("next_owner")) != "publication_gate"
+                )
+            )
         )
     )
 
@@ -647,6 +657,7 @@ def _apply_runtime_platform_repair_projection(
     status_payload: Mapping[str, Any],
     progress_payload: Mapping[str, Any],
     publication_eval_payload: Mapping[str, Any],
+    gate_specificity: Mapping[str, Any],
     developer_mode: DeveloperSupervisorMode,
     apply_runtime_platform_repair: bool,
     submission_milestone_parked: bool,
@@ -660,10 +671,8 @@ def _apply_runtime_platform_repair_projection(
         publication_eval_payload=publication_eval_payload,
         developer_mode=developer_mode,
         enabled=apply_runtime_platform_repair,
-        repair_required=(
-            not submission_milestone_parked
-            and _runtime_platform_repair_required(status_payload, progress_payload)
-        ),
+        repair_required=not submission_milestone_parked
+        and _runtime_platform_repair_required(status_payload, progress_payload, gate_specificity=gate_specificity),
     )
     if apply_result is None:
         return None, None
@@ -682,11 +691,17 @@ def _resolve_why_not_applied(
     status_payload: Mapping[str, Any],
     progress_payload: Mapping[str, Any],
     actions: list[dict[str, Any]],
+    gate_specificity: Mapping[str, Any],
     lifecycle: Mapping[str, Any],
     runtime_platform_repair_apply: Mapping[str, Any] | None,
     submission_milestone_parked: bool,
 ) -> str | None:
-    why_not_applied = _why_not_applied(status=status_payload, progress=progress_payload, actions=actions)
+    why_not_applied = _why_not_applied(
+        status=status_payload,
+        progress=progress_payload,
+        actions=actions,
+        gate_specificity=gate_specificity,
+    )
     if runtime_platform_repair_apply is not None and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied":
         return None
     if submission_milestone_parked:
@@ -702,14 +717,20 @@ def _projection_block_state(
     actions: list[dict[str, Any]],
     why_not_applied: str | None,
 ) -> dict[str, Any]:
-    external_supervisor_required = bool(
-        lifecycle.get("external_supervisor_required")
-        or any(_text(action.get("authority")) == "external_supervisor" for action in actions)
-    )
     blocked_reason = _text(lifecycle.get("blocked_reason"))
     if why_not_applied is not None and any(_text(action.get("reason")) == why_not_applied for action in actions):
         blocked_reason = why_not_applied
     next_owner = _next_owner_for_blocked_reason(blocked_reason) if blocked_reason else _text(lifecycle.get("next_owner"))
+    external_supervisor_required = bool(
+        lifecycle.get("external_supervisor_required")
+        or any(_text(action.get("authority")) == "external_supervisor" for action in actions)
+    )
+    if blocked_reason in {"publication_gate_specificity_required", "ai_reviewer_assessment_required"}:
+        external_supervisor_required = any(
+            _text(action.get("authority")) == "external_supervisor"
+            and _text(action.get("reason")) == blocked_reason
+            for action in actions
+        )
     return {
         "blocked_reason": blocked_reason,
         "next_owner": next_owner,
@@ -811,6 +832,7 @@ def _study_projection(
         status_payload=status_payload,
         progress_payload=progress_payload,
         publication_eval_payload=publication_eval_payload,
+        gate_specificity=gate_specificity,
         developer_mode=developer_mode,
         apply_runtime_platform_repair=apply_runtime_platform_repair,
         submission_milestone_parked=submission_milestone_parked,
@@ -821,6 +843,7 @@ def _study_projection(
         status_payload=status_payload,
         progress_payload=progress_payload,
         actions=actions,
+        gate_specificity=gate_specificity,
         lifecycle=lifecycle,
         runtime_platform_repair_apply=runtime_platform_repair_apply,
         submission_milestone_parked=submission_milestone_parked,
