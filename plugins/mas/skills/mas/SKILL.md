@@ -28,7 +28,7 @@ description: Use when Codex should operate MedAutoScience through its stable run
 - `medautosci runtime overlay-status --profile <profile>`
 - `medautosci runtime install-overlay --profile <profile>`
 - `medautosci doctor backend-upgrade --profile <profile> --refresh`
-- `medautosci-mcp`
+- plugin-local MCP launcher: `plugins/mas/bin/medautosci-mcp`
 
 如果 `medautosci` 不在 `PATH` 上，用模块入口：
 
@@ -61,7 +61,7 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 - 数据资产变更要走 controller 命令和结构化 payload，不直接手改 registry
 - 保持 `MedAutoScience` 作为运行层，不要把 controller、profile、overlay、workspace 逻辑塌缩进 plugin 私有文件
 - 保持 CLI 和 controller 入口稳定，避免破坏其他 Agent 的兼容性
-- plugin-local MCP 依赖 `medautosci-mcp` 在 `PATH` 上可用
+- plugin-local MCP 通过当前 repo checkout 的 `uv run --directory <repo-root> --extra analysis medautosci-mcp` 启动
 - 旧 `med-deepscientist-*` overlay 目录名和 `doctor med-deepscientist-upgrade` 只保留为 internal compatibility surface
 
 ## 首先应读的文件

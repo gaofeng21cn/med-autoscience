@@ -21,9 +21,12 @@ def test_codex_plugin_scaffold_exists_and_points_to_repo_local_plugin() -> None:
     assert manifest["skills"] == "./skills/"
     assert manifest["mcpServers"] == "./.mcp.json"
     assert manifest["interface"]["displayName"] == "Med Auto Science"
-    assert json.loads(PLUGIN_MCP_PATH.read_text(encoding="utf-8"))["mcpServers"]["med-autoscience"]["command"] == (
-        "medautosci-mcp"
-    )
+    mcp_server = json.loads(PLUGIN_MCP_PATH.read_text(encoding="utf-8"))["mcpServers"]["med-autoscience"]
+    assert mcp_server["command"] == "./bin/medautosci-mcp"
+    launcher = PLUGIN_ROOT / "bin" / "medautosci-mcp"
+    assert launcher.is_file()
+    launcher_text = launcher.read_text(encoding="utf-8")
+    assert 'uv run --directory "${repo_root}" --extra analysis medautosci-mcp "$@"' in launcher_text
 
     plugin_entry = next(item for item in marketplace["plugins"] if item["name"] == "mas")
     assert plugin_entry["source"] == {

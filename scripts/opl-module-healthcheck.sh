@@ -8,12 +8,12 @@ export PATH="${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:${PATH}"
 
 command -v python3 >/dev/null 2>&1
 command -v uv >/dev/null 2>&1
-medautosci_bin="$(command -v medautosci)"
-medautosci_mcp_bin="$(command -v medautosci-mcp)"
 
-"${medautosci_bin}" --help >/dev/null
-"${medautosci_bin}" doctor entry-modes >/dev/null
-mcp_tools_json="$(printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | PYTHONPATH=src "${medautosci_mcp_bin}")"
+repo_uv=(uv run --directory "${repo_root}" --extra analysis)
+
+"${repo_uv[@]}" medautosci --help >/dev/null
+"${repo_uv[@]}" medautosci doctor entry-modes >/dev/null
+mcp_tools_json="$(printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | "${repo_uv[@]}" medautosci-mcp)"
 export MCP_TOOLS_JSON="${mcp_tools_json}"
 
 python3 - <<'PY'
@@ -52,8 +52,8 @@ print(json.dumps({
     "ok": True,
     "module": "medautoscience",
     "checks": {
-        "cli": "medautosci",
-        "mcp_cli": "medautosci-mcp",
+        "cli": "repo-local uv run medautosci",
+        "mcp_cli": "repo-local uv run medautosci-mcp",
         "public_help": "ready",
         "entry_modes": "ready",
         "mcp_control_plane_modes": "ready",

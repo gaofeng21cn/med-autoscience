@@ -766,12 +766,13 @@ def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
     assert "scripts/verify.sh" not in script
     assert "make test-fast" not in script
     assert 'command -v uv >/dev/null 2>&1' in script
-    assert 'medautosci_bin="$(command -v medautosci)"' in script
-    assert 'medautosci_mcp_bin="$(command -v medautosci-mcp)"' in script
-    assert '"${medautosci_bin}" --help >/dev/null' in script
-    assert '"${medautosci_bin}" doctor entry-modes >/dev/null' in script
+    assert 'command -v medautosci' not in script
+    assert 'command -v medautosci-mcp' not in script
+    assert 'repo_uv=(uv run --directory "${repo_root}" --extra analysis)' in script
+    assert '"${repo_uv[@]}" medautosci --help >/dev/null' in script
+    assert '"${repo_uv[@]}" medautosci doctor entry-modes >/dev/null' in script
     assert 'printf \'{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\\n\'' in script
-    assert '"${medautosci_mcp_bin}"' in script
+    assert '"${repo_uv[@]}" medautosci-mcp' in script
     assert '"plugins" / "mas" / ".codex-plugin" / "plugin.json"' in script
     assert '"plugins" / "mas" / "skills" / "mas" / "SKILL.md"' in script
 
