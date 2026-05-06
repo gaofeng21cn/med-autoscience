@@ -852,7 +852,7 @@ def test_lifecycle_read_model_exports_sqlite_runtime_report_without_touching_lat
     assert latest_json.stat().st_mtime_ns == latest_mtime
 
 
-def test_lifecycle_read_model_marks_legacy_fallback_and_read_does_not_create_files(tmp_path: Path) -> None:
+def test_lifecycle_read_model_missing_sqlite_does_not_default_to_legacy_fallback(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
     legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
@@ -867,13 +867,25 @@ def test_lifecycle_read_model_marks_legacy_fallback_and_read_does_not_create_fil
     )
     inventory = read_model.build_lifecycle_inventory(quest_root=quest_root)
 
-    assert projection["status"] == "fallback"
-    assert projection["payload"] == legacy_payload
-    assert projection["compatibility_fallback_used"] is True
-    assert projection["source_paths"] == [str(legacy_latest)]
+    assert projection["status"] == "missing"
+    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_missing"
+    assert projection["payload"] == {}
+    assert projection["compatibility_fallback_used"] is False
+    assert projection["source_paths"] == []
     assert inventory["status"] == "missing"
-    assert inventory["compatibility_fallback_used"] is True
+    assert inventory["compatibility_fallback_used"] is False
     assert not db_path.exists()
+
+    diagnostic_projection = read_model.read_compatibility_projection(
+        surface="runtime_report",
+        quest_root=quest_root,
+        legacy_restore_import_diagnostic=True,
+    )
+    assert diagnostic_projection["status"] == "fallback"
+    assert diagnostic_projection["payload"] == legacy_payload
+    assert diagnostic_projection["compatibility_fallback_used"] is True
+    assert diagnostic_projection["diagnostic_scope"] == "legacy_restore_import_diagnostic"
+    assert diagnostic_projection["source_paths"] == [str(legacy_latest.resolve())]
 
 
 def test_lifecycle_inventory_lists_workspace_storage_audit_from_sqlite(tmp_path: Path) -> None:
