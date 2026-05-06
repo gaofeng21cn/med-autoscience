@@ -8,6 +8,7 @@ import subprocess
 from typing import Any
 
 from . import runtime_lifecycle_read_model
+from .runtime_lifecycle_migration_parts import quest_git_cutover
 from .runtime_lifecycle_contract import (
     FILE_AUTHORITY_SURFACES,
     MIGRATION_RUN_MODES,
@@ -62,6 +63,7 @@ def build_migration_ledger(
     git_tracking_check = _git_tracking_check(resolved_workspace_root)
     authority_surfaces = _authority_surfaces_checked(resolved_workspace_root)
     errors: list[dict[str, Any]] = []
+    quest_git_cutover_record = quest_git_cutover.read_latest_quest_git_cutover_record(ledger_root=ledger_root)
     compatibility_exports = _compatibility_exports(
         workspace_root=resolved_workspace_root,
         ledger_root=ledger_root,
@@ -71,8 +73,13 @@ def build_migration_ledger(
     quest_git_inventory_items = tuple(quest_git_inventory)
     if not quest_git_inventory_items:
         quest_git_inventory_items = tuple(
-            build_quest_git_inventory(workspace_root=resolved_workspace_root)["items"]
+            quest_git_cutover.merge_quest_git_cutover_record_items(
+                inventory_items=build_quest_git_inventory(workspace_root=resolved_workspace_root)["items"],
+                cutover_record=quest_git_cutover_record,
+            )
         )
+    if quest_git_cutover_status is None and quest_git_cutover_record:
+        quest_git_cutover_status = quest_git_cutover.quest_git_cutover_status_from_record(quest_git_cutover_record)
     git_lifecycle_cutover = _git_lifecycle_cutover(
         quest_git_cutover_status=quest_git_cutover_status,
         quest_git_inventory=quest_git_inventory_items,
@@ -109,6 +116,7 @@ def build_migration_ledger(
         "restore_proofs": _restore_proofs(storage_audit),
         "git_tracking_check": git_tracking_check,
         "git_lifecycle_cutover": git_lifecycle_cutover,
+        "quest_git_cutover_record": quest_git_cutover_record,
         "authority_surfaces_checked": authority_surfaces,
         "errors": errors,
         "next_required_action": next_required_action
@@ -129,55 +137,17 @@ def build_quest_git_inventory(*, workspace_root: Path) -> dict[str, Any]:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
     storage_audit = _read_json_mapping(resolved_workspace_root / "storage_audit" / "latest.json")
     items_by_active_path: dict[str, dict[str, Any]] = {}
-    for relative_root, source in QUEST_GIT_SCAN_ROOTS:
-        quests_root = resolved_workspace_root / relative_root
-        if not quests_root.is_dir():
-            continue
-        for git_path in sorted(path for path in quests_root.glob("*/.git") if path.exists()):
-            active_path = git_path.parent
-            item = _quest_git_inventory_item(
-                {
-                    "source": source,
-                    "quest_id": active_path.name,
-                    "active_path": str(active_path),
-                    "git_path": str(git_path),
-                    "quest_git_present_in_active_path": True,
-                    "quest_git_active_path_retired": False,
-                    "status": "pending",
-                    "action": "audit_only",
-                    "skipped_reason": "active_quest_git_present",
-                }
-            )
-            items_by_active_path[str(active_path)] = item
-
-    for proof in _restore_proofs(storage_audit):
-        quest_root = str(proof.get("quest_root") or "").strip()
-        if not quest_root:
-            continue
-        active_path = _resolved_path_text(quest_root, workspace_root=resolved_workspace_root)
-        archive_ref = str(proof.get("archive_path") or "").strip() or None
-        proof_status = str(proof.get("status") or "").strip()
-        proof_item = {
-            "source": "restore_proof_archive_ref",
-            "study_id": proof.get("study_id"),
-            "quest_id": proof.get("quest_id") or Path(active_path).name,
-            "active_path": active_path,
-            "git_path": str(Path(active_path) / ".git"),
-            "quest_git_present_in_active_path": (Path(active_path) / ".git").exists(),
-            "archive_ref": archive_ref,
-            "restore_proof_path": proof.get("restore_proof_path"),
-            "projection_equivalence": proof_status or None,
-        }
-        if active_path in items_by_active_path:
-            items_by_active_path[active_path].update(
-                {
-                    "archive_ref": archive_ref,
-                    "restore_proof_path": proof.get("restore_proof_path"),
-                    "projection_equivalence": proof_status or None,
-                }
-            )
-        else:
-            items_by_active_path[active_path] = _quest_git_inventory_item(proof_item)
+    _merge_quest_git_inventory_items(
+        items_by_active_path,
+        _active_quest_git_inventory_items(workspace_root=resolved_workspace_root),
+    )
+    _merge_quest_git_inventory_items(
+        items_by_active_path,
+        _restore_proof_quest_git_inventory_items(
+            workspace_root=resolved_workspace_root,
+            storage_audit=storage_audit,
+        ),
+    )
 
     items = sorted(items_by_active_path.values(), key=lambda item: (str(item.get("source") or ""), str(item.get("active_path") or "")))
     active_git_count = sum(1 for item in items if item["quest_git_present_in_active_path"])
@@ -200,6 +170,101 @@ def build_quest_git_inventory(*, workspace_root: Path) -> dict[str, Any]:
             "pending_count": pending_count,
         },
     }
+
+
+def _active_quest_git_inventory_items(*, workspace_root: Path) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for relative_root, source in QUEST_GIT_SCAN_ROOTS:
+        quests_root = workspace_root / relative_root
+        if not quests_root.is_dir():
+            continue
+        for git_path in sorted(path for path in quests_root.glob("*/.git") if path.exists()):
+            active_path = git_path.parent
+            items.append(
+                _quest_git_inventory_item(
+                    {
+                        "source": source,
+                        "quest_id": active_path.name,
+                        "active_path": str(active_path),
+                        "git_path": str(git_path),
+                        "quest_git_present_in_active_path": True,
+                        "quest_git_active_path_retired": False,
+                        "status": "pending",
+                        "action": "audit_only",
+                        "skipped_reason": "active_quest_git_present",
+                    }
+                )
+            )
+    return items
+
+
+def _restore_proof_quest_git_inventory_items(
+    *,
+    workspace_root: Path,
+    storage_audit: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for proof in _restore_proofs(storage_audit):
+        quest_root = str(proof.get("quest_root") or "").strip()
+        if not quest_root:
+            continue
+        active_path = _resolved_path_text(quest_root, workspace_root=workspace_root)
+        archive_ref = str(proof.get("archive_path") or "").strip() or None
+        proof_status = str(proof.get("status") or "").strip()
+        items.append(
+            _quest_git_inventory_item(
+                {
+                    "source": "restore_proof_archive_ref",
+                    "study_id": proof.get("study_id"),
+                    "quest_id": proof.get("quest_id") or Path(active_path).name,
+                    "active_path": active_path,
+                    "git_path": str(Path(active_path) / ".git"),
+                    "quest_git_present_in_active_path": (Path(active_path) / ".git").exists(),
+                    "archive_ref": archive_ref,
+                    "restore_proof_path": proof.get("restore_proof_path"),
+                    "projection_equivalence": proof_status or None,
+                }
+            )
+        )
+    return items
+
+
+def _merge_quest_git_inventory_items(
+    items_by_active_path: dict[str, dict[str, Any]],
+    items: Iterable[Mapping[str, Any]],
+) -> None:
+    for item in items:
+        normalized = _quest_git_inventory_item(item)
+        active_path = str(normalized.get("active_path") or "")
+        if not active_path:
+            continue
+        if active_path in items_by_active_path:
+            items_by_active_path[active_path].update(
+                {
+                    "archive_ref": normalized.get("archive_ref"),
+                    "restore_proof_path": normalized.get("restore_proof_path"),
+                    "projection_equivalence": normalized.get("projection_equivalence"),
+                }
+            )
+        else:
+            items_by_active_path[active_path] = normalized
+
+
+def cutover_quest_git_active_paths(
+    *,
+    workspace_root: Path,
+    mode: str = "dry_run",
+    migration_run_id: str | None = None,
+    output_root: Path | None = None,
+) -> dict[str, Any]:
+    return quest_git_cutover.cutover_quest_git_active_paths(
+        workspace_root=workspace_root,
+        inventory_builder=lambda root: build_quest_git_inventory(workspace_root=root),
+        schema_version=SCHEMA_VERSION,
+        mode=mode,
+        migration_run_id=migration_run_id,
+        output_root=output_root,
+    )
 
 
 def validate_compatibility_retirement(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -263,21 +328,13 @@ def _git_lifecycle_cutover(
 
 
 def _quest_git_inventory_item(item: Mapping[str, Any]) -> dict[str, Any]:
-    quest_id = str(item.get("quest_id") or "").strip()
-    active_path = str(item.get("active_path") or item.get("quest_root") or "").strip()
-    git_path = str(item.get("git_path") or (f"{active_path}/.git" if active_path else "")).strip()
-    git_present = bool(item.get("quest_git_present_in_active_path"))
-    if "quest_git_present_in_active_path" not in item and git_path:
-        git_present = Path(git_path).expanduser().exists()
-    active_path_retired = item.get("quest_git_active_path_retired")
-    if active_path_retired is None:
-        active_path_retired = not git_present
-    status = str(item.get("status") or "").strip()
-    if not status:
-        status = "pending" if git_present or not active_path_retired else "retired"
-    skipped_reason = item.get("skipped_reason")
-    if not skipped_reason and status == "pending":
-        skipped_reason = "active_quest_git_present" if git_present else "active_path_retirement_unverified"
+    quest_id = _text(item.get("quest_id"))
+    active_path = _quest_git_active_path_text(item)
+    git_path = _quest_git_path_text(item, active_path=active_path)
+    git_present = _quest_git_present(item, git_path=git_path)
+    active_path_retired = _quest_git_active_path_retired(item, git_present=git_present)
+    status = _quest_git_status(item, git_present=git_present, active_path_retired=active_path_retired)
+    skipped_reason = _quest_git_skipped_reason(item, status=status, git_present=git_present)
     return {
         "source": item.get("source"),
         "quest_id": quest_id or (Path(active_path).name if active_path else None),
@@ -293,6 +350,42 @@ def _quest_git_inventory_item(item: Mapping[str, Any]) -> dict[str, Any]:
         "action": item.get("action") or ("audit_only" if status == "pending" else "none"),
         "skipped_reason": skipped_reason,
     }
+
+
+def _quest_git_active_path_text(item: Mapping[str, Any]) -> str:
+    return str(item.get("active_path") or item.get("quest_root") or "").strip()
+
+
+def _quest_git_path_text(item: Mapping[str, Any], *, active_path: str) -> str:
+    return str(item.get("git_path") or (f"{active_path}/.git" if active_path else "")).strip()
+
+
+def _quest_git_present(item: Mapping[str, Any], *, git_path: str) -> bool:
+    if "quest_git_present_in_active_path" in item:
+        return bool(item.get("quest_git_present_in_active_path"))
+    return bool(git_path and Path(git_path).expanduser().exists())
+
+
+def _quest_git_active_path_retired(item: Mapping[str, Any], *, git_present: bool) -> bool:
+    value = item.get("quest_git_active_path_retired")
+    return not git_present if value is None else bool(value)
+
+
+def _quest_git_status(
+    item: Mapping[str, Any],
+    *,
+    git_present: bool,
+    active_path_retired: bool,
+) -> str:
+    status = str(item.get("status") or "").strip()
+    return status or ("pending" if git_present or not active_path_retired else "retired")
+
+
+def _quest_git_skipped_reason(item: Mapping[str, Any], *, status: str, git_present: bool) -> Any:
+    reason = item.get("skipped_reason")
+    if reason or status != "pending":
+        return reason
+    return "active_quest_git_present" if git_present else "active_path_retirement_unverified"
 
 
 def _quest_git_skipped_items(inventory: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
@@ -716,6 +809,10 @@ def _int(value: Any) -> int:
         return 0
 
 
+def _text(value: Any) -> str:
+    return str(value or "").strip()
+
+
 def _require_choice(name: str, value: str, choices: Iterable[str]) -> str:
     normalized = str(value or "").strip()
     allowed = tuple(choices)
@@ -736,5 +833,6 @@ __all__ = [
     "SURFACE_KIND",
     "build_migration_ledger",
     "build_quest_git_inventory",
+    "cutover_quest_git_active_paths",
     "validate_compatibility_retirement",
 ]

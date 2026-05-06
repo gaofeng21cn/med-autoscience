@@ -47,6 +47,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("runtime", "lifecycle-export"): "runtime-lifecycle-export",
     ("runtime", "lifecycle-ledger"): "runtime-lifecycle-ledger",
     ("runtime", "lifecycle-quest-git-inventory"): "runtime-lifecycle-quest-git-inventory",
+    ("runtime", "lifecycle-quest-git-cutover"): "runtime-lifecycle-quest-git-cutover",
     ("runtime", "quest-materialize"): "runtime-quest-materialize",
     ("runtime", "maintain-storage"): "runtime-maintain-storage",
     ("runtime", "storage-audit"): "workspace-storage-audit",

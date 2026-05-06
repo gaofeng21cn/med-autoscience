@@ -355,6 +355,109 @@ def test_runtime_lifecycle_ledger_auto_inventory_blocks_verified_cutover_for_act
     } in ledger["skipped_items"]
 
 
+def test_quest_git_cutover_dry_run_plans_only_safe_stopped_quests(tmp_path: Path) -> None:
+    migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
+    workspace_root = tmp_path / "workspace"
+    safe_git = workspace_root / "runtime" / "quests" / "quest-stopped" / ".git"
+    live_git = workspace_root / "runtime" / "quests" / "quest-active" / ".git"
+    safe_git.mkdir(parents=True)
+    live_git.mkdir(parents=True)
+    (safe_git.parent / ".ds").mkdir()
+    (live_git.parent / ".ds").mkdir()
+    (safe_git.parent / ".ds" / "runtime_state.json").write_text(
+        json.dumps({"status": "stopped", "active_run_id": None, "worker_running": False}),
+        encoding="utf-8",
+    )
+    (live_git.parent / ".ds" / "runtime_state.json").write_text(
+        json.dumps({"status": "active", "active_run_id": None, "worker_running": False}),
+        encoding="utf-8",
+    )
+
+    result = migration.cutover_quest_git_active_paths(workspace_root=workspace_root, mode="dry_run")
+
+    items_by_quest = {item["quest_id"]: item for item in result["items"]}
+    assert items_by_quest["quest-stopped"]["status"] == "planned"
+    assert items_by_quest["quest-stopped"]["action"] == "archive_then_remove_active_git"
+    assert items_by_quest["quest-stopped"]["gate"]["reason"] == "controller_operator_safe_state"
+    assert items_by_quest["quest-active"]["status"] == "skipped"
+    assert items_by_quest["quest-active"]["skipped_reason"] == "live_or_active_quest"
+    assert safe_git.exists()
+    assert live_git.exists()
+    assert result["summary"]["planned_count"] == 1
+    assert result["summary"]["skipped_count"] == 1
+
+
+def test_quest_git_cutover_apply_archives_and_removes_safe_active_path_git(tmp_path: Path) -> None:
+    migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
+    workspace_root = tmp_path / "workspace"
+    quest_git = workspace_root / "runtime" / "quests" / "quest-paused" / ".git"
+    quest_git.mkdir(parents=True)
+    (quest_git / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+    (quest_git.parent / ".ds").mkdir()
+    (quest_git.parent / ".ds" / "runtime_state.json").write_text(
+        json.dumps({"status": "paused", "active_run_id": None, "worker_running": False}),
+        encoding="utf-8",
+    )
+
+    result = migration.cutover_quest_git_active_paths(
+        workspace_root=workspace_root,
+        mode="apply",
+        migration_run_id="quest-git-cutover-test",
+    )
+
+    item = result["items"][0]
+    assert item["status"] == "retired"
+    assert item["action"] == "archived_and_removed_active_git"
+    assert item["quest_git_active_path_retired"] is True
+    assert item["quest_git_present_in_active_path_after"] is False
+    assert not quest_git.exists()
+    manifest_path = Path(item["archive_manifest_path"])
+    archive_path = Path(item["archive_ref"])
+    assert manifest_path.exists()
+    assert archive_path.exists()
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["restore_proof"]["status"] == "verified"
+    assert manifest["restore_proof"]["active_git_removed"] is True
+    assert "tar -xzf" in manifest["restore_command"]
+    latest = workspace_root / "artifacts" / "runtime" / "lifecycle_migration" / "quest_git_active_path_cutover.latest.json"
+    assert json.loads(latest.read_text(encoding="utf-8"))["status"] == "verified"
+
+    ledger = migration.build_migration_ledger(
+        workspace_root=workspace_root,
+        mode="verify",
+        workspace_classification="stopped_cold",
+    )
+
+    cutover = ledger["git_lifecycle_cutover"]
+    assert cutover["status"] == "verified"
+    assert cutover["quest_git_active_path_retired"] is True
+    assert cutover["unresolved_active_git_paths"] == []
+    inventory_item = cutover["quest_git_inventory"][0]
+    assert inventory_item["quest_id"] == "quest-paused"
+    assert inventory_item["quest_git_present_in_active_path"] is False
+    assert inventory_item["quest_git_active_path_retired"] is True
+    assert inventory_item["archive_ref"] == str(archive_path)
+    assert inventory_item["restore_proof_path"] == str(manifest_path)
+    assert ledger["quest_git_cutover_record"]["migration_run_id"] == "quest-git-cutover-test"
+
+
+def test_quest_git_cutover_apply_keeps_unknown_runtime_state_audit_only(tmp_path: Path) -> None:
+    migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
+    workspace_root = tmp_path / "workspace"
+    quest_git = workspace_root / "runtime" / "quests" / "quest-unknown" / ".git"
+    quest_git.mkdir(parents=True)
+
+    result = migration.cutover_quest_git_active_paths(workspace_root=workspace_root, mode="apply")
+
+    item = result["items"][0]
+    assert item["status"] == "skipped"
+    assert item["action"] == "audit_only"
+    assert item["skipped_reason"] == "runtime_state_missing"
+    assert item["quest_git_present_in_active_path_after"] is True
+    assert quest_git.exists()
+    assert result["status"] == "pending"
+
+
 def test_runtime_lifecycle_ledger_auto_inventory_allows_verified_cutover_with_archived_proof_refs(tmp_path: Path) -> None:
     migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
     workspace_root = tmp_path / "workspace"

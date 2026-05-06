@@ -547,6 +547,116 @@ def test_runtime_lifecycle_ledger_command_outputs_auto_quest_git_inventory(tmp_p
     assert cutover["quest_git_inventory"][0]["git_path"] == str(quest_git)
 
 
+def test_runtime_lifecycle_quest_git_cutover_command_dispatches_safe_cutover(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    output_root = tmp_path / "out"
+    called: dict[str, object] = {}
+
+    def fake_cutover_quest_git_active_paths(
+        *,
+        workspace_root: Path,
+        mode: str,
+        migration_run_id: str | None,
+        output_root: Path | None,
+    ) -> dict[str, object]:
+        called["workspace_root"] = workspace_root
+        called["mode"] = mode
+        called["migration_run_id"] = migration_run_id
+        called["output_root"] = output_root
+        return {
+            "surface_kind": "quest_git_active_path_cutover",
+            "status": "pending",
+            "summary": {"planned_count": 1, "skipped_count": 0},
+        }
+
+    monkeypatch.setattr(
+        cli.runtime_lifecycle_migration,
+        "cutover_quest_git_active_paths",
+        fake_cutover_quest_git_active_paths,
+    )
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "lifecycle-quest-git-cutover",
+            "--workspace-root",
+            str(workspace_root),
+            "--mode",
+            "dry_run",
+            "--migration-run-id",
+            "run-001",
+            "--output-root",
+            str(output_root),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {
+        "workspace_root": workspace_root,
+        "mode": "dry_run",
+        "migration_run_id": "run-001",
+        "output_root": output_root,
+    }
+    assert json.loads(captured.out)["surface_kind"] == "quest_git_active_path_cutover"
+
+
+def test_runtime_lifecycle_ledger_command_reads_latest_quest_git_cutover_record(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    quest_git = workspace_root / "runtime" / "quests" / "quest-stopped" / ".git"
+    quest_git.mkdir(parents=True)
+    (quest_git / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+    (quest_git.parent / ".ds").mkdir()
+    (quest_git.parent / ".ds" / "runtime_state.json").write_text(
+        json.dumps({"status": "stopped", "active_run_id": None, "worker_running": False}),
+        encoding="utf-8",
+    )
+
+    cutover_exit = cli.main(
+        [
+            "runtime",
+            "lifecycle-quest-git-cutover",
+            "--workspace-root",
+            str(workspace_root),
+            "--mode",
+            "apply",
+            "--migration-run-id",
+            "quest-git-cutover-cli-test",
+        ]
+    )
+    capsys.readouterr()
+
+    ledger_exit = cli.main(
+        [
+            "runtime",
+            "lifecycle-ledger",
+            "--workspace-root",
+            str(workspace_root),
+            "--mode",
+            "verify",
+            "--workspace-classification",
+            "stopped_cold",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert cutover_exit == 0
+    assert ledger_exit == 0
+    payload = json.loads(captured.out)
+    assert payload["git_lifecycle_cutover"]["status"] == "verified"
+    assert payload["git_lifecycle_cutover"]["quest_git_inventory"][0]["quest_id"] == "quest-stopped"
+    assert payload["quest_git_cutover_record"]["migration_run_id"] == "quest-git-cutover-cli-test"
+
+
 def test_runtime_lifecycle_read_accepts_sqlite_only_surface(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"

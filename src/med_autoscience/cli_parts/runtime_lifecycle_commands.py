@@ -40,6 +40,12 @@ def register_runtime_lifecycle_parsers(subparsers: argparse._SubParsersAction) -
     quest_git_inventory_parser = subparsers.add_parser("runtime-lifecycle-quest-git-inventory")
     quest_git_inventory_parser.add_argument("--workspace-root", required=True, type=str)
 
+    quest_git_cutover_parser = subparsers.add_parser("runtime-lifecycle-quest-git-cutover")
+    quest_git_cutover_parser.add_argument("--workspace-root", required=True, type=str)
+    quest_git_cutover_parser.add_argument("--mode", choices=("dry_run", "apply"), default="dry_run")
+    quest_git_cutover_parser.add_argument("--migration-run-id", type=str)
+    quest_git_cutover_parser.add_argument("--output-root", type=str)
+
     materialize_parser = subparsers.add_parser("runtime-quest-materialize")
     materialize_parser.add_argument("--workspace-root", required=True, type=str)
     materialize_parser.add_argument("--quest-id", required=True, type=str)
@@ -106,6 +112,16 @@ def handle_runtime_lifecycle_command(
     if args.command == "runtime-lifecycle-quest-git-inventory":
         result = runtime_lifecycle_migration.build_quest_git_inventory(
             workspace_root=Path(args.workspace_root),
+        )
+        _print_json(result)
+        return 0
+
+    if args.command == "runtime-lifecycle-quest-git-cutover":
+        result = runtime_lifecycle_migration.cutover_quest_git_active_paths(
+            workspace_root=Path(args.workspace_root),
+            mode=args.mode,
+            migration_run_id=args.migration_run_id,
+            output_root=Path(args.output_root) if args.output_root else None,
         )
         _print_json(result)
         return 0
