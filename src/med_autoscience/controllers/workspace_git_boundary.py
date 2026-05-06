@@ -141,6 +141,12 @@ WORKSPACE_GIT_CONFIG_ENTRIES = (
     ("maintenance.auto", "false"),
 )
 
+QUEST_LOCAL_GIT_RETIREMENT_POLICY = {
+    "status": "retired",
+    "daily_lifecycle": False,
+    "compatibility_scope": ["legacy_import", "restore"],
+}
+
 
 def is_workspace_gitignore_path(path: Path) -> bool:
     return path.name == ".gitignore"
@@ -181,6 +187,7 @@ def _workspace_git_payload(
         "would_initialize": would_initialize,
         "git_dir": str(workspace_root / ".git"),
         "gitignore_path": str(workspace_root / ".gitignore"),
+        "quest_local_git_policy": dict(QUEST_LOCAL_GIT_RETIREMENT_POLICY),
     }
 
 

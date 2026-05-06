@@ -59,6 +59,14 @@ The active `docs/program/` set is intentionally small:
 
 Historical program records live in `docs/history/program/`.
 
+## Active Capability Set
+
+The active `docs/capabilities/` set is organized by capability family:
+
+| family | active entry | history |
+| --- | --- | --- |
+| medical display | `capabilities/medical-display/medical_display_portfolio_consolidation.md` | `history/capabilities/medical-display/README.md` |
+
 ## Current Archive Actions
 
 This consolidation already moved these tracked files from `docs/program/` to `docs/history/program/`:

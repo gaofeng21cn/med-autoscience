@@ -88,6 +88,7 @@ Public-facing material should stay mirrored in English and Chinese.
 
 ### Capability docs
 
+- [Capability docs index](capabilities/README.md)
 - [Medical display platform mainline](capabilities/medical-display/medical_display_platform_mainline.md)
 - [Medical display portfolio consolidation](capabilities/medical-display/medical_display_portfolio_consolidation.md)
 - [Medical display active board](capabilities/medical-display/medical_display_active_board.md)

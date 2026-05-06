@@ -57,6 +57,7 @@ def test_workspace_gitignore_excludes_local_intake_archives_and_framework_mirror
     assert "runtime/logs/" in gitignore_text
     assert "artifacts/runtime/" in gitignore_text
     assert "ops/med-deepscientist/config.env" in gitignore_text
+    assert "ops/med-deepscientist/runtime/quests/" in gitignore_text
     assert "inbox/**" in gitignore_text
     assert "!inbox/README.md" in gitignore_text
     assert "ops/med-deepscientist/runtime/archives/**" in gitignore_text
@@ -110,8 +111,37 @@ def test_init_workspace_dry_run_reports_workspace_git_plan(tmp_path: Path) -> No
         "would_initialize": True,
         "git_dir": str(workspace_root / ".git"),
         "gitignore_path": str(workspace_root / ".gitignore"),
+        "quest_local_git_policy": {
+            "status": "retired",
+            "daily_lifecycle": False,
+            "compatibility_scope": ["legacy_import", "restore"],
+        },
     }
     assert not workspace_root.exists()
+
+
+def test_init_workspace_defaults_to_mas_first_runtime_layout_without_legacy_quest_scaffold(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "mas-first-workspace"
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="mas-first",
+        dry_run=False,
+        force=False,
+    )
+
+    assert (workspace_root / "runtime").is_dir()
+    assert (workspace_root / "runtime" / "quests").is_dir()
+    assert (workspace_root / "runtime" / "archives").is_dir()
+    assert (workspace_root / "runtime" / "restore_index").is_dir()
+    assert (workspace_root / "artifacts" / "runtime").is_dir()
+    assert not (workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests").exists()
+    assert result["workspace_git"]["quest_local_git_policy"] == {
+        "status": "retired",
+        "daily_lifecycle": False,
+        "compatibility_scope": ["legacy_import", "restore"],
+    }
 
 
 def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_surfaces(tmp_path: Path) -> None:
@@ -129,6 +159,7 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
     assert result["workspace_git"]["enabled"] is True
     assert result["workspace_git"]["initialized"] is True
     assert result["workspace_git"]["already_initialized"] is False
+    assert result["workspace_git"]["quest_local_git_policy"]["status"] == "retired"
     workspace_gitignore = workspace_root / ".gitignore"
     assert workspace_gitignore.is_file()
     workspace_gitignore_text = workspace_gitignore.read_text(encoding="utf-8")
@@ -487,6 +518,11 @@ def test_init_workspace_can_skip_workspace_git_initialization(tmp_path: Path) ->
         "would_initialize": False,
         "git_dir": str(workspace_root / ".git"),
         "gitignore_path": str(workspace_root / ".gitignore"),
+        "quest_local_git_policy": {
+            "status": "retired",
+            "daily_lifecycle": False,
+            "compatibility_scope": ["legacy_import", "restore"],
+        },
     }
     assert not (workspace_root / ".git").exists()
     assert (workspace_root / ".gitignore").is_file()

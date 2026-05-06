@@ -88,6 +88,7 @@
 
 ### 能力线文档
 
+- [能力线文档索引](capabilities/README.zh-CN.md)
 - [医学展示平台主线](capabilities/medical-display/medical_display_platform_mainline.md)
 - [医学展示文档组合治理](capabilities/medical-display/medical_display_portfolio_consolidation.md)
 - [医学展示 active board](capabilities/medical-display/medical_display_active_board.md)

@@ -91,6 +91,31 @@ SIDECAR_INDEXED_SURFACES = (
 
 SIDECAR_AUTHORITY_POLICY = "index_only_authority_remains_file_surfaces"
 
+SQLITE_AUTHORITY_SCOPE = (
+    "runtime_lifecycle",
+    "runtime_index",
+    "runtime_receipt",
+    "runtime_retention",
+    "runtime_cursor",
+)
+
+SQLITE_FORBIDDEN_AUTHORITY_SURFACES = (
+    "study_authority",
+    "paper_authority",
+    "publication_authority",
+    "artifact_authority",
+    "file_authority",
+)
+
+QUEST_LIVE_WRITER_ROOT_POLICY = "workspace_runtime_quests"
+QUEST_ALLOWED_LIVE_WRITER_ROOTS = ("runtime/quests",)
+QUEST_LEGACY_IMPORT_RESTORE_SOURCES = (
+    "quest-local .git",
+    ".ds/worktrees",
+    "ops/med-deepscientist runtime Git era",
+)
+QUEST_FORBIDDEN_DAILY_LIFECYCLE_SURFACES = QUEST_LEGACY_IMPORT_RESTORE_SOURCES
+
 MIGRATION_LEDGER_REQUIRED_FIELDS = (
     "migration_run_id",
     "workspace_root",
@@ -142,6 +167,14 @@ def runtime_lifecycle_contract() -> dict[str, Any]:
         "sqlite_sidecar_tables": list(SQLITE_SIDECAR_TABLES),
         "sidecar_indexed_surfaces": list(SIDECAR_INDEXED_SURFACES),
         "sidecar_authority_policy": SIDECAR_AUTHORITY_POLICY,
+        "sqlite_authority_scope": list(SQLITE_AUTHORITY_SCOPE),
+        "sqlite_forbidden_authority_surfaces": list(SQLITE_FORBIDDEN_AUTHORITY_SURFACES),
+        "quest_live_writer_root_policy": QUEST_LIVE_WRITER_ROOT_POLICY,
+        "quest_git_retirement_policy": {
+            "allowed_live_writer_roots": list(QUEST_ALLOWED_LIVE_WRITER_ROOTS),
+            "legacy_import_restore_sources": list(QUEST_LEGACY_IMPORT_RESTORE_SOURCES),
+            "forbidden_daily_lifecycle_surfaces": list(QUEST_FORBIDDEN_DAILY_LIFECYCLE_SURFACES),
+        },
         "migration_ledger_required_fields": list(MIGRATION_LEDGER_REQUIRED_FIELDS),
         "compatibility_verification_required_fields": list(COMPATIBILITY_VERIFICATION_REQUIRED_FIELDS),
     }
@@ -179,6 +212,53 @@ def validate_compatibility_verification(payload: Mapping[str, Any]) -> dict[str,
     }
 
 
+def validate_sqlite_authority_scope(payload: Mapping[str, Any]) -> dict[str, Any]:
+    authority_scope = _string_list(payload.get("authority_scope"))
+    authority_surfaces = _string_list(payload.get("authority_surfaces"))
+    invalid_scopes = [scope for scope in authority_scope if scope not in SQLITE_AUTHORITY_SCOPE]
+    forbidden_authority_surfaces = [
+        surface
+        for surface in authority_surfaces
+        if surface in SQLITE_FORBIDDEN_AUTHORITY_SURFACES or surface in FILE_AUTHORITY_SURFACES
+    ]
+    return {
+        "ok": not invalid_scopes and not forbidden_authority_surfaces,
+        "invalid_scopes": invalid_scopes,
+        "forbidden_authority_surfaces": forbidden_authority_surfaces,
+    }
+
+
+def validate_quest_git_daily_lifecycle(payload: Mapping[str, Any]) -> dict[str, Any]:
+    live_writer_root = str(payload.get("live_writer_root") or "")
+    daily_lifecycle_surfaces = _string_list(payload.get("daily_lifecycle_surfaces"))
+    legacy_sources = _string_list(payload.get("legacy_sources"))
+    invalid_live_writer_root = None
+    if live_writer_root and live_writer_root not in QUEST_ALLOWED_LIVE_WRITER_ROOTS:
+        invalid_live_writer_root = live_writer_root
+    forbidden_daily_lifecycle_surfaces = [
+        surface for surface in daily_lifecycle_surfaces if surface in QUEST_FORBIDDEN_DAILY_LIFECYCLE_SURFACES
+    ]
+    invalid_legacy_sources = [
+        source for source in legacy_sources if source not in QUEST_LEGACY_IMPORT_RESTORE_SOURCES
+    ]
+    return {
+        "ok": not invalid_live_writer_root
+        and not forbidden_daily_lifecycle_surfaces
+        and not invalid_legacy_sources,
+        "invalid_live_writer_root": invalid_live_writer_root,
+        "forbidden_daily_lifecycle_surfaces": forbidden_daily_lifecycle_surfaces,
+        "invalid_legacy_sources": invalid_legacy_sources,
+    }
+
+
+def _string_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    return [str(item) for item in value]
+
+
 __all__ = [
     "COMPATIBILITY_READER_NAMES",
     "COMPATIBILITY_VERIFICATION_REQUIRED_FIELDS",
@@ -187,9 +267,15 @@ __all__ = [
     "FILE_AUTHORITY_SURFACES",
     "MIGRATION_LEDGER_REQUIRED_FIELDS",
     "MIGRATION_RUN_MODES",
+    "QUEST_ALLOWED_LIVE_WRITER_ROOTS",
+    "QUEST_FORBIDDEN_DAILY_LIFECYCLE_SURFACES",
+    "QUEST_LEGACY_IMPORT_RESTORE_SOURCES",
+    "QUEST_LIVE_WRITER_ROOT_POLICY",
     "SCHEMA_VERSION",
     "SIDECAR_AUTHORITY_POLICY",
     "SIDECAR_INDEXED_SURFACES",
+    "SQLITE_AUTHORITY_SCOPE",
+    "SQLITE_FORBIDDEN_AUTHORITY_SURFACES",
     "SQLITE_GITIGNORE_PATTERNS",
     "SQLITE_SIDECAR_TABLES",
     "SURFACE_KIND",
@@ -197,4 +283,6 @@ __all__ = [
     "runtime_lifecycle_contract",
     "validate_compatibility_verification",
     "validate_migration_ledger",
+    "validate_quest_git_daily_lifecycle",
+    "validate_sqlite_authority_scope",
 ]

@@ -87,3 +87,101 @@ def test_compatibility_verification_validation_rejects_unknown_reader() -> None:
 
     assert result["ok"] is False
     assert result["invalid_fields"] == {"reader_name": "sqlite_as_publication_authority"}
+
+
+def test_sqlite_authority_contract_is_lifecycle_only_and_rejects_study_truth() -> None:
+    contract_module = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_contract")
+
+    contract = contract_module.runtime_lifecycle_contract()
+
+    assert contract["sqlite_authority_scope"] == [
+        "runtime_lifecycle",
+        "runtime_index",
+        "runtime_receipt",
+        "runtime_retention",
+        "runtime_cursor",
+    ]
+    assert contract["sqlite_forbidden_authority_surfaces"] == [
+        "study_authority",
+        "paper_authority",
+        "publication_authority",
+        "artifact_authority",
+        "file_authority",
+    ]
+
+    allowed = contract_module.validate_sqlite_authority_scope(
+        {
+            "authority_scope": [
+                "runtime_lifecycle",
+                "runtime_index",
+                "runtime_receipt",
+                "runtime_retention",
+                "runtime_cursor",
+            ],
+            "authority_surfaces": ["runtime_events", "retention_actions", "compatibility_exports"],
+        }
+    )
+    assert allowed == {
+        "ok": True,
+        "invalid_scopes": [],
+        "forbidden_authority_surfaces": [],
+    }
+
+    rejected = contract_module.validate_sqlite_authority_scope(
+        {
+            "authority_scope": ["runtime_lifecycle", "publication_authority"],
+            "authority_surfaces": ["publication_eval/latest.json", "current_package.zip"],
+        }
+    )
+    assert rejected == {
+        "ok": False,
+        "invalid_scopes": ["publication_authority"],
+        "forbidden_authority_surfaces": ["publication_eval/latest.json", "current_package.zip"],
+    }
+
+
+def test_quest_git_retirement_policy_rejects_daily_lifecycle_git_usage() -> None:
+    contract_module = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_contract")
+
+    contract = contract_module.runtime_lifecycle_contract()
+
+    assert contract["quest_live_writer_root_policy"] == "workspace_runtime_quests"
+    assert contract["quest_git_retirement_policy"]["allowed_live_writer_roots"] == ["runtime/quests"]
+    assert contract["quest_git_retirement_policy"]["legacy_import_restore_sources"] == [
+        "quest-local .git",
+        ".ds/worktrees",
+        "ops/med-deepscientist runtime Git era",
+    ]
+    assert contract["quest_git_retirement_policy"]["forbidden_daily_lifecycle_surfaces"] == [
+        "quest-local .git",
+        ".ds/worktrees",
+        "ops/med-deepscientist runtime Git era",
+    ]
+
+    allowed = contract_module.validate_quest_git_daily_lifecycle(
+        {
+            "live_writer_root": "runtime/quests",
+            "daily_lifecycle_surfaces": ["runtime/quests"],
+            "legacy_sources": ["quest-local .git", ".ds/worktrees"],
+        }
+    )
+    assert allowed == {
+        "ok": True,
+        "invalid_live_writer_root": None,
+        "forbidden_daily_lifecycle_surfaces": [],
+        "invalid_legacy_sources": [],
+    }
+
+    rejected = contract_module.validate_quest_git_daily_lifecycle(
+        {
+            "live_writer_root": "quest-local .git",
+            "daily_lifecycle_surfaces": ["runtime/quests", ".ds/worktrees"],
+            "legacy_sources": ["workspace runtime/quests"],
+        }
+    )
+    assert rejected == {
+        "ok": False,
+        "invalid_live_writer_root": "quest-local .git",
+        "forbidden_daily_lifecycle_surfaces": [".ds/worktrees"],
+        "invalid_legacy_sources": ["workspace runtime/quests"],
+    }
