@@ -23,6 +23,9 @@ from med_autoscience.runtime_transport.med_deepscientist_parts.daemon_launcher i
     _resolve_launcher_node_binary,
     _resolve_launcher_path,
 )
+from med_autoscience.runtime_transport.med_deepscientist_parts.daemon_lifecycle import (
+    release_idle_workspace_daemon as _release_idle_workspace_daemon,
+)
 from med_autoscience.runtime_transport.med_deepscientist_parts.storage import _load_json_dict, _load_yaml_dict
 
 
@@ -181,6 +184,21 @@ def ensure_managed_daemon(*, runtime_root: Path) -> dict[str, Any]:
         raise RuntimeError(
             f"med-deepscientist launcher contract failed for {resolved_runtime_root}: {exc}"
         ) from exc
+
+
+def release_idle_workspace_daemon(
+    *,
+    runtime_root: Path,
+    idle_ttl_seconds: int = 300,
+    pending_lease_seconds: int = 3600,
+) -> dict[str, Any]:
+    return _release_idle_workspace_daemon(
+        runtime_root=runtime_root,
+        run_launcher=_run_launcher,
+        parse_launcher_status=_parse_launcher_status,
+        idle_ttl_seconds=idle_ttl_seconds,
+        pending_lease_seconds=pending_lease_seconds,
+    )
 
 
 def _ensure_managed_daemon_url(*, runtime_root: Path) -> str:

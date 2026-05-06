@@ -24,6 +24,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import request_pa
 from med_autoscience.controllers.runtime_supervisor_scan_parts import status_projection
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_parking
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_projection
+from med_autoscience.controllers.runtime_supervisor_scan_parts import workspace_daemon
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
     resolve_developer_supervisor_mode,
@@ -946,6 +947,10 @@ def supervisor_scan(
         "previous_action_count": len(previous_action_ids),
         **queue_slo_payload,
     }
+    workspace_daemon_lifecycle = workspace_daemon.workspace_daemon_lifecycle(
+        profile=profile,
+        developer_mode=developer_mode,
+    )
     payload = {
         "surface": "portable_runtime_supervisor_scan",
         "schema_version": SCHEMA_VERSION,
@@ -963,6 +968,7 @@ def supervisor_scan(
         "studies": studies,
         "action_queue": action_queue,
         "queue_history": queue_history,
+        "workspace_daemon_lifecycle": workspace_daemon_lifecycle,
         "refs": {"latest_path": str(latest_path), "history_path": str(history_path)},
     }
     if persist_surfaces:

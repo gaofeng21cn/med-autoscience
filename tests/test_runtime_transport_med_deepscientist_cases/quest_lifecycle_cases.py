@@ -278,6 +278,172 @@ def test_ensure_managed_daemon_recovers_from_truncated_launcher_status_using_run
     assert result["daemon"]["daemon_id"] == "daemon-001"
     assert result["health"]["daemon_id"] == "daemon-001"
     assert calls == [("--status",)]
+
+
+def test_release_idle_workspace_daemon_stops_healthy_daemon_without_live_quest_leases(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "ops" / "med-deepscientist" / "runtime"
+    write_text(
+        runtime_root / "quests" / "001-risk" / "quest.yaml",
+        "quest_id: 001-risk\nstatus: active\n",
+    )
+    write_text(
+        runtime_root / "quests" / "001-risk" / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": "001-risk",
+                "status": "active",
+                "active_run_id": None,
+                "worker_running": False,
+                "continuation_policy": "auto",
+                "continuation_reason": None,
+            }
+        )
+        + "\n",
+    )
+    status_payload = {
+        "healthy": True,
+        "identity_match": True,
+        "managed": True,
+        "home": str(runtime_root),
+        "url": "http://127.0.0.1:21001",
+        "daemon": {
+            "pid": 77838,
+            "started_at": "2026-05-01T00:00:00+00:00",
+            "daemon_id": "daemon-001",
+        },
+        "health": {"status": "ok", "home": str(runtime_root), "daemon_id": "daemon-001"},
+    }
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run_launcher(*, runtime_root: Path, args: tuple[str, ...], timeout: int = 120):
+        calls.append(args)
+        if args == ("--status",):
+            return subprocess.CompletedProcess(["ds", "--status"], 0, json.dumps(status_payload), "")
+        if args == ("--stop",):
+            return subprocess.CompletedProcess(["ds", "--stop"], 0, "DeepScientist daemon stopped.\n", "")
+        raise AssertionError(f"unexpected launcher args: {args}")
+
+    monkeypatch.setattr(module, "_run_launcher", fake_run_launcher)
+
+    result = module.release_idle_workspace_daemon(runtime_root=runtime_root, idle_ttl_seconds=0)
+
+    assert result["released"] is True
+    assert result["reason"] == "idle_workspace_daemon_released"
+    assert result["daemon_lifecycle"]["active_lease_count"] == 0
+    assert result["stop_result"]["returncode"] == 0
+    assert calls == [("--status",), ("--stop",)]
+
+
+def test_release_idle_workspace_daemon_keeps_daemon_when_live_quest_has_active_run(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "ops" / "med-deepscientist" / "runtime"
+    write_text(
+        runtime_root / "quests" / "003-live" / "quest.yaml",
+        "quest_id: 003-live\nstatus: running\nactive_run_id: run-live\n",
+    )
+    write_text(
+        runtime_root / "quests" / "003-live" / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": "003-live",
+                "status": "running",
+                "active_run_id": "run-live",
+                "worker_running": True,
+            }
+        )
+        + "\n",
+    )
+    status_payload = {
+        "healthy": True,
+        "identity_match": True,
+        "managed": True,
+        "home": str(runtime_root),
+        "url": "http://127.0.0.1:21001",
+        "daemon": {"pid": 77838, "started_at": "2026-05-01T00:00:00+00:00"},
+    }
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run_launcher(*, runtime_root: Path, args: tuple[str, ...], timeout: int = 120):
+        calls.append(args)
+        if args == ("--status",):
+            return subprocess.CompletedProcess(["ds", "--status"], 0, json.dumps(status_payload), "")
+        if args == ("--stop",):
+            raise AssertionError("live workspace daemon must not be stopped")
+        raise AssertionError(f"unexpected launcher args: {args}")
+
+    monkeypatch.setattr(module, "_run_launcher", fake_run_launcher)
+
+    result = module.release_idle_workspace_daemon(runtime_root=runtime_root, idle_ttl_seconds=0)
+
+    assert result["released"] is False
+    assert result["reason"] == "active_quest_lease_present"
+    assert result["daemon_lifecycle"]["active_lease_count"] == 1
+    assert result["daemon_lifecycle"]["active_leases"][0]["quest_id"] == "003-live"
+    assert calls == [("--status",)]
+
+
+def test_release_idle_workspace_daemon_keeps_daemon_for_recent_recovery_lease(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "ops" / "med-deepscientist" / "runtime"
+    write_text(
+        runtime_root / "quests" / "003-repair" / "quest.yaml",
+        "quest_id: 003-repair\nstatus: active\n",
+    )
+    write_text(
+        runtime_root / "quests" / "003-repair" / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": "003-repair",
+                "status": "active",
+                "active_run_id": None,
+                "worker_running": False,
+                "continuation_policy": "auto",
+                "continuation_reason": "runtime_platform_repair_redrive",
+                "continuation_updated_at": "2999-01-01T00:00:00+00:00",
+            }
+        )
+        + "\n",
+    )
+    status_payload = {
+        "healthy": True,
+        "identity_match": True,
+        "managed": True,
+        "home": str(runtime_root),
+        "url": "http://127.0.0.1:21001",
+        "daemon": {"pid": 77838, "started_at": "2026-05-01T00:00:00+00:00"},
+    }
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run_launcher(*, runtime_root: Path, args: tuple[str, ...], timeout: int = 120):
+        calls.append(args)
+        if args == ("--status",):
+            return subprocess.CompletedProcess(["ds", "--status"], 0, json.dumps(status_payload), "")
+        if args == ("--stop",):
+            raise AssertionError("recent recovery lease must not be stopped")
+        raise AssertionError(f"unexpected launcher args: {args}")
+
+    monkeypatch.setattr(module, "_run_launcher", fake_run_launcher)
+
+    result = module.release_idle_workspace_daemon(
+        runtime_root=runtime_root,
+        idle_ttl_seconds=0,
+        pending_lease_seconds=3600,
+    )
+
+    assert result["released"] is False
+    assert result["reason"] == "active_quest_lease_present"
+    assert result["daemon_lifecycle"]["active_leases"][0]["lease_kind"] == "pending_recovery"
+    assert calls == [("--status",)]
 def test_create_quest_posts_payload_to_daemon(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
