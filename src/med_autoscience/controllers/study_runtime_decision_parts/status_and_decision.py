@@ -733,6 +733,12 @@ def _status_state(
         return _finalize_result()
 
     if quest_status == StudyRuntimeQuestStatus.STOPPED:
+        if _user_pause_contract_without_live_worker(result):
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
+            )
+            return _finalize_result()
         if submission_metadata_only_manual_finish or bundle_only_manual_finish:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,

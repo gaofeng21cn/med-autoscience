@@ -120,7 +120,11 @@ def _user_pause_contract_without_live_worker(
 ) -> bool:
     if audit_status is not None and audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
         return False
-    if status.quest_status not in _LIVE_QUEST_STATUSES and status.quest_status not in _RESUMABLE_QUEST_STATUSES:
+    if (
+        status.quest_status not in _LIVE_QUEST_STATUSES
+        and status.quest_status not in _RESUMABLE_QUEST_STATUSES
+        and status.quest_status is not StudyRuntimeQuestStatus.STOPPED
+    ):
         return False
     try:
         continuation_state = status.continuation_state

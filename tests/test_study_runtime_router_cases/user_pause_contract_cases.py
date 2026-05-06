@@ -140,6 +140,51 @@ def test_user_paused_quest_blocks_auto_resume_even_when_auto_resume_is_enabled(
     assert result["runtime_health_snapshot"]["canonical_runtime_action"] == "await_explicit_resume"
 
 
+def test_user_paused_stopped_quest_surfaces_explicit_wakeup_not_generic_rerun(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    _, quest_root = _write_managed_study(profile, study_id)
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "stopped",
+                "active_run_id": None,
+                "worker_running": False,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "user_pause",
+                "continuation_reason": "user_pause",
+                "stop_reason": "user_pause",
+                "user_pause_contract": {
+                    "recorded_at": "2026-05-06T05:08:51+00:00",
+                    "resume_requires_explicit_wakeup": True,
+                    "source": "test-human-takeover",
+                },
+            }
+        )
+        + "\n",
+    )
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("stopped user pause must not be auto-resumed")),
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_watch")
+
+    assert result["quest_status"] == "stopped"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_user_paused_requires_explicit_wakeup"
+    assert result["auto_runtime_parked"]["parked_state"] == "explicit_resume_pending"
+    assert result["auto_runtime_parked"]["awaiting_explicit_wakeup"] is True
+    assert result["runtime_health_snapshot"]["canonical_runtime_action"] == "await_explicit_resume"
+
+
 def test_user_paused_active_no_worker_drift_blocks_watch_runtime_recovery(
     monkeypatch,
     tmp_path: Path,
