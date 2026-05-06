@@ -69,7 +69,7 @@
   - 改为从活动模板包真相重新生成。
 - `docs/capabilities/medical-display/medical_display_arsenal.md`
   - 军火库总账新增“当前内置核心包”口径。
-- `docs/capabilities/medical-display/medical_display_arsenal_history.md`
+- `docs/history/capabilities/medical-display/medical_display_arsenal_history.md`
   - 记录“当前内置模板库全量包化迁移”这一里程碑。
 
 ## 任务 1：定义模板包 contract 与最小 fixture
@@ -694,7 +694,7 @@ git commit -m "Route display controllers through namespaced template-pack truth"
 - Modify: `tests/test_display_surface_materialization.py`
 - Modify: `docs/capabilities/medical-display/medical_display_template_catalog.md`
 - Modify: `docs/capabilities/medical-display/medical_display_arsenal.md`
-- Modify: `docs/capabilities/medical-display/medical_display_arsenal_history.md`
+- Modify: `docs/history/capabilities/medical-display/medical_display_arsenal_history.md`
 
 - [ ] **Step 1: 写失败测试，固定 `paper/build/display_pack_lock.json`**
 
@@ -809,7 +809,7 @@ publication-gate => clear
 - [ ] **Step 7: 提交**
 
 ```bash
-git add src/med_autoscience/display_pack_lock.py src/med_autoscience/controllers/display_surface_materialization.py tests/test_display_surface_materialization.py docs/capabilities/medical-display/medical_display_template_catalog.md docs/capabilities/medical-display/medical_display_arsenal.md docs/capabilities/medical-display/medical_display_arsenal_history.md
+git add src/med_autoscience/display_pack_lock.py src/med_autoscience/controllers/display_surface_materialization.py tests/test_display_surface_materialization.py docs/capabilities/medical-display/medical_display_template_catalog.md docs/capabilities/medical-display/medical_display_arsenal.md docs/history/capabilities/medical-display/medical_display_arsenal_history.md
 git commit -m "Lock template-pack provenance and reverify 001 003 acceptance"
 ```
 

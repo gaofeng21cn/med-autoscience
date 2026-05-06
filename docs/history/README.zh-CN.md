@@ -17,5 +17,7 @@
 
 当前归档路线：
 
+- [能力线历史归档](./capabilities/README.zh-CN.md)
 - [Program 历史归档](./program/README.zh-CN.md)
 - [OMX 历史资料](./omx/README.zh-CN.md)
+- [Superpowers 过程草稿归档](./superpowers/README.zh-CN.md)

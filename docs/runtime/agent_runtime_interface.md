@@ -3,7 +3,7 @@
 这份文档写给 `Codex` 等 Agent、内部技术合作者，以及需要审阅 Agent 行为的人。
 
 它属于仓库跟踪的运行面文档层，因此收口在 `docs/runtime/`，但不属于首页默认双语公开面。
-与之相对，`docs/superpowers/` 更偏本地内部设计稿、plan、spec 和 agent 工作过程产物，不作为公开主入口。
+与之相对，`docs/history/superpowers/` 只保留历史内部设计稿、plan、spec 和 agent 工作过程产物，不作为公开主入口。
 如果未来要把这份文档提升到默认公开面，必须同步提供英文 `.md` 与中文 `.zh-CN.md` 镜像。
 
 `MedAutoScience` 对外可以继续称为医学自动科研平台，但更准确的理解是：它对外是 `Research Ops Gateway`，对内由一个 `Agent-first, human-auditable` 的医学自动科研 harness 驱动：

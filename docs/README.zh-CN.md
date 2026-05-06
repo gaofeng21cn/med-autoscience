@@ -89,6 +89,8 @@
 ### 能力线文档
 
 - [医学展示平台主线](capabilities/medical-display/medical_display_platform_mainline.md)
+- [医学展示文档组合治理](capabilities/medical-display/medical_display_portfolio_consolidation.md)
+- [医学展示 active board](capabilities/medical-display/medical_display_active_board.md)
 - [医学展示面审计指南](capabilities/medical-display/medical_display_audit_guide.md)
 - [医学展示面模板目录](capabilities/medical-display/medical_display_template_catalog.md)
 - [医学展示面家族路线图](capabilities/medical-display/medical_display_family_roadmap.md)
@@ -137,6 +139,8 @@
 - [Program 目录](program/)
 - [References 目录](references/)
 - [历史归档索引](history/README.zh-CN.md)
+- [能力线历史归档](history/capabilities/README.zh-CN.md)
+- [Superpowers 过程草稿归档](history/superpowers/README.zh-CN.md)
 
 ## 文档规则
 

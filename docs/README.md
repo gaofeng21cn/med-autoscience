@@ -89,6 +89,8 @@ Public-facing material should stay mirrored in English and Chinese.
 ### Capability docs
 
 - [Medical display platform mainline](capabilities/medical-display/medical_display_platform_mainline.md)
+- [Medical display portfolio consolidation](capabilities/medical-display/medical_display_portfolio_consolidation.md)
+- [Medical display active board](capabilities/medical-display/medical_display_active_board.md)
 - [Medical display audit guide](capabilities/medical-display/medical_display_audit_guide.md)
 - [Medical display template catalog](capabilities/medical-display/medical_display_template_catalog.md)
 - [Medical display family roadmap](capabilities/medical-display/medical_display_family_roadmap.md)
@@ -137,6 +139,8 @@ Public-facing material should stay mirrored in English and Chinese.
 - [Program directory](program/)
 - [References directory](references/)
 - [History archive](history/README.md)
+- [Capability history archive](history/capabilities/README.md)
+- [Superpowers process draft archive](history/superpowers/README.md)
 
 ## Documentation Rules
 

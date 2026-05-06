@@ -44,7 +44,7 @@
 - `docs/references/`：背景、定位、审计与非活跃参考。
 - `docs/history/`：历史归档，仅作历史参考入口。
 - `docs/policies/`：稳定内部规则，默认中文维护。
-- `docs/superpowers/`：存量 repo-tracked 历史设计材料可保留为内部档案；新增本地 AI/Superpowers 过程草稿默认保持未跟踪。
+- `docs/history/superpowers/`：存量 repo-tracked 历史设计材料归档；新增本地 AI/Superpowers 过程草稿默认保持未跟踪。
 
 ## 本地工具状态
 

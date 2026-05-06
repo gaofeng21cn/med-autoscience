@@ -9,7 +9,7 @@ Use this file when the question is:
 - how current paper work, platform hardening, and future family expansion should relate;
 - when the active display round should continue, hand off, or stop.
 
-For the current baseline-completion provenance across `A-H`, see [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
+For the current baseline-completion provenance across `A-H`, see [medical_display_family_baseline_program.md](../../history/capabilities/medical-display/medical_display_family_baseline_program.md).
 
 For the top-level evidence roadmap, see [medical_display_family_roadmap.md](./medical_display_family_roadmap.md).
 
@@ -50,7 +50,7 @@ It is:
 - the display mainline should now stay in rolling hardening, visual audit, and paper-driven strengthening;
 - historical baseline-completion milestones remain provenance, not the current program identity.
 
-The authoritative baseline-completion provenance lives in [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
+The authoritative baseline-completion provenance lives in [medical_display_family_baseline_program.md](../../history/capabilities/medical-display/medical_display_family_baseline_program.md).
 
 That means the mainline now has three distinct layers of truth:
 

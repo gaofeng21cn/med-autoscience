@@ -22,7 +22,7 @@
 - 平台主线与阶段推进：[medical_display_platform_mainline.md](./medical_display_platform_mainline.md)
 - 论文家族路线图：[medical_display_family_roadmap.md](./medical_display_family_roadmap.md)
 - 当前军火库总账：[medical_display_arsenal.md](./medical_display_arsenal.md)
-- 军火库扩充历史：[medical_display_arsenal_history.md](./medical_display_arsenal_history.md)
+- 军火库扩充历史：[medical_display_arsenal_history.md](../../history/capabilities/medical-display/medical_display_arsenal_history.md)
 - 当前模板目录：[medical_display_template_catalog.md](./medical_display_template_catalog.md)
 - 当前工程审计面：[medical_display_audit_guide.md](./medical_display_audit_guide.md)
 - 当前实施计划：[medical_display_template_pack_implementation_plan.md](./medical_display_template_pack_implementation_plan.md)
@@ -580,7 +580,7 @@
   - 记录当前军火库全貌；
   - 不等于宿主平台代码清单；
   - 以后更多体现“包级能力账本”。
-- [medical_display_arsenal_history.md](./medical_display_arsenal_history.md)
+- [medical_display_arsenal_history.md](../../history/capabilities/medical-display/medical_display_arsenal_history.md)
   - 记录扩库历史；
   - 应追加“新增了哪个包 / 提升了哪个包版本 / 学自哪篇论文”。
 - [medical_display_template_catalog.md](./medical_display_template_catalog.md)

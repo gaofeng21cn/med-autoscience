@@ -25,10 +25,10 @@ Owner: `MedAutoScience`
 | `docs/runtime/` | runtime contracts and implementation-facing control surfaces | 当前可执行合同、schema、control surface 和 still-active implementation plan 留在这里。已完成 implementation plan 后续迁入 history。 |
 | `docs/policies/` | stable internal rules | 保持稳定规则，不放一次性计划或 closeout。 |
 | `docs/program/` | active board / execution program / contract / ledger / operation policy | 由 `program_portfolio_consolidation.md` 管理；历史 intake / closeout / activation package 迁入 `history/program/`。 |
-| `docs/capabilities/` | capability-family docs | 每个 capability family 应有自己的 active board；historical exemplar/intake 后续迁入 `history/capabilities/`。 |
+| `docs/capabilities/` | capability-family docs | 每个 capability family 应有自己的 active board 和 portfolio map；historical exemplar/intake 迁入 `history/capabilities/`。 |
 | `docs/references/` | background, positioning, integration reference | 只放仍有解释价值的 reference，不承载 active execution gate。 |
 | `docs/history/` | archived historical records | 只读材料、旧 program、old process plans、完成包和 historical specs。 |
-| `docs/superpowers/` | legacy local process drafts if present | 不作为 active repo docs；repo-tracked historical drafts 后续应迁入 `docs/history/superpowers/`，新的本地 AI/Superpowers 草稿默认不跟踪。 |
+| `docs/history/superpowers/` | legacy local process draft archive | 只保存 repo-tracked 历史 plan/spec；新的本地 AI/Superpowers 草稿默认不跟踪。 |
 
 ## Active Root Set
 
@@ -70,6 +70,8 @@ This consolidation already moved these tracked files from `docs/program/` to `do
 | external / open research intakes | `external_agent_orchestration_learning_intake_2026_04_30.md`, `open_auto_research_learning_intake_2026_05_04.md` |
 | superseded plans | `open_harness_os_freeze_plan.md`, `journal_package_builtins_upgrade_plan.md`, `research_foundry_medical_mainline.md`, `research_foundry_medical_execution_map.md` |
 | activation / cutover boards | `integration_harness_activation_package.md`, `hermes_backend_activation_package.md`, `hermes_backend_continuation_board.md`, `upstream_hermes_agent_fast_cutover_board.md` |
+| capability history | `docs/history/capabilities/medical-display/medical_display_arsenal_history.md`, `medical_display_family_baseline_program.md`, `medical_display_g_pathway_integrated_composite_owner_brief.md`, `paperplothub_exemplar_intake.md`, `paperplothub_exemplar_exhaustion_ledger.md` |
+| process drafts | `docs/history/superpowers/plans/`, `docs/history/superpowers/specs/` |
 
 If code or behavior tests still reference a narrative docs path, treat that as a migration bug: retire the machine path dependency first, replace it with a stable ref or durable surface, then archive the narrative file when links are reviewed.
 
@@ -81,9 +83,9 @@ The next cleanup waves should be explicit and small:
 | --- | --- | --- |
 | `docs/program/` remaining historical boards | move remaining intake / closeout files to history | update inbound links and any code/test refs first |
 | `docs/runtime/` implementation plans | move landed implementation plans to `history/runtime/` | verify corresponding runtime contract is active and implementation is landed |
-| `docs/capabilities/medical-display/` | create capability portfolio and archive old exemplar/intake records | preserve active display platform and audit contracts |
+| `docs/capabilities/medical-display/` | continue through `medical_display_portfolio_consolidation.md` | preserve active display platform and audit contracts |
 | `docs/references/` positioning docs | merge superseded positioning docs into fewer reference entries | avoid losing historical naming rationale |
-| `docs/superpowers/` if present | move tracked legacy process drafts under `history/superpowers/` | do not track new local process drafts |
+| `docs/history/superpowers/` | keep as historical archive only | do not track new local process drafts |
 
 ## Archive Rule
 
