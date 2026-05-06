@@ -50,6 +50,28 @@ def medical_writing_quality_surface_status(*, study_root: Path) -> dict[str, Any
         if review_payload is not None
         else {}
     )
+    corpus_currentness = _mapping_copy((corpus_payload or {}).get("style_currentness"))
+    request_currentness = _mapping_copy((request_payload or {}).get("request_currentness"))
+    request_style_currentness = _mapping_copy((request_payload or {}).get("style_currentness"))
+    review_style_currentness = _mapping_copy((review_payload or {}).get("style_currentness"))
+    corpus_style_current = (
+        bool(corpus_payload and corpus_payload.get("surface") == "medical_journal_style_corpus")
+        and corpus_currentness.get("status") == "current"
+        and _non_empty_text((corpus_payload or {}).get("style_version")) is not None
+        and _non_empty_text((corpus_payload or {}).get("style_digest")) is not None
+    )
+    request_style_current = (
+        bool(request_payload and request_payload.get("surface") == "medical_prose_review_request")
+        and request_currentness.get("status") == "current"
+        and request_style_currentness.get("status") == "current"
+        and _non_empty_text((request_payload or {}).get("request_digest")) is not None
+        and _non_empty_text(request_style_currentness.get("style_digest")) is not None
+    )
+    review_style_current = (
+        bool(review_payload and review_payload.get("surface") == "medical_prose_review")
+        and review_style_currentness.get("status") == "current"
+        and _non_empty_text(review_style_currentness.get("style_digest")) is not None
+    )
     retrospective_samples = (
         list(retrospective_audit_payload.get("samples") or [])
         if isinstance(retrospective_audit_payload, dict)
@@ -65,15 +87,22 @@ def medical_writing_quality_surface_status(*, study_root: Path) -> dict[str, Any
         },
         "style_corpus": {
             "present": style_corpus_path.exists(),
-            "valid": bool(corpus_payload and corpus_payload.get("surface") == "medical_journal_style_corpus"),
+            "valid": corpus_style_current,
             "path": str(style_corpus_path),
             "corpus_id": _non_empty_text((corpus_payload or {}).get("corpus_id")),
+            "style_version": _non_empty_text((corpus_payload or {}).get("style_version")),
+            "style_digest": _non_empty_text((corpus_payload or {}).get("style_digest")),
+            "currentness_status": _non_empty_text(corpus_currentness.get("status")),
         },
         "prose_review_request": {
             "present": prose_review_request_path.exists(),
-            "valid": bool(request_payload and request_payload.get("surface") == "medical_prose_review_request"),
+            "valid": request_style_current,
             "path": str(prose_review_request_path),
             "review_owner": _non_empty_text((request_payload or {}).get("review_owner")),
+            "request_digest": _non_empty_text((request_payload or {}).get("request_digest")),
+            "style_version": _non_empty_text(request_style_currentness.get("style_version")),
+            "style_digest": _non_empty_text(request_style_currentness.get("style_digest")),
+            "currentness_status": _non_empty_text(request_currentness.get("status")),
         },
         "prose_review": {
             "present": prose_review_path.exists(),
@@ -81,11 +110,16 @@ def medical_writing_quality_surface_status(*, study_root: Path) -> dict[str, Any
                 review_payload
                 and review_payload.get("surface") == "medical_prose_review"
                 and review_provenance.get("owner") == "ai_reviewer"
+                and review_style_current
             ),
             "path": str(prose_review_path),
             "owner": _non_empty_text(review_provenance.get("owner")),
             "verdict": _non_empty_text(review_quality.get("overall_style_verdict")),
             "summary": _non_empty_text(review_quality.get("summary")),
+            "request_digest": _non_empty_text(review_provenance.get("request_digest")),
+            "style_version": _non_empty_text(review_style_currentness.get("style_version")),
+            "style_digest": _non_empty_text(review_style_currentness.get("style_digest")),
+            "currentness_status": _non_empty_text(review_style_currentness.get("status")),
         },
         "target_journal_context": {
             "present": target_journal_path.exists(),

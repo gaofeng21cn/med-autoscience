@@ -155,6 +155,7 @@ def test_submission_delivery_manifest_and_status_expose_authority_handshake_sign
 
     delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
     assert delivery_manifest["authority_source_signature"] == manifest["source_signature"]
+
 def test_sync_study_delivery_for_submission_minimal_mirrors_review_ledger(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)

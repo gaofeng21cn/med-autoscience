@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping
 
 __all__ = [
+    "CURRENT_MEDICAL_JOURNAL_STYLE_VERSION",
+    "MEDICAL_JOURNAL_STYLE_SOURCE_SET_ID",
     "STABLE_MEDICAL_JOURNAL_STYLE_CORPUS_RELATIVE_PATH",
     "build_medical_journal_style_corpus",
+    "compute_medical_journal_style_digest",
+    "ensure_current_medical_journal_style_corpus",
     "materialize_medical_journal_style_corpus",
     "read_medical_journal_style_corpus",
     "resolve_medical_journal_style_corpus_ref",
@@ -16,11 +21,31 @@ __all__ = [
 
 
 STABLE_MEDICAL_JOURNAL_STYLE_CORPUS_RELATIVE_PATH = Path("paper/medical_journal_style_corpus.json")
+CURRENT_MEDICAL_JOURNAL_STYLE_VERSION = "medical_journal_prose_style_v2"
+MEDICAL_JOURNAL_STYLE_SOURCE_SET_ID = "general_medical_journal_style_source_set_v1"
+STYLE_CURRENTNESS_POLICY_ID = "medical_journal_style_currentness_v1"
 
 _REQUIRED_TOP_LEVEL_FIELDS = (
     "schema_version",
     "surface",
     "corpus_id",
+    "style_version",
+    "source_set_id",
+    "style_digest",
+    "style_currentness",
+    "style_profile",
+    "source_refs",
+    "principles",
+    "rhetorical_moves",
+    "reviewer_questions",
+    "copyright_boundary",
+)
+_STYLE_DIGEST_FIELDS = (
+    "schema_version",
+    "surface",
+    "corpus_id",
+    "style_version",
+    "source_set_id",
     "style_profile",
     "source_refs",
     "principles",
@@ -61,11 +86,49 @@ def _non_empty_sequence(value: object) -> bool:
     return isinstance(value, list) and any(_text(item) or isinstance(item, Mapping) for item in value)
 
 
-def build_medical_journal_style_corpus() -> dict[str, Any]:
+def _canonical_json(payload: Mapping[str, Any]) -> bytes:
+    return json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def compute_medical_journal_style_digest(payload: Mapping[str, Any]) -> str:
+    digest_payload = {field: payload.get(field) for field in _STYLE_DIGEST_FIELDS}
+    return f"sha256:{hashlib.sha256(_canonical_json(digest_payload)).hexdigest()}"
+
+
+def _style_currentness_block(*, style_digest: str) -> dict[str, Any]:
     return {
+        "status": "current",
+        "currentness_policy_id": STYLE_CURRENTNESS_POLICY_ID,
+        "style_version": CURRENT_MEDICAL_JOURNAL_STYLE_VERSION,
+        "current_style_version": CURRENT_MEDICAL_JOURNAL_STYLE_VERSION,
+        "style_digest": style_digest,
+        "current_style_digest": style_digest,
+    }
+
+
+def _with_materialized_currentness(payload: Mapping[str, Any]) -> dict[str, Any]:
+    normalized = dict(payload)
+    normalized.setdefault("style_version", CURRENT_MEDICAL_JOURNAL_STYLE_VERSION)
+    normalized.setdefault("source_set_id", MEDICAL_JOURNAL_STYLE_SOURCE_SET_ID)
+    style_digest = _text(normalized.get("style_digest")) or compute_medical_journal_style_digest(normalized)
+    normalized.setdefault("style_digest", style_digest)
+    if not isinstance(normalized.get("style_currentness"), Mapping):
+        normalized["style_currentness"] = _style_currentness_block(style_digest=style_digest)
+    return normalized
+
+
+def build_medical_journal_style_corpus() -> dict[str, Any]:
+    payload = {
         "schema_version": 1,
         "surface": "medical_journal_style_corpus",
         "corpus_id": "general_medical_journal_style_corpus_v1",
+        "style_version": CURRENT_MEDICAL_JOURNAL_STYLE_VERSION,
+        "source_set_id": MEDICAL_JOURNAL_STYLE_SOURCE_SET_ID,
         "style_profile": {
             "target_voice": "neutral_clinical_original_research",
             "target_reader": ["clinician_researcher", "statistical_reviewer", "journal_editor"],
@@ -163,6 +226,7 @@ def build_medical_journal_style_corpus() -> dict[str, Any]:
             "writer_instruction": "Use the corpus to learn voice, rhythm, and reviewer questions; do not copy source text.",
         },
     }
+    return _with_materialized_currentness(payload)
 
 
 def validate_medical_journal_style_corpus(payload: object) -> list[str]:
@@ -177,6 +241,10 @@ def validate_medical_journal_style_corpus(payload: object) -> list[str]:
         return ["surface must be medical_journal_style_corpus"]
     if _text(payload.get("corpus_id")) != "general_medical_journal_style_corpus_v1":
         return ["corpus_id must be general_medical_journal_style_corpus_v1"]
+    if _text(payload.get("style_version")) != CURRENT_MEDICAL_JOURNAL_STYLE_VERSION:
+        return [f"style_version must be {CURRENT_MEDICAL_JOURNAL_STYLE_VERSION}"]
+    if _text(payload.get("source_set_id")) != MEDICAL_JOURNAL_STYLE_SOURCE_SET_ID:
+        return [f"source_set_id must be {MEDICAL_JOURNAL_STYLE_SOURCE_SET_ID}"]
     style_profile = payload.get("style_profile")
     if not isinstance(style_profile, Mapping) or not _text(style_profile.get("target_voice")):
         return ["style_profile.target_voice must be non-empty"]
@@ -196,6 +264,24 @@ def validate_medical_journal_style_corpus(payload: object) -> list[str]:
     boundary = payload.get("copyright_boundary")
     if not isinstance(boundary, Mapping) or boundary.get("long_excerpts_allowed") is not False:
         return ["copyright_boundary.long_excerpts_allowed must be false"]
+    expected_digest = compute_medical_journal_style_digest(payload)
+    if _text(payload.get("style_digest")) != expected_digest:
+        return ["style_digest must match the current style corpus content"]
+    currentness = payload.get("style_currentness")
+    if not isinstance(currentness, Mapping):
+        return ["style_currentness must be an object"]
+    if currentness.get("status") != "current":
+        return ["style_currentness.status must be current"]
+    if currentness.get("currentness_policy_id") != STYLE_CURRENTNESS_POLICY_ID:
+        return [f"style_currentness.currentness_policy_id must be {STYLE_CURRENTNESS_POLICY_ID}"]
+    if _text(currentness.get("style_version")) != CURRENT_MEDICAL_JOURNAL_STYLE_VERSION:
+        return [f"style_currentness.style_version must be {CURRENT_MEDICAL_JOURNAL_STYLE_VERSION}"]
+    if _text(currentness.get("current_style_version")) != CURRENT_MEDICAL_JOURNAL_STYLE_VERSION:
+        return [f"style_currentness.current_style_version must be {CURRENT_MEDICAL_JOURNAL_STYLE_VERSION}"]
+    if _text(currentness.get("style_digest")) != expected_digest:
+        return ["style_currentness.style_digest must match style_digest"]
+    if _text(currentness.get("current_style_digest")) != expected_digest:
+        return ["style_currentness.current_style_digest must match style_digest"]
     return []
 
 
@@ -212,12 +298,27 @@ def read_medical_journal_style_corpus(
     return dict(payload)
 
 
+def ensure_current_medical_journal_style_corpus(*, study_root: Path) -> dict[str, Any]:
+    path = stable_medical_journal_style_corpus_path(study_root=study_root)
+    if path.exists():
+        try:
+            return read_medical_journal_style_corpus(study_root=study_root)
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            pass
+    materialize_medical_journal_style_corpus(study_root=study_root)
+    return read_medical_journal_style_corpus(study_root=study_root)
+
+
 def materialize_medical_journal_style_corpus(
     *,
     study_root: Path,
     payload: Mapping[str, Any] | None = None,
 ) -> dict[str, str]:
-    resolved_payload = dict(payload) if isinstance(payload, Mapping) else build_medical_journal_style_corpus()
+    resolved_payload = (
+        _with_materialized_currentness(payload)
+        if isinstance(payload, Mapping)
+        else build_medical_journal_style_corpus()
+    )
     errors = validate_medical_journal_style_corpus(resolved_payload)
     if errors:
         raise ValueError(f"medical journal style corpus is invalid: {'; '.join(errors)}")

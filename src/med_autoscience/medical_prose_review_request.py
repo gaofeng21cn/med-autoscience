@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.medical_journal_style_corpus import (
-    materialize_medical_journal_style_corpus,
-    read_medical_journal_style_corpus,
+    ensure_current_medical_journal_style_corpus,
     stable_medical_journal_style_corpus_path,
 )
 from med_autoscience.medical_manuscript_blueprint import (
@@ -21,6 +21,7 @@ from med_autoscience.medical_prose_review import (
 __all__ = [
     "STABLE_MEDICAL_PROSE_REVIEW_REQUEST_RELATIVE_PATH",
     "build_medical_prose_review_request",
+    "compute_medical_prose_review_request_digest",
     "materialize_ai_medical_prose_review_from_response",
     "materialize_medical_prose_review_request",
     "read_medical_prose_review_request",
@@ -37,9 +38,12 @@ _REQUIRED_TOP_LEVEL_FIELDS = (
     "schema_version",
     "surface",
     "request_id",
+    "request_digest",
+    "request_currentness",
     "review_owner",
     "review_policy_id",
     "required_inputs",
+    "style_currentness",
     "style_corpus",
     "blueprint",
     "manuscript",
@@ -57,6 +61,7 @@ _RESPONSE_REQUIRED_FIELDS = (
     "representative_rewrites",
     "route_back_recommendation",
 )
+_REQUEST_DIGEST_EXCLUDED_KEYS = frozenset({"request_digest", "request_currentness"})
 
 
 def stable_medical_prose_review_request_path(*, study_root: Path) -> Path:
@@ -101,6 +106,24 @@ def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
+def _canonical_json(payload: Mapping[str, Any]) -> bytes:
+    return json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def compute_medical_prose_review_request_digest(payload: Mapping[str, Any]) -> str:
+    digest_payload = {
+        key: value
+        for key, value in payload.items()
+        if key not in _REQUEST_DIGEST_EXCLUDED_KEYS
+    }
+    return f"sha256:{hashlib.sha256(_canonical_json(digest_payload)).hexdigest()}"
+
+
 def _existing_input_refs(*, study_root: Path, paper_root: Path, manuscript_path: Path) -> dict[str, str]:
     refs: dict[str, str] = {}
     candidates = {
@@ -135,9 +158,7 @@ def build_medical_prose_review_request(
     )
     blueprint = read_medical_manuscript_blueprint(study_root=resolved_study_root)
     corpus_path = stable_medical_journal_style_corpus_path(study_root=resolved_study_root)
-    if not corpus_path.exists():
-        materialize_medical_journal_style_corpus(study_root=resolved_study_root)
-    style_corpus = read_medical_journal_style_corpus(study_root=resolved_study_root)
+    style_corpus = ensure_current_medical_journal_style_corpus(study_root=resolved_study_root)
     claim_evidence_map = _read_json(resolved_paper_root / "claim_evidence_map.json")
     results_narrative_map = _read_json(resolved_paper_root / "results_narrative_map.json")
     figure_semantics = _read_json(resolved_paper_root / "figure_semantics_manifest.json")
@@ -148,7 +169,17 @@ def build_medical_prose_review_request(
         paper_root=resolved_paper_root,
         manuscript_path=resolved_manuscript_path,
     )
-    return {
+    style_digest = str(style_corpus["style_digest"])
+    style_currentness = {
+        "status": "current",
+        "style_corpus_ref": str(corpus_path),
+        "corpus_id": style_corpus["corpus_id"],
+        "style_version": style_corpus["style_version"],
+        "source_set_id": style_corpus["source_set_id"],
+        "style_digest": style_digest,
+        "style_corpus_currentness": dict(style_corpus["style_currentness"]),
+    }
+    payload: dict[str, Any] = {
         "schema_version": 1,
         "surface": "medical_prose_review_request",
         "request_id": f"medical-prose-review::{resolved_study_root.name}::latest",
@@ -156,8 +187,12 @@ def build_medical_prose_review_request(
         "review_owner": "ai_reviewer",
         "review_policy_id": "medical_publication_critique_v1",
         "required_inputs": required_inputs,
+        "style_currentness": style_currentness,
         "style_corpus": {
             "corpus_id": style_corpus["corpus_id"],
+            "style_version": style_corpus["style_version"],
+            "source_set_id": style_corpus["source_set_id"],
+            "style_digest": style_digest,
             "target_voice": style_corpus["style_profile"]["target_voice"],
             "source_refs": style_corpus["source_refs"],
             "principles": style_corpus["principles"],
@@ -198,6 +233,16 @@ def build_medical_prose_review_request(
             "mechanical_flags_role": "evidence_snippets_only",
         },
     }
+    request_digest = compute_medical_prose_review_request_digest(payload)
+    payload["request_digest"] = request_digest
+    payload["request_currentness"] = {
+        "status": "current",
+        "currentness_policy_id": "medical_prose_review_request_currentness_v1",
+        "request_digest": request_digest,
+        "style_version": style_currentness["style_version"],
+        "style_digest": style_digest,
+    }
+    return payload
 
 
 def validate_medical_prose_review_request(payload: object) -> list[str]:
@@ -214,15 +259,46 @@ def validate_medical_prose_review_request(payload: object) -> list[str]:
         return ["review_owner must be ai_reviewer"]
     if payload.get("review_policy_id") != "medical_publication_critique_v1":
         return ["review_policy_id must be medical_publication_critique_v1"]
+    expected_request_digest = compute_medical_prose_review_request_digest(payload)
+    if _text(payload.get("request_digest")) != expected_request_digest:
+        return ["request_digest must match the medical prose review request content"]
+    request_currentness = payload.get("request_currentness")
+    if not isinstance(request_currentness, Mapping):
+        return ["request_currentness must be an object"]
+    if request_currentness.get("status") != "current":
+        return ["request_currentness.status must be current"]
+    if request_currentness.get("currentness_policy_id") != "medical_prose_review_request_currentness_v1":
+        return ["request_currentness.currentness_policy_id must be medical_prose_review_request_currentness_v1"]
+    if _text(request_currentness.get("request_digest")) != expected_request_digest:
+        return ["request_currentness.request_digest must match request_digest"]
     required_inputs = payload.get("required_inputs")
     if not isinstance(required_inputs, Mapping):
         return ["required_inputs must be an object"]
     for key in ("manuscript_ref", "medical_manuscript_blueprint_ref", "medical_journal_style_corpus_ref"):
         if not _text(required_inputs.get(key)):
             return [f"required_inputs.{key} must be non-empty"]
+    style_currentness = payload.get("style_currentness")
+    if not isinstance(style_currentness, Mapping):
+        return ["style_currentness must be an object"]
+    if style_currentness.get("status") != "current":
+        return ["style_currentness.status must be current"]
+    style_version = _text(style_currentness.get("style_version"))
+    style_digest = _text(style_currentness.get("style_digest"))
+    if not style_version:
+        return ["style_currentness.style_version must be non-empty"]
+    if not style_digest:
+        return ["style_currentness.style_digest must be non-empty"]
     style_corpus = payload.get("style_corpus")
     if not isinstance(style_corpus, Mapping) or _text(style_corpus.get("corpus_id")) != "general_medical_journal_style_corpus_v1":
         return ["style_corpus.corpus_id must be general_medical_journal_style_corpus_v1"]
+    if _text(style_corpus.get("style_version")) != style_version:
+        return ["style_corpus.style_version must match style_currentness.style_version"]
+    if _text(style_corpus.get("style_digest")) != style_digest:
+        return ["style_corpus.style_digest must match style_currentness.style_digest"]
+    if _text(request_currentness.get("style_version")) != style_version:
+        return ["request_currentness.style_version must match style_currentness.style_version"]
+    if _text(request_currentness.get("style_digest")) != style_digest:
+        return ["request_currentness.style_digest must match style_currentness.style_digest"]
     blueprint = payload.get("blueprint")
     if not isinstance(blueprint, Mapping) or not _text(blueprint.get("clinical_problem")):
         return ["blueprint.clinical_problem must be non-empty"]
@@ -320,6 +396,8 @@ def materialize_ai_medical_prose_review_from_response(
     if errors:
         raise ValueError(f"AI medical prose review response is invalid: {'; '.join(errors)}")
     route_back = dict(response_payload.get("route_back_recommendation") or {})
+    request_digest = _text(request.get("request_digest")) or compute_medical_prose_review_request_digest(request)
+    style_currentness = dict(request.get("style_currentness") or {})
     source_refs = [
         ref
         for ref in [
@@ -337,7 +415,10 @@ def materialize_ai_medical_prose_review_from_response(
             "policy_id": "medical_publication_critique_v1",
             "ai_reviewer_required": False,
             "request_ref": str(stable_medical_prose_review_request_path(study_root=study_root)),
+            "request_digest": request_digest,
+            "request_currentness": dict(request.get("request_currentness") or {}),
         },
+        "style_currentness": style_currentness,
         "medical_journal_prose_quality": {
             "status": "ready" if response_payload["overall_style_verdict"] == "clear" else "partial"
             if response_payload["overall_style_verdict"] == "revise"

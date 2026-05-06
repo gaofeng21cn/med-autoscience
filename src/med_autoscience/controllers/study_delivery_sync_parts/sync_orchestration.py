@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import shutil
 from pathlib import Path
 from collections.abc import Mapping
@@ -72,7 +71,7 @@ from .delivery_descriptions import (
     _submission_source_signature,
     build_draft_handoff_readme,
 )
-
+from .authority_refs import build_delivery_authority_ref_block
 
 
 def sync_draft_handoff_delivery(
@@ -157,6 +156,7 @@ def sync_draft_handoff_delivery(
             "paper_root": str(paper_root),
         },
         "charter_contract_linkage": charter_contract_linkage,
+        **build_delivery_authority_ref_block(study_root=study_root),
         "surface_roles": build_delivery_surface_roles(
             paper_root=paper_root,
             source_root=paper_root,
@@ -390,6 +390,7 @@ def sync_general_delivery(
             },
             "controller_authorized_doctor_readme": current_package_readme_payload,
             "charter_contract_linkage": charter_contract_linkage,
+            **build_delivery_authority_ref_block(study_root=study_root),
             "surface_roles": build_delivery_surface_roles(
                 paper_root=paper_root,
                 source_root=source_root,
@@ -585,6 +586,7 @@ def sync_journal_specific_delivery(
         },
         "controller_authorized_doctor_readme": current_package_readme_payload,
         "charter_contract_linkage": charter_contract_linkage,
+        **build_delivery_authority_ref_block(study_root=study_root),
         "surface_roles": build_delivery_surface_roles(
             paper_root=paper_root,
             source_root=source_root,
@@ -823,6 +825,7 @@ def sync_promoted_journal_delivery(
         },
         "controller_authorized_doctor_readme": current_package_readme_payload,
         "charter_contract_linkage": charter_contract_linkage,
+        **build_delivery_authority_ref_block(study_root=study_root),
         "surface_roles": build_delivery_surface_roles(
             paper_root=paper_root,
             source_root=source_root,
@@ -879,6 +882,7 @@ def sync_promoted_journal_delivery(
             "package_source_root": str(source_root),
         },
         "charter_contract_linkage": charter_contract_linkage,
+        **build_delivery_authority_ref_block(study_root=study_root),
         "surface_roles": build_delivery_surface_roles(
             paper_root=paper_root,
             source_root=source_root,

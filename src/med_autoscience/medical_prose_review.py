@@ -4,6 +4,11 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.medical_journal_style_corpus import (
+    ensure_current_medical_journal_style_corpus,
+    read_medical_journal_style_corpus,
+    stable_medical_journal_style_corpus_path,
+)
 from med_autoscience.medical_manuscript_blueprint import read_medical_manuscript_blueprint
 from med_autoscience.policies.publication_critique import read_target_journal_writing_layer
 
@@ -25,6 +30,7 @@ _REQUIRED_TOP_LEVEL_FIELDS = (
     "schema_version",
     "surface",
     "assessment_provenance",
+    "style_currentness",
     "medical_journal_prose_quality",
     "mechanical_safety_flags",
     "source_refs",
@@ -84,6 +90,23 @@ def _read_text(path: Path) -> str:
 
 def _source_ref(path: Path) -> str | None:
     return str(path.resolve()) if path.exists() else None
+
+
+def _current_style_currentness(*, study_root: Path, materialize_if_missing: bool = False) -> dict[str, Any]:
+    corpus_path = stable_medical_journal_style_corpus_path(study_root=study_root)
+    if materialize_if_missing:
+        corpus = ensure_current_medical_journal_style_corpus(study_root=study_root)
+    else:
+        corpus = read_medical_journal_style_corpus(study_root=study_root)
+    return {
+        "status": "current",
+        "style_corpus_ref": str(corpus_path),
+        "corpus_id": corpus["corpus_id"],
+        "style_version": corpus["style_version"],
+        "source_set_id": corpus["source_set_id"],
+        "style_digest": corpus["style_digest"],
+        "style_corpus_currentness": dict(corpus["style_currentness"]),
+    }
 
 
 def _target_journal_context(study_root: Path) -> dict[str, Any] | None:
@@ -158,6 +181,10 @@ def build_medical_prose_review(
     for ref in (str(blueprint_path) if blueprint_path.exists() else None,):
         if ref and ref not in source_ref_values:
             source_ref_values.append(ref)
+    style_currentness = _current_style_currentness(study_root=resolved_study_root, materialize_if_missing=True)
+    style_ref = _text(style_currentness.get("style_corpus_ref"))
+    if style_ref and style_ref not in source_ref_values:
+        source_ref_values.append(style_ref)
     if not source_ref_values:
         source_ref_values.append(str(resolved_study_root))
     target_journal_context = _target_journal_context(resolved_study_root)
@@ -174,6 +201,7 @@ def build_medical_prose_review(
             "policy_id": "medical_publication_critique_v1",
             "ai_reviewer_required": False,
         },
+        "style_currentness": style_currentness,
         "medical_journal_prose_quality": _review_quality_from_verdict(
             verdict=normalized_verdict,
             style_diagnosis=style_diagnosis,
@@ -205,6 +233,17 @@ def validate_medical_prose_review(payload: object) -> list[str]:
         return ["assessment_provenance.owner must be ai_reviewer"]
     if provenance.get("ai_reviewer_required") is not False:
         return ["assessment_provenance.ai_reviewer_required must be false"]
+    style_currentness = payload.get("style_currentness")
+    if not isinstance(style_currentness, Mapping):
+        return ["style_currentness must be an object"]
+    if style_currentness.get("status") != "current":
+        return ["style_currentness.status must be current"]
+    if not _text(style_currentness.get("style_corpus_ref")):
+        return ["style_currentness.style_corpus_ref must be non-empty"]
+    if not _text(style_currentness.get("style_version")):
+        return ["style_currentness.style_version must be non-empty"]
+    if not _text(style_currentness.get("style_digest")):
+        return ["style_currentness.style_digest must be non-empty"]
     quality = payload.get("medical_journal_prose_quality")
     if not isinstance(quality, Mapping):
         return ["medical_journal_prose_quality must be an object"]
@@ -225,6 +264,24 @@ def validate_medical_prose_review(payload: object) -> list[str]:
     return []
 
 
+def _validate_review_style_against_current_corpus(
+    payload: Mapping[str, Any],
+    *,
+    study_root: Path,
+) -> list[str]:
+    try:
+        current = _current_style_currentness(study_root=study_root)
+    except (OSError, TypeError, ValueError) as exc:
+        return [f"current style corpus unavailable: {exc}"]
+    style_currentness = payload.get("style_currentness")
+    if not isinstance(style_currentness, Mapping):
+        return ["style_currentness must be an object"]
+    for key in ("style_version", "style_digest"):
+        if _text(style_currentness.get(key)) != _text(current.get(key)):
+            return [f"style_currentness.{key} must match the current style corpus"]
+    return []
+
+
 def read_medical_prose_review(
     *,
     study_root: Path,
@@ -233,6 +290,8 @@ def read_medical_prose_review(
     path = resolve_medical_prose_review_ref(study_root=study_root, ref=ref)
     payload = json.loads(path.read_text(encoding="utf-8")) or {}
     errors = validate_medical_prose_review(payload)
+    if not errors and isinstance(payload, Mapping):
+        errors = _validate_review_style_against_current_corpus(payload, study_root=Path(study_root).expanduser().resolve())
     if errors:
         raise ValueError(f"medical prose review is invalid: {'; '.join(errors)}")
     return dict(payload)
@@ -280,7 +339,14 @@ def materialize_medical_prose_review(
         )
     else:
         resolved_payload = dict(payload)
+        if not isinstance(resolved_payload.get("style_currentness"), Mapping):
+            resolved_payload["style_currentness"] = _current_style_currentness(
+                study_root=resolved_study_root,
+                materialize_if_missing=True,
+            )
     errors = validate_medical_prose_review(resolved_payload)
+    if not errors:
+        errors = _validate_review_style_against_current_corpus(resolved_payload, study_root=resolved_study_root)
     if errors:
         raise ValueError(f"medical prose review is invalid: {'; '.join(errors)}")
     path = stable_medical_prose_review_path(study_root=resolved_study_root)

@@ -7,8 +7,7 @@ from typing import Any, Mapping
 from med_autoscience.policies.medical_manuscript_draft_quality import build_medical_prose_style_contract
 from med_autoscience.study_charter import read_study_charter
 from med_autoscience.medical_journal_style_corpus import (
-    materialize_medical_journal_style_corpus,
-    read_medical_journal_style_corpus,
+    ensure_current_medical_journal_style_corpus,
     stable_medical_journal_style_corpus_path,
 )
 
@@ -235,9 +234,7 @@ def build_medical_manuscript_blueprint(
     evidence_ledger_path = resolved_paper_root / "evidence_ledger.json"
     review_ledger_path = resolved_paper_root / "review" / "review_ledger.json"
     style_corpus_path = stable_medical_journal_style_corpus_path(study_root=resolved_study_root)
-    if not style_corpus_path.exists():
-        materialize_medical_journal_style_corpus(study_root=resolved_study_root)
-    style_corpus = read_medical_journal_style_corpus(study_root=resolved_study_root)
+    style_corpus = ensure_current_medical_journal_style_corpus(study_root=resolved_study_root)
     results_narrative = _read_json(results_path)
     claim_evidence_map = _read_json(claim_path)
     figure_semantics = _read_json(figure_semantics_path)
@@ -302,6 +299,8 @@ def build_medical_manuscript_blueprint(
             "style_sources": list(style_contract.get("source_basis") or []),
             "style_corpus_ref": str(style_corpus_path),
             "style_corpus_id": style_corpus["corpus_id"],
+            "style_version": style_corpus["style_version"],
+            "style_digest": style_corpus["style_digest"],
         },
         "source_refs": source_refs,
     }

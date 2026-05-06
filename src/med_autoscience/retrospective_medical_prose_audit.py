@@ -5,8 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.medical_journal_style_corpus import (
-    materialize_medical_journal_style_corpus,
-    read_medical_journal_style_corpus,
+    ensure_current_medical_journal_style_corpus,
     stable_medical_journal_style_corpus_path,
 )
 
@@ -139,9 +138,7 @@ def build_retrospective_medical_prose_audit_request(
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     corpus_path = stable_medical_journal_style_corpus_path(study_root=resolved_study_root)
-    if not corpus_path.exists():
-        materialize_medical_journal_style_corpus(study_root=resolved_study_root)
-    style_corpus = read_medical_journal_style_corpus(study_root=resolved_study_root)
+    style_corpus = ensure_current_medical_journal_style_corpus(study_root=resolved_study_root)
     resolved_samples: list[dict[str, Any]] = []
     for sample in samples or _default_sample_sources():
         source_ref = _text(sample.get("source_ref"))
@@ -165,6 +162,10 @@ def build_retrospective_medical_prose_audit_request(
         "style_corpus_ref": str(corpus_path),
         "style_corpus": {
             "corpus_id": style_corpus["corpus_id"],
+            "style_version": style_corpus["style_version"],
+            "source_set_id": style_corpus["source_set_id"],
+            "style_digest": style_corpus["style_digest"],
+            "style_currentness": dict(style_corpus["style_currentness"]),
             "principles": style_corpus["principles"],
             "reviewer_questions": style_corpus["reviewer_questions"],
         },

@@ -179,7 +179,27 @@ def _write_publication_eval(study_root: Path, *, owner: str = "ai_reviewer") -> 
     _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
 
 
+def _style_currentness(study_root: Path) -> dict[str, Any]:
+    from med_autoscience.medical_journal_style_corpus import (
+        materialize_medical_journal_style_corpus,
+        read_medical_journal_style_corpus,
+    )
+
+    materialize_medical_journal_style_corpus(study_root=study_root)
+    corpus = read_medical_journal_style_corpus(study_root=study_root)
+    return {
+        "status": "current",
+        "style_corpus_ref": str(study_root / "paper" / "medical_journal_style_corpus.json"),
+        "corpus_id": corpus["corpus_id"],
+        "style_version": corpus["style_version"],
+        "source_set_id": corpus["source_set_id"],
+        "style_digest": corpus["style_digest"],
+        "style_corpus_currentness": corpus["style_currentness"],
+    }
+
+
 def _medical_prose_review_payload(study_root: Path, *, route_back_required: bool = False) -> dict[str, Any]:
+    request_digest = "sha256:" + ("a" * 64)
     return {
         "schema_version": 1,
         "surface": "medical_prose_review",
@@ -188,7 +208,9 @@ def _medical_prose_review_payload(study_root: Path, *, route_back_required: bool
             "source_kind": "medical_prose_review",
             "policy_id": "medical_publication_critique_v1",
             "ai_reviewer_required": False,
+            "request_digest": request_digest,
         },
+        "style_currentness": _style_currentness(study_root),
         "medical_journal_prose_quality": {
             "status": "partial" if route_back_required else "ready",
             "overall_style_verdict": "revise" if route_back_required else "clear",

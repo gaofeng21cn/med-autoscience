@@ -87,6 +87,19 @@ def test_review_request_bundles_blueprint_corpus_and_mechanical_evidence_without
     )
     assert payload["review_owner"] == "ai_reviewer"
     assert payload["style_corpus"]["corpus_id"] == "general_medical_journal_style_corpus_v1"
+    assert payload["style_corpus"]["style_version"] == "medical_journal_prose_style_v2"
+    assert payload["style_corpus"]["style_digest"].startswith("sha256:")
+    assert payload["style_currentness"]["status"] == "current"
+    assert payload["style_currentness"]["style_version"] == "medical_journal_prose_style_v2"
+    assert payload["style_currentness"]["style_digest"] == payload["style_corpus"]["style_digest"]
+    assert payload["request_digest"].startswith("sha256:")
+    assert payload["request_currentness"] == {
+        "status": "current",
+        "currentness_policy_id": "medical_prose_review_request_currentness_v1",
+        "request_digest": payload["request_digest"],
+        "style_version": "medical_journal_prose_style_v2",
+        "style_digest": payload["style_corpus"]["style_digest"],
+    }
     assert payload["structured_response_contract"]["mechanical_flags_role"] == "evidence_snippets_only"
     assert payload["mechanical_safety_flags"][0]["flag_id"] == "figure_table_subject_results_sentence"
     assert "Figure 1 shows" in payload["manuscript"]["text"]
@@ -130,6 +143,10 @@ def test_ai_response_materializes_ai_owned_prose_review(tmp_path: Path) -> None:
     assert result["artifact_path"].endswith("medical_prose_review.json")
     assert review["assessment_provenance"]["owner"] == "ai_reviewer"
     assert review["assessment_provenance"]["request_ref"].endswith("medical_prose_review_request.json")
+    assert review["assessment_provenance"]["request_digest"].startswith("sha256:")
+    assert review["style_currentness"]["status"] == "current"
+    assert review["style_currentness"]["style_version"] == "medical_journal_prose_style_v2"
+    assert review["style_currentness"]["style_digest"].startswith("sha256:")
     assert review["medical_journal_prose_quality"]["overall_style_verdict"] == "revise"
     assert review["medical_journal_prose_quality"]["route_back_recommendation"]["route_target"] == "write"
 
