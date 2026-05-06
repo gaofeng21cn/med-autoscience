@@ -135,6 +135,87 @@ def test_build_quality_repair_batch_action_for_general_quality_repair_lane(tmp_p
     )
 
 
+def test_build_quality_repair_batch_action_allows_upstream_quality_repair_when_bundle_tasks_are_downstream(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
+    _write_quality_summary(study_root)
+    gate_report = {
+        "status": "blocked",
+        "blockers": [
+            "medical_publication_surface_blocked",
+            "claim_evidence_consistency_failed",
+            "stale_submission_minimal_authority",
+        ],
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_named_blockers": [
+            "claim_evidence_map_missing_or_incomplete",
+        ],
+        "bundle_tasks_downstream_only": True,
+    }
+
+    action = module.build_quality_repair_batch_recommended_action(
+        profile=profile,
+        study_root=study_root,
+        quest_id="quest-001",
+        publication_eval_payload=publication_eval_payload,
+        gate_report=gate_report,
+    )
+
+    assert action is not None
+    assert action["controller_action_type"] == "run_quality_repair_batch"
+    assert action["route_target"] == "review"
+    assert action["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert action["blocking_work_units"][0]["unit_id"] == "analysis_claim_evidence_repair"
+    assert action["work_unit_fingerprint"].startswith("publication-blockers::")
+    assert action["quality_repair_batch_reason"] == (
+        "quality_closure_truth requires deterministic repair; "
+        "paper-facing display/reporting blockers are deterministic repair candidates"
+    )
+
+
+def test_build_quality_repair_batch_action_does_not_promote_downstream_delivery_only_work_when_bundle_tasks_are_downstream(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
+    _write_quality_summary(study_root)
+    gate_report = {
+        "status": "blocked",
+        "blockers": ["stale_study_delivery_mirror"],
+        "study_delivery_status": "stale_source_changed",
+        "study_delivery_stale_reason": "delivery_manifest_source_changed",
+        "bundle_tasks_downstream_only": True,
+    }
+
+    action = module.build_quality_repair_batch_recommended_action(
+        profile=profile,
+        study_root=study_root,
+        quest_id="quest-001",
+        publication_eval_payload=publication_eval_payload,
+        gate_report=gate_report,
+    )
+
+    assert action is None
+
+
 def test_quality_repair_batch_builds_controller_route_for_submission_minimal_refresh() -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
 

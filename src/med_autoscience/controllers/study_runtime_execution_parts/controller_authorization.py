@@ -29,6 +29,12 @@ _CONTROLLER_DECISION_AUTHORIZATION_WAIT_ALLOWED_ACTIONS = {
 _CONTROLLER_DECISION_AUTHORIZATION_WAIT_RECOVERY_ACTIONS = {
     "ensure_study_runtime_relaunch_stopped",
 }
+_QUALITY_REPAIR_DOWNSTREAM_WORK_UNIT_IDS = {
+    "publication_gate_replay",
+    "submission_authority_sync_closure",
+    "submission_delivery_sync_closure",
+    "submission_minimal_refresh",
+}
 _CONTROL_INTENT_LIFECYCLE_STATE_KEY = "control_intent_lifecycle"
 _LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY = "last_live_controller_reroute_restart"
 _ROUTE_TARGET_LABELS = {
@@ -534,11 +540,41 @@ def _controller_decision_authorization_allowed_while_waiting(
     if controller_actions & _CONTROLLER_DECISION_AUTHORIZATION_WAIT_ALLOWED_ACTIONS:
         return True
     if (
+        "run_quality_repair_batch" in controller_actions
+        and _quality_repair_authorization_has_current_work_unit(
+            status=status,
+            authorization_context=authorization_context,
+        )
+    ):
+        return True
+    if (
         status.decision is StudyRuntimeDecision.RELAUNCH_STOPPED
         and controller_actions & _CONTROLLER_DECISION_AUTHORIZATION_WAIT_RECOVERY_ACTIONS
     ):
         return True
     return False
+
+
+def _quality_repair_authorization_has_current_work_unit(
+    *,
+    status: StudyRuntimeStatus,
+    authorization_context: dict[str, Any],
+) -> bool:
+    next_work_unit = authorization_context.get("next_work_unit")
+    if not isinstance(next_work_unit, dict):
+        return False
+    unit_id = _text(next_work_unit.get("unit_id"))
+    work_unit_fingerprint = _text(authorization_context.get("work_unit_fingerprint"))
+    if unit_id is None or work_unit_fingerprint is None:
+        return False
+    supervisor_payload = status.extras.get("publication_supervisor_state")
+    if (
+        isinstance(supervisor_payload, dict)
+        and bool(supervisor_payload.get("bundle_tasks_downstream_only"))
+        and unit_id in _QUALITY_REPAIR_DOWNSTREAM_WORK_UNIT_IDS
+    ):
+        return False
+    return True
 
 
 def _relay_controller_decision_authorization_if_required(

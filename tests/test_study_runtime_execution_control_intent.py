@@ -311,6 +311,17 @@ def test_execute_noop_runtime_decision_allows_gate_replay_while_awaiting_artifac
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
     status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status.record_publication_supervisor_state(
+        {
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": ["submission_minimal_refresh"],
+            "controller_stage_note": "bundle/build/proofing remains downstream of upstream quality repair.",
+        }
+    )
     chats: list[dict[str, object]] = []
 
     class FakeBackend:
@@ -332,6 +343,109 @@ def test_execute_noop_runtime_decision_allows_gate_replay_while_awaiting_artifac
     assert len(chats) == 1
     assert "run_gate_clearing_batch" in str(chats[0]["text"])
     assert status.to_dict()["controller_decision_authorization_relay"]["message_id"] == "msg-gate-replay-001"
+
+
+def test_execute_noop_runtime_decision_allows_quality_repair_while_awaiting_artifact_delta(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    _write_controller_decision_authorization(study_root, action_type="run_quality_repair_batch")
+    _write_publication_eval_work_unit_authority(study_root)
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-live-001",
+            "pending_user_message_count": 0,
+            "same_fingerprint_auto_turn_count": 4,
+            "control_intent_lifecycle": {
+                "state": "await_artifact_delta_or_gate_replay",
+                "control_intent_key": authorization_context["control_intent_key"],
+            },
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    chats: list[dict[str, object]] = []
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            chats.append({"quest_id": quest_id, "text": text, "source": source})
+            return {"ok": True, "message": {"id": "msg-quality-repair-001"}}
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert len(chats) == 1
+    assert "run_quality_repair_batch" in str(chats[0]["text"])
+    assert status.to_dict()["controller_decision_authorization_relay"]["message_id"] == "msg-quality-repair-001"
+
+
+def test_execute_noop_runtime_decision_defers_quality_repair_without_current_work_unit(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    _write_controller_decision_authorization(study_root, action_type="run_quality_repair_batch")
+    _write_publication_eval_authority(study_root)
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-live-001",
+            "pending_user_message_count": 0,
+            "same_fingerprint_auto_turn_count": 4,
+            "control_intent_lifecycle": {
+                "state": "await_artifact_delta_or_gate_replay",
+                "control_intent_key": authorization_context["control_intent_key"],
+            },
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("quality repair authorization without a current work unit must wait")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    deferred = status.to_dict()["controller_decision_authorization_deferred"]
+    assert deferred["reason"] == "await_artifact_delta_or_gate_replay"
 
 
 def test_relayed_controller_authorization_marker_includes_lifecycle_projection(

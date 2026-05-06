@@ -488,6 +488,15 @@ def _autonomous_controller_action_type_for_runtime_status(status_payload: dict[s
     return StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value
 
 
+def _quality_repair_batch_preempts_task_intake(batch_action: dict[str, Any] | None) -> bool:
+    if not isinstance(batch_action, dict):
+        return False
+    return (
+        str(batch_action.get("controller_action_type") or "").strip()
+        == StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
+    )
+
+
 def build_runtime_watch_outer_loop_tick_request(
     *,
     study_root: Path,
@@ -546,7 +555,8 @@ def build_runtime_watch_outer_loop_tick_request(
         )
         batch_action = None
         startup_freshness_gate = startup_freshness_requires_gate_clearing(status_payload)
-        if profile is not None and (task_intake_action is None or startup_freshness_gate):
+        gate_is_blocked = str(gate_report.get("status") or "").strip() == "blocked"
+        if profile is not None and (task_intake_action is None or startup_freshness_gate or gate_is_blocked):
             batch_action = quality_repair_batch.build_quality_repair_batch_recommended_action(
                 profile=profile,
                 study_root=resolved_study_root,
@@ -554,7 +564,7 @@ def build_runtime_watch_outer_loop_tick_request(
                 publication_eval_payload=publication_eval_payload,
                 gate_report=gate_report,
             )
-            if batch_action is None:
+            if batch_action is None and (task_intake_action is None or startup_freshness_gate):
                 batch_action = gate_clearing_batch.build_gate_clearing_batch_recommended_action(
                     profile=profile,
                     study_root=resolved_study_root,
@@ -566,9 +576,11 @@ def build_runtime_watch_outer_loop_tick_request(
         if gate_clearing_preempts_task_intake(
             status_payload=status_payload,
             batch_action=batch_action,
-        ):
+        ) or _quality_repair_batch_preempts_task_intake(batch_action):
             task_intake_action = None
         if startup_freshness_gate and batch_action is not None:
+            recommended_action = batch_action
+        elif _quality_repair_batch_preempts_task_intake(batch_action):
             recommended_action = batch_action
         else:
             recommended_action = (

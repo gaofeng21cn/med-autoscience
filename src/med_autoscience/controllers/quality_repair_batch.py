@@ -7,6 +7,7 @@ from typing import Any, Mapping
 from med_autoscience.controllers import gate_clearing_batch
 from med_autoscience.controllers import gate_clearing_batch_blockers
 from med_autoscience.controllers import gate_clearing_batch_currentness
+from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.control_plane_route_gate import assert_control_plane_route_authorized
 from med_autoscience.profiles import WorkspaceProfile
@@ -90,6 +91,7 @@ def _repair_candidates(
     study_root: Path,
     quest_id: str,
     gate_report: Mapping[str, Any],
+    include_downstream_delivery: bool = True,
 ) -> list[str]:
     candidates: list[str] = []
     quest_root = profile.med_deepscientist_runtime_root / "quests" / quest_id
@@ -101,7 +103,7 @@ def _repair_candidates(
         candidates.append("scientific-anchor fields can be frozen from bounded-analysis output")
     if _repairable_medical_surface(gate_report):
         candidates.append("paper-facing display/reporting blockers are deterministic repair candidates")
-    if "stale_study_delivery_mirror" in _gate_blockers(gate_report):
+    if include_downstream_delivery and "stale_study_delivery_mirror" in _gate_blockers(gate_report):
         candidates.append("study delivery mirror is stale but repairable through controller-owned replay")
     return candidates
 
@@ -185,8 +187,6 @@ def build_quality_repair_batch_recommended_action(
         return None
     if _non_empty_text(gate_report.get("status")) != "blocked":
         return None
-    if bool(gate_report.get("bundle_tasks_downstream_only")):
-        return None
 
     resolved_study_root = Path(study_root).expanduser().resolve()
     summary_payload = _read_quality_summary(study_root=resolved_study_root)
@@ -209,10 +209,12 @@ def build_quality_repair_batch_recommended_action(
         study_root=resolved_study_root,
         quest_id=quest_id,
         gate_report=gate_report,
+        include_downstream_delivery=not bool(gate_report.get("bundle_tasks_downstream_only")),
     )
     if not candidates:
         return None
 
+    publication_work_unit_payload = publication_work_units.derive_publication_work_units(gate_report)
     quality_closure_truth, quality_execution_lane = _quality_repair_context(summary_payload)
     route_target = (
         _non_empty_text(quality_execution_lane.get("route_target"))
@@ -239,6 +241,11 @@ def build_quality_repair_batch_recommended_action(
         "requires_controller_decision": True,
         "controller_action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
         "quality_repair_batch_reason": "; ".join(reason_bits),
+        "work_unit_fingerprint": publication_work_unit_payload.get("fingerprint"),
+        "gate_fingerprint": gate_report.get("gate_fingerprint"),
+        "blocking_artifact_refs": gate_report.get("blocking_artifact_refs") or [],
+        "blocking_work_units": publication_work_unit_payload.get("blocking_work_units") or [],
+        "next_work_unit": publication_work_unit_payload.get("next_work_unit"),
     }
 
 
