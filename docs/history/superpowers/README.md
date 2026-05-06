@@ -11,9 +11,9 @@ repo document.
 
 Current repo work should start from:
 
-- [Docs guide](../README.md)
-- [Documentation portfolio consolidation](../docs_portfolio_consolidation.md)
-- [Program portfolio consolidation](../program/program_portfolio_consolidation.md)
+- [Docs guide](../../README.md)
+- [Documentation portfolio consolidation](../../docs_portfolio_consolidation.md)
+- [Program portfolio consolidation](../../program/program_portfolio_consolidation.md)
 
 Archived groups:
 
