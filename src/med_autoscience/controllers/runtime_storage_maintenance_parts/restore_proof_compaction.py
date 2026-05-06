@@ -45,22 +45,6 @@ def compact_cold_runtime_buckets(
             "pruned_paths": [],
             "blockers": [],
         }
-    symlink = _first_symlink(existing_sources)
-    if symlink is not None:
-        return {
-            "surface_kind": SURFACE_KIND,
-            "schema_version": SCHEMA_VERSION,
-            "status": "blocked_symlink_in_source_bucket",
-            "quest_id": quest_id,
-            "quest_root": str(resolved_quest_root),
-            "source_buckets": list(selected_buckets),
-            "actual_release_bytes": 0,
-            "archive_ref": None,
-            "restore_proof": None,
-            "pruned_paths": [],
-            "blockers": [{"reason": "symlink_in_source_bucket", "path": str(symlink)}],
-        }
-
     archive_root = ds_root / "restore_proof_archives" / "runtime_bucket_compaction"
     archive_root.mkdir(parents=True, exist_ok=True)
     slug = _artifact_slug(recorded_at)
@@ -218,14 +202,26 @@ def _source_manifest(
 ) -> dict[str, Any]:
     source_files: list[dict[str, Any]] = []
     for source_path in source_paths:
-        for path in sorted(candidate for candidate in source_path.rglob("*") if candidate.is_file()):
-            source_files.append(
-                {
-                    "path": path.relative_to(ds_root).as_posix(),
-                    "size_bytes": path.stat().st_size,
-                    "sha256": _file_sha256(path),
-                }
-            )
+        for path in sorted(source_path.rglob("*")):
+            if path.is_symlink():
+                source_files.append(
+                    {
+                        "path": path.relative_to(ds_root).as_posix(),
+                        "entry_type": "symlink",
+                        "size_bytes": path.lstat().st_size,
+                        "link_target": str(path.readlink()),
+                    }
+                )
+                continue
+            if path.is_file():
+                source_files.append(
+                    {
+                        "path": path.relative_to(ds_root).as_posix(),
+                        "entry_type": "file",
+                        "size_bytes": path.stat().st_size,
+                        "sha256": _file_sha256(path),
+                    }
+                )
     return {
         "surface_kind": "runtime_restore_source_manifest",
         "schema_version": SCHEMA_VERSION,
@@ -258,9 +254,21 @@ def _restore_proof(
                         errors.append({"path": member.name, "reason": "member_not_readable"})
                         continue
                     digest = hashlib.sha256(extracted.read()).hexdigest()
-                    payload = {"path": member.name, "size_bytes": member.size, "sha256": digest}
+                    payload = {
+                        "path": member.name,
+                        "entry_type": "file",
+                        "size_bytes": member.size,
+                        "sha256": digest,
+                    }
                     observed[member.name] = payload
                     file_observations[member.name] = payload
+                    continue
+                if member.issym():
+                    observed[member.name] = {
+                        "path": member.name,
+                        "entry_type": "symlink",
+                        "link_target": member.linkname,
+                    }
                     continue
                 if member.islnk():
                     hardlink_refs.append((member.name, member.linkname, member.size))
@@ -272,6 +280,7 @@ def _restore_proof(
                     continue
                 observed[member_name] = {
                     "path": member_name,
+                    "entry_type": "file",
                     "size_bytes": member_size or int(target.get("size_bytes") or 0),
                     "sha256": target.get("sha256"),
                 }
@@ -282,8 +291,7 @@ def _restore_proof(
     mismatch = [
         path
         for path in sorted(set(expected) & set(observed))
-        if int(expected[path].get("size_bytes") or 0) != int(observed[path].get("size_bytes") or 0)
-        or str(expected[path].get("sha256") or "") != str(observed[path].get("sha256") or "")
+        if _restore_entry_mismatch(expected[path], observed[path])
     ]
     errors.extend({"path": path, "reason": "missing_from_archive"} for path in missing)
     errors.extend({"path": path, "reason": "unexpected_archive_member"} for path in extra)
@@ -298,26 +306,33 @@ def _restore_proof(
         "archive_sha256": archive_sha256,
         "source_file_count": len(expected),
         "verified_file_count": len(observed),
+        "verified_entries": [observed[path] for path in sorted(observed)],
         "errors": errors,
     }
 
 
-def _first_symlink(paths: list[Path]) -> Path | None:
-    for source_path in paths:
-        if source_path.is_symlink():
-            return source_path
-        for path in source_path.rglob("*"):
-            if path.is_symlink():
-                return path
-    return None
+def _restore_entry_mismatch(expected: Mapping[str, Any], observed: Mapping[str, Any]) -> bool:
+    expected_type = str(expected.get("entry_type") or "file")
+    observed_type = str(observed.get("entry_type") or "file")
+    if expected_type != observed_type:
+        return True
+    if expected_type == "symlink":
+        return str(expected.get("link_target") or "") != str(observed.get("link_target") or "")
+    return int(expected.get("size_bytes") or 0) != int(observed.get("size_bytes") or 0) or str(
+        expected.get("sha256") or ""
+    ) != str(observed.get("sha256") or "")
 
 
 def _directory_size_bytes(path: Path) -> int:
+    if path.is_symlink():
+        return path.lstat().st_size
     if path.is_file():
         return path.stat().st_size
     total = 0
     for candidate in path.rglob("*"):
-        if candidate.is_file():
+        if candidate.is_symlink():
+            total += candidate.lstat().st_size
+        elif candidate.is_file():
             total += candidate.stat().st_size
     return total
 

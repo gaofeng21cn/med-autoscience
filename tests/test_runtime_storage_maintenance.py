@@ -715,7 +715,9 @@ def test_maintain_quest_runtime_storage_compacts_legacy_unbound_quest(
     assert Path(result["latest_report_path"]).is_file()
 
 
-def test_audit_workspace_storage_restore_proof_compaction_blocks_symlink_without_prune(tmp_path: Path) -> None:
+def test_audit_workspace_storage_restore_proof_compaction_archives_symlink_without_dereferencing(
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
     profile = make_profile(tmp_path)
     study_id = "004-completed"
@@ -739,10 +741,23 @@ def test_audit_workspace_storage_restore_proof_compaction_blocks_symlink_without
 
     study_report = result["categories"]["runtime"]["studies"][0]
     compaction = study_report["apply_result"]["restore_proof_compaction"]
-    assert study_report["status"] == "audited"
-    assert compaction["status"] == "blocked_symlink_in_source_bucket"
-    assert study_report["actual_runtime_release_bytes"] == 0
-    assert payload.exists()
+    restore_proof = compaction["restore_proof"]
+    manifest = json.loads(Path(compaction["source_manifest_path"]).read_text(encoding="utf-8"))
+    symlink_entry = next(item for item in manifest["source_files"] if item["path"].endswith("outside-link"))
+    proof_entry = next(item for item in restore_proof["verified_entries"] if item["path"].endswith("outside-link"))
+
+    assert study_report["status"] == "applied"
+    assert compaction["status"] == "compacted"
+    assert restore_proof["status"] == "verified"
+    assert symlink_entry["entry_type"] == "symlink"
+    assert symlink_entry["link_target"] == str(outside)
+    assert proof_entry == {
+        "path": "runs/run-001/outside-link",
+        "entry_type": "symlink",
+        "link_target": str(outside),
+    }
+    assert not payload.exists()
+    assert outside.exists()
 
 
 def test_audit_workspace_storage_apply_does_not_count_offline_dataset_candidates_as_release(
