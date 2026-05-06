@@ -79,7 +79,7 @@ Owner: `MedAutoScience`
 | `../history/program/ai_first_closeout_handoff_governance.md` | landed closeout / support | handoff governance 已落地，可作为 closeout policy 参考。 |
 | `../history/program/external_agent_orchestration_learning_intake_2026_04_30.md` | historical intake | 外部 orchestration 学习快照，已归入 autonomy board。 |
 | `../history/program/open_auto_research_learning_intake_2026_05_04.md` | historical intake | OAR lesson 已吸收为 repo-level read model，真实 soak 另由 active lanes 管理。 |
-| `paper_orchestra_learning_intake_2026_05_02.md` | historical intake | PaperOrchestra lesson intake，后续只作为学习参考。 |
+| `../history/program/paper_orchestra_learning_intake_2026_05_02.md` | historical intake | PaperOrchestra lesson intake，后续只作为学习参考。 |
 | `../history/program/deepscientist_learning_intake_2026_04_25.md` | historical intake | 旧 DeepScientist intake。 |
 | `../history/program/deepscientist_learning_intake_2026_04_28.md` | historical intake | 旧 DeepScientist intake。 |
 | `../history/program/deepscientist_learning_intake_2026_04_30.md` | historical intake | 旧 DeepScientist intake。 |

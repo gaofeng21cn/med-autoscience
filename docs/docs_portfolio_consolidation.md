@@ -75,7 +75,7 @@ This consolidation already moved these tracked files from `docs/program/` to `do
 | --- | --- |
 | AI-first closeout | `ai_first_operationalization_closeout.md`, `ai_first_usable_closeout_projection.md`, `ai_first_closeout_handoff_governance.md` |
 | DeepScientist intake snapshots | `deepscientist_learning_intake_2026_04_25.md`, `deepscientist_learning_intake_2026_04_28.md`, `deepscientist_learning_intake_2026_04_30.md`, `deepscientist_learning_intake_2026_05_05.md` |
-| external / open research intakes | `external_agent_orchestration_learning_intake_2026_04_30.md`, `open_auto_research_learning_intake_2026_05_04.md` |
+| external / open research intakes | `external_agent_orchestration_learning_intake_2026_04_30.md`, `paper_orchestra_learning_intake_2026_05_02.md`, `open_auto_research_learning_intake_2026_05_04.md` |
 | superseded plans | `open_harness_os_freeze_plan.md`, `journal_package_builtins_upgrade_plan.md`, `research_foundry_medical_mainline.md`, `research_foundry_medical_execution_map.md` |
 | activation / cutover boards | `integration_harness_activation_package.md`, `hermes_backend_activation_package.md`, `hermes_backend_continuation_board.md`, `upstream_hermes_agent_fast_cutover_board.md` |
 | capability history | `docs/history/capabilities/medical-display/medical_display_arsenal_history.md`, `medical_display_family_baseline_program.md`, `medical_display_g_pathway_integrated_composite_owner_brief.md`, `paperplothub_exemplar_intake.md`, `paperplothub_exemplar_exhaustion_ledger.md` |

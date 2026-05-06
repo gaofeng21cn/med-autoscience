@@ -26,6 +26,7 @@
 - [Journal package builtins upgrade plan](./journal_package_builtins_upgrade_plan.md)
 - [Open auto research learning intake 2026-05-04](./open_auto_research_learning_intake_2026_05_04.md)
 - [Open Harness OS freeze plan](./open_harness_os_freeze_plan.md)
+- [PaperOrchestra learning intake 2026-05-02](./paper_orchestra_learning_intake_2026_05_02.md)
 - [Research Foundry medical execution map](./research_foundry_medical_execution_map.md)
 - [Research Foundry medical mainline](./research_foundry_medical_mainline.md)
 - [Upstream Hermes-Agent fast cutover board](./upstream_hermes_agent_fast_cutover_board.md)
