@@ -106,6 +106,12 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_supervisor_execute_dispatch_apply.add_argument("--dry-run", action="store_true")
     runtime_supervisor_execute_dispatch_apply.add_argument("--apply", action="store_true")
 
+    study_state_matrix_parser = subparsers.add_parser("study-state-matrix")
+    study_state_matrix_parser.add_argument("--profile", required=True)
+    study_state_matrix_parser.add_argument("--studies", nargs="+")
+    study_state_matrix_parser.add_argument("--entry-mode", type=str)
+    study_state_matrix_parser.add_argument("--format", choices=("json", "markdown"), default="json")
+
     register_runtime_lifecycle_parsers(subparsers)
     register_runtime_storage_parsers(subparsers)
 

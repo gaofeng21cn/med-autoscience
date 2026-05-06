@@ -85,11 +85,7 @@ def test_supervisor_scan_queues_runtime_repair_for_abnormal_stopped_resume_requi
     )
 
     study = result["studies"][0]
-    assert [item["action_type"] for item in study["action_queue"]] == [
-        "runtime_platform_repair",
-        "publication_gate_specificity_required",
-        "return_to_ai_reviewer_workflow",
-    ]
+    assert [item["action_type"] for item in study["action_queue"]] == ["runtime_platform_repair"]
     assert study["action_queue"][0]["reason"] == "abnormal_stopped_runtime_resume_required"
     assert study["why_not_applied"] == "abnormal_stopped_runtime_resume_required"
     assert study["blocked_reason"] == "abnormal_stopped_runtime_resume_required"

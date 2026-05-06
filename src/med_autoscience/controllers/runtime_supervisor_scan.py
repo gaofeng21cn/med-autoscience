@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
-from med_autoscience.controllers import study_progress, study_runtime_router
+from med_autoscience.controllers import study_macro_state, study_progress, study_runtime_router
 from med_autoscience.controllers.runtime_supervisor_scan_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
 from med_autoscience.controllers.runtime_supervisor_scan_parts import action_decorators
@@ -517,6 +517,22 @@ def _read_study_projection_inputs(
     return status_payload, progress_payload, resolved_quest_id, publication_eval_payload
 
 
+def _attach_study_macro_state(
+    *,
+    study_id: str,
+    status_payload: Mapping[str, Any],
+    progress_payload: Mapping[str, Any],
+    publication_eval_payload: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    macro_state = study_macro_state.derive_study_macro_state(
+        study_id=study_id,
+        status=status_payload,
+        progress=progress_payload,
+        publication_eval=publication_eval_payload,
+    )
+    return dict(status_payload), {**dict(progress_payload), "study_macro_state": macro_state}
+
+
 def _maybe_blocked_lifecycle_from_scan(
     *,
     developer_mode: DeveloperSupervisorMode,
@@ -631,6 +647,12 @@ def _study_projection(
         study_id=study_id,
         study_root=study_root,
     )
+    status_payload, progress_payload = _attach_study_macro_state(
+        study_id=study_id,
+        status_payload=status_payload,
+        progress_payload=progress_payload,
+        publication_eval_payload=publication_eval_payload,
+    )
     submission_milestone_parked_refresh = submission_milestone_projection.refresh_if_platform_repair_required(
         profile=profile,
         study_id=study_id,
@@ -646,6 +668,12 @@ def _study_projection(
             study_id=study_id,
             study_root=study_root,
         )
+        status_payload, progress_payload = _attach_study_macro_state(
+            study_id=study_id,
+            status_payload=status_payload,
+            progress_payload=progress_payload,
+            publication_eval_payload=publication_eval_payload,
+        )
     if submission_milestone_parked_refresh is None:
         submission_milestone_parked_refresh = submission_milestone_projection.reconcile_stopped_parking(
             profile=profile,
@@ -658,6 +686,12 @@ def _study_projection(
         if submission_milestone_projection.applied(submission_milestone_parked_refresh):
             progress_payload = _mapping(
                 study_progress.read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
+            )
+            status_payload, progress_payload = _attach_study_macro_state(
+                study_id=study_id,
+                status_payload=status_payload,
+                progress_payload=progress_payload,
+                publication_eval_payload=publication_eval_payload,
             )
     gate_specificity = _publication_gate_specificity_required(
         status_payload,
@@ -712,14 +746,6 @@ def _study_projection(
         lifecycle = {}
     if parked_truth.current_truth(status_payload, progress_payload):
         lifecycle = {}
-    if developer_mode.safe_actions_enabled:
-        request_packets.materialize_request_packets(
-            study_root=study_root,
-            study_id=study_id,
-            quest_id=resolved_quest_id,
-            publication_eval_payload=publication_eval_payload,
-            actions=actions,
-        )
     submission_milestone_parked = (
         _text(_mapping(submission_milestone_parked_refresh).get("dispatch_status")) == "applied"
     )
@@ -804,6 +830,19 @@ def _study_projection(
         next_owner=next_owner,
         active_run_id=_active_run_id(status_payload, progress_payload),
     )
+    actions = [
+        action
+        for action in actions
+        if owner_route_part.route_allows_action(action=action, owner_route=owner_route)
+    ]
+    if developer_mode.safe_actions_enabled:
+        request_packets.materialize_request_packets(
+            study_root=study_root,
+            study_id=study_id,
+            quest_id=resolved_quest_id,
+            publication_eval_payload=publication_eval_payload,
+            actions=actions,
+        )
     supervision = _mapping(progress_payload.get("supervision"))
     return {
         "study_id": study_id,

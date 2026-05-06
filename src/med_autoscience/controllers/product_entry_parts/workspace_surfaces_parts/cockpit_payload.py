@@ -26,6 +26,9 @@ from med_autoscience.controllers.pi_action_projection import (
     build_pi_action_projection,
     compact_pi_action_projection,
 )
+from med_autoscience.controllers.study_progress_parts.macro_state_projection import (
+    compact_study_macro_state_from_payload,
+)
 from med_autoscience.controllers.delivery_visibility_projection import (
     compact_delivery_inspection_projection,
 )
@@ -119,6 +122,7 @@ def _study_item(
     )
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
+    study_macro_state = compact_study_macro_state_from_payload(progress_payload)
     runtime_health_snapshot = _runtime_health_snapshot_summary(progress_payload.get("runtime_health_snapshot"))
     control_plane_snapshot = _control_plane_snapshot_summary(progress_payload.get("control_plane_snapshot"))
     research_runtime_control_projection = dict(progress_payload.get("research_runtime_control_projection") or {})
@@ -131,6 +135,7 @@ def _study_item(
         "truth_epoch": _non_empty_text(progress_payload.get("truth_epoch"))
         or _non_empty_text((study_truth_snapshot or {}).get("truth_epoch")),
         "study_truth_snapshot": study_truth_snapshot,
+        "study_macro_state": study_macro_state,
         "runtime_health_epoch": _non_empty_text(progress_payload.get("runtime_health_epoch"))
         or _non_empty_text((runtime_health_snapshot or {}).get("runtime_health_epoch")),
         "runtime_health_snapshot": runtime_health_snapshot,

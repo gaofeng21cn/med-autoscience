@@ -16,10 +16,31 @@ def test_runtime_lifecycle_contract_exposes_shared_schema_and_authority_boundary
     assert "runtime_events" in contract["sqlite_sidecar_tables"]
     assert "retention_actions" in contract["sqlite_sidecar_tables"]
     assert "migration_runs" in contract["sqlite_sidecar_tables"]
+    assert "study_macro_state_snapshots" in contract["sqlite_sidecar_tables"]
+    assert "owner_route_receipts" in contract["sqlite_sidecar_tables"]
+    assert "dispatch_receipts" in contract["sqlite_sidecar_tables"]
+    assert "surface_refs" in contract["sqlite_sidecar_tables"]
     assert "apply" in contract["migration_run_modes"]
     assert "rollback_plan" in contract["migration_run_modes"]
     assert "*.sqlite-wal" in contract["sqlite_gitignore_patterns"]
     assert "*.sqlite-shm" in contract["sqlite_gitignore_patterns"]
+
+
+def test_runtime_lifecycle_contract_declares_sidecar_index_not_macro_state_authority() -> None:
+    contract_module = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_contract")
+
+    contract = contract_module.runtime_lifecycle_contract()
+
+    assert contract["sidecar_indexed_surfaces"] == [
+        "study_macro_state_snapshot",
+        "owner_route_receipt",
+        "dispatch_receipt",
+        "surface_ref",
+    ]
+    assert contract["sidecar_authority_policy"] == "index_only_authority_remains_file_surfaces"
+    assert "study_macro_state/latest.json" in contract["file_authority_surfaces"]
+    assert "runtime_supervisor_owner_route" in contract["file_authority_surfaces"]
+    assert "runtime_supervisor_dispatch_receipt" in contract["file_authority_surfaces"]
 
 
 def test_migration_ledger_validation_is_structural_not_markdown_wording() -> None:

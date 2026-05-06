@@ -20,6 +20,9 @@ from med_autoscience.controllers.medical_paper_research_loop import (
 )
 from med_autoscience.controllers.medical_paper_v4_operations import build_v4_operations_dashboard
 from med_autoscience.controllers.pi_action_projection import compact_pi_action_projection
+from med_autoscience.controllers.study_progress_parts.macro_state_projection import (
+    compact_study_macro_state_from_payload,
+)
 from med_autoscience.mcp_server_parts.open_auto_research_projection import (
     compact_open_auto_research_projection,
     compact_open_auto_research_soak_for_mcp,
@@ -445,6 +448,9 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         item = builder(payload.get(key))
         if item is not None:
             compact[key] = item
+    study_macro_state = compact_study_macro_state_from_payload(payload)
+    if study_macro_state is not None:
+        compact["study_macro_state"] = study_macro_state
     ai_repair_lifecycle = _compact_record(
         payload.get("ai_repair_lifecycle"),
         (

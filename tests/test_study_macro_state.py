@@ -1,0 +1,324 @@
+from __future__ import annotations
+
+import importlib
+import json
+from pathlib import Path
+import sqlite3
+
+
+def _module():
+    return importlib.import_module("med_autoscience.controllers.study_macro_state")
+
+
+def _derive(*, study_id: str, status: dict, progress: dict | None = None) -> dict:
+    return _module().derive_study_macro_state(
+        study_id=study_id,
+        status=status,
+        progress=progress or {},
+    )
+
+
+def _submit_info_status(*, study_id: str, quest_status: str = "paused", parked_state: str = "package_ready_handoff") -> dict:
+    return {
+        "study_id": study_id,
+        "quest_status": quest_status,
+        "reason": "quest_waiting_for_submission_metadata",
+        "active_run_id": None,
+        "auto_runtime_parked": {
+            "parked": True,
+            "parked_state": parked_state,
+            "awaiting_explicit_wakeup": True,
+        },
+        "runtime_health_snapshot": {
+            "canonical_runtime_action": "await_explicit_resume",
+            "attempt_state": "parked",
+            "blocking_reasons": ["quest_waiting_for_submission_metadata"],
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": f"truth::{study_id}",
+            "source_signature": f"source::{study_id}",
+            "package_state": {"authority_state": "current"},
+        },
+        "submission_metadata": {
+            "missing_external_info": ["authors", "ethics", "funding"],
+        },
+    }
+
+
+def test_delivered_submission_packages_share_submit_info_macro_state() -> None:
+    cases = [
+        (
+            "001-dm-cvd-mortality-risk",
+            _submit_info_status(
+                study_id="001-dm-cvd-mortality-risk",
+                parked_state="external_metadata_pending",
+            ),
+            {"paper_stage": "bundle_stage_blocked", "format_profile": "generic"},
+        ),
+        (
+            "002-early-residual-risk",
+            {
+                **_submit_info_status(study_id="002-early-residual-risk", quest_status="completed"),
+                "reason": "study_completed",
+            },
+            {"paper_stage": "bundle_stage_ready", "journal_target": "target_journal"},
+        ),
+        (
+            "003-endocrine-burden-followup",
+            _submit_info_status(study_id="003-endocrine-burden-followup"),
+            {"paper_stage": "bundle_stage_ready", "format_profile": "journal"},
+        ),
+    ]
+
+    derived = [_derive(study_id=study_id, status=status, progress=progress) for study_id, status, progress in cases]
+
+    assert {(item["writer_state"], item["user_next"], item["reason"]) for item in derived} == {
+        ("parked", "submit_info", "external_info")
+    }
+    assert all(item["details"]["missing_external_info"] == ["authors", "ethics", "funding"] for item in derived)
+    assert derived[0]["details"]["format_profile"] == "generic"
+    assert derived[1]["details"]["journal_target"] == "target_journal"
+    assert derived[2]["details"]["format_profile"] == "journal"
+    assert all(len(item["reason"]) <= 24 for item in derived)
+
+
+def test_stop_loss_and_user_stop_share_reopenable_parked_macro_state() -> None:
+    cases = [
+        (
+            "001-lineage-pfs",
+            {
+                "quality_state": {"state": "stop_loss_recommended"},
+                "package_state": {"authority_state": "not_observed"},
+                "canonical_next_action": "stop_runtime",
+            },
+            {"stop_origin": "mas_early"},
+        ),
+        (
+            "004-invasive-architecture",
+            {
+                "quality_state": {"state": "stop_loss_recommended"},
+                "package_state": {"authority_state": "current"},
+                "canonical_next_action": "stop_runtime",
+            },
+            {"stop_origin": "user_after_package"},
+        ),
+        (
+            "004-dpcc-longitudinal-care-inertia-intensification-gap",
+            {
+                "quality_state": {"state": "user_stopped"},
+                "package_state": {"authority_state": "current"},
+                "canonical_next_action": "stop_runtime",
+            },
+            {"stop_origin": "user_after_package"},
+        ),
+    ]
+
+    derived = [
+        _derive(
+            study_id=study_id,
+            status={
+                "study_id": study_id,
+                "quest_status": "paused",
+                "active_run_id": None,
+                "reason": "publishability_stop_loss_recommended",
+                "study_truth_snapshot": truth,
+            },
+            progress=progress,
+        )
+        for study_id, truth, progress in cases
+    ]
+
+    assert {(item["writer_state"], item["user_next"]) for item in derived} == {("parked", "none")}
+    assert {item["reason"] for item in derived} == {"stop_loss", "user_stop"}
+    assert all(item["details"]["reopen_allowed"] is True for item in derived)
+    assert all(item["details"]["reopen_mode"] == "new_plan_required" for item in derived)
+    assert derived[0]["details"]["package_delivered"] is False
+    assert derived[1]["details"]["package_delivered"] is True
+
+
+def test_stop_state_can_mark_delivered_milestone_package_without_quality_ready_authority() -> None:
+    state = _derive(
+        study_id="004-dpcc-longitudinal-care-inertia-intensification-gap",
+        status={
+            "study_id": "004-dpcc-longitudinal-care-inertia-intensification-gap",
+            "quest_status": "paused",
+            "active_run_id": None,
+            "reason": "quest_waiting_for_explicit_wakeup_after_manual_hold",
+            "delivered_package": {
+                "observed": True,
+                "surface": "manuscript/current_package",
+                "authority_role": "user_visible_milestone_package_not_quality_authority",
+            },
+            "study_truth_snapshot": {
+                "quality_state": {"state": "user_stopped"},
+                "package_state": {"authority_state": "not_observed"},
+            },
+        },
+        progress={"paper_stage": "manual_hold"},
+    )
+
+    assert state["writer_state"] == "parked"
+    assert state["user_next"] == "none"
+    assert state["reason"] == "user_stop"
+    assert state["details"]["package_delivered"] is True
+    assert state["details"]["reopen_mode"] == "new_plan_required"
+
+
+def test_completed_submission_package_without_metadata_details_still_maps_to_submit_info() -> None:
+    state = _derive(
+        study_id="002-early-residual-risk",
+        status={
+            "study_id": "002-early-residual-risk",
+            "quest_status": "completed",
+            "decision": "completed",
+            "reason": "quest_already_completed",
+            "study_completion_contract": {"ready": True, "completion_status": "completed"},
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-002",
+                "package_state": {"authority_state": "not_observed"},
+            },
+        },
+        progress={"current_stage": "study_completed", "paper_stage": "write"},
+    )
+
+    assert state["writer_state"] == "parked"
+    assert state["user_next"] == "submit_info"
+    assert state["reason"] == "external_info"
+    assert state["details"]["package_delivered"] is True
+
+
+def test_manual_hold_for_new_plan_maps_to_user_stop_reopenable_state() -> None:
+    state = _derive(
+        study_id="004-dpcc-longitudinal-care-inertia-intensification-gap",
+        status={
+            "study_id": "004-dpcc-longitudinal-care-inertia-intensification-gap",
+            "quest_status": "paused",
+            "decision": "blocked",
+            "reason": "quest_waiting_for_explicit_wakeup_after_manual_hold",
+            "auto_runtime_parked": {"parked": True, "parked_state": "manual_hold"},
+            "publication_supervisor_state": {
+                "supervisor_phase": "manual_hold",
+                "current_required_action": "hold_until_explicit_wakeup",
+            },
+        },
+        progress={"paper_stage": "manual_hold"},
+    )
+
+    assert state["writer_state"] == "parked"
+    assert state["user_next"] == "none"
+    assert state["reason"] == "user_stop"
+    assert state["details"]["reopen_allowed"] is True
+    assert state["details"]["reopen_mode"] == "new_plan_required"
+
+
+def test_running_and_repairable_studies_are_not_collapsed_into_parked_states() -> None:
+    live = _derive(
+        study_id="002-dm-china-us-mortality-attribution",
+        status={
+            "quest_status": "running",
+            "active_run_id": "run-dm002",
+            "runtime_health_snapshot": {"canonical_runtime_action": "continue_supervising_runtime"},
+        },
+    )
+    queued = _derive(
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        status={
+            "quest_status": "paused",
+            "active_run_id": None,
+            "reason": "runtime_controller_redrive_required",
+            "runtime_health_snapshot": {"canonical_runtime_action": "recover_runtime"},
+        },
+        progress={
+            "owner_route": {
+                "next_owner": "mas_controller",
+                "allowed_actions": ["runtime_platform_repair"],
+                "owner_reason": "runtime_controller_redrive_required",
+            }
+        },
+    )
+
+    assert live["writer_state"] == "live"
+    assert live["user_next"] == "watch"
+    assert live["reason"] == "runtime"
+    assert queued["writer_state"] == "queued"
+    assert queued["user_next"] == "repair"
+    assert queued["reason"] == "runtime"
+
+
+def test_controller_stop_truth_conflict_takes_priority_over_stale_active_run() -> None:
+    state = _derive(
+        study_id="001-dm-cvd-mortality-risk",
+        status={
+            "study_id": "001-dm-cvd-mortality-risk",
+            "quest_status": "running",
+            "active_run_id": "run-stale",
+            "study_truth_snapshot": {
+                "execution_owner": {"owner": "controller_stop"},
+                "active_run_id": "run-stale",
+                "truth_epoch": "truth-stopped",
+            },
+        },
+    )
+
+    assert state["writer_state"] == "conflict"
+    assert state["user_next"] == "inspect"
+    assert state["reason"] == "truth_conflict"
+
+
+def test_materialize_study_macro_state_writes_file_authority_and_indexes_sidecar(tmp_path: Path) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "001-risk"
+    db_path = tmp_path / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    state = _derive(
+        study_id="001-risk",
+        status={
+            "quest_status": "paused",
+            "reason": "quest_waiting_for_submission_metadata",
+            "auto_runtime_parked": {"parked_state": "external_metadata_pending"},
+            "submission_metadata": {"missing_external_info": ["authors"]},
+        },
+    )
+
+    result = module.materialize_study_macro_state_snapshot(study_root=study_root, snapshot=state, db_path=db_path)
+
+    snapshot_path = study_root / "artifacts" / "runtime" / "study_macro_state" / "latest.json"
+    assert result["snapshot_path"] == str(snapshot_path.resolve())
+    assert result["index"]["indexed_table"] == "study_macro_state_snapshots"
+    persisted = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    assert persisted == {
+        **state,
+        "snapshot_id": state["source_fingerprint"],
+    }
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            """
+            SELECT study_id, snapshot_id, macro_state, writer_state, user_next, reason, source_path
+            FROM study_macro_state_snapshots
+            WHERE study_root = ?
+            """,
+            (str(study_root.resolve()),),
+        ).fetchone()
+    assert row == (
+        "001-risk",
+        state["source_fingerprint"],
+        "parked",
+        "parked",
+        "submit_info",
+        "external_info",
+        str(snapshot_path.resolve()),
+    )
+
+
+def test_macro_state_uses_short_primary_enums_and_conditions_for_detail() -> None:
+    state = _derive(
+        study_id="001-dm-cvd-mortality-risk",
+        status=_submit_info_status(study_id="001-dm-cvd-mortality-risk"),
+    )
+
+    assert state["surface"] == "study_macro_state"
+    assert state["writer_state"] in {"live", "queued", "parked", "conflict"}
+    assert state["user_next"] in {"watch", "submit_info", "repair", "revise", "none", "inspect"}
+    assert len(state["writer_state"]) <= 12
+    assert len(state["user_next"]) <= 16
+    assert len(state["reason"]) <= 24
+    assert state["conditions"][0]["type"] == "ExternalInfoPending"

@@ -4,7 +4,6 @@ import argparse
 import importlib
 import json
 import sys
-from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -25,6 +24,7 @@ from med_autoscience.cli_parts.payloads import _load_optional_object_payload_fro
 from med_autoscience.cli_parts.product_entry_commands import handle_product_entry_command
 from med_autoscience.cli_parts.runtime_lifecycle_commands import handle_runtime_lifecycle_command
 from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
+from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
 
 @lru_cache(maxsize=None)
 def _load_module(module_name: str) -> Any:
@@ -99,6 +99,7 @@ startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("s
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
 study_cycle_profiler = _LazyModuleProxy(lambda: _load_controller("study_cycle_profiler"))
 study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
+study_state_matrix = _LazyModuleProxy(lambda: _load_controller("study_state_matrix"))
 study_truth_kernel = _LazyModuleProxy(lambda: _load_controller("study_truth_kernel"))
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
@@ -327,35 +328,19 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(_serialize_study_runtime_result(result), ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "study-runtime-status":
-        if bool(args.study_id) == bool(args.study_root):
-            parser.error("Specify exactly one of --study-id or --study-root")
-        profile = load_profile(args.profile)
-        result = study_runtime_router.study_runtime_status(
-            profile=profile,
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            entry_mode=args.entry_mode,
-        )
-        print(json.dumps(_serialize_study_runtime_result(result), ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "study-progress":
-        if bool(args.study_id) == bool(args.study_root):
-            parser.error("Specify exactly one of --study-id or --study-root")
-        profile = load_profile(args.profile)
-        result = study_progress.read_study_progress(
-            profile=profile,
-            profile_ref=Path(args.profile),
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            entry_mode=args.entry_mode,
-        )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(study_progress.render_study_progress_markdown(result), end="")
-        return 0
+    study_read_result = handle_study_read_command(
+        args,
+        parser=parser,
+        load_profile=load_profile,
+        serialize_study_runtime_result=_serialize_study_runtime_result,
+        study_progress=study_progress,
+        study_runtime_router=study_runtime_router,
+        study_state_matrix=study_state_matrix,
+        study_truth_kernel=study_truth_kernel,
+        runtime_health_kernel=runtime_health_kernel,
+    )
+    if study_read_result is not None:
+        return study_read_result
 
     if args.command == "runtime-supervisor-consume":
         profile = load_profile(args.profile)
@@ -395,72 +380,6 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(open_auto_research_soak.render_open_auto_research_soak_markdown(result), end="")
-        return 0
-
-    if args.command == "reconcile-study-truth":
-        if bool(args.study_id) == bool(args.study_root):
-            parser.error("Specify exactly one of --study-id or --study-root")
-        profile = load_profile(args.profile)
-        status = study_runtime_router.study_runtime_status(
-            profile=profile,
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            entry_mode=args.entry_mode,
-        )
-        status_payload = _serialize_study_runtime_result(status)
-        resolved_study_id = str(status_payload.get("study_id") or args.study_id or "").strip()
-        resolved_study_root = str(status_payload.get("study_root") or args.study_root or "").strip()
-        if not resolved_study_id:
-            parser.error("Unable to resolve study_id for reconcile-truth")
-        if not resolved_study_root:
-            parser.error("Unable to resolve study_root for reconcile-truth")
-        recorded_at = str(
-            status_payload.get("generated_at")
-            or status_payload.get("recorded_at")
-            or datetime.now(timezone.utc).isoformat()
-        )
-        result = study_truth_kernel.reconcile_truth_snapshot_from_status_payload(
-            study_root=Path(resolved_study_root),
-            study_id=resolved_study_id,
-            status_payload=status_payload,
-            recorded_at=recorded_at,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "reconcile-runtime-health":
-        if bool(args.study_id) == bool(args.study_root):
-            parser.error("Specify exactly one of --study-id or --study-root")
-        profile = load_profile(args.profile)
-        status = study_runtime_router.study_runtime_status(
-            profile=profile,
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            entry_mode=args.entry_mode,
-        )
-        status_payload = _serialize_study_runtime_result(status)
-        resolved_study_id = str(status_payload.get("study_id") or args.study_id or "").strip()
-        resolved_study_root = str(status_payload.get("study_root") or args.study_root or "").strip()
-        resolved_quest_id = str(status_payload.get("quest_id") or resolved_study_id or "").strip()
-        if not resolved_study_id:
-            parser.error("Unable to resolve study_id for reconcile-runtime-health")
-        if not resolved_study_root:
-            parser.error("Unable to resolve study_root for reconcile-runtime-health")
-        if not resolved_quest_id:
-            parser.error("Unable to resolve quest_id for reconcile-runtime-health")
-        recorded_at = str(
-            status_payload.get("generated_at")
-            or status_payload.get("recorded_at")
-            or datetime.now(timezone.utc).isoformat()
-        )
-        result = runtime_health_kernel.reconcile_runtime_health_snapshot_from_status_payload(
-            study_root=Path(resolved_study_root),
-            study_id=resolved_study_id,
-            quest_id=resolved_quest_id,
-            status_payload=status_payload,
-            recorded_at=recorded_at,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "study-profile-cycle":

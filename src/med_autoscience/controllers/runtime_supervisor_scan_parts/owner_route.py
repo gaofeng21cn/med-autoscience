@@ -33,7 +33,7 @@ def build_owner_route(
         for action_type in ROUTED_ACTION_TYPES
         if any(
             _text(action.get("action_type")) == action_type
-            and _action_owner(action) == owner
+            and _action_matches_route_owner(action=action, route_owner=owner)
             for action in normalized_actions
         )
     ]
@@ -72,6 +72,7 @@ def build_owner_route(
             or _text(_mapping(progress.get("runtime_health_snapshot")).get("runtime_health_epoch")),
             "publication_eval_path": _text(_mapping(progress.get("refs")).get("publication_eval_path")),
             "quest_root": _text(status.get("quest_root")) or _text(progress.get("quest_root")),
+            "study_macro_state": _macro_state_source_ref(status, progress),
         },
     }
     route["idempotency_key"] = _idempotency_key(
@@ -143,16 +144,12 @@ def route_allows_action(*, action: Mapping[str, Any], owner_route: Mapping[str, 
     action_owner = _text(action.get("next_executable_owner")) or _text(action.get("owner")) or _text(action.get("request_owner")) or _text(
         action.get("recommended_owner")
     )
-    if action_owner is not None and route_owner is not None and action_owner != route_owner:
+    if not _action_matches_route_owner(action=action, route_owner=route_owner, action_owner=action_owner):
         return False
     action_type = _text(action.get("action_type"))
     allowed_actions = {_text(item) for item in route.get("allowed_actions") or []}
     allowed_actions.discard(None)
-    if allowed_actions:
-        return action_type in allowed_actions
-    route_reason = _text(route.get("owner_reason"))
-    action_reason = _text(action.get("reason"))
-    return route_reason in {action_type, action_reason}
+    return bool(allowed_actions) and action_type in allowed_actions
 
 
 def _owner_from_actions(actions: list[Mapping[str, Any]]) -> str | None:
@@ -173,6 +170,22 @@ def _action_owner(action: Mapping[str, Any]) -> str | None:
     return None
 
 
+def _action_matches_route_owner(
+    *,
+    action: Mapping[str, Any],
+    route_owner: str | None,
+    action_owner: str | None = None,
+) -> bool:
+    if route_owner is None:
+        return action_owner is None
+    resolved_action_owner = action_owner if action_owner is not None else _action_owner(action)
+    if resolved_action_owner == route_owner:
+        return True
+    if route_owner == "external_supervisor" and _text(action.get("authority")) == "external_supervisor":
+        return resolved_action_owner in {None, "external_engineering_agent", "external_supervisor"}
+    return False
+
+
 def _reason_from_actions(actions: list[Mapping[str, Any]]) -> str | None:
     for action in actions:
         if text := _text(action.get("reason")) or _text(action.get("action_type")):
@@ -183,6 +196,9 @@ def _reason_from_actions(actions: list[Mapping[str, Any]]) -> str | None:
 def _current_owner(*, status: Mapping[str, Any], progress: Mapping[str, Any], active_run_id: str | None) -> str | None:
     if active_run_id is not None:
         return "managed_runtime"
+    macro_state = _macro_state(status, progress)
+    if _text(macro_state.get("writer_state")) == "parked":
+        return "controller_stop"
     auto_parked = _mapping(status.get("auto_runtime_parked")) or _mapping(progress.get("auto_runtime_parked"))
     if auto_parked.get("parked") is True:
         return "controller_stop"
@@ -190,6 +206,22 @@ def _current_owner(*, status: Mapping[str, Any], progress: Mapping[str, Any], ac
     if quest_status in {"stopped", "paused"}:
         return "controller_stop"
     return "mas_controller"
+
+
+def _macro_state(status: Mapping[str, Any], progress: Mapping[str, Any]) -> dict[str, Any]:
+    return _mapping(status.get("study_macro_state")) or _mapping(progress.get("study_macro_state"))
+
+
+def _macro_state_source_ref(status: Mapping[str, Any], progress: Mapping[str, Any]) -> dict[str, Any] | None:
+    macro_state = _macro_state(status, progress)
+    if not macro_state:
+        return None
+    return {
+        "writer_state": _text(macro_state.get("writer_state")),
+        "user_next": _text(macro_state.get("user_next")),
+        "reason": _text(macro_state.get("reason")),
+        "source_fingerprint": _text(macro_state.get("source_fingerprint")),
+    }
 
 
 def _fallback_epoch(*, status: Mapping[str, Any], progress: Mapping[str, Any]) -> str:

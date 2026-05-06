@@ -15,6 +15,13 @@ PARKED_REASONS = {
 def current_truth(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
     if _has_live_worker(status, progress):
         return False
+    macro_state = _mapping(status.get("study_macro_state")) or _mapping(progress.get("study_macro_state"))
+    if _text(macro_state.get("writer_state")) == "parked" and _text(macro_state.get("reason")) in {
+        "external_info",
+        "stop_loss",
+        "user_stop",
+    }:
+        return True
     auto_parked = _mapping(status.get("auto_runtime_parked")) or _mapping(progress.get("auto_runtime_parked"))
     if auto_parked.get("parked") is True:
         return True

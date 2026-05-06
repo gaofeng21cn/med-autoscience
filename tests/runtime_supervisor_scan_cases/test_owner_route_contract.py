@@ -144,6 +144,133 @@ def test_supervisor_scan_projects_single_owner_route_for_current_queue(monkeypat
     assert study["external_supervisor_required"] is False
 
 
+def test_supervisor_scan_projects_parked_macro_state_as_current_truth_owner_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    cases = {
+        "001-submit-info": {
+            "reason": "quest_waiting_for_submission_metadata",
+            "quality_state": {},
+            "auto_runtime_parked": {
+                "parked": True,
+                "parked_state": "external_metadata_pending",
+                "auto_execution_complete": True,
+            },
+            "expected_reason": "external_info",
+            "expected_user_next": "submit_info",
+        },
+        "002-stop-loss": {
+            "reason": "publishability_stop_loss_recommended",
+            "quality_state": {"state": "stop_loss_recommended"},
+            "auto_runtime_parked": {"parked": False, "auto_execution_complete": False},
+            "expected_reason": "stop_loss",
+            "expected_user_next": "none",
+        },
+        "003-user-stop": {
+            "reason": "manual_stop",
+            "quality_state": {"state": "user_stopped"},
+            "auto_runtime_parked": {"parked": False, "auto_execution_complete": False},
+            "expected_reason": "user_stop",
+            "expected_user_next": "none",
+        },
+    }
+    statuses: dict[str, dict] = {}
+    progresses: dict[str, dict] = {}
+    quest_ids: dict[str, str] = {}
+    publication_evals: dict[str, dict] = {}
+    for study_id, case in cases.items():
+        quest_id = f"quest-{study_id}"
+        study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+        quest_root = profile.runtime_root / quest_id
+        publication_eval = {
+            "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+            "recommended_actions": [],
+        }
+        statuses[study_id] = {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": quest_id,
+            "quest_root": str(quest_root),
+            "quest_status": "paused",
+            "decision": "resume",
+            "reason": case["reason"],
+            "active_run_id": None,
+            "auto_runtime_parked": case["auto_runtime_parked"],
+            "runtime_liveness_audit": {
+                "active_run_id": None,
+                "runtime_audit": {"worker_running": False, "active_run_id": None},
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "recover_runtime",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "publication_eval": publication_eval,
+            "study_truth_snapshot": {
+                "truth_epoch": f"truth-epoch-{study_id}",
+                "source_signature": f"truth-source-{study_id}",
+                "quality_state": case["quality_state"],
+            },
+        }
+        progresses[study_id] = {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "current_stage": "managed_runtime_escalated",
+            "paper_stage": "bundle_stage_blocked",
+            "auto_runtime_parked": case["auto_runtime_parked"],
+            "supervision": {"active_run_id": None, "health_status": "escalated"},
+            "quality_review_loop": {"closure_state": "review_required"},
+            "ai_repair_lifecycle": {
+                "state": "blocked",
+                "blocked_reason": "runtime_recovery_retry_budget_exhausted",
+                "next_owner": "external_supervisor",
+                "external_supervisor_required": True,
+            },
+        }
+        quest_ids[study_id] = quest_id
+        publication_evals[study_id] = publication_eval
+
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda *, study_id, **_: (
+            statuses[study_id],
+            progresses[study_id],
+            quest_ids[study_id],
+            publication_evals[study_id],
+        ),
+    )
+
+    result = scan.supervisor_scan(
+        profile=profile,
+        study_ids=tuple(cases),
+        developer_supervisor_mode="developer_apply_safe",
+        persist_surfaces=False,
+    )
+
+    for study in result["studies"]:
+        case = cases[study["study_id"]]
+        macro_source = study["owner_route"]["source_refs"]["study_macro_state"]
+        assert macro_source["writer_state"] == "parked"
+        assert macro_source["user_next"] == case["expected_user_next"]
+        assert macro_source["reason"] == case["expected_reason"]
+        assert macro_source["source_fingerprint"].startswith("study-macro-state::")
+        assert study["action_queue"] == []
+        assert study["ai_repair_lifecycle"] is None
+        assert study["why_not_applied"] is None
+        assert study["blocked_reason"] is None
+        assert study["next_owner"] is None
+        assert study["external_supervisor_required"] is False
+        assert study["owner_route"]["current_owner"] == "controller_stop"
+        assert study["owner_route"]["next_owner"] is None
+        assert study["owner_route"]["owner_reason"] is None
+
+
 def test_supervisor_consume_preserves_owner_route_in_dispatch(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_consumer")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
@@ -364,6 +491,26 @@ def test_owner_route_fallback_source_fingerprint_tracks_action_payload_targets()
     assert claim_route["route_epoch"] == metric_route["route_epoch"]
     assert claim_route["source_fingerprint"] != metric_route["source_fingerprint"]
     assert claim_route["idempotency_key"] != metric_route["idempotency_key"]
+
+
+def test_owner_route_requires_explicit_allowed_action_for_dispatch_execution() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan_parts.owner_route")
+    action = {
+        "action_type": "return_to_ai_reviewer_workflow",
+        "owner": "ai_reviewer",
+        "reason": "ai_reviewer_assessment_required",
+    }
+    route = {
+        "next_owner": "ai_reviewer",
+        "owner_reason": "return_to_ai_reviewer_workflow",
+        "allowed_actions": [],
+    }
+
+    assert module.route_allows_action(action=action, owner_route=route) is False
+    assert module.route_allows_action(
+        action=action,
+        owner_route={**route, "allowed_actions": ["return_to_ai_reviewer_workflow"]},
+    ) is True
 
 
 def test_supervisor_scan_routes_incomplete_completion_contract_to_completion_evidence_owner(
@@ -614,10 +761,7 @@ def test_supervisor_scan_routes_no_live_current_controller_work_unit_without_ext
     )
 
     study = result["studies"][0]
-    assert [item["action_type"] for item in study["action_queue"]] == [
-        "runtime_platform_repair",
-        "return_to_ai_reviewer_workflow",
-    ]
+    assert [item["action_type"] for item in study["action_queue"]] == ["runtime_platform_repair"]
     assert study["action_queue"][0]["authority"] == "observability_only"
     assert study["action_queue"][0]["owner"] == "mas_controller"
     assert study["action_queue"][0]["reason"] == "runtime_controller_redrive_required"

@@ -14,6 +14,7 @@ from .runtime_lifecycle_contract import (
     SCHEMA_VERSION,
     SURFACE_KIND,
 )
+from .runtime_lifecycle_store_parts import sidecar_indexes
 
 
 def quest_lifecycle_store_path(quest_root: Path) -> Path:
@@ -341,6 +342,88 @@ def record_archive_ref(
     )
 
 
+def record_study_macro_state_snapshot(
+    *,
+    study_root: Path,
+    snapshot: Mapping[str, Any],
+    snapshot_path: Path,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    return sidecar_indexes.record_study_macro_state_snapshot(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        index_result=_index_result,
+        study_root=study_root,
+        snapshot=snapshot,
+        snapshot_path=snapshot_path,
+        db_path=db_path,
+    )
+
+
+def record_owner_route_receipt(
+    *,
+    study_root: Path,
+    receipt: Mapping[str, Any],
+    receipt_path: Path,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    return sidecar_indexes.record_owner_route_receipt(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        index_result=_index_result,
+        study_root=study_root,
+        receipt=receipt,
+        receipt_path=receipt_path,
+        db_path=db_path,
+    )
+
+
+def record_dispatch_receipt(
+    *,
+    quest_root: Path,
+    receipt: Mapping[str, Any],
+    receipt_path: Path,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    return sidecar_indexes.record_dispatch_receipt(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        quest_lifecycle_store_path=quest_lifecycle_store_path,
+        index_result=_index_result,
+        quest_root=quest_root,
+        receipt=receipt,
+        receipt_path=receipt_path,
+        db_path=db_path,
+    )
+
+
+def record_surface_ref(
+    *,
+    object_root: Path,
+    object_scope: str,
+    ref: Mapping[str, Any],
+    ref_path: Path,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    return sidecar_indexes.record_surface_ref(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        index_result=_index_result,
+        object_root=object_root,
+        object_scope=object_scope,
+        ref=ref,
+        ref_path=ref_path,
+        db_path=db_path,
+    )
+
+
 def inspect_lifecycle_store(db_path: Path) -> dict[str, Any]:
     resolved_db_path = Path(db_path).expanduser().resolve()
     if not resolved_db_path.exists():
@@ -361,6 +444,10 @@ def inspect_lifecycle_store(db_path: Path) -> dict[str, Any]:
                 "workspace_storage_audits",
                 "runtime_events",
                 "archive_refs",
+                "study_macro_state_snapshots",
+                "owner_route_receipts",
+                "dispatch_receipts",
+                "surface_refs",
                 "report_index",
             )
         }
@@ -551,6 +638,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    sidecar_indexes.ensure_sidecar_index_schema(conn)
     conn.execute(
         "INSERT OR REPLACE INTO lifecycle_metadata(key, value) VALUES ('schema_version', ?)",
         (str(SCHEMA_VERSION),),
@@ -756,9 +844,13 @@ __all__ = [
     "SURFACE_KIND",
     "inspect_lifecycle_store",
     "quest_lifecycle_store_path",
+    "record_archive_ref",
+    "record_dispatch_receipt",
+    "record_owner_route_receipt",
     "record_runtime_event",
     "record_runtime_report",
-    "record_archive_ref",
+    "record_study_macro_state_snapshot",
+    "record_surface_ref",
     "record_watch_state",
     "record_workspace_storage_audit",
     "workspace_lifecycle_store_path",

@@ -1077,6 +1077,7 @@ def build_study_progress_projection(
             ],
         },
     }
+    payload["study_macro_state"] = compact_study_macro_state_from_payload(payload)
     payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
     ai_first_feedback_state = ai_first_feedback.materialize_ai_first_feedback_state(
         study_root=resolved_study_root,

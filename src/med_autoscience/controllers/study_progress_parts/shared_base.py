@@ -22,6 +22,9 @@ from med_autoscience.controller_confirmation_summary import (
 )
 from med_autoscience.controller_summary import read_controller_summary, stable_controller_summary_path
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
+from med_autoscience.controllers.study_progress_parts.macro_state_projection import (
+    compact_study_macro_state_from_payload,
+)
 from med_autoscience.evaluation_summary import (
     build_same_line_route_truth,
     materialize_evaluation_summary_artifacts,
@@ -661,6 +664,7 @@ def _normalize_study_progress_payload(payload: Mapping[str, Any]) -> dict[str, A
     normalized["quality_execution_lane"] = _normalized_quality_execution_lane_payload(normalized)
     normalized["same_line_route_truth"] = _normalized_same_line_route_truth_payload(normalized)
     normalized["same_line_route_surface"] = _normalized_same_line_route_surface_payload(normalized)
+    normalized["study_macro_state"] = compact_study_macro_state_from_payload(normalized)
     normalized["research_runtime_control_projection"] = _normalized_research_runtime_control_projection_payload(normalized)
     if _publication_supervisor_blocks_same_line_route(_mapping_copy(normalized.get("publication_supervisor_state"))):
         normalized["same_line_route_truth"] = None

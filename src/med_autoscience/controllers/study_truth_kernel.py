@@ -558,7 +558,7 @@ def _snapshot_from_events(*, study_root: Path, study_id: str, events: list[dict[
     latest_event = events[-1] if events else None
     authority_epoch = _text(dominant.get("event_id")) if dominant is not None else None
     generated_at = _text(latest_event.get("recorded_at")) if latest_event is not None else None
-    return {
+    snapshot = {
         "schema_version": SCHEMA_VERSION,
         "surface": "study_truth_snapshot",
         "study_id": study_id,
@@ -583,6 +583,7 @@ def _snapshot_from_events(*, study_root: Path, study_id: str, events: list[dict[
         "event_count": len(events),
         "event_log_path": str(truth_events_path(study_root=study_root)),
     }
+    return snapshot
 
 
 def rebuild_truth_snapshot(*, study_root: Path, study_id: str) -> dict[str, Any]:

@@ -52,6 +52,10 @@ FILE_AUTHORITY_SURFACES = (
     "publication_eval/latest.json",
     "controller_decisions/latest.json",
     "runtime_escalation_record.json",
+    "study_macro_state/latest.json",
+    "runtime_supervisor_owner_route",
+    "runtime_supervisor_dispatch_receipt",
+    "surface_refs",
     "dataset_manifest",
     "restore_index",
     "paper",
@@ -70,9 +74,22 @@ SQLITE_SIDECAR_TABLES = (
     "storage_audit_runs",
     "retention_actions",
     "archive_refs",
+    "study_macro_state_snapshots",
+    "owner_route_receipts",
+    "dispatch_receipts",
+    "surface_refs",
     "compatibility_exports",
     "migration_runs",
 )
+
+SIDECAR_INDEXED_SURFACES = (
+    "study_macro_state_snapshot",
+    "owner_route_receipt",
+    "dispatch_receipt",
+    "surface_ref",
+)
+
+SIDECAR_AUTHORITY_POLICY = "index_only_authority_remains_file_surfaces"
 
 MIGRATION_LEDGER_REQUIRED_FIELDS = (
     "migration_run_id",
@@ -123,6 +140,8 @@ def runtime_lifecycle_contract() -> dict[str, Any]:
         "compatibility_reader_names": list(COMPATIBILITY_READER_NAMES),
         "file_authority_surfaces": list(FILE_AUTHORITY_SURFACES),
         "sqlite_sidecar_tables": list(SQLITE_SIDECAR_TABLES),
+        "sidecar_indexed_surfaces": list(SIDECAR_INDEXED_SURFACES),
+        "sidecar_authority_policy": SIDECAR_AUTHORITY_POLICY,
         "migration_ledger_required_fields": list(MIGRATION_LEDGER_REQUIRED_FIELDS),
         "compatibility_verification_required_fields": list(COMPATIBILITY_VERIFICATION_REQUIRED_FIELDS),
     }
@@ -169,6 +188,8 @@ __all__ = [
     "MIGRATION_LEDGER_REQUIRED_FIELDS",
     "MIGRATION_RUN_MODES",
     "SCHEMA_VERSION",
+    "SIDECAR_AUTHORITY_POLICY",
+    "SIDECAR_INDEXED_SURFACES",
     "SQLITE_GITIGNORE_PATTERNS",
     "SQLITE_SIDECAR_TABLES",
     "SURFACE_KIND",

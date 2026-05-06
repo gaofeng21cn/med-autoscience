@@ -111,10 +111,7 @@ def test_supervisor_scan_queues_external_repair_for_retry_exhausted_no_live_work
     assert study["scan_delta"]["previous_scan_seen"] is False
     assert study["gate_specificity"]["required"] is False
     assert study["ai_reviewer_assessment"]["missing"] is True
-    assert [item["action_type"] for item in study["action_queue"]] == [
-        "runtime_platform_repair",
-        "return_to_ai_reviewer_workflow",
-    ]
+    assert [item["action_type"] for item in study["action_queue"]] == ["runtime_platform_repair"]
     assert study["ai_repair_lifecycle"]["blocked_reason"] == "runtime_recovery_retry_budget_exhausted"
     assert study["ai_repair_lifecycle"]["next_owner"] == "external_supervisor"
     assert study["ai_repair_lifecycle"]["authority"] == "external_supervisor"
@@ -129,7 +126,7 @@ def test_supervisor_scan_queues_external_repair_for_retry_exhausted_no_live_work
         "quality_gate_relaxation",
         "medical_claim_authoring",
     ]
-    assert result["queue_history"]["latest_action_count"] == 2
+    assert result["queue_history"]["latest_action_count"] == 1
     assert result["two_layer_ai_repair_policy"]["internal_ai_repair"]["monitor_interval_seconds"] == 300
     assert result["two_layer_ai_repair_policy"]["developer_supervisor"]["heartbeat_interval_seconds"] == 3600
     assert result["two_layer_ai_repair_policy"]["developer_supervisor"]["developer_attention_after_hours"] == 6
@@ -598,17 +595,11 @@ def test_supervisor_scan_queues_specificity_and_ai_reviewer_actions_without_qual
     )
 
     action_types = [item["action_type"] for item in result["studies"][0]["action_queue"]]
-    assert action_types == ["publication_gate_specificity_required", "return_to_ai_reviewer_workflow"]
+    assert action_types == ["publication_gate_specificity_required"]
     assert {item["authority"] for item in result["studies"][0]["action_queue"]} == {"observability_only"}
-    assert [item["owner"] for item in result["studies"][0]["action_queue"]] == ["publication_gate", "ai_reviewer"]
-    assert [item["recommended_owner"] for item in result["studies"][0]["action_queue"]] == [
-        "publication_gate",
-        "ai_reviewer",
-    ]
-    assert [item["owner_pickup"]["owner"] for item in result["studies"][0]["action_queue"]] == [
-        "publication_gate",
-        "ai_reviewer",
-    ]
+    assert [item["owner"] for item in result["studies"][0]["action_queue"]] == ["publication_gate"]
+    assert [item["recommended_owner"] for item in result["studies"][0]["action_queue"]] == ["publication_gate"]
+    assert [item["owner_pickup"]["owner"] for item in result["studies"][0]["action_queue"]] == ["publication_gate"]
     assert result["studies"][0]["current_stage"] == "publication_supervision"
     assert result["studies"][0]["gate_specificity"]["required"] is True
     assert result["studies"][0]["gate_specificity"]["missing_target_kinds"] == [
@@ -736,7 +727,7 @@ def test_supervisor_scan_apply_safe_actions_materializes_stopped_dm002_lifecycle
     ai_reviewer_request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
     lifecycle = json.loads(lifecycle_path.read_text(encoding="utf-8"))
     specificity_request = json.loads(specificity_request_path.read_text(encoding="utf-8"))
-    ai_reviewer_request = json.loads(ai_reviewer_request_path.read_text(encoding="utf-8"))
+    assert not ai_reviewer_request_path.exists()
 
     assert result["studies"][0]["ai_repair_lifecycle"]["blocked_reason"] == "publication_gate_specificity_required"
     assert result["studies"][0]["next_owner"] == "publication_gate"
@@ -764,9 +755,6 @@ def test_supervisor_scan_apply_safe_actions_materializes_stopped_dm002_lifecycle
         "metric",
         "source_path",
     ]
-    assert ai_reviewer_request["authority"] == "observability_only"
-    assert ai_reviewer_request["target_assessment_owner"] == "ai_reviewer"
-    assert ai_reviewer_request["may_authorize_quality_gate"] is False
 
 
 def test_supervisor_scan_downgrades_developer_mode_when_github_user_is_not_owner(

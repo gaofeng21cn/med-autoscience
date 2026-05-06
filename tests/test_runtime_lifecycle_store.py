@@ -61,6 +61,10 @@ def test_report_store_indexes_watch_state_and_reports_without_changing_file_surf
         "workspace_storage_audits": 0,
         "runtime_events": 0,
         "archive_refs": 0,
+        "study_macro_state_snapshots": 0,
+        "owner_route_receipts": 0,
+        "dispatch_receipts": 0,
+        "surface_refs": 0,
         "report_index": 1,
     }
     with sqlite3.connect(db_path) as conn:
@@ -132,6 +136,10 @@ def test_workspace_storage_audit_indexes_summary_in_workspace_lifecycle_store(tm
         "workspace_storage_audits": 1,
         "runtime_events": 0,
         "archive_refs": 0,
+        "study_macro_state_snapshots": 0,
+        "owner_route_receipts": 0,
+        "dispatch_receipts": 0,
+        "surface_refs": 0,
         "report_index": 1,
     }
 
@@ -375,6 +383,223 @@ def test_lifecycle_store_records_archive_refs_without_replacing_restore_authorit
     assert json.loads(row[3]) == ["runs"]
     assert json.loads(row[4]) == archive_ref
     assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"]["archive_refs"] == 1
+
+
+def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replacing_authority_files(
+    tmp_path: Path,
+) -> None:
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    study_root = tmp_path / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quests" / "quest-001"
+    db_path = tmp_path / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    macro_state_path = study_root / "artifacts" / "runtime" / "study_macro_state" / "latest.json"
+    owner_receipt_path = study_root / "artifacts" / "runtime" / "owner_route" / "latest.json"
+    dispatch_receipt_path = quest_root / "artifacts" / "runtime" / "dispatch" / "dispatch-001.json"
+    surface_ref_path = study_root / "artifacts" / "runtime" / "surface_refs" / "publication_eval.json"
+    for path in (macro_state_path, owner_receipt_path, dispatch_receipt_path, surface_ref_path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    macro_state = {
+        "surface": "study_macro_state",
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "snapshot_id": "macro-001",
+        "observed_at": "2026-05-06T00:00:00+00:00",
+        "macro_state": "runtime_active",
+        "decision_owner": "mas_controller",
+        "owner_route": {"idempotency_key": "route-001", "next_owner": "mas_controller"},
+        "surface_refs": {
+            "publication_eval": {
+                "surface": "publication_eval/latest.json",
+                "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            }
+        },
+    }
+    owner_receipt = {
+        "surface": "runtime_supervisor_owner_route",
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "idempotency_key": "route-001",
+        "route_epoch": "truth-epoch-001",
+        "current_owner": "runtime",
+        "next_owner": "mas_controller",
+        "owner_reason": "runtime_controller_redrive_required",
+    }
+    dispatch_receipt = {
+        "surface": "runtime_supervisor_dispatch_receipt",
+        "dispatch_id": "dispatch-001",
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "created_at": "2026-05-06T00:01:00+00:00",
+        "owner_route": owner_receipt,
+        "status": "dispatched",
+    }
+    surface_ref = {
+        "surface": "publication_eval/latest.json",
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "ref_key": "publication_eval",
+        "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        "sha256": "abc123",
+        "observed_at": "2026-05-06T00:02:00+00:00",
+    }
+    macro_state_path.write_text(json.dumps(macro_state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    owner_receipt_path.write_text(json.dumps(owner_receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    dispatch_receipt_path.write_text(json.dumps(dispatch_receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    surface_ref_path.write_text(json.dumps(surface_ref, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    mtimes = {
+        path: path.stat().st_mtime_ns
+        for path in (macro_state_path, owner_receipt_path, dispatch_receipt_path, surface_ref_path)
+    }
+
+    macro_index = lifecycle_store.record_study_macro_state_snapshot(
+        study_root=study_root,
+        snapshot=macro_state,
+        snapshot_path=macro_state_path,
+        db_path=db_path,
+    )
+    owner_index = lifecycle_store.record_owner_route_receipt(
+        study_root=study_root,
+        receipt=owner_receipt,
+        receipt_path=owner_receipt_path,
+        db_path=db_path,
+    )
+    dispatch_index = lifecycle_store.record_dispatch_receipt(
+        quest_root=quest_root,
+        receipt=dispatch_receipt,
+        receipt_path=dispatch_receipt_path,
+        db_path=db_path,
+    )
+    surface_ref_index = lifecycle_store.record_surface_ref(
+        object_root=study_root,
+        object_scope="study",
+        ref=surface_ref,
+        ref_path=surface_ref_path,
+        db_path=db_path,
+    )
+
+    assert macro_index["indexed_table"] == "study_macro_state_snapshots"
+    assert owner_index["indexed_table"] == "owner_route_receipts"
+    assert dispatch_index["indexed_table"] == "dispatch_receipts"
+    assert surface_ref_index["indexed_table"] == "surface_refs"
+    assert {path: path.stat().st_mtime_ns for path in mtimes} == mtimes
+    with sqlite3.connect(db_path) as conn:
+        macro_row = conn.execute(
+            """
+            SELECT study_id, quest_id, snapshot_id, observed_at, macro_state,
+                   decision_owner, owner_route_json, surface_refs_json, payload_json, source_path
+            FROM study_macro_state_snapshots
+            WHERE study_root = ?
+            """,
+            (str(study_root.resolve()),),
+        ).fetchone()
+        owner_row = conn.execute(
+            """
+            SELECT study_id, quest_id, idempotency_key, route_epoch, current_owner,
+                   next_owner, owner_reason, payload_json, source_path
+            FROM owner_route_receipts
+            WHERE study_root = ?
+            """,
+            (str(study_root.resolve()),),
+        ).fetchone()
+        dispatch_row = conn.execute(
+            """
+            SELECT dispatch_id, study_id, quest_id, created_at, status,
+                   owner_route_json, payload_json, source_path
+            FROM dispatch_receipts
+            WHERE quest_root = ?
+            """,
+            (str(quest_root.resolve()),),
+        ).fetchone()
+        ref_row = conn.execute(
+            """
+            SELECT object_scope, ref_key, surface, study_id, quest_id, target_path,
+                   source_path, target_sha256, payload_json
+            FROM surface_refs
+            WHERE object_root = ?
+            """,
+            (str(study_root.resolve()),),
+        ).fetchone()
+
+    assert macro_row[:6] == (
+        "001-risk",
+        "quest-001",
+        "macro-001",
+        "2026-05-06T00:00:00+00:00",
+        "runtime_active",
+        "mas_controller",
+    )
+    assert json.loads(macro_row[6]) == macro_state["owner_route"]
+    assert json.loads(macro_row[7]) == macro_state["surface_refs"]
+    assert json.loads(macro_row[8]) == macro_state
+    assert macro_row[9] == str(macro_state_path.resolve())
+    assert owner_row[:-2] == (
+        "001-risk",
+        "quest-001",
+        "route-001",
+        "truth-epoch-001",
+        "runtime",
+        "mas_controller",
+        "runtime_controller_redrive_required",
+    )
+    assert json.loads(owner_row[-2]) == owner_receipt
+    assert owner_row[-1] == str(owner_receipt_path.resolve())
+    assert dispatch_row[:5] == (
+        "dispatch-001",
+        "001-risk",
+        "quest-001",
+        "2026-05-06T00:01:00+00:00",
+        "dispatched",
+    )
+    assert json.loads(dispatch_row[5]) == owner_receipt
+    assert json.loads(dispatch_row[6]) == dispatch_receipt
+    assert dispatch_row[7] == str(dispatch_receipt_path.resolve())
+    assert ref_row == (
+        "study",
+        "publication_eval",
+        "publication_eval/latest.json",
+        "001-risk",
+        "quest-001",
+        str((study_root / "artifacts" / "publication_eval" / "latest.json").resolve()),
+        str(surface_ref_path.resolve()),
+        "abc123",
+        json.dumps(surface_ref, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str),
+    )
+    tables = lifecycle_store.inspect_lifecycle_store(db_path)["tables"]
+    assert tables["study_macro_state_snapshots"] == 1
+    assert tables["owner_route_receipts"] == 1
+    assert tables["dispatch_receipts"] == 1
+    assert tables["surface_refs"] == 1
+
+
+def test_surface_ref_relative_target_paths_are_resolved_against_object_root(tmp_path: Path) -> None:
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    study_root = tmp_path / "studies" / "001-risk"
+    db_path = tmp_path / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    ref_path = study_root / "artifacts" / "runtime" / "surface_refs" / "publication_eval.json"
+    ref_path.parent.mkdir(parents=True)
+    ref = {
+        "surface": "publication_eval/latest.json",
+        "study_id": "001-risk",
+        "ref_key": "publication_eval",
+        "path": "artifacts/publication_eval/latest.json",
+    }
+    ref_path.write_text(json.dumps(ref, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    lifecycle_store.record_surface_ref(
+        object_root=study_root,
+        object_scope="study",
+        ref=ref,
+        ref_path=ref_path,
+        db_path=db_path,
+    )
+
+    with sqlite3.connect(db_path) as conn:
+        target_path = conn.execute(
+            "SELECT target_path FROM surface_refs WHERE object_root = ?",
+            (str(study_root.resolve()),),
+        ).fetchone()[0]
+    assert target_path == str((study_root / "artifacts" / "publication_eval" / "latest.json").resolve())
 
 
 def test_lifecycle_read_model_exports_sqlite_runtime_report_without_touching_latest_files(tmp_path: Path) -> None:

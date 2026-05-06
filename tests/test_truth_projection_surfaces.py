@@ -57,6 +57,54 @@ def _control_plane_snapshot() -> dict[str, object]:
     }
 
 
+def _study_macro_state() -> dict[str, object]:
+    return {
+        "surface": "study_macro_state",
+        "schema_version": 1,
+        "study_id": "003-dpcc",
+        "writer_state": "parked",
+        "user_next": "submit_info",
+        "reason": "external_info",
+        "details": {
+            "truth_epoch": "truth-event-000004-live",
+            "missing_external_info": ["authors", "ethics"],
+            "package_delivered": True,
+            "reopen_allowed": True,
+            "reopen_mode": "external_info_or_revision_intake",
+        },
+        "conditions": [
+            {
+                "type": "ExternalInfoPending",
+                "status": "true",
+                "summary": "submission package waits for external metadata",
+            }
+        ],
+        "source_fingerprint": "macro::003-dpcc",
+    }
+
+
+def test_study_progress_compact_payload_derives_macro_state_from_current_payload() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    payload = module._normalize_study_progress_payload(
+        {
+            "study_id": "003-dpcc",
+            "quest_status": "paused",
+            "reason": "quest_waiting_for_submission_metadata",
+            "auto_runtime_parked": {"parked": True, "parked_state": "external_metadata_pending"},
+            "submission_metadata": {"missing_external_info": ["authors", "ethics"]},
+            "study_truth_snapshot": {
+                **_truth_snapshot(),
+                "package_state": {"authority_state": "current"},
+            },
+        }
+    )
+
+    assert payload["study_macro_state"]["writer_state"] == "parked"
+    assert payload["study_macro_state"]["user_next"] == "submit_info"
+    assert payload["study_macro_state"]["reason"] == "external_info"
+
+
 def test_mcp_progress_compact_projection_carries_truth_snapshot_summary() -> None:
     module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
 
@@ -144,7 +192,7 @@ def test_workspace_cockpit_study_item_carries_truth_snapshot_summary() -> None:
         progress_payload={
             "study_id": "003-dpcc",
             "truth_epoch": "truth-event-000004-live",
-            "study_truth_snapshot": _truth_snapshot(),
+            "study_truth_snapshot": {**_truth_snapshot(), "study_macro_state": _study_macro_state()},
             "control_plane_snapshot": _control_plane_snapshot(),
             "supervision": {"active_run_id": "run-e52f5574"},
         },
@@ -155,6 +203,47 @@ def test_workspace_cockpit_study_item_carries_truth_snapshot_summary() -> None:
     assert item["control_plane_snapshot"]["control_state"] == "supervisor_gated"
     assert item["study_truth_snapshot"]["canonical_next_action"] == "supervise_runtime"
     assert item["study_truth_snapshot"]["package_state"]["authority_state"] == "provisionally_current_for_epoch"
+    assert item["study_macro_state"]["writer_state"] == "live"
+    assert item["study_macro_state"]["user_next"] == "watch"
+    assert item["study_macro_state"]["reason"] == "runtime"
+    assert item["study_macro_state"]["details"]["active_run_id"] == "run-e52f5574"
+
+
+def test_mcp_compact_projection_carries_study_macro_state() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+
+    compact = module.compact_study_progress_projection(
+        {
+            "study_id": "003-dpcc",
+            "truth_epoch": "truth-event-000004-live",
+            "current_stage": "metadata_wait",
+            "study_macro_state": _study_macro_state(),
+        }
+    )
+
+    assert compact["study_macro_state"] == {
+        "surface": "study_macro_state",
+        "schema_version": 1,
+        "study_id": "003-dpcc",
+        "writer_state": "parked",
+        "user_next": "submit_info",
+        "reason": "external_info",
+        "details": {
+            "truth_epoch": "truth-event-000004-live",
+            "missing_external_info": ["authors", "ethics"],
+            "package_delivered": True,
+            "reopen_allowed": True,
+            "reopen_mode": "external_info_or_revision_intake",
+        },
+        "conditions": [
+            {
+                "type": "ExternalInfoPending",
+                "status": "true",
+                "summary": "submission package waits for external metadata",
+            }
+        ],
+        "source_fingerprint": "macro::003-dpcc",
+    }
 
 
 def test_runtime_watch_managed_study_action_carries_truth_snapshot_summary() -> None:
