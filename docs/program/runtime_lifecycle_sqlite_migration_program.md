@@ -1,6 +1,6 @@
 # Runtime Lifecycle SQLite Migration Program
 
-Status: `current workspace restore-proof migration applied; default MAS-first layout landed`
+Status: `current workspace restore-proof storage migration applied; default MAS-first layout and repo-side Git-retirement contracts landed; quest Git writer/read-model cutover pending`
 Date: `2026-05-06`
 Owner: `MedAutoScience Runtime OS + MedDeepScientist backend`
 
@@ -36,6 +36,28 @@ closeout ledger 证明的是当轮 eligible payload 已完成 restore-proof comp
 | AS001 `001-guideline-aligned-triple-trend` | `stopped`, `active_run_id=null`, `worker_running=false` | 56 | 保持已处理状态。 |
 
 因此，当前回答“最初计划是否已经落地”时应区分两个口径：repo capability 已落地；真实 workspace 迁移也已覆盖 NF-PitNET、DM-CVD / DPCC、AS biologics 和当前 follow-up 窗口中的 DM002/DM003 新增 payload。后续若任何论文 runtime 再产生 `.ds` 增量，应按同一 fresh gate + restore-proof compaction 流程维护，不能把新增 live writer 漂移写成迁移计划未完成。
+
+## 2026-05-06 Git retirement progress and fast-track
+
+当前 Git 退役进度必须按三层区分：
+
+| layer | status | evidence | remaining gate |
+| --- | --- | --- | --- |
+| repo / contract | `landed` | SQLite authority scope、quest Git daily lifecycle policy、workspace Git boundary guard、default MAS-first layout tests 已进入 `main`；新 workspace 默认写 `runtime/quests/`、`runtime/archives/`、`runtime/restore_index/`、`artifacts/runtime/`、`ops/mas/`。 | 持续 guard：不得把 SQLite、`.ds`、quest `.git`、runtime archive 或 old MDS path 重新纳入默认 writer。 |
+| current workspace storage compaction | `landed for current eligible workspaces` | NF-PitNET、DM-CVD / DPCC、AS biologics、DPCC004、DM002、DM003 已有 restore proof、compat export、file-count delta；errors 为 `0`。 | 后续新增 live writer drift 走同一 fresh gate；blocked / future workspace 只能在 controller-authorized 窗口 cutover。 |
+| quest-level Git lifecycle cutover | `not complete` | 文档和 contract 已固定 Git-era 到 SQLite-era mapping，但默认 Git writer、Git worktree materializer、Git diff/log/revision reader、Canvas reader 与 hidden compatibility fallback 尚未全部从 runtime path 删除。 | 完成 `Q1-Q6`，并在真实 workspace ledger 中证明 quest `.git` 不再留在 active runtime path。 |
+
+因此，当前状态不是“Git 已全部退役”，而是“日常新 workspace 和 repo contract 已经不再以 Git 为 runtime lifecycle 目标；真实 eligible workspace 的 storage 层已完成 restore-proof 压缩；quest-level Git writer/read-model 和兼容接口仍处于迁移期”。这条线应作为 MAS 吸收 MDS 的 fast-track 优先完成，方便后续论文项目从一开始就使用 MAS-only workspace。
+
+### Fast-track done criteria before new paper expansion
+
+后续论文项目大规模展开前，维护者应优先完成以下可判定项：
+
+- 新 quest smoke：从 task intake 到 route lineage、workspace allocation、snapshot、diff / Canvas projection，全程不调用 `git init`、`git branch`、`git worktree add` 或 Git diff/log 作为 runtime writer/read-model 前置条件。
+- 旧 workspace cutover ledger：每个 registry-discovered workspace 有 Git-era inventory、SQLite import、restore-proof archive、compat export、projection equivalence 和 `quest_git_active_path_retired=true` 或明确 skipped reason。
+- active path 清理：quest `.git`、`.ds/worktrees` 和 `ops/med-deepscientist/runtime/quests/` 不再作为 active runtime status source；残留 archive 只由 restore/import diagnostic 读取。
+- compatibility retirement：默认 CLI/MCP/controller/product entry 不再走 MDS Git compatibility fallback；保留入口必须显式命名为 legacy restore/import diagnostic，并 fail-closed 到只读。
+- doctor-facing layout：实际 workspace 和 README/progress projection 不再向医生展示 MDS/DS 路径；旧路径只在 migration ledger、restore proof 或 maintainer diagnostic 中出现。
 
 ## 结论
 
@@ -610,12 +632,13 @@ Repo 级验收：
 
 ## 下一步可直接执行的工作包
 
-1. `L0_contract_schema`：补 schema contract、DB-not-tracked guard、compatibility export contract、meta test。
-2. `L1_mas_store_expansion`：把 MAS feedback/action/runtime history 与 report index 扩到 SQLite，并保留 latest 文件 mirror。
-3. `L2_mds_runtime_index_retention`：扩展 MDS runtime index，覆盖 run/bash/codex history metadata 与 archive refs。
-4. `L3_compatibility_export`：实现从 SQLite 导出旧 report JSON/Markdown 的显式命令。
-5. `L4_migration_cli_inventory`：实现全 workspace dry-run inventory 和 migration ledger。
-6. `L5_project_migration`：对当前疾病 workspace 做 baseline、dry-run、eligible stopped/cold apply、restore proof 与 final report。
-7. `L6_guardrails_observability`：把 file-count budget、restore proof、live audit-only 和 DB-not-tracked 变成可重复验证。
+当前不再从 `L0` 重新开始；contract、DB-not-tracked guard、compatibility export、migration ledger、current eligible workspace restore-proof compaction 已经进入 landed 口径。剩余工作包按 quest Git 退役 fast-track 排序：
 
-本 program 的目标是让 MAS/MDS 从“百万级散落运行态文件”收敛为“文件 authority + SQLite lifecycle index + cold archive restore contract”的长期形态，同时保持 Git 兼容和旧入口可读。
+1. `Q1_mds_lineage_store`：把 runtime route lineage、branch/route state、checkpoint metadata 写入 SQLite lineage / snapshot service，禁止新 quest 默认 `git init`。
+2. `Q2_workspace_materializer`：用普通目录 + manifest/archive rehydrate 替代 Git linked worktree；active/pinned/recent workspace 由 SQLite allocation gate 管理。
+3. `Q3_canvas_and_reader_projection`：把 Canvas、branch list、revision document reader、diff summary 改成 SQLite projection；旧 JSON/Markdown 只由显式 compatibility export 生成。
+4. `Q4_project_git_to_sqlite_migrator`：对现有 quest `.git`、refs/log/worktree list/artifact records 做 inventory、SQLite import、archive proof 和 projection equivalence。
+5. `Q5_current_workspace_cutover`：在 NF-PitNET、DM-CVD/DPCC、AS biologics 和 registry-discovered workspace 中把 quest `.git` 移出 active runtime path，写 cutover ledger；blocked/live workspace 只写 skipped reason。
+6. `Q6_compat_layer_retirement`：删除默认 Git writer、Git worktree writer、隐式 Git diff/log runtime reader和旧 MDS compatibility fallback；只保留显式 legacy restore/import diagnostic。
+
+这组工作完成后，本 program 的目标状态才可写成“Git retired for current projects”。在此之前，只能说 repo-side contract 和 current eligible storage compaction 已完成，compatibility reader 仍是迁移安全阀。
