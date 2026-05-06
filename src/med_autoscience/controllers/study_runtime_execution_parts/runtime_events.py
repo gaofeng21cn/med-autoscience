@@ -8,6 +8,7 @@ from urllib.parse import quote
 
 from med_autoscience.controllers import auto_runtime_parking
 from med_autoscience.controllers import runtime_supervision as runtime_supervision_controller
+from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
 from ..study_runtime_status import (
@@ -77,7 +78,11 @@ def record_user_pause_contract_after_pause(
         return None
     if not isinstance(runtime_state, dict):
         return None
-    if str(runtime_state.get("status") or "").strip().lower() != StudyRuntimeQuestStatus.PAUSED.value:
+    status = str(runtime_state.get("status") or "").strip().lower()
+    if status not in {
+        StudyRuntimeQuestStatus.PAUSED.value,
+        StudyRuntimeQuestStatus.STOPPED.value,
+    }:
         return None
     if str(runtime_state.get("active_run_id") or "").strip():
         return None
@@ -103,6 +108,52 @@ def record_user_pause_contract_after_pause(
         "source": source,
         "recorded_at": recorded_at,
     }
+
+
+def pause_runtime_state_postcondition(
+    *,
+    quest_root: Path,
+    error: str,
+) -> dict[str, Any]:
+    runtime_state = quest_state.load_runtime_state(quest_root)
+    runtime_status = str(runtime_state.get("status") or "").strip().lower() or None
+    active_run_id = str(runtime_state.get("active_run_id") or "").strip() or None
+    worker_running = bool(runtime_state.get("worker_running"))
+    effective = (
+        runtime_status
+        in {
+            StudyRuntimeQuestStatus.PAUSED.value,
+            StudyRuntimeQuestStatus.STOPPED.value,
+        }
+        and active_run_id is None
+        and not worker_running
+    )
+    return {
+        "effective": effective,
+        "source": "runtime_state",
+        "runtime_state_path": str(Path(quest_root) / ".ds" / "runtime_state.json"),
+        "runtime_state_status": runtime_status,
+        "active_run_id": active_run_id,
+        "worker_running": worker_running,
+        "control_transport_error": error,
+    }
+
+
+def pause_failure_result_from_postcondition(postcondition: dict[str, Any]) -> dict[str, Any]:
+    effective_status = str(postcondition.get("runtime_state_status") or "").strip() or "paused"
+    payload: dict[str, Any] = {
+        "ok": False,
+        "status": effective_status if postcondition["effective"] else "unavailable",
+        "error": postcondition["control_transport_error"],
+        "pause_postcondition": dict(postcondition),
+    }
+    if postcondition["effective"]:
+        payload["snapshot"] = {
+            "status": effective_status,
+            "active_run_id": None,
+            "worker_running": False,
+        }
+    return payload
 
 
 def has_delivered_human_package_surface(study_root: Path) -> bool:

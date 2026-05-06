@@ -244,3 +244,102 @@ def test_pause_study_runtime_replaces_auto_continuation_with_user_pause_contract
     assert runtime_state["continuation_reason"] == "user_pause"
     assert runtime_state["user_pause_contract"]["source"] == "test-human-takeover"
     assert result["user_pause_contract"]["status"] == "recorded"
+
+
+def test_pause_study_runtime_records_user_pause_contract_when_daemon_is_down_but_quest_is_already_paused(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    transport = _managed_runtime_transport(module)
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    study_root, quest_root = _write_managed_study(profile, study_id)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(
+        runtime_state_path,
+        json.dumps(
+            {
+                "status": "paused",
+                "active_run_id": None,
+                "worker_running": False,
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "controller_work_unit_pending",
+            }
+        )
+        + "\n",
+    )
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+    monkeypatch.setattr(
+        transport,
+        "pause_quest",
+        lambda *, runtime_root, quest_id, source: (_ for _ in ()).throw(RuntimeError("connection refused")),
+    )
+
+    result = module.pause_study_runtime(
+        profile=profile,
+        study_root=study_root,
+        source="test-human-takeover",
+    )
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+
+    assert result["decision"] == "pause"
+    assert result["reason"] == "human_takeover_requested"
+    assert result["quest_status"] == "paused"
+    assert result["pause_postcondition"]["effective"] is True
+    assert runtime_state["stop_reason"] == "user_pause"
+    assert runtime_state["continuation_policy"] == "wait_for_user_or_resume"
+    assert runtime_state["continuation_anchor"] == "user_pause"
+    assert runtime_state["continuation_reason"] == "user_pause"
+    assert result["user_pause_contract"]["status"] == "recorded"
+
+
+def test_pause_study_runtime_records_user_pause_contract_when_daemon_is_down_but_quest_is_already_stopped(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    transport = _managed_runtime_transport(module)
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    study_root, quest_root = _write_managed_study(profile, study_id)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(
+        runtime_state_path,
+        json.dumps(
+            {
+                "status": "stopped",
+                "active_run_id": None,
+                "worker_running": False,
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "controller_work_unit_pending",
+                "stop_reason": "controller_stop:signal:sigterm",
+            }
+        )
+        + "\n",
+    )
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+    monkeypatch.setattr(
+        transport,
+        "pause_quest",
+        lambda *, runtime_root, quest_id, source: (_ for _ in ()).throw(RuntimeError("connection refused")),
+    )
+
+    result = module.pause_study_runtime(
+        profile=profile,
+        study_root=study_root,
+        source="test-human-takeover",
+    )
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+
+    assert result["decision"] == "pause"
+    assert result["reason"] == "human_takeover_requested"
+    assert result["quest_status"] == "stopped"
+    assert result["pause_postcondition"]["effective"] is True
+    assert runtime_state["stop_reason"] == "user_pause"
+    assert runtime_state["continuation_policy"] == "wait_for_user_or_resume"
+    assert runtime_state["continuation_anchor"] == "user_pause"
+    assert runtime_state["continuation_reason"] == "user_pause"
+    assert result["user_pause_contract"]["status"] == "recorded"
