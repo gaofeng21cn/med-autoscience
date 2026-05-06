@@ -377,12 +377,12 @@ def test_startup_hydration_validation_blocks_missing_transportability_governance
     assert "missing_multicenter_generalizability_inputs" not in report["blockers"]
 
 
-def test_startup_hydration_validation_reads_active_worktree_paper_root_and_legacy_shell_requirements(
+def test_startup_hydration_validation_reads_projected_paper_root_and_legacy_shell_requirements(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk-reentry"
-    active_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    active_paper_root = quest_root / "paper"
     active_paper_root.mkdir(parents=True, exist_ok=True)
     (active_paper_root / "paper_bundle_manifest.json").write_text("{}", encoding="utf-8")
     write_json(

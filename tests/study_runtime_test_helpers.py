@@ -242,6 +242,34 @@ def write_submission_metadata_only_bundle(quest_root: Path, *, blocking_item_ids
         )
         + "\n",
     )
+    mirror_projected_paper_root(quest_root=quest_root, paper_root=paper_root)
+
+
+def mirror_projected_paper_root(*, quest_root: Path, paper_root: Path) -> Path:
+    projected_root = quest_root / "paper"
+    if projected_root.exists():
+        shutil.rmtree(projected_root)
+    shutil.copytree(paper_root, projected_root)
+    manifest_payload = {}
+    try:
+        manifest_payload = json.loads((paper_root / "paper_bundle_manifest.json").read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    paper_branch = str(manifest_payload.get("paper_branch") or "paper/main").strip() or "paper/main"
+    write_text(
+        projected_root / "paper_line_state.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "paper_branch": paper_branch,
+                "paper_root": str(paper_root.resolve()),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    return projected_root
 
 
 def write_auditable_current_package(study_root: Path) -> None:
@@ -405,6 +433,8 @@ def write_synced_submission_delivery(
 
     if stale_authority_input:
         write_text(compiled_markdown_path, "# Review Manuscript\n\nAuthority draft updated after package generation.\n")
+
+    mirror_projected_paper_root(quest_root=quest_root, paper_root=paper_root)
 
     return paper_root
 

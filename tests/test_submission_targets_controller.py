@@ -70,7 +70,7 @@ def make_submission_target_workspace(tmp_path: Path) -> tuple[Path, Path, Path, 
     profile_path = tmp_path / "nfpitnet.local.toml"
     study_root = workspace_root / "studies" / "002-early-residual-risk"
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "002-early-residual-risk"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-12345678" / "paper"
+    paper_root = quest_root / "paper"
     write_profile(profile_path, workspace_root)
     write_text(
         study_root / "study.yaml",
@@ -220,7 +220,7 @@ def test_export_submission_targets_blocks_controller_resolved_generic_target_wit
     profile_path = tmp_path / "dm.local.toml"
     study_root = workspace_root / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-dm-cvd-mortality-risk-reentry-20260331"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-12345678" / "paper"
+    paper_root = quest_root / "paper"
     write_profile(profile_path, workspace_root)
     write_text(study_root / "study.yaml", "study_id: 001-dm-cvd-mortality-risk\n")
     write_text(quest_root / "quest.yaml", "quest_id: 001-dm-cvd-mortality-risk-reentry-20260331\n")

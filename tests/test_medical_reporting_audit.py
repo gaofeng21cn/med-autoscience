@@ -426,10 +426,10 @@ def test_write_audit_files_uses_runtime_protocol_report_store(monkeypatch, tmp_p
     assert md_path.name == "latest.md"
 
 
-def test_medical_reporting_audit_reads_active_worktree_paper_root(tmp_path: Path) -> None:
+def test_medical_reporting_audit_reads_projected_paper_root(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk-reentry"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    paper_root = quest_root / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     (paper_root / "paper_bundle_manifest.json").write_text("{}", encoding="utf-8")
     (paper_root / "medical_reporting_contract.json").write_text(
