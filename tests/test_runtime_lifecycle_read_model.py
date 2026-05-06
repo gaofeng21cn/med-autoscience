@@ -107,6 +107,97 @@ def test_lifecycle_read_model_sqlite_only_surfaces_report_capability_gap_for_mis
     assert projection["payload"] == {"missing_tables": ["lineage_edges"]}
 
 
+def test_lifecycle_read_model_legacy_surfaces_do_not_fallback_by_default(tmp_path: Path) -> None:
+    read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
+    quest_root = tmp_path / "runtime" / "quests" / "quest-001"
+    legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    legacy_latest.parent.mkdir(parents=True)
+    legacy_latest.write_text(json.dumps({"legacy": True}), encoding="utf-8")
+
+    projection = read_model.read_compatibility_projection(
+        surface="runtime_report",
+        quest_root=quest_root,
+        report_group="runtime_watch",
+    )
+
+    assert projection["status"] == "missing"
+    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_missing"
+    assert projection["compatibility_fallback_used"] is False
+    assert projection["source_paths"] == []
+    assert projection["payload"] == {}
+    assert "diagnostic_scope" not in projection
+
+
+def test_lifecycle_read_model_legacy_restore_import_diagnostic_can_fallback(tmp_path: Path) -> None:
+    read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
+    quest_root = tmp_path / "runtime" / "quests" / "quest-001"
+    legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    legacy_latest.parent.mkdir(parents=True)
+    legacy_payload = {"legacy": True}
+    legacy_latest.write_text(json.dumps(legacy_payload), encoding="utf-8")
+
+    projection = read_model.read_legacy_restore_import_diagnostic_projection(
+        surface="runtime_report",
+        quest_root=quest_root,
+        report_group="runtime_watch",
+    )
+
+    assert projection["status"] == "fallback"
+    assert projection["payload"] == legacy_payload
+    assert projection["compatibility_fallback_used"] is True
+    assert projection["diagnostic_scope"] == "legacy_restore_import_diagnostic"
+    assert projection["source_paths"] == [str(legacy_latest.resolve())]
+
+
+def test_lifecycle_read_model_legacy_surfaces_report_capability_gap_for_missing_table(tmp_path: Path) -> None:
+    read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
+    db_path = tmp_path / "runtime_lifecycle.sqlite"
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("CREATE TABLE unrelated_surface (id TEXT PRIMARY KEY)")
+
+    projection = read_model.read_compatibility_projection(surface="runtime_report", db_path=db_path)
+
+    assert projection["status"] == "capability_gap"
+    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_table_missing"
+    assert projection["compatibility_fallback_used"] is False
+    assert projection["payload"] == {"missing_tables": ["runtime_reports"]}
+
+
+def test_lifecycle_read_model_legacy_surfaces_report_missing_for_missing_row(tmp_path: Path) -> None:
+    read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
+    db_path = tmp_path / "runtime_lifecycle.sqlite"
+    quest_root = (tmp_path / "runtime" / "quests" / "quest-001").resolve()
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE runtime_reports(
+                quest_root TEXT NOT NULL,
+                report_group TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                status TEXT NOT NULL,
+                json_path TEXT NOT NULL,
+                md_path TEXT NOT NULL,
+                latest_json_path TEXT NOT NULL,
+                latest_md_path TEXT NOT NULL,
+                payload_sha256 TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            )
+            """
+        )
+
+    projection = read_model.read_compatibility_projection(
+        surface="runtime_report",
+        quest_root=quest_root,
+        report_group="runtime_watch",
+        db_path=db_path,
+    )
+
+    assert projection["status"] == "missing"
+    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_row_missing"
+    assert projection["compatibility_fallback_used"] is False
+    assert projection["payload"] == {}
+
+
 def test_lifecycle_read_model_exports_sqlite_only_projection_as_json_and_markdown(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
     workspace_root = (tmp_path / "workspace").resolve()
@@ -142,6 +233,27 @@ def test_lifecycle_read_model_exports_sqlite_only_projection_as_json_and_markdow
     assert markdown_export["export_format"] == "markdown"
     assert "- surface: `canvas_projection`" in markdown
     assert '"nodes": [' in markdown
+
+
+def test_lifecycle_read_model_export_does_not_fallback_by_default(tmp_path: Path) -> None:
+    read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
+    quest_root = tmp_path / "runtime" / "quests" / "quest-001"
+    legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    output_path = tmp_path / "exports" / "runtime_report.json"
+    legacy_latest.parent.mkdir(parents=True)
+    legacy_latest.write_text(json.dumps({"legacy": True}), encoding="utf-8")
+
+    export = read_model.export_compatibility_projection(
+        surface="runtime_report",
+        quest_root=quest_root,
+        report_group="runtime_watch",
+        export_format="json",
+        output_path=output_path,
+    )
+
+    assert export["compatibility_fallback_used"] is False
+    assert export["payload"] == {}
+    assert json.loads(output_path.read_text(encoding="utf-8")) == {}
 
 
 def _write_projection_fixture(*, db_path: Path, workspace_root: Path, quest_root: Path) -> None:

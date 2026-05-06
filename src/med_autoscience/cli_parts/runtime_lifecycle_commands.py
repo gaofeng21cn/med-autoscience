@@ -16,12 +16,14 @@ def register_runtime_lifecycle_parsers(subparsers: argparse._SubParsersAction) -
     read_parser = subparsers.add_parser("runtime-lifecycle-read")
     _add_scope_args(read_parser)
     _add_surface_args(read_parser)
+    read_parser.add_argument("--legacy-restore-import-diagnostic", action="store_true")
 
     export_parser = subparsers.add_parser("runtime-lifecycle-export")
     _add_scope_args(export_parser)
     _add_surface_args(export_parser)
     export_parser.add_argument("--format", choices=("json", "markdown"), default="json")
     export_parser.add_argument("--output-path", type=str)
+    export_parser.add_argument("--legacy-restore-import-diagnostic", action="store_true")
 
     ledger_parser = subparsers.add_parser("runtime-lifecycle-ledger")
     ledger_parser.add_argument("--workspace-root", required=True, type=str)
@@ -57,6 +59,7 @@ def handle_runtime_lifecycle_command(
         result = runtime_lifecycle_read_model.read_compatibility_projection(
             surface=args.surface,
             report_group=args.report_group,
+            legacy_restore_import_diagnostic=bool(args.legacy_restore_import_diagnostic),
             **_scope_kwargs(args),
         )
         _print_json(result)
@@ -68,6 +71,7 @@ def handle_runtime_lifecycle_command(
             export_format=args.format,
             report_group=args.report_group,
             output_path=Path(args.output_path) if args.output_path else None,
+            legacy_restore_import_diagnostic=bool(args.legacy_restore_import_diagnostic),
             **_scope_kwargs(args),
         )
         _print_json(result)
