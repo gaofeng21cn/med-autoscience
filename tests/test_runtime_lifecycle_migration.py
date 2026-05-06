@@ -180,6 +180,9 @@ def test_runtime_lifecycle_ledger_cli_dispatches_migration_builder(monkeypatch, 
         mode: str,
         workspace_classification: str,
         migration_run_id: str | None,
+        quest_git_cutover_status=None,
+        quest_git_inventory=(),
+        compatibility_retirement=None,
         skipped_reasons: tuple[str, ...],
         next_required_action: str | None,
         output_root: Path | None,
@@ -244,3 +247,113 @@ def test_runtime_lifecycle_ledger_cli_dispatches_migration_builder(monkeypatch, 
         "write_compat_export": True,
     }
     assert json.loads(captured.out)["validation"]["ok"] is True
+
+
+def test_runtime_lifecycle_ledger_blocks_git_retirement_until_active_path_cutover_is_verified(tmp_path: Path) -> None:
+    migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+    subprocess.run(["git", "init"], cwd=workspace_root, check=True, text=True, capture_output=True)
+    (workspace_root / ".gitignore").write_text("*.sqlite\n*.sqlite-wal\n*.sqlite-shm\n", encoding="utf-8")
+    quest_git = workspace_root / "runtime" / "quests" / "quest-001" / ".git"
+    quest_git.mkdir(parents=True)
+
+    ledger = migration.build_migration_ledger(
+        workspace_root=workspace_root,
+        mode="dry_run",
+        workspace_classification="parked_controller_stop",
+        quest_git_cutover_status={"status": "pending"},
+        quest_git_inventory=[
+            {
+                "study_id": "001-risk",
+                "quest_id": "quest-001",
+                "active_path": str(quest_git.parent),
+                "git_path": str(quest_git),
+                "quest_git_present_in_active_path": True,
+                "quest_git_active_path_retired": False,
+            }
+        ],
+        compatibility_retirement={
+            "current_projects_cutover_verified": False,
+            "old_readers_equivalent": True,
+            "restore_import_diagnostic_retained": True,
+            "default_fallback_removed": False,
+            "default_callers": ["runtime_watch"],
+        },
+    )
+
+    cutover = ledger["git_lifecycle_cutover"]
+    assert cutover["status"] == "pending"
+    assert cutover["quest_git_active_path_retired"] is False
+    assert cutover["unresolved_active_git_paths"][0]["quest_id"] == "quest-001"
+    assert cutover["compatibility_retirement"]["allowed"] is False
+    assert "Q1-Q5" in ledger["next_required_action"]
+
+
+def test_runtime_lifecycle_ledger_allows_compat_retirement_only_after_verified_cutover(tmp_path: Path) -> None:
+    migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+    subprocess.run(["git", "init"], cwd=workspace_root, check=True, text=True, capture_output=True)
+    (workspace_root / ".gitignore").write_text("*.sqlite\n*.sqlite-wal\n*.sqlite-shm\n", encoding="utf-8")
+    subprocess.run(["git", "add", ".gitignore"], cwd=workspace_root, check=True, text=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.name=MAS Test", "-c", "user.email=mas@example.test", "commit", "-m", "init"],
+        cwd=workspace_root,
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+
+    ledger = migration.build_migration_ledger(
+        workspace_root=workspace_root,
+        mode="verify",
+        workspace_classification="stopped_cold",
+        quest_git_cutover_status={"status": "verified"},
+        quest_git_inventory=[
+            {
+                "study_id": "001-risk",
+                "quest_id": "quest-001",
+                "active_path": str(workspace_root / "runtime" / "quests" / "quest-001"),
+                "quest_git_present_in_active_path": False,
+                "quest_git_active_path_retired": True,
+                "archive_ref": "runtime/archives/quest-001.git.bundle",
+                "projection_equivalence": "verified",
+            }
+        ],
+        compatibility_retirement={
+            "current_projects_cutover_verified": True,
+            "old_readers_equivalent": True,
+            "restore_import_diagnostic_retained": True,
+            "default_fallback_removed": True,
+            "default_callers": ["legacy_restore_import_diagnostic"],
+        },
+    )
+
+    cutover = ledger["git_lifecycle_cutover"]
+    assert cutover["status"] == "verified"
+    assert cutover["quest_git_active_path_retired"] is True
+    assert cutover["unresolved_active_git_paths"] == []
+    assert cutover["compatibility_retirement"]["allowed"] is True
+    assert ledger["next_required_action"] == "Run storage-audit dry-run to create the runtime lifecycle SQLite sidecar."
+
+
+def test_compatibility_retirement_validation_requires_restore_import_diagnostic() -> None:
+    migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
+
+    result = migration.validate_compatibility_retirement(
+        {
+            "current_projects_cutover_verified": True,
+            "old_readers_equivalent": True,
+            "restore_import_diagnostic_retained": False,
+            "default_fallback_removed": True,
+            "default_callers": ["runtime_watch"],
+        }
+    )
+
+    assert result == {
+        "allowed": False,
+        "missing_true_fields": ["restore_import_diagnostic_retained"],
+        "disallowed_default_callers": ["runtime_watch"],
+        "retained_scope": "legacy_restore_import_diagnostic",
+    }
