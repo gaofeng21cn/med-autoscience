@@ -20,6 +20,12 @@ from .runtime_lifecycle_contract import (
 
 SURFACE_KIND = "runtime_lifecycle_migration_ledger"
 LATEST_SURFACE_KIND = "runtime_lifecycle_migration_latest"
+QUEST_GIT_INVENTORY_SURFACE_KIND = "quest_git_inventory"
+QUEST_GIT_SCAN_ROOTS = (
+    (Path("runtime") / "quests", "workspace_runtime_quests"),
+    (Path("ops") / "med-deepscientist" / "runtime" / "quests", "med_deepscientist_runtime_quests"),
+    (Path(".ds") / "worktrees", "legacy_ds_worktrees"),
+)
 
 
 def build_migration_ledger(
@@ -62,16 +68,24 @@ def build_migration_ledger(
         enabled=write_compat_export,
         errors=errors,
     )
-    skipped_items = _skipped_items(
-        skipped_reasons=tuple(skipped_reasons),
-        git_tracking_check=git_tracking_check,
-        storage_audit=storage_audit,
-    )
+    quest_git_inventory_items = tuple(quest_git_inventory)
+    if not quest_git_inventory_items:
+        quest_git_inventory_items = tuple(
+            build_quest_git_inventory(workspace_root=resolved_workspace_root)["items"]
+        )
     git_lifecycle_cutover = _git_lifecycle_cutover(
         quest_git_cutover_status=quest_git_cutover_status,
-        quest_git_inventory=tuple(quest_git_inventory),
+        quest_git_inventory=quest_git_inventory_items,
         compatibility_retirement=compatibility_retirement,
     )
+    skipped_items = [
+        *_skipped_items(
+            skipped_reasons=tuple(skipped_reasons),
+            git_tracking_check=git_tracking_check,
+            storage_audit=storage_audit,
+        ),
+        *_quest_git_skipped_items(git_lifecycle_cutover["quest_git_inventory"]),
+    ]
     payload: dict[str, Any] = {
         "surface_kind": SURFACE_KIND,
         "migration_run_id": run_id,
@@ -109,6 +123,83 @@ def build_migration_ledger(
     if write:
         payload["ledger_paths"] = _write_ledger(ledger_root=ledger_root, payload=payload)
     return payload
+
+
+def build_quest_git_inventory(*, workspace_root: Path) -> dict[str, Any]:
+    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
+    storage_audit = _read_json_mapping(resolved_workspace_root / "storage_audit" / "latest.json")
+    items_by_active_path: dict[str, dict[str, Any]] = {}
+    for relative_root, source in QUEST_GIT_SCAN_ROOTS:
+        quests_root = resolved_workspace_root / relative_root
+        if not quests_root.is_dir():
+            continue
+        for git_path in sorted(path for path in quests_root.glob("*/.git") if path.exists()):
+            active_path = git_path.parent
+            item = _quest_git_inventory_item(
+                {
+                    "source": source,
+                    "quest_id": active_path.name,
+                    "active_path": str(active_path),
+                    "git_path": str(git_path),
+                    "quest_git_present_in_active_path": True,
+                    "quest_git_active_path_retired": False,
+                    "status": "pending",
+                    "action": "audit_only",
+                    "skipped_reason": "active_quest_git_present",
+                }
+            )
+            items_by_active_path[str(active_path)] = item
+
+    for proof in _restore_proofs(storage_audit):
+        quest_root = str(proof.get("quest_root") or "").strip()
+        if not quest_root:
+            continue
+        active_path = _resolved_path_text(quest_root, workspace_root=resolved_workspace_root)
+        archive_ref = str(proof.get("archive_path") or "").strip() or None
+        proof_status = str(proof.get("status") or "").strip()
+        proof_item = {
+            "source": "restore_proof_archive_ref",
+            "study_id": proof.get("study_id"),
+            "quest_id": proof.get("quest_id") or Path(active_path).name,
+            "active_path": active_path,
+            "git_path": str(Path(active_path) / ".git"),
+            "quest_git_present_in_active_path": (Path(active_path) / ".git").exists(),
+            "archive_ref": archive_ref,
+            "restore_proof_path": proof.get("restore_proof_path"),
+            "projection_equivalence": proof_status or None,
+        }
+        if active_path in items_by_active_path:
+            items_by_active_path[active_path].update(
+                {
+                    "archive_ref": archive_ref,
+                    "restore_proof_path": proof.get("restore_proof_path"),
+                    "projection_equivalence": proof_status or None,
+                }
+            )
+        else:
+            items_by_active_path[active_path] = _quest_git_inventory_item(proof_item)
+
+    items = sorted(items_by_active_path.values(), key=lambda item: (str(item.get("source") or ""), str(item.get("active_path") or "")))
+    active_git_count = sum(1 for item in items if item["quest_git_present_in_active_path"])
+    retired_count = sum(1 for item in items if item["quest_git_active_path_retired"])
+    pending_count = sum(1 for item in items if item["status"] == "pending")
+    return {
+        "surface_kind": QUEST_GIT_INVENTORY_SURFACE_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "workspace_root": str(resolved_workspace_root),
+        "generated_at": _utc_now(),
+        "scan_roots": [
+            {"path": str(resolved_workspace_root / relative_root), "source": source}
+            for relative_root, source in QUEST_GIT_SCAN_ROOTS
+        ],
+        "items": items,
+        "summary": {
+            "item_count": len(items),
+            "active_git_count": active_git_count,
+            "retired_count": retired_count,
+            "pending_count": pending_count,
+        },
+    }
 
 
 def validate_compatibility_retirement(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -181,17 +272,50 @@ def _quest_git_inventory_item(item: Mapping[str, Any]) -> dict[str, Any]:
     active_path_retired = item.get("quest_git_active_path_retired")
     if active_path_retired is None:
         active_path_retired = not git_present
+    status = str(item.get("status") or "").strip()
+    if not status:
+        status = "pending" if git_present or not active_path_retired else "retired"
+    skipped_reason = item.get("skipped_reason")
+    if not skipped_reason and status == "pending":
+        skipped_reason = "active_quest_git_present" if git_present else "active_path_retirement_unverified"
     return {
-        "quest_id": quest_id or None,
+        "source": item.get("source"),
+        "quest_id": quest_id or (Path(active_path).name if active_path else None),
         "study_id": item.get("study_id"),
         "active_path": active_path or None,
         "git_path": git_path or None,
         "quest_git_present_in_active_path": git_present,
         "quest_git_active_path_retired": bool(active_path_retired),
         "archive_ref": item.get("archive_ref"),
+        "restore_proof_path": item.get("restore_proof_path"),
         "projection_equivalence": item.get("projection_equivalence"),
-        "skipped_reason": item.get("skipped_reason"),
+        "status": status,
+        "action": item.get("action") or ("audit_only" if status == "pending" else "none"),
+        "skipped_reason": skipped_reason,
     }
+
+
+def _quest_git_skipped_items(inventory: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    skipped: list[dict[str, Any]] = []
+    seen: set[tuple[str | None, str | None, str]] = set()
+    for item in inventory:
+        if not item.get("quest_git_present_in_active_path") and item.get("quest_git_active_path_retired") is True:
+            continue
+        reason = str(item.get("skipped_reason") or "active_path_retirement_unverified")
+        key = (item.get("quest_id"), item.get("study_id"), reason)
+        if key in seen:
+            continue
+        seen.add(key)
+        skipped.append(
+            {
+                "scope": "quest_git",
+                "quest_id": item.get("quest_id"),
+                "study_id": item.get("study_id"),
+                "reason": reason,
+                "action": "audit_only",
+            }
+        )
+    return skipped
 
 
 def _compatibility_exports(
@@ -334,6 +458,13 @@ def _restore_proofs(storage_audit: Mapping[str, Any]) -> list[dict[str, Any]]:
             }
         )
     return proofs
+
+
+def _resolved_path_text(value: str, *, workspace_root: Path) -> str:
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        path = workspace_root / path
+    return str(path.resolve())
 
 
 def _quest_classifications(storage_audit: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -601,4 +732,9 @@ def _artifact_slug(value: str) -> str:
     return value.replace(":", "").replace("-", "").replace("+0000", "Z").replace("+00:00", "Z")
 
 
-__all__ = ["SURFACE_KIND", "build_migration_ledger", "validate_compatibility_retirement"]
+__all__ = [
+    "SURFACE_KIND",
+    "build_migration_ledger",
+    "build_quest_git_inventory",
+    "validate_compatibility_retirement",
+]

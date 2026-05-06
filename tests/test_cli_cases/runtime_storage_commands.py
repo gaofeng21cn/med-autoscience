@@ -474,6 +474,76 @@ def test_runtime_lifecycle_inventory_command_is_read_only(monkeypatch, tmp_path:
     assert payload["compatibility_fallback_used"] is True
 
 
+def test_runtime_lifecycle_inventory_command_can_output_quest_git_inventory(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    called: dict[str, object] = {}
+
+    def fake_build_quest_git_inventory(*, workspace_root: Path) -> dict[str, object]:
+        called["workspace_root"] = workspace_root
+        return {
+            "surface_kind": "quest_git_inventory",
+            "workspace_root": str(workspace_root),
+            "items": [
+                {
+                    "quest_id": "quest-001",
+                    "active_path": str(workspace_root / "runtime" / "quests" / "quest-001"),
+                    "git_path": str(workspace_root / "runtime" / "quests" / "quest-001" / ".git"),
+                    "quest_git_present_in_active_path": True,
+                    "quest_git_active_path_retired": False,
+                    "status": "pending",
+                    "skipped_reason": "active_quest_git_present",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(cli.runtime_lifecycle_migration, "build_quest_git_inventory", fake_build_quest_git_inventory)
+
+    exit_code = cli.main(["runtime", "lifecycle-inventory", "--workspace-root", str(workspace_root), "--quest-git"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {"workspace_root": workspace_root}
+    payload = json.loads(captured.out)
+    assert payload["surface_kind"] == "quest_git_inventory"
+    assert payload["items"][0]["status"] == "pending"
+
+
+def test_runtime_lifecycle_ledger_command_outputs_auto_quest_git_inventory(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+    (workspace_root / ".gitignore").write_text("*.sqlite\n*.sqlite-wal\n*.sqlite-shm\n", encoding="utf-8")
+    quest_git = workspace_root / "runtime" / "quests" / "quest-active" / ".git"
+    quest_git.mkdir(parents=True)
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "lifecycle-ledger",
+            "--workspace-root",
+            str(workspace_root),
+            "--mode",
+            "verify",
+            "--workspace-classification",
+            "parked_controller_stop",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    cutover = payload["git_lifecycle_cutover"]
+    assert cutover["status"] == "pending"
+    assert cutover["quest_git_inventory"][0]["quest_id"] == "quest-active"
+    assert cutover["quest_git_inventory"][0]["active_path"] == str(quest_git.parent)
+    assert cutover["quest_git_inventory"][0]["git_path"] == str(quest_git)
+
+
 def test_runtime_lifecycle_read_accepts_sqlite_only_surface(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
