@@ -13,7 +13,15 @@ from . import runtime_lifecycle_store
 
 SURFACE_KIND = "runtime_lifecycle_compatibility_read_model"
 EXPORT_SURFACE_KIND = "runtime_lifecycle_compatibility_export"
-SUPPORTED_SURFACES = frozenset({"watch_state", "runtime_report", "workspace_storage_audit"})
+LEGACY_FALLBACK_SURFACES = frozenset({"watch_state", "runtime_report", "workspace_storage_audit"})
+SQLITE_ONLY_SURFACE_TABLES = {
+    "lineage_route": ("lineage_nodes", "lineage_edges"),
+    "workspace_allocation": ("workspace_allocations",),
+    "runtime_snapshot": ("runtime_snapshots", "snapshot_file_refs"),
+    "revision_diff": ("revision_diffs",),
+    "canvas_projection": ("canvas_projection",),
+}
+SUPPORTED_SURFACES = frozenset({*LEGACY_FALLBACK_SURFACES, *SQLITE_ONLY_SURFACE_TABLES})
 
 
 def build_lifecycle_inventory(
@@ -45,6 +53,13 @@ def build_lifecycle_inventory(
                 "watch_states",
                 "runtime_reports",
                 "workspace_storage_audits",
+                "lineage_nodes",
+                "lineage_edges",
+                "workspace_allocations",
+                "runtime_snapshots",
+                "snapshot_file_refs",
+                "revision_diffs",
+                "canvas_projection",
                 "runtime_events",
                 "report_index",
             )
@@ -77,6 +92,23 @@ def read_compatibility_projection(
 ) -> dict[str, Any]:
     normalized_surface = _require_surface(surface)
     resolved_db_path = _resolve_lifecycle_db_path(quest_root=quest_root, workspace_root=workspace_root, db_path=db_path)
+    if normalized_surface not in LEGACY_FALLBACK_SURFACES:
+        if not resolved_db_path.exists():
+            return _missing_sqlite_projection(
+                surface=normalized_surface,
+                db_path=resolved_db_path,
+                status="missing",
+                missing_reason="runtime_lifecycle_sqlite_missing",
+            )
+        with _connect_readonly(resolved_db_path) as conn:
+            return _read_sqlite_only_projection(
+                conn=conn,
+                surface=normalized_surface,
+                quest_root=quest_root,
+                workspace_root=workspace_root,
+                db_path=resolved_db_path,
+            )
+
     fallback = _legacy_fallback_projection(
         surface=normalized_surface,
         quest_root=quest_root,
@@ -253,6 +285,103 @@ def _read_workspace_storage_audit_projection(
     )
 
 
+def _read_sqlite_only_projection(
+    *,
+    conn: sqlite3.Connection,
+    surface: str,
+    quest_root: Path | None,
+    workspace_root: Path | None,
+    db_path: Path,
+) -> dict[str, Any]:
+    required_tables = SQLITE_ONLY_SURFACE_TABLES[surface]
+    missing_tables = [table for table in required_tables if not _table_exists(conn, table)]
+    if missing_tables:
+        return _missing_sqlite_projection(
+            surface=surface,
+            db_path=db_path,
+            status="capability_gap",
+            missing_reason="runtime_lifecycle_sqlite_table_missing",
+            missing_tables=missing_tables,
+        )
+
+    payload: dict[str, Any] = {}
+    source_queries: list[str] = []
+    for table in required_tables:
+        query, values = _projection_table_query(
+            conn=conn,
+            table=table,
+            quest_root=quest_root,
+            workspace_root=workspace_root,
+        )
+        source_queries.append(query)
+        payload[table] = [_normalize_sqlite_row(row) for row in conn.execute(query, values).fetchall()]
+    return _projection(
+        surface=surface,
+        db_path=db_path,
+        source_query="; ".join(source_queries),
+        payload=payload,
+        payload_sha256=_sha256(_stable_json(payload)),
+        compatibility_fallback_used=False,
+        source_paths=[],
+    )
+
+
+def _projection_table_query(
+    *,
+    conn: sqlite3.Connection,
+    table: str,
+    quest_root: Path | None,
+    workspace_root: Path | None,
+) -> tuple[str, tuple[str, ...]]:
+    columns = _table_columns(conn, table)
+    if quest_root is not None and "quest_root" in columns:
+        return f"SELECT * FROM {table} WHERE quest_root = ? ORDER BY rowid", (str(Path(quest_root).expanduser().resolve()),)
+    if workspace_root is not None and "workspace_root" in columns:
+        return (
+            f"SELECT * FROM {table} WHERE workspace_root = ? ORDER BY rowid",
+            (str(Path(workspace_root).expanduser().resolve()),),
+        )
+    return f"SELECT * FROM {table} ORDER BY rowid", ()
+
+
+def _normalize_sqlite_row(row: sqlite3.Row) -> dict[str, Any]:
+    normalized: dict[str, Any] = {}
+    for key in row.keys():
+        value = row[key]
+        if isinstance(value, str) and (key.endswith("_json") or key in {"payload", "payload_json"}):
+            try:
+                normalized[key] = json.loads(value)
+            except json.JSONDecodeError:
+                normalized[key] = value
+        else:
+            normalized[key] = value
+    return normalized
+
+
+def _missing_sqlite_projection(
+    *,
+    surface: str,
+    db_path: Path,
+    status: str,
+    missing_reason: str,
+    missing_tables: list[str] | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    if missing_tables is not None:
+        payload["missing_tables"] = list(missing_tables)
+    return _projection(
+        surface=surface,
+        db_path=db_path,
+        source_query="sqlite projection unavailable",
+        payload=payload,
+        payload_sha256=_sha256(_stable_json(payload)),
+        compatibility_fallback_used=False,
+        source_paths=[],
+        status=status,
+        missing_reason=missing_reason,
+    )
+
+
 def _legacy_fallback_projection(
     *,
     surface: str,
@@ -323,6 +452,9 @@ def _available_surfaces(conn: sqlite3.Connection) -> list[str]:
         surfaces.append("runtime_report")
     if _table_count_if_present(conn, "workspace_storage_audits") > 0:
         surfaces.append("workspace_storage_audit")
+    for surface, tables in SQLITE_ONLY_SURFACE_TABLES.items():
+        if all(_table_exists(conn, table) for table in tables) and any(_table_count_if_present(conn, table) > 0 for table in tables):
+            surfaces.append(surface)
     return surfaces
 
 
@@ -365,6 +497,11 @@ def _latest_refs(conn: sqlite3.Connection) -> dict[str, Any]:
                 "workspace_root": row["workspace_root"],
                 "recorded_at": row["recorded_at"],
                 "latest_report_path": row["latest_report_path"],
+            }
+    for surface, tables in SQLITE_ONLY_SURFACE_TABLES.items():
+        if all(_table_exists(conn, table) for table in tables):
+            refs[surface] = {
+                "tables": {table: _table_count_if_present(conn, table) for table in tables},
             }
     return refs
 
@@ -438,6 +575,10 @@ def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
         ).fetchone()
         is not None
     )
+
+
+def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {str(row["name"]) for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
 
 
 def _read_json_mapping(path: Path) -> dict[str, Any]:
