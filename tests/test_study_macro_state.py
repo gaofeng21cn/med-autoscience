@@ -82,6 +82,37 @@ def test_delivered_submission_packages_share_submit_info_macro_state() -> None:
     assert all(len(item["reason"]) <= 24 for item in derived)
 
 
+def test_paused_quest_ignores_stale_truth_active_run_id() -> None:
+    derived = _derive(
+        study_id="002-dm-china-us-mortality-attribution",
+        status={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_status": "paused",
+            "decision": "resume",
+            "reason": "quest_paused",
+            "active_run_id": None,
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-000004",
+                "source_signature": "truth-snapshot::stale",
+                "active_run_id": "run-stale",
+                "execution_state": {
+                    "state": "paused",
+                    "quest_status": "paused",
+                    "reason": "quest_paused",
+                },
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "active_run_id": None,
+                "worker_running": None,
+            },
+        },
+    )
+
+    assert derived["writer_state"] != "live"
+    assert derived["details"].get("active_run_id") is None
+
+
 def test_stop_loss_and_user_stop_share_reopenable_parked_macro_state() -> None:
     cases = [
         (

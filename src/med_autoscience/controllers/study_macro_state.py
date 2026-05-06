@@ -359,6 +359,8 @@ def _truth_conflict(*, status: Mapping[str, Any], progress: Mapping[str, Any], t
 
 
 def _active_run_id(*, status: Mapping[str, Any], progress: Mapping[str, Any], truth: Mapping[str, Any]) -> str | None:
+    if _text(status.get("quest_status")) in {"paused", "stopped", "completed"}:
+        return None
     return (
         _text(status.get("active_run_id"))
         or _text(progress.get("active_run_id"))
