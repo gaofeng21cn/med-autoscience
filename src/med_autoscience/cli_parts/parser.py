@@ -106,6 +106,22 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_supervisor_execute_dispatch_apply.add_argument("--dry-run", action="store_true")
     runtime_supervisor_execute_dispatch_apply.add_argument("--apply", action="store_true")
 
+    runtime_supervisor_refresh_controller_decisions_parser = subparsers.add_parser(
+        "runtime-supervisor-refresh-controller-decisions"
+    )
+    runtime_supervisor_refresh_controller_decisions_parser.add_argument("--profile", required=True)
+    runtime_supervisor_refresh_controller_decisions_parser.add_argument("--studies", nargs="+", required=True)
+    runtime_supervisor_refresh_controller_decisions_parser.add_argument(
+        "--mode",
+        choices=("developer_apply_safe",),
+        required=True,
+    )
+    runtime_supervisor_refresh_controller_decisions_apply = (
+        runtime_supervisor_refresh_controller_decisions_parser.add_mutually_exclusive_group(required=True)
+    )
+    runtime_supervisor_refresh_controller_decisions_apply.add_argument("--dry-run", action="store_true")
+    runtime_supervisor_refresh_controller_decisions_apply.add_argument("--apply", action="store_true")
+
     study_state_matrix_parser = subparsers.add_parser("study-state-matrix")
     study_state_matrix_parser.add_argument("--profile", required=True)
     study_state_matrix_parser.add_argument("--studies", nargs="+")

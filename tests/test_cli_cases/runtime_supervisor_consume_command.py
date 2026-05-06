@@ -156,3 +156,59 @@ def test_runtime_supervisor_execute_dispatch_command_dispatches_controller(monke
     assert called["mode"] == "developer_apply_safe"
     assert called["apply"] is True
     assert json.loads(captured.out)["surface"] == "default_executor_dispatch_executor"
+
+
+def test_runtime_supervisor_refresh_controller_decisions_command_dispatches_controller(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_refresh_controller_decisions_for_current_publication_eval(
+        *,
+        profile,
+        study_ids,
+        mode: str,
+        apply: bool,
+    ) -> dict[str, object]:
+        called["profile"] = profile
+        called["study_ids"] = study_ids
+        called["mode"] = mode
+        called["apply"] = apply
+        return {
+            "surface": "runtime_supervisor_controller_decision_refresh",
+            "refresh_count": len(study_ids),
+        }
+
+    monkeypatch.setattr(
+        cli.runtime_supervisor_dispatch_executor,
+        "refresh_controller_decisions_for_current_publication_eval",
+        fake_refresh_controller_decisions_for_current_publication_eval,
+    )
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "supervisor-refresh-controller-decisions",
+            "--profile",
+            str(profile_path),
+            "--studies",
+            "DM002",
+            "DM003",
+            "--mode",
+            "developer_apply_safe",
+            "--apply",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["study_ids"] == ("DM002", "DM003")
+    assert called["mode"] == "developer_apply_safe"
+    assert called["apply"] is True
+    assert json.loads(captured.out)["surface"] == "runtime_supervisor_controller_decision_refresh"

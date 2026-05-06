@@ -366,6 +366,17 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "runtime-supervisor-refresh-controller-decisions":
+        profile = load_profile(args.profile)
+        result = runtime_supervisor_dispatch_executor.refresh_controller_decisions_for_current_publication_eval(
+            profile=profile,
+            study_ids=tuple(args.studies or ()),
+            mode=args.mode,
+            apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "open-auto-research-soak":
         if bool(args.study_id) == bool(args.study_root):
             parser.error("Specify exactly one of --study-id or --study-root")

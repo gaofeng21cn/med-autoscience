@@ -515,12 +515,187 @@ def _execute_ai_reviewer_workflow(
             "error": str(exc),
             "request_path": str(request_path),
         }
+    controller_decision_refresh = _refresh_controller_decision_after_ai_reviewer_eval(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+    )
+    if isinstance(owner_result, Mapping):
+        owner_result = {
+            **dict(owner_result),
+            "controller_decision_refresh": controller_decision_refresh,
+        }
     return {
         "execution_status": "executed",
         "blocked_reason": None,
         "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
         "owner_result": owner_result,
         "request_path": str(request_path),
+    }
+
+
+def _refresh_controller_decision_after_ai_reviewer_eval(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    apply: bool = True,
+    source: str = "ai_reviewer_publication_eval_workflow",
+) -> dict[str, Any]:
+    try:
+        status = study_runtime_router.study_runtime_status(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            entry_mode=None,
+        )
+        status_payload = dict(status) if isinstance(status, Mapping) else status.to_dict()
+    except (OSError, TypeError, ValueError, RuntimeError) as exc:
+        return {
+            "refresh_status": "blocked",
+            "blocked_reason": "study_runtime_status_unavailable",
+            "error": str(exc),
+        }
+
+    from . import study_outer_loop
+
+    try:
+        tick_request = study_outer_loop.build_runtime_watch_outer_loop_tick_request(
+            study_root=study_root,
+            status_payload=status_payload,
+        )
+    except (OSError, TypeError, ValueError, RuntimeError) as exc:
+        return {
+            "refresh_status": "blocked",
+            "blocked_reason": "outer_loop_tick_request_failed",
+            "error": str(exc),
+        }
+    if tick_request is None:
+        return {
+            "refresh_status": "skipped",
+            "skipped_reason": "outer_loop_tick_request_unavailable",
+        }
+    if not apply:
+        return {
+            "refresh_status": "dry_run",
+            "study_id": study_id,
+            "publication_eval_ref": dict(tick_request.get("publication_eval_ref") or {}),
+            "decision_type": _text(tick_request.get("decision_type")),
+            "work_unit_fingerprint": _text(tick_request.get("work_unit_fingerprint")),
+            "next_work_unit": (
+                dict(tick_request.get("next_work_unit"))
+                if isinstance(tick_request.get("next_work_unit"), Mapping)
+                else None
+            ),
+            "blocking_work_units": list(tick_request.get("blocking_work_units") or []),
+        }
+
+    try:
+        refresh_result = study_outer_loop.materialize_non_dispatching_outer_loop_decision(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            status_payload=status_payload,
+            charter_ref=tick_request["charter_ref"],
+            publication_eval_ref=tick_request["publication_eval_ref"],
+            decision_type=tick_request["decision_type"],
+            route_target=tick_request.get("route_target"),
+            route_key_question=tick_request.get("route_key_question"),
+            route_rationale=tick_request.get("route_rationale"),
+            source_route_key_question=tick_request.get("source_route_key_question"),
+            work_unit_fingerprint=tick_request.get("work_unit_fingerprint"),
+            next_work_unit=tick_request.get("next_work_unit"),
+            blocking_work_units=tick_request.get("blocking_work_units") or [],
+            requires_human_confirmation=bool(tick_request.get("requires_human_confirmation")),
+            controller_actions=tick_request.get("controller_actions") or [],
+            reason=str(tick_request.get("reason") or ""),
+            source=source,
+        )
+    except (OSError, TypeError, ValueError, RuntimeError) as exc:
+        return {
+            "refresh_status": "blocked",
+            "blocked_reason": "non_dispatching_controller_decision_materialization_failed",
+            "error": str(exc),
+        }
+    return {
+        "refresh_status": "materialized",
+        **dict(refresh_result),
+    }
+
+
+def refresh_controller_decisions_for_current_publication_eval(
+    *,
+    profile: WorkspaceProfile,
+    study_ids: Iterable[str],
+    mode: str,
+    apply: bool,
+) -> dict[str, Any]:
+    generated_at = _utc_now()
+    developer_mode = resolve_developer_supervisor_mode(
+        profile=profile,
+        requested_mode=mode,
+        apply_safe_actions=apply,
+        scheduler_owner="controller_decision_refresh",
+    )
+    developer_mode_payload = developer_mode.to_dict()
+    if apply and (
+        _text(developer_mode_payload.get("mode")) != SUPPORTED_MODE
+        or developer_mode_payload.get("safe_actions_enabled") is not True
+    ):
+        return {
+            "surface": "runtime_supervisor_controller_decision_refresh",
+            "schema_version": SCHEMA_VERSION,
+            "generated_at": generated_at,
+            "workspace_root": str(profile.workspace_root),
+            "dry_run": False,
+            "requested_mode": mode,
+            "effective_mode": developer_mode.mode,
+            "developer_supervisor_mode": developer_mode_payload,
+            "refresh_count": 0,
+            "materialized_count": 0,
+            "blocked_count": 1,
+            "skipped_count": 0,
+            "refreshes": [
+                {
+                    "refresh_status": "blocked",
+                    "blocked_reason": _github_block_reason(developer_mode_payload) or "developer_apply_safe_required",
+                }
+            ],
+        }
+    resolved_study_ids = _resolve_study_ids(profile, study_ids)
+    refreshes = [
+        {
+            "study_id": study_id,
+            **_refresh_controller_decision_after_ai_reviewer_eval(
+                profile=profile,
+                study_id=study_id,
+                study_root=_study_root(profile, study_id),
+                apply=apply,
+                source="runtime_supervisor_controller_decision_refresh",
+            ),
+        }
+        for study_id in resolved_study_ids
+    ]
+    return {
+        "surface": "runtime_supervisor_controller_decision_refresh",
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": generated_at,
+        "workspace_root": str(profile.workspace_root),
+        "dry_run": not apply,
+        "requested_mode": mode,
+        "effective_mode": developer_mode.mode,
+        "developer_supervisor_mode": developer_mode_payload,
+        "requested_studies": list(resolved_study_ids),
+        "refresh_count": len(refreshes),
+        "materialized_count": sum(item.get("refresh_status") == "materialized" for item in refreshes),
+        "blocked_count": sum(item.get("refresh_status") == "blocked" for item in refreshes),
+        "skipped_count": sum(item.get("refresh_status") == "skipped" for item in refreshes),
+        "dry_run_count": sum(item.get("refresh_status") == "dry_run" for item in refreshes),
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+        "refreshes": refreshes,
     }
 
 
@@ -694,4 +869,5 @@ __all__ = [
     "SCHEMA_VERSION",
     "SUPPORTED_ACTION_TYPES",
     "execute_default_executor_dispatches",
+    "refresh_controller_decisions_for_current_publication_eval",
 ]

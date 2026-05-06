@@ -12,6 +12,8 @@ from tests.runtime_supervisor_dispatch_executor_helpers import (
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
 
+from .test_runtime_supervisor_dispatch_executor_cases.ai_reviewer_controller_refresh import *  # noqa: F403,F401
+
 
 def test_execute_dispatch_blocks_ai_reviewer_when_request_missing(
     monkeypatch,
