@@ -502,13 +502,18 @@ def test_run_quest_hydration_rejects_semantic_table_display_plan_without_catalog
         )
 
 
-def test_run_quest_hydration_syncs_contract_and_display_stubs_to_canonical_paper_root(tmp_path: Path) -> None:
+def test_run_quest_hydration_keeps_default_sync_on_current_paper_root_when_legacy_worktree_exists(
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.quest_hydration")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk-reentry"
-    active_paper_root = quest_root / "paper"
-    active_paper_root.mkdir(parents=True, exist_ok=True)
-    (active_paper_root / "paper_bundle_manifest.json").write_text("{}", encoding="utf-8")
-    (active_paper_root / "medical_reporting_contract.json").write_text(
+    (quest_root / "paper").mkdir(parents=True, exist_ok=True)
+    current_paper_root = quest_root / "paper"
+    legacy_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    legacy_paper_root.mkdir(parents=True, exist_ok=True)
+    (current_paper_root / "paper_bundle_manifest.json").write_text("{}", encoding="utf-8")
+    (legacy_paper_root / "paper_bundle_manifest.json").write_text("{}", encoding="utf-8")
+    (legacy_paper_root / "medical_reporting_contract.json").write_text(
         json.dumps({"status": "resolved", "study_root": "/legacy/study"}, ensure_ascii=False),
         encoding="utf-8",
     )
@@ -523,17 +528,21 @@ def test_run_quest_hydration_syncs_contract_and_display_stubs_to_canonical_paper
         },
     )
 
-    active_reporting_contract = json.loads(
-        (active_paper_root / "medical_reporting_contract.json").read_text(encoding="utf-8")
+    current_reporting_contract = json.loads(
+        (current_paper_root / "medical_reporting_contract.json").read_text(encoding="utf-8")
     )
-    assert active_reporting_contract["display_registry_required"] is True
-    assert active_reporting_contract["display_shell_plan"][0]["display_id"] == "cohort_flow"
-    assert (active_paper_root / "medical_analysis_contract.json").exists()
-    assert (active_paper_root / "display_registry.json").exists()
-    assert (active_paper_root / "figures" / "cohort_flow.shell.json").exists()
-    assert (active_paper_root / "tables" / "baseline_characteristics.shell.json").exists()
-    assert (active_paper_root / "cohort_flow.json").exists()
-    assert (active_paper_root / "baseline_characteristics_schema.json").exists()
+    legacy_reporting_contract = json.loads(
+        (legacy_paper_root / "medical_reporting_contract.json").read_text(encoding="utf-8")
+    )
+    assert current_reporting_contract["display_registry_required"] is True
+    assert current_reporting_contract["display_shell_plan"][0]["display_id"] == "cohort_flow"
+    assert legacy_reporting_contract == {"status": "resolved", "study_root": "/legacy/study"}
+    assert (current_paper_root / "medical_analysis_contract.json").exists()
+    assert (current_paper_root / "display_registry.json").exists()
+    assert (current_paper_root / "figures" / "cohort_flow.shell.json").exists()
+    assert (current_paper_root / "tables" / "baseline_characteristics.shell.json").exists()
+    assert (current_paper_root / "cohort_flow.json").exists()
+    assert (current_paper_root / "baseline_characteristics_schema.json").exists()
 
 
 def test_run_quest_hydration_writes_transportability_governance_f5_stub(tmp_path: Path) -> None:

@@ -73,13 +73,7 @@ def find_latest(paths: list[Path]) -> Path | None:
 
 def is_legacy_restore_import_context(quest_root: Path) -> bool:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
-    parts = resolved_quest_root.parts
-    if (resolved_quest_root / ".ds" / "runtime_state.json").exists():
-        return True
-    return any(
-        parts[index : index + 4] == ("ops", "med-deepscientist", "runtime", "quests")
-        for index in range(0, max(len(parts) - 3, 0))
-    )
+    return (resolved_quest_root / ".ds" / "runtime_state.json").exists()
 
 
 def load_runtime_state(quest_root: Path) -> dict[str, Any]:

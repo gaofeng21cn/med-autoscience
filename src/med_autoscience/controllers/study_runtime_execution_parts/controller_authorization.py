@@ -35,6 +35,15 @@ _QUALITY_REPAIR_DOWNSTREAM_WORK_UNIT_IDS = {
     "submission_delivery_sync_closure",
     "submission_minimal_refresh",
 }
+_WORK_UNIT_TARGET_CONTEXT_KEYS = (
+    "specificity_targets",
+    "work_unit_targets",
+    "blocking_artifact_refs",
+    "blocker_details",
+    "gate_blocker_details",
+    "gaps",
+    "source_path",
+)
 _CONTROL_INTENT_LIFECYCLE_STATE_KEY = "control_intent_lifecycle"
 _LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY = "last_live_controller_reroute_restart"
 _ROUTE_TARGET_LABELS = {
@@ -63,6 +72,10 @@ def _artifact_payload_from_ref(*, study_root: Path, artifact_path: str) -> dict[
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}
 
 
 def _text_sequence(value: object) -> tuple[str, ...]:
@@ -138,6 +151,42 @@ def _publication_eval_work_unit_context(publication_eval_payload: dict[str, Any]
     return {}
 
 
+def _publication_action_target_context(
+    publication_eval_payload: dict[str, Any],
+    work_unit_context: dict[str, Any],
+) -> dict[str, Any]:
+    work_unit_fingerprint = _text(work_unit_context.get("work_unit_fingerprint"))
+    work_unit_id = _text(work_unit_context.get("work_unit_id")) or _text(
+        _mapping(work_unit_context.get("next_work_unit")).get("unit_id")
+    )
+    if work_unit_fingerprint is None and work_unit_id is None:
+        return {}
+    recommended_actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(recommended_actions, list):
+        return {}
+    matching_actions: list[dict[str, Any]] = []
+    for action in recommended_actions:
+        if not isinstance(action, dict):
+            continue
+        next_work_unit = _compact_work_unit_payload(action.get("next_work_unit"))
+        action_fingerprint = _text(action.get("work_unit_fingerprint")) or (
+            _text(next_work_unit.get("fingerprint")) if next_work_unit is not None else None
+        )
+        action_unit_id = _text(next_work_unit.get("unit_id")) if next_work_unit is not None else None
+        fingerprint_matches = (
+            work_unit_fingerprint is not None
+            and action_fingerprint is not None
+            and action_fingerprint == work_unit_fingerprint
+        )
+        unit_matches = work_unit_fingerprint is None and work_unit_id is not None and action_unit_id == work_unit_id
+        if fingerprint_matches or unit_matches:
+            matching_actions.append(action)
+    if len(matching_actions) != 1:
+        return {}
+    action = matching_actions[0]
+    return {key: action[key] for key in _WORK_UNIT_TARGET_CONTEXT_KEYS if key in action}
+
+
 def _record_work_unit_context(record: StudyDecisionRecord) -> dict[str, Any]:
     next_work_unit = _compact_work_unit_payload(record.next_work_unit)
     if next_work_unit is None:
@@ -172,6 +221,9 @@ def _stable_publication_authority_fingerprint(
         artifact_path=record.publication_eval_ref.artifact_path,
     )
     work_unit_context = _record_work_unit_context(record) or _publication_eval_work_unit_context(publication_eval_payload)
+    target_context = _publication_action_target_context(publication_eval_payload, work_unit_context)
+    if target_context:
+        work_unit_context = {**work_unit_context, **target_context}
     canonical_payload: dict[str, Any] = {
         "gate_fingerprint": _text(publication_eval_payload.get("gate_fingerprint")),
         "work_unit_fingerprint": _text(work_unit_context.get("work_unit_fingerprint")),
@@ -188,6 +240,9 @@ def _stable_publication_authority_fingerprint(
         "current_required_action": _text(publication_eval_payload.get("current_required_action")),
         "blockers": list(_text_sequence(publication_eval_payload.get("blockers"))),
         "blocking_artifact_refs": list(_stable_blocking_artifact_refs(publication_eval_payload.get("blocking_artifact_refs"))),
+        "work_unit_target_context": {
+            key: work_unit_context[key] for key in _WORK_UNIT_TARGET_CONTEXT_KEYS if key in work_unit_context
+        },
     }
     if not any(canonical_payload.values()):
         canonical_payload = {
@@ -239,6 +294,9 @@ def _load_controller_decision_authorization_context(*, study_root: Path) -> dict
         artifact_path=record.publication_eval_ref.artifact_path,
     )
     work_unit_context = _record_work_unit_context(record) or _publication_eval_work_unit_context(publication_eval_payload)
+    target_context = _publication_action_target_context(publication_eval_payload, work_unit_context)
+    if target_context:
+        work_unit_context = {**work_unit_context, **target_context}
     route_target = str(work_unit_context.get("route_target") or record.route_target or "").strip()
     route_key_question = str(work_unit_context.get("route_key_question") or record.route_key_question or "").strip()
     route_rationale = str(work_unit_context.get("route_rationale") or record.route_rationale or "").strip()
@@ -259,7 +317,7 @@ def _load_controller_decision_authorization_context(*, study_root: Path) -> dict
         controller_actions=controller_actions,
         source_kind="controller_decision_authorization",
     )
-    return {
+    authorization_context: dict[str, Any] = {
         "decision_id": record.decision_id,
         "study_id": record.study_id,
         "quest_id": record.quest_id,
@@ -280,6 +338,10 @@ def _load_controller_decision_authorization_context(*, study_root: Path) -> dict
         "control_intent_identity": intent_identity.to_dict(),
         "control_intent_key": intent_identity.business_key,
     }
+    for key in _WORK_UNIT_TARGET_CONTEXT_KEYS:
+        if key in work_unit_context:
+            authorization_context[key] = work_unit_context[key]
+    return authorization_context
 
 
 def _load_controller_decision_route_context(*, study_root: Path) -> dict[str, str] | None:
@@ -334,6 +396,9 @@ def _controller_decision_authorization_already_relayed(
     marker = runtime_state.get(_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
     if not isinstance(marker, dict):
         return False
+    for key in _WORK_UNIT_TARGET_CONTEXT_KEYS:
+        if key in authorization_context and marker.get(key) != authorization_context.get(key):
+            return False
     expected_intent_key = str(authorization_context.get("control_intent_key") or "").strip()
     marker_intent_key = str(marker.get("control_intent_key") or "").strip()
     if expected_intent_key and marker_intent_key:
@@ -413,6 +478,10 @@ def _controller_decision_authorization_message(*, authorization_context: dict[st
         work_unit_lines += f"- next_work_unit: {json.dumps(next_work_unit, ensure_ascii=False, sort_keys=True)}\n"
     if isinstance(blocking_work_units, list) and blocking_work_units:
         work_unit_lines += f"- blocking_work_units: {json.dumps(blocking_work_units, ensure_ascii=False, sort_keys=True)}\n"
+    for key in _WORK_UNIT_TARGET_CONTEXT_KEYS:
+        value = authorization_context.get(key)
+        if value:
+            work_unit_lines += f"- {key}: {json.dumps(value, ensure_ascii=False, sort_keys=True)}\n"
     if source_route_key_question and source_route_key_question != route_key_question:
         work_unit_lines += f"- source_route_key_question: {source_route_key_question}\n"
     return (
@@ -509,6 +578,9 @@ def _mark_controller_decision_authorization_relayed(
             authorization_context.get("controller_work_unit_lifecycle")
         ),
     }
+    for key in _WORK_UNIT_TARGET_CONTEXT_KEYS:
+        if key in authorization_context:
+            runtime_state[_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY][key] = authorization_context[key]
     _write_runtime_state(quest_root=quest_root, runtime_state=runtime_state)
 
 
@@ -676,6 +748,9 @@ def _relay_controller_decision_authorization_if_required(
         "message_id": None,
         "source": context.source,
     }
+    for key in _WORK_UNIT_TARGET_CONTEXT_KEYS:
+        if key in authorization_context:
+            relay[key] = authorization_context[key]
     try:
         response = context.runtime_backend.chat_quest(
             runtime_root=context.runtime_root,

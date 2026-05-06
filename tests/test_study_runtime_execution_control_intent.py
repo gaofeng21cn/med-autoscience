@@ -142,6 +142,14 @@ def _write_publication_eval_work_unit_authority(study_root: Path) -> None:
                                 "summary": "Refresh the stale submission package after gate clearance.",
                             },
                         ],
+                        "specificity_targets": [
+                            {
+                                "target_kind": "claim",
+                                "target_id": "claim_evidence_map",
+                                "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                                "blocking_reason": "claim_evidence_consistency_failed",
+                            }
+                        ],
                     }
                 ],
             },
@@ -184,6 +192,37 @@ def test_controller_authorization_prefers_publication_work_unit_over_stale_route
         authorization_context["control_intent_identity"]["blocker_authority_fingerprint"]
         == "publication-blockers::claim-story-figure"
     )
+
+
+def test_controller_authorization_carries_publication_specificity_targets_for_current_decision(
+    tmp_path: Path,
+) -> None:
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_controller_decision_authorization(
+        study_root,
+        action_type="run_quality_repair_batch",
+        work_unit_fingerprint="publication-blockers::claim-story-figure",
+        next_work_unit={
+            "unit_id": "analysis_claim_evidence_repair",
+            "lane": "analysis-campaign",
+            "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
+        },
+    )
+    _write_publication_eval_work_unit_authority(study_root)
+
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    message = auth_module._controller_decision_authorization_message(
+        authorization_context=authorization_context or {}
+    )
+
+    assert authorization_context is not None
+    assert authorization_context["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert authorization_context["specificity_targets"][0]["target_kind"] == "claim"
+    assert authorization_context["specificity_targets"][0]["source_path"].endswith("claim_evidence_map.json")
+    assert "specificity_targets" in message
 
 
 def test_controller_authorization_prefers_current_decision_work_unit_over_stale_publication_eval(
@@ -492,6 +531,76 @@ def test_relayed_controller_authorization_marker_includes_lifecycle_projection(
         "block_reason": None,
         "terminal_consumed": False,
     }
+    assert marker["specificity_targets"][0]["target_kind"] == "claim"
+
+
+def test_execute_noop_runtime_decision_refreshes_marker_when_specificity_targets_were_missing(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    _write_controller_decision_authorization(
+        study_root,
+        action_type="run_quality_repair_batch",
+        work_unit_fingerprint="publication-blockers::claim-story-figure",
+        next_work_unit={
+            "unit_id": "analysis_claim_evidence_repair",
+            "lane": "analysis-campaign",
+            "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
+        },
+    )
+    _write_publication_eval_work_unit_authority(study_root)
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    stale_marker = {
+        "decision_id": authorization_context["decision_id"],
+        "route_target": authorization_context["route_target"],
+        "route_key_question": authorization_context["route_key_question"],
+        "work_unit_id": authorization_context["work_unit_id"],
+        "work_unit_fingerprint": authorization_context["work_unit_fingerprint"],
+        "control_intent_key": authorization_context["control_intent_key"],
+        "delivery_mode": "managed_runtime_chat",
+        "message_id": "msg-old-without-targets",
+    }
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-live-001",
+            "pending_user_message_count": 0,
+            "last_controller_decision_authorization": stale_marker,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    chats: list[dict[str, object]] = []
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            chats.append({"quest_id": quest_id, "text": text, "source": source})
+            return {"ok": True, "message": {"id": "msg-refreshed-targets"}}
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    module._execute_runtime_decision(status=status, context=context)
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+
+    assert len(chats) == 1
+    marker = runtime_state["last_controller_decision_authorization"]
+    assert marker["message_id"] == "msg-refreshed-targets"
+    assert marker["specificity_targets"][0]["source_path"].endswith("claim_evidence_map.json")
 
 
 def test_execute_noop_runtime_decision_resets_same_fingerprint_count_for_source_signature_change(

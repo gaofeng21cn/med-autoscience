@@ -13,6 +13,7 @@ from .layout import (
     build_workspace_runtime_layout_for_profile,
     resolve_runtime_root_from_quest_root,
 )
+from . import legacy_restore_import_diagnostics
 from .topology import (
     PaperRootContext,
     resolve_paper_root_context,
@@ -134,6 +135,7 @@ __all__ = [
     "resolve_active_stdout_path",
     "resolve_worktree_root_from_paper_root",
     "load_watch_state",
+    "legacy_restore_import_diagnostics",
     "save_watch_state",
     "should_refresh_startup_hydration_while_blocked",
     "validate_startup_contract_resolution",
