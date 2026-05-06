@@ -33,6 +33,13 @@ _HARD_AUTO_RECOVERY_REASONS = frozenset(
     }
 )
 _RUNTIME_RECOVERY_DECISIONS = frozenset({"create_and_start", "resume", "relaunch_stopped"})
+_EXPLICIT_WAKEUP_REASONS = frozenset(
+    {
+        "quest_user_paused_requires_explicit_wakeup",
+        "quest_waiting_for_explicit_wakeup_after_manual_hold",
+    }
+)
+_EXPLICIT_WAKEUP_PARKED_STATES = frozenset({"explicit_resume_pending", "manual_hold"})
 
 
 def utc_now() -> str:
@@ -189,6 +196,51 @@ def _write_json_object(path: Path, payload: Mapping[str, Any]) -> None:
 def _mapping_value(payload: Mapping[str, Any], key: str) -> Mapping[str, Any]:
     value = payload.get(key)
     return value if isinstance(value, Mapping) else {}
+
+
+def _outer_loop_dispatch_blocked_by_explicit_wakeup_contract(
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    reason = _non_empty_text(status_payload.get("reason"))
+    continuation_state = _mapping_value(status_payload, "continuation_state")
+    auto_runtime_parked = _mapping_value(status_payload, "auto_runtime_parked")
+    runtime_health_snapshot = _mapping_value(status_payload, "runtime_health_snapshot")
+    publication_supervisor_state = _mapping_value(status_payload, "publication_supervisor_state")
+
+    stop_reason = _non_empty_text(continuation_state.get("stop_reason"))
+    parked_state = _non_empty_text(auto_runtime_parked.get("parked_state"))
+    runtime_action = _non_empty_text(runtime_health_snapshot.get("canonical_runtime_action"))
+    supervisor_phase = _non_empty_text(publication_supervisor_state.get("supervisor_phase"))
+
+    user_pause_contract = stop_reason == "user_pause"
+    reason_requires_wakeup = reason in _EXPLICIT_WAKEUP_REASONS
+    parked_requires_wakeup = (
+        auto_runtime_parked.get("awaiting_explicit_wakeup") is True
+        and parked_state in _EXPLICIT_WAKEUP_PARKED_STATES
+    )
+    health_requires_wakeup = runtime_action == "await_explicit_resume" and (
+        reason_requires_wakeup or parked_requires_wakeup or user_pause_contract
+    )
+    manual_hold_contract = supervisor_phase == "manual_hold" and parked_state == "manual_hold"
+
+    if not (
+        user_pause_contract
+        or reason_requires_wakeup
+        or parked_requires_wakeup
+        or health_requires_wakeup
+        or manual_hold_contract
+    ):
+        return None
+    return {
+        "explicit_wakeup_contract": {
+            "stop_reason": stop_reason,
+            "reason": reason,
+            "parked_state": parked_state,
+            "awaiting_explicit_wakeup": bool(auto_runtime_parked.get("awaiting_explicit_wakeup")),
+            "canonical_runtime_action": runtime_action,
+            "supervisor_phase": supervisor_phase,
+        }
+    }
 
 
 def _payload_active_run_id(payload: Mapping[str, Any]) -> str | None:

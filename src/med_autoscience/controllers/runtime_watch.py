@@ -35,6 +35,7 @@ from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
     _controller_decision_latest_matches_outer_loop_request,
     _managed_study_status_payload,
     _non_empty_text,
+    _outer_loop_dispatch_blocked_by_explicit_wakeup_contract,
     _quest_report_requests_managed_study_reroute,
     _refresh_managed_study_status_after_ensure,
     _serialize_managed_study_action,
@@ -455,6 +456,7 @@ def _serialize_no_op_suppression(
         "needs_specificity",
         "platform_repair_required",
         "control_plane_dispatch_blocked",
+        "explicit_wakeup_required",
     }:
         return None
     payload: dict[str, Any] = {
@@ -474,6 +476,7 @@ def _serialize_no_op_suppression(
         "platform_repair_kind",
         "control_plane_snapshot",
         "control_plane_blocking_reasons",
+        "explicit_wakeup_contract",
     ):
         value = wakeup_audit.get(key)
         if value is not None:
@@ -486,6 +489,8 @@ def _serialize_no_op_suppression(
         payload["operator_summary"] = _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY
     elif outcome == "control_plane_dispatch_blocked":
         payload["operator_summary"] = CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY
+    elif outcome == "explicit_wakeup_required":
+        payload["operator_summary"] = "该 study 已进入用户暂停或手动停驻合同；继续监测，但等待显式唤醒前不派发自动 owner work。"
     else:
         payload["operator_summary"] = "外环输入或 controller decision 未变化；保持 no-op，等待新证据、新用户反馈或 blocker fingerprint 改变。"
     return payload
@@ -854,7 +859,28 @@ def run_watch_for_runtime(
                 study_root=study_root,
                 status_payload=status_payload,
             )
-            if runtime_watch_work_units.outer_loop_wakeup_inputs_unchanged(wakeup_audit):
+            if (
+                explicit_wakeup_block := _outer_loop_dispatch_blocked_by_explicit_wakeup_contract(status_payload)
+            ) is not None:
+                wakeup_audit = {
+                    **wakeup_audit,
+                    "outcome": "explicit_wakeup_required",
+                    "reason": "user pause or manual hold requires explicit wakeup before autonomous dispatch",
+                    "no_op_acknowledged": True,
+                    "dedupe_scope": "explicit_wakeup_contract",
+                    **explicit_wakeup_block,
+                }
+                _write_outer_loop_wakeup_audit(study_root=study_root, audit=wakeup_audit)
+                managed_study_outer_loop_wakeup_audits.append(wakeup_audit)
+                suppression = _serialize_no_op_suppression(
+                    study_root=study_root,
+                    status_payload=status_payload,
+                    wakeup_audit=wakeup_audit,
+                )
+                if suppression is not None:
+                    managed_study_no_op_suppressions.append(suppression)
+                    _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+            elif runtime_watch_work_units.outer_loop_wakeup_inputs_unchanged(wakeup_audit):
                 wakeup_audit = {
                     **wakeup_audit,
                     "outcome": "skipped_unchanged_inputs",
