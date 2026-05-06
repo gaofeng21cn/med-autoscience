@@ -1,7 +1,7 @@
 # Runtime Lifecycle SQLite Migration Program
 
-Status: `current workspace restore-proof migration applied; DM002 live exception pending`
-Date: `2026-05-05`
+Status: `current workspace restore-proof migration applied; DM002/DM003 follow-up window pending`
+Date: `2026-05-06`
 Owner: `MedAutoScience Runtime OS + MedDeepScientist backend`
 
 ## 2026-05-05 restore-proof closeout
@@ -22,19 +22,19 @@ Owner: `MedAutoScience Runtime OS + MedDeepScientist backend`
 - `/Users/gaofeng/workspace/Yang/NF-PitNET/artifacts/runtime/lifecycle_migration/runtime-lifecycle-20260505-current-workspace-restore-proof-closeout.json`
 - `/Users/gaofeng/workspace/LinZM/as_biologics_workspace/artifacts/runtime/lifecycle_migration/runtime-lifecycle-20260505-current-workspace-restore-proof-closeout.json`
 
-## 2026-05-05 post-closeout drift note
+## 2026-05-06 post-closeout drift note
 
-closeout ledger 证明的是当轮 eligible payload 已完成 restore-proof compaction，不代表之后 live runtime 不会再写入 `.ds`。本次复核的当前状态为：
+closeout ledger 证明的是当轮 eligible payload 已完成 restore-proof compaction，不代表之后 live runtime 不会再写入 `.ds`。2026-05-06 用户确认 DPCC004 没有在跑，因此本轮已单独 repeat-compact DPCC004；DM002/DM003 按用户要求等待另一个会话测试结束和再次通知后再处理新增 payload。
 
 | study / quest | current runtime state | current `.ds` files | migration handling |
 | --- | --- | ---: | --- |
-| DM002 `002-dm-china-us-mortality-attribution` | `running`, `active_run_id=run-e80aad6d`, `worker_running=true` | 2,919 | live exception；只允许 audit/observe，等停止后迁移新增 payload。 |
-| DM003 `003-dpcc-primary-care-phenotype-treatment-gap` | `active`, `active_run_id=null`, `worker_running=false` | 3,127 | 已在 closeout 迁移过；closeout 后新增 payload 只能在再次 operator-confirmed parked gate 后 repeat compaction。 |
-| DPCC004 `004-dpcc-longitudinal-care-inertia-intensification-gap` | `active`, `active_run_id=null`, `worker_running=false` | drift observed: 16,436 -> 24,624 | 已在 closeout 迁移过；closeout 后新增 payload 仍在漂移，只能在再次 operator-confirmed parked gate 后 repeat compaction。 |
+| DM002 `002-dm-china-us-mortality-attribution` | user-held follow-up window | 19,584 at 2026-05-06 spot read | 用户要求 DM002/DM003 等另一个会话测试结束后再通知处理；本轮不做 destructive compaction。 |
+| DM003 `003-dpcc-primary-care-phenotype-treatment-gap` | `running`, `active_run_id=run-a87c2bd7`, `worker_running=true` at 2026-05-06 spot read | 14,065 | 用户要求 DM002/DM003 等另一个会话测试结束后再通知处理；当前也有 active run，保持 audit/observe。 |
+| DPCC004 `004-dpcc-longitudinal-care-inertia-intensification-gap` | `paused`, `active_run_id=null`, `worker_running=false` | 292 | 2026-05-06 repeat-compaction done；restore proof verified `24,403/24,403`，errors `0`；quest-local `artifacts/runtime/runtime_lifecycle.sqlite` 已从嵌套 Git index 退役并加入 ignore。 |
 | NF-PitNET managed 001-004 + legacy roots | paused/completed/null-run mix | 129 relevant files | 保持已处理状态；无需把中文 alias 作为独立 workspace。 |
 | AS001 `001-guideline-aligned-triple-trend` | `stopped`, `active_run_id=null`, `worker_running=false` | 56 | 保持已处理状态。 |
 
-因此，当前回答“除了 DM002 是否都处理过”时应区分两个口径：历史 closeout 已覆盖 NF-PitNET、DM-CVD / DPCC 和 AS biologics 的 eligible quest；当前盘面上 DM002 是 live 未处理新增 payload 的例外，DM003/DPCC004 是已处理但又产生 post-closeout drift 的 parked candidates。
+因此，当前回答“除了 DM002/DM003 是否都处理过”时应区分两个口径：历史 closeout 已覆盖 NF-PitNET、DM-CVD / DPCC 和 AS biologics 的 eligible quest；2026-05-06 已补处理 DPCC004 post-closeout drift；DM002/DM003 是用户明确要求等待测试会话结束后再处理的 follow-up exceptions。
 
 ## 结论
 
