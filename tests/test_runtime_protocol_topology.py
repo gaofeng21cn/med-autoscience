@@ -6,6 +6,7 @@ import pytest
 
 from med_autoscience.runtime_protocol.topology import (
     resolve_paper_root_context,
+    resolve_study_root_from_quest_root,
     resolve_worktree_root_from_paper_root,
 )
 
@@ -44,6 +45,25 @@ def test_resolve_paper_root_context_reads_study_id_from_worktree_quest_yaml(tmp_
     assert context.study_id == "001-risk"
     assert context.study_root == study_root
     assert context.worktree_root == paper_root.parent
+
+
+def test_resolve_study_root_from_quest_root_accepts_mas_first_runtime_layout(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "runtime" / "quests" / "001-risk-managed-20260402"
+    quest_root.mkdir(parents=True)
+    (quest_root / "quest.yaml").write_text(
+        "quest_id: 001-risk-managed-20260402\n"
+        "runtime_reentry_gate:\n"
+        "  study_id: 001-risk\n",
+        encoding="utf-8",
+    )
+    study_root = workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+
+    binding = resolve_study_root_from_quest_root(quest_root)
+
+    assert binding == ("001-risk", study_root.resolve())
 
 
 def test_resolve_paper_root_context_accepts_projected_quest_paper_root(tmp_path: Path) -> None:

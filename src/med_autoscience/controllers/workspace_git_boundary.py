@@ -16,6 +16,24 @@ WORKSPACE_GITIGNORE_ENTRIES = (
     ".mypy_cache/",
     "ops/medautoscience/config.env",
     "ops/medautoscience/logs/",
+    "ops/mas/config.env",
+    "runtime/quests/",
+    "runtime/archives/**",
+    "!runtime/archives/README.md",
+    "runtime/restore_index/**",
+    "!runtime/restore_index/README.md",
+    "runtime/recovery/**",
+    "runtime/runtime/**",
+    "runtime/logs/",
+    "runtime/memory/",
+    "runtime/config/",
+    "runtime/python-env/",
+    "runtime/uv-cache/",
+    "runtime/bundle/",
+    "runtime/tools/",
+    "runtime/*.pid",
+    "runtime/*.sock",
+    "artifacts/runtime/",
     "ops/med-deepscientist/config.env",
     "ops/med-deepscientist/runtime/quests/",
     "ops/med-deepscientist/runtime/archives/**",
@@ -131,7 +149,7 @@ def is_workspace_gitignore_path(path: Path) -> bool:
 def render_workspace_gitignore() -> str:
     return (
         "# MedAutoScience workspace-local Git boundary.\n"
-        "# MDS quest repos own their own Git state under ops/med-deepscientist/runtime/quests/.\n"
+        "# MAS runtime state owns its own lifecycle under runtime/; legacy MDS quest roots remain ignored for compatibility.\n"
         + "\n".join(WORKSPACE_GITIGNORE_ENTRIES)
         + "\n"
     )

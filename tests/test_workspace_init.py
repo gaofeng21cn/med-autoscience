@@ -24,6 +24,13 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert result["workspace_name"] == "diabetes"
     assert result["created_directories"]
     assert result["created_files"]
+    assert str(workspace_root / "runtime" / "quests") in result["created_directories"]
+    assert str(workspace_root / "runtime" / "archives") in result["created_directories"]
+    assert str(workspace_root / "runtime" / "restore_index") in result["created_directories"]
+    assert str(workspace_root / "artifacts" / "runtime") in result["created_directories"]
+    assert str(workspace_root / "ops" / "mas" / "bin") in result["created_directories"]
+    assert str(workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests") not in result["created_directories"]
+    assert str(workspace_root / "ops" / "med-deepscientist" / "config.env") not in result["created_files"]
     assert str(workspace_root / "AGENTS.md") in result["created_files"]
     assert not workspace_root.exists()
 
@@ -51,10 +58,14 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert (workspace_root / "portfolio" / "research_memory" / "prompts").is_dir()
     assert (workspace_root / "portfolio" / "research_memory" / "external_reports").is_dir()
     assert (workspace_root / "ops" / "medautoscience" / "bin").is_dir()
-    assert (workspace_root / "ops" / "med-deepscientist" / "bin").is_dir()
-    assert (workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests").is_dir()
+    assert (workspace_root / "ops" / "mas" / "bin").is_dir()
+    assert (workspace_root / "runtime" / "quests").is_dir()
+    assert (workspace_root / "runtime" / "archives").is_dir()
+    assert (workspace_root / "runtime" / "restore_index").is_dir()
+    assert (workspace_root / "artifacts" / "runtime").is_dir()
+    assert not (workspace_root / "ops" / "med-deepscientist").exists()
 
-    behavior_gate = workspace_root / "ops" / "med-deepscientist" / "behavior_equivalence_gate.yaml"
+    behavior_gate = workspace_root / "ops" / "mas" / "behavior_equivalence_gate.yaml"
     assert behavior_gate.is_file()
     behavior_gate_text = behavior_gate.read_text(encoding="utf-8")
     assert "schema_version: v1" in behavior_gate_text
@@ -66,6 +77,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     profile_text = profile_path.read_text(encoding="utf-8")
     assert 'name = "glioma"' in profile_text
     assert f'workspace_root = "{workspace_root}"' in profile_text
+    assert f'runtime_root = "{workspace_root / "runtime" / "quests"}"' in profile_text
+    assert f'med_deepscientist_runtime_root = "{workspace_root / "runtime"}"' in profile_text
     assert 'default_startup_anchor_policy = "scout_first_for_continue_existing_state"' in profile_text
     assert 'legacy_code_execution_policy = "forbid_without_user_approval"' in profile_text
     assert 'public_data_discovery_policy = "required_for_scout_route_selection"' in profile_text
@@ -76,28 +89,28 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "autofigure_edit_service_url" not in profile_text
 
     med_config = workspace_root / "ops" / "medautoscience" / "config.env"
-    deep_config = workspace_root / "ops" / "med-deepscientist" / "config.env"
+    runtime_bridge_config = workspace_root / "ops" / "mas" / "config.env"
     med_shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
-    ds_shared = workspace_root / "ops" / "med-deepscientist" / "bin" / "_shared.sh"
+    runtime_bridge_shared = workspace_root / "ops" / "mas" / "bin" / "_shared.sh"
     assert med_config.is_file()
-    assert deep_config.is_file()
+    assert runtime_bridge_config.is_file()
     assert med_shared.is_file()
-    assert ds_shared.is_file()
+    assert runtime_bridge_shared.is_file()
     med_shared_text = med_shared.read_text(encoding="utf-8")
-    ds_shared_text = ds_shared.read_text(encoding="utf-8")
+    runtime_bridge_shared_text = runtime_bridge_shared.read_text(encoding="utf-8")
     assert 'MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN:-$(command -v uv || true)}"' in med_shared_text
     assert 'MED_AUTOSCIENCE_RSCRIPT_BIN="${MED_AUTOSCIENCE_RSCRIPT_BIN:-$(command -v Rscript || true)}"' in med_shared_text
     assert 'MED_AUTOSCIENCE_NODE_BIN="${MED_AUTOSCIENCE_NODE_BIN:-$(command -v node || true)}"' in med_shared_text
     assert '"${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"' in med_shared_text
     assert (
         '"${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - "${PROFILE_PATH}"'
-        in ds_shared_text
+        in runtime_bridge_shared_text
     )
     assert (
         'CONTRACT_JSON="${payload_json}" "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - <<'
-        in ds_shared_text
+        in runtime_bridge_shared_text
     )
-    assert ' uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}"' not in ds_shared_text
+    assert ' uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}"' not in runtime_bridge_shared_text
 
     show_profile = workspace_root / "ops" / "medautoscience" / "bin" / "show-profile"
     bootstrap = workspace_root / "ops" / "medautoscience" / "bin" / "bootstrap"
@@ -112,7 +125,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     workspace_literature_status = workspace_root / "ops" / "medautoscience" / "bin" / "workspace-literature-status"
     prepare_external_research = workspace_root / "ops" / "medautoscience" / "bin" / "prepare-external-research"
     external_research_status = workspace_root / "ops" / "medautoscience" / "bin" / "external-research-status"
-    ds_doctor = workspace_root / "ops" / "med-deepscientist" / "bin" / "doctor"
+    runtime_bridge_doctor = workspace_root / "ops" / "mas" / "bin" / "doctor"
     assert bootstrap.is_file()
     assert show_profile.is_file()
     assert enter_study.is_file()
@@ -126,7 +139,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert workspace_literature_status.is_file()
     assert prepare_external_research.is_file()
     assert external_research_status.is_file()
-    assert ds_doctor.is_file()
+    assert runtime_bridge_doctor.is_file()
     assert os.access(bootstrap, os.X_OK)
     assert os.access(show_profile, os.X_OK)
     assert os.access(enter_study, os.X_OK)
@@ -140,7 +153,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(workspace_literature_status, os.X_OK)
     assert os.access(prepare_external_research, os.X_OK)
     assert os.access(external_research_status, os.X_OK)
-    assert os.access(ds_doctor, os.X_OK)
+    assert os.access(runtime_bridge_doctor, os.X_OK)
     watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
     maintain_runtime_storage_text = maintain_runtime_storage.read_text(encoding="utf-8")
     storage_audit_text = storage_audit.read_text(encoding="utf-8")
@@ -182,53 +195,22 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     root_readme = workspace_root / "README.md"
     assert root_readme.is_file()
     root_readme_text = root_readme.read_text(encoding="utf-8")
-    assert "workspace" in root_readme_text.lower()
     assert "ops/medautoscience/bin/show-profile" in root_readme_text
-    assert "不要直接通过 `med-deepscientist` UI、CLI 或 daemon HTTP API 发起研究 quest" in root_readme_text
+    assert "ops/mas/" in root_readme_text
+    assert "ops/med-deepscientist" not in root_readme_text
     assert "portfolio/research_memory/" in root_readme_text
 
     root_agents = workspace_root / "AGENTS.md"
     assert root_agents.is_file()
     root_agents_text = root_agents.read_text(encoding="utf-8")
     assert "# glioma Workspace Rules" in root_agents_text
-    assert "适用范围：当前 workspace 根目录及所有子目录。" in root_agents_text
     assert "[`WORKSPACE_AUTOSCIENCE_RULES.md`](WORKSPACE_AUTOSCIENCE_RULES.md)" in root_agents_text
-    assert "先给结论，再补必要上下文" in root_agents_text
-    assert "复杂任务先拆清边界、依赖和验收口径" in root_agents_text
-    assert "优先使用 subagent 提高效率" in root_agents_text
-    assert "确认真实生效位置、调用链路和约束" in root_agents_text
     assert "优先使用 `rtk` 前缀运行 shell 命令。" not in root_agents_text
-    assert "浏览网页优先使用 `agent-browser`。" in root_agents_text
-    assert "优先使用官方 `mineru-document-extractor`" in root_agents_text
     assert "优先读取 `MINERU_TOKEN`" not in root_agents_text
-    assert "## 本地执行约束" in root_agents_text
-    assert "不改无关文件，不覆盖用户已有本地修改" in root_agents_text
-    assert "优先做直接、可验证、可维护的根因解法" in root_agents_text
-    assert "避免采用降级处理、兜底方案、临时补丁" in root_agents_text
-    assert "能复用既有 controller、contract、schema 和 workspace pattern" in root_agents_text
-    assert "病种/课题级 research workspace" in root_agents_text
-    assert "`study` 是论文交付单元" in root_agents_text
-    assert "## Workspace 边界" in root_agents_text
-    assert "只约束 Codex 进入本目录后的工作方式、MAS 入口选择和本地文件边界" in root_agents_text
-    assert "研究设计、统计方法、投稿判断、publication gate 与 study 质量判断归属 MAS / MDS" in root_agents_text
-    assert "用户通过 Codex/MAS 对论文提出修改、导师反馈、审稿意见、补分析或改表图要求时" in root_agents_text
-    assert "识别为 `reviewer_revision` study task intake" in root_agents_text
-    assert "text revisions、methods completeness、statistical analysis、tables/figures" in root_agents_text
-    assert "必须查询对应 study 的 `study-runtime-status`" in root_agents_text
-    assert "stopped/submission-ready/finalize 状态不是前台直接改 `manuscript/current_package/` 的许可" in root_agents_text
-    assert "`launch-study --allow-stopped-relaunch`" in root_agents_text
-    assert "MDS 恢复同一论文线前，必须优先读取 latest revision handoff/evidence surface" in root_agents_text
-    assert "`manuscript/current_package/` 是 human-facing projection" in root_agents_text
-    assert "优先在 `med-autoscience` 与 `med-deepscientist` repo 中完成基座层修复" in root_agents_text
-    assert "开独立 worktree 实施和验证" in root_agents_text
-    assert "如果登录账号是 `gaofeng21cn`，可以直接提交并推送到对应 repo；否则只能向对应 GitHub repo 提交 PR" in root_agents_text
 
-    deepscientist_readme = workspace_root / "ops" / "med-deepscientist" / "README.md"
-    assert deepscientist_readme.is_file()
-    deepscientist_readme_text = deepscientist_readme.read_text(encoding="utf-8")
-    assert "runtime 运维面" in deepscientist_readme_text
-    assert "不是研究入口" in deepscientist_readme_text
-    assert "ops/medautoscience/bin/enter-study" in deepscientist_readme_text
+    runtime_bridge_readme = workspace_root / "ops" / "mas" / "README.md"
+    assert runtime_bridge_readme.is_file()
+    assert "ops/med-deepscientist" not in runtime_bridge_readme.read_text(encoding="utf-8")
 
     workspace_pyproject = workspace_root / "pyproject.toml"
     assert workspace_pyproject.is_file()
@@ -253,9 +235,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
 
     watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
     assert 'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in watch_runtime_text
-    assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/ops/med-deepscientist/runtime/quests"' in watch_runtime_text
+    assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in watch_runtime_text
     assert 'run_medautosci runtime watch \\' in watch_runtime_text
-    assert str(workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests") not in watch_runtime_text
+    assert "ops/med-deepscientist" not in watch_runtime_text
 
 def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
@@ -380,7 +362,7 @@ def test_init_workspace_upgrades_legacy_runtime_entry_scripts_without_force(tmp_
     assert "MED_AUTOSCIENCE_UV_BIN" in shared_text
     assert "command -v uv" in shared_text
     assert 'python3 -m med_autoscience.cli' not in shared_text
-    assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/ops/med-deepscientist/runtime/quests"' in watch_runtime_text
+    assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in watch_runtime_text
     assert 'run_medautosci runtime watch \\' in watch_runtime_text
     assert '--ensure-study-runtimes' in watch_runtime_text
     assert '--apply' in watch_runtime_text

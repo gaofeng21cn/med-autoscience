@@ -1,6 +1,6 @@
 # Runtime Lifecycle SQLite Migration Program
 
-Status: `current workspace restore-proof migration applied; DM002/DM003 follow-up completed`
+Status: `current workspace restore-proof migration applied; default MAS-first layout landed`
 Date: `2026-05-06`
 Owner: `MedAutoScience Runtime OS + MedDeepScientist backend`
 
@@ -15,6 +15,7 @@ Owner: `MedAutoScience Runtime OS + MedDeepScientist backend`
 - DM001 不应出现 live writer；本轮只迁移其 parked/reentry 与 legacy quest runtime payload。如果后续 MAS/MDS 对 DM001 再显示写入者或自动恢复意图，应归类为状态机问题，而不是迁移任务。
 - DM002/DM003 的 `active/null-run` 只因本轮用户确认进入可迁移窗口而放行；通用规则仍是 active quest 必须有 `active_run_id=null` 且显式传入 operator-confirmed gate，不能默认 destructive compaction。2026-05-06 follow-up 前曾发现 DM002/DM003 手动暂停后被外层 watch 自动拉起；该状态机问题由单独会话修复后，本轮重新 fresh gate，确认 DM002 `stopped`、DM003 `paused` 且均为 `active_run_id=null` / `worker_running=false`，再执行 destructive compaction。
 - `/Users/gaofeng/workspace/Yang/无功能垂体瘤` 继续只是本机轻量中文 stale alias/scaffold，不作为独立 NF-PitNET workspace。
+- repo 默认 workspace layout 已切到 MAS-first：新建 workspace 写 `runtime/quests/`、`runtime/archives/`、`runtime/restore_index/`、`artifacts/runtime/` 与 `ops/mas/`；旧 `ops/med-deepscientist/runtime/quests/` 仅保留兼容读取、restore proof 和 Git ignore。
 
 本轮真实 workspace closeout ledger：
 
@@ -72,6 +73,7 @@ closeout ledger 证明的是当轮 eligible payload 已完成 restore-proof comp
 - MAS：`artifacts/runtime/runtime_lifecycle.sqlite` 记录 runtime watch state、runtime report、workspace storage audit。
 - MDS：`.ds/runtime_index.sqlite` 记录 maintenance run、bucket snapshot、archive ref 与 metadata。
 - restore-proof archive：eligible quest 的 `bash_exec`、`runs`、`codex_history`、`codex_homes`、`worktrees` 等 runtime payload 被归档到 `.ds/restore_proof_archives/runtime_bucket_compaction/`，并写入 manifest、archive sha256、restore proof 与 archive ref。
+- 默认新 scaffold：`runtime/quests/` 承接 live quest root，`runtime/archives/` 与 `runtime/restore_index/` 承接归档和恢复索引，`artifacts/runtime/` 承接 SQLite sidecar 与 migration ledger；外层 Git 默认排除这些 generated/runtime 面。
 
 这层能力已经显著降低 current eligible quest 的 `.ds` 小文件数量。后续新增 runtime 对象仍必须继续把 event/run/bash/codex history 的历史 metadata 与 cursor 查询迁入 SQLite，同时把原始大 payload 合并成 gzip/tar/cold archive，并由 SQLite 记录 archive ref、checksum、byte count 与 restore contract。
 

@@ -14,6 +14,10 @@ class WorkspaceRuntimeLayout:
     ops_root: Path
     runtime_root: Path
     quests_root: Path
+    archives_root: Path
+    restore_index_root: Path
+    runtime_artifacts_root: Path
+    runtime_lifecycle_db_path: Path
     bin_root: Path
     startup_briefs_root: Path
     startup_payloads_root: Path
@@ -34,37 +38,57 @@ class WorkspaceRuntimeLayout:
 
 def build_workspace_runtime_layout(*, workspace_root: Path) -> WorkspaceRuntimeLayout:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    ops_root = resolved_workspace_root / "ops" / "med-deepscientist"
-    runtime_root = ops_root / "runtime"
-    return WorkspaceRuntimeLayout(
+    ops_root = resolved_workspace_root / "ops" / "mas"
+    runtime_root = resolved_workspace_root / "runtime"
+    return _build_layout(
         workspace_root=resolved_workspace_root,
         ops_root=ops_root,
         runtime_root=runtime_root,
-        quests_root=runtime_root / "quests",
-        bin_root=ops_root / "bin",
-        startup_briefs_root=ops_root / "startup_briefs",
-        startup_payloads_root=ops_root / "startup_payloads",
-        config_env_path=ops_root / "config.env",
-        config_env_example_path=ops_root / "config.env.example",
-        readme_path=ops_root / "README.md",
-        behavior_gate_path=ops_root / "behavior_equivalence_gate.yaml",
     )
 
 
 def build_workspace_runtime_layout_for_profile(profile: WorkspaceProfile) -> WorkspaceRuntimeLayout:
     runtime_root = profile.managed_runtime_home.expanduser().resolve()
-    return WorkspaceRuntimeLayout(
-        workspace_root=profile.workspace_root.expanduser().resolve(),
-        ops_root=runtime_root.parent,
+    workspace_root = profile.workspace_root.expanduser().resolve()
+    ops_root = workspace_root / "ops" / "mas" if runtime_root == workspace_root / "runtime" else runtime_root.parent
+    return _build_layout(
+        workspace_root=workspace_root,
+        ops_root=ops_root,
         runtime_root=runtime_root,
         quests_root=profile.managed_runtime_quests_root.expanduser().resolve(),
-        bin_root=runtime_root.parent / "bin",
-        startup_briefs_root=runtime_root.parent / "startup_briefs",
-        startup_payloads_root=runtime_root.parent / "startup_payloads",
-        config_env_path=runtime_root.parent / "config.env",
-        config_env_example_path=runtime_root.parent / "config.env.example",
-        readme_path=runtime_root.parent / "README.md",
-        behavior_gate_path=runtime_root.parent / "behavior_equivalence_gate.yaml",
+    )
+
+
+def _build_layout(
+    *,
+    workspace_root: Path,
+    ops_root: Path,
+    runtime_root: Path,
+    quests_root: Path | None = None,
+) -> WorkspaceRuntimeLayout:
+    resolved_workspace_root = workspace_root.expanduser().resolve()
+    resolved_ops_root = ops_root.expanduser().resolve()
+    resolved_runtime_root = runtime_root.expanduser().resolve()
+    resolved_quests_root = (quests_root or resolved_runtime_root / "quests").expanduser().resolve()
+    mas_first = resolved_runtime_root == resolved_workspace_root / "runtime"
+    startup_root = resolved_runtime_root if mas_first else resolved_ops_root
+    runtime_artifacts_root = resolved_workspace_root / "artifacts" / "runtime"
+    return WorkspaceRuntimeLayout(
+        workspace_root=resolved_workspace_root,
+        ops_root=resolved_ops_root,
+        runtime_root=resolved_runtime_root,
+        quests_root=resolved_quests_root,
+        archives_root=resolved_runtime_root / "archives",
+        restore_index_root=resolved_runtime_root / "restore_index",
+        runtime_artifacts_root=runtime_artifacts_root,
+        runtime_lifecycle_db_path=runtime_artifacts_root / "runtime_lifecycle.sqlite",
+        bin_root=resolved_ops_root / "bin",
+        startup_briefs_root=startup_root / "startup_briefs",
+        startup_payloads_root=startup_root / "startup_payloads",
+        config_env_path=resolved_ops_root / "config.env",
+        config_env_example_path=resolved_ops_root / "config.env.example",
+        readme_path=resolved_ops_root / "README.md",
+        behavior_gate_path=resolved_ops_root / "behavior_equivalence_gate.yaml",
     )
 
 

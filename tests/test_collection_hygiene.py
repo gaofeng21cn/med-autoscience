@@ -35,6 +35,7 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_redrive_and_platform.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_specificity_dispatch.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_specificity_terminal_preensure.py",
+        "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_user_pause_outer_loop_block.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_work_unit_dedupe.py",
     },
 }
@@ -54,6 +55,7 @@ NESTED_CASE_REEXPORT_SURFACES = {
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_redrive_and_platform.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_specificity_dispatch.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_specificity_terminal_preensure.py",
+        "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_user_pause_outer_loop_block.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_work_unit_dedupe.py",
     },
 }

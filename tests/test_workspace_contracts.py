@@ -119,6 +119,56 @@ def test_inspect_workspace_contracts_accepts_phase_25_ready_gate(tmp_path: Path)
     ]
 
 
+def test_inspect_workspace_contracts_accepts_mas_first_runtime_bridge(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.workspace_contracts")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "workspace"
+    profile = profiles.WorkspaceProfile(
+        name="nfpitnet",
+        workspace_root=workspace_root,
+        runtime_root=workspace_root / "runtime" / "quests",
+        studies_root=workspace_root / "studies",
+        portfolio_root=workspace_root / "portfolio",
+        med_deepscientist_runtime_root=workspace_root / "runtime",
+        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
+        default_publication_profile="general_medical_journal",
+        default_citation_style="AMA",
+        enable_medical_overlay=True,
+        medical_overlay_scope="workspace",
+        medical_overlay_skills=("scout", "idea", "decision", "write", "finalize"),
+        research_route_bias_policy="high_plasticity_medical",
+        preferred_study_archetypes=("clinical_classifier",),
+        default_submission_targets=(),
+    )
+    profile.runtime_root.mkdir(parents=True)
+    profile.med_deepscientist_runtime_root.mkdir(parents=True, exist_ok=True)
+
+    medautosci_config = profile.workspace_root / "ops" / "medautoscience" / "config.env"
+    medautosci_config.parent.mkdir(parents=True, exist_ok=True)
+    medautosci_config.write_text("MEDAUTOSCI_PROFILE=nfpitnet\n", encoding="utf-8")
+
+    runtime_bridge_root = profile.workspace_root / "ops" / "mas"
+    runtime_bridge_root.mkdir(parents=True, exist_ok=True)
+    launcher_path = make_executable_launcher(tmp_path)
+    (runtime_bridge_root / "config.env").write_text(
+        f'MED_DEEPSCIENTIST_LAUNCHER="{launcher_path}"\n',
+        encoding="utf-8",
+    )
+    (runtime_bridge_root / "bin").mkdir(parents=True, exist_ok=True)
+    (runtime_bridge_root / "behavior_equivalence_gate.yaml").write_text(
+        "schema_version: v1\nphase_25_ready: true\ncritical_overrides: []\n",
+        encoding="utf-8",
+    )
+
+    result = module.inspect_workspace_contracts(profile)
+
+    assert result["runtime_contract"]["ready"] is True
+    assert result["launcher_contract"]["ready"] is True
+    assert result["launcher_contract"]["med_deepscientist_config_env"] == str(runtime_bridge_root / "config.env")
+    assert result["launcher_contract"]["med_deepscientist_bin_dir"] == str(runtime_bridge_root / "bin")
+    assert result["behavior_gate"]["path"] == str(runtime_bridge_root / "behavior_equivalence_gate.yaml")
+
+
 def test_inspect_workspace_contracts_rejects_invalid_override_shape(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.workspace_contracts")
     profile = make_profile(tmp_path)

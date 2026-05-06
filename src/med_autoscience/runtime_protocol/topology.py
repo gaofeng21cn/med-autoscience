@@ -192,14 +192,23 @@ def resolve_study_id_from_worktree_root(worktree_root: Path) -> str:
 
 def _resolve_workspace_root_from_quest_root(quest_root: Path) -> Path:
     resolved = _resolve_path(quest_root)
-    try:
-        workspace_root = resolved.parents[4]
-    except IndexError as exc:
-        raise ValueError(f"quest_root is not under an ops/med-deepscientist/runtime/quests layout: {quest_root}") from exc
-    layout = build_workspace_runtime_layout(workspace_root=workspace_root)
-    if resolved.parent != layout.quests_root or resolved.parent.parent != layout.runtime_root:
-        raise ValueError(f"quest_root is not under an ops/med-deepscientist/runtime/quests layout: {quest_root}")
-    return layout.workspace_root
+    if len(resolved.parents) >= 3:
+        workspace_root = resolved.parents[2]
+        layout = build_workspace_runtime_layout(workspace_root=workspace_root)
+        if (
+            workspace_root.parent.name != "ops"
+            and resolved.parent == layout.quests_root
+            and resolved.parent.parent == layout.runtime_root
+        ):
+            return layout.workspace_root
+    if (
+        len(resolved.parents) >= 5
+        and resolved.parent.name == "quests"
+        and resolved.parent.parent.name == "runtime"
+        and resolved.parents[3].name == "ops"
+    ):
+        return resolved.parents[4]
+    raise ValueError(f"quest_root is not under a MAS runtime/quests or legacy ops/*/runtime/quests layout: {quest_root}")
 
 
 def _resolve_study_binding_from_runtime_binding(

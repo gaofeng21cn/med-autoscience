@@ -26,7 +26,7 @@ def render_workspace_agents(*, workspace_name: str) -> str:
         "- 研究任务的创建、恢复、门禁判断和状态读取统一走 `MedAutoScience` controller / CLI / overlay skill。\n"
         "- 默认通过 `ops/medautoscience/bin/show-profile`、`ops/medautoscience/bin/bootstrap`、"
         "`ops/medautoscience/bin/enter-study` 与 `ops/medautoscience/bin/watch-runtime` 调用 MAS 工作流。\n"
-        "- `ops/med-deepscientist/` 是 runtime 状态和运维脚本目录；研究治理入口归属 MAS。\n\n"
+        "- `runtime/` 是运行态目录，`artifacts/runtime/` 是 SQLite sidecar 与维护 ledger，`ops/mas/` 是薄运维桥；研究治理入口归属 MAS。\n\n"
         "## 用户论文修改请求处理\n\n"
         "- 用户通过 Codex/MAS 对论文提出修改、导师反馈、审稿意见、补分析或改表图要求时，先把请求识别为 `reviewer_revision` study task intake，并形成结构化 revision checklist。\n"
         "- revision checklist 至少覆盖 text revisions、methods completeness、statistical analysis、tables/figures、follow-up evidence、discussion/claim guardrails 与 handoff/evidence surface。\n"

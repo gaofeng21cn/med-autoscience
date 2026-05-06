@@ -219,6 +219,7 @@ def test_lifecycle_retention_report_safe_cache_apply_path_is_approval_gated(
                             "cleanup_candidate_action": "delete-safe-cache",
                             "retention_action": "delete_safe_cache",
                             "physical_delete_allowed": True,
+                            "target_sha256": _dir_sha256(cache_root),
                         }
                     ],
                 },

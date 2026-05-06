@@ -116,6 +116,9 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
         layout.bin_root,
         layout.runtime_root,
         layout.quests_root,
+        layout.archives_root,
+        layout.restore_index_root,
+        layout.runtime_artifacts_root,
         layout.startup_briefs_root,
         layout.startup_payloads_root,
     ]
@@ -131,9 +134,9 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "- 稿件与投稿交付物\n\n"
         "## 下一步\n\n"
         "1. 整理原始数据、变量定义、终点定义和参考资料。\n"
-        f"2. 编辑 `{profile_relpath.as_posix()}`，补全 publication profile 与 `med-deepscientist` repo 信息。\n"
+        f"2. 编辑 `{profile_relpath.as_posix()}`，补全 publication profile 与受控研究后端 repo 信息。\n"
         "3. 编辑 `ops/medautoscience/config.env`，设置共享 `MedAutoScience` 仓库路径。\n"
-        "4. 编辑 `ops/med-deepscientist/config.env`，设置本机 `ds` launcher 路径。\n"
+        "4. 编辑 `ops/mas/config.env`，设置本机受控研究后端 launcher 路径。\n"
         "5. 运行 `ops/medautoscience/bin/show-profile` 和 `ops/medautoscience/bin/bootstrap`。\n"
         "6. 通过 `ops/medautoscience/bin/enter-study` 或 `ensure-study-runtime` 进入正式研究流程。\n\n"
         "7. 如需让 workspace 托管监管持续在线，运行 `ops/medautoscience/bin/install-watch-runtime-service`；后续用 `watch-runtime-service-status` / `uninstall-watch-runtime-service` 管理 Hermes-hosted supervision job。\n\n"
@@ -142,9 +145,9 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "10. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
         "## Runtime Boundary\n\n"
         "- `MedAutoScience` 是研究入口与治理层。\n"
-        "- `ops/med-deepscientist/` 只保留 runtime 状态和运维脚本。\n"
-        "- 不要直接通过 `med-deepscientist` UI、CLI 或 daemon HTTP API 发起研究 quest。\n"
-        "- 如果需要启动、查看或停止 runtime，只把 `ops/med-deepscientist/bin/*` 当作运维面，不把它当成研究入口。\n"
+        "- `runtime/` 保存运行态，`artifacts/runtime/` 保存 SQLite sidecar 与维护 ledger，`ops/mas/` 只保留薄运维桥。\n"
+        "- 不要直接通过后端 UI、CLI 或 daemon HTTP API 发起研究 quest。\n"
+        "- 如果需要启动、查看或停止 runtime，只把 `ops/mas/bin/*` 当作运维面，不把它当成研究入口。\n"
     )
 
 
@@ -341,7 +344,7 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
             if "run_medautosci runtime watch" not in existing_content:
                 return "legacy_watch_runtime_entry"
             if (
-                'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/ops/med-deepscientist/runtime/quests"' not in existing_content
+                'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' not in existing_content
                 or '--profile "${PROFILE_PATH}"' not in existing_content
                 or "--ensure-study-runtimes" not in existing_content
                 or "--apply" not in existing_content
@@ -617,7 +620,7 @@ def _rendered_files(
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime",
-            content=_render_watch_runtime_script(runtime_quests_root=layout.quests_root),
+            content=_render_watch_runtime_script(workspace_root=workspace_root, runtime_quests_root=layout.quests_root),
             executable=True,
         ),
         RenderedFile(

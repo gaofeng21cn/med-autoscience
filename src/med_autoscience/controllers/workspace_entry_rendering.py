@@ -48,9 +48,9 @@ def render_medautoscience_readme(*, profile_relpath: Path) -> str:
 
 def render_med_deepscientist_readme() -> str:
     return (
-        "# med-deepscientist Workspace Entry\n\n"
-        "这个目录保留当前 workspace 的 `med-deepscientist` project-local runtime state 与薄入口脚本。\n\n"
-        "它是 runtime 运维面，不是研究入口。\n\n"
+        "# MAS Runtime Bridge\n\n"
+        "这个目录保留当前 workspace 的受控研究后端薄入口脚本。\n\n"
+        "它是 MAS-first runtime 运维面，不是研究入口。\n\n"
         "请遵守下面的边界：\n\n"
         "- 研究 quest 的创建、恢复、门禁判断统一走 `MedAutoScience`。\n"
         "- 不要从这里直接发起研究，不要把 `start-web`、`status`、`doctor`、`stop` 当成研究入口。\n"

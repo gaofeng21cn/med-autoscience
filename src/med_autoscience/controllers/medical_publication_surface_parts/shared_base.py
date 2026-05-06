@@ -611,12 +611,24 @@ def load_yaml_mapping(path: Path) -> dict[str, Any]:
 
 def resolve_study_root_from_live_quest_root(quest_root: Path, runtime_state: dict[str, Any]) -> Path | None:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
-    try:
+    workspace_root: Path | None = None
+    if len(resolved_quest_root.parents) >= 3:
+        candidate = resolved_quest_root.parents[2]
+        layout = build_workspace_runtime_layout(workspace_root=candidate)
+        if (
+            candidate.parent.name != "ops"
+            and resolved_quest_root.parent == layout.quests_root
+            and resolved_quest_root.parent.parent == layout.runtime_root
+        ):
+            workspace_root = layout.workspace_root
+    if workspace_root is None and (
+        len(resolved_quest_root.parents) >= 5
+        and resolved_quest_root.parent.name == "quests"
+        and resolved_quest_root.parent.parent.name == "runtime"
+        and resolved_quest_root.parents[3].name == "ops"
+    ):
         workspace_root = resolved_quest_root.parents[4]
-    except IndexError:
-        return None
-    layout = build_workspace_runtime_layout(workspace_root=workspace_root)
-    if resolved_quest_root.parent != layout.quests_root or resolved_quest_root.parent.parent != layout.runtime_root:
+    if workspace_root is None:
         return None
     quest_id = str(runtime_state.get("quest_id") or resolved_quest_root.name).strip()
     if not quest_id:

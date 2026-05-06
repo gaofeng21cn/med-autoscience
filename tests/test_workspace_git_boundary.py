@@ -48,6 +48,14 @@ def test_workspace_gitignore_excludes_local_intake_archives_and_framework_mirror
     gitignore_text = module.render_workspace_gitignore()
 
     assert "ops/medautoscience/config.env" in gitignore_text
+    assert "ops/mas/config.env" in gitignore_text
+    assert "runtime/quests/" in gitignore_text
+    assert "runtime/archives/**" in gitignore_text
+    assert "!runtime/archives/README.md" in gitignore_text
+    assert "runtime/restore_index/**" in gitignore_text
+    assert "!runtime/restore_index/README.md" in gitignore_text
+    assert "runtime/logs/" in gitignore_text
+    assert "artifacts/runtime/" in gitignore_text
     assert "ops/med-deepscientist/config.env" in gitignore_text
     assert "inbox/**" in gitignore_text
     assert "!inbox/README.md" in gitignore_text
@@ -123,7 +131,21 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
     assert result["workspace_git"]["already_initialized"] is False
     workspace_gitignore = workspace_root / ".gitignore"
     assert workspace_gitignore.is_file()
-    assert "ops/med-deepscientist/runtime/quests/" in workspace_gitignore.read_text(encoding="utf-8")
+    workspace_gitignore_text = workspace_gitignore.read_text(encoding="utf-8")
+    assert "runtime/quests/" in workspace_gitignore_text
+    assert "ops/med-deepscientist/runtime/quests/" in workspace_gitignore_text
+
+    mas_quest_payload = workspace_root / "runtime" / "quests" / "001" / "scratch.txt"
+    mas_quest_payload.parent.mkdir(parents=True, exist_ok=True)
+    mas_quest_payload.write_text("runtime-owned\n", encoding="utf-8")
+    check_mas_quest_payload = subprocess.run(
+        ["git", "check-ignore", str(mas_quest_payload.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_mas_quest_payload.returncode == 0
 
     nested_quest_payload = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "001" / "scratch.txt"
     nested_quest_payload.parent.mkdir(parents=True, exist_ok=True)
@@ -215,6 +237,30 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
         capture_output=True,
     )
     assert check_inbox_payload.returncode == 0
+
+    mas_archived_runtime_payload = workspace_root / "runtime" / "archives" / "quests" / "001" / ".ds" / "log.jsonl"
+    mas_archived_runtime_payload.parent.mkdir(parents=True, exist_ok=True)
+    mas_archived_runtime_payload.write_text("{}\n", encoding="utf-8")
+    check_mas_archived_runtime_payload = subprocess.run(
+        ["git", "check-ignore", str(mas_archived_runtime_payload.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_mas_archived_runtime_payload.returncode == 0
+
+    mas_restore_index_payload = workspace_root / "runtime" / "restore_index" / "quests" / "001.json"
+    mas_restore_index_payload.parent.mkdir(parents=True, exist_ok=True)
+    mas_restore_index_payload.write_text("{}\n", encoding="utf-8")
+    check_mas_restore_index_payload = subprocess.run(
+        ["git", "check-ignore", str(mas_restore_index_payload.relative_to(workspace_root))],
+        cwd=workspace_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert check_mas_restore_index_payload.returncode == 0
 
     archived_runtime_payload = workspace_root / "ops" / "med-deepscientist" / "runtime" / "archives" / "quests" / "001" / ".ds" / "log.jsonl"
     archived_runtime_payload.parent.mkdir(parents=True, exist_ok=True)
