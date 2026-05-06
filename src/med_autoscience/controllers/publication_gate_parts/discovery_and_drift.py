@@ -476,8 +476,15 @@ def _projected_bundle_manifest_path(quest_root: Path) -> Path:
     return quest_root.resolve() / "paper" / "paper_bundle_manifest.json"
 
 
-def _resolve_worktree_bundle_manifest_by_branch(*, quest_root: Path, paper_branch: str | None) -> Path | None:
+def _resolve_worktree_bundle_manifest_by_branch(
+    *,
+    quest_root: Path,
+    paper_branch: str | None,
+    legacy_restore_import_diagnostic: bool = False,
+) -> Path | None:
     if paper_branch is None:
+        return None
+    if not legacy_restore_import_diagnostic and not quest_state.is_legacy_restore_import_context(quest_root):
         return None
     candidates: list[Path] = []
     for candidate in quest_root.resolve().glob(".ds/worktrees/*/paper/paper_bundle_manifest.json"):

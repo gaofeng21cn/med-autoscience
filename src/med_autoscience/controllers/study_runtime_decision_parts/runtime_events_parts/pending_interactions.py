@@ -1,12 +1,16 @@
-def _find_pending_interaction_artifact_path(*, quest_root: Path, interaction_id: str) -> Path | None:
+def _find_pending_interaction_artifact_path(
+    *,
+    quest_root: Path,
+    interaction_id: str,
+    legacy_restore_import_diagnostic: bool = False,
+) -> Path | None:
     resolved_interaction_id = str(interaction_id or "").strip()
     if not resolved_interaction_id:
         return None
     candidates: list[Path] = []
-    patterns = (
-        f".ds/worktrees/*/artifacts/*/{resolved_interaction_id}.json",
-        f"artifacts/*/{resolved_interaction_id}.json",
-    )
+    patterns = [f"artifacts/*/{resolved_interaction_id}.json"]
+    if legacy_restore_import_diagnostic or quest_state.is_legacy_restore_import_context(quest_root):
+        patterns.append(f".ds/worktrees/*/artifacts/*/{resolved_interaction_id}.json")
     for pattern in patterns:
         candidates.extend(quest_root.glob(pattern))
     return quest_state.find_latest(candidates)

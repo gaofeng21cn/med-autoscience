@@ -6,6 +6,7 @@ from pathlib import Path
 from med_autoscience.runtime_protocol.quest_state import (
     QuestRuntimeLivenessStatus,
     QuestRuntimeSnapshot,
+    find_latest_legacy_restore_import_diagnostic_main_result_path,
     find_latest_main_result_path,
     inspect_quest_runtime,
     iter_active_quests,
@@ -41,6 +42,22 @@ def test_find_latest_main_result_path_prefers_latest_candidate(tmp_path: Path) -
     latest = find_latest_main_result_path(quest_root)
 
     assert latest == second
+
+
+def test_find_latest_main_result_path_ignores_legacy_worktree_by_default(tmp_path: Path) -> None:
+    quest_root = tmp_path / "q001"
+    legacy_result = quest_root / ".ds" / "worktrees" / "run-a" / "experiments" / "main" / "001" / "RESULT.json"
+    dump_json(legacy_result, {"run_id": "001"})
+
+    try:
+        find_latest_main_result_path(quest_root)
+    except FileNotFoundError as exc:
+        assert "No main RESULT.json" in str(exc)
+    else:  # pragma: no cover - assertion clarity
+        raise AssertionError("default main result lookup must not read .ds/worktrees")
+
+    diagnostic = find_latest_legacy_restore_import_diagnostic_main_result_path(quest_root)
+    assert diagnostic == legacy_result
 
 
 def test_find_latest_main_result_path_prefers_canonical_artifact_over_newer_worktree_result(tmp_path: Path) -> None:

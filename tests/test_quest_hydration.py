@@ -502,11 +502,10 @@ def test_run_quest_hydration_rejects_semantic_table_display_plan_without_catalog
         )
 
 
-def test_run_quest_hydration_syncs_contract_and_display_stubs_to_active_worktree_paper_root(tmp_path: Path) -> None:
+def test_run_quest_hydration_syncs_contract_and_display_stubs_to_canonical_paper_root(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quest_hydration")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk-reentry"
-    (quest_root / "paper").mkdir(parents=True, exist_ok=True)
-    active_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    active_paper_root = quest_root / "paper"
     active_paper_root.mkdir(parents=True, exist_ok=True)
     (active_paper_root / "paper_bundle_manifest.json").write_text("{}", encoding="utf-8")
     (active_paper_root / "medical_reporting_contract.json").write_text(
