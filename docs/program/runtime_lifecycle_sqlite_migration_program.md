@@ -162,6 +162,55 @@ Git 继续承担 source control，不承担 runtime lifecycle database authority
 - 导出命令必须能从 SQLite 重建旧 JSON/Markdown report 形态，用于人工审阅、debug 和历史工具兼容。
 - Git 优化项只作为辅助：大型 tracked 源码仓可继续使用 sparse-checkout / sparse-index；runtime `.ds` 文件数量问题必须由 SQLite index + archive/retention policy 解决。
 
+### Quest-level Git lifecycle plan
+
+2026-05-06 fresh audit 结论：workspace 外层 Git 主要是 Codex 检索性能和 `.gitignore` 边界，不承担 MAS/MDS runtime authority；MDS quest-level Git 仍被 MDS runtime 实际使用，不能直接删除或降级为 Codex-only helper。
+
+MDS 当前稳定协议仍声明每个 quest 是一个位于 `quest_root` 的 Git repository；MDS 的 `init_repo`、`checkpoint_repo`、`prepare_branch`、`activate_branch`、Git diff / log / revision document reader 和 `.ds/worktrees` 语义都依赖 quest-level Git。它当前是 MDS lineage/worktree/diff implementation layer，不是 MAS paper truth、publication truth 或 SQLite authority layer。
+
+当前已迁移 disease workspace 的 quest-level Git 也已经成为后续文件数量治理对象。2026-05-06 只读抽样显示 9 个 quest-level `.git` 合计约 `28,919` 个文件、约 `4.81 GiB`，包含 `13,714` 个 commits、`395` 个 branches、`149` 个 listed worktrees；其中 `140/149` 个 listed worktree path 已不存在，说明 restore-proof compaction 之后仍有 stale Git worktree metadata。该数字是当次本机审计口径，后续执行前必须 fresh re-count。
+
+分层路线：
+
+| layer | 状态含义 | 允许动作 | 完成后能声明什么 | 不能声明什么 |
+| --- | --- | --- | --- | --- |
+| `S1_quest_git_hygiene` | 短期 hygiene | 对 stopped/cold/parked quest 执行 `git worktree prune` 与 conservative `git gc`，记录前后 object/worktree/file/byte metrics | quest-level Git 已完成索引/对象卫生清理；stale worktree metadata 与 loose object 文件数下降 | 不能声明 quest Git 已退役；不能删除 `.git`；不能改变 branch/worktree/diff/runtime semantics |
+| `M1_quest_git_archive` | 中期归档 | 对 terminal / no-relaunch quest 生成 Git bundle 或 fast-export archive、refs manifest、sha256、restore command 和 compatibility proof | terminal quest 的 Git history 已有 restore-proof archive，可按 gate 关闭展开态 Git | 不能默认应用到 live / reopenable quest；不能替代 MDS Git reader |
+| `L1_no_default_quest_git` | 长期协议替换 | 把 branch/worktree lineage、diff、snapshot document id 与 revision reader 改造为 MAS/MDS runtime protocol + SQLite/read-model/file-snapshot 合同，MDS Git 退为 legacy compatibility reader | 新 runtime 可以不默认依赖 quest-level Git | 不能在 MDS runtime protocol 未改造前关闭 quest Git |
+
+因此，执行 `worktree prune + gc` 后，本 program 只前进到 `S1_quest_git_hygiene`。它是 short-term 建议的完成点，不是 medium-term archive，也不是 long-term no-Git architecture。
+
+`S1_quest_git_hygiene` 的 apply gate：
+
+- quest 必须 fresh 判定为 `stopped_cold`、`parked_controller_stop`，或用户显式确认的 `active_run_id=null` / `worker_running=false` parked state。
+- live quest、unknown owner quest、startup blocked 且 owner 不明 quest 只能 audit，不执行 prune/gc。
+- 不得改写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper/manuscript/package/dataset authority。
+- 不得删除 branch、tag、commit 或 expanded worktree payload；`git worktree prune` 只允许清理 Git 自身已判定 stale 的 worktree admin metadata。
+- `git gc` 默认使用 conservative mode；只有在已生成 pre-GC refs manifest、`git fsck --connectivity-only` 通过、且 quest 明确 stopped/cold 时，才允许更 aggressive prune policy。
+
+`S1` ledger 必须写入 `artifacts/runtime/lifecycle_migration/git_hygiene/<run_id>.json`，并更新 `artifacts/runtime/lifecycle_migration/git_hygiene/latest.json`。每个 quest 至少记录：
+
+- `quest_root`
+- `study_id`
+- `quest_id`
+- `runtime_state`
+- `gate_result`
+- `before`: `commit_count`、`branch_count`、`listed_worktree_count`、`missing_worktree_path_count`、`git_file_count`、`git_size_bytes`、`loose_object_count`、`pack_file_count`
+- `commands`: `worktree_prune`、`gc`、`fsck`
+- `after`: 同 before 字段
+- `delta`: `git_file_count_delta`、`git_size_bytes_delta`、`loose_object_count_delta`、`missing_worktree_path_delta`
+- `errors`
+- `skipped_reason`
+
+`S1` 验收口径：
+
+- 所有 eligible quest 都有 `applied` 或明确 `skipped_reason`。
+- 每个 applied quest 的 `git fsck --connectivity-only` 在清理后通过。
+- `git worktree list --porcelain` 中不存在已被 `.ds/worktrees` compaction 删除的 stale path，或残留 path 有明确 reason。
+- `.git` 文件数与 loose object 数有 fresh before/after delta。
+- MAS/MDS latest file authority、SQLite sidecar、restore-proof archive ledger 仍可读。
+- 文档和 ledger 只能写 `quest_git_hygiene_applied`，不得写 `quest_git_retired`。
+
 ## 目标 schema 轮廓
 
 所有 schema 必须显式 versioned，并支持只读 introspection。
