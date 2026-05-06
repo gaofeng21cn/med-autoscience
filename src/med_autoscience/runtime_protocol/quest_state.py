@@ -71,6 +71,17 @@ def find_latest(paths: list[Path]) -> Path | None:
     return max(paths, key=lambda item: item.stat().st_mtime)
 
 
+def is_legacy_restore_import_context(quest_root: Path) -> bool:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    parts = resolved_quest_root.parts
+    if (resolved_quest_root / ".ds" / "runtime_state.json").exists():
+        return True
+    return any(
+        parts[index : index + 4] == ("ops", "med-deepscientist", "runtime", "quests")
+        for index in range(0, max(len(parts) - 3, 0))
+    )
+
+
 def load_runtime_state(quest_root: Path) -> dict[str, Any]:
     path = Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
     if not path.exists():
@@ -103,15 +114,18 @@ def iter_active_quests(runtime_root: Path) -> list[Path]:
     return quests
 
 
-def find_latest_main_result_path(quest_root: Path) -> Path:
+def find_latest_main_result_path(
+    quest_root: Path,
+    *,
+    legacy_restore_import_diagnostic: bool = False,
+) -> Path:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     canonical_main_result = resolved_quest_root / "artifacts" / "results" / "main_result.json"
     if canonical_main_result.exists():
         return canonical_main_result
-    patterns = [
-        ".ds/worktrees/*/experiments/main/*/RESULT.json",
-        "experiments/main/*/RESULT.json",
-    ]
+    patterns = ["experiments/main/*/RESULT.json"]
+    if legacy_restore_import_diagnostic or is_legacy_restore_import_context(resolved_quest_root):
+        patterns.append(".ds/worktrees/*/experiments/main/*/RESULT.json")
     candidates: list[Path] = []
     for pattern in patterns:
         candidates.extend(resolved_quest_root.glob(pattern))
@@ -123,6 +137,13 @@ def find_latest_main_result_path(quest_root: Path) -> Path:
 
 def find_latest_main_result(quest_root: Path) -> Path:
     return find_latest_main_result_path(quest_root)
+
+
+def find_latest_legacy_restore_import_diagnostic_main_result_path(quest_root: Path) -> Path:
+    return find_latest_main_result_path(
+        quest_root,
+        legacy_restore_import_diagnostic=True,
+    )
 
 
 def resolve_active_stdout_path(*, quest_root: Path, runtime_state: dict[str, Any]) -> Path | None:

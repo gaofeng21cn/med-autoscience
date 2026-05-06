@@ -47,9 +47,21 @@ def test_resolve_latest_paper_root_prefers_latest_manifest(tmp_path: Path) -> No
     time.sleep(0.01)
     dump_json(new_manifest, {"schema_version": 1})
 
-    result = resolve_latest_paper_root(quest_root)
+    result = resolve_latest_paper_root(quest_root, legacy_restore_import_diagnostic=True)
 
     assert result == new_manifest.parent
+
+
+def test_resolve_paper_bundle_manifest_ignores_legacy_worktree_by_default(tmp_path: Path) -> None:
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    legacy_manifest = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "paper_bundle_manifest.json"
+    dump_json(legacy_manifest, {"schema_version": 1})
+
+    result = resolve_paper_bundle_manifest(quest_root)
+    diagnostic = resolve_paper_bundle_manifest(quest_root, legacy_restore_import_diagnostic=True)
+
+    assert result is None
+    assert diagnostic == legacy_manifest
 
 
 def test_resolve_latest_paper_root_follows_authoritative_projected_paper_line(tmp_path: Path) -> None:
@@ -67,7 +79,7 @@ def test_resolve_latest_paper_root_follows_authoritative_projected_paper_line(tm
         },
     )
 
-    result = resolve_latest_paper_root(quest_root)
+    result = resolve_latest_paper_root(quest_root, legacy_restore_import_diagnostic=True)
 
     assert result == worktree_paper_root.resolve()
 
@@ -97,7 +109,7 @@ def test_resolve_latest_paper_root_prefers_newer_bound_study_canonical_paper(tmp
     newer_time = runtime_paper_root.joinpath("paper_bundle_manifest.json").stat().st_mtime + 60
     os.utime(study_paper_root / "paper_bundle_manifest.json", (newer_time, newer_time))
 
-    result = resolve_latest_paper_root(quest_root)
+    result = resolve_latest_paper_root(quest_root, legacy_restore_import_diagnostic=True)
 
     assert result == study_paper_root.resolve()
 
@@ -119,7 +131,7 @@ def test_resolve_latest_paper_root_keeps_runtime_paper_when_bound_study_branch_d
     newer_time = runtime_paper_root.joinpath("paper_bundle_manifest.json").stat().st_mtime + 60
     os.utime(study_paper_root / "paper_bundle_manifest.json", (newer_time, newer_time))
 
-    result = resolve_latest_paper_root(quest_root)
+    result = resolve_latest_paper_root(quest_root, legacy_restore_import_diagnostic=True)
 
     assert result == runtime_paper_root.resolve()
 
@@ -151,7 +163,7 @@ def test_resolve_paper_bundle_and_submission_minimal_manifest(tmp_path: Path) ->
     submission_manifest = paper_bundle_manifest.parent / "submission_minimal" / "submission_manifest.json"
     dump_json(submission_manifest, {"schema_version": 1})
 
-    resolved_bundle = resolve_paper_bundle_manifest(quest_root)
+    resolved_bundle = resolve_paper_bundle_manifest(quest_root, legacy_restore_import_diagnostic=True)
     resolved_submission = resolve_submission_minimal_manifest(resolved_bundle)
 
     assert resolved_bundle == paper_bundle_manifest
@@ -177,7 +189,7 @@ def test_resolve_paper_bundle_manifest_prefers_paper_worktree_over_newer_analysi
     time.sleep(0.01)
     dump_json(analysis_manifest, {"schema_version": 1, "role": "analysis"})
 
-    resolved_bundle = resolve_paper_bundle_manifest(quest_root)
+    resolved_bundle = resolve_paper_bundle_manifest(quest_root, legacy_restore_import_diagnostic=True)
 
     assert resolved_bundle == paper_manifest
 
@@ -192,7 +204,7 @@ def test_resolve_paper_bundle_manifest_prefers_runtime_worktree_over_newer_proje
     time.sleep(0.01)
     dump_json(projected_manifest, {"schema_version": 1, "paper_branch": "paper/run-legacy"})
 
-    resolved_bundle = resolve_paper_bundle_manifest(quest_root)
+    resolved_bundle = resolve_paper_bundle_manifest(quest_root, legacy_restore_import_diagnostic=True)
 
     assert resolved_bundle == worktree_manifest
 
@@ -342,10 +354,14 @@ def test_resolve_submission_minimal_paths_follow_authoritative_projected_paper_l
     docx.write_text("docx", encoding="utf-8")
     pdf.write_text("%PDF", encoding="utf-8")
 
-    resolved_submission = resolve_submission_minimal_manifest(projected_manifest)
+    resolved_submission = resolve_submission_minimal_manifest(
+        projected_manifest,
+        legacy_restore_import_diagnostic=True,
+    )
     docx_path, pdf_path = resolve_submission_minimal_output_paths(
         paper_bundle_manifest_path=projected_manifest,
         submission_minimal_manifest=json.loads(submission_manifest_path.read_text(encoding="utf-8")),
+        legacy_restore_import_diagnostic=True,
     )
 
     assert resolved_submission == submission_manifest_path
