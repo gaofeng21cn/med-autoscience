@@ -76,6 +76,9 @@ from .quest_state import (
     read_recent_stdout_lines,
     resolve_active_stdout_path,
 )
+from .quest_materializer import (
+    materialize_quest_workspace,
+)
 from .user_message import enqueue_user_message
 
 __all__ = [
@@ -112,6 +115,7 @@ __all__ = [
     "inspect_quest_runtime",
     "iter_active_quests",
     "load_runtime_state",
+    "materialize_quest_workspace",
     "QuestRuntimeSnapshot",
     "quest_status",
     "read_recent_stdout_lines",
