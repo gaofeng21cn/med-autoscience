@@ -67,7 +67,7 @@ def _write_blocked_publication_eval(study_root: Path, *, quest_id: str) -> dict[
     return payload
 
 
-def _write_quality_summary(study_root: Path) -> dict[str, Any]:
+def _write_quality_summary(study_root: Path, *, relative_path: Path | None = None) -> dict[str, Any]:
     payload = {
         "schema_version": 1,
         "summary_id": f"evaluation-summary::{study_root.name}::2026-04-22T08:01:00+00:00",
@@ -90,7 +90,7 @@ def _write_quality_summary(study_root: Path) -> dict[str, Any]:
             "why_now": "The paper gate is blocked by structured quality surfaces.",
         },
     }
-    _write_json(study_root / "artifacts" / "evaluation_summary" / "latest.json", payload)
+    _write_json(study_root / (relative_path or Path("artifacts/evaluation_summary/latest.json")), payload)
     return payload
 
 
@@ -133,6 +133,43 @@ def test_build_quality_repair_batch_action_for_general_quality_repair_lane(tmp_p
         "quality_closure_truth requires deterministic repair; "
         "paper-facing display/reporting blockers are deterministic repair candidates"
     )
+
+
+def test_build_quality_repair_batch_action_reads_eval_hygiene_quality_summary(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
+    _write_quality_summary(
+        study_root,
+        relative_path=Path("artifacts/eval_hygiene/evaluation_summary/latest.json"),
+    )
+    gate_report = {
+        "status": "blocked",
+        "blockers": ["medical_publication_surface_blocked", "claim_evidence_consistency_failed"],
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_named_blockers": [
+            "claim_evidence_map_missing_or_incomplete",
+        ],
+    }
+
+    action = module.build_quality_repair_batch_recommended_action(
+        profile=profile,
+        study_root=study_root,
+        quest_id="quest-001",
+        publication_eval_payload=publication_eval_payload,
+        gate_report=gate_report,
+    )
+
+    assert not (study_root / "artifacts" / "evaluation_summary" / "latest.json").exists()
+    assert action is not None
+    assert action["controller_action_type"] == "run_quality_repair_batch"
 
 
 def test_build_quality_repair_batch_action_allows_upstream_quality_repair_when_bundle_tasks_are_downstream(
@@ -309,6 +346,49 @@ def test_run_quality_repair_batch_wraps_gate_clearing_and_writes_record(monkeypa
     assert record["quality_closure_state"] == "quality_repair_required"
     assert record["quality_execution_lane_id"] == "general_quality_repair"
     assert record["gate_clearing_execution_summary"] == gate_result["execution_summary"]
+
+
+def test_run_quality_repair_batch_records_eval_hygiene_summary_path(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
+    quality_summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    quality_summary = _write_quality_summary(
+        study_root,
+        relative_path=Path("artifacts/eval_hygiene/evaluation_summary/latest.json"),
+    )
+    gate_result = {
+        "ok": True,
+        "status": "executed",
+        "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+        "gate_replay": {"status": "blocked", "blockers": ["claim_evidence_consistency_failed"]},
+        "unit_results": [{"unit_id": "materialize_display_surface", "status": "updated"}],
+    }
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **kwargs: gate_result,
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        quest_id="quest-001",
+        source="test-source",
+    )
+
+    record = json.loads(Path(result["record_path"]).read_text(encoding="utf-8"))
+    assert result["source_eval_id"] == publication_eval_payload["eval_id"]
+    assert result["source_summary_id"] == quality_summary["summary_id"]
+    assert record["source_summary_artifact_path"] == str(quality_summary_path.resolve())
 
 
 def test_run_quality_repair_batch_reruns_same_eval_after_failed_gate_clearing_batch(

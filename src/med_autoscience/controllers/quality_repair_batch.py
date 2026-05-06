@@ -17,6 +17,8 @@ from med_autoscience.study_decision_record import StudyDecisionActionType, Study
 
 SCHEMA_VERSION = 1
 STABLE_QUALITY_REPAIR_BATCH_RELATIVE_PATH = Path("artifacts/controller/quality_repair_batch/latest.json")
+EVAL_HYGIENE_QUALITY_SUMMARY_RELATIVE_PATH = Path("artifacts/eval_hygiene/evaluation_summary/latest.json")
+LEGACY_QUALITY_SUMMARY_RELATIVE_PATH = Path("artifacts/evaluation_summary/latest.json")
 _QUALITY_REPAIR_CLOSURE_STATES = frozenset({"quality_repair_required"})
 _QUALITY_REPAIR_LANES = frozenset({"general_quality_repair", "quality_floor_blocker"})
 
@@ -45,7 +47,11 @@ def _non_empty_text(value: object) -> str | None:
 
 
 def _quality_summary_path(*, study_root: Path) -> Path:
-    return Path(study_root).expanduser().resolve() / "artifacts" / "evaluation_summary" / "latest.json"
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    canonical_path = resolved_study_root / EVAL_HYGIENE_QUALITY_SUMMARY_RELATIVE_PATH
+    if canonical_path.exists():
+        return canonical_path
+    return resolved_study_root / LEGACY_QUALITY_SUMMARY_RELATIVE_PATH
 
 
 def _read_quality_summary(*, study_root: Path) -> dict[str, Any]:
