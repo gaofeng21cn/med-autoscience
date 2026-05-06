@@ -235,7 +235,7 @@ def test_run_preflight_executes_integration_harness_commands(monkeypatch, tmp_pa
     monkeypatch.setattr(module.subprocess, "run", fake_run)
 
     result = module.run_preflight(
-        changed_files=["docs/program/integration_harness_activation_package.md"],
+        changed_files=["docs/history/program/integration_harness_activation_package.md"],
         repo_root=tmp_path,
     )
 

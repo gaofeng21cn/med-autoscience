@@ -97,13 +97,13 @@ def test_build_phase4_backend_deconstruction_uses_shared_builder(monkeypatch) ->
         captured.update(kwargs)
         return {"surface_kind": "phase4_backend_deconstruction_lane", "substrate_targets": list(kwargs["substrate_targets"])}
 
-    monkeypatch.setattr(module, "_build_shared_backend_deconstruction_lane", _fake_build_lane)
+    monkeypatch.setattr(module, "_build_backend_deconstruction_lane", _fake_build_lane)
 
     payload = module._build_phase4_backend_deconstruction()
 
     assert payload["surface_kind"] == "phase4_backend_deconstruction_lane"
     assert len(captured["substrate_targets"]) == 2
-    assert captured["deconstruction_map_doc"] == "docs/program/med_deepscientist_deconstruction_map.md"
+    assert captured["deconstruction_map_ref"] == "program:med_deepscientist_deconstruction_map"
 
 def test_build_phase5_platform_target_uses_shared_builder(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")

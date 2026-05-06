@@ -19,10 +19,10 @@
 ### Task 1: 冻结 Hermes continuation truth
 
 **Files:**
-- Modify: `../program/research_foundry_medical_mainline.md`
-- Modify: `../program/research_foundry_medical_execution_map.md`
-- Add: `../program/hermes_backend_continuation_board.md`
-- Add: `../program/hermes_backend_activation_package.md`
+- Modify: `../history/program/research_foundry_medical_mainline.md`
+- Modify: `../history/program/research_foundry_medical_execution_map.md`
+- Add: `../history/program/hermes_backend_continuation_board.md`
+- Add: `../history/program/hermes_backend_activation_package.md`
 - Test: `../../tests/test_runtime_protocol_study_runtime.py`
 - Test: `../../tests/test_study_runtime_router.py`
 
@@ -48,7 +48,7 @@
 
 **Files:**
 - Modify: `./runtime_core_convergence_and_controlled_cutover.md`
-- Modify: `../program/integration_harness_activation_package.md`
+- Modify: `../history/program/integration_harness_activation_package.md`
 - Modify: `../program/external_runtime_dependency_gate.md`
 - Modify: `../program/merge_and_cutover_gates.md`
 - Modify: `../../src/med_autoscience/dev_preflight_contract.py`

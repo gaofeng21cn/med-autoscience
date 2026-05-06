@@ -276,21 +276,6 @@ MAS_AI_FIRST_RULES: tuple[DriftRule, ...] = (
             "def owner_route_matches",
         ),
     ),
-    DriftRule(
-        check_id="policy_records_external_engineering_basis_and_audit_scope",
-        category="doctor_meta_test_surface",
-        root_key="mas_repo_root",
-        relative_path="docs/policies/ai_first_quality_boundary.md",
-        summary="The stable policy must document the audit scope and external engineering basis.",
-        required_markers=(
-            "AI-first drift audit",
-            "NIST AI RMF",
-            "EQUATOR",
-            "G-Eval",
-            "Google SRE",
-            "coverage-as-quality",
-        ),
-    ),
 )
 
 
@@ -487,9 +472,9 @@ def run_ai_first_drift_audit(
         },
         "checks": checks,
         "policy_refs": [
-            "docs/policies/ai_first_quality_boundary.md",
-            "tests/test_ai_first_quality_boundary.py",
-            "tests/test_ai_first_drift_audit.py",
+            "policy:ai_first_quality_boundary",
+            "test:ai_first_quality_boundary",
+            "test:ai_first_drift_audit",
         ],
     }
 
@@ -516,7 +501,7 @@ def build_ai_first_governance_regression_os_summary() -> dict[str, Any]:
             "scripts/verify.sh",
         ],
         "policy_refs": [
-            "docs/policies/ai_first_quality_boundary.md",
-            "docs/policies/ai_reviewer_calibration_corpus.md",
+            "policy:ai_first_quality_boundary",
+            "policy:ai_reviewer_calibration_corpus",
         ],
     }

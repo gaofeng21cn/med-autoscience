@@ -72,7 +72,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     )
     assert payload["current_program_phase"]["single_project_boundary"]["land_now"] == [
         "MAS 单项目 owner wording and repo-tracked truth",
-        "docs/status/program/mainline boundary alignment",
+        "core:status:program_mainline_boundary_alignment",
         "user-visible wording that MDS is no longer a second long-term owner",
     ]
     assert [item["role_id"] for item in payload["current_program_phase"]["single_project_boundary"]["mds_retained_roles"]] == [
@@ -102,8 +102,8 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert "does not become quality, submission, delivery, runtime, or controller authority" in (
         payload["unified_enhancement_program"]["authority_boundary"]
     )
-    assert payload["unified_enhancement_program"]["source_doc"] == (
-        "docs/program/mas_mds_unified_enhancement_program.md"
+    assert payload["unified_enhancement_program"]["source_ref"] == (
+        "program:mas_mds_unified_enhancement_program"
     )
     assert [item["lane_id"] for item in payload["unified_enhancement_program"]["lanes"]] == [
         "L1_real_workspace_longitudinal_soak",
@@ -234,8 +234,8 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["phase3_clearance_lane"]["clearance_loop"][3]["step_id"] == "refresh_supervision"
     assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
     assert payload["phase4_backend_deconstruction"]["substrate_targets"][0]["capability_id"] == "session_run_watch_recovery"
-    assert payload["phase4_backend_deconstruction"]["deconstruction_map_doc"] == (
-        "docs/program/med_deepscientist_deconstruction_map.md"
+    assert payload["phase4_backend_deconstruction"]["deconstruction_map_ref"] == (
+        "program:med_deepscientist_deconstruction_map"
     )
     assert payload["platform_target"]["surface_kind"] == "phase5_platform_target"
     assert payload["platform_target"]["sequence_scope"] == "monorepo_landing_readiness"
@@ -256,25 +256,25 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "phase_3_multi_workspace_host_clearance",
         "phase_4_backend_deconstruction",
     ]
-    assert payload["source_docs"] == [
-        "README.md",
-        "docs/README.md",
-        "docs/project.md",
-        "docs/architecture.md",
-        "docs/status.md",
-        "docs/runtime/agent_runtime_interface.md",
-        "docs/program/mas_mds_unified_enhancement_program.md",
-        "docs/references/lightweight_product_entry_and_opl_handoff.md",
+    assert payload["source_refs"] == [
+        "readme:root",
+        "docs:index",
+        "core:project",
+        "core:architecture",
+        "core:status",
+        "runtime:agent_interface",
+        "program:mas_mds_unified_enhancement_program",
+        "reference:opl_handoff",
     ]
-    assert payload["phase_ladder"][0]["phase_docs"] == [
-        "docs/status.md",
-        "docs/project.md",
-        "docs/architecture.md",
+    assert payload["phase_ladder"][0]["phase_refs"] == [
+        "core:status",
+        "core:project",
+        "core:architecture",
     ]
-    assert payload["phase_ladder"][1]["phase_docs"] == [
-        "docs/README.md",
-        "docs/runtime/agent_runtime_interface.md",
-        "docs/references/lightweight_product_entry_and_opl_handoff.md",
+    assert payload["phase_ladder"][1]["phase_refs"] == [
+        "docs:index",
+        "runtime:agent_interface",
+        "reference:opl_handoff",
     ]
     assert any(item["name"] == "workspace_cockpit" for item in payload["phase_ladder"][1]["entry_points"])
     assert any(item["id"] == "f3_real_study_soak_recovery_proof" for item in payload["completed_tranches"])
@@ -334,10 +334,10 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "audit boundary `maintainability_truth`" in markdown
     assert "Remaining Gaps" in markdown
     assert "Next Focus" in markdown
-    assert "docs/README.md" in markdown
-    assert "docs/runtime/agent_runtime_interface.md" in markdown
-    assert "docs/program/research_foundry_medical_mainline.md" not in markdown
-    assert "docs/references/research_foundry_medical_phase_ladder.md" not in markdown
+    assert "docs:index" in markdown
+    assert "runtime:agent_interface" in markdown
+    assert "program:research_foundry_medical_mainline" not in markdown
+    assert "reference:research_foundry_medical_phase_ladder" not in markdown
     assert "program_id:" not in markdown
     assert "domain_gateway:" not in markdown
     assert "outer_runtime_substrate_owner:" not in markdown
@@ -363,7 +363,7 @@ def test_mainline_phase_status_resolves_current_and_next_phase() -> None:
     ]
     assert current_payload["phase"]["single_project_boundary"]["land_now"] == [
         "MAS 单项目 owner wording and repo-tracked truth",
-        "docs/status/program/mainline boundary alignment",
+        "core:status:program_mainline_boundary_alignment",
         "user-visible wording that MDS is no longer a second long-term owner",
     ]
     assert [item["role_id"] for item in current_payload["phase"]["single_project_boundary"]["mds_retained_roles"]] == [
@@ -389,9 +389,9 @@ def test_render_mainline_phase_markdown_surfaces_entry_points_and_exit_criteria(
     assert "当前摘要" in markdown
     assert "可用入口" in markdown
     assert "退出条件" in markdown
-    assert "相关文档" in markdown
-    assert "docs/runtime/agent_runtime_interface.md" in markdown
-    assert "docs/references/research_foundry_medical_phase_ladder.md" not in markdown
+    assert "相关参考" in markdown
+    assert "runtime:agent_interface" in markdown
+    assert "reference:research_foundry_medical_phase_ladder" not in markdown
     assert "phase_id:" not in markdown
     assert "phase_status:" not in markdown
     assert "usable_now:" not in markdown
@@ -450,13 +450,13 @@ def test_phase4_backend_deconstruction_uses_shared_builder(monkeypatch) -> None:
         captured.update(kwargs)
         return {"surface_kind": "phase4_backend_deconstruction_lane"}
 
-    monkeypatch.setattr(module, "_build_shared_backend_deconstruction_lane", _fake_build_backend_lane, raising=False)
+    monkeypatch.setattr(module, "_build_backend_deconstruction_lane", _fake_build_backend_lane, raising=False)
 
     payload = module._phase4_backend_deconstruction()
 
     assert payload["surface_kind"] == "phase4_backend_deconstruction_lane"
     assert len(captured["substrate_targets"]) == 2
-    assert captured["deconstruction_map_doc"] == "docs/program/med_deepscientist_deconstruction_map.md"
+    assert captured["deconstruction_map_ref"] == "program:med_deepscientist_deconstruction_map"
 
 
 def test_platform_target_uses_shared_builder(monkeypatch) -> None:

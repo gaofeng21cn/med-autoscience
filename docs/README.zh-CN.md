@@ -52,6 +52,7 @@
 - [架构](./architecture.md)
 - [不可变约束](./invariants.md)
 - [关键决策](./decisions.md)
+- [文档组合治理](./docs_portfolio_consolidation.md)
 
 ## 默认公开入口
 
@@ -95,9 +96,8 @@
 
 ### 项目推进与维护记录
 
-- [Research Foundry 医学执行地图](program/research_foundry_medical_execution_map.md)
-- [Research Foundry 医学主线](program/research_foundry_medical_mainline.md)
 - [MAS/MDS 自治操作系统 program](program/mas_mds_autonomy_operating_system_program.md)
+- [Program portfolio consolidation](program/program_portfolio_consolidation.md)
 - [MAS/MDS 统一增强 program](program/mas_mds_unified_enhancement_program.md)
 - [Runtime lifecycle SQLite 迁移 program](program/runtime_lifecycle_sqlite_migration_program.md)
 - [MAS 单项目 MDS 吸收 program](program/mas_single_project_mds_absorb_program.md)
@@ -106,7 +106,8 @@
 - [外部运行时依赖门禁](program/external_runtime_dependency_gate.md)
 - [Merge And Cutover Gates](program/merge_and_cutover_gates.md)
 - [项目修复优先级地图](program/project_repair_priority_map.md)
-- [课题进度投影](program/study_progress_projection.md)
+- [课题进度投影](runtime/study_progress_projection.md)
+- [Program 历史归档](history/program/README.zh-CN.md)
 
 ### 集成参考
 

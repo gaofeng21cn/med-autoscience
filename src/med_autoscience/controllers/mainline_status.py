@@ -36,6 +36,21 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+def _build_backend_deconstruction_lane(
+    *,
+    deconstruction_map_ref: str,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    payload = _build_shared_backend_deconstruction_lane(
+        **kwargs,
+        deconstruction_map_doc=deconstruction_map_ref,
+    )
+    payload["deconstruction_map_ref"] = str(
+        payload.pop("deconstruction_map_doc", deconstruction_map_ref)
+    )
+    return payload
+
+
 def _single_project_boundary() -> dict[str, Any]:
     return {
         "surface_kind": "single_project_boundary",
@@ -67,7 +82,7 @@ def _single_project_boundary() -> dict[str, Any]:
         ],
         "land_now": [
             "MAS 单项目 owner wording and repo-tracked truth",
-            "docs/status/program/mainline boundary alignment",
+            "core:status:program_mainline_boundary_alignment",
             "user-visible wording that MDS is no longer a second long-term owner",
         ],
         "post_gate_only": [
@@ -569,7 +584,7 @@ def _phase3_clearance_lane() -> dict[str, Any]:
 
 
 def _phase4_backend_deconstruction() -> dict[str, Any]:
-    return _build_shared_backend_deconstruction_lane(
+    return _build_backend_deconstruction_lane(
         summary="Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor；这一步仍不是物理 monorepo absorb。",
         substrate_targets=[
             _build_shared_program_capability(
@@ -605,7 +620,7 @@ def _phase4_backend_deconstruction() -> dict[str, Any]:
             "executor replacement must be explicit and proof-backed",
             "no physical monorepo absorb before the external gate is cleared",
         ],
-        deconstruction_map_doc="docs/program/med_deepscientist_deconstruction_map.md",
+        deconstruction_map_ref="program:med_deepscientist_deconstruction_map",
         recommended_phase_command=(
             "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction"
         ),
@@ -650,10 +665,10 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "当前活跃 study 的主要阻塞继续前移到 publication / completion / human-gate truth。",
                 "用户已经能稳定看到主线状态、workspace attention 和 study progress，且不会被引向 MDS 第二治理面。",
             ],
-            "phase_docs": [
-                "docs/status.md",
-                "docs/project.md",
-                "docs/architecture.md",
+            "phase_refs": [
+                "core:status",
+                "core:project",
+                "core:architecture",
             ],
             "active_tranche_owner_truth": _active_tranche_owner_truth(),
             "single_project_boundary": _phase_single_project_boundary("phase_1_mainline_established"),
@@ -696,10 +711,10 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "attention queue、progress freshness、recovery suggestion 已经稳定可见。",
                 "当前 repo-tracked shell 已足够像真实 user loop，而不是命令散点集合。",
             ],
-            "phase_docs": [
-                "docs/README.md",
-                "docs/runtime/agent_runtime_interface.md",
-                "docs/references/lightweight_product_entry_and_opl_handoff.md",
+            "phase_refs": [
+                "docs:index",
+                "runtime:agent_interface",
+                "reference:opl_handoff",
             ],
         },
         {
@@ -734,11 +749,11 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "更多 workspace / host 的 service、watch、recovery 已有真实 proof。",
                 "host/env compatibility 不再反复成为主阻塞类别。",
             ],
-            "phase_docs": [
-                "docs/README.md",
-                "docs/status.md",
-                "docs/program/external_runtime_dependency_gate.md",
-                "docs/program/upstream_hermes_agent_fast_cutover_board.md",
+            "phase_refs": [
+                "docs:index",
+                "core:status",
+                "program:external_runtime_dependency_gate",
+                "program:upstream_hermes_agent_fast_cutover_board",
             ],
         },
         {
@@ -759,8 +774,8 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 },
                 {
                     "name": "deconstruction_map",
-                    "command": "open docs/program/med_deepscientist_deconstruction_map.md",
-                    "purpose": "核对哪些能力属于 substrate、backend、后续替换。",
+                    "command": "uv run python -m med_autoscience.cli mainline-status",
+                    "purpose": "核对 backend deconstruction 的 program reference 与后续替换边界。",
                 },
             ],
             "exit_criteria": [
@@ -768,10 +783,10 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "MedDeepScientist 更接近 controlled executor，而不是 hidden runtime authority。",
                 "executor replacement 不依赖一次性重写或 truth rewrite。",
             ],
-            "phase_docs": [
-                "docs/README.md",
-                "docs/project.md",
-                "docs/program/med_deepscientist_deconstruction_map.md",
+            "phase_refs": [
+                "docs:index",
+                "core:project",
+                "program:med_deepscientist_deconstruction_map",
             ],
         },
         {
@@ -801,10 +816,10 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "更大物理结构调整不会制造 truth drift。",
                 "OPL family entry 与 MAS domain entry 已能自然衔接。",
             ],
-            "phase_docs": [
-                "docs/README.md",
-                "docs/project.md",
-                "docs/program/research_foundry_medical_mainline.md",
+            "phase_refs": [
+                "docs:index",
+                "core:project",
+                "program:research_foundry_medical_mainline",
             ],
         },
     ]
@@ -909,7 +924,7 @@ def read_mainline_status() -> dict[str, Any]:
             "autonomy: keep task, progress, supervision, stuck-state, recovery, and human-gate truth visible through MAS durable surfaces",
             "quality: keep publication-grade route truth, same-line repair, bounded analysis, and submission readiness under MAS quality contracts",
             "single-project owner: keep MedDeepScientist pinned to backend / oracle / intake buffer roles instead of second-owner language",
-            "keep docs/status/runtime contracts aligned so OPL language, MAS role, and runtime truth do not drift",
+            "keep core status and runtime contracts aligned so OPL language, MAS role, and runtime truth do not drift",
             "only move toward broader cutover or monorepo work after the external gate is honestly cleared",
         ],
         "explicitly_not_now": [
@@ -920,15 +935,15 @@ def read_mainline_status() -> dict[str, Any]:
             "claiming upstream Hermes already fully replaces the research executor",
             "claiming a standalone OPL/MAS product frontend is already landed",
         ],
-        "source_docs": [
-            "README.md",
-            "docs/README.md",
-            "docs/project.md",
-            "docs/architecture.md",
-            "docs/status.md",
-            "docs/runtime/agent_runtime_interface.md",
-            "docs/program/mas_mds_unified_enhancement_program.md",
-            "docs/references/lightweight_product_entry_and_opl_handoff.md",
+        "source_refs": [
+            "readme:root",
+            "docs:index",
+            "core:project",
+            "core:architecture",
+            "core:status",
+            "runtime:agent_interface",
+            "program:mas_mds_unified_enhancement_program",
+            "reference:opl_handoff",
         ],
         "commands": {
             "mainline_status": "uv run python -m med_autoscience.cli mainline-status",
@@ -966,5 +981,5 @@ def read_mainline_phase_status(selector: str = "current") -> dict[str, Any]:
         "current_stage": dict(payload.get("current_stage") or {}),
         "current_program_phase": dict(payload.get("current_program_phase") or {}),
         "phase": selected_phase,
-        "source_docs": list(payload.get("source_docs") or []),
+        "source_refs": list(payload.get("source_refs") or []),
     }

@@ -12,6 +12,8 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 _module_reexport(_automation_surfaces)
 
+_build_backend_deconstruction_lane = mainline_status._build_backend_deconstruction_lane
+
 
 def _build_phase5_platform_target() -> dict[str, Any]:
     payload = mainline_status.read_mainline_status()
@@ -227,8 +229,8 @@ def _build_phase3_clearance_lane(
 
 def _build_phase4_backend_deconstruction() -> dict[str, Any]:
     build_backend_deconstruction_lane = _controller_override(
-        "_build_shared_backend_deconstruction_lane",
-        _build_shared_backend_deconstruction_lane,
+        "_build_backend_deconstruction_lane",
+        mainline_status._build_backend_deconstruction_lane,
     )
     return build_backend_deconstruction_lane(
         summary="Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor。",
@@ -266,7 +268,7 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
             "executor replacement must be explicit and proof-backed",
             "no physical monorepo absorb before the external gate is cleared",
         ],
-        deconstruction_map_doc="docs/program/med_deepscientist_deconstruction_map.md",
+        deconstruction_map_ref="program:med_deepscientist_deconstruction_map",
         recommended_phase_command=(
             "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction"
         ),

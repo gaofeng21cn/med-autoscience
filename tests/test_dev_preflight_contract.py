@@ -480,11 +480,11 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
 
     result = module.classify_changed_files(
         [
-            "docs/program/hermes_backend_continuation_board.md",
-            "docs/program/hermes_backend_activation_package.md",
+            "docs/history/program/hermes_backend_continuation_board.md",
+            "docs/history/program/hermes_backend_activation_package.md",
             "docs/program/med_deepscientist_deconstruction_map.md",
-            "docs/program/integration_harness_activation_package.md",
-            "docs/program/research_foundry_medical_mainline.md",
+            "docs/history/program/integration_harness_activation_package.md",
+            "docs/history/program/research_foundry_medical_mainline.md",
             "docs/references/research_foundry_medical_phase_ladder.md",
             "scripts/prepare-sentrux-gitstats-clone.sh",
             "scripts/run-parallel-test-lanes.sh",

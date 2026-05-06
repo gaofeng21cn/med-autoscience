@@ -180,7 +180,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             "executor replacement must be explicit and proof-backed",
             "no physical monorepo absorb before the external gate is cleared",
         ],
-        "deconstruction_map_doc": "docs/program/med_deepscientist_deconstruction_map.md",
+        "deconstruction_map_ref": "program:med_deepscientist_deconstruction_map",
         "recommended_phase_command": (
             "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction"
         ),

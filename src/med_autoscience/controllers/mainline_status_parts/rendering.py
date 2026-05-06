@@ -103,10 +103,10 @@ def render_mainline_phase_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- {item}")
     else:
         lines.append("- none")
-    lines.extend(["", "## 相关文档", ""])
-    phase_docs = list(phase.get("phase_docs") or [])
-    if phase_docs:
-        for item in phase_docs:
+    lines.extend(["", "## 相关参考", ""])
+    phase_refs = list(phase.get("phase_refs") or [])
+    if phase_refs:
+        for item in phase_refs:
             lines.append(f"- `{item}`")
     else:
         lines.append("- none")
@@ -239,7 +239,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
             "",
             f"- surface: `{unified_enhancement_program.get('surface_kind') or 'none'}`",
             f"- status: `{unified_enhancement_program.get('status') or 'none'}`",
-            f"- source: `{unified_enhancement_program.get('source_doc') or 'none'}`",
+            f"- source: `{unified_enhancement_program.get('source_ref') or 'none'}`",
             f"- projection-only: {_bool_label(unified_enhancement_program.get('projection_only'))}",
             f"- authority boundary: {unified_enhancement_program.get('authority_boundary') or 'none'}",
         ]
@@ -324,7 +324,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     lines.extend(["", "## Not Now", ""])
     for item in payload.get("explicitly_not_now") or []:
         lines.append(f"- {item}")
-    lines.extend(["", "## Key Docs", ""])
-    for item in payload.get("source_docs") or []:
+    lines.extend(["", "## Key Refs", ""])
+    for item in payload.get("source_refs") or []:
         lines.append(f"- `{item}`")
     return "\n".join(lines) + "\n"

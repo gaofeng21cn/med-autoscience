@@ -52,6 +52,7 @@ Read these first before changing repo state:
 - [Architecture](./architecture.md)
 - [Invariants](./invariants.md)
 - [Decisions](./decisions.md)
+- [Documentation portfolio consolidation](./docs_portfolio_consolidation.md)
 
 ## Default Public Surface
 
@@ -95,9 +96,8 @@ Public-facing material should stay mirrored in English and Chinese.
 
 ### Program and Maintenance Records
 
-- [Research Foundry medical execution map](program/research_foundry_medical_execution_map.md)
-- [Research Foundry medical mainline](program/research_foundry_medical_mainline.md)
 - [MAS/MDS autonomy operating system program](program/mas_mds_autonomy_operating_system_program.md)
+- [Program portfolio consolidation](program/program_portfolio_consolidation.md)
 - [MAS/MDS unified enhancement program](program/mas_mds_unified_enhancement_program.md)
 - [Runtime lifecycle SQLite migration program](program/runtime_lifecycle_sqlite_migration_program.md)
 - [MAS single-project MDS absorb program](program/mas_single_project_mds_absorb_program.md)
@@ -106,7 +106,8 @@ Public-facing material should stay mirrored in English and Chinese.
 - [External runtime dependency gate](program/external_runtime_dependency_gate.md)
 - [Merge and cutover gates](program/merge_and_cutover_gates.md)
 - [Project repair priority map](program/project_repair_priority_map.md)
-- [Study progress projection](program/study_progress_projection.md)
+- [Study progress projection](runtime/study_progress_projection.md)
+- [Program history archive](history/program/README.md)
 
 ### Integration References
 

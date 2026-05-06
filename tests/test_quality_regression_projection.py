@@ -95,7 +95,7 @@ def test_quality_regression_projection_compares_package_versions_without_publica
             },
         ],
         calibration_evidence_refs=[
-            "docs/program/paper_orchestra_learning_intake_2026_05_02.md#paper-autoraters",
+            "calibration:paper_autoraters",
             "paper/review_ledger.json#side-by-side-regression",
         ],
         judge_scores=[
@@ -157,7 +157,7 @@ def test_quality_regression_projection_compares_package_versions_without_publica
         "status": "no_regression_detected",
     }
     assert projection["calibration_evidence"]["refs"] == [
-        "docs/program/paper_orchestra_learning_intake_2026_05_02.md#paper-autoraters",
+        "calibration:paper_autoraters",
         "paper/review_ledger.json#side-by-side-regression",
     ]
     assert projection["calibration_evidence"]["judge_scores"] == [

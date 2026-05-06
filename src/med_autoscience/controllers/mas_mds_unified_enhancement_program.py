@@ -66,7 +66,7 @@ ENGINEERING_BASIS = (
     {
         "basis_id": "owner_private_truth_surfaces",
         "source": "MAS owner-boundary contract",
-        "url": "docs/architecture.md#masmds-owner-boundary-fitness-function",
+        "ref": "core:architecture:mas_mds_owner_boundary_fitness_function",
         "project_application": (
             "authority owners write private truth surfaces; product, observability, delivery, and MDS layers consume projections"
         ),

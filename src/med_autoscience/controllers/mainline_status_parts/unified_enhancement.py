@@ -27,7 +27,7 @@ def build_unified_enhancement_program_projection() -> dict[str, Any]:
         "program_id": board["program_id"],
         "status": "active_integration_program",
         "owner": "MedAutoScience",
-        "source_doc": "docs/program/mas_mds_unified_enhancement_program.md",
+        "source_ref": "program:mas_mds_unified_enhancement_program",
         "projection_only": True,
         "source_surfaces": [
             board["surface"],

@@ -28,7 +28,7 @@ PROGRAM_LANES = (
         "owner": "MedAutoScience",
         "stage": "active",
         "primary_surfaces": (
-            "docs/program/mas_mds_autonomy_operating_system_program.md",
+            "program:mas_mds_autonomy_operating_system",
             "autonomy_operating_system_program",
         ),
         "acceptance_gate": "main checkout clean, owner boundary frozen, lane board materialized",
@@ -89,8 +89,8 @@ PROGRAM_LANES = (
         "owner": "MedAutoScience with MedDeepScientist oracle",
         "stage": "active",
         "primary_surfaces": (
-            "docs/policies/runtime_protocol.md",
-            "docs/policies/mas_mds_transition_contract.md",
+            "policy:runtime_protocol",
+            "policy:mas_mds_transition_contract",
             "strangler_registry",
         ),
         "acceptance_gate": "every MDS surface has stage, promotion gate, parity proof, and rollback surface",

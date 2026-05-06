@@ -17,4 +17,5 @@ Current runtime truth, product entry, and maintainer guidance belong in:
 
 Archived lanes:
 
+- [Program history archive](./program/README.md)
 - [OMX historical archive](./omx/README.md)

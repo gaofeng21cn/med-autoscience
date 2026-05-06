@@ -69,30 +69,30 @@ Owner: `MedAutoScience`
 
 ## Landed Or Historical Reference
 
-这些文件已经完成主要吸收，或被更新的 active board 覆盖。当前建议先保留原路径，只在本文标记为 historical/reference；等链接审计完成后再批量移动到 `docs/history/program/`。
+这些文件已经完成主要吸收，或被更新的 active board 覆盖。已完成链接审计且没有 active contract 职责的文件移入 `docs/history/program/`。如果业务代码或行为测试还依赖叙述性 docs 路径，优先退役这条机器依赖，改用稳定 id 或 durable surface，再执行归档。
 
 | file | recommended state | reason |
 | --- | --- | --- |
-| `ai_first_research_os_architecture.md` | reference | AI-first OS 架构已进入 architecture/status/mainline 口径，保留为目标架构参考。 |
-| `ai_first_operationalization_closeout.md` | landed closeout | AI-first repo-level closeout 记录，后续只读。 |
-| `ai_first_usable_closeout_projection.md` | landed closeout | usable closeout projection 已落地，后续由 ledger 与 active surfaces 接续。 |
-| `ai_first_closeout_handoff_governance.md` | landed closeout / support | handoff governance 已落地，可作为 closeout policy 参考。 |
-| `external_agent_orchestration_learning_intake_2026_04_30.md` | historical intake | 外部 orchestration 学习快照，已归入 autonomy board。 |
-| `open_auto_research_learning_intake_2026_05_04.md` | historical intake | OAR lesson 已吸收为 repo-level read model，真实 soak 另由 active lanes 管理。 |
+| `../references/ai_first_research_os_architecture.md` | reference | AI-first OS 架构已进入 architecture/status/mainline 口径，保留为目标架构参考。 |
+| `../history/program/ai_first_operationalization_closeout.md` | landed closeout | AI-first repo-level closeout 记录，后续只读。 |
+| `../history/program/ai_first_usable_closeout_projection.md` | landed closeout | usable closeout projection 已落地，后续由 ledger 与 active surfaces 接续。 |
+| `../history/program/ai_first_closeout_handoff_governance.md` | landed closeout / support | handoff governance 已落地，可作为 closeout policy 参考。 |
+| `../history/program/external_agent_orchestration_learning_intake_2026_04_30.md` | historical intake | 外部 orchestration 学习快照，已归入 autonomy board。 |
+| `../history/program/open_auto_research_learning_intake_2026_05_04.md` | historical intake | OAR lesson 已吸收为 repo-level read model，真实 soak 另由 active lanes 管理。 |
 | `paper_orchestra_learning_intake_2026_05_02.md` | historical intake | PaperOrchestra lesson intake，后续只作为学习参考。 |
-| `deepscientist_learning_intake_2026_04_25.md` | historical intake | 旧 DeepScientist intake。 |
-| `deepscientist_learning_intake_2026_04_28.md` | historical intake | 旧 DeepScientist intake。 |
-| `deepscientist_learning_intake_2026_04_30.md` | historical intake | 旧 DeepScientist intake。 |
-| `deepscientist_learning_intake_2026_05_05.md` | latest intake record | 当前最新 intake 记录，仍由 learning protocol 引用，但不是独立 program。 |
-| `research_foundry_medical_mainline.md` | superseded narrative / reference | Research Foundry / Harness OS 叙述已被当前 MAS/MDS autonomy 与 single-project docs 收口；保留为历史架构脉络。 |
-| `research_foundry_medical_execution_map.md` | superseded execution map / reference | 同上，作为旧 phase ladder 入口保留。 |
-| `open_harness_os_freeze_plan.md` | historical architecture freeze | Harness OS freeze 计划不再作为当前 MAS/MDS 执行板。 |
-| `integration_harness_activation_package.md` | landed activation package | activation baseline 历史包。 |
-| `hermes_backend_activation_package.md` | landed activation package | activation baseline 历史包。 |
-| `hermes_backend_continuation_board.md` | historical continuation board | 外部 Hermes 目标 wording / seam 历史板，当前不应超过 MAS/MDS absorb 与 Runtime OS owner。 |
-| `upstream_hermes_agent_fast_cutover_board.md` | historical cutover board | upstream Hermes cutover 历史板；external runtime gate 未清除时只读参考。 |
-| `journal_package_builtins_upgrade_plan.md` | landed/specific implementation plan | journal package builtins 计划不再作为 portfolio board。 |
-| `study_progress_projection.md` | landed projection reference | study-progress projection 已是稳定 surface 参考。 |
+| `../history/program/deepscientist_learning_intake_2026_04_25.md` | historical intake | 旧 DeepScientist intake。 |
+| `../history/program/deepscientist_learning_intake_2026_04_28.md` | historical intake | 旧 DeepScientist intake。 |
+| `../history/program/deepscientist_learning_intake_2026_04_30.md` | historical intake | 旧 DeepScientist intake。 |
+| `../history/program/deepscientist_learning_intake_2026_05_05.md` | latest intake record | 当前最新 intake 记录，仍由 learning protocol 引用，但不是独立 program。 |
+| `../history/program/research_foundry_medical_mainline.md` | superseded narrative / reference | Research Foundry / Harness OS 叙述已被当前 MAS/MDS autonomy 与 single-project docs 收口；保留为历史架构脉络。 |
+| `../history/program/research_foundry_medical_execution_map.md` | superseded execution map / reference | 同上，作为旧 phase ladder 入口保留。 |
+| `../history/program/open_harness_os_freeze_plan.md` | historical architecture freeze | Harness OS freeze 计划不再作为当前 MAS/MDS 执行板。 |
+| `../history/program/integration_harness_activation_package.md` | landed activation package | activation baseline 历史包。 |
+| `../history/program/hermes_backend_activation_package.md` | landed activation package | activation baseline 历史包。 |
+| `../history/program/hermes_backend_continuation_board.md` | historical continuation board | 外部 Hermes 目标 wording / seam 历史板，当前不应超过 MAS/MDS absorb 与 Runtime OS owner。 |
+| `../history/program/upstream_hermes_agent_fast_cutover_board.md` | historical cutover board | upstream Hermes cutover 历史板；external runtime gate 未清除时只读参考。 |
+| `../history/program/journal_package_builtins_upgrade_plan.md` | landed/specific implementation plan | journal package builtins 计划不再作为 portfolio board。 |
+| `../runtime/study_progress_projection.md` | landed projection reference | study-progress projection 已是稳定 surface 参考。 |
 
 ## Deprecated Or Merge Candidates
 
@@ -100,13 +100,13 @@ Owner: `MedAutoScience`
 
 | file | merge target |
 | --- | --- |
-| `research_foundry_medical_mainline.md` | `mas_mds_autonomy_operating_system_program.md` / `mas_single_project_quality_and_autonomy_mainline.md` |
-| `research_foundry_medical_execution_map.md` | `mas_mds_autonomy_operating_system_program.md` |
-| `open_harness_os_freeze_plan.md` | `docs/architecture.md` 或 `docs/references/` |
-| `hermes_backend_continuation_board.md` | `external_runtime_dependency_gate.md` / `mas_single_project_mds_absorb_program.md` |
-| `hermes_backend_activation_package.md` | `plan_completion_ledger.md` / `docs/history/program/` |
-| `integration_harness_activation_package.md` | `plan_completion_ledger.md` / `docs/history/program/` |
-| `upstream_hermes_agent_fast_cutover_board.md` | `external_runtime_dependency_gate.md` / `docs/history/program/` |
+| `../history/program/research_foundry_medical_mainline.md` | `mas_mds_autonomy_operating_system_program.md` / `mas_single_project_quality_and_autonomy_mainline.md` |
+| `../history/program/research_foundry_medical_execution_map.md` | `mas_mds_autonomy_operating_system_program.md` |
+| `../history/program/open_harness_os_freeze_plan.md` | `docs/architecture.md` 或 `docs/references/` |
+| `../history/program/hermes_backend_continuation_board.md` | `external_runtime_dependency_gate.md` / `mas_single_project_mds_absorb_program.md` |
+| `../history/program/hermes_backend_activation_package.md` | `plan_completion_ledger.md` / `docs/history/program/` |
+| `../history/program/integration_harness_activation_package.md` | `plan_completion_ledger.md` / `docs/history/program/` |
+| `../history/program/upstream_hermes_agent_fast_cutover_board.md` | `external_runtime_dependency_gate.md` / `docs/history/program/` |
 
 ## Archive Rule
 
@@ -115,8 +115,10 @@ Owner: `MedAutoScience`
 1. 先在本文把文件标成 `historical_reference`、`landed_closeout` 或 `superseded`.
 2. 用 `rg` 查所有 inbound links，更新到新路径或保留 stub。
 3. 只移动叙述性历史材料，不移动 active contracts、ledgers、policies 或 runtime docs。
-4. 不写 pytest 固定 Markdown 措辞、标题或链接锚点；归档验收走人工 review、`git diff --check` 和必要的 link spot-check。
-5. 任何文档移动都不能作为 repo capability、workspace cutover 或 runtime migration 完成证明。
+4. 代码和测试不得把 `docs/**` 当成机器 truth、policy truth、runtime truth 或 regression oracle；如需引用 program / policy / runtime 概念，使用稳定 id 或 durable surface。
+5. 只允许 docs tooling 识别 `docs/` 路径、生成 docs asset 或输出人读链接；这些工具不得读取 Markdown 措辞作为行为断言。
+6. 不写 pytest 固定 Markdown 措辞、标题或链接锚点；归档验收走人工 review、`git diff --check` 和必要的 link spot-check。
+7. 任何文档移动都不能作为 repo capability、workspace cutover 或 runtime migration 完成证明。
 
 ## Definition Of Done
 

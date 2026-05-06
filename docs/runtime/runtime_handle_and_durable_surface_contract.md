@@ -29,7 +29,7 @@
 - 典型锚点：
   - `README*`
   - `docs/status.md`
-  - `docs/program/research_foundry_medical_mainline.md`
+  - `docs/history/program/research_foundry_medical_mainline.md`
   - `docs/program/external_runtime_dependency_gate.md`
 - 边界：
   - 它服务 repo-tracked 主线识别、报告路由与 blocker 归类
