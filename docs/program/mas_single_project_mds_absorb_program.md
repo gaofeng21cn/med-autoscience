@@ -1,7 +1,7 @@
 # MAS Single-Project MDS Absorb Program
 
 Status: `long-line execution program`
-Date: `2026-05-05`
+Date: `2026-05-06`
 Owner: `MedAutoScience`
 
 ## 结论
@@ -9,6 +9,8 @@ Owner: `MedAutoScience`
 MAS 长线应成为唯一项目、唯一研究入口和唯一运行治理 owner；MDS 不应继续作为独立日常项目存在。目标不是把 `med-deepscientist` 原样搬进来，而是把 MDS 解构为 MAS 内部可验证能力：能被 MAS 直接拥有的能力进入 MAS owner 模块；仍需对照的能力降级为 oracle fixture；没有长期价值的入口、目录和命名退休。
 
 这个 program 一步到位定义最终可用状态：repo、运行入口、真实论文 workspace layout、兼容导出、GitHub contributor footprint、验证与清理规则都必须一起收敛。执行可以并行开 worktree，但每条 lane 必须有明确 write set、验证和吸收顺序；没有 parity proof 和 rollback surface 的能力不得物理吸收。
+
+2026-05-06 的状态管理与文件分层重构不改变本 program 的方向，但提高了吸收门槛：MDS 吸收必须同时尊重 `current truth`、SQLite sidecar、workspace memory 和 canonical paper authority 四层边界。任何 lane 如果把运行索引、学习记忆、交付镜像或 MDS oracle 升格为 study / quality / publication truth，都不能进入 cutover。
 
 ## 最终目标形态
 
@@ -34,11 +36,30 @@ med-autoscience/
 
 ```text
 workspace/
+  portfolio/
+    research_memory/
+    data_assets/
   studies/<study_id>/
+    artifacts/
+      controller/
+        study_charter.json
+      reference_context/latest.json
+      runtime/
+        study_macro_state/latest.json
+        owner_route/latest.json
+    paper/
+      evidence_ledger.json
+      review/
+        review_ledger.json
+      submission_minimal/
+    manuscript/
+      current_package/
+      current_package.zip
   artifacts/
+    runtime/
+      runtime_lifecycle.sqlite
   runtime/
     quests/
-    lifecycle.sqlite
     archives/
     restore_index/
   ops/mas/
@@ -54,6 +75,19 @@ ops/med-deepscientist/runtime/quests/
 ```
 
 新建 workspace 不得再默认生成 `ops/med-deepscientist`、`.ds` 或以 MDS/DS 为第一身份的路径。旧 workspace 可以保留原路径直到迁移完成，但所有新写入必须进入 MAS-owned runtime layout，旧路径只能通过 compatibility reader、restore index 或 explicit import surface 被读取。
+
+## Layering Alignment After The 2026-05-06 Refactor
+
+本 program 继续必要，但必须按下面四层吸收，避免把 MDS 退役过程变成新的混乱来源。
+
+| layer | current MAS authority | MDS absorb rule |
+| --- | --- | --- |
+| state/current truth | `StudyTruthKernel`、`RuntimeHealthKernel`、`study_macro_state/latest.json`、`owner_route`、consumer/executor receipts | MDS 事件只能作为 reducer input 或 replay oracle；不得写用户宏观状态、owner route、canonical next action 或 runtime recovery decision。 |
+| persistence/index | `artifacts/runtime/runtime_lifecycle.sqlite`、migration ledger、restore index、checksum/manifest proof | SQLite 是 sidecar index、read model、receipt 和 cursor store；不得替代 paper/manuscript/package、publication eval、controller decision、dataset manifest 或 restore metadata。 |
+| workspace memory/learning | `portfolio/research_memory/*`、study reference context、incident learning、AI reviewer calibration read models | memory / lesson store 只能进入 workspace knowledge、calibration 或 observability；不得授权 quality、drafting、finalize、submission 或 route cutover。 |
+| paper/artifact truth | study charter、evidence ledger、review ledger、AI reviewer-backed `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical manuscript source、`submission_minimal`、`manuscript/current_package` rebuild proof | MDS paper contract health、coverage、artifact inventory 只能做 mechanical oracle 或 compatibility proof；不得让旧 package、current_package README、SQLite record 或 `.ds` payload 成为 edit source、quality authority 或 submission authority。 |
+
+读路径固定为：先读文件 authority / canonical paper truth，再读 materialized macro state 与 owner route，再用 SQLite 补 history、cursor、retention 和 receipt，最后才读取 MDS compatibility/oracle。写路径固定为：先写 MAS owner authority surface 或 canonical artifact，再写 latest mirror / dispatch receipt，再写 SQLite index，最后写 compatibility export 或 migration proof。MDS compatibility reader 只能补充旧路径可读性，不能隐式写回新 truth。
 
 ## Contributor Footprint Rule
 
@@ -88,6 +122,9 @@ repo 吸收必须采用 `no-history import`。
 - Artifact OS 持有 canonical rebuild、package locator、delivery authority。
 - Observability OS 只持有 evidence、calibration、provider/runtime drift projection。
 - `legacy_deepscientist` 只能是 compat/oracle，不得写 study truth、quality truth、publication truth、delivery truth 或 user-visible next action。
+- SQLite lifecycle store 只能持有 index/history/retention/cursor/receipt，不得成为 study、publication、artifact、memory 或 restore authority。
+- `portfolio/research_memory` 与 learning read model 只能支撑跨 study 复用、AI reviewer calibration 和 incident learning；不得直接驱动 submission-ready 或 finalize。
+- `manuscript/current_package/`、`current_package.zip`、`submission_minimal/` 和 delivery README 是 human handoff / delivery projection；revision 必须回到 canonical paper sources 和 MAS quality/runtime chain。
 
 任何保留 `deepscientist` 字样的模块必须带 `legacy`、`compat` 或 `oracle` 语义，不得成为产品入口、默认 runtime owner 或独立 governance surface。
 
@@ -97,12 +134,12 @@ repo 吸收必须采用 `no-history import`。
 | --- | --- | --- | --- |
 | runtime execution | Runtime OS | oracle fixture until cutover | execution replay parity、recovery regression、rollback surface |
 | quest layout | Runtime OS | compatibility reader | new MAS runtime layout writer、old layout reader、restore proof |
-| `.ds` runtime payload | Runtime OS / runtime lifecycle | archived import source | SQLite lifecycle index、cold archive、restore index |
-| artifact inventory | Artifact OS | fixture only | MAS package locator parity、old current_package reader compatibility |
+| `.ds` runtime payload | Runtime OS / runtime lifecycle | archived import source | SQLite lifecycle index、cold archive、restore index、no authority writeback |
+| artifact inventory | Artifact OS | fixture only | MAS package locator parity、old current_package reader compatibility、canonical rebuild proof |
 | paper contract health | Quality OS | mechanical oracle only | AI reviewer / publication eval authority unchanged |
 | manuscript coverage | Quality OS | mechanical oracle only | coverage can request review, cannot authorize ready |
 | prompt stage discipline | Quality OS / Runtime OS | example and violation fixture | MAS stage contract owns transitions |
-| memory / lesson store | Evaluation OS | intake fixture | incident learning import, observability-only output |
+| memory / lesson store | Evaluation OS / workspace memory | intake fixture | `portfolio/research_memory` import, incident learning import, observability-only output |
 | product entry / CLI / MCP | MAS app skill / MAS CLI / MAS MCP | retired | all active commands route through MAS |
 | skills / overlay templates | MAS-owned app skill | legacy template source | no global MDS skill injection |
 
@@ -113,10 +150,10 @@ repo 吸收必须采用 `no-history import`。
 | lane | branch suggestion | write set | target |
 | --- | --- | --- | --- |
 | `L0_target_contract` | `codex/mas-mds-absorb-target-contract` | docs/program、architecture/status references、contract tests | 固定单项目拓扑、no-history import、workspace去 MDS/DS 化规则。 |
-| `L1_workspace_layout_contract` | `codex/mas-workspace-layout-v3` | workspace layout helpers、runtime protocol layout tests、docs/runtime | 新 workspace 默认写 MAS layout；旧 `.ds` / `ops/med-deepscientist` 只读兼容。 |
+| `L1_workspace_layout_contract` | `codex/mas-workspace-layout-v3` | workspace layout helpers、runtime protocol layout tests、docs/runtime | 新 workspace 默认写 MAS layout、portfolio memory、paper truth 与 runtime sidecar；旧 `.ds` / `ops/med-deepscientist` 只读兼容。 |
 | `L2_mds_inventory_and_classification` | `codex/mas-mds-capability-inventory` | migration inventory tooling、capability matrix、source snapshot manifest | 盘点 MDS 能力，逐项标记 `absorb` / `oracle` / `retire`。 |
 | `L3_runtime_absorb` | `codex/mas-runtime-os-absorb` | Runtime OS、runtime_protocol、recovery tests | 吸收 execution/recovery/quest lifecycle，保留 MDS trace replay oracle。 |
-| `L4_artifact_and_storage_absorb` | `codex/mas-artifact-storage-absorb` | Artifact OS、runtime lifecycle SQLite、storage migration tests | 吸收 artifact inventory、storage audit、cold archive / restore proof。 |
+| `L4_artifact_and_storage_absorb` | `codex/mas-artifact-storage-absorb` | Artifact OS、runtime lifecycle SQLite、storage migration tests | 吸收 artifact inventory、storage audit、cold archive / restore proof，同时保持 canonical paper truth 优先。 |
 | `L5_quality_oracle_absorb` | `codex/mas-quality-oracle-absorb` | Quality OS、publication eval、AI reviewer fixtures | paper health / coverage 变成 mechanical oracle，不授权 ready。 |
 | `L6_entrypoint_retirement` | `codex/mas-mds-entry-retirement` | CLI/MCP/product-entry/skill docs/tests | 退休 MDS product entry、global skill、重复 status/progress surface。 |
 | `L7_contributor_and_license_guard` | `codex/mas-no-history-import-guard` | scripts/tests/docs/legal or provenance records | no-history import guard、author audit、license/provenance snapshot。 |
@@ -134,9 +171,9 @@ repo 吸收必须采用 `no-history import`。
 
 新 workspace：
 
-- 默认生成 `runtime/quests/`、`runtime/lifecycle.sqlite`、`runtime/archives/`、`runtime/restore_index/`、`ops/mas/`。
+- 默认生成 `portfolio/research_memory/`、`studies/<study_id>/artifacts/controller/`、`studies/<study_id>/artifacts/runtime/`、`studies/<study_id>/paper/`、`studies/<study_id>/manuscript/`、`artifacts/runtime/runtime_lifecycle.sqlite`、`runtime/quests/`、`runtime/archives/`、`runtime/restore_index/`、`ops/mas/`。
 - 不生成 `.ds`、`ops/med-deepscientist` 或 MDS-first path。
-- `study-progress`、`runtime_watch`、`product-frontdesk`、MCP 都只暴露 MAS layout。
+- `study-progress`、`runtime_watch`、`product-frontdesk`、MCP 都只暴露 MAS layout，并按 file authority -> macro state / owner route -> SQLite sidecar -> compatibility reader 的顺序读取。
 
 旧 workspace：
 
@@ -145,6 +182,7 @@ repo 吸收必须采用 `no-history import`。
 - stopped/cold quest 允许 dry-run、archive、restore proof、compat export、apply。
 - 旧 `.ds` 内容迁入 `runtime/archives/` 或 `runtime/quests/` 后，必须写 restore index、source checksum、compatibility reader proof。
 - old reader 必须能解释旧路径，但新 writer 不得继续写旧路径。
+- 旧路径里的 paper package、memory、runtime report 或 artifact inventory 只能迁入对应 MAS layer；不能平铺进一个通用 legacy bucket 后继续被多个入口各自解释。
 
 ## Repo Import Rule
 
@@ -168,6 +206,10 @@ Repo gates：
 - owner-boundary tests
 - runtime layout tests
 - MDS capability parity tests
+- study macro state / owner route contract tests
+- runtime lifecycle SQLite sidecar contract tests
+- canonical artifact rebuild and delivery authority tests
+- workspace memory / learning no-authority tests
 - contributor author audit
 - `git diff --check`
 
@@ -180,6 +222,9 @@ Workspace gates：
 - live audit-only proof
 - stopped/cold apply proof
 - user-facing progress still reads the same study truth
+- `study_macro_state` 与 `owner_route` 不被 legacy reader 或 SQLite sidecar 反向覆盖
+- `portfolio/research_memory`、incident learning 和 AI reviewer calibration 只作为 memory / observability 被消费
+- `current_package`、`submission_minimal`、delivery README 和 archive export 不被当作 edit source 或 publication authority
 
 Contributor gates：
 
