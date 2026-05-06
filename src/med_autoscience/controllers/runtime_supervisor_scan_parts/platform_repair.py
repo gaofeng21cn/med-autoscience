@@ -56,6 +56,12 @@ PACKAGE_FRESHNESS_TERMINAL_REASONS = {
     "submission_minimal_refresh",
     "publication_gate_replay",
 }
+DOWNSTREAM_PACKAGE_FRESHNESS_WORK_UNIT_IDS = {
+    "publication_gate_replay",
+    "submission_authority_sync_closure",
+    "submission_delivery_sync_closure",
+    "submission_minimal_refresh",
+}
 
 
 def _utc_now() -> str:
@@ -196,7 +202,21 @@ def _resume_result_worker_running(resume_result: Mapping[str, Any]) -> bool:
     return bool(runtime_audit.get("worker_running") or runtime_liveness.get("worker_running"))
 
 
-def _runtime_relaunch_postcondition_failure(resume_result: Mapping[str, Any]) -> dict[str, Any] | None:
+def _controller_authorization_points_to_upstream_work_unit(
+    controller_authorization: Mapping[str, Any] | None,
+) -> bool:
+    authorization = _mapping(controller_authorization)
+    if not authorization:
+        return False
+    work_unit_id = _text(authorization.get("work_unit_id")) or _text(_mapping(authorization.get("next_work_unit")).get("unit_id"))
+    return work_unit_id is not None and work_unit_id not in DOWNSTREAM_PACKAGE_FRESHNESS_WORK_UNIT_IDS
+
+
+def _runtime_relaunch_postcondition_failure(
+    resume_result: Mapping[str, Any],
+    *,
+    controller_authorization: Mapping[str, Any] | None = None,
+) -> dict[str, Any] | None:
     postcondition = _mapping(resume_result.get("resume_postcondition"))
     terminal_markers = {
         _text(resume_result.get("blocked_reason")),
@@ -210,6 +230,11 @@ def _runtime_relaunch_postcondition_failure(resume_result: Mapping[str, Any]) ->
             "resume_postcondition": postcondition or None,
         }
     if any(marker in PACKAGE_FRESHNESS_TERMINAL_REASONS for marker in terminal_markers):
+        if _controller_authorization_points_to_upstream_work_unit(controller_authorization):
+            return {
+                "reason": current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON,
+                "resume_postcondition": postcondition or None,
+            }
         return {
             "reason": "current_package_freshness_required",
             "resume_postcondition": postcondition or None,
@@ -234,6 +259,7 @@ def _apply_abnormal_stopped_runtime_repair(
     study_root: Path,
     base: Mapping[str, Any],
     repair_kind: str,
+    controller_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     try:
         resume_result = study_runtime_router.ensure_study_runtime(
@@ -251,7 +277,10 @@ def _apply_abnormal_stopped_runtime_repair(
             "error": str(exc),
         }
     resume_payload = dict(resume_result) if isinstance(resume_result, Mapping) else {}
-    postcondition_failure = _runtime_relaunch_postcondition_failure(resume_payload)
+    postcondition_failure = _runtime_relaunch_postcondition_failure(
+        resume_payload,
+        controller_authorization=controller_authorization,
+    )
     if postcondition_failure is not None:
         return {
             **dict(base),
@@ -302,6 +331,7 @@ def _apply_current_controller_runtime_redrive(
         study_root=study_root,
         base=base,
         repair_kind=repair_kind,
+        controller_authorization=authorization,
     )
     if authorization is not None:
         return {
@@ -733,11 +763,14 @@ def write_runtime_platform_repair_lifecycle(
     repair_kind = _text(apply_result.get("repair_kind")) or "stale_specificity_terminal_gate_redrive"
     blocked_reason = None if state == "applied" else _text(apply_result.get("reason"))
     next_owner = (
+        current_truth_owner.next_owner_for_reason(blocked_reason)
+        or (
         "publication_gate"
         if blocked_reason == "publication_gate_specificity_required"
         else "artifact_os"
         if blocked_reason == "current_package_freshness_required"
         else "external_supervisor"
+        )
     )
     payload = {
         "surface": "ai_repair_lifecycle",
