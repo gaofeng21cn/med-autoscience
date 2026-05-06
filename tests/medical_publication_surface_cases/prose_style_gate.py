@@ -35,6 +35,43 @@ def test_apply_materializes_current_style_corpus_and_review_request(tmp_path: Pa
     assert request["style_currentness"]["style_digest"] == style_corpus["style_digest"]
 
 
+def test_apply_reports_review_request_materialization_error_when_blueprint_invalid(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    from med_autoscience.medical_journal_style_corpus import read_medical_journal_style_corpus
+
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_medical_prose_review=False,
+    )
+    study_root = _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root)
+    dump_json(study_root / "paper" / "medical_manuscript_blueprint.json", {"schema_version": 1})
+
+    result = module.run_controller(
+        quest_root=quest_root,
+        apply=True,
+        daemon_url=None,
+    )
+    style_corpus = read_medical_journal_style_corpus(study_root=study_root)
+
+    assert result["status"] == "blocked"
+    assert result["style_corpus_path"] == str(study_root / "paper" / "medical_journal_style_corpus.json")
+    assert result["medical_prose_review_request_path"] == str(
+        study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
+    )
+    assert style_corpus["style_version"] == "medical_journal_prose_style_v2"
+    assert "medical_prose_review_request_missing_or_incomplete" in result["blockers"]
+    assert any(
+        hit["pattern_id"] == "medical_prose_review_request"
+        and "medical manuscript blueprint is invalid" in hit["excerpt"]
+        for hit in result["top_hits"]
+    )
+
+
 def test_build_report_requires_current_style_bound_ai_prose_review(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(

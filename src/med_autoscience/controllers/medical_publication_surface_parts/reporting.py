@@ -2,12 +2,39 @@ from .shared import *
 from .asset_scans import *
 from .catalog_checks import *
 from .manuscript_checks import *
-from med_autoscience.medical_journal_style_corpus import stable_medical_journal_style_corpus_path
+from med_autoscience.medical_journal_style_corpus import (
+    ensure_current_medical_journal_style_corpus,
+    stable_medical_journal_style_corpus_path,
+)
 from med_autoscience.medical_prose_review_request import (
     materialize_medical_prose_review_request,
     stable_medical_prose_review_request_path,
 )
 from med_autoscience.policies.medical_reporting_checklist import build_structured_reporting_checklist
+
+
+def _materialization_error_hit(*, state: SurfaceState, artifact_path: Path, error: Exception) -> dict[str, str]:
+    return {
+        "path": str(artifact_path),
+        "location": "file",
+        "pattern_id": "medical_prose_review_request",
+        "phrase": artifact_path.name,
+        "excerpt": f"Medical prose review request materialization is blocked: {error}",
+    }
+
+
+def _append_materialization_error(report: dict[str, Any], hit: dict[str, str]) -> dict[str, Any]:
+    blockers = list(report.get("blockers") or [])
+    if "medical_prose_review_request_missing_or_incomplete" not in blockers:
+        blockers.append("medical_prose_review_request_missing_or_incomplete")
+    top_hits = list(report.get("top_hits") or [])
+    top_hits.insert(0, hit)
+    updated = dict(report)
+    updated["blockers"] = blockers
+    updated["top_hits"] = top_hits[:80]
+    updated["status"] = "blocked"
+    updated["recommended_action"] = medical_surface_policy.BLOCKED_RECOMMENDED_ACTION
+    return updated
 
 def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     forbidden_hits: list[dict[str, Any]] = []
@@ -834,15 +861,26 @@ def run_controller(
     state = build_surface_state(quest_root)
     style_corpus_path = None
     prose_review_request_path = None
+    materialization_error_hit = None
     if apply and state.study_root is not None:
-        materialize_medical_prose_review_request(
-            study_root=state.study_root,
-            paper_root=state.paper_root,
-            manuscript_path=state.draft_path,
-        )
+        ensure_current_medical_journal_style_corpus(study_root=state.study_root)
         style_corpus_path = stable_medical_journal_style_corpus_path(study_root=state.study_root)
         prose_review_request_path = stable_medical_prose_review_request_path(study_root=state.study_root)
+        try:
+            materialize_medical_prose_review_request(
+                study_root=state.study_root,
+                paper_root=state.paper_root,
+                manuscript_path=state.draft_path,
+            )
+        except (OSError, TypeError, ValueError) as exc:
+            materialization_error_hit = _materialization_error_hit(
+                state=state,
+                artifact_path=prose_review_request_path,
+                error=exc,
+            )
     report = build_surface_report(state)
+    if materialization_error_hit is not None:
+        report = _append_materialization_error(report, materialization_error_hit)
     json_path, md_path = write_surface_files(quest_root, report)
     stop_result = None
     intervention = None
