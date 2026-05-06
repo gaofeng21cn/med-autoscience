@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.runtime_protocol.runtime_lifecycle_contract import MIGRATION_RUN_MODES, WORKSPACE_CLASSIFICATIONS
+from med_autoscience.runtime_protocol.runtime_lifecycle_read_model import SUPPORTED_SURFACES
 
 
 def register_runtime_lifecycle_parsers(subparsers: argparse._SubParsersAction) -> None:
@@ -33,12 +34,19 @@ def register_runtime_lifecycle_parsers(subparsers: argparse._SubParsersAction) -
     ledger_parser.add_argument("--write", action="store_true")
     ledger_parser.add_argument("--write-compat-export", action="store_true")
 
+    materialize_parser = subparsers.add_parser("runtime-quest-materialize")
+    materialize_parser.add_argument("--workspace-root", required=True, type=str)
+    materialize_parser.add_argument("--quest-id", required=True, type=str)
+    materialize_parser.add_argument("--node-id", required=True, type=str)
+    materialize_parser.add_argument("--mode", choices=("dry_run", "apply"), default="dry_run")
+
 
 def handle_runtime_lifecycle_command(
     args: argparse.Namespace,
     *,
     runtime_lifecycle_read_model: Any,
     runtime_lifecycle_migration: Any,
+    quest_materializer: Any,
 ) -> int | None:
     if args.command == "runtime-lifecycle-inventory":
         result = runtime_lifecycle_read_model.build_lifecycle_inventory(**_scope_kwargs(args))
@@ -80,6 +88,16 @@ def handle_runtime_lifecycle_command(
         _print_json(result)
         return 0
 
+    if args.command == "runtime-quest-materialize":
+        result = quest_materializer.materialize_quest_workspace(
+            workspace_root=Path(args.workspace_root),
+            quest_id=args.quest_id,
+            node_id=args.node_id,
+            mode=args.mode,
+        )
+        _print_json(result)
+        return 0
+
     return None
 
 
@@ -93,7 +111,7 @@ def _add_scope_args(parser: argparse.ArgumentParser) -> None:
 def _add_surface_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--surface",
-        choices=("watch_state", "runtime_report", "workspace_storage_audit"),
+        choices=tuple(sorted(SUPPORTED_SURFACES)),
         required=True,
     )
     parser.add_argument("--report-group", default="runtime_watch")

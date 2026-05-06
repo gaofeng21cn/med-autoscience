@@ -70,6 +70,7 @@ runtime_supervisor_scan = _LazyModuleProxy(lambda: _load_controller("runtime_sup
 med_deepscientist_upgrade_check = _LazyModuleProxy(lambda: _load_controller("med_deepscientist_upgrade_check"))
 runtime_lifecycle_read_model = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model"))
 runtime_lifecycle_migration = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration"))
+quest_materializer = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.quest_materializer"))
 runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
 runtime_health_kernel = _LazyModuleProxy(lambda: _load_controller("runtime_health_kernel"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
@@ -549,6 +550,7 @@ def main(argv: list[str] | None = None) -> int:
         args,
         runtime_lifecycle_read_model=runtime_lifecycle_read_model,
         runtime_lifecycle_migration=runtime_lifecycle_migration,
+        quest_materializer=quest_materializer,
     )
     if lifecycle_exit_code is not None:
         return lifecycle_exit_code

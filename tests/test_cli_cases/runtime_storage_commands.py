@@ -472,3 +472,117 @@ def test_runtime_lifecycle_inventory_command_is_read_only(monkeypatch, tmp_path:
     payload = json.loads(captured.out)
     assert payload["read_only"] is True
     assert payload["compatibility_fallback_used"] is True
+
+
+def test_runtime_lifecycle_read_accepts_sqlite_only_surface(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    called: dict[str, object] = {}
+
+    def fake_read_compatibility_projection(
+        *,
+        surface: str,
+        report_group: str,
+        quest_root: Path | None,
+        workspace_root: Path | None,
+        db_path: Path | None,
+    ) -> dict[str, object]:
+        called["surface"] = surface
+        called["report_group"] = report_group
+        called["quest_root"] = quest_root
+        called["workspace_root"] = workspace_root
+        called["db_path"] = db_path
+        return {
+            "surface_kind": "runtime_lifecycle_compatibility_read_model",
+            "surface": surface,
+            "compatibility_fallback_used": False,
+        }
+
+    monkeypatch.setattr(
+        cli.runtime_lifecycle_read_model,
+        "read_compatibility_projection",
+        fake_read_compatibility_projection,
+    )
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "lifecycle-read",
+            "--workspace-root",
+            str(workspace_root),
+            "--surface",
+            "lineage_route",
+            "--report-group",
+            "runtime_watch",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {
+        "surface": "lineage_route",
+        "report_group": "runtime_watch",
+        "quest_root": None,
+        "workspace_root": workspace_root,
+        "db_path": None,
+    }
+    payload = json.loads(captured.out)
+    assert payload["surface"] == "lineage_route"
+    assert payload["compatibility_fallback_used"] is False
+
+
+def test_runtime_quest_materialize_command_dispatches_plain_directory_materializer(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    called: dict[str, object] = {}
+
+    def fake_materialize_quest_workspace(
+        *,
+        workspace_root: Path,
+        quest_id: str,
+        node_id: str,
+        mode: str,
+    ) -> dict[str, object]:
+        called["workspace_root"] = workspace_root
+        called["quest_id"] = quest_id
+        called["node_id"] = node_id
+        called["mode"] = mode
+        return {
+            "schema_version": 1,
+            "status": "materialized",
+            "action": "create_plain_directory",
+            "manifest_path": str(workspace_root / "runtime" / "quests" / quest_id / "artifacts" / "runtime" / "materialization_manifest.json"),
+        }
+
+    monkeypatch.setattr(cli.quest_materializer, "materialize_quest_workspace", fake_materialize_quest_workspace)
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "quest-materialize",
+            "--workspace-root",
+            str(workspace_root),
+            "--quest-id",
+            "quest-001",
+            "--node-id",
+            "node-001",
+            "--mode",
+            "apply",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {
+        "workspace_root": workspace_root,
+        "quest_id": "quest-001",
+        "node_id": "node-001",
+        "mode": "apply",
+    }
+    payload = json.loads(captured.out)
+    assert payload["status"] == "materialized"
+    assert payload["action"] == "create_plain_directory"

@@ -11,12 +11,10 @@ from typing import Any
 
 from .runtime_lifecycle_contract import (
     DEFAULT_DB_FILENAME,
-    FILE_AUTHORITY_SURFACES,
     SCHEMA_VERSION,
     SURFACE_KIND,
-    SQLITE_FORBIDDEN_AUTHORITY_SURFACES,
 )
-from .runtime_lifecycle_store_parts import sidecar_indexes
+from .runtime_lifecycle_store_parts import lineage_indexes, report_payloads, sidecar_indexes
 
 
 def quest_lifecycle_store_path(quest_root: Path) -> Path:
@@ -149,7 +147,7 @@ def record_workspace_storage_audit(
     summary = _mapping(report.get("summary"))
     categories = _mapping(report.get("categories"))
     recorded_at = _require_text("report.recorded_at", report.get("recorded_at"))
-    payload_json = _workspace_storage_audit_projection_payload(
+    payload_json = report_payloads.workspace_storage_audit_projection_payload(
         report=report,
         report_path=report_path,
         latest_report_path=latest_report_path,
@@ -184,11 +182,11 @@ def record_workspace_storage_audit(
                 _text(report.get("mode")) or "unknown",
                 str(Path(report_path).expanduser().resolve()),
                 str(Path(latest_report_path).expanduser().resolve()),
-                _int(summary.get("study_count")),
-                _int(summary.get("estimated_release_bytes")),
-                _int(summary.get("actual_release_bytes")),
-                _int(summary.get("runtime_total_bytes")),
-                _int(summary.get("study_artifact_total_bytes")),
+                report_payloads.as_int(summary.get("study_count")),
+                report_payloads.as_int(summary.get("estimated_release_bytes")),
+                report_payloads.as_int(summary.get("actual_release_bytes")),
+                report_payloads.as_int(summary.get("runtime_total_bytes")),
+                report_payloads.as_int(summary.get("study_artifact_total_bytes")),
                 _stable_json(summary),
                 _stable_json(categories),
                 _sha256(payload_json),
@@ -327,7 +325,7 @@ def record_archive_ref(
                 str(archive_path),
                 _text(archive_ref.get("archive_format")) or "unknown",
                 _require_text("archive_ref.sha256", archive_ref.get("sha256")),
-                _int(archive_ref.get("bytes")),
+                report_payloads.as_int(archive_ref.get("bytes")),
                 str(Path(source_manifest_path).expanduser().resolve()) if source_manifest_path else None,
                 str(Path(restore_proof_path).expanduser().resolve()) if restore_proof_path else None,
                 _stable_json(archive_ref.get("source_buckets") if isinstance(archive_ref.get("source_buckets"), list) else []),
@@ -350,27 +348,16 @@ def record_lineage_node(
     node: Mapping[str, Any],
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    resolved_db_path = _resolve_db_path(db_path, default=workspace_lifecycle_store_path(resolved_workspace_root))
-    _assert_index_only_payload(node)
-    payload_json = _stable_json(node)
-    row = {
-        "workspace_root": str(resolved_workspace_root),
-        "node_id": _require_text("node.node_id", node.get("node_id")),
-        "node_kind": _require_text("node.node_kind", node.get("node_kind")),
-        "object_scope": _text(node.get("object_scope")) or "quest",
-        "study_id": _text(node.get("study_id")),
-        "quest_id": _text(node.get("quest_id")),
-        "status": _text(node.get("status")) or "unknown",
-        "source_path": _resolved_optional_path(node.get("source_path")),
-        "payload_sha256": _sha256(payload_json),
-        "payload_json": payload_json,
-        "recorded_at": _utc_now(),
-    }
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        _upsert_row(conn, table="lineage_nodes", conflict_columns=("workspace_root", "node_id"), row=row)
-    return _index_result(db_path=resolved_db_path, indexed_table="lineage_nodes", indexed_count=1, scope="workspace")
+    return lineage_indexes.record_lineage_node(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        index_result=_index_result,
+        workspace_root=workspace_root,
+        node=node,
+        db_path=db_path,
+    )
 
 
 def record_lineage_edge(
@@ -379,24 +366,16 @@ def record_lineage_edge(
     edge: Mapping[str, Any],
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    resolved_db_path = _resolve_db_path(db_path, default=workspace_lifecycle_store_path(resolved_workspace_root))
-    _assert_index_only_payload(edge)
-    payload_json = _stable_json(edge)
-    row = {
-        "workspace_root": str(resolved_workspace_root),
-        "edge_id": _require_text("edge.edge_id", edge.get("edge_id")),
-        "source_node_id": _require_text("edge.source_node_id", edge.get("source_node_id")),
-        "target_node_id": _require_text("edge.target_node_id", edge.get("target_node_id")),
-        "edge_kind": _require_text("edge.edge_kind", edge.get("edge_kind")),
-        "payload_sha256": _sha256(payload_json),
-        "payload_json": payload_json,
-        "recorded_at": _utc_now(),
-    }
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        _upsert_row(conn, table="lineage_edges", conflict_columns=("workspace_root", "edge_id"), row=row)
-    return _index_result(db_path=resolved_db_path, indexed_table="lineage_edges", indexed_count=1, scope="workspace")
+    return lineage_indexes.record_lineage_edge(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        index_result=_index_result,
+        workspace_root=workspace_root,
+        edge=edge,
+        db_path=db_path,
+    )
 
 
 def record_workspace_allocation(
@@ -405,26 +384,16 @@ def record_workspace_allocation(
     allocation: Mapping[str, Any],
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    resolved_db_path = _resolve_db_path(db_path, default=workspace_lifecycle_store_path(resolved_workspace_root))
-    _assert_index_only_payload(allocation)
-    payload_json = _stable_json(allocation)
-    row = {
-        "workspace_root": str(resolved_workspace_root),
-        "allocation_id": _require_text("allocation.allocation_id", allocation.get("allocation_id")),
-        "quest_id": _text(allocation.get("quest_id")),
-        "study_id": _text(allocation.get("study_id")),
-        "allocated_root": _resolved_optional_path(allocation.get("allocated_root")),
-        "owner": _text(allocation.get("owner")),
-        "status": _text(allocation.get("status")) or "unknown",
-        "payload_sha256": _sha256(payload_json),
-        "payload_json": payload_json,
-        "recorded_at": _utc_now(),
-    }
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        _upsert_row(conn, table="workspace_allocations", conflict_columns=("workspace_root", "allocation_id"), row=row)
-    return _index_result(db_path=resolved_db_path, indexed_table="workspace_allocations", indexed_count=1, scope="workspace")
+    return lineage_indexes.record_workspace_allocation(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        index_result=_index_result,
+        workspace_root=workspace_root,
+        allocation=allocation,
+        db_path=db_path,
+    )
 
 
 def record_runtime_snapshot(
@@ -433,26 +402,16 @@ def record_runtime_snapshot(
     snapshot: Mapping[str, Any],
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    resolved_db_path = _resolve_db_path(db_path, default=workspace_lifecycle_store_path(resolved_workspace_root))
-    _assert_index_only_payload(snapshot)
-    payload_json = _stable_json(snapshot)
-    row = {
-        "workspace_root": str(resolved_workspace_root),
-        "snapshot_id": _require_text("snapshot.snapshot_id", snapshot.get("snapshot_id")),
-        "quest_id": _text(snapshot.get("quest_id")),
-        "study_id": _text(snapshot.get("study_id")),
-        "snapshot_kind": _text(snapshot.get("snapshot_kind")) or "runtime",
-        "created_at": _text(snapshot.get("created_at")) or _utc_now(),
-        "source_path": _resolved_optional_path(snapshot.get("source_path")),
-        "payload_sha256": _sha256(payload_json),
-        "payload_json": payload_json,
-        "recorded_at": _utc_now(),
-    }
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        _upsert_row(conn, table="runtime_snapshots", conflict_columns=("workspace_root", "snapshot_id"), row=row)
-    return _index_result(db_path=resolved_db_path, indexed_table="runtime_snapshots", indexed_count=1, scope="workspace")
+    return lineage_indexes.record_runtime_snapshot(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        index_result=_index_result,
+        workspace_root=workspace_root,
+        snapshot=snapshot,
+        db_path=db_path,
+    )
 
 
 def record_snapshot_file_ref(
@@ -461,26 +420,16 @@ def record_snapshot_file_ref(
     ref: Mapping[str, Any],
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    resolved_db_path = _resolve_db_path(db_path, default=workspace_lifecycle_store_path(resolved_workspace_root))
-    _assert_index_only_payload(ref)
-    payload_json = _stable_json(ref)
-    row = {
-        "workspace_root": str(resolved_workspace_root),
-        "snapshot_id": _require_text("ref.snapshot_id", ref.get("snapshot_id")),
-        "ref_id": _require_text("ref.ref_id", ref.get("ref_id")),
-        "ref_kind": _text(ref.get("ref_kind")) or "file",
-        "target_path": _resolved_optional_path(ref.get("path") or ref.get("target_path")),
-        "target_sha256": _text(ref.get("sha256")) or _text(ref.get("target_sha256")),
-        "target_bytes": _int(ref.get("bytes") or ref.get("target_bytes")),
-        "payload_sha256": _sha256(payload_json),
-        "payload_json": payload_json,
-        "recorded_at": _utc_now(),
-    }
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        _upsert_row(conn, table="snapshot_file_refs", conflict_columns=("workspace_root", "snapshot_id", "ref_id"), row=row)
-    return _index_result(db_path=resolved_db_path, indexed_table="snapshot_file_refs", indexed_count=1, scope="workspace")
+    return lineage_indexes.record_snapshot_file_ref(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        index_result=_index_result,
+        workspace_root=workspace_root,
+        ref=ref,
+        db_path=db_path,
+    )
 
 
 def record_revision_diff(
@@ -489,25 +438,16 @@ def record_revision_diff(
     diff: Mapping[str, Any],
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    resolved_db_path = _resolve_db_path(db_path, default=workspace_lifecycle_store_path(resolved_workspace_root))
-    _assert_index_only_payload(diff)
-    payload_json = _stable_json(diff)
-    row = {
-        "workspace_root": str(resolved_workspace_root),
-        "diff_id": _require_text("diff.diff_id", diff.get("diff_id")),
-        "base_snapshot_id": _text(diff.get("base_snapshot_id")),
-        "target_snapshot_id": _text(diff.get("target_snapshot_id")),
-        "diff_kind": _text(diff.get("diff_kind")) or "revision",
-        "source_path": _resolved_optional_path(diff.get("source_path")),
-        "payload_sha256": _sha256(payload_json),
-        "payload_json": payload_json,
-        "recorded_at": _utc_now(),
-    }
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        _upsert_row(conn, table="revision_diffs", conflict_columns=("workspace_root", "diff_id"), row=row)
-    return _index_result(db_path=resolved_db_path, indexed_table="revision_diffs", indexed_count=1, scope="workspace")
+    return lineage_indexes.record_revision_diff(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        index_result=_index_result,
+        workspace_root=workspace_root,
+        diff=diff,
+        db_path=db_path,
+    )
 
 
 def record_canvas_projection(
@@ -516,26 +456,16 @@ def record_canvas_projection(
     projection: Mapping[str, Any],
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    resolved_db_path = _resolve_db_path(db_path, default=workspace_lifecycle_store_path(resolved_workspace_root))
-    _assert_index_only_payload(projection)
-    payload_json = _stable_json(projection)
-    row = {
-        "workspace_root": str(resolved_workspace_root),
-        "projection_id": _require_text("projection.projection_id", projection.get("projection_id")),
-        "snapshot_id": _text(projection.get("snapshot_id")),
-        "canvas_id": _require_text("projection.canvas_id", projection.get("canvas_id")),
-        "projection_kind": _text(projection.get("projection_kind")) or "canvas",
-        "status": _text(projection.get("status")) or "unknown",
-        "source_path": _resolved_optional_path(projection.get("source_path")),
-        "payload_sha256": _sha256(payload_json),
-        "payload_json": payload_json,
-        "recorded_at": _utc_now(),
-    }
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        _upsert_row(conn, table="canvas_projection", conflict_columns=("workspace_root", "projection_id"), row=row)
-    return _index_result(db_path=resolved_db_path, indexed_table="canvas_projection", indexed_count=1, scope="workspace")
+    return lineage_indexes.record_canvas_projection(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        index_result=_index_result,
+        workspace_root=workspace_root,
+        projection=projection,
+        db_path=db_path,
+    )
 
 
 def record_study_macro_state_snapshot(
@@ -638,13 +568,7 @@ def inspect_lifecycle_store(db_path: Path) -> dict[str, Any]:
                 "watch_states",
                 "runtime_reports",
                 "workspace_storage_audits",
-                "lineage_nodes",
-                "lineage_edges",
-                "workspace_allocations",
-                "runtime_snapshots",
-                "snapshot_file_refs",
-                "revision_diffs",
-                "canvas_projection",
+                *lineage_indexes.LINEAGE_INDEX_TABLE_NAMES,
                 "runtime_events",
                 "archive_refs",
                 "study_macro_state_snapshots",
@@ -779,123 +703,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS lineage_nodes(
-            workspace_root TEXT NOT NULL,
-            node_id TEXT NOT NULL,
-            node_kind TEXT NOT NULL,
-            object_scope TEXT NOT NULL,
-            study_id TEXT,
-            quest_id TEXT,
-            status TEXT NOT NULL,
-            source_path TEXT,
-            payload_sha256 TEXT NOT NULL,
-            payload_json TEXT NOT NULL,
-            recorded_at TEXT NOT NULL,
-            PRIMARY KEY (workspace_root, node_id)
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS lineage_edges(
-            workspace_root TEXT NOT NULL,
-            edge_id TEXT NOT NULL,
-            source_node_id TEXT NOT NULL,
-            target_node_id TEXT NOT NULL,
-            edge_kind TEXT NOT NULL,
-            payload_sha256 TEXT NOT NULL,
-            payload_json TEXT NOT NULL,
-            recorded_at TEXT NOT NULL,
-            PRIMARY KEY (workspace_root, edge_id)
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS workspace_allocations(
-            workspace_root TEXT NOT NULL,
-            allocation_id TEXT NOT NULL,
-            quest_id TEXT,
-            study_id TEXT,
-            allocated_root TEXT,
-            owner TEXT,
-            status TEXT NOT NULL,
-            payload_sha256 TEXT NOT NULL,
-            payload_json TEXT NOT NULL,
-            recorded_at TEXT NOT NULL,
-            PRIMARY KEY (workspace_root, allocation_id)
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS runtime_snapshots(
-            workspace_root TEXT NOT NULL,
-            snapshot_id TEXT NOT NULL,
-            quest_id TEXT,
-            study_id TEXT,
-            snapshot_kind TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            source_path TEXT,
-            payload_sha256 TEXT NOT NULL,
-            payload_json TEXT NOT NULL,
-            recorded_at TEXT NOT NULL,
-            PRIMARY KEY (workspace_root, snapshot_id)
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS snapshot_file_refs(
-            workspace_root TEXT NOT NULL,
-            snapshot_id TEXT NOT NULL,
-            ref_id TEXT NOT NULL,
-            ref_kind TEXT NOT NULL,
-            target_path TEXT,
-            target_sha256 TEXT,
-            target_bytes INTEGER NOT NULL,
-            payload_sha256 TEXT NOT NULL,
-            payload_json TEXT NOT NULL,
-            recorded_at TEXT NOT NULL,
-            PRIMARY KEY (workspace_root, snapshot_id, ref_id)
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS revision_diffs(
-            workspace_root TEXT NOT NULL,
-            diff_id TEXT NOT NULL,
-            base_snapshot_id TEXT,
-            target_snapshot_id TEXT,
-            diff_kind TEXT NOT NULL,
-            source_path TEXT,
-            payload_sha256 TEXT NOT NULL,
-            payload_json TEXT NOT NULL,
-            recorded_at TEXT NOT NULL,
-            PRIMARY KEY (workspace_root, diff_id)
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS canvas_projection(
-            workspace_root TEXT NOT NULL,
-            projection_id TEXT NOT NULL,
-            snapshot_id TEXT,
-            canvas_id TEXT NOT NULL,
-            projection_kind TEXT NOT NULL,
-            status TEXT NOT NULL,
-            source_path TEXT,
-            payload_sha256 TEXT NOT NULL,
-            payload_json TEXT NOT NULL,
-            recorded_at TEXT NOT NULL,
-            PRIMARY KEY (workspace_root, projection_id)
-        )
-        """
-    )
+    lineage_indexes.ensure_lineage_index_schema(conn)
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS runtime_events(
@@ -975,24 +783,12 @@ def _table_count(conn: sqlite3.Connection, table: str) -> int:
 
 
 def read_lifecycle_records(db_path: Path, table: str) -> list[dict[str, Any]]:
-    allowed_tables = {
-        "lineage_nodes",
-        "lineage_edges",
-        "workspace_allocations",
-        "runtime_snapshots",
-        "snapshot_file_refs",
-        "revision_diffs",
-        "canvas_projection",
-    }
-    if table not in allowed_tables:
-        raise ValueError(f"unsupported lifecycle table: {table}")
-    resolved_db_path = Path(db_path).expanduser().resolve()
-    if not resolved_db_path.exists():
-        return []
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        rows = conn.execute(f"SELECT payload_json FROM {table} ORDER BY rowid").fetchall()
-    return [json.loads(row[0]) for row in rows]
+    return lineage_indexes.read_lifecycle_records(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        db_path=db_path,
+        table=table,
+    )
 
 
 def _upsert_row(
@@ -1061,61 +857,6 @@ def _record_report_index_row(
             recorded_at,
         ),
     )
-
-
-def _workspace_storage_audit_projection_payload(
-    *,
-    report: Mapping[str, Any],
-    report_path: Path,
-    latest_report_path: Path,
-) -> str:
-    categories = _mapping(report.get("categories"))
-    runtime = _mapping(categories.get("runtime"))
-    studies = runtime.get("studies")
-    compact_studies: list[dict[str, Any]] = []
-    if isinstance(studies, list):
-        for item in studies:
-            if not isinstance(item, Mapping):
-                continue
-            runtime_item = _mapping(item.get("runtime"))
-            quest_runtime = _mapping(item.get("quest_runtime"))
-            compaction = _mapping(item.get("restore_proof_compaction"))
-            compact_studies.append(
-                {
-                    "study_id": _text(item.get("study_id")),
-                    "quest_id": _text(item.get("quest_id")),
-                    "quest_root": _text(item.get("quest_root")),
-                    "status": _text(item.get("status")),
-                    "quest_runtime_status": _text(quest_runtime.get("status")),
-                    "active_run_id": _text(quest_runtime.get("active_run_id")),
-                    "candidate_action": _text(runtime_item.get("candidate_action")),
-                    "estimated_release_bytes": _int(runtime_item.get("estimated_release_bytes")),
-                    "actual_release_bytes": _int(runtime_item.get("actual_release_bytes")),
-                    "restore_proof_status": _text(compaction.get("status")),
-                    "restore_proof_path": _text(compaction.get("restore_proof_path")),
-                }
-            )
-    projection = {
-        "schema_version": report.get("schema_version"),
-        "recorded_at": report.get("recorded_at"),
-        "workspace_root": report.get("workspace_root"),
-        "mode": report.get("mode"),
-        "summary": _mapping(report.get("summary")),
-        "selection": _mapping(report.get("selection")),
-        "runtime_projection": {
-            "category": runtime.get("category"),
-            "candidate_action": runtime.get("candidate_action"),
-            "bytes": runtime.get("bytes"),
-            "estimated_release_bytes": runtime.get("estimated_release_bytes"),
-            "actual_release_bytes": runtime.get("actual_release_bytes"),
-            "study_count": len(compact_studies),
-            "studies": compact_studies,
-        },
-        "source_report_path": str(Path(report_path).expanduser().resolve()),
-        "latest_report_path": str(Path(latest_report_path).expanduser().resolve()),
-        "projection_policy": "compact_sqlite_index_full_report_in_file_authority",
-    }
-    return _stable_json(projection)
 
 
 def _index_result(*, db_path: Path, indexed_table: str, indexed_count: int, scope: str) -> dict[str, Any]:
@@ -1188,41 +929,6 @@ def _require_text(label: str, value: object) -> str:
     if not text:
         raise ValueError(f"{label} must be a non-empty string")
     return text
-
-
-def _int(value: object) -> int:
-    if isinstance(value, bool):
-        return 0
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return 0
-
-
-def _resolved_optional_path(value: object) -> str | None:
-    text = _text(value)
-    return str(Path(text).expanduser().resolve()) if text else None
-
-
-def _assert_index_only_payload(payload: Mapping[str, Any]) -> None:
-    authority_scope = _string_list(payload.get("authority_scope"))
-    authority_surfaces = _string_list(payload.get("authority_surfaces"))
-    invalid_scopes = [scope for scope in authority_scope if scope in SQLITE_FORBIDDEN_AUTHORITY_SURFACES]
-    forbidden_surfaces = [surface for surface in authority_surfaces if surface in FILE_AUTHORITY_SURFACES]
-    if invalid_scopes or forbidden_surfaces:
-        raise ValueError(
-            "runtime lifecycle SQLite store is index-only; file/study/publication/artifact truth remains outside SQLite"
-        )
-
-
-def _string_list(value: object) -> list[str]:
-    if value is None:
-        return []
-    if isinstance(value, str):
-        return [value]
-    if isinstance(value, list | tuple | set):
-        return [str(item) for item in value]
-    return [str(value)]
 
 
 __all__ = [
