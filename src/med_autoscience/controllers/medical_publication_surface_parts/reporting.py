@@ -2,6 +2,11 @@ from .shared import *
 from .asset_scans import *
 from .catalog_checks import *
 from .manuscript_checks import *
+from med_autoscience.medical_journal_style_corpus import stable_medical_journal_style_corpus_path
+from med_autoscience.medical_prose_review_request import (
+    materialize_medical_prose_review_request,
+    stable_medical_prose_review_request_path,
+)
 from med_autoscience.policies.medical_reporting_checklist import build_structured_reporting_checklist
 
 def build_surface_report(state: SurfaceState) -> dict[str, Any]:
@@ -322,7 +327,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     medical_journal_prose_quality = {}
     medical_journal_prose_ai_verdict = None
     medical_journal_prose_ai_route_back = None
-    if isinstance(medical_prose_review_payload, dict):
+    if medical_prose_review_valid and isinstance(medical_prose_review_payload, dict):
         medical_journal_prose_quality = (
             dict(medical_prose_review_payload.get("medical_journal_prose_quality") or {})
             if isinstance(medical_prose_review_payload.get("medical_journal_prose_quality"), dict)
@@ -827,6 +832,16 @@ def run_controller(
     source: str = "codex-medical-publication-surface",
 ) -> dict[str, Any]:
     state = build_surface_state(quest_root)
+    style_corpus_path = None
+    prose_review_request_path = None
+    if apply and state.study_root is not None:
+        materialize_medical_prose_review_request(
+            study_root=state.study_root,
+            paper_root=state.paper_root,
+            manuscript_path=state.draft_path,
+        )
+        style_corpus_path = stable_medical_journal_style_corpus_path(study_root=state.study_root)
+        prose_review_request_path = stable_medical_prose_review_request_path(study_root=state.study_root)
     report = build_surface_report(state)
     json_path, md_path = write_surface_files(quest_root, report)
     stop_result = None
@@ -854,6 +869,10 @@ def run_controller(
         "top_hits": report["top_hits"],
         "medical_manuscript_blueprint_path": report.get("medical_manuscript_blueprint_path"),
         "medical_prose_review_path": report.get("medical_prose_review_path"),
+        "style_corpus_path": str(style_corpus_path) if style_corpus_path is not None else None,
+        "medical_prose_review_request_path": (
+            str(prose_review_request_path) if prose_review_request_path is not None else None
+        ),
         "medical_journal_prose_ai_verdict": report.get("medical_journal_prose_ai_verdict"),
         "medical_journal_prose_mechanical_flag_count": report.get("medical_journal_prose_mechanical_flag_count"),
         "stop_result": stop_result,

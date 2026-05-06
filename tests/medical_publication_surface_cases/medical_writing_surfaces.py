@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from med_autoscience.medical_prose_review import build_medical_prose_review
+
 from .shared_base import dump_json
 
 
@@ -113,64 +115,39 @@ def write_medical_manuscript_blueprint_fixture(paper_root: Path) -> None:
 
 def write_medical_prose_review_fixture(paper_root: Path, *, verdict: str) -> None:
     normalized_verdict = verdict if verdict in {"clear", "revise", "block"} else "block"
-    dump_json(
-        paper_root / "review" / "medical_prose_review.json",
-        {
-            "schema_version": 1,
-            "surface": "medical_prose_review",
-            "assessment_provenance": {
-                "owner": "ai_reviewer",
-                "source_kind": "medical_prose_review",
-                "policy_id": "medical_publication_critique_v1",
-                "ai_reviewer_required": False,
-            },
-            "medical_journal_prose_quality": {
-                "status": "ready" if normalized_verdict == "clear" else "partial" if normalized_verdict == "revise" else "blocked",
-                "overall_style_verdict": normalized_verdict,
-                "summary": (
-                    "AI reviewer judged the manuscript prose clear enough for medical journal style."
-                    if normalized_verdict == "clear"
-                    else "AI reviewer judged that the manuscript still reads too much like a work report."
-                ),
-                "section_level_diagnosis": {
-                    "introduction": "Clinical problem, evidence gap, and objective are evaluated by AI reviewer.",
-                    "results": "Findings should lead sentences before figure/table citations.",
-                    "discussion": "Interpretation should remain restrained and limitation-aware.",
-                },
-                "representative_bad_sentences": (
-                    [] if normalized_verdict == "clear" else ["Figure 1 shows that the model worked well."]
-                ),
-                "representative_rewrites": (
-                    []
-                    if normalized_verdict == "clear"
-                    else [
-                        {
-                            "before": "Figure 1 shows that the model worked well.",
-                            "after": (
-                                "The extended model improved risk stratification across the prespecified "
-                                "threshold range, with the display used to show the supporting operating characteristics."
-                            ),
-                        }
-                    ]
-                ),
-                "route_back_recommendation": {
-                    "required": normalized_verdict != "clear",
-                    "route_target": "none" if normalized_verdict == "clear" else "write",
-                    "reason": (
-                        "Medical journal prose is clear."
-                        if normalized_verdict == "clear"
-                        else "Rewrite work-report residue before quality closure."
+    payload = build_medical_prose_review(
+        study_root=paper_root.parent,
+        manuscript_text=(paper_root / "draft.md").read_text(encoding="utf-8") if (paper_root / "draft.md").exists() else "",
+        verdict=normalized_verdict,
+        style_diagnosis=(
+            "AI reviewer judged the manuscript prose clear enough for medical journal style."
+            if normalized_verdict == "clear"
+            else "AI reviewer judged that the manuscript still reads too much like a work report."
+        ),
+        representative_bad_sentences=(
+            [] if normalized_verdict == "clear" else ["Figure 1 shows that the model worked well."]
+        ),
+        representative_rewrites=(
+            []
+            if normalized_verdict == "clear"
+            else [
+                {
+                    "before": "Figure 1 shows that the model worked well.",
+                    "after": (
+                        "The extended model improved risk stratification across the prespecified "
+                        "threshold range, with the display used to show the supporting operating characteristics."
                     ),
-                },
-            },
-            "mechanical_safety_flags": [],
-            "source_refs": [
-                str(paper_root / "draft.md"),
-                str(paper_root / "medical_manuscript_blueprint.json"),
-                str(paper_root / "claim_evidence_map.json"),
-                str(paper_root / "results_narrative_map.json"),
-                str(paper_root / "figure_semantics_manifest.json"),
-                str(paper_root / "review" / "review_ledger.json"),
-            ],
-        },
+                }
+            ]
+        ),
+        route_back_target="none" if normalized_verdict == "clear" else "write",
+        source_refs=[
+            str(paper_root / "draft.md"),
+            str(paper_root / "medical_manuscript_blueprint.json"),
+            str(paper_root / "claim_evidence_map.json"),
+            str(paper_root / "results_narrative_map.json"),
+            str(paper_root / "figure_semantics_manifest.json"),
+            str(paper_root / "review" / "review_ledger.json"),
+        ],
     )
+    dump_json(paper_root / "review" / "medical_prose_review.json", payload)

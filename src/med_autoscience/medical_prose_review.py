@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.medical_journal_style_corpus import (
+    build_medical_journal_style_corpus,
     ensure_current_medical_journal_style_corpus,
     read_medical_journal_style_corpus,
     stable_medical_journal_style_corpus_path,
@@ -244,6 +245,11 @@ def validate_medical_prose_review(payload: object) -> list[str]:
         return ["style_currentness.style_version must be non-empty"]
     if not _text(style_currentness.get("style_digest")):
         return ["style_currentness.style_digest must be non-empty"]
+    current_style = build_medical_journal_style_corpus()
+    if _text(style_currentness.get("style_version")) != _text(current_style.get("style_version")):
+        return ["style_currentness.style_version must match the current medical journal style version"]
+    if _text(style_currentness.get("style_digest")) != _text(current_style.get("style_digest")):
+        return ["style_currentness.style_digest must match the current medical journal style digest"]
     quality = payload.get("medical_journal_prose_quality")
     if not isinstance(quality, Mapping):
         return ["medical_journal_prose_quality must be an object"]

@@ -1,6 +1,89 @@
 from .shared import *
 
 
+def test_apply_materializes_current_style_corpus_and_review_request(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    from med_autoscience.medical_journal_style_corpus import read_medical_journal_style_corpus
+    from med_autoscience.medical_prose_review_request import read_medical_prose_review_request
+
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_medical_prose_review=False,
+    )
+    study_root = _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root)
+
+    result = module.run_controller(
+        quest_root=quest_root,
+        apply=True,
+        daemon_url=None,
+    )
+
+    style_corpus = read_medical_journal_style_corpus(study_root=study_root)
+    request = read_medical_prose_review_request(study_root=study_root)
+
+    assert result["style_corpus_path"] == str(study_root / "paper" / "medical_journal_style_corpus.json")
+    assert result["medical_prose_review_request_path"] == str(
+        study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
+    )
+    assert style_corpus["style_version"] == "medical_journal_prose_style_v2"
+    assert style_corpus["style_digest"].startswith("sha256:")
+    assert style_corpus["style_currentness"]["status"] == "current"
+    assert request["review_owner"] == "ai_reviewer"
+    assert request["style_currentness"]["style_version"] == style_corpus["style_version"]
+    assert request["style_currentness"]["style_digest"] == style_corpus["style_digest"]
+
+
+def test_build_report_requires_current_style_bound_ai_prose_review(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_medical_prose_review=False,
+    )
+    study_root = _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root)
+    dump_json(
+        study_root / "paper" / "medical_prose_review.json",
+        {
+            "schema_version": 1,
+            "surface": "medical_prose_review",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "medical_prose_review",
+                "policy_id": "medical_publication_critique_v1",
+                "ai_reviewer_required": False,
+            },
+            "medical_journal_prose_quality": {
+                "status": "ready",
+                "overall_style_verdict": "clear",
+                "summary": "Legacy AI reviewer payload did not bind the current style version.",
+                "section_level_diagnosis": {"results": "Legacy clear verdict."},
+                "representative_bad_sentences": [],
+                "representative_rewrites": [],
+                "route_back_recommendation": {
+                    "required": False,
+                    "route_target": "none",
+                    "reason": "Legacy clear verdict.",
+                },
+            },
+            "mechanical_safety_flags": [],
+            "source_refs": [str(study_root / "paper" / "draft.md")],
+        },
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "ai_medical_prose_review_missing_or_incomplete" in report["blockers"]
+    assert "medical_journal_prose_style_not_met" not in report["blockers"]
+    assert report["medical_prose_review_present"] is True
+    assert report["medical_prose_review_valid"] is False
+    assert report["medical_journal_prose_ai_verdict"] is None
+    assert report["medical_journal_prose_style_valid"] is False
+
+
 def test_build_report_blocks_structurally_complete_work_report_prose(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
