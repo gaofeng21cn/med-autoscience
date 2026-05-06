@@ -8,6 +8,16 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import current_tr
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
 
 
+def ai_reviewer_lifecycle_resolved(
+    *,
+    lifecycle: Mapping[str, Any],
+    ai_reviewer_assessment: Mapping[str, Any],
+) -> bool:
+    if _text(lifecycle.get("blocked_reason")) != "ai_reviewer_assessment_required":
+        return False
+    return ai_reviewer_assessment.get("missing") is not True
+
+
 def projection_block_state(
     *,
     status: Mapping[str, Any],
@@ -61,6 +71,10 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
     return "external_supervisor"
 
 
+def remove_action_type(actions: list[dict[str, Any]], action_type: str) -> list[dict[str, Any]]:
+    return [action for action in actions if _text(action.get("action_type")) != action_type]
+
+
 def _clear_block_state() -> dict[str, Any]:
     return {
         "blocked_reason": None,
@@ -74,4 +88,9 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-__all__ = ["next_owner_for_blocked_reason", "projection_block_state"]
+__all__ = [
+    "ai_reviewer_lifecycle_resolved",
+    "next_owner_for_blocked_reason",
+    "projection_block_state",
+    "remove_action_type",
+]

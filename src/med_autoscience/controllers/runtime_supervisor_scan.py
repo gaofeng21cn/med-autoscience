@@ -346,16 +346,13 @@ def _action_queue(
     ]
 
 
-def _remove_action_type(actions: list[dict[str, Any]], action_type: str) -> list[dict[str, Any]]:
-    return [action for action in actions if _text(action.get("action_type")) != action_type]
-
-
 def _why_not_applied(
     *,
     status: Mapping[str, Any],
     progress: Mapping[str, Any],
     actions: list[dict[str, Any]],
     gate_specificity: Mapping[str, Any],
+    ai_reviewer_assessment: Mapping[str, Any],
 ) -> str | None:
     if completion_evidence.completed_current_truth(status, progress):
         return None
@@ -374,6 +371,8 @@ def _why_not_applied(
     if actions:
         return _text(actions[0].get("reason")) or _text(actions[0].get("action_type"))
     if text := _text(lifecycle.get("blocked_reason")):
+        if text == "ai_reviewer_assessment_required" and ai_reviewer_assessment.get("missing") is not True:
+            return None
         return text
     return None
 
@@ -550,6 +549,11 @@ def _maybe_blocked_lifecycle_from_scan(
         gate_specificity=gate_specificity,
         ai_reviewer_assessment=ai_reviewer_assessment,
     )
+    if blocked_reason is None and block_state_part.ai_reviewer_lifecycle_resolved(
+        lifecycle=lifecycle,
+        ai_reviewer_assessment=ai_reviewer_assessment,
+    ):
+        return {}
     if not _should_refresh_blocked_lifecycle(
         developer_mode=developer_mode,
         lifecycle=lifecycle,
@@ -719,9 +723,9 @@ def _study_projection(
         publication_eval_payload=publication_eval_payload,
     )
     if artifact_blocked_action is not None:
-        actions = _remove_action_type(actions, "runtime_platform_repair")
-        actions = _remove_action_type(actions, "current_package_freshness_required")
-        actions = _remove_action_type(actions, "return_to_ai_reviewer_workflow")
+        actions = block_state_part.remove_action_type(actions, "runtime_platform_repair")
+        actions = block_state_part.remove_action_type(actions, "current_package_freshness_required")
+        actions = block_state_part.remove_action_type(actions, "return_to_ai_reviewer_workflow")
         actions.insert(
             0,
             _decorate_action(
@@ -771,13 +775,13 @@ def _study_projection(
         runtime_platform_repair_apply is not None
         and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied"
     ):
-        actions = _remove_action_type(actions, "runtime_platform_repair")
+        actions = block_state_part.remove_action_type(actions, "runtime_platform_repair")
     if (
         runtime_platform_repair_apply is not None
         and _text(runtime_platform_repair_apply.get("dispatch_status")) == "blocked"
         and _text(runtime_platform_repair_apply.get("reason")) == "publication_gate_specificity_required"
     ):
-        actions = _remove_action_type(actions, "runtime_platform_repair")
+        actions = block_state_part.remove_action_type(actions, "runtime_platform_repair")
         if not any(_text(action.get("action_type")) == "publication_gate_specificity_required" for action in actions):
             actions.insert(
                 0,
@@ -790,7 +794,7 @@ def _study_projection(
     if artifact_freshness.route_required(runtime_platform_repair_apply):
         actions = artifact_freshness.remove_runtime_platform_repair(actions)
         if any(_text(action.get("action_type")) == "artifact_display_surface_materialization_required" for action in actions):
-            actions = _remove_action_type(actions, "current_package_freshness_required")
+            actions = block_state_part.remove_action_type(actions, "current_package_freshness_required")
         elif not any(_text(action.get("action_type")) == "current_package_freshness_required" for action in actions):
             actions.insert(
                 0,
@@ -806,6 +810,7 @@ def _study_projection(
             progress=progress_payload,
             actions=actions,
             gate_specificity=gate_specificity,
+            ai_reviewer_assessment=ai_reviewer_assessment,
         ),
         actions=actions,
         lifecycle=lifecycle,

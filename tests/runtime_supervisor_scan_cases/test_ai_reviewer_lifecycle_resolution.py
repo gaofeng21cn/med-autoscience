@@ -1,0 +1,105 @@
+from __future__ import annotations
+
+import importlib
+import json
+from pathlib import Path
+
+from tests.study_runtime_test_helpers import make_profile, write_study
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def test_supervisor_scan_clears_stale_ai_reviewer_lifecycle_after_reviewer_eval_materialized(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "001-dm-cvd-mortality-risk"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm")
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    ai_reviewer_eval = {
+        "schema_version": 1,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+        },
+        "recommended_actions": [],
+    }
+    _write_json(publication_eval_path, ai_reviewer_eval)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": "quest-dm",
+            "quest_root": str(profile.runtime_root / "quest-dm"),
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "active_run_id": "run-live",
+            "runtime_liveness_audit": {
+                "active_run_id": "run-live",
+                "runtime_audit": {"worker_running": True, "active_run_id": "run-live"},
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "observe_runtime",
+                "attempt_state": "live",
+                "retry_budget_remaining": 3,
+            },
+            "publication_eval": ai_reviewer_eval,
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-epoch-current",
+                "source_signature": "truth-source-current",
+                "canonical_next_action": "supervise_runtime",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "current_stage": "publication_supervision",
+            "paper_stage": "write",
+            "refs": {"publication_eval_path": str(publication_eval_path)},
+            "supervision": {"active_run_id": "run-live", "health_status": "live"},
+            "quality_review_loop": {"closure_state": "review_required"},
+            "ai_repair_lifecycle": {
+                "state": "blocked",
+                "blocked_reason": "ai_reviewer_assessment_required",
+                "next_owner": "ai_reviewer",
+                "external_supervisor_required": False,
+            },
+        },
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["ai_reviewer_assessment"] == {
+        "present": True,
+        "owner": "ai_reviewer",
+        "required": False,
+        "missing": False,
+    }
+    assert study["action_queue"] == []
+    assert study["ai_repair_lifecycle"] is None
+    assert study["why_not_applied"] is None
+    assert study["blocked_reason"] is None
+    assert study["next_owner"] is None
+    assert study["external_supervisor_required"] is False
+    assert study["owner_route"]["owner_reason"] is None
+    assert study["owner_route"]["allowed_actions"] == []
