@@ -119,7 +119,8 @@ def _continuation_state_payload(*, quest_root: Path, quest_status: StudyRuntimeQ
     continuation_policy = str(runtime_state.get("continuation_policy") or "").strip() or None
     continuation_anchor = str(runtime_state.get("continuation_anchor") or "").strip() or None
     continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
-    if continuation_policy is None and continuation_anchor is None and continuation_reason is None:
+    stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
+    if continuation_policy is None and continuation_anchor is None and continuation_reason is None and stop_reason is None:
         return None
     return {
         "quest_status": str(runtime_state.get("status") or "").strip() or (quest_status.value if quest_status is not None else None),
@@ -127,6 +128,7 @@ def _continuation_state_payload(*, quest_root: Path, quest_status: StudyRuntimeQ
         "continuation_policy": continuation_policy,
         "continuation_anchor": continuation_anchor,
         "continuation_reason": continuation_reason,
+        "stop_reason": stop_reason,
         "runtime_state_path": str(runtime_state_path),
     }
 

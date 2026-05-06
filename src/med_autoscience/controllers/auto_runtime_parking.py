@@ -48,6 +48,7 @@ _EXPLICIT_RESUME_REASONS = frozenset(
         "quest_stopped_explicit_relaunch_requested",
         "quest_initialized_waiting_to_start",
         "quest_paused",
+        "quest_user_paused_requires_explicit_wakeup",
         "quest_stopped",
         "quest_marked_running_but_auto_resume_disabled",
         "quest_paused_but_auto_resume_disabled",
@@ -256,6 +257,8 @@ def _state_from_reason(
         return "publishability_stop_loss"
     if reason == "quest_waiting_for_explicit_wakeup_after_manual_hold":
         return "manual_hold"
+    if reason == "quest_user_paused_requires_explicit_wakeup":
+        return "explicit_resume_pending"
     if reason == "quest_waiting_for_external_input":
         return "external_input_pending"
     if _text(interaction_arbitration.get("classification")) == "external_input_required":

@@ -344,6 +344,36 @@ def test_runtime_health_manual_hold_dominates_active_missing_live_session(tmp_pa
     assert "runtime_recovery_retry_budget_exhausted" not in snapshot["blocking_reasons"]
 
 
+def test_runtime_health_user_pause_dominates_active_missing_live_session(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "002-dm-cvd"
+    module.append_runtime_health_event(
+        study_root=study_root,
+        study_id="002-dm-cvd",
+        quest_id="002-dm-cvd",
+        event_type="runtime_state_observed",
+        payload={
+            "quest_status": "active",
+            "decision": "blocked",
+            "reason": "quest_user_paused_requires_explicit_wakeup",
+            "runtime_liveness_status": "none",
+            "worker_running": False,
+            "active_run_id": None,
+        },
+        recorded_at="2026-05-05T00:00:00+00:00",
+    )
+
+    snapshot = module.rebuild_runtime_health_snapshot(
+        study_root=study_root,
+        study_id="002-dm-cvd",
+        quest_id="002-dm-cvd",
+    )
+
+    assert snapshot["attempt_state"] == "awaiting_explicit_resume"
+    assert snapshot["canonical_runtime_action"] == "await_explicit_resume"
+    assert "runtime_recovery_retry_budget_exhausted" not in snapshot["blocking_reasons"]
+
+
 def test_runtime_health_explicit_resume_reason_dominates_active_missing_live_session(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "004-dm-cvd"

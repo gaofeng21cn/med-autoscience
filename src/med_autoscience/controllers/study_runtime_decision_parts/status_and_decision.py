@@ -521,6 +521,12 @@ def _status_state(
             result,
             study_root=study_root,
         )
+        if _user_pause_contract_without_live_worker(result, audit_status=audit_status):
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
+            )
+            return _finalize_result()
         if _runtime_health_requires_explicit_resume(status=result, study_root=study_root, study_id=study_id, quest_id=quest_id):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
@@ -675,6 +681,12 @@ def _status_state(
         return _finalize_result()
 
     if quest_status in _RESUMABLE_QUEST_STATUSES:
+        if _user_pause_contract_without_live_worker(result):
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
+            )
+            return _finalize_result()
         if _should_park_delivered_package_without_live_worker(result, study_root=study_root) and not task_intake_releases_manual_finish_parking:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,

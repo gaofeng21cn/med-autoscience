@@ -799,6 +799,13 @@ def _execute_pause_runtime_decision(
     )
     if clearance is not None:
         status._record_dict_extra("platform_repair_redrive_clearance", clearance)
+    if status.reason is StudyRuntimeReason.HUMAN_TAKEOVER_REQUESTED:
+        user_pause_contract = _runtime_events.record_user_pause_contract_after_pause(
+            quest_root=context.quest_root,
+            source=context.source,
+        )
+        if user_pause_contract is not None:
+            status._record_dict_extra("user_pause_contract", user_pause_contract)
     return outcome
 
 

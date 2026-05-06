@@ -868,10 +868,12 @@ def test_pause_study_runtime_clears_stale_platform_repair_redrive(monkeypatch, t
 
     assert result["decision"] == "pause"
     assert result["quest_status"] == "paused"
-    assert "continuation_policy" not in runtime_state
-    assert "continuation_anchor" not in runtime_state
-    assert "continuation_reason" not in runtime_state
+    assert runtime_state["stop_reason"] == "user_pause"
+    assert runtime_state["continuation_policy"] == "wait_for_user_or_resume"
+    assert runtime_state["continuation_anchor"] == "user_pause"
+    assert runtime_state["continuation_reason"] == "user_pause"
     assert runtime_state["last_platform_repair_redrive_clearance"]["source"] == "test-human-takeover"
+    assert runtime_state["user_pause_contract"]["source"] == "test-human-takeover"
 
 
 def test_ensure_study_runtime_persists_legacy_resume_daemon_result_shape(

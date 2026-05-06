@@ -113,6 +113,22 @@ def _platform_repair_redrive_without_live_worker(
     )
 
 
+def _user_pause_contract_without_live_worker(
+    status: StudyRuntimeStatus,
+    *,
+    audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
+) -> bool:
+    if audit_status is not None and audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
+        return False
+    if status.quest_status not in _LIVE_QUEST_STATUSES and status.quest_status not in _RESUMABLE_QUEST_STATUSES:
+        return False
+    try:
+        continuation_state = status.continuation_state
+    except KeyError:
+        return False
+    return continuation_state.active_run_id is None and continuation_state.stop_reason == "user_pause"
+
+
 def _has_delivered_human_package_surface(study_root: Path) -> bool:
     return resolve_delivered_submission_package_manual_finish_contract(study_root=study_root) is not None
 
@@ -249,7 +265,12 @@ def _set_running_quest_recovery_decision(
     status: StudyRuntimeStatus,
     execution: dict[str, object],
 ) -> None:
-    if not status.startup_boundary_allows_compute_stage:
+    if _user_pause_contract_without_live_worker(status):
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
+        )
+    elif not status.startup_boundary_allows_compute_stage:
         status.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,

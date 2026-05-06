@@ -65,6 +65,46 @@ def clear_stale_platform_repair_redrive_after_pause(
     }
 
 
+def record_user_pause_contract_after_pause(
+    *,
+    quest_root: Path,
+    source: str,
+) -> dict[str, Any] | None:
+    runtime_state_path = Path(quest_root) / ".ds" / "runtime_state.json"
+    try:
+        runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(runtime_state, dict):
+        return None
+    if str(runtime_state.get("status") or "").strip().lower() != StudyRuntimeQuestStatus.PAUSED.value:
+        return None
+    if str(runtime_state.get("active_run_id") or "").strip():
+        return None
+    if bool(runtime_state.get("worker_running")):
+        return None
+    recorded_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    runtime_state["stop_reason"] = "user_pause"
+    runtime_state["continuation_policy"] = "wait_for_user_or_resume"
+    runtime_state["continuation_anchor"] = "user_pause"
+    runtime_state["continuation_reason"] = "user_pause"
+    runtime_state["user_pause_contract"] = {
+        "source": source,
+        "recorded_at": recorded_at,
+        "resume_requires_explicit_wakeup": True,
+    }
+    runtime_state_path.write_text(
+        json.dumps(runtime_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "status": "recorded",
+        "runtime_state_path": str(runtime_state_path),
+        "source": source,
+        "recorded_at": recorded_at,
+    }
+
+
 def has_delivered_human_package_surface(study_root: Path) -> bool:
     manuscript_root = Path(study_root) / "manuscript"
     current_package_root = manuscript_root / "current_package"

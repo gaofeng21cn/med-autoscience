@@ -18,6 +18,7 @@ _PARTS = (
     "runtime_event_surface_cases.py",
     "overlay_audit_and_progress_cases.py",
     "runtime_liveness_convergence_cases.py",
+    "user_pause_contract_cases.py",
     "publication_eval_cases.py",
     "stop_loss_status_cases.py",
     "publication_eval_ai_reviewer_cases.py",

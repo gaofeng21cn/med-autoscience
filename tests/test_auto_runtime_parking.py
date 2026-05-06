@@ -75,6 +75,22 @@ def test_auto_runtime_parking_maps_manual_hold() -> None:
     assert projection["auto_execution_complete"] is True
 
 
+def test_auto_runtime_parking_maps_user_pause_to_explicit_resume() -> None:
+    projection = _projection(
+        {
+            "decision": "blocked",
+            "reason": "quest_user_paused_requires_explicit_wakeup",
+            "quest_status": "paused",
+        }
+    )
+
+    assert projection["parked"] is True
+    assert projection["parked_state"] == "explicit_resume_pending"
+    assert projection["parked_owner"] == "user"
+    assert projection["awaiting_explicit_wakeup"] is True
+    assert projection["auto_execution_complete"] is False
+
+
 def test_auto_runtime_parking_maps_external_input_and_user_decision() -> None:
     external_input = _projection(
         {

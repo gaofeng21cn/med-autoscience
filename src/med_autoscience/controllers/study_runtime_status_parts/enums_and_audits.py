@@ -115,6 +115,7 @@ class StudyRuntimeReason(StrEnum):
         "quest_waiting_for_submission_metadata_but_auto_resume_disabled"
     )
     QUEST_WAITING_FOR_EXPLICIT_WAKEUP_AFTER_MANUAL_HOLD = "quest_waiting_for_explicit_wakeup_after_manual_hold"
+    QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP = "quest_user_paused_requires_explicit_wakeup"
     QUEST_STOPPED_BY_CONTROLLER_GUARD = "quest_stopped_by_controller_guard"
     QUEST_PAUSED = "quest_paused"
     QUEST_STOPPED = "quest_stopped"
@@ -614,6 +615,7 @@ class StudyRuntimeContinuationState:
     continuation_policy: str | None
     continuation_anchor: str | None
     continuation_reason: str | None
+    stop_reason: str | None
     runtime_state_path: str
 
     def __post_init__(self) -> None:
@@ -623,6 +625,7 @@ class StudyRuntimeContinuationState:
             "continuation_policy",
             "continuation_anchor",
             "continuation_reason",
+            "stop_reason",
         ):
             value = getattr(self, field_name)
             if value is not None and not isinstance(value, str):
@@ -631,7 +634,7 @@ class StudyRuntimeContinuationState:
             raise TypeError("study runtime continuation state runtime_state_path must be non-empty str")
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "quest_status": self.quest_status,
             "active_run_id": self.active_run_id,
             "continuation_policy": self.continuation_policy,
@@ -639,6 +642,9 @@ class StudyRuntimeContinuationState:
             "continuation_reason": self.continuation_reason,
             "runtime_state_path": self.runtime_state_path,
         }
+        if self.stop_reason is not None:
+            payload["stop_reason"] = self.stop_reason
+        return payload
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeContinuationState":
@@ -650,5 +656,6 @@ class StudyRuntimeContinuationState:
             continuation_policy=str(payload.get("continuation_policy") or "").strip() or None,
             continuation_anchor=str(payload.get("continuation_anchor") or "").strip() or None,
             continuation_reason=str(payload.get("continuation_reason") or "").strip() or None,
+            stop_reason=str(payload.get("stop_reason") or "").strip() or None,
             runtime_state_path=str(payload.get("runtime_state_path") or ""),
         )
