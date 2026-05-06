@@ -76,7 +76,7 @@ install_python_tools() {
     --python 3.12 \
     --force \
     --editable \
-    "${REPO_ROOT}"
+    "${REPO_ROOT}[analysis]"
 }
 
 install_codex_paths() {

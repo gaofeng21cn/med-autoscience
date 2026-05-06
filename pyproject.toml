@@ -20,6 +20,22 @@ dependencies = [
   "pypdf>=5.0",
 ]
 
+[project.optional-dependencies]
+analysis = [
+  "matplotlib>=3.9",
+  "pandas>=2.2",
+  "numpy>=1.26",
+  "scipy>=1.13",
+  "scikit-learn>=1.5",
+  "statsmodels>=0.14",
+  "lifelines>=0.30",
+  "seaborn>=0.13",
+  "openpyxl>=3.1",
+  "python-docx>=1.1",
+  "pillow>=10.0",
+  "pypdf>=5.0",
+]
+
 [project.scripts]
 medautosci = "med_autoscience.cli:entrypoint"
 medautosci-mcp = "med_autoscience.mcp_server:entrypoint"

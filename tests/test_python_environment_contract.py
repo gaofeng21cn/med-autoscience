@@ -4,8 +4,11 @@ import json
 import os
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 from types import SimpleNamespace
+
+from packaging.requirements import Requirement
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
@@ -22,6 +25,17 @@ from med_autoscience.python_environment_contract import (
 def test_required_modules_match_default_rule_set() -> None:
     assert REQUIRED_RUNTIME_MODULES == ("matplotlib", "pandas")
     assert REQUIRED_RUNTIME_REQUIREMENTS == ("matplotlib>=3.9", "pandas>=2.2")
+
+
+def test_curated_analysis_bundle_is_declared_as_project_extra() -> None:
+    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    optional_dependencies = pyproject["project"]["optional-dependencies"]
+    analysis_extra = optional_dependencies["analysis"]
+
+    declared = tuple(str(Requirement(item)) for item in analysis_extra)
+    expected = tuple(str(Requirement(item)) for item in contract.CURATED_PYTHON_ANALYSIS_BUNDLE_REQUIREMENTS)
+
+    assert declared == expected
 
 
 def test_inspect_reports_missing_modules(monkeypatch) -> None:

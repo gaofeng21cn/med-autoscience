@@ -43,6 +43,8 @@ closeout ledger 证明的是当轮 eligible payload 已完成 restore-proof comp
 
 这条线应直接按长线目标推进，不按一次只做一个小阶段推进。实现上可以并行展开多个 worktree，但所有 lane 必须共享同一 schema/authority contract，并在吸收回 `main` 前完成兼容导出、真实 workspace dry-run、验证和清理。
 
+Program portfolio 口径：本文是 [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md) 的 runtime persistence / quest Git retirement 子计划。它接管 MDS Git-era 的 runtime lifecycle 语义，但不单独拥有产品入口、MDS 代码吸收、no-history import 或 compatibility layer 退役的最终授权；这些仍由 MAS absorb program 和 owner-boundary contract 统一 gate。当前 program portfolio 分类与归档策略见 [Program Portfolio Consolidation](./program_portfolio_consolidation.md)。
+
 ## 一步到位目标
 
 本 program 的目标不是只补一个索引文件，也不是只清理某个异常 workspace。完成后的可用状态必须同时满足：

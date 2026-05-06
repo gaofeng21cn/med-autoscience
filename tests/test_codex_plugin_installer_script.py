@@ -19,6 +19,7 @@ def test_codex_plugin_installer_script_keeps_codex_paths_repo_local(tmp_path: Pa
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         "mkdir -p \"${UV_TOOL_BIN_DIR}\"\n"
+        "printf '%s\\n' \"$@\" > \"${UV_TOOL_BIN_DIR}/uv-args.txt\"\n"
         "printf '#!/usr/bin/env bash\\nexit 0\\n' > \"${UV_TOOL_BIN_DIR}/medautosci\"\n"
         "printf '#!/usr/bin/env bash\\nexit 0\\n' > \"${UV_TOOL_BIN_DIR}/medautosci-mcp\"\n"
         "chmod +x \"${UV_TOOL_BIN_DIR}/medautosci\" \"${UV_TOOL_BIN_DIR}/medautosci-mcp\"\n",
@@ -41,6 +42,9 @@ def test_codex_plugin_installer_script_keeps_codex_paths_repo_local(tmp_path: Pa
     assert result.returncode == 0, result.stderr
     assert (home_dir / ".local" / "bin" / "medautosci").exists()
     assert (home_dir / ".local" / "bin" / "medautosci-mcp").exists()
+    assert (home_dir / ".local" / "bin" / "uv-args.txt").read_text(encoding="utf-8").splitlines()[-1] == (
+        f"{REPO_ROOT}[analysis]"
+    )
     assert not (home_dir / "plugins" / "mas").exists()
     assert not (home_dir / ".agents" / "skills" / "mas").exists()
     assert not (home_dir / ".agents" / "plugins" / "marketplace.json").exists()
