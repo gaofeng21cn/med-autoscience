@@ -136,6 +136,44 @@ def test_stop_loss_and_user_stop_share_reopenable_parked_macro_state() -> None:
     assert derived[1]["details"]["package_delivered"] is True
 
 
+def test_explicit_final_abandon_stop_loss_is_not_reopenable() -> None:
+    state = _derive(
+        study_id="001-lineage-pfs",
+        status={
+            "study_id": "001-lineage-pfs",
+            "quest_status": "paused",
+            "active_run_id": None,
+            "reason": "publishability_stop_loss_recommended",
+            "study_truth_snapshot": {
+                "quality_state": {"state": "stop_loss_recommended"},
+                "package_state": {"authority_state": "not_observed"},
+                "final_line_decision": {
+                    "decision": "abandon",
+                    "reopen_allowed": False,
+                    "decided_by": "user",
+                    "recorded_at": "2026-05-06T08:00:00+00:00",
+                },
+            },
+        },
+        progress={
+            "stop_origin": "mas_early",
+        },
+    )
+
+    assert state["writer_state"] == "parked"
+    assert state["user_next"] == "none"
+    assert state["reason"] == "stop_loss"
+    assert state["details"]["reopen_allowed"] is False
+    assert state["details"]["reopen_mode"] == "closed"
+    assert state["details"]["final_line_decision"] == {
+        "decision": "abandon",
+        "reopen_allowed": False,
+        "decided_by": "user",
+        "recorded_at": "2026-05-06T08:00:00+00:00",
+    }
+    assert state["conditions"][0]["type"] == "TerminalAbandon"
+
+
 def test_stop_state_can_mark_delivered_milestone_package_without_quality_ready_authority() -> None:
     state = _derive(
         study_id="004-dpcc-longitudinal-care-inertia-intensification-gap",

@@ -1,6 +1,6 @@
 # 当前状态
 
-**更新时间：2026-05-05**
+**更新时间：2026-05-06**
 
 ## 当前角色
 
@@ -11,7 +11,7 @@
 - `OPL` 是上层 family-level session/runtime/projection 整合入口，并维护 shared modules/contracts/indexes；它不改写 MAS 的 domain owner 语义。
 - `OPL Runtime Manager` 是 OPL 侧新增的薄运行管理/投影目标层，负责把 MAS registration/projection 接到外部 `Hermes-Agent` substrate、native helper catalog、高频状态索引与 doctor/repair/resume 面；它不持有 MAS study truth、publication gate 或 evidence/review ledger。
 - `Hermes-Agent` 只在可选 hosted runtime target / reference-layer 语境出现；当前受控研究后端继续是 `MedDeepScientist`，但它在单项目主线里只保留 research backend、行为等价 oracle、上游 intake buffer 三个迁移期角色。
-- 2026-05-01 之后的当前主线新增了两层 reducer truth：`StudyTruthKernel` 统一 study 级 next action / package authority / publication gate 解释，`RuntimeHealthKernel` 统一 worker liveness / retry budget / recovery escalation；普通 read 只生成 shadow projection，materialized truth 只能由显式 reconcile、controller tick 或 runtime watch apply 写入。
+- 2026-05-01 之后的当前主线新增了两层 reducer truth：`StudyTruthKernel` 统一 study 级 next action / package authority / publication gate 解释，`RuntimeHealthKernel` 统一 worker liveness / retry budget / recovery escalation；普通 read 只生成 shadow projection，materialized truth 只能由显式 reconcile、controller tick 或 runtime watch apply 写入。2026-05-06 又把用户宏观状态和执行路由收口为 `study_macro_state/latest.json` 与 `owner_route`，让 matrix、supervisor consume、execute-dispatch 和 lifecycle report 共享同一 current truth。
 - 同一轮主线还把医学稿件初稿质量从“gate 后置拦截”前移为 pre-draft runtime concern：`medical journal prose`、IMRAD section contract、reporting-guideline obligations 与 first-draft generation model 应在 study charter / quality OS 中可见。
 - AI-first 的当前语义是可运行质量线：pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 和真实论文 soak。文档只做人工可读收敛，不新增 wording gate，不改测试或 preflight contract。
 - 本轮跨仓审计发现本机 `med-deepscientist` root checkout 的 `main` ahead `origin/main` 11 个提交；这些未推送提交只作为本地 companion audit fact，不作为 MAS 当前公共真相、OPL 公共真相或 release-facing contract 输入。
@@ -31,6 +31,7 @@
 - human gate 收口到方向重置、重大 claim 边界变化和投稿前最终审计。
 - 关键持久表面继续围绕 `study_charter`、`evidence_ledger`、`review_ledger`、`study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`。
 - 文件生命周期管理已进入 SQLite sidecar + restore-proof archive 双轨：runtime watch/report state、workspace storage audit、archive refs 与 migration ledger 写入 `artifacts/runtime/runtime_lifecycle.sqlite` 索引层，现有 `latest.json`、timestamped JSON/Markdown、publication/controller truth 与投稿产物继续保留文件 authority。2026-05-05 restore-proof closeout 已把 NF-PitNET、DM-CVD / DPCC 和 AS biologics 的 11 个 migrated quest `.ds` 从约 1,024,244 个文件压到 772 个文件；这是 closeout ledger 口径。2026-05-06 已按用户确认窗口 repeat-compact DPCC004，`.ds` 当前约 292 个文件、约 1.0G，restore proof verified，quest-local SQLite sidecar 已从嵌套 Git index 退役并加入 ignore；final dry-run 只剩验证过程产生的 118-byte `bash_exec/summary.json` 级 residual noise。DM002/DM003 当前按用户要求等待另一个会话测试结束后再处理新增 payload；NF-PitNET 和 AS biologics 仍保持已处理状态。
+- 终局止损文件生命周期已成为 dry-run contract：只有 materialized macro state 明确 `parked/none/stop_loss` 且 `reopen_allowed=false`，才会在 lifecycle report 中生成 `terminal_study_file_lifecycle_plan` 候选。当前不会自动物理压缩或删除 runtime history；后续 apply 必须先有 manifest、sha256、restore index 与 restore proof。
 - 关键身份继续围绕 `program_id`、`study_id`、`quest_id`、`active_run_id`；用户面优先呈现 `study_id`、任务摘要、阻塞和下一步。
 
 ## 当前 active tranche
@@ -45,7 +46,7 @@
 - 用户可见真相投影的 owner 继续落在 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`：用户与维护者都应能从同一条 `MAS` 主线上读到当前阶段、关键证据、阻塞、下一步、恢复点与 human gate 原因。
 - `study-progress`、`workspace-cockpit`、`product-frontdesk` 应围绕同一组 operations state 解释自动推进、runtime recovery、restore point、artifact pickup 和 human gate；它们不能制造第二套研究判断。
 - `StudyTruthKernel` shadow layer 与 `RuntimeHealthKernel` shadow layer 是当前读状态基础：普通 read 不刷新 materialized truth；materialized truth / health 只能由显式 reconcile、controller tick 或 runtime watch apply 写入。
-- Portable supervisor 现在已经把 request ownership、默认执行派单与 submission milestone parking 收口进运行合同：`publication_gate_specificity_required` 先生成 `publication_gate` owner 的 request packet，再由 `runtime-supervisor-execute-dispatch` 调用 publication gate owner surface 物化带具体 targets 的 `publication_eval/latest.json`；`return_to_ai_reviewer_workflow` 只生成 `ai_reviewer` owner 的 request/dispatch，缺结构化 reviewer record 时明确落账 `owner_callable_surface_missing`；`runtime-supervisor-consume` 只消费 queue 并写 handoff/dispatch task。外层 supervisor 不能修改 paper/current_package，也不能替代 AI reviewer 或放宽 publication gate authority。
+- Portable supervisor 现在已经把 request ownership、默认执行派单与 submission milestone parking 收口进运行合同：`publication_gate_specificity_required` 先生成 `publication_gate` owner 的 request packet，再由 `runtime-supervisor-execute-dispatch` 调用 publication gate owner surface 物化带具体 targets 的 `publication_eval/latest.json`；`return_to_ai_reviewer_workflow` 只生成 `ai_reviewer` owner 的 request/dispatch，缺结构化 reviewer record 时明确落账 `owner_callable_surface_missing`；`runtime-supervisor-consume` 只消费 queue 并写 handoff/dispatch task。consumer request handoff 和 executor dispatch 都必须通过 `owner_route.allowed_actions`，executor 只执行 workspace-level consumer latest 中当前 ready 的 dispatch。外层 supervisor 不能修改 paper/current_package，也不能替代 AI reviewer 或放宽 publication gate authority。
 - medical journal prose 质量合同已经进入当前文档口径：first draft 应是医学期刊可读的 manuscript-shaped prose，不能把 controller checklist、figure/table anchor、author-confirmation placeholder、内部 claim-boundary 标签或 operations/review 语言带入正文。
 - workspace Git/storage 边界已收紧为轻量外层 Git + generated/runtime/artifact 排除 + explicit storage audit repair；runtime-storage apply-mode release estimate 必须反映实际 apply strategy，而不是 gross candidate size。
 - `run_gate_clearing_batch`、quality review follow-through、same-line route truth 与 autonomy soak 相关表面都是当前 proof/soak 的候选证据面；它们是否已经形成可发表工作流证据，仍需真实论文线继续 soak。

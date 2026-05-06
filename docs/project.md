@@ -15,6 +15,7 @@
 - 让研究问题、工作区语境、进度反馈和文件交付始终围绕同一条课题线组织。
 - 把 CLI、本地程序/脚本、durable surface 与 repo-tracked contract 收口成稳定 capability surface，方便 `Codex` / `OPL` skill activation 直接调用。
 - 让方向锁定后的自治推进、pre-draft 质量运行、AI reviewer workflow、投稿前审计和产物重建证明沿同一条 controller 主线收口。
+- 让用户可见状态、owner routing、运行健康、dispatch 执行与文件生命周期治理都围绕同一组 durable truth surface 收敛；SQLite 用作索引和 receipt，不替代文件 authority。
 - 维护稳定的运行时合同、进度表面和交付表面，确保研究推进可验证、可回看、可迭代。
 - 文档负责人工可读地说明当前可用系统、运行方向和证据缺口；不通过新增测试或 preflight wording gate 约束文档措辞。
 

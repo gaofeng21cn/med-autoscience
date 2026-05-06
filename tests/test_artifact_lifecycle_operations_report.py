@@ -92,6 +92,74 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
     assert {item["removal_marker"] for item in projection_operations} == {"regenerate-before-remove"}
 
 
+def test_lifecycle_operations_report_projects_terminal_stop_loss_file_lifecycle_plan(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-stop-loss"
+    _write(study_root / "paper" / "source" / "manuscript_source.md")
+    _write(study_root / "artifacts" / "interventions" / "events.jsonl", "{}\n")
+    _write(study_root / "artifacts" / "runtime" / "study_macro_state" / "latest.json", json.dumps(
+        {
+            "writer_state": "parked",
+            "user_next": "none",
+            "reason": "stop_loss",
+            "details": {
+                "reopen_allowed": False,
+                "final_line_decision": {"decision": "abandon", "reopen_allowed": False},
+            },
+            "source_fingerprint": "study-macro-state::terminal-stop-loss",
+        }
+    ))
+    _write(
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "001-stop-loss"
+        / ".ds"
+        / "runs"
+        / "run-old"
+        / "stdout.jsonl"
+    )
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root], deep=True)
+    study = report["workspaces"][0]["studies"][0]
+
+    terminal_plan = study["terminal_file_lifecycle_plan"]
+    assert terminal_plan["surface_kind"] == "terminal_study_file_lifecycle_plan"
+    assert terminal_plan["eligible"] is True
+    assert terminal_plan["candidate_summary"]["runtime_archive_compact_candidates"] == 1
+    assert terminal_plan["archive_manifest_contract"]["restore_proof_required"] is True
+    assert terminal_plan["mutation_policy"]["physical_cleanup_performed"] is False
+
+
+def test_lifecycle_operations_report_does_not_mark_reopenable_stop_loss_for_terminal_compaction(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-reopenable"
+    _write(study_root / "paper" / "source" / "manuscript_source.md")
+    _write(study_root / "artifacts" / "runtime" / "study_macro_state" / "latest.json", json.dumps(
+        {
+            "writer_state": "parked",
+            "user_next": "none",
+            "reason": "stop_loss",
+            "details": {"reopen_allowed": True, "reopen_mode": "new_plan_required"},
+        }
+    ))
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+    study = report["workspaces"][0]["studies"][0]
+
+    terminal_plan = study["terminal_file_lifecycle_plan"]
+    assert terminal_plan["eligible"] is False
+    assert terminal_plan["eligibility"]["blockers"] == ["macro_state_not_terminal_non_reopenable_stop_loss"]
+
+
 def test_lifecycle_operations_report_default_uses_storage_audit_snapshot_without_deep_runtime_scan(
     tmp_path: Path,
 ) -> None:

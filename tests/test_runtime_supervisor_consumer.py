@@ -348,6 +348,30 @@ def test_supervisor_consume_writes_request_handoff_for_publication_gate_and_ai_r
     study_id = "001-dm-cvd-mortality-risk"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm")
     latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    gate_route = _owner_route(
+        study_id=study_id,
+        quest_id="quest-dm",
+        next_owner="publication_gate",
+        owner_reason="publication_gate_specificity_required",
+        allowed_actions=["publication_gate_specificity_required"],
+    )
+    ai_route = _owner_route(
+        study_id=study_id,
+        quest_id="quest-dm",
+        next_owner="ai_reviewer",
+        owner_reason="ai_reviewer_assessment_required",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    artifact_route = _owner_route(
+        study_id=study_id,
+        quest_id="quest-dm",
+        next_owner="artifact_os",
+        owner_reason="artifact_work_required",
+        allowed_actions=[
+            "current_package_freshness_required",
+            "artifact_display_surface_materialization_required",
+        ],
+    )
     _write_json(
         latest_path,
         {
@@ -362,10 +386,12 @@ def test_supervisor_consume_writes_request_handoff_for_publication_gate_and_ai_r
                     "owner": "publication_gate",
                     "recommended_owner": "publication_gate",
                     "reason": "publication_gate_specificity_required",
+                    "owner_route": gate_route,
                     "handoff_packet": {
                         "request_kind": "publication_gate_specificity_required",
                         "authority": "observability_only",
                         "request_owner": "publication_gate",
+                        "owner_route": gate_route,
                         "paper_package_mutation_allowed": False,
                         "quality_gate_relaxation_allowed": False,
                     },
@@ -379,10 +405,12 @@ def test_supervisor_consume_writes_request_handoff_for_publication_gate_and_ai_r
                     "recommended_owner": "ai_reviewer",
                     "reason": "ai_reviewer_assessment_required",
                     "required_output_surface": "artifacts/publication_eval/latest.json",
+                    "owner_route": ai_route,
                     "handoff_packet": {
                         "request_kind": "return_to_ai_reviewer_workflow",
                         "authority": "observability_only",
                         "request_owner": "ai_reviewer",
+                        "owner_route": ai_route,
                         "paper_package_mutation_allowed": False,
                         "quality_gate_relaxation_allowed": False,
                     },
@@ -396,10 +424,12 @@ def test_supervisor_consume_writes_request_handoff_for_publication_gate_and_ai_r
                     "recommended_owner": "artifact_os",
                     "reason": "current_package_freshness_required",
                     "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+                    "owner_route": artifact_route,
                     "handoff_packet": {
                         "request_kind": "current_package_freshness_required",
                         "authority": "observability_only",
                         "request_owner": "artifact_os",
+                        "owner_route": artifact_route,
                         "paper_package_mutation_allowed": False,
                         "quality_gate_relaxation_allowed": False,
                     },
@@ -413,10 +443,12 @@ def test_supervisor_consume_writes_request_handoff_for_publication_gate_and_ai_r
                     "recommended_owner": "artifact_os",
                     "reason": "display_surface_materialization_failed",
                     "required_output_surface": "paper/display_registry.json",
+                    "owner_route": artifact_route,
                     "handoff_packet": {
                         "request_kind": "artifact_display_surface_materialization_required",
                         "authority": "observability_only",
                         "request_owner": "artifact_os",
+                        "owner_route": artifact_route,
                         "paper_package_mutation_allowed": False,
                         "quality_gate_relaxation_allowed": False,
                     },
@@ -516,6 +548,70 @@ def test_supervisor_consume_writes_request_handoff_for_publication_gate_and_ai_r
     assert gate_packet["paper_package_mutation_allowed"] is False
     assert ai_packet["quality_gate_relaxation_allowed"] is False
     assert (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
+
+
+def test_supervisor_consume_request_handoff_requires_owner_route_allowed_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_consumer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "001-dm-cvd-mortality-risk"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm")
+    route = _owner_route(
+        study_id=study_id,
+        quest_id="quest-dm",
+        next_owner="publication_gate",
+        owner_reason="publication_gate_specificity_required",
+        allowed_actions=[],
+    )
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    _write_json(
+        latest_path,
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": "quest-dm",
+                    "action_type": "publication_gate_specificity_required",
+                    "authority": "observability_only",
+                    "owner": "publication_gate",
+                    "recommended_owner": "publication_gate",
+                    "reason": "publication_gate_specificity_required",
+                    "owner_route": route,
+                    "handoff_packet": {
+                        "request_kind": "publication_gate_specificity_required",
+                        "authority": "observability_only",
+                        "request_owner": "publication_gate",
+                        "owner_route": route,
+                    },
+                },
+            ],
+        },
+    )
+
+    result = module.supervisor_consume(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    task = result["request_tasks"][0]
+    packet_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "publication_gate_specificity_required.json"
+    )
+    assert task["dispatch_status"] == "blocked"
+    assert task["blocked_reason"] == "owner_route_next_owner_mismatch"
+    assert task["owner_route_current"] is False
+    assert not packet_path.exists()
 
 
 def test_supervisor_consume_mixed_queue_writes_default_executor_dispatches(
@@ -627,20 +723,29 @@ def test_supervisor_consume_mixed_queue_writes_default_executor_dispatches(
     assert "Codex CLI" in runtime_dispatch["executor_prompt"]
 
     assert (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").is_file()
-    assert (
+    assert not (
         study_root
         / "artifacts"
         / "supervision"
         / "consumer"
         / "publication_gate_specificity_required.json"
-    ).is_file()
-    assert (
+    ).exists()
+    assert not (
         study_root
         / "artifacts"
         / "supervision"
         / "consumer"
         / "return_to_ai_reviewer_workflow.json"
-    ).is_file()
+    ).exists()
+    blocked_tasks = {
+        task["action_type"]: task
+        for task in result["request_tasks"]
+        if task["action_type"] in {"publication_gate_specificity_required", "return_to_ai_reviewer_workflow"}
+    }
+    assert blocked_tasks["publication_gate_specificity_required"]["dispatch_status"] == "blocked"
+    assert blocked_tasks["publication_gate_specificity_required"]["blocked_reason"] == "owner_route_next_owner_mismatch"
+    assert blocked_tasks["return_to_ai_reviewer_workflow"]["dispatch_status"] == "blocked"
+    assert blocked_tasks["return_to_ai_reviewer_workflow"]["blocked_reason"] == "owner_route_next_owner_mismatch"
     assert (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "paper").exists()

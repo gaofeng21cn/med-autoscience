@@ -34,6 +34,8 @@
 - MAS standalone GitHub Release / 独立 installer 不是当前用户安装通道；分发叙事应指向当前 OPL 管理模块路径，或未来 OPL Packages/GHCR module 坐标。
 - AI-first 是当前可运行质量线的方向，落在 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 和真实论文 soak 上，不通过测试或 preflight contract 约束文档措辞。
 - `StudyTruthKernel` 与 `RuntimeHealthKernel` 是当前 study truth 与 runtime health 的 read-model reducer；普通读取只生成 shadow projection，materialized snapshot 必须由显式 reconcile、controller tick 或 runtime watch apply 写入。
+- `study_macro_state/latest.json` 与 `owner_route` 承载用户宏观状态和可执行 owner 票据。`study-state-matrix`、supervisor consume、dispatch execution 与 lifecycle projection 都应收敛到这些 surface，而不是各自局部重算。
+- Artifact retention 是文件生命周期投影，不是 authority。终局 stop-loss 精简只能先生成 dry-run plan，后续任何物理 apply 都必须有 manifest、sha256、restore index 与 restore proof。
 - 初稿质量作为写作前运行关注点处理：MAS 应生成医学期刊可读的 manuscript-native prose，而不是 controller notes、figure/table anchor scaffold 或正文里的行政占位。
 - 产物证明采用 canonical-source-first：manuscript、figures、tables 和 package 都应能从 canonical source 重建后再作为交付证据。
 - 真实论文 soak 仍是 AI-first 线的主要证据缺口；文档应明确这个缺口，不把目标层能力写成已经全部证明的当前事实。
@@ -74,6 +76,10 @@
 - [运行时监督外环](runtime/runtime_supervision_loop.md)
 - [Study truth kernel](runtime/study_truth_kernel.md)
 - [Runtime health kernel](runtime/runtime_health_kernel.md)
+- [Study macro state 与 owner route](runtime/study_macro_state_and_owner_route.md)
+- [Artifact retention operations contract](runtime/artifact_retention_operations_contract.md)
+- [Artifact inventory projection](runtime/artifact_inventory_projection.md)
+- [Canonical artifact contract](runtime/canonical_artifact_contract.md)
 - [Study runtime 控制面](runtime/study_runtime_control_surface.md)
 - [Study runtime 编排](runtime/study_runtime_orchestration.md)
 - [Workspace knowledge 与 literature 合同](runtime/workspace_knowledge_and_literature_contract.md)

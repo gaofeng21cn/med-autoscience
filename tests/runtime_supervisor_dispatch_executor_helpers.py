@@ -104,3 +104,16 @@ def write_scan_latest(profile, study_id: str, owner_route: dict[str, object]) ->
 def write_current_dispatch(path: Path, profile, dispatch: dict[str, object]) -> None:
     write_json(path, dispatch)
     write_scan_latest(profile, str(dispatch["study_id"]), dict(dispatch["owner_route"]))
+    write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "runtime_supervisor_consumer",
+            "schema_version": 1,
+            "default_executor_dispatches": [
+                {
+                    **dispatch,
+                    "refs": {"dispatch_path": str(path)},
+                }
+            ],
+        },
+    )

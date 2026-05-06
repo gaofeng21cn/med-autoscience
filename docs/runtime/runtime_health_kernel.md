@@ -20,6 +20,8 @@
 
 普通 `study_runtime_status` / `study_progress` read 只生成 shadow snapshot，不写 `artifacts/runtime/health/latest.json`。只有显式 reconcile、`runtime watch --apply` 或 controller tick 可以刷新 materialized snapshot。
 
+显式 `source_signature` 是 runtime health 的幂等键。同一 `(study_id, quest_id, event_type, source_signature)` 重放只能返回 existing event，不得再次追加并消耗 retry budget。没有显式 source signature 的 recover/launch attempt 仍按真实新尝试追加，继续消耗 retry budget。
+
 显式 reconcile 入口：
 
 ```bash

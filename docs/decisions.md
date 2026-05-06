@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-06：宏观状态、owner route 与文件生命周期进入同一 current-truth 合同
+
+- 决策：MAS 用户宏观状态固定为 `writer_state/user_next/reason` 三段短枚举，materialized surface 是 `artifacts/runtime/study_macro_state/latest.json`；`owner_route` 固定为 `scan -> consume -> execute-dispatch -> rescan` 的唯一执行票据。request handoff、default executor dispatch 和 executor 都必须校验 route、allowed action 与 idempotency key。终局止损文件生命周期采用 `terminal_study_file_lifecycle_plan` dry-run surface，只有不可重开 `stop_loss` 才能标记 runtime history 精简候选，物理 apply 仍要求 manifest、sha256 与 restore proof。
+- 理由：近期 DM001、DM002、NF002/NF003 与 stop-loss workspace 的故障显示，runtime liveness、publication gate、AI reviewer、dispatch executor 和 storage cleanup 若各自使用局部判断，会在修复一层后暴露下一层漂移。成熟控制面把 current/desired state 收敛、幂等重试 token、sidecar index 和 manifest/checksum preservation 分开处理；MAS 的落点是文件 authority + reducer + owner route + SQLite sidecar receipt。
+- 影响：`study-state-matrix` 优先读取 materialized macro state；`study_progress` 默认读不再物化 AI-first ledgers；consumer request handoff 与 executor 都受 owner route gate 约束；runtime health 显式 source signature 幂等；cleanup apply 消费 retention report 时必须重新校验 target sha256。`user_next=none/reason=stop_loss/reopen_allowed=false` 可以开启 terminal file lifecycle dry-run，但不能裸删历史文件。
+- 参考：[Kubernetes controller reconcile loop](https://kubernetes.io/docs/concepts/architecture/controller/)；[AWS Builders Library idempotent API client request token](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)；[SQLite Application File Format](https://www.sqlite.org/appfileformat.html)；[RFC 8493 BagIt manifest/checksum contract](https://www.rfc-editor.org/rfc/rfc8493)。
+
 ## 2026-05-05：Repo Markdown / README prose 不再由 pytest 锁定措辞
 
 - 决策：repo-tracked Markdown / README prose 进入 `documentation_review_only` 分类，由人工/Agent review 负责，不再用 pytest 脚本读取文档并断言标题、链接、段落、固定短语或 intake 表格内容。preflight 对 docs-only 变更不规划 pytest 命令；workflow、配置、源码、测试、JSON/YAML/TOML contract、生成器输出、运行时模板和生成产物行为仍按对应 owner surface 验证。
@@ -43,7 +50,7 @@
 - 决策：`runtime-supervisor-scan` 固定为 controller-style reconcile loop。它每轮先读取当前 `study_runtime_status`、`study_progress`、`publication_eval/latest.json`、`controller_decisions/latest.json` 与 `StudyTruthKernel` epoch，再产出唯一 `owner_route`。`runtime liveness`、retry budget、publication gate、AI reviewer 与 dispatch executor 都只能作为 current truth 输入或 owner action，不得各自用局部判断覆盖当前 owner。若当前 controller decision 与 publication work-unit fingerprint 对齐，且 controller action 明确要求同线 runtime redrive，no-live / retry-exhausted 只能路由给 `mas_controller`，不能升级成 `external_supervisor`。
 - 理由：DM001/DM002/DM003/NF002 的连续故障显示，单点修补 stopped、package handoff、AI reviewer 或 executor 都会暴露另一层漂移。成熟控制面通常把 current state 与 desired state 的收敛放在一个 reconcile loop 中；幂等重试需要调用方意图 token；可重试 activity 必须有稳定 idempotency key。MAS 的对应合同就是 `truth_epoch + source_fingerprint + next_owner + allowed_actions`。
 - 影响：`owner_route` 是 `scan -> consume -> execute-dispatch -> rescan` 的唯一执行票据。consumer 只能传播 route；executor 执行前必须比对最新 route，并拒绝 `owner_route_stale` 或 `owner_route_next_owner_mismatch`。同一 scan 即使生成多个候选 action，`allowed_actions` 也只包含当前 `next_owner` 可执行的动作；其他 action 只能留作观测或下一轮 owner，不得被同 tick executor 抢跑。runtime redrive 还必须把当前 controller decision 和同 fingerprint 的 actionable publication targets 写入 runtime authorization，避免 MDS 因缺可执行 target 把当前 work unit 再次判成 gate pending。完成态、completion evidence owner、auto-runtime parked、manual hold 与 stop-loss 都必须通过同一 route 投影，避免 stale lifecycle、publication gate 或 AI reviewer 队列重新打开已完成或已停驻论文线。
-- 参考：Kubernetes Controllers current/desired state reconcile loop；AWS Builders Library “Making retries safe with idempotent APIs”；Temporal Activity idempotency and retry guidance。
+- 参考：[Kubernetes Controllers current/desired state reconcile loop](https://kubernetes.io/docs/concepts/architecture/controller/)；[AWS Builders Library “Making retries safe with idempotent APIs”](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)；Temporal Activity idempotency and retry guidance。
 
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 

@@ -190,3 +190,54 @@ def test_study_state_matrix_top_active_run_uses_macro_truth_when_status_top_leve
     assert exit_code == 0
     assert study["active_run_id"] == "run-from-truth"
     assert study["study_macro_state"]["writer_state"] == "live"
+
+
+def test_study_state_matrix_prefers_materialized_macro_state_surface(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "004-dm"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 004-dm\n", encoding="utf-8")
+    (study_root / "artifacts" / "runtime" / "study_macro_state").mkdir(parents=True)
+    (study_root / "artifacts" / "runtime" / "study_macro_state" / "latest.json").write_text(
+        json.dumps(
+            {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "004-dm",
+                "writer_state": "parked",
+                "user_next": "none",
+                "reason": "stop_loss",
+                "details": {"reopen_allowed": False},
+                "conditions": [{"type": "TerminalAbandon"}],
+                "source_fingerprint": "macro-current",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "004-dm",
+            "study_root": str(study_root),
+            "quest_status": "running",
+            "active_run_id": "stale-run",
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    study = json.loads(captured.out)["studies"][0]
+
+    assert exit_code == 0
+    assert study["active_run_id"] is None
+    assert study["study_macro_state"]["writer_state"] == "parked"
+    assert study["study_macro_state"]["details"]["reopen_allowed"] is False

@@ -420,13 +420,27 @@ def _request_task(
         and developer_mode_payload.get("safe_actions_enabled") is True
     )
     blocked_reason = None if apply_allowed or not apply else _github_block_reason(developer_mode_payload)
-    dispatch_status = "applied" if apply_allowed else "dry_run" if not apply else "blocked"
     authority = _text(action.get("authority")) or _text(handoff_packet.get("authority")) or "observability_only"
     request_owner = _owner_from_action(action, action_type)
     required_output_surface = _required_output_surface(action, action_type)
     request_packet_ref = _request_packet_ref_for_action_type(action_type)
     owner_route = _mapping(action.get("owner_route")) or _mapping(handoff_packet.get("owner_route"))
     idempotency_key = _text(owner_route.get("idempotency_key"))
+    owner_route_current = owner_route_part.route_allows_action(
+        action={
+            **dict(action),
+            "next_executable_owner": request_owner,
+            "action_type": action_type,
+        },
+        owner_route=owner_route,
+    )
+    if blocked_reason is None and apply and not owner_route_current:
+        blocked_reason = "owner_route_next_owner_mismatch"
+    dispatch_status = (
+        "applied"
+        if apply_allowed and owner_route_current
+        else "dry_run" if not apply else "blocked"
+    )
     owner_pickup = {
         "owner": request_owner,
         "state": "pending",
@@ -451,6 +465,9 @@ def _request_task(
         "required_output_surface": required_output_surface,
         "request_packet_ref": request_packet_ref,
         "owner_pickup": owner_pickup,
+        "owner_route": owner_route or None,
+        "idempotency_key": idempotency_key,
+        "owner_route_current": owner_route_current,
         "dispatch_status": dispatch_status,
         "blocked_reason": blocked_reason,
         "dry_run": not apply,

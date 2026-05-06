@@ -10,11 +10,12 @@ def _artifact(
     role: str,
     lifecycle: str,
     cleanup_candidate_action: str,
+    workspace_relative_path: str | None = None,
     cleanup_blockers: list[str] | None = None,
 ) -> dict[str, object]:
     return {
         "path": str(path),
-        "workspace_relative_path": str(path),
+        "workspace_relative_path": workspace_relative_path or str(path),
         "role": role,
         "lifecycle": lifecycle,
         "cleanup_candidate_action": cleanup_candidate_action,
@@ -143,12 +144,16 @@ def test_retention_plan_blocks_runtime_archive_compress_and_keeps_live_runtime_a
 
 def test_retention_plan_only_marks_safe_cache_as_applyable(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.artifact_retention_operations_plan")
+    cache_path = tmp_path / ".pytest_cache" / "v" / "cache" / "nodeids"
+    cache_path.parent.mkdir(parents=True)
+    cache_path.write_text("nodeids\n", encoding="utf-8")
     artifacts = [
         _artifact(
-            Path(".pytest_cache/v/cache/nodeids"),
+            cache_path,
             role="cache",
             lifecycle="cache_transient",
             cleanup_candidate_action="delete-safe-cache",
+            workspace_relative_path=".pytest_cache/v/cache/nodeids",
         ),
         _artifact(
             Path("ops/runtime/quests/001/.ds/cold_archive/payload.tar.gz"),
@@ -166,6 +171,137 @@ def test_retention_plan_only_marks_safe_cache_as_applyable(tmp_path: Path) -> No
     assert plan["operations"][0]["physical_delete_allowed"] is True
     assert plan["operations"][0]["cleanup_candidate_action"] == "delete-safe-cache"
     assert plan["operations"][0]["workspace_relative_path"] == ".pytest_cache/v/cache/nodeids"
+    assert plan["operations"][0]["target_sha256"]
     assert plan["operations"][1]["retention_action"] == "restore_contract_required"
     assert plan["operations"][1]["physical_delete_allowed"] is False
     assert plan["operations"][1]["restore_contract_gate"]["status"] == "required_before_cleanup"
+
+
+def test_terminal_stop_loss_retention_plan_requires_explicit_non_reopenable_macro_state(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_retention_operations_plan")
+    artifacts = [
+        _artifact(
+            Path("studies/001/paper/source/manuscript_source.md"),
+            role="canonical_source",
+            lifecycle="active_authority",
+            cleanup_candidate_action="keep-online",
+        ),
+        _artifact(
+            Path("studies/001/artifacts/interventions/events.jsonl"),
+            role="audit_log",
+            lifecycle="audit_retained",
+            cleanup_candidate_action="keep-online",
+        ),
+        _artifact(
+            Path("ops/runtime/quests/001/.ds/runs/run-old/stdout.jsonl"),
+            role="runtime_ephemeral",
+            lifecycle="runtime_transient",
+            cleanup_candidate_action="archive-compress",
+        ),
+    ]
+    reopenable_macro_state = {
+        "writer_state": "parked",
+        "user_next": "none",
+        "reason": "stop_loss",
+        "details": {"reopen_allowed": True},
+    }
+
+    plan = module.build_terminal_study_file_lifecycle_plan(
+        workspace_root=tmp_path,
+        study_root=tmp_path / "studies" / "001",
+        study_macro_state=reopenable_macro_state,
+        artifacts=artifacts,
+    )
+
+    assert plan["eligible"] is False
+    assert plan["eligibility"]["blockers"] == ["macro_state_not_terminal_non_reopenable_stop_loss"]
+    assert plan["retention_plan"]["summary"]["action_counts"]["archive_compress_candidate_blocked"] == 1
+    assert plan["archive_manifest_contract"]["required"] is True
+    assert plan["mutation_policy"]["physical_cleanup_performed"] is False
+
+
+def test_terminal_stop_loss_retention_plan_preserves_truth_and_marks_runtime_for_manifested_compaction(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_retention_operations_plan")
+    artifacts = [
+        _artifact(
+            Path("studies/001/paper/source/manuscript_source.md"),
+            role="canonical_source",
+            lifecycle="active_authority",
+            cleanup_candidate_action="keep-online",
+        ),
+        _artifact(
+            Path("studies/001/artifacts/interventions/events.jsonl"),
+            role="audit_log",
+            lifecycle="audit_retained",
+            cleanup_candidate_action="keep-online",
+        ),
+        _artifact(
+            Path("studies/001/manuscript/current_package/paper.pdf"),
+            role="derived_projection",
+            lifecycle="rebuildable_projection",
+            cleanup_candidate_action="rebuildable",
+        ),
+        _artifact(
+            Path("ops/runtime/quests/001/.ds/runs/run-old/stdout.jsonl"),
+            role="runtime_ephemeral",
+            lifecycle="runtime_transient",
+            cleanup_candidate_action="archive-compress",
+        ),
+    ]
+    terminal_macro_state = {
+        "writer_state": "parked",
+        "user_next": "none",
+        "reason": "stop_loss",
+        "details": {
+            "reopen_allowed": False,
+            "final_line_decision": {"decision": "abandon", "reopen_allowed": False},
+        },
+        "source_fingerprint": "study-macro-state::terminal-stop-loss",
+    }
+
+    plan = module.build_terminal_study_file_lifecycle_plan(
+        workspace_root=tmp_path,
+        study_root=tmp_path / "studies" / "001",
+        study_macro_state=terminal_macro_state,
+        artifacts=artifacts,
+    )
+
+    assert plan["surface_kind"] == "terminal_study_file_lifecycle_plan"
+    assert plan["mode"] == "dry_run"
+    assert plan["eligible"] is True
+    assert plan["eligibility"]["required_macro_state"] == {
+        "writer_state": "parked",
+        "user_next": "none",
+        "reason": "stop_loss",
+        "details.reopen_allowed": False,
+    }
+    assert plan["archive_manifest_contract"] == {
+        "required": True,
+        "format": "manifest_with_sha256_and_restore_index",
+        "restore_proof_required": True,
+        "summary_required": True,
+    }
+    assert plan["preserve_roles"] == [
+        "audit_log",
+        "canonical_source",
+        "data_release",
+        "human_handoff_mirror",
+    ]
+    assert plan["candidate_summary"]["runtime_archive_compact_candidates"] == 1
+    assert plan["candidate_summary"]["derived_projection_refresh_candidates"] == 1
+    runtime_operation = next(
+        item
+        for item in plan["retention_plan"]["operations"]
+        if item["role"] == "runtime_ephemeral"
+    )
+    assert runtime_operation["retention_action"] == "terminal_archive_compact_after_manifest"
+    assert runtime_operation["physical_archive_compress_allowed"] is False
+    assert runtime_operation["restore_contract_gate"] == {
+        "required": True,
+        "status": "manifest_and_restore_proof_required_before_apply",
+    }
+    assert "terminal_stop_loss_manifest_required" in runtime_operation["blockers"]

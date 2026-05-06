@@ -117,6 +117,8 @@ def derive_study_macro_state(
     stop_kind = _stop_kind(status=status, progress=progress_payload, truth=truth)
     if stop_kind is not None:
         package_delivered = _package_delivered(truth=truth, status=status, progress=progress_payload)
+        final_line_decision = _final_line_decision(status=status, progress=progress_payload, truth=truth)
+        terminal_abandon = _is_terminal_abandon(final_line_decision)
         return _state(
             study_id=study_id,
             writer_state="parked",
@@ -126,10 +128,21 @@ def derive_study_macro_state(
                 **details,
                 "stop_origin": _text(progress_payload.get("stop_origin")) or _text(status.get("stop_origin")),
                 "package_delivered": package_delivered,
-                "reopen_allowed": True,
-                "reopen_mode": "new_plan_required",
+                "reopen_allowed": False if terminal_abandon else True,
+                "reopen_mode": "closed" if terminal_abandon else "new_plan_required",
+                "final_line_decision": final_line_decision if terminal_abandon else None,
             },
-            conditions=[_condition("StoppedForPublishability", "true", "study is parked until a new plan is supplied")],
+            conditions=[
+                _condition(
+                    "TerminalAbandon" if terminal_abandon else "StoppedForPublishability",
+                    "true",
+                    (
+                        "study line is explicitly closed and not eligible for automatic reopen"
+                        if terminal_abandon
+                        else "study is parked until a new plan is supplied"
+                    ),
+                )
+            ],
         )
 
     if _is_runtime_repair_queued(status=status, progress=progress_payload, route=route, runtime_health=runtime_health):
@@ -285,6 +298,33 @@ def _stop_kind(
     if "quest_waiting_for_explicit_wakeup_after_manual_hold" in candidates:
         return "user_stop"
     return None
+
+
+def _final_line_decision(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    truth: Mapping[str, Any],
+) -> dict[str, Any]:
+    for candidate in (
+        truth.get("final_line_decision"),
+        status.get("final_line_decision"),
+        progress.get("final_line_decision"),
+        _mapping(truth.get("quality_state")).get("final_line_decision"),
+        _mapping(status.get("quality_state")).get("final_line_decision"),
+        _mapping(progress.get("quality_state")).get("final_line_decision"),
+    ):
+        mapping = _mapping(candidate)
+        if mapping:
+            return dict(mapping)
+    return {}
+
+
+def _is_terminal_abandon(final_line_decision: Mapping[str, Any]) -> bool:
+    return (
+        _text(final_line_decision.get("decision")) in {"abandon", "final_abandon", "close"}
+        and final_line_decision.get("reopen_allowed") is False
+    )
 
 
 def _is_runtime_repair_queued(

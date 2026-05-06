@@ -121,7 +121,7 @@ MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 poli
 - `allowed_actions` / `blocked_actions`：本轮允许执行和明确禁止执行的 supervisor action。
 - `idempotency_key`：由 study、epoch、fingerprint、owner、reason 和 action 集合派生；用于拒绝旧 dispatch。
 
-consumer 只能传播该 route，不能重新解释 owner。executor 执行前必须把 dispatch 中的 route 与最新 `hourly/latest.json` 的 route 对齐；如果 epoch、fingerprint、owner 或 reason 已变化，执行器必须写 `blocked_reason=owner_route_stale`，等待下一轮 consume 生成新 dispatch。
+consumer 只能传播该 route，不能重新解释 owner。request handoff 和 default executor dispatch 都必须通过同一 `owner_route.allowed_actions` gate；route 缺失、next owner 不匹配或 action 不在 allowed set 内时，只能写 blocked task，不能写 owner request packet。executor 执行前必须把 dispatch 中的 route 与最新 `hourly/latest.json` 的 route 对齐；如果 epoch、fingerprint、owner 或 reason 已变化，执行器必须写 `blocked_reason=owner_route_stale`，等待下一轮 consume 生成新 dispatch。
 
 `allowed_actions` 只表达当前 `next_owner` 可以执行的动作，不是 action queue 的全集。scan 可以同时暴露后续 owner 的观测动作，例如 AI reviewer request；但本轮 dispatch executor 只能执行 owner_route 允许的动作。这样 runtime liveness 的 retry/exhausted 噪声、publication gate 的 blocker、AI reviewer 的质量判断和 artifact freshness 的修复任务不会在同一个 tick 互相抢 owner。
 
@@ -186,7 +186,7 @@ medautosci runtime supervisor-execute-dispatch \
 - `runtime_platform_repair`：调用已有 runtime supervisor scan 的 safe platform repair path。
 - `return_to_ai_reviewer_workflow`：如果没有结构化 AI reviewer record，不生成评审结论，写 `blocked_reason=owner_callable_surface_missing` 与 `required_repo_surface=structured_ai_reviewer_default_executor_workflow`。
 
-执行器的默认读取权威是 workspace-level `artifacts/supervision/consumer/latest.json`。当调用方未显式传 action type 时，`runtime supervisor-execute-dispatch` 只能执行 consumer latest 当前列出的 dispatch；study-level `default_executor_dispatches/*.json` 目录里的旧文件只能在显式 action type 调用时作为调试/重放输入。这样可以避免旧 `runtime_platform_repair` 或旧 `return_to_ai_reviewer_workflow` dispatch 在下一轮 scan/consume 已经改判 owner 后继续执行。
+执行器的默认读取权威是 workspace-level `artifacts/supervision/consumer/latest.json`。无论调用方是否显式传 action type，`runtime supervisor-execute-dispatch` 都只能从 consumer latest 当前列出的 ready dispatch 中筛选执行；study-level `default_executor_dispatches/*.json` 目录里的旧文件不能单独作为执行票据。这样可以避免旧 `runtime_platform_repair` 或旧 `return_to_ai_reviewer_workflow` dispatch 在下一轮 scan/consume 已经改判 owner 后继续执行。
 
 publication gate 与 AI reviewer 的 currentness 使用 work-unit fingerprint，而不是最近生成时间：
 

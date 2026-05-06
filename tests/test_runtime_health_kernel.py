@@ -256,6 +256,35 @@ def test_runtime_health_zero_retry_budget_escalates_stopped_controller_guard_rec
     assert "recover_runtime" not in snapshot["allowed_controller_actions"]
 
 
+def test_runtime_health_append_deduplicates_same_source_signature(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "002-dm-cvd"
+    first = module.append_runtime_health_event(
+        study_root=study_root,
+        study_id="002-dm-cvd",
+        quest_id="002-dm-cvd",
+        event_type="recover_attempt",
+        payload={"attempt_state": "failed", "failure_reason": "same_recovery_attempt"},
+        recorded_at="2026-05-01T00:00:00+00:00",
+        source_signature="recover-attempt::same",
+    )
+    second = module.append_runtime_health_event(
+        study_root=study_root,
+        study_id="002-dm-cvd",
+        quest_id="002-dm-cvd",
+        event_type="recover_attempt",
+        payload={"attempt_state": "failed", "failure_reason": "same_recovery_attempt"},
+        recorded_at="2026-05-01T00:05:00+00:00",
+        source_signature="recover-attempt::same",
+    )
+
+    events = module.read_runtime_health_events(study_root=study_root)
+
+    assert len(events) == 1
+    assert second["event_id"] == first["event_id"]
+    assert second["duplicate_replay"] is True
+
+
 def test_runtime_health_stopped_quest_waits_for_explicit_resume_without_probe(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "004-dm-cvd"

@@ -25,3 +25,5 @@ Artifact OS 的目标是让 manuscript、figures、tables 和 submission package
 派生 projection 可以作为人读 handoff、提交镜像或 traceability output 使用；不能作为后续编辑、质量关闭、投稿授权的根。
 
 `artifact_rebuild_integrity_contract` 固定每类生成产物的 rebuild proof：`source_refs`、`fingerprint_refs`、`quality_decision_ref`、`controller_decision_ref` 和 `generated_artifact_role` 必须同时存在。缺任何一项只能说明 rebuild proof 不完整，不能把当前包、DOCX/PDF、zip 或 `submission_minimal/` 提升成质量或投稿 authority。
+
+终局止损后的文件精简不改变这条 authority 规则。即使 `study_macro_state` 已进入不可重开 `TerminalAbandon`，canonical source、data release、audit log 与 human handoff mirror 仍保持在线；runtime ephemeral 只能在 manifest、sha256、restore index 与 restore proof 成立后进入后续 archive/compact apply。派生 projection 的移除也必须先证明 canonical source 可重建。

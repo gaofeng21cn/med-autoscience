@@ -235,6 +235,7 @@ def _plan_action(
                 restore_contract_required=artifact_role != "safe_cache",
             ),
             *_artifact_role_blockers(artifact_role=artifact_role, restore_contract=restore_contract),
+            *_retention_report_target_blockers(target_path=target_path, action_payload=action_payload),
         ]
     )
 
@@ -274,6 +275,16 @@ def _plan_action(
         "restore_contract": dict(restore_contract),
         "applied": False,
     }
+
+
+def _retention_report_target_blockers(*, target_path: Path, action_payload: Mapping[str, Any]) -> list[str]:
+    safe_cache_candidate = _mapping(action_payload.get("safe_cache_candidate"))
+    if _text(action_payload.get("source")) != "retention_report":
+        return []
+    expected_sha256 = _text(safe_cache_candidate.get("target_sha256"))
+    if expected_sha256 is None or not target_path.exists() or _path_sha256(target_path) != expected_sha256:
+        return ["retention_report_target_drifted_from_safe_cache"]
+    return []
 
 
 def _restore_contract_blockers(
@@ -339,6 +350,9 @@ def _retention_report_safe_cache_actions(
                     "cleanup_candidate_action": _text(operation.get("cleanup_candidate_action")),
                     "workspace_relative_path": _text(operation.get("workspace_relative_path")),
                     "path": _text(operation.get("path")),
+                    "target_sha256": _text(
+                        operation.get("target_sha256") or operation.get("sha256") or operation.get("checksum")
+                    ),
                 },
             }
         )
@@ -448,6 +462,11 @@ def _apply_action_blockers(
         blockers.append("audit_payload_action_mismatch")
     if not _mapping(audit_payload.get("target_allowlist")):
         blockers.append("audit_payload_target_allowlist_missing")
+    safe_cache_candidate = _mapping(action.get("safe_cache_candidate"))
+    if _text(audit_payload.get("candidate_source")) == "retention_report":
+        expected_sha256 = _text(safe_cache_candidate.get("target_sha256"))
+        if expected_sha256 is None or not target_path.exists() or _path_sha256(target_path) != expected_sha256:
+            blockers.append("retention_report_target_drifted_from_safe_cache")
     return _dedupe(blockers)
 
 

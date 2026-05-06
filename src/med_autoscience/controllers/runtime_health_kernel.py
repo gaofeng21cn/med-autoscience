@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.control_plane_facts import resolve_control_plane_facts
-from med_autoscience.controllers.runtime_health_kernel_parts import explicit_resume, run_epoch_budget
+from med_autoscience.controllers.runtime_health_kernel_parts import event_log, explicit_resume, run_epoch_budget
 
 
 SCHEMA_VERSION = 1
@@ -89,15 +88,14 @@ _STABLE_RUNTIME_LIVENESS_AUDIT_KEYS = (
 
 
 def runtime_health_events_path(*, study_root: Path) -> Path:
-    return Path(study_root).expanduser().resolve() / EVENT_LOG_RELATIVE_PATH
+    return event_log.runtime_health_events_path(
+        study_root=study_root,
+        event_log_relative_path=EVENT_LOG_RELATIVE_PATH,
+    )
 
 
 def runtime_health_snapshot_path(*, study_root: Path) -> Path:
     return Path(study_root).expanduser().resolve() / SNAPSHOT_RELATIVE_PATH
-
-
-def _stable_json(value: object) -> str:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def _text(value: object) -> str | None:
@@ -122,77 +120,16 @@ def _read_json(path: Path | None) -> dict[str, Any] | None:
     return payload
 
 
-def _read_jsonl(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-    events: list[dict[str, Any]] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        text = line.strip()
-        if not text:
-            continue
-        payload = json.loads(text)
-        if isinstance(payload, dict):
-            events.append(dict(payload))
-    return events
-
-
 def read_runtime_health_events(*, study_root: Path) -> list[dict[str, Any]]:
-    return _read_jsonl(runtime_health_events_path(study_root=study_root))
-
-
-def _event_id_seed(
-    *,
-    study_id: str,
-    quest_id: str,
-    event_type: str,
-    payload: Mapping[str, Any],
-    recorded_at: str,
-    sequence: int,
-) -> str:
-    return _stable_json(
-        {
-            "study_id": study_id,
-            "quest_id": quest_id,
-            "event_type": event_type,
-            "payload": dict(payload),
-            "recorded_at": recorded_at,
-            "sequence": sequence,
-        }
-    )
-
-
-def _build_event_id(
-    *,
-    study_id: str,
-    quest_id: str,
-    event_type: str,
-    payload: Mapping[str, Any],
-    recorded_at: str,
-    sequence: int,
-) -> str:
-    digest = hashlib.sha256(
-        _event_id_seed(
-            study_id=study_id,
-            quest_id=quest_id,
-            event_type=event_type,
-            payload=payload,
-            recorded_at=recorded_at,
-            sequence=sequence,
-        ).encode("utf-8")
-    ).hexdigest()[:16]
-    return f"runtime-health-event-{sequence:06d}-{digest}"
+    return event_log.read_jsonl(runtime_health_events_path(study_root=study_root))
 
 
 def _event_source_signature(event_type: str, payload: Mapping[str, Any]) -> str:
-    digest = hashlib.sha256(
-        _stable_json(
-            {
-                "event_type": event_type,
-                "payload": _stable_event_payload(event_type, payload),
-            }
-        ).encode("utf-8")
-    ).hexdigest()[:24]
-    return f"runtime-health-source::{event_type}::{digest}"
+    return event_log.event_source_signature(
+        event_type=event_type,
+        payload=payload,
+        stable_event_payload=_stable_event_payload,
+    )
 
 
 def _stable_event_payload(event_type: str, payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -209,26 +146,19 @@ def _stable_event_payload(event_type: str, payload: Mapping[str, Any]) -> dict[s
 
 
 def _source_signature_for_event(event: Mapping[str, Any]) -> str:
-    event_type = str(event.get("event_type") or "").strip()
-    payload = _mapping(event.get("payload"))
-    return _text(event.get("source_signature")) or _event_source_signature(event_type, payload)
+    return event_log.source_signature_for_event(
+        event,
+        text=_text,
+        mapping=_mapping,
+        stable_event_payload=_stable_event_payload,
+    )
 
 
 def _snapshot_source_signature(events: list[dict[str, Any]]) -> str | None:
-    if not events:
-        return None
-    digest = hashlib.sha256(
-        _stable_json(
-            [
-                {
-                    "event_type": event.get("event_type"),
-                    "source_signature": _source_signature_for_event(event),
-                }
-                for event in events
-            ]
-        ).encode("utf-8")
-    ).hexdigest()[:24]
-    return f"runtime-health-snapshot::{digest}"
+    return event_log.snapshot_source_signature(
+        events,
+        source_signature_for_event=_source_signature_for_event,
+    )
 
 
 def append_runtime_health_event(
@@ -241,37 +171,20 @@ def append_runtime_health_event(
     recorded_at: str,
     source_signature: str | None = None,
 ) -> dict[str, Any]:
-    event_type_text = str(event_type or "").strip()
-    if event_type_text not in RUNTIME_HEALTH_EVENT_TYPES:
-        raise ValueError(f"unknown runtime health event type: {event_type}")
-    resolved_payload = dict(payload or {})
-    path = runtime_health_events_path(study_root=study_root)
-    existing = _read_jsonl(path)
-    sequence = len(existing) + 1
-    event = {
-        "schema_version": SCHEMA_VERSION,
-        "event_id": _build_event_id(
-            study_id=study_id,
-            quest_id=quest_id,
-            event_type=event_type_text,
-            payload=resolved_payload,
-            recorded_at=recorded_at,
-            sequence=sequence,
-        ),
-        "sequence": sequence,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "event_type": event_type_text,
-        "recorded_at": recorded_at,
-        "payload": resolved_payload,
-    }
-    normalized_source_signature = _text(source_signature)
-    if normalized_source_signature is not None:
-        event["source_signature"] = normalized_source_signature
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
-    return event
+    return event_log.append_runtime_health_event(
+        study_root=study_root,
+        event_log_relative_path=EVENT_LOG_RELATIVE_PATH,
+        schema_version=SCHEMA_VERSION,
+        allowed_event_types=RUNTIME_HEALTH_EVENT_TYPES,
+        study_id=study_id,
+        quest_id=quest_id,
+        event_type=event_type,
+        payload=payload,
+        recorded_at=recorded_at,
+        source_signature=source_signature,
+        text=_text,
+        source_signature_for_event=_source_signature_for_event,
+    )
 
 
 def _authority_ref(event: Mapping[str, Any]) -> dict[str, Any]:
@@ -736,7 +649,7 @@ def _transient_event(
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
-        "event_id": _build_event_id(
+            "event_id": event_log.build_event_id(
             study_id=study_id,
             quest_id=quest_id,
             event_type=event_type,
@@ -940,7 +853,7 @@ def reconcile_runtime_health_snapshot_from_status_payload(
     recorded_at: str,
 ) -> dict[str, Any]:
     path = runtime_health_events_path(study_root=study_root)
-    persisted_events = _read_jsonl(path)
+    persisted_events = event_log.read_jsonl(path)
     persisted_for_quest = [
         event
         for event in persisted_events

@@ -99,6 +99,14 @@ def test_execute_dispatch_blocks_dispatch_without_owner_route(monkeypatch, tmp_p
     del dispatch["prompt_contract"]["idempotency_key"]
     _write_json(dispatch_path, dispatch)
     _write_scan_latest(profile, study_id, route)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "runtime_supervisor_consumer",
+            "schema_version": 1,
+            "default_executor_dispatches": [{**dispatch, "refs": {"dispatch_path": str(dispatch_path)}}],
+        },
+    )
 
     result = module.execute_default_executor_dispatches(
         profile=profile,
@@ -869,13 +877,14 @@ def test_execute_dispatch_rejects_incomplete_forbidden_surface_contract(monkeypa
         required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
     )
     dispatch["prompt_contract"]["forbidden_surfaces"] = ["paper/**"]
-    _write_json(
+    _write_current_dispatch(
         study_root
         / "artifacts"
         / "supervision"
         / "consumer"
         / "default_executor_dispatches"
         / "runtime_platform_repair.json",
+        profile,
         dispatch,
     )
 
@@ -916,16 +925,17 @@ def test_runtime_platform_repair_dispatch_uses_non_persistent_scan(monkeypatch, 
             ],
         },
     )
-    before = latest_path.read_text(encoding="utf-8")
-    _write_json(
+    _write_current_dispatch(
         study_root
         / "artifacts"
         / "supervision"
         / "consumer"
         / "default_executor_dispatches"
         / "runtime_platform_repair.json",
+        profile,
         dispatch,
     )
+    before = latest_path.read_text(encoding="utf-8")
     called: dict[str, object] = {}
 
     def fake_supervisor_scan(**kwargs) -> dict[str, object]:

@@ -20,6 +20,8 @@
 - `resume_relevance`
 - `handoff_note`
 
+生命周期投影还会使用 `role`、`lifecycle`、`cleanup_candidate_action` 与 `cleanup_blockers`。稳定角色包括 `canonical_source`、`runtime_ephemeral`、`derived_projection`、`human_handoff_mirror`、`data_release`、`cold_archive`、`audit_log` 与 `cache`。这些字段只是 retention plan 的输入，不把 inventory 提升为 artifact authority。
+
 ## artifact_type
 
 稳定类型包括：

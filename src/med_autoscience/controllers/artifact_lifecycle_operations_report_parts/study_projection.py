@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
+import json
 from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.artifact_lifecycle_inventory import ARTIFACT_ROLES, lifecycle_for_role
+from med_autoscience.controllers.artifact_retention_operations_plan import (
+    build_terminal_study_file_lifecycle_plan,
+    compact_artifact_retention_operations_plan,
+)
 from med_autoscience.controllers.control_plane_migration_audit import (
     build_delivery_manifest_historical_backfill_plan,
     summarize_delivery_manifests,
@@ -39,6 +44,12 @@ def build_study_projection_reports(
         ]
         delivery_manifest_summary = summarize_delivery_manifests(manifest_paths)
         historical_backfill_plan = build_delivery_manifest_historical_backfill_plan(delivery_manifest_summary)
+        terminal_file_lifecycle_plan = _terminal_file_lifecycle_plan(
+            workspace_root=workspace_root,
+            study_root=study_root,
+            study_artifacts=study_artifacts,
+            all_artifacts=artifact_list,
+        )
         reports.append(
             {
                 "study_id": _study_id_for_root(study_root, workspace_root),
@@ -53,6 +64,7 @@ def build_study_projection_reports(
                 "projection_completeness": projection_completeness(surfaces),
                 "delivery_manifest_summary": delivery_manifest_summary,
                 "historical_backfill_plan": historical_backfill_plan,
+                "terminal_file_lifecycle_plan": terminal_file_lifecycle_plan,
             }
         )
     return reports
@@ -178,6 +190,61 @@ def _projection_surfaces(artifacts: Iterable[Mapping[str, Any]]) -> dict[str, An
             artifacts=[item for item in artifact_list if _path_suffix(item) == ".zip"],
         ),
     }
+
+
+def _terminal_file_lifecycle_plan(
+    *,
+    workspace_root: Path,
+    study_root: Path,
+    study_artifacts: list[dict[str, Any]],
+    all_artifacts: list[dict[str, Any]],
+) -> dict[str, Any]:
+    macro_state = _read_study_macro_state(study_root)
+    study_id = _study_id_for_root(study_root, workspace_root)
+    artifacts = [*study_artifacts, *_runtime_statistical_artifacts_for_study(workspace_root, study_id=study_id)]
+    plan = build_terminal_study_file_lifecycle_plan(
+        workspace_root=workspace_root,
+        study_root=study_root,
+        study_macro_state=macro_state,
+        artifacts=artifacts,
+    )
+    return {
+        **plan,
+        "retention_plan": compact_artifact_retention_operations_plan(plan["retention_plan"]),
+    }
+
+
+def _runtime_statistical_artifacts_for_study(workspace_root: Path, *, study_id: str) -> list[dict[str, Any]]:
+    candidates = (
+        workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / study_id,
+        workspace_root / ".ds" / "quests" / study_id,
+    )
+    artifacts: list[dict[str, Any]] = []
+    for candidate in candidates:
+        if not candidate.exists():
+            continue
+        artifacts.append(
+            {
+                "path": str(candidate.resolve()),
+                "workspace_relative_path": str(candidate.resolve().relative_to(workspace_root.resolve())),
+                "role": "runtime_ephemeral",
+                "lifecycle": "runtime_transient",
+                "cleanup_candidate_action": "archive-compress",
+                "cleanup_blockers": ["statistical_runtime_manifest_required_before_terminal_compaction"],
+            }
+        )
+    return artifacts
+
+
+def _read_study_macro_state(study_root: Path) -> dict[str, Any]:
+    path = study_root / "artifacts" / "runtime" / "study_macro_state" / "latest.json"
+    if not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    return dict(payload) if isinstance(payload, Mapping) else {}
 
 
 def _surface_report(

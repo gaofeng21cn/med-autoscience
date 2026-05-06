@@ -30,6 +30,7 @@ uv run python -m med_autoscience.cli study reconcile-truth --profile <profile> -
 ## Dominance Rules
 
 - `stop_loss` 强于 publication/package/finalize/readiness projection。
+- `final_line_decision` 是 stop-loss 后的显式终局输入，只有用户或 owner-authorized surface 明确 `decision=abandon/final_abandon/close` 且 `reopen_allowed=false`，才能把 study line 解释为不可重开终局。机械 retention plan 不得反向推断终局放弃。
 - 同一 study line 的新 `task_intake` / `reviewer_revision` 强于旧 stopped/finalize/submission-ready 投影。
 - `execution_owner_guard.supervisor_only=true` 时，前台只允许监督和用户沟通类动作。
 - `publication_supervisor_state.bundle_tasks_downstream_only=true` 时，bundle/build/proofing 类动作阻塞。

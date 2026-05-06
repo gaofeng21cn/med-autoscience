@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+import json
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +42,8 @@ def build_study_state_matrix(
         delivered_package = _delivered_package_observation(status=status)
         if delivered_package.get("observed") is True:
             status = {**status, "delivered_package": delivered_package}
-        macro = study_macro_state.derive_study_macro_state(
+        study_root = _study_root_from_status(profile=profile, study_id=study_id, status=status)
+        macro = _read_materialized_macro_state(study_root=study_root) or study_macro_state.derive_study_macro_state(
             study_id=study_id,
             status=status,
             progress={},
@@ -106,6 +108,28 @@ def _dict(value: object) -> dict[str, Any]:
     return {}
 
 
+def _study_root_from_status(*, profile: Any, study_id: str, status: Mapping[str, Any]) -> Path:
+    if text := _text(status.get("study_root")):
+        return Path(text).expanduser().resolve()
+    return Path(profile.studies_root).expanduser().resolve() / study_id
+
+
+def _read_materialized_macro_state(*, study_root: Path) -> dict[str, Any] | None:
+    path = study_root / study_macro_state.SNAPSHOT_RELATIVE_PATH
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, Mapping):
+        return None
+    macro = dict(payload)
+    if _text(macro.get("surface")) != "study_macro_state":
+        return None
+    if _text(macro.get("writer_state")) not in study_macro_state.WRITER_STATES:
+        return None
+    return macro
+
+
 def _delivered_package_observation(*, status: Mapping[str, Any]) -> dict[str, Any]:
     study_root_text = _text(status.get("study_root"))
     if not study_root_text:
@@ -144,6 +168,8 @@ def _delivered_package_observation(*, status: Mapping[str, Any]) -> dict[str, An
 
 
 def _resolved_active_run_id(*, status: Mapping[str, Any], macro_state: Mapping[str, Any]) -> str | None:
+    if _text(macro_state.get("writer_state")) == "parked":
+        return _text(_dict(macro_state.get("details")).get("active_run_id"))
     return (
         _text(status.get("active_run_id"))
         or _text(_dict(status.get("study_truth_snapshot")).get("active_run_id"))

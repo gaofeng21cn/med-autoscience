@@ -121,12 +121,15 @@ def _current_consumer_dispatch_files(profile: WorkspaceProfile, study_id: str) -
 
 
 def _dispatch_files(profile: WorkspaceProfile, study_id: str, action_types: tuple[str, ...]) -> list[Path]:
-    root = _dispatch_dir(profile, study_id)
-    if not root.is_dir():
-        return []
+    current_files = _current_consumer_dispatch_files(profile, study_id)
     if action_types:
-        return [root / f"{action_type}.json" for action_type in action_types if (root / f"{action_type}.json").is_file()]
-    return _current_consumer_dispatch_files(profile, study_id)
+        requested = set(action_types)
+        return [
+            path
+            for path in current_files
+            if (payload := _read_json_object(path)) is not None and _text(payload.get("action_type")) in requested
+        ]
+    return current_files
 
 
 def _resolve_study_ids(profile: WorkspaceProfile, study_ids: Iterable[str]) -> tuple[str, ...]:

@@ -90,6 +90,7 @@ def _retention_report_fixture(workspace_root: Path, cache_root: Path) -> dict[st
                             "cleanup_candidate_action": "delete-safe-cache",
                             "retention_action": "delete_safe_cache",
                             "physical_delete_allowed": True,
+                            "target_sha256": _dir_sha256(cache_root),
                         }
                     ],
                 },
@@ -242,6 +243,29 @@ def test_cleanup_apply_deletes_safe_cache_candidate_from_retention_report_after_
         "action": "delete-safe-cache",
         "target_path": str(cache_root),
     }
+
+
+def test_cleanup_apply_blocks_stale_retention_report_when_target_no_longer_matches_safe_cache(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
+    workspace_root, cache_root = _cleanup_apply_fixture(tmp_path)
+    _clear_contract_actions(workspace_root)
+    retention_report = _retention_report_fixture(workspace_root, cache_root)
+    (cache_root / "cache.tmp").unlink()
+    (cache_root / "canonical_source.json").write_text("{\"truth\": true}\n", encoding="utf-8")
+
+    report = module.run_cleanup_apply(
+        workspace_roots=[workspace_root],
+        apply=True,
+        control_plane_snapshot=_snapshot(),
+        retention_report=retention_report,
+    )
+
+    assert report["status"] == "blocked"
+    assert cache_root.exists()
+    assert report["action_counts"] == {"planned": 0, "blocked": 1, "applied": 0, "mutating": 0}
+    assert "retention_report_target_drifted_from_safe_cache" in report["apply_plan"][0]["blockers"]
 
 
 def test_cleanup_apply_ignores_non_safe_cache_retention_report_candidates(tmp_path: Path) -> None:

@@ -34,6 +34,8 @@ This guide is for readers who need product boundary, operator entry surfaces, ru
 - MAS standalone GitHub Releases / installers are not the active user-installation channel; distribution wording should point to the current OPL-managed module path or future OPL Packages/GHCR module coordinates.
 - AI-first is the current operating direction for runnable research quality. It is expressed through pre-draft quality runtime, AI reviewer workflow, artifact rebuild proof, operations state, and real-paper soak, not through mechanical checks over documentation wording.
 - `StudyTruthKernel` and `RuntimeHealthKernel` are current read-model reducers for study truth and runtime health; ordinary reads create shadow projections, while materialized snapshots require explicit reconcile/controller/watch apply actions.
+- `study_macro_state/latest.json` and `owner_route` now carry the user-facing macro state and executable owner ticket. `study-state-matrix`, supervisor consume, dispatch execution, and lifecycle projection should converge on those surfaces instead of re-deriving local status.
+- Artifact retention is a lifecycle projection, not authority. Terminal stop-loss compaction starts as a dry-run plan and still requires manifest, sha256, restore index, and restore proof before any future physical apply.
 - First-draft manuscript quality is handled as a pre-draft runtime concern: MAS should generate manuscript-native medical journal prose, not controller notes, figure/table anchor scaffolds, or administrative placeholders in article text.
 - Artifact proof is canonical-source-first: manuscript, figures, tables, and packages should be rebuildable from canonical sources before they are treated as delivery evidence.
 - Real-paper soak remains the main evidence gap for the AI-first line; documents should state that gap instead of presenting every target-layer capability as proven current behavior.
@@ -74,6 +76,10 @@ Public-facing material should stay mirrored in English and Chinese.
 - [Runtime supervision loop](runtime/runtime_supervision_loop.md)
 - [Study truth kernel](runtime/study_truth_kernel.md)
 - [Runtime health kernel](runtime/runtime_health_kernel.md)
+- [Study macro state and owner route](runtime/study_macro_state_and_owner_route.md)
+- [Artifact retention operations contract](runtime/artifact_retention_operations_contract.md)
+- [Artifact inventory projection](runtime/artifact_inventory_projection.md)
+- [Canonical artifact contract](runtime/canonical_artifact_contract.md)
 - [Study runtime control surface](runtime/study_runtime_control_surface.md)
 - [Study runtime orchestration](runtime/study_runtime_orchestration.md)
 - [Workspace knowledge and literature contract](runtime/workspace_knowledge_and_literature_contract.md)

@@ -282,3 +282,63 @@ def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
     assert result["executed_count"] == 1
     assert result["blocked_count"] == 0
     assert result["executions"][0]["action_type"] == "current_package_freshness_required"
+
+
+def test_execute_dispatch_action_type_requires_current_consumer_dispatch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+    )
+    stale_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+        owner_route=route,
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_json(dispatch_path, stale_dispatch)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "owner_route": route}],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_execute_ai_reviewer_workflow",
+        lambda **_: {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "should_not_run",
+        },
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 0
+    assert result["executed_count"] == 0
