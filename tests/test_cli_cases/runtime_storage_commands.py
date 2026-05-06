@@ -360,6 +360,18 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
     assert json.loads(captured.out)["restore_proof_compaction"] is True
 
 
+def test_runtime_storage_audit_validation_error_uses_grouped_command_usage(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["runtime", "storage-audit", "--profile", "workspace.toml", "--git-only", "--restore-proof-compaction"])
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 2
+    assert "usage: medautosci runtime storage-audit" in captured.err
+    assert "workspace-storage-audit" not in captured.err
+
+
 def test_runtime_lifecycle_export_command_dispatches_read_model(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     quest_root = tmp_path / "runtime" / "quests" / "q001"

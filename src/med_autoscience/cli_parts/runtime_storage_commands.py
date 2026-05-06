@@ -11,6 +11,7 @@ LoadProfile = Callable[[str], Any]
 
 def register_runtime_storage_parsers(subparsers: argparse._SubParsersAction) -> None:
     maintain_parser = subparsers.add_parser("runtime-maintain-storage")
+    maintain_parser.set_defaults(_command_parser=maintain_parser)
     maintain_parser.add_argument("--profile", required=True)
     maintain_parser.add_argument("--study-id", type=str)
     maintain_parser.add_argument("--study-root", type=str)
@@ -18,6 +19,7 @@ def register_runtime_storage_parsers(subparsers: argparse._SubParsersAction) -> 
     _add_storage_cleanup_options(maintain_parser)
 
     audit_parser = subparsers.add_parser("workspace-storage-audit")
+    audit_parser.set_defaults(_command_parser=audit_parser)
     audit_parser.add_argument("--profile", required=True)
     audit_parser.add_argument("--study-id", type=str)
     audit_parser.add_argument("--all-studies", action="store_true")
@@ -37,13 +39,13 @@ def handle_runtime_storage_command(
 ) -> int | None:
     if args.command == "runtime-maintain-storage":
         if sum(bool(value) for value in (args.study_id, args.study_root, args.quest_root)) != 1:
-            parser.error("Specify exactly one of --study-id, --study-root, or --quest-root")
+            _command_error(args, parser, "Specify exactly one of --study-id, --study-root, or --quest-root")
         if bool(args.restore_proof_compaction) and bool(args.allow_live_runtime):
-            parser.error("--restore-proof-compaction cannot be combined with --allow-live-runtime")
+            _command_error(args, parser, "--restore-proof-compaction cannot be combined with --allow-live-runtime")
         if bool(args.include_parked_controller_stop) and not bool(args.restore_proof_compaction):
-            parser.error("--include-parked-controller-stop requires --restore-proof-compaction")
+            _command_error(args, parser, "--include-parked-controller-stop requires --restore-proof-compaction")
         if bool(args.include_operator_confirmed_parked_active) and not bool(args.restore_proof_compaction):
-            parser.error("--include-operator-confirmed-parked-active requires --restore-proof-compaction")
+            _command_error(args, parser, "--include-operator-confirmed-parked-active requires --restore-proof-compaction")
         profile = load_profile(args.profile)
         if args.quest_root:
             result = runtime_storage_maintenance.maintain_quest_runtime_storage(
@@ -63,17 +65,17 @@ def handle_runtime_storage_command(
 
     if args.command == "workspace-storage-audit":
         if bool(args.git_only) and (bool(args.study_id) or bool(args.all_studies)):
-            parser.error("--git-only cannot be combined with --study-id or --all-studies")
+            _command_error(args, parser, "--git-only cannot be combined with --study-id or --all-studies")
         if bool(args.reinitialize_empty_workspace_git) and (not bool(args.git_only) or not bool(args.apply)):
-            parser.error("--reinitialize-empty-workspace-git requires --git-only --apply")
+            _command_error(args, parser, "--reinitialize-empty-workspace-git requires --git-only --apply")
         if bool(args.restore_proof_compaction) and bool(args.git_only):
-            parser.error("--restore-proof-compaction cannot be combined with --git-only")
+            _command_error(args, parser, "--restore-proof-compaction cannot be combined with --git-only")
         if bool(args.include_parked_controller_stop) and not bool(args.restore_proof_compaction):
-            parser.error("--include-parked-controller-stop requires --restore-proof-compaction")
+            _command_error(args, parser, "--include-parked-controller-stop requires --restore-proof-compaction")
         if bool(args.include_operator_confirmed_parked_active) and not bool(args.restore_proof_compaction):
-            parser.error("--include-operator-confirmed-parked-active requires --restore-proof-compaction")
+            _command_error(args, parser, "--include-operator-confirmed-parked-active requires --restore-proof-compaction")
         if bool(args.study_id) and bool(args.all_studies):
-            parser.error("Specify at most one of --study-id or --all-studies")
+            _command_error(args, parser, "Specify at most one of --study-id or --all-studies")
         result = runtime_storage_maintenance.audit_workspace_storage(
             profile=load_profile(args.profile),
             study_id=args.study_id,
@@ -88,6 +90,13 @@ def handle_runtime_storage_command(
         return 0
 
     return None
+
+
+def _command_error(args: argparse.Namespace, fallback_parser: argparse.ArgumentParser, message: str) -> None:
+    parser = getattr(args, "_command_parser", None)
+    if not isinstance(parser, argparse.ArgumentParser):
+        parser = fallback_parser
+    parser.error(message)
 
 
 def _add_storage_cleanup_options(parser: argparse.ArgumentParser) -> None:
