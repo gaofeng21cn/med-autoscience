@@ -14,6 +14,13 @@ def test_runtime_lifecycle_contract_exposes_shared_schema_and_authority_boundary
     assert "publication_eval/latest.json" in contract["file_authority_surfaces"]
     assert "controller_decisions/latest.json" in contract["file_authority_surfaces"]
     assert "runtime_events" in contract["sqlite_sidecar_tables"]
+    assert "lineage_nodes" in contract["sqlite_sidecar_tables"]
+    assert "lineage_edges" in contract["sqlite_sidecar_tables"]
+    assert "workspace_allocations" in contract["sqlite_sidecar_tables"]
+    assert "runtime_snapshots" in contract["sqlite_sidecar_tables"]
+    assert "snapshot_file_refs" in contract["sqlite_sidecar_tables"]
+    assert "revision_diffs" in contract["sqlite_sidecar_tables"]
+    assert "canvas_projection" in contract["sqlite_sidecar_tables"]
     assert "retention_actions" in contract["sqlite_sidecar_tables"]
     assert "migration_runs" in contract["sqlite_sidecar_tables"]
     assert "study_macro_state_snapshots" in contract["sqlite_sidecar_tables"]
@@ -36,11 +43,52 @@ def test_runtime_lifecycle_contract_declares_sidecar_index_not_macro_state_autho
         "owner_route_receipt",
         "dispatch_receipt",
         "surface_ref",
+        "lineage_node",
+        "lineage_edge",
+        "workspace_allocation",
+        "runtime_snapshot",
+        "snapshot_file_ref",
+        "revision_diff",
+        "canvas_projection",
     ]
     assert contract["sidecar_authority_policy"] == "index_only_authority_remains_file_surfaces"
     assert "study_macro_state/latest.json" in contract["file_authority_surfaces"]
     assert "runtime_supervisor_owner_route" in contract["file_authority_surfaces"]
     assert "runtime_supervisor_dispatch_receipt" in contract["file_authority_surfaces"]
+
+
+def test_runtime_lifecycle_contract_declares_q1_q6_git_replacement_cutover() -> None:
+    contract_module = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_contract")
+
+    contract = contract_module.runtime_lifecycle_contract()
+
+    assert contract["git_era_replacement_surfaces"] == {
+        "quest_lineage": ["lineage_nodes", "lineage_edges"],
+        "workspace_checkout_allocation": ["workspace_allocations"],
+        "quest_runtime_snapshot": ["runtime_snapshots", "snapshot_file_refs"],
+        "revision_comparison": ["revision_diffs"],
+        "canvas_projection_index": ["canvas_projection"],
+    }
+    assert [item["quarter"] for item in contract["q1_q6_cutover_contract"]] == [
+        "Q1",
+        "Q2",
+        "Q3",
+        "Q4",
+        "Q5",
+        "Q6",
+    ]
+    assert contract["q1_q6_cutover_contract"][0]["required_tables"] == [
+        "lineage_nodes",
+        "lineage_edges",
+        "workspace_allocations",
+        "runtime_snapshots",
+        "snapshot_file_refs",
+        "revision_diffs",
+        "canvas_projection",
+    ]
+    assert contract["q1_q6_cutover_contract"][-1]["required_proof"] == (
+        "sqlite_lifecycle_store_remains_index_only_and_file_truth_surfaces_remain_authoritative"
+    )
 
 
 def test_migration_ledger_validation_is_structural_not_markdown_wording() -> None:

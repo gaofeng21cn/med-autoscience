@@ -7,6 +7,30 @@ import sqlite3
 import subprocess
 
 
+def _expected_table_counts(**overrides: int) -> dict[str, int]:
+    tables = {
+        "watch_states": 0,
+        "runtime_reports": 0,
+        "workspace_storage_audits": 0,
+        "lineage_nodes": 0,
+        "lineage_edges": 0,
+        "workspace_allocations": 0,
+        "runtime_snapshots": 0,
+        "snapshot_file_refs": 0,
+        "revision_diffs": 0,
+        "canvas_projection": 0,
+        "runtime_events": 0,
+        "archive_refs": 0,
+        "study_macro_state_snapshots": 0,
+        "owner_route_receipts": 0,
+        "dispatch_receipts": 0,
+        "surface_refs": 0,
+        "report_index": 0,
+    }
+    tables.update(overrides)
+    return tables
+
+
 def test_report_store_indexes_watch_state_and_reports_without_changing_file_surfaces(tmp_path: Path) -> None:
     report_store = importlib.import_module("med_autoscience.runtime_protocol.report_store")
     lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
@@ -55,18 +79,11 @@ def test_report_store_indexes_watch_state_and_reports_without_changing_file_surf
         str(json_path.resolve()),
         str(md_path.resolve()),
     )
-    assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"] == {
-        "watch_states": 1,
-        "runtime_reports": 1,
-        "workspace_storage_audits": 0,
-        "runtime_events": 0,
-        "archive_refs": 0,
-        "study_macro_state_snapshots": 0,
-        "owner_route_receipts": 0,
-        "dispatch_receipts": 0,
-        "surface_refs": 0,
-        "report_index": 1,
-    }
+    assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"] == _expected_table_counts(
+        watch_states=1,
+        runtime_reports=1,
+        report_index=1,
+    )
     with sqlite3.connect(db_path) as conn:
         report_index_row = conn.execute(
             """
@@ -130,18 +147,10 @@ def test_workspace_storage_audit_indexes_summary_in_workspace_lifecycle_store(tm
     assert indexed_payload["projection_policy"] == "compact_sqlite_index_full_report_in_file_authority"
     assert indexed_payload["source_report_path"] == str(Path(result["report_path"]).resolve())
     assert "categories" not in indexed_payload
-    assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"] == {
-        "watch_states": 0,
-        "runtime_reports": 0,
-        "workspace_storage_audits": 1,
-        "runtime_events": 0,
-        "archive_refs": 0,
-        "study_macro_state_snapshots": 0,
-        "owner_route_receipts": 0,
-        "dispatch_receipts": 0,
-        "surface_refs": 0,
-        "report_index": 1,
-    }
+    assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"] == _expected_table_counts(
+        workspace_storage_audits=1,
+        report_index=1,
+    )
 
 
 def test_workspace_storage_audit_indexes_compact_payload_for_large_reports(tmp_path: Path) -> None:
@@ -383,6 +392,202 @@ def test_lifecycle_store_records_archive_refs_without_replacing_restore_authorit
     assert json.loads(row[3]) == ["runs"]
     assert json.loads(row[4]) == archive_ref
     assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"]["archive_refs"] == 1
+
+
+def test_lifecycle_store_records_q1_lineage_snapshot_allocation_indexes(tmp_path: Path) -> None:
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    workspace_root = tmp_path / "workspace"
+    db_path = lifecycle_store.workspace_lifecycle_store_path(workspace_root)
+    node = {
+        "node_id": "quest-001",
+        "node_kind": "quest",
+        "object_scope": "quest",
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "status": "active",
+    }
+    parent_node = {
+        "node_id": "workspace-root",
+        "node_kind": "workspace",
+        "object_scope": "workspace",
+        "status": "active",
+    }
+    edge = {
+        "edge_id": "workspace-root->quest-001",
+        "source_node_id": "workspace-root",
+        "target_node_id": "quest-001",
+        "edge_kind": "allocates",
+    }
+    allocation = {
+        "allocation_id": "alloc-001",
+        "quest_id": "quest-001",
+        "study_id": "001-risk",
+        "allocated_root": str(workspace_root / "runtime" / "quests" / "quest-001"),
+        "owner": "runtime",
+        "status": "allocated",
+    }
+    snapshot = {
+        "snapshot_id": "snap-001",
+        "quest_id": "quest-001",
+        "study_id": "001-risk",
+        "snapshot_kind": "runtime",
+        "created_at": "2026-05-06T00:00:00+00:00",
+    }
+    file_ref = {
+        "snapshot_id": "snap-001",
+        "ref_id": "runtime-watch",
+        "ref_kind": "runtime_report",
+        "path": str(workspace_root / "runtime" / "quests" / "quest-001" / "artifacts" / "reports" / "runtime_watch.json"),
+        "sha256": "abc123",
+        "bytes": 12,
+    }
+    diff = {
+        "diff_id": "diff-001",
+        "base_snapshot_id": "snap-000",
+        "target_snapshot_id": "snap-001",
+        "diff_kind": "runtime_revision",
+    }
+    projection = {
+        "projection_id": "canvas-001",
+        "snapshot_id": "snap-001",
+        "canvas_id": "main-runtime-canvas",
+        "projection_kind": "runtime_canvas",
+        "status": "projected",
+    }
+
+    assert lifecycle_store.record_lineage_node(workspace_root=workspace_root, node=parent_node)["indexed_table"] == "lineage_nodes"
+    assert lifecycle_store.record_lineage_node(workspace_root=workspace_root, node=node)["indexed_table"] == "lineage_nodes"
+    assert lifecycle_store.record_lineage_edge(workspace_root=workspace_root, edge=edge)["indexed_table"] == "lineage_edges"
+    assert lifecycle_store.record_workspace_allocation(workspace_root=workspace_root, allocation=allocation)["indexed_table"] == (
+        "workspace_allocations"
+    )
+    assert lifecycle_store.record_runtime_snapshot(workspace_root=workspace_root, snapshot=snapshot)["indexed_table"] == (
+        "runtime_snapshots"
+    )
+    assert lifecycle_store.record_snapshot_file_ref(workspace_root=workspace_root, ref=file_ref)["indexed_table"] == (
+        "snapshot_file_refs"
+    )
+    assert lifecycle_store.record_revision_diff(workspace_root=workspace_root, diff=diff)["indexed_table"] == "revision_diffs"
+    assert lifecycle_store.record_canvas_projection(workspace_root=workspace_root, projection=projection)["indexed_table"] == (
+        "canvas_projection"
+    )
+
+    with sqlite3.connect(db_path) as conn:
+        node_row = conn.execute(
+            """
+            SELECT node_kind, object_scope, study_id, quest_id, status, payload_json
+            FROM lineage_nodes
+            WHERE workspace_root = ? AND node_id = ?
+            """,
+            (str(workspace_root.resolve()), "quest-001"),
+        ).fetchone()
+        edge_row = conn.execute(
+            """
+            SELECT source_node_id, target_node_id, edge_kind, payload_json
+            FROM lineage_edges
+            WHERE workspace_root = ? AND edge_id = ?
+            """,
+            (str(workspace_root.resolve()), "workspace-root->quest-001"),
+        ).fetchone()
+        allocation_row = conn.execute(
+            """
+            SELECT quest_id, study_id, allocated_root, owner, status, payload_json
+            FROM workspace_allocations
+            WHERE workspace_root = ? AND allocation_id = ?
+            """,
+            (str(workspace_root.resolve()), "alloc-001"),
+        ).fetchone()
+        snapshot_row = conn.execute(
+            """
+            SELECT quest_id, study_id, snapshot_kind, created_at, payload_json
+            FROM runtime_snapshots
+            WHERE workspace_root = ? AND snapshot_id = ?
+            """,
+            (str(workspace_root.resolve()), "snap-001"),
+        ).fetchone()
+        file_ref_row = conn.execute(
+            """
+            SELECT ref_kind, target_path, target_sha256, target_bytes, payload_json
+            FROM snapshot_file_refs
+            WHERE workspace_root = ? AND snapshot_id = ? AND ref_id = ?
+            """,
+            (str(workspace_root.resolve()), "snap-001", "runtime-watch"),
+        ).fetchone()
+        diff_row = conn.execute(
+            """
+            SELECT base_snapshot_id, target_snapshot_id, diff_kind, payload_json
+            FROM revision_diffs
+            WHERE workspace_root = ? AND diff_id = ?
+            """,
+            (str(workspace_root.resolve()), "diff-001"),
+        ).fetchone()
+        projection_row = conn.execute(
+            """
+            SELECT snapshot_id, canvas_id, projection_kind, status, payload_json
+            FROM canvas_projection
+            WHERE workspace_root = ? AND projection_id = ?
+            """,
+            (str(workspace_root.resolve()), "canvas-001"),
+        ).fetchone()
+
+    assert node_row[:-1] == ("quest", "quest", "001-risk", "quest-001", "active")
+    assert json.loads(node_row[-1]) == node
+    assert edge_row[:-1] == ("workspace-root", "quest-001", "allocates")
+    assert json.loads(edge_row[-1]) == edge
+    assert allocation_row[:-1] == (
+        "quest-001",
+        "001-risk",
+        str((workspace_root / "runtime" / "quests" / "quest-001").resolve()),
+        "runtime",
+        "allocated",
+    )
+    assert json.loads(allocation_row[-1]) == allocation
+    assert snapshot_row[:-1] == ("quest-001", "001-risk", "runtime", "2026-05-06T00:00:00+00:00")
+    assert json.loads(snapshot_row[-1]) == snapshot
+    assert file_ref_row[:-1] == (
+        "runtime_report",
+        str((workspace_root / "runtime" / "quests" / "quest-001" / "artifacts" / "reports" / "runtime_watch.json").resolve()),
+        "abc123",
+        12,
+    )
+    assert json.loads(file_ref_row[-1]) == file_ref
+    assert diff_row[:-1] == ("snap-000", "snap-001", "runtime_revision")
+    assert json.loads(diff_row[-1]) == diff
+    assert projection_row[:-1] == ("snap-001", "main-runtime-canvas", "runtime_canvas", "projected")
+    assert json.loads(projection_row[-1]) == projection
+    assert lifecycle_store.read_lifecycle_records(db_path, "runtime_snapshots") == [snapshot]
+    assert lifecycle_store.inspect_lifecycle_store(db_path)["tables"] == _expected_table_counts(
+        lineage_nodes=2,
+        lineage_edges=1,
+        workspace_allocations=1,
+        runtime_snapshots=1,
+        snapshot_file_refs=1,
+        revision_diffs=1,
+        canvas_projection=1,
+    )
+
+
+def test_lifecycle_store_rejects_publication_study_artifact_authority_in_q1_indexes(tmp_path: Path) -> None:
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    workspace_root = tmp_path / "workspace"
+
+    try:
+        lifecycle_store.record_runtime_snapshot(
+            workspace_root=workspace_root,
+            snapshot={
+                "snapshot_id": "snap-publication-truth",
+                "authority_scope": ["runtime_lifecycle", "publication_authority"],
+                "authority_surfaces": ["publication_eval/latest.json", "current_package.zip"],
+            },
+        )
+    except ValueError as exc:
+        assert "index-only" in str(exc)
+        assert "file/study/publication/artifact truth remains outside SQLite" in str(exc)
+    else:
+        raise AssertionError("SQLite lifecycle store must reject publication/artifact truth authority")
+
+    db_path = lifecycle_store.workspace_lifecycle_store_path(workspace_root)
+    assert not db_path.exists()
 
 
 def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replacing_authority_files(

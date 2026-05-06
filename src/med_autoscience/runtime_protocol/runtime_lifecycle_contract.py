@@ -66,6 +66,13 @@ FILE_AUTHORITY_SURFACES = (
 SQLITE_SIDECAR_TABLES = (
     "schema_migrations",
     "runtime_objects",
+    "lineage_nodes",
+    "lineage_edges",
+    "workspace_allocations",
+    "runtime_snapshots",
+    "snapshot_file_refs",
+    "revision_diffs",
+    "canvas_projection",
     "runtime_events",
     "run_summaries",
     "bash_exec_sessions",
@@ -87,6 +94,13 @@ SIDECAR_INDEXED_SURFACES = (
     "owner_route_receipt",
     "dispatch_receipt",
     "surface_ref",
+    "lineage_node",
+    "lineage_edge",
+    "workspace_allocation",
+    "runtime_snapshot",
+    "snapshot_file_ref",
+    "revision_diff",
+    "canvas_projection",
 )
 
 SIDECAR_AUTHORITY_POLICY = "index_only_authority_remains_file_surfaces"
@@ -115,6 +129,60 @@ QUEST_LEGACY_IMPORT_RESTORE_SOURCES = (
     "ops/med-deepscientist runtime Git era",
 )
 QUEST_FORBIDDEN_DAILY_LIFECYCLE_SURFACES = QUEST_LEGACY_IMPORT_RESTORE_SOURCES
+
+GIT_ERA_REPLACEMENT_SURFACES = {
+    "quest_lineage": ["lineage_nodes", "lineage_edges"],
+    "workspace_checkout_allocation": ["workspace_allocations"],
+    "quest_runtime_snapshot": ["runtime_snapshots", "snapshot_file_refs"],
+    "revision_comparison": ["revision_diffs"],
+    "canvas_projection_index": ["canvas_projection"],
+}
+
+Q1_Q6_CUTOVER_CONTRACT = (
+    {
+        "quarter": "Q1",
+        "status": "shared_sqlite_foundation",
+        "required_tables": [
+            "lineage_nodes",
+            "lineage_edges",
+            "workspace_allocations",
+            "runtime_snapshots",
+            "snapshot_file_refs",
+            "revision_diffs",
+            "canvas_projection",
+        ],
+        "git_era_surfaces_replaced": [
+            "quest-local .git lineage",
+            "workspace checkout allocation records",
+            "runtime snapshot file manifest indexes",
+        ],
+    },
+    {
+        "quarter": "Q2",
+        "status": "dual_write_read_parity",
+        "required_proof": "sqlite_indexes_match_legacy_git_readers_before_reader_cutover",
+    },
+    {
+        "quarter": "Q3",
+        "status": "reader_cutover",
+        "required_proof": "runtime_readers_use_sqlite_lifecycle_indexes_for_lineage_and_snapshots",
+    },
+    {
+        "quarter": "Q4",
+        "status": "legacy_git_import_freeze",
+        "required_proof": "legacy_git_inputs_are_restore_or_audit_sources_only",
+    },
+    {
+        "quarter": "Q5",
+        "status": "controlled_retirement",
+        "required_proof": "quest_git_daily_lifecycle_paths_are_absent_from_live_writer_roots",
+    },
+    {
+        "quarter": "Q6",
+        "status": "post_cutover_verification",
+        "required_proof": "sqlite_lifecycle_store_remains_index_only_and_file_truth_surfaces_remain_authoritative",
+    },
+)
 
 MIGRATION_LEDGER_REQUIRED_FIELDS = (
     "migration_run_id",
@@ -175,6 +243,13 @@ def runtime_lifecycle_contract() -> dict[str, Any]:
             "legacy_import_restore_sources": list(QUEST_LEGACY_IMPORT_RESTORE_SOURCES),
             "forbidden_daily_lifecycle_surfaces": list(QUEST_FORBIDDEN_DAILY_LIFECYCLE_SURFACES),
         },
+        "git_era_replacement_surfaces": {
+            key: list(value) for key, value in GIT_ERA_REPLACEMENT_SURFACES.items()
+        },
+        "q1_q6_cutover_contract": [
+            {key: list(value) if isinstance(value, list) else value for key, value in milestone.items()}
+            for milestone in Q1_Q6_CUTOVER_CONTRACT
+        ],
         "migration_ledger_required_fields": list(MIGRATION_LEDGER_REQUIRED_FIELDS),
         "compatibility_verification_required_fields": list(COMPATIBILITY_VERIFICATION_REQUIRED_FIELDS),
     }
@@ -265,12 +340,14 @@ __all__ = [
     "CONTRACT_VERSION",
     "DEFAULT_DB_FILENAME",
     "FILE_AUTHORITY_SURFACES",
+    "GIT_ERA_REPLACEMENT_SURFACES",
     "MIGRATION_LEDGER_REQUIRED_FIELDS",
     "MIGRATION_RUN_MODES",
     "QUEST_ALLOWED_LIVE_WRITER_ROOTS",
     "QUEST_FORBIDDEN_DAILY_LIFECYCLE_SURFACES",
     "QUEST_LEGACY_IMPORT_RESTORE_SOURCES",
     "QUEST_LIVE_WRITER_ROOT_POLICY",
+    "Q1_Q6_CUTOVER_CONTRACT",
     "SCHEMA_VERSION",
     "SIDECAR_AUTHORITY_POLICY",
     "SIDECAR_INDEXED_SURFACES",
