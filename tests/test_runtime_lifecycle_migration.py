@@ -249,6 +249,188 @@ def test_runtime_lifecycle_ledger_cli_dispatches_migration_builder(monkeypatch, 
     assert json.loads(captured.out)["validation"]["ok"] is True
 
 
+def test_runtime_lifecycle_quest_git_inventory_cli_dispatches_builder(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    called: dict[str, object] = {}
+
+    def fake_build_quest_git_inventory(*, workspace_root: Path) -> dict[str, object]:
+        called["workspace_root"] = workspace_root
+        return {
+            "surface_kind": "quest_git_inventory",
+            "summary": {"item_count": 0, "active_git_count": 0, "retired_count": 0, "pending_count": 0},
+            "items": [],
+        }
+
+    monkeypatch.setattr(cli.runtime_lifecycle_migration, "build_quest_git_inventory", fake_build_quest_git_inventory)
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "lifecycle-quest-git-inventory",
+            "--workspace-root",
+            str(workspace_root),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {"workspace_root": workspace_root}
+    payload = json.loads(captured.out)
+    assert payload["surface_kind"] == "quest_git_inventory"
+    assert payload["summary"]["item_count"] == 0
+
+
+def test_quest_git_inventory_discovers_active_legacy_git_roots(tmp_path: Path) -> None:
+    migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+    runtime_git = workspace_root / "runtime" / "quests" / "quest-runtime" / ".git"
+    mds_git = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-mds" / ".git"
+    worktree_git = workspace_root / ".ds" / "worktrees" / "quest-worktree" / ".git"
+    runtime_git.mkdir(parents=True)
+    mds_git.mkdir(parents=True)
+    worktree_git.parent.mkdir(parents=True)
+    worktree_git.write_text("gitdir: /tmp/example.git\n", encoding="utf-8")
+
+    inventory = migration.build_quest_git_inventory(workspace_root=workspace_root)
+
+    assert inventory["surface_kind"] == "quest_git_inventory"
+    assert inventory["summary"] == {
+        "item_count": 3,
+        "active_git_count": 3,
+        "retired_count": 0,
+        "pending_count": 3,
+    }
+    items_by_quest = {item["quest_id"]: item for item in inventory["items"]}
+    assert items_by_quest["quest-runtime"]["source"] == "workspace_runtime_quests"
+    assert items_by_quest["quest-mds"]["source"] == "med_deepscientist_runtime_quests"
+    assert items_by_quest["quest-worktree"]["source"] == "legacy_ds_worktrees"
+    assert items_by_quest["quest-runtime"]["status"] == "pending"
+    assert items_by_quest["quest-runtime"]["action"] == "audit_only"
+    assert items_by_quest["quest-runtime"]["active_path"] == str(runtime_git.parent)
+    assert items_by_quest["quest-runtime"]["git_path"] == str(runtime_git)
+    assert items_by_quest["quest-runtime"]["quest_git_present_in_active_path"] is True
+    assert items_by_quest["quest-runtime"]["quest_git_active_path_retired"] is False
+    assert items_by_quest["quest-runtime"]["skipped_reason"] == "active_quest_git_present"
+
+
+def test_runtime_lifecycle_ledger_auto_inventory_blocks_verified_cutover_for_active_git(tmp_path: Path) -> None:
+    migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+    subprocess.run(["git", "init"], cwd=workspace_root, check=True, text=True, capture_output=True)
+    (workspace_root / ".gitignore").write_text("*.sqlite\n*.sqlite-wal\n*.sqlite-shm\n", encoding="utf-8")
+    subprocess.run(["git", "add", ".gitignore"], cwd=workspace_root, check=True, text=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.name=MAS Test", "-c", "user.email=mas@example.test", "commit", "-m", "init"],
+        cwd=workspace_root,
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+    quest_git = workspace_root / "runtime" / "quests" / "quest-active" / ".git"
+    quest_git.mkdir(parents=True)
+
+    ledger = migration.build_migration_ledger(
+        workspace_root=workspace_root,
+        mode="verify",
+        workspace_classification="parked_controller_stop",
+        quest_git_cutover_status={"status": "verified"},
+    )
+
+    cutover = ledger["git_lifecycle_cutover"]
+    assert cutover["status"] == "pending"
+    assert cutover["quest_git_active_path_retired"] is False
+    assert cutover["unresolved_active_git_paths"][0]["quest_id"] == "quest-active"
+    assert cutover["unresolved_active_git_paths"][0]["active_path"] == str(quest_git.parent)
+    assert cutover["unresolved_active_git_paths"][0]["git_path"] == str(quest_git)
+    assert cutover["unresolved_active_git_paths"][0]["skipped_reason"] == "active_quest_git_present"
+    assert {
+        "scope": "quest_git",
+        "quest_id": "quest-active",
+        "study_id": None,
+        "reason": "active_quest_git_present",
+        "action": "audit_only",
+    } in ledger["skipped_items"]
+
+
+def test_runtime_lifecycle_ledger_auto_inventory_allows_verified_cutover_with_archived_proof_refs(tmp_path: Path) -> None:
+    migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+    subprocess.run(["git", "init"], cwd=workspace_root, check=True, text=True, capture_output=True)
+    (workspace_root / ".gitignore").write_text("*.sqlite\n*.sqlite-wal\n*.sqlite-shm\n", encoding="utf-8")
+    subprocess.run(["git", "add", ".gitignore"], cwd=workspace_root, check=True, text=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.name=MAS Test", "-c", "user.email=mas@example.test", "commit", "-m", "init"],
+        cwd=workspace_root,
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+    quest_root = workspace_root / "runtime" / "quests" / "quest-retired"
+    proof_path = quest_root / ".ds" / "restore_proof_archives" / "runtime_bucket_compaction" / "quest-retired.restore_proof.json"
+    archive_path = proof_path.with_suffix(".tar.gz")
+    audit_path = workspace_root / "storage_audit" / "latest.json"
+    audit_path.parent.mkdir(parents=True)
+    audit_path.write_text(
+        json.dumps(
+            {
+                "categories": {
+                    "runtime": {
+                        "studies": [
+                            {
+                                "study_id": "001-risk",
+                                "quest_id": "quest-retired",
+                                "quest_root": str(quest_root),
+                                "status": "audited",
+                                "quest_runtime": {"status": "completed", "active_run_id": None},
+                                "restore_proof_compaction": {
+                                    "status": "compacted",
+                                    "restore_proof_path": str(proof_path),
+                                    "archive_ref": {
+                                        "archive_path": str(archive_path),
+                                        "sha256": "abc123",
+                                        "source_file_count": 4,
+                                    },
+                                    "restore_proof": {
+                                        "status": "verified",
+                                        "archive_sha256": "abc123",
+                                        "source_file_count": 4,
+                                        "verified_file_count": 4,
+                                    },
+                                },
+                            }
+                        ]
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    ledger = migration.build_migration_ledger(
+        workspace_root=workspace_root,
+        mode="verify",
+        workspace_classification="stopped_cold",
+        quest_git_cutover_status={"status": "verified"},
+    )
+
+    cutover = ledger["git_lifecycle_cutover"]
+    assert cutover["status"] == "verified"
+    assert cutover["quest_git_active_path_retired"] is True
+    assert cutover["unresolved_active_git_paths"] == []
+    inventory_item = cutover["quest_git_inventory"][0]
+    assert inventory_item["quest_id"] == "quest-retired"
+    assert inventory_item["quest_git_present_in_active_path"] is False
+    assert inventory_item["quest_git_active_path_retired"] is True
+    assert inventory_item["archive_ref"] == str(archive_path)
+    assert inventory_item["restore_proof_path"] == str(proof_path)
+    assert inventory_item["projection_equivalence"] == "verified"
+    assert inventory_item["status"] == "retired"
+
+
 def test_runtime_lifecycle_ledger_blocks_git_retirement_until_active_path_cutover_is_verified(tmp_path: Path) -> None:
     migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
     workspace_root = tmp_path / "workspace"

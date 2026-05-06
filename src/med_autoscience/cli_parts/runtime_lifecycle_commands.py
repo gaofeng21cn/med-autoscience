@@ -12,6 +12,7 @@ from med_autoscience.runtime_protocol.runtime_lifecycle_read_model import SUPPOR
 def register_runtime_lifecycle_parsers(subparsers: argparse._SubParsersAction) -> None:
     inventory_parser = subparsers.add_parser("runtime-lifecycle-inventory")
     _add_scope_args(inventory_parser)
+    inventory_parser.add_argument("--quest-git", action="store_true")
 
     read_parser = subparsers.add_parser("runtime-lifecycle-read")
     _add_scope_args(read_parser)
@@ -36,6 +37,9 @@ def register_runtime_lifecycle_parsers(subparsers: argparse._SubParsersAction) -
     ledger_parser.add_argument("--write", action="store_true")
     ledger_parser.add_argument("--write-compat-export", action="store_true")
 
+    quest_git_inventory_parser = subparsers.add_parser("runtime-lifecycle-quest-git-inventory")
+    quest_git_inventory_parser.add_argument("--workspace-root", required=True, type=str)
+
     materialize_parser = subparsers.add_parser("runtime-quest-materialize")
     materialize_parser.add_argument("--workspace-root", required=True, type=str)
     materialize_parser.add_argument("--quest-id", required=True, type=str)
@@ -51,7 +55,14 @@ def handle_runtime_lifecycle_command(
     quest_materializer: Any,
 ) -> int | None:
     if args.command == "runtime-lifecycle-inventory":
-        result = runtime_lifecycle_read_model.build_lifecycle_inventory(**_scope_kwargs(args))
+        if bool(getattr(args, "quest_git", False)):
+            if not getattr(args, "workspace_root", None):
+                raise ValueError("--quest-git inventory requires --workspace-root")
+            result = runtime_lifecycle_migration.build_quest_git_inventory(
+                workspace_root=Path(args.workspace_root),
+            )
+        else:
+            result = runtime_lifecycle_read_model.build_lifecycle_inventory(**_scope_kwargs(args))
         _print_json(result)
         return 0
 
@@ -88,6 +99,13 @@ def handle_runtime_lifecycle_command(
             output_root=Path(args.output_root) if args.output_root else None,
             write=bool(args.write),
             write_compat_export=bool(args.write_compat_export),
+        )
+        _print_json(result)
+        return 0
+
+    if args.command == "runtime-lifecycle-quest-git-inventory":
+        result = runtime_lifecycle_migration.build_quest_git_inventory(
+            workspace_root=Path(args.workspace_root),
         )
         _print_json(result)
         return 0
