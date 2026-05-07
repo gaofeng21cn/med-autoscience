@@ -1,17 +1,19 @@
 # MAS Modularity Assessment 2026-05-07
 
-Status: `current architecture assessment`
+Status: `architecture fitness wave landed`
 Date: `2026-05-07`
 Owner: `MedAutoScience`
 
 ## 结论
 
-MAS 当前已经从“文件被迫切小”推进到“主要 owner 与 projection 边界可识别”的阶段。按架构质量判断，它已经满足继续推进真实 product/runtime 工作的最低结构门槛：依赖方向干净、主要 truth owner 已固定、public surface 与内部实现边界基本分离。
+MAS 当前已经从“文件被迫切小”推进到“主要 owner 与 projection 边界可识别”的阶段。本评估后续触发的一轮 architecture fitness wave 已经落地到 `main`：原先的 `exec(compile(...))` 拼接、nested `_parts`、near-limit part、oversized runtime execution facade 和 `study_progress_parts/shared_base.py` 大桶都已收口到自然子域，boundary fitness 现在是 `0 blocking / 0 advisory`。
+
+按架构质量判断，MAS 已满足继续推进真实 product/runtime 工作的结构门槛：依赖方向干净、主要 truth owner 已固定、public surface 与内部实现边界基本分离。
 
 但它还没有达到理想意义上的高聚合、低耦合。当前更准确的判断是：
 
-- `低耦合方向性` 已经较好：Sentrux DSM 显示 `above_diagonal=0`，没有发现依赖逆流；boundary fitness 没有 blocking finding。
-- `高聚合` 处于中等偏好：自然子域已经大量形成，但仍有若干接近 1000 行的 part、nested `_parts`、历史 exec 拼接入口和高 fan-in/fan-out hub。
+- `低耦合方向性` 已经较好：Sentrux DSM 显示 `above_diagonal=0`，没有发现依赖逆流；boundary fitness 没有 blocking 或 advisory finding。
+- `高聚合` 处于中等偏好：自然子域已经大量形成，已确认的机械结构债已清掉；剩余风险主要来自少数高 fan-in/fan-out hub 随功能增长继续膨胀。
 - `边界明确性` 明显优于上一轮：Runtime Control、Progress Projection、Delivery Sync、Product Entry、Publication/Delivery、Display/MCP 都有 owner 子域；后续风险主要来自少数中心 projection/entry/read-model 模块继续增长。
 
 因此，后续不需要再开一条“全仓大重构”主线。更合适的做法是把结构治理变成每条功能 lane 的 architecture fitness budget：每次动到高风险模块，就顺手把该模块内的自然边界压实；不为了指标单独拆行为稳定的模块。
@@ -22,12 +24,12 @@ MAS 当前已经从“文件被迫切小”推进到“主要 owner 与 projecti
 
 | signal | current value | interpretation |
 | --- | ---: | --- |
-| Sentrux `quality_signal` | `6156` | 结构信号稳定在当前基线附近，可作为后续防退化门槛。 |
+| Sentrux `quality_signal` | `6076` after wave; assessment baseline was `6156` | 本轮结构拆分降低了 Sentrux 单点分数，但 DSM 与 boundary fitness 均未退化；后续以 `above_diagonal=0` 和 boundary fitness 为硬门槛，quality drift 需要结合 diff 解释。 |
 | Sentrux DSM `above_diagonal` | `0` | 依赖方向干净，没有发现跨层逆向依赖。 |
 | Sentrux `propagation_cost` | `63` | 变更传播面仍偏大，说明 hub 模块仍多。 |
-| Sentrux root causes | acyclicity `10000`; redundancy `8434`; depth `5333`; modularity `4699`; equality `4184` | 没有循环是优势；模块均衡性和模块化仍是短板。 |
-| Boundary fitness | `0 blocking`, `31 advisory` | 没有硬违规；advisory 集中在 nested parts、near-limit part、exec 拼接和 shared bucket。 |
-| Line budget | pass | 当前 repo guard 可运行；仍有部分文件接近上限。 |
+| Sentrux root causes | acyclicity `10000`; redundancy `8431`; depth `5000`; modularity `4688`; equality `4188` | 没有循环是优势；模块均衡性和模块化仍是短板。 |
+| Boundary fitness | `0 blocking`, `0 advisory` | 原评估的 `31 advisory` 已通过 architecture fitness wave 清零。 |
+| Line budget | pass | 当前 repo guard 可运行，触碰过的 near-limit part 已降到 preferred range。 |
 | Mechanical split residue | no tracked `part_*` / `chunk_*` / `split_*` source file | 没有明显编号式机械拆分回流。 |
 | Direct test-gap heuristic | low direct ratio | 许多行为通过 public/facade tests 覆盖，后续高风险子域应补更贴近 natural boundary 的 focused tests。 |
 | 30-day churn | `product_entry`、`study_progress`、`cli`、`study_runtime_decision`、`runtime_watch`、display surfaces 最高 | 热点与 public entry / projection / display mainline 高度重合，说明结构风险集中在真实维护面。 |
@@ -62,12 +64,11 @@ SQLite runtime authority、runtime lifecycle ledger、restore-proof archive、qu
 
 | area | evidence | risk | preferred handling |
 | --- | --- | --- | --- |
-| `study_runtime_execution.py` | `1035` lines; boundary fitness oversized advisory | controller execution 仍是少数超出 preferred limit 的中心模块 | 下次改 execution/control 时按 action family 和 receipt materialization 拆，不单独为行数拆。 |
-| `product_entry_parts/workspace_surfaces_parts/*` | nested `_parts`; `cockpit_payload.py` `999` lines | cockpit read model 与 markdown/render/helper 易继续膨胀 | 保持 nested 包作为兼容边界，但把 payload assembly、queue projection、brief rendering 分成稳定 importable 子域。 |
-| `study_runtime_decision.py` / runtime events | exec compile advisory still present | 历史拼接加载会弱化 IDE/import graph 和测试定位 | 在不改行为时迁到显式 package facade；先保留 public callable surface。 |
-| `study_progress_parts/*` | `markdown_projection_rendering.py`、`progression.py`、`publication_runtime.py`、`shared_base.py` 接近上限 | progress projection 是稳定核心，但渲染和 runtime context 仍容易混 | 只围绕 read-model contract 增量拆；禁止入口层重算状态。 |
-| `mcp_server_parts/study_progress_projection.py` | `989` lines | MCP adapter 容易承担 projection 组装逻辑 | MCP 只做 tool-result rendering；projection assembly 留在 controller/read-model 层。 |
-| display materialization / layout QC | 多个 validation/display files 接近上限，高 churn | display family 是自然大域，但单个 validator 容易成为规则大桶 | 按 display family / schema family / validation phase 分组，保留 public registry。 |
+| runtime execution / platform repair | runtime dispatch 与 platform repair 仍是高 fan-in control hub，但当前 boundary fitness 清零 | 新 controller action 容易继续堆到同一层 | 新 action 进入 action family / lifecycle / receipt 子域，保持 `owner_route -> consumer latest -> executor dispatch`。 |
+| product-entry / workspace cockpit | cockpit read model、brief rendering、manifest projection 仍是高 churn entry surface | caller projection 易重新承担 authority 判断 | 只消费 progress/runtime/publication projection，新增 payload assembly 按 workspace cockpit 子域落点。 |
+| study progress / MCP adapter | progress projection 是稳定核心，MCP 与 markdown 仍是高调用入口 | adapter 容易重新拼装用户状态 | `study_macro_state -> user_visible_projection` 继续是唯一状态链，MCP 只做 tool-result rendering。 |
+| publication / delivery | delivery、publication gate、medical surface reporting 已拆成自然子域 | 产物 mirror 与 authority source 容易混用 | 真实入口和产物等价测试优先，delivery mirror 不成为 edit source。 |
+| display materialization / layout QC | display family 是自然大域，registry/validator 仍高 churn | 新 display contract 容易形成规则大桶 | 按 display family / schema family / validation phase 分组，保留 public registry。 |
 | `profiles` | import fan-in 约 `60` | 配置模型是必要 shared hub，但变更影响面大 | 把 profile schema 稳定化，新增读取逻辑走 read model / adapter，避免各 controller 直接解释 profile 细节。 |
 
 ## Cohesion / Coupling Judgment

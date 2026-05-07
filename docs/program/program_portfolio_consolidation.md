@@ -33,7 +33,7 @@ Owner: `MedAutoScience`
 
 ## Architecture Fitness Budget
 
-模块化治理现在是横向 fitness budget，不是新的 active program board。当前评估见 [MAS Modularity Assessment 2026-05-07](../references/mas_modularity_assessment_2026_05_07.md)：MAS 依赖方向已经干净，Sentrux `above_diagonal=0`，boundary fitness 没有 blocking finding；但 `product_entry`、`study_progress`、`runtime/control`、MCP/display 这些高扇入 projection/entry/read-model 仍是维护热点。
+模块化治理现在是横向 fitness budget，不是新的 active program board。当前评估与落地记录见 [MAS Modularity Assessment 2026-05-07](../references/mas_modularity_assessment_2026_05_07.md)：MAS 依赖方向已经干净，Sentrux `above_diagonal=0`，本轮 architecture fitness wave 已把 boundary fitness 清到 `0 blocking / 0 advisory`；但 `product_entry`、`study_progress`、`runtime/control`、MCP/display 这些高扇入 projection/entry/read-model 仍是维护热点。
 
 因此，后续队列执行时统一遵守：
 
