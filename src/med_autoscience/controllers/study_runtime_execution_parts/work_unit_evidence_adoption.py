@@ -11,6 +11,7 @@ _ANALYSIS_REPAIR_WORK_UNIT_ID = "analysis_claim_evidence_repair"
 _ANALYSIS_REPAIR_ROUTE_TARGET = "analysis-campaign"
 _ANALYSIS_REPAIR_ACTION = "run_quality_repair_batch"
 _ANALYSIS_REPAIR_REPORT_TYPE = "analysis_claim_evidence_repair_specificity_target_traceability_reaudit"
+_ANALYSIS_REPAIR_BATCH_REPORT_TYPE = "analysis_claim_evidence_repair"
 _ANALYSIS_REPAIR_REPORT_SUFFIX = Path(
     "artifacts",
     "reports",
@@ -113,8 +114,26 @@ def _work_unit_fingerprint_matches(
     authorization_context: dict[str, Any],
 ) -> bool:
     expected = _text(authorization_context.get("work_unit_fingerprint"))
+    controller = payload.get("controller")
     observed = _text(payload.get("work_unit_fingerprint"))
+    if observed is None and isinstance(controller, dict):
+        observed = _text(controller.get("work_unit_fingerprint"))
     return expected is None or observed == expected
+
+
+def _work_unit_fingerprint_explicitly_matches(
+    *,
+    payload: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    expected = _text(authorization_context.get("work_unit_fingerprint"))
+    if expected is None:
+        return False
+    controller = payload.get("controller")
+    observed = _text(payload.get("work_unit_fingerprint"))
+    if observed is None and isinstance(controller, dict):
+        observed = _text(controller.get("work_unit_fingerprint"))
+    return observed == expected
 
 
 def _specificity_target_count(authorization_context: dict[str, Any]) -> int:
@@ -143,6 +162,74 @@ def _mas_quality_repair_metrics_are_complete(
     return (repaired or 0) > 0 and (markers or 0) > 0
 
 
+def _mas_quality_repair_specificity_targets_are_complete(
+    *,
+    payload: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    targets = payload.get("specificity_targets")
+    if not isinstance(targets, list):
+        return False
+    target_payloads = [item for item in targets if isinstance(item, dict)]
+    if len(target_payloads) != len(targets):
+        return False
+    target_count = _specificity_target_count(authorization_context)
+    if target_count > 0 and len(target_payloads) < target_count:
+        return False
+    if target_count == 0 and not target_payloads:
+        return False
+    return all(
+        _text(item.get("target_id")) is not None and _text(item.get("status")) is not None
+        for item in target_payloads
+    )
+
+
+def _mas_quality_repair_report_is_current(
+    *,
+    payload: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    return _report_is_current_for_authorization(
+        payload=payload,
+        authorization_context=authorization_context,
+    ) or _work_unit_fingerprint_explicitly_matches(
+        payload=payload,
+        authorization_context=authorization_context,
+    )
+
+
+def _controller_field(payload: dict[str, Any], key: str) -> str | None:
+    controller = payload.get("controller")
+    if not isinstance(controller, dict):
+        return None
+    return _text(controller.get(key))
+
+
+def _analysis_repair_batch_report_matches(
+    *,
+    payload: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    if _text(payload.get("report_type")) != _ANALYSIS_REPAIR_BATCH_REPORT_TYPE:
+        return False
+    repair_counts = payload.get("repair_counts")
+    if not isinstance(repair_counts, dict):
+        return False
+    return (
+        _controller_field(payload, "active_work_unit_id") == _ANALYSIS_REPAIR_WORK_UNIT_ID
+        and _controller_field(payload, "route_target") == _ANALYSIS_REPAIR_ROUTE_TARGET
+        and _ANALYSIS_REPAIR_ACTION in (_controller_field(payload, "controller_actions") or "")
+        and _work_unit_fingerprint_matches(payload=payload, authorization_context=authorization_context)
+        and _mas_quality_repair_report_is_current(
+            payload=payload,
+            authorization_context=authorization_context,
+        )
+        and _int_value(repair_counts.get("unresolved_local_defect_count")) == 0
+        and _int_value(repair_counts.get("gate_owned_or_nonlocal_defect_count")) == 0
+        and _text(payload.get("recommended_next_route")) == _ANALYSIS_REPAIR_RECOMMENDED_NEXT_ROUTE
+    )
+
+
 def _report_matches_analysis_repair(
     *,
     payload: dict[str, Any],
@@ -160,22 +247,41 @@ def _report_matches_analysis_repair(
         return False
     if explicit_action is not None and explicit_action != _ANALYSIS_REPAIR_ACTION:
         return False
-    if not _report_is_current_for_authorization(
+    if _analysis_repair_batch_report_matches(
         payload=payload,
         authorization_context=authorization_context,
     ):
-        return False
-    if explicit_report_type == _MAS_QUALITY_REPAIR_REPORT_TYPE or explicit_report_kind == _MAS_QUALITY_REPAIR_REPORT_TYPE:
+        return True
+    if (
+        explicit_report_type == _MAS_QUALITY_REPAIR_REPORT_TYPE
+        or explicit_report_kind == _MAS_QUALITY_REPAIR_REPORT_TYPE
+    ):
+        if not _mas_quality_repair_report_is_current(
+            payload=payload,
+            authorization_context=authorization_context,
+        ):
+            return False
         return (
             explicit_work_unit_id == _ANALYSIS_REPAIR_WORK_UNIT_ID
             and explicit_route_target == _ANALYSIS_REPAIR_ROUTE_TARGET
             and _work_unit_fingerprint_matches(payload=payload, authorization_context=authorization_context)
-            and _mas_quality_repair_metrics_are_complete(
-                payload=payload,
-                authorization_context=authorization_context,
+            and (
+                _mas_quality_repair_metrics_are_complete(
+                    payload=payload,
+                    authorization_context=authorization_context,
+                )
+                or _mas_quality_repair_specificity_targets_are_complete(
+                    payload=payload,
+                    authorization_context=authorization_context,
+                )
             )
         )
     if not isinstance(result, dict):
+        return False
+    if not _report_is_current_for_authorization(
+        payload=payload,
+        authorization_context=authorization_context,
+    ):
         return False
     has_legacy_report_identity = explicit_report_type == _ANALYSIS_REPAIR_REPORT_TYPE
     has_explicit_report_identity = (
@@ -210,6 +316,41 @@ def _normalized_repair_result(
             "writing_ready_after_repair": bool(metrics.get("writing_ready_after_repair")),
             "finalize_ready_after_repair": bool(metrics.get("finalize_ready_after_repair")),
             "specificity_target_count": _specificity_target_count(authorization_context),
+        }
+    specificity_targets = report_payload.get("specificity_targets")
+    if isinstance(specificity_targets, list):
+        target_payloads = [item for item in specificity_targets if isinstance(item, dict)]
+        remaining_gate_statuses = [
+            item.get("remaining_gate_status")
+            for item in target_payloads
+            if isinstance(item.get("remaining_gate_status"), dict)
+        ]
+        return {
+            "local_traceability_repair_complete": True,
+            "specificity_targets_repaired_or_classified": len(target_payloads),
+            "missing_target_files_after_repair": 0,
+            "targets_with_repair_markers": len(target_payloads),
+            "publication_gate_cleared": any(
+                status.get("publication_gate_clear") is True for status in remaining_gate_statuses
+            ),
+            "writing_ready_after_repair": any(
+                status.get("writing_ready") is True for status in remaining_gate_statuses
+            ),
+            "finalize_ready_after_repair": any(
+                status.get("finalize_ready") is True for status in remaining_gate_statuses
+            ),
+            "specificity_target_count": _specificity_target_count(authorization_context),
+        }
+    repair_counts = report_payload.get("repair_counts")
+    if isinstance(repair_counts, dict):
+        return {
+            "local_traceability_repair_complete": True,
+            "changed_files_count": int(repair_counts.get("changed_files_count") or 0),
+            "unresolved_local_defect_count": int(repair_counts.get("unresolved_local_defect_count") or 0),
+            "gate_owned_or_nonlocal_defect_count": int(repair_counts.get("gate_owned_or_nonlocal_defect_count") or 0),
+            "publication_gate_cleared": False,
+            "writing_ready_after_repair": False,
+            "finalize_ready_after_repair": False,
         }
     result = dict(report_payload.get("result") or {})
     return {
