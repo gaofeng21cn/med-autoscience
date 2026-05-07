@@ -1,0 +1,74 @@
+{
+  "surface": "mds_no_history_snapshot_manifest",
+  "schema_version": 1,
+  "import_mode": "no_history_snapshot_only",
+  "default_operation_requires_external_mds": false,
+  "source_provenance": {
+    "upstream_repo": "med-deepscientist",
+    "upstream_ref": "snapshot-ref-recorded-at-intake",
+    "snapshot_sha256": "required_per_snapshot_intake",
+    "license_refs": [
+      "upstream license file",
+      "third-party notice inventory"
+    ],
+    "capability_classification": "oracle"
+  },
+  "author_audit": {
+    "import_commit_author_policy": "mas_maintainer_only",
+    "coauthor_trailers_allowed": false,
+    "unwanted_upstream_author_identity_allowed": false,
+    "default_branch_contributor_check_required": true
+  },
+  "capabilities": [
+    {
+      "capability_id": "runtime_execution",
+      "classification": "absorb",
+      "mds_role": "oracle_fixture_source",
+      "mas_owner": "Runtime OS",
+      "authority_claims": []
+    },
+    {
+      "capability_id": "artifact_inventory",
+      "classification": "oracle",
+      "mds_role": "backend_oracle_only",
+      "mas_owner": "Artifact OS",
+      "authority_claims": []
+    },
+    {
+      "capability_id": "paper_contract_health",
+      "classification": "oracle",
+      "mds_role": "mechanical_oracle_only",
+      "mas_owner": "Quality OS",
+      "authority_claims": []
+    },
+    {
+      "capability_id": "manuscript_coverage",
+      "classification": "compat",
+      "mds_role": "mechanical_compat_fixture",
+      "mas_owner": "Quality OS",
+      "authority_claims": []
+    },
+    {
+      "capability_id": "prompt_stage_discipline",
+      "classification": "absorb",
+      "mds_role": "source_material_only",
+      "mas_owner": "Quality OS",
+      "authority_claims": []
+    },
+    {
+      "capability_id": "memory_and_lesson_store",
+      "classification": "retire",
+      "mds_role": "intake_reference_only",
+      "mas_owner": "Evaluation OS",
+      "authority_claims": []
+    }
+  ],
+  "retained_capability_ids": [
+    "runtime_execution",
+    "artifact_inventory",
+    "paper_contract_health",
+    "manuscript_coverage",
+    "prompt_stage_discipline",
+    "memory_and_lesson_store"
+  ]
+}
