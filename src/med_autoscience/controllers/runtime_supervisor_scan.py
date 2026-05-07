@@ -7,21 +7,22 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
-from med_autoscience.controllers import study_macro_state, study_progress, study_runtime_router
+from med_autoscience.controllers import study_progress, study_runtime_router
+from med_autoscience.controllers.runtime_supervisor_scan_parts import canonical_inputs
 from med_autoscience.controllers.runtime_supervisor_scan_parts import gate_specificity as gate_specificity_part
-from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
-from med_autoscience.controllers.runtime_supervisor_scan_parts import action_decorators
+from med_autoscience.controllers.runtime_supervisor_scan_parts import action_projection
 from med_autoscience.controllers.runtime_supervisor_scan_parts import artifact_freshness
 from med_autoscience.controllers.runtime_supervisor_scan_parts import ai_reviewer
 from med_autoscience.controllers.runtime_supervisor_scan_parts import block_state as block_state_part
 from med_autoscience.controllers.runtime_supervisor_scan_parts import completion_evidence
-from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import evidence_adoption
+from med_autoscience.controllers.runtime_supervisor_scan_parts import lifecycle_projection
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
 from med_autoscience.controllers.runtime_supervisor_scan_parts import publication_gate_actions
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
 from med_autoscience.controllers.runtime_supervisor_scan_parts import queue_slo
 from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
+from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
 from med_autoscience.controllers.runtime_supervisor_scan_parts import status_projection
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_parking
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_projection
@@ -64,15 +65,6 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _string_items(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = value.strip()
-        return [text] if text else []
-    if not isinstance(value, Iterable) or isinstance(value, Mapping | bytes):
-        return []
-    return list(dict.fromkeys(text for item in value if (text := _text(item)) is not None))
 
 
 def resolve_supervisor_scan_study_ids(profile: WorkspaceProfile) -> tuple[str, ...]:
@@ -155,78 +147,23 @@ def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:
 
 
 def _active_run_id(status: Mapping[str, Any], progress: Mapping[str, Any]) -> str | None:
-    supervision = _mapping(progress.get("supervision"))
-    runtime_audit = _mapping(_mapping(status.get("runtime_liveness_audit")).get("runtime_audit"))
-    for value in (
-        supervision.get("active_run_id"),
-        status.get("active_run_id"),
-        _mapping(status.get("runtime_liveness_audit")).get("active_run_id"),
-        runtime_audit.get("active_run_id"),
-    ):
-        if text := _text(value):
-            return text
-    return None
+    return runtime_facts.active_run_id(status, progress)
 
 
 def _worker_running(status: Mapping[str, Any]) -> bool:
-    runtime_audit = _mapping(_mapping(status.get("runtime_liveness_audit")).get("runtime_audit"))
-    if runtime_audit.get("worker_running") is False:
-        return False
-    if _mapping(status.get("runtime_liveness_audit")).get("worker_running") is False:
-        return False
-    return bool(runtime_audit.get("worker_running") or _mapping(status.get("runtime_liveness_audit")).get("worker_running"))
+    return runtime_facts.worker_running(status)
 
 
 def _blocking_reasons(status: Mapping[str, Any], progress: Mapping[str, Any]) -> list[str]:
-    runtime_health = _mapping(status.get("runtime_health_snapshot"))
-    control_plane = _mapping(status.get("control_plane_snapshot"))
-    progress_control = _mapping(progress.get("control_plane_snapshot"))
-    return list(
-        dict.fromkeys(
-            [
-                *_string_items(status.get("blocking_reasons")),
-                *_string_items(runtime_health.get("blocking_reasons")),
-                *_string_items(control_plane.get("blocking_reasons")),
-                *_string_items(_mapping(control_plane.get("dispatch_gate")).get("blocking_reasons")),
-                *_string_items(progress_control.get("blocking_reasons")),
-                *_string_items(progress.get("current_blockers")),
-            ]
-        )
-    )
+    return runtime_facts.blocking_reasons(status, progress)
 
 
 def _retry_exhausted(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
-    runtime_health = _mapping(status.get("runtime_health_snapshot"))
-    reasons = set(_blocking_reasons(status, progress))
-    attempt_state = _text(runtime_health.get("attempt_state"))
-    canonical_runtime_action = _text(runtime_health.get("canonical_runtime_action"))
-    quest_status = _text(status.get("quest_status"))
-    zero_budget_in_recovery_context = runtime_health.get("retry_budget_remaining") == 0 and (
-        quest_status in {"active", "running"}
-        or attempt_state in {"recovering", "retrying", "probing", "relaunching", "escalated"}
-        or canonical_runtime_action in {"recover_runtime", "probe_runtime", "relaunch_runtime", "external_supervisor_required"}
-    )
-    return (
-        "runtime_recovery_retry_budget_exhausted" in reasons
-        or _text(status.get("reason")) == "runtime_recovery_retry_budget_exhausted"
-        or attempt_state == "escalated"
-        or zero_budget_in_recovery_context
-    )
+    return runtime_facts.retry_exhausted(status, progress)
 
 
 def _publication_eval_payload(status: Mapping[str, Any], progress: Mapping[str, Any]) -> dict[str, Any]:
-    refs = _mapping(progress.get("refs"))
-    publication_eval_path = _text(refs.get("publication_eval_path"))
-    if publication_eval_path is not None:
-        from_path = _read_json_object(Path(publication_eval_path)) or {}
-        if _text(_mapping(from_path.get("assessment_provenance")).get("owner")) == "ai_reviewer":
-            return from_path
-    from_status = _mapping(status.get("publication_eval"))
-    if from_status:
-        return from_status
-    if publication_eval_path is not None:
-        return _read_json_object(Path(publication_eval_path)) or {}
-    return {}
+    return canonical_inputs.publication_eval_payload(status, progress)
 
 
 def _publication_gate_specificity_required(
@@ -243,27 +180,13 @@ def _publication_gate_specificity_required(
 
 
 def _supervisor_only(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
-    if _mapping(status.get("execution_owner_guard")).get("supervisor_only") is True:
-        return True
-    return "execution_owner_guard.supervisor_only" in set(_blocking_reasons(status, progress))
+    return runtime_facts.supervisor_only(status, progress)
 
 
 def _runtime_platform_repair_required(
     status: Mapping[str, Any], progress: Mapping[str, Any], *, gate_specificity: Mapping[str, Any] | None = None
 ) -> bool:
-    if completion_evidence.completed_current_truth(status, progress):
-        return False
-    if parked_truth.current_truth(status, progress):
-        return False
-    if gate_specificity_part.should_defer_runtime_platform_repair(
-        gate_specificity
-    ) and gate_specificity_part.controller_specificity_terminal(status):
-        return False
-    active_run_id = _active_run_id(status, progress)
-    no_live_worker = not active_run_id or not _worker_running(status)
-    if no_live_worker and abnormal_stopped_runtime.repair_required(status, progress):
-        return True
-    return _retry_exhausted(status, progress) and no_live_worker and _text(status.get("quest_status")) in {"active", "running"}
+    return runtime_facts.runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity)
 
 
 def _decorate_action(
@@ -272,7 +195,7 @@ def _decorate_action(
     quest_id: str | None,
     action: Mapping[str, Any],
 ) -> dict[str, Any]:
-    return action_decorators.decorate_action(
+    return action_projection.decorate_action(
         study_id=study_id,
         quest_id=quest_id,
         action=action,
@@ -297,36 +220,19 @@ def _action_queue(
         return []
     if parked_truth.current_truth(status, progress):
         return []
-    actions: list[dict[str, Any]] = []
-    if _runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
-        actions.append(
-            current_truth_owner.runtime_platform_repair_action(
-                study_root=study_root,
-                status=status,
-                publication_eval_payload=publication_eval_payload,
-                default_reason=current_truth_owner.runtime_platform_repair_reason(status, progress),
-            )
-        )
-    if gate_specificity.get("required") is True:
-        actions.append(publication_gate_actions.action_payload(gate_specificity=gate_specificity))
-    if ai_reviewer_assessment.get("missing") is True:
-        actions.append(
-            {
-                "action_type": "return_to_ai_reviewer_workflow",
-                "authority": "observability_only",
-                "owner": "ai_reviewer",
-                "request_owner": "ai_reviewer",
-                "recommended_owner": "ai_reviewer",
-                "reason": "ai_reviewer_assessment_required",
-                "summary": "Request an AI reviewer-owned publication_eval assessment.",
-                "required_output_surface": "artifacts/publication_eval/latest.json",
-                "paper_package_mutation_allowed": False,
-            }
-        )
-    return [
-        _decorate_action(study_id=study_id, quest_id=quest_id, action=action)
-        for action in actions
-    ]
+    return action_projection.action_queue(
+        status,
+        progress,
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        publication_eval_payload=publication_eval_payload,
+        gate_specificity=gate_specificity,
+        ai_reviewer_assessment=ai_reviewer_assessment,
+        request_allowed_write_surfaces=list(SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES),
+        control_allowed_write_surfaces=list(SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES),
+        forbidden_actions=list(SUPERVISION_FORBIDDEN_ACTIONS),
+    )
 
 
 def _why_not_applied(
@@ -337,29 +243,13 @@ def _why_not_applied(
     gate_specificity: Mapping[str, Any],
     ai_reviewer_assessment: Mapping[str, Any],
 ) -> str | None:
-    if reason := evidence_adoption.why_not_applied(status):
-        return reason
-    if completion_evidence.completed_current_truth(status, progress):
-        return None
-    if parked_truth.current_truth(status, progress):
-        return None
-    lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
-    if _runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
-        for action in actions:
-            if _text(action.get("action_type")) == "runtime_platform_repair":
-                return _text(action.get("reason")) or current_truth_owner.runtime_platform_repair_reason(status, progress)
-        return current_truth_owner.runtime_platform_repair_reason(status, progress)
-    if _retry_exhausted(status, progress):
-        if gate_specificity.get("required") is True:
-            return "publication_gate_specificity_required"
-        return "runtime_recovery_retry_budget_exhausted"
-    if actions:
-        return _text(actions[0].get("reason")) or _text(actions[0].get("action_type"))
-    if text := _text(lifecycle.get("blocked_reason")):
-        if text == "ai_reviewer_assessment_required" and ai_reviewer_assessment.get("missing") is not True:
-            return None
-        return text
-    return None
+    return action_projection.why_not_applied(
+        status=status,
+        progress=progress,
+        actions=actions,
+        gate_specificity=gate_specificity,
+        ai_reviewer_assessment=ai_reviewer_assessment,
+    )
 
 
 def _why_not_applied_timeline(reason: str | None) -> list[dict[str, Any]]:
@@ -380,30 +270,19 @@ def _gate_specificity_status(gate_specificity: Mapping[str, Any]) -> dict[str, A
 
 
 def _repair_action_payload(*, study_root: Path) -> dict[str, Any] | None:
-    return _read_json_object(study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json")
+    return lifecycle_projection.repair_action_payload(study_root=study_root)
 
 
 def _first_repair_action(repair_payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    if _text(repair_payload.get("state")) != "ready_for_repair":
-        return None
-    actions = repair_payload.get("actions")
-    if not isinstance(actions, list):
-        return None
-    for action in actions:
-        if isinstance(action, Mapping):
-            return dict(action)
-    return None
+    return lifecycle_projection.first_repair_action(repair_payload)
 
 
 def _sanitize_repair_action_for_supervision(action: Mapping[str, Any]) -> dict[str, Any]:
-    sanitized = dict(action)
-    sanitized["paper_package_mutation_allowed"] = False
-    sanitized["manual_study_patch_allowed"] = False
-    sanitized["quality_gate_relaxation_allowed"] = False
-    sanitized["medical_claim_authoring_allowed"] = False
-    sanitized["requested_write_surfaces"] = list(SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES)
-    sanitized["forbidden_actions"] = list(SUPERVISION_FORBIDDEN_ACTIONS)
-    return sanitized
+    return lifecycle_projection.sanitize_repair_action_for_supervision(
+        action,
+        request_allowed_write_surfaces=list(SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES),
+        forbidden_actions=list(SUPERVISION_FORBIDDEN_ACTIONS),
+    )
 
 
 def _blocked_lifecycle_from_repair(
@@ -415,40 +294,17 @@ def _blocked_lifecycle_from_repair(
     blocked_reason: str,
     next_owner: str,
 ) -> dict[str, Any] | None:
-    action = _first_repair_action(repair_payload)
-    if action is None:
-        return None
-    safe_action = _sanitize_repair_action_for_supervision(action)
-    authority = "external_supervisor" if next_owner == "external_supervisor" else "observability_only"
-    payload = {
-        "surface": "ai_repair_lifecycle",
-        "schema_version": 1,
-        "study_id": _text(repair_payload.get("study_id")) or study_id,
-        "quest_id": _text(repair_payload.get("quest_id")) or quest_id,
-        "state": "blocked",
-        "authority": authority,
-        "allowed_write_surfaces": list(SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES),
-        "forbidden_actions": list(SUPERVISION_FORBIDDEN_ACTIONS),
-        "top_action": safe_action,
-        "auto_apply_allowed": bool(safe_action.get("auto_apply_allowed")),
-        "last_apply_attempt_at": _utc_now(),
-        "applied_at": None,
-        "blocked_reason": blocked_reason,
-        "next_owner": next_owner,
-        "external_supervisor_required": authority == "external_supervisor",
-        "quality_gate_relaxation_allowed": False,
-        "last_apply_attempt": {
-            "state": "blocked",
-            "dispatch_status": "not_dispatched",
-            "reason": blocked_reason,
-            "source": "runtime_supervisor_scan",
-        },
-        "refs": {
-            "repair_action_path": str(study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json"),
-        },
-    }
-    _write_json(study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json", payload)
-    return payload
+    return lifecycle_projection.blocked_lifecycle_from_repair(
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        repair_payload=repair_payload,
+        blocked_reason=blocked_reason,
+        next_owner=next_owner,
+        control_allowed_write_surfaces=list(SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES),
+        request_allowed_write_surfaces=list(SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES),
+        forbidden_actions=list(SUPERVISION_FORBIDDEN_ACTIONS),
+    )
 
 
 def _blocked_reason_from_scan(
@@ -457,19 +313,11 @@ def _blocked_reason_from_scan(
     gate_specificity: Mapping[str, Any],
     ai_reviewer_assessment: Mapping[str, Any],
 ) -> str | None:
-    for action in actions:
-        if _text(action.get("action_type")) in {
-            "runtime_platform_repair",
-            "publication_gate_specificity_required",
-            "current_package_freshness_required",
-            "return_to_ai_reviewer_workflow",
-        }:
-            return _text(action.get("reason")) or _text(action.get("action_type"))
-    if gate_specificity.get("required") is True:
-        return "publication_gate_specificity_required"
-    if ai_reviewer_assessment.get("missing") is True:
-        return "ai_reviewer_assessment_required"
-    return None
+    return action_projection.blocked_reason_from_scan(
+        actions=actions,
+        gate_specificity=gate_specificity,
+        ai_reviewer_assessment=ai_reviewer_assessment,
+    )
 
 
 def _read_study_projection_inputs(
@@ -478,13 +326,13 @@ def _read_study_projection_inputs(
     study_id: str,
     study_root: Path,
 ) -> tuple[dict[str, Any], dict[str, Any], str | None, dict[str, Any]]:
-    status = study_runtime_router.study_runtime_status(profile=profile, study_id=study_id, study_root=study_root)
-    progress = study_progress.read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
-    status_payload = _mapping(status)
-    progress_payload = _mapping(progress)
-    resolved_quest_id = _text(status_payload.get("quest_id")) or _text(progress_payload.get("quest_id"))
-    publication_eval_payload = _publication_eval_payload(status_payload, progress_payload)
-    return status_payload, progress_payload, resolved_quest_id, publication_eval_payload
+    return canonical_inputs.read_study_projection_inputs(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        status_reader=study_runtime_router.study_runtime_status,
+        progress_reader=study_progress.read_study_progress,
+    )
 
 
 def _attach_study_macro_state(
@@ -494,13 +342,12 @@ def _attach_study_macro_state(
     progress_payload: Mapping[str, Any],
     publication_eval_payload: Mapping[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    macro_state = study_macro_state.derive_study_macro_state(
+    return canonical_inputs.attach_study_macro_state(
         study_id=study_id,
-        status=status_payload,
-        progress=progress_payload,
-        publication_eval=publication_eval_payload,
+        status_payload=status_payload,
+        progress_payload=progress_payload,
+        publication_eval_payload=publication_eval_payload,
     )
-    return dict(status_payload), {**dict(progress_payload), "study_macro_state": macro_state}
 
 
 def _maybe_blocked_lifecycle_from_scan(
@@ -514,33 +361,19 @@ def _maybe_blocked_lifecycle_from_scan(
     study_id: str,
     quest_id: str | None,
 ) -> Mapping[str, Any]:
-    blocked_reason = _blocked_reason_from_scan(
+    return lifecycle_projection.maybe_blocked_lifecycle_from_scan(
+        developer_mode=developer_mode,
+        lifecycle=lifecycle,
         actions=actions,
         gate_specificity=gate_specificity,
         ai_reviewer_assessment=ai_reviewer_assessment,
-    )
-    if blocked_reason is None and block_state_part.ai_reviewer_lifecycle_resolved(
-        lifecycle=lifecycle,
-        ai_reviewer_assessment=ai_reviewer_assessment,
-    ):
-        return {}
-    if not _should_refresh_blocked_lifecycle(
-        developer_mode=developer_mode,
-        lifecycle=lifecycle,
-        blocked_reason=blocked_reason,
-    ):
-        return lifecycle
-    repair_payload = _repair_action_payload(study_root=study_root)
-    if repair_payload is None or blocked_reason is None:
-        return lifecycle
-    return _blocked_lifecycle_from_repair(
         study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
-        repair_payload=repair_payload,
-        blocked_reason=blocked_reason,
-        next_owner=block_state_part.next_owner_for_blocked_reason(blocked_reason),
-    ) or {}
+        control_allowed_write_surfaces=list(SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES),
+        request_allowed_write_surfaces=list(SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES),
+        forbidden_actions=list(SUPERVISION_FORBIDDEN_ACTIONS),
+    )
 
 
 def _should_refresh_blocked_lifecycle(
@@ -549,24 +382,10 @@ def _should_refresh_blocked_lifecycle(
     lifecycle: Mapping[str, Any],
     blocked_reason: str | None,
 ) -> bool:
-    if not developer_mode.safe_actions_enabled:
-        return False
-    if not lifecycle:
-        return True
-    return bool(
-        blocked_reason is not None
-        and (
-            lifecycle.get("projection_only") is True
-            or _text(lifecycle.get("blocked_reason")) != blocked_reason
-            or (
-                blocked_reason == "publication_gate_specificity_required"
-                and (
-                    lifecycle.get("external_supervisor_required") is True
-                    or _text(lifecycle.get("authority")) == "external_supervisor"
-                    or _text(lifecycle.get("next_owner")) != "publication_gate"
-                )
-            )
-        )
+    return lifecycle_projection.should_refresh_blocked_lifecycle(
+        developer_mode=developer_mode,
+        lifecycle=lifecycle,
+        blocked_reason=blocked_reason,
     )
 
 
