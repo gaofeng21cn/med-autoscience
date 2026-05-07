@@ -320,7 +320,7 @@ def test_run_upgrade_check_routes_controlled_fork_updates_to_intake(monkeypatch,
     assert "pull_origin_main_then_reapply_medical_overlay" not in result["recommended_actions"]
 
 
-def test_run_upgrade_check_blocks_when_repo_root_missing(monkeypatch, tmp_path: Path) -> None:
+def test_run_upgrade_check_reports_oracle_unavailable_when_repo_root_missing(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = replace(make_profile(tmp_path), med_deepscientist_repo_root=None)
@@ -348,8 +348,11 @@ def test_run_upgrade_check_blocks_when_repo_root_missing(monkeypatch, tmp_path: 
 
     result = module.run_upgrade_check(profile, refresh=False)
 
-    assert result["decision"] == "blocked_repo_not_configured"
-    assert "configure_controlled_backend_repo_root_for_audit" in result["recommended_actions"]
+    assert result["decision"] == "oracle_unavailable"
+    assert result["external_runtime_optional"] is True
+    assert result["repo_check"]["oracle_unavailable"] is True
+    assert result["repo_check"]["default_operation_blocked"] is False
+    assert "configure_controlled_backend_repo_root_for_explicit_audit" in result["recommended_actions"]
 
 
 def test_run_upgrade_check_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_path: Path) -> None:

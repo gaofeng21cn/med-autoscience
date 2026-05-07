@@ -209,6 +209,19 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert contract["hermes_agent_repo_root"] == str(profile.hermes_agent_repo_root)
     assert contract["hermes_home_root"] == str(profile.hermes_home_root)
     assert contract["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
+    assert contract["runtime_backend_contract"] == {
+        "runtime_backend_id": "hermes",
+        "runtime_engine_id": "hermes",
+        "research_backend_id": "med_deepscientist",
+        "research_engine_id": "med-deepscientist",
+        "external_mds_required_for_default_operation": False,
+        "external_mds_allowed_uses": [
+            "explicit_backend_audit",
+            "legacy_restore_import_diagnostic",
+            "upstream_intake",
+            "parity_oracle",
+        ],
+    }
 
     publication = contract["publication"]
     assert publication["default_publication_profile"] == profile.default_publication_profile

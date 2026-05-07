@@ -14,6 +14,7 @@ from med_autoscience.policies.study_archetypes import DEFAULT_STUDY_ARCHETYPE_ID
 from med_autoscience.runtime_backend import (
     DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
     registered_managed_runtime_backend_ids,
+    runtime_backend_default_operation_contract,
 )
 
 SUPPORTED_STARTUP_ANCHOR_POLICIES = (
@@ -324,6 +325,7 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
         "hermes_agent_repo_root": str(profile.hermes_agent_repo_root) if profile.hermes_agent_repo_root else None,
         "hermes_home_root": str(profile.hermes_home_root),
         "managed_runtime_backend_id": profile.managed_runtime_backend_id,
+        "runtime_backend_contract": runtime_backend_default_operation_contract(profile.managed_runtime_backend_id),
         "publication": {
             "default_publication_profile": profile.default_publication_profile,
             "default_citation_style": profile.default_citation_style,

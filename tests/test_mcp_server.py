@@ -185,6 +185,81 @@ def test_mcp_server_can_call_doctor_report_tool(tmp_path: Path) -> None:
     assert "default_publication_profile: general_medical_journal" in result["content"][0]["text"]
 
 
+def test_mcp_default_status_progress_and_cockpit_do_not_require_external_mds_repo(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(
+        "\n".join(
+            [
+                "study_id: 001-risk",
+                "execution:",
+                "  auto_entry: on_managed_research_intent",
+                "  quest_id: quest-001",
+                "  runtime_backend_id: hermes",
+                "  runtime_backend: hermes",
+                "  runtime_engine_id: hermes",
+                "  research_backend_id: med_deepscientist",
+                "  research_backend: med_deepscientist",
+                "  research_engine_id: med-deepscientist",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    profile_path = tmp_path / "profile.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "minimal"',
+                f'workspace_root = "{workspace_root}"',
+                f'runtime_root = "{workspace_root / "runtime" / "quests"}"',
+                f'studies_root = "{workspace_root / "studies"}"',
+                f'portfolio_root = "{workspace_root / "portfolio"}"',
+                f'med_deepscientist_runtime_root = "{workspace_root / "runtime"}"',
+                'med_deepscientist_repo_root = ""',
+                f'hermes_agent_repo_root = "{tmp_path / "_external" / "hermes-agent"}"',
+                f'hermes_home_root = "{tmp_path / ".hermes"}"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    status_result = module.call_tool(
+        "study_runtime",
+        {
+            "mode": "study_runtime_status",
+            "profile_path": str(profile_path),
+            "study_id": "001-risk",
+        },
+    )
+    progress_result = module.call_tool(
+        "study_progress",
+        {
+            "profile_path": str(profile_path),
+            "study_id": "001-risk",
+        },
+    )
+    cockpit_result = module.call_tool(
+        "workspace_readiness",
+        {
+            "mode": "cockpit",
+            "profile_path": str(profile_path),
+        },
+    )
+
+    assert status_result["isError"] is False
+    assert progress_result["isError"] is False
+    assert cockpit_result["isError"] is False
+    assert status_result["structuredContent"]["execution"]["runtime_backend_id"] == "hermes"
+    assert progress_result["structuredContent"]["quest_root"] == str(workspace_root / "runtime" / "quests" / "quest-001")
+    assert cockpit_result["structuredContent"]["profile_name"] == "minimal"
+
+
 def test_mcp_server_can_call_ensure_study_runtime_tool(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     profile_path = tmp_path / "profile.local.toml"

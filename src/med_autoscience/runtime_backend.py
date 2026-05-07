@@ -8,6 +8,12 @@ from typing import Any, Protocol
 
 DEFAULT_MANAGED_RUNTIME_BACKEND_ID = "hermes"
 CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER = "controlled_research_backend"
+EXTERNAL_MDS_ALLOWED_USES = (
+    "explicit_backend_audit",
+    "legacy_restore_import_diagnostic",
+    "upstream_intake",
+    "parity_oracle",
+)
 
 
 class ManagedRuntimeBackend(Protocol):
@@ -294,6 +300,23 @@ def controlled_research_backend_metadata_for_backend_id(backend_id: str) -> tupl
     if research_backend_id is None or research_engine_id is None:
         raise ValueError(f"managed runtime backend `{backend_id}` is missing controlled research backend metadata")
     return research_backend_id, research_engine_id
+
+
+def runtime_backend_default_operation_contract(backend_id: str) -> dict[str, object]:
+    backend = get_managed_runtime_backend(backend_id)
+    runtime_backend_id = _non_empty_text(getattr(backend, "BACKEND_ID", None))
+    runtime_engine_id = _non_empty_text(getattr(backend, "ENGINE_ID", None))
+    if runtime_backend_id is None or runtime_engine_id is None:
+        raise ValueError(f"managed runtime backend `{backend_id}` is missing runtime backend metadata")
+    research_backend_id, research_engine_id = controlled_research_backend_metadata_for_backend_id(backend_id)
+    return {
+        "runtime_backend_id": runtime_backend_id,
+        "runtime_engine_id": runtime_engine_id,
+        "research_backend_id": research_backend_id,
+        "research_engine_id": research_engine_id,
+        "external_mds_required_for_default_operation": False,
+        "external_mds_allowed_uses": list(EXTERNAL_MDS_ALLOWED_USES),
+    }
 
 
 register_lazy_managed_runtime_backend(

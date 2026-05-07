@@ -9,6 +9,8 @@ from med_autoscience.doctor import build_doctor_report, overlay_request_from_pro
 from med_autoscience.overlay import describe_medical_overlay
 from med_autoscience.profiles import WorkspaceProfile
 
+EXTERNAL_RUNTIME_OPTIONAL = True
+
 
 def _run_git(repo_root: Path, *args: str) -> tuple[int, str]:
     completed = subprocess.run(
@@ -46,6 +48,10 @@ def inspect_med_deepscientist_repo(*, repo_root: Path | None, refresh: bool = Fa
             "repo_root": None,
             "repo_exists": False,
             "is_git_repo": False,
+            "external_runtime_optional": EXTERNAL_RUNTIME_OPTIONAL,
+            "oracle_unavailable": True,
+            "default_operation_blocked": False,
+            "unavailable_reason": "controlled_backend_repo_root_unconfigured",
             "refresh_attempted": refresh,
             "refresh_succeeded": False,
             "current_branch": None,
@@ -69,6 +75,10 @@ def inspect_med_deepscientist_repo(*, repo_root: Path | None, refresh: bool = Fa
         "repo_root": str(resolved_repo_root),
         "repo_exists": resolved_repo_root.exists(),
         "is_git_repo": False,
+        "external_runtime_optional": EXTERNAL_RUNTIME_OPTIONAL,
+        "oracle_unavailable": False,
+        "default_operation_blocked": False,
+        "unavailable_reason": None,
         "refresh_attempted": refresh,
         "refresh_succeeded": False,
         "current_branch": None,
@@ -86,10 +96,14 @@ def inspect_med_deepscientist_repo(*, repo_root: Path | None, refresh: bool = Fa
     }
     result["repo_manifest"] = manifest_info
     if not result["repo_exists"]:
+        result["oracle_unavailable"] = True
+        result["unavailable_reason"] = "controlled_backend_repo_root_missing"
         return result
 
     exit_code, inside_work_tree = _run_git(resolved_repo_root, "rev-parse", "--is-inside-work-tree")
     if exit_code != 0 or inside_work_tree.lower() != "true":
+        result["oracle_unavailable"] = True
+        result["unavailable_reason"] = "controlled_backend_repo_root_not_git_repo"
         return result
     result["is_git_repo"] = True
 
@@ -219,16 +233,16 @@ def _determine_decision(
         return "blocked_launcher_contract_not_ready", actions
 
     if not repo_check["configured"]:
-        actions.append("configure_controlled_backend_repo_root_for_audit")
-        return "blocked_repo_not_configured", actions
+        actions.append("configure_controlled_backend_repo_root_for_explicit_audit")
+        return "oracle_unavailable", actions
 
     if not repo_check["repo_exists"]:
-        actions.append("ensure_controlled_backend_repo_root_exists_locally")
-        return "blocked_repo_missing", actions
+        actions.append("ensure_controlled_backend_repo_root_for_explicit_audit")
+        return "oracle_unavailable", actions
 
     if not repo_check["is_git_repo"]:
-        actions.append("point_legacy_diagnostic_to_valid_controlled_backend_git_repo")
-        return "blocked_not_git_repo", actions
+        actions.append("point_legacy_diagnostic_to_valid_controlled_backend_git_repo_for_explicit_audit")
+        return "oracle_unavailable", actions
 
     if repo_check["refresh_attempted"] and not repo_check["refresh_succeeded"]:
         actions.append("verify_origin_remote_then_refresh_again")
@@ -277,6 +291,7 @@ def run_upgrade_check(profile: WorkspaceProfile, *, refresh: bool = False) -> di
         return {
             "surface_kind": "controlled_backend_upgrade_diagnostic",
             "read_only": True,
+            "external_runtime_optional": EXTERNAL_RUNTIME_OPTIONAL,
             "profile": profile.name,
             "decision": "blocked_behavior_equivalence_gate",
             "recommended_actions": ["complete_phase_25_behavior_equivalence_gate"],
@@ -302,6 +317,7 @@ def run_upgrade_check(profile: WorkspaceProfile, *, refresh: bool = False) -> di
     return {
         "surface_kind": "controlled_backend_upgrade_diagnostic",
         "read_only": True,
+        "external_runtime_optional": EXTERNAL_RUNTIME_OPTIONAL,
         "profile": profile.name,
         "decision": decision,
         "recommended_actions": recommended_actions,

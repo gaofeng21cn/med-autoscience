@@ -134,6 +134,22 @@ def test_default_managed_runtime_backend_registry_exposes_med_deepscientist_and_
     )
 
 
+def test_default_runtime_backend_contract_makes_external_mds_optional_for_default_operation() -> None:
+    module = importlib.import_module("med_autoscience.runtime_backend")
+
+    contract = module.runtime_backend_default_operation_contract(module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID)
+
+    assert contract["runtime_backend_id"] == "hermes"
+    assert contract["runtime_engine_id"] == "hermes"
+    assert contract["external_mds_required_for_default_operation"] is False
+    assert contract["external_mds_allowed_uses"] == [
+        "explicit_backend_audit",
+        "legacy_restore_import_diagnostic",
+        "upstream_intake",
+        "parity_oracle",
+    ]
+
+
 def test_runtime_backend_resolves_registered_backend_from_engine_and_explicit_backend_id() -> None:
     module = importlib.import_module("med_autoscience.runtime_backend")
     fake_backend = _BackendStub(backend_id="demo_backend", engine_id="demo-engine")

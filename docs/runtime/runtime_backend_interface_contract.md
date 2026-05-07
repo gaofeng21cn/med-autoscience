@@ -16,6 +16,12 @@
 
 旧 `Codex-default host-agent runtime` 不再是长期产品方向；direct `med_deepscientist` backend lane 只保留为兼容 / regression oracle。
 
+默认 MAS operation 的外部 MDS 依赖必须由 machine-readable contract 明确表达：
+
+- `external_mds_required_for_default_operation = false`
+- external MDS 只服务显式 `backend_upgrade` audit、legacy restore/import diagnostic、upstream intake 和 parity oracle
+- profile JSON 顶层不得重新暴露 `med_deepscientist_*` 字段；legacy diagnostic 字段只能位于 `legacy_diagnostic.read_only`
+
 ## 2. Backend 选择规则
 
 `MedAutoScience` 解析 study execution 时，按下面顺序选择 backend：
