@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .shared import *  # noqa: F403
+
 import importlib
 import json
 from pathlib import Path
@@ -97,9 +99,9 @@ def test_study_runtime_status_projects_active_no_live_stale_tick_as_recovery(
             },
         },
     )
-    monkeypatch.setattr(
+    _patch_decision_supervisor_tick_now(
+        monkeypatch,
         decision_module,
-        "_supervisor_tick_now",
         lambda: decision_module.datetime.fromisoformat("2026-04-10T09:30:00+00:00"),
     )
     monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
@@ -229,9 +231,9 @@ def test_persisted_explicit_resume_runtime_health_blocks_active_no_live_recovery
             },
         },
     )
-    monkeypatch.setattr(
+    _patch_decision_supervisor_tick_now(
+        monkeypatch,
         decision_module,
-        "_supervisor_tick_now",
         lambda: decision_module.datetime.fromisoformat("2026-04-10T09:30:00+00:00"),
     )
     monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
@@ -331,9 +333,9 @@ def test_supervisor_status_preserves_preinspected_liveness_and_worker_activity(
             },
         },
     )
-    monkeypatch.setattr(
+    _patch_decision_supervisor_tick_now(
+        monkeypatch,
         decision_module,
-        "_supervisor_tick_now",
         lambda: decision_module.datetime.fromisoformat("2026-04-10T09:30:00+00:00"),
     )
     monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
@@ -453,9 +455,9 @@ def test_live_worker_with_stale_artifact_delta_is_recovery_despite_live_audit(mo
             },
         },
     )
-    monkeypatch.setattr(
+    _patch_decision_supervisor_tick_now(
+        monkeypatch,
         decision_module,
-        "_supervisor_tick_now",
         lambda: decision_module.datetime.fromisoformat("2026-05-02T11:00:00+00:00"),
     )
     monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())

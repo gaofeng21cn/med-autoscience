@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_ensure_study_runtime_uses_study_runtime_protocol_persistence_helpers(
     monkeypatch,
     tmp_path: Path,

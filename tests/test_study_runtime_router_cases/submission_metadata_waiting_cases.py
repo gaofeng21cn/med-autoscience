@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_resumable(
     monkeypatch,
     tmp_path: Path,

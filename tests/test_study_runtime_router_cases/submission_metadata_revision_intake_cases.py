@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_explicit_reviewer_revision_intake_resumes_paused_delivered_package(
     monkeypatch,
     tmp_path: Path,

@@ -128,3 +128,6 @@ def _current_ai_reviewer_publication_eval_ref(
     if not eval_id:
         return None
     return {"eval_id": eval_id, "artifact_path": str(latest_path)}
+
+
+__all__ = [name for name in globals() if not name.startswith("__")]

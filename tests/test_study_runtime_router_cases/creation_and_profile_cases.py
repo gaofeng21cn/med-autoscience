@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_study_runtime_status_keeps_explicit_manual_finish_contract_parked_even_when_stopped_auto_continuation_has_pending_messages(
     monkeypatch,
     tmp_path: Path,

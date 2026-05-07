@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .shared import *  # noqa: F403
+
 import importlib
 import json
 from pathlib import Path

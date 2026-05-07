@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_study_runtime_status_blocks_finalize_parking_when_external_credential_is_required(
     monkeypatch,
     tmp_path: Path,

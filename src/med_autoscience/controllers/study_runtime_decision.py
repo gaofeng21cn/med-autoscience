@@ -1,18 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path as _Path
-
-_PARTS = (
-    "publication_and_submission.py",
-    "publication_owner_currentness.py",
-    "manual_finish_dominance.py",
-    "runtime_events.py",
-    "supervisor_state_overrides.py",
-    "runtime_health_dominance.py",
-    "status_and_decision.py",
-)
-for _part in _PARTS:
-    _chunk_path = _Path(__file__).with_name("study_runtime_decision_parts") / _part
-    exec(compile(_chunk_path.read_text(encoding="utf-8"), str(_chunk_path), "exec"), globals())
-
-del _Path, _PARTS, _part, _chunk_path
+from .study_runtime_decision_parts.publication_and_submission import *  # noqa: F403
+from .study_runtime_decision_parts.publication_owner_currentness import *  # noqa: F403
+from .study_runtime_decision_parts.manual_finish_dominance import *  # noqa: F403
+from .study_runtime_decision_parts.runtime_events import *  # noqa: F403
+from .study_runtime_decision_parts.supervisor_state_overrides import *  # noqa: F403
+from .study_runtime_decision_parts.runtime_health_dominance import *  # noqa: F403
+from .study_runtime_decision_parts.status_and_decision import *  # noqa: F403

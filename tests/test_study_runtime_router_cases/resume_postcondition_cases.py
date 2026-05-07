@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_ensure_study_runtime_blocks_when_resume_only_schedules_without_live_run(
     monkeypatch,
     tmp_path: Path,

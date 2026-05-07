@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_ensure_study_runtime_archives_invalid_partial_quest_root_before_create(
     monkeypatch,
     tmp_path: Path,
@@ -637,9 +638,9 @@ def test_study_runtime_status_marks_supervisor_tick_audit_stale_when_latest_repo
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
-    monkeypatch.setattr(
+    _patch_decision_supervisor_tick_now(
+        monkeypatch,
         decision_module,
-        "_supervisor_tick_now",
         lambda: decision_module.datetime.fromisoformat("2026-04-10T09:30:00+00:00"),
     )
 
@@ -705,9 +706,9 @@ def test_study_runtime_status_records_supervisor_tick_transition_from_fresh_to_s
     )
 
     now_state = {"value": "2026-04-10T09:30:00+00:00"}
-    monkeypatch.setattr(
+    _patch_decision_supervisor_tick_now(
+        monkeypatch,
         decision_module,
-        "_supervisor_tick_now",
         lambda: decision_module.datetime.fromisoformat(now_state["value"]),
     )
 

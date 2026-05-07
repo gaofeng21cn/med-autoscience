@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_ensure_study_runtime_awaits_artifact_delta_for_live_write_stage_ready_after_repeated_same_fingerprint(
     monkeypatch,
     tmp_path: Path,

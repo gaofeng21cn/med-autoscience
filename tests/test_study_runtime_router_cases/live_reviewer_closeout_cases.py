@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_study_runtime_status_pauses_live_reviewer_intake_after_proven_bundle_closeout(
     monkeypatch,
     tmp_path: Path,

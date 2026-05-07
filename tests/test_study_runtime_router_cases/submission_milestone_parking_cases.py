@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_ensure_study_runtime_keeps_refreshed_submission_package_milestone_parked(
     monkeypatch,
     tmp_path: Path,

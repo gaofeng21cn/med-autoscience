@@ -71,6 +71,14 @@ def _managed_runtime_transport(module: object):
     return transport
 
 
+def _patch_decision_supervisor_tick_now(monkeypatch, decision_module: object, tick_factory) -> None:
+    tick_source = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
+    )
+    monkeypatch.setattr(decision_module, "_supervisor_tick_now", tick_factory)
+    monkeypatch.setattr(tick_source, "_supervisor_tick_now", tick_factory)
+
+
 def _materialize_bundle_only_remaining_evaluation_summary(*, study_root: Path, quest_root: Path) -> None:
     summary_module = importlib.import_module("med_autoscience.evaluation_summary")
     study_id = study_root.name
@@ -560,6 +568,7 @@ def _write_native_runtime_event_for_status_test(*, quest_root: Path, quest_id: s
     return payload
 
 
+__all__ = [name for name in globals() if not name.startswith("__")]
 
 
 

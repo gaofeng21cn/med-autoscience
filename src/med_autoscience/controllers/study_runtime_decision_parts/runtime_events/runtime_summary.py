@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+if __name__ != "med_autoscience.controllers.study_runtime_decision":
+    from .human_gates import *  # noqa: F403
+
+
 def _record_family_orchestration_companion(
     *,
     status: StudyRuntimeStatus,
@@ -313,3 +319,6 @@ def _should_refresh_runtime_supervision_from_status(
             (str(latest_report.get("quest_status") or "").strip() or None) != quest_status,
         )
     )
+
+
+__all__ = [name for name in globals() if not name.startswith("__")]

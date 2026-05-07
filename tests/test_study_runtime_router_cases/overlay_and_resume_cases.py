@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_ensure_study_runtime_keeps_explicit_rerun_for_reopened_task_intake_after_manual_takeover_stop(
     monkeypatch,
     tmp_path: Path,

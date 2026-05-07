@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_study_runtime_status_auto_resumes_invalid_blocking_waiting_quest(
     monkeypatch,
     tmp_path: Path,

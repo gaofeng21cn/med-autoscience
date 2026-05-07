@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_ensure_study_runtime_auto_resumes_controller_guard_stopped_quest_when_publication_gate_is_blocked(
     monkeypatch,
     tmp_path: Path,

@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_ensure_study_runtime_pauses_running_quest_when_required_startup_hydration_is_blocked(
     monkeypatch,
     tmp_path: Path,

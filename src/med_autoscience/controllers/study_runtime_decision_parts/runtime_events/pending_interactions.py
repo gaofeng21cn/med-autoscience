@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+if __name__ != "med_autoscience.controllers.study_runtime_decision":
+    from .runtime_summary import *  # noqa: F403
+
+
 def _find_pending_interaction_artifact_path(
     *,
     quest_root: Path,
@@ -276,3 +282,6 @@ def _record_pending_user_interaction_if_required(
     if payload is None:
         return
     status.record_pending_user_interaction(payload)
+
+
+__all__ = [name for name in globals() if not name.startswith("__")]

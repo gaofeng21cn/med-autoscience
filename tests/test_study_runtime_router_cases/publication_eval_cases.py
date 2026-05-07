@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_study_runtime_status_materializes_route_back_same_line_for_blocked_bundle_stage(
     monkeypatch,
     tmp_path: Path,

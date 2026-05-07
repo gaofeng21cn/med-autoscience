@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def test_study_runtime_status_refreshes_runtime_supervision_when_launch_report_is_already_aligned(
     monkeypatch,
     tmp_path: Path,
@@ -117,9 +118,9 @@ def test_study_runtime_status_refreshes_runtime_supervision_when_launch_report_i
         "resolve_daemon_url",
         lambda *, runtime_root: "http://127.0.0.1:21999",
     )
-    monkeypatch.setattr(
+    _patch_decision_supervisor_tick_now(
+        monkeypatch,
         decision_module,
-        "_supervisor_tick_now",
         lambda: decision_module.datetime.fromisoformat("2026-04-10T09:30:00+00:00"),
     )
     monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())

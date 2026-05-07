@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def _write_runtime_escalation_record_for_status_test(
     *,
     protocol,
@@ -825,9 +826,9 @@ def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_
         "resolve_daemon_url",
         lambda *, runtime_root: "http://127.0.0.1:21999",
     )
-    monkeypatch.setattr(
+    _patch_decision_supervisor_tick_now(
+        monkeypatch,
         decision_module,
-        "_supervisor_tick_now",
         lambda: decision_module.datetime.fromisoformat("2026-04-10T09:30:00+00:00"),
     )
     monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())

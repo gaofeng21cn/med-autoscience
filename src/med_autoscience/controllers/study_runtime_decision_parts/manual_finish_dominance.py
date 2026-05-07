@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+if __name__ != "med_autoscience.controllers.study_runtime_decision":
+    from . import publication_and_submission as _publication_and_submission
+    from .publication_and_submission import *  # noqa: F403
+
+    _load_json_dict = _publication_and_submission._load_json_dict
+
 
 def _derive_manual_finish_dominance_state(
     *,
@@ -96,3 +102,6 @@ def _derive_manual_finish_dominance_state(
         "manual_finish_compatibility_guard": manual_finish_compatibility_guard,
         "submission_metadata_only_wait": submission_metadata_only_wait,
     }
+
+
+__all__ = [name for name in globals() if not name.startswith("__")]

@@ -1,3 +1,4 @@
+from .shared import *  # noqa: F403
 def _write_stop_loss_status_fixture(
     monkeypatch,
     tmp_path: Path,

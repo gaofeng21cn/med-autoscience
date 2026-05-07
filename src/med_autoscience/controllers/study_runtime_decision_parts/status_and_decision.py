@@ -1,3 +1,14 @@
+from __future__ import annotations
+
+if __name__ != "med_autoscience.controllers.study_runtime_decision":
+    from .manual_finish_dominance import *  # noqa: F403
+    from .publication_and_submission import *  # noqa: F403
+    from .runtime_events import *  # noqa: F403
+    from .runtime_health_dominance import *  # noqa: F403
+    from .status_finalization import *  # noqa: F403
+    from .supervisor_state_overrides import *  # noqa: F403
+
+
 def _record_interaction_arbitration_if_required(
     *,
     status: StudyRuntimeStatus,
@@ -25,52 +36,6 @@ def _record_interaction_arbitration_if_required(
         publication_gate_report=publication_gate_report if isinstance(publication_gate_report, dict) else None,
     )
     status.record_interaction_arbitration(arbitration)
-
-
-def _record_runtime_recovery_lifecycle_if_required(status: StudyRuntimeStatus) -> None:
-    reason = status.reason.value if status.reason is not None else ""
-    decision = status.decision.value if status.decision is not None else ""
-    if reason not in {
-        StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION.value,
-        StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED.value,
-        StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED.value,
-    }:
-        return
-    runtime_liveness_audit = (
-        dict(status.extras.get("runtime_liveness_audit") or {})
-        if isinstance(status.extras.get("runtime_liveness_audit"), dict)
-        else {}
-    )
-    active_run_id = str(runtime_liveness_audit.get("active_run_id") or "").strip() or None
-    if decision == StudyRuntimeDecision.RESUME.value:
-        state = "recovering"
-        recent_recovery_action = "resume"
-        recovery_attempt_count = 1
-        next_check_reason = "confirm_recovered_live_session"
-    else:
-        state = "parked_requires_resume"
-        recent_recovery_action = (
-            "enable_auto_resume"
-            if reason == StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED.value
-            else "inspect_runtime_liveness"
-        )
-        recovery_attempt_count = 0
-        next_check_reason = "recover_runtime_audit_then_resume"
-    next_check_after_seconds = 300
-    status.extras["runtime_recovery_lifecycle"] = {
-        "state": state,
-        "reason": reason,
-        "decision": decision,
-        "runtime_liveness_status": str(runtime_liveness_audit.get("status") or "").strip() or None,
-        "active_run_id": active_run_id,
-        "recovery_attempt_count": recovery_attempt_count,
-        "recent_recovery_action": recent_recovery_action,
-        "next_check_reason": next_check_reason,
-        "next_check_after_seconds": next_check_after_seconds,
-        "next_check_at": (datetime.now(timezone.utc) + timedelta(seconds=next_check_after_seconds))
-        .replace(microsecond=0)
-        .isoformat(),
-    }
 
 
 def _status_state(
@@ -248,59 +213,13 @@ def _status_state(
                 status=result,
                 runtime_context=runtime_context,
             )
-        supervisor_tick_status = str(
-            (result.extras.get("supervisor_tick_audit") or {}).get("status")
-            if isinstance(result.extras.get("supervisor_tick_audit"), dict)
-            else ""
-        ).strip()
-        supervisor_tick_is_fresh = supervisor_tick_status == "fresh"
-        status_payload_for_supervision = result.to_dict()
-        runtime_facts_for_supervision = runtime_supervision_controller._runtime_facts(status_payload_for_supervision)
-        quest_status_for_supervision = str(status_payload_for_supervision.get("quest_status") or "").strip()
-        runtime_reason_for_supervision = str(status_payload_for_supervision.get("reason") or "").strip()
-        auto_continuation_recovery_pending = runtime_supervision_controller.is_auto_continuation_recovery_pending(
-            status_payload_for_supervision,
-            strict_live=bool(runtime_facts_for_supervision["strict_live"]),
+        _refresh_runtime_supervision_from_status_if_needed(
+            status=result,
+            study_root=study_root,
+            runtime_context=runtime_context,
+            router=router,
+            sync_runtime_summary=sync_runtime_summary,
         )
-        refreshable_runtime_supervision = bool(
-            runtime_facts_for_supervision["strict_live"]
-            or runtime_reason_for_supervision == "quest_stopped_requires_explicit_rerun"
-            or (
-                quest_status_for_supervision in {"running", "active"}
-                and runtime_supervision_controller.needs_recovery_projection(
-                    status_payload_for_supervision,
-                    strict_live=bool(runtime_facts_for_supervision["strict_live"]),
-                )
-            )
-        )
-        if (
-            (supervisor_tick_is_fresh or auto_continuation_recovery_pending)
-            and refreshable_runtime_supervision
-            and _should_refresh_runtime_supervision_from_status(status=result, study_root=study_root)
-        ):
-            runtime_supervision_controller.materialize_runtime_supervision(
-                study_root=study_root,
-                status_payload=status_payload_for_supervision,
-                recorded_at=router._utc_now(),
-                apply=False,
-            )
-            _record_supervisor_tick_audit(status=result, study_root=study_root)
-            if sync_runtime_summary:
-                study_runtime_protocol.persist_runtime_artifacts(
-                    runtime_binding_path=runtime_context.runtime_binding_path,
-                    launch_report_path=runtime_context.launch_report_path,
-                    runtime_root=runtime_context.runtime_root,
-                    study_id=result.study_id,
-                    study_root=Path(result.study_root),
-                    quest_id=result.quest_id if result.quest_exists else None,
-                    last_action=None,
-                    status=result.to_dict(),
-                    source="study_runtime_status",
-                    force=False,
-                    startup_payload_path=None,
-                    daemon_result=None,
-                    recorded_at=router._utc_now(),
-                )
         _record_runtime_event(
             status=result,
             runtime_context=runtime_context,
@@ -961,3 +880,6 @@ def _status_payload(
         sync_runtime_summary=sync_runtime_summary,
         include_progress_projection=include_progress_projection,
     ).to_dict()
+
+
+__all__ = [name for name in globals() if not name.startswith("__")]

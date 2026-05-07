@@ -32,6 +32,9 @@ from med_autoscience.controllers.study_runtime_decision_parts.publication_eval_q
 from med_autoscience.controllers.study_runtime_decision_parts.publication_decision import (
     publication_eval_action as _publication_decision_eval_action,
 )
+from med_autoscience.controllers.study_runtime_decision_parts.publication_owner_currentness import (
+    _current_ai_reviewer_publication_eval_ref,
+)
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization import (
     _controller_decision_authorization_identity,
     _load_controller_decision_authorization_context,
@@ -177,6 +180,11 @@ def _read_json_mapping(path: Path) -> dict[str, object] | None:
     if not isinstance(payload, dict):
         return None
     return dict(payload)
+
+
+def _load_json_dict(path: Path) -> dict[str, object]:
+    payload = _read_json_mapping(path)
+    return payload if payload is not None else {}
 
 def _supervisor_tick_required(status: StudyRuntimeStatus) -> bool:
     execution = status.execution
@@ -792,3 +800,6 @@ def _publication_gate_requires_live_runtime_reroute(
         and continuation_state.continuation_policy == "auto"
         and continuation_state.continuation_anchor == "write"
     )
+
+
+__all__ = [name for name in globals() if not name.startswith("__")]

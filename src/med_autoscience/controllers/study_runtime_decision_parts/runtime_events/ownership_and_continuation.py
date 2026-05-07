@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+if __name__ != "med_autoscience.controllers.study_runtime_decision":
+    from ..publication_and_submission import *  # noqa: F403
+
+
 def _publication_gate_allows_live_runtime_write_stage_resume(
     *,
     status: StudyRuntimeStatus,
@@ -138,3 +144,6 @@ def _record_continuation_state_if_present(*, status: StudyRuntimeStatus, quest_r
     if payload is None:
         return
     status.record_continuation_state(StudyRuntimeContinuationState.from_payload(payload))
+
+
+__all__ = [name for name in globals() if not name.startswith("__")]
