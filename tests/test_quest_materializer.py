@@ -88,6 +88,31 @@ def test_apply_creates_plain_quest_directory_and_manifest_without_dot_git(
     assert calls == []
 
 
+def test_apply_blocks_existing_quest_local_git_surface(tmp_path: Path, monkeypatch) -> None:
+    calls = _guard_git_subprocess(monkeypatch)
+    module = importlib.import_module("med_autoscience.runtime_protocol.quest_materializer")
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "runtime" / "quests" / "quest-001"
+    quest_git = quest_root / ".git"
+    quest_git.mkdir(parents=True)
+
+    result = module.materialize_quest_workspace(
+        workspace_root=workspace_root,
+        quest_id="quest-001",
+        node_id="node-a",
+        mode="apply",
+    )
+
+    manifest_path = quest_root / "artifacts" / "runtime" / "materialization_manifest.json"
+    assert result["status"] == "blocked"
+    assert result["action"] == "audit_only"
+    assert result["block_reason"] == "quest_local_git_retired_policy_violation"
+    assert result["destructive_allowed"] is False
+    assert quest_git.is_dir()
+    assert not manifest_path.exists()
+    assert calls == []
+
+
 def test_apply_is_audit_only_for_live_materialized_workspace(tmp_path: Path, monkeypatch) -> None:
     calls = _guard_git_subprocess(monkeypatch)
     module = importlib.import_module("med_autoscience.runtime_protocol.quest_materializer")

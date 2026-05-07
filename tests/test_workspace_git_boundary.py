@@ -105,10 +105,10 @@ def test_init_workspace_dry_run_reports_workspace_git_plan(tmp_path: Path) -> No
 
     assert str(workspace_root / ".gitignore") in result["created_files"]
     assert result["workspace_git"] == {
-        "enabled": True,
+        "enabled": False,
         "initialized": False,
         "already_initialized": False,
-        "would_initialize": True,
+        "would_initialize": False,
         "git_dir": str(workspace_root / ".git"),
         "gitignore_path": str(workspace_root / ".gitignore"),
         "quest_local_git_policy": {
@@ -117,6 +117,23 @@ def test_init_workspace_dry_run_reports_workspace_git_plan(tmp_path: Path) -> No
             "compatibility_scope": ["legacy_import", "restore"],
         },
     }
+    assert not workspace_root.exists()
+
+
+def test_init_workspace_dry_run_reports_opt_in_workspace_git_plan(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "dry-run-git-workspace"
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="dry-run-git",
+        dry_run=True,
+        force=False,
+        initialize_git=True,
+    )
+
+    assert result["workspace_git"]["enabled"] is True
+    assert result["workspace_git"]["would_initialize"] is True
     assert not workspace_root.exists()
 
 
@@ -153,6 +170,7 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
         workspace_name="git-boundary",
         dry_run=False,
         force=False,
+        initialize_git=True,
     )
 
     assert (workspace_root / ".git").exists()
@@ -499,7 +517,7 @@ def test_init_workspace_backfills_gitignore_and_git_config_for_existing_repo(tmp
     assert _git_config(workspace_root, "maintenance.auto") == "false"
 
 
-def test_init_workspace_can_skip_workspace_git_initialization(tmp_path: Path) -> None:
+def test_init_workspace_skips_workspace_git_initialization_by_default(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "no-git-workspace"
 
@@ -508,7 +526,6 @@ def test_init_workspace_can_skip_workspace_git_initialization(tmp_path: Path) ->
         workspace_name="no-git",
         dry_run=False,
         force=False,
-        initialize_git=False,
     )
 
     assert result["workspace_git"] == {

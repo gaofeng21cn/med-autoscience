@@ -807,7 +807,7 @@ def init_workspace(
     default_citation_style: str = "AMA",
     hermes_agent_repo_root: Path | None = None,
     hermes_home_root: Path | None = None,
-    initialize_git: bool = True,
+    initialize_git: bool = False,
 ) -> dict[str, object]:
     workspace_root = workspace_root.expanduser().resolve()
     layout = build_workspace_runtime_layout(workspace_root=workspace_root)

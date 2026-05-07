@@ -847,27 +847,27 @@ def test_init_workspace_command_dispatches_controller(monkeypatch, tmp_path: Pat
     assert called["default_citation_style"] == "AMA"
     assert called["hermes_agent_repo_root"] == tmp_path / "_external" / "hermes-agent"
     assert called["hermes_home_root"] == tmp_path / ".hermes"
-    assert called["initialize_git"] is True
+    assert called["initialize_git"] is False
     assert '"workspace_name": "diabetes"' in captured.out
-    assert '"initialize_git": true' in captured.out
+    assert '"initialize_git": false' in captured.out
 
     exit_code = cli.main(
         [
             "workspace",
             "init",
             "--workspace-root",
-            str(tmp_path / "workspace-no-git"),
+            str(tmp_path / "workspace-with-git"),
             "--workspace-name",
             "diabetes",
-            "--no-git",
+            "--with-git",
         ]
     )
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert called["workspace_root"] == tmp_path / "workspace-no-git"
-    assert called["initialize_git"] is False
-    assert '"initialize_git": false' in captured.out
+    assert called["workspace_root"] == tmp_path / "workspace-with-git"
+    assert called["initialize_git"] is True
+    assert '"initialize_git": true' in captured.out
 def test_data_assets_status_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

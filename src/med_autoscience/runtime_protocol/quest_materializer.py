@@ -52,6 +52,20 @@ def materialize_quest_workspace(
             "destructive_allowed": False,
             "manifest": manifest,
         }
+    if (quest_root / ".git").exists():
+        return {
+            "schema_version": 1,
+            "status": "blocked",
+            "action": "audit_only",
+            "mode": mode,
+            "quest_id": normalized_quest_id,
+            "node_id": normalized_node_id,
+            "target_path": str(quest_root),
+            "manifest_path": str(manifest_path),
+            "block_reason": "quest_local_git_retired_policy_violation",
+            "destructive_allowed": False,
+            "manifest": manifest,
+        }
 
     if mode == "dry_run":
         return {
