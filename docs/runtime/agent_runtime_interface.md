@@ -225,7 +225,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - `study-runtime-status`
 - `runtime watch`
 
-如果 workspace 来自较早的骨架版本，应先重跑一次 `init-workspace`。当前 controller 会在不加 `--force` 的前提下，自动升级 `_shared.sh`、`watch-runtime`、`install-watch-runtime-service` 这些 service-critical managed entry scripts。新 workspace 默认 no root Git / no quest Git；已有 root Git 的处理属于 runtime lifecycle full retirement lane，不属于普通 bootstrap 成功条件。
+如果 workspace 来自较早的骨架版本，应先重跑一次 `init-workspace`。当前 controller 会在不加 `--force` 的前提下，自动升级 `_shared.sh`、`watch-runtime`、`install-watch-runtime-service` 这些 service-critical managed entry scripts。新 workspace 默认 no root Git / no quest Git；current workspaces 的 root Git 已完成 restore-proof full retirement。未来接入外部或旧 workspace 时若发现 root `.git`，只走显式 inventory / archive / remove / verify diagnostic，不属于普通 bootstrap 成功条件，也不得重新成为 Agent 状态面。
 对于 legacy workspace，`init-workspace` 现在还会优先跟随 `ops/medautoscience/config.env` 中真实生效的 `MED_AUTOSCIENCE_PROFILE`；如果需要把 active profile 原位补齐到 Hermes-era contract，可显式传入 `--hermes-agent-repo-root` 与 `--hermes-home-root`，避免只在旁边生成一个不被当前 workspace 实际消费的 `.local.toml`。
 同一条升级路径现在也会修掉两种更隐蔽的 legacy host-service 漂移：如果 `_shared.sh` 仍停在“直接调用裸 `uv`”而不是显式消费 `MED_AUTOSCIENCE_UV_BIN`，launchd 在最小 PATH 下会直接 `exit 127`；如果 controlled backend launcher 仍依赖 `#!/usr/bin/env node` 而宿主最小 `PATH` 看不到 `node`，launchd 也会把它误报成 runtime 恢复失败。`init-workspace` 现在会识别并原位升级这些入口，把检测到的 `MED_AUTOSCIENCE_NODE_BIN` 合并进 workspace `config.env`，并让 service 显式持有 `MED_AUTOSCIENCE_UV_BIN / MED_AUTOSCIENCE_RSCRIPT_BIN / MED_AUTOSCIENCE_NODE_BIN`。
 

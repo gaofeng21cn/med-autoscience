@@ -109,7 +109,7 @@ uv run python -m med_autoscience.cli init-workspace \
 
 旧 workspace 中的 `ops/med-deepscientist/runtime/quests/`、quest-local `.ds/`、`.ds/worktrees/` 和 quest `.git` 只作为 legacy diagnostic / restore / enrichment / reference surface 被识别；新 quest active path 不再由 MDS Git 或 Git worktree 维护。quest materializer 应在 repo-level guard 中阻断既有 quest `.git` 回流：materialize 出来的 active quest root 必须是普通目录，manifest 记录 `git_runtime_used=false` 与 `quest_git_active_path_retired=true`。
 
-已有 workspace root Git 进入 runtime lifecycle full retirement lane，也不是论文审计仓库，不应提交 generated artifacts、PDF/DOCX/ZIP 投稿包、runtime ledgers、SQLite sidecar、archive payload 或 quest runtime 目录。有提交或 dirty 的 root Git 必须先完成 inventory、authority classification、restore archive、sha256 和 restore command，再决定是否 remove。
+当前维护口径是 current workspaces 的 root Git 已完成 restore-proof full retirement。未来如果接入外部或旧 workspace 时发现 root `.git`，它只属于 legacy maintenance diagnostic，不是论文审计仓库，也不是可选日常状态面；不得提交 generated artifacts、PDF/DOCX/ZIP 投稿包、runtime ledgers、SQLite sidecar、archive payload 或 quest runtime 目录。有提交或 dirty 的 root Git 必须先完成 inventory、authority classification、restore archive、sha256 和 restore command，再决定是否 remove。
 如果旧 workspace 已经因为误 `git add` 产生很大的 `.git/objects`，先运行：
 
 ```bash
@@ -122,7 +122,7 @@ ops/medautoscience/bin/storage-audit --git-only
 ops/medautoscience/bin/storage-audit --git-only --apply
 ```
 
-只有当报告显示外层 Git 没有 commits、remotes、stashes、linked worktrees 和 locks，且 lifecycle ledger 已记录 restore-proof inventory/archive/remove 计划时，才允许进入 root Git remove 步骤。历史命令形态如下，仅用于维护者诊断：
+只有当报告显示外层 Git 没有 commits、remotes、stashes、linked worktrees 和 locks，且 lifecycle ledger 已记录 restore-proof inventory/archive/remove 计划时，才允许进入 root Git remove 步骤。root Git 退役后不得通过 bootstrap 重新初始化。历史命令形态如下，仅用于维护者诊断：
 
 ```bash
 ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-workspace-git

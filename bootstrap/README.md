@@ -71,7 +71,7 @@
 - 这是病种级顶层目录，不是某一篇论文自己的目录
 - 可以先有空的 `studies/`，并不要求创建 profile 时就已经有首个 study
 - 不要在每个病种 workspace 里再 clone 一份上游 `DeepScientist`；旧 `med-deepscientist` 只作为外部共享 backend / oracle / diagnostic reference
-- `init-workspace` / MCP 默认 no root Git / no quest Git；已有 root Git 由 runtime lifecycle full retirement lane 做 inventory / archive / remove / verify，不作为 bootstrap 成功条件
+- `init-workspace` / MCP 默认 no root Git / no quest Git；current workspaces 的 root Git 已完成 restore-proof full retirement。未来接入外部或旧 workspace 时如发现 root `.git`，只走显式 inventory / archive / remove / verify diagnostic，不作为 bootstrap 成功条件，也不重新初始化
 
 现在更推荐直接用 CLI 初始化，而不是手工逐层创建：
 

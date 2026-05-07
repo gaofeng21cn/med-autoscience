@@ -22,6 +22,8 @@ MAS 当前已经从“文件被迫切小”推进到“主要 owner 与 projecti
 
 本评估基于当前 `main` 的 fresh read：
 
+2026-05-08 复核：模块化治理后的关键结构信号没有漂移。Sentrux fresh scan 仍为 `quality_signal=6076`，DSM `above_diagonal=0`、`propagation_cost=63`；`.sentrux/rules.toml` 尚未定义额外架构规则，因此当前 hard gate 继续以 repo guard、boundary fitness、line budget 和 DSM 方向性为准。
+
 | signal | current value | interpretation |
 | --- | ---: | --- |
 | Sentrux `quality_signal` | `6076` after wave; assessment baseline was `6156` | 本轮结构拆分降低了 Sentrux 单点分数，但 DSM 与 boundary fitness 均未退化；后续以 `above_diagonal=0` 和 boundary fitness 为硬门槛，quality drift 需要结合 diff 解释。 |
