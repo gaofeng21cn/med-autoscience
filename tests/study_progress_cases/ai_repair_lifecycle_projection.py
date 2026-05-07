@@ -143,6 +143,8 @@ def test_study_progress_suppresses_stale_repair_lifecycle_after_work_unit_eviden
 
     assert result["ai_repair_lifecycle"] is None
     assert result["refs"]["ai_repair_lifecycle_path"] is None
+    assert result["supervision"]["health_status"] == "publication_gate_blocked"
+    assert result["module_surfaces"]["runtime"]["health_status"] == "publication_gate_blocked"
 
 
 def test_study_progress_builds_readonly_ai_repair_lifecycle_from_ready_repair_action(

@@ -29,6 +29,10 @@ def current_status_suppresses_ai_repair_lifecycle(status_payload: Mapping[str, A
     )
 
 
+def current_status_publication_gate_stationary(status_payload: Mapping[str, Any]) -> bool:
+    return current_status_suppresses_ai_repair_lifecycle(status_payload)
+
+
 def _projection_string_items(value: object) -> set[str]:
     if isinstance(value, str):
         text = value.strip()

@@ -23,6 +23,7 @@ from .parked_projection import (
 from .markdown_projection import render_study_progress_markdown
 from .supervisor_projection import (
     build_readonly_ai_repair_lifecycle_projection as _build_readonly_ai_repair_lifecycle_projection,
+    current_status_publication_gate_stationary as _current_status_publication_gate_stationary,
     current_status_suppresses_ai_repair_lifecycle as _current_status_suppresses_ai_repair_lifecycle,
     portable_supervisor_study_projection as _portable_supervisor_study_projection,
     read_ai_repair_lifecycle as _read_ai_repair_lifecycle,
@@ -498,6 +499,7 @@ def build_study_progress_projection(
         runtime_watch_payload=runtime_watch_payload,
         quest_root=quest_root,
     )
+    publication_gate_stationary = _current_status_publication_gate_stationary(status)
     runtime_module_surface = _runtime_module_surface(
         generated_at=generated_at,
         study_id=resolved_study_id,
@@ -519,6 +521,7 @@ def build_study_progress_projection(
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
         auto_runtime_parked=auto_runtime_parked,
+        publication_gate_stationary=publication_gate_stationary,
     )
     module_surfaces: dict[str, Any] = {}
     if controller_module_surface is not None:
@@ -619,7 +622,9 @@ def build_study_progress_projection(
         runtime_watch_path=runtime_watch_path,
         controller_decision_path=controller_decision_path,
     )
-    if bool(auto_runtime_parked.get("parked")):
+    if publication_gate_stationary:
+        supervision_health_status = "publication_gate_blocked"
+    elif bool(auto_runtime_parked.get("parked")):
         supervision_health_status = "parked"
     elif runtime_facts.recovery_pending or runtime_facts.missing_live_session:
         supervision_health_status = "recovering"
