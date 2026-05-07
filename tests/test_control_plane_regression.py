@@ -39,6 +39,33 @@ def test_supervisor_lightweight_path_preserves_liveness() -> None:
     ) is False
 
 
+def test_control_plane_invalidates_stale_active_run_when_liveness_has_no_worker() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_facts")
+
+    facts = module.resolve_control_plane_facts(
+        {
+            "quest_status": "running",
+            "active_run_id": "run-stale-launch",
+            "runtime_liveness_audit": {
+                "status": "none",
+                "active_run_id": "run-stale-launch",
+                "runtime_audit": {
+                    "status": "none",
+                    "active_run_id": "run-stale-launch",
+                    "worker_running": False,
+                },
+            },
+            "autonomous_runtime_notice": {"active_run_id": "run-stale-launch"},
+            "execution_owner_guard": {"active_run_id": "run-stale-launch"},
+        }
+    )
+
+    assert facts.active_run_id is None
+    assert facts.active_run_id_source == "invalidated_no_live_worker"
+    assert facts.strict_live is False
+    assert facts.recovery_pending is True
+
+
 def test_same_fingerprint_repeated_turn_stays_stable(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch_parts.managed_wakeup")
     study_root = tmp_path / "studies" / "001-risk"

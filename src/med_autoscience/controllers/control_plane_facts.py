@@ -173,6 +173,14 @@ def resolve_control_plane_facts(
     quest_status = _text(status_payload.get("quest_status")) or _text(continuation_state.get("quest_status"))
     decision = _text(status_payload.get("decision"))
     reason = _text(status_payload.get("reason")) or _text(status_payload.get("runtime_reason"))
+    liveness_source_present = bool(runtime_liveness_audit)
+    if (
+        liveness_source_present
+        and active_run_id is not None
+        and (runtime_liveness_status != "live" or worker_running is not True)
+    ):
+        active_run_id = None
+        active_run_id_source = "invalidated_no_live_worker"
     if _completed_parked_auto_continue_run(status_payload, active_run_id):
         runtime_liveness_status = "parked"
         worker_running = False

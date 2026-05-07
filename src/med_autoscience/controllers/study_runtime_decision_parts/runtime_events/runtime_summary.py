@@ -233,8 +233,22 @@ def _sync_runtime_summary_if_needed(
         mismatch_reason = "launch_report_supervisor_tick_status_mismatch"
     elif launch_report_publication_supervisor_state != current_publication_supervisor_state:
         mismatch_reason = "launch_report_publication_supervisor_state_mismatch"
+    launch_report_stale = bool(
+        launch_report_exists
+        and launch_report_active_run_id is not None
+        and launch_report_runtime_liveness_status == "live"
+        and (
+            current_active_run_id != launch_report_active_run_id
+            or current_runtime_liveness_status != "live"
+        )
+    )
     status_sync_applied = False
     if not aligned:
+        if launch_report_stale:
+            status.extras["last_known_run_id"] = launch_report_active_run_id
+            status.extras["stale_launch_report_invalidated"] = True
+            status.extras["stale_launch_report_active_run_id"] = launch_report_active_run_id
+            status.extras["stale_launch_report_runtime_liveness_status"] = launch_report_runtime_liveness_status
         study_runtime_protocol.persist_runtime_artifacts(
             runtime_binding_path=runtime_context.runtime_binding_path,
             launch_report_path=launch_report_path,
@@ -268,6 +282,11 @@ def _sync_runtime_summary_if_needed(
             aligned=aligned,
             mismatch_reason=mismatch_reason,
             status_sync_applied=status_sync_applied,
+            launch_report_stale=launch_report_stale,
+            stale_launch_report_active_run_id=launch_report_active_run_id if launch_report_stale else None,
+            stale_launch_report_runtime_liveness_status=(
+                launch_report_runtime_liveness_status if launch_report_stale else None
+            ),
         )
     )
 

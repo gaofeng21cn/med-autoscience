@@ -70,24 +70,38 @@ def _launch_report_runtime_projection(status: dict[str, Any]) -> dict[str, Any]:
         else {}
     )
     supervisor_tick_audit = status.get("supervisor_tick_audit")
+    runtime_liveness_status = (
+        str(
+            status.get("runtime_liveness_status")
+            or (runtime_liveness_audit.get("status") if isinstance(runtime_liveness_audit, dict) else None)
+            or ""
+        ).strip()
+        or None
+    )
+    observed_active_run_id = (
+        str(
+            status.get("active_run_id")
+            or (runtime_liveness_audit.get("active_run_id") if isinstance(runtime_liveness_audit, dict) else None)
+            or runtime_audit.get("active_run_id")
+            or ""
+        ).strip()
+        or None
+    )
+    last_known_run_id = str(status.get("last_known_run_id") or "").strip() or None
+    worker_running = (
+        runtime_audit.get("worker_running")
+        if isinstance(runtime_audit.get("worker_running"), bool)
+        else (runtime_liveness_audit.get("worker_running") if isinstance(runtime_liveness_audit, dict) else None)
+    )
+    strict_live_active_run_id = (
+        observed_active_run_id
+        if runtime_liveness_status == "live" and observed_active_run_id is not None and worker_running is True
+        else None
+    )
     return {
-        "active_run_id": (
-            str(
-                status.get("active_run_id")
-                or (runtime_liveness_audit.get("active_run_id") if isinstance(runtime_liveness_audit, dict) else None)
-                or runtime_audit.get("active_run_id")
-                or ""
-            ).strip()
-            or None
-        ),
-        "runtime_liveness_status": (
-            str(
-                status.get("runtime_liveness_status")
-                or (runtime_liveness_audit.get("status") if isinstance(runtime_liveness_audit, dict) else None)
-                or ""
-            ).strip()
-            or None
-        ),
+        "active_run_id": strict_live_active_run_id,
+        "last_known_run_id": (observed_active_run_id or last_known_run_id) if strict_live_active_run_id is None else None,
+        "runtime_liveness_status": runtime_liveness_status,
         "supervisor_tick_status": (
             str(
                 status.get("supervisor_tick_status")

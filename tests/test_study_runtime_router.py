@@ -13,6 +13,7 @@ from .test_study_runtime_router_cases.human_review_milestone_preflight_cases imp
 from .test_study_runtime_router_cases.submission_milestone_parking_cases import *  # noqa: F403
 from .test_study_runtime_router_cases.startup_boundary_cases import *  # noqa: F403
 from .test_study_runtime_router_cases.runtime_event_surface_cases import *  # noqa: F403
+from .test_study_runtime_router_cases.stale_launch_report_cases import *  # noqa: F403
 from .test_study_runtime_router_cases.overlay_audit_and_progress_cases import *  # noqa: F403
 from .test_study_runtime_router_cases.runtime_liveness_convergence_cases import *  # noqa: F403
 from .test_study_runtime_router_cases.user_pause_contract_cases import *  # noqa: F403

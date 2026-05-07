@@ -327,7 +327,8 @@ workspace 层 runtime 真相优先级当前固定为：
 因此：
 
 - `last_launch_report.json` 是 workspace summary；runtime truth source 由 `study_runtime_status(...)` 承担
-- 若 `study_runtime_status(...)` 发现 launch report 与当前 quest status 不一致，允许通过正式 persistence helper 刷新该 summary
+- 若 `study_runtime_status(...)` 发现 launch report 与当前 quest status、`active_run_id`、liveness 或 supervisor tick 不一致，允许通过正式 persistence helper 刷新该 summary
+- 当 source-of-truth liveness 不是 strict live worker 时，旧 launch report 里的 live `active_run_id` 必须被标记为 stale/invalidated；刷新后的 summary 只能把它降为 `last_known_run_id`，不得继续作为当前 live handle 暴露给 `study_runtime_status`、`study_progress` 或 MCP compact projection
 - 这种刷新不改变 runtime 本体，只修正 workspace 派生摘要
 
 如果三者冲突：

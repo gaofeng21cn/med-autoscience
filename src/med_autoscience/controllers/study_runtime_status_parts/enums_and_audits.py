@@ -304,6 +304,9 @@ class StudyRuntimeSummaryAlignment:
     aligned: bool
     mismatch_reason: str | None
     status_sync_applied: bool
+    launch_report_stale: bool = False
+    stale_launch_report_active_run_id: str | None = None
+    stale_launch_report_runtime_liveness_status: str | None = None
 
     def __post_init__(self) -> None:
         for field_name in ("source_of_truth", "runtime_state_path", "launch_report_path"):
@@ -320,11 +323,13 @@ class StudyRuntimeSummaryAlignment:
             "launch_report_runtime_liveness_status",
             "launch_report_supervisor_tick_status",
             "mismatch_reason",
+            "stale_launch_report_active_run_id",
+            "stale_launch_report_runtime_liveness_status",
         ):
             value = getattr(self, field_name)
             if value is not None and not isinstance(value, str):
                 raise TypeError(f"study runtime summary alignment {field_name} must be str or None")
-        for field_name in ("launch_report_exists", "aligned", "status_sync_applied"):
+        for field_name in ("launch_report_exists", "aligned", "status_sync_applied", "launch_report_stale"):
             if not isinstance(getattr(self, field_name), bool):
                 raise TypeError(f"study runtime summary alignment {field_name} must be bool")
 
@@ -345,6 +350,9 @@ class StudyRuntimeSummaryAlignment:
             "aligned": self.aligned,
             "mismatch_reason": self.mismatch_reason,
             "status_sync_applied": self.status_sync_applied,
+            "launch_report_stale": self.launch_report_stale,
+            "stale_launch_report_active_run_id": self.stale_launch_report_active_run_id,
+            "stale_launch_report_runtime_liveness_status": self.stale_launch_report_runtime_liveness_status,
         }
 
     @classmethod
@@ -371,6 +379,13 @@ class StudyRuntimeSummaryAlignment:
             aligned=bool(payload.get("aligned")),
             mismatch_reason=str(payload.get("mismatch_reason") or "").strip() or None,
             status_sync_applied=bool(payload.get("status_sync_applied")),
+            launch_report_stale=bool(payload.get("launch_report_stale")),
+            stale_launch_report_active_run_id=(
+                str(payload.get("stale_launch_report_active_run_id") or "").strip() or None
+            ),
+            stale_launch_report_runtime_liveness_status=(
+                str(payload.get("stale_launch_report_runtime_liveness_status") or "").strip() or None
+            ),
         )
 
 

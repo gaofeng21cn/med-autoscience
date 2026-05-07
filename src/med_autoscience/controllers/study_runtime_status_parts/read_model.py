@@ -5,6 +5,21 @@ from typing import Any
 
 def resolved_active_run_id(*, extras: dict[str, Any]) -> str | None:
     runtime_liveness_audit = extras.get("runtime_liveness_audit")
+    if isinstance(runtime_liveness_audit, dict):
+        runtime_audit = runtime_liveness_audit.get("runtime_audit")
+        runtime_audit = runtime_audit if isinstance(runtime_audit, dict) else {}
+        liveness_status = str(
+            runtime_liveness_audit.get("status")
+            or runtime_audit.get("status")
+            or ""
+        ).strip()
+        worker_running = (
+            runtime_audit.get("worker_running")
+            if isinstance(runtime_audit.get("worker_running"), bool)
+            else runtime_liveness_audit.get("worker_running")
+        )
+        if liveness_status and (liveness_status != "live" or worker_running is not True):
+            return None
     for payload in (
         runtime_liveness_audit,
         runtime_liveness_audit.get("runtime_audit") if isinstance(runtime_liveness_audit, dict) else None,
