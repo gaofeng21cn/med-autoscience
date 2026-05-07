@@ -412,7 +412,7 @@ def test_build_product_entry_status_uses_quality_review_followthrough_for_monito
         "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
         "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
         "summary": {"recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"},
-        "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "research_backend", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["physical monorepo absorb"], "not_now": ["not now"]},
+        "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "research_backend", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["runtime core ingest across repos"], "not_now": ["not now"]},
     })
     monkeypatch.setattr(module, "read_workspace_cockpit", lambda **kwargs: {
         "operator_brief": {
@@ -481,7 +481,7 @@ def test_build_product_entry_status_uses_gate_clearing_followthrough_for_attenti
         "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
         "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
         "summary": {"recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"},
-        "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "research_backend", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["physical monorepo absorb"], "not_now": ["not now"]},
+        "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "research_backend", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["runtime core ingest across repos"], "not_now": ["not now"]},
     })
     monkeypatch.setattr(module, "read_workspace_cockpit", lambda **kwargs: {
         "operator_brief": {

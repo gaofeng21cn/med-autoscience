@@ -1,12 +1,12 @@
 # Workspace Architecture
 
-这份文档定义 `MedAutoScience` 体系下医学研究 workspace 的标准形态，以及从历史遗留的 inline-DeepScientist workspace 迁移到“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam + MedDeepScientist controlled backend”标准形态的约束。
+这份文档定义 `MedAutoScience` 体系下医学研究 workspace 的标准形态，以及从历史遗留的 inline-DeepScientist workspace 迁移到“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam + MAS-owned runtime/artifact/quality surfaces”标准形态的约束。
 
 在顶层定位上，应始终按下面这条理解：
 
 - `MedAutoScience` = `Research Ops` 的 `domain gateway + Domain Harness OS`，并由单一 MAS app skill 承接稳定 callable surface
 - 上游 `Hermes-Agent` = 目标 outer runtime substrate owner；当前通过 repo-side seam 暴露
-- `MedDeepScientist` = 当前由 `MedAutoScience` / repo-side seam 控制的 controlled research backend
+- `MedDeepScientist` = optional oracle / intake / backend-audit / legacy diagnostic reference，不是默认 workspace runtime 依赖
 - 如果存在 `OPL Gateway`，它位于 `MedAutoScience` 之上，而不是替代 `MedAutoScience`
 
 也就是说，当前 monorepo / runtime / controller 的任何后续演化，都应被理解为在收紧 `MedAutoScience` 内部 harness OS，而不是削弱它作为独立 domain gateway 的角色。
@@ -25,7 +25,7 @@
 - 程序本体与重依赖不在每个疾病 workspace 内重复存放
 - workspace 根目录默认 no root Git，quest 默认 no quest Git；已有 root Git 通过 runtime lifecycle full retirement lane 做 restore-proof inventory、archive、remove 和 verify
 - 新疾病项目可以快速复制同一套目录骨架与启动方式
-- `MedAutoScience` 继续作为 `Research Ops` 的 domain gateway 与 harness OS，上游 `Hermes-Agent` 继续作为目标 outer runtime substrate owner，`MedDeepScientist`（仓库名 `med-deepscientist`）继续作为当前 controlled research backend
+- `MedAutoScience` 继续作为 `Research Ops` 的 domain gateway 与 harness OS，上游 `Hermes-Agent` 继续作为目标 outer runtime substrate owner；外部 `MedDeepScientist`（仓库名 `med-deepscientist`）只保留为 optional oracle / intake / backend-audit / legacy diagnostic reference
 
 这也意味着：正式研究入口必须是 `MedAutoScience`，而不是直接面向 `MedDeepScientist`、`DeepScientist upstream`，也不是被 `OPL` 顶层语义直接吞并。
 
@@ -239,21 +239,21 @@ wrapper 不应继续硬编码：
 - runtime home 默认仍兼容 upstream 的 `~/DeepScientist/`
 - `runtime/` 下包含 `python-env`、`uv-cache`、`bundle`、`tools`
 
-因此在当前 `MedAutoScience` 体系下，`MedDeepScientist` 应被理解为 controlled research backend，其使用方式收敛为：
+因此在当前 `MedAutoScience` 体系下，`MedDeepScientist` 应被理解为 optional legacy / oracle / intake / backend-audit reference，其使用方式收敛为：
 
-- 外部共享 repo：`med_deepscientist_repo_root`
-- workspace 内项目状态 home：`med_deepscientist_runtime_root`
-- 外部共享重依赖：由 `MedDeepScientist` launcher / runtime 管理，不和疾病 workspace 绑定
+- 外部共享 repo：`med_deepscientist_repo_root`，只服务显式 backend audit、upstream intake 与 parity oracle
+- workspace 内 legacy state home：`med_deepscientist_runtime_root`，只作为 legacy diagnostic / restore reference
+- 外部共享重依赖：不作为新 workspace 默认运行前置；如需审计，只通过显式 diagnostic surface 读取
 
 这里的命名已经不再保留 `deepscientist_*` 前缀。
 
-`med_deepscientist_runtime_root` 明确表示 “project-local MedDeepScientist state root”。
+`med_deepscientist_runtime_root` 明确表示历史兼容字段；新 workspace 的默认 active runtime root 是 `runtime_root` / `runtime/quests`。
 
-也就是说，这个路径在迁移完成前，可能仍暂时包含 upstream 默认放在 home 下的 `runtime/python-env`、`runtime/uv-cache`、`runtime/bundle`、`runtime/tools`。
+也就是说，这个路径如果在旧 workspace 中存在，可能仍暂时包含 upstream 默认放在 home 下的 `runtime/python-env`、`runtime/uv-cache`、`runtime/bundle`、`runtime/tools`。
 
 迁移的目的不是保留旧字段名，而是逐步把这部分重依赖从同一路径中剥离出去，并保留 project-local state 不变。
 
-### 保留在 workspace 内的 MedDeepScientist 内容
+### 旧 workspace 中可保留为 legacy diagnostic 的 MedDeepScientist 内容
 
 - `quests/`
 - `logs/`
@@ -279,8 +279,8 @@ wrapper 不应继续硬编码：
 - `studies_root`
 - `portfolio_root`
 - `managed_runtime_backend_id`
-- `med_deepscientist_runtime_root`
-- `med_deepscientist_repo_root`
+- `controlled_backend_audit_root`（可选；仅显式 backend audit / parity oracle / upstream intake 需要）
+- `legacy_diagnostic_root`（可选；仅 legacy restore/import diagnostic 需要）
 
 当前实现下，一个“可直接启动”的最小 profile 还应包含：
 
@@ -302,7 +302,7 @@ wrapper 不应继续硬编码：
 - `med_deepscientist_runtime_root`
   - 旧 workspace 中 `MedDeepScientist` 项目状态根目录；新 workspace 不把它作为默认 active runtime root
 - `med_deepscientist_repo_root`
-  - 外部共享 `MedDeepScientist` 源码仓库；它对应 controlled research backend，而不是默认 outer substrate owner
+  - 外部共享 `MedDeepScientist` 源码仓库；它对应 optional backend audit / parity oracle / upstream intake reference，而不是默认 outer substrate owner 或默认 executor owner
 
 这里的 `name` 也应理解为 workspace 名称，而不是单个 study 名称。
 
@@ -313,7 +313,7 @@ wrapper 不应继续硬编码：
 - `ops/mas/config.env`
   - 显式指定受控 research backend launcher；旧 `ops/med-deepscientist/config.env` 只作为 legacy diagnostic / restore reference
 
-当前阶段 `med_deepscientist_repo_root` 仍作为 profile TOML 输入兼容字段存在，但 JSON / doctor-facing 输出只在 `legacy_diagnostic.read_only` 下暴露它。它主要为 `backend-upgrade-check` 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，也不是默认 product entry 或 executor owner。当前 repo-side 已把 `managed_runtime_backend_id=hermes` 固定为默认 outer substrate owner，但 external `Hermes` runtime truth 仍未单独放行，因此真正的执行真相仍可能在 workspace 内部 `site-packages` 级 overlay 或 legacy controller 补丁里。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这仍然只说明 controlled backend repo 身份已受控，不说明 external runtime cutover 已可放行。为了不在 Phase 1 过早把运行源切走，新 workspace 必须在 `ops/mas/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact；旧 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 legacy diagnostic / restore reference。`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`，只有当 `phase_25_ready` 被显式置为 `true` 且 `critical_overrides` 里列出的 site-packages 补丁都被迁出或替换后，才可以考虑把 controlled backend 当作真实执行来源。只要 `phase_25_ready=false`，就不能宣称已经完成外部执行切换，`backend-upgrade-check` 也会返回 `blocked_behavior_equivalence_gate`，提醒我们继续固化 audit-level 合约。
+当前阶段 `med_deepscientist_repo_root` 仍作为 profile TOML 输入兼容字段存在，但 JSON / doctor-facing 输出只在 `legacy_diagnostic.read_only` 下暴露它。它主要为 `backend-upgrade-check`、upstream intake、parity oracle 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，也不是默认 product entry 或 executor owner。当前 repo-side 已把 `managed_runtime_backend_id=hermes` 固定为默认 outer substrate owner，MAS 默认 study/status/progress/cockpit 路径不依赖外部 `med-deepscientist` checkout。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这只说明 optional audit/oracle/intake reference 身份已受控，不说明 runtime core ingest 或 broader controlled cutover 已可放行。新 workspace 必须在 `ops/mas/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact；旧 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 legacy diagnostic / restore reference。`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`；这些字段只服务 audit-level 合约，不得把外部 MDS 恢复成默认运行依赖。
 ## 当前实现下的最小可运行 workspace 契约
 
 这份文档描述的是目标架构，但在当前实现里，新 workspace 还不是“只靠 6 个路径字段就能直接启动”的完全抽象状态。

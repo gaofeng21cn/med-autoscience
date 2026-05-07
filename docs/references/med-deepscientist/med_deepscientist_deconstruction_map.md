@@ -107,7 +107,7 @@
 
 当前迁移期的稳定判断如下：
 
-1. `MedDeepScientist` 还没有物理退场
+1. `MedDeepScientist` 不再是 MAS 默认 operation 的必需 checkout，但外部参考仓仍保留为 optional oracle / intake / audit / legacy diagnostic surface
 2. `MedAutoScience` 已经是默认优化主体
 3. `MedDeepScientist` 仍然需要保留 oracle / intake / parity / legacy companion 角色
-4. physical migration、runtime core ingest、controlled cutover 仍需继续经过独立 gate 与真实 study proof
+4. MDS no-history absorb 已以 MAS-authored snapshot guard/parity/default-dependency-retirement 落地；runtime core ingest、controlled cutover 和更大平台迁移仍需继续经过独立 gate 与真实 study proof

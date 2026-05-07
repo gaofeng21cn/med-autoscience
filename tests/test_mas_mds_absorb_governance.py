@@ -18,7 +18,7 @@ def test_absorb_governance_contract_freezes_no_history_import_and_source_provena
     assert contract["surface"] == "mas_mds_absorb_governance_contract"
     assert contract["schema_version"] == 1
     assert contract["owner"] == "MedAutoScience"
-    assert contract["upstream_role"] == "MedDeepScientist controlled backend/oracle/intake source"
+    assert contract["upstream_role"] == "MedDeepScientist optional oracle/intake/backend-audit source"
     assert contract["history_policy"] == {
         "import_mode": "no_history_snapshot_only",
         "merge_unrelated_histories_allowed": False,
@@ -35,10 +35,12 @@ def test_absorb_governance_contract_freezes_no_history_import_and_source_provena
         "capability_classification",
     ]
     provenance = contract["source_provenance"]
-    assert provenance["upstream_repo"]
-    assert provenance["upstream_ref"]
-    assert provenance["snapshot_sha256"]
-    assert provenance["license_refs"]
+    assert provenance["upstream_repo"] == "med-deepscientist"
+    assert provenance["upstream_ref"] == "med-deepscientist@35976b7d6e3b99b15b57ec44ff5f5d959b342ecc"
+    assert provenance["snapshot_sha256"] == "f8dc31822dc52ecc6e073f54c8b5c95cd46646e299a67cd1c1f6f7f3764e0d5b"
+    assert provenance["snapshot_archive_format"] == "git archive --format=tar HEAD"
+    assert provenance["snapshot_file_count"] == 1843
+    assert "LICENSE (Apache-2.0; Copyright 2026 ResearAI)" in provenance["license_refs"]
     assert provenance["capability_classification"] in {"absorb", "oracle", "retire", "compat"}
 
 
@@ -130,6 +132,28 @@ def test_absorb_governance_validation_fails_closed_on_history_and_provenance_dri
     }
 
 
+def test_absorb_governance_validation_fails_closed_on_placeholder_provenance() -> None:
+    module = importlib.import_module("med_autoscience.controllers.mas_mds_absorb_governance")
+
+    contract = module.build_mas_mds_absorb_governance_contract()
+    contract["source_provenance"]["upstream_ref"] = "snapshot-ref-recorded-at-intake"
+    contract["source_provenance"]["snapshot_sha256"] = "required_per_snapshot_intake"
+    contract["source_provenance"]["license_refs"] = ["upstream license file"]
+
+    validation = module.validate_mas_mds_absorb_governance_contract(contract)
+
+    assert validation["ok"] is False
+    assert {issue["code"] for issue in validation["issues"]} == {
+        "placeholder_source_provenance_field",
+        "invalid_snapshot_sha256",
+    }
+    assert {issue["field"] for issue in validation["issues"]} == {
+        "upstream_ref",
+        "snapshot_sha256",
+        "license_refs",
+    }
+
+
 def test_no_history_snapshot_manifest_records_author_guard_and_retained_capabilities() -> None:
     module = importlib.import_module("med_autoscience.controllers.mas_mds_absorb_governance")
 
@@ -140,8 +164,14 @@ def test_no_history_snapshot_manifest_records_author_guard_and_retained_capabili
     assert manifest["import_mode"] == "no_history_snapshot_only"
     assert manifest["default_operation_requires_external_mds"] is False
     assert manifest["source_provenance"]["upstream_repo"] == "med-deepscientist"
-    assert manifest["source_provenance"]["snapshot_sha256"]
-    assert manifest["source_provenance"]["license_refs"]
+    assert manifest["source_provenance"]["snapshot_sha256"] == (
+        "f8dc31822dc52ecc6e073f54c8b5c95cd46646e299a67cd1c1f6f7f3764e0d5b"
+    )
+    assert manifest["source_provenance"]["license_refs"] == [
+        "LICENSE (Apache-2.0; Copyright 2026 ResearAI)",
+        "MEDICAL_FORK_MANIFEST.json (controlled fork; upstream base a7853fda3432d37f6dee91fa6e66330f564bd8be)",
+        "docs/references/med-deepscientist/med_deepscientist_upstream_source_provenance.md",
+    ]
     assert manifest["author_audit"] == {
         "import_commit_author_policy": "mas_maintainer_only",
         "coauthor_trailers_allowed": False,
@@ -198,5 +228,11 @@ def test_no_history_source_provenance_json_is_machine_readable() -> None:
     assert payload["surface"] == "mds_no_history_snapshot_manifest"
     assert payload["import_mode"] == "no_history_snapshot_only"
     assert payload["default_operation_requires_external_mds"] is False
+    assert payload["source_provenance"]["upstream_ref"] == (
+        "med-deepscientist@35976b7d6e3b99b15b57ec44ff5f5d959b342ecc"
+    )
+    assert payload["source_provenance"]["snapshot_sha256"] == (
+        "f8dc31822dc52ecc6e073f54c8b5c95cd46646e299a67cd1c1f6f7f3764e0d5b"
+    )
     assert payload["author_audit"]["coauthor_trailers_allowed"] is False
     assert payload["author_audit"]["unwanted_upstream_author_identity_allowed"] is False

@@ -7,6 +7,11 @@ from med_autoscience.controllers import mainline_status
 from .shared_labels import _non_empty_text
 
 
+ALLOWED_PHYSICAL_ABSORB_STATUSES = {
+    "landed_no_history_default_dependency_retired",
+}
+
+
 def _normalized_strings(values: Iterable[object]) -> tuple[str, ...]:
     normalized: list[str] = []
     for value in values:
@@ -178,9 +183,9 @@ def _validate_capability_owner_boundary(value: object, *, context: str) -> dict[
         "physical_absorb_status",
         context=f"{context}.proof_and_absorb_boundary",
     )
-    if physical_absorb_status != "blocked_post_gate":
+    if physical_absorb_status not in ALLOWED_PHYSICAL_ABSORB_STATUSES:
         raise ValueError(
-            f"{context}.proof_and_absorb_boundary.physical_absorb_status 必须是 blocked_post_gate。"
+            f"{context}.proof_and_absorb_boundary.physical_absorb_status 必须是 no-history absorb landed 状态。"
         )
     return {
         "surface_kind": surface_kind,
@@ -198,6 +203,7 @@ def _validate_capability_owner_boundary(value: object, *, context: str) -> dict[
             "parity_proof_sources": _normalized_strings(proof_boundary.get("parity_proof_sources") or []),
             "physical_absorb_status": physical_absorb_status,
             "physical_absorb_gate": _normalized_strings(proof_boundary.get("physical_absorb_gate") or []),
+            "platform_maturation_status": _non_empty_text(proof_boundary.get("platform_maturation_status")),
         },
         "not_authority": _normalized_strings(payload.get("not_authority") or []),
     }

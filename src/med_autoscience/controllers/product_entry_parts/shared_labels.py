@@ -52,6 +52,7 @@ _PHASE5_SEQUENCE_SCOPE_LABELS = {
 
 _PHASE5_MONOREPO_STATUS_LABELS = {
     "post_gate_target": "post-gate 目标态（post_gate_target）",
+    "no_history_absorb_landed": "no-history 吸收已落地（no_history_absorb_landed）",
 }
 
 _USER_INTERACTION_MODE_LABELS = {

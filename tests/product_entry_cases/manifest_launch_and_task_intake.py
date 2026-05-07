@@ -752,7 +752,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     )
     assert payload["return_surface_contract"]["capability_owner_boundary"]["proof_and_absorb_boundary"][
         "physical_absorb_status"
-    ] == "blocked_post_gate"
+    ] == "landed_no_history_default_dependency_retired"
     assert payload["return_surface_contract"]["study_progress_projection_contract"] == {
         "surface_kind": "study_progress_projection_contract",
         "command": (

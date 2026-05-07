@@ -125,10 +125,11 @@ managed runtime execution 的正式条件是：
 - controller 与 transport 之间的 backend abstraction freeze
 - `Hermes` 作为默认 outer substrate owner 的 repo-side 闭环
 - `MedDeepScientist` 作为 controlled research backend 的显式 durable metadata
+- default MAS operation 不依赖 external `med-deepscientist` repo / runtime root
+- external MDS 只作为显式 backend audit、legacy restore/import diagnostic、upstream intake 和 parity oracle target
 
 这份 contract 还没有完成的是：
 
 - external `Hermes` runtime truth / workspace truth
-- `MedDeepScientist` backend 的完全退场
-- workspace physical layout 的完全去 `med-deepscientist` 化
-- physical monorepo migration
+- external MDS repo 本身的归档/删除政策；它仍可作为 upstream learning / intake reference 保留在 default operation 之外
+- GitHub default-branch contributor surface 的 post-push 检查；本地 no-history guard 已阻止上游 history / co-author footprint 进入 MAS commits

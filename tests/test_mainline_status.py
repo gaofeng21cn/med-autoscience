@@ -27,7 +27,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     ]
     assert all(item["owner"].startswith("MAS") for item in payload["active_tranche_owner_truth"]["lanes"])
     assert payload["ideal_state"]["runtime_topology"]["outer_runtime_substrate_owner"] == "upstream Hermes-Agent"
-    assert payload["ideal_state"]["runtime_topology"]["research_backend"] == "MedDeepScientist (controlled backend)"
+    assert payload["ideal_state"]["runtime_topology"]["research_backend"] == "MAS-owned runtime/artifact/quality surfaces plus optional MDS oracle"
     assert payload["single_project_boundary"]["surface_kind"] == "single_project_boundary"
     assert payload["single_project_boundary"]["mas_owner_modules"] == [
         "controller_charter",
@@ -39,7 +39,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "behavior_equivalence_oracle",
         "upstream_intake_buffer",
     ]
-    assert "physical monorepo absorb" in payload["single_project_boundary"]["post_gate_only"]
+    assert "runtime core ingest across repos" in payload["single_project_boundary"]["post_gate_only"]
     assert payload["capability_owner_boundary"]["surface_kind"] == "mas_capability_owner_boundary"
     assert payload["capability_owner_boundary"]["owner"] == "MedAutoScience"
     assert [item["capability_id"] for item in payload["capability_owner_boundary"]["mas_owned_capabilities"]] == [
@@ -60,7 +60,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         for item in payload["capability_owner_boundary"]["mds_migration_only_roles"]
     )
     assert payload["capability_owner_boundary"]["proof_and_absorb_boundary"]["physical_absorb_status"] == (
-        "blocked_post_gate"
+        "landed_no_history_default_dependency_retired"
     )
     assert "behavior_equivalence_oracle" in payload["capability_owner_boundary"]["proof_and_absorb_boundary"][
         "parity_proof_sources"
@@ -74,13 +74,14 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "MAS 单项目 owner wording and repo-tracked truth",
         "core:status:program_mainline_boundary_alignment",
         "user-visible wording that MDS is no longer a second long-term owner",
+        "MDS no-history physical absorb repo-level closeout and default dependency retirement",
     ]
     assert [item["role_id"] for item in payload["current_program_phase"]["single_project_boundary"]["mds_retained_roles"]] == [
         "research_backend",
         "behavior_equivalence_oracle",
         "upstream_intake_buffer",
     ]
-    assert "physical monorepo absorb" in payload["current_program_phase"]["single_project_boundary"]["post_gate_only"]
+    assert "runtime core ingest across repos" in payload["current_program_phase"]["single_project_boundary"]["post_gate_only"]
     assert len(payload["phase_ladder"]) == 5
     assert payload["phase_ladder"][1]["id"] == "phase_2_user_product_loop"
     assert payload["phase_ladder"][0]["usable_now"] is True
@@ -240,16 +241,22 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["platform_target"]["surface_kind"] == "phase5_platform_target"
     assert payload["platform_target"]["sequence_scope"] == "monorepo_landing_readiness"
     assert payload["platform_target"]["current_step_id"] == "stabilize_user_product_loop"
-    assert payload["platform_target"]["completed_step_ids"] == ["freeze_gateway_runtime_truth"]
+    assert payload["platform_target"]["completed_step_ids"] == [
+        "freeze_gateway_runtime_truth",
+        "mds_no_history_absorb",
+    ]
     assert payload["platform_target"]["landing_sequence"][0]["status"] == "completed"
     assert payload["platform_target"]["landing_sequence"][1]["status"] == "in_progress"
-    assert payload["platform_target"]["landing_sequence"][-1]["status"] == "blocked_post_gate"
+    assert payload["platform_target"]["landing_sequence"][4]["step_id"] == "mds_no_history_absorb"
+    assert payload["platform_target"]["landing_sequence"][4]["status"] == "completed"
+    assert payload["platform_target"]["landing_sequence"][-1]["step_id"] == "runtime_core_ingest"
+    assert payload["platform_target"]["landing_sequence"][-1]["status"] == "pending"
     assert payload["platform_target"]["target_internal_modules"] == [
         "controller_charter",
         "runtime",
         "eval_hygiene",
     ]
-    assert payload["platform_target"]["north_star_topology"]["monorepo_status"] == "post_gate_target"
+    assert payload["platform_target"]["north_star_topology"]["monorepo_status"] == "no_history_absorb_landed"
     assert payload["platform_target"]["promotion_gates"] == [
         "phase_1_mainline_established",
         "phase_2_user_product_loop",
@@ -283,7 +290,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert any("quality" in item for item in payload["next_focus"])
     assert any("single-project owner" in item for item in payload["next_focus"])
     assert all("F4 blocker" not in item for item in payload["next_focus"])
-    assert any("physical migration" in item for item in payload["explicitly_not_now"])
+    assert any("large platform rewrite" in item for item in payload["explicitly_not_now"])
     assert any("second long-term owner" in item for item in payload["explicitly_not_now"])
 
 
@@ -301,13 +308,13 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "Capability Owner Boundary" in markdown
     assert "MAS capability `research_entry`" in markdown
     assert "MDS migration-only `behavior_equivalence_oracle`" in markdown
-    assert "physical absorb: blocked_post_gate" in markdown
+    assert "physical absorb: landed_no_history_default_dependency_retired" in markdown
     assert "owner lane `autonomy`" in markdown
     assert "owner lane `quality`" in markdown
     assert "owner lane `single_project_owner`" in markdown
     assert "Single-Project Boundary" in markdown
     assert "MDS retained `research_backend`" in markdown
-    assert "post-gate only: physical monorepo absorb" in markdown
+    assert "post-gate only: runtime core ingest across repos" in markdown
     assert "Program Phases" in markdown
     assert "phase_1_mainline_established" in markdown
     assert "Phase 2 User Loop" in markdown
@@ -365,13 +372,14 @@ def test_mainline_phase_status_resolves_current_and_next_phase() -> None:
         "MAS 单项目 owner wording and repo-tracked truth",
         "core:status:program_mainline_boundary_alignment",
         "user-visible wording that MDS is no longer a second long-term owner",
+        "MDS no-history physical absorb repo-level closeout and default dependency retirement",
     ]
     assert [item["role_id"] for item in current_payload["phase"]["single_project_boundary"]["mds_retained_roles"]] == [
         "research_backend",
         "behavior_equivalence_oracle",
         "upstream_intake_buffer",
     ]
-    assert "physical monorepo absorb" in current_payload["phase"]["single_project_boundary"]["post_gate_only"]
+    assert "runtime core ingest across repos" in current_payload["phase"]["single_project_boundary"]["post_gate_only"]
     assert any(item["name"] == "mainline_status" for item in current_payload["phase"]["entry_points"])
     assert next_payload["phase"]["id"] == "phase_2_user_product_loop"
     assert any("workspace-cockpit" in item["command"] for item in next_payload["phase"]["entry_points"])
@@ -414,7 +422,7 @@ def test_render_mainline_phase_markdown_surfaces_current_tranche_boundary() -> N
     assert "owner lane `single_project_owner`" in markdown
     assert "当前 tranche 收口: MAS 单项目 owner wording and repo-tracked truth" in markdown
     assert "MDS 保留 `research_backend`" in markdown
-    assert "post-gate only: physical monorepo absorb" in markdown
+    assert "post-gate only: runtime core ingest across repos" in markdown
     assert "F4 blocker" not in markdown
 
 
@@ -480,4 +488,4 @@ def test_platform_target_uses_shared_builder(monkeypatch) -> None:
         "controller-owned runtime/progress/recovery truth",
         "CLI/MCP/controller entry surfaces that already support real work",
     ]
-    assert len(captured["landing_sequence"]) == 5
+    assert len(captured["landing_sequence"]) == 6

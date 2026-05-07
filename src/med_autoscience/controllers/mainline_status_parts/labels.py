@@ -7,6 +7,7 @@ _PHASE_STATUS_LABELS = {
     "pending": "待开始",
     "blocked": "阻塞中",
     "blocked_post_gate": "等待前置门后进入",
+    "landed_no_history_default_dependency_retired": "no-history 吸收已落地，默认依赖已退役",
 }
 
 _ENTRY_POINT_LABELS = {
@@ -26,6 +27,7 @@ _SEQUENCE_SCOPE_LABELS = {
 
 _MONOREPO_STATUS_LABELS = {
     "post_gate_target": "post-gate 目标态",
+    "no_history_absorb_landed": "no-history 吸收已落地",
 }
 
 

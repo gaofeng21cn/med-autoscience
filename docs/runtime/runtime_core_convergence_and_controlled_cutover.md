@@ -8,11 +8,11 @@
 
 - `P0 runtime native truth` 已在 controlled research backend 一侧完成并 absorbed
 - `P1 workspace canonical literature / knowledge truth` 已完成并 absorbed
-- `P2 controlled cutover -> physical monorepo migration` 仍未完成
+- `P2 controlled cutover -> runtime core ingest / broader platform migration` 仍未完成
 - `P2` 当前 repo 内可继续推进的主线，已经切成：
-  - `MedAutoScience gateway -> upstream Hermes-Agent target outer runtime substrate -> MedDeepScientist controlled research backend`
+  - `MedAutoScience gateway -> upstream Hermes-Agent target outer runtime substrate -> MAS-owned runtime/artifact/quality surfaces + optional MDS oracle/intake/audit reference`
 - 当前 repo-tracked 默认 owner 语义，是指向上游目标的 repo-side outer-runtime seam，而不是“仓内已落地独立 Hermes-Agent host”
-- `MedDeepScientist` 不再是默认不可替代 runtime truth，而是 controlled research backend
+- `MedDeepScientist` 不再是默认不可替代 runtime truth，也不再是 MAS 默认 operation 的必需 checkout；它只保留显式 backend audit、legacy diagnostic、parity oracle 与 upstream intake reference 语义。
 
 这意味着：
 
@@ -47,23 +47,24 @@
 - external `Hermes` runtime repo / workspace / daemon truth
 - external `Hermes` runtime root / deployment contract
 
-### 3.2 `MedDeepScientist` 仍未完全退场
+### 3.2 `MedDeepScientist` 仍作为外部参考存在
 
-虽然 authority truth 已经不再由 `MedDeepScientist` 隐式占有，但下面这些能力仍在 research backend 内：
+虽然 authority truth 已经不再由 `MedDeepScientist` 隐式占有，默认 MAS study/status/progress/cockpit operation 也不需要外部 `med-deepscientist` checkout，但下面这些能力仍作为显式参考面保留：
 
-- quest inner-loop / daemon turn worker / bash session execution
-- quest-local logs / memory / config / paper worktree execution
-- controlled fork / `behavior_equivalence_gate` 相关 external gate
+- legacy restore/import diagnostic
+- backend audit / upstream intake reference
+- retained capability parity oracle fixture
 
-因此当前不能伪造“已经完全切完”。
+因此当前不能伪造“外部参考仓必须删除”或“runtime core ingest 已完成”。
 
-### 3.3 Physical monorepo migration 仍未开始
+### 3.3 No-history absorb 已落地，runtime core ingest 仍需独立 gate
 
-当前还没有进入真正的 physical absorb。
-如果现在贸然迁移，风险不再是“吸收了错误 owner”，而是：
+当前已经完成的是 MDS retained capability 的 no-history snapshot closeout：source provenance、author audit guard、capability parity harness、MAS-owned retained capability absorb 与 external runtime dependency retirement 已经落到 repo-level guard。
+
+当前仍未完成的是更大的 runtime core ingest / controlled cutover。如果现在贸然继续平台级迁移，风险不再是“吸收了错误 owner”，而是：
 
 - 在没有明确模块边界和删除条件的前提下吸入过多双仓 glue
-- 把尚未清除的 external runtime / workspace gate 与 physical migration 混写
+- 把尚未清除的 external runtime / workspace gate 与 runtime core ingest 混写
 
 ### 3.4 文档、gate 与审计面必须持续诚实
 
@@ -84,11 +85,11 @@
 4. `Hermes` default outer substrate wiring 已在 repo 内完成最小闭环
 5. `MedDeepScientist` deconstruction map 已冻结为 repo-tracked truth
 6. cross-repo parity suite 与 external runtime / workspace gate 必须持续 green
-7. physical monorepo absorb plan 必须写清模块边界、删除条件与回退条件
-8. 只有 1-7 全部满足后，才进入 physical migration
+7. MDS no-history absorb 的 source provenance、author guard、parity proof 与 default dependency retirement 已落地为 repo-level guard
+8. 只有 1-7 全部满足后，才进入 runtime core ingest / broader controlled cutover
 
-前 1-5 项是当前 repo-side continuation 的职责。
-第 6-8 项仍依赖 external runtime / workspace / human gate。
+前 1-7 项是当前 repo-side continuation 已关闭或正在守住的职责。
+第 8 项仍依赖 external runtime / workspace / human gate 与独立 owner/proof gate。
 
 ## 5. 非目标
 
@@ -97,7 +98,7 @@
 - 重新引入 controller-side synthetic runtime event 作为长期方案
 - 用 hidden fallback、silent downgrade 或 synthetic truth rewrite 掩盖 owner 边界
 - 在 external gate 未清除前提前宣称 runtime cutover 已放行
-- 在 external gate 未清除前提前做 physical migration
+- 在 external gate 未清除前提前做 runtime core ingest / broader controlled cutover
 - 把 display / paper-facing asset packaging 独立线混入 runtime 主线
 
 ## 6. 结论
@@ -112,5 +113,6 @@
 
 - 守住已经完成的 `P0 runtime native truth`
 - 守住已经完成的 `P1 workspace canonical literature / knowledge truth`
+- 守住已经完成的 MDS no-history absorb guard/parity/default-dependency-retirement
 - 完成“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”的最小闭环、durable-surface freeze 与 deconstruction map
 - 把真正剩余 blocker 诚实收口到 external runtime / workspace / human gate

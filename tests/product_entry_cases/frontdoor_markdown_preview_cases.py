@@ -61,7 +61,7 @@ def test_render_product_entry_status_markdown_shows_autonomy_contract_preview() 
     assert "Platform Target" in markdown
     assert "Monorepo Sequence" in markdown
     assert "stabilize_user_product_loop" in markdown
-    assert "post_gate_target" in markdown
+    assert "no-history 吸收已落地" in markdown
     assert "summary:" not in markdown
 
 def test_render_product_entry_status_markdown_shows_quality_closure_preview() -> None:

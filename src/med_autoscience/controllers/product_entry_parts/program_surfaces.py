@@ -59,7 +59,7 @@ def _build_phase5_platform_target() -> dict[str, Any]:
 def _render_phase5_platform_target_markdown_lines(phase5_platform_target: Mapping[str, Any]) -> list[str]:
     current_step_id = _non_empty_text(phase5_platform_target.get("current_step_id")) or "stabilize_user_product_loop"
     north_star_topology = dict(phase5_platform_target.get("north_star_topology") or {})
-    monorepo_status = _non_empty_text(north_star_topology.get("monorepo_status")) or "post_gate_target"
+    monorepo_status = _non_empty_text(north_star_topology.get("monorepo_status")) or "no_history_absorb_landed"
     lines = [
         "## Platform Target",
         "",
@@ -235,7 +235,7 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
         mainline_status._build_backend_deconstruction_lane,
     )
     return build_backend_deconstruction_lane(
-        summary="Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor。",
+        summary="Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时把 MDS 保持为 optional oracle / intake / diagnostic reference。",
         substrate_targets=[
             _build_shared_program_capability(
                 capability_id="session_run_watch_recovery",
@@ -249,13 +249,13 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
             ),
         ],
         backend_retained_now=[
-            "MedDeepScientist CodexRunner autonomous executor chain",
-            "backend-local agent/tool routing and Codex skills",
-            "quest-local research execution, paper worktree, and daemon side effects",
+            "optional MedDeepScientist backend audit",
+            "legacy restore/import diagnostic",
+            "behavior-equivalence oracle fixtures",
         ],
         current_backend_chain=[
-            "med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist",
-            "med_deepscientist CodexRunner -> codex exec autonomous agent loop",
+            "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
+            "optional med_deepscientist oracle/intake/audit reference",
         ],
         optional_executor_proofs=[
             {
@@ -266,9 +266,9 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
             }
         ],
         promotion_rules=[
-            "no claim of backend retirement without owner + contract + tests + proof",
+            "no claim of platform runtime ingest without owner + contract + tests + proof",
             "executor replacement must be explicit and proof-backed",
-            "no physical monorepo absorb before the external gate is cleared",
+            "do not restore external MDS as a default runtime dependency",
         ],
         deconstruction_map_ref="program:med_deepscientist_deconstruction_map",
         recommended_phase_command=(

@@ -13,6 +13,13 @@ REQUIRED_SOURCE_PROVENANCE_FIELDS: tuple[str, ...] = (
     "license_refs",
     "capability_classification",
 )
+FORBIDDEN_SOURCE_PROVENANCE_PLACEHOLDERS: tuple[str, ...] = (
+    "placeholder",
+    "required_per_snapshot",
+    "snapshot-ref-recorded",
+    "upstream license file",
+    "third-party notice inventory",
+)
 FORBIDDEN_MDS_ORACLE_AUTHORITY_SURFACES: tuple[str, ...] = (
     "publication_authority",
     "quality_authority",
@@ -40,9 +47,15 @@ HISTORY_POLICY: dict[str, Any] = {
 
 SOURCE_PROVENANCE: dict[str, Any] = {
     "upstream_repo": "med-deepscientist",
-    "upstream_ref": "snapshot-ref-recorded-at-intake",
-    "snapshot_sha256": "required_per_snapshot_intake",
-    "license_refs": ["upstream license file", "third-party notice inventory"],
+    "upstream_ref": "med-deepscientist@35976b7d6e3b99b15b57ec44ff5f5d959b342ecc",
+    "snapshot_sha256": "f8dc31822dc52ecc6e073f54c8b5c95cd46646e299a67cd1c1f6f7f3764e0d5b",
+    "snapshot_archive_format": "git archive --format=tar HEAD",
+    "snapshot_file_count": 1843,
+    "license_refs": [
+        "LICENSE (Apache-2.0; Copyright 2026 ResearAI)",
+        "MEDICAL_FORK_MANIFEST.json (controlled fork; upstream base a7853fda3432d37f6dee91fa6e66330f564bd8be)",
+        "docs/references/med-deepscientist/med_deepscientist_upstream_source_provenance.md",
+    ],
     "capability_classification": "oracle",
 }
 
@@ -136,7 +149,7 @@ def build_mas_mds_absorb_governance_contract() -> dict[str, Any]:
         "surface": "mas_mds_absorb_governance_contract",
         "schema_version": SCHEMA_VERSION,
         "owner": "MedAutoScience",
-        "upstream_role": "MedDeepScientist controlled backend/oracle/intake source",
+        "upstream_role": "MedDeepScientist optional oracle/intake/backend-audit source",
         "history_policy": dict(HISTORY_POLICY),
         "required_source_provenance_fields": list(REQUIRED_SOURCE_PROVENANCE_FIELDS),
         "source_provenance": _copy_mapping(SOURCE_PROVENANCE),
@@ -231,10 +244,21 @@ def _validate_source_provenance(provenance: object, issues: list[dict[str, Any]]
     for field in REQUIRED_SOURCE_PROVENANCE_FIELDS:
         value = provenance.get(field)
         if field == "license_refs":
-            if not _list(value):
+            license_refs = _strings(value)
+            if not license_refs:
                 issues.append({"code": "missing_source_provenance_field", "field": field})
-        elif not _text(value):
+            elif _contains_placeholder(" ".join(license_refs)):
+                issues.append({"code": "placeholder_source_provenance_field", "field": field})
+            continue
+
+        text = _text(value)
+        if not text:
             issues.append({"code": "missing_source_provenance_field", "field": field})
+            continue
+        if _contains_placeholder(text):
+            issues.append({"code": "placeholder_source_provenance_field", "field": field})
+        if field == "snapshot_sha256" and not _is_sha256(text):
+            issues.append({"code": "invalid_snapshot_sha256", "field": field})
     classification = _text(provenance.get("capability_classification"))
     if classification and classification not in ALLOWED_CAPABILITY_CLASSIFICATIONS:
         issues.append(
@@ -334,3 +358,12 @@ def _strings(value: object) -> tuple[str, ...]:
 
 def _text(value: object) -> str:
     return str(value or "").strip()
+
+
+def _contains_placeholder(value: str) -> bool:
+    lowered = value.lower()
+    return any(token in lowered for token in FORBIDDEN_SOURCE_PROVENANCE_PLACEHOLDERS)
+
+
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(char in "0123456789abcdefABCDEF" for char in value)

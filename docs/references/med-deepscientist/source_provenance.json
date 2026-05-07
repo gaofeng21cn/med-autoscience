@@ -5,11 +5,14 @@
   "default_operation_requires_external_mds": false,
   "source_provenance": {
     "upstream_repo": "med-deepscientist",
-    "upstream_ref": "snapshot-ref-recorded-at-intake",
-    "snapshot_sha256": "required_per_snapshot_intake",
+    "upstream_ref": "med-deepscientist@35976b7d6e3b99b15b57ec44ff5f5d959b342ecc",
+    "snapshot_sha256": "f8dc31822dc52ecc6e073f54c8b5c95cd46646e299a67cd1c1f6f7f3764e0d5b",
+    "snapshot_archive_format": "git archive --format=tar HEAD",
+    "snapshot_file_count": 1843,
     "license_refs": [
-      "upstream license file",
-      "third-party notice inventory"
+      "LICENSE (Apache-2.0; Copyright 2026 ResearAI)",
+      "MEDICAL_FORK_MANIFEST.json (controlled fork; upstream base a7853fda3432d37f6dee91fa6e66330f564bd8be)",
+      "docs/references/med-deepscientist/med_deepscientist_upstream_source_provenance.md"
     ],
     "capability_classification": "oracle"
   },

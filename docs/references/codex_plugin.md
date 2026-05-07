@@ -18,7 +18,7 @@
 - 不替代 controller contract
 - 不取消 profile 驱动的 workspace 绑定
 - 不改变 medical research overlay 的安装模型
-- 不会替你安装 `MedDeepScientist`；研究运行前仍需本机准备 `med-deepscientist` 并在 profile 中配置
+- 不会把外部 `MedDeepScientist` 安装成默认运行依赖；只有显式 backend audit、legacy restore/import diagnostic、upstream intake 或 parity oracle 才需要指向外部 checkout
 
 ## 兼容性边界
 

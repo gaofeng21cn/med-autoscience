@@ -52,7 +52,7 @@ bash scripts/install-codex-plugin.sh
 - 保持 MAS skill 位于仓库内 `plugins/mas/skills/mas`
 - 不写入系统级 `~/.agents/skills`、`~/.codex/skills` 或 `~/.agents/plugins/marketplace.json`
 
-它不会替你安装 `MedDeepScientist` runtime；研究运行前仍需本机准备 `med-deepscientist` 并把 profile 指向该 checkout。
+它不会替你安装 `MedDeepScientist` runtime；默认 MAS study/status/progress/cockpit 路径不需要外部 `med-deepscientist` checkout。只有显式 backend audit、legacy restore/import diagnostic、upstream intake 或 parity oracle 才需要把 profile 指向该 checkout。
 
 执行后请在本仓库工作目录中重启 Codex。
 

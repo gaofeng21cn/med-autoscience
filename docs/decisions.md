@@ -31,7 +31,7 @@
 - 决策：长线目标固定为 `MAS AI-first Research OS`。MAS 作为唯一 research / quality / publication / artifact / user-visible truth owner；MDS 收敛为 replaceable backend、behavior oracle 与 upstream intake buffer。机械系统只负责 evidence、status、completeness、blocker、projection 与 replay；AI reviewer workflow 持有科学质量、医学写作质量、publishability 与 submission-facing readiness。
 - Authority anchor：AI reviewer artifacts 持有科学质量；机械系统只负责 evidence、status、completeness、blocker、projection 与 replay。
 - 理由：近期论文修复证明，机械 gate 先给 ready、下游再补救会把质量风险推迟到最贵的阶段。AI-first 的真实落点应前移到 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 与真实论文 soak，而不是在文档层增加措辞约束。
-- 影响：新增架构、质量、运行、产物、观测或 MDS 吸收能力时，必须回到 [MAS AI-first Research OS Architecture](./references/ai_first_research_os_architecture.md) 的 owner / authority / proof 口径；physical monorepo absorb 只能在 parity proof、owner cutover、rollback surface 与质量不降级证明成立后进行。本决策不新增文档 wording gate，不修改测试或 preflight contract。
+- 影响：新增架构、质量、运行、产物、观测或 MDS 吸收能力时，必须回到 [MAS AI-first Research OS Architecture](./references/ai_first_research_os_architecture.md) 的 owner / authority / proof 口径；MDS no-history absorb 只允许在 parity proof、owner cutover、rollback surface 与质量不降级证明成立后以 MAS-authored snapshot 落地。当前 no-history absorb 已关闭为 repo-level guard/parity/default-dependency-retirement；更大的 runtime core ingest、controlled cutover 或平台结构调整仍需独立 gate。本决策不新增文档 wording gate，不修改测试或 preflight contract。
 
 ## 2026-05-01：StudyTruthKernel 成为 study 级用户可见真相 reducer
 

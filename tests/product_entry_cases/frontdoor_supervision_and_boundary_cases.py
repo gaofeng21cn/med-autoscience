@@ -162,12 +162,13 @@ def test_build_product_entry_status_projects_frontdoor_over_current_workspace_lo
     assert payload["phase3_clearance_lane"]["clearance_targets"][1]["target_id"] == "supervisor_service"
     assert payload["phase3_clearance_lane"]["clearance_loop"][2]["step_id"] == "supervisor_service"
     assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
-    assert payload["phase4_backend_deconstruction"]["current_backend_chain"][1].endswith(
-        "codex exec autonomous agent loop"
-    )
+    assert payload["phase4_backend_deconstruction"]["current_backend_chain"] == [
+        "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
+        "optional med_deepscientist oracle/intake/audit reference",
+    ]
     assert payload["phase5_platform_target"]["surface_kind"] == "phase5_platform_target"
     assert payload["phase5_platform_target"]["current_step_id"] == "stabilize_user_product_loop"
-    assert payload["phase5_platform_target"]["north_star_topology"]["monorepo_status"] == "post_gate_target"
+    assert payload["phase5_platform_target"]["north_star_topology"]["monorepo_status"] == "no_history_absorb_landed"
     assert payload["single_project_boundary"]["surface_kind"] == "single_project_boundary"
     assert list(payload["single_project_boundary"]["mas_owner_modules"]) == [
         "controller_charter",
@@ -418,7 +419,7 @@ def test_validate_single_project_boundary_fails_closed_on_missing_roles() -> Non
                 "summary": "summary",
                 "mas_owner_modules": ["controller_charter"],
                 "mds_retained_roles": [],
-                "post_gate_only": ["physical monorepo absorb"],
+                "post_gate_only": ["runtime core ingest across repos"],
                 "not_now": ["treating MedDeepScientist as a second long-term owner"],
             },
             context="test.single_project_boundary",
@@ -440,8 +441,43 @@ def test_validate_single_project_boundary_fails_closed_on_missing_not_now() -> N
                         "summary": "summary",
                     }
                 ],
-                "post_gate_only": ["physical monorepo absorb"],
+                "post_gate_only": ["runtime core ingest across repos"],
                 "not_now": [],
             },
             context="test.single_project_boundary",
+        )
+
+def test_validate_capability_owner_boundary_rejects_pre_absorb_status() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    with pytest.raises(ValueError, match="no-history absorb landed"):
+        module._validate_capability_owner_boundary(
+            {
+                "surface_kind": "mas_capability_owner_boundary",
+                "owner": "MedAutoScience",
+                "summary": "summary",
+                "mas_owned_capabilities": [
+                    {
+                        "capability_id": "research_entry",
+                        "owner": "MedAutoScience",
+                        "truth_surface": "product_entry_status",
+                        "summary": "summary",
+                    }
+                ],
+                "mds_migration_only_roles": [
+                    {
+                        "role_id": "behavior_equivalence_oracle",
+                        "migration_only": True,
+                        "summary": "optional oracle only",
+                    }
+                ],
+                "proof_and_absorb_boundary": {
+                    "surface_kind": "proof_and_absorb_boundary",
+                    "parity_status": "required_until_mas_contract_parity",
+                    "parity_proof_sources": ["behavior_equivalence_oracle"],
+                    "physical_absorb_status": "blocked_post_gate",
+                    "physical_absorb_gate": ["external runtime gate"],
+                },
+            },
+            context="test.capability_owner_boundary",
         )

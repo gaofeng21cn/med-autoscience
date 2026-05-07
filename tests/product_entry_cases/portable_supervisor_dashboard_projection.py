@@ -201,14 +201,14 @@ def test_workspace_cockpit_and_entry_status_surface_portable_supervisor_queue_da
                     {
                         "role_id": "research_backend",
                         "migration_only": True,
-                        "summary": "Research backend remains external.",
+                        "summary": "Research backend is optional audit/oracle/intake reference only.",
                     }
                 ],
                 "proof_and_absorb_boundary": {
-                    "parity_status": "not_started",
-                    "physical_absorb_status": "blocked_post_gate",
+                    "parity_status": "landed_for_retained_mds_capabilities",
+                    "physical_absorb_status": "landed_no_history_default_dependency_retired",
                     "parity_proof_sources": ["focused tests"],
-                    "physical_absorb_gate": ["external runtime gate"],
+                    "physical_absorb_gate": ["source provenance recorded"],
                 },
             },
         },

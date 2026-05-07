@@ -145,7 +145,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
     }
     assert payload["phase4_backend_deconstruction"] == {
         "surface_kind": "phase4_backend_deconstruction_lane",
-        "summary": "Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor。",
+        "summary": "Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时把 MDS 保持为 optional oracle / intake / diagnostic reference。",
         "substrate_targets": [
             {
                 "capability_id": "session_run_watch_recovery",
@@ -159,13 +159,13 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             },
         ],
         "backend_retained_now": [
-            "MedDeepScientist CodexRunner autonomous executor chain",
-            "backend-local agent/tool routing and Codex skills",
-            "quest-local research execution, paper worktree, and daemon side effects",
+            "optional MedDeepScientist backend audit",
+            "legacy restore/import diagnostic",
+            "behavior-equivalence oracle fixtures",
         ],
         "current_backend_chain": [
-            "med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist",
-            "med_deepscientist CodexRunner -> codex exec autonomous agent loop",
+            "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
+            "optional med_deepscientist oracle/intake/audit reference",
         ],
         "optional_executor_proofs": [
             {
@@ -176,107 +176,74 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             }
         ],
         "promotion_rules": [
-            "no claim of backend retirement without owner + contract + tests + proof",
+            "no claim of platform runtime ingest without owner + contract + tests + proof",
             "executor replacement must be explicit and proof-backed",
-            "no physical monorepo absorb before the external gate is cleared",
+            "do not restore external MDS as a default runtime dependency",
         ],
         "deconstruction_map_ref": "program:med_deepscientist_deconstruction_map",
         "recommended_phase_command": (
             "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction"
         ),
     }
-    assert payload["phase5_platform_target"] == {
-        "surface_kind": "phase5_platform_target",
-        "summary": (
-            "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，"
-            "包括 post-gate monorepo、runtime core ingest 和更成熟的 direct product entry；"
-            "但这些都必须建立在前四阶段真实成立之后。"
-        ),
-        "sequence_scope": "monorepo_landing_readiness",
-        "current_readiness_summary": (
-            "单项目长线已经完成 gateway/runtime truth 冻结，当前正在推进 user product loop hardening 与边界收紧；"
-            "physical absorb 仍然严格属于 post-gate 工作。"
-        ),
-        "north_star_topology": {
-            "domain_gateway": "Med Auto Science",
-            "outer_runtime_substrate_owner": "upstream Hermes-Agent",
-            "controlled_research_backend": "MedDeepScientist",
-            "monorepo_status": "post_gate_target",
-        },
-        "target_internal_modules": [
-            "controller_charter",
-            "runtime",
-            "eval_hygiene",
-        ],
-        "landing_sequence": [
-            {
-                "step_id": "freeze_gateway_runtime_truth",
-                "title": "Freeze gateway/runtime truth",
-                "status": "completed",
-                "phase_id": "phase_1_mainline_established",
-                "summary": "mainline topology、product-entry companions 与 post-gate platform wording 已冻结成 repo-tracked truth。",
-            },
-                {
-                    "step_id": "stabilize_user_product_loop",
-                    "title": "Stabilize user product loop",
-                    "status": "in_progress",
-                    "phase_id": "phase_2_user_product_loop",
-                    "summary": (
-                        "当前活跃步骤：用 autonomy / quality / single-project owner 三线继续收紧 MAS "
-                        "owner truth，并把启动 / 下任务 / 看进度 / 看恢复建议收成稳定前台回路。"
-                    ),
-                },
-            {
-                "step_id": "clear_multi_workspace_host_gate",
-                "title": "Clear multi-workspace / host gate",
-                "status": "pending",
-                "phase_id": "phase_3_multi_workspace_host_clearance",
-                "summary": "把 runtime/service/recovery proof 扩到更多 workspace / host 后，才具备更大 cutover 资格。",
-            },
-            {
-                "step_id": "freeze_backend_deconstruction_boundary",
-                "title": "Freeze backend deconstruction boundary",
-                "status": "pending",
-                "phase_id": "phase_4_backend_deconstruction",
-                "summary": "先把 substrate 与 backend retained-now 的边界继续收紧，再谈 executor 迁移或 ingest。",
-            },
-            {
-                "step_id": "physical_monorepo_absorb",
-                "title": "Physical monorepo absorb",
-                "status": "blocked_post_gate",
-                "phase_id": "phase_5_federation_platform_maturation",
-                "summary": "只有在前面几步都稳定通过后，controller_charter / runtime / eval_hygiene 才能进入 post-gate 物理 monorepo absorb。",
-            },
-        ],
-        "current_step_id": "stabilize_user_product_loop",
-        "completed_step_ids": [
-            "freeze_gateway_runtime_truth",
-        ],
-        "remaining_step_ids": [
-            "clear_multi_workspace_host_gate",
-            "freeze_backend_deconstruction_boundary",
-            "physical_monorepo_absorb",
-        ],
-        "promotion_gates": [
-            "phase_1_mainline_established",
-            "phase_2_user_product_loop",
-            "phase_3_multi_workspace_host_clearance",
-            "phase_4_backend_deconstruction",
-        ],
-        "land_now": [
-            "repo-tracked product-entry shell and family orchestration companions",
-            "controller-owned runtime/progress/recovery truth",
-            "CLI/MCP/controller entry surfaces that already support real work",
-        ],
-        "not_yet": [
-            "physical monorepo absorb",
-            "runtime core ingest across repos",
-            "mature hosted standalone medical frontend",
-        ],
-        "recommended_phase_command": (
-            "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation"
-        ),
+    phase5 = payload["phase5_platform_target"]
+    assert phase5["surface_kind"] == "phase5_platform_target"
+    assert phase5["summary"] == (
+        "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，包括 runtime core ingest、"
+        "更成熟的 direct product entry 和外部 runtime substrate 选择；这些必须建立在前四阶段真实成立之后。"
+    )
+    assert phase5["sequence_scope"] == "monorepo_landing_readiness"
+    assert phase5["current_readiness_summary"] == (
+        "单项目长线已经完成 gateway/runtime truth 冻结，当前正在推进 user product loop hardening 与边界收紧；"
+        "MDS no-history absorb 已关闭为默认依赖退役，后续平台化不再以 external MDS 为默认运行条件。"
+    )
+    assert phase5["north_star_topology"] == {
+        "domain_gateway": "Med Auto Science",
+        "outer_runtime_substrate_owner": "upstream Hermes-Agent",
+        "controlled_research_backend": "MAS-owned runtime/artifact/quality surfaces plus optional MDS oracle",
+        "monorepo_status": "no_history_absorb_landed",
     }
+    assert phase5["target_internal_modules"] == [
+        "controller_charter",
+        "runtime",
+        "eval_hygiene",
+    ]
+    assert [item["step_id"] for item in phase5["landing_sequence"]] == [
+        "freeze_gateway_runtime_truth",
+        "stabilize_user_product_loop",
+        "clear_multi_workspace_host_gate",
+        "freeze_backend_deconstruction_boundary",
+        "mds_no_history_absorb",
+        "runtime_core_ingest",
+    ]
+    assert phase5["landing_sequence"][4]["status"] == "completed"
+    assert phase5["landing_sequence"][5]["status"] == "pending"
+    assert phase5["completed_step_ids"] == [
+        "freeze_gateway_runtime_truth",
+        "mds_no_history_absorb",
+    ]
+    assert phase5["remaining_step_ids"] == [
+        "clear_multi_workspace_host_gate",
+        "freeze_backend_deconstruction_boundary",
+        "runtime_core_ingest",
+    ]
+    assert phase5["promotion_gates"] == [
+        "phase_1_mainline_established",
+        "phase_2_user_product_loop",
+        "phase_3_multi_workspace_host_clearance",
+        "phase_4_backend_deconstruction",
+    ]
+    assert phase5["land_now"] == [
+        "repo-tracked product-entry shell and family orchestration companions",
+        "controller-owned runtime/progress/recovery truth",
+        "CLI/MCP/controller entry surfaces that already support real work",
+    ]
+    assert phase5["not_yet"] == [
+        "runtime core ingest across repos",
+        "mature hosted standalone medical frontend",
+    ]
+    assert phase5["recommended_phase_command"] == (
+        "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation"
+    )
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
