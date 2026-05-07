@@ -645,7 +645,7 @@ Repo 级验收：
 - `docs/decisions.md` 中 2026-05-05 SQLite sidecar 决策。
 - 本文件。
 - `docs/status.md` 的 runtime lifecycle storage 条目。
-- `docs/program/mas_mds_unified_enhancement_program.md` 的 L5 governance 边界。
+- `docs/history/program/mas_mds_unified_enhancement_program.md` 的 L5 governance 边界。
 - MDS `runtime_storage.py` 与 runtime storage tests。
 
 执行规则：

@@ -426,8 +426,8 @@ def test_classify_changed_files_matches_external_runtime_dependency_surface() ->
 
     result = module.classify_changed_files(
         [
-            "docs/program/external_runtime_dependency_gate.md",
-            "docs/program/manual_runtime_stabilization_checklist.md",
+            "docs/policies/external_runtime_dependency_gate.md",
+            "docs/policies/manual_runtime_stabilization_checklist.md",
             "docs/references/workspace_architecture.md",
             "docs/references/disease_workspace_quickstart.md",
             "src/med_autoscience/workspace_contracts.py",
@@ -482,7 +482,7 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
         [
             "docs/history/program/hermes_backend_continuation_board.md",
             "docs/history/program/hermes_backend_activation_package.md",
-            "docs/program/med_deepscientist_deconstruction_map.md",
+            "docs/references/med-deepscientist/med_deepscientist_deconstruction_map.md",
             "docs/history/program/integration_harness_activation_package.md",
             "docs/history/program/research_foundry_medical_mainline.md",
             "docs/references/research_foundry_medical_phase_ladder.md",

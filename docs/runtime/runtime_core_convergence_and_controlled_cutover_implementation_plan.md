@@ -49,8 +49,8 @@
 **Files:**
 - Modify: `./runtime_core_convergence_and_controlled_cutover.md`
 - Modify: `../history/program/integration_harness_activation_package.md`
-- Modify: `../program/external_runtime_dependency_gate.md`
-- Modify: `../program/merge_and_cutover_gates.md`
+- Modify: `../policies/external_runtime_dependency_gate.md`
+- Modify: `../policies/merge_and_cutover_gates.md`
 - Modify: `../../src/med_autoscience/dev_preflight_contract.py`
 - Test: `../../tests/test_dev_preflight_contract.py`
 - Review: integration-harness Markdown wording by human/Agent documentation review only; do not add pytest wording anchors.

@@ -99,16 +99,18 @@ Public-facing material should stay mirrored in English and Chinese.
 
 ### Program and Maintenance Records
 
-- [MAS/MDS autonomy operating system program](program/mas_mds_autonomy_operating_system_program.md)
+- [Program directory index](program/README.md)
 - [Program portfolio consolidation](program/program_portfolio_consolidation.md)
-- [MAS/MDS unified enhancement program](program/mas_mds_unified_enhancement_program.md)
 - [Runtime lifecycle SQLite migration program](program/runtime_lifecycle_sqlite_migration_program.md)
 - [MAS single-project MDS absorb program](program/mas_single_project_mds_absorb_program.md)
-- [MAS single-project quality and autonomy mainline](program/mas_single_project_quality_and_autonomy_mainline.md)
-- [MedDeepScientist deconstruction map](program/med_deepscientist_deconstruction_map.md)
-- [External runtime dependency gate](program/external_runtime_dependency_gate.md)
-- [Merge and cutover gates](program/merge_and_cutover_gates.md)
-- [Project repair priority map](program/project_repair_priority_map.md)
+- [Plan completion ledger](references/plan_completion_ledger.md)
+- [MDS capability parity matrix](references/mds_capability_parity_matrix.md)
+- [MAS single-project quality and autonomy mainline](references/mas_single_project_quality_and_autonomy_mainline.md)
+- [MedDeepScientist deconstruction map](references/med-deepscientist/med_deepscientist_deconstruction_map.md)
+- [External runtime dependency gate](policies/external_runtime_dependency_gate.md)
+- [Merge and cutover gates](policies/merge_and_cutover_gates.md)
+- [MAS/MDS owner boundary contract](policies/mas_mds_owner_boundary_contract.md)
+- [Project repair priority map](references/project_repair_priority_map.md)
 - [Study progress projection](runtime/study_progress_projection.md)
 - [Program history archive](history/program/README.md)
 

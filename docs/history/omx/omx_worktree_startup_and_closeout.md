@@ -12,9 +12,9 @@
 - 一条 OMX 主线结束后，怎样把进程、session 目录、worktree、branch 一次性收口；
 - 怎样以可重复的方式重开下一条 owner lane。
 
-这份文档与 [主线集成与清理节奏](../../program/mainline_integration_and_cleanup.md) 配套：
+这份文档与 [主线集成与清理节奏](../../policies/mainline_integration_and_cleanup.md) 配套：
 
-- `../../program/mainline_integration_and_cleanup.md` 负责定义“代码主线怎么吸收和清理”；
+- `../../policies/mainline_integration_and_cleanup.md` 负责定义“代码主线怎么吸收和清理”；
 - 本文负责定义“OMX 执行面怎么启动、隔离、收尾和去污染”。
 
 ## 一句话原则

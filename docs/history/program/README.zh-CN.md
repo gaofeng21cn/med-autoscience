@@ -5,10 +5,9 @@
 当前 program 治理入口是：
 
 - [Program Portfolio Consolidation](../../program/program_portfolio_consolidation.md)
-- [MAS/MDS 自治操作系统 Program](../../program/mas_mds_autonomy_operating_system_program.md)
 - [MAS 单项目 MDS 吸收 Program](../../program/mas_single_project_mds_absorb_program.md)
 - [Runtime Lifecycle SQLite 迁移 Program](../../program/runtime_lifecycle_sqlite_migration_program.md)
-- [Plan Completion Ledger](../../program/plan_completion_ledger.md)
+- [Plan Completion Ledger](../../references/plan_completion_ledger.md)
 
 归档记录：
 
@@ -24,6 +23,8 @@
 - [Hermes backend continuation board](./hermes_backend_continuation_board.md)
 - [Integration harness activation package](./integration_harness_activation_package.md)
 - [Journal package builtins upgrade plan](./journal_package_builtins_upgrade_plan.md)
+- [MAS/MDS 自治操作系统 program](./mas_mds_autonomy_operating_system_program.md)
+- [MAS/MDS 统一增强 program](./mas_mds_unified_enhancement_program.md)
 - [Open auto research learning intake 2026-05-04](./open_auto_research_learning_intake_2026_05_04.md)
 - [Open Harness OS freeze plan](./open_harness_os_freeze_plan.md)
 - [PaperOrchestra learning intake 2026-05-02](./paper_orchestra_learning_intake_2026_05_02.md)

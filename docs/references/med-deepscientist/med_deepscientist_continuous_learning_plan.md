@@ -52,7 +52,7 @@
 
 当前入口：
 
-- [MAS Single-Project Quality And Autonomy Mainline](./mas_single_project_quality_and_autonomy_mainline.md)
+- [MAS Single-Project Quality And Autonomy Mainline](../mas_single_project_quality_and_autonomy_mainline.md)
 - [MedDeepScientist Deconstruction Map](./med_deepscientist_deconstruction_map.md)
 - [MedDeepScientist Method Learning Disciplines](./med_deepscientist_method_learning_disciplines.md)
 

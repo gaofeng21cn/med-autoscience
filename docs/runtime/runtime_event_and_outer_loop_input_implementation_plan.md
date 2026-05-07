@@ -46,7 +46,7 @@
 **Files:**
 - Modify: `./runtime_core_convergence_and_controlled_cutover.md`
 - Modify: `./runtime_core_convergence_and_controlled_cutover_implementation_plan.md`
-- Modify: `../program/project_repair_priority_map.md`
+- Modify: `../references/project_repair_priority_map.md`
 
 - [ ] 只围绕 `P2 controlled cutover -> physical monorepo migration` 写剩余计划
 - [ ] 不重新打开已完成的 `P0` / `P1`
