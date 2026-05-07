@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from med_autoscience import __version__
 from med_autoscience.control_plane_command_catalog import (
@@ -43,17 +43,31 @@ from med_autoscience.mcp_server_parts.projection_adapters import (
     render_study_runtime_status_result,
     serialize_study_runtime_result,
 )
+from med_autoscience.mcp_server_parts.handler_adapter import (
+    ToolHandler,
+    call_mode_handler,
+    optional_bool as _optional_bool,
+    optional_float as _optional_float,
+    optional_int as _optional_int,
+    optional_mapping as _optional_mapping,
+    optional_path as _optional_path,
+    optional_string as _optional_string,
+    require_path_list as _require_path_list,
+    require_string as _require_string,
+)
 from med_autoscience.mcp_server_parts.tool_result_rendering import json_text, tool_text_result
+from med_autoscience.mcp_server_parts.tool_registry import build_tool_registry, manifest_from_registry
 
 
 PROTOCOL_VERSION = "2025-03-26"
 SERVER_NAME = "med-autoscience"
-_STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION = (
-    "If `autonomous_runtime_notice.required = true` or "
-    "`execution_owner_guard.supervisor_only = true`, the caller must notify the user, "
-    "surface the monitoring entry, and switch into supervisor-only mode. Treat "
-    "`publication_supervisor_state.bundle_tasks_downstream_only = true` as a hard block "
-    "on bundle/build/proofing actions."
+_PRODUCT_ENTRY_CONTRACT_GAP_TEXT = (
+    "If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution."
+)
+TOOL_REGISTRY = build_tool_registry(
+    product_entry_mode_schema=build_control_plane_product_entry_mode_schema(),
+    product_entry_modes_text=product_entry_description_modes_text(),
+    product_entry_contract_gap_text=_PRODUCT_ENTRY_CONTRACT_GAP_TEXT,
 )
 
 
@@ -69,229 +83,8 @@ def _serialize_study_runtime_result(result: dict[str, Any]) -> dict[str, Any]:
     return serialize_study_runtime_result(result)
 
 
-def _require_string(arguments: dict[str, Any], key: str) -> str:
-    value = arguments.get(key)
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"{key} is required")
-    return value
-
-
-def _optional_bool(arguments: dict[str, Any], key: str, *, default: bool = False) -> bool:
-    value = arguments.get(key, default)
-    if not isinstance(value, bool):
-        raise ValueError(f"{key} must be a boolean")
-    return value
-
-
-def _optional_int(arguments: dict[str, Any], key: str) -> int | None:
-    value = arguments.get(key)
-    if value is None:
-        return None
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise ValueError(f"{key} must be an integer")
-    return value
-
-
-def _optional_float(arguments: dict[str, Any], key: str) -> float | None:
-    value = arguments.get(key)
-    if value is None:
-        return None
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError(f"{key} must be a number")
-    return float(value)
-
-
-def _optional_string(arguments: dict[str, Any], key: str, *, default: str) -> str:
-    value = arguments.get(key, default)
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"{key} must be a non-empty string")
-    return value
-
-
-def _optional_path(arguments: dict[str, Any], key: str) -> Path | None:
-    value = arguments.get(key)
-    if value is None:
-        return None
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"{key} must be a non-empty string when provided")
-    return Path(value)
-
-
-def _optional_mapping(value: Any) -> dict[str, Any] | None:
-    if value is None:
-        return None
-    if not isinstance(value, dict):
-        raise ValueError("control_plane_snapshot must be an object when provided")
-    return value
-
-
 def list_tools() -> list[dict[str, Any]]:
-    return [
-        {
-            "name": "doctor_audit",
-            "description": "Run doctor-side MedAutoScience audits through one task tool: report, profile, overlay_status, backend_upgrade, or hermes_runtime.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "mode": {"type": "string"},
-                    "profile_path": {"type": "string"},
-                    "quest_root": {"type": "string"},
-                    "refresh": {"type": "boolean"},
-                    "hermes_agent_repo_root": {"type": "string"},
-                    "hermes_home_root": {"type": "string"},
-                },
-                "required": ["mode"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "workspace_readiness",
-            "description": "Inspect or initialize workspace readiness through one tool: cockpit, init_workspace, startup_data_readiness, portfolio_memory_status, init_portfolio_memory, workspace_literature_status, or init_workspace_literature.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "mode": {"type": "string"},
-                    "profile_path": {"type": "string"},
-                    "workspace_root": {"type": "string"},
-                    "workspace_name": {"type": "string"},
-                    "default_publication_profile": {"type": "string"},
-                    "default_citation_style": {"type": "string"},
-                    "dry_run": {"type": "boolean"},
-                    "force": {"type": "boolean"},
-                    "initialize_git": {"type": "boolean"},
-                },
-                "required": ["mode"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "research_assets",
-            "description": "Read or prepare research-side assets through one tool: data_assets_status, external_research_status, or prepare_external_research.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "mode": {"type": "string"},
-                    "workspace_root": {"type": "string"},
-                    "as_of_date": {"type": "string"},
-                },
-                "required": ["mode", "workspace_root"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "study_runtime",
-            "description": (
-                "Inspect or control study runtime through one task tool: runtime_watch, study_runtime_status, or ensure_study_runtime. "
-                f"{_STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION}"
-            ),
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "mode": {"type": "string"},
-                    "profile_path": {"type": "string"},
-                    "quest_root": {"type": "string"},
-                    "runtime_root": {"type": "string"},
-                    "study_id": {"type": "string"},
-                    "study_root": {"type": "string"},
-                    "entry_mode": {"type": "string"},
-                    "allow_stopped_relaunch": {"type": "boolean"},
-                    "explicit_user_wakeup": {"type": "boolean"},
-                    "force": {"type": "boolean"},
-                },
-                "required": ["mode"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "study_progress",
-            "description": (
-                "Read a physician-friendly, read-only study progress projection built from "
-                "canonical durable surfaces. It summarizes current stage, paper progress, blockers, "
-                "and supervision links without becoming a second runtime authority."
-            ),
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "profile_path": {"type": "string"},
-                    "study_id": {"type": "string"},
-                    "study_root": {"type": "string"},
-                    "entry_mode": {"type": "string"},
-                },
-                "required": ["profile_path"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "open_auto_research_soak",
-            "description": (
-                "Read DM002/Open Auto Research soak status as a compact read-only MCP surface. "
-                "Set allow_controller_writes only when a separate controller-authorized contract "
-                "allows controller writes; this tool never authorizes publication quality or "
-                "ad-hoc artifact mutation."
-            ),
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "profile_path": {"type": "string"},
-                    "study_id": {"type": "string"},
-                    "study_root": {"type": "string"},
-                    "entry_mode": {"type": "string"},
-                    "allow_controller_writes": {"type": "boolean"},
-                },
-                "required": ["profile_path"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "publication_status",
-            "description": (
-                "Read publication-side controller status through one task tool: medical_literature_audit or medical_reporting_audit."
-            ),
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "mode": {"type": "string"},
-                    "quest_root": {"type": "string"},
-                    "apply": {"type": "boolean"},
-                },
-                "required": ["mode", "quest_root"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "product_entry",
-            "description": (
-                "Read MedAutoScience product-entry surfaces through one tool: "
-                f"{product_entry_description_modes_text()}. migration_audit is dry-run-only; governance_report is read-only; "
-                "backfill_apply and cleanup_apply are contract-gated; safe_cache_cleanup_apply is limited to allowlisted delete-safe-cache actions. "
-                "lifecycle_report and continuous_soak_summary are read-only unless a separate controller apply contract authorizes cleanup. "
-                "If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution."
-            ),
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "mode": build_control_plane_product_entry_mode_schema(),
-                    "profile_path": {"type": "string"},
-                    "study_id": {"type": "string"},
-                    "study_root": {"type": "string"},
-                    "entry_mode": {"type": "string"},
-                    "workspace_roots": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                    },
-                    "apply": {"type": "boolean"},
-                    "control_plane_snapshot": {"type": "object"},
-                    "retention_report": {"type": "object"},
-                    "markdown": {"type": "boolean"},
-                    "deep": {"type": "boolean"},
-                    "max_files": {"type": "integer", "minimum": 1},
-                    "max_seconds": {"type": "number", "exclusiveMinimum": 0},
-                },
-                "required": ["mode"],
-                "additionalProperties": False,
-            },
-        },
-    ]
+    return manifest_from_registry(TOOL_REGISTRY)
 
 
 def build_tool_manifest() -> list[dict[str, Any]]:
@@ -546,32 +339,16 @@ def _call_build_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _call_migration_audit(arguments: dict[str, Any]) -> dict[str, Any]:
-    workspace_roots = arguments.get("workspace_roots")
-    if not isinstance(workspace_roots, list) or not workspace_roots:
-        raise ValueError("workspace_roots must be a non-empty list for migration_audit")
-    resolved_roots: list[Path] = []
-    for value in workspace_roots:
-        if not isinstance(value, str) or not value.strip():
-            raise ValueError("workspace_roots entries must be non-empty strings")
-        resolved_roots.append(Path(value))
     result = control_plane_migration_audit.run_migration_audit(
-        workspace_roots=resolved_roots,
+        workspace_roots=_require_path_list(arguments, "workspace_roots", mode="migration_audit"),
         dry_run=True,
     )
     return _tool_text_result(_json_text(result), structured=result)
 
 
 def _call_backfill_apply(arguments: dict[str, Any]) -> dict[str, Any]:
-    workspace_roots = arguments.get("workspace_roots")
-    if not isinstance(workspace_roots, list) or not workspace_roots:
-        raise ValueError("workspace_roots must be a non-empty list for backfill_apply")
-    resolved_roots: list[Path] = []
-    for value in workspace_roots:
-        if not isinstance(value, str) or not value.strip():
-            raise ValueError("workspace_roots entries must be non-empty strings")
-        resolved_roots.append(Path(value))
     result = control_plane_backfill_apply.run_backfill_apply(
-        workspace_roots=resolved_roots,
+        workspace_roots=_require_path_list(arguments, "workspace_roots", mode="backfill_apply"),
         apply=_optional_bool(arguments, "apply", default=False),
         control_plane_snapshot=_optional_mapping(arguments.get("control_plane_snapshot")),
     )
@@ -579,34 +356,18 @@ def _call_backfill_apply(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _call_cleanup_apply(arguments: dict[str, Any]) -> dict[str, Any]:
-    workspace_roots = arguments.get("workspace_roots")
-    if not isinstance(workspace_roots, list) or not workspace_roots:
-        raise ValueError("workspace_roots must be a non-empty list for cleanup_apply")
-    resolved_roots: list[Path] = []
-    for value in workspace_roots:
-        if not isinstance(value, str) or not value.strip():
-            raise ValueError("workspace_roots entries must be non-empty strings")
-        resolved_roots.append(Path(value))
     result = control_plane_cleanup_apply.run_cleanup_apply(
-        workspace_roots=resolved_roots,
+        workspace_roots=_require_path_list(arguments, "workspace_roots", mode="cleanup_apply"),
         apply=_optional_bool(arguments, "apply", default=False),
         control_plane_snapshot=_optional_mapping(arguments.get("control_plane_snapshot")),
-        retention_report=_optional_mapping(arguments.get("retention_report")),
+        retention_report=_optional_mapping(arguments.get("retention_report"), field_name="retention_report"),
     )
     return _tool_text_result(_json_text(result), structured=result)
 
 
 def _call_lifecycle_report(arguments: dict[str, Any]) -> dict[str, Any]:
-    workspace_roots = arguments.get("workspace_roots")
-    if not isinstance(workspace_roots, list) or not workspace_roots:
-        raise ValueError("workspace_roots must be a non-empty list for lifecycle_report")
-    resolved_roots: list[Path] = []
-    for value in workspace_roots:
-        if not isinstance(value, str) or not value.strip():
-            raise ValueError("workspace_roots entries must be non-empty strings")
-        resolved_roots.append(Path(value))
     result = artifact_lifecycle_operations_report.run_lifecycle_operations_report(
-        workspace_roots=resolved_roots,
+        workspace_roots=_require_path_list(arguments, "workspace_roots", mode="lifecycle_report"),
         deep=_optional_bool(arguments, "deep", default=False),
         max_files=_optional_int(arguments, "max_files"),
         max_seconds=_optional_float(arguments, "max_seconds"),
@@ -636,16 +397,8 @@ def _call_governance_report(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _call_continuous_soak_summary(arguments: dict[str, Any]) -> dict[str, Any]:
-    workspace_roots = arguments.get("workspace_roots")
-    if not isinstance(workspace_roots, list) or not workspace_roots:
-        raise ValueError("workspace_roots must be a non-empty list for continuous_soak_summary")
-    resolved_roots: list[Path] = []
-    for value in workspace_roots:
-        if not isinstance(value, str) or not value.strip():
-            raise ValueError("workspace_roots entries must be non-empty strings")
-        resolved_roots.append(Path(value))
     result = continuous_soak_summary.build_continuous_soak_summary(
-        workspace_roots=resolved_roots,
+        workspace_roots=_require_path_list(arguments, "workspace_roots", mode="continuous_soak_summary"),
         deep=_optional_bool(arguments, "deep", default=False),
         max_files=_optional_int(arguments, "max_files"),
         max_seconds=_optional_float(arguments, "max_seconds"),
@@ -668,7 +421,7 @@ def _call_safe_cache_cleanup_apply(arguments: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
+_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS: dict[str, ToolHandler] = {
     "migration_audit": _call_migration_audit,
     "backfill_apply": _call_backfill_apply,
     "cleanup_apply": _call_cleanup_apply,
@@ -688,96 +441,97 @@ if _MISSING_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS:
 
 
 def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
-    mode = _require_string(arguments, "mode")
-    if mode == "report":
-        return _call_doctor_report(arguments)
-    if mode == "profile":
-        return _call_show_profile(arguments)
-    if mode == "overlay_status":
-        return _call_overlay_status(arguments)
-    if mode in {"backend_upgrade", "med_deepscientist_upgrade"}:
-        return _call_backend_upgrade_check(arguments)
-    if mode == "hermes_runtime":
-        profile_path = arguments.get("profile_path")
-        hermes_agent_repo_root = arguments.get("hermes_agent_repo_root")
+    def hermes_runtime_handler(handler_arguments: dict[str, Any]) -> dict[str, Any]:
+        profile_path = handler_arguments.get("profile_path")
+        hermes_agent_repo_root = handler_arguments.get("hermes_agent_repo_root")
         if not isinstance(profile_path, str) and not isinstance(hermes_agent_repo_root, str):
             raise ValueError("doctor_audit hermes_runtime requires profile_path or hermes_agent_repo_root")
         profile = load_profile(profile_path) if isinstance(profile_path, str) else None
         result = hermes_runtime_check.run_hermes_runtime_check(
             profile=profile,
             hermes_agent_repo_root=Path(hermes_agent_repo_root) if isinstance(hermes_agent_repo_root, str) else None,
-            hermes_home_root=_optional_path(arguments, "hermes_home_root"),
+            hermes_home_root=_optional_path(handler_arguments, "hermes_home_root"),
         )
         return _tool_text_result(_json_text(result), structured=result)
-    raise ValueError(f"Unsupported doctor_audit mode: {mode}")
+
+    return call_mode_handler(
+        tool_name="doctor_audit",
+        arguments=arguments,
+        handlers={
+            "report": _call_doctor_report,
+            "profile": _call_show_profile,
+            "overlay_status": _call_overlay_status,
+            "backend_upgrade": _call_backend_upgrade_check,
+            "med_deepscientist_upgrade": _call_backend_upgrade_check,
+            "hermes_runtime": hermes_runtime_handler,
+        },
+    )
 
 
 def _call_workspace_readiness(arguments: dict[str, Any]) -> dict[str, Any]:
-    mode = _require_string(arguments, "mode")
-    if mode == "cockpit":
-        return _call_workspace_cockpit(arguments)
-    if mode == "init_workspace":
-        return _call_init_workspace(arguments)
-    if mode == "startup_data_readiness":
-        return _call_startup_data_readiness(arguments)
-    if mode == "portfolio_memory_status":
-        return _call_portfolio_memory_status(arguments)
-    if mode == "init_portfolio_memory":
-        return _call_init_portfolio_memory(arguments)
-    if mode == "workspace_literature_status":
-        return _call_workspace_literature_status(arguments)
-    if mode == "init_workspace_literature":
-        return _call_init_workspace_literature(arguments)
-    raise ValueError(f"Unsupported workspace_readiness mode: {mode}")
+    return call_mode_handler(
+        tool_name="workspace_readiness",
+        arguments=arguments,
+        handlers={
+            "cockpit": _call_workspace_cockpit,
+            "init_workspace": _call_init_workspace,
+            "startup_data_readiness": _call_startup_data_readiness,
+            "portfolio_memory_status": _call_portfolio_memory_status,
+            "init_portfolio_memory": _call_init_portfolio_memory,
+            "workspace_literature_status": _call_workspace_literature_status,
+            "init_workspace_literature": _call_init_workspace_literature,
+        },
+    )
 
 
 def _call_research_assets(arguments: dict[str, Any]) -> dict[str, Any]:
-    mode = _require_string(arguments, "mode")
-    if mode == "data_assets_status":
-        return _call_data_assets_status(arguments)
-    if mode == "external_research_status":
-        return _call_external_research_status(arguments)
-    if mode == "prepare_external_research":
-        return _call_prepare_external_research(arguments)
-    raise ValueError(f"Unsupported research_assets mode: {mode}")
+    return call_mode_handler(
+        tool_name="research_assets",
+        arguments=arguments,
+        handlers={
+            "data_assets_status": _call_data_assets_status,
+            "external_research_status": _call_external_research_status,
+            "prepare_external_research": _call_prepare_external_research,
+        },
+    )
 
 
 def _call_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:
-    mode = _require_string(arguments, "mode")
-    if mode == "runtime_watch":
-        return _call_runtime_watch(arguments)
-    if mode == "study_runtime_status":
-        return _call_study_runtime_status(arguments)
-    if mode == "ensure_study_runtime":
-        return _call_ensure_study_runtime(arguments)
-    raise ValueError(f"Unsupported study_runtime mode: {mode}")
+    return call_mode_handler(
+        tool_name="study_runtime",
+        arguments=arguments,
+        handlers={
+            "runtime_watch": _call_runtime_watch,
+            "study_runtime_status": _call_study_runtime_status,
+            "ensure_study_runtime": _call_ensure_study_runtime,
+        },
+    )
 
 
 def _call_publication_status(arguments: dict[str, Any]) -> dict[str, Any]:
-    mode = _require_string(arguments, "mode")
-    if mode == "medical_literature_audit":
-        return _call_medical_literature_audit(arguments)
-    if mode == "medical_reporting_audit":
-        return _call_medical_reporting_audit(arguments)
-    raise ValueError(f"Unsupported publication_status mode: {mode}")
+    return call_mode_handler(
+        tool_name="publication_status",
+        arguments=arguments,
+        handlers={
+            "medical_literature_audit": _call_medical_literature_audit,
+            "medical_reporting_audit": _call_medical_reporting_audit,
+        },
+    )
 
 
 def _call_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
-    mode = _require_string(arguments, "mode")
-    if mode == "product_entry_status":
-        return _call_product_entry_status(arguments)
-    if mode == "product_preflight":
-        return _call_product_preflight(arguments)
-    if mode == "product_start":
-        return _call_product_start(arguments)
-    if mode == "product_entry_manifest":
-        return _call_product_manifest(arguments)
-    if mode == "build_product_entry":
-        return _call_build_product_entry(arguments)
-    control_plane_handler = _CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS.get(mode)
-    if control_plane_handler is not None:
-        return control_plane_handler(arguments)
-    raise ValueError(f"Unsupported product_entry mode: {mode}")
+    return call_mode_handler(
+        tool_name="product_entry",
+        arguments=arguments,
+        handlers={
+            "product_entry_status": _call_product_entry_status,
+            "product_preflight": _call_product_preflight,
+            "product_start": _call_product_start,
+            "product_entry_manifest": _call_product_manifest,
+            "build_product_entry": _call_build_product_entry,
+            **_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS,
+        },
+    )
 
 
 TOOL_HANDLERS = {
