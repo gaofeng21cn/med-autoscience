@@ -7,6 +7,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import completion
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import evidence_adoption
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
+from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
 
 
 def ai_reviewer_lifecycle_resolved(
@@ -17,6 +18,17 @@ def ai_reviewer_lifecycle_resolved(
     if _text(lifecycle.get("blocked_reason")) != "ai_reviewer_assessment_required":
         return False
     return ai_reviewer_assessment.get("missing") is not True
+
+
+def runtime_relaunch_lifecycle_resolved(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    lifecycle: Mapping[str, Any],
+) -> bool:
+    if _text(lifecycle.get("blocked_reason")) != "runtime_relaunch_no_live_run_started":
+        return False
+    return runtime_facts.active_run_id(status, progress) is not None and runtime_facts.worker_running(status)
 
 
 def projection_block_state(
@@ -95,6 +107,7 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "ai_reviewer_lifecycle_resolved",
+    "runtime_relaunch_lifecycle_resolved",
     "next_owner_for_blocked_reason",
     "projection_block_state",
     "remove_action_type",

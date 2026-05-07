@@ -565,6 +565,12 @@ def _study_projection(
     if platform_lifecycle is not None:
         lifecycle = _mapping(platform_lifecycle)
     lifecycle = evidence_adoption.resolved_lifecycle(status_payload, lifecycle)
+    if block_state_part.runtime_relaunch_lifecycle_resolved(
+        status=status_payload,
+        progress=progress_payload,
+        lifecycle=lifecycle,
+    ):
+        lifecycle = {}
     if (
         runtime_platform_repair_apply is not None
         and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied"

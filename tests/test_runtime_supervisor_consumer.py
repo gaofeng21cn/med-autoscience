@@ -191,6 +191,69 @@ def test_supervisor_consume_apply_writes_only_consumer_handoff_surfaces(
     assert not (study_root / "manuscript").exists()
 
 
+def test_supervisor_consume_apply_refreshes_latest_when_current_queue_is_empty(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_consumer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    stale_dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "runtime_platform_repair.json"
+    )
+    consumer_path = profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    _write_json(stale_dispatch_path, {"surface": "default_executor_dispatch_request", "dispatch_status": "ready"})
+    _write_json(
+        consumer_path,
+        {
+            "surface": "runtime_supervisor_consumer",
+            "generated_at": "2026-05-07T16:13:16+00:00",
+            "default_executor_dispatch_count": 1,
+            "default_executor_dispatches": [
+                {
+                    "study_id": study_id,
+                    "action_type": "runtime_platform_repair",
+                    "dispatch_status": "ready",
+                    "refs": {"dispatch_path": str(stale_dispatch_path)},
+                }
+            ],
+        },
+    )
+    _write_json(
+        latest_path,
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id}],
+            "action_queue": [],
+        },
+    )
+
+    result = module.supervisor_consume(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    consumer = json.loads(consumer_path.read_text(encoding="utf-8"))
+    assert result["repair_task_count"] == 0
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
+    assert result["written_files"] == [str(consumer_path)]
+    assert consumer["generated_at"] == result["generated_at"]
+    assert consumer["default_executor_dispatches"] == []
+    assert consumer["written_files"] == [str(consumer_path)]
+
+
 def test_supervisor_consume_only_writes_current_owner_dispatch_for_route_epoch(
     monkeypatch,
     tmp_path: Path,

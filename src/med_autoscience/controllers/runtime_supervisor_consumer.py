@@ -696,7 +696,7 @@ def supervisor_consume(
             "history_path": str(_consumer_history_path(profile)),
         },
     }
-    if apply and developer_mode.safe_actions_enabled and (repair_tasks or request_tasks):
+    if apply and developer_mode.safe_actions_enabled:
         written_files.append(str(_consumer_latest_path(profile)))
         payload["written_files"] = written_files
         _write_json(_consumer_latest_path(profile), payload)
