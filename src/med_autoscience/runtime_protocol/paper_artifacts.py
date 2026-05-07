@@ -5,15 +5,16 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.artifact_lifecycle_authority_kernel import ArtifactLifecycleAuthorityKernel
-from med_autoscience.controllers.submission_package_layout import (
+from med_autoscience.publication_profiles import is_supported_publication_profile, normalize_publication_profile
+from med_autoscience.runtime_protocol.quest_state import is_legacy_restore_import_context
+from med_autoscience.runtime_protocol.topology import resolve_study_root_from_quest_root
+
+from .artifact_authority import artifact_authority_record
+from .submission_package_layout import (
     legacy_submission_manifest_path,
     resolve_submission_manifest_path as resolve_package_submission_manifest_path,
     submission_manifest_path as v2_submission_manifest_path,
 )
-from med_autoscience.publication_profiles import is_supported_publication_profile, normalize_publication_profile
-from med_autoscience.runtime_protocol.quest_state import is_legacy_restore_import_context
-from med_autoscience.runtime_protocol.topology import resolve_study_root_from_quest_root
 
 
 _CANONICAL_STUDY_PAPER_REQUIRED_SURFACES = (
@@ -680,7 +681,7 @@ def resolve_submission_minimal_output_paths(
 
 def _submission_minimal_authority_record(path: Path | None, *, artifact_format: str) -> dict[str, Any]:
     if path is not None:
-        artifact = ArtifactLifecycleAuthorityKernel(study_root=path.parent).classify(path)
+        artifact = artifact_authority_record(path=path, study_root=path.parent)
     else:
         artifact = {
             "role": "derived_projection",

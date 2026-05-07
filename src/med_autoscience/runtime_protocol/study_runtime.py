@@ -9,9 +9,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 from med_autoscience import runtime_backend as runtime_backend_contract
-from med_autoscience.controllers import workspace_literature as workspace_literature_controller
 from med_autoscience import startup_literature
-from med_autoscience import study_reference_context
 from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef
 from med_autoscience.runtime_escalation_record import (
     RuntimeEscalationRecord,
@@ -22,6 +20,7 @@ from med_autoscience.study_decision_record import StudyDecisionRecord
 
 from . import runtime_lifecycle_store
 from .layout import build_workspace_runtime_layout_for_profile
+from .workspace_literature_status import workspace_literature_status
 from .study_runtime_models import (
     StartupContractValidation,
     StartupContractValidationStatus,
@@ -35,6 +34,21 @@ from .study_runtime_models import (
 
 if TYPE_CHECKING:
     from med_autoscience.profiles import WorkspaceProfile
+
+
+def _build_study_reference_context(
+    *,
+    study_root: Path,
+    workspace_root: Path,
+    startup_contract: dict[str, Any],
+) -> dict[str, object]:
+    from med_autoscience import study_reference_context
+
+    return study_reference_context.build_study_reference_context(
+        study_root=study_root,
+        workspace_root=workspace_root,
+        startup_contract=startup_contract,
+    )
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -340,14 +354,12 @@ def build_hydration_payload(
     if study_root is None or workspace_root is None:
         return payload
 
-    reference_context = study_reference_context.build_study_reference_context(
+    reference_context = _build_study_reference_context(
         study_root=study_root,
         workspace_root=workspace_root,
         startup_contract=startup_contract,
     )
-    payload["workspace_literature"] = workspace_literature_controller.workspace_literature_status(
-        workspace_root=workspace_root
-    )
+    payload["workspace_literature"] = workspace_literature_status(workspace_root=workspace_root)
     payload["study_reference_context"] = reference_context
     payload["literature_records"] = list(reference_context.get("records") or [])
     return payload
