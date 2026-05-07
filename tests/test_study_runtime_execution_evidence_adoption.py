@@ -126,7 +126,7 @@ def test_execute_noop_runtime_decision_adopts_mas_quality_repair_report(
         "recommended_next_route": "return_to_publication_gate_recheck",
         "owner": "publication_gate",
         "quality_gate_relaxation_allowed": False,
-        "runtime_relaunch_required": False,
+        "runtime_relaunch_required": True,
     }
 
 

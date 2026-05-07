@@ -8,7 +8,12 @@ from typing import Any
 
 RUNTIME_CONTROLLER_REDRIVE_REASON = "runtime_controller_redrive_required"
 SPECIFICITY_WORK_UNIT_IDS = {"gate_needs_specificity", "needs_specificity"}
-RUNTIME_REDRIVE_ACTIONS = {"ensure_study_runtime", "ensure_study_runtime_relaunch_stopped"}
+RUNTIME_REDRIVE_ACTIONS = {
+    "ensure_study_runtime",
+    "ensure_study_runtime_relaunch_stopped",
+    "run_gate_clearing_batch",
+    "run_quality_repair_batch",
+}
 
 
 def runtime_platform_repair_action(

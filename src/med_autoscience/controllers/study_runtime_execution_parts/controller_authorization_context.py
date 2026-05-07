@@ -366,6 +366,7 @@ def _controller_decision_authorization_context_payload(
     route_target = route_fields["route_target"]
     authorization_context: dict[str, Any] = {
         "decision_id": record.decision_id,
+        "decision_emitted_at": record.emitted_at,
         "study_id": record.study_id,
         "quest_id": record.quest_id,
         "decision_type": record.decision_type.value,

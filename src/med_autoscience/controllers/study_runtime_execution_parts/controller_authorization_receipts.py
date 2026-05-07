@@ -12,6 +12,7 @@ from .controller_authorization_context import (
     _WORK_UNIT_TARGET_CONTEXT_KEYS,
     _controller_decision_authorization_identity,
 )
+from .control_intent_lifecycle import lifecycle_for_authorization
 
 
 _CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authorization"
@@ -125,9 +126,10 @@ def _controller_decision_authorization_lifecycle(
     study_root: Path,
     authorization_context: dict[str, Any],
 ) -> dict[str, Any]:
-    return control_intent.lifecycle_state(
+    return lifecycle_for_authorization(
         study_root=study_root,
         identity=_controller_decision_authorization_identity(authorization_context),
+        authorization_context=authorization_context,
     )
 
 
