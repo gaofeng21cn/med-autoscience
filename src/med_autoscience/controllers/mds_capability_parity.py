@@ -11,6 +11,7 @@ CUTOVER_REQUIRED_GATES: tuple[str, ...] = (
     "rollback_surface_exists",
     "old_mds_authority_surface_retired_or_marked_oracle",
 )
+PROVENANCE_REF = "docs/references/med-deepscientist/source_provenance.json"
 
 CAPABILITIES: tuple[dict[str, Any], ...] = (
     {
@@ -18,6 +19,8 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
         "title": "Runtime execution",
         "mds_authority_role": "backend",
         "mas_target_owner": "Runtime OS",
+        "mas_owner_surface": "Runtime OS study_runtime_status/runtime_watch replay consumer",
+        "oracle_fixture_ref": "fixtures/mds_oracle/runtime_execution.json",
         "required_parity_proof": "runtime execution replay and recovery regression suite",
         "parity_proof": {
             "proof_kind": "execution_replay",
@@ -26,6 +29,10 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
             "acceptance": "MAS recovery decisions match or intentionally supersede replayed MDS behavior",
         },
         "can_authorize_medical_quality": False,
+        "quality_authority_allowed": False,
+        "publication_ready_authority_allowed": False,
+        "parity_status": "oracle_fixture_defined",
+        "provenance_ref": PROVENANCE_REF,
         "rollback_surface": "study_runtime_status/runtime_watch retain the MAS runtime owner decision log",
         "old_mds_authority_surface_status": "marked_oracle",
     },
@@ -34,6 +41,8 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
         "title": "Artifact inventory",
         "mds_authority_role": "behavior_oracle",
         "mas_target_owner": "Artifact OS",
+        "mas_owner_surface": "Artifact OS package locator and inventory projection",
+        "oracle_fixture_ref": "fixtures/mds_oracle/artifact_inventory.json",
         "required_parity_proof": "artifact inventory projection parity fixtures",
         "parity_proof": {
             "proof_kind": "artifact_projection",
@@ -42,6 +51,10 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
             "acceptance": "MAS inventory preserves discoverability without granting MDS delivery authority",
         },
         "can_authorize_medical_quality": False,
+        "quality_authority_allowed": False,
+        "publication_ready_authority_allowed": False,
+        "parity_status": "oracle_fixture_defined",
+        "provenance_ref": PROVENANCE_REF,
         "rollback_surface": "MAS artifact inventory can continue serving the last accepted projection",
         "old_mds_authority_surface_status": "marked_oracle",
     },
@@ -50,6 +63,8 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
         "title": "Paper contract health",
         "mds_authority_role": "mechanical_oracle",
         "mas_target_owner": "Quality OS",
+        "mas_owner_surface": "Quality OS publication gate mechanical-preflight input",
+        "oracle_fixture_ref": "fixtures/mds_oracle/paper_contract_health.json",
         "required_parity_proof": "backend preflight parity without quality-ready authority",
         "parity_proof": {
             "proof_kind": "contract_preflight",
@@ -58,6 +73,10 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
             "acceptance": "MDS health signals never promote a paper to medical-quality ready",
         },
         "can_authorize_medical_quality": False,
+        "quality_authority_allowed": False,
+        "publication_ready_authority_allowed": False,
+        "parity_status": "oracle_fixture_defined",
+        "provenance_ref": PROVENANCE_REF,
         "rollback_surface": "publication_eval/latest.json and controller_decisions/latest.json remain the readiness owners",
         "old_mds_authority_surface_status": "marked_oracle",
     },
@@ -66,6 +85,8 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
         "title": "Manuscript coverage",
         "mds_authority_role": "mechanical_oracle",
         "mas_target_owner": "Quality OS",
+        "mas_owner_surface": "Quality OS AI reviewer coverage-request input",
+        "oracle_fixture_ref": "fixtures/mds_oracle/manuscript_coverage.json",
         "required_parity_proof": "mechanical coverage fixtures with AI preflight required",
         "parity_proof": {
             "proof_kind": "coverage_fixture",
@@ -74,6 +95,10 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
             "acceptance": "Coverage parity can request review but cannot authorize final quality",
         },
         "can_authorize_medical_quality": False,
+        "quality_authority_allowed": False,
+        "publication_ready_authority_allowed": False,
+        "parity_status": "oracle_fixture_defined",
+        "provenance_ref": PROVENANCE_REF,
         "rollback_surface": "AI review and publication eval gates remain required before package readiness",
         "old_mds_authority_surface_status": "marked_oracle",
     },
@@ -82,6 +107,8 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
         "title": "Prompt stage discipline",
         "mds_authority_role": "behavior_oracle",
         "mas_target_owner": "Quality OS",
+        "mas_owner_surface": "Quality OS controller stage discipline fixture",
+        "oracle_fixture_ref": "fixtures/mds_oracle/prompt_stage_discipline.json",
         "required_parity_proof": "stage prompt contract parity and prompt-only gate audit",
         "parity_proof": {
             "proof_kind": "stage_contract",
@@ -90,6 +117,10 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
             "acceptance": "MAS stage discipline remains explicit and auditable after parity import",
         },
         "can_authorize_medical_quality": False,
+        "quality_authority_allowed": False,
+        "publication_ready_authority_allowed": False,
+        "parity_status": "oracle_fixture_defined",
+        "provenance_ref": PROVENANCE_REF,
         "rollback_surface": "MAS controller stage contracts retain prompt transition authority",
         "old_mds_authority_surface_status": "marked_oracle",
     },
@@ -98,6 +129,8 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
         "title": "Memory and lesson store",
         "mds_authority_role": "behavior_oracle",
         "mas_target_owner": "Evaluation OS",
+        "mas_owner_surface": "Evaluation OS incident learning intake fixture",
+        "oracle_fixture_ref": "fixtures/mds_oracle/memory_and_lesson_store.json",
         "required_parity_proof": "lesson intake and incident learning parity fixtures",
         "parity_proof": {
             "proof_kind": "lesson_store_projection",
@@ -106,6 +139,10 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
             "acceptance": "Lessons are imported as evidence, not as autonomous quality decisions",
         },
         "can_authorize_medical_quality": False,
+        "quality_authority_allowed": False,
+        "publication_ready_authority_allowed": False,
+        "parity_status": "oracle_fixture_defined",
+        "provenance_ref": PROVENANCE_REF,
         "rollback_surface": "MAS incident learning store keeps imported lessons evidence-only",
         "old_mds_authority_surface_status": "marked_oracle",
     },
@@ -130,6 +167,8 @@ def _capability_with_cutover_readiness(capability: Mapping[str, Any]) -> dict[st
         "required_gates": list(CUTOVER_REQUIRED_GATES),
         "mas_side_contract": _text(proof.get("mas_contract")),
         "mds_oracle_fixture": _text(proof.get("mds_oracle")),
+        "oracle_fixture_ref": _text(capability.get("oracle_fixture_ref")),
+        "provenance_ref": _text(capability.get("provenance_ref")),
         "quality_gate_not_relaxed": True,
         "rollback_surface": _text(capability.get("rollback_surface")),
         "old_mds_authority_surface_status": _text(capability.get("old_mds_authority_surface_status")),
@@ -150,12 +189,29 @@ def _build_cutover_capabilities(matrix: Mapping[str, Any]) -> list[dict[str, Any
         capability_projection["capability_id"] = _text(capability.get("capability_id"))
         capability_projection["title"] = _text(capability.get("title"))
         capability_projection["can_authorize_medical_quality"] = False
+        capability_projection["quality_authority_allowed"] = False
+        capability_projection["publication_ready_authority_allowed"] = False
+        capability_projection["parity_status"] = _text(capability.get("parity_status")) or "oracle_fixture_defined"
         cutover_capabilities.append(capability_projection)
     return cutover_capabilities
 
 
+def _oracle_fixture_projection(capability: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "capability_id": _text(capability.get("capability_id")),
+        "mas_owner_surface": _text(capability.get("mas_owner_surface")),
+        "oracle_fixture_ref": _text(capability.get("oracle_fixture_ref")),
+        "parity_status": _text(capability.get("parity_status")),
+        "rollback_surface": _text(capability.get("rollback_surface")),
+        "provenance_ref": _text(capability.get("provenance_ref")),
+        "quality_authority_allowed": False,
+        "publication_ready_authority_allowed": False,
+    }
+
+
 def build_mds_capability_parity_matrix() -> dict[str, Any]:
     capabilities = [_capability_with_cutover_readiness(capability) for capability in CAPABILITIES]
+    oracle_fixtures = [_oracle_fixture_projection(capability) for capability in capabilities]
     return {
         "surface": "mds_capability_parity_matrix",
         "schema_version": SCHEMA_VERSION,
@@ -164,10 +220,12 @@ def build_mds_capability_parity_matrix() -> dict[str, Any]:
         "mas_owner": "MedAutoScience",
         "physical_absorb_allowed": "after_parity_and_owner_cutover_only",
         "capabilities": capabilities,
+        "retained_capability_oracle_fixtures": oracle_fixtures,
         "capability_ids": [str(capability["capability_id"]) for capability in capabilities],
         "parity_summary": {
             "capability_count": len(capabilities),
             "proof_count": sum(1 for capability in capabilities if capability.get("parity_proof")),
+            "oracle_fixture_count": len(oracle_fixtures),
             "quality_owner": "MedAutoScience",
             "mds_role": "replaceable_backend_oracle",
             "medical_quality_authority": "blocked_for_mds",
@@ -178,9 +236,21 @@ def build_mds_capability_parity_matrix() -> dict[str, Any]:
     }
 
 
-def build_mds_capability_cutover_gate() -> dict[str, Any]:
+def build_mds_capability_cutover_gate(proof_bundle: Mapping[str, Any] | None = None) -> dict[str, Any]:
     matrix = build_mds_capability_parity_matrix()
     capabilities = _build_cutover_capabilities(matrix)
+    bundle_validation = validate_mds_capability_proof_bundle(proof_bundle, matrix) if proof_bundle is not None else None
+    proof_bundle_complete = bool(bundle_validation and bundle_validation["ok"])
+    proof_capabilities = _proof_bundle_capabilities_by_id(proof_bundle) if proof_bundle_complete else {}
+    for capability in capabilities:
+        proof_capability = proof_capabilities.get(str(capability["capability_id"]))
+        if proof_capability is not None:
+            capability["proof_bundle_status"] = "complete"
+            capability["owner_switch_allowed"] = True
+            capability["parity_status"] = _text(proof_capability.get("parity_status")) or "passed"
+        else:
+            capability["proof_bundle_status"] = "missing"
+            capability["owner_switch_allowed"] = False
     owner_switch_allowed_count = sum(1 for capability in capabilities if capability.get("owner_switch_allowed") is True)
     return {
         "surface": "mds_capability_cutover_gate",
@@ -188,8 +258,9 @@ def build_mds_capability_cutover_gate() -> dict[str, Any]:
         "mds_role": matrix["mds_role"],
         "mds_quality_authority": matrix["mds_quality_authority"],
         "quality_authority_rule": "mds_can_never_authorize_medical_quality",
-        "owner_switch_allowed": False,
+        "owner_switch_allowed": proof_bundle_complete,
         "cutover_status": "blocked_pending_capability_proofs",
+        "proof_bundle_status": "complete" if proof_bundle_complete else "missing",
         "required_gates": list(CUTOVER_REQUIRED_GATES),
         "capabilities": capabilities,
         "summary": {
@@ -216,6 +287,16 @@ def validate_mds_capability_parity_matrix(matrix: Mapping[str, Any]) -> dict[str
         capability_id = _text(capability.get("capability_id"))
         if capability.get("can_authorize_medical_quality") is not False:
             issues.append({"code": "mds_quality_authority_drift", "capability_id": capability_id})
+        if capability.get("quality_authority_allowed") is not False:
+            issues.append({"code": "capability_quality_authority_allowed", "capability_id": capability_id})
+        if capability.get("publication_ready_authority_allowed") is not False:
+            issues.append({"code": "capability_publication_ready_authority_allowed", "capability_id": capability_id})
+        if not _text(capability.get("oracle_fixture_ref")):
+            issues.append({"code": "capability_missing_oracle_fixture_ref", "capability_id": capability_id})
+        if not _text(capability.get("rollback_surface")):
+            issues.append({"code": "capability_missing_rollback_surface", "capability_id": capability_id})
+        if not _text(capability.get("provenance_ref")):
+            issues.append({"code": "capability_missing_provenance_ref", "capability_id": capability_id})
         if not _text(capability.get("required_parity_proof")):
             issues.append({"code": "capability_missing_parity_proof", "capability_id": capability_id})
         parity_proof = capability.get("parity_proof")
@@ -261,3 +342,62 @@ def validate_mds_capability_parity_matrix(matrix: Mapping[str, Any]) -> dict[str
         "issue_count": len(issues),
         "issues": issues,
     }
+
+
+def validate_mds_capability_proof_bundle(
+    proof_bundle: Mapping[str, Any] | None,
+    matrix: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    issues: list[dict[str, Any]] = []
+    if not isinstance(proof_bundle, Mapping):
+        return {
+            "surface": "mds_capability_proof_bundle_validation",
+            "schema_version": SCHEMA_VERSION,
+            "ok": False,
+            "issue_count": 1,
+            "issues": [{"code": "missing_proof_bundle"}],
+        }
+    if _text(proof_bundle.get("surface")) != "mds_capability_parity_proof_bundle":
+        issues.append({"code": "wrong_surface"})
+    expected_ids = set((matrix or build_mds_capability_parity_matrix()).get("capability_ids") or [])
+    observed_ids: set[str] = set()
+    for capability in _list(proof_bundle.get("capabilities")):
+        if not isinstance(capability, Mapping):
+            issues.append({"code": "invalid_proof_bundle_capability"})
+            continue
+        capability_id = _text(capability.get("capability_id"))
+        observed_ids.add(capability_id)
+        if not _text(capability.get("oracle_fixture_ref")):
+            issues.append({"code": "proof_bundle_missing_oracle_fixture_ref", "capability_id": capability_id})
+        if capability.get("quality_authority_allowed") is not False:
+            issues.append({"code": "proof_bundle_quality_authority_allowed", "capability_id": capability_id})
+        if capability.get("publication_ready_authority_allowed") is not False:
+            issues.append({"code": "proof_bundle_publication_ready_authority_allowed", "capability_id": capability_id})
+        if not _text(capability.get("rollback_surface")):
+            issues.append({"code": "proof_bundle_missing_rollback_surface", "capability_id": capability_id})
+        if not _text(capability.get("provenance_ref")):
+            issues.append({"code": "proof_bundle_missing_provenance_ref", "capability_id": capability_id})
+        if not _text(capability.get("proof_ref")):
+            issues.append({"code": "proof_bundle_missing_proof_ref", "capability_id": capability_id})
+        if _text(capability.get("parity_status")) != "passed":
+            issues.append({"code": "proof_bundle_parity_not_passed", "capability_id": capability_id})
+    missing_ids = sorted(expected_ids - observed_ids)
+    for capability_id in missing_ids:
+        issues.append({"code": "proof_bundle_missing_capability", "capability_id": capability_id})
+    return {
+        "surface": "mds_capability_proof_bundle_validation",
+        "schema_version": SCHEMA_VERSION,
+        "ok": not issues,
+        "issue_count": len(issues),
+        "issues": issues,
+    }
+
+
+def _proof_bundle_capabilities_by_id(proof_bundle: Mapping[str, Any] | None) -> dict[str, Mapping[str, Any]]:
+    if not isinstance(proof_bundle, Mapping):
+        return {}
+    result: dict[str, Mapping[str, Any]] = {}
+    for capability in _list(proof_bundle.get("capabilities")):
+        if isinstance(capability, Mapping):
+            result[_text(capability.get("capability_id"))] = capability
+    return result
