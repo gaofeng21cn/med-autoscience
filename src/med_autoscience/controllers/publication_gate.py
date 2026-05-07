@@ -102,7 +102,9 @@ from .publication_gate_parts import (
     __all__,
 )
 from .publication_gate_parts import discovery_and_drift as discovery_and_drift
+from .publication_gate_parts import report_builders as report_builders
 from .publication_gate_parts import state_and_reports as state_and_reports
+from .publication_gate_parts import state_resolvers as state_resolvers
 from .publication_gate_parts import supervisor_and_cli as supervisor_and_cli
 
 import sys
@@ -116,7 +118,14 @@ def _split_chunks() -> tuple[ModuleType, ...]:
     return tuple(
         value
         for name, value in globals().items()
-        if isinstance(value, ModuleType) and name in {'discovery_and_drift', 'state_and_reports', 'supervisor_and_cli'} # and isinstance(value, ModuleType)
+        if isinstance(value, ModuleType)
+        and name in {
+            'discovery_and_drift',
+            'report_builders',
+            'state_and_reports',
+            'state_resolvers',
+            'supervisor_and_cli',
+        }
     )
 
 

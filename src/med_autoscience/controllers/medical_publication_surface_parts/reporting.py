@@ -840,101 +840,11 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def write_surface_files(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Path]:
-    report_store = _controller_override("runtime_protocol_report_store", runtime_protocol_report_store)
-    return report_store.write_timestamped_report(
-        quest_root=quest_root,
-        report_group="medical_publication_surface",
-        timestamp=report["generated_at"],
-        report=report,
-        markdown=render_surface_markdown(report),
-    )
 
 
-def run_controller(
-    *,
-    quest_root: Path,
-    apply: bool,
-    daemon_url: str | None = None,
-    source: str = "codex-medical-publication-surface",
-) -> dict[str, Any]:
-    state = build_surface_state(quest_root)
-    style_corpus_path = None
-    prose_review_request_path = None
-    materialization_error_hit = None
-    if apply and state.study_root is not None:
-        ensure_current_medical_journal_style_corpus(study_root=state.study_root)
-        style_corpus_path = stable_medical_journal_style_corpus_path(study_root=state.study_root)
-        prose_review_request_path = stable_medical_prose_review_request_path(study_root=state.study_root)
-        try:
-            materialize_medical_prose_review_request(
-                study_root=state.study_root,
-                paper_root=state.paper_root,
-                manuscript_path=state.draft_path,
-            )
-        except (OSError, TypeError, ValueError) as exc:
-            materialization_error_hit = _materialization_error_hit(
-                state=state,
-                artifact_path=prose_review_request_path,
-                error=exc,
-            )
-    report = build_surface_report(state)
-    if materialization_error_hit is not None:
-        report = _append_materialization_error(report, materialization_error_hit)
-    json_path, md_path = write_surface_files(quest_root, report)
-    stop_result = None
-    intervention = None
-    if apply and report["blockers"]:
-        current_status = str(state.runtime_state.get("status") or "").strip().lower()
-        if current_status in {"running", "active"} and daemon_url:
-            stop_result = _controller_override("managed_runtime_transport", managed_runtime_transport).stop_quest(
-                daemon_url=daemon_url,
-                runtime_root=resolve_runtime_root_from_quest_root(state.quest_root),
-                quest_id=report["quest_id"],
-                source=source,
-            )
-        intervention = user_message.enqueue_user_message(
-            quest_root=state.quest_root,
-            runtime_state=state.runtime_state,
-            message=medical_surface_policy.build_intervention_message(report),
-            source=source,
-        )
-    return {
-        "report_json": str(json_path),
-        "report_markdown": str(md_path),
-        "status": report["status"],
-        "blockers": report["blockers"],
-        "top_hits": report["top_hits"],
-        "medical_manuscript_blueprint_path": report.get("medical_manuscript_blueprint_path"),
-        "medical_prose_review_path": report.get("medical_prose_review_path"),
-        "style_corpus_path": str(style_corpus_path) if style_corpus_path is not None else None,
-        "medical_prose_review_request_path": (
-            str(prose_review_request_path) if prose_review_request_path is not None else None
-        ),
-        "medical_journal_prose_ai_verdict": report.get("medical_journal_prose_ai_verdict"),
-        "medical_journal_prose_mechanical_flag_count": report.get("medical_journal_prose_mechanical_flag_count"),
-        "stop_result": stop_result,
-        "intervention_enqueued": bool(intervention),
-    }
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--quest-root", required=True, type=Path)
-    parser.add_argument("--apply", action="store_true")
-    parser.add_argument("--daemon-url", default="http://127.0.0.1:20999")
-    return parser.parse_args()
-
-
-def main() -> None:
-    args = parse_args()
-    result = run_controller(
-        quest_root=args.quest_root,
-        apply=args.apply,
-        daemon_url=args.daemon_url,
-    )
-    print(json.dumps(result, ensure_ascii=False, indent=2))
-
-
-if __name__ == "__main__":
-    main()
+from .controller import (  # noqa: E402
+    main,
+    parse_args,
+    run_controller,
+    write_surface_files,
+)
