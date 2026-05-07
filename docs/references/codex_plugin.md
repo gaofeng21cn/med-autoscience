@@ -43,6 +43,8 @@ Compatibility note:
 4. 再跑 `workspace bootstrap`，初始化 overlay 和数据资产状态
 5. 后续涉及状态更新时，优先走 controller / MCP / CLI，不直接手改 registry
 
+新 workspace 默认 no root Git / no quest Git。Codex 通过 MAS skill 查状态、恢复 runtime 或执行 lifecycle 操作时，优先读取 file authority、`artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 和 `runtime/restore_index`；不要用 Git history、Git diff/log、workspace root Git 或 quest `.git` 作为默认状态来源。legacy Git 只通过显式 restore/import diagnostic 读取。
+
 当前最重要的几条入口面：
 
 - MCP tool: `init_workspace`

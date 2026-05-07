@@ -37,6 +37,8 @@
   - 旧 workspace 维护场景可额外保留 `ops/med-deepscientist/runtime/` 作为 diagnostic / restore reference
   - 若要启用 finalize 的浅路径正式交付 contract，还需要 `ops/medautoscience/bin/sync-delivery`
 
+新 workspace 默认 no root Git / no quest Git。Agent 接入 workspace 后，查状态和做 runtime lifecycle 操作时优先读取文件 authority、`artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 和 `runtime/restore_index`；不要把 Git history、Git diff、Git log 或 worktree list 当作默认状态面。
+
 ## 新病种 workspace 的最小骨架
 
 如果你是新建一个疾病项目，推荐最小骨架如下：
@@ -69,7 +71,7 @@
 - 这是病种级顶层目录，不是某一篇论文自己的目录
 - 可以先有空的 `studies/`，并不要求创建 profile 时就已经有首个 study
 - 不要在每个病种 workspace 里再 clone 一份上游 `DeepScientist`；旧 `med-deepscientist` 只作为外部共享 backend / oracle / diagnostic reference
-- `init-workspace` / MCP 默认不创建 workspace root Git；只有维护者显式选择 CLI `--with-git` 时，root Git 才作为 workspace 级 maintenance-only 边界初始化
+- `init-workspace` / MCP 默认 no root Git / no quest Git；已有 root Git 由 runtime lifecycle full retirement lane 做 inventory / archive / remove / verify，不作为 bootstrap 成功条件
 
 现在更推荐直接用 CLI 初始化，而不是手工逐层创建：
 
@@ -171,6 +173,13 @@ PYTHONPATH=src python3 -m med_autoscience.cli bootstrap --profile profiles/my-di
 - 检查 profile 指向的 workspace / runtime 是否可见
 - 按 profile 中声明的 `medical_overlay_skills` 安装并校验医学 overlay
 - 通过 controller 统一刷新并汇总数据资产状态，包括 private release、public registry、study impact 和 startup data readiness
+
+哪里做什么：
+
+- workspace truth：`contracts/`、`studies/`、`portfolio/` 和 canonical paper/artifact files。
+- runtime lifecycle：`artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration`、`runtime/quests`、`runtime/archives`、`runtime/restore_index`。
+- Agent entry：`ops/medautoscience/bin/*`、CLI、MCP、controller。
+- legacy diagnostic：旧 `ops/med-deepscientist/runtime/*`、legacy archive restore/import；只读诊断，不作为新研究入口。
 
 ### live managed runtime 边界
 

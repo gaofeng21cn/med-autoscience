@@ -106,7 +106,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
   - 对应 `studies/<study_id>/`
 - `quest_id`
   - 当前“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”绑定到 controlled research backend 后的正式运行句柄
-  - 当前仍对应 `ops/med-deepscientist/runtime/quests/<quest_id>/`
+  - 新 workspace 对应 `runtime/quests/<quest_id>/` 普通目录；旧 `ops/med-deepscientist/runtime/quests/<quest_id>/` 只作为 legacy diagnostic / restore reference
 - `active_run_id`
   - 当前 live daemon run 的细粒度执行句柄
   - 只在 live execution / runtime audit 场景里出现
@@ -122,6 +122,10 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - `studies/<study_id>/artifacts/controller/gate_clearing_batch/latest.json`
 - `studies/<study_id>/artifacts/runtime/last_launch_report.json`
 - `studies/<study_id>/artifacts/runtime/health/latest.json`
+- `artifacts/runtime/runtime_lifecycle.sqlite`
+- `artifacts/runtime/lifecycle_migration/*`
+- `runtime/quests/<quest_id>/` materialization manifest
+- `runtime/restore_index/*`
 
 这意味着：
 
@@ -132,6 +136,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - `artifacts/controller/gate_clearing_batch/latest.json` 是 study-owned same-line continuation execution record：它只记录一次 controller-owned batch repair 与 gate replay，不替代 `controller_decisions/latest.json` 作为 authority decision surface
 - `artifacts/runtime/health/latest.json` 是 study-owned runtime health snapshot：它持有 `canonical_runtime_action`、worker liveness、retry budget 与 escalation 判断，不替代 `StudyTruthKernel.canonical_next_action`
 - 本地未跟踪 handoff scratch 不替代 repo-tracked runtime truth
+- Git history、Git diff/log、workspace root Git、quest `.git` 和 worktree list 不作为默认 runtime status surface；Agent 查状态和做 lifecycle 操作时优先读 file authority、macro state / owner route、SQLite runtime lifecycle、migration ledger、quest manifest 和 restore index
 
 如果你是医学用户，希望先理解这个项目是什么、适合什么课题、能产出什么，请先看仓库首页 [README.md](../README.md)。
 
@@ -220,7 +225,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - `study-runtime-status`
 - `runtime watch`
 
-如果 workspace 来自较早的骨架版本，应先重跑一次 `init-workspace`。当前 controller 会在不加 `--force` 的前提下，自动升级 `_shared.sh`、`watch-runtime`、`install-watch-runtime-service` 这些 service-critical managed entry scripts。
+如果 workspace 来自较早的骨架版本，应先重跑一次 `init-workspace`。当前 controller 会在不加 `--force` 的前提下，自动升级 `_shared.sh`、`watch-runtime`、`install-watch-runtime-service` 这些 service-critical managed entry scripts。新 workspace 默认 no root Git / no quest Git；已有 root Git 的处理属于 runtime lifecycle full retirement lane，不属于普通 bootstrap 成功条件。
 对于 legacy workspace，`init-workspace` 现在还会优先跟随 `ops/medautoscience/config.env` 中真实生效的 `MED_AUTOSCIENCE_PROFILE`；如果需要把 active profile 原位补齐到 Hermes-era contract，可显式传入 `--hermes-agent-repo-root` 与 `--hermes-home-root`，避免只在旁边生成一个不被当前 workspace 实际消费的 `.local.toml`。
 同一条升级路径现在也会修掉两种更隐蔽的 legacy host-service 漂移：如果 `_shared.sh` 仍停在“直接调用裸 `uv`”而不是显式消费 `MED_AUTOSCIENCE_UV_BIN`，launchd 在最小 PATH 下会直接 `exit 127`；如果 controlled backend launcher 仍依赖 `#!/usr/bin/env node` 而宿主最小 `PATH` 看不到 `node`，launchd 也会把它误报成 runtime 恢复失败。`init-workspace` 现在会识别并原位升级这些入口，把检测到的 `MED_AUTOSCIENCE_NODE_BIN` 合并进 workspace `config.env`，并让 service 显式持有 `MED_AUTOSCIENCE_UV_BIN / MED_AUTOSCIENCE_RSCRIPT_BIN / MED_AUTOSCIENCE_NODE_BIN`。
 
@@ -519,7 +524,7 @@ Phase 2 开始，`MedAutoScience` 明确把 runtime 布局与 quest 状态解析
   - `study_runtime_router`、`workspace_contracts`、`workspace_init` 等 controller / scaffold 代码应统一经由这层派生路径，而不是散落硬编码 `ops/med-deepscientist/...`
 - `med_autoscience.runtime_protocol.topology`
   - 负责 `paper_root`、`worktree_root`、`quest_root`、`study_root` 之间的关系解析
-  - 当前显式承认的受管布局是 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper`
+  - 新 workspace 显式承认的受管布局是 `runtime/quests/<quest_id>` 普通目录、study-local paper/manuscript authority 与 runtime lifecycle SQLite sidecar；旧 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper` 只作为 legacy diagnostic / restore reference
   - `study_delivery_sync` 这类 controller 应调用 `resolve_paper_root_context()`，而不是自己拼 `.ds/worktrees/...` 或依赖 `parents[4]` 这类脆弱层级
 - `med_autoscience.runtime_protocol.quest_state`
   - 负责 `runtime_state.json`、quest status、active quest 枚举、main `RESULT.json`、active `stdout.jsonl` 与最近 stdout 行的统一读取

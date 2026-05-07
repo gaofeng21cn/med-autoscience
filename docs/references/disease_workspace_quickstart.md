@@ -2,7 +2,7 @@
 
 这份指南写给要新建疾病项目 workspace 的 Agent 或技术同事。
 
-目标不是复制一个旧项目，而是用最小骨架快速建立一个病种级研究 workspace，并接入外部共享的 `MedAutoScience` 与 `MedDeepScientist`（仓库名 `med-deepscientist`）。
+目标不是复制一个旧项目，而是用最小骨架快速建立一个病种级研究 workspace，并接入外部共享的 `MedAutoScience` 与 legacy diagnostic 所需的 controlled backend。
 
 ## 先记住一句话
 
@@ -80,7 +80,7 @@ uv run python -m med_autoscience.cli init-workspace \
 
 如果你想先让 Agent 看计划，再决定是否创建，可以先加 `--dry-run`。
 
-这个命令默认不初始化 workspace 根目录 Git，也不创建 quest-level Git。CLI 语义按显式 opt-in 收口：只有维护者明确传入 `--with-git` 时，才创建 workspace 级 root Git；MCP `init_workspace` 同样按 no root Git 处理。workspace 级 Git 只用于维护/审计轻量 scaffold、contracts、portfolio registry 和 source contract，不是 runtime、quest 或投稿产物的 active truth。
+这个命令默认 no root Git / no quest Git。新 workspace 的 runtime lifecycle 由 `artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 与 `runtime/restore_index` 承接；workspace 根目录 Git、quest `.git`、Git diff/log 和 worktree list 都不是 active truth。
 
 这个命令会生成下面这套 MAS-first 最小骨架：
 
@@ -109,7 +109,7 @@ uv run python -m med_autoscience.cli init-workspace \
 
 旧 workspace 中的 `ops/med-deepscientist/runtime/quests/`、quest-local `.ds/`、`.ds/worktrees/` 和 quest `.git` 只作为 legacy diagnostic / restore / enrichment / reference surface 被识别；新 quest active path 不再由 MDS Git 或 Git worktree 维护。quest materializer 应在 repo-level guard 中阻断既有 quest `.git` 回流：materialize 出来的 active quest root 必须是普通目录，manifest 记录 `git_runtime_used=false` 与 `quest_git_active_path_retired=true`。
 
-workspace root Git 如果通过 `--with-git` 显式创建，也不是论文审计仓库，不应提交 generated artifacts、PDF/DOCX/ZIP 投稿包、runtime ledgers、SQLite sidecar、archive payload 或 quest runtime 目录。已有有提交或 dirty 的 root Git 进入 maintenance-only：MAS 可以审计、补 `.gitignore`、清理 stale temp objects，但不自动删除或重写历史。
+已有 workspace root Git 进入 runtime lifecycle full retirement lane，也不是论文审计仓库，不应提交 generated artifacts、PDF/DOCX/ZIP 投稿包、runtime ledgers、SQLite sidecar、archive payload 或 quest runtime 目录。有提交或 dirty 的 root Git 必须先完成 inventory、authority classification、restore archive、sha256 和 restore command，再决定是否 remove。
 如果旧 workspace 已经因为误 `git add` 产生很大的 `.git/objects`，先运行：
 
 ```bash
@@ -122,7 +122,7 @@ ops/medautoscience/bin/storage-audit --git-only
 ops/medautoscience/bin/storage-audit --git-only --apply
 ```
 
-只有当报告显示外层 Git 没有 commits、remotes、stashes、linked worktrees 和 locks，且确实需要释放空仓 object store 时，才把空 root Git 标为未来 safe cleanup 候选。相关 cleanup 必须由后续显式维护入口执行；不要把“候选”写成已经删除。历史命令形态如下，仅用于维护者诊断：
+只有当报告显示外层 Git 没有 commits、remotes、stashes、linked worktrees 和 locks，且 lifecycle ledger 已记录 restore-proof inventory/archive/remove 计划时，才允许进入 root Git remove 步骤。历史命令形态如下，仅用于维护者诊断：
 
 ```bash
 ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-workspace-git
@@ -142,6 +142,12 @@ ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-wor
   - 参考文章与文献提取稿
 - `ops/`
   - 本地入口、配置和运行状态
+- `artifacts/runtime/`
+  - SQLite runtime lifecycle DB、lifecycle migration ledger、status projection 和 restore proof
+- `runtime/quests/`
+  - 普通 quest 执行目录和 manifest，不是 Git repo
+- `runtime/archives/`、`runtime/restore_index/`
+  - runtime archive 与恢复索引
 
 ## 私有数据、公开数据与 study 的关系
 
@@ -173,6 +179,7 @@ ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-wor
 - 不要直接通过 `MedDeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
 - 旧 `ops/med-deepscientist/bin/*` 只用于 legacy runtime 运维、诊断和恢复，不用于新研究治理或新 quest materialization
 - `OPL` handoff、product-entry manifest 与其他机器可读桥接只保留在集成或参考层
+- Agent 查状态或做 lifecycle 操作时，读 file authority、SQLite runtime lifecycle、lifecycle ledger、quest manifest 和 restore index；不查 Git
 
 ## 常见误区
 

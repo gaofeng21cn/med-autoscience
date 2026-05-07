@@ -6,15 +6,29 @@ Owner: `MedAutoScience`
 
 ## 结论
 
-`docs/program/` 现在不应继续按“每个长线计划各自推进”管理。当前主线已经收敛为一个组合：
+`docs/program/program_portfolio_consolidation.md` 是后续 MAS/MDS 收敛工作的唯一总控入口。Agent 接到后续执行任务时，先读本文，再按本文的 next execution queue 选择 lane、worktree、验证、吸收和清理；无需另开规划会。
 
-1. `mas_mds_autonomy_operating_system_program.md` 是最高层 program board。
-2. `mas_single_project_mds_absorb_program.md` 是 MDS 退场、MAS 单项目吸收和真实 workspace cutover 的总执行计划。
-3. `runtime_lifecycle_sqlite_migration_program.md` 是上述总计划下的 runtime persistence / quest Git retirement 子计划。
-4. `mas_mds_unified_enhancement_program.md` 是 L1-L5 增强 backlog 和 read-model / projection / maintainability program。
-5. owner-boundary、parity matrix、completion ledger、preflight / cleanup / gate 文档作为合同、台账和操作政策保留。
+当前三层关系固定如下：
 
-因此，git 退役和 MAS 吸收 MDS 不应作为两条互相竞争的改造线并行推进。技术实现可以分 lane 并行，但必须在同一个 authority contract、同一个 cutover gate 和同一个 closeout ledger 下吸收。SQLite runtime authority 接管的是 MDS Git-era 的 runtime lifecycle、lineage、workspace allocation、checkpoint metadata、diff / Canvas read model；MAS single-project absorb 接管的是产品入口、owner 边界、代码归属、真实 workspace layout 和 compatibility retirement。
+1. 本文是唯一 portfolio 入口，负责决定 active owner doc、执行顺序和 closeout 口径。
+2. `mas_single_project_mds_absorb_program.md` 是 MDS 退场、MAS 单项目吸收、workspace layout 收敛、entry compat retirement 和 no-history physical absorb 的总执行计划。
+3. `runtime_lifecycle_sqlite_migration_program.md` 是 MAS single-project absorb 之下的 runtime / Git 子计划，负责 runtime lifecycle SQLite authority、workspace root Git full retirement、quest Git retirement、restore proof 和 lifecycle ledger。
+4. `mas_mds_autonomy_operating_system_program.md`、`mas_mds_unified_enhancement_program.md` 与 owner-boundary、parity matrix、completion ledger、preflight / cleanup / gate 文档继续作为方向板、增强 backlog、合同、台账和操作政策保留，不再作为并行总控入口。
+
+因此，Git 退役和 MAS 吸收 MDS 不作为两条互相竞争的改造线推进。技术实现可以分 lane 并行，但必须在同一个 authority contract、同一个 cutover gate 和同一个 closeout ledger 下吸收。SQLite runtime authority 接管的是 MDS Git-era 的 runtime lifecycle、lineage、workspace allocation、checkpoint metadata、diff / Canvas read model、restore index 和 runtime lifecycle ledger；MAS single-project absorb 接管的是产品入口、owner 边界、代码归属、真实 workspace layout 和 compatibility retirement。
+
+## Next Execution Queue
+
+后续 Agent 默认按下面队列自动取下一项；只有遇到真实 blocker、外部 active owner 冲突或用户改口时才暂停说明。
+
+| order | execution lane | owner doc | required closeout |
+| --- | --- | --- | --- |
+| `1` | `workspace_root_git_full_retirement` | `runtime_lifecycle_sqlite_migration_program.md` | restore-proof inventory、archive/remove proof、root Git status/read path 不再作为默认 workspace/runtime status source；代码 lane 完成后吸收回 `main` 并清理 worktree。 |
+| `2` | `workspace_layout_de_mds_ds` | `mas_single_project_mds_absorb_program.md` | 用户/医生可见 workspace layout、profile/docs 和 quest 管理命名去 MDS/DS 化；旧路径仅保留为 migration ledger、restore proof 或 maintainer diagnostic。 |
+| `3` | `profile_entry_compat_retirement` | `mas_single_project_mds_absorb_program.md` | 退役 profile 字段兼容、MDS product entry、默认 legacy reader/fallback；保留入口必须显式标成 legacy diagnostic 并 fail-closed。 |
+| `4` | `no_history_physical_absorb` | `mas_single_project_mds_absorb_program.md` | 按 no-history import、author audit、provenance、parity proof 和 rollback surface 吸收可保留 MDS 能力。 |
+
+本文是队列 authority。实现 lane 可以并行拆分，但吸收顺序仍按上表 gate；不能绕过 portfolio 直接新建另一套 program board。
 
 ## 推进模型
 
@@ -25,11 +39,11 @@ Owner: `MedAutoScience`
 | `A0_program_portfolio_freeze` | 固定 active / support / historical 分类，停止新建重复 program board。 | 本文 | 可单独落地。 |
 | `A1_authority_contract` | 固定 MAS owner matrix、SQLite runtime authority schema、MDS oracle-only 规则。 | `mas_mds_owner_boundary_refactor_plan.md`、`runtime_lifecycle_sqlite_migration_program.md` | `Q0` 必须先完成，其他 lane 只能读合同。 |
 | `A2_repo_capability_absorb` | 把 MDS Git-era branch/worktree/checkpoint/diff/canvas 语义迁入 SQLite lineage/materializer/projection。 | `mas_single_project_mds_absorb_program.md`、`runtime_lifecycle_sqlite_migration_program.md` | `Q1/Q2/Q3` 可按 disjoint write set 并行。 |
-| `A3_workspace_cutover` | 当前 NF-PitNET、DM-CVD / DPCC、AS biologics、HeRR 等 workspace 进入 SQLite-backed runtime layout，quest `.git` 退为 restore diagnostic archive；new workspace root Git 默认 no-Git，显式 opt-in only。 | `runtime_lifecycle_sqlite_migration_program.md` | current-project active-path quest Git 已 verified；后续新/重开 workspace 仍只在 fresh gate 与 restore proof 成立后 apply。 |
-| `A4_entry_and_compat_retirement` | MDS product entry、默认 Git writer、Git worktree writer、隐式 Git diff/log reader 退役；root Git 只保留显式 maintenance-only opt-in。 | `mas_single_project_mds_absorb_program.md` | quest Git default path 已完成；MDS product entry / physical absorb 仍需 parity 和 no-history import gate。 |
+| `A3_workspace_cutover` | 当前 NF-PitNET、DM-CVD / DPCC、AS biologics、HeRR 等 workspace 进入 SQLite-backed runtime layout，quest `.git` 退为 restore diagnostic archive；new workspace no root Git / no quest Git。 | `runtime_lifecycle_sqlite_migration_program.md` | current-project active-path quest Git 已 verified；workspace root Git full retirement 是当前 execution lane。 |
+| `A4_entry_and_compat_retirement` | MDS product entry、默认 Git writer、Git worktree writer、隐式 Git diff/log reader 退役；root Git 只允许作为 legacy maintenance diagnostic 被显式处理。 | `mas_single_project_mds_absorb_program.md` | quest Git default path 已完成；MDS product entry / physical absorb 仍需 parity 和 no-history import gate。 |
 | `A5_archive_cleanup` | 已落地 closeout、intake 和 activation package 移入 history/reference 或保持只读参考。 | 本文 | 只做链接保全后的文档移动，不改变 runtime。 |
 
-关键顺序是 `A1 -> A2 -> A3 -> A4`。当前 quest Git 相关的 `A2-A4` 已对 current projects 完成到 verified / default-retired；后续继续按同一顺序处理 workspace 用户可见 layout 去 MDS/DS 化、profile 字段兼容清理、MDS product entry retirement 和 no-history physical absorb。如果把 SQLite 当成 paper truth，会破坏 MAS publication authority。
+关键顺序是 `A1 -> A2 -> A3 -> A4`。当前 quest Git 相关的 `A2-A4` 已对 current projects 完成到 verified / default-retired；下一步固定为 workspace root Git full retirement，然后依次处理 workspace 用户可见 layout 去 MDS/DS 化、profile/entry compatibility retirement 和 no-history physical absorb。如果把 SQLite 当成 paper truth，会破坏 MAS publication authority。
 
 ## Active Portfolio
 
@@ -127,6 +141,6 @@ Owner: `MedAutoScience`
 - 后续 Agent 能先读本文决定该更新落在哪个 active owner doc。
 - 新的 runtime lifecycle / quest Git / MDS absorb 工作都进入同一个 `A1-A4` 主序列。
 - `runtime_lifecycle_sqlite_migration_program.md` 明确作为 `mas_single_project_mds_absorb_program.md` 的 runtime persistence 子计划执行。
-- current-project quest Git retirement 不再作为未完成 active backlog 重复规划；只保留 root Git opt-in maintenance、workspace layout 去 MDS/DS 化、MDS physical no-history absorb 和 profile/compat 字段清理。
+- current-project quest Git retirement 不再作为未完成 active backlog 重复规划；next execution queue 固定为 workspace root Git full retirement、workspace layout 去 MDS/DS 化、profile/entry compatibility retirement、MDS physical no-history absorb。
 - 已落地 closeout、learning intake、activation package 不再被当作 active backlog。
 - `plan_completion_ledger.md` 继续区分 repo capability landed、真实 workspace cutover completed、compatibility retirement completed。

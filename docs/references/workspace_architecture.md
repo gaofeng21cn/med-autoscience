@@ -23,7 +23,7 @@
 - 疾病 workspace 本身轻巧、可读、可长期维护
 - 项目专属状态保留在 workspace 内
 - 程序本体与重依赖不在每个疾病 workspace 内重复存放
-- workspace 根目录默认不创建 Git；workspace 级 Git 是显式 opt-in / maintenance-only 边界，用于 Codex / MAS 审计 scaffold、contracts、portfolio registry 与轻量 source contract
+- workspace 根目录默认 no root Git，quest 默认 no quest Git；已有 root Git 通过 runtime lifecycle full retirement lane 做 restore-proof inventory、archive、remove 和 verify
 - 新疾病项目可以快速复制同一套目录骨架与启动方式
 - `MedAutoScience` 继续作为 `Research Ops` 的 domain gateway 与 harness OS，上游 `Hermes-Agent` 继续作为目标 outer runtime substrate owner，`MedDeepScientist`（仓库名 `med-deepscientist`）继续作为当前 controlled research backend
 
@@ -81,13 +81,15 @@
 - legacy `MedDeepScientist` quest archive、日志、记忆、配置等运行诊断状态
 - workspace-scope overlay 与 quest-scope overlay 写入的本地 `.codex/skills/`
 
-workspace 根目录的外层 Git 默认不存在；只有显式 `--with-git` 或维护者手工 opt-in 后才存在。即便存在，它也不接管 quest runtime、legacy `MedDeepScientist` quest archive、generated artifacts、PDF/DOCX/ZIP、current package projection、runtime ledgers 或投稿导出物；这些 surface 由 MAS controller、publication gate、runtime lifecycle SQLite authority、restore index 和 durable artifact registry 负责。
+workspace 根目录的外层 Git 默认不存在；已有 root Git 不接管 quest runtime、legacy `MedDeepScientist` quest archive、generated artifacts、PDF/DOCX/ZIP、current package projection、runtime ledgers 或投稿导出物；这些 surface 由 MAS controller、publication gate、runtime lifecycle SQLite authority、restore index 和 durable artifact registry 负责。
 标准 scaffold 会排除 `runtime/quests/`、`runtime/archives/`、`runtime/restore_index/`、`artifacts/runtime/`、study-local `artifacts/`、`manuscript/current_package/`、submission package、paper build/export 目录和重运行态目录。旧 `ops/med-deepscientist/runtime/quests/`、quest `.git` 与 `.ds/worktrees/` 只作为 legacy restore/import diagnostic 或 enrichment reference；active quest path 不再要求也不允许回流为 Git 仓库。
 quest materializer 的 repo-level guard 必须阻断既有 quest `.git` 回流：新 materialization 只生成普通目录与 manifest，manifest 明确 `git_runtime_used=false`、`quest_git_active_path_retired=true`。
 
 已有 workspace 如果出现外层 Git object store 膨胀，应通过 `medautosci runtime storage-audit --profile <profile> --git-only` 读取 Git health。
 `--git-only --apply` 只合并新版 `.gitignore`、写入 MAS Git config 并清理 stale temp objects。
-有 commits 或 dirty state 的 workspace root Git 只进入 maintenance/audit，不由 MAS 自动删除或重写历史。无 commits、无 remotes、无 stashes、无 linked worktrees、无 locks 的空 root Git 可以登记为未来 safe cleanup 候选；候选不等于已经执行 cleanup。
+有 commits 或 dirty state 的 workspace root Git 必须先进入 runtime lifecycle full retirement lane，由 `artifacts/runtime/lifecycle_migration` ledger 记录 inventory、authority classification、archive、restore command、sha256 和 verify result。只有 restore proof 成立且 ledger 授权 remove 时，才能移出 root `.git`。
+
+Agent 查状态或做 runtime lifecycle 操作时，读取顺序固定为文件 authority、`study_macro_state` / `owner_route`、`artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 和 `runtime/restore_index`。Git history、Git diff/log、quest `.git` 和 worktree list 只允许出现在 legacy diagnostic / restore proof 中。
 
 ### 2. 程序本体与重依赖不进入疾病 workspace
 
@@ -178,24 +180,19 @@ wrapper 不应继续硬编码：
 ├── studies/
 ├── portfolio/
 ├── refs/
+├── artifacts/
+│   └── runtime/
+├── runtime/
+│   ├── quests/
+│   ├── archives/
+│   └── restore_index/
 ├── ops/
 │   ├── medautoscience/
 │   │   ├── bin/
 │   │   ├── profiles/
 │   │   ├── config.env
 │   │   └── README.md
-│   └── med-deepscientist/
-│       ├── bin/
-│       ├── config.env
-│       ├── runtime/
-│       │   ├── quests/
-│       │   ├── logs/
-│       │   ├── memory/
-│       │   └── config/
-│       ├── startup_briefs/
-│       ├── startup_payloads/
-│       ├── templates/
-│       └── project policies / notes
+│   └── mas/
 └── docs/ or notes/ (project-local)
 ```
 
@@ -213,6 +210,8 @@ wrapper 不应继续硬编码：
   - 参考论文、提取稿与文献笔记
 - `ops/`
   - workspace 本地入口、配置与 project-local runtime state
+
+旧 workspace 可额外保留 `ops/med-deepscientist/` 作为 legacy diagnostic / restore reference；新 workspace 不把它作为默认骨架。
 
 ### D. 运行时重依赖层
 
@@ -418,7 +417,7 @@ wrapper 不应继续做：
 标准启动顺序应为：
 
 1. 创建新的疾病 workspace 骨架
-2. 默认不初始化外层 workspace Git；如维护者明确需要 root Git，使用显式 opt-in，并确认 runtime/generated/archive 目录被排除
+2. 默认 no root Git / no quest Git；已有 root Git 先进入 restore-proof lifecycle retirement lane
 3. 放入原始数据、数据说明、变量定义、终点定义、已有参考文献与研究设想
 4. 配置 workspace profile
 5. 显式指向外部共享的 `MedAutoScience` repo

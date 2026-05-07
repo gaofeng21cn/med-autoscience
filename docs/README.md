@@ -39,8 +39,8 @@ This guide is for readers who need product boundary, operator entry surfaces, ru
 - First-draft manuscript quality is handled as a pre-draft runtime concern: MAS should generate manuscript-native medical journal prose, not controller notes, figure/table anchor scaffolds, or administrative placeholders in article text.
 - Artifact proof is canonical-source-first: manuscript, figures, tables, and packages should be rebuildable from canonical sources before they are treated as delivery evidence.
 - Real-paper soak remains the main evidence gap for the AI-first line; documents should state that gap instead of presenting every target-layer capability as proven current behavior.
-- Workspace Git/storage boundaries are now part of the maintained workspace contract: root Git is opt-in and maintenance-only, generated/runtime artifacts stay excluded, and storage-audit repair reports actual apply strategy.
-- Runtime lifecycle history and indexing are moving to a SQLite sidecar: SQLite owns report/state/storage-audit indexes, history, summaries, and cursors, while authority surfaces, restore metadata, and manuscript/package deliverables remain file-shaped.
+- Workspace Git/storage boundaries are now part of the maintained workspace contract: new workspaces are no-root-Git / no-quest-Git by default, generated/runtime artifacts stay excluded, and existing root Git exits through restore-proof lifecycle retirement.
+- Runtime lifecycle history and indexing are carried by `artifacts/runtime/runtime_lifecycle.sqlite`, `artifacts/runtime/lifecycle_migration` ledgers, `runtime/quests` manifests, and `runtime/restore_index`; status and lifecycle operations should read these surfaces plus file authority, not Git history.
 - Historical migration terms and older naming stay in reference or history layers.
 
 ## Technical Working Set
