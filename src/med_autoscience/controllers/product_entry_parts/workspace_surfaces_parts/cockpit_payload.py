@@ -33,19 +33,20 @@ from med_autoscience.controllers.delivery_visibility_projection import (
     compact_delivery_inspection_projection,
 )
 
-try:
-    _non_empty_text
-except NameError:
-    from med_autoscience.controllers.product_entry_parts import shared as _shared
-    from med_autoscience.controllers.product_entry_parts import workspace_surfaces as _workspace_surfaces
+from med_autoscience.controllers.product_entry_parts import shared as _shared
+from med_autoscience.controllers.product_entry_parts.workspace_surfaces_parts import (
+    state_and_study_items as _state_and_study_items,
+)
 
-    def _module_reexport(module) -> None:
-        for name, value in vars(module).items():
-            if not name.startswith("__") and name != "_module_reexport":
-                globals()[name] = value
 
-    _module_reexport(_shared)
-    _module_reexport(_workspace_surfaces)
+def _module_reexport(module) -> None:
+    for name, value in vars(module).items():
+        if not name.startswith("__") and name != "_module_reexport":
+            globals()[name] = value
+
+
+_module_reexport(_shared)
+_module_reexport(_state_and_study_items)
 
 
 def _study_item(

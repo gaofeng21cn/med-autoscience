@@ -3,18 +3,12 @@ from __future__ import annotations
 from med_autoscience.controllers import (
     ai_first_observability,
     supervisor_action_request_lifecycle,
-    autonomy_ai_doctor,
     artifact_runtime_proof,
     control_plane_facts,
     medical_paper_ops_health,
     medical_paper_readiness,
     open_auto_research_projection,
-    pi_action_projection,
-    runtime_health_kernel,
     study_truth_kernel,
-)
-from .ai_first_runtime_projection import (
-    attach_ai_first_runtime_projection as _attach_ai_first_runtime_projection,
 )
 from .delivery_inspection import (
     attach_delivery_inspection_projection as _attach_delivery_inspection_projection,
@@ -23,7 +17,6 @@ from .delivery_inspection import (
 from .medical_writing_surfaces import medical_writing_quality_surface_status
 from .parked_projection import (
     build_progress_parked_projection,
-    parked_progress_fields,
     parked_text_override,
     projected_current_stage,
 )
@@ -40,6 +33,13 @@ from .projection_sources import (
     _read_or_materialize_autonomy_slo_status,
     _supervision_active_run_id,
 )
+from .projection_eval_surface import read_projection_surface_payloads
+from .projection_inputs import resolve_projection_input_paths
+from .projection_payload_assembly import (
+    assemble_study_progress_payload,
+    build_projection_refs,
+)
+from .projection_status_context import build_projection_status_context
 from .task_intake_override import task_intake_override_superseded_by_gate_specificity
 from . import ai_first_default_entry as _ai_first_default_entry, operator_view as _operator_view, progress_freshness as _progress_freshness_parts, publication_runtime as _publication_runtime
 from . import progression as _progression, runtime_efficiency as _runtime_efficiency, shared as _shared
@@ -93,81 +93,62 @@ def build_study_progress_projection(
 
     resolved_study_id = study_id
     resolved_study_root = study_root
-    quest_id = _non_empty_text(status.get("quest_id"))
-    quest_root = _candidate_path(status.get("quest_root"))
-    launch_report_path = (
-        _candidate_path(status.get("launch_report_path"))
-        or resolved_study_root / "artifacts" / "runtime" / "last_launch_report.json"
-    )
-    publication_eval_path = resolved_study_root / "artifacts" / "publication_eval" / "latest.json"
-    controller_decision_path = resolved_study_root / "artifacts" / "controller_decisions" / "latest.json"
-    runtime_escalation_path = _candidate_path(((status.get("runtime_escalation_ref") or {}).get("artifact_path")))
-    if runtime_escalation_path is None and quest_root is not None:
-        runtime_escalation_path = (
-            quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-        )
-    runtime_watch_path = _latest_runtime_watch_report(quest_root)
-    runtime_supervision_path = resolved_study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
-    gate_clearing_batch_path = resolved_study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+    input_paths = resolve_projection_input_paths(status=status, study_root=resolved_study_root)
+    quest_id = input_paths.quest_id
+    quest_root = input_paths.quest_root
+    launch_report_path = input_paths.launch_report_path
+    publication_eval_path = input_paths.publication_eval_path
+    controller_decision_path = input_paths.controller_decision_path
+    runtime_escalation_path = input_paths.runtime_escalation_path
+    runtime_watch_path = input_paths.runtime_watch_path
+    runtime_supervision_path = input_paths.runtime_supervision_path
+    gate_clearing_batch_path = input_paths.gate_clearing_batch_path
     gate_specificity_request_path, gate_specificity_request = _read_gate_specificity_request(
         study_root=resolved_study_root,
     )
-    bash_summary_path = quest_root / ".ds" / "bash_exec" / "summary.json" if quest_root is not None else None
-    details_projection_path = quest_root / ".ds" / "projections" / "details.v1.json" if quest_root is not None else None
+    bash_summary_path = input_paths.bash_summary_path
+    details_projection_path = input_paths.details_projection_path
 
-    launch_report_payload = _read_json_object(launch_report_path)
-    controller_decision_payload = _read_json_object(controller_decision_path)
-    gate_clearing_batch_payload = _read_json_object(gate_clearing_batch_path)
-    if controller_decision_payload is not None:
-        try:
-            materialize_controller_confirmation_summary(
-                study_root=resolved_study_root,
-                decision_ref=controller_decision_path,
-            )
-        except (OSError, json.JSONDecodeError, TypeError, ValueError):
-            pass
-    controller_confirmation_summary_path = stable_controller_confirmation_summary_path(study_root=resolved_study_root)
-    try:
-        controller_confirmation_summary = (
-            read_controller_confirmation_summary(
-                study_root=resolved_study_root,
-                ref=controller_confirmation_summary_path,
-            )
-            if controller_confirmation_summary_path.exists()
-            else None
-        )
-    except (OSError, json.JSONDecodeError, TypeError, ValueError):
-        controller_confirmation_summary = None
-    runtime_supervision_payload = _read_json_object(runtime_supervision_path)
     runtime_health_snapshot = _mapping_copy(status.get("runtime_health_snapshot"))
+    runtime_supervision_seed_payload = _read_json_object(runtime_supervision_path)
     runtime_health_status = (
         _non_empty_text(runtime_health_snapshot.get("attempt_state"))
-        or _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
+        or _non_empty_text((runtime_supervision_seed_payload or {}).get("health_status"))
     )
-    if runtime_escalation_path is not None and (
-        status.get("runtime_escalation_ref") is not None or runtime_health_status in {"degraded", "escalated"}
-    ):
-        runtime_escalation_payload = _read_json_object(runtime_escalation_path)
-    else:
-        runtime_escalation_payload = None
-    runtime_watch_payload = _read_json_object(runtime_watch_path) if runtime_watch_path is not None else None
-    publication_eval_payload, _publishability_gate_path, _publishability_gate_payload = (
-        _refresh_publication_surfaces_from_gate_report(
-            study_root=resolved_study_root,
-            study_id=resolved_study_id,
-            quest_root=quest_root,
-            quest_id=quest_id,
-            publication_eval_path=publication_eval_path,
-            runtime_escalation_path=runtime_escalation_path,
-            runtime_watch_payload=runtime_watch_payload,
-        )
+    surface_payloads = read_projection_surface_payloads(
+        study_root=resolved_study_root,
+        study_id=resolved_study_id,
+        status=status,
+        paths=input_paths,
+        runtime_health_status=runtime_health_status,
     )
-    bash_summary_payload = _read_json_object(bash_summary_path) if bash_summary_path is not None else None
-    details_projection_wrapper = _read_json_object(details_projection_path) if details_projection_path is not None else None
-    details_projection_payload = _details_projection_payload(details_projection_path)
-    evaluation_summary_payload = _read_json_object(stable_evaluation_summary_path(study_root=resolved_study_root))
-    study_truth_snapshot = _mapping_copy(status.get("study_truth_snapshot"))
-    control_plane_snapshot = _mapping_copy(status.get("control_plane_snapshot"))
+    launch_report_payload = surface_payloads.launch_report_payload
+    controller_decision_payload = surface_payloads.controller_decision_payload
+    gate_clearing_batch_payload = surface_payloads.gate_clearing_batch_payload
+    controller_confirmation_summary_path = surface_payloads.controller_confirmation_summary_path
+    controller_confirmation_summary = surface_payloads.controller_confirmation_summary
+    runtime_supervision_payload = surface_payloads.runtime_supervision_payload
+    runtime_escalation_payload = surface_payloads.runtime_escalation_payload
+    runtime_watch_payload = surface_payloads.runtime_watch_payload
+    publication_eval_payload = surface_payloads.publication_eval_payload
+    _publishability_gate_payload = surface_payloads.publishability_gate_payload
+    bash_summary_payload = surface_payloads.bash_summary_payload
+    details_projection_wrapper = surface_payloads.details_projection_wrapper
+    details_projection_payload = surface_payloads.details_projection_payload
+    evaluation_summary_payload = surface_payloads.evaluation_summary_payload
+    status_context = build_projection_status_context(status=status, study_root=resolved_study_root)
+    publication_supervisor_state = status_context.publication_supervisor_state
+    autonomous_runtime_notice = status_context.autonomous_runtime_notice
+    execution_owner_guard = status_context.execution_owner_guard
+    pending_user_interaction = status_context.pending_user_interaction
+    interaction_arbitration = status_context.interaction_arbitration
+    supervisor_tick_audit = status_context.supervisor_tick_audit
+    continuation_state = status_context.continuation_state
+    family_checkpoint_lineage = status_context.family_checkpoint_lineage
+    runtime_health_snapshot = status_context.runtime_health_snapshot
+    study_truth_snapshot = status_context.study_truth_snapshot
+    control_plane_snapshot = status_context.control_plane_snapshot
+    manual_finish_contract = status_context.manual_finish_contract
     medical_writing_quality_surfaces = medical_writing_quality_surface_status(study_root=resolved_study_root)
     medical_paper_readiness_surface = medical_paper_readiness.build_medical_paper_readiness_surface(
         study_root=resolved_study_root,
@@ -190,64 +171,6 @@ def build_study_progress_projection(
         study_root=resolved_study_root,
     )
 
-    publication_supervisor_state = (
-        dict(status.get("publication_supervisor_state") or {})
-        if isinstance(status.get("publication_supervisor_state"), dict)
-        else {}
-    )
-    autonomous_runtime_notice = (
-        dict(status.get("autonomous_runtime_notice") or {})
-        if isinstance(status.get("autonomous_runtime_notice"), dict)
-        else {}
-    )
-    execution_owner_guard = (
-        dict(status.get("execution_owner_guard") or {})
-        if isinstance(status.get("execution_owner_guard"), dict)
-        else {}
-    )
-    pending_user_interaction = (
-        dict(status.get("pending_user_interaction") or {})
-        if isinstance(status.get("pending_user_interaction"), dict)
-        else {}
-    )
-    interaction_arbitration = (
-        dict(status.get("interaction_arbitration") or {})
-        if isinstance(status.get("interaction_arbitration"), dict)
-        else {}
-    )
-    supervisor_tick_audit = (
-        dict(status.get("supervisor_tick_audit") or {})
-        if isinstance(status.get("supervisor_tick_audit"), dict)
-        else {}
-    )
-    continuation_state = (
-        dict(status.get("continuation_state") or {})
-        if isinstance(status.get("continuation_state"), dict)
-        else {}
-    )
-    family_checkpoint_lineage = (
-        dict(status.get("family_checkpoint_lineage") or {})
-        if isinstance(status.get("family_checkpoint_lineage"), dict)
-        else {}
-    )
-    quest_root_for_manual_finish = _candidate_path(status.get("quest_root"))
-    try:
-        manual_finish = resolve_effective_study_manual_finish_contract(
-            study_root=resolved_study_root,
-            quest_root=quest_root_for_manual_finish,
-        )
-    except ValueError:
-        manual_finish = None
-    manual_finish_contract = (
-        {
-            "status": manual_finish.status.value,
-            "summary": manual_finish.summary,
-            "next_action_summary": manual_finish.next_action_summary,
-            "compatibility_guard_only": manual_finish.compatibility_guard_only,
-        }
-        if manual_finish is not None
-        else None
-    )
     paper_contract_health = (
         dict((details_projection_payload or {}).get("paper_contract_health") or {})
         if isinstance((details_projection_payload or {}).get("paper_contract_health"), dict)
@@ -753,199 +676,116 @@ def build_study_progress_projection(
         quality_snapshot=ai_first_observability_snapshots["quality_snapshot"],
         artifact_snapshot=ai_first_observability_snapshots["artifact_snapshot"],
     )
-    payload = {
-        "schema_version": SCHEMA_VERSION,
-        "generated_at": generated_at,
-        "truth_epoch": _non_empty_text(study_truth_snapshot.get("truth_epoch")),
-        "runtime_health_epoch": _non_empty_text(runtime_health_snapshot.get("runtime_health_epoch")),
-        "study_id": resolved_study_id,
-        "study_root": str(resolved_study_root),
-        "quest_id": quest_id,
-        "quest_root": str(quest_root) if quest_root is not None else None,
-        "current_stage": current_stage,
-        "current_stage_summary": current_stage_summary,
-        "paper_stage": paper_stage,
-        "paper_stage_summary": paper_stage_summary,
-        "status_narration_contract": status_narration_contract,
-        "latest_events": latest_events,
-        "current_blockers": current_blockers,
-        "next_system_action": next_system_action,
-        "active_run_id": current_active_run_id,
-        **parked_progress_fields(auto_runtime_parked),
-        "intervention_lane": intervention_lane,
-        "operator_verdict": operator_verdict,
-        "operator_status_card": operator_status_card,
-        "recommended_command": recommended_command,
-        "recommended_commands": recommended_commands,
-        "autonomy_contract": autonomy_contract,
-        "autonomy_soak_status": autonomy_soak_status,
-        "recovery_contract": recovery_contract,
-        "needs_physician_decision": needs_physician_decision,
-        "needs_user_decision": needs_physician_decision,
-        "physician_decision_summary": physician_decision_summary,
-        "user_decision_summary": physician_decision_summary,
-        "runtime_decision": _non_empty_text(status.get("decision")),
-        "runtime_reason": _non_empty_text(status.get("reason")),
-        "continuation_state": continuation_state or None,
-        "family_checkpoint_lineage": family_checkpoint_lineage or None,
-        "interaction_arbitration": interaction_arbitration or None,
-        "manual_finish_contract": manual_finish_contract,
-        "task_intake": task_intake,
-        "progress_freshness": progress_freshness,
-        "quality_closure_truth": quality_closure_truth or None,
-        "quality_execution_lane": quality_execution_lane or None,
-        "same_line_route_truth": same_line_route_truth or None,
-        "same_line_route_surface": same_line_route_surface or None,
-        "quality_closure_basis": quality_closure_basis or None,
-        "quality_review_agenda": quality_review_agenda or None,
-        "quality_revision_plan": quality_revision_plan or None,
-        "quality_review_loop": quality_review_loop or None,
-        "quality_repair_batch_followthrough": quality_repair_batch_followthrough or None,
-        "gate_clearing_batch_followthrough": gate_clearing_batch_followthrough or None,
-        "quality_review_followthrough": quality_review_followthrough or None,
-        "medical_writing_quality_surfaces": medical_writing_quality_surfaces,
-        "medical_paper_readiness": medical_paper_readiness_surface,
-        "medical_paper_ops_health": medical_paper_ops_health_surface,
-        "artifact_runtime_proof": artifact_runtime_proof_surface,
-        "submission_hygiene_truth": submission_hygiene_truth,
-        "delivery_inspection": delivery_inspection,
-        "product_recommended_flow": submission_hygiene_truth.get("recommended_flow"),
-        "research_runtime_control_projection": research_runtime_control_projection,
-        "open_auto_research_projection": open_auto_research_state,
-        "ai_reviewer_request_lifecycle": ai_reviewer_request_lifecycle,
-        "portable_supervisor_dashboard": portable_supervisor_dashboard,
-        "publication_gate_specificity_request": gate_specificity_request,
-        "ai_first_default_entry_state": ai_first_default_entry_state,
-        "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
-        "ai_first_observability_snapshots": ai_first_observability_snapshots,
-        "ai_first_operations_dashboard": ai_first_operations_dashboard,
-        "study_truth_snapshot": study_truth_snapshot or None,
-        "runtime_health_snapshot": runtime_health_snapshot or None,
-        "control_plane_snapshot": control_plane_snapshot or None,
-        "module_surfaces": module_surfaces,
-        "runtime_efficiency": runtime_efficiency,
-        "autonomy_slo": autonomy_slo_status,
-        "ai_doctor_state": ai_doctor_state,
-        "repair_recommendation": repair_recommendation or None,
-        "ai_repair_lifecycle": ai_repair_lifecycle,
-        "last_meaningful_progress_at": (
-            _non_empty_text((autonomy_slo_status or {}).get("last_meaningful_progress_at"))
-            if autonomy_slo_status is not None
-            else None
-        ),
-        "supervision": {
-            "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
-            "quest_session_api_url": _non_empty_text(autonomous_runtime_notice.get("quest_session_api_url")),
-            "active_run_id": _supervision_active_run_id(
-                status=status,
-                execution_owner_guard=execution_owner_guard,
-                autonomous_runtime_notice=autonomous_runtime_notice,
-                continuation_state=continuation_state,
-            ),
-            "health_status": supervision_health_status,
-            "supervisor_tick_status": _non_empty_text(supervisor_tick_audit.get("status")),
-            "supervisor_tick_required": bool(supervisor_tick_audit.get("required")),
-            "supervisor_tick_summary": _non_empty_text(supervisor_tick_audit.get("summary")),
-            "supervisor_tick_latest_recorded_at": _non_empty_text(supervisor_tick_audit.get("latest_recorded_at")),
-            "launch_report_path": str(launch_report_path),
-        },
-        "refs": {
-            "launch_report_path": str(launch_report_path),
-            "publication_eval_path": str(publication_eval_path),
-            "controller_decision_path": str(controller_decision_path),
-            "controller_confirmation_summary_path": (
-                str(controller_confirmation_summary_path) if controller_confirmation_summary is not None else None
-            ),
-            "controller_summary_path": (
-                controller_module_surface["summary_ref"] if controller_module_surface is not None else None
-            ),
-            "runtime_supervision_path": str(runtime_supervision_path) if runtime_supervision_payload is not None else None,
-            "runtime_escalation_path": str(runtime_escalation_path) if runtime_escalation_path is not None else None,
-            "runtime_watch_report_path": str(runtime_watch_path) if runtime_watch_path is not None else None,
-            "runtime_status_summary_path": runtime_module_surface["summary_ref"],
-            **_runtime_efficiency_refs(runtime_efficiency),
-            "autonomy_slo_status_path": (
-                str(autonomy_ai_doctor.stable_slo_status_path(study_root=resolved_study_root))
-                if autonomy_slo_status is not None
-                else None
-            ),
-            "ai_repair_lifecycle_path": (
-                str(resolved_study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json")
-                if ai_repair_lifecycle is not None
-                else None
-            ),
-            "evaluation_summary_path": (
-                evaluation_module_surface["summary_ref"] if evaluation_module_surface is not None else None
-            ),
-            "medical_manuscript_blueprint_path": medical_writing_quality_surfaces["blueprint"]["path"],
-            "medical_journal_style_corpus_path": medical_writing_quality_surfaces["style_corpus"]["path"],
-            "medical_prose_review_request_path": medical_writing_quality_surfaces["prose_review_request"]["path"],
-            "medical_prose_review_path": medical_writing_quality_surfaces["prose_review"]["path"],
-            "retrospective_medical_prose_audit_request_path": (
-                medical_writing_quality_surfaces["retrospective_audit_request"]["path"]
-            ),
-            "retrospective_medical_prose_audit_path": medical_writing_quality_surfaces["retrospective_audit"]["path"],
-            "medical_paper_readiness_path": str(
-                medical_paper_readiness.stable_medical_paper_readiness_path(
-                    study_root=resolved_study_root,
-                )
-            ),
-            "open_auto_research_projection_path": str(
-                open_auto_research_projection.stable_open_auto_research_projection_path(
-                    study_root=resolved_study_root,
-                )
-            ),
-            "ai_reviewer_request_lifecycle_path": (
-                str(
-                    supervisor_action_request_lifecycle.stable_ai_reviewer_request_path(
-                        study_root=resolved_study_root,
-                    )
-                )
-                if ai_reviewer_request_lifecycle is not None
-                else None
-            ),
-            "portable_supervisor_hourly_path": (
-                portable_supervisor_dashboard.get("source_path")
-                if portable_supervisor_dashboard is not None
-                else None
-            ),
-            "publication_gate_specificity_request_path": (
-                str(gate_specificity_request_path) if gate_specificity_request is not None else None
-            ),
-            "artifact_runtime_proof_delivery_manifest_path": (
-                (artifact_runtime_proof_surface.get("refs") or {}).get("delivery_manifest_path")
-            ),
-            "submission_hygiene_submission_manifest_path": (
-                (submission_hygiene_truth.get("refs") or {}).get("submission_manifest_path")
-            ),
-            "study_truth_snapshot_path": str(study_truth_kernel.truth_snapshot_path(study_root=resolved_study_root)),
-            "runtime_health_snapshot_path": str(
-                runtime_health_kernel.runtime_health_snapshot_path(study_root=resolved_study_root)
-            ),
-            "promotion_gate_path": (
-                evaluation_module_surface["promotion_gate_ref"] if evaluation_module_surface is not None else None
-            ),
-            "bash_summary_path": str(bash_summary_path) if bash_summary_path is not None else None,
-            "details_projection_path": str(details_projection_path) if details_projection_path is not None else None,
-            "ai_first_observability_publication_eval_path": ai_first_observability_snapshots["refs"][
-                "publication_eval_path"
-            ],
-            "ai_first_observability_runtime_health_path": ai_first_observability_snapshots["refs"][
-                "runtime_health_path"
-            ],
-            "ai_first_observability_delivery_manifest_path": ai_first_observability_snapshots["refs"][
-                "delivery_manifest_path"
-            ],
-        },
-    }
-    payload["study_macro_state"] = compact_study_macro_state_from_payload(payload)
-    payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
-    payload = _attach_ai_first_runtime_projection(
-        payload,
+    refs = build_projection_refs(
+        launch_report_path=launch_report_path,
+        publication_eval_path=publication_eval_path,
+        controller_decision_path=controller_decision_path,
+        controller_confirmation_summary_path=controller_confirmation_summary_path,
+        controller_confirmation_summary=controller_confirmation_summary,
+        controller_module_surface=controller_module_surface,
+        runtime_supervision_path=runtime_supervision_path,
+        runtime_supervision_payload=runtime_supervision_payload,
+        runtime_escalation_path=runtime_escalation_path,
+        runtime_watch_path=runtime_watch_path,
+        runtime_module_surface=runtime_module_surface,
+        runtime_efficiency_refs=_runtime_efficiency_refs(runtime_efficiency),
         study_root=resolved_study_root,
-        generated_at=generated_at,
+        autonomy_slo_status=autonomy_slo_status,
+        ai_repair_lifecycle=ai_repair_lifecycle,
+        evaluation_module_surface=evaluation_module_surface,
+        medical_writing_quality_surfaces=medical_writing_quality_surfaces,
+        gate_specificity_request_path=gate_specificity_request_path,
+        gate_specificity_request=gate_specificity_request,
+        artifact_runtime_proof_surface=artifact_runtime_proof_surface,
+        submission_hygiene_truth=submission_hygiene_truth,
+        bash_summary_path=bash_summary_path,
+        details_projection_path=details_projection_path,
+        ai_first_observability_snapshots=ai_first_observability_snapshots,
+        portable_supervisor_dashboard=portable_supervisor_dashboard,
     )
-    return payload
+    refs["ai_reviewer_request_lifecycle_path"] = (
+        str(
+            supervisor_action_request_lifecycle.stable_ai_reviewer_request_path(
+                study_root=resolved_study_root,
+            )
+        )
+        if ai_reviewer_request_lifecycle is not None
+        else None
+    )
+    return assemble_study_progress_payload(
+        generated_at=generated_at,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        quest_id=quest_id,
+        quest_root=quest_root,
+        current_stage=current_stage,
+        current_stage_summary=current_stage_summary,
+        paper_stage=paper_stage,
+        paper_stage_summary=paper_stage_summary,
+        status_narration_contract=status_narration_contract,
+        latest_events=latest_events,
+        current_blockers=current_blockers,
+        next_system_action=next_system_action,
+        current_active_run_id=current_active_run_id,
+        auto_runtime_parked=auto_runtime_parked,
+        intervention_lane=intervention_lane,
+        operator_verdict=operator_verdict,
+        operator_status_card=operator_status_card,
+        recommended_command=recommended_command,
+        recommended_commands=recommended_commands,
+        autonomy_contract=autonomy_contract,
+        autonomy_soak_status=autonomy_soak_status,
+        recovery_contract=recovery_contract,
+        needs_physician_decision=needs_physician_decision,
+        physician_decision_summary=physician_decision_summary,
+        status=status,
+        continuation_state=continuation_state,
+        family_checkpoint_lineage=family_checkpoint_lineage,
+        interaction_arbitration=interaction_arbitration,
+        manual_finish_contract=manual_finish_contract,
+        task_intake=task_intake,
+        progress_freshness=progress_freshness,
+        quality_closure_truth=quality_closure_truth,
+        quality_execution_lane=quality_execution_lane,
+        same_line_route_truth=same_line_route_truth,
+        same_line_route_surface=same_line_route_surface,
+        quality_closure_basis=quality_closure_basis,
+        quality_review_agenda=quality_review_agenda,
+        quality_revision_plan=quality_revision_plan,
+        quality_review_loop=quality_review_loop,
+        quality_repair_batch_followthrough=quality_repair_batch_followthrough,
+        gate_clearing_batch_followthrough=gate_clearing_batch_followthrough,
+        quality_review_followthrough=quality_review_followthrough,
+        medical_writing_quality_surfaces=medical_writing_quality_surfaces,
+        medical_paper_readiness_surface=medical_paper_readiness_surface,
+        medical_paper_ops_health_surface=medical_paper_ops_health_surface,
+        artifact_runtime_proof_surface=artifact_runtime_proof_surface,
+        submission_hygiene_truth=submission_hygiene_truth,
+        delivery_inspection=delivery_inspection,
+        research_runtime_control_projection=research_runtime_control_projection,
+        open_auto_research_state=open_auto_research_state,
+        ai_reviewer_request_lifecycle=ai_reviewer_request_lifecycle,
+        portable_supervisor_dashboard=portable_supervisor_dashboard,
+        gate_specificity_request=gate_specificity_request,
+        ai_first_default_entry_state=ai_first_default_entry_state,
+        paper_orchestra_operator_projection=paper_orchestra_operator_projection,
+        ai_first_observability_snapshots=ai_first_observability_snapshots,
+        ai_first_operations_dashboard=ai_first_operations_dashboard,
+        study_truth_snapshot=study_truth_snapshot,
+        runtime_health_snapshot=runtime_health_snapshot,
+        control_plane_snapshot=control_plane_snapshot,
+        module_surfaces=module_surfaces,
+        runtime_efficiency=runtime_efficiency,
+        autonomy_slo_status=autonomy_slo_status,
+        ai_doctor_state=ai_doctor_state,
+        repair_recommendation=repair_recommendation,
+        ai_repair_lifecycle=ai_repair_lifecycle,
+        autonomous_runtime_notice=autonomous_runtime_notice,
+        execution_owner_guard=execution_owner_guard,
+        supervisor_tick_audit=supervisor_tick_audit,
+        supervision_health_status=supervision_health_status,
+        refs=refs,
+    )
 def read_study_progress(
     *,
     profile: WorkspaceProfile,

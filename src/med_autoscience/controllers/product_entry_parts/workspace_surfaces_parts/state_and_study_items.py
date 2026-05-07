@@ -4,7 +4,7 @@ from collections.abc import Mapping
 
 from med_autoscience.controllers import medical_paper_readiness, open_auto_research_projection
 
-from .workspace_attention import (
+from ..workspace_attention import (
     _attention_queue,
     _autonomy_soak_focus,
     _gate_clearing_followthrough_focus,
@@ -16,12 +16,12 @@ from .workspace_attention import (
     _same_line_route_truth_payload,
     _workspace_operator_brief,
 )
-from .paper_orchestra_operator import (
+from ..paper_orchestra_operator import (
     build_workspace_paper_orchestra_operator_projection,
     render_paper_orchestra_operator_projection_lines,
 )
-from . import shared as _shared
-from . import program_surfaces as _program_surfaces
+from .. import shared as _shared
+from .. import program_surfaces as _program_surfaces
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
