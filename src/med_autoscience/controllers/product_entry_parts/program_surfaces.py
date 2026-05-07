@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.controllers import mainline_status
+
 from . import shared as _shared
 from . import automation_surfaces as _automation_surfaces
 from .guarded_workflow_steps import build_guarded_phase2_workflow_steps
