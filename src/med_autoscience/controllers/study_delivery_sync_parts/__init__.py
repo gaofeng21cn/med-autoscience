@@ -74,6 +74,10 @@ from .delivery_descriptions import (
     materialize_submission_delivery_stale_notice,
 )
 from .current_package_projection import sync_current_package_projection
+from .staging_and_sources import (
+    is_supported_publication_profile,
+    normalize_publication_profile,
+)
 from .sync_orchestration import (
     main,
     parse_args,
@@ -134,6 +138,8 @@ __all__ = [
     "sync_journal_specific_delivery",
     "sync_promoted_journal_delivery",
     "sync_study_delivery",
+    "is_supported_publication_profile",
+    "normalize_publication_profile",
     "parse_args",
     "main",
 ]
