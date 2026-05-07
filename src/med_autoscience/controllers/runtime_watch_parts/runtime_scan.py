@@ -5,32 +5,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import (
-    autonomy_ai_doctor,
-    runtime_health_kernel,
-    runtime_supervision,
-    runtime_watch_alerts,
-    runtime_watch_outer_loop_dispatch,
-    runtime_watch_work_units,
-    study_cycle_profiler,
-    study_outer_loop,
-)
+from med_autoscience.controllers import runtime_watch_outer_loop_dispatch, runtime_watch_work_units
 from med_autoscience.controllers.runtime_watch_outer_loop_policy import (
     outer_loop_request_requires_fresh_controller_execution,
-)
-from med_autoscience.controllers.runtime_watch_parts.autonomy_repair import (
-    apply_ready_ai_doctor_repair,
-    read_ai_repair_lifecycle,
-    read_ready_ai_doctor_repair,
 )
 from med_autoscience.controllers.runtime_watch_parts.control_plane_gate import (
     CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY,
     apply_control_plane_dispatch_block,
 )
-from med_autoscience.controllers.runtime_watch_parts.gate_specificity import (
-    _materialize_specificity_controller_state,
-    _specificity_terminal_status_payload,
-)
+from med_autoscience.controllers.runtime_watch_parts.gate_specificity import _specificity_terminal_status_payload
 from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
     _build_outer_loop_wakeup_audit,
     _candidate_path,
@@ -39,7 +22,6 @@ from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
     _non_empty_text,
     _outer_loop_dispatch_blocked_by_explicit_wakeup_contract,
     _quest_report_requests_managed_study_reroute,
-    _refresh_managed_study_status_after_ensure,
     _serialize_managed_study_action,
     _serialize_managed_study_auto_recovery,
     _write_outer_loop_wakeup_audit,
@@ -57,6 +39,12 @@ from med_autoscience.controllers.study_progress_parts.runtime_efficiency import 
 )
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
+from med_autoscience.runtime_control.ports import (
+    RuntimeControlPorts,
+    build_outer_loop_request,
+    dispatch_outer_loop,
+    ensure_runtime,
+)
 
 
 ControllerRunner = Callable[..., dict[str, Any]]
@@ -67,12 +55,6 @@ _MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE = "runtime_watch_controller_reroute"
 _MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE = "runtime_watch_outer_loop_wakeup"
 _NO_OP_SUPPRESSION_SUMMARY = "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。"
 _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY = "同一 controller work unit 已达到有界 redrive 上限，需 MAS/MDS 平台修复后再继续。"
-
-
-def _runtime_router():
-    from med_autoscience.controllers import study_runtime_router
-
-    return study_runtime_router
 
 
 def utc_now() -> str:
@@ -193,38 +175,15 @@ def _materialize_placeholder_quest_watch_report(status_payload: Mapping[str, Any
     return report
 
 
-def _materialize_managed_study_autonomy_slo(
-    *,
-    profile: WorkspaceProfile,
-    study_root: Path,
-) -> dict[str, Any]:
-    profile_payload = study_cycle_profiler.profile_study_cycle(
-        profile=profile,
-        study_id=None,
-        study_root=study_root,
-    )
-    slo_status = dict(profile_payload.get("autonomy_progress_slo_status") or {})
-    return {
-        "study_id": _non_empty_text(slo_status.get("study_id")) or Path(study_root).name,
-        "quest_id": _non_empty_text(slo_status.get("quest_id")),
-        "state": _non_empty_text(slo_status.get("state")) or "unknown",
-        "breach_types": list(slo_status.get("breach_types") or []),
-        "ai_doctor_request_required": bool(slo_status.get("ai_doctor_request_required")),
-        "ai_doctor_state": _non_empty_text(slo_status.get("ai_doctor_state")) or "not_observed",
-        "quality_gate_relaxation_allowed": False,
-        "status_path": str(autonomy_ai_doctor.stable_slo_status_path(study_root=study_root)),
-    }
-
-
 def run_watch_for_runtime(
     *,
     runtime_root: Path,
     controller_runners: dict[str, ControllerRunner],
     apply: bool,
     run_watch_for_quest_fn: RunWatchForQuest,
+    runtime_control_ports: RuntimeControlPorts,
     profile: WorkspaceProfile | None = None,
     ensure_study_runtimes: bool = False,
-    materialize_managed_study_autonomy_slo: Callable[..., dict[str, Any]] = _materialize_managed_study_autonomy_slo,
 ) -> dict[str, Any]:
     managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
     managed_study_auto_recoveries: list[dict[str, Any]] = []
@@ -237,6 +196,7 @@ def run_watch_for_runtime(
     managed_study_autonomy_repair_actions: list[dict[str, Any]] = []
     managed_study_runtime_recovery_payloads: dict[str, dict[str, Any]] = {}
     managed_study_statuses = managed_recovery.managed_study_initial_statuses(
+        runtime_control_ports=runtime_control_ports,
         profile=profile,
         apply=apply,
         ensure_study_runtimes=ensure_study_runtimes,
@@ -257,7 +217,8 @@ def run_watch_for_runtime(
             quest_root = status_payload.get("quest_root")
             quest_report = report_by_quest_root.get(str(Path(str(quest_root)).expanduser().resolve())) if quest_root else None
             if _quest_report_requests_managed_study_reroute(quest_report):
-                rerouted_payload = _runtime_router().ensure_study_runtime(
+                rerouted_payload = ensure_runtime(
+                    ports=runtime_control_ports,
                     profile=profile,
                     study_root=study_root,
                     source=_MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE,
@@ -278,7 +239,7 @@ def run_watch_for_runtime(
         study_root_key = str(Path(study_root).expanduser().resolve())
         current_study_outer_loop_dispatched = False
         if profile is not None:
-            status_payload = _refresh_managed_study_status_after_ensure(
+            status_payload = runtime_control_ports.refresh_status_after_ensure(
                 profile=profile,
                 study_root=study_root,
                 status_payload=status_payload,
@@ -329,7 +290,8 @@ def run_watch_for_runtime(
                     managed_study_no_op_suppressions.append(suppression)
                     _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
             else:
-                tick_request = study_outer_loop.build_runtime_watch_outer_loop_tick_request(
+                tick_request = build_outer_loop_request(
+                    ports=runtime_control_ports,
                     study_root=study_root,
                     status_payload=status_payload,
                 )
@@ -351,7 +313,7 @@ def run_watch_for_runtime(
                             work_unit_dispatch_key=runtime_watch_work_units.dispatch_key(tick_request),
                         ),
                     }
-                    specificity_decision_result = _materialize_specificity_controller_state(
+                    specificity_decision_result = runtime_control_ports.materialize_non_dispatching_decision(
                         profile=profile,
                         study_root=study_root,
                         status_payload=status_payload,
@@ -441,14 +403,16 @@ def run_watch_for_runtime(
                         attach_no_op_suppression_to_quest_report=_attach_no_op_suppression_to_quest_report,
                         default_recorded_at=utc_now(),
                         controller_decision_matches=_controller_decision_latest_matches_outer_loop_request,
+                        materialize_non_dispatching_decision=runtime_control_ports.materialize_non_dispatching_decision,
                     )
                     if blocked_wakeup_audit is not None:
                         wakeup_audit = blocked_wakeup_audit
                     else:
-                        outer_loop_result = _runtime_router().study_outer_loop_tick(
+                        outer_loop_result = dispatch_outer_loop(
+                            ports=runtime_control_ports,
                             profile=profile,
                             source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
-                            **runtime_watch_work_units.strip_context(tick_request),
+                            tick_request=runtime_watch_work_units.strip_context(tick_request),
                         )
                         if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
                             raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
@@ -491,10 +455,7 @@ def run_watch_for_runtime(
                             default_recorded_at=utc_now(),
                         )
                         status_payload = _managed_study_status_payload(
-                            _runtime_router().study_runtime_status(
-                                profile=profile,
-                                study_root=study_root,
-                            )
+                            runtime_control_ports.get_status(profile=profile, study_root=study_root)
                         )
                 elif (
                     platform_repair := runtime_watch_work_units.active_platform_repair_required(
@@ -606,14 +567,16 @@ def run_watch_for_runtime(
                         attach_no_op_suppression_to_quest_report=_attach_no_op_suppression_to_quest_report,
                         default_recorded_at=utc_now(),
                         controller_decision_matches=_controller_decision_latest_matches_outer_loop_request,
+                        materialize_non_dispatching_decision=runtime_control_ports.materialize_non_dispatching_decision,
                     )
                     if blocked_wakeup_audit is not None:
                         wakeup_audit = blocked_wakeup_audit
                     else:
-                        outer_loop_result = _runtime_router().study_outer_loop_tick(
+                        outer_loop_result = dispatch_outer_loop(
+                            ports=runtime_control_ports,
                             profile=profile,
                             source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
-                            **runtime_watch_work_units.strip_context(tick_request),
+                            tick_request=runtime_watch_work_units.strip_context(tick_request),
                         )
                         if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
                             raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
@@ -656,16 +619,13 @@ def run_watch_for_runtime(
                             default_recorded_at=utc_now(),
                         )
                         status_payload = _managed_study_status_payload(
-                            _runtime_router().study_runtime_status(
-                                profile=profile,
-                                study_root=study_root,
-                            )
+                            runtime_control_ports.get_status(profile=profile, study_root=study_root)
                         )
                 _write_outer_loop_wakeup_audit(study_root=study_root, audit=wakeup_audit)
                 managed_study_outer_loop_wakeup_audits.append(wakeup_audit)
         quest_root = _candidate_path(status_payload.get("quest_root"))
         quest_report = report_by_quest_root.get(str(quest_root)) if quest_root is not None else None
-        supervision_report = runtime_supervision.materialize_runtime_supervision(
+        supervision_report = runtime_control_ports.materialize_supervision(
             study_root=study_root,
             status_payload=status_payload,
             recorded_at=utc_now(),
@@ -679,7 +639,7 @@ def run_watch_for_runtime(
         )
         if supervision_report is not None:
             managed_study_supervision.append(supervision_report)
-            alert_delivery = runtime_watch_alerts.deliver_runtime_alert(
+            alert_delivery = runtime_control_ports.deliver_alert(
                 profile=profile,
                 study_root=study_root,
                 status_payload=status_payload,
@@ -692,7 +652,7 @@ def run_watch_for_runtime(
             study_id = str(status_payload.get("study_id") or "").strip()
             quest_id = str(status_payload.get("quest_id") or "").strip()
             if study_id and quest_id:
-                runtime_health_kernel.reconcile_runtime_health_snapshot_from_status_payload(
+                runtime_control_ports.reconcile_health(
                     study_root=study_root,
                     study_id=study_id,
                     quest_id=quest_id,
@@ -701,19 +661,19 @@ def run_watch_for_runtime(
                 )
         if profile is not None:
             managed_study_autonomy_slo_statuses.append(
-                materialize_managed_study_autonomy_slo(
+                runtime_control_ports.materialize_autonomy_slo(
                     profile=profile,
                     study_root=study_root,
                 )
             )
-            ready_ai_doctor_repair = read_ready_ai_doctor_repair(study_root=study_root)
+            ready_ai_doctor_repair = runtime_control_ports.read_ready_ai_repair(study_root=study_root)
             if (
                 apply
                 and ready_ai_doctor_repair is not None
                 and not current_study_outer_loop_dispatched
                 and study_root_key not in managed_study_action_overrides
             ):
-                autonomy_repair = apply_ready_ai_doctor_repair(
+                autonomy_repair = runtime_control_ports.apply_ai_repair(
                     profile=profile,
                     study_root=study_root,
                     status_payload=status_payload,
@@ -722,7 +682,7 @@ def run_watch_for_runtime(
                 )
                 if autonomy_repair is not None:
                     managed_study_autonomy_repair_actions.append(autonomy_repair)
-            lifecycle = read_ai_repair_lifecycle(study_root=study_root)
+            lifecycle = runtime_control_ports.read_ai_repair_lifecycle(study_root=study_root)
             if isinstance(lifecycle, Mapping):
                 status_payload["ai_repair_lifecycle"] = dict(lifecycle)
     managed_study_actions = [
@@ -756,7 +716,6 @@ __all__ = [
     "_WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY",
     "_attach_no_op_suppression_to_quest_report",
     "_managed_study_recovery_failure_payload",
-    "_materialize_managed_study_autonomy_slo",
     "_materialize_placeholder_quest_watch_report",
     "_serialize_no_op_suppression",
     "run_watch_for_runtime",

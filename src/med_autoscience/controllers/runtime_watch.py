@@ -60,10 +60,10 @@ from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
     _non_empty_text,
     _outer_loop_dispatch_blocked_by_explicit_wakeup_contract,
     _quest_report_requests_managed_study_reroute,
-    _refresh_managed_study_status_after_ensure,
     _serialize_managed_study_action,
     _serialize_managed_study_auto_recovery,
     _should_hard_auto_recover_managed_study,
+    _should_refresh_managed_study_status_after_ensure,
     _write_outer_loop_wakeup_audit,
 )
 from med_autoscience.controllers.runtime_watch_parts.quest_scan import (
@@ -90,13 +90,11 @@ from med_autoscience.controllers.runtime_watch_parts.runtime_scan import (
     _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY,
     _attach_no_op_suppression_to_quest_report,
     _managed_study_recovery_failure_payload,
-    _materialize_managed_study_autonomy_slo,
     _materialize_placeholder_quest_watch_report,
     _serialize_no_op_suppression,
     run_watch_for_runtime as _run_watch_for_runtime_impl,
     utc_now,
 )
-from med_autoscience.controllers.runtime_watch_parts import runtime_scan as _runtime_scan_part
 from med_autoscience.controllers.study_progress_parts.runtime_efficiency import (
     _latest_run_telemetry_surface,
 )
@@ -106,6 +104,94 @@ from med_autoscience.publication_eval_latest import read_publication_eval_latest
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import runtime_watch as runtime_watch_protocol
 from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
+from med_autoscience.runtime_control.ports import RuntimeControlPorts
+
+
+def _materialize_managed_study_autonomy_slo(
+    *,
+    profile: WorkspaceProfile,
+    study_root: Path,
+) -> dict[str, Any]:
+    profile_payload = study_cycle_profiler.profile_study_cycle(
+        profile=profile,
+        study_id=None,
+        study_root=study_root,
+    )
+    slo_status = dict(profile_payload.get("autonomy_progress_slo_status") or {})
+    return {
+        "study_id": _non_empty_text(slo_status.get("study_id")) or Path(study_root).name,
+        "quest_id": _non_empty_text(slo_status.get("quest_id")),
+        "state": _non_empty_text(slo_status.get("state")) or "unknown",
+        "breach_types": list(slo_status.get("breach_types") or []),
+        "ai_doctor_request_required": bool(slo_status.get("ai_doctor_request_required")),
+        "ai_doctor_state": _non_empty_text(slo_status.get("ai_doctor_state")) or "not_observed",
+        "quality_gate_relaxation_allowed": False,
+        "status_path": str(autonomy_ai_doctor.stable_slo_status_path(study_root=study_root)),
+    }
+
+
+def _materialize_runtime_watch_non_dispatching_decision(
+    *,
+    profile: WorkspaceProfile,
+    study_root: Path,
+    status_payload: dict[str, Any],
+    tick_request: dict[str, Any],
+    wakeup_audit: dict[str, Any],
+) -> dict[str, Any]:
+    if runtime_watch_work_units.needs_specificity_request(tick_request):
+        return _materialize_specificity_controller_state(
+            profile=profile,
+            study_root=study_root,
+            status_payload=status_payload,
+            tick_request=tick_request,
+            wakeup_audit=wakeup_audit,
+            materialize_decision=study_outer_loop.materialize_non_dispatching_outer_loop_decision,
+        )
+    decision_payload = runtime_watch_work_units.strip_context(tick_request)
+    decision_payload.pop("study_root", None)
+    return study_outer_loop.materialize_non_dispatching_outer_loop_decision(
+        profile=profile,
+        study_root=study_root,
+        status_payload=status_payload,
+        source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
+        recorded_at=_non_empty_text(wakeup_audit.get("recorded_at")),
+        **decision_payload,
+    )
+
+
+def _refresh_managed_study_status_after_ensure(
+    *,
+    profile: WorkspaceProfile,
+    study_root: Path,
+    status_payload: dict[str, Any],
+) -> dict[str, Any]:
+    if not _should_refresh_managed_study_status_after_ensure(status_payload):
+        return status_payload
+    return _managed_study_status_payload(
+        study_runtime_router.study_runtime_status(profile=profile, study_root=study_root)
+    )
+
+
+def _build_runtime_control_ports() -> RuntimeControlPorts:
+    return RuntimeControlPorts(
+        get_status=lambda **kwargs: _managed_study_status_payload(
+            study_runtime_router.study_runtime_status(**kwargs)
+        ),
+        ensure_runtime=lambda **kwargs: _managed_study_status_payload(
+            study_runtime_router.ensure_study_runtime(**kwargs)
+        ),
+        build_outer_loop_request=study_outer_loop.build_runtime_watch_outer_loop_tick_request,
+        dispatch_outer_loop=study_runtime_router.study_outer_loop_tick,
+        materialize_non_dispatching_decision=_materialize_runtime_watch_non_dispatching_decision,
+        refresh_status_after_ensure=_refresh_managed_study_status_after_ensure,
+        materialize_supervision=runtime_supervision.materialize_runtime_supervision,
+        deliver_alert=runtime_watch_alerts.deliver_runtime_alert,
+        reconcile_health=runtime_health_kernel.reconcile_runtime_health_snapshot_from_status_payload,
+        materialize_autonomy_slo=_materialize_managed_study_autonomy_slo,
+        read_ready_ai_repair=read_ready_ai_doctor_repair,
+        apply_ai_repair=apply_ready_ai_doctor_repair,
+        read_ai_repair_lifecycle=read_ai_repair_lifecycle,
+    )
 
 
 def run_watch_for_quest(
@@ -130,15 +216,14 @@ def run_watch_for_runtime(
     profile: WorkspaceProfile | None = None,
     ensure_study_runtimes: bool = False,
 ) -> dict[str, Any]:
-    _runtime_scan_part._refresh_managed_study_status_after_ensure = _refresh_managed_study_status_after_ensure
     return _run_watch_for_runtime_impl(
         runtime_root=runtime_root,
         controller_runners=controller_runners or build_default_controller_runners(),
         apply=apply,
         run_watch_for_quest_fn=run_watch_for_quest,
+        runtime_control_ports=_build_runtime_control_ports(),
         profile=profile,
         ensure_study_runtimes=ensure_study_runtimes,
-        materialize_managed_study_autonomy_slo=_materialize_managed_study_autonomy_slo,
     )
 
 
