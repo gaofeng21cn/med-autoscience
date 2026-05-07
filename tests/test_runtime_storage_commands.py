@@ -58,6 +58,37 @@ def test_workspace_storage_audit_git_only_passes_fast_path_options(capsys: pytes
     assert '"status": "ok"' in capsys.readouterr().out
 
 
+def test_workspace_storage_audit_git_only_passes_root_git_retirement_option(capsys: pytest.CaptureFixture[str]) -> None:
+    parser = _parser()
+    args = parser.parse_args(
+        [
+            "workspace-storage-audit",
+            "--profile",
+            "workspace.toml",
+            "--git-only",
+            "--apply",
+            "--retire-workspace-root-git",
+        ]
+    )
+    runtime_storage = _RuntimeStorageMaintenanceStub()
+
+    exit_code = handle_runtime_storage_command(
+        args,
+        parser=parser,
+        load_profile=lambda profile: {"profile": profile},
+        runtime_storage_maintenance=runtime_storage,
+    )
+
+    assert exit_code == 0
+    assert runtime_storage.audit_kwargs is not None
+    assert runtime_storage.audit_kwargs["git_only"] is True
+    assert runtime_storage.audit_kwargs["apply"] is True
+    assert runtime_storage.audit_kwargs["retire_workspace_root_git"] is True
+    assert runtime_storage.audit_kwargs["reinitialize_empty_workspace_git"] is False
+    assert runtime_storage.audit_kwargs["all_studies"] is False
+    assert '"status": "ok"' in capsys.readouterr().out
+
+
 def test_workspace_storage_audit_apply_without_git_only_keeps_default_study_scan(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -229,6 +260,52 @@ def test_workspace_storage_audit_reinitialize_requires_git_only_apply(args_witho
             "--profile",
             "workspace.toml",
             *args_without_required_gate,
+        ]
+    )
+
+    with pytest.raises(SystemExit):
+        handle_runtime_storage_command(
+            args,
+            parser=parser,
+            load_profile=lambda profile: {"profile": profile},
+            runtime_storage_maintenance=_RuntimeStorageMaintenanceStub(),
+        )
+
+
+@pytest.mark.parametrize("args_without_required_gate", [["--retire-workspace-root-git"], ["--git-only", "--retire-workspace-root-git"]])
+def test_workspace_storage_audit_retire_workspace_root_git_requires_git_only_apply(
+    args_without_required_gate: list[str],
+) -> None:
+    parser = _parser()
+    args = parser.parse_args(
+        [
+            "workspace-storage-audit",
+            "--profile",
+            "workspace.toml",
+            *args_without_required_gate,
+        ]
+    )
+
+    with pytest.raises(SystemExit):
+        handle_runtime_storage_command(
+            args,
+            parser=parser,
+            load_profile=lambda profile: {"profile": profile},
+            runtime_storage_maintenance=_RuntimeStorageMaintenanceStub(),
+        )
+
+
+def test_workspace_storage_audit_reinitialize_and_retire_are_mutually_exclusive() -> None:
+    parser = _parser()
+    args = parser.parse_args(
+        [
+            "workspace-storage-audit",
+            "--profile",
+            "workspace.toml",
+            "--git-only",
+            "--apply",
+            "--reinitialize-empty-workspace-git",
+            "--retire-workspace-root-git",
         ]
     )
 

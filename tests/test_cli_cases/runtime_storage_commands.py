@@ -191,6 +191,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         apply: bool,
         git_only: bool,
         reinitialize_empty_workspace_git: bool,
+        retire_workspace_root_git: bool,
         include_worktrees: bool,
         older_than_seconds: int,
         jsonl_max_mb: int,
@@ -213,6 +214,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         called["apply"] = apply
         called["git_only"] = git_only
         called["reinitialize_empty_workspace_git"] = reinitialize_empty_workspace_git
+        called["retire_workspace_root_git"] = retire_workspace_root_git
         called["include_worktrees"] = include_worktrees
         called["older_than_seconds"] = older_than_seconds
         called["jsonl_max_mb"] = jsonl_max_mb
@@ -268,6 +270,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
     assert called["apply"] is True
     assert called["git_only"] is True
     assert called["reinitialize_empty_workspace_git"] is True
+    assert called["retire_workspace_root_git"] is False
     assert called["include_worktrees"] is False
     assert called["older_than_seconds"] == 12 * 3600
     assert called["jsonl_max_mb"] == 32
@@ -304,6 +307,7 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         apply: bool,
         git_only: bool,
         reinitialize_empty_workspace_git: bool,
+        retire_workspace_root_git: bool,
         include_worktrees: bool,
         older_than_seconds: int,
         jsonl_max_mb: int,
