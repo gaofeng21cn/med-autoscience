@@ -140,6 +140,185 @@ def test_user_paused_quest_blocks_auto_resume_even_when_auto_resume_is_enabled(
     assert result["runtime_health_snapshot"]["canonical_runtime_action"] == "await_explicit_resume"
 
 
+def test_user_paused_quest_resumes_after_explicit_user_wakeup(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    _, quest_root = _write_managed_study(profile, study_id)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(
+        runtime_state_path,
+        json.dumps(
+            {
+                "status": "paused",
+                "active_run_id": None,
+                "worker_running": False,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "user_pause",
+                "continuation_reason": "user_pause",
+                "stop_reason": "user_pause",
+                "user_pause_contract": {
+                    "recorded_at": "2026-05-06T05:08:51+00:00",
+                    "resume_requires_explicit_wakeup": True,
+                    "source": "test-human-takeover",
+                },
+            }
+        )
+        + "\n",
+    )
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+    calls: list[str] = []
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
+        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
+        or {"ok": True, "status": "running", "snapshot": {"status": "running", "active_run_id": "run-explicit"}},
+    )
+
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id=study_id,
+        explicit_user_wakeup=True,
+        source="user_explicit_wakeup",
+    )
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_paused"
+    assert result["quest_status"] == "running"
+    assert calls == ["sync_context", "resume"]
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    assert runtime_state["last_explicit_user_wakeup"]["source"] == "user_explicit_wakeup"
+    assert runtime_state["last_explicit_user_wakeup"]["cleared_stop_reason"] == "user_pause"
+    assert "user_pause_contract" not in runtime_state
+
+
+def test_relay_repeats_when_existing_authorization_marker_lacks_target_context(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    controller_authorization = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    study_root, quest_root = _write_managed_study(profile, study_id)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(
+        runtime_state_path,
+        json.dumps(
+            {
+                "status": "paused",
+                "active_run_id": None,
+                "worker_running": False,
+                "last_controller_decision_authorization": {
+                    "decision_id": "decision-1",
+                    "route_target": "analysis-campaign",
+                    "route_key_question": "analysis_claim_evidence_repair: Repair blockers.",
+                    "control_intent_key": "control-intent::same",
+                },
+            }
+        )
+        + "\n",
+    )
+    authorization_context = {
+        "decision_id": "decision-1",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "requires_human_confirmation": False,
+        "controller_actions": ("run_quality_repair_batch",),
+        "route_target": "analysis-campaign",
+        "route_key_question": "analysis_claim_evidence_repair: Repair blockers.",
+        "route_rationale": "Repair blockers.",
+        "work_unit_id": "analysis_claim_evidence_repair",
+        "work_unit_fingerprint": "publication-blockers::1",
+        "blocker_authority_fingerprint": "publication-blockers::1",
+        "next_work_unit": {
+            "unit_id": "analysis_claim_evidence_repair",
+            "lane": "analysis-campaign",
+            "summary": "Repair blockers.",
+        },
+        "blocking_work_units": [],
+        "specificity_targets": [
+            {
+                "target_kind": "claim",
+                "target_id": "claim_evidence_map",
+                "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                "blocking_reason": "claim_evidence_consistency_failed",
+            }
+        ],
+        "decision_path": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+        "control_intent_key": "control-intent::same",
+        "control_intent_identity": {
+            "business_key": "control-intent::same",
+            "dedupe_key": "control-intent::same",
+        },
+    }
+    monkeypatch.setattr(
+        controller_authorization,
+        "_load_controller_decision_authorization_context",
+        lambda *, study_root: authorization_context,
+    )
+    monkeypatch.setattr(
+        controller_authorization.control_intent,
+        "lifecycle_state",
+        lambda **kwargs: {
+            "lifecycle_state": "delivered",
+            "latest_event_type": "delivered",
+            "delivery_blocked": True,
+            "block_reason": "same_fingerprint_no_artifact_delta",
+        },
+    )
+    monkeypatch.setattr(controller_authorization.control_intent, "append_event", lambda **kwargs: None)
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: {
+            "ok": True,
+            "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract},
+        },
+        raising=False,
+    )
+    messages: list[str] = []
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "chat_quest",
+        lambda *, runtime_root, quest_id, text, source: messages.append(text)
+        or {"ok": True, "message": {"id": "msg-target-context"}},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda *, runtime_root, quest_id, source, runtime_backend: {
+            "ok": True,
+            "status": "running",
+            "snapshot": {"status": "running", "active_run_id": "run-target-context"},
+        },
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_watch")
+
+    assert result["decision"] == "resume"
+    assert messages
+    assert "specificity_targets" in messages[0]
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    marker = runtime_state["last_controller_decision_authorization"]
+    assert marker["specificity_targets"] == authorization_context["specificity_targets"]
+    assert marker["message_id"] == "msg-target-context"
+
+
 def test_user_paused_stopped_quest_surfaces_explicit_wakeup_not_generic_rerun(
     monkeypatch,
     tmp_path: Path,

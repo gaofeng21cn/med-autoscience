@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Mapping
 
 from . import shared as _shared
 
@@ -18,6 +18,7 @@ _ACTIVITY_TIMEOUT_REASONS = {
     "read_churn_without_artifact_delta",
     "same_fingerprint_loop",
 }
+_NEW_RUN_ACTIVITY_GRACE_SECONDS = 30 * 60
 
 
 def _freshness_from_timestamp(
@@ -56,6 +57,85 @@ def _freshness_from_timestamp(
         "latest_progress_source": source,
         "latest_progress_summary": summary,
         "seconds_since_latest_progress": age_seconds,
+    }
+
+
+def _timestamp_value(value: object) -> datetime | None:
+    normalized = _normalize_timestamp(value)
+    if normalized is None:
+        return None
+    return datetime.fromisoformat(normalized)
+
+
+def _latest_runtime_observed_at(
+    *,
+    status: Mapping[str, Any] | None,
+    runtime_supervision_payload: Mapping[str, Any] | None,
+) -> str | None:
+    status_payload = _mapping_copy(status)
+    supervision_payload = _mapping_copy(runtime_supervision_payload)
+    status_health = _mapping_copy(status_payload.get("runtime_health_snapshot"))
+    supervision_health = _mapping_copy(supervision_payload.get("runtime_health_snapshot"))
+    runtime_health = supervision_health or status_health
+    candidates: list[str] = []
+    refs = runtime_health.get("dominant_runtime_refs")
+    if isinstance(refs, list):
+        for item in refs:
+            if isinstance(item, dict):
+                value = _non_empty_text(item.get("recorded_at"))
+                if value is not None:
+                    candidates.append(value)
+    supervisor_state = _mapping_copy(runtime_health.get("supervisor_state"))
+    for value in (
+        runtime_health.get("generated_at"),
+        supervisor_state.get("latest_recorded_at"),
+        supervision_payload.get("recorded_at"),
+        status_payload.get("recorded_at"),
+    ):
+        text = _non_empty_text(value)
+        if text is not None:
+            candidates.append(text)
+    dated = [
+        (parsed, text)
+        for text in candidates
+        if (parsed := _timestamp_value(text)) is not None
+    ]
+    if not dated:
+        return None
+    return max(dated, key=lambda item: item[0])[1]
+
+
+def _new_run_activity_grace(
+    *,
+    status: Mapping[str, Any] | None,
+    runtime_facts: Any,
+    artifact_delta_at: str | None,
+    runtime_supervision_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    active_run_id = _non_empty_text(getattr(runtime_facts, "active_run_id", None))
+    if active_run_id is None:
+        return None
+    observed_text = _latest_runtime_observed_at(
+        status=status,
+        runtime_supervision_payload=runtime_supervision_payload,
+    )
+    observed_at = _timestamp_value(observed_text)
+    if observed_at is None:
+        return None
+    artifact_at = _timestamp_value(artifact_delta_at)
+    if artifact_at is not None and artifact_at >= observed_at:
+        return None
+    progress_freshness_now = _controller_override("_progress_freshness_now", _progress_freshness_now)
+    age_seconds = max(0, int((progress_freshness_now() - observed_at).total_seconds()))
+    if age_seconds > _NEW_RUN_ACTIVITY_GRACE_SECONDS:
+        return None
+    return {
+        "state": "new_run_grace",
+        "active_run_id": active_run_id,
+        "observed_at": observed_at.isoformat(),
+        "artifact_delta_at": artifact_at.isoformat() if artifact_at is not None else None,
+        "grace_after_seconds": _NEW_RUN_ACTIVITY_GRACE_SECONDS,
+        "seconds_since_observed": age_seconds,
     }
 
 
@@ -153,7 +233,24 @@ def _split_progress_freshness(
         "seconds_without_artifact_delta": artifact_delta_freshness.get("seconds_since_latest_progress"),
         "breach_types": sorted(breach_types),
     }
-    if runtime_facts.strict_live and artifact_delta_freshness["status"] in {"missing", "stale"}:
+    new_run_grace = _new_run_activity_grace(
+        status=status,
+        runtime_facts=runtime_facts,
+        artifact_delta_at=artifact_delta_at,
+        runtime_supervision_payload=runtime_supervision_payload,
+    )
+    if (
+        runtime_facts.strict_live
+        and artifact_delta_freshness["status"] in {"missing", "stale"}
+        and new_run_grace is not None
+    ):
+        activity_timeout["state"] = "watching_new_run"
+        activity_timeout["summary"] = (
+            "live worker was observed on a newer run than the last meaningful artifact delta; "
+            "wait within the new-run grace window before classifying activity timeout."
+        )
+        activity_timeout["new_run_grace"] = new_run_grace
+    elif runtime_facts.strict_live and artifact_delta_freshness["status"] in {"missing", "stale"}:
         activity_timeout["state"] = "timed_out"
         activity_timeout["summary"] = (
             "live worker has exceeded the meaningful artifact delta activity window; "

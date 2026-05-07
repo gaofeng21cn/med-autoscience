@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable, Mapping
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,7 @@ SCHEMA_VERSION = 1
 EVENT_LOG_RELATIVE_PATH = Path("artifacts") / "runtime" / "health" / "events.jsonl"
 SNAPSHOT_RELATIVE_PATH = Path("artifacts") / "runtime" / "health" / "latest.json"
 MAX_RECOVERY_ATTEMPTS = 3
+NEW_RUN_ACTIVITY_GRACE_SECONDS = 30 * 60
 
 RUNTIME_HEALTH_EVENT_TYPES = frozenset(
     {
@@ -364,9 +366,21 @@ def _strict_live(runtime_payload: Mapping[str, Any]) -> tuple[bool, str, bool | 
 
 
 def _activity_timeout_from_runtime_payload(runtime_payload: Mapping[str, Any]) -> tuple[bool, list[str]]:
+    active_run_id = _active_run_from_payload(runtime_payload)
     autonomy_slo = _mapping(runtime_payload.get("autonomy_slo"))
     progress_freshness = _mapping(runtime_payload.get("progress_freshness"))
     activity_timeout = _mapping(progress_freshness.get("activity_timeout"))
+    if (
+        active_run_id is not None
+        and _text(activity_timeout.get("state")) == "watching_new_run"
+        and _text(_mapping(activity_timeout.get("new_run_grace")).get("active_run_id")) == active_run_id
+    ):
+        return False, []
+    if (
+        active_run_id is not None
+        and _text(autonomy_slo.get("active_run_id")) not in {None, active_run_id}
+    ):
+        return False, []
     if _text(activity_timeout.get("state")) == "timed_out":
         return True, ["live_worker_meaningful_artifact_delta_timeout"]
     breach_types = {
@@ -377,6 +391,20 @@ def _activity_timeout_from_runtime_payload(runtime_payload: Mapping[str, Any]) -
     timeout_breaches = sorted(breach_types & _ACTIVITY_TIMEOUT_BREACHES)
     if not timeout_breaches:
         return False, []
+    generated_at = _text(autonomy_slo.get("generated_at"))
+    observed_at = _first_text(runtime_payload.get("observed_at"), runtime_payload.get("last_transition_at"))
+    if active_run_id is not None and generated_at is not None and observed_at is not None:
+        try:
+            age_seconds = max(
+                0,
+                int(
+                    (datetime.fromisoformat(observed_at) - datetime.fromisoformat(generated_at)).total_seconds()
+                ),
+            )
+        except ValueError:
+            age_seconds = NEW_RUN_ACTIVITY_GRACE_SECONDS + 1
+        if age_seconds > 0 and age_seconds <= NEW_RUN_ACTIVITY_GRACE_SECONDS:
+            return False, []
     state = _text(autonomy_slo.get("state"))
     if state not in {"breach", "blocked_external"}:
         return False, []

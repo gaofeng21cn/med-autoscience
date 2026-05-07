@@ -31,6 +31,7 @@ from med_autoscience.controllers.study_runtime_execution import (
     _record_autonomous_runtime_notice_if_required,
     _build_context_create_payload,
     _build_execution_context,
+    _enable_explicit_user_wakeup_if_requested,
     _enable_explicit_stopped_relaunch_if_requested,
     _execute_blocked_refresh_runtime_decision,
     _execute_completion_runtime_decision,
@@ -217,6 +218,7 @@ def ensure_study_runtime(
     study_root: Path | None = None,
     entry_mode: str | None = None,
     allow_stopped_relaunch: bool = False,
+    explicit_user_wakeup: bool = False,
     force: bool = False,
     source: str = "med_autoscience",
 ) -> dict[str, Any]:
@@ -242,6 +244,8 @@ def ensure_study_runtime(
     )
     if allow_stopped_relaunch:
         _enable_explicit_stopped_relaunch_if_requested(status=status)
+    if explicit_user_wakeup:
+        _enable_explicit_user_wakeup_if_requested(status=status, context=context)
     _run_runtime_preflight(status=status, context=context)
     outcome = _execute_runtime_decision(status=status, context=context)
     _persist_runtime_artifacts(

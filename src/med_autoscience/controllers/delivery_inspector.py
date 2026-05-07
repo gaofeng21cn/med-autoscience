@@ -180,6 +180,21 @@ def _inspect_journal_packages(*, study_root: Path) -> list[dict[str, Any]]:
     return packages
 
 
+def _study_owned_source_fallback(
+    *,
+    study_root: Path,
+    publication_profile: str,
+) -> tuple[Path, Path] | None:
+    paper_root = (Path(study_root).expanduser().resolve() / "paper").resolve()
+    source_root = study_delivery_sync.build_submission_source_root(
+        paper_root=paper_root,
+        publication_profile=publication_profile,
+    )
+    if not source_root.exists():
+        return None
+    return paper_root, source_root.resolve()
+
+
 def _resolve_study_root(
     *,
     profile: WorkspaceProfile,
@@ -256,6 +271,30 @@ def inspect_study_delivery(
             publication_profile=resolved_publication_profile,
         )
     )
+    source_resolution: dict[str, Any] = {
+        "mode": "delivery_manifest_or_default",
+        "recorded_paper_root": str(paper_root),
+        "recorded_source_root": str(source_root),
+        "fallback_applied": False,
+    }
+    if not source_root.exists():
+        fallback = _study_owned_source_fallback(
+            study_root=resolved_study_root,
+            publication_profile=resolved_publication_profile,
+        )
+        if fallback is not None:
+            fallback_paper_root, fallback_source_root = fallback
+            source_resolution = {
+                "mode": "study_owned_source_fallback",
+                "reason": "recorded_controller_authorized_source_missing",
+                "recorded_paper_root": str(paper_root),
+                "recorded_source_root": str(source_root),
+                "fallback_paper_root": str(fallback_paper_root),
+                "fallback_source_root": str(fallback_source_root),
+                "fallback_applied": True,
+            }
+            paper_root = fallback_paper_root
+            source_root = fallback_source_root
     human_root = Path(
         str(surface_roles.get("human_facing_current_package_root") or manuscript_root / "current_package")
     ).expanduser().resolve()
@@ -314,6 +353,7 @@ def inspect_study_delivery(
         "study_root": str(resolved_study_root),
         "paper_root": str(paper_root),
         "publication_profile": resolved_publication_profile,
+        "source_resolution": source_resolution,
         "source_package": source_package,
         "human_package": human_package,
         "zip": _inspect_zip(current_package_zip),
@@ -346,6 +386,7 @@ def compact_delivery_inspection(payload: Mapping[str, Any]) -> dict[str, Any]:
         "mutation_policy": payload.get("mutation_policy"),
         "study_id": payload.get("study_id"),
         "freshness": payload.get("freshness"),
+        "source_resolution": payload.get("source_resolution"),
         "source_package": {
             "root": (payload.get("source_package") or {}).get("root")
             if isinstance(payload.get("source_package"), dict)

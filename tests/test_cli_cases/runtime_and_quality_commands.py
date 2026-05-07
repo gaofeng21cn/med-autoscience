@@ -108,6 +108,7 @@ def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_pat
         study_root: Path | None,
         entry_mode: str | None,
         allow_stopped_relaunch: bool,
+        explicit_user_wakeup: bool,
         force: bool,
         source: str,
     ) -> dict:
@@ -116,6 +117,7 @@ def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_pat
         called["study_root"] = study_root
         called["entry_mode"] = entry_mode
         called["allow_stopped_relaunch"] = allow_stopped_relaunch
+        called["explicit_user_wakeup"] = explicit_user_wakeup
         called["force"] = force
         called["source"] = source
         return {"decision": "create_and_start", "study_id": study_id, "quest_id": study_id}
@@ -144,6 +146,7 @@ def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_pat
     assert called["study_root"] is None
     assert called["entry_mode"] == "full_research"
     assert called["allow_stopped_relaunch"] is True
+    assert called["explicit_user_wakeup"] is False
     assert called["force"] is True
     assert called["source"] == "cli"
     assert '"decision": "create_and_start"' in captured.out
@@ -213,6 +216,8 @@ def test_study_runtime_status_command_dispatches_controller(monkeypatch, tmp_pat
             str(profile_path),
             "--study-id",
             "001-risk",
+            "--format",
+            "json",
         ]
     )
     captured = capsys.readouterr()

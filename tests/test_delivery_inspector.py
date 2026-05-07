@@ -62,6 +62,68 @@ def test_delivery_inspector_reports_v2_source_mirror_and_read_only_policy(tmp_pa
     assert "submission_manifest.json" not in names
 
 
+def test_delivery_inspector_uses_study_owned_source_when_recorded_manifest_source_was_migrated(
+    tmp_path: Path,
+) -> None:
+    inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "repo"
+    study_root = workspace_root / "studies" / "002-migrated-delivery"
+    stale_worktree_paper_root = (
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "002-migrated-delivery"
+        / ".ds"
+        / "worktrees"
+        / "paper-run-old"
+        / "paper"
+    )
+    source_root = study_root / "paper" / "submission_minimal"
+    human_root = study_root / "manuscript" / "current_package"
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile_for_workspace(profile_path, workspace_root=workspace_root)
+    write_text(study_root / "study.yaml", "study_id: 002-migrated-delivery\n")
+    write_text(source_root / "manuscript.docx", "docx")
+    write_text(source_root / "paper.pdf", "%PDF-1.4\n")
+    dump_json(source_root / "audit" / "submission_manifest.json", {"schema_version": 1})
+    write_text(human_root / "manuscript.docx", "old docx")
+    write_text(human_root / "paper.pdf", "%PDF-1.4\n")
+    write_text(study_root / "manuscript" / "current_package.zip", "zip placeholder")
+    dump_json(
+        study_root / "manuscript" / "delivery_manifest.json",
+        {
+            "schema_version": 1,
+            "surface_roles": {
+                "controller_authorized_paper_root": str(stale_worktree_paper_root),
+                "controller_authorized_package_source_root": str(stale_worktree_paper_root / "submission_minimal"),
+                "human_facing_current_package_root": str(human_root),
+                "human_facing_current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
+            },
+            "source": {"paper_root": str(stale_worktree_paper_root)},
+            "source_signature": "old-worktree-signature",
+        },
+    )
+
+    result = inspector.inspect_study_delivery(
+        profile=profiles.load_profile(profile_path),
+        profile_ref=profile_path,
+        study_id=study_root.name,
+    )
+
+    assert result["source_resolution"]["mode"] == "study_owned_source_fallback"
+    assert result["source_package"]["root"] == str(source_root.resolve())
+    assert result["source_package"]["layout_status"] == "v2"
+    assert result["freshness"]["delivery_status"] != "not_applicable"
+    assert result["freshness"]["verdict"] == "stale"
+    assert result["freshness"]["stale_reason"] in {
+        "delivery_manifest_source_mismatch",
+        "delivery_manifest_source_changed",
+    }
+
+
 def test_delivery_inspector_marks_legacy_root_audit_files_without_mutation(tmp_path: Path) -> None:
     inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
     profiles = importlib.import_module("med_autoscience.profiles")

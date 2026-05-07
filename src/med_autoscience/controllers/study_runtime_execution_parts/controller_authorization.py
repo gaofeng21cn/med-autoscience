@@ -484,6 +484,20 @@ def _controller_target_context_matches(
     )
 
 
+def _controller_authorization_marker_lacks_target_context(
+    *,
+    runtime_state: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    marker = runtime_state.get(_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
+    if not isinstance(marker, dict):
+        return False
+    return any(
+        key in authorization_context and marker.get(key) != authorization_context.get(key)
+        for key in _WORK_UNIT_TARGET_CONTEXT_KEYS
+    )
+
+
 def _controller_intent_key_match(
     *,
     marker: dict[str, Any],
@@ -768,7 +782,10 @@ def _relay_controller_decision_authorization_if_required(
     status: StudyRuntimeStatus,
     context: Any,
 ) -> dict[str, Any] | None:
-    if status.quest_status not in _LIVE_QUEST_STATUSES:
+    if (
+        status.quest_status not in _LIVE_QUEST_STATUSES
+        and status.decision not in {StudyRuntimeDecision.RESUME, StudyRuntimeDecision.RELAUNCH_STOPPED}
+    ):
         return None
     if status.decision not in {StudyRuntimeDecision.NOOP, StudyRuntimeDecision.RESUME, StudyRuntimeDecision.RELAUNCH_STOPPED}:
         return None
@@ -823,7 +840,11 @@ def _relay_controller_decision_authorization_if_required(
         authorization_context=authorization_context,
     )
     authorization_context["controller_work_unit_lifecycle"] = lifecycle
-    if bool(lifecycle.get("delivery_blocked")):
+    marker_lacks_target_context = _controller_authorization_marker_lacks_target_context(
+        runtime_state=runtime_state,
+        authorization_context=authorization_context,
+    )
+    if bool(lifecycle.get("delivery_blocked")) and not marker_lacks_target_context:
         control_intent.append_skipped_duplicate_if_needed(
             study_root=context.study_root,
             identity=_controller_decision_authorization_identity(authorization_context),

@@ -117,6 +117,65 @@ def record_user_pause_contract_after_pause(
     }
 
 
+def record_explicit_user_wakeup(
+    *,
+    quest_root: Path,
+    source: str,
+) -> dict[str, Any] | None:
+    runtime_state_path = Path(quest_root) / ".ds" / "runtime_state.json"
+    try:
+        runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(runtime_state, dict):
+        return None
+    runtime_status = str(runtime_state.get("status") or "").strip().lower()
+    if runtime_status not in {
+        StudyRuntimeQuestStatus.PAUSED.value,
+        StudyRuntimeQuestStatus.STOPPED.value,
+    }:
+        return None
+    if str(runtime_state.get("active_run_id") or "").strip():
+        return None
+    if bool(runtime_state.get("worker_running")):
+        return None
+    if str(runtime_state.get("stop_reason") or "").strip() != "user_pause":
+        return None
+    cleared_keys = [
+        key
+        for key in (
+            "stop_reason",
+            "continuation_policy",
+            "continuation_anchor",
+            "continuation_reason",
+            "user_pause_contract",
+        )
+        if key in runtime_state
+    ]
+    cleared_stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
+    for key in cleared_keys:
+        runtime_state.pop(key, None)
+    recorded_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    runtime_state["last_explicit_user_wakeup"] = {
+        "source": source,
+        "recorded_at": recorded_at,
+        "cleared_keys": cleared_keys,
+        "cleared_stop_reason": cleared_stop_reason,
+    }
+    runtime_state_path.write_text(
+        json.dumps(runtime_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "status": "recorded",
+        "runtime_state_path": str(runtime_state_path),
+        "source": source,
+        "recorded_at": recorded_at,
+        "cleared_keys": cleared_keys,
+        "cleared_stop_reason": cleared_stop_reason,
+    }
+
+
 def pause_runtime_state_postcondition(
     *,
     quest_root: Path,

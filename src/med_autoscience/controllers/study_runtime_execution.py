@@ -48,6 +48,7 @@ __all__ = [
     "StudyRuntimeExecutionOutcome",
     "_build_context_create_payload",
     "_build_execution_context",
+    "_enable_explicit_user_wakeup_if_requested",
     "_enable_explicit_stopped_relaunch_if_requested",
     "_execute_blocked_refresh_runtime_decision",
     "_execute_completion_runtime_decision",
@@ -289,6 +290,52 @@ def _enable_explicit_stopped_relaunch_if_requested(
         StudyRuntimeDecision.RELAUNCH_STOPPED,
         StudyRuntimeReason.QUEST_STOPPED_EXPLICIT_RELAUNCH_REQUESTED,
     )
+
+
+def _enable_explicit_user_wakeup_if_requested(
+    *,
+    status: StudyRuntimeStatus,
+    context: StudyRuntimeExecutionContext,
+) -> None:
+    if (
+        status.decision is not StudyRuntimeDecision.BLOCKED
+        or status.reason is not StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP
+        or status.quest_status
+        not in {
+            StudyRuntimeQuestStatus.PAUSED,
+            StudyRuntimeQuestStatus.STOPPED,
+        }
+    ):
+        return
+    if not status.startup_boundary_allows_compute_stage:
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+        )
+        return
+    if not status.runtime_reentry_allows_runtime_entry:
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+        )
+        return
+    wakeup_record = _runtime_events.record_explicit_user_wakeup(
+        quest_root=context.quest_root,
+        source=context.source,
+    )
+    status._record_dict_extra("explicit_user_wakeup", wakeup_record)
+    if wakeup_record is None:
+        return
+    if status.quest_status is StudyRuntimeQuestStatus.STOPPED:
+        status.set_decision(
+            StudyRuntimeDecision.RELAUNCH_STOPPED,
+            StudyRuntimeReason.QUEST_STOPPED_EXPLICIT_RELAUNCH_REQUESTED,
+        )
+    else:
+        status.set_decision(
+            StudyRuntimeDecision.RESUME,
+            StudyRuntimeReason.QUEST_PAUSED,
+        )
 
 
 def _build_context_create_payload(context: StudyRuntimeExecutionContext) -> dict[str, Any]:
@@ -618,6 +665,7 @@ def _execute_resume_runtime_decision(
             )
             outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
             return outcome
+    _relay_controller_decision_authorization_if_required(status=status, context=context)
     force_live_controller_reroute_restart = _should_force_restart_for_live_controller_reroute(
         status=status,
         context=context,
@@ -647,7 +695,6 @@ def _execute_resume_runtime_decision(
             context=context,
             same_fingerprint_auto_turn_count=same_fingerprint_auto_turn_count,
         )
-    _relay_controller_decision_authorization_if_required(status=status, context=context)
     _relay_controller_owned_runtime_reply_if_required(status=status, context=context)
     if _should_skip_redundant_resume_for_live_controller_reroute(status=status) and not force_live_controller_reroute_restart:
         outcome.binding_last_action = StudyRuntimeBindingAction.NOOP

@@ -864,3 +864,121 @@ def test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity
     assert result["operator_status_card"]["human_surface_freshness"] == "monitoring_runtime"
     assert "supervisor ticks alone cannot prove paper progress" in result["operator_status_card"]["current_focus"]
     assert "meaningful artifact delta" in result["operator_status_card"]["next_confirmation_signal"]
+
+
+def test_study_progress_gives_new_live_run_grace_before_activity_timeout(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-dm",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    _write_publication_eval(study_root, quest_root)
+    _write_json(
+        study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",
+        {
+            "surface": "autonomy_progress_slo_status",
+            "schema_version": 1,
+            "study_id": "002-dm",
+            "quest_id": "quest-002",
+            "state": "breach",
+            "breach_types": ["same_fingerprint_loop"],
+            "last_meaningful_progress_at": "2026-05-01T18:30:00+00:00",
+            "mds_progress_markers": {
+                "meaningful_artifact_delta_at": "2026-05-01T18:30:00+00:00",
+                "meaningful_artifact_delta_kind": "paper_bundle",
+            },
+            "ai_doctor_request_required": True,
+            "ai_doctor_state": "request_ready",
+            "quality_gate_relaxation_allowed": False,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "002-dm",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-002", "auto_resume": True},
+            "quest_id": "quest-002",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "runtime_liveness_status": "live",
+            "active_run_id": "run-new-live",
+            "worker_running": True,
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": "run-new-live",
+                "runtime_audit": {
+                    "status": "live",
+                    "active_run_id": "run-new-live",
+                    "worker_running": True,
+                },
+            },
+            "autonomous_runtime_notice": {
+                "required": True,
+                "quest_status": "running",
+                "active_run_id": "run-new-live",
+                "browser_url": "http://127.0.0.1:20999",
+            },
+            "execution_owner_guard": {
+                "owner": "managed_runtime",
+                "supervisor_only": True,
+                "guard_reason": "live_managed_runtime",
+                "active_run_id": "run-new-live",
+                "current_required_action": "supervise_managed_runtime",
+                "publication_gate_allows_direct_write": False,
+            },
+            "continuation_state": {
+                "quest_status": "running",
+                "active_run_id": "run-new-live",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "controller_work_unit_pending",
+            },
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+                "latest_recorded_at": "2026-05-02T10:40:00+00:00",
+            },
+            "runtime_health_snapshot": {
+                "dominant_runtime_refs": [
+                    {
+                        "recorded_at": "2026-05-02T10:30:00+00:00",
+                    }
+                ],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: datetime(2026, 5, 2, 10, 40, tzinfo=timezone.utc),
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="002-dm")
+
+    assert result["progress_freshness"]["worker_liveness_freshness"]["status"] == "fresh"
+    assert result["progress_freshness"]["meaningful_artifact_delta_freshness"]["status"] == "stale"
+    assert result["progress_freshness"]["activity_timeout"]["state"] == "watching_new_run"
+    assert result["progress_freshness"]["activity_timeout"]["new_run_grace"]["active_run_id"] == "run-new-live"
+    assert result["intervention_lane"]["lane_id"] != "runtime_recovery_required"

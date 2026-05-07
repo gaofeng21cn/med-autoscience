@@ -308,6 +308,7 @@ def main(argv: list[str] | None = None) -> int:
             study_root=Path(args.study_root) if args.study_root else None,
             entry_mode=args.entry_mode,
             allow_stopped_relaunch=bool(args.allow_stopped_relaunch),
+            explicit_user_wakeup=bool(args.explicit_user_wakeup),
             force=bool(args.force),
             source="cli",
         )
@@ -942,6 +943,7 @@ def main(argv: list[str] | None = None) -> int:
             study_root=Path(args.study_root) if args.study_root else None,
             entry_mode=args.entry_mode,
             allow_stopped_relaunch=bool(args.allow_stopped_relaunch),
+            explicit_user_wakeup=bool(args.explicit_user_wakeup),
             force=bool(args.force),
             source="cli",
         )
