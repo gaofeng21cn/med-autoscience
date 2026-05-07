@@ -12,7 +12,6 @@ from med_autoscience.controllers import (
     control_plane_facts,
     runtime_supervision,
 )
-from med_autoscience.profiles import WorkspaceProfile
 
 
 _HARD_AUTO_RECOVERY_QUEST_STATUSES = frozenset({"active", "running", "waiting_for_user", "stopped"})
@@ -255,21 +254,6 @@ def _should_refresh_managed_study_status_after_ensure(payload: Mapping[str, Any]
     if _non_empty_text(payload.get("decision")) not in _RUNTIME_RECOVERY_DECISIONS:
         return False
     return not _payload_strict_live(payload)
-
-
-def _refresh_managed_study_status_after_ensure(
-    *,
-    profile: WorkspaceProfile,
-    study_root: Path,
-    status_payload: dict[str, Any],
-) -> dict[str, Any]:
-    if not _should_refresh_managed_study_status_after_ensure(status_payload):
-        return status_payload
-    refreshed = import_module("med_autoscience.controllers.study_runtime_router").study_runtime_status(
-        profile=profile,
-        study_root=study_root,
-    )
-    return _managed_study_status_payload(refreshed)
 
 
 def _runtime_watch_wakeup_latest_path(study_root: Path) -> Path:

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import control_intent, runtime_watch_work_units, study_outer_loop
+from med_autoscience.controllers import control_intent, runtime_watch_work_units
 from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import _candidate_path, _non_empty_text
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.publication_eval_latest import read_publication_eval_latest
@@ -125,6 +125,7 @@ def _materialize_specificity_controller_state(
     status_payload: Mapping[str, Any],
     tick_request: Mapping[str, Any],
     wakeup_audit: Mapping[str, Any],
+    materialize_decision: Callable[..., dict[str, Any]],
 ) -> dict[str, Any]:
     decision_payload = runtime_watch_work_units.strip_context(tick_request)
     decision_payload["study_root"] = study_root
@@ -144,8 +145,10 @@ def _materialize_specificity_controller_state(
                 "payload_ref": str((Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json").resolve()),
             }
         ]
-    decision_result = study_outer_loop.materialize_non_dispatching_outer_loop_decision(
+    decision_payload.pop("study_root", None)
+    decision_result = materialize_decision(
         profile=profile,
+        study_root=study_root,
         status_payload=dict(status_payload),
         source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
         recorded_at=_non_empty_text(wakeup_audit.get("recorded_at")),

@@ -12,16 +12,11 @@ from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
     _should_hard_auto_recover_managed_study,
 )
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_control.ports import RuntimeControlPorts, ensure_runtime, runtime_status_payload
 
 
 MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "runtime_watch_auto_recovery"
 RECOVERY_DECISIONS = {"create_and_start", "resume", "relaunch_stopped"}
-
-
-def _runtime_router():
-    from importlib import import_module
-
-    return import_module("med_autoscience.controllers.study_runtime_router")
 
 
 def recovery_failure_payload(
@@ -50,15 +45,6 @@ def _managed_study_roots(profile: WorkspaceProfile) -> list[Path]:
     ]
 
 
-def _runtime_status_payload(*, profile: WorkspaceProfile, study_root: Path) -> dict[str, Any]:
-    return _managed_study_status_payload(
-        _runtime_router().study_runtime_status(
-            profile=profile,
-            study_root=study_root,
-        )
-    )
-
-
 def _record_requested_runtime_recovery(
     *,
     runtime_recovery_payloads: dict[str, dict[str, Any]],
@@ -73,15 +59,17 @@ def _record_requested_runtime_recovery(
 
 def _apply_managed_study_status(
     *,
+    runtime_control_ports: RuntimeControlPorts,
     profile: WorkspaceProfile,
     study_root: Path,
     auto_recoveries: list[dict[str, Any]],
     runtime_recovery_payloads: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     if _study_requests_gate_specificity_terminal(study_root=study_root):
-        return _runtime_status_payload(profile=profile, study_root=study_root)
+        return runtime_status_payload(ports=runtime_control_ports, profile=profile, study_root=study_root)
     try:
-        action_payload = _runtime_router().ensure_study_runtime(
+        action_payload = ensure_runtime(
+            ports=runtime_control_ports,
             profile=profile,
             study_root=study_root,
             source="runtime_watch",
@@ -93,7 +81,11 @@ def _apply_managed_study_status(
         )
         return action_payload
     except Exception as exc:
-        preflight_payload = _runtime_status_payload(profile=profile, study_root=study_root)
+        preflight_payload = runtime_status_payload(
+            ports=runtime_control_ports,
+            profile=profile,
+            study_root=study_root,
+        )
         action_payload = recovery_failure_payload(
             preflight_payload=preflight_payload,
             error=exc,
@@ -110,11 +102,13 @@ def _apply_managed_study_status(
 
 def _auto_recovery_action_payload(
     *,
+    runtime_control_ports: RuntimeControlPorts,
     profile: WorkspaceProfile,
     study_root: Path,
     preflight_payload: dict[str, Any],
     recovery_holds: list[dict[str, Any]],
     runtime_recovery_payloads: dict[str, dict[str, Any]],
+    apply: bool,
 ) -> tuple[dict[str, Any], bool]:
     recovery_hold = runtime_watch_recovery_policy.hold_for_flapping_circuit_breaker(
         study_root=study_root,
@@ -124,10 +118,11 @@ def _auto_recovery_action_payload(
         _managed_study_status_payload(preflight_payload)
     )
     if recovery_hold is not None:
-        runtime_watch_recovery_policy.write_recovery_probe(
-            study_root=study_root,
-            recovery_hold=recovery_hold,
-        )
+        if apply:
+            runtime_watch_recovery_policy.write_recovery_probe(
+                study_root=study_root,
+                recovery_hold=recovery_hold,
+            )
         recovery_holds.append(recovery_hold)
         return preflight_payload, False
     if control_plane_recovery_block is not None:
@@ -137,7 +132,10 @@ def _auto_recovery_action_payload(
             "reason": "resume_request_failed",
             "control_plane_runtime_recovery_block": control_plane_recovery_block,
         }, False
-    action_payload = _runtime_router().ensure_study_runtime(
+    if not apply:
+        return preflight_payload, False
+    action_payload = ensure_runtime(
+        ports=runtime_control_ports,
         profile=profile,
         study_root=study_root,
         source=MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
@@ -152,25 +150,25 @@ def _auto_recovery_action_payload(
 
 def _read_or_auto_recover_managed_study(
     *,
+    runtime_control_ports: RuntimeControlPorts,
     profile: WorkspaceProfile,
     study_root: Path,
     auto_recoveries: list[dict[str, Any]],
     recovery_holds: list[dict[str, Any]],
     runtime_recovery_payloads: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
-    action_payload = _runtime_router().study_runtime_status(
-        profile=profile,
-        study_root=study_root,
-    )
+    action_payload = runtime_status_payload(ports=runtime_control_ports, profile=profile, study_root=study_root)
     if not _should_hard_auto_recover_managed_study(action_payload):
         return action_payload
     preflight_payload = action_payload
     action_payload, recovery_applied = _auto_recovery_action_payload(
+        runtime_control_ports=runtime_control_ports,
         profile=profile,
         study_root=study_root,
         preflight_payload=preflight_payload,
         recovery_holds=recovery_holds,
         runtime_recovery_payloads=runtime_recovery_payloads,
+        apply=False,
     )
     if recovery_applied:
         auto_recoveries.append(
@@ -185,6 +183,7 @@ def _read_or_auto_recover_managed_study(
 
 def managed_study_initial_statuses(
     *,
+    runtime_control_ports: RuntimeControlPorts,
     profile: WorkspaceProfile | None,
     apply: bool,
     ensure_study_runtimes: bool,
@@ -200,6 +199,7 @@ def managed_study_initial_statuses(
     for study_root in _managed_study_roots(profile):
         if apply:
             action_payload = _apply_managed_study_status(
+                runtime_control_ports=runtime_control_ports,
                 profile=profile,
                 study_root=study_root,
                 auto_recoveries=auto_recoveries,
@@ -207,6 +207,7 @@ def managed_study_initial_statuses(
             )
         else:
             action_payload = _read_or_auto_recover_managed_study(
+                runtime_control_ports=runtime_control_ports,
                 profile=profile,
                 study_root=study_root,
                 auto_recoveries=auto_recoveries,

@@ -208,10 +208,7 @@ def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_acti
             },
         }
     ]
-    persisted_probe = json.loads(
-        (study_root / "artifacts" / "runtime" / "recovery_probe" / "latest.json").read_text(encoding="utf-8")
-    )
-    assert persisted_probe == result["managed_study_recovery_holds"][0]["recovery_probe"]
+    assert not (study_root / "artifacts" / "runtime" / "recovery_probe" / "latest.json").exists()
 
 
 def test_hard_auto_recovery_ignores_stale_continuation_run_id() -> None:
@@ -312,7 +309,10 @@ def test_flapping_recovery_probe_clears_hold_when_current_status_is_live(
     }
 
 
-def test_run_watch_for_runtime_auto_recovers_stopped_controller_guard_quest(tmp_path: Path, monkeypatch) -> None:
+def test_run_watch_for_runtime_dry_run_reports_stopped_controller_guard_recovery_without_executing(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -379,18 +379,13 @@ def test_run_watch_for_runtime_auto_recovers_stopped_controller_guard_quest(tmp_
         ensure_study_runtimes=True,
     )
 
-    assert calls == [
-        ("status", "001-risk"),
-        ("ensure", "runtime_watch_auto_recovery"),
-    ]
-    assert result["managed_study_auto_recoveries"] == [
+    assert calls == [("status", "001-risk"), ("status", "001-risk")]
+    assert result["managed_study_auto_recoveries"] == []
+    assert result["managed_study_actions"] == [
         {
             "study_id": "001-risk",
-            "preflight_decision": "resume",
-            "preflight_reason": "quest_stopped_by_controller_guard",
-            "applied_decision": "resume",
-            "applied_reason": "quest_stopped_by_controller_guard",
-            "source": "runtime_watch_auto_recovery",
+            "decision": "resume",
+            "reason": "quest_stopped_by_controller_guard",
         }
     ]
 def test_run_watch_for_runtime_rechecks_managed_study_immediately_after_figure_loop_guard_stop(
@@ -513,7 +508,7 @@ def test_run_watch_for_runtime_rechecks_managed_study_immediately_after_figure_l
             "source": "runtime_watch_controller_reroute",
         }
     ]
-def test_run_watch_for_runtime_tracks_stopped_auto_continuation_once_router_returns_resume(
+def test_run_watch_for_runtime_dry_run_tracks_stopped_auto_continuation_without_executing(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -600,18 +595,13 @@ def test_run_watch_for_runtime_tracks_stopped_auto_continuation_once_router_retu
         ensure_study_runtimes=True,
     )
 
-    assert calls == [
-        ("status", "001-risk"),
-        ("ensure", "runtime_watch_auto_recovery"),
-    ]
-    assert result["managed_study_auto_recoveries"] == [
+    assert calls == [("status", "001-risk")]
+    assert result["managed_study_auto_recoveries"] == []
+    assert result["managed_study_actions"] == [
         {
             "study_id": "001-risk",
-            "preflight_decision": "resume",
-            "preflight_reason": "quest_waiting_on_invalid_blocking",
-            "applied_decision": "resume",
-            "applied_reason": "quest_waiting_on_invalid_blocking",
-            "source": "runtime_watch_auto_recovery",
+            "decision": "resume",
+            "reason": "quest_waiting_on_invalid_blocking",
         }
     ]
     assert result["managed_study_supervision"][0]["health_status"] == "recovering"

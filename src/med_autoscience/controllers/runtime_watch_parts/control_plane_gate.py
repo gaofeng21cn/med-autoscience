@@ -152,6 +152,7 @@ def apply_control_plane_dispatch_block(
     attach_no_op_suppression_to_quest_report: Callable[..., None],
     default_recorded_at: str,
     controller_decision_matches: Callable[..., bool] | None = None,
+    materialize_non_dispatching_decision: Callable[..., dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     control_plane_block = control_plane_dispatch_block(
         status_payload=status_payload,
@@ -167,19 +168,22 @@ def apply_control_plane_dispatch_block(
             work_unit_dispatch_key=runtime_watch_work_units.dispatch_key(tick_request),
         ),
     }
-    if profile is not None and controller_decision_matches is not None and not controller_decision_matches(
+    if (
+        profile is not None
+        and controller_decision_matches is not None
+        and materialize_non_dispatching_decision is not None
+        and not controller_decision_matches(
         study_root=study_root,
         status_payload=status_payload,
         tick_request=tick_request,
+        )
     ):
-        from med_autoscience.controllers import study_outer_loop
-
-        decision_result = study_outer_loop.materialize_non_dispatching_outer_loop_decision(
+        decision_result = materialize_non_dispatching_decision(
             profile=profile,
+            study_root=study_root,
             status_payload=dict(status_payload),
-            source="runtime_watch_outer_loop_wakeup",
-            recorded_at=_non_empty_text(blocked_audit.get("recorded_at")),
-            **runtime_watch_work_units.strip_context(tick_request),
+            tick_request=tick_request,
+            wakeup_audit=blocked_audit,
         )
         blocked_audit = {
             **blocked_audit,
