@@ -42,6 +42,37 @@ def _int_value(value: object) -> int | None:
         return None
 
 
+def _timestamp_key(value: object) -> str | None:
+    text = _text(value)
+    if text is None:
+        return None
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    return text
+
+
+def _report_timestamp(payload: dict[str, Any]) -> str | None:
+    return _timestamp_key(
+        payload.get("created_at")
+        or payload.get("updated_at")
+        or payload.get("emitted_at")
+    )
+
+
+def _report_is_current_for_authorization(
+    *,
+    payload: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    decision_time = _timestamp_key(authorization_context.get("decision_emitted_at"))
+    if decision_time is None:
+        return True
+    report_time = _report_timestamp(payload)
+    if report_time is None:
+        return True
+    return report_time >= decision_time
+
+
 def _report_candidates(quest_root: Path) -> tuple[Path, ...]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     candidates = [
@@ -129,6 +160,11 @@ def _report_matches_analysis_repair(
         return False
     if explicit_action is not None and explicit_action != _ANALYSIS_REPAIR_ACTION:
         return False
+    if not _report_is_current_for_authorization(
+        payload=payload,
+        authorization_context=authorization_context,
+    ):
+        return False
     if explicit_report_type == _MAS_QUALITY_REPAIR_REPORT_TYPE or explicit_report_kind == _MAS_QUALITY_REPAIR_REPORT_TYPE:
         return (
             explicit_work_unit_id == _ANALYSIS_REPAIR_WORK_UNIT_ID
@@ -183,15 +219,29 @@ def _normalized_repair_result(
     }
 
 
+def _result_requires_runtime_relaunch(result: dict[str, Any]) -> bool:
+    for key in (
+        "publication_gate_cleared",
+        "writing_ready_after_repair",
+        "finalize_ready_after_repair",
+    ):
+        if result.get(key) is False:
+            return True
+    return False
+
+
 def _existing_artifact_written_payload(
     *,
     study_root: Path,
     identity: control_intent.ControlIntentIdentity,
+    authorization_context: dict[str, Any],
 ) -> dict[str, Any] | None:
-    for event in control_intent.events_for_business_key(
+    events = control_intent.events_for_business_key_since(
         study_root=study_root,
         business_key=identity.business_key,
-    ):
+        recorded_at=authorization_context.get("decision_emitted_at"),
+    )
+    for event in events:
         if _text(event.get("event_type")) != "artifact_written":
             continue
         payload = event.get("payload")
@@ -205,8 +255,13 @@ def existing_controller_work_unit_evidence_adoption(
     *,
     study_root: Path,
     identity: control_intent.ControlIntentIdentity,
+    authorization_context: dict[str, Any],
 ) -> dict[str, Any] | None:
-    existing_payload = _existing_artifact_written_payload(study_root=study_root, identity=identity)
+    existing_payload = _existing_artifact_written_payload(
+        study_root=study_root,
+        identity=identity,
+        authorization_context=authorization_context,
+    )
     if existing_payload is None:
         return None
     return {
@@ -223,7 +278,18 @@ def record_controller_work_unit_evidence_adoption(
     authorization_context: dict[str, Any],
     evidence_adoption: dict[str, Any],
 ) -> None:
-    lifecycle = control_intent.lifecycle_state(study_root=study_root, identity=identity)
+    decision_emitted_at = _timestamp_key(authorization_context.get("decision_emitted_at"))
+    if decision_emitted_at is not None:
+        lifecycle = control_intent.lifecycle_state_since(
+            study_root=study_root,
+            identity=identity,
+            recorded_at=decision_emitted_at,
+        )
+    else:
+        lifecycle = control_intent.lifecycle_state(study_root=study_root, identity=identity)
+    relaunch_required = _result_requires_runtime_relaunch(
+        dict(evidence_adoption.get("result") or {})
+    )
     status.extras["controller_work_unit_evidence_adoption"] = evidence_adoption
     status.extras["controller_decision_authorization_deduped"] = {
         "control_intent_key": authorization_context.get("control_intent_key"),
@@ -234,7 +300,7 @@ def record_controller_work_unit_evidence_adoption(
         "recommended_next_route": evidence_adoption.get("recommended_next_route"),
         "owner": "publication_gate",
         "quality_gate_relaxation_allowed": False,
-        "runtime_relaunch_required": False,
+        "runtime_relaunch_required": relaunch_required,
     }
 
 
@@ -242,12 +308,14 @@ def _has_prior_delivery_or_duplicate(
     *,
     study_root: Path,
     identity: control_intent.ControlIntentIdentity,
+    authorization_context: dict[str, Any],
 ) -> bool:
     return any(
         _text(event.get("event_type")) in {"delivered", "skipped_duplicate"}
-        for event in control_intent.events_for_business_key(
+        for event in control_intent.events_for_business_key_since(
             study_root=study_root,
             business_key=identity.business_key,
+            recorded_at=authorization_context.get("decision_emitted_at"),
         )
     )
 
@@ -263,10 +331,18 @@ def adopt_controller_work_unit_evidence_if_present(
 ) -> dict[str, Any] | None:
     if not _authorization_matches_analysis_repair(authorization_context):
         return None
-    existing_payload = existing_controller_work_unit_evidence_adoption(study_root=study_root, identity=identity)
+    existing_payload = existing_controller_work_unit_evidence_adoption(
+        study_root=study_root,
+        identity=identity,
+        authorization_context=authorization_context,
+    )
     if existing_payload is not None:
         return existing_payload
-    if not _has_prior_delivery_or_duplicate(study_root=study_root, identity=identity):
+    if not _has_prior_delivery_or_duplicate(
+        study_root=study_root,
+        identity=identity,
+        authorization_context=authorization_context,
+    ):
         return None
     for report_path in _report_candidates(quest_root):
         if not report_path.exists():
@@ -280,11 +356,7 @@ def adopt_controller_work_unit_evidence_if_present(
         payload = {
             "active_run_id": active_run_id,
             "report_ref": str(report_path),
-            "created_at": _text(
-                report_payload.get("created_at")
-                or report_payload.get("updated_at")
-                or report_payload.get("emitted_at")
-            ),
+            "created_at": _report_timestamp(report_payload),
             "work_unit_id": _ANALYSIS_REPAIR_WORK_UNIT_ID,
             "route_target": _ANALYSIS_REPAIR_ROUTE_TARGET,
             "recommended_next_route": _ANALYSIS_REPAIR_RECOMMENDED_NEXT_ROUTE,

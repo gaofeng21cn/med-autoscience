@@ -39,6 +39,8 @@ def _write_controller_decision_authorization(
     next_work_unit: dict[str, object] | None = None,
     blocking_work_units: list[dict[str, object]] | None = None,
     work_unit_fingerprint: str | None = None,
+    decision_id: str = "decision-analysis-001",
+    emitted_at: str = "2026-04-25T06:20:00+00:00",
 ) -> None:
     decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     decision_path.parent.mkdir(parents=True, exist_ok=True)
@@ -46,10 +48,10 @@ def _write_controller_decision_authorization(
         json.dumps(
             {
                 "schema_version": 1,
-                "decision_id": "decision-analysis-001",
+                "decision_id": decision_id,
                 "study_id": "001-risk",
                 "quest_id": "quest-001",
-                "emitted_at": "2026-04-25T06:20:00+00:00",
+                "emitted_at": emitted_at,
                 "decision_type": "bounded_analysis",
                 "charter_ref": {
                     "charter_id": "charter::001-risk::v1",

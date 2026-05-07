@@ -347,6 +347,24 @@ def events_for_business_key(*, study_root: Path, business_key: str) -> list[dict
     return events
 
 
+def events_for_business_key_since(
+    *,
+    study_root: Path,
+    business_key: str,
+    recorded_at: object,
+) -> list[dict[str, Any]]:
+    cutoff = _text(recorded_at)
+    events = events_for_business_key(study_root=study_root, business_key=business_key)
+    if cutoff is None:
+        return events
+    return [
+        event
+        for event in events
+        if (event_recorded_at := _text(event.get("recorded_at"))) is not None
+        and event_recorded_at >= cutoff
+    ]
+
+
 def artifact_delta_observed(events: list[dict[str, Any]]) -> bool:
     anchor_index = -1
     for index, event in enumerate(events):
@@ -363,7 +381,33 @@ def artifact_delta_observed(events: list[dict[str, Any]]) -> bool:
 
 
 def lifecycle_state(*, study_root: Path, identity: ControlIntentIdentity) -> dict[str, Any]:
-    events = events_for_business_key(study_root=study_root, business_key=identity.business_key)
+    return lifecycle_state_from_events(
+        events=events_for_business_key(study_root=study_root, business_key=identity.business_key),
+        identity=identity,
+    )
+
+
+def lifecycle_state_since(
+    *,
+    study_root: Path,
+    identity: ControlIntentIdentity,
+    recorded_at: object,
+) -> dict[str, Any]:
+    return lifecycle_state_from_events(
+        events=events_for_business_key_since(
+            study_root=study_root,
+            business_key=identity.business_key,
+            recorded_at=recorded_at,
+        ),
+        identity=identity,
+    )
+
+
+def lifecycle_state_from_events(
+    *,
+    events: list[dict[str, Any]],
+    identity: ControlIntentIdentity,
+) -> dict[str, Any]:
     if not events:
         return {
             "schema_version": _SCHEMA_VERSION,

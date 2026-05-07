@@ -218,5 +218,5 @@ def test_study_runtime_status_projects_adopted_work_unit_evidence_without_runtim
         "recommended_next_route": "return_to_publication_gate_recheck",
         "owner": "publication_gate",
         "quality_gate_relaxation_allowed": False,
-        "runtime_relaunch_required": False,
+        "runtime_relaunch_required": True,
     }

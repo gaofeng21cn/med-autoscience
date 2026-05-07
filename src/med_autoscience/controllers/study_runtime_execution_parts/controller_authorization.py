@@ -10,6 +10,7 @@ from med_autoscience.runtime_protocol import quest_state, user_message
 from med_autoscience.study_decision_record import StudyDecisionRecord
 
 from ..study_runtime_status import StudyRuntimeDecision, StudyRuntimeStatus, _LIVE_QUEST_STATUSES
+from .control_intent_lifecycle import lifecycle_for_authorization
 from .work_unit_evidence_adoption import adopt_controller_work_unit_evidence_if_present, record_controller_work_unit_evidence_adoption
 
 
@@ -385,6 +386,7 @@ def _controller_decision_authorization_context_payload(
     route_target = route_fields["route_target"]
     authorization_context: dict[str, Any] = {
         "decision_id": record.decision_id,
+        "decision_emitted_at": record.emitted_at,
         "study_id": record.study_id,
         "quest_id": record.quest_id,
         "decision_type": record.decision_type.value,
@@ -517,17 +519,6 @@ def _controller_route_marker_match(
         and str(marker.get("route_target") or "").strip() == str(authorization_context.get("route_target") or "").strip()
         and str(marker.get("route_key_question") or "").strip()
         == str(authorization_context.get("route_key_question") or "").strip()
-    )
-
-
-def _controller_decision_authorization_lifecycle(
-    *,
-    study_root: Path,
-    authorization_context: dict[str, Any],
-) -> dict[str, Any]:
-    return control_intent.lifecycle_state(
-        study_root=study_root,
-        identity=_controller_decision_authorization_identity(authorization_context),
     )
 
 
@@ -846,8 +837,9 @@ def _relay_controller_decision_authorization_if_required(
         active_run_id=active_run_id,
     ):
         return None
-    lifecycle = _controller_decision_authorization_lifecycle(
+    lifecycle = lifecycle_for_authorization(
         study_root=context.study_root,
+        identity=_controller_decision_authorization_identity(authorization_context),
         authorization_context=authorization_context,
     )
     authorization_context["controller_work_unit_lifecycle"] = lifecycle

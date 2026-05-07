@@ -131,6 +131,7 @@ def _record_existing_controller_work_unit_evidence_adoption(
     evidence_adoption = existing_controller_work_unit_evidence_adoption(
         study_root=study_root,
         identity=identity,
+        authorization_context=authorization_context,
     )
     if evidence_adoption is None:
         return None
