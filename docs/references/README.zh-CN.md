@@ -1,16 +1,60 @@
 # References
 
-本目录保存仍有价值、但不属于 active development-plan 层的技术上下文。
+本目录保存仍有价值、但不属于 active development-plan、runtime contract 或 execution gate 层的技术上下文。
 
-当前分组：
+这里用于理解背景、集成形态、parity 证据、定位和验证历史。当前执行 gate 仍在
+`docs/program/`，runtime authority 仍在 `docs/runtime/`，active truth 从核心文档进入：
+
+- [文档索引](../README.zh-CN.md)
+- [项目概览](../project.md)
+- [当前状态](../status.md)
+- [架构](../architecture.md)
+- [不可变约束](../invariants.md)
+- [关键决策](../decisions.md)
+- [Program portfolio consolidation](../program/program_portfolio_consolidation.md)
+
+## Current Mainline References
 
 - [MAS 单项目质量与自治主线](./mas_single_project_quality_and_autonomy_mainline.md)
-- [MDS capability parity matrix](./mds_capability_parity_matrix.md)
-- [Plan completion ledger](./plan_completion_ledger.md)
+- [AI-first research OS architecture](./ai_first_research_os_architecture.md)
 - [项目修复优先级图](./project_repair_priority_map.md)
+- [Series doc governance checklist](./series-doc-governance-checklist.md)
+
+## Workspace And Integration References
+
+- [Disease workspace quickstart](./disease_workspace_quickstart.md)
+- [Workspace architecture](./workspace_architecture.md)
+- [Lightweight product entry and OPL handoff](./lightweight_product_entry_and_opl_handoff.md)
+- [Codex plugin](./codex_plugin.md)
+- [Codex plugin release](./codex_plugin_release.md)
+- [Domain gateway harness OS](./domain_gateway_harness_os.md)
+- [OPL family contract adoption](./opl_family_contract_adoption.md)
+- [OPL-managed runtime three-layer contract](./opl_managed_runtime_three_layer_contract.md)
+
+## MDS Learning And Intake References
+
+- [MedDeepScientist references](./med-deepscientist/README.zh-CN.md)
+
+`med-deepscientist/` 包含 DeepScientist recurring learning 的 active policy/protocol。
+dated intake 记录保存在 `docs/history/program/`，作为已完成轮次的快照。
+
+## Positioning And Architecture References
+
+- [Domain Harness OS positioning](./domain-harness-os-positioning.md)
+- [Open Harness OS architecture](./open_harness_os_architecture.md)
+- [Research Foundry positioning](./research_foundry_positioning.md)
+- [Research Foundry medical phase ladder](./research_foundry_medical_phase_ladder.md)
+- [Research Foundry 与 Med Auto Science 仓库分工](./repo_split_between_research_foundry_and_med_autoscience.md)
+
+## Ledgers, Parity, And Verification References
+
+- [Plan completion ledger](./plan_completion_ledger.md)
+- [MDS capability parity matrix](./mds_capability_parity_matrix.md)
 - [真实 study relaunch 验证](./real_study_relaunch_verification.md)
-- [MedDeepScientist references](./med-deepscientist/README.md)
 
-`med-deepscientist/` 包含 DeepScientist recurring learning 的 active policy/protocol。dated intake 记录保存在 `docs/history/program/`，作为已完成轮次的快照。
+## Lifecycle Rule
 
-当前执行队列以 [Program portfolio consolidation](../program/program_portfolio_consolidation.md) 为准。
+references 是支持材料。它可以保存 rationale、comparison、integration notes 和 evidence
+history，但不认证当前 runtime state、publication readiness、controller authority 或 active
+execution gate。若 reference 与当前真相冲突，以核心文档、runtime contracts、policy docs、
+durable JSON/schema surfaces 和 active program board 为准。
