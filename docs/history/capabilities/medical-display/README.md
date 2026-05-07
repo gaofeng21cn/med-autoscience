@@ -5,6 +5,10 @@
 These files are historical or provenance-only records for the medical display capability family.
 They are useful for audit and learning history, but they are not the active execution surface.
 
+Current capability entry:
+
+- [Medical display capability entry](../../../capabilities/medical-display/README.md)
+
 Current active surfaces:
 
 - [Medical display active board](../../../capabilities/medical-display/medical_display_active_board.md)

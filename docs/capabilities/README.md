@@ -6,6 +6,6 @@ This directory contains active capability-family documentation.
 
 Current capability families:
 
-- [Medical display](./medical-display/medical_display_portfolio_consolidation.md)
+- [Medical display](./medical-display/README.md)
 
 Historical capability records live under [capability history](../history/capabilities/README.md).

@@ -5,6 +5,10 @@
 这些文件是医学展示能力线的历史记录或 provenance-only 记录。
 它们用于审计和学习脉络，不作为当前 active execution surface。
 
+当前能力线入口：
+
+- [医学展示能力线入口](../../../capabilities/medical-display/README.zh-CN.md)
+
 当前 active surface：
 
 - [医学展示 active board](../../../capabilities/medical-display/medical_display_active_board.md)
