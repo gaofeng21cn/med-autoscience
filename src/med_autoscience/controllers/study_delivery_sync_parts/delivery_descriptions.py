@@ -1,12 +1,8 @@
 from __future__ import annotations
 
-import argparse
 import hashlib
 import json
 import shutil
-import tempfile
-import zipfile
-from datetime import datetime, timezone
 from pathlib import Path
 from collections.abc import Mapping
 from typing import Any
@@ -80,7 +76,6 @@ from .staging_and_sources import (
     _is_pending_submission_item,
     build_submission_todo_from_manifest,
     build_current_package_readme,
-    sync_current_package_projection,
 )
 
 

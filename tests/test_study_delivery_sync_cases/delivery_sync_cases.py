@@ -179,9 +179,8 @@ def test_sync_study_delivery_for_submission_minimal_mirrors_review_ledger(tmp_pa
         and item["target_path"] == str(mirrored_ledger_path.resolve())
         for item in delivery_manifest["copied_files"]
     )
-def test_sync_study_delivery_preserves_existing_submission_delivery_when_projection_write_fails(
+def test_sync_study_delivery_preserves_existing_submission_delivery_when_materialization_fails(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
@@ -199,17 +198,10 @@ def test_sync_study_delivery_preserves_existing_submission_delivery_when_project
     baseline_current_package_zip = (manuscript_root / "current_package.zip").read_bytes()
     baseline_delivery_manifest = (manuscript_root / "delivery_manifest.json").read_text(encoding="utf-8")
 
-    write_text(paper_root / "submission_minimal" / "manuscript.docx", "updated docx")
-    original_build_zip = module.build_zip_from_directory
+    (paper_root / "submission_minimal" / "manuscript.docx").unlink()
+    (paper_root / "submission_minimal" / "manuscript.docx").mkdir()
 
-    def failing_build_zip(*, source_root: Path, output_path: Path) -> None:
-        if output_path.name == "current_package.zip":
-            raise RuntimeError("simulated current package zip failure")
-        original_build_zip(source_root=source_root, output_path=output_path)
-
-    monkeypatch.setattr(module, "build_zip_from_directory", failing_build_zip)
-
-    with pytest.raises(RuntimeError, match="simulated current package zip failure"):
+    with pytest.raises(IsADirectoryError):
         module.sync_study_delivery(
             paper_root=paper_root,
             stage="submission_minimal",
@@ -221,6 +213,41 @@ def test_sync_study_delivery_preserves_existing_submission_delivery_when_project
     ).read_text(encoding="utf-8") == baseline_current_package_docx
     assert (manuscript_root / "current_package.zip").read_bytes() == baseline_current_package_zip
     assert (manuscript_root / "delivery_manifest.json").read_text(encoding="utf-8") == baseline_delivery_manifest
+
+
+def test_sync_study_delivery_repeated_sync_preserves_package_equivalence(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    manuscript_root = study_root / "manuscript"
+    first_manifest = json.loads((manuscript_root / "delivery_manifest.json").read_text(encoding="utf-8"))
+    first_readme = (manuscript_root / "current_package" / "README.md").read_text(encoding="utf-8")
+    with zipfile.ZipFile(manuscript_root / "current_package.zip") as archive:
+        first_zip_names = sorted(archive.namelist())
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    second_manifest = json.loads((manuscript_root / "delivery_manifest.json").read_text(encoding="utf-8"))
+    second_readme = (manuscript_root / "current_package" / "README.md").read_text(encoding="utf-8")
+    with zipfile.ZipFile(manuscript_root / "current_package.zip") as archive:
+        second_zip_names = sorted(archive.namelist())
+
+    volatile_manifest_keys = {"generated_at"}
+    assert {
+        key: value for key, value in first_manifest.items() if key not in volatile_manifest_keys
+    } == {
+        key: value for key, value in second_manifest.items() if key not in volatile_manifest_keys
+    }
+    assert first_readme == second_readme
+    assert first_zip_names == second_zip_names
 def test_sync_study_delivery_projects_charter_linkage_into_manifest_and_current_package(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)

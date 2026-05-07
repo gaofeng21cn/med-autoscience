@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -14,28 +13,42 @@ from med_autoscience.controllers.submission_package_layout import (
     resolve_submission_manifest_path,
 )
 
-from .staging_and_sources import (
-    FORMAL_PAPER_DELIVERY_RELATIVE_PATHS,
-    build_current_package_readme,
-    build_submission_todo_from_manifest,
+from .delivery_context import FORMAL_PAPER_DELIVERY_RELATIVE_PATHS
+from .delivery_io import (
+    build_zip_from_directory,
     copy_file,
     copy_tree,
     dump_json,
     reset_directory,
     write_text,
 )
+from .delivery_rendering import (
+    build_current_package_readme,
+    build_submission_todo_from_manifest,
+)
+
+
+def _append_generated_file(
+    generated_files: list[dict[str, str]],
+    *,
+    category: str,
+    path: Path,
+) -> None:
+    generated_files.append(
+        {
+            "category": category,
+            "path": str(path.resolve()),
+        }
+    )
 
 
 def _build_zip_from_directory(*, source_root: Path, output_path: Path) -> None:
-    facade = sys.modules.get("med_autoscience.controllers.study_delivery_sync")
-    if facade is not None:
-        facade_build_zip = getattr(facade, "build_zip_from_directory", None)
-        if callable(facade_build_zip):
-            facade_build_zip(source_root=source_root, output_path=output_path)
-            return
-    from .staging_and_sources import build_zip_from_directory
-
     build_zip_from_directory(source_root=source_root, output_path=output_path)
+
+
+__all__ = [
+    "sync_current_package_projection",
+]
 
 
 def _copy_current_package_audit_surfaces(
@@ -119,20 +132,6 @@ def _source_signature_payload_from_manifest(source_manifest_path: Path) -> dict[
         "source_paths": list(source_contract.get("source_paths") or []),
         "source_files": list(source_contract.get("source_files") or []),
     }
-
-
-def _append_generated_file(
-    generated_files: list[dict[str, str]],
-    *,
-    category: str,
-    path: Path,
-) -> None:
-    generated_files.append(
-        {
-            "category": category,
-            "path": str(path.resolve()),
-        }
-    )
 
 
 def _write_current_package_reproducibility_documents(
