@@ -47,6 +47,16 @@ def two_layer_ai_repair_policy_payload() -> dict[str, Any]:
             "heartbeat_interval_seconds": DEVELOPER_HEARTBEAT_INTERVAL_SECONDS,
             "owner_pickup_overdue_after_hours": OWNER_PICKUP_OVERDUE_HOURS,
             "developer_attention_after_hours": DEVELOPER_SUPERVISOR_ATTENTION_HOURS,
+            "default_enablement": {
+                "auto_enabled_for_expected_github_login": "gaofeng21cn",
+                "manual_enablement_supported": True,
+                "unauthorized_users_fall_back_to": "external_observe",
+            },
+            "scope_policy": {
+                "scope": "workspace_dynamic_active_studies",
+                "new_mas_task_enrollment": "automatic_on_next_heartbeat",
+                "hard_coded_study_allowlist_required": False,
+            },
             "same_tick_actions": [
                 "runtime supervisor-scan --apply-safe-actions --developer-supervisor-mode developer_apply_safe",
                 "runtime supervisor-consume --mode developer_apply_safe --apply",

@@ -16,6 +16,16 @@ def test_two_layer_ai_repair_policy_freezes_intervals_and_escalation_thresholds(
     assert payload["developer_supervisor"]["heartbeat_interval_seconds"] == 3600
     assert payload["developer_supervisor"]["owner_pickup_overdue_after_hours"] == 2
     assert payload["developer_supervisor"]["developer_attention_after_hours"] == 6
+    assert payload["developer_supervisor"]["default_enablement"] == {
+        "auto_enabled_for_expected_github_login": "gaofeng21cn",
+        "manual_enablement_supported": True,
+        "unauthorized_users_fall_back_to": "external_observe",
+    }
+    assert payload["developer_supervisor"]["scope_policy"] == {
+        "scope": "workspace_dynamic_active_studies",
+        "new_mas_task_enrollment": "automatic_on_next_heartbeat",
+        "hard_coded_study_allowlist_required": False,
+    }
     assert payload["developer_supervisor"]["same_tick_actions"] == [
         "runtime supervisor-scan --apply-safe-actions --developer-supervisor-mode developer_apply_safe",
         "runtime supervisor-consume --mode developer_apply_safe --apply",

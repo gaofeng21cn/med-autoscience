@@ -486,6 +486,11 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
         "--developer-supervisor-mode developer_apply_safe\n"
         "supervisor-consume --mode developer_apply_safe --apply\n"
         "supervisor-execute-dispatch --mode developer_apply_safe --apply\n"
+        "workspace_dynamic_active_studies\n"
+        "new MAS tasks\n"
+        "active_run_id\n"
+        "worker_running\n"
+        "worktree\n"
         "action_queue\n"
         "why_not_applied\n"
         '"""\n',
@@ -609,6 +614,7 @@ def test_ensure_supervision_projects_codex_app_heartbeat_as_compat_owner(
         'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
         '--developer-supervisor-mode developer_apply_safe supervisor-consume --mode developer_apply_safe --apply '
         'supervisor-execute-dispatch --mode developer_apply_safe --apply '
+        'workspace_dynamic_active_studies new MAS tasks active_run_id worker_running worktree '
         'action_queue why_not_applied"\n',
         encoding="utf-8",
     )
@@ -637,6 +643,7 @@ def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
         'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
         '--developer-supervisor-mode developer_apply_safe supervisor-consume --mode developer_apply_safe --apply '
         'supervisor-execute-dispatch --mode developer_apply_safe --apply '
+        'workspace_dynamic_active_studies new MAS tasks active_run_id worker_running worktree '
         'action_queue why_not_applied"\n',
         encoding="utf-8",
     )
@@ -674,8 +681,41 @@ def test_codex_app_automation_prompt_check_reports_missing_tokens(tmp_path: Path
     assert result["missing_prompt_tokens"] == [
         "supervisor-consume --mode developer_apply_safe --apply",
         "supervisor-execute-dispatch --mode developer_apply_safe --apply",
+        "workspace_dynamic_active_studies",
+        "new MAS tasks",
+        "active_run_id",
+        "worker_running",
+        "worktree",
         "action_queue",
         "why_not_applied",
+    ]
+
+
+def test_codex_app_automation_prompt_check_rejects_study_allowlist_only_prompt(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    automation_path = tmp_path / "automation.toml"
+    automation_path.write_text(
+        'status = "ACTIVE"\n'
+        'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
+        '--developer-supervisor-mode developer_apply_safe supervisor-consume --mode developer_apply_safe --apply '
+        'supervisor-execute-dispatch --mode developer_apply_safe --apply '
+        'study_ids=002-dm-china-us-mortality-attribution,003-dpcc-primary-care-phenotype-treatment-gap '
+        'action_queue why_not_applied"\n',
+        encoding="utf-8",
+    )
+
+    result = module._codex_app_automation_prompt_check(automation_path=automation_path)
+
+    assert result["status"] == "incomplete"
+    assert result["active"] is True
+    assert result["scope_policy"] == "workspace_dynamic_active_studies"
+    assert result["new_task_auto_enrollment_required"] is True
+    assert result["missing_prompt_tokens"] == [
+        "workspace_dynamic_active_studies",
+        "new MAS tasks",
+        "active_run_id",
+        "worker_running",
+        "worktree",
     ]
 
 

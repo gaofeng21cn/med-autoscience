@@ -225,6 +225,9 @@ runtime repair 与 publication gate 的 owner routing 使用 controller terminal
 - owner request `2` 小时未被 pickup，标记 `owner_pickup_overdue`
 - action queue `6` 小时仍未被消费或仍无进展，标记 `developer_supervisor_attention_required`
 - developer heartbeat 必须评估内置 AI monitoring/repair 是否失效，并在 `developer_apply_safe` 与 GitHub gate 通过时消费队列、写 default executor dispatch request、执行 ready dispatch，或明确 blocked reason / next owner
+- 对 GitHub 用户 `gaofeng21cn` 的本机环境，`developer_apply_safe` 是默认开发者模式；其他用户或生产环境默认降级到 `external_observe`，也可以通过受控 profile / command 显式开启。
+- developer heartbeat 的作用域是 `workspace_dynamic_active_studies`：每轮从 workspace 当前 truth surface 发现 active / auto-resume / needs-repair 的 MAS study，新建 MAS 任务在下一次 heartbeat 自动纳入巡检，不要求在 Codex App prompt 里硬编码 study_id allowlist。
+- 如果新任务出现 `quest_status=active` 但 `active_run_id=null`、`worker_running=false`、`runtime_liveness_status=none`、`quest_marked_running_but_no_live_session` 或 `runtime_recovery_retry_budget_exhausted`，developer heartbeat 必须判定为 active-but-not-running，并按 `scan -> consume -> execute-dispatch -> rescan` 接手平台修复。
 
 这解释了之前的故障模式：heartbeat 只运行 `supervisor-scan` 时，系统能准确报告 `AI reviewer queue` 或 `publication_gate_specificity_required` 积压，但没有运行 `supervisor-consume`，也没有生成默认 Codex executor dispatch request，所以“AI 监测发现问题”与“AI 修复真正被派单执行”之间断开。后续如果只运行到 `supervisor-consume`，也只能得到 `dispatch_status=ready`；必须同 tick 运行 `supervisor-execute-dispatch`，才能把 ready dispatch 推进为 `executed` 或明确 blocked。
 

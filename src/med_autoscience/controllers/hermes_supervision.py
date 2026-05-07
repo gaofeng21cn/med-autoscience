@@ -8,9 +8,11 @@ from pathlib import Path
 import platform
 import re
 import subprocess
-import tomllib
-from typing import Any, Iterable
+from typing import Any
 
+from med_autoscience.controllers.hermes_supervision_parts.codex_app_automation import (
+    codex_app_automation_prompt_check as _shared_codex_app_automation_prompt_check,
+)
 from med_autoscience.developer_supervisor_mode import current_github_user_gate
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
@@ -43,16 +45,6 @@ _SILENT_SUCCESS_RESPONSE = "[SILENT] Hermes-hosted MedAutoScience supervision ti
 _LEGACY_WATCH_RUNTIME_COMMAND = "run_medautosci watch"
 _CURRENT_WATCH_RUNTIME_COMMAND = "run_medautosci runtime watch"
 _DEVELOPER_SUPERVISOR_GITHUB_LOGIN = "gaofeng21cn"
-_CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS = (
-    "developer_apply_safe",
-    "mode=developer_apply_safe",
-    "supervisor-scan --apply-safe-actions",
-    "--developer-supervisor-mode developer_apply_safe",
-    "supervisor-consume --mode developer_apply_safe --apply",
-    "supervisor-execute-dispatch --mode developer_apply_safe --apply",
-    "action_queue",
-    "why_not_applied",
-)
 _DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS = (
     "--apply-safe-actions",
     "--developer-supervisor-mode",
@@ -139,17 +131,6 @@ def _portable_supervisor_templates(profile: WorkspaceProfile) -> dict[str, Path]
     }
 
 
-def _string_values(value: object, *, key: str | None = None) -> Iterable[tuple[str | None, str]]:
-    if isinstance(value, str):
-        yield key, value
-    elif isinstance(value, dict):
-        for nested_key, nested_value in value.items():
-            yield from _string_values(nested_value, key=str(nested_key))
-    elif isinstance(value, list):
-        for item in value:
-            yield from _string_values(item, key=key)
-
-
 def _github_user_login_check() -> dict[str, Any]:
     gate = current_github_user_gate(expected_login=_DEVELOPER_SUPERVISOR_GITHUB_LOGIN)
     return {
@@ -164,45 +145,7 @@ def _github_user_login_check() -> dict[str, Any]:
 
 
 def _codex_app_automation_prompt_check(*, automation_path: Path | None = None) -> dict[str, Any]:
-    path = automation_path or _codex_app_automation_path()
-    if not path.is_file():
-        return {
-            "path": str(path),
-            "status": "missing",
-            "active": False,
-            "prompt_contains_required_tokens": False,
-            "required_prompt_tokens": list(_CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS),
-            "missing_prompt_tokens": list(_CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS),
-        }
-    try:
-        payload = tomllib.loads(path.read_text(encoding="utf-8"))
-    except (OSError, tomllib.TOMLDecodeError) as exc:
-        return {
-            "path": str(path),
-            "status": "invalid",
-            "active": False,
-            "prompt_contains_required_tokens": False,
-            "required_prompt_tokens": list(_CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS),
-            "missing_prompt_tokens": list(_CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS),
-            "details": str(exc),
-        }
-    status_values = [value.strip().upper() for key, value in _string_values(payload) if key == "status" and value.strip()]
-    prompt_text = "\n".join(value for key, value in _string_values(payload) if key == "prompt" and value.strip())
-    missing_tokens = [
-        token
-        for token in _CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS
-        if token not in prompt_text
-    ]
-    active = "ACTIVE" in status_values
-    return {
-        "path": str(path),
-        "status": "ok" if active and not missing_tokens else "incomplete",
-        "active": active,
-        "status_values": status_values,
-        "prompt_contains_required_tokens": not missing_tokens,
-        "required_prompt_tokens": list(_CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS),
-        "missing_prompt_tokens": missing_tokens,
-    }
+    return _shared_codex_app_automation_prompt_check(automation_path or _codex_app_automation_path())
 
 
 def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager: str, interval_seconds: int) -> dict[str, Any]:
